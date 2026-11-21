@@ -9,7 +9,7 @@
 | 1     | 1    | merged (opus)   | a589f8fa (716e20cd, 2b37171b)                   |
 | 2     | 2    | merged (opus)   | 20b816d5 (0b254449, 3990c7ec)                   |
 | 3     | 2    | merged (sonnet) | 8b41d9c8 (da53f874, 160c7ee3)                   |
-| 4     | 2    | started (opus)  |                                                 |
+| 4     | 2    | merged (opus)   | 9f79243e (f2073aaa, 537c6236)                   |
 | 5     | 3    | blocked by 4    |                                                 |
 | 6     | 3    | blocked by 3, 4 |                                                 |
 | 7     | 3    | blocked by 3, 4 |                                                 |
@@ -26,6 +26,10 @@ Slice 1 merged as a589f8fa; worktree removed. Wave 2 (slices 2, 3, 4) worktrees 
 **Pending sync:** quick-fixes wave 13 landed in dev (bf0891df): rewrites TimelineFilters, the Today card (TodayCard/TodayRow/todayStatus/useTodayCard*) and phase2.spec.mjs; no migration. `pnpm prd sync` after wave 2 merges; expect a conflict on slice 1's RepeatMark in the Today card (keep it as one added element).
 
 Slices 2 and 3 merged (20b816d5, 8b41d9c8); worktrees removed. Slice 10 is now unblocked: start it after slice 4 merges and the pending sync (it needs `dev`'s harness).
+
+Slice 4 merged (9f79243e); wave 2 done. Next: sync dev, then wave 3 (5, 6, 7) and slice 10.
+
+**Carried from slice 4's hand-off:** migration `0026_calendar_settings.sql` (no hand edits). **Deviation:** `care_group.details_outside_allowed` is synced (care_group stream + device schema; `rolesSql.test` refuses a partly synced table) so the owners' switch shows offline and live; PowerSync needs a restart. Settings page `routes/app/groups/settings/calendar/` with card files `RemindersCard`, `FeedCard`, `GoogleCard` (not on native), `DetailsCard`; cards take `CalendarCardProps`, posts go through `CARD_ACTIONS` (`cardActions.ts`) by `intent`; `useCalendarSave`/`CalendarSaveLine` for own settings. Item uids `entry:<id>`/`task:<id>`; notes count as reminders when a series visit or created before due; default lengths 60 min (appointment), 30 (reminder, timed task). Slice 7 enqueues its Google job in `calendarSettingService.update` and `setDetailsAllowed`. Stub `docs/domain/calendars.md` exists (libLayout.test needs it). Docs: calendars.md (replace stub) + Area index; care-groups.md (column, removal clears rows, permission rows); app-shell.md (subpage, owners' card on Details); sync.md (care_group column); data-layer.md (0000–0026, feed hash in personal-access exclusions).
 
 **Carried from slice 2's hand-off:** `@caretook/data/series` now points at `appointments/series.ts` (re-exports `seriesVisits`, `seriesEdit`), so `--changed` names the whole lean set: run `--suite` at landing only after asking the user. "This and later" takes time of day and length only (a day change goes through the rule); not offered on a started visit; the series sheet doesn't edit providers. A split uploads: new series PUT, old series PATCH, entry PATCHes, entry DELETEs, then new visit PUTs (for slice 10). New error `timelineEntryService:pastVisit` (409). `ui/useShowModal` extracted from ConfirmDialog. Docs: appointments.md (`planSeriesEdit` scope rules, `applySeriesEdit`, `updateEntry` `{ detach }`, cancel/reschedule detach, `SeriesScopeDialog`/`useSeriesScope`, `editSeries` item, `SeriesEditSheet`, entry page asks on title/time/place, `ONLY_THIS_VISIT_STATE`); components.md (`ui/useShowModal`); tests line (`upcoming/upcomingSeries.browser.test.tsx`). `timelineSimpleNow` flake seen again (load 57), 3/3 alone.
 
