@@ -2,7 +2,7 @@ import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 
 import { addDays, localDate } from "@caretook/data/schema";
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
@@ -10,6 +10,7 @@ import * as tasksRoute from "./route";
 import * as taskPage from "../task/route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, task, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
+import { clearTaskUndo } from "~/lib/tasks/taskUndo";
 
 // The Tasks section (tasks slice 1): the list's chips, sections, ticks with
 // Undo, Done with Reopen, what viewers see, and the add and edit sheets with
@@ -83,6 +84,8 @@ const ticks = () => [...document.querySelectorAll<HTMLInputElement>("main [data-
 const chip = (name: string) =>
   page.getByRole("navigation", { name: "Show tasks" }).getByRole("link", { name });
 
+afterEach(() => clearTaskUndo());
+
 describe("the task list", () => {
   test("opens on Mine when I have open tasks, in sections; Everyone shows the rest, typed names too", async () => {
     const device = await open();
@@ -131,9 +134,41 @@ describe("the task list", () => {
     const patch = (await device.queued()).find((w) => w.op === "PATCH");
     expect(Object.keys(patch?.data ?? {}).sort()).toEqual(["done_at", "done_by"]);
 
-    await userEvent.click(page.getByRole("button", { name: "Undo" }));
+    await userEvent.click(page.getByRole("button", { name: "Undo Pick up the walker" }));
     await expect.poll(() => titles("today")).toEqual(["Pick up the walker"]);
     expect(document.querySelector("[data-task-undo]")).toBeNull();
+  });
+
+  test("two ticks each keep their own Undo; undoing the first reopens only it", async () => {
+    const device = await open();
+    const pharmacy = page.getByRole("checkbox", { name: "Mark “Call the pharmacy” done" });
+    await expect.element(pharmacy).toBeInTheDocument();
+    await userEvent.click(pharmacy);
+    await expect.poll(() => titles("overdue")).toEqual([]);
+    await userEvent.click(page.getByRole("checkbox", { name: "Mark “Pick up the walker” done" }));
+    await expect.poll(() => titles("today")).toEqual([]);
+
+    // One status region, newest first, each line with its own Undo.
+    const lines = () =>
+      [...document.querySelectorAll("[data-task-undo] [data-task-undo-label]")].map((el) => el.textContent);
+    await expect.poll(lines).toEqual(["Done: Pick up the walker", "Done: Call the pharmacy"]);
+    // Both lines sit in the one status region.
+    expect(document.querySelectorAll('[role="status"] [data-task-undo-line]')).toHaveLength(2);
+    await expect.element(page.getByRole("button", { name: "Undo Pick up the walker" })).toBeVisible();
+
+    await userEvent.click(page.getByRole("button", { name: "Undo Call the pharmacy" }));
+    await expect.poll(() => titles("overdue")).toEqual(["Call the pharmacy"]);
+    await expect.poll(lines).toEqual(["Done: Pick up the walker"]);
+    expect(titles("today")).toEqual([]);
+    expect(titles("done")).toContain("Pick up the walker");
+    expect(titles("done")).not.toContain("Call the pharmacy");
+    const rows = await device.query<{ title: string; done: number }>(
+      "SELECT title, done_at IS NOT NULL AS done FROM task WHERE title IN ('Call the pharmacy', 'Pick up the walker') ORDER BY title",
+    );
+    expect(rows).toEqual([
+      { title: "Call the pharmacy", done: 0 },
+      { title: "Pick up the walker", done: 1 },
+    ]);
   });
 
   test("Done lists finished tasks newest first; unticking one reopens it", async () => {
