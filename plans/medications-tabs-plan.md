@@ -13,6 +13,8 @@
 
 **timeline-ux-2 is in `dev`** (f1fc883e, f34eeeec) and in this branch, so slice 2 waits only for slice 1. B-226 claimed 2026-11-21.
 
+**Overlap seen before slice 2 (2026-11-21):** tasks-2 replaces the Upcoming and Tasks `GROUP_SECTIONS` entries with Planner (next to, not on, the Medications entry; a merge may need both kept). quick-fixes adds `expect.poll` to lines in `today`, `medicationForm` and `allergies` browser tests; whichever lands second resolves at sync.
+
 **Start conditions:** slice 1 can start at once. **Slice 2 waits for `timeline-ux-2` in `dev`** (its slice 1 rewrites the Medications header with `PageHeader`); `pnpm prd sync` before it. Not alongside `medications-4` (B-213: the Today schedule's mobile redesign), which changes the same page and comes after this PRD.
 
 **Landing:** no migration, no dependencies, no browser check visits these screens. Land when both slices are merged; run the checks once at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking.
