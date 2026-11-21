@@ -93,8 +93,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-196 | feature | triaged | connectors-2 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
 | B-221 | feature | triaged | simple-mode |  | locked simple mode is really confusing. We may want to just add a new user type at this point for… |
-| B-229 | bug | ready | quick-fixes | prd/quick-fixes | on timeline page, header and Today section should be in same column width as the rest of the… |
-| B-231 | bug | ready | quick-fixes | prd/quick-fixes | "Nothing logged today yet." message should be in a border box like a timeline entry box to match… |
+| B-229 | bug | landed | quick-fixes | prd/quick-fixes | on timeline page, header and Today section should be in same column width as the rest of the… |
+| B-231 | bug | landed | quick-fixes | prd/quick-fixes | "Nothing logged today yet." message should be in a border box like a timeline entry box to match… |
 | B-236 | bug | triaged | simple-mode |  | In locked simple mode, SimpleNext's 'See all' (Upcoming) and task links look clickable but bounce back to the timeline: lockAllows only permits the timeline and entry routes |
 | B-239 | bug | triaged | github-review |  | pnpm prd review: --json mode prints progress lines (asked Codex…, waiting) on stdout, so its output isn't valid JSON |
 | B-240 | bug | triaged | github-review |  | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
@@ -414,7 +414,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-229 · bug · on timeline page, header and Today section should be in same column width as the rest of the…
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: b6dd71d3
@@ -424,7 +424,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-231 · bug · "Nothing logged today yet." message should be in a border box like a timeline entry box to match…
 
-- status: ready
+- status: landed
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: b6dd71d3
