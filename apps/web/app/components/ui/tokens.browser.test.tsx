@@ -22,9 +22,8 @@ describe("text-muted and text-faint", () => {
     const measured: Record<string, number> = {};
     for (const surface of ["bg-base-200", "bg-base-100"]) {
       const box = document.querySelector<HTMLElement>(`[data-surface="${surface}"]`)!;
-      const bg = getComputedStyle(box).backgroundColor;
       for (const tone of ["text-muted", "text-faint"]) {
-        const ratio = textContrast(box.querySelector(`.${tone}`)!, bg);
+        const ratio = textContrast(box.querySelector(`.${tone}`)!);
         measured[`${tone} on ${surface}`] = Math.round(ratio * 100) / 100;
         expect(ratio, `${tone} on ${surface}, ${theme}`).toBeGreaterThanOrEqual(4.5);
       }

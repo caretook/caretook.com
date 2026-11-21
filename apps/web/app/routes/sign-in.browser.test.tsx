@@ -100,6 +100,21 @@ describe("the ways to sign in", () => {
       .toHaveAttribute("aria-current", "page");
   });
 
+  test("switching ways keeps where to go after signing in", async () => {
+    sessionAnswers(() => Response.json(null));
+    const to = "/app/groups/g-1/planner";
+    await open(`/sign-in?redirectTo=${encodeURIComponent(to)}`);
+    const nav = page.getByRole("navigation", { name: "Ways to sign in" });
+    await userEvent.click(nav.getByRole("link", { name: "Email", exact: true }));
+    await expect.element(page.getByRole("button", { name: "Send email" })).toBeVisible();
+    const kept = () => document.querySelector<HTMLInputElement>('input[name="redirectTo"]')?.value;
+    expect(kept()).toBe(to);
+    await userEvent.click(nav.getByRole("link", { name: "Password" }));
+    await expect.element(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+    expect(kept()).toBe(to);
+    await expect.element(nav.getByRole("link", { name: "Password" })).toHaveAttribute("aria-current", "page");
+  });
+
   test("the password form links to Forgot password?", async () => {
     sessionAnswers(() => Response.json(null));
     await open("/sign-in");

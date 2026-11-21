@@ -105,6 +105,8 @@ beforeAll(() => {
     TRUNK: "dev",
     CARETOOK_CLAUDE_PROJECTS: projects,
     CARETOOK_ITERM_APP: iterm,
+    // A recorded session's own sessions dir would leak in and win over the test repo's.
+    CARETOOK_SESSIONS_DIR: "",
   };
 
   execFileSync("git", ["init", "-q", "-b", "dev", main]);
@@ -304,7 +306,9 @@ describe("pnpm prd open", () => {
     expect(script).toMatch(/set previousTab to current tab of theWindow/);
     expect(script).toMatch(/if quiet then tell previousTab to select/);
     expect(script).toMatch(/set newSession to current session of newTab/);
-    expect(script).toMatch(/tell newSession\s+set name to title\s+write text cmd/);
+    expect(script).toMatch(/tell newSession\s+set name to tabTitle\s+write text cmd/);
+    // "title" is a session property in iTerm2: a variable of that name breaks "set name"
+    expect(script).not.toMatch(/set title to/);
   });
 
   it("opens any command line in a tab with --command, exec'd so the tab closes with it", () => {
