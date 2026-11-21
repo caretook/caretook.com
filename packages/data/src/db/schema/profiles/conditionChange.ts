@@ -12,8 +12,12 @@ import { CONDITION_STATUSES } from "./recipientCondition";
 // both write the same entry, under the same derived id (`conditionChangeId`).
 // Deleting a condition (a mistake) writes none. Client-safe.
 
-/** The fields whose edits are recorded. A status change is the change itself (resolved, reactivated). */
-export const CONDITION_TRACKED_FIELDS = ["name", "since", "note"] as const;
+/**
+ * The fields whose edits are recorded. A status change is the change itself
+ * (resolved, reactivated). Who diagnosed it and who manages it (slice 3) are
+ * recorded by name.
+ */
+export const CONDITION_TRACKED_FIELDS = ["name", "since", "note", "diagnosedBy", "managedBy"] as const;
 export type ConditionTrackedField = (typeof CONDITION_TRACKED_FIELDS)[number];
 
 export const CONDITION_CHANGES = ["added", "changed", "resolved", "reactivated"] as const;
@@ -26,6 +30,9 @@ const conditionSummaryZSchema = z.strictObject({
   sinceYear: z.int().nullable().optional(),
   sinceMonth: z.int().nullable().optional(),
   note: z.string().nullable().optional(),
+  // Providers by name: who diagnosed it, and who manages it (by name).
+  diagnosedBy: z.string().nullable().optional(),
+  managedBy: z.array(z.string()).optional(),
 });
 export type ConditionSummary = z.infer<typeof conditionSummaryZSchema>;
 
@@ -48,17 +55,77 @@ export const conditionChangeDetailsZSchema = z.strictObject({
 });
 export type ConditionChangeDetails = z.infer<typeof conditionChangeDetailsZSchema>;
 
-type ChangeSource = Pick<RecipientConditionContent, "name" | "status" | "sinceYear" | "sinceMonth" | "note">;
+/** A provider on a condition: compared by id, recorded by name. */
+export type ConditionProviderRef = { id: string; name: string };
 
-const sameField = (field: ConditionTrackedField, a: ChangeSource, b: ChangeSource) =>
-  field === "since"
-    ? (a.sinceYear ?? null) === (b.sinceYear ?? null) && (a.sinceMonth ?? null) === (b.sinceMonth ?? null)
-    : (a[field] ?? null) === (b[field] ?? null);
+/**
+ * A condition at one moment, as a writer knows it. `diagnosedBy` and
+ * `managedBy` are left out when the save doesn't know them: a field is only
+ * compared when both sides have it.
+ */
+export type ConditionChangeSource = Pick<
+  RecipientConditionContent,
+  "name" | "status" | "sinceYear" | "sinceMonth" | "note"
+> & {
+  diagnosedBy?: ConditionProviderRef | null;
+  managedBy?: readonly ConditionProviderRef[];
+};
+type ChangeSource = ConditionChangeSource;
 
-const fieldSummary = (source: ChangeSource, field: ConditionTrackedField): ConditionSummary =>
-  field === "since"
-    ? { sinceYear: source.sinceYear ?? null, sinceMonth: source.sinceMonth ?? null }
-    : { [field]: source[field] ?? null };
+/** Names in a stable order, so a list compares and reads the same everywhere. */
+export const managerNames = (refs: readonly { name: string }[]) =>
+  refs
+    .map((r) => r.name)
+    .sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" }) || (a < b ? -1 : 1));
+
+const sameIds = (a: readonly ConditionProviderRef[], b: readonly ConditionProviderRef[]) => {
+  const ids = new Set(a.map((r) => r.id.toLowerCase()));
+  return a.length === b.length && b.every((r) => ids.has(r.id.toLowerCase()));
+};
+
+const sameField = (field: ConditionTrackedField, a: ChangeSource, b: ChangeSource) => {
+  switch (field) {
+    case "since":
+      return (
+        (a.sinceYear ?? null) === (b.sinceYear ?? null) && (a.sinceMonth ?? null) === (b.sinceMonth ?? null)
+      );
+    case "diagnosedBy":
+      if (a.diagnosedBy === undefined || b.diagnosedBy === undefined) return true;
+      return (a.diagnosedBy?.id.toLowerCase() ?? null) === (b.diagnosedBy?.id.toLowerCase() ?? null);
+    case "managedBy":
+      if (a.managedBy === undefined || b.managedBy === undefined) return true;
+      return sameIds(a.managedBy, b.managedBy);
+    default:
+      return (a[field] ?? null) === (b[field] ?? null);
+  }
+};
+
+const fieldSummary = (source: ChangeSource, field: ConditionTrackedField): ConditionSummary => {
+  switch (field) {
+    case "since":
+      return { sinceYear: source.sinceYear ?? null, sinceMonth: source.sinceMonth ?? null };
+    case "diagnosedBy":
+      return { diagnosedBy: source.diagnosedBy?.name ?? null };
+    case "managedBy":
+      return { managedBy: managerNames(source.managedBy ?? []) };
+    default:
+      return { [field]: source[field] ?? null };
+  }
+};
+
+/** Whether a new condition has this field set (an add records only what's set). */
+const isSet = (source: ChangeSource, field: ConditionTrackedField) => {
+  switch (field) {
+    case "since":
+      return source.sinceYear != null;
+    case "diagnosedBy":
+      return !!source.diagnosedBy;
+    case "managedBy":
+      return !!source.managedBy?.length;
+    default:
+      return source[field] != null;
+  }
+};
 
 const summaryOf = (source: ChangeSource, fields: readonly ConditionTrackedField[]): ConditionSummary =>
   Object.assign({}, ...fields.map((field) => fieldSummary(source, field))) as ConditionSummary;
@@ -74,9 +141,7 @@ export const conditionChange = (
 ): Omit<ConditionChangeDetails, "conditionId"> | null => {
   const conditionName = after.name;
   if (!before) {
-    const set = CONDITION_TRACKED_FIELDS.filter((field) =>
-      field === "since" ? after.sinceYear != null : after[field] != null,
-    );
+    const set = CONDITION_TRACKED_FIELDS.filter((field) => isSet(after, field));
     return { conditionName, change: "added", after: { ...summaryOf(after, set), status: after.status } };
   }
 
@@ -87,6 +152,55 @@ export const conditionChange = (
   if (before.status !== after.status)
     return { conditionName, change: after.status === "resolved" ? "resolved" : "reactivated", ...edits };
   return fields.length ? { conditionName, change: "changed", ...edits } : null;
+};
+
+const byTrackedOrder = (fields: readonly ConditionTrackedField[]) =>
+  CONDITION_TRACKED_FIELDS.filter((field) => fields.includes(field));
+
+const sameNames = (a: readonly string[], b: readonly string[]) =>
+  a.length === b.length && a.every((name, i) => name === b[i]);
+
+/**
+ * An entry's details with a change to who manages the condition folded in:
+ * the server links and unlinks one provider at a time, and every link of one
+ * save (one time, so one entry) lands in the same entry. `before` and
+ * `after` are the managers' names around this one link or unlink. An add's
+ * entry takes the managers into `after`; any other keeps the managers from
+ * before the save's first link. Null when the entry is unchanged.
+ */
+export const withManagersChange = (
+  details: ConditionChangeDetails,
+  before: readonly string[],
+  after: readonly string[],
+): ConditionChangeDetails | null => {
+  const names = managerNames(after.map((name) => ({ name })));
+  if (details.change === "added") {
+    const { managedBy: _, ...rest } = details.after ?? {};
+    const next = { ...details, after: names.length ? { ...rest, managedBy: names } : rest };
+    return sameNames(details.after?.managedBy ?? [], names) ? null : next;
+  }
+  const tracked = details.fields?.includes("managedBy") ?? false;
+  const first = tracked ? (details.before?.managedBy ?? []) : managerNames(before.map((name) => ({ name })));
+  if (tracked && sameNames(details.after?.managedBy ?? [], names)) return null;
+  const { managedBy: _b, ...beforeRest } = details.before ?? {};
+  const { managedBy: _a, ...afterRest } = details.after ?? {};
+  const others = (details.fields ?? []).filter((f) => f !== "managedBy");
+  // Back where the save started: only the other fields are left.
+  if (sameNames(first, names)) {
+    if (!tracked) return null;
+    return {
+      ...details,
+      fields: others.length ? others : undefined,
+      before: beforeRest,
+      after: afterRest,
+    };
+  }
+  return {
+    ...details,
+    fields: byTrackedOrder([...others, "managedBy"]),
+    before: { ...beforeRest, managedBy: first },
+    after: { ...afterRest, managedBy: names },
+  };
 };
 
 /** The namespace for condition change entry ids (a fixed, random UUID; never change it). */
@@ -119,13 +233,21 @@ export const conditionSinceWords = (sinceYear: number | null | undefined, sinceM
     : String(sinceYear);
 };
 
-const FIELD_LABELS: Record<ConditionTrackedField, string> = { name: "Name", since: "Since", note: "Note" };
+const FIELD_LABELS: Record<ConditionTrackedField, string> = {
+  name: "Name",
+  since: "Since",
+  note: "Note",
+  diagnosedBy: "Diagnosed by",
+  managedBy: "Managed by",
+};
 
 const fieldValue = (field: ConditionTrackedField, summary: ConditionSummary | undefined) => {
   const value =
     field === "since"
       ? conditionSinceWords(summary?.sinceYear, summary?.sinceMonth)
-      : summary?.[field]?.trim();
+      : field === "managedBy"
+        ? summary?.managedBy?.join(", ")
+        : summary?.[field]?.trim();
   return value || "none";
 };
 
@@ -142,7 +264,8 @@ const STATUS_WORDS: Record<ConditionStatus, string | null> = { active: null, res
  * What a condition change entry says: a heading ("Added Type 2 diabetes",
  * "Resolved Hip fracture", "Changed Asthma") and its lines. An edit's lines
  * are before → after ("Since: 2015 → 2014", "Note: none → Diet-controlled");
- * an add's one line is what was set with it ("Since 2015 · Diet-controlled").
+ * an add's one line is what was set with it ("Since 2015 · Diet-controlled ·
+ * Managed by Dr. Lee").
  */
 export const conditionChangeText = (
   details: ConditionChangeDetails,
@@ -155,6 +278,8 @@ export const conditionChangeText = (
       after.status ? STATUS_WORDS[after.status] : null,
       since && `Since ${since}`,
       after.note?.trim() || null,
+      after.diagnosedBy?.trim() ? `Diagnosed by ${after.diagnosedBy.trim()}` : null,
+      after.managedBy?.length ? `Managed by ${after.managedBy.join(", ")}` : null,
     ].filter(Boolean);
     return { heading, lines: line.length ? [line.join(" · ")] : [] };
   }

@@ -5,6 +5,7 @@ import {
   conditionChangeId,
   conditionChangeText,
   conditionSinceWords,
+  withManagersChange,
 } from "./conditionChange";
 import { medicationChangeId } from "../medications/medication";
 
@@ -180,5 +181,127 @@ describe("conditionSinceWords", () => {
     expect(conditionSinceWords(2021, 3)).toBe("March 2021");
     expect(conditionSinceWords(2021, 12)).toBe("December 2021");
     expect(conditionSinceWords(null, 3)).toBeNull();
+  });
+});
+
+// --- Who diagnosed it and who manages it (conditions slice 3) ----------------
+
+const LEE = { id: "6f1d3c2a-8b4e-4f7a-9c1d-2e3f4a5b6d01", name: "Dr. Lee" };
+const MOSS = { id: "6f1d3c2a-8b4e-4f7a-9c1d-2e3f4a5b6d02", name: "Dr. Ada Moss" };
+const PARK = { id: "6f1d3c2a-8b4e-4f7a-9c1d-2e3f4a5b6d03", name: "Park Clinic" };
+
+describe("conditionChange: providers", () => {
+  it("an add records who diagnosed it and who manages it, by name, when set", () => {
+    expect(
+      conditionChange(null, { ...DIABETES, diagnosedBy: LEE, managedBy: [PARK, MOSS] })?.after,
+    ).toMatchObject({ diagnosedBy: "Dr. Lee", managedBy: ["Dr. Ada Moss", "Park Clinic"] });
+    const bare = conditionChange(null, { ...DIABETES, diagnosedBy: null, managedBy: [] })?.after;
+    expect(bare).not.toHaveProperty("diagnosedBy");
+    expect(bare).not.toHaveProperty("managedBy");
+  });
+
+  it.each([
+    ["added", null, LEE, null, "Dr. Lee"],
+    ["removed", LEE, null, "Dr. Lee", null],
+    ["replaced", LEE, MOSS, "Dr. Lee", "Dr. Ada Moss"],
+  ] as const)("diagnosed by: %s", (_, from, to, before, after) => {
+    expect(conditionChange({ ...DIABETES, diagnosedBy: from }, { ...DIABETES, diagnosedBy: to })).toEqual({
+      conditionName: "Type 2 diabetes",
+      change: "changed",
+      fields: ["diagnosedBy"],
+      before: { diagnosedBy: before },
+      after: { diagnosedBy: after },
+    });
+  });
+
+  it.each([
+    ["added", [LEE], [LEE, MOSS], ["Dr. Lee"], ["Dr. Ada Moss", "Dr. Lee"]],
+    ["removed", [LEE, MOSS], [MOSS], ["Dr. Ada Moss", "Dr. Lee"], ["Dr. Ada Moss"]],
+    ["replaced", [LEE], [PARK], ["Dr. Lee"], ["Park Clinic"]],
+    ["all removed", [LEE], [], ["Dr. Lee"], []],
+  ] as const)("managed by: %s", (_, from, to, before, after) => {
+    expect(conditionChange({ ...DIABETES, managedBy: from }, { ...DIABETES, managedBy: to })).toEqual({
+      conditionName: "Type 2 diabetes",
+      change: "changed",
+      fields: ["managedBy"],
+      before: { managedBy: before },
+      after: { managedBy: after },
+    });
+  });
+
+  it("the same providers in another order, or a renamed one, are no change; an unknown side isn't compared", () => {
+    expect(
+      conditionChange(
+        { ...DIABETES, diagnosedBy: LEE, managedBy: [LEE, MOSS] },
+        { ...DIABETES, diagnosedBy: { ...LEE, name: "Dr. Lee Chen" }, managedBy: [MOSS, LEE] },
+      ),
+    ).toBeNull();
+    expect(conditionChange({ ...DIABETES, managedBy: [LEE] }, DIABETES)).toBeNull();
+  });
+
+  it("builds details the timeline's schema accepts", () => {
+    const change = conditionChange({ ...DIABETES, managedBy: [] }, { ...DIABETES, managedBy: [LEE] });
+    expect(conditionChangeDetailsZSchema.safeParse({ conditionId: ID, ...change }).success).toBe(true);
+  });
+});
+
+describe("withManagersChange", () => {
+  const added = { conditionId: ID, ...conditionChange(null, DIABETES)! };
+  const noted = {
+    conditionId: ID,
+    ...conditionChange(DIABETES, { ...DIABETES, note: "Insulin at night" })!,
+  };
+
+  it("folds one save's links into an add's after", () => {
+    const one = withManagersChange(added, [], ["Dr. Lee"])!;
+    const two = withManagersChange(one, ["Dr. Lee"], ["Dr. Lee", "Dr. Ada Moss"])!;
+    expect(two.after?.managedBy).toEqual(["Dr. Ada Moss", "Dr. Lee"]);
+    expect(two.fields).toBeUndefined();
+    expect(withManagersChange(two, ["Dr. Lee", "Dr. Ada Moss"], ["Dr. Ada Moss", "Dr. Lee"])).toBeNull();
+  });
+
+  it("folds into an edit's entry, keeping the managers from before the save's first link", () => {
+    const one = withManagersChange(noted, ["Dr. Lee"], [])!;
+    const two = withManagersChange(one, [], ["Park Clinic"])!;
+    expect(two).toMatchObject({
+      change: "changed",
+      fields: ["note", "managedBy"],
+      before: { note: "Diet-controlled", managedBy: ["Dr. Lee"] },
+      after: { note: "Insulin at night", managedBy: ["Park Clinic"] },
+    });
+    expect(conditionChangeDetailsZSchema.safeParse(two).success).toBe(true);
+  });
+
+  it("drops the managers again when a save ends where it started", () => {
+    const one = withManagersChange(noted, ["Dr. Lee"], [])!;
+    const back = withManagersChange(one, [], ["Dr. Lee"])!;
+    expect(back.fields).toEqual(["note"]);
+    expect(back.before).not.toHaveProperty("managedBy");
+  });
+});
+
+describe("conditionChangeText: providers", () => {
+  it("an add names who diagnosed and who manages it", () => {
+    const details = {
+      conditionId: ID,
+      ...conditionChange(null, { ...DIABETES, diagnosedBy: LEE, managedBy: [LEE, PARK] })!,
+    };
+    expect(conditionChangeText(details).lines).toEqual([
+      "Since 2015 · Diet-controlled · Diagnosed by Dr. Lee · Managed by Dr. Lee, Park Clinic",
+    ]);
+  });
+
+  it("an edit is before → after, none for nobody", () => {
+    const details = {
+      conditionId: ID,
+      ...conditionChange(
+        { ...DIABETES, diagnosedBy: null, managedBy: [LEE] },
+        { ...DIABETES, diagnosedBy: MOSS, managedBy: [LEE, PARK] },
+      )!,
+    };
+    expect(conditionChangeText(details)).toEqual({
+      heading: "Changed Type 2 diabetes",
+      lines: ["Diagnosed by: none → Dr. Ada Moss", "Managed by: Dr. Lee → Dr. Lee, Park Clinic"],
+    });
   });
 });

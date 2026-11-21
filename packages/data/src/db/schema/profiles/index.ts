@@ -8,3 +8,4 @@ export * from "./recipientAllergy";
 export * from "./recipientCondition";
 export * from "./userContact";
 export * from "./medicationCondition";
+export * from "./conditionManager";

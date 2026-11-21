@@ -413,6 +413,29 @@ export const medicationConditions = sqliteTable(
   ],
 );
 
+/**
+ * Who manages a condition (conditions slice 3): condition ↔ provider links.
+ * The id comes from the pair (`conditionManagerId`); unlinking deletes the
+ * row (after a PATCH of its `updated_at`: see `conditions.sync.ts`).
+ */
+export const conditionManagers = sqliteTable(
+  "condition_manager",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    conditionId: text("condition_id"),
+    providerId: text("provider_id"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [
+    index("condition_manager_condition").on(t.conditionId),
+    index("condition_manager_provider").on(t.providerId),
+  ],
+);
+
 export const drizzleSchema = {
   careGroups,
   careGroupMembers,
@@ -432,4 +455,5 @@ export const drizzleSchema = {
   tasks,
   recipientConditions,
   medicationConditions,
+  conditionManagers,
 };

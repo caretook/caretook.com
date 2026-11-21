@@ -16,6 +16,13 @@ export const CONDITION_FIELD = {
   sinceMonth: "sinceMonth",
   note: "note",
   on: "on",
+  // Who diagnosed it and who manages it (slice 3): ids, or names to add.
+  diagnosedById: "diagnosedById",
+  newDiagnosedBy: "newDiagnosedBy",
+  managerId: "managerId",
+  newManager: "newManager",
+  /** Present when the form has the managers picker (so none chosen means none). */
+  managers: "managers",
 } as const;
 
 export type ConditionContentFields = {
@@ -24,11 +31,24 @@ export type ConditionContentFields = {
   sinceYear: number | null;
   sinceMonth: number | null;
   note: string;
+  diagnosedById: string | null;
+};
+
+/** Who manages it, and providers to add with the save (conditions.sync's `ConditionProviders`). */
+export type ConditionProviderFields = {
+  /** Left out when the form had no managers picker. */
+  managerIds?: string[];
+  newDiagnosedBy?: string;
+  newManagers: string[];
 };
 
 export type ConditionAction =
-  | ({ intent: "create"; status: ConditionStatus } & ConditionContentFields)
-  | ({ intent: "update"; conditionId: string } & ConditionContentFields)
+  | ({
+      intent: "create";
+      status: ConditionStatus;
+      providers: ConditionProviderFields;
+    } & ConditionContentFields)
+  | ({ intent: "update"; conditionId: string; providers: ConditionProviderFields } & ConditionContentFields)
   | { intent: "resolve" | "reactivate" | "remove"; conditionId: string }
   | { intent: "noKnownConditions"; on: boolean };
 
@@ -51,12 +71,24 @@ export const conditionActionFromForm = (form: FormData): ConditionAction | null 
     sinceYear: wholeNumber(formString(form, CONDITION_FIELD.sinceYear)),
     sinceMonth: wholeNumber(formString(form, CONDITION_FIELD.sinceMonth)),
     note: formString(form, CONDITION_FIELD.note),
+    diagnosedById: formString(form, CONDITION_FIELD.diagnosedById).trim() || null,
+  };
+  const newDiagnosedBy = formString(form, CONDITION_FIELD.newDiagnosedBy).trim();
+  const list = (key: string) =>
+    form
+      .getAll(key)
+      .map((v) => (typeof v === "string" ? v.trim() : ""))
+      .filter(Boolean);
+  const providers: ConditionProviderFields = {
+    ...(form.has(CONDITION_FIELD.managers) && { managerIds: list(CONDITION_FIELD.managerId) }),
+    ...(newDiagnosedBy && { newDiagnosedBy }),
+    newManagers: list(CONDITION_FIELD.newManager),
   };
   if (intent === "create")
-    return { intent, status: statusOf(formString(form, CONDITION_FIELD.status)), ...content };
+    return { intent, status: statusOf(formString(form, CONDITION_FIELD.status)), ...content, providers };
   if (intent === "noKnownConditions") return { intent, on: formString(form, CONDITION_FIELD.on) === "1" };
   if (!conditionId) return null;
-  if (intent === "update") return { intent, conditionId, ...content };
+  if (intent === "update") return { intent, conditionId, ...content, providers };
   if (intent === "resolve" || intent === "reactivate" || intent === "remove") return { intent, conditionId };
   return null;
 };

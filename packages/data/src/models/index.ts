@@ -123,3 +123,7 @@ export type * from "./recipientCondition/types";
 import * as medicationConditionModel from "./medicationCondition";
 export { medicationConditionModel };
 export type * from "./medicationCondition/types";
+
+import * as conditionManagerModel from "./conditionManager";
+export { conditionManagerModel };
+export type * from "./conditionManager/types";

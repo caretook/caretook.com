@@ -128,6 +128,10 @@ streams:
       - >-
         SELECT id, group_id, medication_id, condition_id, created_at, updated_at, created_by, updated_by
         FROM medication_condition WHERE group_id IN my_groups
+      # Who manages each condition: condition ↔ provider links (hard deletes).
+      - >-
+        SELECT id, group_id, condition_id, provider_id, created_at, updated_at, created_by, updated_by
+        FROM condition_manager WHERE group_id IN my_groups
 
   # The recipient's sensitive details (phones, email, address, insurance,
   # outside contacts) for owners, admins and caretakers only: viewers' devices

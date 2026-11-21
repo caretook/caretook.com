@@ -106,4 +106,16 @@ export const PROFILES_ERRORS = {
     message: "A link's medication and condition must be in its care group",
     statusCode: 400,
   },
+  "recipientConditionService:badProvider": {
+    message: "Choose a provider in this care group",
+    statusCode: 400,
+  },
+  "recipientConditionService:providerNotFound": {
+    message: "That provider is gone. It may have been deleted.",
+    statusCode: 404,
+  },
+  "recipientConditionService:managerNotInGroup": {
+    message: "A condition and the providers who manage it must be in one care group",
+    statusCode: 400,
+  },
 } as const;
