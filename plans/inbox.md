@@ -16,6 +16,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 ## Change requests
 
 - you should be able to edit all entries, search, and filter in simple mode. (B-208)
+- link to group details edit page from the edit profile screen for editing the care recipient's timezone. (B-211)
 
 ## Feature requests
 

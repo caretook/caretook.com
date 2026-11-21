@@ -89,14 +89,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-199 | bug | triaged | medications-3 |  | ability to add a medication quickly from the log a dose screen. |
 | B-200 | bug | triaged | medications-3 |  | medications need a type field: rx, otc, supplement, etc. |
 | B-201 | bug | landed | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
-| B-203 | feature | in-progress | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
+| B-203 | feature | ready | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
 | B-204 | feature | triaged | connectors-2 |  | connector should be able to edit notes and events so it can help you draft questions or add… |
 | B-205 | bug | landed | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails at some times of day: give_pass on w.evening returns isError (line 160) |
 | B-206 | bug | landed | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails in the evening: its Metformin dose a minute earlier fills the Evening pass, so give_pass says 'Nothing is left to give in Evening today' |
 | B-207 | bug | triaged | quick-fixes |  | pnpm prd stack up fails at migrate with 'Connection terminated unexpectedly': the compose Postgres healthcheck (pg_isready -U caretook -d caretook) passes against the socket-only init server; use -h 127.0.0.1 (powersync-storage has the same pattern) |
 | B-208 | change | landed | simple-mode |  | you should be able to edit all entries, search, and filter in simple mode. |
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
-| B-210 | bug | triaged |  |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
+| B-210 | bug | landed | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
+| B-211 | change | triaged | quick-fixes |  | link to group details edit page from the edit profile screen for editing the care recipient's… |
 
 ## Items
 
@@ -309,6 +310,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (prd/check-migration): Left by slice 24 (B-176's sweep covered the click/fill/hover/type/clear sites). Convert to await expect.poll(...) or found(), keeping what each assertion reads. Proposed for check-migration. -- check-migration orchestrator
 - 2026-11-20 (prd/check-migration): Also: two timelineLayout tests now inline the same 'wait until the element stops moving' loop (the author tooltip and the viewer's ⋯, both after the quick-entry chips shift the rows). A shared helper beside found() would fit. -- check-migration orchestrator
 - 2026-11-20 (Robert Bo Davis): Moved from check-migration (done, c7fd1390) to quick-fixes (the user, 2026-11-20): the next quick-fixes wave appends them as slices (B-180 is a sweep across component tests; B-182 one test). -- backlog agent
+- 2026-11-20 (Robert Bo Davis): Hotfix: the user started hotfix/test-fixes for the reported test issues (B-180, B-182, B-210), 2026-11-20.
+- 2026-11-20 (Robert Bo Davis): Not in hotfix/test-fixes after all (user narrowed it to B-210); still for the next quick-fixes wave.
 
 ### B-181 · feature · A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them
 
@@ -330,6 +333,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (prd/connectors): Seen in connectors slices 1, 2 and 5 and in the connectors landing check (2026-11-20, load ~14, 410 s run); passes alone. The connectors PRD changes nothing under providers/. Line 73: expect.poll(listNames('Current providers')).toEqual(['Dr. Elena Alvarez']).
 - 2026-11-20 (Robert Bo Davis): Moved from check-migration (done, c7fd1390) to quick-fixes (the user, 2026-11-20): the next quick-fixes wave appends them as slices (B-180 is a sweep across component tests; B-182 one test). -- backlog agent
+- 2026-11-20 (Robert Bo Davis): Hotfix: the user started hotfix/test-fixes for the reported test issues (B-180, B-182, B-210), 2026-11-20.
+- 2026-11-20 (Robert Bo Davis): Not in hotfix/test-fixes after all (user narrowed it to B-210); still for the next quick-fixes wave.
 
 ### B-183 · chore · Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons)
 
@@ -454,10 +459,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-203 · feature · Now that we are we have github fixed, we should start using it for some of the merge management so…
 
-- status: in-progress
+- status: ready
 - prd: github-review
 - owner: prd/github-review
-- commit:
+- commit: 6ece6441
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Now that we are we have github fixed, we should start using it for some of the merge management so codex can review PRs. I do NOT want PRDs or plans to be in github, only the code. Instead of merging to dev locally, we need to start pushing working branches to github and creating a PR into dev, then waiting for codex to review, then addressing any comments, then merging to dev.
 - 2026-11-20 (Robert Bo Davis): Triage: github-review (to write): pnpm prd land pushes the branch and opens a PR into dev, waits for Codex's review, addresses comments, then merges. Open: plans/ and the PRDs are already on origin/dev and origin/main (public repo), so 'code only on GitHub' means moving plans out of the repo or into an untracked/separate store; the live backlog commits onto dev, which then can't be PR-only.
@@ -529,9 +534,22 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-210 · bug · Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864
 
+- status: landed
+- prd: quick-fixes
+- owner:
+- commit: 570293a2
+
+- 2026-11-20 (prd/conditions): Found in conditions' landing --suite on prd/conditions (9/12, 2026-11-20 23:15); invites failed alone too at load 6. Not caused by conditions. Logs in .git/worktrees/conditions/caretook-browser/.
+- 2026-11-20 (Robert Bo Davis): Hotfix: the user started hotfix/test-fixes for the reported test issues (B-180, B-182, B-210), 2026-11-20.
+- 2026-11-20 (prd/conditions): Also test/device.browser.test.tsx:57 'fixtures render on a real route': getByText('Lisinopril 10 mg').first() can pick the collapsed Today card's hidden link (failed once in conditions' quick check at load 5, passed alone 2x): a race to fix, not rerun.
+- 2026-11-20 (hotfix/test-fixes): Fixed in hotfix/test-fixes (570293a2): app-shell waits for View options and keeps search in unlocked simple mode (B-208 made the toHaveCount(0) stale too); layout-offline picks the layout from View options; invites looks in main ol > li; device test finds Lisinopril's row by role. Named tests only: the device file 3x, the three specs on a stack, lint, format, typecheck; landed --force on the user's word.
+
+### B-211 · change · link to group details edit page from the edit profile screen for editing the care recipient's…
+
 - status: triaged
-- prd:
+- prd: quick-fixes
 - owner:
 - commit:
 
-- 2026-11-20 (prd/conditions): Found in conditions' landing --suite on prd/conditions (9/12, 2026-11-20 23:15); invites failed alone too at load 6. Not caused by conditions. Logs in .git/worktrees/conditions/caretook-browser/.
+- 2026-11-20 (Robert Bo Davis): From the inbox: link to group details edit page from the edit profile screen for editing the care recipient's timezone.
+- 2026-11-20 (Robert Bo Davis): Triage: one link on the profile edit screen to group settings' details: a quick-fixes slice.
