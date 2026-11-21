@@ -4,7 +4,11 @@
 
 ## Status
 
-**Where it stands:** wave 1 landed (77c79ca, PR #26; 2026-11-21); the table migrated and set (`doctor` leaves 6 findings for the user: B-196, B-239–B-242, B-244 on done topics); the opener's `--background` tried (selected tab kept; a `title` variable bug fixed in 86afe808). check-speed is done (dea0b70). **Waves 2 and 3 merged** (slices 4, 5); docs folded (orchestrator, machinery, planner, recovery). **Next:** gate, PR, Codex, land; then **the first real rotation** (`pnpm prd rotate`, this session was started before the wrapper, so it tries the no-record path), then slice 6.
+**Where it stands:** **waves 2 and 3 landed** in `dev` (e12d774, PR #29, Codex clean after one fix, 07cf66a6; 2026-11-21); docs folded (orchestrator, machinery, planner, recovery). Earlier: wave 1 landed (77c79ca, PR #26); the table migrated and set (`doctor` leaves 6 findings for the user: B-196, B-239–B-242, B-244 on done topics); the opener's `--background` tried (selected tab kept; the `title` variable bug fixed in 86afe808). check-speed is done (dea0b70). Landing report filed as ask `a1` and pushed. Slices 8 (B-409) and 9 (B-410) added after waves 2 and 3.
+
+**A rotation is being tried** (2026-11-21, the plan's _Trying it_): the old session (started before the wrapper, so no record: the ancestor path) ran `pnpm prd rotate` from this worktree with no slices in flight. **Fresh session: record the result here first** (that you opened, under `prd-orchestration-2`, with `--auto`; whether the old one was ended and its tab closed), then claim B-395 and start slice 6 (sonnet). If the rotation failed, the user is told and asked before slice 6.
+
+**Next after slice 6:** land it (tooling only; the split follows its landing), then slices 7, 8, 9 one after another (opus, sonnet, sonnet) and one landing for the three. Slice 9 adds `to-test/` to `.gitignore`, which isn't tooling: run `pnpm prd check --quick "<why>"` for that landing. B-409's open point was assumed (the PR stays for docs-only `prd/` landings, only the verdict is skipped): say so in the next report.
 
 **B-403** (the cleanup run) is slice 7 (wave 5, after 6), added at the wave 1 boundary; scheduling past `/loop` stays with `orchestration-3`.
 
