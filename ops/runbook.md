@@ -159,7 +159,7 @@ Staging only:
    - production: `caretook.com`, and `www.caretook.com` redirecting (308) to it;
    - staging: `staging.caretook.com`. Its noindex comes from `APP_ENV=staging` (robots.txt and the page meta) and `vercel.json`'s `X-Robots-Tag` on that host.
 4. **Off:** Web Analytics, Speed Insights and log drains (no analytics that can see health data). Don't buy longer log retention (Observability Plus). Record the runtime log retention in `data-copies.md` (**to confirm**).
-5. **Cron:** `vercel.json` runs `/api/cron/outbox` (email) and `/api/cron/calendar` (the calendar steps: series top-up so far; reminders and Google sync add theirs) every minute; Vercel sends `CRON_SECRET` as the bearer. Crons run on production deployments only, which is what both projects deploy.
+5. **Cron:** `vercel.json` runs `/api/cron/outbox` (email) and `/api/cron/calendar` (the calendar steps in order: reminders, Google push, Google pull, series top-up) every minute; Vercel sends `CRON_SECRET` as the bearer. Crons run on production deployments only, which is what both projects deploy.
 6. **Headers:** confirmed on staging: on a function's response the function's own header wins (one `Content-Security-Policy`, the full nonce policy; `/app`, `/sign-in`); prerendered and static files (`/`, `/features/`) get `vercel.json`'s short policy plus the page's `<meta>` CSP. Both match `docs/domain/security-headers.md`.
 7. `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` and `VERCEL_TOKEN` into the GitHub environment.
 
@@ -181,7 +181,12 @@ Members connect their own Google account per care group; Caretook makes a "Caret
 2. **OAuth consent screen:** external; app name Caretook, support email, the privacy policy and home page; the only scope `https://www.googleapis.com/auth/calendar.app.created` (make secondary calendars and manage their events; it covers `calendars.insert` and `events.insert`, `update`, `delete` and `list` with a sync token, checked 2026-11-20). Until Google verifies the app, add the testers as **test users** (fine for staging).
 3. **Credentials:** an OAuth client ID, type Web application, authorised redirect URI `<APP_URL>/api/google/callback` (e.g. `https://staging.caretook.com/api/google/callback`). Its id and secret → `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
 4. `GOOGLE_TOKEN_KEY`: `openssl rand -base64 32`. Rotating it makes every member reconnect (their sealed tokens no longer open; the card says "Reconnect Google").
-5. Pushes run right after a save and every minute from `/api/cron/calendar` (`googlePush`); nothing else to schedule.
+5. Pushes run right after a save and every minute from `/api/cron/calendar` (`googlePush`); pulls (members' changes in Google: moves, deletes, new events) run from the same cron (`googlePull`), each connection at most every 5 minutes. Nothing else to schedule.
+6. **Smoke check before launch** (`pnpm calendar:google-smoke`, manual, never in `pnpm check`; `--help` lists its flags). It connects a member, adds two made-up appointments and pushes the group, then, through Google's API, moves one, deletes the other and makes a new event, pulls, checks Caretook took each change (the move, a cancel, a new appointment tagged as ours), and removes what it made. Run it from a checkout against a local stack, with the staging OAuth client:
+   1. In Google Cloud, add `http://localhost:5173/api/google/callback` to the staging client's authorised redirect URIs, and the Google account you'll use as a test user.
+   2. `pnpm datastore:reset`, then put `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (staging's) in `packages/data/.env`; dev seals tokens with its fixed key, so `GOOGLE_TOKEN_KEY` can stay unset. The dev server needn't run.
+   3. `pnpm calendar:google-smoke --email caretaker@example.com` (a writer in Dev Family only). Open the URL it prints, allow access, and paste back the address Google sends you to (the page itself may not load). Every line should be ✓; `--keep` leaves the appointments to look at in Google, `--disconnect` disconnects at the end.
+   4. Then on staging itself, as a test member: Connect on Calendar & reminders, move an event in "Caretook: <recipient>" in Google, and within about 6 minutes see the new time in Caretook; remove the localhost redirect URI when done.
 
 ### 6. DNS
 

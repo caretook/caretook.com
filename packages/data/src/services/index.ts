@@ -153,6 +153,10 @@ export { googleConnectionService };
 import * as calendarSyncService from "./calendarSyncService";
 export { calendarSyncService };
 export type { PushResult, SyncRunSummary, SyncTarget } from "./calendarSyncService";
+// Google Calendar pull (appointments-2, slice 9): applies members' changes through the services.
+import * as calendarPullService from "./calendarPullService";
+export { calendarPullService };
+export type { PullResult, PullSweepSummary } from "./calendarPullService";
 
 export const services = {
   user: userService,

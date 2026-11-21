@@ -1,4 +1,10 @@
-import { appointmentSeriesService, calendarSyncService, isError, logError } from "@caretook/data";
+import {
+  appointmentSeriesService,
+  calendarPullService,
+  calendarSyncService,
+  isError,
+  logError,
+} from "@caretook/data";
 import { hasCronSecret } from "./cron";
 import { sweepReminders } from "./reminders";
 
@@ -42,10 +48,11 @@ export const runCronSteps = async (
   return results;
 };
 
-/** The steps, in order. Slices 6, 7 and 9 add theirs before the top-up. */
+/** The steps, in order: reminders (slice 6), Google push (7) and pull (9), then the top-up. */
 export const CALENDAR_STEPS: readonly CronStep[] = [
   { name: "reminders", run: ({ now }) => sweepReminders(now) },
   { name: "googlePush", run: ({ now }) => calendarSyncService.sweep({ now }) },
+  { name: "googlePull", run: ({ now }) => calendarPullService.pullDue({ now }) },
   { name: "seriesTopUp", run: ({ now }) => appointmentSeriesService.topUp(now) },
 ];
 

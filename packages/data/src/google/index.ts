@@ -5,12 +5,13 @@ import { logError } from "../logging";
 import { googleCalendarOverride } from "./client";
 import { realGoogleCalendar } from "./real";
 
-// Google Calendar (appointments-2, slice 7), server only: the client seam,
-// the fake for tests, the pure push plan, and the background runner the
-// push uses after a commit.
+// Google Calendar (appointments-2, slices 7 and 9), server only: the client
+// seam, the fake for tests, the pure push plan and pull interpretation, and
+// the background runner the push uses after a commit.
 
 export * from "./client";
 export * from "./fake";
+export * from "./pullPlan";
 export * from "./pushPlan";
 export { realGoogleCalendar } from "./real";
 
