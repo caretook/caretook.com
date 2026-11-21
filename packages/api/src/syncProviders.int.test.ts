@@ -427,3 +427,82 @@ describe("sync.upload: provider notes", () => {
     expect(res.results[0]).toMatchObject({ status: "rejected", code: "noteDocumentService:invalid" });
   });
 });
+
+describe("sync.upload: an import from another group (B-48)", () => {
+  // A device's import writes ordinary provider creates in the target group,
+  // a copied practice before its clinician, and nothing in the source. The
+  // importer is a caretaker in the target and only a viewer in the source.
+  const importSetup = async () => {
+    const importer = await createUser("importer");
+    const sourceOwner = await createUser("source-owner");
+    const targetOwner = await createUser("target-owner");
+    const source = await createGroup(sourceOwner, [{ user: importer.user, role: "viewer" }]);
+    const target = await createGroup(targetOwner, [{ user: importer.user, role: "caretaker" }]);
+    return { importer: { ...importer, api: clientFor(importer.ctx.authUser) }, source, target };
+  };
+
+  /** A copied practice and its clinician, as `importProviders` queues them. */
+  const importOps = (groupId: string) => {
+    const practiceId = randomUUID();
+    const clinicianId = randomUUID();
+    return {
+      practiceId,
+      clinicianId,
+      ops: [
+        {
+          op: "PUT" as const,
+          table: "provider",
+          id: practiceId,
+          data: providerRow(groupId, { type: "practice", name: "Harbor Clinic", specialty: "Geriatrics" }),
+        },
+        {
+          op: "PUT" as const,
+          table: "provider",
+          id: clinicianId,
+          data: providerRow(groupId, { name: "Dr. Nia Okafor", practice_id: practiceId }),
+        },
+      ],
+    };
+  };
+
+  it("uploads an offline import of a clinician and its copied practice in one batch, and replays safely", async () => {
+    const { importer, source, target } = await importSetup();
+    const { practiceId, clinicianId, ops } = importOps(target.group.id);
+
+    const res = await importer.api.sync.upload({ ops });
+    expect(res.results).toEqual([
+      { id: practiceId, status: "applied" },
+      { id: clinicianId, status: "applied" },
+    ]);
+    expect(ok(await providerService.getById(importer.ctx, clinicianId))).toMatchObject({
+      groupId: target.group.id,
+      name: "Dr. Nia Okafor",
+      practiceId,
+      isPrimary: false,
+      createdBy: importer.user.id,
+    });
+    expect(ok(await providerService.getById(importer.ctx, practiceId))).toMatchObject({
+      type: "practice",
+      name: "Harbor Clinic",
+    });
+    expect((await importer.api.sync.upload({ ops })).results.every((r) => r.status === "applied")).toBe(true);
+    // Nothing in the source group changed.
+    expect(ok(await providerService.list(importer.ctx, { groupId: source.group.id }))).toMatchObject({
+      count: 0,
+    });
+  });
+
+  it("refuses an import into a group where the uploader is a viewer", async () => {
+    const { importer, source } = await importSetup();
+    const { practiceId, clinicianId, ops } = importOps(source.group.id);
+
+    const res = await importer.api.sync.upload({ ops });
+    // The practice is refused; its clinician then names a practice that isn't there.
+    expect(res.results.map((r) => (r.status === "rejected" ? r.code : r.status))).toEqual([
+      "permissions:unauthorized",
+      "providerService:badPractice",
+    ]);
+    expect(await providerService.getById(importer.ctx, practiceId)).toBeNull();
+    expect(await providerService.getById(importer.ctx, clinicianId)).toBeNull();
+  });
+});
