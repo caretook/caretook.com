@@ -55,7 +55,7 @@ export function AllergiesRegion({
       </p>
       {canWrite && (
         <Link
-          to={appUrls.medicationAllergies(groupId)}
+          to={appUrls.medicationAllergies(groupId, "list")}
           // Closing the sheet comes back here.
           state={MEDICATION_SHEET_STATE}
           // Loaded ahead, so the sheet opens offline too.

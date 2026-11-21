@@ -10,7 +10,7 @@ import { MedicationStatusActions } from "~/components/medications";
 import { Sheet } from "~/components/ui";
 import { getGroup } from "~/lib/app-shell/group";
 import { medicationTitle, scheduleZoneNote } from "~/lib/medications/medicationDisplay";
-import { editMedicationGuard } from "~/lib/medications/medicationSheets";
+import { editMedicationGuard, sheetTab } from "~/lib/medications/medicationSheets";
 import { statusRequestFromForm } from "~/lib/medications/medicationStatusForm";
 import { sessionContext } from "~/lib/auth/session";
 import { useLiveQuery } from "~/lib/sync";
@@ -32,19 +32,21 @@ import { MedicationForm } from "../MedicationForm";
 import { issuesForSlotRows, medicationFromForm } from "../medicationFormData";
 import { loadFormSources, useCloseMedicationSheet, useMedicationFormSources } from "../medicationSheet";
 
-// Shared by web + native. `medications/:medicationId/edit`: the edit sheet,
-// over the list (opened from the list or from the medication's page, which
-// it goes back to), with the status actions (Mark completed, Discontinue,
-// Restart) and Delete. A viewer, and a medication that's missing, deleted or
-// in another group, land on the list.
+// Shared by web + native. `medications/<tab>/:medicationId/edit`: the edit
+// sheet, over Schedule or the list (opened from a tab or from the
+// medication's page, over the list, which it goes back to), with the status
+// actions (Mark completed, Discontinue, Restart) and Delete. A viewer, and a
+// medication that's missing, deleted or in another group, land on the tab.
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
   const medicationRows = await readRows<MedicationRow>(db, medicationQuery(params.medicationId));
+  const url = new URL(request.url);
   const decision = editMedicationGuard({
     groupId: group.id,
-    search: new URL(request.url).search,
+    tab: sheetTab(group.id, url.pathname),
+    search: url.search,
     canWrite: group.canWrite,
     medication: medicationRows[0] ? toMedication(medicationRows[0]) : null,
   });
@@ -111,7 +113,7 @@ export default function EditMedicationSheet({ loaderData, params }: Route.Compon
   const gone = !live || !!live.deletedAt;
   const medication = live && !gone ? live : loaderData.medication;
 
-  // Deleted (here or elsewhere): the page it may have come from is gone too, so the list.
+  // Deleted (here or elsewhere): the page it may have come from is gone too, so the tab underneath.
   useEffect(() => {
     if (gone) close(true);
   }, [gone, close]);

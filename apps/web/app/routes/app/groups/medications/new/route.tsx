@@ -7,7 +7,7 @@ import { redirect, useLocation } from "react-router";
 import { Sheet } from "~/components/ui";
 import { getGroup } from "~/lib/app-shell/group";
 import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
-import { newMedicationGuard } from "~/lib/medications/medicationSheets";
+import { newMedicationGuard, sheetTab } from "~/lib/medications/medicationSheets";
 import { sessionContext } from "~/lib/auth/session";
 import { createMedication, recipientQuery } from "~/lib/medications/medications.sync";
 import { checkMedicationConditions, setMedicationConditions } from "~/lib/profiles/medicationConditions.sync";
@@ -16,14 +16,16 @@ import { MedicationForm } from "../MedicationForm";
 import { issuesForSlotRows, medicationFromForm } from "../medicationFormData";
 import { loadFormSources, useCloseMedicationSheet, useMedicationFormSources } from "../medicationSheet";
 
-// Shared by web + native. `medications/new`: the add sheet, over the list.
-// A viewer lands on the list.
+// Shared by web + native. `medications/<tab>/new`: the add sheet, over
+// Schedule or the list. A viewer lands on the tab.
 
 export async function clientLoader({ request, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
+  const url = new URL(request.url);
   const decision = newMedicationGuard({
     groupId: group.id,
-    search: new URL(request.url).search,
+    tab: sheetTab(group.id, url.pathname),
+    search: url.search,
     canWrite: group.canWrite,
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
@@ -38,7 +40,7 @@ export async function clientLoader({ request, context }: Route.ClientLoaderArgs)
 /**
  * A local write (the medication, its "Started" entry, and a prescriber or
  * pharmacy added with it, in one transaction), then the conditions it's for
- * (checked first, so a refusal saves nothing); the list's live query shows
+ * (checked first, so a refusal saves nothing); the tabs' live queries show
  * it, and PowerSync uploads it.
  */
 export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<ActionResult> {
