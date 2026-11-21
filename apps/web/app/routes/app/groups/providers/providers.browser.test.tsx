@@ -433,3 +433,11 @@ describe("importing from another group (B-48)", () => {
     expect(await device.query("SELECT id FROM provider WHERE group_id = ?", [SECOND])).toHaveLength(6);
   });
 });
+
+describe("the page title", () => {
+  test("is exactly one h1, Providers", async () => {
+    await open();
+    await expect.poll(() => $("main h1")?.textContent).toBe("Providers");
+    expect(document.querySelectorAll("h1")).toHaveLength(1);
+  });
+});

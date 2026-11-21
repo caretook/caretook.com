@@ -1,3 +1,4 @@
+import { Page, PageHeader } from "~/components/ui";
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/core/api";
@@ -117,11 +118,10 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
   );
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-profile="">
+    <Page data-profile="">
       {!profile ? (
         <>
-          <h1 className="text-lg font-semibold">{group.displayName}</h1>
-          <p className="text-base-content/70 text-sm">This care group has no care recipient yet.</p>
+          <PageHeader title={group.displayName} description="This care group has no care recipient yet." />
         </>
       ) : (
         <>
@@ -157,6 +157,6 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
 
       {/* The edit sheets render here, over the profile. */}
       <Outlet />
-    </main>
+    </Page>
   );
 }

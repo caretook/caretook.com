@@ -464,3 +464,11 @@ describe("a stored future note", () => {
     expect(document.body.textContent).not.toContain("Call the pharmacy");
   });
 });
+
+describe("the page title", () => {
+  test("is one h1, Planner, on both tabs", async () => {
+    await openPlanner();
+    await expect.poll(() => document.querySelector("main h1")?.textContent).toBe("Planner");
+    expect(document.querySelectorAll("h1")).toHaveLength(1);
+  });
+});

@@ -10,6 +10,8 @@ export { Button } from "../Button";
 export type { ButtonSize, ButtonVariant } from "../buttonClass";
 export { FormFooter } from "../FormFooter";
 export type { FormFooterCancel } from "../FormFooter";
+export { Page } from "../Page";
+export { ICON, ICON_LG, ICON_SM, LINK, TITLE_PAGE, TITLE_SECTION, TITLE_SUB } from "../styles";
 export { TabNav } from "../TabNav";
 export type { TabNavTab } from "../TabNav";
 export { Message } from "../Message";

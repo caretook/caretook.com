@@ -10,7 +10,7 @@ import { Link, useNavigate } from "react-router";
 import { AllergiesRegion, MedicationStatusActions } from "~/components/medications";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { LinkedTodos } from "~/components/todos";
-import { BackLink } from "~/components/ui";
+import { BackLink, Page } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { medicationTitle } from "~/lib/medications/medicationDisplay";
@@ -115,7 +115,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
   }, [deleted, navigate, listUrl]);
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
+    <Page>
       <BackLink to={listUrl} label="Medications" />
 
       <MedicationHeader
@@ -216,6 +216,6 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
           />
         </>
       )}
-    </main>
+    </Page>
   );
 }
