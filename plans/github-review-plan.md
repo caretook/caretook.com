@@ -4,11 +4,11 @@
 
 ## Status
 
-| Slice | Wave | State                                                                                                                   | Merge into `prd/github-review` (slice commits) |
-| ----- | ---- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| 1     | 1    | blocked: push of throwaway fixture branch denied by permissions; module + `review` built (a8bc173b), needs live capture |                                                |
-| 2     | 2    | not started                                                                                                             |                                                |
-| 3     | 2    | not started                                                                                                             |                                                |
+| Slice | Wave | State                                                                                                                            | Merge into `prd/github-review` (slice commits) |
+| ----- | ---- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| 1     | 1    | resumed (same opus agent) after the user allowed the throwaway-PR pushes; module + `review` built (a8bc173b), needs live capture |                                                |
+| 2     | 2    | not started                                                                                                                      |                                                |
+| 3     | 2    | not started                                                                                                                      |                                                |
 
 **Landing mode:** run everything through (queued with `pnpm prd queue`): start every ready slice, land each green wave without asking, clean up; ask only real questions. Wave 1 lands locally (no `--force` unless the user says so); wave 2 through the new PR path.
 
