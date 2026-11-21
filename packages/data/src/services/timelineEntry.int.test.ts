@@ -235,6 +235,54 @@ describe("updating", () => {
   });
 });
 
+describe("future dates", () => {
+  const ahead = (ms: number) => new Date(Date.now() + ms).toISOString();
+  const DAY = 86_400_000;
+
+  it("refuses a note ahead on create, with the message on occurredAt", async () => {
+    const { u, note } = await setup();
+    const res = await timelineEntryService.create(u.caretaker.ctx, note({ occurredAt: ahead(DAY) }));
+    expect(codeOf(res)).toBe("timelineEntryService:invalid");
+    expect(JSON.stringify((res as { meta?: unknown }).meta)).toContain("Can't be in the future");
+    // Within the server's hour of skew, a note is fine.
+    ok(await timelineEntryService.create(u.caretaker.ctx, note({ occurredAt: ahead(30 * 60_000) })));
+  });
+
+  it("refuses moving a note's time ahead, and lets an event go ahead", async () => {
+    const { u, addNote } = await setup();
+    const entry = await addNote();
+    expect(
+      codeOf(await timelineEntryService.update(u.caretaker.ctx, entry.id, { occurredAt: ahead(DAY) })),
+    ).toBe("timelineEntryService:invalid");
+    const event = await addNote({ kind: "event", title: "Eye exam", occurredAt: ahead(7 * DAY) });
+    ok(await timelineEntryService.update(u.caretaker.ctx, event.id, { occurredAt: ahead(8 * DAY) }));
+  });
+
+  it("keeps a stored future note editable while its time doesn't move", async () => {
+    const { u, group, recipient } = await setup();
+    const occurredAt = ahead(3 * DAY);
+    const stored = ok(
+      await timelineEntryModel.create({
+        ...system,
+        data: {
+          groupId: group.id,
+          recipientId: recipient.id,
+          kind: "note",
+          title: "Call the pharmacy",
+          occurredAt,
+          timeZone: "America/Los_Angeles",
+        },
+      }),
+    )!;
+    expect(
+      ok(await timelineEntryService.update(u.caretaker.ctx, stored.id, { title: "Call the pharmacy today" })),
+    ).toMatchObject({ title: "Call the pharmacy today" });
+    expect(
+      codeOf(await timelineEntryService.update(u.caretaker.ctx, stored.id, { occurredAt: ahead(4 * DAY) })),
+    ).toBe("timelineEntryService:invalid");
+  });
+});
+
 describe("vitals", () => {
   const readings = [
     { type: "bloodPressure", systolic: 128, diastolic: 82 },

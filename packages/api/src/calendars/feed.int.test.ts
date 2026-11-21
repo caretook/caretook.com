@@ -244,18 +244,11 @@ describe("GET /api/calendar/<token>.ics", () => {
     expect(ics).toContain("SUMMARY:Appointment for Pat Example");
   });
 
-  it("holds appointments, reminders and dated open todos from 90 days back to 90 ahead", async () => {
+  it("holds appointments and dated open todos from 90 days back to 90 ahead", async () => {
     const s = await setup();
     const inside = await s.entry({ occurredAt: daysFrom(-60), endsAt: null });
     const early = await s.entry({ occurredAt: daysFrom(-120), endsAt: null });
     const far = await s.entry({ occurredAt: daysFrom(120), endsAt: null });
-    const reminder = await s.entry({
-      kind: "note",
-      title: "Order refills",
-      place: null,
-      endsAt: null,
-      occurredAt: daysFrom(5),
-    });
     const logged = await s.entry({
       kind: "note",
       title: "Slept well",
@@ -293,7 +286,6 @@ describe("GET /api/calendar/<token>.ics", () => {
     const uids = [...ics.matchAll(/^UID:(.+)$/gm)].map((m) => m[1]);
     const has = (uid: string) => uids.includes(`${uid}@app.caretook.test`);
     expect(has(`entry:${inside.id}`)).toBe(true);
-    expect(has(`entry:${reminder.id}`)).toBe(true);
     expect(has(`entry:${cancelled.id}`)).toBe(true);
     expect(has(`todo:${due.id}`)).toBe(true);
     for (const left of [early, far, logged, deleted]) expect(has(`entry:${left.id}`)).toBe(false);

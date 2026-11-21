@@ -8,6 +8,7 @@ import {
   BAD_TODO_LINK_ISSUES,
   canCompleteTodo,
   isTodoWriter,
+  repeatColumnsFor,
   todoContentOf,
   todoContentZSchema,
   todoCreateZSchema,
@@ -48,6 +49,10 @@ export type TodoRow = {
   updated_by: string | null;
   // Added through a member's AI assistant (connectors; optional: rows from before it synced).
   via?: string | null;
+  // Repeating (planner-2; optional: rows from before it synced): the rule, anchor and chain.
+  repeat_rule?: string | null;
+  repeat_starts_on?: string | null;
+  repeat_id?: string | null;
 };
 
 export type LocalTodo = {
@@ -72,6 +77,10 @@ export type LocalTodo = {
   updatedBy: string;
   /** The assistant it was added through ("Claude"), or null. */
   via: string | null;
+  /** RRULE text when it repeats (with its anchor day and chain id), else all null. */
+  repeatRule: string | null;
+  repeatStartsOn: string | null;
+  repeatId: string | null;
 };
 
 /** A local row as a todo, or null for a half-synced one. */
@@ -97,6 +106,9 @@ export const toTodo = (row: TodoRow): LocalTodo | null => {
     createdBy: row.created_by ?? "",
     updatedBy: row.updated_by ?? "",
     via: row.via ?? null,
+    repeatRule: row.repeat_rule ?? null,
+    repeatStartsOn: row.repeat_starts_on ?? null,
+    repeatId: row.repeat_id ?? null,
   };
 };
 
@@ -246,6 +258,7 @@ const contentColumns = (content: Omit<TodoContent, "doneAt" | "doneBy">) => ({
   providerId: content.providerId,
   medicationId: content.medicationId,
   eventId: content.eventId,
+  repeatRule: content.repeatRule,
 });
 
 export type TodoInput = {
@@ -257,6 +270,8 @@ export type TodoInput = {
   providerId?: string | null;
   medicationId?: string | null;
   eventId?: string | null;
+  /** RRULE text (`ruleText`) to repeat; it needs a due day. */
+  repeatRule?: string | null;
 };
 
 /**
@@ -283,13 +298,15 @@ export const plannedTodo = async (
   if (links) return links;
 
   const now = nowTimestamp();
+  const id = crypto.randomUUID();
   return {
     ok: true,
     row: {
-      id: crypto.randomUUID(),
+      id,
       groupId,
       recipientId,
       ...contentColumns(content),
+      ...repeatColumnsFor(id, null, content),
       doneAt: null,
       doneBy: null,
       deletedAt: null,
@@ -342,34 +359,170 @@ export const updateTodo = async (
   });
   if (links) return links;
 
+  // A new rule or due day moves the anchor; no rule clears all three (as todoService).
   await db.drizzle
     .update(todos)
-    .set({ ...contentColumns(content), updatedAt: nowTimestamp(), updatedBy: db.userId })
+    .set({
+      ...contentColumns(content),
+      ...repeatColumnsFor(id, existing, content),
+      updatedAt: nowTimestamp(),
+      updatedBy: db.userId,
+    })
     .where(eq(todos.id, id));
   return { ok: true, id };
 };
 
-const setDone = async (db: SyncDb, id: string, done: boolean): Promise<TodoWriteResult> => {
+// Repeats (planner-2): ticking a repeating todo makes the next occurrence on
+// the device at once, an optimistic twin of the one todoService makes (the
+// same id, `nextTodoId`); sync replaces it with the server's. Making it needs
+// rrule, so `@caretook/data/series` loads only for a repeating todo.
+
+/** The recipient's day now: a todo's days are theirs. */
+const recipientToday = async (db: SyncDb, recipientId: string) => {
+  const [row] = await readRows<{ time_zone: string | null }>(db, {
+    sql: "SELECT time_zone FROM care_recipient WHERE id = ?",
+    params: [recipientId],
+  });
+  return localDate(new Date(), row?.time_zone ?? "UTC");
+};
+
+type Tx = Parameters<Parameters<SyncDb["drizzle"]["transaction"]>[0]>[0];
+
+/**
+ * Write the occurrence after `todo` (ticked or skipped today) in `tx`,
+ * unless a live row with its id exists; a soft-deleted one (an Undo took it
+ * away) comes back as new. As `todoService`'s `insertNext`.
+ */
+const planNext = async (db: SyncDb, todo: LocalTodo) => {
+  if (!todo.repeatRule) return null;
+  const { nextOccurrence } = await import("@caretook/data/series");
+  const next = nextOccurrence(todo, await recipientToday(db, todo.recipientId));
+  if (!next) return null;
+  const [row] = await readRows<TodoRow>(db, todoQuery(next.id));
+  if (row && !row.deleted_at) return null;
+  const now = nowTimestamp();
+  // The group and recipient never change (a PATCH of them is refused).
+  const { id, groupId: _g, recipientId: _r, ...content } = next;
+  return async (tx: Tx) => {
+    if (row) {
+      await tx
+        .update(todos)
+        .set({ ...content, updatedAt: now, updatedBy: db.userId })
+        .where(eq(todos.id, id));
+    } else {
+      await tx.insert(todos).values({
+        ...next,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: db.userId,
+        updatedBy: db.userId,
+      });
+    }
+  };
+};
+
+const doneRefusal = async (db: SyncDb, existing: LocalTodo) => {
+  const group = await groupFor(db, existing.groupId);
+  if (canCompleteTodo({ role: group?.role, userId: db.userId, todo: existing })) return null;
+  return group?.role === "viewer" ? viewerOnly : (forbidden as Refusal);
+};
+
+/**
+ * Tick a todo done (writers, or a viewer on their own todo). Ticking a done
+ * one is fine. A repeating todo's next occurrence is written in the same
+ * local transaction.
+ */
+export const completeTodo = async (db: SyncDb, id: string): Promise<TodoWriteResult> => {
+  const existing = await liveTodo(db, id);
+  if (!existing) return todoMissing;
+  const refusal = await doneRefusal(db, existing);
+  if (refusal) return refusal;
+  if (existing.doneAt) return { ok: true, id };
+  const next = await planNext(db, existing);
+  const now = nowTimestamp();
+  await db.drizzle.transaction(async (tx) => {
+    // Only the done columns change, so the upload maps it to complete.
+    await tx.update(todos).set({ doneAt: now, doneBy: db.userId }).where(eq(todos.id, id));
+    await next?.(tx);
+  });
+  return { ok: true, id };
+};
+
+/** The next live row of `todo`'s chain after its due day, if any (what ticking it made). */
+const laterInChain = async (db: SyncDb, todo: LocalTodo) => {
+  if (!todo.repeatId || !todo.dueOn) return null;
+  const [row] = await readRows<TodoRow>(db, {
+    sql: `SELECT * FROM todo WHERE group_id = ? AND repeat_id = ? AND id != ? AND due_on > ?
+            AND deleted_at IS NULL
+          ORDER BY due_on, id LIMIT 1`,
+    params: [todo.groupId, todo.repeatId, todo.id, todo.dueOn],
+  });
+  return row ? toTodo(row) : null;
+};
+
+/**
+ * Reopen a done todo, or undo a tick (the same people as `completeTodo`).
+ * A repeating todo's next occurrence goes when nobody has touched it (open,
+ * as the tick made it, no notes); otherwise both stay and this one stops
+ * repeating. One local transaction, as `todoService.reopen`.
+ */
+export const reopenTodo = async (db: SyncDb, id: string): Promise<TodoWriteResult> => {
+  const existing = await liveTodo(db, id);
+  if (!existing) return todoMissing;
+  const refusal = await doneRefusal(db, existing);
+  if (refusal) return refusal;
+  if (!existing.doneAt) return { ok: true, id };
+
+  const next = existing.repeatRule ? await laterInChain(db, existing) : null;
+  let untouched = false;
+  if (next) {
+    const { isUntouchedNext } = await import("@caretook/data/series");
+    const notes = await readRows<{ id: string }>(db, {
+      sql: "SELECT id FROM note_document WHERE id = ?",
+      params: [next.id],
+    });
+    untouched = isUntouchedNext(existing, next) && !notes.length;
+  }
+  const now = nowTimestamp();
+  await db.drizzle.transaction(async (tx) => {
+    // The done columns (and a stopped repeat, which the server decides for
+    // itself): the upload maps it to reopen.
+    const stops = next && !untouched ? { repeatRule: null, repeatStartsOn: null, repeatId: null } : {};
+    await tx
+      .update(todos)
+      .set({ doneAt: null, doneBy: null, ...stops })
+      .where(eq(todos.id, id));
+    if (next && untouched) {
+      await tx
+        .update(todos)
+        .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
+        .where(eq(todos.id, next.id));
+    }
+  });
+  return { ok: true, id };
+};
+
+/**
+ * Skip this occurrence of a repeating todo (writers): it's soft-deleted and
+ * the next one written, in one local transaction (as `todoService.skip`).
+ * One that doesn't repeat, or whose rule has ended, is just deleted.
+ */
+export const skipTodo = async (db: SyncDb, id: string): Promise<TodoWriteResult> => {
   const existing = await liveTodo(db, id);
   if (!existing) return todoMissing;
   const group = await groupFor(db, existing.groupId);
-  if (!canCompleteTodo({ role: group?.role, userId: db.userId, todo: existing }))
-    return group?.role === "viewer" ? viewerOnly : (forbidden as Refusal);
-  if (!!existing.doneAt === done) return { ok: true, id };
+  if (!isTodoWriter(group?.role)) return forbidden as Refusal;
+  const next = await planNext(db, existing);
   const now = nowTimestamp();
-  // Only the done columns change, so the upload maps it to complete or reopen.
-  await db.drizzle
-    .update(todos)
-    .set({ doneAt: done ? now : null, doneBy: done ? db.userId : null })
-    .where(eq(todos.id, id));
+  await db.drizzle.transaction(async (tx) => {
+    await tx
+      .update(todos)
+      .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
+      .where(eq(todos.id, id));
+    await next?.(tx);
+  });
   return { ok: true, id };
 };
-
-/** Tick a todo done (writers, or a viewer on their own todo). Ticking a done one is fine. */
-export const completeTodo = (db: SyncDb, id: string) => setDone(db, id, true);
-
-/** Reopen a done todo, or undo a tick (the same people as `completeTodo`). */
-export const reopenTodo = (db: SyncDb, id: string) => setDone(db, id, false);
 
 /** Soft delete (writers). Deleting what's gone is fine. */
 export const removeTodo = async (db: SyncDb, id: string): Promise<ActionResult> => {

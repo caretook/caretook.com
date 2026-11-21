@@ -14,7 +14,6 @@ import {
   menuItem,
   menuItems,
   openPlanner,
-  REFILL,
 } from "./plannerWorld";
 
 // "Remind me" (appointments-2 slice 8): the ⋯ item before Print on Upcoming,
@@ -90,15 +89,12 @@ beforeEach(() => fixClock());
 afterEach(() => vi.useRealTimers());
 
 describe.each(["caretaker", "viewer"] as const)("Remind me, a %s", (role) => {
-  test("is in the menu before Print, for an upcoming appointment or reminder only", async () => {
+  test("is in the menu before Print, for an upcoming appointment only", async () => {
     await openPlanner({ role, api: server().api });
     await rowMenu(CARDIOLOGY.id);
     const items = menuItems();
     expect(items).toContain("Remind me");
     expect(items.indexOf("Remind me")).toBe(items.indexOf("Print") - 1);
-    await userEvent.keyboard("{Escape}");
-    await rowMenu(REFILL.id);
-    expect(menuItems()).toContain("Remind me");
   });
 
   test("shows the member's settings on Use my settings, and saves a mute", async () => {

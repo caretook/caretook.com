@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { timelineLinksQuery } from "../providers/providers.sync";
-import { entriesQuery, entryWindow, historyQuery, upcomingQuery, upcomingWindow } from "./timeline.sync";
+import {
+  entriesQuery,
+  entryWindow,
+  futureRefusal,
+  historyQuery,
+  upcomingQuery,
+  upcomingWindow,
+} from "./timeline.sync";
 
 const GROUP = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 const AUTHOR = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c00a1";
@@ -96,5 +103,17 @@ describe("upcomingQuery (the Next strip and the Upcoming block)", () => {
     const query = upcomingQuery(GROUP, filters, now);
     expect(query.sql).toBe(`SELECT * ${window.sql}`);
     expect(query.params).toEqual(window.params);
+  });
+});
+
+describe("futureRefusal (the device's rule)", () => {
+  const now = new Date("2026-11-18T18:00:00.000Z");
+  const at = (ms: number) => new Date(now.getTime() + ms).toISOString();
+
+  it("refuses a note more than five minutes ahead, and lets an event be ahead", () => {
+    expect(futureRefusal("note", at(86_400_000), now)).toMatchObject({ ok: false });
+    expect(futureRefusal("note", at(6 * 60_000), now)).not.toBeNull();
+    expect(futureRefusal("note", at(5 * 60_000), now)).toBeNull();
+    expect(futureRefusal("event", at(86_400_000), now)).toBeNull();
   });
 });

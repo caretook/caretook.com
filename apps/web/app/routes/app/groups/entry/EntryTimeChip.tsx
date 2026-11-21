@@ -4,7 +4,7 @@ import { CalendarClock } from "lucide-react";
 import { useRef, useState } from "react";
 import { Popover } from "~/components/ui";
 import { ScheduleFields } from "~/components/schedule";
-import { endError, scheduleToSave } from "~/lib/appointments/entrySchedule";
+import { endError, scheduleToSave, startError } from "~/lib/appointments/entrySchedule";
 import { EntryTime } from "./EntryHeader";
 
 /**
@@ -16,7 +16,7 @@ import { EntryTime } from "./EntryHeader";
  * every keystroke. An end before the start shows the field's error: Done
  * stays open, and closing otherwise keeps what was saved.
  *
- * `pickDay` (a draft opened by Add appointment or Add reminder) opens the
+ * `pickDay` (a draft opened by Add appointment) opens the
  * popover and its calendar on arrival, and the first day picked starts at
  * 9:00. Later openings behave as usual.
  */
@@ -41,7 +41,7 @@ export function EntryTimeChip({
 
   const commit = () => {
     setAskDay(false);
-    const next = edited.current && scheduleToSave(edited.current, schedule);
+    const next = edited.current && scheduleToSave(edited.current, schedule, kind);
     edited.current = null;
     if (next) onChange(next);
   };
@@ -91,7 +91,7 @@ function SchedulePanel({
   onDone: () => void;
 }) {
   const [schedule, setSchedule] = useState(initial);
-  const error = endError(schedule);
+  const error = endError(schedule) ?? startError(kind, schedule);
 
   return (
     <>

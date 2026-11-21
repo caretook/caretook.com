@@ -21,9 +21,9 @@ describe("appUrls.planner", () => {
     expect(appUrls.plannerPast(G, { author: A })).toBe(`/app/groups/${G}/planner/past?author=${A}`);
   });
 
-  it("adds appointments and reminders through the time picker first", () => {
+  it("adds an appointment through the time picker first, and a note without it", () => {
     expect(appUrls.newPlannerEntry(G, "event")).toBe(`/app/groups/${G}/entries/new?kind=event&when=pick`);
-    expect(appUrls.newPlannerEntry(G, "note")).toBe(`/app/groups/${G}/entries/new?kind=note&when=pick`);
+    expect(appUrls.newPlannerEntry(G, "note")).toBe(`/app/groups/${G}/entries/new?kind=note`);
   });
 });
 
