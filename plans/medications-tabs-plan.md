@@ -4,10 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/medications-tabs` (slice commits) |
-| ----- | ---- | ------- | ------------------------------------------------- |
-| 1     | 1    | planned |                                                   |
-| 2     | 2    | planned |                                                   |
+| Slice | Wave | State                                                                     | Merge into `prd/medications-tabs` (slice commits) |
+| ----- | ---- | ------------------------------------------------------------------------- | ------------------------------------------------- |
+| 1     | 1    | started (worktree `.loops/medications-tabs-1`, agent on opus, 2026-11-21) |                                                   |
+| 2     | 2    | planned                                                                   |                                                   |
+
+**Landing mode: run everything through** (queued with `pnpm prd queue`; land each green wave without asking, clean up, ask only real questions).
+
+**timeline-ux-2 is in `dev`** (f1fc883e, f34eeeec) and in this branch, so slice 2 waits only for slice 1. B-226 claimed 2026-11-21.
 
 **Start conditions:** slice 1 can start at once. **Slice 2 waits for `timeline-ux-2` in `dev`** (its slice 1 rewrites the Medications header with `PageHeader`); `pnpm prd sync` before it. Not alongside `medications-4` (B-213: the Today schedule's mobile redesign), which changes the same page and comes after this PRD.
 
