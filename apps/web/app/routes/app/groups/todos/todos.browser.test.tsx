@@ -121,10 +121,10 @@ describe("the todo list", () => {
       )
       .toHaveAttribute("aria-current", "page");
     await expect.poll(() => titles("undated")).toEqual(["Sort the batteries"]);
-    expect(titles("overdue")).toEqual(["Call the pharmacy"]);
-    expect(titles("today")).toEqual(["Pick up the walker"]);
-    expect(titles(day(1))).toEqual(["Drive to physio"]);
-    expect(titles(day(3))).toEqual(["Fax the form"]);
+    await expect.poll(() => titles("overdue")).toEqual(["Call the pharmacy"]);
+    await expect.poll(() => titles("today")).toEqual(["Pick up the walker"]);
+    await expect.poll(() => titles(day(1))).toEqual(["Drive to physio"]);
+    await expect.poll(() => titles(day(3))).toEqual(["Fax the form"]);
     await expect.element(page.getByText("Overdue · 2 days")).toBeInTheDocument();
     const typed = document.querySelector('[data-todo-section] [data-todo-assignee="name"]');
     expect(typed?.textContent).toContain("Aunt May");
@@ -160,19 +160,19 @@ describe("the todo list", () => {
     expect(device.location()).toBe(`${LIST}?who=mine`);
     await expect.element(filterButton()).toHaveAccessibleName("Filter, 1 on");
     expect(document.querySelector("[data-filter-count]")?.textContent).toBe("1");
-    expect(chips()).toEqual(["Mine"]);
+    await expect.poll(() => chips()).toEqual(["Mine"]);
 
     await userEvent.click(page.getByRole("link", { name: "Mine: clear this filter" }));
     await expect.poll(() => titles(day(1))).toEqual(["Drive to physio"]);
     expect(device.location()).toBe(LIST);
     await expect.element(filterButton()).toHaveAccessibleName("Filter");
-    expect(chips()).toEqual([]);
+    await expect.poll(() => chips()).toEqual([]);
 
     // Unassigned: nobody's, so not Aunt May's.
     await choose("Unassigned");
     await expect.poll(openTitles).toEqual(["Sort the batteries"]);
-    expect(chips()).toEqual(["Unassigned"]);
-    expect(titles("done")).toEqual([]);
+    await expect.poll(() => chips()).toEqual(["Unassigned"]);
+    await expect.poll(() => titles("done")).toEqual([]);
 
     // Clear filters goes back to Everyone too.
     await openFilters();
@@ -185,7 +185,7 @@ describe("the todo list", () => {
     const device = await open("owner", `${LIST}?who=mine`);
     await expect.poll(openTitles).toEqual(["Call the pharmacy", "Pick up the walker"]);
     await expect.element(filterButton()).toHaveAccessibleName("Filter, 1 on");
-    expect(chips()).toEqual(["Mine"]);
+    await expect.poll(() => chips()).toEqual(["Mine"]);
     await openFilters();
     await expect.element(page.getByRole("menuitemradio", { name: "Mine" })).toBeChecked();
     await userEvent.keyboard("{Escape}");
@@ -198,9 +198,9 @@ describe("the todo list", () => {
     await userEvent.click(dialog.getByRole("button", { name: "Cancel" }));
     await expect.element(dialog).not.toBeInTheDocument();
     await expect.poll(() => device.location()).toBe(`${LIST}?who=mine`);
-    expect(openTitles()).toEqual(["Call the pharmacy", "Pick up the walker"]);
+    await expect.poll(() => openTitles()).toEqual(["Call the pharmacy", "Pick up the walker"]);
     await expect.element(filterButton()).toHaveAccessibleName("Filter, 1 on");
-    expect(chips()).toEqual(["Mine"]);
+    await expect.poll(() => chips()).toEqual(["Mine"]);
   });
 
   test("a tick completes the todo, with one Undo in a polite status; the upload is done-only", async () => {
@@ -213,7 +213,7 @@ describe("the todo list", () => {
     const status = page.getByRole("status").filter({ hasText: "Done: Pick up the walker" });
     await expect.element(status).toBeInTheDocument();
     await expect.poll(() => titles("today")).toEqual([]);
-    expect(titles("done")).toContain("Pick up the walker");
+    await expect.poll(() => titles("done")).toContain("Pick up the walker");
     await expect.element(page.getByText("Done by you · today")).toBeInTheDocument();
     const patch = (await device.queued()).find((w) => w.op === "PATCH");
     expect(Object.keys(patch?.data ?? {}).sort()).toEqual(["done_at", "done_by"]);
