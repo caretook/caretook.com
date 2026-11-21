@@ -24,9 +24,13 @@ Slice 2 worktree `providers-2-2` (stackless) made from b4d47ea0; agent spawned (
 
 Slice 3 handed off (pnpm check green; a `roles.int` load timeout passed on rerun). Merged as 0de633e1, conflict-free; worktree removed. Its `--changed` names **roundtrip, layout-offline, first-sync**: run at landing. Wave 1 done. Slice 4 worktree `providers-2-4` (stackless) made; agent spawned (sonnet: small, spelled out).
 
+Slice 2 handed off (pnpm check green; `--changed` names **roundtrip, live-notes**: run at landing). It made the `@` query allow spaces (`mentionQueryOpen`), so a two-word new name reaches the add row; slice 1's tests adjusted. Merged as 680de235 (before 4, plan order); B-25 done (ready); worktree removed. Slice 5 worktree `providers-2-5` (stackless) made; agent spawned (opus).
+
 **Docs to fold (slice 1):** live-notes.md: `MENTION_NODE` (attrs `id`, `label`) always in the schema; `noteText` writes `@<label>`; `providers`/`onMention` props; popup keyboard/ARIA (listbox "Providers to mention", focus stays in the editor via `aria-activedescendant`); the two packages in `optimizeDeps`. providers.md (_Linking from notes and events_): a mention on an entry links like the With row (draft first, idempotent); deleting keeps the link; `mentionOptions` keeps linked ones; chip shows the current name, greyed for deleted/unknown.
 
 **Docs to fold (slice 3):** providers.md: importing is a copy (new ids, ordinary local creates, no server path/migration/source record; notes, links, tasks not copied); `planImport` rules in `lib/providers/providerImport.ts` (fields, primary off, already here by type + `foldName`, practice mapped by type + name else copied once, deleted source practice dropped, practices first, per-provider results with `id`/`practiceId`); wording in `importWording.ts`; the sheet (`providers/import`, `appUrls.importProviders`, `importProvidersGuard`, writers with another group; groups named by recipient display name, else group name); tests in `providers.browser.test.tsx` and `syncProviders.int.test.ts`.
+
+**Docs to fold (slice 2):** providers.md: mentions in every document, only notes and events link; add row (`mentionChoices`, last, writers, hidden when a live provider has the exact folded name; `createAndLinkProvider` on entries, else `createProvider` clinician); spaces in the query and when the popup closes (`mentionQueryOpen`); renamed / deleted / unknown chips; `useMentionProviders` (`lib/providers/mentionProviders.sync.ts`).
 
 **Start conditions:** none for wave 1, but before slice 1 check the open `appointments-2` and `quick-fixes` slices for changes to `LiveNotesEditor`, the entry page or the With row. Slice 4 waits for `conditions` in `dev` (it changes the provider page); `pnpm prd sync` before it.
 
