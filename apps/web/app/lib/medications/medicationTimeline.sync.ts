@@ -48,19 +48,25 @@ export const toEntryMedication = (row: EntryMedicationRow): EntryMedication => (
 
 const NO_ROWS: EntryMedicationRow[] = [];
 
-/** The timeline's medications, live, by id (`timelineMedicationsQuery`). */
+/**
+ * The timeline's medications, live, by id (`timelineMedicationsQuery`), and
+ * the rows behind them. `initial` is what to show until the query answers
+ * (a kept window's rows when the timeline comes back to it; else none).
+ */
 export function useTimelineMedications(
   groupId: string,
   filters: EntryFilters,
   limit: number,
   cutoff?: string,
+  initial: EntryMedicationRow[] = NO_ROWS,
 ) {
   const query = timelineMedicationsQuery(groupId, filters, limit, cutoff);
-  const rows = useLiveQuery<EntryMedicationRow>(query.sql, query.params, NO_ROWS);
-  return useMemo(() => {
+  const rows = useLiveQuery<EntryMedicationRow>(query.sql, query.params, initial);
+  const medicationOf = useMemo(() => {
     const byId = new Map(rows.map((row) => [row.id, toEntryMedication(row)]));
     return (medicationId: string) => byId.get(medicationId);
   }, [rows]);
+  return { medicationOf, rows };
 }
 
 export type DoseChoiceRow = {
