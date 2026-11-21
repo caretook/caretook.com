@@ -145,7 +145,7 @@ const readMedications = async (db: SyncDb, groupId: string, ids: string) => {
 
 const readTasks = async (db: SyncDb, groupId: string, ids: string) => {
   const rows = await db.powersync.getAll<TaskRow>(
-    `SELECT * FROM task WHERE group_id = ? AND deleted_at IS NULL AND ${inIds("id")}`,
+    `SELECT * FROM todo WHERE group_id = ? AND deleted_at IS NULL AND ${inIds("id")}`,
     [groupId, ids],
   );
   return byId(rows.flatMap((row) => toTask(row) ?? []));
@@ -212,7 +212,7 @@ export const loadSearch = async (
     readEntries(db, groupId, idsOf(sections, "entry")),
     readProviders(db, groupId, idsOf(sections, "provider")),
     readMedications(db, groupId, idsOf(sections, "medication")),
-    readTasks(db, groupId, idsOf(sections, "task")),
+    readTasks(db, groupId, idsOf(sections, "todo")),
     readConditions(db, groupId, idsOf(sections, "condition")),
     readNotes(db, groupId, ownerIds),
   ]);
@@ -221,7 +221,7 @@ export const loadSearch = async (
     entry: entries,
     provider: providers,
     medication: medications,
-    task: tasks,
+    todo: tasks,
     condition: conditions,
   };
   return {

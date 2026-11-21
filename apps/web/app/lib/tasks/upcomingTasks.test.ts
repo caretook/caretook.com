@@ -1,4 +1,4 @@
-import type { TaskRuleFields } from "@caretook/data/schema";
+import type { TodoRuleFields } from "@caretook/data/schema";
 import type { UpcomingDose } from "../appointments/upcomingDoses";
 
 import { describe, expect, it } from "vitest";
@@ -15,7 +15,7 @@ const task = (
   id: string,
   dueOn: string | null,
   dueTime: string | null = null,
-  extra: Partial<TaskRuleFields> = {},
+  extra: Partial<TodoRuleFields> = {},
 ) => ({
   id,
   assigneeId: null,

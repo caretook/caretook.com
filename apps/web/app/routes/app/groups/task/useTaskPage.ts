@@ -2,7 +2,7 @@ import type { MemberRow } from "~/lib/timeline/timeline.sync";
 import type { TaskRow } from "~/lib/tasks/tasks.sync";
 import type { loadTask } from "./loadTask";
 
-import { taskState } from "@caretook/data/schema";
+import { todoState } from "@caretook/data/schema";
 import { useCallback, useMemo } from "react";
 import { useGroup } from "~/lib/app-shell/group";
 import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
@@ -41,5 +41,5 @@ export function useTaskPage(groupId: string, taskId: string, initial: Awaited<Re
     [group.recipient?.timeZone],
   );
 
-  return { task, deleted, state: taskState(task, now, timeZone), nameOf, now, timeZone, zoneNote };
+  return { task, deleted, state: todoState(task, now, timeZone), nameOf, now, timeZone, zoneNote };
 }

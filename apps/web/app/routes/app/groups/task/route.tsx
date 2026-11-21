@@ -2,7 +2,7 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/core/api";
 
-import { canCompleteTask } from "@caretook/data/schema";
+import { canCompleteTodo } from "@caretook/data/schema";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
@@ -76,7 +76,7 @@ function TaskPage({ loaderData, params }: Route.ComponentProps) {
   const page = useTaskPage(groupId, taskId, loaderData);
   const { task, deleted } = page;
   const tick = useTaskTick(groupId);
-  const mayComplete = canCompleteTask({ role: group.role, userId: group.userId, task });
+  const mayComplete = canCompleteTodo({ role: group.role, userId: group.userId, todo: task });
   const { ensureSaved, saveError } = useTaskNotes(taskId, loaderData.hasDocument);
   // The group's providers, for mentions in the notes (chips only: nothing links here).
   const mentionProviders = useMentionProviders(groupId);

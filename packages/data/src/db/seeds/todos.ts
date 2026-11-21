@@ -1,18 +1,18 @@
 import { inArray } from "drizzle-orm";
 import { getDb } from "../client";
-import { addDays, localDate, taskSchema, userSchema } from "../schema";
+import { addDays, localDate, todoSchema, userSchema } from "../schema";
 import { appointmentIdIn } from "./appointments";
 import { DEV_GROUP_ID, DEV_RECIPIENT_ID } from "./careGroups";
 import { SEED_GROUPS as MEDICATION_GROUPS } from "./medications";
 import { SEED_GROUPS as PROVIDER_GROUPS } from "./providers";
 import { SECOND_GROUP_ID, SECOND_RECIPIENT_ID } from "./secondGroup";
 
-// Fictional tasks: about eight for Dev Family (assigned to member@,
+// Fictional todos: about eight for Dev Family (assigned to member@,
 // caretaker@ and viewer@, one to a typed-in "Aunt May", some unassigned;
 // overdue, today, later and undated; two done) and one for Dev Family 2.
 // Placed by days from today in the recipients' zone (both Los Angeles).
 // The last three link to a seeded provider, appointment and medication
-// (tasks slice 3), by their seeds' keys.
+// (todos slice 3), by their seeds' keys.
 //
 // Their own ids (…3f1d2be0… Dev Family's, …3f1d2be1… Dev Family 2's),
 // following list order: append only.
@@ -22,7 +22,7 @@ const DAY = 24 * 60 * 60 * 1000;
 
 type Person = "member@example.com" | "caretaker@example.com" | "viewer@example.com";
 
-export type SeedTask = {
+export type SeedTodo = {
   title: string;
   /** Days from today (negative: past), in America/Los_Angeles; omit for no due date. */
   dueIn?: number;
@@ -41,7 +41,7 @@ export type SeedTask = {
   medication?: string;
 };
 
-export const DEV_FAMILY_TASKS: SeedTask[] = [
+export const DEV_FAMILY_TODOS: SeedTodo[] = [
   {
     title: "Call the pharmacy about the refill",
     dueIn: -2,
@@ -86,7 +86,7 @@ export const DEV_FAMILY_TASKS: SeedTask[] = [
     doneDaysAgo: 1,
     doneBy: "viewer@example.com",
   },
-  // Linked tasks (tasks slice 3).
+  // Linked todos (todos slice 3).
   {
     title: "Ask Dr. Patel's office about the stress test",
     dueIn: 1,
@@ -111,53 +111,53 @@ export const DEV_FAMILY_TASKS: SeedTask[] = [
   },
 ];
 
-export const SECOND_GROUP_TASKS: SeedTask[] = [
+export const SECOND_GROUP_TODOS: SeedTodo[] = [
   { title: "Renew Lou's bus pass", dueIn: 2, assignee: "member@example.com", author: "member@example.com" },
 ];
 
-const devTaskId = (index: number) =>
+const devTodoId = (index: number) =>
   `0b6f3c1e-5d1a-4c2e-9a77-3f1d2be0${String(1001 + index).padStart(4, "0")}`;
-const secondTaskId = (index: number) =>
+const secondTodoId = (index: number) =>
   `0b6f3c1e-5d1a-4c2e-9a77-3f1d2be1${String(1001 + index).padStart(4, "0")}`;
 
 const GROUPS = [
-  { groupId: DEV_GROUP_ID, recipientId: DEV_RECIPIENT_ID, tasks: DEV_FAMILY_TASKS, id: devTaskId },
-  { groupId: SECOND_GROUP_ID, recipientId: SECOND_RECIPIENT_ID, tasks: SECOND_GROUP_TASKS, id: secondTaskId },
+  { groupId: DEV_GROUP_ID, recipientId: DEV_RECIPIENT_ID, todos: DEV_FAMILY_TODOS, id: devTodoId },
+  { groupId: SECOND_GROUP_ID, recipientId: SECOND_RECIPIENT_ID, todos: SECOND_GROUP_TODOS, id: secondTodoId },
 ];
 
 const providerIdIn = (groupId: string, key: string) => {
   const group = PROVIDER_GROUPS.find((g) => g.groupId === groupId);
   const index = group?.providers.findIndex((p) => p.key === key) ?? -1;
-  if (!group || index < 0) throw new Error(`Seed task links a missing provider: ${key}`);
+  if (!group || index < 0) throw new Error(`Seed todo links a missing provider: ${key}`);
   return group.providerId(index);
 };
 
 const medicationIdIn = (groupId: string, key: string) => {
   const group = MEDICATION_GROUPS.find((g) => g.groupId === groupId);
   const index = group?.medications.findIndex((m) => m.key === key) ?? -1;
-  if (!group || index < 0) throw new Error(`Seed task links a missing medication: ${key}`);
+  if (!group || index < 0) throw new Error(`Seed todo links a missing medication: ${key}`);
   return group.medicationId(index);
 };
 
-/** Every seeded task as a row, with people as emails (resolved when seeding). */
+/** Every seeded todo as a row, with people as emails (resolved when seeding). */
 export const seedRows = (now = Date.now()) => {
   const today = localDate(now, TIME_ZONE);
-  return GROUPS.flatMap(({ groupId, recipientId, tasks, id }) =>
-    tasks.map((task, index) => ({
+  return GROUPS.flatMap(({ groupId, recipientId, todos, id }) =>
+    todos.map((todo, index) => ({
       id: id(index),
       groupId,
       recipientId,
-      title: task.title,
-      assignee: task.assignee ?? null,
-      assigneeName: task.assigneeName ?? null,
-      dueOn: task.dueIn === undefined ? null : addDays(today, task.dueIn),
-      dueTime: task.dueTime ?? null,
-      doneAt: task.doneDaysAgo === undefined ? null : new Date(now - task.doneDaysAgo * DAY).toISOString(),
-      doneBy: task.doneBy ?? null,
-      providerId: task.provider ? providerIdIn(groupId, task.provider) : null,
-      medicationId: task.medication ? medicationIdIn(groupId, task.medication) : null,
-      eventId: task.event ? appointmentIdIn(groupId, task.event) : null,
-      author: task.author,
+      title: todo.title,
+      assignee: todo.assignee ?? null,
+      assigneeName: todo.assigneeName ?? null,
+      dueOn: todo.dueIn === undefined ? null : addDays(today, todo.dueIn),
+      dueTime: todo.dueTime ?? null,
+      doneAt: todo.doneDaysAgo === undefined ? null : new Date(now - todo.doneDaysAgo * DAY).toISOString(),
+      doneBy: todo.doneBy ?? null,
+      providerId: todo.provider ? providerIdIn(groupId, todo.provider) : null,
+      medicationId: todo.medication ? medicationIdIn(groupId, todo.medication) : null,
+      eventId: todo.event ? appointmentIdIn(groupId, todo.event) : null,
+      author: todo.author,
     })),
   );
 };
@@ -173,7 +173,7 @@ export const seed = async () => {
   if (users.length < emails.length) return;
 
   await db
-    .insert(taskSchema)
+    .insert(todoSchema)
     .values(
       seedRows().map(({ assignee, author, doneBy, ...row }) => ({
         ...row,
@@ -183,5 +183,5 @@ export const seed = async () => {
         updatedBy: idOf(author)!,
       })),
     )
-    .onConflictDoNothing({ target: taskSchema.id });
+    .onConflictDoNothing({ target: todoSchema.id });
 };

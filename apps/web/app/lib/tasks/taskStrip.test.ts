@@ -1,6 +1,6 @@
-import type { TaskRuleFields } from "@caretook/data/schema";
+import type { TodoRuleFields } from "@caretook/data/schema";
 
-import { taskOrder } from "@caretook/data/schema";
+import { todoOrder } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { taskStrip, taskStripText, taskStripWho } from "./taskStrip";
 
@@ -12,8 +12,8 @@ const ME = "me";
 const task = (
   title: string,
   dueOn: string | null,
-  extra: Partial<TaskRuleFields> = {},
-): TaskRuleFields & { title: string } => ({
+  extra: Partial<TodoRuleFields> = {},
+): TodoRuleFields & { title: string } => ({
   id: title,
   title,
   assigneeId: null,
@@ -26,7 +26,7 @@ const task = (
 });
 
 const strip = (tasks: ReturnType<typeof task>[], now = NOW) => {
-  const s = taskStrip(taskOrder(tasks, now, LA), now, LA, ME);
+  const s = taskStrip(todoOrder(tasks, now, LA), now, LA, ME);
   return s && { state: s.state, mine: s.mine, more: s.more, ...taskStripText(s) };
 };
 

@@ -51,9 +51,9 @@ const ITEMS: CalendarItem[] = [
     providers: [],
   }),
   item({
-    uid: "task:t1",
-    source: { type: "task", id: "t1" },
-    kind: "task",
+    uid: "todo:t1",
+    source: { type: "todo", id: "t1" },
+    kind: "todo",
     start: "2026-11-23T16:30:00.000Z",
     end: "2026-11-23T17:00:00.000Z",
     title: "Pick up the walker",
@@ -121,7 +121,7 @@ describe("renderIcs", () => {
     const ics = lf(renderIcs(ITEMS, "generic", options));
     expect(ics.match(/STATUS:CANCELLED/g)).toHaveLength(1);
     expect(ics).toContain("UID:entry:a2@app.caretook.test");
-    expect(ics).toContain("UID:task:t1@app.caretook.test");
+    expect(ics).toContain("UID:todo:t1@app.caretook.test");
     expect(renderIcs(ITEMS, "generic", options)).toContain("UID:entry:a1@app.caretook.test");
   });
 

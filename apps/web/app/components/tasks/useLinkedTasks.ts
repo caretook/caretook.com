@@ -1,7 +1,7 @@
 import type { TaskLink, TaskRow } from "~/lib/tasks/tasks.sync";
 import type { MemberRow } from "~/lib/timeline/timeline.sync";
 
-import { taskOrder } from "@caretook/data/schema";
+import { todoOrder } from "@caretook/data/schema";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
@@ -17,7 +17,7 @@ const noOffers = () => NO_OFFERS;
 
 /**
  * The open tasks linked to one provider, medication or event, in list order
- * (`taskOrder`: overdue, today, later days, undated), live and re-evaluated
+ * (`todoOrder`: overdue, today, later days, undated), live and re-evaluated
  * once a minute; members' names for the assignee ("you" for me). `shown`
  * is whether the list is up: while there are open tasks, or while Undo is
  * offered for a tick made here (`ticked`; so ticking the last one still
@@ -29,7 +29,7 @@ export function useLinkedTasks(link: TaskLink) {
   const now = useNow(60_000);
   const query = linkedTasksQuery(group.id, link);
   const rows = useLiveQuery<TaskRow>(query.sql, query.params, NO_TASKS);
-  const tasks = useMemo(() => taskOrder(toTasks(rows), now, timeZone), [rows, now, timeZone]);
+  const tasks = useMemo(() => todoOrder(toTasks(rows), now, timeZone), [rows, now, timeZone]);
 
   const mq = membersQuery(group.id);
   const members = useLiveQuery<MemberRow>(mq.sql, mq.params, NO_MEMBERS);

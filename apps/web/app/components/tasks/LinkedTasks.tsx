@@ -1,6 +1,6 @@
 import type { LocalTask, TaskLink } from "~/lib/tasks/tasks.sync";
 
-import { canCompleteTask, taskState } from "@caretook/data/schema";
+import { canCompleteTodo, todoState } from "@caretook/data/schema";
 import { Plus, UserRound } from "lucide-react";
 import { Link } from "react-router";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -60,7 +60,7 @@ export function LinkedTasks({ link, className = "" }: { link: TaskLink; classNam
           aria-label="Open tasks"
         >
           {tasks.map((task) => {
-            const state = taskState(task, now, timeZone);
+            const state = todoState(task, now, timeZone);
             const assignee = assigneeLabel(task, nameOf);
             return (
               <li
@@ -69,7 +69,7 @@ export function LinkedTasks({ link, className = "" }: { link: TaskLink; classNam
                 data-task={task.id}
                 data-task-state={state}
               >
-                {canCompleteTask({ role: group.role, userId: group.userId, task }) ? (
+                {canCompleteTodo({ role: group.role, userId: group.userId, todo: task }) ? (
                   <TaskTick
                     title={task.title}
                     done={!!task.doneAt}

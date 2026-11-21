@@ -36,7 +36,7 @@ import {
 } from "../models";
 import { isSystemUser, rejectError } from "../permissions";
 import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
-import { releaseEvent } from "./taskService";
+import { releaseEvent } from "./todoService";
 export const serviceName = "timelineEntry";
 export const schemaName = timelineEntryModel.schemaName;
 
@@ -549,8 +549,8 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
 
 /**
  * Soft delete. The entry disappears from the timeline but syncs as deleted.
- * Tasks linked to a deleted event lose the link in the same transaction
- * (tasks PRD), as the task table's FK does on a hard delete.
+ * Todos linked to a deleted event lose the link in the same transaction
+ * (tasks PRD), as the todo table's FK does on a hard delete.
  */
 export const remove = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {

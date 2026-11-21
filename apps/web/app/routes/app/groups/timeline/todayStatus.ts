@@ -1,8 +1,8 @@
-import type { TaskRuleFields } from "@caretook/data/schema";
+import type { TodoRuleFields } from "@caretook/data/schema";
 import type { TimedEntry } from "../../../../lib/appointments/upcoming";
 import type { DoseSlot } from "../../../../lib/medications/dueDoses";
 
-import { localDate, localTime, taskState } from "@caretook/data/schema";
+import { localDate, localTime, todoState } from "@caretook/data/schema";
 import { entryTiming } from "../../../../lib/appointments/upcoming";
 import { OVERDUE_AFTER_MINUTES } from "../../../../lib/medications/dueDoses";
 
@@ -112,7 +112,7 @@ export function attentionCounts({
   timeZone,
 }: {
   doses: readonly Pick<DoseSlot, "state" | "at">[];
-  tasks: readonly Pick<TaskRuleFields, "doneAt" | "dueOn" | "dueTime">[];
+  tasks: readonly Pick<TodoRuleFields, "doneAt" | "dueOn" | "dueTime">[];
   appointment: TimedEntry | null;
   now: Date | number;
   timeZone: string;
@@ -130,7 +130,7 @@ export function attentionCounts({
   }
   const clock = minutesOf(localTime(at, timeZone));
   for (const task of tasks) {
-    const state = taskState(task, at, timeZone);
+    const state = todoState(task, at, timeZone);
     if (state === "overdue") counts.tasks.overdue++;
     else if (state === "today" && minutesOf(task.dueTime ?? UNTIMED_TASK_TIME) - clock <= SOON_MS / MINUTE)
       counts.tasks.soon++;

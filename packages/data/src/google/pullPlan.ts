@@ -2,7 +2,7 @@ import type { GroupRoleName } from "../constants/roles";
 import type { CalendarItem } from "../db/schema";
 import type { GoogleEvent, GoogleEventTime } from "./client";
 
-import { calendarWindow, dayStart, isTaskWriter, localDate, localTime } from "../db/schema";
+import { calendarWindow, dayStart, isTodoWriter, localDate, localTime } from "../db/schema";
 import { UID_PROPERTY } from "./client";
 
 // What a change pulled from a member's Google calendar means for Caretook
@@ -16,14 +16,14 @@ import { UID_PROPERTY } from "./client";
 //   delete cancels it. On a series visit the change is "Only this visit" (it
 //   detaches); a visit that has already started is never rewritten.
 // - **A reminder:** a time change moves it; a delete removes it.
-// - **A task:** a time change moves its due day and time; a delete marks it done.
+// - **A todo:** a time change moves its due day and time; a delete marks it done.
 // - **A new event without our uid** (made in Google, in the window): a new
 //   appointment with Google's summary as its title. The next push tags it,
 //   at the member's share level (generic by default).
 // - **What the member's role can't do** (a viewer's edit): `overwrite`, and
 //   the next push puts our version back (a viewer's new event is removed).
-//   A viewer's deleted task is still offered as `completeTask`: the service
-//   lets them tick a task assigned to them, and anything it refuses becomes
+//   A viewer's deleted todo is still offered as `completeTodo`: the service
+//   lets them tick a todo assigned to them, and anything it refuses becomes
 //   an overwrite too.
 
 /** What a pull knows of a pushed event (a `google_event_link`). */
@@ -46,8 +46,8 @@ export type GoogleChangeAction =
   | { type: "updateEntry"; entryId: string; patch: EntryTimePatch }
   | { type: "cancelEntry"; entryId: string; seriesDetached: boolean }
   | { type: "removeEntry"; entryId: string }
-  | { type: "updateTask"; taskId: string; dueOn: string; dueTime: string | null }
-  | { type: "completeTask"; taskId: string }
+  | { type: "updateTodo"; todoId: string; dueOn: string; dueTime: string | null }
+  | { type: "completeTodo"; todoId: string }
   | {
       type: "createAppointment";
       googleEventId: string;
@@ -76,7 +76,7 @@ const validTime = (time: GoogleEventTime | null): time is GoogleEventTime => {
 const iso = (ms: number) => new Date(ms).toISOString();
 const ms = (value: string) => new Date(value).getTime();
 
-/** Whether the event's times are the item's (reminders and tasks have no real end, so only the start counts). */
+/** Whether the event's times are the item's (reminders and todos have no real end, so only the start counts). */
 const sameTimes = (item: CalendarItem, start: GoogleEventTime, end: GoogleEventTime | null) => {
   const s = startOf(start);
   if (item.allDay !== "day" in s) return false;
@@ -176,7 +176,7 @@ export const interpretGoogleChange = ({
   now: Date;
   timeZone: string;
 }): GoogleChangeAction => {
-  const writer = isTaskWriter(role);
+  const writer = isTodoWriter(role);
   const deleted = change.status === "cancelled";
 
   if (!link) {
@@ -196,7 +196,7 @@ export const interpretGoogleChange = ({
 
   const { id } = item.source;
   if (deleted) {
-    if (item.kind === "task") return { type: "completeTask", taskId: id };
+    if (item.kind === "todo") return { type: "completeTodo", todoId: id };
     if (!writer) return { type: "overwrite", reason: "role" };
     if (item.series && started(item, now)) return { type: "overwrite", reason: "pastVisit" };
     if (item.kind === "reminder") return { type: "removeEntry", entryId: id };
@@ -210,12 +210,12 @@ export const interpretGoogleChange = ({
   if (!writer) return { type: "overwrite", reason: "role" };
   if (item.series && started(item, now)) return { type: "overwrite", reason: "pastVisit" };
 
-  if (item.kind === "task") {
+  if (item.kind === "todo") {
     const start = change.start;
-    if ("date" in start) return { type: "updateTask", taskId: id, dueOn: start.date, dueTime: null };
+    if ("date" in start) return { type: "updateTodo", todoId: id, dueOn: start.date, dueTime: null };
     return {
-      type: "updateTask",
-      taskId: id,
+      type: "updateTodo",
+      todoId: id,
       dueOn: localDate(start.dateTime, item.timeZone),
       dueTime: localTime(start.dateTime, item.timeZone).slice(0, 5),
     };

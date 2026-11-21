@@ -103,7 +103,7 @@ export function SearchResults({
                   condition && <ConditionResultItem key={hit.id} condition={condition} search={search} />
                 );
               }
-              if (section.type === "task") {
+              if (section.type === "todo") {
                 const task = data.tasks[hit.id];
                 return (
                   task && (

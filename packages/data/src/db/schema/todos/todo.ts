@@ -12,20 +12,20 @@ import { providerSchema } from "../providers/provider";
 import { timelineEntrySchema } from "../timeline/timelineEntry";
 import { userSchema } from "../auth/user";
 
-// A care group's tasks: a shared todo list ("Call the pharmacy", "Pick up
-// the walker"). A task has at most one assignee (a member, a name typed in
+// A care group's todos: a shared todo list ("Call the pharmacy", "Pick up
+// the walker"). A todo has at most one assignee (a member, a name typed in
 // for someone outside the group, or nobody), an optional due day with an
 // optional wall-clock time in the recipient's zone, and a done state.
 //
 // Shaped for PowerSync like medication: `group_id` on the row, ids made on
 // the device, soft deletes (`deleted_at`). The pure rules (state, order,
-// who may complete) are in taskRules.ts.
+// who may complete) are in todoRules.ts.
 
 const timestampColumn = (name: string) =>
   timestamp(name, { precision: 3, mode: "string", withTimezone: true });
 
-export const taskSchema = pgTable(
-  "task",
+export const todoSchema = pgTable(
+  "todo",
   {
     id: id(),
     groupId: uuid("group_id")
@@ -63,53 +63,53 @@ export const taskSchema = pgTable(
   },
   (t) => [
     // Target of composite FKs (its notes document).
-    unique("task_group_id_id_unique").on(t.groupId, t.id),
-    // The recipient must belong to the task's group (NO ACTION, like medication).
+    unique("todo_group_id_id_unique").on(t.groupId, t.id),
+    // The recipient must belong to the todo's group (NO ACTION, like medication).
     foreignKey({
-      name: "task_recipient_fk",
+      name: "todo_recipient_fk",
       columns: [t.groupId, t.recipientId],
       foreignColumns: [careRecipientSchema.groupId, careRecipientSchema.id],
     }),
     foreignKey({
-      name: "task_provider_fk",
+      name: "todo_provider_fk",
       columns: [t.groupId, t.providerId],
       foreignColumns: [providerSchema.groupId, providerSchema.id],
     }),
     foreignKey({
-      name: "task_medication_fk",
+      name: "todo_medication_fk",
       columns: [t.groupId, t.medicationId],
       foreignColumns: [medicationSchema.groupId, medicationSchema.id],
     }),
     // Hand-edited to ON DELETE SET NULL ("event_id") in the migration.
     foreignKey({
-      name: "task_event_fk",
+      name: "todo_event_fk",
       columns: [t.groupId, t.eventId],
       foreignColumns: [timelineEntrySchema.groupId, timelineEntrySchema.id],
     }),
-    index("task_group_due_idx").on(t.groupId, t.dueOn),
-    index("task_group_assignee_idx").on(t.groupId, t.assigneeId),
-    check("task_assignee_check", sql`${t.assigneeId} IS NULL OR ${t.assigneeName} IS NULL`),
-    check("task_due_time_check", sql`${t.dueTime} IS NULL OR ${t.dueOn} IS NOT NULL`),
-    check("task_done_check", sql`(${t.doneAt} IS NULL) = (${t.doneBy} IS NULL)`),
+    index("todo_group_due_idx").on(t.groupId, t.dueOn),
+    index("todo_group_assignee_idx").on(t.groupId, t.assigneeId),
+    check("todo_assignee_check", sql`${t.assigneeId} IS NULL OR ${t.assigneeName} IS NULL`),
+    check("todo_due_time_check", sql`${t.dueTime} IS NULL OR ${t.dueOn} IS NOT NULL`),
+    check("todo_done_check", sql`(${t.doneAt} IS NULL) = (${t.doneBy} IS NULL)`),
   ],
 );
 
-export type TaskSchema = typeof taskSchema;
-export type TaskSelect = InferSelectModel<TaskSchema>;
-export type TaskInsert = Omit<InferInsertModel<TaskSchema>, ProtectedField>;
-export type TaskUpdate = Partial<TaskInsert>;
-export type Task = TaskSelect;
+export type TodoSchema = typeof todoSchema;
+export type TodoSelect = InferSelectModel<TodoSchema>;
+export type TodoInsert = Omit<InferInsertModel<TodoSchema>, ProtectedField>;
+export type TodoUpdate = Partial<TodoInsert>;
+export type Todo = TodoSelect;
 
 // ---------------------------------------------------------------------------
 // Zod schemas (client-safe): the same rules in the form, on the device and
 // on the server.
 // ---------------------------------------------------------------------------
 
-export const TASK_LIMITS = { title: 200, assigneeName: 120 } as const;
+export const TODO_LIMITS = { title: 200, assigneeName: 120 } as const;
 
 /** The field issue when a due time has no day. */
 export const TIME_NEEDS_DAY_ISSUE = { path: "dueTime", message: "Choose a day for this time" } as const;
-/** The field issue when a task names both a member and a typed-in assignee. */
+/** The field issue when a todo names both a member and a typed-in assignee. */
 export const ONE_ASSIGNEE_ISSUE = { path: "assigneeName", message: "Choose one assignee" } as const;
 /** The field issue when only one of the done fields is set. */
 export const DONE_TOGETHER_ISSUE = { path: "doneAt", message: "Done needs who and when" } as const;
@@ -119,7 +119,7 @@ export const ASSIGNEE_NOT_MEMBER_ISSUE = {
   message: "Choose someone in this care group",
 } as const;
 /** The field issues when a link isn't live in the group (or the event isn't an event). */
-export const BAD_TASK_LINK_ISSUES = {
+export const BAD_TODO_LINK_ISSUES = {
   providerId: { path: "providerId", message: "Choose a provider in this care group" },
   medicationId: { path: "medicationId", message: "Choose a medication in this care group" },
   eventId: { path: "eventId", message: "Choose an appointment in this care group" },
@@ -139,11 +139,11 @@ const optionalId = z
   .nullish()
   .transform((v) => v ?? null);
 
-const taskTitle = z
-  .string({ error: "Enter a task" })
+const todoTitle = z
+  .string({ error: "Enter a todo" })
   .trim()
-  .min(1, { error: "Enter a task" })
-  .max(TASK_LIMITS.title, { error: `At most ${TASK_LIMITS.title} characters` });
+  .min(1, { error: "Enter a todo" })
+  .max(TODO_LIMITS.title, { error: `At most ${TODO_LIMITS.title} characters` });
 
 const dueOn = z.iso
   .date({ error: "Enter a valid date" })
@@ -152,10 +152,10 @@ const dueOn = z.iso
 
 const dueTime = scheduleTimeZSchema.nullish().transform((v) => v ?? null);
 
-const taskFields = {
-  title: taskTitle,
+const todoFields = {
+  title: todoTitle,
   assigneeId: optionalId,
-  assigneeName: optionalText(TASK_LIMITS.assigneeName),
+  assigneeName: optionalText(TODO_LIMITS.assigneeName),
   dueOn,
   dueTime,
   providerId: optionalId,
@@ -164,7 +164,7 @@ const taskFields = {
 };
 
 /** The content columns a writer edits (everything but the group, recipient, done and delete). */
-export const TASK_CONTENT_FIELDS = [
+export const TODO_CONTENT_FIELDS = [
   "title",
   "assigneeId",
   "assigneeName",
@@ -174,7 +174,7 @@ export const TASK_CONTENT_FIELDS = [
   "medicationId",
   "eventId",
 ] as const;
-export type TaskContentField = (typeof TASK_CONTENT_FIELDS)[number];
+export type TodoContentField = (typeof TODO_CONTENT_FIELDS)[number];
 
 type CrossFields = {
   assigneeId?: string | null;
@@ -189,7 +189,7 @@ const addIssue = (ctx: z.RefinementCtx, issue: { path: string; message: string }
   ctx.addIssue({ code: "custom", path: [issue.path], message: issue.message });
 
 /** The cross-field rules: a time needs a day; one assignee at most; done fields together. */
-export const taskCrossFieldIssues = (value: CrossFields) => {
+export const todoCrossFieldIssues = (value: CrossFields) => {
   const issues: { path: string; message: string }[] = [];
   if (value.dueTime && !value.dueOn) issues.push(TIME_NEEDS_DAY_ISSUE);
   if (value.assigneeId && value.assigneeName) issues.push(ONE_ASSIGNEE_ISSUE);
@@ -198,17 +198,17 @@ export const taskCrossFieldIssues = (value: CrossFields) => {
 };
 
 const crossFields = (value: CrossFields, ctx: z.RefinementCtx) => {
-  for (const issue of taskCrossFieldIssues(value)) addIssue(ctx, issue);
+  for (const issue of todoCrossFieldIssues(value)) addIssue(ctx, issue);
 };
 
 /**
- * A task's content. Used on create, and on update against the merged row.
+ * A todo's content. Used on create, and on update against the merged row.
  * Whether the assignee is a member and the links are live in the group
- * needs the database: see `taskService`.
+ * needs the database: see `todoService`.
  */
-export const taskContentZSchema = z
+export const todoContentZSchema = z
   .object({
-    ...taskFields,
+    ...todoFields,
     doneAt: z
       .string()
       .nullish()
@@ -216,23 +216,23 @@ export const taskContentZSchema = z
     doneBy: optionalId,
   })
   .superRefine(crossFields);
-export type TaskContent = z.output<typeof taskContentZSchema>;
-export type TaskContentInput = z.input<typeof taskContentZSchema>;
+export type TodoContent = z.output<typeof todoContentZSchema>;
+export type TodoContentInput = z.input<typeof todoContentZSchema>;
 
 /** Create input. `id` may come from an offline device; `recipientId` defaults to the group's recipient. */
-export const taskCreateZSchema = z
-  .object({ id: z.uuid().optional(), groupId: z.uuid(), recipientId: z.uuid().optional(), ...taskFields })
+export const todoCreateZSchema = z
+  .object({ id: z.uuid().optional(), groupId: z.uuid(), recipientId: z.uuid().optional(), ...todoFields })
   .superRefine(crossFields);
-export type TaskCreateInput = z.input<typeof taskCreateZSchema>;
+export type TodoCreateInput = z.input<typeof todoCreateZSchema>;
 
 /** Upsert input (PowerSync's upload queue): a create whose `id` is required. */
-export const taskUpsertZSchema = z
-  .object({ id: z.uuid(), groupId: z.uuid(), recipientId: z.uuid().optional(), ...taskFields })
+export const todoUpsertZSchema = z
+  .object({ id: z.uuid(), groupId: z.uuid(), recipientId: z.uuid().optional(), ...todoFields })
   .superRefine(crossFields);
-export type TaskUpsertInput = z.input<typeof taskUpsertZSchema>;
+export type TodoUpsertInput = z.input<typeof todoUpsertZSchema>;
 
 /** Update input: any content field. The group and recipient never change; done goes through complete and reopen. */
-export const taskUpdateZSchema = z.strictObject({
+export const todoUpdateZSchema = z.strictObject({
   title: z.string().optional(),
   assigneeId: z.uuid().nullish(),
   assigneeName: z.string().nullish(),
@@ -242,10 +242,10 @@ export const taskUpdateZSchema = z.strictObject({
   medicationId: z.uuid().nullish(),
   eventId: z.uuid().nullish(),
 });
-export type TaskUpdateInput = z.input<typeof taskUpdateZSchema>;
+export type TodoUpdateInput = z.input<typeof todoUpdateZSchema>;
 
-/** A stored task's content and done fields, ready to merge a patch over and re-validate. */
-export const taskContentOf = (task: {
+/** A stored todo's content and done fields, ready to merge a patch over and re-validate. */
+export const todoContentOf = (todo: {
   title: string;
   assigneeId: string | null;
   assigneeName: string | null;
@@ -256,15 +256,15 @@ export const taskContentOf = (task: {
   eventId: string | null;
   doneAt: string | null;
   doneBy: string | null;
-}): TaskContentInput => ({
-  title: task.title,
-  assigneeId: task.assigneeId,
-  assigneeName: task.assigneeName,
-  dueOn: task.dueOn,
-  dueTime: task.dueTime,
-  providerId: task.providerId,
-  medicationId: task.medicationId,
-  eventId: task.eventId,
-  doneAt: task.doneAt,
-  doneBy: task.doneBy,
+}): TodoContentInput => ({
+  title: todo.title,
+  assigneeId: todo.assigneeId,
+  assigneeName: todo.assigneeName,
+  dueOn: todo.dueOn,
+  dueTime: todo.dueTime,
+  providerId: todo.providerId,
+  medicationId: todo.medicationId,
+  eventId: todo.eventId,
+  doneAt: todo.doneAt,
+  doneBy: todo.doneBy,
 });

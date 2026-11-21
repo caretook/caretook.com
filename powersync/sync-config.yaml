@@ -67,10 +67,10 @@ streams:
       # `editors` (who edited, and when) carries "who's typing" past compaction.
       # `subject` says whose document it is: an entry's (`entry_id`), a provider's
       # (`provider_id`), a medication's (`medication_id`), a care period's
-      # (`care_period_id`) or a task's (`task_id`).
+      # (`care_period_id`) or a todo's (`todo_id`).
       - >-
         SELECT id, group_id, snapshot, text, editors, created_at, updated_at, created_by, updated_by,
-        subject, entry_id, provider_id, medication_id, care_period_id, task_id
+        subject, entry_id, provider_id, medication_id, care_period_id, todo_id
         FROM note_document WHERE group_id IN my_groups
       - >-
         SELECT id, group_id, document_id, data, created_at, created_by, updated_at, updated_by
@@ -116,13 +116,13 @@ streams:
         SELECT id, group_id, recipient_id, substance, reaction, severity,
         deleted_at, created_at, updated_at, created_by, updated_by
         FROM recipient_allergy WHERE group_id IN my_groups
-      # The group's tasks, soft-deleted ones included (so deletes reach devices).
+      # The group's todos, soft-deleted ones included (so deletes reach devices).
       # `via`: added through a member's AI assistant (connectors).
       - >-
         SELECT id, group_id, recipient_id, title, assignee_id, assignee_name, due_on, due_time,
         done_at, done_by, provider_id, medication_id, event_id,
         deleted_at, created_at, updated_at, created_by, updated_by, via
-        FROM task WHERE group_id IN my_groups
+        FROM todo WHERE group_id IN my_groups
       # The recipient's conditions, soft-deleted ones included (so deletes reach devices).
       - >-
         SELECT id, group_id, recipient_id, name, status, since_year, since_month, note, diagnosed_by_id,

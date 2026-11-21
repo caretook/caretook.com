@@ -29,7 +29,7 @@ const SOURCES = [
   { table: "medication", id: "ROW.id" },
   { table: "timeline_entry_provider", id: "json_extract(ROW.data, '$.entry_id')" },
   { table: "user", id: "ROW.id" },
-  { table: "task", id: "ROW.id" },
+  { table: "todo", id: "ROW.id" },
   { table: "recipient_condition", id: "ROW.id" },
 ] as const;
 

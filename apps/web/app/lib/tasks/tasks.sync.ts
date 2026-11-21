@@ -1,27 +1,27 @@
-import type { TaskContent, TaskUpdateInput } from "@caretook/data/schema";
+import type { TodoContent, TodoUpdateInput } from "@caretook/data/schema";
 import type { ActionResult } from "../core/api";
 import type { SyncDb } from "../sync/index";
 import type { LocalQuery } from "../timeline/timeline.sync";
 
 import {
   ASSIGNEE_NOT_MEMBER_ISSUE,
-  BAD_TASK_LINK_ISSUES,
-  canCompleteTask,
-  isTaskWriter,
-  taskContentOf,
-  taskContentZSchema,
-  taskCreateZSchema,
-  taskUpdateZSchema,
+  BAD_TODO_LINK_ISSUES,
+  canCompleteTodo,
+  isTodoWriter,
+  todoContentOf,
+  todoContentZSchema,
+  todoCreateZSchema,
+  todoUpdateZSchema,
 } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
-import { noteDocuments, tasks } from "../sync/schema";
+import { noteDocuments, todos } from "../sync/schema";
 import { forbidden, fromLocalTimestamp, groupFor, nowTimestamp, readRows } from "../timeline/timeline.sync";
 
 // Tasks on this device: local queries for `useLiveQuery` and loaders, and
 // local writes that validate with the shared Zod schemas and check the role
-// (writers, or a viewer completing their own task: `canCompleteTask`), like
+// (writers, or a viewer completing their own task: `canCompleteTodo`), like
 // carePeriods.ts. Writes queue for upload (sync.upload's taskOp), where
-// taskService checks them again. State and order come from taskRules.
+// todoService checks them again. State and order come from taskRules.
 
 // ---------------------------------------------------------------------------
 // Rows
@@ -127,13 +127,13 @@ const whoCondition = ({ who, userId }: TasksFilter): { sql: string; params: unkn
 };
 
 /**
- * A group's live tasks: open ones by due day (sort them with `taskOrder`,
+ * A group's live tasks: open ones by due day (sort them with `todoOrder`,
  * which knows the zone), or done ones newest first.
  */
 export const tasksQuery = (groupId: string, filter: TasksFilter = {}): LocalQuery => {
   const who = whoCondition(filter);
   return {
-    sql: `SELECT * FROM task WHERE group_id = ? AND deleted_at IS NULL
+    sql: `SELECT * FROM todo WHERE group_id = ? AND deleted_at IS NULL
           AND done_at IS ${filter.done ? "NOT NULL" : "NULL"}${who.sql}
           ORDER BY ${filter.done ? "done_at DESC, id" : "due_on IS NULL, due_on, due_time, created_at, id"}
           ${filter.limit ? "LIMIT ?" : ""}`,
@@ -148,14 +148,14 @@ export const doneCountQuery = (
 ): LocalQuery => {
   const who = whoCondition(filter);
   return {
-    sql: `SELECT COUNT(*) AS count FROM task WHERE group_id = ? AND deleted_at IS NULL AND done_at IS NOT NULL${who.sql}`,
+    sql: `SELECT COUNT(*) AS count FROM todo WHERE group_id = ? AND deleted_at IS NULL AND done_at IS NOT NULL${who.sql}`,
     params: [groupId, ...who.params],
   };
 };
 
 /** One task, deleted or not (screens decide: a deleted one is a 404). */
 export const taskQuery = (id: string): LocalQuery => ({
-  sql: "SELECT * FROM task WHERE id = ?",
+  sql: "SELECT * FROM todo WHERE id = ?",
   params: [id],
 });
 
@@ -191,7 +191,7 @@ const recipientOf = async (db: SyncDb, groupId: string) => {
   return row?.id ?? null;
 };
 
-/** The assignee must be a member of the group (see `taskService`'s `checkAssignee`). */
+/** The assignee must be a member of the group (see `todoService`'s `checkAssignee`). */
 const assigneeRefusal = async (db: SyncDb, groupId: string, assigneeId: string | null) => {
   if (!assigneeId) return null;
   const rows = await readRows<{ user_id: string }>(db, {
@@ -209,7 +209,7 @@ const LINK_TABLES = {
   eventId: "timeline_entry",
 } as const;
 
-/** Each link given must be live in the group, and the event an event (see `taskService`'s `checkLinks`). */
+/** Each link given must be live in the group, and the event an event (see `todoService`'s `checkLinks`). */
 const linkRefusal = async (
   db: SyncDb,
   groupId: string,
@@ -232,12 +232,12 @@ const linkRefusal = async (
       !row.deleted_at &&
       row.group_id === groupId &&
       (table !== "timeline_entry" || row.kind === "event");
-    if (!ok) return refuse("A linked item must be in this care group", [{ ...BAD_TASK_LINK_ISSUES[field] }]);
+    if (!ok) return refuse("A linked item must be in this care group", [{ ...BAD_TODO_LINK_ISSUES[field] }]);
   }
   return null;
 };
 
-const contentColumns = (content: Omit<TaskContent, "doneAt" | "doneBy">) => ({
+const contentColumns = (content: Omit<TodoContent, "doneAt" | "doneBy">) => ({
   title: content.title,
   assigneeId: content.assigneeId,
   assigneeName: content.assigneeName,
@@ -268,13 +268,13 @@ export const plannedTask = async (
   db: SyncDb,
   groupId: string,
   input: TaskInput,
-): Promise<{ ok: true; row: typeof tasks.$inferInsert } | Refusal> => {
+): Promise<{ ok: true; row: typeof todos.$inferInsert } | Refusal> => {
   const group = await groupFor(db, groupId);
-  if (!isTaskWriter(group?.role)) return forbidden as Refusal;
+  if (!isTodoWriter(group?.role)) return forbidden as Refusal;
   const recipientId = await recipientOf(db, groupId);
   if (!recipientId) return refuse("This care group has no care recipient yet");
 
-  const parsed = taskCreateZSchema.safeParse({ groupId, ...input });
+  const parsed = todoCreateZSchema.safeParse({ groupId, ...input });
   if (!parsed.success) return invalid(parsed.error);
   const { groupId: _g, recipientId: _r, id: _id, ...content } = parsed.data;
   const assignee = await assigneeRefusal(db, groupId, content.assigneeId);
@@ -305,7 +305,7 @@ export const plannedTask = async (
 export const createTask = async (db: SyncDb, groupId: string, input: TaskInput): Promise<TaskWriteResult> => {
   const planned = await plannedTask(db, groupId, input);
   if (!planned.ok) return planned;
-  await db.drizzle.insert(tasks).values(planned.row);
+  await db.drizzle.insert(todos).values(planned.row);
   return { ok: true, id: planned.row.id };
 };
 
@@ -316,18 +316,18 @@ export const createTask = async (db: SyncDb, groupId: string, input: TaskInput):
 export const updateTask = async (
   db: SyncDb,
   id: string,
-  patch: TaskUpdateInput,
+  patch: TodoUpdateInput,
 ): Promise<TaskWriteResult> => {
   const existing = await liveTask(db, id);
   if (!existing) return taskMissing;
   const group = await groupFor(db, existing.groupId);
   if (group?.role === "viewer") return viewerOnly;
-  if (!isTaskWriter(group?.role)) return forbidden as Refusal;
+  if (!isTodoWriter(group?.role)) return forbidden as Refusal;
 
-  const shape = taskUpdateZSchema.safeParse(patch);
+  const shape = todoUpdateZSchema.safeParse(patch);
   if (!shape.success) return invalid(shape.error);
   const defined = Object.fromEntries(Object.entries(shape.data).filter(([, v]) => v !== undefined));
-  const merged = taskContentZSchema.safeParse({ ...taskContentOf(existing), ...defined });
+  const merged = todoContentZSchema.safeParse({ ...todoContentOf(existing), ...defined });
   if (!merged.success) return invalid(merged.error);
   const { doneAt: _doneAt, doneBy: _doneBy, ...content } = merged.data;
 
@@ -343,9 +343,9 @@ export const updateTask = async (
   if (links) return links;
 
   await db.drizzle
-    .update(tasks)
+    .update(todos)
     .set({ ...contentColumns(content), updatedAt: nowTimestamp(), updatedBy: db.userId })
-    .where(eq(tasks.id, id));
+    .where(eq(todos.id, id));
   return { ok: true, id };
 };
 
@@ -353,15 +353,15 @@ const setDone = async (db: SyncDb, id: string, done: boolean): Promise<TaskWrite
   const existing = await liveTask(db, id);
   if (!existing) return taskMissing;
   const group = await groupFor(db, existing.groupId);
-  if (!canCompleteTask({ role: group?.role, userId: db.userId, task: existing }))
+  if (!canCompleteTodo({ role: group?.role, userId: db.userId, todo: existing }))
     return group?.role === "viewer" ? viewerOnly : (forbidden as Refusal);
   if (!!existing.doneAt === done) return { ok: true, id };
   const now = nowTimestamp();
   // Only the done columns change, so the upload maps it to complete or reopen.
   await db.drizzle
-    .update(tasks)
+    .update(todos)
     .set({ doneAt: done ? now : null, doneBy: done ? db.userId : null })
-    .where(eq(tasks.id, id));
+    .where(eq(todos.id, id));
   return { ok: true, id };
 };
 
@@ -376,12 +376,12 @@ export const removeTask = async (db: SyncDb, id: string): Promise<ActionResult> 
   const existing = await liveTask(db, id);
   if (!existing) return { ok: true };
   const group = await groupFor(db, existing.groupId);
-  if (!isTaskWriter(group?.role)) return forbidden;
+  if (!isTodoWriter(group?.role)) return forbidden;
   const now = nowTimestamp();
   await db.drizzle
-    .update(tasks)
+    .update(todos)
     .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
-    .where(eq(tasks.id, id));
+    .where(eq(todos.id, id));
   return { ok: true };
 };
 
@@ -398,7 +398,7 @@ export const createTaskDocument = async (db: SyncDb, taskId: string): Promise<Ac
   const task = await liveTask(db, taskId);
   if (!task) return taskMissing;
   const group = await groupFor(db, task.groupId);
-  if (!isTaskWriter(group?.role)) return forbidden;
+  if (!isTodoWriter(group?.role)) return forbidden;
   const existing = await readRows<{ id: string }>(db, {
     sql: "SELECT id FROM note_document WHERE id = ?",
     params: [taskId],
@@ -408,12 +408,12 @@ export const createTaskDocument = async (db: SyncDb, taskId: string): Promise<Ac
   await db.drizzle.insert(noteDocuments).values({
     id: taskId,
     groupId: task.groupId,
-    subject: "task",
+    subject: "todo",
     entryId: null,
     providerId: null,
     medicationId: null,
     carePeriodId: null,
-    taskId,
+    todoId: taskId,
     snapshot: null,
     text: "",
     createdAt: now,
@@ -430,7 +430,7 @@ export const createTaskDocument = async (db: SyncDb, taskId: string): Promise<Ac
 
 // Kept with this block (not at the top) so parallel slices' additions merge
 // as separate hunks; imports are hoisted either way.
-import { addDays, localDate, taskOrder } from "@caretook/data/schema";
+import { addDays, localDate, todoOrder } from "@caretook/data/schema";
 import { useMemo } from "react";
 import { useNow } from "../live-notes/editors.sync";
 import { useRememberedQuery } from "../sync/useRememberedQuery";
@@ -438,10 +438,10 @@ import { useRememberedQuery } from "../sync/useRememberedQuery";
 /**
  * A group's open (not done, not deleted) tasks with a due day, from `from`
  * through `to` ("YYYY-MM-DD", either null for no bound), by due day. Undated
- * tasks are never due. Sort with `taskOrder`, which knows the zone.
+ * tasks are never due. Sort with `todoOrder`, which knows the zone.
  */
 export const dueTasksQuery = (groupId: string, from: string | null, to: string | null): LocalQuery => ({
-  sql: `SELECT * FROM task WHERE group_id = ? AND deleted_at IS NULL AND done_at IS NULL
+  sql: `SELECT * FROM todo WHERE group_id = ? AND deleted_at IS NULL AND done_at IS NULL
           AND due_on IS NOT NULL${from ? " AND due_on >= ?" : ""}${to ? " AND due_on <= ?" : ""}
         ORDER BY due_on, due_time IS NOT NULL, due_time, created_at, id`,
   params: [groupId, ...(from ? [from] : []), ...(to ? [to] : [])],
@@ -458,7 +458,7 @@ const NO_TASK_ROWS: TaskRow[] = [];
 
 /**
  * A group's open dated tasks due by `days` after today (0: overdue and
- * today's only), in `taskOrder`, live and re-evaluated once a minute.
+ * today's only), in `todoOrder`, live and re-evaluated once a minute.
  * `timeZone` is the recipient's: due days and times are wall-clock there.
  * `initial` is a loader's rows (from `dueTasksQuery`). Left out, the query
  * reads through the tile cache (`useRememberedQuery`, under `name`, which
@@ -475,7 +475,7 @@ export function useDueTasks(
   const query = dueTasksQuery(groupId, null, dueTasksThrough(now, timeZone, days));
   const { value, fresh } = useRememberedQuery<TaskRow>({ groupId, name: `dueTasks:${days}` }, query, initial);
   const rows = value ?? NO_TASK_ROWS;
-  const tasks = useMemo(() => taskOrder(toTasks(rows), now, timeZone), [rows, now, timeZone]);
+  const tasks = useMemo(() => todoOrder(toTasks(rows), now, timeZone), [rows, now, timeZone]);
   return { tasks, now, timeZone, ready: value !== undefined, fresh };
 }
 
@@ -501,12 +501,12 @@ export const linkOf = (link: TaskLink): { field: keyof typeof LINK_COLUMNS; id: 
 
 /**
  * A group's open (not done, not deleted) tasks linked to one provider,
- * medication or event, by due day (sort with `taskOrder`, which knows the zone).
+ * medication or event, by due day (sort with `todoOrder`, which knows the zone).
  */
 export const linkedTasksQuery = (groupId: string, link: TaskLink): LocalQuery => {
   const { field, id } = linkOf(link);
   return {
-    sql: `SELECT * FROM task WHERE group_id = ? AND ${LINK_COLUMNS[field]} = ?
+    sql: `SELECT * FROM todo WHERE group_id = ? AND ${LINK_COLUMNS[field]} = ?
             AND deleted_at IS NULL AND done_at IS NULL
           ORDER BY due_on IS NULL, due_on, due_time, created_at, id`,
     params: [groupId, id],

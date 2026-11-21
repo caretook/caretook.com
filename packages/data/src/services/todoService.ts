@@ -1,21 +1,21 @@
 import type { z } from "zod";
-import type { Task, TaskCreateInput, TaskUpdateInput, TaskUpsertInput, Tx } from "../db";
-import type { IncludeDeleted } from "../models/task";
+import type { Todo, TodoCreateInput, TodoUpdateInput, TodoUpsertInput, Tx } from "../db";
+import type { IncludeDeleted } from "../models/todo";
 import type { ServiceContext } from "./types";
 
 import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
   ASSIGNEE_NOT_MEMBER_ISSUE,
-  BAD_TASK_LINK_ISSUES,
-  canCompleteTask,
+  BAD_TODO_LINK_ISSUES,
+  canCompleteTodo,
   completionOnly,
-  TASK_LIMITS,
-  taskContentOf,
-  taskContentZSchema,
-  taskCreateZSchema,
-  taskUpdateZSchema,
-  taskUpsertZSchema,
+  TODO_LIMITS,
+  todoContentOf,
+  todoContentZSchema,
+  todoCreateZSchema,
+  todoUpdateZSchema,
+  todoUpsertZSchema,
 } from "../db/schema";
 import { isError, newError } from "../errors";
 import {
@@ -24,30 +24,30 @@ import {
   careRecipientModel,
   medicationModel,
   providerModel,
-  taskModel,
+  todoModel,
   timelineEntryModel,
   userModel,
 } from "../models";
 import { isSystemUser, rejectError } from "../permissions";
 import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
 
-// Tasks: the group's shared todo list. Write through here, not the model:
+// Todos: the group's shared todo list. Write through here, not the model:
 // this is where content is validated, the assignee and links are checked,
-// and viewers are limited to completing and reopening tasks assigned to
+// and viewers are limited to completing and reopening todos assigned to
 // them (the permissions map lets every member update; this narrows it).
-// State and order are derived, never stored: taskRules.ts.
+// State and order are derived, never stored: todoRules.ts.
 
-export const serviceName = "task";
-export const schemaName = taskModel.schemaName;
+export const serviceName = "todo";
+export const schemaName = todoModel.schemaName;
 
 const issuesOf = (error: z.ZodError) =>
   error.issues.map(({ path, message }) => ({ path: path.join("."), message }));
 
 const invalid = (error: z.ZodError) =>
-  newError({ code: "taskService:invalid", meta: { issues: issuesOf(error) } });
+  newError({ code: "todoService:invalid", meta: { issues: issuesOf(error) } });
 
-const notFound = () => newError({ code: "taskService:notFound" });
-const viewerCompletionOnly = () => newError({ code: "taskService:viewerCompletionOnly" });
+const notFound = () => newError({ code: "todoService:notFound" });
+const viewerCompletionOnly = () => newError({ code: "todoService:viewerCompletionOnly" });
 
 /**
  * The actor's role in the group, or null. The system acts as an owner; a
@@ -60,7 +60,7 @@ const roleIn = async (ctx: ServiceContext, tx: Tx, groupId: string) => {
 };
 
 /**
- * The recipient a task is for: `recipientId` when given (it must be in the
+ * The recipient a todo is for: `recipientId` when given (it must be in the
  * group), else the group's only recipient. Reads are scoped to the actor,
  * so a non-member learns nothing about the group.
  */
@@ -72,7 +72,7 @@ const resolveRecipient = async (ctx: ServiceContext, tx: Tx, groupId: string, re
   if (recipientId) {
     const recipient = await careRecipientModel.getById(recipientId, { ...ctx, tx });
     if (isError(recipient)) return recipient;
-    if (recipient?.groupId !== groupId) return newError({ code: "taskService:recipientNotInGroup" });
+    if (recipient?.groupId !== groupId) return newError({ code: "todoService:recipientNotInGroup" });
     return recipient;
   }
 
@@ -82,7 +82,7 @@ const resolveRecipient = async (ctx: ServiceContext, tx: Tx, groupId: string, re
     filter: { groupId: { type: "eq", value: groupId } },
   });
   if (isError(recipient)) return recipient;
-  return recipient ?? newError({ code: "taskService:noRecipient" });
+  return recipient ?? newError({ code: "todoService:noRecipient" });
 };
 
 /** The assignee must be a member of the group. Checked when set or changed. */
@@ -93,13 +93,13 @@ const checkAssignee = async (tx: Tx, groupId: string, assigneeId: string | null)
   return role
     ? null
     : newError({
-        code: "taskService:assigneeNotMember",
+        code: "todoService:assigneeNotMember",
         meta: { issues: [{ ...ASSIGNEE_NOT_MEMBER_ISSUE }] },
       });
 };
 
-const badLink = (field: keyof typeof BAD_TASK_LINK_ISSUES) =>
-  newError({ code: "taskService:badLink", meta: { issues: [{ ...BAD_TASK_LINK_ISSUES[field] }] } });
+const badLink = (field: keyof typeof BAD_TODO_LINK_ISSUES) =>
+  newError({ code: "todoService:badLink", meta: { issues: [{ ...BAD_TODO_LINK_ISSUES[field] }] } });
 
 type Links = { providerId?: string | null; medicationId?: string | null; eventId?: string | null };
 
@@ -129,14 +129,14 @@ const checkLinks = async (ctx: ServiceContext, tx: Tx, groupId: string, links: L
 
 const changed = <T>(after: T, before: T) => (after !== before ? after : null);
 
-/** Write `data` to the task, as the actor. A refusal by RBAC means a viewer on a writer's field, or a non-member. */
-const write = async (ctx: ServiceContext, tx: Tx, id: string, data: Partial<Task>) => {
-  const updated = await taskModel.update({ ...ctx, tx, filter: { id: { type: "eq", value: id } }, data });
+/** Write `data` to the todo, as the actor. A refusal by RBAC means a viewer on a writer's field, or a non-member. */
+const write = async (ctx: ServiceContext, tx: Tx, id: string, data: Partial<Todo>) => {
+  const updated = await todoModel.update({ ...ctx, tx, filter: { id: { type: "eq", value: id } }, data });
   if (isError(updated) && updated.code === "baseModel:update:nothingUpdated")
     return rejectError(ctx.authUser);
   if (isError(updated)) return updated;
-  // Tasks with a due day reach members' Google calendars (appointments-2).
-  const queued = await enqueueCalendarPush(tx, { taskId: id }, "task");
+  // Todos with a due day reach members' Google calendars (appointments-2).
+  const queued = await enqueueCalendarPush(tx, { todoId: id }, "todo");
   return queued ?? updated[0] ?? null;
 };
 
@@ -144,13 +144,13 @@ const write = async (ctx: ServiceContext, tx: Tx, id: string, data: Partial<Task
 // Reads
 // ---------------------------------------------------------------------------
 
-/** One task, if the actor can see it. Deleted ones only with `includeDeleted`. */
+/** One todo, if the actor can see it. Deleted ones only with `includeDeleted`. */
 export const getById = (ctx: ServiceContext, id: string, opts: IncludeDeleted = {}) =>
-  taskModel.getById(id, { ...ctx, ...opts });
+  todoModel.getById(id, { ...ctx, ...opts });
 
-/** A group's tasks (storage order: sort with `taskOrder` / `doneOrder`). */
+/** A group's todos (storage order: sort with `todoOrder` / `doneOrder`). */
 export const list = (ctx: ServiceContext, { groupId, ...opts }: IncludeDeleted & { groupId: string }) =>
-  taskModel.list({ ...ctx, ...opts, filter: { groupId: { type: "eq", value: groupId } } });
+  todoModel.list({ ...ctx, ...opts, filter: { groupId: { type: "eq", value: groupId } } });
 
 // ---------------------------------------------------------------------------
 // Writes
@@ -158,29 +158,29 @@ export const list = (ctx: ServiceContext, { groupId, ...opts }: IncludeDeleted &
 
 /**
  * Server-only write options, never from a device: `via` is the assistant a
- * task was added through ("Claude"; connectors PRD), set only by
+ * todo was added through ("Claude"; connectors PRD), set only by
  * `assistantActionService.run`.
  */
-export type TaskWriteOptions = { via?: string | null };
+export type TodoWriteOptions = { via?: string | null };
 
 /**
- * Add a task. `id` may come from an offline device; creating one that
+ * Add a todo. `id` may come from an offline device; creating one that
  * exists returns it (a replay). Writers only.
  */
-export const create = (ctx: ServiceContext, input: TaskCreateInput, opts: TaskWriteOptions = {}) =>
+export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWriteOptions = {}) =>
   withTransaction(async (tx) => {
-    const parsed = taskCreateZSchema.safeParse(input);
+    const parsed = todoCreateZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const { recipientId, ...data } = parsed.data;
 
     if (data.id) {
-      const existing = await taskModel.getById(data.id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
+      const existing = await todoModel.getById(data.id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
       if (isError(existing)) return existing;
       if (existing) {
-        const visible = await taskModel.getById(data.id, { ...ctx, tx, includeDeleted: true });
+        const visible = await todoModel.getById(data.id, { ...ctx, tx, includeDeleted: true });
         if (isError(visible)) return visible;
         if (!visible) return rejectError(ctx.authUser);
-        return visible.groupId === data.groupId ? visible : newError({ code: "taskService:immutable" });
+        return visible.groupId === data.groupId ? visible : newError({ code: "todoService:immutable" });
       }
     }
 
@@ -196,39 +196,39 @@ export const create = (ctx: ServiceContext, input: TaskCreateInput, opts: TaskWr
     const links = await checkLinks(ctx, tx, data.groupId, data);
     if (links) return links;
 
-    const created = await taskModel.create({
+    const created = await todoModel.create({
       ...ctx,
       tx,
       data: { ...data, recipientId: recipient.id, ...(opts.via ? { via: opts.via } : {}) },
     });
     if (isError(created) || !created) return created;
-    const queued = await enqueueCalendarPush(tx, { taskId: created.id }, "task");
+    const queued = await enqueueCalendarPush(tx, { todoId: created.id }, "todo");
     return queued ?? created;
   }, ctx);
 
 /**
- * Edit a task's content: title, assignee, due and links. The group and
- * recipient are fixed; the merged task must be valid; a changed assignee
+ * Edit a todo's content: title, assignee, due and links. The group and
+ * recipient are fixed; the merged todo must be valid; a changed assignee
  * must be a member and a changed link live in the group. Viewers are
  * refused (`viewerCompletionOnly`): they only complete and reopen.
  */
-export const update = (ctx: ServiceContext, id: string, input: TaskUpdateInput) =>
+export const update = (ctx: ServiceContext, id: string, input: TodoUpdateInput) =>
   withTransaction(async (tx) => {
-    const parsed = taskUpdateZSchema.safeParse(input);
+    const parsed = todoUpdateZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const patch = Object.fromEntries(Object.entries(parsed.data).filter(([, v]) => v !== undefined));
 
-    const existing = await taskModel.getById(id, { ...ctx, tx });
+    const existing = await todoModel.getById(id, { ...ctx, tx });
     if (isError(existing)) return existing;
     if (!existing) return notFound();
 
-    const merged = taskContentZSchema.safeParse({ ...taskContentOf(existing), ...patch });
+    const merged = todoContentZSchema.safeParse({ ...todoContentOf(existing), ...patch });
     if (!merged.success) return invalid(merged.error);
 
     const role = await roleIn(ctx, tx, existing.groupId);
     if (isError(role)) return role;
     if (role === "viewer") {
-      const own = canCompleteTask({ role, userId: ctx.authUser?.id, task: existing });
+      const own = canCompleteTodo({ role, userId: ctx.authUser?.id, todo: existing });
       if (!own || !completionOnly(existing, merged.data)) return viewerCompletionOnly();
     }
 
@@ -250,20 +250,20 @@ export const update = (ctx: ServiceContext, id: string, input: TaskUpdateInput) 
   }, ctx);
 
 /**
- * Tick a task done. The server records the actor as `done_by`; `doneAt`
+ * Tick a todo done. The server records the actor as `done_by`; `doneAt`
  * may come from an offline device (when it was ticked), else now. Writers
- * complete any task; a viewer only one assigned to them. Completing a done
- * task keeps who finished it first (a replay).
+ * complete any todo; a viewer only one assigned to them. Completing a done
+ * todo keeps who finished it first (a replay).
  */
 export const complete = (ctx: ServiceContext, id: string, { doneAt }: { doneAt?: string | null } = {}) =>
   withTransaction(async (tx) => {
-    const existing = await taskModel.getById(id, { ...ctx, tx });
+    const existing = await todoModel.getById(id, { ...ctx, tx });
     if (isError(existing)) return existing;
     if (!existing) return notFound();
 
     const role = await roleIn(ctx, tx, existing.groupId);
     if (isError(role)) return role;
-    if (!canCompleteTask({ role, userId: ctx.authUser?.id, task: existing }))
+    if (!canCompleteTodo({ role, userId: ctx.authUser?.id, todo: existing }))
       return role === "viewer" ? viewerCompletionOnly() : rejectError(ctx.authUser);
     if (existing.doneAt) return existing;
 
@@ -276,16 +276,16 @@ export const complete = (ctx: ServiceContext, id: string, { doneAt }: { doneAt?:
     });
   }, ctx);
 
-/** Reopen a done task: clears who finished it and when. The same people as `complete`. */
+/** Reopen a done todo: clears who finished it and when. The same people as `complete`. */
 export const reopen = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
-    const existing = await taskModel.getById(id, { ...ctx, tx });
+    const existing = await todoModel.getById(id, { ...ctx, tx });
     if (isError(existing)) return existing;
     if (!existing) return notFound();
 
     const role = await roleIn(ctx, tx, existing.groupId);
     if (isError(role)) return role;
-    if (!canCompleteTask({ role, userId: ctx.authUser?.id, task: existing }))
+    if (!canCompleteTodo({ role, userId: ctx.authUser?.id, todo: existing }))
       return role === "viewer" ? viewerCompletionOnly() : rejectError(ctx.authUser);
     if (!existing.doneAt) return existing;
 
@@ -293,27 +293,27 @@ export const reopen = (ctx: ServiceContext, id: string) =>
   }, ctx);
 
 /**
- * Create the task with this id, or bring the existing one up to date: what
+ * Create the todo with this id, or bring the existing one up to date: what
  * PowerSync's upload queue sends for a row a device created. Safe to
- * replay. The group and recipient never change, a deleted task stays
+ * replay. The group and recipient never change, a deleted todo stays
  * deleted, and an id the actor can't see is refused without saying whether
  * it exists.
  */
-export const upsert = (ctx: ServiceContext, input: TaskUpsertInput) =>
+export const upsert = (ctx: ServiceContext, input: TodoUpsertInput) =>
   withTransaction(async (tx) => {
-    const parsed = taskUpsertZSchema.safeParse(input);
+    const parsed = todoUpsertZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
     const { id, groupId, recipientId, ...content } = parsed.data;
 
-    const existing = await taskModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
+    const existing = await todoModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
     if (isError(existing)) return existing;
     if (!existing) return create({ ...ctx, tx }, input);
 
-    const visible = await taskModel.getById(id, { ...ctx, tx, includeDeleted: true });
+    const visible = await todoModel.getById(id, { ...ctx, tx, includeDeleted: true });
     if (isError(visible)) return visible;
     if (!visible) return rejectError(ctx.authUser);
     if (visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId))
-      return newError({ code: "taskService:immutable" });
+      return newError({ code: "todoService:immutable" });
     if (visible.deletedAt) return visible;
 
     // A replay of the create from a viewer's device changes nothing.
@@ -324,29 +324,29 @@ export const upsert = (ctx: ServiceContext, input: TaskUpsertInput) =>
 /** Soft delete (a mistake, a cancelled errand). Writers only. */
 export const remove = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
-    const res = await taskModel.remove({ ...ctx, tx, filter: { id: { type: "eq", value: id } } });
-    if (!isError(res)) return (await enqueueCalendarPush(tx, { taskId: id }, "task")) ?? res;
+    const res = await todoModel.remove({ ...ctx, tx, filter: { id: { type: "eq", value: id } } });
+    if (!isError(res)) return (await enqueueCalendarPush(tx, { todoId: id }, "todo")) ?? res;
     if (res.code !== "baseModel:remove:nothingRemoved") return res;
     // Visible but not removable: a viewer. Otherwise gone, or never theirs.
-    const visible = await taskModel.getById(id, { ...ctx, tx });
+    const visible = await todoModel.getById(id, { ...ctx, tx });
     if (isError(visible)) return visible;
     return visible ? rejectError(ctx.authUser) : notFound();
   }, ctx);
 
 /**
- * A member is leaving `groupId` (removed, or leaving): their open tasks
+ * A member is leaving `groupId` (removed, or leaving): their open todos
  * there keep their name as a typed-in assignee (`assignee_id` null,
  * `assignee_name` their display name now), so the group still knows who
- * had them and can reassign. Done tasks are left alone. Runs as the system,
+ * had them and can reassign. Done todos are left alone. Runs as the system,
  * inside the caller's transaction.
  */
 export const releaseAssignee = async (tx: Tx, groupId: string, userId: string) => {
   const system = { authUser: SYSTEM_USER, tx };
   const user = await userModel.getById(userId, system);
   if (isError(user)) return user;
-  const name = (user?.name?.trim() || "Former member").slice(0, TASK_LIMITS.assigneeName);
+  const name = (user?.name?.trim() || "Former member").slice(0, TODO_LIMITS.assigneeName);
 
-  const updated = await taskModel.update({
+  const updated = await todoModel.update({
     ...system,
     filter: {
       groupId: { type: "eq", value: groupId },
@@ -361,13 +361,13 @@ export const releaseAssignee = async (tx: Tx, groupId: string, userId: string) =
 };
 
 /**
- * An event was deleted: tasks linked to it lose the link (`event_id` null),
- * quietly, done ones included (deleted tasks stay as they were). The FK
+ * An event was deleted: todos linked to it lose the link (`event_id` null),
+ * quietly, done ones included (deleted todos stay as they were). The FK
  * does the same on a hard delete; this is the soft one. Runs as the system, inside the caller's
  * transaction.
  */
 export const releaseEvent = async (tx: Tx, eventId: string) => {
-  const updated = await taskModel.update({
+  const updated = await todoModel.update({
     authUser: SYSTEM_USER,
     tx,
     filter: { eventId: { type: "eq", value: eventId } },

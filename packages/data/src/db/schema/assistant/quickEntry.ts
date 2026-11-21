@@ -7,8 +7,8 @@ import type { UnitChoices, UnitFor, VitalFieldSpec, VitalReading, VitalType } fr
 import { DEVICE_FUTURE_SKEW_MS, FUTURE_DATE_MESSAGE, localDate } from "../core/entryTiming";
 import { findTime, resolveTime, saysFuture } from "./quickEntryTime";
 import { foldSearchText } from "../search/search";
-import { TASK_LIMITS } from "../tasks/task";
-import { localTime } from "../tasks/taskRules";
+import { TODO_LIMITS } from "../todos/todo";
+import { localTime } from "../todos/todoRules";
 import { TIMELINE_LIMITS } from "../timeline/timelineEntry";
 import {
   BP_ORDER_MESSAGE,
@@ -1355,7 +1355,7 @@ const taskReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   while (titleIdx.length && TASK_TRAILING.has(s.tokens[titleIdx.at(-1)!]!.w))
     titleIdx = titleIdx.slice(0, -1);
   titleIdx = stripLeading(s.tokens, titleIdx, new Set(["due", "-", ":"]));
-  const title = truncate(capitalize(rawOf(s.tokens, titleIdx)), TASK_LIMITS.title);
+  const title = truncate(capitalize(rawOf(s.tokens, titleIdx)), TODO_LIMITS.title);
   if (!title) warnings.push({ message: "Say what the task is.", blocking: true });
 
   let dueOn: string | null = null;

@@ -120,7 +120,7 @@ describe("My tasks in simple mode", () => {
     await expect.poll(() => titles()).toEqual([]);
     // The card stays up while Undo is offered.
     expect(card()!.contains(document.querySelector("[data-task-undo]"))).toBe(true);
-    const done = await device.query<{ done_by: string | null }>("SELECT done_by FROM task");
+    const done = await device.query<{ done_by: string | null }>("SELECT done_by FROM todo");
     expect(done).toEqual([{ done_by: TEST_USER.id }]);
 
     await userEvent.click(page.getByRole("button", { name: "Undo Pick up the walker" }));
@@ -150,7 +150,7 @@ describe("My tasks in simple mode", () => {
     await expect.poll(() => titles()).toEqual(["Water the plants"]);
     await expect.poll(lines).toEqual(["Done: Pick up the walker"]);
     const rows = await device.query<{ title: string; done: number }>(
-      "SELECT title, done_at IS NOT NULL AS done FROM task ORDER BY title",
+      "SELECT title, done_at IS NOT NULL AS done FROM todo ORDER BY title",
     );
     expect(rows).toEqual([
       { title: "Pick up the walker", done: 1 },

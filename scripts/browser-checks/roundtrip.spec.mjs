@@ -174,12 +174,12 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
   const memberId = userId("member@example.com");
   const caretakerId = userId("caretaker@example.com");
   const viewerId = userId("viewer@example.com");
-  // The viewer's seeded open task (seeds/tasks.ts): ticked offline in 6d, reopened after.
+  // The viewer's seeded open task (seeds/todos.ts): ticked offline in 6d, reopened after.
   const viewerTask = psql(
-    `SELECT id FROM task WHERE group_id = '${DEV_FAMILY}' AND title = 'Pick up groceries' AND assignee_id = '${viewerId}' AND deleted_at IS NULL`,
+    `SELECT id FROM todo WHERE group_id = '${DEV_FAMILY}' AND title = 'Pick up groceries' AND assignee_id = '${viewerId}' AND deleted_at IS NULL`,
   );
   const VIEWER_TASK_TITLE = "Pick up groceries";
-  const reopenViewerTaskSql = `UPDATE task SET done_at = NULL, done_by = NULL, title = '${VIEWER_TASK_TITLE}' WHERE id = '${viewerTask}' AND (done_at IS NOT NULL OR title <> '${VIEWER_TASK_TITLE}')`;
+  const reopenViewerTaskSql = `UPDATE todo SET done_at = NULL, done_by = NULL, title = '${VIEWER_TASK_TITLE}' WHERE id = '${viewerTask}' AND (done_at IS NOT NULL OR title <> '${VIEWER_TASK_TITLE}')`;
   // A run that died mid-step left it done: open again before anyone loads.
   if (viewerTask) psql(reopenViewerTaskSql);
   const tag = `RT-${Date.now().toString(36)}`;
@@ -610,7 +610,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     const doneLine = `${taskRow}?.querySelector("[data-task-due]")?.textContent.trim()`;
     const everyone = `[...document.querySelectorAll("main a")].find((a) => a.textContent.trim() === "Everyone")`;
     const taskOn = async (page) =>
-      (await localRows(page, "SELECT title, done_at, done_by FROM task WHERE id = ?", [viewerTask]))[0];
+      (await localRows(page, "SELECT title, done_at, done_by FROM todo WHERE id = ?", [viewerTask]))[0];
     const refusedTask = `${tag} groceries, refused`;
     // Both task lists while online: the viewer's (Mine), and member@'s on
     // Everyone (the viewer's task isn't Mine).
@@ -646,14 +646,14 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     await wf(C, `${taskRow}?.querySelector("[data-task-tick]")?.checked`);
     await localWrite(C, [
       {
-        sql: "UPDATE task SET title = ?, updated_at = ?, updated_by = ? WHERE id = ?",
+        sql: "UPDATE todo SET title = ?, updated_at = ?, updated_by = ? WHERE id = ?",
         params: [refusedTask, localTimestamp(), viewerId, viewerTask],
       },
     ]);
     const ticked = { local: await taskOn(C), queued: await queued(C) };
-    const serverDone = psql(`SELECT count(*) FROM task WHERE id = '${viewerTask}' AND done_at IS NOT NULL`);
+    const serverDone = psql(`SELECT count(*) FROM todo WHERE id = '${viewerTask}' AND done_at IS NOT NULL`);
     await check(
-      "task: offline, the viewer ticks their own task and forces a title change; both queued",
+      "todo: offline, the viewer ticks their own task and forces a title change; both queued",
       !!ticked.local?.done_at &&
         ticked.local?.title === refusedTask &&
         ticked.queued === 2 &&
@@ -695,14 +695,14 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     );
 
     const doneBy = await waitForSql(
-      `SELECT coalesce(done_by::text, '') FROM task WHERE id = '${viewerTask}'`,
+      `SELECT coalesce(done_by::text, '') FROM todo WHERE id = '${viewerTask}'`,
       (r) => r !== "",
       60_000,
     );
-    await check("task: on reconnect the tick uploads, done by the viewer", doneBy === viewerId, doneBy);
+    await check("todo: on reconnect the tick uploads, done by the viewer", doneBy === viewerId, doneBy);
     const shown = await waits(A, `${doneLine}?.startsWith("Done by Dev Viewer")`, 20_000);
     await check(
-      "task: the member's list shows it done, with the done-by line",
+      "todo: the member's list shows it done, with the done-by line",
       shown && (await A.evaluate(`${taskRow}?.dataset.taskState`)) === "done",
       `${await A.evaluate(doneLine)}, ${Date.now() - t2} ms after reconnecting`,
     );
@@ -710,9 +710,9 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       const row = await taskOn(C);
       return row?.title === VIEWER_TASK_TITLE && (await queued(C)) === 0 ? row : null;
     }, 30_000);
-    const serverTaskTitle = psql(`SELECT title FROM task WHERE id = '${viewerTask}'`);
+    const serverTaskTitle = psql(`SELECT title FROM todo WHERE id = '${viewerTask}'`);
     await check(
-      "task: the viewer's title change is refused, and the next sync restores the title (still done)",
+      "todo: the viewer's title change is refused, and the next sync restores the title (still done)",
       !!titleBack && serverTaskTitle === VIEWER_TASK_TITLE && !!titleBack.done_at,
       titleBack
         ? `${Date.now() - t2} ms after reconnecting`

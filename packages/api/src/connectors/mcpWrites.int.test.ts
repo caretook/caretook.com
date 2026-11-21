@@ -6,7 +6,7 @@ import {
   medicationService,
   providerService,
   recipientConditionService,
-  taskService,
+  todoService,
   timelineEntryService,
 } from "@caretook/data";
 import { describe, expect, it } from "vitest";
@@ -216,7 +216,7 @@ describe("/mcp write tools", () => {
     const taskId = task.structuredContent.taskId!;
     expect(textOf(task)).toMatch(/^Added task: Pick up prescription · caretaker · /);
     expect(task.structuredContent.url).toBe(`${base}/tasks/${taskId}`);
-    const row = ok(await taskService.getById(w.owner.ctx, taskId));
+    const row = ok(await todoService.getById(w.owner.ctx, taskId));
     expect(row).toMatchObject({ assigneeId: w.caretaker.user.id, dueOn: "2027-01-10", via: CLIENT });
 
     const nobody = await resultOf(await callTool(token, "add_task", { title: "Call", assignee: "Nobody" }));

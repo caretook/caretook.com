@@ -1,6 +1,6 @@
 import type { LocalTask } from "~/lib/tasks/tasks.sync";
 
-import { taskState } from "@caretook/data/schema";
+import { todoState } from "@caretook/data/schema";
 import { assigneeText, doneByLine, dueLines } from "./taskPage";
 
 /**
@@ -22,7 +22,7 @@ export function TaskDetails({
 }) {
   const due = dueLines(task, now, timeZone);
   const doneBy = doneByLine(task, nameOf, now, timeZone);
-  const overdue = taskState(task, now, timeZone) === "overdue";
+  const overdue = todoState(task, now, timeZone) === "overdue";
   return (
     <section aria-label="Details" className="space-y-3">
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">

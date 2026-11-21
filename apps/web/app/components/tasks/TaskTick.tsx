@@ -1,6 +1,6 @@
 /**
  * A task's tick box: checked when done. Only rendered for someone who may
- * complete the task (`canCompleteTask`), so viewers see it on their own
+ * complete the task (`canCompleteTodo`), so viewers see it on their own
  * tasks only. A big hit area for phones.
  */
 export function TaskTick({

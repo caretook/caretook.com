@@ -126,12 +126,12 @@ describe("the task page", () => {
     await userEvent.keyboard("Pharmacy said Friday");
     await expect
       .poll(() =>
-        device.query<{ subject: string; task_id: string; group_id: string }>(
-          "SELECT subject, task_id, group_id FROM note_document WHERE id = ?",
+        device.query<{ subject: string; todo_id: string; group_id: string }>(
+          "SELECT subject, todo_id, group_id FROM note_document WHERE id = ?",
           [SAMS.id],
         ),
       )
-      .toEqual([{ subject: "task", task_id: SAMS.id, group_id: TEST_GROUP.id }]);
+      .toEqual([{ subject: "todo", todo_id: SAMS.id, group_id: TEST_GROUP.id }]);
     await expect
       .poll(
         async () =>
@@ -141,7 +141,7 @@ describe("the task page", () => {
   });
 
   test("an assignee viewer can complete it, reads the notes, and has no Edit or ⋯", async () => {
-    const notes = fx.document({ ownerId: MINE.id, subject: "task", text: "Ask for the generic" });
+    const notes = fx.document({ ownerId: MINE.id, subject: "todo", text: "Ask for the generic" });
     const device = await open(pageOf(MINE.id), "viewer", [...world(), notes]);
     await expect.element(heading("Call the pharmacy")).toBeInTheDocument();
     await expect.poll(() => EDITOR()?.textContent).toContain("Ask for the generic");
@@ -190,7 +190,7 @@ describe("Delete and the 404s", () => {
 
     await expect.poll(() => device.location()).toBe(`${LIST}?who=everyone`);
     const [row] = await device.query<{ deleted_at: string | null }>(
-      "SELECT deleted_at FROM task WHERE id = ?",
+      "SELECT deleted_at FROM todo WHERE id = ?",
       [SAMS.id],
     );
     expect(row?.deleted_at).not.toBeNull();

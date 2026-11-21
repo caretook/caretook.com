@@ -1,4 +1,4 @@
-import type { TaskRuleFields, TaskState } from "@caretook/data/schema";
+import type { TodoRuleFields, TodoState } from "@caretook/data/schema";
 
 import { localDate } from "@caretook/data/schema";
 import { assigneeLabel, dueText, shortDay } from "../../../../lib/tasks/taskDisplay";
@@ -8,7 +8,7 @@ import { assigneeLabel, dueText, shortDay } from "../../../../lib/tasks/taskDisp
 // wall-clock in the recipient's zone, like the list's (`lib/tasks/taskDisplay.ts`).
 
 /** The header's badge: "Done" or "Overdue", else none. */
-export const taskBadge = (state: TaskState): { label: string; tone: "done" | "overdue" } | null => {
+export const taskBadge = (state: TodoState): { label: string; tone: "done" | "overdue" } | null => {
   if (state === "done") return { label: "Done", tone: "done" };
   if (state === "overdue") return { label: "Overdue", tone: "overdue" };
   return null;
@@ -16,7 +16,7 @@ export const taskBadge = (state: TaskState): { label: string; tone: "done" | "ov
 
 /** Who it's for: a member ("you" for me), "Aunt May (not in the group)", or "Unassigned (anyone)". */
 export const assigneeText = (
-  task: Pick<TaskRuleFields, "assigneeId" | "assigneeName">,
+  task: Pick<TodoRuleFields, "assigneeId" | "assigneeName">,
   nameOf: (userId: string) => string,
 ) => {
   const who = assigneeLabel(task, nameOf);
@@ -49,7 +49,7 @@ const longDayYear = new Intl.DateTimeFormat("en-US", {
  * tomorrow 17:00", "Overdue · 2 days"). Undated: "No due date" alone.
  */
 export const dueLines = (
-  task: Pick<TaskRuleFields, "dueOn" | "dueTime" | "doneAt">,
+  task: Pick<TodoRuleFields, "dueOn" | "dueTime" | "doneAt">,
   now: Date | number,
   timeZone: string,
 ): { day: string; status: string | null } => {
@@ -64,7 +64,7 @@ export const dueLines = (
 
 /** "Done by Sam Okafor · today at 14:05", "Done by you · Tue at 09:30". None while open. */
 export const doneByLine = (
-  task: Pick<TaskRuleFields, "doneAt"> & { doneBy: string | null },
+  task: Pick<TodoRuleFields, "doneAt"> & { doneBy: string | null },
   nameOf: (userId: string) => string,
   now: Date | number,
   timeZone: string,

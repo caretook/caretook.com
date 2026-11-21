@@ -44,12 +44,12 @@ URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/a3
 STATUS:CONFIRMED
 END:VEVENT
 BEGIN:VEVENT
-UID:task:t1@app.caretook.test
+UID:todo:t1@app.caretook.test
 SEQUENCE:0
 DTSTAMP:20261118T180000Z
 DTSTART:20261123T163000Z
 DTEND:20261123T170000Z
-SUMMARY:Task for Pat
+SUMMARY:Todo for Pat
 DESCRIPTION:Mon 23 Nov · 8:30\nOpen in Caretook: https://app.caretook.tes
  t/app/groups/g1/tasks
 URL;VALUE=URI:https://app.caretook.test/app/groups/g1/tasks

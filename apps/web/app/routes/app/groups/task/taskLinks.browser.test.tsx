@@ -99,7 +99,7 @@ describe("the task page's links", () => {
     expect((await removeEntry(device.db, VISIT.id)).ok).toBe(true);
     await expect.poll(() => row("event")).toBeNull();
     const [after] = await device.query<{ event_id: string | null; provider_id: string }>(
-      "SELECT event_id, provider_id FROM task WHERE id = ?",
+      "SELECT event_id, provider_id FROM todo WHERE id = ?",
       [LINKED.id],
     );
     expect(after).toEqual({ event_id: null, provider_id: LARK.id });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assigneeLabel, dayHeading, doneText, dueText, linkLabel, shortDay } from "./taskDisplay";
+import { assigneeLabel, dayHeading, doneText, dueText, linkLabel, shortDay } from "./todoDisplay";
 
 const LA = "America/Los_Angeles";
 // Friday 2026-11-20, 12:00 in Los Angeles.
@@ -22,11 +22,11 @@ describe("dueText", () => {
     [open("2027-01-15"), "Due Jan 15, 2027"],
     [open("2026-11-19"), "Overdue · 1 day"],
     [open("2026-11-18", "08:00"), "Overdue · 2 days"],
-  ])("%j → %s", (task, text) => {
-    expect(dueText(task, NOW, LA)).toBe(text);
+  ])("%j → %s", (todo, text) => {
+    expect(dueText(todo, NOW, LA)).toBe(text);
   });
 
-  it("has none for a done task", () => {
+  it("has none for a done todo", () => {
     expect(
       dueText({ dueOn: "2026-11-19", dueTime: null, doneAt: "2026-11-19T10:00:00Z" }, NOW, LA),
     ).toBeNull();

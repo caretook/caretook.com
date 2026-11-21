@@ -11,7 +11,7 @@ import {
   isError,
   notificationOutboxSchema as outbox,
   providerService,
-  taskService,
+  todoService,
   timelineEntryService,
 } from "@caretook/data";
 import { addDays, dayInZone, zonedInstant } from "@caretook/data/schema";
@@ -184,14 +184,14 @@ describe("sweepReminders", () => {
     expect(forbidden?.subject).not.toContain("Dialysis");
   });
 
-  it("reminds a task's assignee, and skips a suppressed address", async () => {
+  it("reminds a todo's assignee, and skips a suppressed address", async () => {
     const { ana, ben, cy, group, remindersOn, addAppointment } = await setup();
     await remindersOn(ana, { reminderLeads: [60] });
     await remindersOn(ben, { reminderLeads: [60] });
     await remindersOn(cy, { reminderLeads: [60] });
     await addAppointment();
     ok(
-      await taskService.create(ana.ctx, {
+      await todoService.create(ana.ctx, {
         groupId: group.id,
         title: "Pick up the prescription",
         assigneeId: ben.user.id,
@@ -207,10 +207,10 @@ describe("sweepReminders", () => {
       to(sent, ben.user.email)
         .map((m) => m.name)
         .sort(),
-    ).toEqual(["appointmentReminder", "taskDue"]);
-    const task = to(sent, ben.user.email).find((m) => m.name === "taskDue");
-    expect(task?.subject).toMatch(/^Task for Pat Example · .+ · 9:00$/);
-    expect(task?.text).not.toContain("prescription");
+    ).toEqual(["appointmentReminder", "todoDue"]);
+    const todo = to(sent, ben.user.email).find((m) => m.name === "todoDue");
+    expect(todo?.subject).toMatch(/^Todo for Pat Example · .+ · 9:00$/);
+    expect(todo?.text).not.toContain("prescription");
     // Cy's was queued and then skipped, not sent.
     expect(to(sent, cy.user.email)).toEqual([]);
     const rows = await getDb().select().from(outbox).where(inArray(outbox.id, ids));

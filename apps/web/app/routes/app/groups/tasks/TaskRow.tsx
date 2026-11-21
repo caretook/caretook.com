@@ -1,6 +1,6 @@
 import type { LocalTask } from "~/lib/tasks/tasks.sync";
 
-import { canCompleteTask, taskState } from "@caretook/data/schema";
+import { canCompleteTodo, todoState } from "@caretook/data/schema";
 import { UserRound } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { TaskTick } from "~/components/tasks";
@@ -34,8 +34,8 @@ export function TaskRow({
 }) {
   const group = useGroup();
   const { search } = useLocation();
-  const mayTick = canCompleteTask({ role: group.role, userId: group.userId, task });
-  const state = taskState(task, now, timeZone);
+  const mayTick = canCompleteTodo({ role: group.role, userId: group.userId, todo: task });
+  const state = todoState(task, now, timeZone);
   const assignee = assigneeLabel(task, nameOf);
   const line = task.doneAt ? doneText(task, nameOf, now, timeZone) : dueText(task, now, timeZone);
 

@@ -9,7 +9,7 @@ import {
   parseSearch,
   providerSearchDocument,
   SEARCH_ITEM_TYPES,
-  taskSearchDocument,
+  todoSearchDocument,
   toFtsMatch,
 } from "@caretook/data/schema";
 import { previewText } from "../live-notes/notes.sync";
@@ -30,7 +30,7 @@ export { parseSearch };
  * search document holds change: devices then rebuild their index on the
  * next open.
  */
-export const SEARCH_INDEX_VERSION = 4;
+export const SEARCH_INDEX_VERSION = 5;
 
 /** bm25 weights for (title, body): a match in a title-like field ranks above one in the text. */
 const WEIGHTS = "4.0, 1.0";
@@ -223,14 +223,14 @@ const readTasks = async (db: SqlRunner, ids: string[] | null): Promise<SearchDoc
   const filter = idFilter("t.id", ids);
   const rows = await db.getAll<TaskSourceRow>(
     `SELECT t.id, t.group_id, t.title, t.deleted_at, ${documentColumns("t.id")}
-     FROM task t
+     FROM todo t
      LEFT JOIN note_document d ON d.id = t.id
      ${filter.sql}`,
     filter.params,
   );
   return rows.flatMap((row) => {
     if (!row.group_id) return [];
-    const doc = taskSearchDocument({
+    const doc = todoSearchDocument({
       id: row.id,
       groupId: row.group_id,
       title: row.title,
@@ -272,7 +272,7 @@ const READERS: Record<SearchItemType, (db: SqlRunner, ids: string[] | null) => P
   entry: readEntries,
   provider: readProviders,
   medication: readMedications,
-  task: readTasks,
+  todo: readTasks,
   condition: readConditions,
 };
 
@@ -333,14 +333,14 @@ const dirtyItems = async (tx: Tx): Promise<Record<SearchItemType, string[]>> => 
        UNION SELECT p.id FROM provider p WHERE p.practice_id IN (${dirty("'provider'")})`,
     ),
     tx.getAll<{ id: string | null }>(dirty("'medication', 'note_document', 'note_update'")),
-    tx.getAll<{ id: string | null }>(dirty("'task', 'note_document', 'note_update'")),
+    tx.getAll<{ id: string | null }>(dirty("'todo', 'note_document', 'note_update'")),
     tx.getAll<{ id: string | null }>(dirty("'recipient_condition'")),
   ]);
   return {
     entry: ids(entry),
     provider: ids(provider),
     medication: ids(medication),
-    task: ids(task),
+    todo: ids(task),
     condition: ids(condition),
   };
 };
@@ -663,7 +663,7 @@ export const searchGroup = async (
     entry: { hits: [], total: 0 },
     provider: { hits: [], total: 0 },
     medication: { hits: [], total: 0 },
-    task: { hits: [], total: 0 },
+    todo: { hits: [], total: 0 },
     condition: { hits: [], total: 0 },
   };
   const query = searchGroupQuery(groupId, parsed, range);

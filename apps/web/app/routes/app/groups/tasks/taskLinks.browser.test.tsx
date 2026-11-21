@@ -90,7 +90,7 @@ const open = (url: string, fixtures = world()) =>
 type LinkRow = { provider_id: string | null; event_id: string | null; medication_id: string | null };
 const linksOf = async (device: Awaited<ReturnType<typeof open>>, title: string) =>
   (
-    await device.query<LinkRow>("SELECT provider_id, event_id, medication_id FROM task WHERE title = ?", [
+    await device.query<LinkRow>("SELECT provider_id, event_id, medication_id FROM todo WHERE title = ?", [
       title,
     ])
   )[0];

@@ -14,7 +14,7 @@ import {
   careRecipientModel,
   memberCalendarSettingModel,
   providerModel,
-  taskModel,
+  todoModel,
   timelineEntryModel,
   timelineEntryProviderModel,
   userModel,
@@ -150,7 +150,7 @@ const DAY_MS = 86_400_000;
 
 /**
  * The feed behind `token` at `now`: the group's appointments, reminders and
- * open tasks with a due day, 90 days back to 90 days ahead (`calendarItems`),
+ * open todos with a due day, 90 days back to 90 days ahead (`calendarItems`),
  * read as the member. Provider names are read only at the details level.
  * Null when the token resolves to no one.
  */
@@ -188,8 +188,8 @@ export const load = async (token: string, { now, appUrl }: { now: Date; appUrl: 
     cursor = page.nextCursor;
   } while (cursor);
 
-  const tasks = await taskModel.list({ ...ctx, filter: { groupId: { type: "eq", value: groupId } } });
-  if (isError(tasks)) return tasks;
+  const todos = await todoModel.list({ ...ctx, filter: { groupId: { type: "eq", value: groupId } } });
+  if (isError(todos)) return todos;
 
   let providers = new Map<string, string[]>();
   if (feed.level === "details" && entries.data.length) {
@@ -211,7 +211,7 @@ export const load = async (token: string, { now, appUrl }: { now: Date; appUrl: 
 
   const items = calendarItems({
     entries: entries.data.map((entry) => ({ ...entry, providers: providers.get(entry.id) ?? [] })),
-    tasks: tasks.data,
+    todos: todos.data,
     recipient: { displayName: recipient.displayName, timeZone: recipient.timeZone },
     from: window.from,
     to: window.to,

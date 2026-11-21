@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { taskContentZSchema, taskCreateZSchema } from "./task";
+import { todoContentZSchema, todoCreateZSchema } from "./todo";
 import {
   assigneeOf,
-  canCompleteTask,
+  canCompleteTodo,
   completionOnly,
   doneOrder,
   localTime,
-  taskOrder,
-  taskState,
-} from "./taskRules";
+  todoOrder,
+  todoState,
+} from "./todoRules";
 
 const LA = "America/Los_Angeles";
 const NY = "America/New_York";
@@ -16,8 +16,8 @@ const GROUP = "8f7f1d1e-0000-4000-8000-000000000001";
 const USER = "8f7f1d1e-0000-4000-8000-0000000000aa";
 const OTHER = "8f7f1d1e-0000-4000-8000-0000000000bb";
 
-type T = Parameters<typeof taskOrder>[0][number];
-const task = (overrides: Partial<T> = {}): T => ({
+type T = Parameters<typeof todoOrder>[0][number];
+const todo = (overrides: Partial<T> = {}): T => ({
   id: "t",
   assigneeId: null,
   assigneeName: null,
@@ -31,7 +31,7 @@ const task = (overrides: Partial<T> = {}): T => ({
 const issuePaths = (result: { success: boolean; error?: { issues: { path: PropertyKey[] }[] } }) =>
   result.success ? [] : result.error!.issues.map((i) => i.path.join("."));
 
-describe("task schemas", () => {
+describe("todo schemas", () => {
   it.each([
     ["a title only", { title: "Call the pharmacy" }, []],
     ["a blank title", { title: "   " }, ["title"]],
@@ -42,68 +42,68 @@ describe("task schemas", () => {
     ["a member and a typed name", { title: "x", assigneeId: USER, assigneeName: "May" }, ["assigneeName"]],
     ["a typed name", { title: "x", assigneeName: "Aunt May" }, []],
   ])("create: %s", (_, fields, paths) => {
-    expect(issuePaths(taskCreateZSchema.safeParse({ groupId: GROUP, ...fields }))).toEqual(paths);
+    expect(issuePaths(todoCreateZSchema.safeParse({ groupId: GROUP, ...fields }))).toEqual(paths);
   });
 
   it("trims, and turns empty optional text into null", () => {
-    const parsed = taskCreateZSchema.parse({ groupId: GROUP, title: "  Call  ", assigneeName: "  " });
+    const parsed = todoCreateZSchema.parse({ groupId: GROUP, title: "  Call  ", assigneeName: "  " });
     expect(parsed).toMatchObject({ title: "Call", assigneeName: null, dueOn: null, dueTime: null });
   });
 
   it("needs both done fields or neither", () => {
     const base = { title: "x" };
-    expect(issuePaths(taskContentZSchema.safeParse({ ...base, doneAt: "2026-11-20T10:00:00Z" }))).toEqual([
+    expect(issuePaths(todoContentZSchema.safeParse({ ...base, doneAt: "2026-11-20T10:00:00Z" }))).toEqual([
       "doneAt",
     ]);
-    expect(issuePaths(taskContentZSchema.safeParse({ ...base, doneBy: USER }))).toEqual(["doneAt"]);
+    expect(issuePaths(todoContentZSchema.safeParse({ ...base, doneBy: USER }))).toEqual(["doneAt"]);
     expect(
-      issuePaths(taskContentZSchema.safeParse({ ...base, doneAt: "2026-11-20T10:00:00Z", doneBy: USER })),
+      issuePaths(todoContentZSchema.safeParse({ ...base, doneAt: "2026-11-20T10:00:00Z", doneBy: USER })),
     ).toEqual([]);
   });
 });
 
-describe("taskState", () => {
+describe("todoState", () => {
   it.each([
     // LA is UTC-8 in November: 08:00Z is local midnight.
     [
       "done",
-      task({ doneAt: "2026-11-19T10:00:00Z", dueOn: "2026-11-01" }),
+      todo({ doneAt: "2026-11-19T10:00:00Z", dueOn: "2026-11-01" }),
       "2026-11-20T12:00:00Z",
       LA,
       "done",
     ],
-    ["undated", task(), "2026-11-20T12:00:00Z", LA, "undated"],
-    ["all day, before midnight", task({ dueOn: "2026-11-19" }), "2026-11-20T07:59:59Z", LA, "today"],
-    ["all day, after midnight", task({ dueOn: "2026-11-19" }), "2026-11-20T08:00:00Z", LA, "overdue"],
-    ["a later day", task({ dueOn: "2026-11-21" }), "2026-11-20T12:00:00Z", LA, "upcoming"],
+    ["undated", todo(), "2026-11-20T12:00:00Z", LA, "undated"],
+    ["all day, before midnight", todo({ dueOn: "2026-11-19" }), "2026-11-20T07:59:59Z", LA, "today"],
+    ["all day, after midnight", todo({ dueOn: "2026-11-19" }), "2026-11-20T08:00:00Z", LA, "overdue"],
+    ["a later day", todo({ dueOn: "2026-11-21" }), "2026-11-20T12:00:00Z", LA, "upcoming"],
     [
       "timed, at the time",
-      task({ dueOn: "2026-11-20", dueTime: "09:00" }),
+      todo({ dueOn: "2026-11-20", dueTime: "09:00" }),
       "2026-11-20T17:00:00Z",
       LA,
       "today",
     ],
     [
       "timed, past it",
-      task({ dueOn: "2026-11-20", dueTime: "09:00" }),
+      todo({ dueOn: "2026-11-20", dueTime: "09:00" }),
       "2026-11-20T17:00:01Z",
       LA,
       "overdue",
     ],
     // The same instant in two zones.
-    ["LA, the evening before", task({ dueOn: "2026-11-20" }), "2026-11-20T06:00:00Z", LA, "upcoming"],
-    ["New York, already the day", task({ dueOn: "2026-11-20" }), "2026-11-20T06:00:00Z", NY, "today"],
+    ["LA, the evening before", todo({ dueOn: "2026-11-20" }), "2026-11-20T06:00:00Z", LA, "upcoming"],
+    ["New York, already the day", todo({ dueOn: "2026-11-20" }), "2026-11-20T06:00:00Z", NY, "today"],
     // 2026-03-08: LA springs forward at 02:00 (02:30 never happens).
     [
       "DST, before the gap",
-      task({ dueOn: "2026-03-08", dueTime: "02:30" }),
+      todo({ dueOn: "2026-03-08", dueTime: "02:30" }),
       "2026-03-08T09:59:00Z",
       LA,
       "today",
     ],
     [
       "DST, after the gap",
-      task({ dueOn: "2026-03-08", dueTime: "02:30" }),
+      todo({ dueOn: "2026-03-08", dueTime: "02:30" }),
       "2026-03-08T10:00:00Z",
       LA,
       "overdue",
@@ -111,13 +111,13 @@ describe("taskState", () => {
     // 2026-11-01: LA falls back; 17:00 is still 17:00 wall-clock (PST, 01:00Z next day).
     [
       "DST, wall clock kept",
-      task({ dueOn: "2026-11-01", dueTime: "17:00" }),
+      todo({ dueOn: "2026-11-01", dueTime: "17:00" }),
       "2026-11-02T00:59:00Z",
       LA,
       "today",
     ],
   ])("%s", (_, t, now, zone, state) => {
-    expect(taskState(t, now, zone)).toBe(state);
+    expect(todoState(t, now, zone)).toBe(state);
   });
 
   it("reads the wall clock in the zone", () => {
@@ -126,21 +126,21 @@ describe("taskState", () => {
   });
 });
 
-describe("taskOrder and doneOrder", () => {
+describe("todoOrder and doneOrder", () => {
   const now = "2026-11-20T20:00:00Z"; // 12:00 in LA
   it("puts overdue first by due, then today (all-day before timed), later days, then undated newest first", () => {
-    const tasks = [
-      task({ id: "undated-old", createdAt: "2026-11-01T00:00:00Z" }),
-      task({ id: "later", dueOn: "2026-11-22" }),
-      task({ id: "today-15", dueOn: "2026-11-20", dueTime: "15:00" }),
-      task({ id: "today-allday", dueOn: "2026-11-20" }),
-      task({ id: "today-overdue", dueOn: "2026-11-20", dueTime: "09:00" }),
-      task({ id: "undated-new", createdAt: "2026-11-10T00:00:00Z" }),
-      task({ id: "overdue-old", dueOn: "2026-11-10" }),
-      task({ id: "tomorrow-timed", dueOn: "2026-11-21", dueTime: "08:00" }),
-      task({ id: "tomorrow-allday", dueOn: "2026-11-21" }),
+    const todos = [
+      todo({ id: "undated-old", createdAt: "2026-11-01T00:00:00Z" }),
+      todo({ id: "later", dueOn: "2026-11-22" }),
+      todo({ id: "today-15", dueOn: "2026-11-20", dueTime: "15:00" }),
+      todo({ id: "today-allday", dueOn: "2026-11-20" }),
+      todo({ id: "today-overdue", dueOn: "2026-11-20", dueTime: "09:00" }),
+      todo({ id: "undated-new", createdAt: "2026-11-10T00:00:00Z" }),
+      todo({ id: "overdue-old", dueOn: "2026-11-10" }),
+      todo({ id: "tomorrow-timed", dueOn: "2026-11-21", dueTime: "08:00" }),
+      todo({ id: "tomorrow-allday", dueOn: "2026-11-21" }),
     ];
-    expect(taskOrder(tasks, now, LA).map((t) => t.id)).toEqual([
+    expect(todoOrder(todos, now, LA).map((t) => t.id)).toEqual([
       "overdue-old",
       "today-overdue",
       "today-allday",
@@ -153,13 +153,13 @@ describe("taskOrder and doneOrder", () => {
     ]);
   });
 
-  it("orders done tasks newest first", () => {
-    const tasks = [
-      task({ id: "a", doneAt: "2026-11-18T10:00:00Z" }),
-      task({ id: "b", doneAt: "2026-11-20T10:00:00Z" }),
-      task({ id: "c", doneAt: "2026-11-19T10:00:00Z" }),
+  it("orders done todos newest first", () => {
+    const todos = [
+      todo({ id: "a", doneAt: "2026-11-18T10:00:00Z" }),
+      todo({ id: "b", doneAt: "2026-11-20T10:00:00Z" }),
+      todo({ id: "c", doneAt: "2026-11-19T10:00:00Z" }),
     ];
-    expect(doneOrder(tasks).map((t) => t.id)).toEqual(["b", "c", "a"]);
+    expect(doneOrder(todos).map((t) => t.id)).toEqual(["b", "c", "a"]);
   });
 });
 
@@ -182,13 +182,13 @@ describe("who", () => {
     ["viewer", { assigneeId: OTHER }, false],
     ["viewer", { assigneeId: null }, false],
     [null, { assigneeId: USER }, false],
-  ] as const)("canCompleteTask: %s on %j", (role, t, expected) => {
-    expect(canCompleteTask({ role, userId: USER, task: t })).toBe(expected);
+  ] as const)("canCompleteTodo: %s on %j", (role, t, expected) => {
+    expect(canCompleteTodo({ role, userId: USER, todo: t })).toBe(expected);
   });
 
-  it("never lets a viewer complete a typed name's task", () => {
-    expect(canCompleteTask({ role: "viewer", userId: USER, task: { assigneeId: null } })).toBe(false);
-    expect(canCompleteTask({ role: "caretaker", userId: USER, task: { assigneeId: null } })).toBe(true);
+  it("never lets a viewer complete a typed name's todo", () => {
+    expect(canCompleteTodo({ role: "viewer", userId: USER, todo: { assigneeId: null } })).toBe(false);
+    expect(canCompleteTodo({ role: "caretaker", userId: USER, todo: { assigneeId: null } })).toBe(true);
   });
 
   it("completionOnly: only the done fields may differ", () => {

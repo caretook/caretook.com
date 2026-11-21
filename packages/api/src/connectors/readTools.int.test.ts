@@ -16,7 +16,7 @@ import {
   providerService,
   recipientAllergyService,
   recipientConditionService,
-  taskService,
+  todoService,
   timelineEntryService,
   userContactService,
 } from "@caretook/data";
@@ -567,14 +567,14 @@ describe("read tools", { timeout: 60_000 }, () => {
     const handler = handlerAt();
     const w = await world();
     const task = async (title: string, extra: Record<string, unknown> = {}) =>
-      ok(await taskService.create(w.caretaker.ctx, { groupId: w.group.id, title, ...extra }))!;
+      ok(await todoService.create(w.caretaker.ctx, { groupId: w.group.id, title, ...extra }))!;
     await task("Undated");
     await task("Overdue", { dueOn: "2020-01-02" });
     await task("Mine", { assigneeId: w.viewer.user.id, dueOn: "2099-01-01", dueTime: "09:30" });
     await task("Named", { assigneeName: "Rosa" });
     const finished = await task("Finished");
-    ok(await taskService.complete(w.caretaker.ctx, finished.id));
-    ok(await taskService.create(w.owner.ctx, { groupId: w.second.group.id, title: "Elsewhere" }));
+    ok(await todoService.complete(w.caretaker.ctx, finished.id));
+    ok(await todoService.create(w.owner.ctx, { groupId: w.second.group.id, title: "Elsewhere" }));
     const token = await w.connect(w.viewer);
 
     const open = await callTool(handler, token, "list_tasks");
@@ -906,7 +906,7 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
       }),
     );
     ok(
-      await taskService.create(w.caretaker.ctx, {
+      await todoService.create(w.caretaker.ctx, {
         groupId: w.group.id,
         title: "Call the clinic",
         assigneeId: w.caretaker.user.id,

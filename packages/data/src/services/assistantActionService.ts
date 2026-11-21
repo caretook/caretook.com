@@ -51,7 +51,7 @@ import { rejectError } from "../permissions";
 import * as entryProviderService from "./entryProviderService";
 import * as noteDocumentService from "./noteDocumentService";
 import * as recipientConditionService from "./recipientConditionService";
-import * as taskService from "./taskService";
+import * as todoService from "./todoService";
 import * as timelineEntryService from "./timelineEntryService";
 
 // Carrying out assistant actions on the server (connectors PRD): the twin of
@@ -123,7 +123,7 @@ type ConditionPlan =
   | { type: "addCondition"; input: Parameters<typeof recipientConditionService.create>[1] }
   | { type: "updateCondition"; id: string; patch: Parameters<typeof recipientConditionService.update>[2] }
   | { type: "resolveCondition"; id: string };
-type TaskPlan = Parameters<typeof taskService.create>[1];
+type TaskPlan = Parameters<typeof todoService.create>[1];
 type Plan =
   | { index: number; rows: EntryPlan[] }
   | { index: number; task: TaskPlan }
@@ -452,7 +452,7 @@ const planAction = async (
   )
     return planCondition(tx, setting, action);
   if (action.type === "givePass") return passDoses(ctx, tx, setting, action);
-  // Checked by taskService as it writes (the assignee, the links).
+  // Checked by todoService as it writes (the assignee, the links).
   if (action.type === "addTask") {
     const { type: _type, ...task } = action;
     return { groupId, recipientId, ...task };
@@ -583,7 +583,7 @@ export const run = (
         continue;
       }
       if ("task" in plan) {
-        const task = await taskService.create(inTx, plan.task, { via });
+        const task = await todoService.create(inTx, plan.task, { via });
         if (isError(task)) return at(task, plan.index);
         if (!task) return at(rejectError(ctx.authUser), plan.index);
         byAction.push([task.id]);
