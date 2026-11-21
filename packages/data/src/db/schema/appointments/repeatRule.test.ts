@@ -107,7 +107,7 @@ describe("the series create schema", () => {
     return res.success ? [] : res.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
   };
 
-  it("accepts an appointment series and a reminder series", () => {
+  it("accepts an appointment series, and refuses a note series (a reminder is a todo)", () => {
     expect(issues({})).toEqual([]);
     expect(
       issues({
@@ -118,7 +118,7 @@ describe("the series create schema", () => {
         allDay: true,
         rule: "FREQ=MONTHLY;BYDAY=2TU",
       }),
-    ).toEqual([]);
+    ).toEqual(["kind: A series makes appointments"]);
   });
 
   it("refuses a weekly rule without days, a monthly one without a date or weekday, and COUNT with UNTIL", () => {
@@ -134,18 +134,14 @@ describe("the series create schema", () => {
     ]);
   });
 
-  it("refuses kinds other than appointments and reminders, and mixed timing", () => {
-    expect(issues({ kind: "vital" })).toEqual(["kind: A series makes appointments or reminders"]);
+  it("refuses kinds other than appointments, and mixed timing", () => {
+    expect(issues({ kind: "vital" })).toEqual(["kind: A series makes appointments"]);
     expect(issues({ startTime: null })).toEqual(["startTime: Choose a time, or all day"]);
     expect(issues({ allDay: true })).toEqual([
       "startTime: An all-day item has no time",
       "durationMinutes: An all-day item has no end time",
     ]);
     expect(issues({ title: "" })).toEqual(["title: Enter a title"]);
-    expect(issues({ kind: "note", place: "Clinic" })).toEqual([
-      "durationMinutes: Only appointments have an end",
-      "place: Only appointments have a place",
-    ]);
     expect(issues({ providerIds: [SERIES, SERIES] })).toEqual(["providerIds: A provider is listed twice"]);
   });
 });

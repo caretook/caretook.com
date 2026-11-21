@@ -105,7 +105,7 @@ describe("sync.upload: appointment columns", () => {
       op: "PUT" as const,
       table: "timeline_entry",
       id: allDayId,
-      data: row({ kind: "note", title: "Hospice intake", occurred_at: midnight, all_day: 1 }),
+      data: row({ kind: "event", title: "Hospice intake", occurred_at: midnight, all_day: 1 }),
     };
     expect((await owner.api.sync.upload({ ops: [allDay] })).results).toEqual([
       { id: allDayId, status: "applied" },

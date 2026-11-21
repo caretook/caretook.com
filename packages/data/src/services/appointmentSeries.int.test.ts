@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok, system } from "../../test/fixtures";
 import { entryProviderId, seriesVisitId } from "../db/schema";
 import { isError } from "../errors";
-import { timelineEntryModel } from "../models";
+import { appointmentSeriesModel, timelineEntryModel } from "../models";
 import {
   appointmentSeriesService,
   entryProviderService,
@@ -288,14 +288,6 @@ describe("appointmentSeriesService: visits", () => {
     ok(await appointmentSeriesService.upsert(u.owner.ctx, { ...input(), id }));
     expect(
       codeOf(
-        await appointmentSeriesService.upsert(u.owner.ctx, {
-          ...input({ kind: "note", title: null, durationMinutes: null }),
-          id,
-        }),
-      ),
-    ).toBe("appointmentSeriesService:immutable");
-    expect(
-      codeOf(
         await appointmentSeriesService.upsert(u.owner.ctx, { ...input({ groupId: other.group.id }), id }),
       ),
     ).toBe("appointmentSeriesService:immutable");
@@ -305,6 +297,55 @@ describe("appointmentSeriesService: visits", () => {
     )!;
     expect(replay).toMatchObject({ title: "Dialysis" });
     expect(replay.deletedAt).not.toBeNull();
+  });
+});
+
+describe("appointmentSeriesService: events only", () => {
+  const noteSeries = (input: AppointmentSeriesCreateInput) =>
+    ({
+      ...input,
+      kind: "note",
+      title: "Order refills",
+      allDay: true,
+      startTime: null,
+      durationMinutes: null,
+    }) as unknown as AppointmentSeriesCreateInput;
+
+  it("refuses a new series of kind note, through create and upsert", async () => {
+    const { u, input } = await setup();
+    expect(codeOf(await appointmentSeriesService.create(u.owner.ctx, noteSeries(input())))).toBe(
+      "appointmentSeriesService:invalid",
+    );
+    expect(
+      codeOf(
+        await appointmentSeriesService.upsert(u.owner.ctx, { ...noteSeries(input()), id: randomUUID() }),
+      ),
+    ).toBe("appointmentSeriesService:invalid");
+  });
+
+  it("refuses an edit of a stored note series and still edits an event series", async () => {
+    const { u, group, recipient, input } = await setup();
+    const stored = ok(
+      await appointmentSeriesModel.create({
+        ...system,
+        data: {
+          ...noteSeries(input()),
+          groupId: group.id,
+          recipientId: recipient.id,
+          providerIds: [],
+          toppedUpThrough: "2027-02-16",
+        },
+      }),
+    )!;
+    expect(
+      codeOf(await appointmentSeriesService.update(u.owner.ctx, stored.id, { title: "Order more refills" })),
+    ).toBe("appointmentSeriesService:invalid");
+    const event = ok(await appointmentSeriesService.create(u.owner.ctx, input()));
+    expect(
+      ok(await appointmentSeriesService.update(u.owner.ctx, event.id, { title: "Dialysis B" })),
+    ).toMatchObject({
+      title: "Dialysis B",
+    });
   });
 });
 
@@ -415,6 +456,38 @@ describe("appointmentSeriesService.topUp", () => {
     // Every other day has exactly one live visit.
     expect(new Set(rows.map((r) => r.seriesDay)).size).toBe(rows.length);
     expect(rows).toHaveLength(37);
+  });
+
+  it("writes no visits for a stored note series and still tops up an event series", async () => {
+    const { u, group, recipient, input } = await setup();
+    const stored = ok(
+      await appointmentSeriesModel.create({
+        ...system,
+        data: {
+          ...input({ startsOn: "2026-11-16", toppedUpThrough: "2026-11-20" }),
+          kind: "note",
+          title: "Order refills",
+          startTime: null,
+          allDay: true,
+          durationMinutes: null,
+          groupId: group.id,
+          recipientId: recipient.id,
+          providerIds: [],
+        } as never,
+      }),
+    )!;
+    const event = ok(
+      await appointmentSeriesService.create(
+        u.owner.ctx,
+        input({ startsOn: "2026-11-16", toppedUpThrough: "2026-11-20" }),
+      ),
+    );
+    await topUpAll();
+    expect(await days(stored.id)).toEqual([]);
+    expect(ok(await appointmentSeriesService.getById(u.owner.ctx, stored.id))).toMatchObject({
+      toppedUpThrough: "2026-11-20",
+    });
+    expect((await days(event.id)).length).toBeGreaterThan(30);
   });
 
   it("stops at COUNT and UNTIL, and ignores deleted series", async () => {

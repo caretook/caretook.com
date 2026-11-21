@@ -45,24 +45,23 @@ describe("upcoming (upcomingWindow)", () => {
   const dayBack = "2026-11-17T17:00:00.000000Z"; // 25 hours before now: the longest day
   const horizon = "2027-02-16T18:00:00.000000Z"; // 90 days on
 
-  it("notes and events after now, ending after now, or all day today, within 90 days, soonest first", () => {
+  it("events (only) after now, ending after now, or all day today, within 90 days, soonest first", () => {
     const window = upcomingWindow(GROUP, NONE, NOW);
     expect(one(window.sql)).toBe(
-      `FROM timeline_entry WHERE group_id = ? AND deleted_at IS NULL AND kind IN (?, ?) ${TIMING}`,
+      `FROM timeline_entry WHERE group_id = ? AND deleted_at IS NULL AND kind IN (?) ${TIMING}`,
     );
-    expect(window.params).toEqual([GROUP, "note", "event", nowText, nowText, dayBack, horizon]);
+    expect(window.params).toEqual([GROUP, "event", nowText, nowText, dayBack, horizon]);
   });
 
   it("keeps the kind and author filters (a symptom filter finds nothing)", () => {
     const window = upcomingWindow(GROUP, { kind: "symptom", author: AUTHOR }, NOW, 7);
     expect(one(window.sql)).toBe(
-      "FROM timeline_entry WHERE group_id = ? AND deleted_at IS NULL AND kind = ? AND kind IN (?, ?) " +
+      "FROM timeline_entry WHERE group_id = ? AND deleted_at IS NULL AND kind = ? AND kind IN (?) " +
         `AND created_by = ? ${TIMING}`,
     );
     expect(window.params).toEqual([
       GROUP,
       "symptom",
-      "note",
       "event",
       AUTHOR,
       nowText,
@@ -103,8 +102,8 @@ describe("the search (EntryFilters.match)", () => {
 
   it("is ANDed into upcoming and past events", () => {
     const upcoming = upcomingWindow(GROUP, { ...NONE, match }, NOW);
-    expect(one(upcoming.sql)).toContain("AND kind IN (?, ?) AND (timeline_entry.id IN (SELECT x)) AND");
-    expect(upcoming.params.slice(0, 5)).toEqual([GROUP, "note", "event", "walk*", GROUP]);
+    expect(one(upcoming.sql)).toContain("AND kind IN (?) AND (timeline_entry.id IN (SELECT x)) AND");
+    expect(upcoming.params.slice(0, 4)).toEqual([GROUP, "event", "walk*", GROUP]);
     const past = pastEventsWindow(GROUP, { ...NONE, match }, 20, CUTOFF);
     expect(past.params).toEqual([GROUP, "event", "walk*", GROUP, local(CUTOFF), 21]);
   });

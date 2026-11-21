@@ -406,6 +406,8 @@ describe("a note that mentions a provider (quick-entry slice 2)", () => {
   test("'called dr lee about refill' saves a note mentioning Dr. Lee, linked in its With row", async () => {
     const device = await open({ route: WITH_ENTRY });
     await type("called dr lee about refill", ["note"]);
+    // The mention reads once the group's providers have loaded.
+    await waitUntil(() => !!cardWith("called @Dr. Sandra Lee about refill"), 4000, "the mention");
     expect(cardWith("called @Dr. Sandra Lee about refill").textContent).toContain("with Dr. Sandra Lee");
 
     await userEvent.click(saveButton()!);
