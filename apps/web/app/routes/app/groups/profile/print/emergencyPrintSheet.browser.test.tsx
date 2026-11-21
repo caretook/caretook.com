@@ -4,7 +4,7 @@ import { describe, expect, test } from "vitest";
 import { page } from "vitest/browser";
 import * as print from "./route";
 import { renderWithDevice } from "../../../../../../test/device";
-import { allergy, fx, TEST_GROUP } from "../../../../../../test/fixtures";
+import { allergy, condition, fx, TEST_GROUP } from "../../../../../../test/fixtures";
 
 // The emergency sheet's allergies (quick-fixes slice 41, B-112): each one on
 // file, worded as the printed medication sheets word them, or what the
@@ -53,5 +53,35 @@ describe("the emergency sheet's allergies", () => {
     await expect.element(allergiesSection().getByText("Allergies not recorded")).toBeVisible();
     await device.sync(allergy({ substance: "Penicillin", reaction: "hives", severity: "severe" }));
     await expect.element(allergiesSection().getByText("Penicillin (hives, severe)")).toBeVisible();
+  });
+});
+
+describe("the emergency sheet's conditions", () => {
+  const conditionsSection = () => page.getByRole("region", { name: "Conditions" });
+
+  test("lists the active conditions with since and note, not the past ones", async () => {
+    await openSheet([
+      fx.recipient(),
+      condition({ name: "Type 2 diabetes", sinceYear: 2015, note: "diet-controlled" }),
+      condition({ name: "Asthma" }),
+      condition({ name: "Hip fracture", status: "resolved", sinceYear: 2019 }),
+      condition({ name: "Mistake", deletedAt: "2026-11-01 10:00:00" }),
+    ]);
+    await expect.element(conditionsSection()).toBeVisible();
+    const items = conditionsSection().getByRole("listitem");
+    await expect.element(items.nth(0)).toHaveTextContent("Type 2 diabetes (since 2015; diet-controlled)");
+    await expect.element(items.nth(1)).toHaveTextContent("Asthma");
+    expect(items.elements()).toHaveLength(2);
+  });
+
+  test("says No known conditions when that's recorded", async () => {
+    await openSheet([fx.recipient({ noKnownConditionsAt: "2026-11-01 10:00:00" })]);
+    await expect.element(conditionsSection().getByText("No known conditions")).toBeVisible();
+  });
+
+  test("is left out when conditions aren't recorded", async () => {
+    await openSheet([fx.recipient()]);
+    await expect.element(allergiesSection()).toBeVisible();
+    expect(conditionsSection().elements()).toHaveLength(0);
   });
 });
