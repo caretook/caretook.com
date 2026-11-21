@@ -1,7 +1,7 @@
 // Class strings the primitives share, so menus, popovers and sheets look alike.
 // Internal to ui/: callers never pass class strings.
 
-/** A floating surface: menus and popovers. */
+/** A floating surface: menus and popovers (exported for quick entry's matching names). */
 export const SURFACE = "rounded-box border-base-300 bg-base-100 border shadow-lg";
 
 /** A field's label, and its help, error and warning lines (daisyUI `fieldset`). */

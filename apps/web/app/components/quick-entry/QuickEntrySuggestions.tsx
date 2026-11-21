@@ -1,60 +1,44 @@
 import type { ReactNode } from "react";
-import type { QuickEntryPass } from "@caretook/data/schema";
 import type { DuePass } from "~/lib/medications/duePasses";
+import type { UsualSuggestion } from "~/lib/assistant/quickEntryPredictions";
 
 import { ChipGroup } from "~/components/ui";
 import { givePassText } from "~/lib/medications/medicationDisplay";
-import { useQuickEntrySuggestions } from "./useQuickEntrySuggestions";
 
 /**
- * What goes under quick entry's field. While typing: the medication, pass
- * and provider names the last word starts (picking one completes it). With
- * the box empty: first the passes due now as one tap each ("Give evening
- * meds (4)": Given all, with Undo), then what the group usually logs around
- * now and your recent lines, as chips that only fill the box (Save is still
- * yours). The typing tips live in the box's placeholder and description.
+ * The suggestions popover's body, for an empty box: first the passes due
+ * now as one tap each ("Give evening meds (4)": Given all, with Undo), then
+ * what the group usually logs around now and your recent lines, as chips
+ * that only fill the box (Save is still yours). Every chip closes the
+ * popover once it's done.
  */
 export function QuickEntrySuggestions({
-  groupId,
-  text,
-  onFill,
-  passes,
+  usual,
+  recent,
   duePasses = [],
+  onFill,
   onGivePass,
   passBusy = false,
+  close,
 }: {
-  groupId: string;
-  text: string;
+  usual: readonly UsualSuggestion[];
+  recent: readonly string[];
+  /** Today's named passes due now, offered first (only with `onGivePass`). */
+  duePasses?: readonly DuePass[];
   /** Put this in the box and leave the cursor at its end. */
   onFill: (text: string) => void;
-  /** The group's passes, whose names are completed too. */
-  passes?: readonly QuickEntryPass[];
-  /** Today's named passes due now, offered first. */
-  duePasses?: readonly DuePass[];
   /** Given all for a pass (its chip saves at once). */
   onGivePass?: (pass: DuePass) => void;
   passBusy?: boolean;
+  /** Close the popover. */
+  close: () => void;
 }) {
-  const { usual, recent, completions } = useQuickEntrySuggestions({ groupId, text, passes });
-
-  if (text.trim()) {
-    if (!completions.length) return null;
-    return (
-      <div data-quick-completions>
-        <ChipGroup
-          label="Matching names"
-          actions={completions.map((c) => ({
-            id: `${c.kind}:${c.id}`,
-            label: c.name,
-            onPress: () => onFill(c.text),
-          }))}
-        />
-      </div>
-    );
-  }
-
+  const fill = (text: string) => {
+    onFill(text);
+    close();
+  };
   return (
-    <div className="space-y-2" data-quick-suggestions>
+    <div className="space-y-3" data-quick-suggestions>
       {onGivePass && duePasses.length > 0 && (
         <Row caption="Due now" data="due">
           <ChipGroup
@@ -62,7 +46,11 @@ export function QuickEntrySuggestions({
             actions={duePasses.map((pass) => ({
               id: pass.key,
               label: givePassText(pass),
-              onPress: () => !passBusy && onGivePass(pass),
+              onPress: () => {
+                if (passBusy) return;
+                onGivePass(pass);
+                close();
+              },
             }))}
           />
         </Row>
@@ -71,7 +59,7 @@ export function QuickEntrySuggestions({
         <Row caption="Usual around now" data="usual">
           <ChipGroup
             label="Usual around now"
-            actions={usual.map((s) => ({ id: s.key, label: s.label, onPress: () => onFill(s.fill) }))}
+            actions={usual.map((s) => ({ id: s.key, label: s.label, onPress: () => fill(s.fill) }))}
           />
         </Row>
       )}
@@ -79,7 +67,7 @@ export function QuickEntrySuggestions({
         <Row caption="Your recent lines" data="recent">
           <ChipGroup
             label="Your recent lines"
-            actions={recent.map((line) => ({ id: line, label: line, onPress: () => onFill(line) }))}
+            actions={recent.map((line) => ({ id: line, label: line, onPress: () => fill(line) }))}
           />
         </Row>
       )}
@@ -89,10 +77,10 @@ export function QuickEntrySuggestions({
 
 function Row({ caption, data, children }: { caption: string; data: string; children: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1" data-quick-row={data}>
-      <span className="text-base-content/70 text-xs" aria-hidden="true">
+    <div className="space-y-1" data-quick-row={data}>
+      <p className="text-base-content/70 text-xs" aria-hidden="true">
         {caption}
-      </span>
+      </p>
       {children}
     </div>
   );
