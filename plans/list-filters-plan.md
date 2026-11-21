@@ -13,7 +13,7 @@
 
 **Landing mode: run everything through** (queued with `pnpm prd queue list-filters`): start every ready slice, land each green wave through the Codex-reviewed PR, clean up; ask only real questions. B-249 claimed 2026-11-21.
 
-**Wave 1:** slice 1 merged; synced with `dev` (quick-entry, B-220, c2ec744; conflict-free, no shared files). Landing wave 1 through its PR while wave 2 runs (slice 1's docs folded into components and medications); wave 2 merges wait until wave 1 has landed. Docs to fold for slice 1: see its _Fold_ line plus the `Menu` changes (`menuLabel` now names the menu; the trigger takes `title` and `data-*`).
+**Wave 1:** slice 1 merged; synced with `dev` (quick-entry, B-220, c2ec744; conflict-free, no shared files). Landing wave 1 through its PR while wave 2 runs (slice 1's docs folded into components and medications; `check --quick` passed on 80d0b207; `browser --changed --base dev`: `ui` passed; PR opened, Codex review running; no Status commits until it lands); wave 2 merges wait until wave 1 has landed. Docs to fold for slice 1: see its _Fold_ line plus the `Menu` changes (`menuLabel` now names the menu; the trigger takes `title` and `data-*`).
 
 **Open:** B-247 isn't scheduled: the quick-fixes orchestrator says the user held it (and B-246) back for a later wave; it will message us if it's scheduled and when it lands. A background check watches `dev` too. Once slices 1–3 are merged, ask the user: wait for it, or land the three and file slice 4 as a `quick-fixes` item.
 
