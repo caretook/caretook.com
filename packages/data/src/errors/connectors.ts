@@ -91,6 +91,15 @@ export const CONNECTORS_ERRORS = {
     message: "Only notes and events can be changed this way. Change symptoms, vitals and doses in the app.",
     statusCode: 409,
   },
+  // Conditions (connectors-2): one not in the group reads the same as one that doesn't exist.
+  "assistantActionService:conditionNotFound": {
+    message: "That condition wasn't found in this care group.",
+    statusCode: 404,
+  },
+  "assistantActionService:conditionDeleted": {
+    message: "That condition was deleted, so it can't be changed.",
+    statusCode: 409,
+  },
   // The grant model's own queries (database failures).
   "connectorGrantModel:revoke": { message: "Failed to revoke the connection" },
   "connectorGrantModel:revokeAll": { message: "Failed to revoke connections" },

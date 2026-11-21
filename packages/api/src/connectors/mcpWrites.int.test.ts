@@ -5,6 +5,7 @@ import {
   medicationPassService,
   medicationService,
   providerService,
+  recipientConditionService,
   taskService,
   timelineEntryService,
 } from "@caretook/data";
@@ -486,5 +487,142 @@ describe("/mcp edit tools (connectors-2)", () => {
 
     expect((await w.entry(noteId))?.body).toBe("Original");
     expect(ok(await timelineEntryService.getById(elsewhere.ctx, otherNote.id))?.title).toBeNull();
+  });
+  it("add, update and resolve a condition, each with its change entry via the client", async () => {
+    const w = await world();
+    const token = w.writer.tokens.access_token;
+    const base = `${TEST_ORIGIN}/app/groups/${w.group.id}`;
+
+    const added = await resultOf(
+      await call(token, "add_condition", {
+        name: "Type 2 diabetes",
+        sinceYear: 2015,
+        sinceMonth: 3,
+        note: "Diet-controlled",
+        diagnosedById: w.provider.id,
+      }),
+    );
+    expect(added.isError).toBeUndefined();
+    expect(textOf(added)).toMatch(
+      /^Added condition: Type 2 diabetes · Active, since March 2015, Diet-controlled, diagnosed by Dr\. Example\n/,
+    );
+    const conditionId = added.structuredContent.conditionId as string;
+    expect(added.structuredContent).toMatchObject({ url: `${base}/profile`, via: CLIENT });
+
+    // recipient_profile gives the id the other two take.
+    const profile = await resultOf(await call(token, "recipient_profile"));
+    expect(JSON.stringify(profile.structuredContent)).toContain(conditionId);
+
+    const updated = await resultOf(
+      await call(token, "update_condition", { conditionId, name: "Type 2 diabetes mellitus", note: null }),
+    );
+    expect(updated.isError).toBeUndefined();
+    expect(textOf(updated)).toMatch(
+      /^Updated condition: Type 2 diabetes mellitus · Active, since March 2015/,
+    );
+    expect(textOf(updated)).not.toContain("Diet-controlled");
+
+    const resolved = await resultOf(await call(token, "resolve_condition", { conditionId }));
+    expect(textOf(resolved)).toMatch(/^Resolved condition: Type 2 diabetes mellitus · Resolved, since/);
+    expect(ok(await recipientConditionService.getById(w.owner.ctx, conditionId))).toMatchObject({
+      status: "resolved",
+      name: "Type 2 diabetes mellitus",
+      note: null,
+    });
+
+    // One change entry each, written as the member and tagged with the client.
+    const entries = (await w.groupEntries()).filter((e) => e.kind === "conditionChange");
+    expect(entries.map((e) => (e.details as { change: string }).change).sort()).toEqual([
+      "added",
+      "changed",
+      "resolved",
+    ]);
+    for (const e of entries) expect(e).toMatchObject({ via: CLIENT, createdBy: w.caretaker.user.id });
+
+    // Active again by an update (a recurrence).
+    const back = await resultOf(await call(token, "update_condition", { conditionId, status: "active" }));
+    expect(textOf(back)).toMatch(/^Updated condition: Type 2 diabetes mellitus · Active/);
+  });
+
+  it("refuses bad content, viewers, deleted conditions and other groups' ids as tool errors", async () => {
+    const w = await world();
+    const token = w.writer.tokens.access_token;
+    const deleted = ok(
+      await recipientConditionService.create(w.owner.ctx, { groupId: w.group.id, name: "Old" }),
+    )!;
+    ok(await recipientConditionService.remove(w.owner.ctx, deleted.id));
+    const live = ok(
+      await recipientConditionService.create(w.owner.ctx, { groupId: w.group.id, name: "Asthma" }),
+    )!;
+    const elsewhere = await createUser("elsewhere");
+    const { group: other } = await createGroup(elsewhere);
+    const foreignProvider = ok(
+      await providerService.create(elsewhere.ctx, { groupId: other.id, type: "clinician", name: "Dr. Far" }),
+    )!;
+    const goneProvider = ok(
+      await providerService.create(w.owner.ctx, { groupId: w.group.id, type: "clinician", name: "Dr. Gone" }),
+    )!;
+    ok(await providerService.remove(w.owner.ctx, goneProvider.id));
+    const foreign = ok(
+      await recipientConditionService.create(elsewhere.ctx, { groupId: other.id, name: "Foreign" }),
+    )!;
+
+    const viewer = await connectAssistant({
+      email: w.viewer.user.email,
+      groupId: w.group.id,
+      scope: "read",
+      clientName: "Viewer's Claude",
+    });
+    expect((await call(viewer.tokens.access_token, "add_condition", { name: "Nope" })).status).toBe(403);
+
+    const cases: [string, Record<string, unknown>, string][] = [
+      ["add_condition", { name: "Asthma", sinceMonth: 3 }, "recipientConditionService:invalid"],
+      ["add_condition", { name: "Asthma", diagnosedById: foreignProvider.id }, "permissions:unauthorized"],
+      [
+        "add_condition",
+        { name: "Asthma", diagnosedById: goneProvider.id },
+        "recipientConditionService:providerNotFound",
+      ],
+      ["update_condition", { conditionId: live.id }, "assistantActionService:invalid"],
+      ["update_condition", { conditionId: live.id, sinceMonth: 13 }, "recipientConditionService:invalid"],
+      [
+        "update_condition",
+        { conditionId: deleted.id, name: "Back" },
+        "assistantActionService:conditionDeleted",
+      ],
+      ["resolve_condition", { conditionId: deleted.id }, "assistantActionService:conditionDeleted"],
+      [
+        "update_condition",
+        { conditionId: foreign.id, name: "Mine" },
+        "assistantActionService:conditionNotFound",
+      ],
+      ["resolve_condition", { conditionId: foreign.id }, "assistantActionService:conditionNotFound"],
+      [
+        "resolve_condition",
+        { conditionId: "6f1d3c2a-8b4e-4f7a-9c1d-2e3f4a5b6c7d" },
+        "assistantActionService:conditionNotFound",
+      ],
+    ];
+    for (const [tool, args, code] of cases) {
+      const result = await resultOf(await call(token, tool, args));
+      expect(result, `${tool} ${JSON.stringify(args)}`).toMatchObject({
+        isError: true,
+        structuredContent: { error: { code } },
+      });
+    }
+    expect(
+      textOf(await resultOf(await call(token, "resolve_condition", { conditionId: foreign.id }))),
+    ).toContain("wasn't found in this care group");
+
+    // Nothing was written: the live condition is untouched, the other group's too, no change entries.
+    expect(ok(await recipientConditionService.getById(w.owner.ctx, live.id))).toMatchObject({
+      name: "Asthma",
+      status: "active",
+    });
+    expect(ok(await recipientConditionService.getById(elsewhere.ctx, foreign.id))).toMatchObject({
+      status: "active",
+      name: "Foreign",
+    });
+    expect((await w.groupEntries()).filter((e) => e.kind === "conditionChange")).toHaveLength(2);
   });
 });

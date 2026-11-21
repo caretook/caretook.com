@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { describeTool } from "../registry";
 import {
+  addCondition,
   addEvent,
   addNote,
   addTask,
@@ -9,6 +10,8 @@ import {
   logDose,
   logSymptom,
   logVitals,
+  resolveCondition,
+  updateCondition,
   updateEntry,
 } from "./writes";
 
@@ -25,6 +28,9 @@ const WRITES = [
   addTask,
   appendToEntry,
   updateEntry,
+  addCondition,
+  updateCondition,
+  resolveCondition,
 ];
 
 const propertiesOf = (tool: (typeof WRITES)[number]) => {
@@ -75,6 +81,19 @@ describe("the write tools", () => {
     expect(propertiesOf(updateEntry)).toEqual({
       names: ["entryId", "title", "occurredAt"],
       required: ["entryId"],
+    });
+    // Conditions: the content fields, and an id for the two that name one.
+    expect(propertiesOf(addCondition)).toEqual({
+      names: ["name", "sinceYear", "sinceMonth", "note", "diagnosedById"],
+      required: ["name"],
+    });
+    expect(propertiesOf(updateCondition)).toEqual({
+      names: ["conditionId", "name", "status", "sinceYear", "sinceMonth", "note", "diagnosedById"],
+      required: ["conditionId"],
+    });
+    expect(propertiesOf(resolveCondition)).toEqual({
+      names: ["conditionId"],
+      required: ["conditionId"],
     });
   });
 

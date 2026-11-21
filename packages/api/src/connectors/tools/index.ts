@@ -11,6 +11,7 @@ import { search } from "./search";
 import { todaysDoses } from "./todaysDoses";
 import { upcoming } from "./upcoming";
 import {
+  addCondition,
   addEvent,
   addNote,
   addTask,
@@ -19,6 +20,8 @@ import {
   logDose,
   logSymptom,
   logVitals,
+  resolveCondition,
+  updateCondition,
   updateEntry,
 } from "./writes";
 
@@ -46,4 +49,7 @@ export const CONNECTOR_TOOLS: readonly Tool[] = [
   addTask,
   appendToEntry,
   updateEntry,
+  addCondition,
+  updateCondition,
+  resolveCondition,
 ];
