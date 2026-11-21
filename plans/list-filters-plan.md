@@ -4,12 +4,12 @@
 
 ## Status
 
-| Slice | Wave | State                          | Merge into `prd/list-filters` (slice commits) |
-| ----- | ---- | ------------------------------ | --------------------------------------------- |
-| 1     | 1    | merged (opus)                  | 69676563 (61b69c42, 898efdcc)                 |     |
-| 2     | 2    | merged (sonnet)                |                                               |
-| 3     | 2    | handed off (opus; takes B-255) |                                               |
-| 4     | 3    | not started                    |                                               |
+| Slice | Wave | State                         | Merge into `prd/list-filters` (slice commits) |
+| ----- | ---- | ----------------------------- | --------------------------------------------- |
+| 1     | 1    | landed (opus)                 | 69676563 (61b69c42, 898efdcc)                 |
+| 2     | 2    | merged (sonnet)               | bf68e368 (1d036869)                           |
+| 3     | 2    | merged (opus; B-255)          | 6471195a (83fae255)                           |
+| 4     | 3    | not started (waits for B-247) |                                               |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue list-filters`): start every ready slice, land each green wave through the Codex-reviewed PR, clean up; ask only real questions. B-249 claimed 2026-11-21.
 
