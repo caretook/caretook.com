@@ -24,6 +24,7 @@ type AsButton = Look &
     busyLabel?: string;
     ref?: Ref<HTMLButtonElement>;
     to?: never;
+    href?: never;
   };
 
 type AsLink = Look &
@@ -34,19 +35,58 @@ type AsLink = Look &
     /** For data hooks (`data-*`) and an `aria-label` when the text needs more. */
     [attr: `data-${string}`]: string | undefined;
     "aria-label"?: string;
+    href?: never;
   };
+
+type AsAnchor = Look & {
+  /** A document navigation outside the router: another site, a `webcal:` link, a server route. */
+  href: string;
+  target?: "_blank";
+  rel?: string;
+  to?: never;
+  busy?: never;
+  busyLabel?: never;
+  disabled?: never;
+  /** For data hooks (`data-*`) and an `aria-label` when the text needs more. */
+  [attr: `data-${string}`]: string | undefined;
+  "aria-label"?: string;
+};
 
 /**
  * A text button in one of the kit's looks (`buttonClass`). With `to` it's a
- * router link that looks the same (and takes `replace`, `state`, `prefetch`).
- * `busy` disables it and swaps its text for `busyLabel`, so nothing is sent
- * twice. Icon-only buttons are `IconButton`.
+ * router link that looks the same (and takes `replace`, `state`, `prefetch`);
+ * with `href`, a plain `<a>` for a navigation the router doesn't own (another
+ * site, a `webcal:` link, a server route such as an OAuth start). `busy`
+ * disables it and swaps its text for `busyLabel`, so nothing is sent twice.
+ * Icon-only buttons are `IconButton`.
  */
-export function Button(props: AsButton | AsLink) {
+export function Button(props: AsButton | AsLink | AsAnchor) {
   const { variant, size, block, icon: Icon, children, className = "" } = props;
   const look = `${buttonClass({ variant, size, block })} ${className}`.trim();
   const iconSize = size === "xs" ? "size-3.5" : "size-4";
   const icon = Icon ? <Icon className={iconSize} aria-hidden="true" /> : null;
+
+  if (props.href !== undefined) {
+    const {
+      variant: _v,
+      size: _s,
+      block: _b,
+      icon: _i,
+      children: _c,
+      className: _cn,
+      busy: _busy,
+      busyLabel: _bl,
+      disabled: _d,
+      to: _to,
+      ...anchor
+    } = props;
+    return (
+      <a {...anchor} className={look}>
+        {icon}
+        {children}
+      </a>
+    );
+  }
 
   if (props.to !== undefined) {
     const {
@@ -59,6 +99,7 @@ export function Button(props: AsButton | AsLink) {
       busy: _busy,
       busyLabel: _bl,
       disabled: _d,
+      href: _h,
       ...link
     } = props;
     return (
@@ -81,6 +122,7 @@ export function Button(props: AsButton | AsLink) {
     disabled,
     type = "button",
     to: _to,
+    href: _href,
     ...button
   } = props;
   return (

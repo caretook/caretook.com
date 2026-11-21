@@ -3,6 +3,7 @@ import type { Route } from "./+types/route";
 import { LogOut } from "lucide-react";
 import { Form } from "react-router";
 import { SettingsCard, SettingsPage } from "~/components/settings";
+import { Button } from "~/components/ui";
 import { sessionContext } from "~/lib/auth/session";
 
 // `/app/settings/account`: who's signed in (read-only for now), and Sign out
@@ -29,10 +30,9 @@ export default function AccountSettings({ loaderData }: Route.ComponentProps) {
           </dd>
         </dl>
         <Form method="post" action="/sign-out" className="pt-2">
-          <button type="submit" className="btn gap-2">
-            <LogOut aria-hidden="true" className="size-4" />
+          <Button type="submit" icon={LogOut}>
             Sign out
-          </button>
+          </Button>
         </Form>
       </SettingsCard>
     </SettingsPage>
