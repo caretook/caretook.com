@@ -150,6 +150,46 @@ describe("sync.upload: medication", () => {
     ).toEqual([{ id, status: "applied" }]);
   });
 
+  it("takes the type a device set, none from an older build, and refuses an unknown one; no entry for it", async () => {
+    const { owner, viewer, group, recipient, changesOf } = await setup();
+    const typed = randomUUID();
+    const older = randomUUID();
+    const res = await owner.api.sync.upload({
+      ops: [
+        {
+          op: "PUT",
+          table: "medication",
+          id: typed,
+          data: medicationRow(group.id, recipient.id, { name: "Vitamin D3", type: "supplement" }),
+        },
+        // A build from before types: no `type` column at all.
+        { op: "PUT", table: "medication", id: older, data: medicationRow(group.id, recipient.id) },
+        { op: "PATCH", table: "medication", id: older, data: { type: "otc", updated_at: EDITED_AT } },
+      ],
+    });
+    expect(res.results.map((r) => r.status)).toEqual(["applied", "applied", "applied"]);
+    expect(ok(await medicationService.getById(viewer.ctx, typed))?.type).toBe("supplement");
+    expect(ok(await medicationService.getById(viewer.ctx, older))?.type).toBe("otc");
+    // Setting the type is not a change the timeline records.
+    expect((await changesOf(older)).map((c) => (c.details as MedicationChangeDetails).change)).toEqual([
+      "started",
+    ]);
+
+    const cleared = await owner.api.sync.upload({
+      ops: [{ op: "PATCH", table: "medication", id: typed, data: { type: null, updated_at: EDITED_AT } }],
+    });
+    expect(cleared.results).toEqual([{ id: typed, status: "applied" }]);
+    expect(ok(await medicationService.getById(viewer.ctx, typed))?.type).toBeNull();
+
+    const bad = await owner.api.sync.upload({
+      ops: [
+        { op: "PATCH", table: "medication", id: older, data: { type: "vitamin", updated_at: EDITED_AT } },
+      ],
+    });
+    expect(bad.results[0]).toMatchObject({ status: "rejected", code: "medicationService:invalid" });
+    expect(ok(await medicationService.getById(viewer.ctx, older))?.type).toBe("otc");
+  });
+
   it("handles a medication created and deleted before it uploaded, and a DELETE", async () => {
     const { owner, group, recipient } = await setup();
     const id = randomUUID();

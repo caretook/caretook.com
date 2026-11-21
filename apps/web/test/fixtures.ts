@@ -327,6 +327,8 @@ const medication = ({
     strength: "10 mg",
     form: "tablet",
     dose: "1 tablet",
+    // `type: null` for one added before types (medications-3).
+    type: "prescription",
     schedule: JSON.stringify(schedule),
     status: "current",
     startedOn: created.slice(0, 10),

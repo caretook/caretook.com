@@ -15,7 +15,8 @@ import * as medications from "./route";
 // The medications' component tests share one fictional world, like the
 // seeds' (medications.mjs used them): Grandma June's six medications on the
 // group's Morning and Evening passes (four current, a completed antibiotic, a
-// discontinued one with its reason and note), a prescriber and a pharmacy
+// discontinued one with its reason and note; prescriptions but for an
+// over-the-counter painkiller and the discontinued one, whose type isn't set), a prescriber and a pharmacy
 // with phones, Metformin's notes, and a history of doses and change entries.
 // Times are in the recipient's zone (America/Los_Angeles, the test
 // browser's too). Only `*.browser.test.tsx` files import it.
@@ -95,6 +96,7 @@ export const ACETAMINOPHEN = fx.medication({
   directions: "For knee pain. At least 6 hours between doses.",
   reason: "Knee pain",
   schedule: { type: "asNeeded", maxPerDay: 4 },
+  type: "otc",
   startedOn: dayAgo(90),
   ...since(90),
 });
@@ -136,6 +138,8 @@ export const OXYBUTYNIN = fx.medication({
   status: "discontinued",
   stopReason: "sideEffects",
   stopNote: "Dry mouth and some confusion at night.",
+  // Added before medications had types.
+  type: null,
   startedOn: dayAgo(60),
   stoppedOn: dayAgo(30),
   ...since(60),

@@ -224,6 +224,8 @@ export const medications = sqliteTable(
     updatedAt: text("updated_at"),
     createdBy: text("created_by"),
     updatedBy: text("updated_by"),
+    // Prescription, otc, supplement or other; null when not set (medications-3).
+    type: text("type"),
   },
   (t) => [index("medication_group").on(t.groupId)],
 );

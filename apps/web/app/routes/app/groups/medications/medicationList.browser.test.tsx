@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { found } from "../../../../../test/found";
+import { fx } from "../../../../../test/fixtures";
 import {
   $,
   $$,
@@ -75,6 +76,34 @@ describe("the list", () => {
     expect(row.querySelector("a[data-medication-name]")?.getAttribute("href")).toBe(
       `${LIST}/${OXYBUTYNIN.id}`,
     );
+  });
+
+  test("each row has a badge with its type, and none when the type isn't set", async () => {
+    await open({
+      fixtures: [
+        world(),
+        fx.medication({ name: "Vitamin D3", strength: "1000 IU", type: "supplement" }),
+        fx.medication({ name: "Zinc barrier cream", strength: null, type: "other" }),
+      ],
+    });
+    await expect.poll(() => listNames(CURRENT)).toContain("Vitamin D3 1000 IU");
+    /** A row's badge: what it shows, and what it says to a screen reader. */
+    const badge = (name: string) => {
+      const row = [...document.querySelectorAll("main li[data-medication-id]")].find((li) =>
+        li.querySelector("[data-medication-name]")?.textContent?.startsWith(name),
+      );
+      const el = row?.querySelector("[data-medication-type]");
+      if (!el) return null;
+      return [
+        el.querySelector('[aria-hidden="true"]')?.textContent,
+        el.querySelector(".sr-only")?.textContent,
+      ];
+    };
+    expect(badge("Lisinopril")).toEqual(["Rx", "Prescription"]);
+    expect(badge("Acetaminophen")).toEqual(["OTC", "Over the counter"]);
+    expect(badge("Vitamin D3")).toEqual(["Supplement", "Supplement"]);
+    expect(badge("Zinc barrier cream")).toEqual(["Other", "Other"]);
+    expect(badge("Oxybutynin")).toBeNull();
   });
 
   test("search filters as it's typed (by reason too) and goes in the URL; the URL's search opens filtered", async () => {

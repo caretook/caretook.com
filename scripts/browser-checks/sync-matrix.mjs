@@ -192,6 +192,8 @@ export const SYNC_MATRIX = [
         schedule: JSON.stringify({ type: "asNeeded" }),
         status: "current",
         deleted_at: null,
+        // The type column (medications-3) uploads and syncs with the rest.
+        type: "supplement",
         ...audit(ctx),
       }),
   ),

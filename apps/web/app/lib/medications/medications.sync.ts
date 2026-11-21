@@ -22,11 +22,13 @@ import {
   MEDICATION_FORMS,
   MEDICATION_STATUSES,
   MEDICATION_STOP_REASONS,
+  MEDICATION_TYPES,
   medicationChange,
   medicationChangeDetailsZSchema,
   medicationChangeId,
   medicationContentOf,
   medicationContentZSchema,
+  medicationFormContentZSchema,
   medicationUpdateZSchema,
   parseMedicationSchedule,
   schedulePassIds,
@@ -84,6 +86,7 @@ export type MedicationRow = {
   quantity: string | null;
   refills_left: number | null;
   rx_number: string | null;
+  type: string | null;
   deleted_at: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -135,6 +138,7 @@ export const toMedication = (row: MedicationRow): LocalMedication | null => {
     quantity: row.quantity,
     refillsLeft: row.refills_left,
     rxNumber: row.rx_number,
+    type: oneOf(MEDICATION_TYPES, row.type),
     deletedAt: row.deleted_at ? fromLocalTimestamp(row.deleted_at) : null,
     createdAt: row.created_at ? fromLocalTimestamp(row.created_at) : "",
     updatedAt: row.updated_at ? fromLocalTimestamp(row.updated_at) : "",
@@ -462,6 +466,7 @@ const contentColumns = (content: MedicationContent) => ({
   quantity: content.quantity,
   refillsLeft: content.refillsLeft,
   rxNumber: content.rxNumber,
+  type: content.type,
 });
 
 /**
@@ -497,17 +502,28 @@ const changeEntryRow = (
   };
 };
 
+/**
+ * How a write validates. `requireType`: the save comes from a form that asks
+ * for the type (the medication form), so a missing one is refused on its
+ * field; other writes accept none (it stays as it was, or null).
+ */
+export type MedicationWriteOptions = { requireType?: boolean };
+
+const contentSchema = ({ requireType }: MedicationWriteOptions) =>
+  requireType ? medicationFormContentZSchema : medicationContentZSchema;
+
 /** A medication's row and its "started" entry, validated: what `createMedication` writes. */
 export const newMedicationRows = async (
   db: SyncDb,
   groupId: string,
   input: MedicationContentInput,
   added: ReadonlySet<string> = new Set(),
+  opts: MedicationWriteOptions = {},
 ) => {
   if (!(await canWrite(db, groupId))) return forbidden as Refusal;
   const recipient = await recipientOf(db, groupId);
   if (!recipient) return refuse("This care group has no care recipient yet");
-  const parsed = medicationContentZSchema.safeParse(input);
+  const parsed = contentSchema(opts).safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
   const badProviders = await checkProviders(db, groupId, parsed.data, added);
   if (badProviders) return badProviders;
@@ -543,11 +559,12 @@ export const createMedication = async (
   groupId: string,
   input: MedicationContentInput,
   newProviders: NewMedicationProviders = {},
+  opts: MedicationWriteOptions = {},
 ): Promise<MedicationWriteResult> => {
   if (!(await canWrite(db, groupId))) return forbidden as Refusal;
   const added = await newProviderRows(db, groupId, newProviders);
   if ("ok" in added) return added;
-  const rows = await newMedicationRows(db, groupId, { ...input, ...added.ids }, added.added);
+  const rows = await newMedicationRows(db, groupId, { ...input, ...added.ids }, added.added, opts);
   if ("ok" in rows) return rows;
   await db.drizzle.transaction(async (tx) => {
     for (const provider of added.rows) await tx.insert(providers).values(provider);
@@ -569,6 +586,7 @@ export const updateMedication = async (
   id: string,
   patch: MedicationUpdateInput,
   newProviders: NewMedicationProviders = {},
+  opts: MedicationWriteOptions = {},
 ): Promise<MedicationWriteResult> => {
   const existing = await liveMedication(db, id);
   if (!existing) return medicationMissing;
@@ -582,7 +600,7 @@ export const updateMedication = async (
     Object.entries({ ...shape.data, ...added.ids }).filter(([, v]) => v !== undefined),
   );
   const before = medicationContentOf(existing);
-  const merged = medicationContentZSchema.safeParse({ ...before, ...defined });
+  const merged = contentSchema(opts).safeParse({ ...before, ...defined });
   if (!merged.success) return invalid(merged.error);
   const badProviders = await checkProviders(
     db,
