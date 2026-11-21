@@ -10,7 +10,7 @@ import { isUpcomingDose } from "../appointments/upcomingDoses";
 import { startOfDay, zonedInstant } from "../core/zonedDay";
 
 // Open todos with a due day in the Planner, under their day among the
-// appointments, reminders and due doses. Worked out, never written:
+// appointments and due doses. Worked out, never written:
 // completing a todo drops it out. Due days and times are wall-clock in the
 // recipient's zone (`todoState`); the Planner's days are the viewer's, so a
 // timed todo is placed by the moment it falls, an all-day one by its own
@@ -51,7 +51,7 @@ export const plannerTodos = <T extends TodoRuleFields>(
 
 /**
  * Whether todos show with these filters: only unfiltered, like due doses
- * (a kind filter is a note or event kind, and an author filter is about who
+ * (a kind filter is an event kind, and an author filter is about who
  * wrote an entry).
  */
 export const showsTodos = ({ kind, author }: { kind?: string | null; author?: string | null }) =>

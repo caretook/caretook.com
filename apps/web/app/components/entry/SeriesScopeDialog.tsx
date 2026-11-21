@@ -13,14 +13,11 @@ import { scopeQuestion } from "~/lib/appointments/seriesScope";
 export function SeriesScopeDialog({
   open,
   action,
-  kind,
   onChoose,
   onClose,
 }: {
   open: boolean;
   action: SeriesAction;
-  /** The visit's kind: "event" (an appointment) or "note" (a reminder). */
-  kind: string;
   onChoose: (scope: SeriesScope) => void;
   onClose: () => void;
 }) {
@@ -28,7 +25,7 @@ export function SeriesScopeDialog({
   const titleId = useId();
   const messageId = useId();
   useShowModal(ref, open);
-  const { title, message } = scopeQuestion(action, kind);
+  const { title, message } = scopeQuestion(action);
   const danger = action === "delete" || action === "cancel";
 
   return (
