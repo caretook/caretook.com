@@ -210,7 +210,7 @@ describe("the edit sheet", () => {
     await userEvent.click(editLink());
     await waitUntil(() => !!dialog()?.textContent?.includes("Edit symptom"), 4000, "the edit sheet");
     expect(device.location()).toBe(`${T}/${KNEE.id}/edit${SYMPTOMS}`);
-    expect(NAME()!.value).toBe("Sore knee");
+    await expect.poll(() => NAME()?.value).toBe("Sore knee");
 
     await userEvent.fill(await found(NAME), "Sore knee, left");
     await userEvent.click(dialog()!.querySelector('button[type="submit"]')!);
@@ -230,7 +230,7 @@ describe("the edit sheet", () => {
     await userEvent.click(page.getByRole("menuitem", { name: "Edit" }));
     await waitUntil(() => !!NAME(), 4000, "the edit sheet");
     expect(device.location()).toBe(`${T}/${KNEE.id}/edit${SYMPTOMS}`);
-    expect(NAME()!.value).toBe("Sore knee");
+    await expect.poll(() => NAME()?.value).toBe("Sore knee");
     await userEvent.keyboard("{Escape}");
     await waitUntil(() => !dialog(), 4000, "the sheet to close");
     await expect.poll(device.location).toBe(`${T}${SYMPTOMS}`);
@@ -239,7 +239,7 @@ describe("the edit sheet", () => {
   test("opened at its URL (a bookmark, or a reload), it has the entry's current values: a change synced since shows", async () => {
     const device = await open(`${T}/${KNEE.id}/edit${SYMPTOMS}`);
     await waitUntil(() => !!NAME(), 8000, "the edit sheet");
-    expect(NAME()!.value).toBe("Sore knee");
+    await expect.poll(() => NAME()?.value).toBe("Sore knee");
     await userEvent.keyboard("{Escape}");
     await expect.poll(device.location).toBe(`${T}${SYMPTOMS}`);
 
@@ -252,7 +252,7 @@ describe("the edit sheet", () => {
       rowWith("Sore knee (from Sam)")!.querySelector<HTMLElement>('a[aria-label^="Edit "]')!,
     );
     await waitUntil(() => !!NAME(), 4000, "the edit sheet");
-    expect(NAME()!.value).toBe("Sore knee (from Sam)");
+    await expect.poll(() => NAME()?.value).toBe("Sore knee (from Sam)");
   });
 
   test("deleted on another device while open: the sheet closes onto the timeline, filters kept, with no error", async () => {

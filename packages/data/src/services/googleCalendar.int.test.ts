@@ -9,6 +9,7 @@ import {
   googleCalendarConnectionSchema,
   googleEventLinkSchema,
   googleOauthStateSchema,
+  userSchema,
 } from "../db/schema";
 import { isError } from "../errors";
 import {
@@ -297,6 +298,39 @@ describe("pushing", () => {
     expect(summaries(conn.calendarId)).toEqual(["Todo for Pat Example"]);
   });
 
+  it("skips a disabled member's connection, and resumes when they are re-enabled", async () => {
+    const { owner, caretaker, group, appointment } = await setup();
+    const conn = await connect(caretaker, group.id);
+    const setDisabled = (disabledAt: string | null) =>
+      getDb().update(userSchema).set({ disabledAt }).where(eq(userSchema.id, caretaker.user.id));
+    await setDisabled(new Date().toISOString());
+    const writes = google.calls.upsertEvent;
+    ok(
+      await timelineEntryService.update(owner.ctx, appointment.id, {
+        occurredAt: inDays(1, 19),
+        endsAt: inDays(1, 20),
+      }),
+    );
+    await settled();
+    ok(await calendarSyncService.runDue());
+    expect(google.calls.upsertEvent).toBe(writes);
+    // The connection stays; re-enabling resumes pushes.
+    const [kept] = await getDb()
+      .select()
+      .from(googleCalendarConnectionSchema)
+      .where(eq(googleCalendarConnectionSchema.id, conn.id));
+    expect(kept?.disconnectedAt).toBeNull();
+    await setDisabled(null);
+    ok(
+      await timelineEntryService.update(owner.ctx, appointment.id, {
+        occurredAt: inDays(1, 21),
+        endsAt: inDays(1, 22),
+      }),
+    );
+    await settled();
+    expect(google.calls.upsertEvent).toBeGreaterThan(writes);
+  });
+
   it("records a refused token (Reconnect Google) and stops pushing until reconnected", async () => {
     const { owner, group, appointment } = await setup();
     const conn = await connect(owner, group.id, "1//fake-refresh-to-revoke");
@@ -421,5 +455,33 @@ describe("disconnecting", () => {
     await settled();
     expect(google.revoked()).toEqual([]);
     expect(ok(await googleConnectionService.status(owner.ctx, group.id))).toMatchObject({ connected: true });
+  });
+
+  it("leaves a disabled member's connection out of the daily push, so it can't starve the others", async () => {
+    const { owner, caretaker, group } = await setup();
+    const mine = await connect(owner, group.id);
+    const theirs = await connect(caretaker, group.id);
+    const db = getDb();
+    await db
+      .update(googleCalendarConnectionSchema)
+      .set({ lastError: "revoked" })
+      .where(
+        and(ne(googleCalendarConnectionSchema.id, mine.id), ne(googleCalendarConnectionSchema.id, theirs.id)),
+      );
+    await db
+      .update(googleCalendarConnectionSchema)
+      .set({ lastPushedAt: new Date(Date.now() - 3 * 24 * 3_600_000).toISOString() })
+      .where(eq(googleCalendarConnectionSchema.id, theirs.id));
+    await db
+      .update(googleCalendarConnectionSchema)
+      .set({ lastPushedAt: new Date(Date.now() - 2 * 24 * 3_600_000).toISOString() })
+      .where(eq(googleCalendarConnectionSchema.id, mine.id));
+    await db
+      .update(userSchema)
+      .set({ disabledAt: new Date().toISOString() })
+      .where(eq(userSchema.id, caretaker.user.id));
+    const result = ok(await calendarSyncService.sweep());
+    expect(result).toMatchObject({ configured: true, queuedDaily: 1 });
+    await db.update(userSchema).set({ disabledAt: null }).where(eq(userSchema.id, caretaker.user.id));
   });
 });

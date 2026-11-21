@@ -25,6 +25,7 @@ import {
   timelineEntryUpdateZSchema,
   timelineEntryUpsertZSchema,
 } from "../db/schema";
+import { isPastVisit } from "../db/schema/appointments/seriesEdit";
 import { isError, newError } from "../errors";
 import {
   appointmentSeriesModel,
@@ -445,7 +446,11 @@ export const update = (
       existing.seriesId &&
       content.seriesId &&
       content.seriesId !== existing.seriesId &&
-      new Date(existing.occurredAt).getTime() < (opts.now ?? new Date()).getTime()
+      isPastVisit(
+        { occurredAt: toIso(existing.occurredAt), allDay: existing.allDay },
+        existing.timeZone,
+        opts.now ?? new Date(),
+      )
     )
       return newError({
         code: "timelineEntryService:pastVisit",

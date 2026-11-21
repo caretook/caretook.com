@@ -242,7 +242,7 @@ describe("the simple view", () => {
     await userEvent.click(page.getByRole("menuitem", { name: "Edit" }));
     const name = () => document.querySelector<HTMLInputElement>('[role=dialog] input[name="symptomName"]');
     await waitUntil(() => !!name(), 4000, "the edit sheet");
-    expect(name()!.value).toBe("Sore knee");
+    await expect.poll(() => name()?.value).toBe("Sore knee");
     expect(device.location()).toMatch(/\/edit$/);
     expect(isSimple()).toBe(true);
   });

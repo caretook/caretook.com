@@ -80,7 +80,7 @@ describe("the repeat field", () => {
     const device = await open(NEW_EVENT);
     expect(REPEAT_BUTTON()!.getAttribute("aria-label")).toBe("Repeat: Doesn't repeat");
     await openRepeat();
-    expect(PRESET()!.value).toBe("none");
+    await expect.poll(() => PRESET()?.value).toBe("none");
     expect($("[data-repeat-preview]")).toBeNull();
 
     await choose("weekly");
