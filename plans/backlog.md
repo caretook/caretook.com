@@ -66,10 +66,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
-| B-60 | feature | in-progress | appointments-2 | prd/appointments-2 | Recurring appointments (weekly PT, dialysis three times a week) |
+| B-60 | feature | ready | appointments-2 | prd/appointments-2 | Recurring appointments (weekly PT, dialysis three times a week) |
 | B-61 | feature | ready | appointments-2 | prd/appointments-2 | Appointment reminders by email and push before the appointment |
 | B-62 | feature | ready | appointments-2 | prd/appointments-2 | iCal feed of a care group's upcoming appointments |
-| B-63 | feature | in-progress | appointments-2 | prd/appointments-2 | Google Calendar sync of a care group's appointments |
+| B-63 | feature | ready | appointments-2 | prd/appointments-2 | Google Calendar sync of a care group's appointments |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
@@ -206,10 +206,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-60 · feature · Recurring appointments (weekly PT, dialysis three times a week)
 
-- status: in-progress
+- status: ready
 - prd: appointments-2
 - owner: prd/appointments-2
-- commit:
+- commit: f1cc1dbc
 
 - 2026-11-18 (plan/appointments): Follow-up to the appointments PRD (B-47), decided in its interview 2026-11-18: not in the first PRD.
 - 2026-11-20 (Robert Bo Davis): Moved from appointments (done) to a new appointments-2 PRD, to plan now (the user, 2026-11-20). Touches timeline-ux's Today card, so start it after timeline-ux wave 2; B-61's push needs a decision in the interview. -- backlog agent
@@ -239,10 +239,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-63 · feature · Google Calendar sync of a care group's appointments
 
-- status: in-progress
+- status: ready
 - prd: appointments-2
 - owner: prd/appointments-2
-- commit:
+- commit: f1cc1dbc
 
 - 2026-11-18 (plan/appointments): Follow-up to the appointments PRD (B-47), decided in its interview 2026-11-18: not in the first PRD.
 - 2026-11-20 (Robert Bo Davis): Moved from appointments (done) to a new appointments-2 PRD, to plan now (the user, 2026-11-20). Touches timeline-ux's Today card, so start it after timeline-ux wave 2; B-61's push needs a decision in the interview. -- backlog agent
@@ -514,6 +514,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Triage: a new small PRD (simple-mode), not a quick fix: simple mode drops the row ⋯ menus, search and filters on purpose, and the lock limits locked members to the timeline and entries/*, so it needs decisions (which edits, whether search/filter are a simple variant or the full ones, whether the lock still allows /search). Hot files: SimpleTimeline.tsx, TimelineEntryList, simpleModeLock.ts.
+- 2026-11-20 (plan/simple-mode): Decision (user, 2026-11-20): simple mode reuses the full timeline's controls for now: the row ⋯ menus and edit sheets as on the full timeline, its magnifier/search, Filter button and chips (kind icons and authors as links). No simple variants yet. Done as hotfix/simple-mode, not a PRD.
 
 ### B-209 · feature · react-i18next or some other internationalization library to support multiple languages for all text…
 
