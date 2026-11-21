@@ -479,3 +479,26 @@ export const task = (v: Partial<Values<"tasks">> = {}) => {
     ...v,
   });
 };
+
+// --- Added by conditions slice 1 ---------------------------------------------
+
+/** One of the recipient's conditions: active, with no since, unless overridden. "No known conditions" is the recipient's `noKnownConditionsAt`. */
+export const condition = (v: Partial<Values<"recipientConditions">> = {}) => {
+  const created = hoursAgo(24 * 30);
+  return row("recipientConditions", {
+    id: newId(),
+    groupId,
+    recipientId,
+    name: "High blood pressure",
+    status: "active",
+    sinceYear: null,
+    sinceMonth: null,
+    note: null,
+    diagnosedById: null,
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};
