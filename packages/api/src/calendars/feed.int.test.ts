@@ -8,7 +8,7 @@ import {
   memberCalendarSettingModel,
   providerService,
   SYSTEM_USER,
-  taskService,
+  todoService,
   timelineEntryService,
 } from "@caretook/data";
 import { describe, expect, it } from "vitest";
@@ -244,7 +244,7 @@ describe("GET /api/calendar/<token>.ics", () => {
     expect(ics).toContain("SUMMARY:Appointment for Pat Example");
   });
 
-  it("holds appointments, reminders and dated open tasks from 90 days back to 90 ahead", async () => {
+  it("holds appointments, reminders and dated open todos from 90 days back to 90 ahead", async () => {
     const s = await setup();
     const inside = await s.entry({ occurredAt: daysFrom(-60), endsAt: null });
     const early = await s.entry({ occurredAt: daysFrom(-120), endsAt: null });
@@ -270,23 +270,23 @@ describe("GET /api/calendar/<token>.ics", () => {
     const deleted = await s.entry({ occurredAt: daysFrom(4), endsAt: null });
     ok(await timelineEntryService.remove(s.ctx("caretaker"), deleted.id));
     const due = ok(
-      await taskService.create(s.ctx("caretaker"), {
+      await todoService.create(s.ctx("caretaker"), {
         groupId: s.group.id,
         title: "Pick up walker",
         dueOn: "2026-11-25",
       }),
     )!;
     const undated = ok(
-      await taskService.create(s.ctx("caretaker"), { groupId: s.group.id, title: "Someday" }),
+      await todoService.create(s.ctx("caretaker"), { groupId: s.group.id, title: "Someday" }),
     )!;
     const done = ok(
-      await taskService.create(s.ctx("caretaker"), {
+      await todoService.create(s.ctx("caretaker"), {
         groupId: s.group.id,
         title: "Done one",
         dueOn: "2026-11-26",
       }),
     )!;
-    ok(await taskService.complete(s.ctx("caretaker"), done.id));
+    ok(await todoService.complete(s.ctx("caretaker"), done.id));
 
     const { file } = await makeFeed(s, "viewer");
     const ics = (await (await fetchFeed(s.handler(), file)).text()).replaceAll("\r\n", "\n");
@@ -295,9 +295,9 @@ describe("GET /api/calendar/<token>.ics", () => {
     expect(has(`entry:${inside.id}`)).toBe(true);
     expect(has(`entry:${reminder.id}`)).toBe(true);
     expect(has(`entry:${cancelled.id}`)).toBe(true);
-    expect(has(`task:${due.id}`)).toBe(true);
+    expect(has(`todo:${due.id}`)).toBe(true);
     for (const left of [early, far, logged, deleted]) expect(has(`entry:${left.id}`)).toBe(false);
-    for (const left of [undated, done]) expect(has(`task:${left.id}`)).toBe(false);
+    for (const left of [undated, done]) expect(has(`todo:${left.id}`)).toBe(false);
     // Only the cancelled appointment is marked cancelled.
     expect(ics.match(/STATUS:CANCELLED/g)).toHaveLength(1);
     expect(ics).toContain(`UID:entry:${cancelled.id}@app.caretook.test\n`);

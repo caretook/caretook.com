@@ -11,7 +11,7 @@ import { audits, enumCheck, timestamps } from "../core/columns";
 import { medicationSchema } from "../medications/medication";
 import { isYjsUpdate } from "./noteYjs";
 import { providerSchema } from "../providers/provider";
-import { taskSchema } from "../tasks/task";
+import { todoSchema } from "../todos/todo";
 import { timelineEntrySchema } from "../timeline/timelineEntry";
 
 // Live documents: collaborative notes attached to a timeline entry, a
@@ -24,10 +24,10 @@ export const canHaveNoteDocument = (kind: string): kind is (typeof NOTE_DOCUMENT
 /**
  * What a document belongs to: an entry (its text), a provider (shared notes
  * about them), a medication (shared notes about it), a care period (the
- * stay's notes: discharge instructions, visiting hours) or a task (what the
+ * stay's notes: discharge instructions, visiting hours) or a todo (what the
  * pharmacy said).
  */
-export const NOTE_DOCUMENT_SUBJECTS = ["entry", "provider", "medication", "carePeriod", "task"] as const;
+export const NOTE_DOCUMENT_SUBJECTS = ["entry", "provider", "medication", "carePeriod", "todo"] as const;
 export type NoteDocumentSubject = (typeof NOTE_DOCUMENT_SUBJECTS)[number];
 
 // One live document per entry or provider, and its id **is** the owner's id. Two
@@ -43,7 +43,7 @@ export type NoteDocumentSubject = (typeof NOTE_DOCUMENT_SUBJECTS)[number];
 // outlives the deleted updates. System only, like the snapshot.
 //
 // `subject` says which owner column is set: `entry_id`, `provider_id`,
-// `medication_id`, `care_period_id` or `task_id`, each equal to `id` (a check enforces
+// `medication_id`, `care_period_id` or `todo_id`, each equal to `id` (a check enforces
 // it), each with its own cascading FK.
 //
 // Deleting the owner (hard) cascades. A soft-deleted owner hides its document.
@@ -59,7 +59,7 @@ export const noteDocumentSchema = pgTable(
     providerId: uuid("provider_id"),
     medicationId: uuid("medication_id"),
     carePeriodId: uuid("care_period_id"),
-    taskId: uuid("task_id"),
+    todoId: uuid("todo_id"),
     snapshot: text("snapshot"),
     text: text("text").notNull().default(""),
     editors: jsonb("editors").$type<NoteEditors>().notNull().default({}),
@@ -89,18 +89,18 @@ export const noteDocumentSchema = pgTable(
       foreignColumns: [carePeriodSchema.groupId, carePeriodSchema.id],
     }).onDelete("cascade"),
     foreignKey({
-      name: "note_document_task_fk",
-      columns: [t.groupId, t.taskId],
-      foreignColumns: [taskSchema.groupId, taskSchema.id],
+      name: "note_document_todo_fk",
+      columns: [t.groupId, t.todoId],
+      foreignColumns: [todoSchema.groupId, todoSchema.id],
     }).onDelete("cascade"),
     enumCheck("note_document_subject_check", t.subject, NOTE_DOCUMENT_SUBJECTS),
     check(
       "note_document_owner_check",
-      sql`(${t.subject} = 'entry' AND ${t.entryId} = ${t.id} AND ${t.providerId} IS NULL AND ${t.medicationId} IS NULL AND ${t.carePeriodId} IS NULL AND ${t.taskId} IS NULL)
-        OR (${t.subject} = 'provider' AND ${t.providerId} = ${t.id} AND ${t.entryId} IS NULL AND ${t.medicationId} IS NULL AND ${t.carePeriodId} IS NULL AND ${t.taskId} IS NULL)
-        OR (${t.subject} = 'medication' AND ${t.medicationId} = ${t.id} AND ${t.entryId} IS NULL AND ${t.providerId} IS NULL AND ${t.carePeriodId} IS NULL AND ${t.taskId} IS NULL)
-        OR (${t.subject} = 'carePeriod' AND ${t.carePeriodId} = ${t.id} AND ${t.entryId} IS NULL AND ${t.providerId} IS NULL AND ${t.medicationId} IS NULL AND ${t.taskId} IS NULL)
-        OR (${t.subject} = 'task' AND ${t.taskId} = ${t.id} AND ${t.entryId} IS NULL AND ${t.providerId} IS NULL AND ${t.medicationId} IS NULL AND ${t.carePeriodId} IS NULL)`,
+      sql`(${t.subject} = 'entry' AND ${t.entryId} = ${t.id} AND ${t.providerId} IS NULL AND ${t.medicationId} IS NULL AND ${t.carePeriodId} IS NULL AND ${t.todoId} IS NULL)
+        OR (${t.subject} = 'provider' AND ${t.providerId} = ${t.id} AND ${t.entryId} IS NULL AND ${t.medicationId} IS NULL AND ${t.carePeriodId} IS NULL AND ${t.todoId} IS NULL)
+        OR (${t.subject} = 'medication' AND ${t.medicationId} = ${t.id} AND ${t.entryId} IS NULL AND ${t.providerId} IS NULL AND ${t.carePeriodId} IS NULL AND ${t.todoId} IS NULL)
+        OR (${t.subject} = 'carePeriod' AND ${t.carePeriodId} = ${t.id} AND ${t.entryId} IS NULL AND ${t.providerId} IS NULL AND ${t.medicationId} IS NULL AND ${t.todoId} IS NULL)
+        OR (${t.subject} = 'todo' AND ${t.todoId} = ${t.id} AND ${t.entryId} IS NULL AND ${t.providerId} IS NULL AND ${t.medicationId} IS NULL AND ${t.carePeriodId} IS NULL)`,
     ),
     // Target of note_update's composite FK.
     unique("note_document_group_id_id_unique").on(t.groupId, t.id),
@@ -151,7 +151,7 @@ export const NOTE_LIMITS = {
   updateChars: 1_000_000,
 } as const;
 
-/** Add a live document to an entry, a provider, a medication, a care period or a task. `id` is the owner's id; the subject defaults to an entry. */
+/** Add a live document to an entry, a provider, a medication, a care period or a todo. `id` is the owner's id; the subject defaults to an entry. */
 export const noteDocumentCreateZSchema = z.strictObject({
   id: z.uuid(),
   groupId: z.uuid(),

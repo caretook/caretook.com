@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { clearRemembered, recall, remember } from "./remembered";
 
-const STRIP = { groupId: "g1", name: "dueTasks" };
+const STRIP = { groupId: "g1", name: "dueTodos" };
 
 describe("the tile cache", () => {
   afterEach(() => clearRemembered());

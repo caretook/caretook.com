@@ -1,6 +1,6 @@
 // Links in tool answers to what a write made, on our own origin. The paths
 // are the app's (apps/web `appUrls`: `entry`, `editSheet`, `passSheet`,
-// `task`), which this package can't import; links.test.ts keeps them equal.
+// `todo`), which this package can't import; links.test.ts keeps them equal.
 
 const groupPath = (groupId: string) => `/app/groups/${encodeURIComponent(groupId)}`;
 
@@ -14,9 +14,9 @@ export const entryPath = (groupId: string, entry: { id: string; kind: string }) 
 export const passLogPath = (groupId: string, passLogId: string) =>
   `${groupPath(groupId)}/timeline/pass/${encodeURIComponent(passLogId)}/edit`;
 
-/** A task's page. */
-export const taskPath = (groupId: string, taskId: string) =>
-  `${groupPath(groupId)}/tasks/${encodeURIComponent(taskId)}`;
+/** A todo's page. */
+export const todoPath = (groupId: string, todoId: string) =>
+  `${groupPath(groupId)}/todos/${encodeURIComponent(todoId)}`;
 
 /** The care recipient's profile page (where a condition's conditions card is). */
 export const profilePath = (groupId: string) => `${groupPath(groupId)}/profile`;

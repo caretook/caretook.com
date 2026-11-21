@@ -9,9 +9,9 @@
 // - **This and later:** the series is split. The old one ends the day before
 //   this visit (UNTIL), or is soft-deleted when this is its first visit; a
 //   new series starts on this visit's day with the change. Future visits
-//   from this one on are moved onto it in place (same id, notes and tasks)
+//   from this one on are moved onto it in place (same id, notes and todos)
 //   when their day is still in the rule; otherwise they're deleted, unless
-//   they have notes, tasks or a cancel: then they're detached and kept.
+//   they have notes, todos or a cancel: then they're detached and kept.
 //   Detached visits are left alone, and days the new rule adds are written.
 //   Cancelling or deleting this and later ends the series the same way.
 // - **Past visits** (started before `now`) are never in the writes, and
@@ -58,7 +58,7 @@ export type PlanVisit = {
   cancelledAt: string | null;
   detached: boolean;
   deleted: boolean;
-  /** It has notes (text in its document) or linked tasks. */
+  /** It has notes (text in its document) or linked todos. */
   touched: boolean;
 };
 

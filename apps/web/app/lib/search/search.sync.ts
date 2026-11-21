@@ -9,7 +9,7 @@ import {
   parseSearch,
   providerSearchDocument,
   SEARCH_ITEM_TYPES,
-  taskSearchDocument,
+  todoSearchDocument,
   toFtsMatch,
 } from "@caretook/data/schema";
 import { previewText } from "../live-notes/notes.sync";
@@ -19,7 +19,7 @@ import { toLocalTimestamp } from "../timeline/timeline.sync";
 export { parseSearch };
 
 // The device's search index: SQLite FTS5 over every entry, provider,
-// medication, task and condition of every group on the device, kept current as rows change
+// medication, todo and condition of every group on the device, kept current as rows change
 // (synced or typed here), so search works offline and finds what was typed
 // a moment ago. Tables and triggers: ./searchTables. What each row's text
 // is: `@caretook/data/schema`'s search documents. Every query is scoped to
@@ -30,7 +30,7 @@ export { parseSearch };
  * search document holds change: devices then rebuild their index on the
  * next open.
  */
-export const SEARCH_INDEX_VERSION = 4;
+export const SEARCH_INDEX_VERSION = 5;
 
 /** bm25 weights for (title, body): a match in a title-like field ranks above one in the text. */
 const WEIGHTS = "4.0, 1.0";
@@ -212,25 +212,25 @@ const readMedications = async (db: SqlRunner, ids: string[] | null): Promise<Sea
   });
 };
 
-type TaskSourceRow = DocumentColumns & {
+type TodoSourceRow = DocumentColumns & {
   id: string;
   group_id: string | null;
   title: string | null;
   deleted_at: string | null;
 };
 
-const readTasks = async (db: SqlRunner, ids: string[] | null): Promise<SearchDocument[]> => {
+const readTodos = async (db: SqlRunner, ids: string[] | null): Promise<SearchDocument[]> => {
   const filter = idFilter("t.id", ids);
-  const rows = await db.getAll<TaskSourceRow>(
+  const rows = await db.getAll<TodoSourceRow>(
     `SELECT t.id, t.group_id, t.title, t.deleted_at, ${documentColumns("t.id")}
-     FROM task t
+     FROM todo t
      LEFT JOIN note_document d ON d.id = t.id
      ${filter.sql}`,
     filter.params,
   );
   return rows.flatMap((row) => {
     if (!row.group_id) return [];
-    const doc = taskSearchDocument({
+    const doc = todoSearchDocument({
       id: row.id,
       groupId: row.group_id,
       title: row.title,
@@ -272,7 +272,7 @@ const READERS: Record<SearchItemType, (db: SqlRunner, ids: string[] | null) => P
   entry: readEntries,
   provider: readProviders,
   medication: readMedications,
-  task: readTasks,
+  todo: readTodos,
   condition: readConditions,
 };
 
@@ -319,7 +319,7 @@ const replaceItems = async (tx: Tx, type: SearchItemType, ids: string[] | null, 
 const dirtyItems = async (tx: Tx): Promise<Record<SearchItemType, string[]>> => {
   const ids = (rows: { id: string | null }[]) => [...new Set(rows.flatMap((r) => (r.id ? [r.id] : [])))];
   const dirty = (sources: string) => `SELECT id FROM search_dirty WHERE source IN (${sources})`;
-  const [entry, provider, medication, task, condition] = await Promise.all([
+  const [entry, provider, medication, todo, condition] = await Promise.all([
     tx.getAll<{ id: string | null }>(
       `${dirty("'timeline_entry', 'note_document', 'note_update', 'timeline_entry_provider'")}
        UNION SELECT l.entry_id FROM timeline_entry_provider l WHERE l.provider_id IN (${dirty("'provider'")})
@@ -333,14 +333,14 @@ const dirtyItems = async (tx: Tx): Promise<Record<SearchItemType, string[]>> => 
        UNION SELECT p.id FROM provider p WHERE p.practice_id IN (${dirty("'provider'")})`,
     ),
     tx.getAll<{ id: string | null }>(dirty("'medication', 'note_document', 'note_update'")),
-    tx.getAll<{ id: string | null }>(dirty("'task', 'note_document', 'note_update'")),
+    tx.getAll<{ id: string | null }>(dirty("'todo', 'note_document', 'note_update'")),
     tx.getAll<{ id: string | null }>(dirty("'recipient_condition'")),
   ]);
   return {
     entry: ids(entry),
     provider: ids(provider),
     medication: ids(medication),
-    task: ids(task),
+    todo: ids(todo),
     condition: ids(condition),
   };
 };
@@ -627,7 +627,7 @@ const DEFAULT_LIMIT = 5;
 /**
  * The search page's query: every matching item of the group, best first
  * (title matches, rank, newest). With a `range` (a care period's dates),
- * only entries within it: providers, medications, tasks and conditions aren't dated by it, so none.
+ * only entries within it: providers, medications, todos and conditions aren't dated by it, so none.
  */
 export const searchGroupQuery = (groupId: string, parsed: ParsedSearch, range?: SearchRange | null) => {
   const match = toFtsMatch(parsed);
@@ -663,7 +663,7 @@ export const searchGroup = async (
     entry: { hits: [], total: 0 },
     provider: { hits: [], total: 0 },
     medication: { hits: [], total: 0 },
-    task: { hits: [], total: 0 },
+    todo: { hits: [], total: 0 },
     condition: { hits: [], total: 0 },
   };
   const query = searchGroupQuery(groupId, parsed, range);

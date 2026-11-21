@@ -61,7 +61,7 @@ export const googleCalendarConnectionSchema = pgTable(
   ],
 );
 
-/** One calendar item (`entry:<id>`, `task:<id>`) as an event in a connection's calendar. */
+/** One calendar item (`entry:<id>`, `todo:<id>`) as an event in a connection's calendar. */
 export const googleEventLinkSchema = pgTable(
   "google_event_link",
   {
@@ -81,7 +81,7 @@ export const googleEventLinkSchema = pgTable(
 );
 
 /** Why a push was queued. */
-export const CALENDAR_SYNC_REASONS = ["entry", "task", "series", "consent", "connect", "daily"] as const;
+export const CALENDAR_SYNC_REASONS = ["entry", "todo", "series", "consent", "connect", "daily"] as const;
 export type CalendarSyncReason = (typeof CALENDAR_SYNC_REASONS)[number];
 
 /**

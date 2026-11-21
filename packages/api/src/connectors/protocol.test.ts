@@ -246,6 +246,19 @@ describe("handleMcp's prompts (the real ones)", () => {
     expect(prompts[3]?.arguments).toMatchObject([{ name: "account", required: true }]);
   });
 
+  it("say todos, never tasks: the list, every prompt's text and the server instructions", async () => {
+    const init = await bodyOf(request(1, "initialize", { protocolVersion: "2025-11-25" }));
+    expect(init.result?.instructions).not.toMatch(/task/i);
+    const listed = await bodyOf(request(2, "prompts/list"));
+    expect(JSON.stringify(listed.result)).not.toMatch(/task/i);
+    for (const name of ["catch_me_up", "prepare_for_appointment", "weekly_summary"]) {
+      expect(await textOf(name)).not.toMatch(/task/i);
+    }
+    const logging = await textOf("log_what_happened", { account: "Called the pharmacy." });
+    expect(logging).not.toMatch(/task/i);
+    expect(logging).toContain("add_todo");
+  });
+
   it("leaves logging out of a read-only grant's list, and won't get it", async () => {
     const body = await bodyOf(request(2, "prompts/list"), "read");
     expect((body.result?.prompts as { name: string }[]).map((p) => p.name)).toEqual([

@@ -14,7 +14,7 @@ import {
   EntryResultItem,
   MedicationResultItem,
   ProviderResultItem,
-  TaskResultItem,
+  TodoResultItem,
 } from "./ResultItems";
 
 /**
@@ -43,7 +43,7 @@ export function SearchResults({
   const search = useMemo(() => parseSearch(data.q), [data.q]);
   // Medications' schedules read by pass name.
   const passes = useSchedulePasses(groupId);
-  // Tasks' due days are the recipient's.
+  // Todos' due days are the recipient's.
   const timeZone = useGroup().recipient?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   const status = unavailable
     ? "Search isn't available on this device right now."
@@ -103,13 +103,13 @@ export function SearchResults({
                   condition && <ConditionResultItem key={hit.id} condition={condition} search={search} />
                 );
               }
-              if (section.type === "task") {
-                const task = data.tasks[hit.id];
+              if (section.type === "todo") {
+                const todo = data.todos[hit.id];
                 return (
-                  task && (
-                    <TaskResultItem
+                  todo && (
+                    <TodoResultItem
                       key={hit.id}
-                      task={task}
+                      todo={todo}
                       notes={data.notes[hit.id]}
                       now={now}
                       timeZone={timeZone}

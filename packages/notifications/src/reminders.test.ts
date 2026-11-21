@@ -11,7 +11,7 @@ import { renderNotification } from "./render";
 const APP_URL = "https://app.example.test";
 const GROUP = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 const ENTRY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0002";
-const TASK = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0003";
+const TODO = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0003";
 const UNSUBSCRIBE = "/api/reminders/unsubscribe/user.group.signature";
 const LA = "America/Los_Angeles";
 
@@ -34,20 +34,20 @@ const appointment: ReminderItem = {
   createdAt: "2026-11-01T00:00:00.000Z",
 };
 
-const task: ReminderItem = {
+const todo: ReminderItem = {
   ...appointment,
-  uid: `task:${TASK}`,
-  source: { type: "task", id: TASK },
-  kind: "task",
+  uid: `todo:${TODO}`,
+  source: { type: "todo", id: TODO },
+  kind: "todo",
   end: "2026-11-19T17:30:00.000Z",
   title: "Refill the insulin",
   place: null,
   providers: [],
-  appUrl: `/app/groups/${GROUP}/tasks/${TASK}`,
+  appUrl: `/app/groups/${GROUP}/todos/${TODO}`,
 };
 
 const render = async (
-  name: "appointmentReminder" | "taskDue",
+  name: "appointmentReminder" | "todoDue",
   item: ReminderItem,
   level: "generic" | "details",
 ) => {
@@ -63,8 +63,8 @@ describe("reminder emails", () => {
   it("say only the kind, the time and a link in the generic form", async () => {
     const visit = await render("appointmentReminder", appointment, "generic");
     expect(visit.subject).toBe("Appointment for Pat · Thu 19 Nov · 9:00–10:00");
-    const due = await render("taskDue", task, "generic");
-    expect(due.subject).toBe("Task for Pat · Thu 19 Nov · 9:00");
+    const due = await render("todoDue", todo, "generic");
+    expect(due.subject).toBe("Todo for Pat · Thu 19 Nov · 9:00");
     for (const out of [visit, due]) {
       expect(out.html).toContain("<html");
       for (const part of [out.subject, out.html, out.text]) {
@@ -76,7 +76,7 @@ describe("reminder emails", () => {
       expect(out.text).toContain("Turn off reminder emails");
     }
     expect(visit.text).toContain(`${APP_URL}/app/groups/${GROUP}/entries/${ENTRY}`);
-    expect(due.text).toContain(`${APP_URL}/app/groups/${GROUP}/tasks/${TASK}`);
+    expect(due.text).toContain(`${APP_URL}/app/groups/${GROUP}/todos/${TODO}`);
   });
 
   it("add the title, place and providers with details", async () => {
@@ -84,8 +84,8 @@ describe("reminder emails", () => {
     expect(visit.subject).toBe("Appointment for Pat: Kidney dialysis · Thu 19 Nov · 9:00–10:00");
     expect(visit.text).toContain("At Riverside Clinic");
     expect(visit.text).toContain("With Dr. Rivera Example");
-    const due = await render("taskDue", task, "details");
-    expect(due.subject).toBe("Task for Pat: Refill the insulin · Thu 19 Nov · 9:00");
+    const due = await render("todoDue", todo, "details");
+    expect(due.subject).toBe("Todo for Pat: Refill the insulin · Thu 19 Nov · 9:00");
   });
 
   it("put the times in the member's zone", () => {

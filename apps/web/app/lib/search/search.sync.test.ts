@@ -37,7 +37,7 @@ const COLUMNS: Record<string, string[]> = {
   provider: ["group_id", "type", "name", "specialty", "practice_id", "deleted_at"],
   medication: ["group_id", "name", "strength", "type", "reason", "directions", "deleted_at"],
   timeline_entry_provider: ["group_id", "entry_id", "provider_id"],
-  task: ["group_id", "title", "done_at", "deleted_at"],
+  todo: ["group_id", "title", "done_at", "deleted_at"],
   recipient_condition: ["group_id", "name", "note", "status", "deleted_at"],
 };
 
@@ -345,25 +345,25 @@ describe("the device search index", () => {
     expect((await searchGroup(s.db, G1, parseSearch("oxybutynin"))).medication.total).toBe(0);
   });
 
-  it("indexes a task's title and notes, done ones too, follows renames and leaves deleted ones out", async () => {
-    s.put("task", "t-form", { group_id: G1, title: "Insurance form" });
-    s.put("task", "t-fax", { group_id: G1, title: "Fax the referral", done_at: "2026-11-18 10:00:00Z" });
-    s.put("task", "t-other", { group_id: G2, title: "Insurance card" });
+  it("indexes a todo's title and notes, done ones too, follows renames and leaves deleted ones out", async () => {
+    s.put("todo", "t-form", { group_id: G1, title: "Insurance form" });
+    s.put("todo", "t-fax", { group_id: G1, title: "Fax the referral", done_at: "2026-11-18 10:00:00Z" });
+    s.put("todo", "t-other", { group_id: G2, title: "Insurance card" });
     s.put("note_document", "t-form", { group_id: G1, text: "Ask for the claim number" });
     await indexSearchChanges(s.store);
-    const taskIds = async (q: string) =>
-      (await searchGroup(s.db, G1, parseSearch(q))).task.hits.map((h) => h.id);
-    expect(await taskIds("insurance")).toEqual(["t-form"]);
-    expect((await searchGroup(s.db, G1, parseSearch("insurance"))).task.hits[0]?.titleMatch).toBe(true);
-    expect(await taskIds("claim")).toEqual(["t-form"]);
-    expect(await taskIds("referral")).toEqual(["t-fax"]);
+    const todoIds = async (q: string) =>
+      (await searchGroup(s.db, G1, parseSearch(q))).todo.hits.map((h) => h.id);
+    expect(await todoIds("insurance")).toEqual(["t-form"]);
+    expect((await searchGroup(s.db, G1, parseSearch("insurance"))).todo.hits[0]?.titleMatch).toBe(true);
+    expect(await todoIds("claim")).toEqual(["t-form"]);
+    expect(await todoIds("referral")).toEqual(["t-fax"]);
 
-    s.put("task", "t-form", { group_id: G1, title: "Benefits paperwork" });
-    s.put("task", "t-fax", { group_id: G1, title: "Fax the referral", deleted_at: "2026-11-19" });
+    s.put("todo", "t-form", { group_id: G1, title: "Benefits paperwork" });
+    s.put("todo", "t-fax", { group_id: G1, title: "Fax the referral", deleted_at: "2026-11-19" });
     await indexSearchChanges(s.store);
-    expect(await taskIds("insurance")).toEqual([]);
-    expect(await taskIds("paperwork")).toEqual(["t-form"]);
-    expect(await taskIds("referral")).toEqual([]);
+    expect(await todoIds("insurance")).toEqual([]);
+    expect(await todoIds("paperwork")).toEqual(["t-form"]);
+    expect(await todoIds("referral")).toEqual([]);
   });
 
   it("indexes a condition's name and note, resolved ones too, follows renames and leaves deleted ones out; its changes by name", async () => {

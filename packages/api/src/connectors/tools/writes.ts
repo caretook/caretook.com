@@ -14,7 +14,7 @@ import {
   addConditionActionZSchema,
   addEventActionZSchema,
   addNoteActionZSchema,
-  addTaskActionZSchema,
+  addTodoActionZSchema,
   appendLineZSchema,
   CONDITION_STATUSES,
   conditionSinceWords,
@@ -42,14 +42,14 @@ import {
   whenText,
 } from "@caretook/data";
 import { z } from "zod";
-import { entryPath, linkTo, passLogPath, profilePath, taskPath } from "../links";
+import { entryPath, linkTo, passLogPath, profilePath, todoPath } from "../links";
 import { defineTool, WRITE_ANNOTATIONS } from "../registry";
 import { loadGroup, loadMembers } from "./shared";
 
 // The write tools (connectors PRD): one per assistant action, each a batch
 // of one through the server's runner (`assistantActionService.run`) with
 // `via` set to the connection's client name. Inputs are the actions' own
-// shapes minus `type` (a time defaults to now; an event's zone, and a task's
+// shapes minus `type` (a time defaults to now; an event's zone, and a todo's
 // assignee by name, are filled in here). Each answers with quick entry's
 // preview wording and a link to what it made. Nothing deletes or completes:
 // people do that in the app. The edits (connectors-2) only add to a note's
@@ -72,7 +72,7 @@ const unitsOf = async (ctx: ToolContext) => {
 };
 
 type Made =
-  { kind: "entry"; id: string; entryKind: string; passLogId?: string | null } | { kind: "task"; id: string };
+  { kind: "entry"; id: string; entryKind: string; passLogId?: string | null } | { kind: "todo"; id: string };
 
 /**
  * Run one action, then answer in quick entry's words with a link. `names`
@@ -109,8 +109,8 @@ const carryOut = async (
 
   const made: Made[] = [];
   for (const id of ids) {
-    if (action.type === "addTask") {
-      made.push({ kind: "task", id });
+    if (action.type === "addTodo") {
+      made.push({ kind: "todo", id });
       continue;
     }
     const entry = await timelineEntryService.getById({ authUser: ctx.authUser }, id);
@@ -125,20 +125,20 @@ const carryOut = async (
   const first = made[0];
   const path = !first
     ? null
-    : first.kind === "task"
-      ? taskPath(ctx.groupId, first.id)
+    : first.kind === "todo"
+      ? todoPath(ctx.groupId, first.id)
       : action.type === "givePass" && first.passLogId
         ? passLogPath(ctx.groupId, first.passLogId)
         : entryPath(ctx.groupId, { id: first.id, kind: first.entryKind });
   const url = path ? linkTo(ctx.origin, path) : null;
   const line = [preview.title, preview.detail, preview.when].filter(Boolean).join(" · ");
   const what =
-    action.type === "addTask" ? "Added task" : made.length > 1 ? `Logged ${made.length} entries` : "Logged";
+    action.type === "addTodo" ? "Added todo" : made.length > 1 ? `Logged ${made.length} entries` : "Logged";
   return {
     text: [`${what}: ${line}`, ...(url ? [url] : []), `Shown as "via ${ctx.clientName}".`].join("\n"),
     structured: {
       preview,
-      ...(action.type === "addTask" ? { taskId: first?.id ?? null } : { entryIds: ids }),
+      ...(action.type === "addTodo" ? { todoId: first?.id ?? null } : { entryIds: ids }),
       url,
       via: ctx.clientName,
     },
@@ -289,14 +289,14 @@ export const addEvent = defineTool({
 const ASSIGNEE_ISSUE = (message: string) =>
   newError({ code: "assistantActionService:invalid", meta: { issues: [{ path: "assignee", message }] } });
 
-export const addTask = defineTool({
-  name: "add_task",
-  title: "Add a task",
+export const addTodo = defineTool({
+  name: "add_todo",
+  title: "Add a todo",
   description:
-    "Add a task to the group's list: a title, optionally a member to do it (by name, as the group overview lists them), a due day (YYYY-MM-DD) with an optional time (HH:MM, the recipient's time zone), and links to a provider, a medication or an event by id. Ask the member before calling.",
+    "Add a todo to the group's list: a title, optionally a member to do it (by name, as the group overview lists them), a due day (YYYY-MM-DD) with an optional time (HH:MM, the recipient's time zone), and links to a provider, a medication or an event by id. Ask the member before calling.",
   scope: "readWrite",
   input: z.object({
-    ...(({ assigneeId: _assigneeId, ...rest }) => rest)(shapeOf(addTaskActionZSchema)),
+    ...(({ assigneeId: _assigneeId, ...rest }) => rest)(shapeOf(addTodoActionZSchema)),
     assignee: z.string().trim().min(1).max(120).optional().describe("The member to do it, by name."),
   }),
   annotations: WRITE_ANNOTATIONS,
@@ -318,7 +318,7 @@ export const addTask = defineTool({
         );
       assigneeId = matches[0]!.id;
     }
-    return carryOut(ctx, { type: "addTask", ...input, assigneeId }, () =>
+    return carryOut(ctx, { type: "addTodo", ...input, assigneeId }, () =>
       Promise.resolve({
         members: new Map(members.map((m) => [m.id, { name: m.name ?? "Someone" }])),
       }),

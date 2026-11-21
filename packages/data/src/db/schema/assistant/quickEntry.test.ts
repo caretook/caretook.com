@@ -50,7 +50,7 @@ const context = (over: Partial<QuickEntryContext> = {}): QuickEntryContext => ({
 const parse = (line: string, over?: Partial<QuickEntryContext>) => parseQuickEntry(line, context(over)).parts;
 const top = (line: string, over?: Partial<QuickEntryContext>) => parse(line, over)[0]!.readings[0]!;
 const action = (r: QuickEntryReading) => r.actions[0]!;
-/** When an action is dated (a task has a due day instead). */
+/** When an action is dated (a todo has a due day instead). */
 const when = (r: QuickEntryReading) => {
   const a = action(r);
   return "occurredAt" in a ? a.occurredAt : undefined;
@@ -516,14 +516,14 @@ describe("prefixes", () => {
   });
 });
 
-describe("tasks", () => {
-  type Task = { title: string; assigneeId: string | null; dueOn: string | null; dueTime: string | null };
-  const task = (line: string, over?: Partial<QuickEntryContext>) => {
+describe("todos", () => {
+  type Todo = { title: string; assigneeId: string | null; dueOn: string | null; dueTime: string | null };
+  const todo = (line: string, over?: Partial<QuickEntryContext>) => {
     const r = top(line, over);
-    expect(r.kind).toBe("task");
-    expect(r.label).toBe("Task");
+    expect(r.kind).toBe("todo");
+    expect(r.label).toBe("Todo");
     const a = action(r);
-    if (a.type !== "addTask") throw new Error(`not a task: ${a.type}`);
+    if (a.type !== "addTodo") throw new Error(`not a todo: ${a.type}`);
     return {
       title: a.title,
       assigneeId: a.assigneeId ?? null,
@@ -531,7 +531,7 @@ describe("tasks", () => {
       dueTime: a.dueTime ?? null,
     };
   };
-  const plain = (title: string, more: Partial<Task> = {}): Task => ({
+  const plain = (title: string, more: Partial<Todo> = {}): Todo => ({
     title,
     assigneeId: null,
     dueOn: null,
@@ -539,7 +539,7 @@ describe("tasks", () => {
     ...more,
   });
 
-  test.each<[string, Task]>([
+  test.each<[string, Todo]>([
     // Each prefix; the time phrase is the due day (read ahead), and the time when it says one.
     ["todo: call pharmacy friday", plain("Call pharmacy", { dueOn: "2026-11-20" })],
     ["TODO call pharmacy", plain("Call pharmacy")],
@@ -573,13 +573,13 @@ describe("tasks", () => {
       plain("Pick up a prescription for mom", { assigneeId: SAM }),
     ],
   ])("%s", (line, expected) => {
-    expect(task(line)).toEqual(expected);
+    expect(todo(line)).toEqual(expected);
     expect(blocking(top(line))).toEqual([]);
     expect(assistantActionZSchema.safeParse(action(top(line))).success).toBe(true);
   });
 
   test("with no members known, a name stays in the title", () => {
-    expect(task("todo: call pharmacy for Sam", { members: [] })).toEqual(plain("Call pharmacy for Sam"));
+    expect(todo("todo: call pharmacy for Sam", { members: [] })).toEqual(plain("Call pharmacy for Sam"));
   });
 
   test("two members with the name: nobody is assigned, and the card says so", () => {
@@ -587,51 +587,51 @@ describe("tasks", () => {
       { id: SAM, name: "Sam Rivera" },
       { id: JO, name: "Sam Okafor" },
     ];
-    expect(task("todo: call pharmacy for Sam", { members })).toEqual(plain("Call pharmacy"));
+    expect(todo("todo: call pharmacy for Sam", { members })).toEqual(plain("Call pharmacy"));
     expect(warnings(top("todo: call pharmacy for Sam", { members }))).toEqual([
       "More than one member is called Sam, so nobody is assigned. Edit it to choose.",
     ]);
     // The full name settles it.
-    expect(task("todo: call pharmacy for sam okafor", { members })).toEqual(
+    expect(todo("todo: call pharmacy for sam okafor", { members })).toEqual(
       plain("Call pharmacy", { assigneeId: JO }),
     );
   });
 
   test("a due day already past is allowed, and the card says it's overdue", () => {
     const r = top("todo: send the form yesterday");
-    expect(task("todo: send the form yesterday")).toEqual(plain("Send the form", { dueOn: "2026-11-18" }));
+    expect(todo("todo: send the form yesterday")).toEqual(plain("Send the form", { dueOn: "2026-11-18" }));
     expect(warnings(r)).toEqual(["That's already past, so it's overdue."]);
     expect(blocking(r)).toEqual([]);
   });
 
-  test("a task needs words besides its due day", () => {
+  test("a todo needs words besides its due day", () => {
     const r = top("todo: friday");
-    expect(r.kind).toBe("task");
-    expect(blocking(r)).toEqual(["Say what the task is."]);
+    expect(r.kind).toBe("todo");
+    expect(blocking(r)).toEqual(["Say what the todo is."]);
   });
 
   test("the alternative is a note of the same words", () => {
     const readings = parse("todo: call pharmacy friday")[0]!.readings;
-    expect(readings.map((r) => r.label)).toEqual(["Task", "Note"]);
+    expect(readings.map((r) => r.label)).toEqual(["Todo", "Note"]);
     expect(action(readings[1]!)).toMatchObject({ type: "addNote", text: "call pharmacy friday" });
   });
 
-  test("without a prefix there's no task", () => {
-    expect(parse("call pharmacy friday")[0]!.readings.map((r) => r.kind)).not.toContain("task");
+  test("without a prefix there's no todo", () => {
+    expect(parse("call pharmacy friday")[0]!.readings.map((r) => r.kind)).not.toContain("todo");
   });
 
   test("in another zone, the due day and time are the recipient's", () => {
     // 16:00 UTC is 11:00 in New York, so "at 5" is 17:00 there.
-    expect(task("todo: call the office at 5", { timeZone: "America/New_York" })).toEqual(
+    expect(todo("todo: call the office at 5", { timeZone: "America/New_York" })).toEqual(
       plain("Call the office", { dueOn: "2026-11-19", dueTime: "17:00" }),
     );
   });
 
-  test("a task beside other parts in one line", () => {
+  test("a todo beside other parts in one line", () => {
     const parts = parse("bp 130/85, todo: call pharmacy friday for Sam, gave metformin");
-    expect(parts.map((p) => p.readings[0]!.kind)).toEqual(["vital", "task", "dose"]);
+    expect(parts.map((p) => p.readings[0]!.kind)).toEqual(["vital", "todo", "dose"]);
     expect(action(parts[1]!.readings[0]!)).toMatchObject({
-      type: "addTask",
+      type: "addTodo",
       title: "Call pharmacy",
       assigneeId: SAM,
       dueOn: "2026-11-20",

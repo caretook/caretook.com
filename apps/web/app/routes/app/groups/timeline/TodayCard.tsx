@@ -10,7 +10,7 @@ import { RepeatMark } from "~/components/entry";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatAgo } from "~/lib/core/format";
 import { nextStripText, upcomingTitle } from "~/lib/appointments/upcomingLabels";
-import { taskStripText, taskStripWho } from "~/lib/tasks/taskStrip";
+import { todoStripText, todoStripWho } from "~/lib/todos/todoStrip";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { STRIP_CAP } from "./layout";
 import { TodayMedicationsRow } from "./TodayMedicationsRow";
@@ -49,7 +49,7 @@ function SummaryLine({ summary: { overdue, soon, rest } }: { summary: TodaySumma
 
 /**
  * The Today card (B-169), above the full timeline: one row each for the
- * latest vitals, the next appointment, the medications due and the tasks
+ * latest vitals, the next appointment, the medications due and the todos
  * overdue (or due today), each hidden when it has nothing, each tinted by its
  * status (`todayStatus`) and ending in "See all ›" to its full view (the
  * vitals row instead shows all its readings in place when they don't fit,
@@ -76,9 +76,9 @@ export function TodayCard({
 }) {
   const today = useTodayCard({ groupId, latestVitals, next, units });
   if (today.empty) return null;
-  const { collapsed, status, tasks } = today;
+  const { collapsed, status, todos } = today;
   const nextText = nextStripText(next, now);
-  const task = tasks.strip && { ...taskStripText(tasks.strip), strip: tasks.strip };
+  const todo = todos.strip && { ...todoStripText(todos.strip), strip: todos.strip };
 
   return (
     <section
@@ -134,8 +134,8 @@ export function TodayCard({
             row="appointment"
             status={status.appointment}
             Icon={CalendarClock}
-            seeAll={appUrls.upcoming(groupId)}
-            seeAllLabel="See all upcoming"
+            seeAll={appUrls.planner(groupId)}
+            seeAllLabel="See all in Planner"
           >
             <Link
               to={appUrls.entry(groupId, next.next.id)}
@@ -154,21 +154,21 @@ export function TodayCard({
           medications={today.medications}
           status={status.medications}
         />
-        {!tasks.ready ? (
-          <TodayRowSkeleton row="tasks" />
+        {!todos.ready ? (
+          <TodayRowSkeleton row="todos" />
         ) : (
-          task && (
+          todo && (
             <TodayRow
-              row="tasks"
-              status={status.tasks}
+              row="todos"
+              status={status.todos}
               Icon={ListTodo}
-              stale={!tasks.fresh}
-              seeAll={appUrls.tasks(groupId, { who: taskStripWho(task.strip) })}
-              seeAllLabel="See all tasks"
+              stale={!todos.fresh}
+              seeAll={appUrls.todos(groupId, { who: todoStripWho(todo.strip) })}
+              seeAllLabel="See all todos"
             >
-              <span title={task.text} data-task={task.strip.task.id} data-task-state={task.strip.state}>
-                <span className="font-semibold">{task.lead}:</span> {task.title}
-                {task.rest && <span> · {task.rest}</span>}
+              <span title={todo.text} data-todo={todo.strip.todo.id} data-todo-state={todo.strip.state}>
+                <span className="font-semibold">{todo.lead}:</span> {todo.title}
+                {todo.rest && <span> · {todo.rest}</span>}
               </span>
             </TodayRow>
           )

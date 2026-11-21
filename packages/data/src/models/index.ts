@@ -108,9 +108,9 @@ import * as appSettingModel from "./appSetting";
 export { appSettingModel };
 export type * from "./appSetting/types";
 
-import * as taskModel from "./task";
-export { taskModel };
-export type * from "./task/types";
+import * as todoModel from "./todo";
+export { todoModel };
+export type * from "./todo/types";
 
 import * as connectorGrantModel from "./connectorGrant";
 export { connectorGrantModel };

@@ -19,9 +19,9 @@ import { rescheduleEvent } from "./appointments.sync";
 import {
   appointmentSeries,
   noteDocuments,
-  tasks,
   timelineEntries,
   timelineEntryProviders,
+  todos,
 } from "../sync/schema";
 import {
   contentColumns,
@@ -278,11 +278,11 @@ export const toPlanSeries = (row: FullSeriesRow): PlanSeries | null => {
 
 type VisitRow = EntryRow & { touched: number };
 
-/** A series' visits (deleted ones too), each with whether it has notes or linked tasks. */
+/** A series' visits (deleted ones too), each with whether it has notes or linked todos. */
 const visitsSql = `SELECT e.*,
     (EXISTS (SELECT 1 FROM note_document d WHERE d.id = e.id AND d.text IS NOT NULL AND d.text != '')
       OR EXISTS (SELECT 1 FROM note_update u WHERE u.document_id = e.id)
-      OR EXISTS (SELECT 1 FROM task t WHERE t.event_id = e.id AND t.deleted_at IS NULL)) AS touched
+      OR EXISTS (SELECT 1 FROM todo t WHERE t.event_id = e.id AND t.deleted_at IS NULL)) AS touched
   FROM timeline_entry e WHERE e.series_id = ? ORDER BY e.series_day`;
 
 const toPlanVisit = (row: VisitRow): PlanVisit | null => {
@@ -476,15 +476,15 @@ export const applySeriesEdit = async (
         .update(timelineEntries)
         .set({ deletedAt: at, ...changed })
         .where(eq(timelineEntries.id, id));
-      // As removeEntry: events pointing at it lose the link, and so do its tasks.
+      // As removeEntry: events pointing at it lose the link, and so do its todos.
       await tx
         .update(timelineEntries)
         .set({ rescheduledTo: null, ...changed })
         .where(and(eq(timelineEntries.rescheduledTo, id), isNull(timelineEntries.deletedAt)));
       await tx
-        .update(tasks)
+        .update(todos)
         .set({ eventId: null, ...changed })
-        .where(and(eq(tasks.eventId, id), isNull(tasks.deletedAt)));
+        .where(and(eq(todos.eventId, id), isNull(todos.deletedAt)));
     }
     for (const { id, content } of creates) {
       const { kind: _kind, ...columns } = content;
