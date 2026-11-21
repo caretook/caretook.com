@@ -91,7 +91,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-197 | feature | in-progress | connectors-2 | prd/connectors-2 | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
 | B-198 | bug | landed | quick-fixes | prd/quick-fixes | rotating placeholder in the timeline entry box is distracting and confusing. Use a static… |
 | B-199 | bug | in-progress | medications-3 | prd/medications-3 | ability to add a medication quickly from the log a dose screen. |
-| B-200 | bug | in-progress | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
+| B-200 | bug | ready | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
 | B-201 | bug | landed | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
 | B-203 | feature | ready | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
 | B-204 | feature | ready | connectors-2 | prd/connectors-2 | connector should be able to edit notes and events so it can help you draft questions or add… |
@@ -457,10 +457,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-200 · bug · medications need a type field: rx, otc, supplement, etc.
 
-- status: in-progress
+- status: ready
 - prd: medications-3
 - owner: prd/medications-3
-- commit:
+- commit: 26213ec5
 
 - 2026-11-20 (Robert Bo Davis): Triage: medications-3 (to write). A new synced column (migration, sync rules, form, list filter, connector list_medications) with open choices (the type list, required or not, prescriber link); conditions is running and touches medications, so plan it to start after conditions lands.
 - 2026-11-20 (plan/medications-3): PRD and plan written (plan/medications-3): 4 slices, 1 then (2, 3, 4). Types prescription/otc/supplement/other, required on new (default Rx), existing unset; Rx fields collapse for other types; list badge and ?type=, print grouped by type, search and list_medications; no change entry. B-199 is slice 4: '+ New medication' in the Dose sheet (name, dose, type; as needed), one local transaction, an 'Add details' toast, also the empty state.
