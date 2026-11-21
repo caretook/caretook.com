@@ -13,6 +13,7 @@ import {
 import { isError, newError } from "../errors";
 import { careGroupMemberModel, careGroupModel, memberCalendarSettingModel } from "../models";
 import { isSystemUser } from "../permissions";
+import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
 
 // A member's calendar settings for one care group (appointments-2): reminder
 // emails, the details consent, and (slice 5) their feed. Every member,
@@ -167,6 +168,11 @@ export const update = (
         row = created;
       }
     }
+    // Turning details on or off rewrites what's in their Google calendar (appointments-2).
+    if ("detailsConsentAt" in data) {
+      const queued = await enqueueCalendarPush(tx, { memberId: userId, inGroup: groupId }, "consent");
+      if (queued) return queued;
+    }
     return toView(groupId, role, row, allows);
   }, ctx);
 
@@ -189,6 +195,9 @@ export const setDetailsAllowed = (ctx: ServiceContext, groupId: string, allowed:
       data: { detailsOutsideAllowed: allowed },
     });
     if (isError(updated)) return updated;
+    // Everyone's level may change: every Google calendar in the group is rewritten.
+    const queued = await enqueueCalendarPush(tx, { groupId }, "consent");
+    if (queued) return queued;
     return { groupId, detailsOutsideAllowed: updated[0]?.detailsOutsideAllowed ?? allowed };
   }, ctx);
 

@@ -34,6 +34,8 @@ const FROZEN_PATHS = [
   "admin.users.setRole",
   "admin.waitlist.export",
   "admin.waitlist.list",
+  "calendars.google.disconnect",
+  "calendars.google.status",
   "calendars.group.setDetailsAllowed",
   "calendars.settings.get",
   "calendars.settings.update",

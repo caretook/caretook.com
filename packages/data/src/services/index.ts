@@ -138,6 +138,13 @@ import * as calendarSettingService from "./calendarSettingService";
 export { calendarSettingService };
 export type { CalendarSettingsView } from "./calendarSettingService";
 
+// Google Calendar (appointments-2, slice 7): no model (system-only tables).
+import * as googleConnectionService from "./googleConnectionService";
+export { googleConnectionService };
+import * as calendarSyncService from "./calendarSyncService";
+export { calendarSyncService };
+export type { PushResult, SyncRunSummary, SyncTarget } from "./calendarSyncService";
+
 export const services = {
   user: userService,
   careGroup: careGroupService,

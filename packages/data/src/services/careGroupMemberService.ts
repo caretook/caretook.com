@@ -9,6 +9,7 @@ import { isSystemUser } from "../permissions";
 import { getService } from "./baseService";
 import { removeForMember as removeCalendarSettings } from "./calendarSettingService";
 import { revokeForMember } from "./connectorGrantService";
+import { disconnectForMember as disconnectGoogle } from "./googleConnectionService";
 import { releaseAssignee } from "./taskService";
 
 export const serviceName = "careGroupMember";
@@ -163,6 +164,9 @@ export const remove = (ctx: ServiceContext, id: string) =>
     // Their reminders, feed and details consent end with it too (appointments-2).
     const forgotten = await removeCalendarSettings(tx, target.groupId, target.userId);
     if (forgotten) return forgotten;
+    // And their Google calendar stops updating (revoked after commit; the calendar stays in Google).
+    const unsynced = await disconnectGoogle(tx, target.groupId, target.userId);
+    if (unsynced) return unsynced;
     return removed;
   }, ctx);
 

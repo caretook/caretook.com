@@ -1,4 +1,4 @@
-import { appointmentSeriesService, isError, logError } from "@caretook/data";
+import { appointmentSeriesService, calendarSyncService, isError, logError } from "@caretook/data";
 import { hasCronSecret } from "./cron";
 
 // The calendar cron (`/api/cron/calendar`, every minute): a named, ordered
@@ -43,6 +43,7 @@ export const runCronSteps = async (
 
 /** The steps, in order. Slices 6, 7 and 9 add theirs before the top-up. */
 export const CALENDAR_STEPS: readonly CronStep[] = [
+  { name: "googlePush", run: ({ now }) => calendarSyncService.sweep({ now }) },
   { name: "seriesTopUp", run: ({ now }) => appointmentSeriesService.topUp(now) },
 ];
 

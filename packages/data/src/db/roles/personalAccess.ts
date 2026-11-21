@@ -39,6 +39,10 @@ export const PERSONAL_ACCESS_EXCLUDED = [
   "oauth_client.client_secret",
   // A member's calendar feed URL holds its token; only the hash is stored (appointments-2).
   "member_calendar_setting.feed_token_hash",
+  // Google Calendar: the sealed refresh token, the sync token, and a Connect's state and PKCE verifier.
+  "google_calendar_connection.refresh_token_sealed",
+  "google_calendar_connection.sync_token",
+  "google_oauth_state",
 ] as const;
 
 /** A table or column name that looks like it holds a secret. */
@@ -56,6 +60,8 @@ export const PERSONAL_ACCESS_ALLOWED: readonly string[] = [
   "oauth_resource.access_token_ttl",
   "oauth_resource.refresh_token_ttl",
   "oauth_resource.dpop_bound_access_tokens_required",
+  // A content hash of a Google event as last pushed (to skip unchanged ones), not a secret.
+  "google_event_link.pushed_hash",
 ];
 
 const excludedTables = () => new Set<string>(PERSONAL_ACCESS_EXCLUDED.filter((e) => !e.includes(".")));

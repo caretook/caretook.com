@@ -35,6 +35,7 @@ import {
   timelineEntryModel,
 } from "../models";
 import { isSystemUser, rejectError } from "../permissions";
+import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
 import { releaseEvent } from "./taskService";
 export const serviceName = "timelineEntry";
 export const schemaName = timelineEntryModel.schemaName;
@@ -349,7 +350,7 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput, opt
     const series = await checkSeries(ctx, tx, data);
     if (series) return series;
 
-    return timelineEntryModel.create({
+    const created = await timelineEntryModel.create({
       ...ctx,
       tx,
       data: {
@@ -361,6 +362,10 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput, opt
         ...(opts.via ? { via: opts.via } : {}),
       },
     });
+    if (isError(created) || !created) return created;
+    // Appointments and reminders reach members' Google calendars (appointments-2).
+    const queued = await enqueueCalendarPush(tx, { entryId: created.id }, "entry");
+    return queued ?? created;
   }, ctx);
 
 /**
@@ -459,7 +464,8 @@ export const update = (
       },
     });
     if (isError(updated)) return updated;
-    return updated[0] ?? null;
+    const queued = await enqueueCalendarPush(tx, { entryId: id }, "entry");
+    return queued ?? updated[0] ?? null;
   }, ctx);
 
 /**
@@ -553,5 +559,6 @@ export const remove = (ctx: ServiceContext, id: string) =>
     if (isError(res)) return res;
     const released = await releaseEvent(tx, id);
     if (isError(released)) return released;
-    return res;
+    const queued = await enqueueCalendarPush(tx, { entryId: id }, "entry");
+    return queued ?? res;
   }, ctx);
