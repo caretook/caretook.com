@@ -18,14 +18,14 @@ const othersQuery = (groupId: string, userId: string) => ({
   params: [groupId, userId],
 });
 
-export function InviteSomeoneCard() {
+export function InviteSomeoneCard({ className = "" }: { className?: string }) {
   const { id, userId, role, displayName } = useGroup();
   const query = othersQuery(id, userId);
   const [row] = useLiveQuery<{ others: number }>(query.sql, query.params, UNKNOWN);
   if (!role || !MANAGERS.includes(role) || (row?.others ?? -1) !== 0) return null;
   return (
     <section
-      className="card bg-base-100 border-base-300 border"
+      className={`card bg-base-100 border-base-300 border ${className}`}
       aria-labelledby="invite-someone"
       data-invite-card=""
     >
