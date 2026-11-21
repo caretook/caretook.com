@@ -1,4 +1,4 @@
-import type { AppError, AssistantAction, PreviewContext } from "@caretook/data";
+import type { ActionPreview, AppError, AssistantAction, PreviewContext, TimelineEntry } from "@caretook/data";
 import type { ToolContext, ToolOutput } from "../registry";
 
 import {
@@ -6,8 +6,10 @@ import {
   addEventActionZSchema,
   addNoteActionZSchema,
   addTaskActionZSchema,
+  appendLineZSchema,
   assistantActionService,
   DOSE_STATUSES,
+  ENTRY_APPEND_LIMITS,
   givePassActionZSchema,
   isDoseDetails,
   isError,
@@ -21,7 +23,9 @@ import {
   resolveUnits,
   SYSTEM_USER,
   timelineEntryService,
+  updateEntryActionZSchema,
   userModel,
+  whenText,
 } from "@caretook/data";
 import { z } from "zod";
 import { entryPath, linkTo, passLogPath, taskPath } from "../links";
@@ -33,8 +37,9 @@ import { loadGroup, loadMembers } from "./shared";
 // `via` set to the connection's client name. Inputs are the actions' own
 // shapes minus `type` (a time defaults to now; an event's zone, and a task's
 // assignee by name, are filled in here). Each answers with quick entry's
-// preview wording and a link to what it made. Nothing edits, deletes or
-// completes: people do that in the app.
+// preview wording and a link to what it made. Nothing deletes or completes:
+// people do that in the app. The edits (connectors-2) only add to a note's
+// or event's text, or change its title or time, and don't set `via`.
 
 const when = z.iso
   .datetime({ offset: true })
@@ -305,4 +310,110 @@ export const addTask = defineTool({
       }),
     );
   },
+});
+
+// ---------------------------------------------------------------------------
+// Edits (connectors-2)
+// ---------------------------------------------------------------------------
+
+const entryIdInput = z.uuid().describe("The note's or event's id, from list_timeline, search or upcoming.");
+
+/** What an entry is called in an answer: its title, else its first line, else its kind. */
+const entryName = (entry: Pick<TimelineEntry, "kind" | "title" | "body">) => {
+  const first = entry.body
+    ?.split("\n")
+    .find((line) => line.trim())
+    ?.trim();
+  const fallback = entry.kind === "event" ? "Event" : "Note";
+  const name = entry.title?.trim() || first || fallback;
+  return name.length > 80 ? `${name.slice(0, 79)}…` : name;
+};
+
+type Loaded = Exclude<Awaited<ReturnType<typeof loadGroup>>, AppError>;
+const entryWhen = (entry: Pick<TimelineEntry, "occurredAt" | "allDay">, ctx: ToolContext, loaded: Loaded) =>
+  whenText(new Date(entry.occurredAt).toISOString(), {
+    now: ctx.now,
+    locale: "en-US",
+    timeZone: loaded.timeZone,
+    allDay: !!entry.allDay,
+  });
+
+/** Run one edit, then answer with what changed (`detail`) and a link to the entry. */
+const carryOutEdit = async (
+  ctx: ToolContext,
+  action: { type: "appendToEntry" | "updateEntry"; entryId: string } & Record<string, unknown>,
+  what: string,
+  detail: (before: TimelineEntry | null, after: TimelineEntry, loaded: Loaded) => string | null,
+): Promise<ToolOutput | AppError> => {
+  const loaded = await loadGroup(ctx);
+  if (isError(loaded)) return loaded;
+  const before = await timelineEntryService.getById({ authUser: ctx.authUser }, action.entryId);
+  const res = await assistantActionService.run({ authUser: ctx.authUser }, ctx.groupId, [action], {
+    via: ctx.clientName,
+    now: ctx.now,
+  });
+  if (isError(res)) return res;
+  const after = await timelineEntryService.getById({ authUser: ctx.authUser }, action.entryId);
+  if (isError(after)) return after;
+  if (!after) return newError({ code: "assistantActionService:entryNotFound" });
+
+  const preview: ActionPreview = {
+    title: entryName(after),
+    detail: detail(isError(before) ? null : before, after, loaded),
+    when: entryWhen(after, ctx, loaded),
+  };
+  const url = linkTo(ctx.origin, entryPath(ctx.groupId, after));
+  const line = [preview.title, preview.detail, preview.when].filter(Boolean).join(" · ");
+  return {
+    text: [`${what}: ${line}`, url].join("\n"),
+    structured: { preview, entryIds: [after.id], url },
+  };
+};
+
+export const appendToEntry = defineTool({
+  name: "append_to_entry",
+  title: "Add to a note or event",
+  description: `Add lines at the end of an existing note's or event's text (say, questions for an upcoming visit), leaving what's there as it is. Each line is a paragraph or a bullet; runs of bullets make one list. At most ${ENTRY_APPEND_LIMITS.lines} lines and ${ENTRY_APPEND_LIMITS.characters.toLocaleString("en-US")} characters. Anyone with the note open sees the lines arrive. Ask the member before calling.`,
+  scope: "readWrite",
+  input: z.object({
+    entryId: entryIdInput,
+    lines: appendLineZSchema
+      .array()
+      .min(1)
+      .max(ENTRY_APPEND_LIMITS.lines)
+      .describe("The lines to add, in order."),
+  }),
+  annotations: WRITE_ANNOTATIONS,
+  handler: ({ entryId, lines }, ctx) =>
+    carryOutEdit(ctx, { type: "appendToEntry", entryId, lines }, "Added to", () =>
+      lines.length === 1 ? "1 line" : `${lines.length} lines`,
+    ),
+});
+
+export const updateEntry = defineTool({
+  name: "update_entry",
+  title: "Change a note's or event's title or time",
+  description:
+    "Change an existing note's or event's title, its time, or both (an event's end moves with its start). Its text is left alone: use append_to_entry to add to it. Ask the member before calling.",
+  scope: "readWrite",
+  input: z.object({
+    entryId: entryIdInput,
+    title: updateEntryActionZSchema.shape.title.describe("The new title."),
+    occurredAt: updateEntryActionZSchema.shape.occurredAt.describe(
+      "The new time (ISO 8601 with an offset, best in the recipient's time zone). All day: the start of that day.",
+    ),
+  }),
+  annotations: WRITE_ANNOTATIONS,
+  handler: (input, ctx) =>
+    carryOutEdit(ctx, { type: "updateEntry", ...input }, "Updated", (before, after, loaded) => {
+      if (!before) return null;
+      const changes = [
+        before.title !== after.title ? `renamed from ${entryName(before)}` : null,
+        new Date(before.occurredAt).getTime() !== new Date(after.occurredAt).getTime()
+          ? `moved from ${entryWhen(before, ctx, loaded)}`
+          : null,
+      ].filter(Boolean);
+      const text = changes.join(", ");
+      return text ? text.charAt(0).toUpperCase() + text.slice(1) : null;
+    }),
 });

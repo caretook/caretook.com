@@ -50,7 +50,7 @@ export const READ_ANNOTATIONS = {
   openWorldHint: false,
 } as const satisfies ToolAnnotations;
 
-/** Writes: add an entry (never edit or delete), so the client asks the member first. */
+/** Writes: add an entry, or add to or retitle one (never delete), so the client asks the member first. */
 export const WRITE_ANNOTATIONS = {
   readOnlyHint: false,
   destructiveHint: false,

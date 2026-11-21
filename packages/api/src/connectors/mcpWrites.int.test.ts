@@ -312,3 +312,179 @@ describe("/mcp write tools", () => {
     expect(notes).toHaveLength(1);
   });
 });
+
+describe("/mcp edit tools (connectors-2)", () => {
+  // A fixed clock, so answers' wording never depends on the time of day (B-205, B-206).
+  const NOW = new Date("2026-11-18T19:00:00.000Z");
+  const pinned = createMcpHandler({
+    resourceMetadataUrl: resourceMetadataUrl(TEST_ORIGIN),
+    validate: validateConnectorToken(),
+    limiter: createRateLimiter({ limit: 600, windowMs: 60_000 }),
+    now: () => NOW,
+  });
+  const call = (token: string, name: string, args: Record<string, unknown> = {}) =>
+    pinned(
+      new Request(`${TEST_ORIGIN}/mcp`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: nextId++,
+          method: "tools/call",
+          params: { name, arguments: args },
+        }),
+      }),
+    );
+
+  it("append to a note and to an event with no notes yet, and change a title and time", async () => {
+    const w = await world();
+    const token = w.writer.tokens.access_token;
+    const base = `${TEST_ORIGIN}/app/groups/${w.group.id}`;
+
+    const note = await resultOf(
+      await call(token, "add_note", { title: "Visit prep", text: "Bring the pill box" }),
+    );
+    const [noteId] = note.structuredContent.entryIds!;
+    // Reads give the ids the edits take.
+    const listed = await resultOf(await call(token, "list_timeline", { kinds: ["note"] }));
+    expect(JSON.stringify(listed.structuredContent)).toContain(noteId);
+
+    const added = await resultOf(
+      await call(token, "append_to_entry", {
+        entryId: noteId,
+        lines: [
+          { text: "Questions for Dr. Lee" },
+          { text: "Can the evening dose move earlier?", style: "bullet" },
+        ],
+      }),
+    );
+    expect(added.isError).toBeUndefined();
+    expect(textOf(added)).toMatch(/^Added to: Visit prep · 2 lines · Now\n/);
+    expect(added.structuredContent).toMatchObject({ entryIds: [noteId], url: `${base}/entries/${noteId}` });
+    expect(textOf(added)).toContain(added.structuredContent.url);
+    expect((await w.entry(noteId!))?.body).toBe(
+      "Bring the pill box\nQuestions for Dr. Lee\n• Can the evening dose move earlier?",
+    );
+
+    const event = ok(
+      await timelineEntryService.create(w.owner.ctx, {
+        groupId: w.group.id,
+        kind: "event",
+        title: "Dentist",
+        occurredAt: "2026-11-25T09:00:00-08:00",
+        endsAt: "2026-11-25T10:00:00-08:00",
+        timeZone: "America/Los_Angeles",
+      }),
+    )!;
+    const toEvent = await resultOf(
+      await call(token, "append_to_entry", { entryId: event.id, lines: [{ text: "Ask about the crown" }] }),
+    );
+    expect(textOf(toEvent)).toMatch(/^Added to: Dentist · 1 line · /);
+    expect((await w.entry(event.id))?.body).toBe("Ask about the crown");
+
+    const updated = await resultOf(
+      await call(token, "update_entry", {
+        entryId: event.id,
+        title: "Dentist: crown",
+        occurredAt: "2026-11-26T10:30:00-08:00",
+      }),
+    );
+    expect(updated.isError).toBeUndefined();
+    const updatedText = textOf(updated);
+    expect(updatedText).toMatch(
+      /^Updated: Dentist: crown · Renamed from Dentist, moved from .*9:00 AM · .*10:30 AM\n/,
+    );
+    expect(updated.structuredContent.url).toBe(`${base}/entries/${event.id}`);
+    const moved = (await w.entry(event.id))!;
+    expect(moved).toMatchObject({ title: "Dentist: crown", via: null, updatedBy: w.caretaker.user.id });
+    expect(new Date(moved.occurredAt).toISOString()).toBe("2026-11-26T18:30:00.000Z");
+    expect(new Date(moved.endsAt!).toISOString()).toBe("2026-11-26T19:30:00.000Z");
+  });
+
+  it("refuses viewers, too many lines, deleted entries, symptoms and other groups' ids", async () => {
+    const w = await world();
+    const token = w.writer.tokens.access_token;
+    const noteId = (await resultOf(await call(token, "add_note", { text: "Original" }))).structuredContent
+      .entryIds![0]!;
+    const symptomId = (await resultOf(await call(token, "log_symptom", { name: "Headache" })))
+      .structuredContent.entryIds![0]!;
+    const goneId = (await resultOf(await call(token, "add_note", { text: "Gone" }))).structuredContent
+      .entryIds![0]!;
+    ok(await timelineEntryService.remove(w.owner.ctx, goneId));
+    const elsewhere = await createUser("elsewhere");
+    const { group: other } = await createGroup(elsewhere);
+    const otherNote = ok(
+      await timelineEntryService.create(elsewhere.ctx, {
+        groupId: other.id,
+        kind: "note",
+        occurredAt: "2026-11-18T10:00:00-08:00",
+        timeZone: "America/Los_Angeles",
+      }),
+    )!;
+
+    // A viewer can only connect to read: the edit tools aren't theirs.
+    const viewer = await connectAssistant({
+      email: w.viewer.user.email,
+      groupId: w.group.id,
+      scope: "read",
+      clientName: "Viewer's Claude",
+    });
+    const refused = await call(viewer.tokens.access_token, "append_to_entry", {
+      entryId: noteId,
+      lines: [{ text: "Hello" }],
+    });
+    expect(refused.status).toBe(403);
+
+    const tooMany = await resultOf(
+      await call(token, "append_to_entry", {
+        entryId: noteId,
+        lines: Array.from({ length: 51 }, (_, i) => ({ text: `Line ${i}` })),
+      }),
+    );
+    expect(tooMany).toMatchObject({
+      isError: true,
+      structuredContent: { error: { code: "mcp:invalidArguments", issues: [{ path: "lines" }] } },
+    });
+
+    const cases: [string, Record<string, unknown>, string][] = [
+      [
+        "append_to_entry",
+        { entryId: goneId, lines: [{ text: "More" }] },
+        "assistantActionService:entryDeleted",
+      ],
+      ["update_entry", { entryId: goneId, title: "Back" }, "assistantActionService:entryDeleted"],
+      [
+        "append_to_entry",
+        { entryId: symptomId, lines: [{ text: "More" }] },
+        "assistantActionService:notEditable",
+      ],
+      ["update_entry", { entryId: symptomId, title: "Migraine" }, "assistantActionService:notEditable"],
+      [
+        "append_to_entry",
+        { entryId: otherNote.id, lines: [{ text: "Mine" }] },
+        "assistantActionService:entryNotFound",
+      ],
+      ["update_entry", { entryId: otherNote.id, title: "Mine" }, "assistantActionService:entryNotFound"],
+      ["update_entry", { entryId: noteId }, "assistantActionService:invalid"],
+    ];
+    for (const [tool, args, code] of cases) {
+      const result = await resultOf(await call(token, tool, args));
+      expect(result, `${tool} ${JSON.stringify(args)}`).toMatchObject({
+        isError: true,
+        structuredContent: { error: { code } },
+      });
+    }
+    // The other group's note reads as missing: nothing says it exists.
+    const missing = await resultOf(
+      await call(token, "update_entry", { entryId: otherNote.id, title: "Mine" }),
+    );
+    expect(textOf(missing)).toContain("wasn't found in this care group");
+
+    expect((await w.entry(noteId))?.body).toBe("Original");
+    expect(ok(await timelineEntryService.getById(elsewhere.ctx, otherNote.id))?.title).toBeNull();
+  });
+});

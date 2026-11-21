@@ -127,24 +127,45 @@ const ownerColumns = (
 export const getById = (ctx: ServiceContext, id: string) =>
   withTransaction((tx) => visibleDocument({ ...ctx, tx }, tx, id), ctx);
 
+/** The document as a Y.Doc: its snapshot plus updates not yet compacted (the caller destroys it). */
+const buildCurrent = async (ctx: ServiceContext, tx: Tx, id: string) => {
+  const doc = await visibleDocument({ ...ctx, tx }, tx, id);
+  if (isError(doc)) return doc;
+  const updates = await noteUpdateModel.list({
+    ...ctx,
+    tx,
+    filter: { documentId: { type: "eq", value: id } },
+  });
+  if (isError(updates)) return updates;
+  return {
+    doc,
+    updates: updates.data.length,
+    ydoc: buildNoteDoc(
+      doc.snapshot,
+      updates.data.map((u) => u.data),
+    ),
+  };
+};
+
 /** The document's current text, including updates not yet compacted (for AI and workers). */
 export const currentText = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
-    const doc = await visibleDocument({ ...ctx, tx }, tx, id);
-    if (isError(doc)) return doc;
-    const updates = await noteUpdateModel.list({
-      ...ctx,
-      tx,
-      filter: { documentId: { type: "eq", value: id } },
-    });
-    if (isError(updates)) return updates;
-    if (!updates.data.length) return doc.text;
-    return noteText(
-      buildNoteDoc(
-        doc.snapshot,
-        updates.data.map((u) => u.data),
-      ),
-    );
+    const current = await buildCurrent(ctx, tx, id);
+    if (isError(current)) return current;
+    const text = current.updates ? noteText(current.ydoc) : current.doc.text;
+    current.ydoc.destroy();
+    return text;
+  }, ctx);
+
+/**
+ * The document's current state as a Y.Doc, including updates not yet
+ * compacted: what a server-side edit (an assistant's append) builds its
+ * update on. The caller destroys it.
+ */
+export const currentDoc = (ctx: ServiceContext, id: string) =>
+  withTransaction(async (tx) => {
+    const current = await buildCurrent(ctx, tx, id);
+    return isError(current) ? current : current.ydoc;
   }, ctx);
 
 // ---------------------------------------------------------------------------
