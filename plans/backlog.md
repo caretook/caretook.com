@@ -100,13 +100,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-178 | bug | live | check-migration | prd/check-migration | medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone |
 | B-179 | bug | dropped | check-migration |  | app-shell.mjs member-share step flakes under load: a psql insert doesn't reach an already-connected device within 30 s (PowerSync replication), no auto-retry |
 | B-180 | bug | triaged | check-migration |  | Component tests still read synchronously right after render in expect(X()!.textContent…), expect(X()!.querySelector…) and .focus()/.blur() (entry, today, entryWithRow, visitPrep, providerSheets): the next likeliest load races |
-| B-181 | feature | triaged | conditions |  | A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them |
+| B-181 | feature | in-progress | conditions | prd/conditions | A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them |
 | B-182 | bug | triaged | check-migration |  | providers.browser.test.tsx 'a practice's name finds its clinicians too; the Clinicians chip keeps the search…' flakes under load: after tapping Clinicians, the 'Current providers' list still has Dr. Samuel Patel when its expect.poll times out |
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
 | B-184 | bug | ready | quick-fixes | prd/quick-fixes | When viewing the member page as an owner, the simple mode and locked buttons make the data too wide… |
 | B-185 | bug | ready | quick-fixes | prd/quick-fixes | The today bar on timeline should always be collapsed unless there is something overdue or upcoming. |
 | B-186 | bug | ready | quick-fixes | prd/quick-fixes | vitals section in today block doesn't expand when you click see all, it filters the data instead.… |
-| B-187 | bug | in-progress | quick-fixes | prd/quick-fixes | timeline filter interface is overwhelming on mobile and confusing on desktop, especially the vitals… |
+| B-187 | bug | ready | quick-fixes | prd/quick-fixes | timeline filter interface is overwhelming on mobile and confusing on desktop, especially the vitals… |
 | B-188 | bug | ready | quick-fixes | prd/quick-fixes | when signing up mcp connector, the oauth request just returns json, not the accept flow |
 | B-189 | bug | ready | quick-fixes | prd/quick-fixes | mcp connector for medication change records on the timeline, it isn't providing information about… |
 | B-190 | bug | ready | quick-fixes | prd/quick-fixes | mcp connector returning truncated notes on doses, and maybe other things |
@@ -117,6 +117,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-195 | feature | triaged | connectors-2 |  | Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state |
 | B-196 | feature | triaged | connectors-2 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
 | B-197 | feature | triaged | connectors-2 |  | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
+| B-198 | bug | triaged | quick-fixes |  | rotating placeholder in the timeline entry box is distracting and confusing. Use a static… |
+| B-199 | bug | triaged | quick-fixes |  | ability to add a medication quickly from the log a dose screen. |
+| B-200 | bug | triaged | medications-3 |  | medications need a type field: rx, otc, supplement, etc. |
+| B-201 | bug | triaged | quick-fixes |  | simple timeline date header should show the care period as well |
+| B-202 | bug | triaged | agent-tooling |  | lint before typecheck in check command. Do the fast thing first, then the slow thing. |
+| B-203 | feature | triaged | github-review |  | Now that we are we have github fixed, we should start using it for some of the merge management so… |
 
 ## Items
 
@@ -649,9 +655,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-181 · feature · A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them
 
-- status: triaged
+- status: in-progress
 - prd: conditions
-- owner:
+- owner: prd/conditions
 - commit:
 
 - 2026-11-20 (prd/connectors): From connectors slice 4 (B-104): story 22 promises the assistant reads the recipient's conditions, but no conditions field exists; recipient_profile returns allergies, code status, blood type and the note for helpers. The user chose (2026-11-20) to drop 'conditions' from the privacy text for now and file this. When built, add it to recipient_profile and the privacy page.
@@ -708,10 +714,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-187 · bug · timeline filter interface is overwhelming on mobile and confusing on desktop, especially the vitals…
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 7bc05133
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: timeline filter interface is overwhelming on mobile and confusing on desktop, especially the vitals subfilters. Maybe move into a "filter" button that opens a modal with the filters.
 - 2026-11-20 (Robert Bo Davis): Triage: quick-fixes, one slice: a Filter button opening a sheet/dialog with the vitals subfilters inside; promote to its own topic if the design grows
@@ -810,3 +816,60 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (plan/conditions): Conditions planning 2026-11-20 (the user): conditions ship read-only to assistants; the writer is a follow-up, after the conditions PRD lands
+
+### B-198 · bug · rotating placeholder in the timeline entry box is distracting and confusing. Use a static…
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-20 (prd/conditions): From the inbox: rotating placeholder in the timeline entry box is distracting and confusing. Use a static placeholder that is a prompt to type something. and move to a ? with tooltip to explain the format/power.
+- 2026-11-20 (Robert Bo Davis): Triage: quick-fixes, wave 14. Undoes timeline-ux's rotating placeholder (B-170ish) for a static prompt plus a ? tooltip on the format; quick entry only.
+- 2026-11-20 (Robert Bo Davis): Correction to the note above: the rotating placeholder came from a timeline-ux slice (quick entry); ignore the 'B-170ish' guess.
+
+### B-199 · bug · ability to add a medication quickly from the log a dose screen.
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): Triage: quick-fixes, wave 14. A small 'new medication' path from the log-a-dose sheet; reuses the medications form. If it needs B-200's type field, run after it.
+
+### B-200 · bug · medications need a type field: rx, otc, supplement, etc.
+
+- status: triaged
+- prd: medications-3
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): Triage: medications-3 (to write). A new synced column (migration, sync rules, form, list filter, connector list_medications) with open choices (the type list, required or not, prescriber link); conditions is running and touches medications, so plan it to start after conditions lands.
+
+### B-201 · bug · simple timeline date header should show the care period as well
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): Triage: quick-fixes, wave 14. Simple mode's day header gains the care period label that the full day header already has.
+
+### B-202 · bug · lint before typecheck in check command. Do the fast thing first, then the slow thing.
+
+- status: triaged
+- prd: agent-tooling
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): Triage: a small change straight on dev (package.json check order). Caveat: format:check is the fastest; type-aware ESLint may be slower than tsc, so time both before reordering.
+
+### B-203 · feature · Now that we are we have github fixed, we should start using it for some of the merge management so…
+
+- status: triaged
+- prd: github-review
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Now that we are we have github fixed, we should start using it for some of the merge management so codex can review PRs. I do NOT want PRDs or plans to be in github, only the code. Instead of merging to dev locally, we need to start pushing working branches to github and creating a PR into dev, then waiting for codex to review, then addressing any comments, then merging to dev.
+- 2026-11-20 (Robert Bo Davis): Triage: github-review (to write): pnpm prd land pushes the branch and opens a PR into dev, waits for Codex's review, addresses comments, then merges. Open: plans/ and the PRDs are already on origin/dev and origin/main (public repo), so 'code only on GitHub' means moving plans out of the repo or into an untracked/separate store; the live backlog commits onto dev, which then can't be PR-only.
