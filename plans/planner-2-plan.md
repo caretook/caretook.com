@@ -4,15 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/planner-2` (slice commits) |
-| ----- | ---- | ----------- | ------------------------------------------ |
-| 1     | 1    | not started |                                            |
-| 2     | 1    | not started |                                            |
-| 3     | 2    | not started |                                            |
-| 4     | 2    | not started |                                            |
-| 5     | 2    | not started |                                            |
-| 6     | 2    | not started |                                            |
-| 7     | 2    | not started |                                            |
+| Slice | Wave | State                                                                | Merge into `prd/planner-2` (slice commits) |
+| ----- | ---- | -------------------------------------------------------------------- | ------------------------------------------ |
+| 1     | 1    | started (worktree `.loops/planner-2-1`, agent on sonnet, 2026-11-21) |                                            |
+| 2     | 1    | started (worktree `.loops/planner-2-2`, agent on opus, 2026-11-21)   |                                            |
+| 3     | 2    | not started                                                          |                                            |
+| 4     | 2    | not started                                                          |                                            |
+| 5     | 2    | not started                                                          |                                            |
+| 6     | 2    | not started                                                          |                                            |
+| 7     | 2    | not started                                                          |                                            |
+
+**Landing mode: run everything through** (queued with `pnpm prd queue planner-2`): start every ready slice, land each green wave through the PR + Codex, clean up; ask only real questions. B-248 claimed by prd/planner-2 (2026-11-21). At the wave 1 boundary: `quick-entry` (B-220) is in `dev`; B-247 is still `triaged` (slice 3 waits).
 
 **Start conditions:** slices 1 and 2 can start at once. **Slice 5 waits for `quick-entry` (B-220, the smarter quick entry box) in `dev`**; **slice 3 waits for B-247 in `dev`** (Planner: Past becomes an Upcoming | Past toggle, with the All / Events / Todos chips; a `quick-fixes` item). `pnpm prd sync` before each.
 
