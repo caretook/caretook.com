@@ -13,7 +13,7 @@
 
 **Landing mode: run everything through** (queued with `pnpm prd queue tasks-2`): start every ready slice, land each green wave, clean up; ask only real questions. B-222 claimed.
 
-**Start-condition note:** timeline-ux-2 wasn't in `dev` at start (B-214, B-217 in progress). Its diff touches only `apps/web` UI and docs, none of slice 1's files, so slice 1 started; slice 2 waits for timeline-ux-2 **wave 1** to land (its orchestrator says wave 1 has PageHeader and the Upcoming/Tasks headers, and wave 2 touches only timeline files; it messages us at each landing; a background check also watches `dev` for a `feat(timeline-ux-2)` commit), then `pnpm prd sync`.
+**Start-condition note:** timeline-ux-2 wasn't in `dev` at start (B-214, B-217 in progress). Its diff touches only `apps/web` UI and docs, none of slice 1's files, so slice 1 started; slice 2 waits for timeline-ux-2 **wave 1** to land (its orchestrator says wave 1 has PageHeader and the Upcoming/Tasks headers, and wave 2 touches only timeline files; it messages us at each landing; a background check also watches `dev` for a `feat(timeline-ux-2)` commit), then `pnpm prd sync`. **Wave 1 landed in `dev` as f1fc883e** (no migration/seed/dependency): sync after slice 1 merges (the wave boundary), then start slice 2.
 
 **Start conditions:** **`timeline-ux-2`** in `dev` (its `PageHeader` and the Upcoming and Tasks headers; last item B-224). `connectors-2` (the tools, `assistantActionService`, the MCP prompts) is already in `dev` (017a9b29). Run `pnpm prd sync` before slice 1 if `dev` moved.
 
