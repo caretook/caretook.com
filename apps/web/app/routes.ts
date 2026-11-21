@@ -13,6 +13,7 @@ import { groupSettingsRoutes } from "./routes/app/groups/settings/routes";
 import { taskRoutes } from "./routes/app/groups/tasks/routes";
 import { timelineRoutes } from "./routes/app/groups/timeline/routes";
 import { upcomingRoutes } from "./routes/app/groups/upcoming/routes";
+import { googleCalendarRoutes } from "./routes/api/google/routes";
 import { accountSettingsRoutes } from "./routes/app/settings/routes";
 import { connectorRoutes } from "./routes/connectors/routes";
 import { notificationRoutes } from "./routes/dev/routes";
@@ -67,6 +68,7 @@ const webRoutes = [
   ...notificationRoutes,
   ...adminRoutes,
   ...connectorRoutes,
+  ...googleCalendarRoutes,
 ];
 
 // Native-only: the bundled app has no marketing site, so "/" goes straight to /app.

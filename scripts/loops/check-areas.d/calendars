@@ -9,3 +9,6 @@ apps/web/app/routes/app/groups/settings/calendar/* -
 apps/web/app/lib/calendars/*             -
 # Settings are forgotten at sign-out (lib/auth/session.ts names signout-wipe).
 apps/web/app/lib/calendars/calendarSettings.ts signout-wipe
+# Google Calendar's Connect and OAuth callback (web-only redirects): integration
+# tests over their handlers (packages/api/src/calendars/googleRoutes.int.test.ts).
+apps/web/app/routes/api/google/*         -
