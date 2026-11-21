@@ -122,6 +122,14 @@ export type {
   VerifiedConnector,
 } from "./connectorGrantService";
 
+import * as assistantRequestService from "./assistantRequestService";
+export { assistantRequestService };
+export type {
+  AssistantRequestMailer,
+  AssistantRequestNotice,
+  AssistantRequestView,
+} from "./assistantRequestService";
+
 // Not in `services`: no model of its own (assistant actions through connectors).
 import * as assistantActionService from "./assistantActionService";
 export { assistantActionService };
@@ -129,6 +137,42 @@ export type {
   RunOptions as AssistantRunOptions,
   RunResult as AssistantRunResult,
 } from "./assistantActionService";
+
+import * as recipientConditionService from "./recipientConditionService";
+export { recipientConditionService };
+
+import * as medicationConditionService from "./medicationConditionService";
+export { medicationConditionService };
+export type { SetMedicationConditionsInput } from "./medicationConditionService";
+export type { SetConditionManagersInput } from "./recipientConditionService";
+
+import * as appointmentSeriesService from "./appointmentSeriesService";
+export { appointmentSeriesService };
+export type { SeriesWriteOptions } from "./appointmentSeriesService";
+
+import * as calendarSettingService from "./calendarSettingService";
+export { calendarSettingService };
+export type { CalendarSettingsView } from "./calendarSettingService";
+
+import * as calendarFeedService from "./calendarFeedService";
+export { calendarFeedService };
+export type { CalendarFeed } from "./calendarFeedService";
+import * as reminderOverrideService from "./reminderOverrideService";
+export { reminderOverrideService };
+export type { ReminderChoice } from "./reminderOverrideService";
+import * as calendarReminderService from "./calendarReminderService";
+export { calendarReminderService };
+export type { ReminderGroupInputs } from "./calendarReminderService";
+// Google Calendar (appointments-2, slice 7): no model (system-only tables).
+import * as googleConnectionService from "./googleConnectionService";
+export { googleConnectionService };
+import * as calendarSyncService from "./calendarSyncService";
+export { calendarSyncService };
+export type { PushResult, SyncRunSummary, SyncTarget } from "./calendarSyncService";
+// Google Calendar pull (appointments-2, slice 9): applies members' changes through the services.
+import * as calendarPullService from "./calendarPullService";
+export { calendarPullService };
+export type { PullResult, PullSweepSummary } from "./calendarPullService";
 
 export const services = {
   user: userService,
@@ -160,6 +204,13 @@ export const services = {
   appSetting: appSettingService,
   task: taskService,
   connectorGrant: connectorGrantService,
+  assistantRequest: assistantRequestService,
+  recipientCondition: recipientConditionService,
+  medicationCondition: medicationConditionService,
+  appointmentSeries: appointmentSeriesService,
+  calendarSetting: calendarSettingService,
+  calendarFeed: calendarFeedService,
+  reminderOverride: reminderOverrideService,
 };
 
 export type ServiceTypeMap = typeof services;

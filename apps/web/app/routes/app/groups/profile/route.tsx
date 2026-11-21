@@ -1,5 +1,6 @@
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
+import type { ActionResult } from "~/lib/core/api";
 
 import { Outlet } from "react-router";
 import type { RecipientDetailsRow } from "~/lib/profiles/recipientDetails";
@@ -17,6 +18,9 @@ import { loadMemberDetailRows, memberDetailsQuery } from "~/lib/care-groups/memb
 import { loadRecipientProfileRows, useRecipientProfile } from "~/lib/profiles/profile.sync";
 import { loadRecipientDetailsRows, useRecipientDetails } from "~/lib/profiles/recipientDetails.sync";
 import { loadRecentReadingRows, useVitalAverages } from "~/lib/profiles/vitalAverages.sync";
+import { loadConditions, setNoKnownConditions, useConditions } from "~/lib/profiles/conditions.sync";
+import { conditionActionFromForm } from "./conditions/conditionActions";
+import { ConditionsCard } from "./ConditionsCard";
 import { ContactCard, InsuranceCard } from "./DetailsCards";
 import { EmergencyCard } from "./EmergencyCard";
 import { BasicsCard, NoteCard } from "./ProfileCards";
@@ -43,6 +47,8 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   ]);
   // Recent vital averages: the windows are days in the recipient's zone.
   const readingRows = await loadRecentReadingRows(db, params.groupId, rows[0]?.time_zone ?? null);
+  // The conditions card (every role).
+  const conditionRows = await loadConditions(db, params.groupId);
   // Writers' details: only owners', admins' and caretakers' devices have them.
   const detailsRows = canReadRecipient(group.role, "details")
     ? await loadRecipientDetailsRows(db, params.groupId)
@@ -57,8 +63,18 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     units,
     detailsRows,
     memberRows,
+    conditionRows,
     title: group.recipient?.displayName ?? group.displayName,
   };
+}
+
+/** The conditions card's "No known conditions" (writers; a local write, so it works offline). */
+export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<ActionResult> {
+  const group = getGroup(context);
+  const { db } = context.get(sessionContext);
+  const action = conditionActionFromForm(await request.formData());
+  if (action?.intent !== "noKnownConditions") return { ok: false, error: "Nothing to do", issues: [] };
+  return setNoKnownConditions(db, group.id, action.on);
 }
 
 /** A viewer's details rows: none (a module constant, so the live query's `initial` keeps its identity). */
@@ -92,6 +108,7 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
   const editsDetails = canEditRecipient(group.role, "details");
   const membersQuery = useMemo(() => memberDetailsQuery(params.groupId), [params.groupId]);
   const members = useLiveQuery<MemberDetailRow>(membersQuery.sql, membersQuery.params, loaderData.memberRows);
+  const conditions = useConditions(params.groupId, loaderData.conditionRows);
   const averages = useVitalAverages(
     params.groupId,
     profile?.timeZone ?? null,
@@ -110,6 +127,7 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
         <>
           <ProfileHeader profile={profile} />
           <BasicsCard profile={profile} />
+          <ConditionsCard groupId={group.id} state={conditions.state} canWrite={group.canWrite} />
           <NoteCard profile={profile} canEdit={group.canWrite} />
           {averages && <VitalAveragesCard rows={averages} />}
           {readsDetails && (

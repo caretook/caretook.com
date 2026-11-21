@@ -1,6 +1,14 @@
-import type { ConnectorGrantView } from "@caretook/data";
+import type { AssistantRequestMailer, AssistantRequestView, ConnectorGrantView } from "@caretook/data";
 
-import { careGroupService, careRecipientService, connectorGrantService, userService } from "@caretook/data";
+import {
+  assistantRequestService,
+  careGroupService,
+  careRecipientService,
+  connectorGrantService,
+  isError,
+  userService,
+} from "@caretook/data";
+import { deliverSoon, notify } from "@caretook/notifications";
 import { z } from "zod";
 import { iso } from "../dto";
 import { unwrap } from "../errors";
@@ -10,7 +18,9 @@ import { authedProcedure } from "../procedures";
 // own connections (Settings → Devices), every member's connections to a
 // group for its owners and admins (group settings → Assistants), and
 // disconnecting one. The switch itself is `careGroup.update`'s
-// `connectorsEnabled` (owners only). Nothing here returns a token.
+// `connectorsEnabled` (owners only). Nothing here returns a token. While the
+// switch is off, a member who isn't an owner asks the owners to turn it on
+// (connectors-2): an email to each, at most once a week.
 
 const id = z.uuid();
 const inArray = (value: string[]) => ({ type: "inArray" as const, value });
@@ -62,6 +72,32 @@ const memberNames = async (ctx: Ctx, userIds: string[]) => {
 
 const unique = (values: string[]) => [...new Set(values)];
 
+/** Queues the owners' emails (one per owner) in the service's transaction. */
+export const assistantRequestMailer = (): AssistantRequestMailer => async (notice, tx) => {
+  const ids: string[] = [];
+  for (const to of notice.to) {
+    const queued = await notify("assistantsRequested", {
+      to: to.email,
+      actor: { id: notice.request.userId },
+      data: { groupId: notice.request.groupId, groupName: notice.groupName, memberName: notice.memberName },
+      idempotencyKey: `assistantsRequested:${notice.request.id}:${to.userId}`,
+      tx,
+    });
+    if (isError(queued)) return queued;
+    ids.push(queued.id);
+  }
+  return ids;
+};
+
+/** A request as the screens show it: when it was made. */
+const toRequest = (request: AssistantRequestView) => ({
+  id: request.id,
+  groupId: request.groupId,
+  requestedAt: iso(request.requestedAt),
+});
+
+export type AssistantRequest = ReturnType<typeof toRequest>;
+
 export const connector = {
   /** The caller's live connections, every group, newest first, with each group's name. */
   listMine: authedProcedure.handler(async ({ context }) => {
@@ -88,5 +124,24 @@ export const connector = {
    */
   revoke: authedProcedure.input(z.object({ grantId: id })).handler(async ({ context, input }) => {
     return toConnection(unwrap(await connectorGrantService.revoke(context, input.grantId)));
+  }),
+
+  /**
+   * Ask the group's owners to turn assistants on: any member but an owner,
+   * while the switch is off. Emails every owner; asking again within a week
+   * returns the last request and sends nothing (`created: false`).
+   */
+  requestEnable: authedProcedure.input(z.object({ groupId: id })).handler(async ({ context, input }) => {
+    const result = unwrap(
+      await assistantRequestService.request(context, input.groupId, assistantRequestMailer()),
+    );
+    if (result.queued.length) deliverSoon(result.queued);
+    return { ...toRequest(result.request), created: result.created };
+  }),
+
+  /** The caller's last request to the group (any age), or null. Non-members get a 404. */
+  myRequest: authedProcedure.input(z.object({ groupId: id })).handler(async ({ context, input }) => {
+    const last = unwrap(await assistantRequestService.latest(context, input.groupId));
+    return last ? toRequest(last) : null;
   }),
 };

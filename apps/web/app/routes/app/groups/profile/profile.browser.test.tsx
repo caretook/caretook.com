@@ -2,6 +2,9 @@ import type { GroupRole } from "../../../../../test/fixtures";
 
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { render } from "vitest-browser-react";
+import { MemoryRouter } from "react-router";
+import { TimeZoneLine } from "./BasicsForm";
 import { recipientDetails, fx, TEST_GROUP } from "../../../../../test/fixtures";
 import {
   $,
@@ -25,7 +28,7 @@ import {
 // in basicsFormData.test.ts and detailsFormData.test.ts, and a demotion
 // losing the details row for real is app-shell.mjs's step 4.
 
-const WRITER_SECTIONS = ["basics", "note", "contact", "insurance", "emergency"];
+const WRITER_SECTIONS = ["basics", "conditions", "note", "contact", "insurance", "emergency"];
 const NEEDS_CONNECTION = "Needs a connection to edit.";
 
 const h1 = () => $("main [data-profile-header] h1")?.textContent?.trim();
@@ -53,32 +56,16 @@ const plans = () =>
   }));
 
 describe("the ways in", () => {
-  test("the timeline's recipient card is the heading, with the group, age and code status, and opens the profile", async () => {
-    const device = await openProfile({ url: TIMELINE_URL });
-    const link = page.getByRole("link", { name: "Grandma June's profile" });
-    await expect.element(link).toBeVisible();
-    expect($("main h1")?.textContent?.trim()).toBe("Grandma June");
-    // The card's profile query can report after the first settle under load.
-    await expect
-      .poll(() => $("main [data-recipient-card] p")?.textContent?.trim())
-      .toBe(`${TEST_GROUP.name} · ${juneAge()} · DNR`);
-    await userEvent.click(link);
-    await expect.poll(device.location).toBe(PROFILE_URL);
-    await expect.poll(h1).toBe("Grandma June");
-  });
-
   test.each([420, 1280])(
-    "at %i, the card and the group menu's profile item open the profile",
+    "at %i, the group menu's profile item opens the profile; the timeline has no profile link (timeline-ux-2)",
     async (width) => {
       const device = await openProfile({ url: TIMELINE_URL, frame: true, width });
+      await expect.element(page.getByRole("heading", { level: 1, name: "Timeline" })).toBeVisible();
+      expect(page.getByRole("main").getByRole("link", { name: "Grandma June's profile" }).query()).toBeNull();
       await userEvent.click(page.getByRole("button", { name: /switch care group$/ }));
       await userEvent.click(page.getByRole("menuitem", { name: "Grandma June's profile" }));
       await expect.poll(device.location).toBe(PROFILE_URL);
       await expect.poll(h1).toBe("Grandma June");
-      await userEvent.click(page.getByRole("link", { name: "Timeline" }).first());
-      await expect.poll(device.location).toBe(TIMELINE_URL);
-      await userEvent.click(page.getByRole("link", { name: "Grandma June's profile" }));
-      await expect.poll(device.location).toBe(PROFILE_URL);
     },
   );
 });
@@ -144,7 +131,7 @@ describe("the page by role", () => {
   test("a viewer: the basics and note, no Edit or Print, no writers' cards, the caretakers line, and no details row", async () => {
     const device = await openProfile({ role: "viewer" });
     await expect.poll(h1).toBe("Grandma June");
-    expect(sections()).toEqual(["basics", "note"]);
+    expect(sections()).toEqual(["basics", "conditions", "note"]);
     expect(basicsLines().codeStatus).toBe("DNR");
     expect($("main [data-note]")?.textContent?.trim()).toBe(JUNE.notes);
     expect($("main [data-edit-basics]")).toBeNull();
@@ -197,7 +184,7 @@ describe("the page by role", () => {
     await device.sync(membership("viewer"));
     await device.unsync([recipientDetails()]);
     await device.settle();
-    expect(sections()).toEqual(["basics", "note"]);
+    expect(sections()).toEqual(["basics", "conditions", "note"]);
     expect($("main [data-viewer-more]")).not.toBeNull();
     expect($("main [data-edit-basics]")).toBeNull();
 
@@ -271,6 +258,23 @@ describe("the Basics sheet", () => {
       ),
     ].filter((el) => !document.querySelector(`label[for="${el.id}"]`));
     expect(unlabelled).toEqual([]);
+  });
+
+  test("a time zone line links to group settings' Details for a writer; a viewer sees the zone without the link", async () => {
+    await openProfile({ role: "caretaker", url: sheetUrl("basics") });
+    await expect.poll(() => !!field("name")).toBe(true);
+    const link = $<HTMLAnchorElement>("[role=dialog] [data-time-zone-line] a");
+    expect(link?.getAttribute("href")).toBe(`/app/groups/${TEST_GROUP.id}/settings/details`);
+    expect($("[role=dialog] [data-time-zone-line]")?.textContent).toMatch(/^Time zone: America\/Los Angeles/);
+
+    const view = await render(
+      <MemoryRouter>
+        <TimeZoneLine groupId={TEST_GROUP.id} groupRole="viewer" timeZone="America/Los_Angeles" />
+      </MemoryRouter>,
+    );
+    const line = view.container.querySelector("[data-time-zone-line]");
+    expect(line?.textContent).toBe("Time zone: America/Los Angeles");
+    expect(line?.querySelector("a")).toBeNull();
   });
 
   test("an empty name is refused on its field, which takes focus, and nothing is sent", async () => {

@@ -185,7 +185,7 @@ describe("on the appointment's page", () => {
     const lines = editorLines();
     expect(lines).toContain("Symptoms");
     expect(lines.at(-1)).toBe("Bring the pill box");
-    expect(EDITOR()!.querySelector("h2")!.textContent).toMatch(/^Since your last visit · /);
+    await expect.poll(() => EDITOR()?.querySelector("h2")?.textContent).toMatch(/^Since your last visit · /);
     // Offline: it waits in the upload queue, like typing.
     const queued = await device.queued();
     expect(queued.filter((w) => w.type === "note_update" && w.data?.document_id === APPT.id).length).toBe(1);
@@ -347,6 +347,7 @@ describe("in Upcoming", () => {
       "Prepare for this visit",
       "Reschedule",
       "Cancel event",
+      "Remind me",
       "Print",
       "Delete",
     ]);
@@ -356,13 +357,14 @@ describe("in Upcoming", () => {
     await expect.poll(() => device.location()).toBe(entryPath(APPT.id));
   });
 
-  test("a viewer's ⋯ is Print alone", async () => {
+  test("a viewer's ⋯ is Remind me and Print", async () => {
     await open(`/app/groups/${GROUP}/upcoming`, { role: "viewer" });
     const actions = () =>
       $<HTMLButtonElement>(`[data-upcoming-item="${APPT.id}"] button[aria-label^="Actions for"]`);
     await userEvent.click((await waitFor(actions))!);
     await waitUntil(() => !!menuItem("Print"), 4000, "the menu");
     expect([...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim())).toEqual([
+      "Remind me",
       "Print",
     ]);
   });

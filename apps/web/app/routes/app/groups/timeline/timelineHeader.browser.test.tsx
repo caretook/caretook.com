@@ -1,7 +1,7 @@
 import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { at, fx } from "../../../../../test/fixtures";
+import { at, fx, TEST_RECIPIENT, TEST_USER } from "../../../../../test/fixtures";
 import { found } from "../../../../../test/found";
 import { frames, openTimeline, rows, TIMELINE_URL, waitUntil, world } from "./timelineWorld";
 
@@ -27,14 +27,53 @@ const when = () => {
   const value = document.querySelector<HTMLInputElement>('[role=dialog] input[name="occurredAt"]')!.value;
   return { local: value.slice(0, 16), at: new Date(value.replace(/\[.*\]$/, "")).getTime() };
 };
+const VITAL_LABELS = new Set<string>(VITAL_TYPES.map((t) => VITALS[t].label));
+/** + → `name`, expanding Vitals first for a vital type. */
 const pick = async (name: string, button: Parameters<typeof userEvent.click>[0] = addButton()) => {
   await userEvent.click(button);
   await expect.element(page.getByRole("menu")).toBeVisible();
+  if (VITAL_LABELS.has(name)) await userEvent.click(page.getByRole("menuitem", { name: "Vitals" }));
   await userEvent.click(page.getByRole("menuitem", { name, exact: true }));
 };
 
+describe("the heading", () => {
+  test("is a plain “Timeline” h1, with no recipient card or profile link in main, and View options still opens", async () => {
+    await openTimeline();
+    await ready();
+    const main = page.getByRole("main");
+    await expect
+      .element(main.getByRole("heading", { level: 1, name: "Timeline", exact: true }))
+      .toBeVisible();
+    expect([...document.querySelectorAll("main h1")].map((h) => h.textContent)).toEqual(["Timeline"]);
+    expect(main.getByRole("link", { name: /profile/i }).query()).toBeNull();
+    expect(document.querySelector("main header")?.textContent).not.toContain(TEST_RECIPIENT.preferredName);
+    await userEvent.click(page.getByRole("button", { name: "View options" }));
+    await expect.element(page.getByRole("menu")).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+  });
+});
+
+describe("the toolbar", () => {
+  test("View options sits at the right end of the filter row, after Filter, one circle like it; none in the page header", async () => {
+    await openTimeline({ width: 420 });
+    await ready();
+    const eye = await found(() => document.querySelector<HTMLElement>('button[aria-label="View options"]'));
+    const toolbar = document.querySelector<HTMLElement>("[data-timeline-filters]")!;
+    expect(toolbar.contains(eye)).toBe(true);
+    expect(document.querySelector('main header button[aria-label="View options"]')).toBeNull();
+    const filter = toolbar.querySelector<HTMLElement>("button[data-filter-button]")!;
+    expect(filter.compareDocumentPosition(eye) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const [f, v] = [filter, eye].map((el) => el.getBoundingClientRect());
+    expect([v!.width, v!.height]).toEqual([f!.width, f!.height]);
+    expect(Math.abs(v!.right - filter.parentElement!.getBoundingClientRect().right)).toBeLessThan(1);
+    await userEvent.click(eye);
+    await expect.element(page.getByRole("menu", { name: "View options" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+  });
+});
+
 describe("the + menu", () => {
-  test("a writer's + opens every add kind in the bar's order, with each vital type; there's no add bar", async () => {
+  test("a writer's + opens every add kind in the bar's order, Vitals expanding to each vital type; there's no add bar", async () => {
     await openTimeline({ role: "caretaker" });
     await ready();
     expect(document.querySelector('[aria-label="Add to the timeline"]')).toBeNull();
@@ -45,8 +84,12 @@ describe("the + menu", () => {
       "Event",
       "Dose",
       "Symptom",
-      ...VITAL_TYPES.map((t) => VITALS[t].label),
+      "Vitals",
     ]);
+    await userEvent.click(page.getByRole("menuitem", { name: "Vitals" }));
+    await expect
+      .poll(() => menuItems().map((el) => el.textContent?.trim()))
+      .toEqual(["Note", "Event", "Dose", "Symptom", "Vitals", ...VITAL_TYPES.map((t) => VITALS[t].label)]);
     await userEvent.keyboard("{Escape}");
   });
 
@@ -199,5 +242,64 @@ describe("the care period in the day headers", () => {
     );
     expect(document.querySelector("main > header")!.textContent).not.toMatch(/hospital/i);
     expect(document.querySelector('[data-period-line="empty"]')).toBeNull();
+  });
+});
+
+describe("the empty Today", () => {
+  const emptyToday = () => document.querySelector<HTMLElement>("[data-empty-today]");
+  const todaySection = () => dayHeaders()[0]?.closest("section");
+  const olderDays = [
+    fx.symptom({ name: "Sore knee", occurredAt: at(pastNoon(2)) }),
+    fx.note({ text: "Quiet afternoon", occurredAt: at(pastNoon(3)) }),
+  ];
+
+  test("a writer with nothing today sees the line under Today, older days below; Add an entry focuses the quick-entry field", async () => {
+    await openTimeline({ role: "caretaker", fixtures: olderDays });
+    await waitUntil(() => rows().length === 2, 8000, "the rows");
+    const prompt = await found(emptyToday);
+    expect(todaySection()!.querySelector("h3")!.textContent).toBe("Today");
+    expect(todaySection()!.contains(prompt)).toBe(true);
+    expect(prompt.textContent).toContain("Nothing logged today yet.");
+    expect(dayHeaders()).toHaveLength(3);
+    expect(document.querySelector("[data-empty]")).toBeNull();
+
+    await userEvent.click(page.getByRole("button", { name: "Add an entry" }));
+    const field = document.querySelector<HTMLTextAreaElement>('textarea[name="quickEntry"]')!;
+    await expect.poll(() => document.activeElement).toBe(field);
+    // It only focuses the field: no suggestions open.
+    expect(page.getByRole("dialog").query()).toBeNull();
+  });
+
+  test("something logged today shows no prompt", async () => {
+    await openTimeline({ role: "caretaker" });
+    await ready();
+    expect(emptyToday()).toBeNull();
+  });
+
+  test.each([
+    ["a viewer", () => openTimeline({ role: "viewer", fixtures: olderDays })],
+    ["a kind filter", () => openTimeline({ role: "caretaker", fixtures: olderDays, query: "?kind=symptom" })],
+    [
+      "simple mode",
+      () =>
+        openTimeline({
+          role: null,
+          frame: true,
+          fixtures: [fx.member({ userId: TEST_USER.id, role: "caretaker", simpleMode: 1 }), ...olderDays],
+        }),
+    ],
+  ])("%s shows no empty-Today prompt", async (_, open) => {
+    await open();
+    await waitUntil(() => rows().length > 0, 8000, "the rows");
+    expect(emptyToday()).toBeNull();
+    expect(page.getByRole("button", { name: "Add an entry" }).query()).toBeNull();
+  });
+
+  test("a writer's empty timeline shows the Today prompt, not “Nothing on the timeline yet.”", async () => {
+    await openTimeline({ role: "caretaker", fixtures: [] });
+    await found(emptyToday);
+    expect(dayHeaders().map((h) => h.querySelector("h3")!.textContent)).toEqual(["Today"]);
+    expect(document.querySelector("[data-empty]")).toBeNull();
+    expect(document.body.textContent).not.toContain("Nothing on the timeline yet.");
   });
 });

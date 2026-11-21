@@ -19,7 +19,9 @@ import { statusRequestFromForm } from "~/lib/medications/medicationStatusForm";
 import { sessionContext } from "~/lib/auth/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { useAllergies } from "~/lib/medications/allergies.sync";
+import { useMedicationConditions } from "~/lib/profiles/medicationConditions.sync";
 import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
+import { useMentionProviders } from "~/lib/providers/mentionProviders.sync";
 import {
   changeMedicationStatus,
   medicationQuery,
@@ -95,7 +97,10 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
   const passes = useSchedulePasses(groupId, loaderData.passRows);
 
   const { state: allergies } = useAllergies(groupId, loaderData.allergies);
+  const conditions = useMedicationConditions(medicationId, loaderData.conditionRows);
   const { ensureSaved, saveError } = useMedicationNotes(medicationId, loaderData.hasDocument);
+  // The group's providers, for mentions in the notes (chips only: nothing links here).
+  const mentionProviders = useMentionProviders(groupId);
   const title = medicationTitle(medication);
   const navigate = useNavigate();
   // Deleted from here: back to the list (the page would only say it's gone).
@@ -155,7 +160,9 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
           <AllergiesRegion groupId={groupId} state={allergies} canWrite={canWrite} />
 
           <MedicationDetails
+            groupId={groupId}
             medication={medication}
+            conditions={conditions}
             passes={passes}
             recipientTimeZone={loaderData.recipientTimeZone}
           />
@@ -196,6 +203,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
               canWrite={canWrite}
               initial={loaderData.initial}
               ensureSaved={ensureSaved}
+              providers={mentionProviders}
             />
           </section>
 

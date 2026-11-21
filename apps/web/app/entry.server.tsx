@@ -18,6 +18,7 @@ import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
 import { waitUntil } from "@vercel/functions";
 
+import { setCalendarBackgroundRunner } from "./.server/data";
 import { deployEnvRefusal } from "./.server/deployEnv";
 import { setBackgroundRunner } from "./.server/notifications";
 import { applySecurityHeaders, contentSecurityPolicy, envOptions, newNonce } from "./.server/securityHeaders";
@@ -29,6 +30,8 @@ export const streamTimeout = 5_000;
 // `waitUntil` keeps a background send (sign-in email) alive until it's done.
 // Elsewhere (dev, check builds, Node) the default fire-and-forget runner stays.
 if (process.env.VERCEL) setBackgroundRunner((work) => waitUntil(work));
+// The same for a Google Calendar push right after a save (appointments-2).
+if (process.env.VERCEL) setCalendarBackgroundRunner((work) => waitUntil(work));
 
 export default function handleRequest(
   request: Request,

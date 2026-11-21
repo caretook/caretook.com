@@ -12,9 +12,19 @@ import type { TimelineSearchState } from "./timelineSearch";
 import { parseSearch } from "@caretook/data/schema";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { CancelEventDialog, OlderEntries, useEventCancel, useEventReschedule } from "~/components/entry";
+import {
+  CancelEventDialog,
+  OlderEntries,
+  useEventCancel,
+  useEventReschedule,
+  useRemindMe,
+  useSeriesScope,
+} from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
 import { canReschedule } from "~/lib/appointments/eventReschedule";
+import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
+import { canRemind } from "~/lib/calendars/remindMe";
+import { asksScope, ONLY_THIS_VISIT_STATE } from "~/lib/appointments/seriesScope";
 import { dayLabel, localTimeZone } from "~/lib/core/format";
 import { useGroup } from "~/lib/app-shell/group";
 import { emptyTimelineText } from "./entryLabels";
@@ -40,6 +50,9 @@ import { useEntryRemoval } from "./useEntryRemoval";
 export { COLUMN_CAP } from "./layout";
 
 const NO_SEARCH = { q: "", state: "none" } as const;
+
+/** The empty Today's line (a writer's unfiltered full view with nothing logged today). */
+export const EMPTY_TODAY_TEXT = "Nothing logged today yet.";
 
 /** Simple mode's larger list: everything in it, text, icons and taps alike, a quarter bigger. */
 /** Simple mode shows no care period markers. */
@@ -69,8 +82,9 @@ export type TimelineEntryListFilters = {
  * line in its sticky header while no filter or search is on, then `OlderEntries`,
  * which loads older pages as the end comes near. Writers get each entry's ⋯ menu, with one delete
  * confirm for the whole list, and each day heading's + menu; a writer's list
- * always has a Today heading (empty when nothing's logged today), so today's
- * + is always there.
+ * always has a Today heading, so today's + is always there. With no filter or
+ * search on and nothing logged today, that heading says so and offers "Add an
+ * entry" (`onAddEntry`), in place of the empty timeline's line.
  *
  * `simple` is simple mode's list: rows only, at the full timeline's type
  * scale (no zoom), with no filter links, no + menus and no care periods (markers or the day headers'
@@ -88,6 +102,7 @@ export function TimelineEntryList({
   search: searching = NO_SEARCH,
   simple = false,
   summaryMode = "highlights",
+  onAddEntry,
 }: {
   data: Pick<
     TimelineData,
@@ -120,21 +135,35 @@ export function TimelineEntryList({
   simple?: boolean;
   /** The day summaries' setting: none, highlights (the default) or everything. */
   summaryMode?: DaySummaryMode;
+  /** The empty Today's "Add an entry" (the full view brings the quick-entry field up). */
+  onAddEntry?: () => void;
 }) {
   const { search } = useLocation();
   const navigate = useNavigate();
   const removal = useEntryRemoval();
   const cancelling = useEventCancel();
   const rescheduling = useEventReschedule(groupId, canWrite);
+  const remind = useRemindMe(groupId);
+  // A series visit's Edit, Reschedule, Cancel and Delete ask Only this visit or This and later first.
+  const scope = useSeriesScope(canWrite);
   // Writers reschedule or cancel an event (or undo the cancel) from its ⋯ menu.
   const cancelOf = (entry: TimelineEntry) =>
     canWrite && entry.kind === "event"
       ? {
           cancelled: !!entry.cancelledAt,
-          onCancel: () => cancelling.ask(entry.id),
+          onCancel: () => scope.ask(entry, "cancel", { only: () => cancelling.ask(entry.id) }),
           onUncancel: () => cancelling.undo(entry.id),
-          onReschedule: canReschedule(entry) ? () => rescheduling.ask(entry) : undefined,
+          onReschedule: canReschedule(entry)
+            ? () => scope.ask(entry, "reschedule", { only: () => rescheduling.ask(entry) })
+            : undefined,
         }
+      : undefined;
+  const editSeriesOf = (entry: TimelineEntry) =>
+    canWrite && asksScope(entry, new Date())
+      ? () =>
+          scope.ask(entry, "edit", {
+            only: () => void navigate(appUrls.entry(groupId, entry.id), { state: ONLY_THIS_VISIT_STATE }),
+          })
       : undefined;
   const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
   // The markers, placed among the entries by moment in the viewer's days; their times are the recipient's.
@@ -144,6 +173,8 @@ export function TimelineEntryList({
   const days = withMarkers(data.days, simple ? NO_MARKERS : data.markers, timeZone, now);
   const todayKey = dayKeyIn(now.toISOString(), timeZone);
   const adding = canWrite && !simple;
+  // Nothing logged today, with no filter or search on: the Today heading says so (`EmptyToday`).
+  const emptyToday = adding && !kind && !author && !vital && !searching.q && data.days[0]?.key !== todayKey;
   const sections =
     adding && days[0]?.key !== todayKey
       ? [{ key: todayKey, label: dayLabel(now.toISOString(), timeZone, now), entries: [] }, ...days]
@@ -210,10 +241,23 @@ export function TimelineEntryList({
         onEdit={
           open?.sheet
             ? () => void navigate(open.to, { state: SHEET_LINK_STATE, preventScrollReset: true })
+            : editSeriesOf(entry)
+        }
+        onDelete={
+          canWrite
+            ? () =>
+                scope.ask(entry, "delete", {
+                  only: () => removal.ask(entry),
+                  onlyChosen: () => removal.removeNow(entry),
+                })
             : undefined
         }
-        onDelete={canWrite ? () => removal.ask(entry) : undefined}
         cancel={cancelOf(entry)}
+        onRemind={
+          canRemind(entry, new Date())
+            ? () => remind.ask({ id: entry.id, title: upcomingTitle(entry) })
+            : undefined
+        }
         liveLabel={data.liveLabelOf(entry.id)}
         providers={data.providersOf(entry.id)}
         search={marked ? parsed : undefined}
@@ -233,9 +277,9 @@ export function TimelineEntryList({
         <h2 id="timeline-heading" className="sr-only">
           Timeline
         </h2>
-        {cancelling.error && (
+        {(cancelling.error || scope.error) && (
           <p role="alert" className="text-error text-sm">
-            {cancelling.error}
+            {cancelling.error ?? scope.error}
           </p>
         )}
         {/* Always there, so a search's first result is announced too. */}
@@ -286,10 +330,11 @@ export function TimelineEntryList({
                 )}
               </ol>
             )}
+            {emptyToday && day.key === todayKey && <EmptyToday onAddEntry={onAddEntry} />}
           </section>
         ))}
         {/* After the headings, so a writer's empty timeline starts with Today's +. */}
-        {data.days.length === 0 && (
+        {data.days.length === 0 && !emptyToday && (
           <p className="text-base-content/70" data-empty>
             {searchStateText(searching.state) ?? emptyText}
           </p>
@@ -314,6 +359,22 @@ export function TimelineEntryList({
       />
       <CancelEventDialog open={cancelling.asking} onConfirm={cancelling.confirm} onClose={cancelling.close} />
       {rescheduling.sheet}
+      {remind.sheet}
+      {scope.element}
     </>
+  );
+}
+
+/** Under an empty Today: a muted line and "Add an entry" (when there's a quick-entry box to go to). */
+function EmptyToday({ onAddEntry }: { onAddEntry?: () => void }) {
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2" data-empty-today>
+      <p className="text-base-content/70">{EMPTY_TODAY_TEXT}</p>
+      {onAddEntry && (
+        <button type="button" className="btn btn-sm btn-outline" onClick={onAddEntry}>
+          Add an entry
+        </button>
+      )}
+    </div>
   );
 }

@@ -3,6 +3,7 @@ import type { Marking } from "~/components/medications";
 import type { ActionResult } from "~/lib/core/api";
 import type { PlannedDose } from "~/lib/medications/dueDoses";
 import type { DoseChoiceRow } from "~/lib/medications/medicationTimeline.sync";
+import type { MedicationNameRow } from "~/lib/medications/medications.sync";
 
 import { useCallback, useMemo, useState } from "react";
 import { redirect, useLocation } from "react-router";
@@ -16,11 +17,12 @@ import { doseWarningText } from "~/lib/medications/medicationDisplay";
 import { doseDraftFrom } from "~/lib/assistant/quickEntryDraft";
 import { sessionContext } from "~/lib/auth/session";
 import { loadDueDoses, useDueDoses } from "~/lib/medications/dueDoses.sync";
-import { logDose } from "~/lib/medications/medications.sync";
+import { offerAddedNotice } from "~/lib/medications/addedNotice";
+import { logDose, logDoseOfNewMedication, medicationNamesQuery } from "~/lib/medications/medications.sync";
 import { doseChoicesQuery, toDoseChoices } from "~/lib/medications/medicationTimeline.sync";
 import { useMemberNames } from "~/lib/care-groups/memberNames.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
-import { doseFromForm, doseSheetOptions } from "../doseFormData";
+import { doseFromForm, doseSheetOptions, quickAddFromForm } from "../doseFormData";
 import { DoseForm } from "../DoseForm";
 import { useCloseSheet } from "../sheet";
 import { newDoseGuard } from "../sheetGuard";
@@ -32,14 +34,17 @@ import { newDoseGuard } from "../sheetGuard";
 // medication's Given, Skipped and Refused; then the form, offering the other
 // slots due now, then the group's current medications (the most recently
 // given first), and asking before logging a second dose for a slot or one
-// past an as-needed maximum. A viewer lands on the timeline.
+// past an as-needed maximum. Its last choice, "+ New medication", adds a
+// medication (name, dose and type) with the dose; with no current
+// medications that's the form. A viewer lands on the timeline.
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
-  const [choiceRows, due] = await Promise.all([
+  const [choiceRows, due, names] = await Promise.all([
     readRows<DoseChoiceRow>(db, doseChoicesQuery(params.groupId)),
     loadDueDoses(db, params.groupId),
+    readRows<MedicationNameRow>(db, medicationNamesQuery(params.groupId)),
   ]);
   const choices = toDoseChoices(choiceRows);
   const decision = newDoseGuard({
@@ -49,19 +54,36 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     choiceIds: choices.map((c) => c.id),
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
-  return { choices, due, ...decision.sheet };
+  return { choices, due, names, ...decision.sheet };
 }
 
-/** A local write; live queries show it at once, and PowerSync uploads it. */
+/**
+ * A local write; live queries show it at once, and PowerSync uploads it. A
+ * new medication is written with its dose in one transaction, and offers
+ * the "Added … · Add details" notice for when the sheet has closed.
+ */
 export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<ActionResult> {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
-  const result = await logDose(db, group.id, doseFromForm(await request.formData()));
-  return result.ok ? { ok: true } : result;
+  const form = await request.formData();
+  const quickAdd = quickAddFromForm(form);
+  if (!quickAdd) {
+    const result = await logDose(db, group.id, doseFromForm(form));
+    return result.ok ? { ok: true } : result;
+  }
+  const result = await logDoseOfNewMedication(db, group.id, quickAdd);
+  if (!result.ok) return result;
+  offerAddedNotice({
+    groupId: group.id,
+    medicationId: result.id,
+    name: quickAdd.medication.name.trim(),
+    from: new URL(request.url).pathname,
+  });
+  return { ok: true };
 }
 
 export default function NewDoseSheet({ loaderData, params }: Route.ComponentProps) {
-  const { choices, medicationId, slot, passId } = loaderData;
+  const { choices, names, medicationId, slot, passId } = loaderData;
   const close = useCloseSheet();
   const group = useGroup();
   // Opened from quick entry's Edit: the card's status, amount, note and time, filled in.
@@ -104,26 +126,23 @@ export default function NewDoseSheet({ loaderData, params }: Route.ComponentProp
         </div>
       )}
       <MarkDoseDialog marking={marking} groupId={params.groupId} onClose={() => setMarking(null)} />
-      {choices.length === 0 ? (
-        <div className="space-y-3" data-no-medications>
-          <p>There are no current medications to log a dose of.</p>
-          <button type="button" className="btn" onClick={close}>
-            Close
-          </button>
-        </div>
-      ) : (
-        <DoseForm
-          // A new URL is a new form (the medication, the slot, "When" set to now or `?at=`).
-          key={`${medicationId}-${slot}`}
-          options={options}
-          initialOption={initial}
-          warningsFor={warningsFor}
-          draft={draft}
-          initialAt={startAtFrom(location.search)}
-          onDone={close}
-          onCancel={close}
-        />
+      {choices.length === 0 && (
+        <p className="mb-2" data-no-medications>
+          There are no current medications yet. Add one as you log its dose.
+        </p>
       )}
+      <DoseForm
+        // A new URL is a new form (the medication, the slot, "When" set to now or `?at=`).
+        key={`${medicationId}-${slot}`}
+        options={options}
+        names={names}
+        initialOption={initial}
+        warningsFor={warningsFor}
+        draft={draft}
+        initialAt={startAtFrom(location.search)}
+        onDone={close}
+        onCancel={close}
+      />
     </Sheet>
   );
 }

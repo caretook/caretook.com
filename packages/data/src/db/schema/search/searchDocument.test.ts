@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  conditionSearchDocument,
   entrySearchDocument,
   medicationSearchDocument,
   providerSearchDocument,
@@ -156,6 +157,20 @@ describe("medicationSearchDocument", () => {
     });
   });
 
+  it("puts the type's label first in the body; no type adds nothing", () => {
+    expect(
+      medicationSearchDocument({ id: "m1", groupId: "g1", name: "Vitamin D", type: "otc", reason: "Bones" })
+        ?.body,
+    ).toBe("Over the counter\nBones");
+    expect(medicationSearchDocument({ id: "m1", groupId: "g1", name: "X", type: "supplement" })?.body).toBe(
+      "Supplement",
+    );
+    expect(
+      medicationSearchDocument({ id: "m1", groupId: "g1", name: "X", type: null, reason: "R" })?.body,
+    ).toBe("R");
+    expect(medicationSearchDocument({ id: "m1", groupId: "g1", name: "X" })?.body).toBe("");
+  });
+
   it("has no document for a deleted medication", () => {
     expect(
       medicationSearchDocument({ id: "m1", groupId: "g1", name: "X", deletedAt: "2026-11-01" }),
@@ -193,5 +208,49 @@ describe("taskSearchDocument", () => {
     expect(
       taskSearchDocument({ ...task, title: "Insurance form", documentText: "x", deletedAt: "2026-11-01" }),
     ).toBeNull();
+  });
+});
+
+describe("conditionSearchDocument", () => {
+  const condition = { id: "c1", groupId: "g1" };
+
+  it("indexes the name as title and the note as body", () => {
+    expect(
+      conditionSearchDocument({ ...condition, name: "Type 2 diabetes", note: "Diet-controlled" }),
+    ).toEqual({
+      id: "c1",
+      type: "condition",
+      groupId: "g1",
+      title: "Type 2 diabetes",
+      body: "Diet-controlled",
+    });
+  });
+
+  it("has no document for a deleted condition", () => {
+    expect(conditionSearchDocument({ ...condition, name: "Asthma", deletedAt: "2026-11-01" })).toBeNull();
+  });
+});
+
+describe("entrySearchDocument for a condition change", () => {
+  it("indexes the condition's name, and a rename's old name, as title", () => {
+    const doc = entrySearchDocument({
+      ...base,
+      kind: "conditionChange",
+      details: {
+        conditionId: "c1",
+        conditionName: "Type 2 diabetes",
+        change: "changed",
+        fields: ["name"],
+        before: { name: "Diabetes" },
+        after: { name: "Type 2 diabetes" },
+      },
+      authorName: "Sam Rivera",
+    });
+    expect(doc).toMatchObject({ title: "Type 2 diabetes\nDiabetes", body: "Sam Rivera" });
+  });
+
+  it("ignores a condition name on any other kind", () => {
+    const doc = entrySearchDocument({ ...base, kind: "dose", details: { conditionName: "Asthma" } });
+    expect(doc?.title).toBe("");
   });
 });

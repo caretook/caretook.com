@@ -31,6 +31,20 @@ export const CONNECTORS_ERRORS = {
     message: "The access token is invalid, expired or disconnected",
     statusCode: 401,
   },
+  // assistantRequestService (connectors-2): asking the owners to turn assistants on.
+  "assistantRequestService:notMember": {
+    message: "Care group not found",
+    statusCode: 404,
+  },
+  "assistantRequestService:owner": {
+    message: "You're an owner, so you can turn Assistants on yourself in the group's settings",
+    statusCode: 403,
+  },
+  "assistantRequestService:alreadyOn": {
+    message: "Assistants are already on for this care group",
+    statusCode: 409,
+  },
+  "assistantRequestModel:lockMembership": { message: "Failed to look up the membership" },
   "careGroupService:connectorsOwnerOnly": {
     message: "Only an owner can turn assistants on or off",
     statusCode: 403,
@@ -62,6 +76,28 @@ export const CONNECTORS_ERRORS = {
   },
   "assistantActionService:nothingLeft": {
     message: "Nothing is left to give in that pass today.",
+    statusCode: 409,
+  },
+  // Edits (connectors-2): an entry not in the group reads the same as one that doesn't exist.
+  "assistantActionService:entryNotFound": {
+    message: "That entry wasn't found in this care group.",
+    statusCode: 404,
+  },
+  "assistantActionService:entryDeleted": {
+    message: "That entry was deleted, so it can't be changed.",
+    statusCode: 409,
+  },
+  "assistantActionService:notEditable": {
+    message: "Only notes and events can be changed this way. Change symptoms, vitals and doses in the app.",
+    statusCode: 409,
+  },
+  // Conditions (connectors-2): one not in the group reads the same as one that doesn't exist.
+  "assistantActionService:conditionNotFound": {
+    message: "That condition wasn't found in this care group.",
+    statusCode: 404,
+  },
+  "assistantActionService:conditionDeleted": {
+    message: "That condition was deleted, so it can't be changed.",
     statusCode: 409,
   },
   // The grant model's own queries (database failures).

@@ -14,6 +14,7 @@ import { sessionContext } from "~/lib/auth/session";
 import { getSync } from "~/lib/sync";
 import { removeTask } from "~/lib/tasks/tasks.sync";
 import { listSearchFromState } from "~/lib/tasks/taskSheets";
+import { useMentionProviders } from "~/lib/providers/mentionProviders.sync";
 import { loadTask } from "./loadTask";
 import { DELETE_INTENT, TaskActions } from "./TaskActions";
 import { TaskCompletion } from "./TaskCompletion";
@@ -77,6 +78,8 @@ function TaskPage({ loaderData, params }: Route.ComponentProps) {
   const tick = useTaskTick(groupId);
   const mayComplete = canCompleteTask({ role: group.role, userId: group.userId, task });
   const { ensureSaved, saveError } = useTaskNotes(taskId, loaderData.hasDocument);
+  // The group's providers, for mentions in the notes (chips only: nothing links here).
+  const mentionProviders = useMentionProviders(groupId);
 
   // Deleted from here: back to the list (the page would only say it's gone).
   const navigate = useNavigate();
@@ -167,6 +170,7 @@ function TaskPage({ loaderData, params }: Route.ComponentProps) {
               canWrite={group.canWrite}
               initial={loaderData.initial}
               ensureSaved={ensureSaved}
+              providers={mentionProviders}
             />
           </section>
         </>

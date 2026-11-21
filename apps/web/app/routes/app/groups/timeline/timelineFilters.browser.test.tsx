@@ -213,19 +213,21 @@ describe("the Filter button and its sheet", () => {
     ...document.querySelectorAll<HTMLAnchorElement>('nav[aria-label="Show vital types"] a'),
   ];
   const typeChip = (label: string) => types().find((a) => a.textContent?.trim() === label)!;
-  const buttonText = () => filterButton().textContent?.trim();
+  /** The button's name: "Filter", or "Filter, N on" (its badge shows N). */
+  const buttonName = () => filterButton().getAttribute("aria-label");
+  const badge = () => filterButton().querySelector("[data-filter-count]")?.textContent ?? null;
   const chipRow = () => document.querySelector('nav[aria-label="Filters on"]');
 
   test("at phone width, no chip row and a plain Filter until a filter is set", async () => {
     const device = await openTimeline({ width: 420 });
     await waitUntil(() => rows().length > 0);
-    expect(buttonText()).toBe("Filter");
+    expect(buttonName()).toBe("Filter");
     expect(chipRow()).toBeNull();
     expect(document.querySelector('nav[aria-label="Show entries"]')).toBeNull();
 
     await userEvent.click(iconOf(rowOf("Note")!));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=note`);
-    await expect.poll(buttonText).toBe("Filter · 1");
+    await expect.poll(buttonName).toBe("Filter, 1 on");
     expect(chipRow()?.checkVisibility()).toBe(true);
   });
 
@@ -251,7 +253,7 @@ describe("the Filter button and its sheet", () => {
 
     await closeFilters();
     expect(document.activeElement).toBe(filterButton());
-    expect(buttonText()).toBe("Filter · 2");
+    expect(buttonName()).toBe("Filter, 2 on");
     expect(activeChips().map((a) => a.textContent?.trim())).toEqual(["Vitals", "Blood pressure"]);
     expect(currentChips()).toBe("Vitals: clear this filter,Blood pressure: clear this filter");
   });
@@ -259,20 +261,20 @@ describe("the Filter button and its sheet", () => {
   test("removing a chip updates the URL and the count; the kind's chip takes its vital type with it", async () => {
     const device = await openTimeline({ query: `?kind=vital&author=${SAM.id}&vital=bloodPressure` });
     await waitUntil(() => activeChips().length === 3);
-    expect(buttonText()).toBe("Filter · 3");
+    expect(buttonName()).toBe("Filter, 3 on");
 
     await userEvent.click(activeChips().find((a) => a.textContent?.trim() === "Blood pressure")!);
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=vital&author=${SAM.id}`);
-    await expect.poll(buttonText).toBe("Filter · 2");
+    await expect.poll(buttonName).toBe("Filter, 2 on");
     expect(currentChips()).toBe(`Vitals: clear this filter,${BY_SAM}`);
 
     await userEvent.click(device.screen.getByRole("link", { name: BY_SAM }));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=vital`);
-    await expect.poll(buttonText).toBe("Filter · 1");
+    await expect.poll(buttonName).toBe("Filter, 1 on");
 
     await userEvent.click(device.screen.getByRole("link", { name: "Vitals: clear this filter" }));
     await expect.poll(() => device.location()).toBe(TIMELINE_URL);
-    await expect.poll(buttonText).toBe("Filter");
+    await expect.poll(buttonName).toBe("Filter");
     expect(chipRow()).toBeNull();
   });
 
@@ -296,7 +298,33 @@ describe("the Filter button and its sheet", () => {
     await userEvent.keyboard("{Escape}");
     await waitUntil(() => !document.querySelector('[role="dialog"]'), 4000, "the sheet to close");
     await expect.poll(() => document.activeElement).toBe(filterButton());
-    expect(buttonText()).toBe("Filter");
+    expect(buttonName()).toBe("Filter");
     expect(currentChips()).toBe("Matching “reading”: clear the search");
+  });
+
+  test("icon-only, one circle with the magnifier: “Filter” with nothing on; with a kind and an author, “Filter, 2 on” and a badge of 2; it opens the sheet", async () => {
+    const device = await openTimeline({ width: 420 });
+    await waitUntil(() => rows().length > 0);
+    const named = (name: string) => device.screen.getByRole("button", { name, exact: true });
+    await expect.element(named("Filter")).toBeVisible();
+    expect(named("Filter").element()).toBe(filterButton());
+    expect(filterButton().getAttribute("aria-haspopup")).toBe("dialog");
+    expect(filterButton().textContent?.trim()).toBe("");
+    expect(badge()).toBeNull();
+    const magnifier = document.querySelector<HTMLElement>('button[aria-label="Search entries"]')!;
+    const [m, f] = [magnifier, filterButton()].map((el) => el.getBoundingClientRect());
+    expect([f!.width, f!.height]).toEqual([m!.width, m!.height]);
+    expect(getComputedStyle(filterButton()).borderRadius).toBe(getComputedStyle(magnifier).borderRadius);
+
+    await device.screen.unmount();
+    const filtered = await openTimeline({ width: 420, query: `?kind=symptom&author=${SAM.id}` });
+    await waitUntil(() => activeChips().length === 2);
+    const button = filtered.screen.getByRole("button", { name: "Filter, 2 on", exact: true });
+    await expect.element(button).toBeVisible();
+    expect(badge()).toBe("2");
+    await userEvent.click(button);
+    await expect.element(filtered.screen.getByRole("dialog", { name: "Filter entries" })).toBeVisible();
+    await closeFilters();
+    expect(document.activeElement).toBe(filterButton());
   });
 });

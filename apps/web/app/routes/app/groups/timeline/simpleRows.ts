@@ -1,6 +1,7 @@
 import type { LearnedEntry } from "~/lib/assistant/simpleTiles";
 import type { LocalQuery } from "~/lib/timeline/timeline.sync";
 
+import { SYSTEM_WRITTEN_KINDS } from "@caretook/data/schema";
 import { LEARNED_DAYS } from "~/lib/assistant/simpleTiles";
 import { toLocalTimestamp } from "~/lib/timeline/timeline.sync";
 
@@ -42,7 +43,7 @@ export const toLearnedEntry = (row: LearnedRow): LearnedEntry => ({
   vitalTypes: parseTypes(row.types),
 });
 
-/** Your latest entry you made yourself (not one written for you, such as a medication change). */
+/** Your latest entry you made yourself (not one written for you, such as a medication or condition change). */
 export type LastEntryRow = {
   id: string;
   kind: string;
@@ -53,7 +54,8 @@ export type LastEntryRow = {
 
 export const lastOwnEntryQuery = (groupId: string, userId: string): LocalQuery => ({
   sql: `SELECT id, kind, title, details, created_at FROM timeline_entry
-        WHERE group_id = ? AND created_by = ? AND deleted_at IS NULL AND kind != 'medicationChange'
+        WHERE group_id = ? AND created_by = ? AND deleted_at IS NULL
+          AND kind NOT IN (${SYSTEM_WRITTEN_KINDS.map((k) => `'${k}'`).join(", ")})
         ORDER BY created_at DESC, id DESC LIMIT 1`,
   params: [groupId, userId],
 });

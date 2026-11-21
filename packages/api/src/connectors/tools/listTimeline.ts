@@ -1,4 +1,5 @@
 import type {
+  ConditionChangeDetails,
   DoseDetails,
   MedicationChangeEntryDetails,
   SchedulePass,
@@ -8,6 +9,7 @@ import type { ToolContext } from "../registry";
 
 import {
   changeText,
+  conditionChangeText,
   doseText,
   isError,
   medicationPassService,
@@ -101,6 +103,12 @@ const changeLine = (
   return `${name ? `${name}: ` : ""}${what}${note}`;
 };
 
+/** A condition change in full: the heading and each before → after line ("Changed Asthma: Since: 2015 → 2014; Note: none → Inhaler"). */
+const conditionLine = (details: ConditionChangeDetails) => {
+  const { heading, lines } = conditionChangeText(details);
+  return lines.length ? `${heading}: ${lines.join("; ")}` : heading;
+};
+
 /** A dose's line: the medication, what was logged ("Given 1 tablet") and the dose note, whole. */
 const doseLine = (details: DoseDetails, medications: Map<string, string>) => {
   const name = medications.get(details.medicationId);
@@ -113,9 +121,13 @@ const line = (entry: ReturnType<typeof toEntry>, medications: Map<string, string
     entry.kind === "medicationChange" && entry.details
       ? changeLine(entry.details as MedicationChangeEntryDetails, medications, passes)
       : null;
+  const condition =
+    entry.kind === "conditionChange" && entry.details
+      ? conditionLine(entry.details as ConditionChangeDetails)
+      : null;
   const dose =
     entry.kind === "dose" && entry.details ? doseLine(entry.details as DoseDetails, medications) : null;
-  const what = [entry.title, change ?? dose, entry.text].filter(Boolean).join(": ");
+  const what = [entry.title, change ?? dose ?? condition, entry.text].filter(Boolean).join(": ");
   const by = entry.author.name ? ` (${entry.author.name})` : "";
   return `- ${entry.occurredAt} ${entry.kind}${what ? ` ${what}` : ""}${by}`;
 };
@@ -128,13 +140,13 @@ const authorsOf = async (ctx: ToolContext) => {
 
 /**
  * The group's timeline, newest first, paged (at most 50): notes, events,
- * symptoms, vitals, doses and medication changes, with notes' and events'
+ * symptoms, vitals, doses, medication changes and condition changes, with notes' and events'
  * text. Defaults to the last 90 days.
  */
 export const listTimeline = defineTool({
   name: "list_timeline",
   title: "List timeline entries",
-  description: `The care group's timeline, newest first: notes, events (appointments), symptoms, vitals, doses and medication changes, with notes' and events' text and who wrote each. Filter by time range, kinds or author. At most ${TIMELINE_PAGE_MAX} a page; pass nextCursor back for more. Without from, the last ${TIMELINE_DEFAULT_DAYS} days.`,
+  description: `The care group's timeline, newest first: notes, events (appointments), symptoms, vitals, doses, medication changes and condition changes, with notes' and events' text and who wrote each. Filter by time range, kinds or author. At most ${TIMELINE_PAGE_MAX} a page; pass nextCursor back for more. Without from, the last ${TIMELINE_DEFAULT_DAYS} days.`,
   scope: "read",
   input,
   annotations: READ_ANNOTATIONS,

@@ -1,8 +1,10 @@
 import { accessCodeExistingAccount } from "./templates/accessCodeExistingAccount";
+import { assistantsRequested } from "./templates/assistantsRequested";
 import { contactMessage } from "./templates/contactMessage";
 import { groupInvite } from "./templates/groupInvite";
 import { joinApproved, joinDeclined, joinRequested } from "./templates/joinRequests";
 import { ownerInvite } from "./templates/ownerInvite";
+import { appointmentReminder, taskDue } from "./templates/reminders";
 import { resetPassword } from "./templates/resetPassword";
 import { signInEmail } from "./templates/signInEmail";
 import { testMessage } from "./templates/testMessage";
@@ -23,6 +25,9 @@ export const NOTIFICATIONS = {
   contactMessage,
   accessCodeExistingAccount,
   signInEmail,
+  appointmentReminder,
+  taskDue,
+  assistantsRequested,
 } as const;
 
 export type Notifications = typeof NOTIFICATIONS;

@@ -12,6 +12,7 @@ import {
   recipientQuery,
   toMedication,
 } from "~/lib/medications/medications.sync";
+import { loadMedicationConditions } from "~/lib/profiles/medicationConditions.sync";
 import { providerQuery } from "~/lib/providers/providers.sync";
 import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
 
@@ -41,16 +42,25 @@ export async function loadMedication(db: SyncDb, groupId: string, medicationId: 
     : [];
   const providerRows = (id: string | null) =>
     id ? readRows<ProviderRow>(db, providerQuery(id)) : Promise.resolve([]);
-  const [historyRows, memberRows, recipientRows, prescriberRows, pharmacyRows, passRows, allergies] =
-    await Promise.all([
-      readRows<EntryRow>(db, medicationEntriesQuery(medicationId)),
-      readRows<MemberRow>(db, membersQuery(groupId)),
-      readRows<RecipientRow>(db, recipientQuery(groupId)),
-      providerRows(medication.prescriberId),
-      providerRows(medication.pharmacyId),
-      loadSchedulePasses(db, groupId),
-      loadAllergies(db, groupId),
-    ]);
+  const [
+    historyRows,
+    memberRows,
+    recipientRows,
+    prescriberRows,
+    pharmacyRows,
+    passRows,
+    allergies,
+    conditionRows,
+  ] = await Promise.all([
+    readRows<EntryRow>(db, medicationEntriesQuery(medicationId)),
+    readRows<MemberRow>(db, membersQuery(groupId)),
+    readRows<RecipientRow>(db, recipientQuery(groupId)),
+    providerRows(medication.prescriberId),
+    providerRows(medication.pharmacyId),
+    loadSchedulePasses(db, groupId),
+    loadAllergies(db, groupId),
+    loadMedicationConditions(db, medicationId),
+  ]);
 
   return {
     medication,
@@ -67,5 +77,7 @@ export async function loadMedication(db: SyncDb, groupId: string, medicationId: 
     recipientTimeZone: recipientRows[0]?.time_zone ?? null,
     // The recipient's allergies, shown above the details.
     allergies,
+    // The conditions it's for (conditions slice 4), in the details' For row.
+    conditionRows,
   };
 }

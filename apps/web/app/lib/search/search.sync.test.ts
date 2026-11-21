@@ -35,9 +35,10 @@ const COLUMNS: Record<string, string[]> = {
   note_update: ["group_id", "document_id", "data"],
   user: ["name"],
   provider: ["group_id", "type", "name", "specialty", "practice_id", "deleted_at"],
-  medication: ["group_id", "name", "strength", "reason", "directions", "deleted_at"],
+  medication: ["group_id", "name", "strength", "type", "reason", "directions", "deleted_at"],
   timeline_entry_provider: ["group_id", "entry_id", "provider_id"],
   task: ["group_id", "title", "done_at", "deleted_at"],
+  recipient_condition: ["group_id", "name", "note", "status", "deleted_at"],
 };
 
 const makeStore = () => {
@@ -193,6 +194,15 @@ describe("the device search index", () => {
     expect(await ids(s, '"walking well"')).toEqual(["e-walk"]);
     expect(await ids(s, '"well walking"')).toEqual([]);
     expect(await ids(s, "kim -dizziness")).toEqual(["e-bp", "e-dose", "e-visit"]);
+  });
+
+  it("finds a medication by its type's label", async () => {
+    s.put("medication", "m-d3", { group_id: G1, name: "Vitamin D", strength: "1000 IU", type: "supplement" });
+    await indexSearchChanges(s.store);
+    expect((await searchGroup(s.db, G1, parseSearch("supplement"))).medication.hits.map((h) => h.id)).toEqual(
+      ["m-d3"],
+    );
+    expect((await searchGroup(s.db, G1, parseSearch("over the counter"))).medication.total).toBe(0);
   });
 
   it("never returns another group's rows", async () => {
@@ -354,6 +364,34 @@ describe("the device search index", () => {
     expect(await taskIds("insurance")).toEqual([]);
     expect(await taskIds("paperwork")).toEqual(["t-form"]);
     expect(await taskIds("referral")).toEqual([]);
+  });
+
+  it("indexes a condition's name and note, resolved ones too, follows renames and leaves deleted ones out; its changes by name", async () => {
+    s.put("recipient_condition", "c-dm", { group_id: G1, name: "Type 2 diabetes", note: "Diet-controlled" });
+    s.put("recipient_condition", "c-hip", { group_id: G1, name: "Hip fracture", status: "resolved" });
+    s.put("recipient_condition", "c-other", { group_id: G2, name: "Diabetes" });
+    s.put("timeline_entry", "e-added", {
+      group_id: G1,
+      kind: "conditionChange",
+      details: { conditionId: "c-dm", conditionName: "Type 2 diabetes", change: "added" },
+      created_by: "u-jo",
+      occurred_at: "2026-11-12T16:00:00.000000Z",
+    });
+    await indexSearchChanges(s.store);
+    const conditionIds = async (q: string) =>
+      (await searchGroup(s.db, G1, parseSearch(q))).condition.hits.map((h) => h.id);
+    expect(await conditionIds("diabetes")).toEqual(["c-dm"]);
+    expect((await searchGroup(s.db, G1, parseSearch("diabetes"))).condition.hits[0]?.titleMatch).toBe(true);
+    expect(await conditionIds("diet")).toEqual(["c-dm"]);
+    expect(await conditionIds("fracture")).toEqual(["c-hip"]);
+    expect(await ids(s, "diabetes")).toEqual(["e-added"]);
+
+    s.put("recipient_condition", "c-dm", { group_id: G1, name: "Diabetes mellitus", note: null });
+    s.put("recipient_condition", "c-hip", { group_id: G1, name: "Hip fracture", deleted_at: "2026-11-19" });
+    await indexSearchChanges(s.store);
+    expect(await conditionIds("diet")).toEqual([]);
+    expect(await conditionIds("mellitus")).toEqual(["c-dm"]);
+    expect(await conditionIds("fracture")).toEqual([]);
   });
 
   it("rebuilds when the format version changes", async () => {

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
-import { useEffect, useId, useRef } from "react";
+import { useId, useRef } from "react";
+import { useShowModal } from "./useShowModal";
 
 /**
  * A native modal <dialog>: the browser handles Escape, the inert background
@@ -23,6 +24,7 @@ export function ConfirmDialog({
   message,
   confirmDisabled = false,
   cancelLabel = "Cancel",
+  confirmClassName = "btn-error",
   children,
   onConfirm,
   onClose,
@@ -33,6 +35,8 @@ export function ConfirmDialog({
   message?: string | null;
   confirmDisabled?: boolean;
   cancelLabel?: string;
+  /** The confirm button's daisyUI colour: red by default, for deletes; pass "btn-primary" for a plain action. */
+  confirmClassName?: string;
   children?: ReactNode;
   onConfirm: () => void;
   onClose: () => void;
@@ -41,27 +45,7 @@ export function ConfirmDialog({
   const titleId = useId();
   const messageId = useId();
 
-  useEffect(() => {
-    const dialog = ref.current;
-    if (!dialog) return;
-    if (!open) {
-      if (dialog.open) dialog.close();
-      return;
-    }
-    // A closing menu leaves the DOM after its exit, then React Aria restores
-    // its button's focus in the next frame. Waits at most about half a second.
-    let frames = 0;
-    let frame = 0;
-    const show = () => {
-      if (document.querySelector('[role="menu"]') && frames++ < 30) frame = requestAnimationFrame(show);
-      else
-        frame = requestAnimationFrame(() => {
-          if (!dialog.open) dialog.showModal();
-        });
-    };
-    frame = requestAnimationFrame(show);
-    return () => cancelAnimationFrame(frame);
-  }, [open]);
+  useShowModal(ref, open);
 
   return (
     <dialog
@@ -86,7 +70,12 @@ export function ConfirmDialog({
           <button type="button" className="btn" onClick={onClose}>
             {cancelLabel}
           </button>
-          <button type="button" className="btn btn-error" disabled={confirmDisabled} onClick={onConfirm}>
+          <button
+            type="button"
+            className={`btn ${confirmClassName}`}
+            disabled={confirmDisabled}
+            onClick={onConfirm}
+          >
             {confirmLabel}
           </button>
         </div>

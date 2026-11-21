@@ -184,7 +184,12 @@ test("group settings: a rename reaches the server and syncs back", async ({ devi
     await stay(page);
     await bar(page).locator("a").first().click();
     await page.waitForURL((u) => u.pathname === DEV_FAMILY_TIMELINE, { timeout: 20_000 });
-    await expect(page.locator("main header p").first()).toContainText(renamed, { timeout: 20_000 });
+    // The timeline's header names no group (timeline-ux-2): the group menu's current group does.
+    await page.getByRole("button", { name: /switch care group$/ }).click();
+    await expect(page.locator('[role="menu"] [aria-checked="true"]')).toContainText(renamed, {
+      timeout: 20_000,
+    });
+    await page.keyboard.press("Escape");
     expect(await stayed(page)).toBe(1);
   });
 
@@ -366,7 +371,7 @@ test("simple mode: the owner's switch reaches the member's device", async ({ dev
   try {
     await signIn(S, "caretaker@example.com");
     await S.goto(DEV_FAMILY_TIMELINE);
-    await expect(S.locator('[data-simple-toggle="simple"]')).toBeVisible({ timeout: 40_000 });
+    await expect(S.getByRole("button", { name: "View options" })).toBeVisible({ timeout: 40_000 });
     await expect(rowsOf(S).first()).toBeVisible({ timeout: 40_000 });
     await stay(S);
 
@@ -385,7 +390,8 @@ test("simple mode: the owner's switch reaches the member's device", async ({ dev
         );
       await expect.poll(serverSimple, { timeout: 20_000, intervals: [500] }).toBe("t");
       await expect(S.locator("[data-simple-timeline]")).toBeVisible({ timeout: 30_000 });
-      await expect(S.locator('header [data-region="search"]')).toHaveCount(0);
+      // Search stays in simple mode unless locked (B-208).
+      await expect(S.locator('header [data-region="search"]')).toHaveCount(1);
       expect(await stayed(S)).toBe(1);
     });
     await noErrors(dM, dS);

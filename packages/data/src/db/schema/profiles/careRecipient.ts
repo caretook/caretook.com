@@ -54,6 +54,13 @@ export const careRecipientSchema = pgTable(
       mode: "string",
       withTimezone: true,
     }),
+    // When someone recorded "No known conditions" (conditions). Cleared when
+    // a condition is added.
+    noKnownConditionsAt: timestamp("no_known_conditions_at", {
+      precision: 3,
+      mode: "string",
+      withTimezone: true,
+    }),
     ...timestamps,
     ...audits,
   },

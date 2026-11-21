@@ -2,7 +2,7 @@ import type { UpcomingKind } from "./upcomingFilters";
 
 import { CalendarPlus, NotebookPen, X } from "lucide-react";
 import { Link, useLocation } from "react-router";
-import { ChipGroup, UserAvatar } from "~/components/ui";
+import { ChipGroup, PageHeader, UserAvatar } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { clearAuthor, clearKind, setKind } from "~/lib/timeline/timelineFilters";
@@ -16,7 +16,7 @@ const TAB = "border-b-2 px-1 pb-2 text-sm font-medium";
  * which open a draft with the time picker first (`?when=pick`).
  */
 export function UpcomingHeader({ tab }: { tab: "upcoming" | "past" }) {
-  const { id: groupId, displayName, canWrite } = useGroup();
+  const { id: groupId, canWrite } = useGroup();
   const { search } = useLocation();
   const tabs = [
     { id: "upcoming", label: "Upcoming", to: appUrls.upcoming(groupId, tabSearch(search, "upcoming")) },
@@ -24,25 +24,24 @@ export function UpcomingHeader({ tab }: { tab: "upcoming" | "past" }) {
   ] as const;
 
   return (
-    <header className="space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold">Upcoming</h1>
-          <p className="text-base-content/70 text-sm">{displayName}</p>
-        </div>
-        {canWrite && (
-          <div role="group" aria-label="Add to Upcoming" className="flex flex-wrap gap-2" data-upcoming-add>
-            <Link to={appUrls.newUpcomingEntry(groupId, "event")} className="btn btn-primary btn-sm">
-              <CalendarPlus className="size-4" aria-hidden="true" />
-              Add appointment
-            </Link>
-            <Link to={appUrls.newUpcomingEntry(groupId, "note")} className="btn btn-sm">
-              <NotebookPen className="size-4" aria-hidden="true" />
-              Add reminder
-            </Link>
-          </div>
-        )}
-      </div>
+    <div className="space-y-3">
+      <PageHeader
+        title="Upcoming"
+        actions={
+          canWrite && (
+            <div role="group" aria-label="Add to Upcoming" className="flex flex-wrap gap-2" data-upcoming-add>
+              <Link to={appUrls.newUpcomingEntry(groupId, "event")} className="btn btn-primary btn-sm">
+                <CalendarPlus className="size-4" aria-hidden="true" />
+                Add appointment
+              </Link>
+              <Link to={appUrls.newUpcomingEntry(groupId, "note")} className="btn btn-sm">
+                <NotebookPen className="size-4" aria-hidden="true" />
+                Add reminder
+              </Link>
+            </div>
+          )
+        }
+      />
       <nav aria-label="Upcoming or past" className="border-base-300 flex gap-4 border-b" data-upcoming-tabs>
         {tabs.map((t) => (
           <Link
@@ -55,7 +54,7 @@ export function UpcomingHeader({ tab }: { tab: "upcoming" | "past" }) {
           </Link>
         ))}
       </nav>
-    </header>
+    </div>
   );
 }
 

@@ -1,7 +1,7 @@
 import type { EntryViewProps } from "./TimelineEntryRow";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
-import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink } from "~/components/entry";
+import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink, RepeatMark } from "~/components/entry";
 import { ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatTime, formatTimeInZone } from "~/lib/core/format";
@@ -21,6 +21,7 @@ export function TimelineEntryCard({
   onEdit,
   onDelete,
   cancel,
+  onRemind,
   liveLabel,
   providers,
   search,
@@ -46,6 +47,7 @@ export function TimelineEntryCard({
             <time dateTime={entry.occurredAt} className="text-base-content/70 text-sm tabular-nums">
               {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
             </time>
+            <RepeatMark seriesId={entry.seriesId} className="text-base-content/70" />
           </>
         }
         footer={
@@ -65,6 +67,7 @@ export function TimelineEntryCard({
           label={actionsLabel(entry)}
           onEdit={onEdit}
           cancel={cancel}
+          onRemind={onRemind}
           printHref={
             canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined
           }

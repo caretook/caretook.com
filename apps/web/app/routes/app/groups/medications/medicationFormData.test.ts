@@ -116,6 +116,12 @@ describe("medicationFromForm", () => {
     expect(input.refillsLeft).toBeNull();
   });
 
+  it("reads the chosen type, and none chosen or an unknown one as none", () => {
+    expect(medicationFromForm(form([["type", "supplement"]])).input.type).toBe("supplement");
+    expect(medicationFromForm(form([["type", "vitamin"]])).input.type).toBeNull();
+    expect(medicationFromForm(form([])).input.type).toBeNull();
+  });
+
   it("reads a new prescriber or pharmacy by name, in place of a chosen one", () => {
     const { input, newProviders } = medicationFromForm(
       form([
@@ -128,6 +134,19 @@ describe("medicationFromForm", () => {
     expect(newProviders).toEqual({ prescriber: "Dr. Ada Moss" });
     expect(input.prescriberId).toBeNull();
     expect(input.pharmacyId).toBe("ph1");
+  });
+
+  it("reads the conditions it's for, each once, and none when none are chosen", () => {
+    const { conditionIds } = medicationFromForm(
+      form([
+        ["conditionId", "c1"],
+        ["conditionId", ""],
+        ["conditionId", "c2"],
+        ["conditionId", "c1"],
+      ]),
+    );
+    expect(conditionIds).toEqual(["c1", "c2"]);
+    expect(medicationFromForm(form([["name", "A"]])).conditionIds).toEqual([]);
   });
 
   it("gives the shared schema what it needs for the form's messages", () => {
@@ -194,11 +213,13 @@ describe("issuesForSlotRows", () => {
 describe("isFieldIssue", () => {
   it("knows the fields the form shows", () => {
     expect(isFieldIssue("name")).toBe(true);
+    expect(isFieldIssue("type")).toBe(true);
     expect(isFieldIssue("schedule.times.3")).toBe(true);
     expect(isFieldIssue("schedule.times.3.amount")).toBe(true);
     expect(isFieldIssue("schedule.passes")).toBe(true);
     expect(isFieldIssue(`schedule.passes.${MORNING}.amount`)).toBe(true);
     expect(isFieldIssue("schedule.maxPerDay")).toBe(true);
+    expect(isFieldIssue("conditionIds")).toBe(true);
     expect(isFieldIssue("stoppedOn")).toBe(false);
   });
 });

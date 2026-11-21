@@ -7,7 +7,6 @@ import {
   lengthText,
   markerSentence,
   markerText,
-  menuNowText,
   nowText,
   PERIOD_TYPE_META,
   periodName,
@@ -57,7 +56,6 @@ describe("names and lines", () => {
     expect(nowText({ type: "home", label: null })).toBe("At home");
     expect(nowText({ type: "other", label: "Daughter's house" })).toBe("Daughter's house");
     expect(dayText(4)).toBe("day 4");
-    expect(menuNowText({ type: "hospital", label: "4 West" }, 4)).toBe("Now: In hospital · day 4");
   });
 
   it("builds the current-period line from the place, else the label", () => {

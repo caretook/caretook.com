@@ -22,6 +22,11 @@ import {
   toMedication,
   updateMedication,
 } from "~/lib/medications/medications.sync";
+import {
+  checkMedicationConditions,
+  loadMedicationConditions,
+  setMedicationConditions,
+} from "~/lib/profiles/medicationConditions.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
 import { MedicationForm } from "../MedicationForm";
 import { issuesForSlotRows, medicationFromForm } from "../medicationFormData";
@@ -44,21 +49,25 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     medication: medicationRows[0] ? toMedication(medicationRows[0]) : null,
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
-  const [sources, [recipient]] = await Promise.all([
+  const [sources, [recipient], linked] = await Promise.all([
     loadFormSources(db, group.id),
     readRows<RecipientRow>(db, recipientQuery(group.id)),
+    loadMedicationConditions(db, params.medicationId),
   ]);
   return {
     medication: decision.sheet,
     medicationRows,
     ...sources,
+    // What it's for as the sheet opens (the For field's chips).
+    conditionIds: linked.map((c) => c.id),
     recipientTimeZone: recipient?.time_zone ?? null,
   };
 }
 
 /**
  * Local writes: the edit (with its change entry, when a tracked field
- * changed), a status action, or Delete. The list's live query shows them,
+ * changed) and the conditions it's for (checked first, so a refusal saves
+ * nothing), a status action, or Delete. The list's live query shows them,
  * and PowerSync uploads them.
  */
 export async function clientAction({
@@ -66,16 +75,20 @@ export async function clientAction({
   params,
   context,
 }: Route.ClientActionArgs): Promise<ActionResult> {
-  getGroup(context);
+  const group = getGroup(context);
   const { db } = context.get(sessionContext);
   const form = await request.formData();
   const status = statusRequestFromForm(form);
   if (status?.intent === "remove") return removeMedication(db, params.medicationId);
   if (status) return changeMedicationStatus(db, params.medicationId, status.change);
-  const { input, newProviders, slotRows } = medicationFromForm(form);
-  const result = await updateMedication(db, params.medicationId, input, newProviders);
+  const { input, newProviders, slotRows, conditionIds } = medicationFromForm(form);
+  const badConditions = await checkMedicationConditions(db, group.id, conditionIds);
+  if (badConditions) return badConditions;
+  const result = await updateMedication(db, params.medicationId, input, newProviders, {
+    requireType: true,
+  });
   if (!result.ok) return { ...result, issues: issuesForSlotRows(result.issues, slotRows) };
-  return { ok: true };
+  return setMedicationConditions(db, params.medicationId, conditionIds);
 }
 
 /**
@@ -89,7 +102,7 @@ export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: Should
 
 export default function EditMedicationSheet({ loaderData, params }: Route.ComponentProps) {
   const close = useCloseMedicationSheet();
-  const { providers, names, passes } = useMedicationFormSources(params.groupId, loaderData);
+  const { providers, names, passes, conditions } = useMedicationFormSources(params.groupId, loaderData);
 
   // Live, so the status shown follows a change made here or on another device.
   const query = medicationQuery(params.medicationId);
@@ -123,6 +136,8 @@ export default function EditMedicationSheet({ loaderData, params }: Route.Compon
         providers={providers}
         passes={passes}
         names={names}
+        conditions={conditions}
+        conditionIds={loaderData.conditionIds}
         zoneNote={zoneNote}
         onDone={() => close()}
         onCancel={() => close()}

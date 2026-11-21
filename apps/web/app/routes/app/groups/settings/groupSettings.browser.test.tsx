@@ -127,14 +127,15 @@ describe("Details", () => {
     await expect.element(NAME()).toHaveValue(TEST_GROUP.name);
     expect(
       [...document.querySelectorAll<HTMLElement>("main [data-section]")].map((s) => s.dataset.section),
-    ).toEqual(["group-details", "care-recipient", "simple-tiles"]);
+    ).toEqual(["group-details", "care-recipient", "simple-tiles", "details-outside-allowed"]);
     expect(document.querySelector("main [data-profile-note] a")?.getAttribute("href")).toBe(
       `/app/groups/${TEST_GROUP.id}/profile`,
     );
     expect(document.querySelector("[data-needs-connection]")).toBeNull();
-    // Every input is labelled: the name is the only one (simple mode's tiles card has its own test).
+    // Every input is labelled: the name is the only one (simple mode's tiles card and the
+    // owners' details switch have their own tests).
     const labels = [...document.querySelectorAll<HTMLInputElement>("main input:not([type=hidden])")]
-      .filter((i) => !i.closest("[data-section=simple-tiles]"))
+      .filter((i) => !i.closest("[data-section=simple-tiles], [data-section=details-outside-allowed]"))
       .map((i) => document.querySelector(`label[for="${i.id}"]`)?.textContent?.trim());
     expect(labels).toEqual(["Name"]);
   });
@@ -433,6 +434,7 @@ describe("Members", () => {
     expect(
       document.querySelectorAll('main ol button[aria-label^="Actions"], main ol [aria-label^="Edit "]'),
     ).toHaveLength(0);
-    await expect.element(page.getByText(/You can view this timeline/)).toBeVisible();
+    // No viewer note (timeline-ux-2): the missing writer controls say it.
+    expect(page.getByText(/You can view/).query()).toBeNull();
   });
 });

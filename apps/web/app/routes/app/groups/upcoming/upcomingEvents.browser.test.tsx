@@ -120,7 +120,14 @@ describe("cancel and undo", () => {
   test("from Upcoming's ⋯ with a reason: struck through and labelled at once, stored with the reason, one PATCH queued", async () => {
     const device = await openUpcoming({ role: "caretaker" });
     const items = await openMenu(itemEl(CARDIOLOGY.id)!.querySelector(ACTIONS));
-    expect(items).toEqual(["Prepare for this visit", "Reschedule", "Cancel event", "Print", "Delete"]);
+    expect(items).toEqual([
+      "Prepare for this visit",
+      "Reschedule",
+      "Cancel event",
+      "Remind me",
+      "Print",
+      "Delete",
+    ]);
     await confirmCancel("Office called, doctor out sick");
     await device.settle();
     await expect.poll(() => cancelledState(itemEl(CARDIOLOGY.id))).toEqual(CANCELLED);
@@ -188,9 +195,9 @@ describe("cancel and undo", () => {
       await expect
         .poll(() => BANNER()?.querySelector("[data-cancelled-by]")?.textContent)
         .toBe("Cancelled by Sam Okafor · Today, 9:30 AM");
-      expect(BANNER()!.querySelector("[data-cancel-reason]")?.textContent).toBe(
-        "Office called, doctor out sick",
-      );
+      await expect
+        .poll(() => BANNER()?.querySelector("[data-cancel-reason]")?.textContent)
+        .toBe("Office called, doctor out sick");
       expect(page.getByRole("button", { name: "Undo cancel" }).query()).toBeNull();
       await viewer.screen.unmount();
 
@@ -214,7 +221,7 @@ describe("cancel and undo", () => {
       const device = await openUpcoming({ url: entryUrl(CARDIOLOGY.id) });
       await expect.poll(() => !!document.querySelector(ENTRY_MENU)).toBe(true);
       const items = await openMenu(document.querySelector(ENTRY_MENU));
-      expect(items).toEqual(["Reschedule", "Cancel event", "Print", "Delete"]);
+      expect(items).toEqual(["Reschedule", "Cancel event", "Remind me", "Print", "Delete"]);
       await confirmCancel();
       await device.settle();
       await expect.poll(BANNER).not.toBeNull();

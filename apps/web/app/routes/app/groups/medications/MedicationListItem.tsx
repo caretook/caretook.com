@@ -4,11 +4,17 @@ import type { LocalMedication } from "~/lib/medications/medications.sync";
 import { Pill } from "lucide-react";
 import { Link } from "react-router";
 import { appUrls } from "~/lib/app-shell/appUrls";
-import { medicationSummaryLine, medicationTitle, stoppedText } from "~/lib/medications/medicationDisplay";
+import {
+  MEDICATION_TYPE_LABELS,
+  medicationSummaryLine,
+  medicationTitle,
+  medicationTypeBadge,
+  stoppedText,
+} from "~/lib/medications/medicationDisplay";
 
 /**
- * A medication in the list: its name and strength, its form, dose and
- * schedule, and why it's taken; a stopped one also says how and when. The
+ * A medication in the list: its name and strength, a badge with its type
+ * (none when it isn't set), its form, dose and schedule, and why it's taken; a stopped one also says how and when. The
  * name is a link stretched over the row, so a tap anywhere opens its page.
  */
 export function MedicationListItem({
@@ -19,6 +25,7 @@ export function MedicationListItem({
   passes: readonly SchedulePass[];
 }) {
   const stopped = stoppedText(medication);
+  const badge = medicationTypeBadge(medication.type);
   return (
     <li
       className="hover:bg-base-200/50 relative isolate flex items-start gap-3 px-3 py-2.5"
@@ -39,6 +46,16 @@ export function MedicationListItem({
           >
             {medicationTitle(medication)}
           </Link>
+          {badge && medication.type && (
+            <span
+              className="badge badge-ghost badge-sm ms-2 align-middle"
+              title={MEDICATION_TYPE_LABELS[medication.type]}
+              data-medication-type={medication.type}
+            >
+              <span aria-hidden="true">{badge}</span>
+              <span className="sr-only">{MEDICATION_TYPE_LABELS[medication.type]}</span>
+            </span>
+          )}
         </p>
         <p className="text-base-content/70 text-sm" data-medication-summary>
           {medicationSummaryLine(medication, passes)}

@@ -8,7 +8,6 @@ import { allergyMatches, allergyWarning } from "~/lib/medications/allergies";
 import { useGroup } from "~/lib/app-shell/group";
 import { useAllergies } from "~/lib/medications/allergies.sync";
 import { suggestMedicationNames } from "~/lib/medications/medicationNames";
-import { FIELD } from "./medicationFormData";
 
 // The allergies before the live query's first answer (a module constant: see `useLiveQuery`).
 const NO_ALLERGIES: AllergyRows = { allergyRows: [], statusRows: [] };
@@ -18,7 +17,8 @@ const NO_ALLERGIES: AllergyRows = { allergyRows: [], statusRows: [] };
  * under it as you type ("lis" → Lisinopril): a tap fills the name, nothing
  * else, and puts the cursor back in the field. A name that matches one of
  * the recipient's allergies gets a warning ("Matches an allergy on file:
- * Penicillin (severe)"), which never blocks the save.
+ * Penicillin (severe)"), which never blocks the save. It posts `name`: the
+ * medication form's, and the Dose sheet's quick add.
  */
 export function NameField({
   defaultValue,
@@ -46,7 +46,7 @@ export function NameField({
           <input
             {...control}
             ref={input}
-            name={FIELD.name}
+            name="name"
             className="input w-full"
             maxLength={MEDICATION_LIMITS.name}
             value={name}

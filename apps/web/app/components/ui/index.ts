@@ -15,12 +15,16 @@ export { Menu } from "./Menu";
 export type { MenuEntry, MenuItem, MenuSection } from "./menuModel";
 export { SEPARATOR } from "./menuModel";
 export { Popover } from "./Popover";
+/** The menus' and popovers' surface, for a feature's own overlay (quick entry's matching names). */
+export { SURFACE } from "./styles";
 export { Sheet } from "./Sheet";
 export { UserAvatar } from "./UserAvatar";
 export { ChipList } from "./ChipList";
 export type { ListChip } from "./ChipList";
 export { ComboBox } from "./ComboBox";
-export type { ComboBoxOption } from "./ComboBox";
+export type { ComboBoxOption, ComboBoxSection } from "./ComboBox";
 export { Highlight, MARK_CLASS } from "./Highlight";
 export { Toast } from "./Toast";
 export { ViaTag } from "./ViaTag";
+export { useShowModal } from "./useShowModal";
+export { PageHeader } from "./PageHeader";

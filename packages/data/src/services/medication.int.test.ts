@@ -179,6 +179,49 @@ describe("medicationService: writing", () => {
     expect(asNeeded).toMatchObject({ schedule: { type: "asNeeded", maxPerDay: 4 }, reason: null });
   });
 
+  it("takes a known type or none, refuses another, and the column checks it too", async () => {
+    const { u, group, recipient, addMedication, input } = await setup();
+    const untyped = await addMedication();
+    expect(untyped.type).toBeNull();
+    const otc = await addMedication({ name: "Ibuprofen", type: "otc" });
+    expect(otc.type).toBe("otc");
+
+    expect(
+      ok(await medicationService.update(u.caretaker.ctx, untyped.id, { type: "supplement" })),
+    ).toMatchObject({ type: "supplement" });
+    expect(ok(await medicationService.update(u.caretaker.ctx, otc.id, { type: null }))).toMatchObject({
+      type: null,
+    });
+    // An edit that doesn't name the type leaves it as it was.
+    expect(
+      ok(await medicationService.update(u.caretaker.ctx, untyped.id, { dose: "2 tablets" })),
+    ).toMatchObject({ type: "supplement" });
+
+    const vitamin = await medicationService.create(u.caretaker.ctx, input({ type: "vitamin" as never }));
+    expect(codeOf(vitamin)).toBe("medicationService:invalid");
+    expect(issuesOf(vitamin)).toEqual(["type"]);
+    expect(
+      codeOf(await medicationService.update(u.caretaker.ctx, otc.id, { type: "vitamin" as never })),
+    ).toBe("medicationService:invalid");
+
+    // The database refuses one written past the service.
+    const direct = (type: string) =>
+      getDb()
+        .insert(medicationSchema)
+        .values({
+          groupId: group.id,
+          recipientId: recipient.id,
+          name: "Mystery",
+          schedule: { type: "asNeeded" },
+          type: type as never,
+          createdBy: u.caretaker.user.id,
+          updatedBy: u.caretaker.user.id,
+        })
+        .returning({ type: medicationSchema.type });
+    expect(await direct("other")).toEqual([{ type: "other" }]);
+    await expect(direct("vitamin")).rejects.toMatchObject({ cause: { constraint: "medication_type_check" } });
+  });
+
   it("refuses another group's recipient, and a group and recipient never change", async () => {
     const { u, input, addMedication } = await setup();
     const other = await setup();
@@ -484,7 +527,7 @@ describe("medicationService: change entries", () => {
     });
   });
 
-  it("writes none for a refill, reason or provider edit, or a save that changes nothing", async () => {
+  it("writes none for a refill, reason, provider or type edit, or a save that changes nothing", async () => {
     const { u, addMedication, addProvider, changesOf } = await setup();
     const medication = await addMedication();
     const clinician = await addProvider();
@@ -494,6 +537,8 @@ describe("medicationService: change entries", () => {
       { lastFilledOn: "2026-11-01", quantity: "30 tablets", refillsLeft: 2, rxNumber: "RX 1" },
       { prescriberId: clinician.id, pharmacyId: pharmacy.id },
       { reason: "Blood pressure", startedOn: "2026-01-01" },
+      { type: "supplement" as const },
+      { type: "other" as const },
       { dose: "1 tablet" },
       {},
     ]) {

@@ -6,7 +6,7 @@ import type { RescheduledTarget } from "./useUpcomingData";
 
 import { MapPin } from "lucide-react";
 import { Link } from "react-router";
-import { AuthorFilterLink, EntryBody, KindFilterLink } from "~/components/entry";
+import { AuthorFilterLink, EntryBody, KindFilterLink, RepeatMark } from "~/components/entry";
 import { ContactActions } from "~/components/providers";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { initials } from "~/lib/timeline/entryDisplay";
@@ -78,6 +78,7 @@ export function UpcomingRow({
         data-when
       >
         {breakable(when)}
+        {entry.seriesId && <RepeatMark seriesId={entry.seriesId} className="flex" />}
       </time>
       <div className="min-w-0 flex-1 pt-0.5">
         <EntryBody

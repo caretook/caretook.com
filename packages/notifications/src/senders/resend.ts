@@ -23,6 +23,7 @@ export const createResendSender = (opts: { apiKey: string }): Sender => {
             subject: message.subject,
             html: message.html,
             text: message.text,
+            ...(message.headers ? { headers: message.headers } : {}),
           },
           { idempotencyKey: message.idempotencyKey },
         );

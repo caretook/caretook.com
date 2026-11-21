@@ -5,6 +5,7 @@ import { fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../../../test/fixture
 import * as entryRoute from "../entry/route";
 import * as providerRoute from "../provider/route";
 import * as editSheet from "./edit/route";
+import * as importSheet from "./import/route";
 import * as newSheet from "./new/route";
 import * as providers from "./route";
 
@@ -123,14 +124,16 @@ export const LINDQVIST = fx.provider({
   phones: [{ label: "Office", number: "(555) 010-7700" }],
   isPrimary: 1,
 });
-export const secondGroup = () => [
+export const secondGroup = (role: "caretaker" | "viewer" = "caretaker") => [
   fx.group({ id: SECOND_GROUP.id, name: SECOND_GROUP.name }),
   fx.recipient({
     id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f1c02",
     groupId: SECOND_GROUP.id,
     name: "Lou Lindqvist",
+    // So the group shows as "Lou Lindqvist", not the default recipient's preferred name.
+    preferredName: null,
   }),
-  fx.member({ userId: TEST_USER.id, groupId: SECOND_GROUP.id, role: "caretaker" }),
+  fx.member({ userId: TEST_USER.id, groupId: SECOND_GROUP.id, role }),
   LINDQVIST,
 ];
 
@@ -161,6 +164,7 @@ export const PROVIDER_ROUTES: DeviceRoute[] = [
     module: providers,
     children: [
       { path: "/app/groups/:groupId/providers/new", module: newSheet },
+      { path: "/app/groups/:groupId/providers/import", module: importSheet },
       { path: "/app/groups/:groupId/providers/:providerId/edit", module: editSheet },
     ],
   },

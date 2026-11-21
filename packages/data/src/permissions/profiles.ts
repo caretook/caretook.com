@@ -79,4 +79,43 @@ export const PROFILES_PERMISSIONS = {
     },
     delete: groupEntry(WRITERS),
   },
+
+  // The recipient's conditions (conditions): like allergies (soft deletes, writers write).
+  recipientConditionSchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: { ...groupEntry(WRITERS), fields: { deletedAt: SYSTEM_ONLY } },
+    update: {
+      ...groupEntry(WRITERS),
+      fields: { groupId: SYSTEM_ONLY, recipientId: SYSTEM_ONLY, deletedAt: SYSTEM_ONLY },
+    },
+    delete: groupEntry(WRITERS),
+  },
+
+  // What a medication is for (conditions slice 4): links between a
+  // medication and the recipient's conditions. Writers link and unlink (a
+  // hard delete); a link never changes, so update is the system's. Write
+  // through medicationConditionService, which checks both ends.
+  medicationConditionSchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: groupEntry(WRITERS),
+    update: SYSTEM_ONLY_ENTRY,
+    delete: groupEntry(WRITERS),
+  },
+
+  // Who manages a condition (conditions slice 3): links between a condition
+  // and the group's providers. Like medication_condition: writers link and
+  // unlink (a hard delete), a link never changes. Write through
+  // recipientConditionService, which checks both ends and records the change.
+  conditionManagerSchema: {
+    groupField: "groupId",
+    read: groupEntry(ANY_GROUP_ROLE),
+    list: groupEntry(ANY_GROUP_ROLE),
+    create: groupEntry(WRITERS),
+    update: SYSTEM_ONLY_ENTRY,
+    delete: groupEntry(WRITERS),
+  },
 } as const satisfies PartialPermissions;

@@ -1,15 +1,21 @@
 import type { ListChip } from "~/components/ui";
+import type { FromGroupOption } from "~/lib/providers/fromGroups";
+import type { ImportSource } from "~/lib/providers/providerImport";
 import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import { Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChipGroup, ChipList, ComboBox } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { fromGroupOption, fromGroupSections } from "~/lib/providers/fromGroups";
+import { useOtherGroupProviders } from "~/lib/providers/otherGroupProviders.sync";
 import { chipLabel } from "~/lib/providers/entryProviders";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import {
   createAndLinkProvider,
   entryProvidersQuery,
+  importAndLinkProvider,
   linkProvider,
   providersQuery,
   toProviders,
@@ -27,7 +33,10 @@ const NOT_READ_YET: ProviderRow[] = [];
  * linked provider is a chip that opens their page (a deleted one is greyed,
  * "(removed)", and not a link). Writers remove a chip with its ×, and add
  * through a picker over the group's providers, which can also add a new
- * clinician by the typed name, linked in the same write. Linking on a draft
+ * clinician by the typed name, linked in the same write. Once something is
+ * typed, the picker also lists the user's other groups' matches under "From
+ * <group>"; picking one copies it here and links the copy in one write.
+ * Linking on a draft
  * saves it first (`ensureStored`); the editor stays where it is. While
  * nothing is linked, writers also get up to 5 suggested providers (named in
  * the title or text, linked to entries with this title before, or linked
@@ -84,6 +93,12 @@ export function EntryWithRow({
     report(await createAndLinkProvider(getSync(), entryId, { type: "clinician", name }));
   };
 
+  const importAndLink = async (choice: FromGroupOption, source: readonly ImportSource[]) => {
+    closePicker(true);
+    if (!(await ensureStored())) return setError("Couldn't save this entry, so nothing was linked.");
+    report(await importAndLinkProvider(getSync(), entryId, source, choice.sourceId));
+  };
+
   const chips: ListChip[] = linked.map((provider) => ({
     id: provider.id,
     label: chipLabel(provider),
@@ -108,6 +123,7 @@ export function EntryWithRow({
                 linked={linked.map((p) => p.id)}
                 onPick={(id) => void link(id)}
                 onAdd={(name) => void addNamed(name)}
+                onImport={(choice, source) => void importAndLink(choice, source)}
                 onClose={(reason) => closePicker(reason === "escape")}
               />
             </div>
@@ -175,35 +191,54 @@ function ProviderSuggestions({
   );
 }
 
-/** The picker: a combo box over the group's providers, live, with "Add "<typed>" as a provider". */
+/**
+ * The picker: a combo box over the group's providers, live, then the other
+ * groups' matches ("From <group>", once something is typed), then "Add
+ * "<typed>" as a provider".
+ */
 function ProviderPicker({
   groupId,
   linked,
   onPick,
   onAdd,
+  onImport,
   onClose,
 }: {
   groupId: string;
   linked: string[];
   onPick: (providerId: string) => void;
   onAdd: (name: string) => void;
+  onImport: (choice: FromGroupOption, source: readonly ImportSource[]) => void;
   onClose: (reason: "blur" | "escape") => void;
 }) {
+  const { userId } = useGroup();
+  const others = useOtherGroupProviders({ userId, groupId, enabled: true });
   const query = providersQuery(groupId);
   const rows = useLiveQuery<ProviderRow>(query.sql, query.params, NO_ROWS);
   const providers = useMemo(() => toProviders(rows), [rows]);
   const [text, setText] = useState("");
   const linkedIds = useMemo(() => new Set(linked), [linked]);
   const options = useMemo(() => pickerOptions(providers, linkedIds, text), [providers, linkedIds, text]);
+  const sections = useMemo(() => fromGroupSections(others, providers, text), [others, providers, text]);
+  const select = (id: string) => {
+    const choice = fromGroupOption(sections, id);
+    if (!choice) return onPick(id);
+    onImport(choice, others.find((g) => g.id === choice.groupId)?.providers ?? []);
+  };
 
   return (
     <ComboBox
       label="Find a provider to link"
       placeholder="Search providers"
       options={options}
+      sections={sections.map((s) => ({
+        id: s.groupId,
+        heading: s.heading,
+        options: s.options.map((o) => ({ id: o.sourceId, label: o.label, description: o.description })),
+      }))}
       inputValue={text}
       onInputChange={setText}
-      onSelect={onPick}
+      onSelect={select}
       {...(canAddNamed(providers, text) && {
         onCreate: onAdd,
         createLabel: (typed: string) => `Add "${typed}" as a provider`,
