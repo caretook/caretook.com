@@ -82,7 +82,7 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 | 63 | B-228 | merged | 5255bf50 (349ba323) sonnet; last 4 sites 76ad3e78 |
 | 64 | B-230 | merged | d5701923 (2769bd66) sonnet |
 | 65 | B-232 | merged | 9f47380b (4bd81a3a) sonnet |
-| 66 | B-233 | started | sonnet |
+| 66 | B-233 | merged | c29f863a (ff152d83) sonnet; check unconfirmed (load 60–110) |
 | 67 | B-234 | merged | f4c84585 (4162852b) sonnet |
 | 68 | B-235 | merged | 300f1500 (72c77543) opus; landing runs roundtrip, live-notes, first-sync |
 | 69 | B-237 | merged | 7f84efb1 (fe44fe0c) opus; landing runs live-notes |
