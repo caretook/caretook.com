@@ -5,6 +5,7 @@ export { EntryActions } from "./EntryActions";
 export { EntryBody } from "./EntryBody";
 export { AuthorFilterLink, KindFilterLink, KindIcon } from "./KindIcon";
 export { OlderEntries } from "./OlderEntries";
+export { RepeatMark } from "./RepeatMark";
 export { useEventCancel } from "./useEventCancel";
 export type { RescheduleTarget } from "./useEventReschedule";
 export { useEventReschedule } from "./useEventReschedule";

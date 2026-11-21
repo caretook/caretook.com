@@ -2,6 +2,7 @@ import type * as Y from "yjs";
 import type { TimelineEntryKind } from "@caretook/data/schema";
 import type { ActionResult } from "~/lib/core/api";
 import type { Schedule } from "~/lib/appointments/entrySchedule";
+import type { RepeatChoice } from "~/lib/appointments/repeatChoice";
 import type { MaterializeInput } from "~/lib/live-notes/liveEntry.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
 import type { EntryPageData } from "./loadEntry";
@@ -14,6 +15,8 @@ import { useGroup } from "~/lib/app-shell/group";
 import { isLiveEntryKind, savedTitle, shouldMaterialize } from "~/lib/live-notes/liveEntry";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { cancelEvent, uncancelEvent } from "~/lib/appointments/appointments.sync";
+import { draftTiming } from "~/lib/appointments/repeatChoice";
+import { createSeries } from "~/lib/appointments/series.sync";
 import { materializeLiveEntry } from "~/lib/live-notes/liveEntry.sync";
 import { linkProvider } from "~/lib/providers/providers.sync";
 import { removeEntry, toTimelineEntry, updateEntry } from "~/lib/timeline/timeline.sync";
@@ -38,6 +41,8 @@ export type LiveEntry = {
     rescheduledTo: string | null;
     /** The member's AI assistant it was added through ("Claude"), or null. */
     via: string | null;
+    /** The repeating series it's a visit of (appointments-2), or null. */
+    seriesId: string | null;
   };
   /** Whether the entry is stored (false while it's a draft). */
   stored: boolean;
@@ -65,6 +70,13 @@ export type LiveEntry = {
   ensureStored: () => Promise<boolean>;
   /** The last failed write's message, cleared by the next one that works. */
   saveError: string | null;
+  /** A new entry's repeat, chosen but not saved yet (a draft saves it as a series); null for none. */
+  repeat: { choice: RepeatChoice; rule: string } | null;
+  /**
+   * Set how a new entry repeats (null: it doesn't). A draft keeps it and is
+   * saved as a series; an entry already saved becomes the series' first visit now.
+   */
+  applyRepeat: (choice: RepeatChoice, rule: string | null) => void;
 };
 
 /**
@@ -75,7 +87,7 @@ export type LiveEntry = {
  * editor stay mounted. Returns data and callbacks only.
  */
 export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
-  const { canWrite } = useGroup();
+  const { canWrite, recipient } = useGroup();
   const navigate = useNavigate();
 
   // The draft's fields, read when it's saved.
@@ -100,11 +112,57 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
   const placeRef = useRef<string | null>(null);
   const saving = useRef<Promise<boolean> | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // A repeat picked on a draft: the draft is saved as a series, and becomes its first visit.
+  const [repeat, setRepeat] = useState<LiveEntry["repeat"]>(null);
+  const repeatRef = useRef<string | null>(null);
+
+  /** Make a series from this entry (its first visit keeps the entry's id), with the schedule, title and place given. */
+  const startSeries = useCallback(
+    async (rule: string, from: { schedule: Schedule; title: string | null; place: string | null }) => {
+      if (!isLiveEntryKind(draft.kind)) return { ok: false as const, error: "Only notes and events repeat" };
+      const timing = draftTiming(from.schedule, {
+        entryTimeZone: draft.timeZone,
+        recipientTimeZone: recipient?.timeZone ?? draft.timeZone,
+      });
+      return createSeries(
+        getSync(),
+        {
+          groupId,
+          kind: draft.kind,
+          rule,
+          ...timing,
+          title: savedTitle(draft.kind, from.title ?? ""),
+          place: draft.kind === "event" ? from.place : null,
+          providerIds: data.withProvider ? [data.withProvider] : [],
+        },
+        { firstVisit: draft.id },
+      );
+    },
+    [draft, groupId, recipient, data.withProvider],
+  );
 
   const save = useCallback((): Promise<boolean> => {
     if (saved.current) return Promise.resolve(true);
     saving.current ??= (async () => {
       if (!canHaveNoteDocument(draft.kind)) return false;
+      if (repeatRef.current) {
+        const made = await startSeries(repeatRef.current, {
+          schedule: scheduleRef.current,
+          title: titleRef.current,
+          place: placeRef.current,
+        });
+        saving.current = null;
+        if (!made.ok) {
+          setSaveError(made.error);
+          return false;
+        }
+        setSaveError(null);
+        saved.current = true;
+        repeatRef.current = null;
+        setRepeat(null);
+        if (isNew) void navigate(appUrls.entry(groupId, draft.id), { replace: true });
+        return true;
+      }
       const input: MaterializeInput = {
         id: draft.id,
         groupId,
@@ -134,7 +192,7 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
       return true;
     })();
     return saving.current;
-  }, [draft, groupId, isNew, navigate, data.withProvider]);
+  }, [draft, groupId, isNew, navigate, data.withProvider, startSeries]);
 
   // The editor asks on each local change until this says it's saved.
   const ensureSaved = useCallback(
@@ -196,6 +254,19 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
   const cancel = (reason: string) => void cancelEvent(getSync(), draft.id, reason).then(reportWrite);
   const uncancel = () => void uncancelEvent(getSync(), draft.id).then(reportWrite);
 
+  const applyRepeat = (choice: RepeatChoice, rule: string | null) => {
+    // Saved already (a title or text came first): it becomes the series' first visit now.
+    if (rule && live && !live.seriesId) {
+      const schedule = { occurredAt: live.occurredAt, endsAt: live.endsAt ?? null, allDay: !!live.allDay };
+      void startSeries(rule, { schedule, title: live.title, place: live.place ?? null }).then((made) =>
+        setSaveError(made.ok ? null : made.error),
+      );
+      return;
+    }
+    repeatRef.current = rule;
+    setRepeat(rule ? { choice, rule } : null);
+  };
+
   const remove = async () => {
     const res = await removeEntry(getSync(), draft.id);
     if (!res.ok) return setSaveError(res.error);
@@ -217,6 +288,7 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
       cancelReason: live?.cancelReason ?? null,
       rescheduledTo: live?.rescheduledTo ?? null,
       via: live?.via ?? null,
+      seriesId: live?.seriesId ?? null,
     },
     stored: !!live,
     isNew,
@@ -231,5 +303,7 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
     remove,
     ensureStored: save,
     saveError,
+    repeat,
+    applyRepeat,
   };
 }

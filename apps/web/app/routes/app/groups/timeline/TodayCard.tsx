@@ -5,6 +5,7 @@ import type { TimelineData } from "./useTimelineData";
 import { formatReading, VITALS } from "@caretook/data/schema";
 import { CalendarClock, ChevronDown, ListTodo } from "lucide-react";
 import { Link, useLocation } from "react-router";
+import { RepeatMark } from "~/components/entry";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatAgo } from "~/lib/core/format";
 import { nextStripText, upcomingTitle } from "~/lib/appointments/upcomingLabels";
@@ -120,6 +121,7 @@ export function TodayCard({
             >
               {nextText}
             </Link>
+            <RepeatMark seriesId={next.next.seriesId} className="text-base-content/70 ms-1" />
           </TodayRow>
         )}
         <TodayMedicationsRow
