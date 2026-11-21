@@ -14,63 +14,63 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 
 ## Status
 
-| Slice | Item              | State   | Merge into `prd/quick-fixes` (slice commits)          |
-| ----- | ----------------- | ------- | ----------------------------------------------------- |
-| 1     | B-1               | merged  | 1e00754 (5ab3b67)                                     |
-| 2     | B-17              | merged  | 4629e8c (32355db)                                     |
-| 3     | B-22              | merged  | b0325d0 (46ef320)                                     |
-| 4     | B-28              | merged  | b15b140 (9911d1b, 8a0bb50)                            |
-| 5     | B-29              | merged  | 8eaf3c3 (3b97174, a31bd85)                            |
-| 6     | B-34              | merged  | 483f768 (7251a69, 10aa140)                            |
-| 7     | B-27              | merged  | 75127be (004abfe)                                     |
-| 8     | B-35              | merged  | 6dcc71d (7c0725f)                                     |
-| 9     | B-36              | merged  | e6fc148 (cc12901)                                     |
-| 10    | B-39              | merged  | 2052075 (1870973, 9e7d83b)                            |
-| 11    | B-38              | merged  | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
-| 12    | B-41              | merged  | e577fad (d75e3ba; 41b5bcb left out)                   |
-| 13    | B-42              | merged  | 94ce803 (eccbd1a)                                     |
-| 14    | B-37              | merged  | 9c08e01 (cf1f804)                                     |
-| 15    | B-71              | landed  | 23e1be2 (wave 7)                                      |
-| 16    | B-72              | landed  | 23e1be2 (wave 7)                                      |
-| 17    | B-44              | landed  | 23e1be2 (wave 7)                                      |
-| 18    | B-73              | merged  | 59f380a (f6a783e)                                     |
-| 19    | B-67              | merged  | 0ddaaa7 (46e8be0)                                     |
-| 20    | B-74              | merged  | 679fa87 (d7a1631)                                     |
-| 21    | B-70              | merged  | 27c2c74 (62a459a)                                     |
-| 22    | B-81              | merged  | 376f8b7 (22470b8)                                     |
-| 23    | B-82              | merged  | 5047c71 (8d6f089)                                     |
-| 24    | B-64              | merged  | 290fd21 (fbbf94f)                                     |
-| 25    | B-69              | merged  | 2431a55 (14da487)                                     |
-| 26    | B-78              | merged  | 17a89b1 (484d825)                                     |
-| 27    | B-65              | merged  | 5d8af6e (07ab7bf)                                     |
-| 28    | B-79              | merged  | 6573d31 (036c039)                                     |
-| 29    | B-80              | merged  | 25757d4 (e392d3c, 21941f0)                            |
-| 30    | B-92              | merged  | dab620f (51f5fb8)                                     |
-| 31    | B-93              | merged  | 998cc44 (938bec1)                                     |
-| 32    | B-95              | merged  | 420d5e9 (280d527)                                     |
-| 33    | B-83              | merged  | dac3172 (b27a1ec)                                     |
-| 34    | B-90              | merged  | dd5f4f3 (d366cac)                                     |
-| 35    | B-94              | merged  | 1fc9168 (81fdddf)                                     |
-| 36    | B-97              | merged  | 0065420 (6273693)                                     |
-| 37    | B-96              | merged  | 8b28fda (5f1d8de)                                     |
-| 38    | B-79, B-90, B-97  | landed  | f2a9079 (waves 9–10)                                  |
-| 39    | B-98, B-99, B-105 | landed  | 5070e43 (0bbf0b9, b87450f)                            |
-| 40    | B-106             | landed  | 29ebc9f (adfb130, 8fe09e0)                            |
-| 41    | B-112             | landed  | 5116a8f (67b943d)                                     |
-| 42    | B-100             | landed  | c85575d (5e87b1f, d030837)                            |
-| 43    | B-130             | landed  | b8d516e (9fc492c)                                     |
-| 44    | B-135             | merged  | df9e3df (22bffaa)                                     |
-| 45    | B-134             | merged  | ee62ed9 (f068feb)                                     |
-| 46    | B-157             | merged  | 03dfa05 (bec9a23)                                     |
-| 47    | B-188             | merged  | c505b681 (48e55b9e)                                   |
-| 48    | B-189, B-190      | merged  | 68a3cc50 (7c465bd1)                                   |
-| 49    | B-184             | merged  | 14aa977f (7b4942e4)                                   |
-| 50    | B-185, B-186      | merged  | 0cace532 (6d3c06cc)                                   |
-| 51    | B-187             | started |                                                       |
+| Slice | Item              | State  | Merge into `prd/quick-fixes` (slice commits)          |
+| ----- | ----------------- | ------ | ----------------------------------------------------- |
+| 1     | B-1               | merged | 1e00754 (5ab3b67)                                     |
+| 2     | B-17              | merged | 4629e8c (32355db)                                     |
+| 3     | B-22              | merged | b0325d0 (46ef320)                                     |
+| 4     | B-28              | merged | b15b140 (9911d1b, 8a0bb50)                            |
+| 5     | B-29              | merged | 8eaf3c3 (3b97174, a31bd85)                            |
+| 6     | B-34              | merged | 483f768 (7251a69, 10aa140)                            |
+| 7     | B-27              | merged | 75127be (004abfe)                                     |
+| 8     | B-35              | merged | 6dcc71d (7c0725f)                                     |
+| 9     | B-36              | merged | e6fc148 (cc12901)                                     |
+| 10    | B-39              | merged | 2052075 (1870973, 9e7d83b)                            |
+| 11    | B-38              | merged | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
+| 12    | B-41              | merged | e577fad (d75e3ba; 41b5bcb left out)                   |
+| 13    | B-42              | merged | 94ce803 (eccbd1a)                                     |
+| 14    | B-37              | merged | 9c08e01 (cf1f804)                                     |
+| 15    | B-71              | landed | 23e1be2 (wave 7)                                      |
+| 16    | B-72              | landed | 23e1be2 (wave 7)                                      |
+| 17    | B-44              | landed | 23e1be2 (wave 7)                                      |
+| 18    | B-73              | merged | 59f380a (f6a783e)                                     |
+| 19    | B-67              | merged | 0ddaaa7 (46e8be0)                                     |
+| 20    | B-74              | merged | 679fa87 (d7a1631)                                     |
+| 21    | B-70              | merged | 27c2c74 (62a459a)                                     |
+| 22    | B-81              | merged | 376f8b7 (22470b8)                                     |
+| 23    | B-82              | merged | 5047c71 (8d6f089)                                     |
+| 24    | B-64              | merged | 290fd21 (fbbf94f)                                     |
+| 25    | B-69              | merged | 2431a55 (14da487)                                     |
+| 26    | B-78              | merged | 17a89b1 (484d825)                                     |
+| 27    | B-65              | merged | 5d8af6e (07ab7bf)                                     |
+| 28    | B-79              | merged | 6573d31 (036c039)                                     |
+| 29    | B-80              | merged | 25757d4 (e392d3c, 21941f0)                            |
+| 30    | B-92              | merged | dab620f (51f5fb8)                                     |
+| 31    | B-93              | merged | 998cc44 (938bec1)                                     |
+| 32    | B-95              | merged | 420d5e9 (280d527)                                     |
+| 33    | B-83              | merged | dac3172 (b27a1ec)                                     |
+| 34    | B-90              | merged | dd5f4f3 (d366cac)                                     |
+| 35    | B-94              | merged | 1fc9168 (81fdddf)                                     |
+| 36    | B-97              | merged | 0065420 (6273693)                                     |
+| 37    | B-96              | merged | 8b28fda (5f1d8de)                                     |
+| 38    | B-79, B-90, B-97  | landed | f2a9079 (waves 9–10)                                  |
+| 39    | B-98, B-99, B-105 | landed | 5070e43 (0bbf0b9, b87450f)                            |
+| 40    | B-106             | landed | 29ebc9f (adfb130, 8fe09e0)                            |
+| 41    | B-112             | landed | 5116a8f (67b943d)                                     |
+| 42    | B-100             | landed | c85575d (5e87b1f, d030837)                            |
+| 43    | B-130             | landed | b8d516e (9fc492c)                                     |
+| 44    | B-135             | merged | df9e3df (22bffaa)                                     |
+| 45    | B-134             | merged | ee62ed9 (f068feb)                                     |
+| 46    | B-157             | merged | 03dfa05 (bec9a23)                                     |
+| 47    | B-188             | merged | c505b681 (48e55b9e)                                   |
+| 48    | B-189, B-190      | merged | 68a3cc50 (7c465bd1)                                   |
+| 49    | B-184             | merged | 14aa977f (7b4942e4)                                   |
+| 50    | B-185, B-186      | merged | 0cace532 (6d3c06cc)                                   |
+| 51    | B-187             | merged | 7bc05133 (e9be4770)                                   |
 
 **Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
-**Wave 13 running (2026-11-20, run-through mode, this orchestrator):** backlog ingested (B-191, B-192 filed and proposed for quick-fixes as triaged: a later wave, the user reviews); B-184–B-190 claimed. Worktrees made for 47 (stack, slot 4) and 48–51 (stackless); all five loops spawned. Models: 47 opus, 48 sonnet, 49 sonnet, 50 opus, 51 opus. Loops were told to wait for load < 16 before `pnpm check`. Slice 48 handed off and merged ahead of 47 (no shared files): `list_timeline` text uses `changeText`/`passMovedText`/`doseText` from `@caretook/data` (so "Changed dose 1 tablet → 2 tablets", the app's wording, not the plan's "Dose: …"), no `TEXT_PREVIEW`, dose lines now carry the note; other tools had no cut; `upcoming` still leaves an event's body out of its text line. `--changed` named no checks. Slice 49 merged: the switches (and read-only badges) in a `data-member-switches` block under the row; test in `simpleModeMembers.browser.test.tsx`; its `pnpm check` had one load flake in `timelineSimpleNow.browser.test.tsx` (passed 2/2 alone, load > 20): watch it at landing; `--changed` ran app-shell: pass. Slice 50 merged: `attentionKey`/`needsAttention(rows, now)` (no time zone: every rule is a distance from now) and `DOSE_SOON_MS` in `todayStatus.ts`; `useTodayCardCollapsed` stores `{collapsed, key}` (old `"1"` read as no choice), a choice holds while the key matches, server render open, skeletons keep the last choice; `TodayRow` `expandable` (Show all / Show less, `data-show-all`, `data-today-line`); vitals' See all link gone. It also edited `timelineHeader.browser.test.tsx` (opens the collapsed card first). At landing, timeline.md's Today card bullet (line 30): vitals' Show all in place; collapsed by default unless something needs attention, a tap holds until the key changes. Open: `marketing-screenshots.mjs:148` waits for the vitals row (unrun, B-40). `pnpm check` green; `--changed` named no checks. Slice 47 merged: **not reproduced** (claude.ai's shape 302s to `/connect` signed in and out, locally and on staging; unknown client and bad redirect go to `/api/auth/error` → `/?error=`; the only navigation JSON is the plugin's authorize limit, 30/60 s per IP, 429, the leading candidate). Built `packages/auth/src/connectorAuthorize.ts` `withConnectorAuthorizePage` around the web `/api/auth/*` route: a navigation's dead end (plugin error redirect, a 4xx) gets the "link isn't valid" HTML page, a 429 a "too many tries" page; JSON stays for non-browser requests; check-areas rule `connectors` → sign-in. Its `pnpm check` failed only `check-areas.test.mjs` (new file untracked), 20/20 after `git add`; `--changed` (sign-in, first-sync, signout-wipe, invites) passed. The user retries on staging once deployed and sends the JSON body if it recurs. At landing: connectors.md's OAuth section (the wrapper). Open: a member with an existing `oauth_consent` gets a code straight from authorize, skipping `/connect`. It left three test client registrations on staging.
+**Wave 13 running (2026-11-20, run-through mode, this orchestrator):** backlog ingested (B-191, B-192 filed and proposed for quick-fixes as triaged: a later wave, the user reviews); B-184–B-190 claimed. Worktrees made for 47 (stack, slot 4) and 48–51 (stackless); all five loops spawned. Models: 47 opus, 48 sonnet, 49 sonnet, 50 opus, 51 opus. Loops were told to wait for load < 16 before `pnpm check`. Slice 48 handed off and merged ahead of 47 (no shared files): `list_timeline` text uses `changeText`/`passMovedText`/`doseText` from `@caretook/data` (so "Changed dose 1 tablet → 2 tablets", the app's wording, not the plan's "Dose: …"), no `TEXT_PREVIEW`, dose lines now carry the note; other tools had no cut; `upcoming` still leaves an event's body out of its text line. `--changed` named no checks. Slice 49 merged: the switches (and read-only badges) in a `data-member-switches` block under the row; test in `simpleModeMembers.browser.test.tsx`; its `pnpm check` had one load flake in `timelineSimpleNow.browser.test.tsx` (passed 2/2 alone, load > 20): watch it at landing; `--changed` ran app-shell: pass. Slice 50 merged: `attentionKey`/`needsAttention(rows, now)` (no time zone: every rule is a distance from now) and `DOSE_SOON_MS` in `todayStatus.ts`; `useTodayCardCollapsed` stores `{collapsed, key}` (old `"1"` read as no choice), a choice holds while the key matches, server render open, skeletons keep the last choice; `TodayRow` `expandable` (Show all / Show less, `data-show-all`, `data-today-line`); vitals' See all link gone. It also edited `timelineHeader.browser.test.tsx` (opens the collapsed card first). At landing, timeline.md's Today card bullet (line 30): vitals' Show all in place; collapsed by default unless something needs attention, a tap holds until the key changes. Open: `marketing-screenshots.mjs:148` waits for the vitals row (unrun, B-40). `pnpm check` green; `--changed` named no checks. Slice 47 merged: **not reproduced** (claude.ai's shape 302s to `/connect` signed in and out, locally and on staging; unknown client and bad redirect go to `/api/auth/error` → `/?error=`; the only navigation JSON is the plugin's authorize limit, 30/60 s per IP, 429, the leading candidate). Built `packages/auth/src/connectorAuthorize.ts` `withConnectorAuthorizePage` around the web `/api/auth/*` route: a navigation's dead end (plugin error redirect, a 4xx) gets the "link isn't valid" HTML page, a 429 a "too many tries" page; JSON stays for non-browser requests; check-areas rule `connectors` → sign-in. Its `pnpm check` failed only `check-areas.test.mjs` (new file untracked), 20/20 after `git add`; `--changed` (sign-in, first-sync, signout-wipe, invites) passed. The user retries on staging once deployed and sends the JSON body if it recurs. At landing: connectors.md's OAuth section (the wrapper). Open: a member with an existing `oauth_consent` gets a code straight from authorize, skipping `/connect`. It left three test client registrations on staging. Slice 51 merged (7bc05133; one conflict in `todayCard.browser.test.tsx`, kept 50's side: the vitals See all is gone): `FilterSheet.tsx` (`ui/Sheet` "Filter entries": Kind, Vital type under vital, Period while searching, "Also on"; Clear keeps `q`; Done), a `button[data-filter-button]` "Filter · N", removable chips in `nav[aria-label="Filters on"]`; `VitalTypeChips` and the "Within a period" menu gone; `phase2.spec.mjs`'s offline kind filter goes through the sheet; `timelineWorld.tsx` helpers `openFilters`/`activeChips`. **Vital types stay single-choice** (`?vital=` holds one; multi would touch filters, `timeline.sync.ts`, `TimelineEntryList`): a follow-up if wanted. At landing, timeline.md's filters bullets. Its `pnpm check` green; `--changed` phase2 passed. All five merged; next: sync, full `pnpm prd check` (a code conflict was resolved), browser checks, land.
 
 **Wave 13 (slices 47–51), written 2026-11-20** in the backlog session from B-184 to B-190. All but 47 are stackless. 47 first: it breaks connecting from claude.ai on staging (production is live too). The user's answers: B-185's "upcoming" is due within about 2 hours; B-187 is a Filter button and `ui/Sheet`, with removable chips for the active filters; B-188 came from claude.ai only (the desktop app worked), on the authorize URL itself. 50 and 51 share the timeline folder but no files.
 
