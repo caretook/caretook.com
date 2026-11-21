@@ -4,7 +4,9 @@
 
 ## Status
 
-**Where it stands:** **wave 4 (slice 6) landed** through PR #31 (Codex clean on 5bdf20d; no check needed, tooling and docs; 503/503 tooling tests; 2026-11-21). Docs folded (planner, backlog, hotfix, AGENTS.md _Working rules_). **The split is done:** `fixes-ui`, `fixes-tooling`, `fixes-perf`, `fixes-bug`, `fixes-nit` added after `quick-fixes` with `standing,hold`; the 26 waiting items moved (B-385, B-386, B-393, filed after the planner's table, went to `fixes-bug` by the rule); `quick-fixes` set `done` (no worktree left). `doctor` shows only the same 6 findings left for the user. Report filed (ask `a3`) and pushed. Earlier: waves 1–3 landed (77c79ca PR #26, e12d774 PR #29); the first rotation worked (fresh session under `prd-orchestration-2` with `--auto`, old process gone).
+**Wave 5 in flight (fresh session, 2026-11-21):** slice 7 started (worktree `orchestration-2-7`, opus agent spawned, B-403 claimed). Main checkout's `dev` still lacks PR #31 (ask `a2` open), so no sync yet. New backlog items B-412–B-415 are app UI, not this topic.
+
+**Where it stood:** **wave 4 (slice 6) landed** through PR #31 (Codex clean on 5bdf20d; no check needed, tooling and docs; 503/503 tooling tests; 2026-11-21). Docs folded (planner, backlog, hotfix, AGENTS.md _Working rules_). **The split is done:** `fixes-ui`, `fixes-tooling`, `fixes-perf`, `fixes-bug`, `fixes-nit` added after `quick-fixes` with `standing,hold`; the 26 waiting items moved (B-385, B-386, B-393, filed after the planner's table, went to `fixes-bug` by the rule); `quick-fixes` set `done` (no worktree left). `doctor` shows only the same 6 findings left for the user. Report filed (ask `a3`) and pushed. Earlier: waves 1–3 landed (77c79ca PR #26, e12d774 PR #29); the first rotation worked (fresh session under `prd-orchestration-2` with `--auto`, old process gone).
 
 **Open: ask `a2`.** After the merge, the main checkout's dev-sync stopped: the user has uncommitted edits there (`prompt.sh`, `prompt.test.mjs`, `orchestrator.md`: Codex findings go to the backlog, reply on every thread; plus two inbox lines). Never touch them. **Fresh session:** `pnpm prd asks`; before slice 7, check the main checkout's `dev` has PR #31 (`git -C <main> log --oneline -3 dev`); if not, the user hasn't run `pnpm prd dev-sync prd/orchestration-2` yet: start slice 7 anyway (it builds on prd/orchestration-2, which has wave 4) and `pnpm prd sync` once dev has it. When their edit lands in dev, follow its Codex rule (findings go to the backlog).
 
@@ -24,6 +26,7 @@
 | 4     | 2    | merged (opus)   | 4c4a76cc (f5d86cc5)                              |
 | 5     | 3    | merged (sonnet) | 1a92480f (00a19c33)                              |
 | 6     | 4    | merged (sonnet) | 41ac39b6 (8522220d, 0b268a4e)                    |
+| 7     | 5    | started (opus)  |                                                  |
 
 **Backlog:** B-389 (the registry) closes with slice 1, B-390 (one session per wave) with slice 4, B-391 (the asks queue) with slice 5, B-395 (fix categories) with slice 6 (done); B-403 with slice 7, B-409 with 8, B-410 with 9 (`pnpm backlog done` when each merges).
 
