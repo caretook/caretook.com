@@ -25,3 +25,9 @@ apps/web/app/components/contact/*        -
 # second device is roundtrip's sync matrix (6b).
 apps/web/app/lib/profiles/conditionNames.ts -
 packages/data/src/db/schema/profiles/recipientCondition.ts roundtrip
+# What a medication is for (conditions slice 4): the For field, the page's
+# For row and a condition's medications are component tests
+# (medications/medicationConditions.browser.test.tsx); a link reaching a
+# second device is roundtrip's sync matrix (6b).
+packages/data/src/db/schema/profiles/medicationCondition.ts roundtrip
+apps/web/app/lib/profiles/profileSheetLink.ts -

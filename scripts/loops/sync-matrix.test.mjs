@@ -2,7 +2,13 @@
 // the device schema and the upload switch: a new synced table must add a row.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { ENTRY_PROVIDER_NAMESPACE, SYNC_MATRIX, entryProviderId } from "../browser-checks/sync-matrix.mjs";
+import {
+  ENTRY_PROVIDER_NAMESPACE,
+  MEDICATION_CONDITION_NAMESPACE,
+  SYNC_MATRIX,
+  entryProviderId,
+  medicationConditionId,
+} from "../browser-checks/sync-matrix.mjs";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 
@@ -51,5 +57,17 @@ describe("the sync matrix", () => {
       "2f4e1d7a-0c3b-4a5e-9d8f-1a2b3c4d5e6f",
     ];
     expect(entryProviderId(entry, provider)).toBe(data.entryProviderId(entry, provider));
+  });
+
+  it("derives a medication's condition link id as packages/data does", async () => {
+    const data = await import("../../packages/data/src/db/schema/profiles/medicationCondition.ts");
+    expect(MEDICATION_CONDITION_NAMESPACE).toBe(data.MEDICATION_CONDITION_NAMESPACE);
+    const [medication, condition] = [
+      "0B6F3C1E-5D1A-4C2E-9A77-3F1D2B8C0002",
+      "2f4e1d7a-0c3b-4a5e-9d8f-1a2b3c4d5e70",
+    ];
+    expect(medicationConditionId(medication, condition)).toBe(
+      data.medicationConditionId(medication, condition),
+    );
   });
 });

@@ -124,6 +124,10 @@ streams:
         SELECT id, group_id, recipient_id, name, status, since_year, since_month, note, diagnosed_by_id,
         deleted_at, created_at, updated_at, created_by, updated_by
         FROM recipient_condition WHERE group_id IN my_groups
+      # What each medication is for: medication ↔ condition links (hard deletes).
+      - >-
+        SELECT id, group_id, medication_id, condition_id, created_at, updated_at, created_by, updated_by
+        FROM medication_condition WHERE group_id IN my_groups
 
   # The recipient's sensitive details (phones, email, address, insurance,
   # outside contacts) for owners, admins and caretakers only: viewers' devices

@@ -2,8 +2,11 @@ import type { ReactNode } from "react";
 import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 
+import { Link } from "react-router";
+import { appUrls } from "~/lib/app-shell/appUrls";
 import { localTimeZone } from "~/lib/core/format";
 import { formatDate, scheduleText, scheduleZoneNote, stoppedText } from "~/lib/medications/medicationDisplay";
+import { PROFILE_SHEET_STATE } from "~/lib/profiles/profileSheetLink";
 
 function Row({ id, label, children }: { id: string; label: string; children: ReactNode }) {
   return (
@@ -18,14 +21,21 @@ const LIST = "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y o
 
 /**
  * What the medication is and how it's taken (schedule, dose, directions,
- * reason, dates), and how and why it stopped. Only what's set is shown.
+ * the conditions it's for, reason, dates), and how and why it stopped. Only
+ * what's set is shown. Each condition opens its sheet over the profile, and
+ * closing it comes back here.
  */
 export function MedicationDetails({
+  groupId,
   medication,
+  conditions,
   passes,
   recipientTimeZone,
 }: {
+  groupId: string;
   medication: LocalMedication;
+  /** The live conditions it's for (conditions slice 4), by name. */
+  conditions: readonly { id: string; name: string }[];
   /** The group's passes, deleted ones too: the schedule reads by pass name. */
   passes: readonly SchedulePass[];
   recipientTimeZone: string | null;
@@ -61,6 +71,23 @@ export function MedicationDetails({
           {medication.directions && (
             <Row id="directions" label="Directions">
               {medication.directions}
+            </Row>
+          )}
+          {conditions.length > 0 && (
+            <Row id="for" label="For">
+              {conditions.map((c, i) => (
+                <span key={c.id}>
+                  {i > 0 && ", "}
+                  <Link
+                    to={appUrls.condition(groupId, c.id)}
+                    state={PROFILE_SHEET_STATE}
+                    className="link"
+                    data-medication-condition={c.id}
+                  >
+                    {c.name}
+                  </Link>
+                </span>
+              ))}
             </Row>
           )}
           {medication.reason && (

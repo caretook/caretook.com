@@ -16,6 +16,7 @@ import {
   ERRORS,
   isError,
   logError,
+  medicationConditionService,
   medicationPassService,
   carePeriodService,
   medicationService,
@@ -733,6 +734,27 @@ const recipientConditionOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Pr
 };
 
 // ---------------------------------------------------------------------------
+// medication_condition: what a medication is for (conditions slice 4). Like
+// timeline_entry_provider: links are added (PUT) and removed (DELETE), never changed.
+// ---------------------------------------------------------------------------
+
+const medicationConditionOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  if (op.op === "PATCH") return readOnly("medication_condition", op.op);
+  if (op.op === "DELETE") {
+    const res = await medicationConditionService.unlink(ctx, op.id);
+    return isError(res) ? res : applied;
+  }
+  const data = op.data ?? {};
+  const res = await medicationConditionService.link(ctx, {
+    id: op.id,
+    groupId: text(data.group_id) ?? "",
+    medicationId: text(data.medication_id) ?? "",
+    conditionId: text(data.condition_id) ?? "",
+  });
+  return isError(res) ? res : applied;
+};
+
+// ---------------------------------------------------------------------------
 // Procedure
 // ---------------------------------------------------------------------------
 
@@ -749,6 +771,7 @@ const HANDLERS: Record<string, (ctx: { authUser: AuthUser }, op: CrudOp) => Prom
   care_period: carePeriodOp,
   task: taskOp,
   recipient_condition: recipientConditionOp,
+  medication_condition: medicationConditionOp,
 };
 
 /**

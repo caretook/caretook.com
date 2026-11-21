@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
+import { found } from "../../../../../test/found";
 import {
   $,
   $$,
@@ -93,7 +94,7 @@ describe("the list", () => {
 
   test("the Discontinued chip shows only Oxybutynin and goes in the URL, which opens filtered; All shows everything again", async () => {
     const device = await open();
-    await userEvent.click(chip("Discontinued"));
+    await userEvent.click(await found(() => chip("Discontinued")));
     await expect.poll(device.location).toBe(`${LIST}?status=discontinued`);
     await expect.poll(() => listNames("Discontinued medications")).toEqual(["Oxybutynin 5 mg"]);
     expect(listNames(CURRENT)).toEqual([]);

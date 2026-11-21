@@ -390,6 +390,29 @@ export const recipientConditions = sqliteTable(
   (t) => [index("recipient_condition_group").on(t.groupId)],
 );
 
+/**
+ * What a medication is for (conditions slice 4): medication ↔ condition
+ * links. The id comes from the pair (`medicationConditionId`); unlinking
+ * deletes the row.
+ */
+export const medicationConditions = sqliteTable(
+  "medication_condition",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    medicationId: text("medication_id"),
+    conditionId: text("condition_id"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [
+    index("medication_condition_medication").on(t.medicationId),
+    index("medication_condition_condition").on(t.conditionId),
+  ],
+);
+
 export const drizzleSchema = {
   careGroups,
   careGroupMembers,
@@ -408,4 +431,5 @@ export const drizzleSchema = {
   carePeriods,
   tasks,
   recipientConditions,
+  medicationConditions,
 };

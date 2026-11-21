@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { LocalCondition } from "~/lib/profiles/conditions.sync";
 
 import { useState } from "react";
@@ -20,11 +21,14 @@ export function ConditionDetails({
   canWrite,
   busy,
   refusal,
+  medications,
   onAction,
   onClose,
 }: {
   groupId: string;
   condition: LocalCondition;
+  /** Its current medications, under the details (conditions slice 4). */
+  medications?: ReactNode;
   canWrite: boolean;
   busy: boolean;
   refusal: string | null;
@@ -53,6 +57,7 @@ export function ConditionDetails({
           </div>
         )}
       </dl>
+      {medications}
       {refusal && (
         <p className="text-error text-sm" role="alert">
           {refusal}

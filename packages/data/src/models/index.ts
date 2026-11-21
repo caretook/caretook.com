@@ -119,3 +119,7 @@ export type * from "./connectorGrant/types";
 import * as recipientConditionModel from "./recipientCondition";
 export { recipientConditionModel };
 export type * from "./recipientCondition/types";
+
+import * as medicationConditionModel from "./medicationCondition";
+export { medicationConditionModel };
+export type * from "./medicationCondition/types";

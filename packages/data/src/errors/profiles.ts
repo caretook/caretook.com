@@ -90,4 +90,20 @@ export const PROFILES_ERRORS = {
   "recipientConditionModel:remove": {
     message: "Failed to delete the condition",
   },
+  "medicationConditionService:invalid": {
+    message: "The medication's condition link is invalid",
+    statusCode: 400,
+  },
+  "medicationConditionService:medicationNotFound": {
+    message: "That medication is gone. It may have been deleted.",
+    statusCode: 404,
+  },
+  "medicationConditionService:conditionNotFound": {
+    message: "That condition is gone. It may have been deleted.",
+    statusCode: 404,
+  },
+  "medicationConditionService:immutable": {
+    message: "A link's medication and condition must be in its care group",
+    statusCode: 400,
+  },
 } as const;

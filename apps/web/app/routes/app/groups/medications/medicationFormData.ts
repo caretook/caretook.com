@@ -33,6 +33,8 @@ export const FIELD = {
   quantity: "quantity",
   refillsLeft: "refillsLeft",
   rxNumber: "rxNumber",
+  /** A chosen condition the medication is for (one hidden field each; conditions slice 4). */
+  conditionId: "conditionId",
 } as const;
 
 /** A pass's amount field: "passAmount:<passId>". */
@@ -62,6 +64,8 @@ export type MedicationFormData = {
   newProviders: NewMedicationProviders;
   /** Where each slot sent came from: a pass's check box, or a time row (blank rows are left out). */
   slotRows: SlotRow[];
+  /** The conditions it's for (written beside the medication: `setMedicationConditions`). */
+  conditionIds: string[];
 };
 
 /** A schedule slot's place in the form. */
@@ -142,6 +146,9 @@ export const medicationFromForm = (form: FormData): MedicationFormData => {
     },
     newProviders,
     slotRows,
+    conditionIds: [
+      ...new Set(form.getAll(FIELD.conditionId).flatMap((v) => (typeof v === "string" && v ? [v] : []))),
+    ],
   };
 };
 
@@ -184,6 +191,7 @@ const SHOWN = new Set([
   "quantity",
   "refillsLeft",
   "rxNumber",
+  "conditionIds",
 ]);
 
 /** Whether the form shows this issue on a field (a time row's or a pass's own issue included). */
