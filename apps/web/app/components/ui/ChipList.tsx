@@ -2,6 +2,7 @@ import type { To } from "react-router";
 
 import { X } from "lucide-react";
 import { Link } from "react-router";
+import { buttonClass } from "./buttonClass";
 
 /**
  * A chip that stands for something (a linked provider): a link to it, or
@@ -57,7 +58,7 @@ export function ChipList({
               aria-label={chip.removeLabel ?? `Remove ${chip.label}`}
               title={chip.removeLabel ?? `Remove ${chip.label}`}
               onClick={chip.onRemove}
-              className="btn btn-ghost btn-circle btn-xs mr-1"
+              className={`${buttonClass({ variant: "ghost", size: "xs", shape: "circle" })} mr-1`}
             >
               <X className="size-3.5" aria-hidden="true" />
             </button>

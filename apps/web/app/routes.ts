@@ -16,7 +16,7 @@ import { plannerRoutes } from "./routes/app/groups/planner/routes";
 import { googleCalendarRoutes } from "./routes/api/google/routes";
 import { accountSettingsRoutes } from "./routes/app/settings/routes";
 import { connectorRoutes } from "./routes/connectors/routes";
-import { notificationRoutes } from "./routes/dev/routes";
+import { devUiRoutes, notificationRoutes } from "./routes/dev/routes";
 import { marketingRoutes } from "./routes/marketing/routes";
 
 // The frame: the `/app` layout, the group layout, the account pages and the
@@ -69,6 +69,7 @@ const webRoutes = [
   ...adminRoutes,
   ...connectorRoutes,
   ...googleCalendarRoutes,
+  ...devUiRoutes,
 ];
 
 // Native-only: the bundled app has no marketing site, so "/" goes straight to /app.
