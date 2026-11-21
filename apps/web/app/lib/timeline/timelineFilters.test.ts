@@ -79,7 +79,7 @@ describe("parseFilters", () => {
   });
 
   it("knows every kind", () => {
-    for (const kind of ["note", "symptom", "event", "vital", "dose", "medicationChange"]) {
+    for (const kind of ["note", "symptom", "event", "vital", "dose", "medicationChange", "conditionChange"]) {
       expect(parseFilters(`?kind=${kind}`).kind).toBe(kind);
     }
   });

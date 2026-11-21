@@ -10,6 +10,7 @@ import type { EntryMedicationRow } from "~/lib/medications/medicationTimeline.sy
 import type { LocalMedication, MedicationRow } from "~/lib/medications/medications.sync";
 import type { LocalProvider, ProviderRow } from "~/lib/providers/providers.sync";
 import type { LocalTask, TaskRow } from "~/lib/tasks/tasks.sync";
+import type { ConditionRow, LocalCondition } from "~/lib/profiles/conditions.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
 import type { EntryProviderLinkRow } from "~/lib/providers/entryProviders";
 
@@ -24,6 +25,7 @@ import { toMedication } from "~/lib/medications/medications.sync";
 import { previewText } from "~/lib/live-notes/notes.sync";
 import { toProvider, windowLinksQuery } from "~/lib/providers/providers.sync";
 import { toTask } from "~/lib/tasks/tasks.sync";
+import { toConditions } from "~/lib/profiles/conditions.sync";
 import { rangeUntilNow } from "~/lib/care-periods/periodSearch";
 import { loadSearchPeriods, searchPeriodRange } from "~/lib/care-periods/periodSearch.sync";
 import { parseSearch, searchGroup, searchIndexStatus } from "~/lib/search/search.sync";
@@ -50,6 +52,7 @@ export type SearchPageData = SearchPageQuery & {
   providers: Record<string, ProviderResult>;
   medications: Record<string, LocalMedication>;
   tasks: Record<string, LocalTask>;
+  conditions: Record<string, LocalCondition>;
   /** The notes' text of the providers, medications and tasks shown (by their id), for snippets. */
   notes: Record<string, string>;
 };
@@ -148,6 +151,14 @@ const readTasks = async (db: SyncDb, groupId: string, ids: string) => {
   return byId(rows.flatMap((row) => toTask(row) ?? []));
 };
 
+const readConditions = async (db: SyncDb, groupId: string, ids: string) => {
+  const rows = await db.powersync.getAll<ConditionRow>(
+    `SELECT * FROM recipient_condition WHERE group_id = ? AND deleted_at IS NULL AND ${inIds("id")}`,
+    [groupId, ids],
+  );
+  return byId(toConditions(rows));
+};
+
 /**
  * The range a search is narrowed to: the period's dates (the current one's
  * up to now), or null for any time. A period that isn't on the track (deleted
@@ -181,6 +192,7 @@ export const loadSearch = async (
     providers: {},
     medications: {},
     tasks: {},
+    conditions: {},
     notes: {},
   };
   if (none.empty || status === "unavailable") return none;
@@ -196,15 +208,22 @@ export const loadSearch = async (
   const ownerIds = JSON.stringify(
     sections.filter((s) => s.type !== "entry").flatMap((s) => s.hits.map((h) => h.id)),
   );
-  const [entries, providers, medications, tasks, notes] = await Promise.all([
+  const [entries, providers, medications, tasks, conditions, notes] = await Promise.all([
     readEntries(db, groupId, idsOf(sections, "entry")),
     readProviders(db, groupId, idsOf(sections, "provider")),
     readMedications(db, groupId, idsOf(sections, "medication")),
     readTasks(db, groupId, idsOf(sections, "task")),
+    readConditions(db, groupId, idsOf(sections, "condition")),
     readNotes(db, groupId, ownerIds),
   ]);
   // An item deleted since it was indexed drops out (the index catches up in a moment).
-  const shown = { entry: entries, provider: providers, medication: medications, task: tasks };
+  const shown = {
+    entry: entries,
+    provider: providers,
+    medication: medications,
+    task: tasks,
+    condition: conditions,
+  };
   return {
     ...none,
     sections: sections.map((s) => ({ ...s, hits: s.hits.filter((h) => h.id in shown[s.type]) })),
@@ -212,6 +231,7 @@ export const loadSearch = async (
     providers,
     medications,
     tasks,
+    conditions,
     notes: Object.fromEntries(notes),
   };
 };

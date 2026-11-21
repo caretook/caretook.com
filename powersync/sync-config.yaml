@@ -45,10 +45,11 @@ streams:
       # `date_of_birth`: the printable medication sheet works offline.
       # The medical basics and `notes` (the note for helpers): every member sees them.
       # `no_known_allergies_at`: "No known allergies" was recorded (medications-2).
+      # `no_known_conditions_at`: "No known conditions" was recorded (conditions).
       - >-
         SELECT id, group_id, name, preferred_name, time_zone, date_of_birth,
         code_status, blood_type, primary_language, pronouns, notes, no_known_allergies_at,
-        created_at, updated_at, created_by, updated_by
+        created_at, updated_at, created_by, updated_by, no_known_conditions_at
         FROM care_recipient WHERE group_id IN my_groups
       # `ends_at`, `all_day`, `place`, the cancel fields and `rescheduled_to`:
       # appointments and reminders (future events and notes).
@@ -118,6 +119,19 @@ streams:
         done_at, done_by, provider_id, medication_id, event_id,
         deleted_at, created_at, updated_at, created_by, updated_by, via
         FROM task WHERE group_id IN my_groups
+      # The recipient's conditions, soft-deleted ones included (so deletes reach devices).
+      - >-
+        SELECT id, group_id, recipient_id, name, status, since_year, since_month, note, diagnosed_by_id,
+        deleted_at, created_at, updated_at, created_by, updated_by
+        FROM recipient_condition WHERE group_id IN my_groups
+      # What each medication is for: medication ↔ condition links (hard deletes).
+      - >-
+        SELECT id, group_id, medication_id, condition_id, created_at, updated_at, created_by, updated_by
+        FROM medication_condition WHERE group_id IN my_groups
+      # Who manages each condition: condition ↔ provider links (hard deletes).
+      - >-
+        SELECT id, group_id, condition_id, provider_id, created_at, updated_at, created_by, updated_by
+        FROM condition_manager WHERE group_id IN my_groups
 
   # The recipient's sensitive details (phones, email, address, insurance,
   # outside contacts) for owners, admins and caretakers only: viewers' devices

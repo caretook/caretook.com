@@ -10,6 +10,7 @@ import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { newMedicationGuard } from "~/lib/medications/medicationSheets";
 import { sessionContext } from "~/lib/auth/session";
 import { createMedication, recipientQuery } from "~/lib/medications/medications.sync";
+import { checkMedicationConditions, setMedicationConditions } from "~/lib/profiles/medicationConditions.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
 import { MedicationForm } from "../MedicationForm";
 import { issuesForSlotRows, medicationFromForm } from "../medicationFormData";
@@ -36,15 +37,19 @@ export async function clientLoader({ request, context }: Route.ClientLoaderArgs)
 
 /**
  * A local write (the medication, its "Started" entry, and a prescriber or
- * pharmacy added with it, in one transaction); the list's live query shows
+ * pharmacy added with it, in one transaction), then the conditions it's for
+ * (checked first, so a refusal saves nothing); the list's live query shows
  * it, and PowerSync uploads it.
  */
 export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<ActionResult> {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
-  const { input, newProviders, slotRows } = medicationFromForm(await request.formData());
+  const { input, newProviders, slotRows, conditionIds } = medicationFromForm(await request.formData());
+  const badConditions = await checkMedicationConditions(db, group.id, conditionIds);
+  if (badConditions) return badConditions;
   const result = await createMedication(db, group.id, input, newProviders);
   if (!result.ok) return { ...result, issues: issuesForSlotRows(result.issues, slotRows) };
+  if (conditionIds.length) return setMedicationConditions(db, result.id, conditionIds);
   return { ok: true };
 }
 
@@ -57,7 +62,7 @@ export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: Should
 export default function NewMedicationSheet({ loaderData, params }: Route.ComponentProps) {
   const close = useCloseMedicationSheet();
   const { search } = useLocation();
-  const { providers, names, passes } = useMedicationFormSources(params.groupId, loaderData);
+  const { providers, names, passes, conditions } = useMedicationFormSources(params.groupId, loaderData);
   const zoneNote = scheduleZoneNote(
     loaderData.recipientTimeZone,
     Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -70,6 +75,7 @@ export default function NewMedicationSheet({ loaderData, params }: Route.Compone
         providers={providers}
         passes={passes}
         names={names}
+        conditions={conditions}
         zoneNote={zoneNote}
         onDone={() => close()}
         onCancel={() => close()}

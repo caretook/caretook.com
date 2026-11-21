@@ -176,6 +176,34 @@
       "when": 1795202528250,
       "tag": "0024_connectors",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795222859136,
+      "tag": "0025_conditions",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795225857398,
+      "tag": "0026_condition_changes",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795229317053,
+      "tag": "0027_medication_conditions",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1795229915796,
+      "tag": "0028_condition_managers",
+      "breakpoints": true
     }
   ]
 }
