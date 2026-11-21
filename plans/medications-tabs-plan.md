@@ -4,10 +4,10 @@
 
 ## Status
 
-| Slice | Wave | State                                                                     | Merge into `prd/medications-tabs` (slice commits) |
-| ----- | ---- | ------------------------------------------------------------------------- | ------------------------------------------------- |
-| 1     | 1    | merged (opus)                                                             | 412e3bbe (a7cb2735)                               |
-| 2     | 2    | started (worktree `.loops/medications-tabs-2`, agent on opus, 2026-11-21) |                                                   |
+| Slice | Wave | State                             | Merge into `prd/medications-tabs` (slice commits) |
+| ----- | ---- | --------------------------------- | ------------------------------------------------- |
+| 1     | 1    | merged (opus)                     | 412e3bbe (a7cb2735)                               |
+| 2     | 2    | merged (opus); syncing with `dev` | 3f8c4d1c (6a02c767)                               |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue`; land each green wave without asking, clean up, ask only real questions).
 
