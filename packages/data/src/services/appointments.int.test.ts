@@ -55,7 +55,7 @@ const setup = async () => {
 };
 
 describe("the future-date rule", () => {
-  it("accepts a future note and event", async () => {
+  it("accepts a future event and refuses a future note (notes are past-only)", async () => {
     const { u, input } = await setup();
     const far = fromNow(60 * 24 * HOUR);
     expect(codeOf(await timelineEntryService.create(u.caretaker.ctx, input({ occurredAt: far })))).toBe("ok");
@@ -66,7 +66,7 @@ describe("the future-date rule", () => {
           input({ kind: "note", title: null, occurredAt: far }),
         ),
       ),
-    ).toBe("ok");
+    ).toBe("timelineEntryService:invalid");
   });
 
   it("refuses a symptom or vital beyond the server's hour of skew, on occurredAt", async () => {
@@ -133,7 +133,7 @@ describe("appointment fields", () => {
 
   it("refuses an end or place on a note, and cancel fields on a symptom", async () => {
     const { u, input } = await setup();
-    const note = input({ kind: "note", title: null });
+    const note = input({ kind: "note", title: null, occurredAt: fromNow(-HOUR) });
     for (const extra of [{ endsAt: fromNow(49 * HOUR) }, { place: "Home" }]) {
       expect(
         codeOf(
@@ -237,7 +237,10 @@ describe("rescheduled to", () => {
     ).toEqual(["rescheduledTo"]);
 
     const note = ok(
-      await timelineEntryService.create(u.caretaker.ctx, input({ kind: "note", title: null })),
+      await timelineEntryService.create(
+        u.caretaker.ctx,
+        input({ kind: "note", title: null, occurredAt: fromNow(-HOUR) }),
+      ),
     )!;
     expect(
       codeOf(

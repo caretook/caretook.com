@@ -1,7 +1,7 @@
-import type { Todo } from "../../db";
+import type { Todo, Tx } from "../../db";
 import type { Filter, QuerySelectArgs } from "../base/queryHelpers";
 
-import { sql } from "drizzle-orm";
+import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { SYSTEM_USER } from "../../constants";
 import { dbMayFail, txOrDb } from "../../db";
 import { todoSchema } from "../../db/schema";
@@ -51,6 +51,26 @@ export const { create } = base;
 /** Deleted todos can't be edited. */
 export const update = (args: Parameters<typeof base.update>[0]) =>
   base.update({ ...args, filter: live(args.filter) });
+
+/**
+ * Bring a soft-deleted todo back with `data`, as the system: a repeating
+ * todo's next occurrence made again after an Undo took it away (todoService
+ * is its only caller). A live or missing todo is left alone.
+ */
+export const restore = async (id: string, data: Partial<Todo>, tx?: Tx) => {
+  const t = todoSchema;
+  const res = await dbMayFail(
+    () =>
+      txOrDb(tx)
+        .update(t)
+        .set({ ...data, deletedAt: null, updatedBy: SYSTEM_USER.id })
+        .where(and(eq(t.id, id), isNotNull(t.deletedAt)))
+        .returning(),
+    "todoModel:restore",
+  );
+  if (isError(res)) return res;
+  return res[0] ?? null;
+};
 
 /**
  * Soft delete: sets `deletedAt`, checked against the table's **delete**

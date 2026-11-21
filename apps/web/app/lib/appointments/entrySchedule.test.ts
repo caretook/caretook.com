@@ -6,6 +6,7 @@ import {
   endError,
   scheduleText,
   scheduleToSave,
+  startError,
   withAllDay,
   withEnd,
   withStart,
@@ -132,5 +133,23 @@ describe("scheduleText", () => {
         where,
       ),
     ).toBe("Monday, Nov 23 · All day");
+  });
+});
+
+describe("startError (a note is past-only)", () => {
+  const now = new Date("2026-11-19T18:30:00.000Z");
+  const at = (ms: number) => ({ ...timed, occurredAt: new Date(now.getTime() + ms).toISOString() });
+
+  it("refuses a note ahead of now plus the device's skew, not an event", () => {
+    expect(startError("note", at(6 * 60_000), now)).toBe("Can't be in the future");
+    expect(startError("note", at(5 * 60_000), now)).toBeNull();
+    expect(startError("note", at(-86_400_000), now)).toBeNull();
+    expect(startError("event", at(86_400_000), now)).toBeNull();
+  });
+
+  it("keeps a note's edit from saving while it's ahead", () => {
+    const far = { ...timed, occurredAt: "2099-01-01T18:30:00.000Z" };
+    expect(scheduleToSave(far, timed, "note")).toBeNull();
+    expect(scheduleToSave(far, timed)).toBe(far);
   });
 });

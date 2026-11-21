@@ -17,8 +17,8 @@ describe("series seeds", () => {
     }
   });
 
-  it("give dialysis Mon, Wed and Fri with no end, twelve PT visits with one moved, and monthly refills", () => {
-    const [dialysis, pt, refills] = groups;
+  it("give dialysis Mon, Wed and Fri with no end, twelve PT visits with one moved", () => {
+    const [dialysis, pt] = groups;
     expect(repeatText({ ...dialysis!.series, startTime: dialysis!.series.startTime ?? null })).toBe(
       "Every Mon, Wed, Fri at 6:00",
     );
@@ -26,9 +26,8 @@ describe("series seeds", () => {
     expect(dialysis!.links.length).toBe(dialysis!.visits.length);
     expect(pt!.visits).toHaveLength(12);
     expect(pt!.visits.filter((v) => v.content.seriesDetached)).toHaveLength(1);
-    expect(refills!.series.kind).toBe("note");
-    expect(refills!.visits.length).toBeGreaterThanOrEqual(2);
-    expect(DEV_FAMILY_SERIES.map((s) => s.key)).toEqual(["dialysis", "pt", "refills"]);
+    expect(DEV_FAMILY_SERIES.map((s) => s.key)).toEqual(["dialysis", "pt"]);
+    expect(DEV_FAMILY_SERIES.every((s) => s.content.kind === "event")).toBe(true);
   });
 
   it("have one visit per series day, ids unique", () => {

@@ -90,16 +90,6 @@ const setup = async () => {
       details: null,
     }),
   )!;
-  const reminder = ok(
-    await timelineEntryService.create(owner.ctx, {
-      groupId: group.id,
-      kind: "note",
-      title: "Order refills",
-      occurredAt: inDays(2),
-      timeZone: LA,
-      details: null,
-    }),
-  )!;
   const todo = ok(
     await todoService.create(owner.ctx, {
       groupId: group.id,
@@ -107,7 +97,7 @@ const setup = async () => {
       dueOn: inDays(3).slice(0, 10),
     }),
   )!;
-  return { owner, caretaker, viewer, group, appointment, reminder, todo };
+  return { owner, caretaker, viewer, group, appointment, todo };
 };
 
 type Member = { ctx: { authUser: { id: string } } };
@@ -159,7 +149,7 @@ describe("pulling", () => {
     const conn = await connect(caretaker, group.id);
     const result = await pull(conn);
     expect(result).toMatchObject({ status: "pulled", applied: 0, overwritten: 0, fullSync: true });
-    expect(result.status === "pulled" && result.ignored).toBe(3);
+    expect(result.status === "pulled" && result.ignored).toBe(2);
     const after = await connectionRow(conn.id);
     expect(after.syncToken).not.toBeNull();
     expect(after.lastPulledAt).not.toBeNull();
@@ -202,25 +192,6 @@ describe("pulling", () => {
     const event = eventOf(conn, uid);
     expect(event.status).toBe("confirmed");
     expect(event.summary).toMatch(/^Cancelled: /);
-  });
-
-  it("removes a reminder deleted in Google, and moves one moved there", async () => {
-    const { owner, group, reminder } = await setup();
-    const conn = await connect(owner, group.id);
-    await pull(conn);
-    const uid = `entry:${reminder.id}`;
-    const start = plusHours(reminder.occurredAt, 1);
-    google.user.move(conn.calendarId, googleEventId(uid), timed(start), timed(plusHours(start, 0.5)));
-    await pull(conn);
-    expect(ms((await entryRow(reminder.id)).occurredAt)).toBe(ms(start));
-
-    google.user.delete(conn.calendarId, googleEventId(uid));
-    expect(await pull(conn)).toMatchObject({ applied: 1 });
-    const row = await entryRow(reminder.id);
-    expect(row.deletedAt).not.toBeNull();
-    expect(row.updatedBy).toBe(owner.user.id);
-    // Gone from Google too, and no longer linked.
-    expect(google.events(conn.calendarId).map((e) => e.privateProperties[UID_PROPERTY])).not.toContain(uid);
   });
 
   it("completes a todo deleted in Google, and moves the due day of one moved there", async () => {
@@ -278,10 +249,10 @@ describe("pulling", () => {
     const tagged = google.event(conn.calendarId, made.id)!;
     expect(tagged.privateProperties[UID_PROPERTY]).toBe(`entry:${entryId}`);
     expect(tagged.summary).toBe("Appointment for Pat Example");
-    expect(google.events(conn.calendarId)).toHaveLength(4);
+    expect(google.events(conn.calendarId)).toHaveLength(3);
     // And it isn't taken in twice.
     expect(await pull(conn)).toMatchObject({ applied: 0 });
-    expect(google.events(conn.calendarId)).toHaveLength(4);
+    expect(google.events(conn.calendarId)).toHaveLength(3);
   });
 
   it("moves a series visit on its own (detached)", async () => {
@@ -350,7 +321,7 @@ describe("what the member can't do", () => {
     expect(row.updatedBy).not.toBe(viewer.user.id);
     expect(ms((eventOf(conn, uid).start as { dateTime: string }).dateTime)).toBe(ms(appointment.occurredAt));
     expect(google.event(conn.calendarId, made.id)!.status).toBe("cancelled");
-    expect(google.events(conn.calendarId)).toHaveLength(3);
+    expect(google.events(conn.calendarId)).toHaveLength(2);
     // The put-back events come back as echoes.
     expect(await pull(conn)).toMatchObject({ applied: 0, overwritten: 0 });
   });

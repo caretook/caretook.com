@@ -92,7 +92,7 @@ const toIso = (value: string) => new Date(value).toISOString();
 const toIsoOrNull = (value: string | null | undefined) => (value ? toIso(value) : null);
 
 /**
- * Only notes and events may be dated in the future. The server allows an
+ * Only events may be dated in the future. The server allows an
  * hour of clock skew (a device allows five minutes): a refused upload is
  * dropped, so a device whose clock runs fast must not lose a real vital.
  */

@@ -194,7 +194,14 @@ describe("migration 0032_todos", () => {
         (
           await client.query("SELECT indexname FROM pg_indexes WHERE tablename = 'todo' ORDER BY indexname")
         ).rows.map((r: { indexname: string }) => r.indexname),
-      ).toEqual(["todo_group_assignee_idx", "todo_group_due_idx", "todo_group_id_id_unique", "todo_pkey"]);
+        // `todo_group_repeat_idx` is 0033_todo_repeats' (planner-2), run after this one.
+      ).toEqual([
+        "todo_group_assignee_idx",
+        "todo_group_due_idx",
+        "todo_group_id_id_unique",
+        "todo_group_repeat_idx",
+        "todo_pkey",
+      ]);
       expect(
         await one(
           "SELECT count(*)::int AS n FROM pg_publication_tables WHERE pubname = 'powersync' AND tablename = 'todo'",
