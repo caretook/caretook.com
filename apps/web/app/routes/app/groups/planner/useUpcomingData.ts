@@ -107,10 +107,13 @@ function useListSupport(
 export function useUpcomingData({
   groupId,
   filters,
+  todosOnly = false,
   initial,
 }: {
   groupId: string;
   filters: EntryFilters;
+  /** Todos only (`?show=todos`): no entries and no due doses. */
+  todosOnly?: boolean;
   initial: UpcomingRows;
 }): UpcomingListData {
   const now = useNow(UPCOMING_TICK_MS);
@@ -126,9 +129,9 @@ export function useUpcomingData({
   const dueDoses = useDueDoses(groupId, initial.dueRows);
   const at = new Date(now);
   const zone = localTimeZone();
-  const shown = support.withPreview(toTimelineEntries(entryRows));
+  const shown = todosOnly ? [] : support.withPreview(toTimelineEntries(entryRows));
   const sections = upcomingSections(shown, at, zone);
-  const doses = showsDoses(filters) ? upcomingDoses(dueDoses.due, dueDoses.passes) : [];
+  const doses = showsDoses(filters) && !todosOnly ? upcomingDoses(dueDoses.due, dueDoses.passes) : [];
   // Open dated todos through Upcoming's last day, live: completing one drops it out.
   const dueTodos = useDueTodos(groupId, dueDoses.timeZone, {
     days: UPCOMING_HORIZON_DAYS,
