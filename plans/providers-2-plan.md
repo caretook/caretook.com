@@ -34,7 +34,7 @@ Slice 4 handed off (pnpm check green; `prd browser --changed` ran ui.spec on a t
 
 **Full check passed** on 0698e829 (510 files, 5217 tests, build budget ok). Served (`pnpm prd serve --restart`, :6473). `--changed --base dev` wants the whole lean set (deps); slice 1 already ran it 12/12 on its branch, so landing runs only the later slices' named checks, once each: roundtrip, live-notes, layout-offline, first-sync, ui.
 
-**Browser checks passed** (load ~28): roundtrip 44 s, live-notes 1m09s, layout-offline 24 s, first-sync 24 s, ui 11 s. Next: `pnpm prd ready`, land, `pnpm prd rm providers-2`.
+**Browser checks passed** (load ~28): roundtrip 44 s, live-notes 1m09s, layout-offline 24 s, first-sync 24 s, ui 11 s. `pnpm prd ready` clean (one warning: dependencies, `pnpm install` in the main checkout). PRD marked done. Landing (run-through mode).
 
 **Docs to fold (slice 1):** live-notes.md: `MENTION_NODE` (attrs `id`, `label`) always in the schema; `noteText` writes `@<label>`; `providers`/`onMention` props; popup keyboard/ARIA (listbox "Providers to mention", focus stays in the editor via `aria-activedescendant`); the two packages in `optimizeDeps`. providers.md (_Linking from notes and events_): a mention on an entry links like the With row (draft first, idempotent); deleting keeps the link; `mentionOptions` keeps linked ones; chip shows the current name, greyed for deleted/unknown.
 
