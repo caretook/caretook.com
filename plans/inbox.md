@@ -10,6 +10,9 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - The today bar on timeline should always be collapsed unless there is something overdue or upcoming. (B-185)
 - vitals section in today block doesn't expand when you click see all, it filters the data instead. It should expand the number of rowsto show all the vitals if there are more than fit, and shouldn't appear if they fit in the container. (B-186)
 - timeline filter interface is overwhelming on mobile and confusing on desktop, especially the vitals subfilters. Maybe move into a "filter" button that opens a modal with the filters. (B-187)
+- when signing up mcp connector, the oauth request just returns json, not the accept flow (B-188)
+- mcp connector for medication change records on the timeline, it isn't providing information about what what kind of change it was (started, stopped, or a new dose), and there are no before-and-after values. (B-189)
+- mcp connector returning truncated notes on doses, and maybe other things (B-190)
 
 ## Change requests
 

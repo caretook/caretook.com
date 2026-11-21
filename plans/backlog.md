@@ -60,7 +60,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
-| B-60 | feature | triaged | appointments-2 |  | Recurring appointments (weekly PT, dialysis three times a week) |
+| B-60 | feature | in-progress | appointments-2 | prd/appointments-2 | Recurring appointments (weekly PT, dialysis three times a week) |
 | B-61 | feature | triaged | appointments-2 |  | Appointment reminders by email and push before the appointment |
 | B-62 | feature | triaged | appointments-2 |  | iCal feed of a care group's upcoming appointments |
 | B-63 | feature | triaged | appointments-2 |  | Google Calendar sync of a care group's appointments |
@@ -105,6 +105,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-185 | bug | triaged | quick-fixes |  | The today bar on timeline should always be collapsed unless there is something overdue or upcoming. |
 | B-186 | bug | triaged | quick-fixes |  | vitals section in today block doesn't expand when you click see all, it filters the data instead.… |
 | B-187 | bug | triaged | quick-fixes |  | timeline filter interface is overwhelming on mobile and confusing on desktop, especially the vitals… |
+| B-188 | bug | triaged | quick-fixes |  | when signing up mcp connector, the oauth request just returns json, not the accept flow |
+| B-189 | bug | triaged | quick-fixes |  | mcp connector for medication change records on the timeline, it isn't providing information about… |
+| B-190 | bug | triaged | quick-fixes |  | mcp connector returning truncated notes on doses, and maybe other things |
 
 ## Items
 
@@ -212,9 +215,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-60 · feature · Recurring appointments (weekly PT, dialysis three times a week)
 
-- status: triaged
+- status: in-progress
 - prd: appointments-2
-- owner:
+- owner: prd/appointments-2
 - commit:
 
 - 2026-11-18 (plan/appointments): Follow-up to the appointments PRD (B-47), decided in its interview 2026-11-18: not in the first PRD.
@@ -701,3 +704,31 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: timeline filter interface is overwhelming on mobile and confusing on desktop, especially the vitals subfilters. Maybe move into a "filter" button that opens a modal with the filters.
 - 2026-11-20 (Robert Bo Davis): Triage: quick-fixes, one slice: a Filter button opening a sheet/dialog with the vitals subfilters inside; promote to its own topic if the design grows
+
+### B-188 · bug · when signing up mcp connector, the oauth request just returns json, not the accept flow
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): Triage: connectors is done, so quick-fixes slices; B-188 breaks connecting on the live site, first
+
+### B-189 · bug · mcp connector for medication change records on the timeline, it isn't providing information about…
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-20 (prd/appointments-2): From the inbox: mcp connector for medication change records on the timeline, it isn't providing information about what what kind of change it was (started, stopped, or a new dose), and there are no before-and-after values.
+- 2026-11-20 (Robert Bo Davis): Triage: connectors is done, so quick-fixes slices; B-188 breaks connecting on the live site, first
+
+### B-190 · bug · mcp connector returning truncated notes on doses, and maybe other things
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-20 (Robert Bo Davis): Triage: connectors is done, so quick-fixes slices; B-188 breaks connecting on the live site, first
