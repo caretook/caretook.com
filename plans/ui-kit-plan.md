@@ -4,19 +4,19 @@
 
 ## Status
 
-| Slice | Wave | State                                                                | Merge into `prd/ui-kit` (slice commits) |
-| ----- | ---- | -------------------------------------------------------------------- | --------------------------------------- |
-| 1     | 1    | started 2026-11-21 (worktree ui-kit-1, agent on opus); items claimed |                                         |
-| 2     | 2    |                                                                      |                                         |
-| 3     | 2    |                                                                      |                                         |
-| 4     | 2    |                                                                      |                                         |
-| 5     | 3    |                                                                      |                                         |
-| 6     | 3    |                                                                      |                                         |
-| 7     | 4    |                                                                      |                                         |
+| Slice | Wave | State                                      | Merge into `prd/ui-kit` (slice commits) |
+| ----- | ---- | ------------------------------------------ | --------------------------------------- |
+| 1     | 1    | merged; items done; worktree removed       | a366522e (f4e2f86c)                     |
+| 2     | 2    | started 2026-11-21 (ui-kit-2, stack, opus) |                                         |
+| 3     | 2    | started 2026-11-21 (ui-kit-3, opus)        |                                         |
+| 4     | 2    | started 2026-11-21 (ui-kit-4, sonnet)      |                                         |
+| 5     | 3    |                                            |                                         |
+| 6     | 3    |                                            |                                         |
+| 7     | 4    |                                            |                                         |
 
 **Landing mode (recorded 2026-11-21): run everything through.** Queued with `pnpm prd queue ui-kit`: start every ready slice, land each green wave through its PR (Codex-reviewed, never `--force`), clean up; ask only real questions.
 
-**Now:** wave 1 running (slice 1). Models: slice 1 opus (design-heavy). Open issues: none.
+**Now:** wave 1 (slice 1) merged, docs folded (components, layout); landing it: sync, quick check, PR, Codex. Wave 2 (slices 2, 3, 4) running from a366522e; its merges wait until wave 1 lands so the PR head stays put. Models: slice 1 opus, 2 opus, 3 opus, 4 sonnet. Open issues: none.
 
 **Start conditions:** none outstanding (`list-filters` and `planner-2` are in `dev`). Never beside `i18n` (it runs alone). `quick-fixes` and `simple-mode` may run beside it; sync between waves.
 

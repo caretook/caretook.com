@@ -38,12 +38,12 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
   app/routes/admin/       web only (staff: users, user, groups, group, access codes, print, new group, waitlist, audit, settings)
   app/routes/marketing/   web only; routes/api/auth.ts, routes/rpc.ts (web only); native-index.tsx
   app/routes/sign-in.tsx, sign-out.tsx; app/routes/account/ (reset-password, verify-email, invite/, AuthCard)
-  app/routes/dev/mail/, app/routes/api/cron/outbox.ts, cron/calendar.ts   web only (the dev mailbox; the outbox sweep; the calendar cron)
+  app/routes/dev/mail/, dev/ui/ (the UI gallery), app/routes/api/cron/outbox.ts, cron/calendar.ts   web only (the dev mailbox; the outbox sweep; the calendar cron)
   app/routes/api/calendar/feed.ts, api/google/, api/reminders/unsubscribe.ts   web only (the iCal feed, Google connect, reminder unsubscribe)
-  app/.server/            data.ts, auth.ts, api.ts, notifications.ts, calendarFeed.ts: the server-only doors
+  app/.server/            data.ts, auth.ts, api.ts, notifications.ts, calendarFeed.ts, devUi.ts: the server-only doors
   app/components/         shared by 2+ routes only, imported through each folder's index: brand/ (LogoMark, Wordmark),
-                          ui/ (primitives: Menu, Sheet, Popover, ConfirmDialog, Field, ChoiceGroup, ChipGroup, UserAvatar,
-                          AvatarStack, IconButton, BackLink), ui/date/ (DateTimeField), entry/ (EntryActions, KindIcon),
+                          ui/ (the primitives, listed in domain/components.md), ui/date/ (DateTimeField), ui/tooltip/,
+                          ui/plain (the light entry), entry/ (EntryActions, KindIcon),
                           groups/ (NewGroupFields),
                           notes/ (LiveNotesEditor, EditorAvatars), providers/ (ContactActions, ProviderTypeIcon),
                           settings/ (SettingsFrame, SettingsPage parts), shell/ (FirstSyncPending),
