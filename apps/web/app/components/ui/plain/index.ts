@@ -10,3 +10,5 @@ export { Button } from "../Button";
 export type { ButtonSize, ButtonVariant } from "../buttonClass";
 export { FormFooter } from "../FormFooter";
 export type { FormFooterCancel } from "../FormFooter";
+export { TabNav } from "../TabNav";
+export type { TabNavTab } from "../TabNav";

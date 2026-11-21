@@ -43,11 +43,12 @@ import * as plannerRoute from "./route";
 // tests; this is what's on the screen.
 
 const MINUTE = 60_000;
-const TAB_BAR = 'nav.dock[aria-label="Group sections"]';
+const TAB_BAR = 'nav[data-tab-bar][aria-label="Group sections"]';
 const HEADER_NAV = '[data-region="sections"] nav[aria-label="Group sections"]';
 const sectionLinks = (nav: string) =>
   [...document.querySelectorAll<HTMLAnchorElement>(`${nav} a`)].map((a) => [
-    a.textContent?.trim(),
+    // The bar's links are icons, named by `aria-label`; the header's by their text.
+    a.getAttribute("aria-label") ?? a.textContent?.trim(),
     a.getAttribute("aria-current"),
   ]);
 /** The Filter button, by its exact name: the menu ("Filter the Planner") and the chips ("Filters on") are named alike. */
