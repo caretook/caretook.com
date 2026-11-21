@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State           | Merge into `prd/appointments-2` (slice commits) |
-| ----- | ---- | --------------- | ----------------------------------------------- |
-| 1     | 1    | merged (opus)   | a589f8fa (716e20cd, 2b37171b)                   |
-| 2     | 2    | merged (opus)   | 20b816d5 (0b254449, 3990c7ec)                   |
-| 3     | 2    | merged (sonnet) | 8b41d9c8 (da53f874, 160c7ee3)                   |
-| 4     | 2    | merged (opus)   | 9f79243e (f2073aaa, 537c6236)                   |
-| 5     | 3    | merged (sonnet) | 6e343bd8 (6c228c9c)                             |
-| 6     | 3    | merged (opus)   | 4d8f9364 (24b03329)                             |
-| 7     | 3    | started (opus)  |                                                 |
-| 8     | 4    | started (sonnet)|                                                 |
-| 9     | 4    | blocked by 2, 7 |                                                 |
-| 10    | 4    | started (opus)  |                                                 |
+| Slice | Wave | State                                            | Merge into `prd/appointments-2` (slice commits) |
+| ----- | ---- | ------------------------------------------------ | ----------------------------------------------- |
+| 1     | 1    | merged (opus)                                    | a589f8fa (716e20cd, 2b37171b)                   |
+| 2     | 2    | merged (opus)                                    | 20b816d5 (0b254449, 3990c7ec)                   |
+| 3     | 2    | merged (sonnet)                                  | 8b41d9c8 (da53f874, 160c7ee3)                   |
+| 4     | 2    | merged (opus)                                    | 9f79243e (f2073aaa, 537c6236)                   |
+| 5     | 3    | merged (sonnet)                                  | 6e343bd8 (6c228c9c)                             |
+| 6     | 3    | merged (opus)                                    | 4d8f9364 (24b03329)                             |
+| 7     | 3    | merged (opus)                                    | ca95085a (b5ea3fef, 91cdc5f2)                   |
+| 8     | 4    | started (sonnet)                                 |                                                 |
+| 9     | 4    | started (opus)                                   |                                                 |
+| 10    | 4    | handed off, merge after 8 and 9 (opus; 4bdf82e8) |                                                 |
 
 **Landing mode (2026-11-20): run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave, clean up; ask only real questions. Per this plan's _Landing_, landing waits until every slice is merged.
 
@@ -36,6 +36,14 @@ Slice 5 merged (6e343bd8); B-62 done (ready).
 **Open issue (not ours):** `packages/api/src/connectors/mcpWrites.int.test.ts` "log vitals, a symptom, a dose and a pass's Given all" fails by time of day: in the evening, its Metformin dose a minute earlier fills the Evening pass, so `give_pass` says "Nothing is left to give in Evening today". No connectors diff on this branch. It will fail `pnpm prd check` in the evening; filed as B-206, a duplicate of B-205; quick-fixes slice 58 fixes it (test-only) and its orchestrator messages us when it lands in dev. Also known on dev: `timelineSimpleTiles.browser.test.tsx` "all four share one row at phone width" fails every run since hotfix/design (76375c07); fixed on prd/quick-fixes (5d1c76b0), lands with its wave 14. Sync both before the landing check, or treat those two as known.
 
 Slice 6 merged (4d8f9364; registry conflicts with slice 5 resolved by keeping both, frozen-list tests pass). Slice 8 now waits only on itself: start it.
+
+Slice 7 merged (ca95085a; 12 additive conflicts with 5 and 6 resolved, incl. `linkToken.ts` = seal.ts + `createHmac` for `linkSubkey`, cron test expects [reminders, googlePush, seriesTopUp], routes.test.ts re-sorted). Wave 3 done. Slice 9 started. Slice 10 handed off; held for plan order (worktree `.loops/appointments-2-10` with a stack).
+
+**Question for the user at landing:** the lean budget. Slice 10's series step adds ~0.9–1.4 s to `roundtrip`; the lean set already sums to exactly the 255 s ceiling, so it'd be 256–257 s. `roundtrip` stays 28 in `scripts/loops/checks` until the landing suite's median; raising the ceiling is the user's call.
+
+**Carried from slice 10's hand-off:** the step is in `roundtrip.spec.mjs`, inside step 5's offline window; drives `series.createSeries` and `series.applySeriesEdit` (scope later on the 3rd visit); logs `series: its steps added N ms`. `apps/web/app/lib/sync/index.ts` gains `series` in `caretookModules` (check builds only). Browser checks it ran: roundtrip, live-notes, first-sync pass. Load flakes seen: `entryRepeat.browser.test.tsx` offline series, `medicationList.browser.test.tsx` Discontinued chip (3/3 alone). Docs: appointments.md tests line (roundtrip covers series); loop.md (roundtrip gains "a series and its split"); wherever `caretookModules` is documented.
+
+**Carried from slice 7's hand-off:** migration `0027_worried_typhoid_mary.sql` (drizzle's name; no hand edits): `google_calendar_connection`, `google_event_link`, `calendar_sync_job`, `google_oauth_state` (a 4th table for state + sealed PKCE). `packages/data/src/google/` (`client.ts`, `real.ts`, `fake.ts` with `user.move/delete/create`, `revokeAccess`, `expireSyncTokens`, `failCalls`; `pushPlan.ts`; `getGoogleCalendarClient`). `googleConnectionService`, `calendarSyncService` (`runDue` with SKIP LOCKED and outbox backoff, `sweep` also queues a daily push). `withTransaction` gains `afterCommit`; `utils/seal.ts`. Scope `calendar.app.created` confirmed (2026-11-20). Cancelled appointments stay visible in Google as "Cancelled: …", free. Provider link changes don't queue a push (daily push catches them). Account deletion doesn't revoke at Google (no deletion flow yet). For slice 9: `listChanges` → `{ events, syncToken }` or `{ fullSyncRequired: true }`; our uid and status in `privateProperties` (`caretookUid`, `caretookStatus`); `eventUid(event)` null for Google-made; `connection.syncToken`, `lastPulledAt` unused yet; its cron step goes after `googlePush`. Smoke test not run against Google. Runbook's Vercel step 5 cron sentence still says "series top-up so far": fix at landing. Docs: calendars.md (client seam, scope, tables, services, push rules, card, `?google=` outcomes); data-layer.md (`afterCommit`, `seal.ts`, personal-access exclusions, 0000–0027); care-groups.md (removal disconnects Google, 4 permission rows); api.md (`calendars.google.*`, the two handlers); notifications.md (`googlePush` step); security-headers.md (Connect is a GET link; no CSP change); layout.md (`packages/data/src/google/`, `routes/api/google/`); runbook (done, except the cron sentence); AGENTS.md stack (the two Google packages).
 
 **Carried from slice 6's hand-off:** `planReminders` in `db/schema/calendars/reminderPlan.ts` (honours overrides already; `reminderLeadLabel`, `reminderSendAt`, `TASK_LEADS` for slice 8's summary). **Deviations:** lookahead 48 h, not 25 h (an evening-before send can be ~31 h ahead); members use the recipient's zone (no member zone exists); task reminders need the assignee's reminders on. `sweepReminders` is the cron's first step, one transaction, `calendars.lastReminderRunAt` locked in `app_setting`. Unsubscribe token HMAC under `linkSubkey(purpose)` of `INVITE_LINK_KEY` (sweep returns `noKey` without it); route `api/reminders/unsubscribe/:token`, GET asks, POST acts. Definitions gain optional `headers` (outbox builds them at send; Resend passes them). Browser checks to run at landing: layout-offline, first-sync. Docs: calendars.md (reminders, sweep, `calendarReminderService`, unsubscribe, card, `reminderChoices.ts`); notifications.md (two notifications, `headers`, `List-Unsubscribe`); care-groups.md (`linkSubkey`); layout.md (`routes/api/reminders/unsubscribe.ts`); components.md tests line (`settings/calendarReminders.browser.test.tsx`).
 
