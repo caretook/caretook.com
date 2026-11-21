@@ -737,6 +737,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-21 (prd/connectors-2): Found by connectors-2's landing check at 3:18 a.m. on 2026-11-21; reproduced alone at low load. Fix: a fixed clock, or times anchored to the start of today.
 - 2026-11-21 (Robert Bo Davis): Also covers B-227 (dropped as its duplicate): timelineSummaries and the minutesAgo(40) day-summary fixtures fail the same way from 00:00 to ~02:30 LA; fix them in the same pass.
+- 2026-11-21 (slice/quick-fixes/61): slice 61: fixed 12:00 test clock in apps/web/test/setup.ts; VITE_TEST_CLOCK overrides
 
 ### B-226 · change · Medications page should be tabbed into Schedule and Medications
 
