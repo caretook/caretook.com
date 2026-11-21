@@ -102,9 +102,6 @@ export const currentLineText = (
   return [nowText(period), where, dayText(day)].filter(Boolean).join(" · ");
 };
 
-/** The open group menu's item: "Now: In hospital · day 4". */
-export const menuNowText = (period: PeriodWords, day: number) => `Now: ${nowText(period)} · ${dayText(day)}`;
-
 // ---------------------------------------------------------------------------
 // Times and days, in the recipient's zone
 // ---------------------------------------------------------------------------
