@@ -10,12 +10,12 @@
 | 2     | 2    | merged                                                                                                                      | `78253c91` (`8723fdff`)                     |
 | 4     | 2    | merged; migration regenerated as `0027_medication_conditions` on slice 2's `0026_condition_changes` (publication line kept) | `8de43671` (`3105e06e`, `fbdf2d7e`)         |
 | 5     | 2    | merged                                                                                                                      | `39ad2ba5` (`ca84af98`)                     |
-| 3     | 3    | in progress (`.loops/conditions-3`, stackless; agent spawned, opus)                                                         |                                             |
-| 6     | 4    | blocked by 2, 3                                                                                                             |                                             |
+| 3     | 3    | merged (migration `0028_condition_managers`)                                                                                | `a6a967f8` (`14043819`)                     |
+| 6     | 4    | in progress (`.loops/conditions-6`, stackless; agent spawned, sonnet)                                                       |                                             |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue conditions`): start every ready slice, land each green wave, clean up; ask only real questions. B-181 claimed 2026-11-20.
 
-**Models:** slice 1 opus; 3 opus (link table, pickers, provider page); 2 opus (timeline kind, migration, search); 4 opus (link table, sync, form); 5 sonnet (print sections).
+**Models:** slice 1 opus; 3 opus (link table, pickers, provider page); 6 sonnet (connector reads, plan spells it out); 2 opus (timeline kind, migration, search); 4 opus (link table, sync, form); 5 sonnet (print sections).
 
 **Open:** quick-fixes wave 13 (`bf0891df`, B-187, B-189/190) synced into `prd/conditions` after slice 1; slices 2 and 6 build on it directly. Slices 2 and 4 each generate the next migration in parallel: whichever merges second regenerates on top (keep its `ALTER PUBLICATION`).
 
@@ -25,13 +25,15 @@
 
 **Docs to fold at landing (slice 4):** medications.md (`medication_condition`, `medicationConditionService`, the op, For field and page row, save order: check, medication, then links; seeds; tests); profiles.md (condition sheet's medications; `PROFILE_SHEET_STATE` in `lib/profiles/profileSheetLink.ts`); sync.md (stream, op: PUT/DELETE, PATCH read-only); care-groups.md (`medicationConditionSchema` row).
 
-**Open issue:** none blocking. B-205 and the stale `timelineSimpleTiles` test are fixed in `dev` (`fa9ad005`, quick-fixes wave 14): `pnpm prd sync` after slice 3 merges, before slice 6 and the landing check.
+**Open issue:** none. `dev` (with `fa9ad005`, the B-205 and tiles fixes) synced after slice 3 merged, clean.
 
 **Browser checks at landing:** slices 1 and 4 name the whole lean set (migration, sync config): run `pnpm prd browser --suite` once at landing — ask the user first (plan: never `--suite` without asking).
 
 **Docs to fold at landing (slice 2):** timeline.md (Condition change kind: system-written, `KIND_META` "Condition change"/`ClipboardPlus`, `conditionChangeText` row, in `TIMELINE_KINDS`/Filter sheet; simple mode's Remove my last entry skips every system-written kind); profiles.md (each write records one entry in its transaction, `conditionChangeId` from id + `updated_at`, details carry `conditionName`, upload passes `updated_at` as `changedAt`); search.md (`conditionSearchDocument`, `condition` type device-only, change entries indexed by names, Conditions section after Medications, `SEARCH_INDEX_VERSION` 3, `recipient_condition` trigger source).
 
 Wave 2 merged and typecheck green on the merge; `dev` synced again after (clean, no migrations).
+
+**Docs to fold at landing (slice 3):** providers.md (provider page Conditions section `ProviderConditions`; shared `ProviderPickerField`/`ProvidersPickerField` in `components/providers`, rules in `lib/providers/providerPicker.ts`); profiles.md (`diagnosed_by_id` check, `condition_manager`, `linkManager`/`unlinkManager`/`setManagers`/`listManagers`, one save = one change entry via `withManagersChange`, pickers, "(removed)", `conditionProviders.sync.ts`, seeds); sync.md (`condition_manager` stream; op: PUT links, PATCH of only `updated_at` = unlink at the save's time, DELETE replays; `diagnosed_by_id` mapped; matrix row); care-groups.md (`conditionManagerSchema` row); components.md (pickers in `components/providers/`).
 
 **Start conditions:** none for slice 1. Slice 2 waits for quick-fixes slice 51 (the timeline's Filter sheet, B-187) to be in `dev`, and slice 6 for quick-fixes slice 48 (the connector's timeline text, B-189 and B-190). Check with `pnpm backlog show B-187` / `B-189` that they've landed, and `pnpm prd sync` before starting either slice. If quick-fixes hasn't landed them, the slice may start and leave its filter or text line to a short follow-up once they do (say so in the hand-off).
 
