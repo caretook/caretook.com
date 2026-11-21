@@ -154,10 +154,9 @@ describe("the header", () => {
     expect(view("Past").getAttribute("href")).toBe(`${PAST_URL}?author=${SAM.id}`);
     expect(tab("Todos").getAttribute("href")).toBe(TODOS_URL);
     await userEvent.click(tab("Todos"));
-    await userEvent.click(
-      page.getByRole("navigation", { name: "Show todos" }).getByRole("link", { name: "Everyone" }),
-    );
-    await expect.poll(() => tab("Todos").getAttribute("href")).toBe(`${TODOS_URL}?who=everyone`);
+    await userEvent.click(page.getByRole("button", { name: /^Filter(, \d+ on)?$/ }));
+    await userEvent.click(page.getByRole("menuitemradio", { name: "Mine", exact: true }));
+    await expect.poll(() => tab("Todos").getAttribute("href")).toBe(`${TODOS_URL}?who=mine`);
     expect(tab("Planner").getAttribute("href")).toBe(PLANNER_URL);
   });
 });

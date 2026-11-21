@@ -55,7 +55,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `i18n` | [PRD](i18n-prd.md), [plan](i18n-plan.md): 11 slices, waves 1 → 2 → (3, 4, 5, 6) → (7, 8, 9, 10) → 11: a per-user language (English and Spanish, AI-drafted, review before launch) in `user.preferences` with a cookie for server rendering; typed catalogs on `i18next` and `react-i18next`; format helpers, error codes and label maps take the language; the app swept area by area; emails, the invite's language, calendar text and the public site at `/es/`; a lint rule against literal text (`eslint-plugin-i18next`, dev). Quick entry is a plain box for non-English users; search matching, the connector and `/admin` stay English (B-209). Slice 8 adds a migration (one nullable invite column); three dependencies approved 2026-11-21; slice 1 needs a stack. **Ready to start** once its start condition holds | `list-filters` (last item B-249), `planner-2` (last item B-248), the current `quick-fixes` wave and `simple-mode` (last item B-221) in `dev`; **runs alone** (tooling-only work beside it) | every user-facing string: all `/app`, sign-in and marketing routes, `components/`, `lib/core/format.ts` and the other format helpers, the label maps in `packages/data` schema, `userPreferences.ts`, `root.tsx`, the service worker, `packages/notifications` templates and registry, the invite schema and service, `calendarText.ts`, ESLint config, `pnpm-workspace.yaml`, `scripts/build/budget.json` |
 | `timeline-ux-2` | [PRD](timeline-ux-2-prd.md), [plan](timeline-ux-2-plan.md): **done** (`f1fc883e`) | — | none now |
 | `quick-entry` | [PRD](quick-entry-prd.md), [plan](quick-entry-plan.md): 4 slices, waves 1 → (2, 3, 4): one vocabulary table of kind-picking words (falls, seizures and the like are symptoms; 911, ER and urgent care are notes; visit verbs make events, contact verbs make notes), provider lines as events (titles, places), "the 25th" and month dates, forward for events and back for past-only kinds; notes that @-mention named providers (`addNote.providerIds`, both runners, the connector's `add_note`); a provider event's Save opens a prefilled new-event draft (mixed lines save the rest with Undo); kind chips on the cards (B-220). No migration, no deps, stackless. **Ready to start** once `timeline-ux-2` and `tasks-2` are in `dev` | `timeline-ux-2` in `dev` (last item B-224); `tasks-2` in `dev` (the to-do rename in actions, `actionPreview`, connector tools; last item B-222) | `packages/data` assistant schema (`quickEntry.ts`, `quickEntryTime.ts`, the new `quickEntryVocabulary.ts`, `assistantActions.ts`, `quickEntryPreview.ts`), `noteYjs.ts` (`noteDocFromText`), `assistantActionService`, the connector's `add_note`, `lib/assistant/` (`quickEntry.sync.ts`, `quickEntryDraft.ts`, `openAfterSave`), `components/quick-entry/` (`useQuickEntry`, `quickEntryCards.ts`, the card), the entry page's new-event draft |
-| `planner-2` | [PRD](planner-2-prd.md), [plan](planner-2-plan.md): 7 slices, waves (1, 2) → (3, 4, 5, 6, 7): notes become past-only and reminders go (the rule, series are events only, the Planner, Today card and simple Next, the calendar projection's reminder kind, quick entry's future note becomes a todo, the connector's `upcoming` lists appointments and dated todos and `add_note` refuses a future time); todos can repeat (one open todo, the next made on tick; the form only) (B-248). Slice 2 adds a migration (three nullable `todo` columns); no deps; no data migration (staging is reseeded). **Ready to start**: `quick-entry` is in `dev` | `quick-entry` in `dev` (done); slice 3 waits for B-247 in `dev` (`quick-fixes`: the Planner's Upcoming / Past toggle); not alongside `list-filters` slice 4 (the Planner's filter row) | `entryTiming.ts`, `timelineEntryService`, the series service, `timeline.sync.ts`; the `todo` schema, `todoService`, `todos.sync.ts`, `todoOp`; `routes/app/groups/planner/`, `lib/appointments/upcoming*.ts`, the Today card and `SimpleNext`; `db/schema/calendars/` and the calendar services; `lib/assistant/` and the assistant schema; the todo form, list and page; `packages/api/src/connectors/`; seeds |
+| `planner-2` | [PRD](planner-2-prd.md), [plan](planner-2-plan.md): 7 slices, waves (1, 2) → (3, 4, 5, 6, 7): notes become past-only and reminders go (the rule, series are events only, the Planner, Today card and simple Next, the calendar projection's reminder kind, quick entry's future note becomes a todo, the connector's `upcoming` lists appointments and dated todos and `add_note` refuses a future time); todos can repeat (one open todo, the next made on tick; the form only) (B-248). Slice 2 adds a migration (three nullable `todo` columns); no deps; no data migration (staging is reseeded). **Running** (wave 1). Added 2026-11-21 at the user's word, as two wave 2 slices: the Planner's tabs on `TabNav`, the Upcoming \| Past toggle and its Filter menu (B-247, B-251, B-284), then the Planner without due doses and passes (B-246) | `quick-entry` in `dev` (done); slice 3 waits for its own new slice (B-247), no longer for `quick-fixes` | `entryTiming.ts`, `timelineEntryService`, the series service, `timeline.sync.ts`; the `todo` schema, `todoService`, `todos.sync.ts`, `todoOp`; `routes/app/groups/planner/`, `lib/appointments/upcoming*.ts`, the Today card and `SimpleNext`; `db/schema/calendars/` and the calendar services; `lib/assistant/` and the assistant schema; the todo form, list and page; `packages/api/src/connectors/`; seeds |
 | `planner-3` | to write (B-245: a note can carry a todo with its own due day and assignee, the replacement for reminders; B-254: quick entry reads a repeating todo) | `planner-2` in `dev` (last item B-248) | the note editor and entry page, `todoService` and the todo schema (a link to its note), the Planner's todo rows, the Today card, the connector's `add_note` and `add_todo`; quick entry (B-254) |
 | `connectors-3` | to write (B-252: a connector tool to read the dosing schedule beyond today; B-253: `add_todo` can make a repeating todo) | B-253 after `planner-2` in `dev` (last item B-248); B-252 has none | `packages/api/src/connectors/tools/` (`todaysDoses.ts` or a new schedule tool, `writes.ts`), the server instructions |
 | `simple-mode` | [PRD](simple-mode-prd.md), [plan](simple-mode-plan.md): 4 slices, one per wave (1 → 2 → 3 → 4): the lock becomes two member roles, Easy helper (log-only, own entries, own todos) and Easy viewer; "simple" is renamed "easy" everywhere, database included; the role decides the view; the Planner, todo pages and search open for the easy roles (B-221, B-236). Migrations in slices 1, 2 and 3; sync config changes. **Ready to start** once its start condition holds | `list-filters` (last item B-249), `planner-2` (last item B-248) and the current `quick-fixes` wave in `dev` (slice 1 renames files they touch) | slice 1: every `simple*` file (`lib/assistant/simpleMode*`, `SimpleTimeline` and its blocks, quick entry, `TodoTick`, the `/app` layout), `sync-config.yaml`, the device schema; slice 2: `constants/roles.ts`, `permissions/` (blocks, types, timeline, todos, live-notes, connectors), `todoService`, the upload switch, `groupContext.ts`, the role picker; slice 3: group settings Members, `careGroupMemberService`, `useSimpleFrame`; slice 4: the Planner and todo routes, the search route |
@@ -149,12 +149,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-243 | bug | staging | hosting |  | don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of… |
 | B-244 | chore | triaged | github-review |  | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
 | B-245 | plan | triaged | planner-3 |  | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
-| B-246 | change | triaged | quick-fixes |  | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
-| B-247 | change | triaged | quick-fixes |  | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
+| B-246 | change | triaged | planner-2 |  | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
+| B-247 | change | in-progress | planner-2 | prd/planner-2 | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
 | B-248 | change | in-progress | planner-2 | prd/planner-2 | Remove reminders: notes can no longer be dated in the future; use todos instead |
 | B-249 | change | ready | list-filters | prd/list-filters | Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner |
 | B-250 | bug | landed | quick-fixes |  | lint tests seem to be failing regularly because types haven't been generated. Maybe regression… |
-| B-251 | bug | triaged | quick-fixes |  | convert planner tabs to TabNav component. |
+| B-251 | bug | in-progress | planner-2 | prd/planner-2 | convert planner tabs to TabNav component. |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-254 | feature | triaged | planner-3 |  | Quick entry: 'bins out every monday' makes a repeating todo |
@@ -187,7 +187,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-281 | chore | triaged | test-health |  | Component tests: cut duplicates and brittle layout assertions; frame, harness and primitive tests use a probe route, not the timeline |
 | B-282 | chore | triaged | test-health |  | Playwright specs: move one-device and no-browser steps out (marketing first), remove fixed sleeps, merge signout-wipe into session-end |
 | B-283 | chore | triaged | test-health |  | Server tests: shared fixtures (createWorld, a sync and MCP test helper) and trim rules re-tested through sync upload and the connector; first move the member matrix and condition refusals down to the data layer |
-| B-284 | change | triaged | quick-fixes |  | Planner: move the All / Events / Todos filter under the shared Filter dropdown (FilterMenu), after B-247's Upcoming \| Past toggle |
+| B-284 | change | in-progress | planner-2 | prd/planner-2 | Planner: move the All / Events / Todos filter under the shared Filter dropdown (FilterMenu), after B-247's Upcoming \| Past toggle |
 | B-285 | bug | triaged | sync-safety |  | Server-refused sync changes vanish with only a console.warn: keep refused ops in a local table and show them with the server's reason |
 | B-286 | bug | triaged | sync-safety |  | A repeatable 5xx from sync.upload blocks a device's upload queue forever: no retry cap, and the sync indicator never shows uploadError or the queue length |
 | B-287 | bug | triaged | sync-safety |  | Offline medication and provider edits re-send unchanged JSON columns (schedule, phones), reverting a co-member's newer change |
@@ -284,6 +284,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-378 | chore | triaged | i18n |  | File the translations PRD's promised follow-ups: Spanish quick entry, language-aware search, a human review of the Spanish; and note 48 hard-coded 'en-US' formatters and English messages in schemas and the errors catalogue |
 | B-379 | chore | triaged | quick-fixes |  | Later contract migrations nobody tracks: dropping the old columns the simple-mode and planner-2 PRDs leave behind, and medications-2's default-passes backfill |
 | B-380 | chore | triaged | quick-fixes |  | Backlog hygiene: B-205 and B-206 are the same test failure; B-208 is tagged simple-mode but landed as a hotfix; B-88 is landed with no commit; B-222's title and inbox line disagree; about 150 items read 'live' from one release merge though production hasn't started |
+| B-381 | bug | triaged | quick-fixes |  | readTools.int.test.ts 'nothing private leaves' flakes when a random user UUID contains the birth year (e.g. …072194195bed matches '1941'): assert on fields, not a substring of the whole output |
 
 ## Items
 
@@ -1105,21 +1106,23 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-246 · change · Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab)
 
 - status: triaged
-- prd: quick-fixes
+- prd: planner-2
 - owner:
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21, agreed with the user: the Planner is for appointments and todos. Drop withDueDoses, UpcomingDoseRow and the pass rows from the Planner (lib/appointments/upcomingDoses.ts, plannerPasses tests); check whether the connector's upcoming tool lists doses and say so before changing it. UI only.
+- 2026-11-21 (plan/planner-tabs): Backlog session 2026-11-21, at the user's word: moved from quick-fixes into planner-2 as new wave 2 slices (B-247, B-251 and B-284 in one slice that reworks the Planner's header and filter row once, before slice 3; B-246 in its own slice), so planner-2's slice 3 no longer waits on another PRD. The planner-2 orchestrator appends the slices to its plan. Upcoming | Past is two link chips; no further design of the filter look.
 
 ### B-247 · change · Planner: Past becomes an 'Upcoming | Past' toggle inside the Planner tab instead of its own tab
 
-- status: triaged
-- prd: quick-fixes
-- owner:
+- status: in-progress
+- prd: planner-2
+- owner: prd/planner-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21, agreed with the user: keep the /planner/past route and URL (Back, deep links, sheets closing back), drop Past from PlannerHeader's tab nav, add a two-option control of links in the filter row with the Planner tab active on both; Past stays events only (done todos stay under Todos). UI only.
 - 2026-11-21 (Robert Bo Davis): Also, at the user's request (2026-11-21): the Planner tab's filter chips become All, Events, Todos (today All, Appointments, Reminders, with todos hidden under any chip). Events is ?kind=event; Todos is a new todos-only filter (not a timeline kind: upcomingFilters, showsTodos in lib/todos/plannerTodos.ts, useUpcomingData, PlannerFilterChips, the empty text). The Reminders chip goes; until B-248 removes reminders they show only under All. Rework the filter row once, with the Upcoming | Past control.
+- 2026-11-21 (plan/planner-tabs): Backlog session 2026-11-21, at the user's word: moved from quick-fixes into planner-2 as new wave 2 slices (B-247, B-251 and B-284 in one slice that reworks the Planner's header and filter row once, before slice 3; B-246 in its own slice), so planner-2's slice 3 no longer waits on another PRD. The planner-2 orchestrator appends the slices to its plan. Upcoming | Past is two link chips; no further design of the filter look.
 
 ### B-248 · change · Remove reminders: notes can no longer be dated in the future; use todos instead
 
@@ -1154,12 +1157,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-251 · bug · convert planner tabs to TabNav component.
 
-- status: triaged
-- prd: quick-fixes
-- owner:
+- status: in-progress
+- prd: planner-2
+- owner: prd/planner-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Triage: small UI change next to the other Planner tab items (B-246, B-247) in quick-fixes; do it with or after B-247, which changes the same tabs.
+- 2026-11-21 (plan/planner-tabs): Backlog session 2026-11-21, at the user's word: moved from quick-fixes into planner-2 as new wave 2 slices (B-247, B-251 and B-284 in one slice that reworks the Planner's header and filter row once, before slice 3; B-246 in its own slice), so planner-2's slice 3 no longer waits on another PRD. The planner-2 orchestrator appends the slices to its plan. Upcoming | Past is two link chips; no further design of the filter look.
 
 ### B-252 · feature · Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming
 
@@ -1465,12 +1469,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-284 · change · Planner: move the All / Events / Todos filter under the shared Filter dropdown (FilterMenu), after B-247's Upcoming | Past toggle
 
-- status: triaged
-- prd: quick-fixes
-- owner:
+- status: in-progress
+- prd: planner-2
+- owner: prd/planner-2
 - commit:
 
 - 2026-11-21 (prd/list-filters): From list-filters slice 4 (B-249), split out on the user's word 2026-11-21 because B-247 isn't scheduled. Do after B-247 lands. Spec: plans/list-filters-plan.md, Slice 4 (until that PRD is removed, then git history at prd/list-filters). Keep Upcoming | Past visible; one FilterMenu section 'Show' (All, Events, Todos; default All) at the row's right end with FilterMenuChips beneath; the author filter ('By Ann') passed as an extra chip (not counted); Past shows no button, only the author chip when on. planner.browser.test.tsx's 'the tabs carry what each reads' test already uses the Todos tab's Filter menu. Also overlaps planner-2 (B-248).
+- 2026-11-21 (plan/planner-tabs): Backlog session 2026-11-21, at the user's word: moved from quick-fixes into planner-2 as new wave 2 slices (B-247, B-251 and B-284 in one slice that reworks the Planner's header and filter row once, before slice 3; B-246 in its own slice), so planner-2's slice 3 no longer waits on another PRD. The planner-2 orchestrator appends the slices to its plan. Upcoming | Past is two link chips; no further design of the filter look.
 
 ### B-285 · bug · Server-refused sync changes vanish with only a console.warn: keep refused ops in a local table and show them with the server's reason
 
@@ -2335,3 +2340,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. B-247 (Planner Upcoming | Past toggle) is triaged and unowned yet gates list-filters slice 4 and planner-2 slice 3.
+
+### B-381 · bug · readTools.int.test.ts 'nothing private leaves' flakes when a random user UUID contains the birth year (e.g. …072194195bed matches '1941'): assert on fields, not a substring of the whole output
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-21 (prd/planner-2): Seen by planner-2 slice 1's full check (2026-11-21); passed on rerun.

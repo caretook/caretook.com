@@ -1,5 +1,7 @@
 # PRD: List filters under one Filter dropdown
 
+**Done** (2026-11-21): the medications list, providers directory and Todos tab (with B-255, Everyone by default). The Planner part is B-284, with B-247, in planner-2. Decisions live in the components, medications, providers and todos docs.
+
 Backlog: B-249 (collapse list filters under a shared Filter dropdown: medications list, providers directory, todos, Planner). Topic `list-filters`. It replaces the planned `medications-4`: B-213 (the Schedule's layout) was resolved by the tab split (B-226).
 
 ## Problem Statement
