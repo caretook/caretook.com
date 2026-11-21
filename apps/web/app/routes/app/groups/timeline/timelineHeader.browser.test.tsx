@@ -144,7 +144,7 @@ describe("the Today card's vitals", () => {
     return !!s && s.getBoundingClientRect().height > 0 && s.checkVisibility();
   };
 
-  test("show at every width: 420 and 1280 (opened: nothing needs attention, so it starts collapsed)", async () => {
+  test("show at every width: 420 and 1280 (opened: the card starts collapsed)", async () => {
     await openTimeline({ width: 420 });
     await ready();
     const toggle = await found(() =>
