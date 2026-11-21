@@ -76,6 +76,10 @@ export type LiveEntry = {
   ensureStored: () => Promise<boolean>;
   /** The last failed write's message, cleared by the next one that works. */
   saveError: string | null;
+  /** A draft's providers, linked once it's saved (empty once it is). */
+  pendingProviders: readonly string[];
+  /** Drops one of a draft's providers before it's saved. */
+  dropProvider: (providerId: string) => void;
   /** A new entry's repeat, chosen but not saved yet (a draft saves it as a series); null for none. */
   repeat: { choice: RepeatChoice; rule: string } | null;
   /**
@@ -123,11 +127,14 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
   const saved = useRef(!isNew && data.hasDocument);
   const titleRef = useRef(draft.title ?? "");
   // A time (or place) picked on a draft is what it's saved with.
-  const initialSchedule: Schedule = { occurredAt: draft.occurredAt, endsAt: null, allDay: false };
+  const initialSchedule: Schedule = { occurredAt: draft.occurredAt, endsAt: null, allDay: draft.allDay };
   const [draftSchedule, setDraftSchedule] = useState(initialSchedule);
   const scheduleRef = useRef(initialSchedule);
-  const [draftPlace, setDraftPlace] = useState<string | null>(null);
-  const placeRef = useRef<string | null>(null);
+  const [draftPlace, setDraftPlace] = useState<string | null>(draft.place);
+  const placeRef = useRef<string | null>(draft.place);
+  // The providers a draft is linked to once it's saved (`?provider=`, quick entry's); a writer can drop one first.
+  const [withProviders, setWithProviders] = useState(data.withProviders);
+  const providersRef = useRef(data.withProviders);
   const saving = useRef<Promise<boolean> | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   // A repeat picked on a draft: the draft is saved as a series, and becomes its first visit.
@@ -151,12 +158,12 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
           ...timing,
           title: savedTitle(draft.kind, from.title ?? ""),
           place: draft.kind === "event" ? from.place : null,
-          providerIds: data.withProvider ? [data.withProvider] : [],
+          providerIds: providersRef.current,
         },
         { firstVisit: draft.id },
       );
     },
-    [draft, groupId, recipient, data.withProvider],
+    [draft, groupId, recipient],
   );
 
   const save = useCallback((): Promise<boolean> => {
@@ -200,9 +207,9 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
       }
       setSaveError(null);
       saved.current = true;
-      // A new appointment from a provider's page is with them.
-      if (data.withProvider) {
-        const linked = await linkProvider(getSync(), draft.id, data.withProvider);
+      // A new appointment from a provider's page (or quick entry) is with them.
+      for (const providerId of providersRef.current) {
+        const linked = await linkProvider(getSync(), draft.id, providerId);
         if (!linked.ok) setSaveError(linked.error);
       }
       // Back from here goes to the timeline, and the link is the entry's own.
@@ -210,7 +217,7 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
       return true;
     })();
     return saving.current;
-  }, [draft, groupId, isNew, navigate, data.withProvider, startSeries]);
+  }, [draft, groupId, isNew, navigate, startSeries]);
 
   // The editor asks on each local change until this says it's saved.
   const ensureSaved = useCallback(
@@ -276,9 +283,9 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
     scheduleRef.current = next;
     setDraftSchedule(next);
     // Picking a time alone never saves a draft, unless it's an appointment
-    // with a provider (from their page): then it's ready to prepare.
+    // with a provider (from their page or quick entry): then it's ready to prepare.
     if (isNew && !saved.current) {
-      if (data.withProvider) void save();
+      if (providersRef.current.length) void save();
       return;
     }
     const { occurredAt, allDay, endsAt } = next;
@@ -311,6 +318,11 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
     }
     repeatRef.current = rule;
     setRepeat(rule ? { choice, rule } : null);
+  };
+
+  const dropProvider = (providerId: string) => {
+    providersRef.current = providersRef.current.filter((id) => id !== providerId);
+    setWithProviders(providersRef.current);
   };
 
   const remove = async () => {
@@ -351,6 +363,8 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
     remove,
     ensureStored: save,
     saveError,
+    pendingProviders: live ? [] : withProviders,
+    dropProvider,
     repeat,
     applyRepeat,
     scopeAsked: !!scopeAsk,

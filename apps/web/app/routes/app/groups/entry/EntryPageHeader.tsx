@@ -162,6 +162,8 @@ export function EntryPageHeader({
               canWrite={canWrite}
               title={currentTitle}
               ensureStored={live.ensureStored}
+              pending={live.pendingProviders}
+              onDropPending={live.dropProvider}
             />
           )
         }

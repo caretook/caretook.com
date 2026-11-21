@@ -2,8 +2,8 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { LiveNotesEditorHandle } from "~/components/notes";
 
-import { useRef, useState } from "react";
-import { Link } from "react-router";
+import { useMemo, useRef, useState } from "react";
+import { Link, useLocation } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { LinkedTodos } from "~/components/todos";
 import { BackLink } from "~/components/ui";
@@ -15,11 +15,12 @@ import { getGroup } from "~/lib/app-shell/group";
 import { NEW_ENTRY } from "~/lib/live-notes/liveEntry";
 import { sessionContext } from "~/lib/auth/session";
 import { getSync } from "~/lib/sync";
+import { eventDraftFrom } from "~/lib/assistant/quickEntryDraft";
 import { EntryCancelledBanner } from "./EntryCancelledBanner";
 import { EntryPageHeader } from "./EntryPageHeader";
 import { EntryPrintView } from "./EntryPrintView";
 import { EntryVisitPrep } from "./EntryVisitPrep";
-import { entryHeading, titleState } from "./entryPage";
+import { entryHeading, titleState, withEventDraft } from "./entryPage";
 import { loadEntry } from "./loadEntry";
 import { useEntryMentions } from "./useEntryMentions";
 import { useEntryPrint, usePrintOnOpen } from "./useEntryPrint";
@@ -71,8 +72,12 @@ export default function Entry(props: Route.ComponentProps) {
   return <EntryPage key={props.loaderData.entry.id} {...props} />;
 }
 
-function EntryPage({ loaderData, params }: Route.ComponentProps) {
+function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
   const { groupId } = params;
+  // A new event opened from quick entry starts from its draft (history state, read once).
+  const location = useLocation();
+  const [eventDraft] = useState(() => eventDraftFrom(location.state as unknown));
+  const loaderData = useMemo(() => withEventDraft(loaded, eventDraft), [loaded, eventDraft]);
   const live = useLiveEntry(loaderData, groupId);
   const { entry, canWrite, deleted, saveError } = live;
   // Read once: after sign-out closes the database, this page may render once more before it goes.
