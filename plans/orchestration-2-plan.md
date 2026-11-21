@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** **wave 1 landed** in `dev` (77c79ca, PR #26, Codex clean after one fix, 0bc6ff1c; 2026-11-21). After it: the table is migrated and set (flags, `After`, `Hot files`; `doctor` leaves 6 findings for the user: B-196 on done connectors-2, B-239–B-242 and B-244 on done github-review); check-speed and quick-fixes were told to edit it only with `pnpm backlog prd`. The opener try: `--background` kept the selected tab (same session id before and after) but first failed to write the command (an AppleScript variable named `title`); fixed in 86afe808 (goes out with the next PR), and the retry ran the command and the tab closed. **Next:** slices 4–6 wait for check-speed's wave 2 (B-272, B-278) in `dev`; `check-speed-28` will message, and a background check watches `dev`. For slice 4: find the pid to end with `node scripts/loops/sessions.mjs self`, set `rotating` with `sessions.mjs set <name> rotating=true`, open the tab with `open-session.sh --command <line> --title <t> --background`.
+**Where it stands:** **wave 1 landed** in `dev` (77c79ca, PR #26, Codex clean after one fix, 0bc6ff1c; 2026-11-21). After it: the table is migrated and set (flags, `After`, `Hot files`; `doctor` leaves 6 findings for the user: B-196 on done connectors-2, B-239–B-242 and B-244 on done github-review); check-speed and quick-fixes were told to edit it only with `pnpm backlog prd`. The opener try: `--background` kept the selected tab (same session id before and after) but first failed to write the command (an AppleScript variable named `title`); fixed in 86afe808 (goes out with the next PR), and the retry ran the command and the tab closed. **check-speed is done** (wave 2 in `dev` as dea0b70, PR #27; synced in 5c6ef58f). **Wave 2 started:** slice 4 has a worktree and an agent (opus). For slice 4: find the pid to end with `node scripts/loops/sessions.mjs self`, set `rotating` with `sessions.mjs set <name> rotating=true`, open the tab with `open-session.sh --command <line> --title <t> --background`.
 
 **B-403** (the cleanup run) is slice 7 (wave 5, after 6), added at the wave 1 boundary; scheduling past `/loop` stays with `orchestration-3`.
 
@@ -12,14 +12,14 @@
 
 **Models:** slices 1, 2, 3 opus (new modules and design), 4 opus, 5 sonnet, 6 sonnet (mechanical) — the plan gives no model, these are the handbook's _Models_.
 
-| Slice | Wave | State         | Merge into `prd/orchestration-2` (slice commits) |
-| ----- | ---- | ------------- | ------------------------------------------------ |
-| 1     | 1    | merged (opus) | 3ba1e77b (9e722505)                              |
-| 2     | 1    | merged (opus) | a0e66284 (c99d30c2)                              |
-| 3     | 1    | merged (opus) | dda72b54 (84cdb649)                              |
-| 4     | 2    | not started   |                                                  |
-| 5     | 3    | not started   |                                                  |
-| 6     | 4    | not started   |                                                  |
+| Slice | Wave | State                                | Merge into `prd/orchestration-2` (slice commits) |
+| ----- | ---- | ------------------------------------ | ------------------------------------------------ |
+| 1     | 1    | merged (opus)                        | 3ba1e77b (9e722505)                              |
+| 2     | 1    | merged (opus)                        | a0e66284 (c99d30c2)                              |
+| 3     | 1    | merged (opus)                        | dda72b54 (84cdb649)                              |
+| 4     | 2    | started: worktree made, agent (opus) |                                                  |
+| 5     | 3    | not started                          |                                                  |
+| 6     | 4    | not started                          |                                                  |
 
 **Backlog:** B-389 (the registry) closes with slice 1, B-390 (one session per wave) with slice 4, B-391 (the asks queue) with slice 5, B-395 (fix categories) with slice 6 and the split after it (`pnpm backlog done` when each merges).
 
