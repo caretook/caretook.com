@@ -308,6 +308,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-398 | change | triaged | ui-kit-2 |  | Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame |
 | B-399 | bug | triaged | ui-kit |  | Bottom menu on mobile need a better deign. I like floating menus. It needs to be a different bg… |
 | B-400 | change | triaged | simple-mode |  | Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the… |
+| B-401 | bug | triaged | check-speed |  | check-run.sh's load reading can carry a blank line on Linux (sysctl fails under pipefail before the uptime fallback), splitting a check-times.log record across lines; normalise it to one number |
+| B-402 | bug | triaged | check-speed |  | pnpm test:tooling runs only tooling:unit, so a tooling-only change to checks.mjs, check-areas.mjs, sync-matrix or check-times.mjs passes the docs-and-tooling gate without its own tests (they live in scripts:unit) |
 
 ## Items
 
@@ -2585,3 +2587,21 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the header on the full app header to match simple mode.
 - 2026-11-21 (Robert Bo Davis): Triage: proposed simple-mode. The Easy Mode toggle moves from the timeline's view (eyeball) menu into the full app header, matching the easy view's header. simple-mode slice 1 renames every simple* file and the role decides the view, so this goes inside or right after that PRD, not beside it. The PRD is written and not run: add it as a slice before starting. For the user's review.
+
+### B-401 · bug · check-run.sh's load reading can carry a blank line on Linux (sysctl fails under pipefail before the uptime fallback), splitting a check-times.log record across lines; normalise it to one number
+
+- status: triaged
+- prd: check-speed
+- owner:
+- commit:
+
+- 2026-11-21 (prd/check-speed): Codex on PR #24 (check-speed wave 1, thread PRRT_kwDOVx-WLM66cJ0Q). macOS (our machine) reads sysctl fine, so no record is broken today. Fix: load5 filters blank lines and keeps one numeric field; a test with a failing sysctl stub.
+
+### B-402 · bug · pnpm test:tooling runs only tooling:unit, so a tooling-only change to checks.mjs, check-areas.mjs, sync-matrix or check-times.mjs passes the docs-and-tooling gate without its own tests (they live in scripts:unit)
+
+- status: triaged
+- prd: check-speed
+- owner:
+- commit:
+
+- 2026-11-21 (prd/check-speed): Codex on PR #24 (check-speed wave 1, thread PRRT_kwDOVx-WLM66cJ0S). Fix: test:tooling runs --project tooling:unit --project scripts:unit (scripts:unit takes ~1 s), or check-plan's tooling join adds it.

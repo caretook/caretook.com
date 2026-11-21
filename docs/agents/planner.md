@@ -24,9 +24,9 @@ Ask only when a wrong guess is costly to undo or the choice is the user's alone,
 - **Existing data:** deleting it, or changing what it means.
 - **Compliance:** consent, a vendor that sees health data, retention (AGENTS.md, _Compliance_).
 - **A new dependency or paid service.**
-- **Product direction:** removing or renaming something users know, or two designs that give users a different product, where you can't pick with confidence.
+- **Product direction:** removing or renaming a feature users know, or two designs that change what the product does (not how it looks or where a control sits), where you can't pick with confidence.
 
-Never ask about module layout, naming, the slice breakdown, test choices, or layout and visual design (how a page or component looks, which pages get a look first, optional extras): pick the smallest version, record it as `assumed`, and the user vetoes from the table. An item's note saying "ask when the PRD is written" doesn't make a question worth asking: this list decides. Ask in **one** AskUserQuestion round (at most four questions, your recommendation first, never numbered lists) after exploring; with nothing to ask, say so and carry on. **Notify first:** the user is often away, so send a PushNotification naming the topic and the decision just before you ask (it reaches their phone through Remote Control), and again when you report. A skipped question is no answer: take your recommendation and record it as assumed.
+Never ask about module layout, naming, the slice breakdown, test choices, or **any UX or UI detail**: how a page or component looks, where a control sits, icons or text, wording and labels, colours, spacing, motion, defaults, empty states, which pages get a look first, optional extras. A UX or UI choice is never product direction, however visible. The test: if one slice could change it later with no migration and no lost data, don't ask. Pick the smallest version that fits the item's own words and the existing screens, record it as `assumed`, and the user vetoes from the table. An item's note saying "ask when the PRD is written" doesn't make a question worth asking: this list decides. Ask in **one** AskUserQuestion round (at most four questions, your recommendation first, never numbered lists) after exploring; with nothing to ask, say so and carry on. **Notify first:** the user is often away, so send a PushNotification naming the topic and the decision just before you ask (it reaches their phone through Remote Control), and again when you report. A skipped question is no answer: take your recommendation and record it as assumed.
 
 ## The Decisions table
 
@@ -43,7 +43,7 @@ The PRD opens with it, the costliest to change first, so the user can veto by re
 
 ## The skeptic pass
 
-Before landing, spawn one fresh agent (the session's own model) that reads the PRD, the plan and the items cold and returns a short list: an `assumed` decision that _What to ask_ says to ask; an item's need left uncovered; a slice too big for one agent or missing a `Blocked by`; a broken [rule across PRDs](orchestrator.md#rules-across-prds) or test budget. Fix what's right, note what you declined and why under the table, and ask the user only the decisions it rightly moved to "ask".
+Before landing, spawn one fresh agent (the session's own model) that reads the PRD, the plan and the items cold and returns a short list: an `assumed` decision that _What to ask_ says to ask; an item's need left uncovered; a slice too big for one agent or missing a `Blocked by`; a broken [rule across PRDs](orchestrator.md#rules-across-prds) or test budget. Fix what's right, note what you declined and why under the table, and ask the user only the decisions it rightly moved to "ask". It never moves a UX or UI detail there.
 
 ## The plan's shape
 
