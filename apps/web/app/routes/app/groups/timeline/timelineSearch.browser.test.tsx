@@ -154,7 +154,7 @@ describe("searching the timeline", () => {
     await expect.poll(() => texts().length).toBe(30);
   });
 
-  test("cards at 1280 show the matches, and the field sits beside the Filter button", async () => {
+  test("cards at 1280 show the matches, and the field sits between Filter and View options", async () => {
     await open("?q=quince", { width: 1280 });
     await expect.poll(() => texts().length).toBe(3);
     await found(() => document.querySelector('button[aria-label="View options"]'));
@@ -162,9 +162,40 @@ describe("searching the timeline", () => {
     await expect.poll(() => document.querySelector<HTMLElement>("[data-view]")?.dataset.view).toBe("cards");
     expect(texts().length).toBe(3);
     await openField();
-    const [box, button] = [field()!, filterButton()].map((el) => el.getBoundingClientRect());
-    expect(button!.left).toBeGreaterThan(box!.right);
+    const eye = document.querySelector<HTMLElement>('button[aria-label="View options"]')!;
+    const [box, button, view] = [field()!, filterButton(), eye].map((el) => el.getBoundingClientRect());
+    expect(box!.left).toBeGreaterThan(button!.right);
+    expect(view!.left).toBeGreaterThan(box!.right);
     expect(Math.abs(button!.top + button!.height / 2 - (box!.top + box!.height / 2))).toBeLessThan(2);
+  });
+
+  test("at phone width the open field fills the row between Filter and View options; all three still work", async () => {
+    const device = await open("", { width: 420 });
+    await openField();
+    const eye = () => document.querySelector<HTMLElement>('button[aria-label="View options"]')!;
+    const row = filterButton().parentElement!.getBoundingClientRect();
+    const [m, f, box, v] = [magnifier(), filterButton(), field()!, eye()].map((el) =>
+      el.getBoundingClientRect(),
+    );
+    expect(f!.left).toBeGreaterThan(m!.right);
+    expect(box!.left).toBeGreaterThan(f!.right);
+    expect(v!.left).toBeGreaterThan(box!.right);
+    // The eye at the row's right end, the field taking the room before it.
+    expect(Math.abs(v!.right - row.right)).toBeLessThan(1);
+    expect(box!.width).toBeGreaterThan(row.width - 4 * v!.width - 24);
+
+    await userEvent.type(field()!, "quince");
+    await expect.poll(() => texts().length).toBe(3);
+    await userEvent.click(filterButton());
+    await expect.element(device.screen.getByRole("dialog", { name: "Filter entries" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
+    expect(field()).not.toBeNull();
+    await userEvent.click(eye());
+    await expect.element(device.screen.getByRole("menu", { name: "View options" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
+    expect(params(device.location()).get("q")).toBe("quince");
   });
 
   test("a viewer's timeline searches too", async () => {

@@ -3,6 +3,7 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/core/api";
 import type { TimelineOutlet } from "./sheet";
 
+import { useRef } from "react";
 import { Outlet, PrefetchPageLinks } from "react-router";
 import { QuickEntryBox } from "~/components/quick-entry";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -20,6 +21,7 @@ import { onlySheetChanged } from "./sheetGuard";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
 import { FilterChips } from "./TimelineFilters";
 import { TimelineHeader } from "./TimelineHeader";
+import { TimelineViewMenu } from "./TimelineViewMenu";
 import { loadTimelineRows } from "./timelineRows";
 import { timelineSearch } from "./timelineSearch";
 import { TodayCard } from "./TodayCard";
@@ -127,6 +129,13 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const data = useTimelineData({ groupId, userId, filters, initial: loaderData });
   const [view, setView] = useTimelineView(userId, settings.timelineView);
   const [summaryMode, setSummaryMode] = useDaySummaryMode(userId, settings.daySummary);
+  // The empty Today's "Add an entry": the quick-entry field, in view and focused (a phone's keyboard comes up).
+  const quickField = useRef<HTMLTextAreaElement>(null);
+  const addEntry = () => {
+    const el = quickField.current;
+    el?.scrollIntoView({ block: "center" });
+    el?.focus({ preventScroll: true });
+  };
 
   const sheets = (
     <>
@@ -140,7 +149,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       {canWrite && <PrefetchPageLinks page={appUrls.passSheet(groupId, "prefetch")} />}
     </>
   );
-  // The search, Filter button and chips: the same in both views.
+  // The search, Filter button and chips: the same in both views (View options at the end in the full one).
   const chips = (
     <div className={COLUMN_CAP}>
       <FilterChips
@@ -150,6 +159,17 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         vital={vital}
         vitalTypes={data.latestVitals.map((v) => v.reading.type)}
         period={period}
+        trailing={
+          !mode.simple && (
+            <TimelineViewMenu
+              view={view}
+              onViewChange={setView}
+              summaryMode={summaryMode}
+              onSummaryModeChange={setSummaryMode}
+              simpleMode={mode}
+            />
+          )
+        }
       />
     </div>
   );
@@ -169,13 +189,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5 lg:max-w-none">
-      <TimelineHeader
-        view={view}
-        onViewChange={setView}
-        summaryMode={summaryMode}
-        onSummaryModeChange={setSummaryMode}
-        simpleMode={mode}
-      />
+      <TimelineHeader />
       <InviteSomeoneCard />
       <TodayCard
         groupId={groupId}
@@ -188,7 +202,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       <LiveNowBanner documents={data.liveDocuments} groupId={groupId} nameOf={data.nameOf} />
       {canWrite && (
         <div className={COLUMN_CAP}>
-          <QuickEntryBox groupId={groupId} units={units} />
+          <QuickEntryBox groupId={groupId} units={units} fieldRef={quickField} />
         </div>
       )}
       {chips}
@@ -203,6 +217,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         author={author}
         vital={vital}
         search={{ q, state: search.state }}
+        onAddEntry={addEntry}
       />
       {sheets}
     </main>

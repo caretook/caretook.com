@@ -6,15 +6,15 @@
 
 **Landing mode: run everything through** (queued with `pnpm prd queue`, 2026-11-21): start every ready slice, land each green wave, clean up; ask only real questions.
 
-| Slice | Backlog             | Wave | Model  | State                   | Merge into `prd/timeline-ux-2` (slice commits) |
-| ----- | ------------------- | ---- | ------ | ----------------------- | ---------------------------------------------- |
-| 1     | B-214               | 1    | opus   | merged                  | 2f2635f0 (891c7be7)                            |
-| 2     | B-214               | 2    | opus   | started (agent spawned) |                                                |
-| 3     | B-218               | 1    | sonnet | merged                  | 5aa9e137 (1e05be90)                            |
-| 4     | B-223               | 1    | sonnet | merged                  | 0b327447 (ce9cfeaa)                            |
-| 5     | B-215, B-216, B-219 | 1    | opus   | merged                  | c8fbb4f7 (e09d8a3c)                            |
-| 6     | B-217               | 2    | opus   | handed off (13093950)   |                                                |
-| 7     | B-224               | 1    | opus   | merged                  | 95ac03f3 (d28a7b10)                            |
+| Slice | Backlog             | Wave | Model  | State  | Merge into `prd/timeline-ux-2` (slice commits) |
+| ----- | ------------------- | ---- | ------ | ------ | ---------------------------------------------- |
+| 1     | B-214               | 1    | opus   | merged | 2f2635f0 (891c7be7)                            |
+| 2     | B-214               | 2    | opus   | merged | 01ec88f3 (c7fe0344)                            |
+| 3     | B-218               | 1    | sonnet | merged | 5aa9e137 (1e05be90)                            |
+| 4     | B-223               | 1    | sonnet | merged | 0b327447 (ce9cfeaa)                            |
+| 5     | B-215, B-216, B-219 | 1    | opus   | merged | c8fbb4f7 (e09d8a3c)                            |
+| 6     | B-217               | 2    | opus   | merged | f58cd4b9 (13093950)                            |
+| 7     | B-224               | 1    | opus   | merged | 95ac03f3 (d28a7b10)                            |
 
 - 2026-11-21: wave 1 started; worktrees `.loops/timeline-ux-2-{1,3,4,5,7}` (stackless). B-214, B-215, B-216, B-218, B-219, B-223, B-224 claimed by `prd/timeline-ux-2`; B-217 claimed when slice 6 starts. No new backlog items for this topic at the wave boundary.
 - Slice 7 also changed `scripts/browser-checks/fixtures.mjs` (`addToTimeline` takes `{ group }`) and `layout-offline.spec.mjs` (Temperature under Vitals): run `layout-offline` at landing.
@@ -30,7 +30,9 @@
 - connectors-2 landed in dev (017a9b29, migration 0031, no pending migration here): sync before the 01:05 rerun, then `pnpm datastore:reset`.
 - tasks-2 (`tasks-2-20`) waits on wave 1 (PageHeader, the Upcoming and Tasks headers): message it at each landing.
 - Wave 1 landing (user, 2026-11-21): `--force` on the full run whose only failures were the 14 midnight-window tests (B-227, quick-fixes). Synced connectors-2; typecheck, lint, format clean; browser `layout-offline` and `app-shell` pass (the user chose only the edited specs).
-- Open issues: clock-dependent component tests fail in the first ~40 min after midnight LA (outside this PRD; tell the user).
+- **Wave 1 landed in dev as f1fc883e** (2026-11-21, `--force`, user's word). Told tasks-2 and quick-fixes to sync. Wave 2: slice 6 handed off, slice 2 running; merge 2 then 6.
+- Wave 2 merged (2 → 01ec88f3, 6 → f58cd4b9, no conflicts); B-214, B-217 done; worktrees removed; synced f638b191. Docs folded (timeline: toolbar row, empty Today). Full check running (02:05 LA, outside the window).
+- Open issues: the midnight-window tests are B-225 (quick-fixes slice 61; B-227 dropped as its duplicate); until it lands, run full checks outside 00:00–02:30 LA.
 
 ## Backlog map
 
