@@ -61,6 +61,11 @@ const SAMPLES: { [N in keyof typeof NOTIFICATIONS]: Parameters<typeof renderNoti
     itemPath: "/app/groups/0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001/tasks/0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0003",
     unsubscribePath: "/api/reminders/unsubscribe/tok.en.sig",
   },
+  assistantsRequested: {
+    groupId: "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001",
+    groupName: "Grandma Example",
+    memberName: "Robin",
+  },
 };
 
 // Notifications whose email carries no link.
@@ -341,6 +346,29 @@ describe("join request emails", () => {
       ctx,
     );
     expect("code" in out && out.code).toBe("notify:invalidData");
+  });
+});
+
+describe("assistantsRequested", () => {
+  it("names the member and the group, and links to the group's Assistants page", async () => {
+    const out = await renderNotification("assistantsRequested", SAMPLES.assistantsRequested, ctx);
+    if ("code" in out) throw new Error(String(out.code));
+    expect(out.subject).toBe("Robin asked to turn on assistants for Grandma Example's care group");
+    expect(out.text).toContain("Robin would like to connect their own AI assistant");
+    expect(extractLinks(out.html)).toEqual([
+      `${APP_URL}/app/groups/${SAMPLES.assistantsRequested.groupId}/settings/assistants`,
+    ]);
+  });
+
+  it("never carries health details, even when handed some", async () => {
+    const sentinel = "SENTINEL-HEALTH-5520";
+    const out = await renderNotification(
+      "assistantsRequested",
+      { ...SAMPLES.assistantsRequested, ...({ symptom: sentinel, note: sentinel } as object) },
+      ctx,
+    );
+    if ("code" in out) throw new Error(String(out.code));
+    expect(`${out.subject}${out.html}${out.text}`).not.toContain(sentinel);
   });
 });
 

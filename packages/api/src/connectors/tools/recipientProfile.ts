@@ -23,7 +23,7 @@ export const recipientProfile = defineTool({
   name: "recipient_profile",
   title: "Care recipient profile",
   description:
-    "The care recipient's profile: name and preferred name, age (not the birthday), pronouns, primary language, code status, blood type, the note for helpers, allergies (substance, reaction, severity, or that no known allergies is recorded), and conditions (name, active or resolved, since, note, who diagnosed it and which providers manage it by name, active first, or that no known conditions is recorded). Contact details and insurance are not available.",
+    "The care recipient's profile: name and preferred name, age (not the birthday), pronouns, primary language, code status, blood type, the note for helpers, allergies (substance, reaction, severity, or that no known allergies is recorded), and conditions (id, name, active or resolved, since, note, who diagnosed it and which providers manage it by name, active first, or that no known conditions is recorded). Contact details and insurance are not available.",
   scope: "read",
   input: z.object({}),
   annotations: READ_ANNOTATIONS,
@@ -55,6 +55,7 @@ export const recipientProfile = defineTool({
         .filter((n): n is string => !!n)
         .sort((a, b) => a.localeCompare(b));
       conditionList.push({
+        id: c.id,
         name: c.name,
         status: c.status,
         since: conditionSinceWords(c.sinceYear, c.sinceMonth),

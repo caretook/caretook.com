@@ -2,7 +2,7 @@
 // .server/): /connect's loader and action, /mcp, and the two discovery
 // documents. Members' own AI assistants (connectors PRD); the work is in
 // @caretook/api's connectors module.
-import type { ConnectPage } from "@caretook/api";
+import type { ConnectedTo, ConnectPage } from "@caretook/api";
 
 import {
   createMcpHandler,
@@ -22,7 +22,10 @@ import { isError, logError } from "@caretook/data";
 import { redirect } from "react-router";
 import { signInUrl } from "~/lib/core/redirect";
 
-export type { ConnectGroup, ConnectPage } from "@caretook/api";
+export type { ConnectGroup, ConnectPage, OffGroup } from "@caretook/api";
+
+/** The success step's data: who was connected where, and the client's redirect (with its code). */
+export type ConnectSuccessData = ConnectedTo & { redirect: string };
 
 /** Our public origin (BETTER_AUTH_URL, which deploys keep equal to APP_URL). */
 const origin = () => (getAuthConfig().baseURL ?? "http://localhost:5173").replace(/\/$/, "");
@@ -83,8 +86,15 @@ export const loadConnect = async (request: Request): Promise<ConnectPage> => {
   return page;
 };
 
-/** Connect or cancel: off to the assistant, or back to the page with what to fix. */
-export const submitConnect = async (request: Request, form: FormData) => {
+/**
+ * Connect or cancel. Cancel goes straight back to the assistant; Connect
+ * answers with the success step's data (the page returns to the assistant
+ * from there); a refusal comes back with what to fix.
+ */
+export const submitConnect = async (
+  request: Request,
+  form: FormData,
+): Promise<{ error: string } | { connected: ConnectSuccessData }> => {
   const authUser = await requireMember(request);
   const outcome = await submitConnectPage({
     authUser,
@@ -93,6 +103,7 @@ export const submitConnect = async (request: Request, form: FormData) => {
     form,
   });
   if (isError(outcome)) throw failed("connect: submit failed", outcome);
-  if ("redirect" in outcome) throw redirect(outcome.redirect);
-  return outcome;
+  if (!("redirect" in outcome)) return outcome;
+  if (outcome.connected) return { connected: { ...outcome.connected, redirect: outcome.redirect } };
+  throw redirect(outcome.redirect);
 };
