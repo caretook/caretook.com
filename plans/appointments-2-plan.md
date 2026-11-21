@@ -6,10 +6,10 @@
 
 | Slice | Wave | State           | Merge into `prd/appointments-2` (slice commits) |
 | ----- | ---- | --------------- | ----------------------------------------------- |
-| 1     | 1    | started (opus)  |                                                 |
-| 2     | 2    | blocked by 1    |                                                 |
-| 3     | 2    | blocked by 1    |                                                 |
-| 4     | 2    | blocked by 1    |                                                 |
+| 1     | 1    | merged (opus)   | a589f8fa (716e20cd, 2b37171b)                   |
+| 2     | 2    | started (opus)  |                                                 |
+| 3     | 2    | started (sonnet)|                                                 |
+| 4     | 2    | started (opus)  |                                                 |
 | 5     | 3    | blocked by 4    |                                                 |
 | 6     | 3    | blocked by 3, 4 |                                                 |
 | 7     | 3    | blocked by 3, 4 |                                                 |
@@ -20,6 +20,16 @@
 **Landing mode (2026-11-20): run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave, clean up; ask only real questions. Per this plan's _Landing_, landing waits until every slice is merged.
 
 **Log:** 2026-11-20: start condition met (B-169 live, 127670af in `prd/appointments-2`). Backlog ingest: B-188–B-190 (connectors bugs), none for this PRD. Slice 1 worktree made, agent spawned (opus).
+
+Slice 1 merged as a589f8fa; worktree removed. Wave 2 (slices 2, 3, 4) worktrees made, agents spawned.
+
+**Carried from slice 1's hand-off:**
+- Migration `0025_appointment_series.sql` has two hand edits to keep on regenerate: FK `ON DELETE SET NULL ("series_id")`, and `ALTER PUBLICATION powersync ADD TABLE appointment_series` at the end.
+- rrule lives only in `packages/data/src/db/schema/appointments/seriesVisits.ts`, exported as `@caretook/data/series` (not the schema index); `budget.json` forbids rrule in first load.
+- The server writes visits only for a series without `toppedUpThrough`; the first visit keeps the draft's id (not v5), so top-up must skip by `(series_id, series_day)`.
+- Edits after creation touch one visit only (title, time chip) — slice 2's job.
+- Flake seen under load: `layout/staff.browser.test.tsx` (offline cached banner), passed 3/3 alone.
+- Docs to fold at landing: appointments.md (table, columns, visit ids, seriesVisits, repeatText, device writes + draft adoption, RepeatField, RepeatMark, seeds, `@caretook/data/series`); sync.md (stream, device schema, op, matrix row); care-groups.md (permission row); data-layer.md (`/series` entry); components.md (`repeat/`, `RepeatMark`); AGENTS.md stack line (rrule 2.8.1).
 
 **Start condition:** `timeline-ux` slice 5 (the Today card, B-169) in `dev`, since slice 1 puts the repeat mark there. Check `pnpm backlog show B-169` says landed. If it isn't, slice 1 may start and leave the Today card's mark to whichever slice runs after it lands (say so in the hand-off).
 
