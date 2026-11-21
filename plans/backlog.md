@@ -24,6 +24,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `providers-2` | to write (B-25, B-48): @-mentions of providers in notes and events, and importing providers from another group you belong to (its cross-group permission rules) | `providers` (done) | live-notes editor (mentions), `providerService`, its area's `permissions/` part |
 | `appointments-2` | [PRD](appointments-2-prd.md), [plan](appointments-2-plan.md): 10 slices, waves 1 → (2, 3, 4) → (5, 6, 7) → (8, 9, 10): repeating appointments and reminders (series, 90-day visits, only this / this and later), the calendar cron and top-up, calendar items with generic-by-default sharing and the Calendar & reminders page, the iCal feed, reminder emails (push later), Google Calendar two-way sync (connect and push, then pull), "Remind me" per appointment, a roundtrip step (B-60–B-63). Three migrations; new deps `rrule`, `ical-generator`, `@googleapis/calendar`, `google-auth-library`. **Ready to start** once `timeline-ux` slice 5 is in `dev` | `timeline-ux` slice 5 (the Today card, B-169) in `dev` | `timeline_entry` (series columns), the appointment and reminder sheets, `entryActionItems`, Upcoming and timeline rows and `TodayCard` (the repeat mark), sync and upload registries, the sync matrix, `NOTIFICATIONS`, `timelineEntryService` and `taskService` (calendar jobs), `careGroupMemberService` (removal), group settings, `vercel.json` crons, a new `calendars` area |
 | `connectors-2` | to write (B-193–B-196): make connecting easier: an in-app connect guide (URL, steps for Claude and ChatGPT), members asking owners to turn assistants on, starter prompts (MCP instructions and prompts, a success state), then directory listings after launch | `connectors` (done); quick-fixes slices 47–48 (B-188–B-190) first (soft); B-196 waits on B-33 and B-54 | group settings → Assistants, Settings → Devices, `/connect` (`ConnectConsent.tsx`, `packages/api/src/connectors/connect.ts`), `packages/api/src/connectors/protocol.ts`, `NOTIFICATIONS` (the request) |
+| `conditions` | [PRD](conditions-prd.md), [plan](conditions-plan.md): 6 slices, waves 1 → (2, 4, 5) → 3 → 6: a conditions list on the recipient's profile (status, since, note, suggestions, no known conditions; synced, edited offline), condition changes on the timeline and in search, diagnosed by and managed by providers (the provider page), medications for a condition, the printed sheets, the connector (read only; the writer is B-197). Four migrations, no new deps. **Ready to start** (B-181) | none for slice 1; quick-fixes slice 51 (B-187) before slice 2, slice 48 (B-189) before slice 6 | the profile's card and sheets, `sync-config.yaml`, the device schema, the upload switch, the sync matrix, `TIMELINE_ENTRY_KINDS` and the kind check, `KIND_META`, `TimelineFilters.tsx`, `SEARCH_ITEM_TYPES`, the medication form and page, the provider page, the print sheets, `recipientProfile.ts`, `listTimeline.ts` |
 | `routing` | [PRD](routing-prd.md), [plan](routing-plan.md): **done** (`ff25ef2`) | — | none now |
 | `components` | [PRD](components-prd.md), [plan](components-plan.md): **done** (`ca39416`) | — | none now |
 | `invites` | [PRD](invites-prd.md), [plan](invites-plan.md): **done** (`e6286f4`) | — | none now |
@@ -102,11 +103,11 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-181 | feature | triaged | conditions |  | A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them |
 | B-182 | bug | triaged | check-migration |  | providers.browser.test.tsx 'a practice's name finds its clinicians too; the Clinicians chip keeps the search…' flakes under load: after tapping Clinicians, the 'Current providers' list still has Dr. Samuel Patel when its expect.poll times out |
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
-| B-184 | bug | in-progress | quick-fixes | prd/quick-fixes | When viewing the member page as an owner, the simple mode and locked buttons make the data too wide… |
-| B-185 | bug | in-progress | quick-fixes | prd/quick-fixes | The today bar on timeline should always be collapsed unless there is something overdue or upcoming. |
-| B-186 | bug | in-progress | quick-fixes | prd/quick-fixes | vitals section in today block doesn't expand when you click see all, it filters the data instead.… |
+| B-184 | bug | ready | quick-fixes | prd/quick-fixes | When viewing the member page as an owner, the simple mode and locked buttons make the data too wide… |
+| B-185 | bug | ready | quick-fixes | prd/quick-fixes | The today bar on timeline should always be collapsed unless there is something overdue or upcoming. |
+| B-186 | bug | ready | quick-fixes | prd/quick-fixes | vitals section in today block doesn't expand when you click see all, it filters the data instead.… |
 | B-187 | bug | in-progress | quick-fixes | prd/quick-fixes | timeline filter interface is overwhelming on mobile and confusing on desktop, especially the vitals… |
-| B-188 | bug | in-progress | quick-fixes | prd/quick-fixes | when signing up mcp connector, the oauth request just returns json, not the accept flow |
+| B-188 | bug | ready | quick-fixes | prd/quick-fixes | when signing up mcp connector, the oauth request just returns json, not the accept flow |
 | B-189 | bug | ready | quick-fixes | prd/quick-fixes | mcp connector for medication change records on the timeline, it isn't providing information about… |
 | B-190 | bug | ready | quick-fixes | prd/quick-fixes | mcp connector returning truncated notes on doses, and maybe other things |
 | B-191 | bug | triaged | quick-fixes |  | clicking the next entry in the upcoming section of the simple timeline should expand the section,… |
@@ -115,6 +116,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-194 | feature | triaged | connectors-2 |  | A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off |
 | B-195 | feature | triaged | connectors-2 |  | Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state |
 | B-196 | feature | triaged | connectors-2 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
+| B-197 | feature | triaged | connectors-2 |  | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
 
 ## Items
 
@@ -654,6 +656,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (prd/connectors): From connectors slice 4 (B-104): story 22 promises the assistant reads the recipient's conditions, but no conditions field exists; recipient_profile returns allergies, code status, blood type and the note for helpers. The user chose (2026-11-20) to drop 'conditions' from the privacy text for now and file this. When built, add it to recipient_profile and the privacy page.
 - 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20: the user asked for a conditions PRD and plan, planned in this session
+- 2026-11-20 (Robert Bo Davis): PRD and plan written 2026-11-20 (plans/conditions-prd.md, conditions-plan.md); the assistant's write tool is B-197
 
 ### B-182 · bug · providers.browser.test.tsx 'a practice's name finds its clinicians too; the Clinicians chip keeps the search…' flakes under load: after tapping Clinicians, the 'Current providers' list still has Dr. Samuel Patel when its expect.poll times out
 
@@ -676,29 +679,29 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-184 · bug · When viewing the member page as an owner, the simple mode and locked buttons make the data too wide…
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 14aa977f
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: When viewing the member page as an owner, the simple mode and locked buttons make the data too wide for the container. Stack those radios on top of each other
 - 2026-11-20 (Robert Bo Davis): Triage: small UI follow-ups (member page; timeline-ux slice 5's Today card), app-shell and timeline-ux are done, so quick-fixes slices
 
 ### B-185 · bug · The today bar on timeline should always be collapsed unless there is something overdue or upcoming.
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 0cace532
 
 - 2026-11-20 (Robert Bo Davis): Triage: small UI follow-ups (member page; timeline-ux slice 5's Today card), app-shell and timeline-ux are done, so quick-fixes slices
 
 ### B-186 · bug · vitals section in today block doesn't expand when you click see all, it filters the data instead.…
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 0cace532
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: vitals section in today block doesn't expand when you click see all, it filters the data instead. It should expand the number of rowsto show all the vitals if there are more than fit, and shouldn't appear if they fit in the container.
 - 2026-11-20 (Robert Bo Davis): Triage: small UI follow-ups (member page; timeline-ux slice 5's Today card), app-shell and timeline-ux are done, so quick-fixes slices
@@ -715,12 +718,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-188 · bug · when signing up mcp connector, the oauth request just returns json, not the accept flow
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: c505b681
 
 - 2026-11-20 (Robert Bo Davis): Triage: connectors is done, so quick-fixes slices; B-188 breaks connecting on the live site, first
+- 2026-11-20 (slice/quick-fixes/47): Slice 47: not reproduced. claude.ai's request shape (DCR to https://claude.ai/api/mcp/auth_callback, PKCE S256, scope incl. offline_access, prompt=consent, resource) 302s to /connect locally (dev and check build) and on staging (signed out); no authorize variant gives JSON for a navigation except the 429 rate limit (30/min/IP). Unknown client/bad redirect now render an HTML page; staging: remove + re-add the connector, then report the JSON body if it recurs.
+- 2026-11-20 (prd/quick-fixes): Slice 47 (orchestrator): not reproduced. claude.ai's shape (DCR with the auth_callback, PKCE, resource, prompt=consent, offline_access) 302s to /connect signed in and out, locally and on staging; error cases redirect. The only navigation JSON found is the plugin's authorize rate limit (30/60 s per IP, 429). Built: a browser navigation's dead ends at authorize now show an HTML page (invalid link, or too many tries). If it recurs on staging, reopen with the JSON body and URL.
 
 ### B-189 · bug · mcp connector for medication change records on the timeline, it isn't providing information about…
 
@@ -796,3 +801,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20 (the user chose): after the production launch (B-33) and the privacy policy and terms (B-54); vendor review
+
+### B-197 · feature · Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService
+
+- status: triaged
+- prd: connectors-2
+- owner:
+- commit:
+
+- 2026-11-20 (plan/conditions): Conditions planning 2026-11-20 (the user): conditions ship read-only to assistants; the writer is a follow-up, after the conditions PRD lands
