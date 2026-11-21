@@ -2,7 +2,7 @@ import type { SignInMethod } from "~/lib/auth/accountUrls";
 import type { Route } from "./+types/sign-in";
 
 import { Form, Link, redirect, useNavigation } from "react-router";
-import { Field } from "~/components/ui/plain";
+import { Button, Field } from "~/components/ui/plain";
 import { accountUrls, parseSignInMethod } from "~/lib/auth/accountUrls";
 import { authClient } from "~/lib/auth/auth-client";
 import { sessionChanged } from "~/lib/auth/sessionEpoch";
@@ -145,9 +145,9 @@ export default function SignIn({ loaderData, actionData }: Route.ComponentProps)
             )}
           </Field>
           {result?.error && <ErrorMessage>{result.error}</ErrorMessage>}
-          <button type="submit" className="btn btn-primary btn-block mt-2" disabled={busy}>
-            {busy ? "Signing in…" : "Sign in"}
-          </button>
+          <Button type="submit" variant="primary" block className="mt-2" busy={busy} busyLabel="Signing in…">
+            Sign in
+          </Button>
           <p className="pt-2 text-center text-sm">
             <Link to={accountUrls.resetPassword()} className="link">
               Forgot password?
@@ -163,9 +163,9 @@ export default function SignIn({ loaderData, actionData }: Route.ComponentProps)
           {linkExpired && !result && <ErrorMessage>{authMessages.linkExpired}</ErrorMessage>}
           <EmailField />
           {result?.error && <ErrorMessage>{result.error}</ErrorMessage>}
-          <button type="submit" className="btn btn-primary btn-block mt-2" disabled={busy}>
-            {busy ? "Sending…" : "Send email"}
-          </button>
+          <Button type="submit" variant="primary" block className="mt-2" busy={busy} busyLabel="Sending…">
+            Send email
+          </Button>
         </Form>
       )}
 
@@ -194,17 +194,32 @@ export default function SignIn({ loaderData, actionData }: Route.ComponentProps)
               )}
             </Field>
             {result.error && <ErrorMessage>{result.error}</ErrorMessage>}
-            <button type="submit" className="btn btn-primary btn-block mt-2" disabled={busy}>
-              {busy && busyIntent === "code" ? "Signing in…" : "Sign in"}
-            </button>
+            <Button
+              type="submit"
+              variant="primary"
+              block
+              className="mt-2"
+              busy={busy && busyIntent === "code"}
+              disabled={busy}
+              busyLabel="Signing in…"
+            >
+              Sign in
+            </Button>
           </Form>
           <Form method="post" onSubmit={submitOnce} className="text-center">
             <input type="hidden" name="intent" value="send-email" />
             <input type="hidden" name="email" value={result.sentTo} />
             <input type="hidden" name="redirectTo" value={redirectTo} />
-            <button type="submit" className="btn btn-ghost btn-sm" disabled={busy}>
-              {busy && busyIntent === "send-email" ? "Sending…" : "Send a new link and code"}
-            </button>
+            <Button
+              type="submit"
+              variant="ghost"
+              size="sm"
+              busy={busy && busyIntent === "send-email"}
+              disabled={busy}
+              busyLabel="Sending…"
+            >
+              Send a new link and code
+            </Button>
           </Form>
         </div>
       )}

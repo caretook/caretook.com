@@ -1,6 +1,7 @@
 import type { ChoiceOption } from "./choices";
 
 import { useId } from "react";
+import { buttonClass } from "./buttonClass";
 import { fieldControl } from "./fieldIds";
 import { FIELD_ERROR, FIELD_LABEL } from "./styles";
 
@@ -69,7 +70,7 @@ export function ChoiceGroup<T extends string>(props: Props<T>) {
             {...(onChange
               ? { checked: value === option.value, onChange: () => onChange(option.value) }
               : { defaultChecked: defaultValue === option.value })}
-            className="join-item btn btn-sm"
+            className={`join-item ${buttonClass({ size: "sm" })}`}
           />
         ))}
       </div>

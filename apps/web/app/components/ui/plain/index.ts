@@ -5,3 +5,8 @@ export { Field } from "../Field";
 export type { FieldControl } from "../fieldIds";
 export { IconButton } from "../IconButton";
 export { ChoiceGroup } from "../ChoiceGroup";
+// ui-kit (later slices append below, one block each; nothing here may import React Aria).
+export { Button } from "../Button";
+export type { ButtonSize, ButtonVariant } from "../buttonClass";
+export { FormFooter } from "../FormFooter";
+export type { FormFooterCancel } from "../FormFooter";
