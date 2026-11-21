@@ -5,7 +5,7 @@ import {
   memberName,
   parseGroupName,
   parseRecipientTimeZone,
-  parseSimpleTilesChoice,
+  parseEasyTilesChoice,
   roleLabel,
   sortMembers,
   timeZoneLabel,
@@ -200,21 +200,21 @@ describe("roleLabel and memberName", () => {
   });
 });
 
-describe("parseSimpleTilesChoice", () => {
+describe("parseEasyTilesChoice", () => {
   const four = ["symptom", "vital:bloodGlucose", "dose", "note"];
   it("takes learned, fixed, or four different tiles", () => {
-    expect(parseSimpleTilesChoice({ mode: "learned", tiles: four })).toEqual({
+    expect(parseEasyTilesChoice({ mode: "learned", tiles: four })).toEqual({
       ok: true,
-      data: { simpleTiles: { mode: "learned" } },
+      data: { easyTiles: { mode: "learned" } },
     });
-    expect(parseSimpleTilesChoice({ mode: "fixed", tiles: [] })).toEqual({
+    expect(parseEasyTilesChoice({ mode: "fixed", tiles: [] })).toEqual({
       ok: true,
-      data: { simpleTiles: { mode: "fixed" } },
+      data: { easyTiles: { mode: "fixed" } },
     });
-    expect(parseSimpleTilesChoice({ mode: "custom", tiles: four })).toEqual({
+    expect(parseEasyTilesChoice({ mode: "custom", tiles: four })).toEqual({
       ok: true,
       data: {
-        simpleTiles: {
+        easyTiles: {
           mode: "custom",
           tiles: [
             { kind: "symptom" },
@@ -229,7 +229,7 @@ describe("parseSimpleTilesChoice", () => {
 
   it("refuses fewer than four, repeats, unknown tiles and unknown modes", () => {
     const error = (mode: string, tiles: string[]) => {
-      const parsed = parseSimpleTilesChoice({ mode, tiles });
+      const parsed = parseEasyTilesChoice({ mode, tiles });
       return parsed.ok ? null : parsed.error;
     };
     expect(error("custom", ["note", "dose", "symptom"])).toBe("Pick four tiles.");

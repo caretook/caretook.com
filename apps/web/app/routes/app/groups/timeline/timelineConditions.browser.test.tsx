@@ -32,7 +32,7 @@ import {
 // the Filter sheet's kind shows only them; a change opens nothing and its ⋯
 // is Delete only; a write on this device puts its change entry in the same
 // transaction, after the condition, under the id the server derives; and
-// simple mode's "Remove my last entry" never offers one. Wording is
+// easy mode's "Remove my last entry" never offers one. Wording is
 // conditionChange.test.ts's.
 
 const DIABETES = condition({ name: "Type 2 diabetes", sinceYear: 2014, note: "Diet-controlled" });
@@ -174,7 +174,7 @@ describe("a condition written on this device", () => {
   });
 });
 
-describe("simple mode", () => {
+describe("easy mode", () => {
   test("Remove my last entry never offers a condition change", async () => {
     const membership = fx.member({
       userId: TEST_USER.id,
@@ -184,7 +184,7 @@ describe("simple mode", () => {
     });
     const mine = fx.symptom({ name: "Dizzy", occurredAt: minutesAgo(20), createdAt: minutesAgo(20) });
     const device = await openTimeline({ role: null, fixtures: [membership, mine] });
-    await waitUntil(() => !!document.querySelector("[data-simple-timeline]"), 4000, "the simple view");
+    await waitUntil(() => !!document.querySelector("[data-easy-timeline]"), 4000, "the easy view");
     expect((await addCondition(device.db, TEST_GROUP.id, { name: "Gout" })).ok).toBe(true);
     await device.settle();
 

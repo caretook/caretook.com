@@ -1,8 +1,8 @@
-import type { SimpleModeSetting } from "./simpleMode";
+import type { EasyModeSetting } from "./easyMode";
 import type { UnitChoices } from "../timeline/vitals";
 
 import { z } from "zod";
-import { DEFAULT_SIMPLE_MODE_SETTING, SIMPLE_MODE_SETTINGS } from "./simpleMode";
+import { DEFAULT_EASY_MODE_SETTING, EASY_MODE_SETTINGS } from "./easyMode";
 import { UNIT_OPTIONS } from "../timeline/vitals";
 
 // Per-user settings, stored as jsonb on `user.preferences`. Every field is
@@ -36,8 +36,8 @@ export const DEFAULT_DAY_SUMMARY_MODE: DaySummaryMode = "highlights";
 export const userPreferencesZSchema = z.strictObject({
   units: unitChoicesZSchema.partial().optional(),
   timelineView: z.enum(TIMELINE_VIEWS).optional(),
-  /** Simple mode: follow the group's default for you, or always simple or full (simpleMode.ts). */
-  simpleMode: z.enum(SIMPLE_MODE_SETTINGS).optional(),
+  /** Easy mode: follow the group's default for you, or always easy or full (easyMode.ts). */
+  easyMode: z.enum(EASY_MODE_SETTINGS).optional(),
   daySummary: z.enum(DAY_SUMMARY_MODES).optional(),
 });
 export type UserPreferences = z.infer<typeof userPreferencesZSchema>;
@@ -51,8 +51,8 @@ export const resolveUnits = (prefs: UserPreferences | null | undefined): UnitCho
 export const resolveTimelineView = (prefs: UserPreferences | null | undefined): TimelineView =>
   prefs?.timelineView ?? DEFAULT_TIMELINE_VIEW;
 
-export const resolveSimpleModeSetting = (prefs: UserPreferences | null | undefined): SimpleModeSetting =>
-  prefs?.simpleMode ?? DEFAULT_SIMPLE_MODE_SETTING;
+export const resolveEasyModeSetting = (prefs: UserPreferences | null | undefined): EasyModeSetting =>
+  prefs?.easyMode ?? DEFAULT_EASY_MODE_SETTING;
 
 export const resolveDaySummaryMode = (prefs: UserPreferences | null | undefined): DaySummaryMode =>
   prefs?.daySummary ?? DEFAULT_DAY_SUMMARY_MODE;

@@ -13,7 +13,7 @@ import { GroupMenu } from "./GroupMenu";
 import { SectionNav, TabBar } from "./SectionNav";
 import { SyncIndicator } from "./SyncIndicator";
 import { UpdateNotice } from "./UpdateNotice";
-import { useSeveralGroups, useSimpleFrame } from "./useSimpleFrame";
+import { useSeveralGroups, useEasyFrame } from "./useEasyFrame";
 import { UserMenu } from "./UserMenu";
 
 // Shared by web + native. Do not export a server `loader` or `action` from /app routes.
@@ -49,19 +49,19 @@ export function clientLoader({ context }: Route.ClientLoaderArgs) {
  * - `update`: "A new version is ready" (`UpdateNotice`), when a new service worker waits.
  *
  * Screens outside a group (`/app`, `/app/settings`) get the header without a
- * group menu, sections or tab bar. So does a timeline in simple mode
- * (`useSimpleFrame`), which keeps the search magnifier (unless locked in
- * simple mode) and has a reduced user menu.
+ * group menu, sections or tab bar. So does a timeline in easy mode
+ * (`useEasyFrame`), which keeps the search magnifier (unless locked in
+ * easy mode) and has a reduced user menu.
  */
 export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const { user } = loaderData;
   const { groupId } = useParams();
   const { pathname } = useLocation();
-  // Simple mode's timeline: only the mark, the sync status and a reduced user menu.
-  const simple = useSimpleFrame(user.id, groupId, pathname);
-  const groupFrame = groupId && !simple ? groupId : undefined;
-  // Search stays in simple mode, but not while locked (the lock keeps you off the search page).
-  const searchGroup = groupId && !simple?.locked ? groupId : undefined;
+  // Easy mode's timeline: only the mark, the sync status and a reduced user menu.
+  const easy = useEasyFrame(user.id, groupId, pathname);
+  const groupFrame = groupId && !easy ? groupId : undefined;
+  // Search stays in easy mode, but not while locked (the lock keeps you off the search page).
+  const searchGroup = groupId && !easy?.locked ? groupId : undefined;
   const severalGroups = useSeveralGroups(user.id);
   return (
     <>
@@ -84,7 +84,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
           <SyncIndicator />
         </div>
         <div data-region="user" className="flex items-center">
-          <UserMenu user={user} simple={simple} severalGroups={severalGroups} />
+          <UserMenu user={user} easy={easy} severalGroups={severalGroups} />
         </div>
       </header>
       <div data-region="announcement" className="print:hidden">

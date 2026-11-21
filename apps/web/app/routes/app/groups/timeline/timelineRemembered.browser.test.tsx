@@ -17,7 +17,7 @@ import { TIMELINE_URL, waitUntil } from "./timelineWorld";
 // card row paints what it showed before at once, dimmed with `data-stale`,
 // and the live answer replaces it, whatever it says. A first mount shows a
 // skeleton of the row's own height, so what's below doesn't move; an empty
-// answer collapses it. The same for simple mode's todos and tiles. The store's
+// answer collapses it. The same for easy mode's todos and tiles. The store's
 // keys and clearing are remembered.test.ts's and index.test.ts's.
 
 /** Stands in for any other page: a link back to the timeline. */
@@ -50,7 +50,7 @@ type Seen = "none" | "skeleton" | { stale: boolean; text: string };
 const seen = (selector: string, skeleton: string, words?: string): Seen => {
   if (
     document.querySelector(
-      `main [data-today-skeleton="${skeleton}"], main [data-simple-skeleton="${skeleton}"]`,
+      `main [data-today-skeleton="${skeleton}"], main [data-easy-skeleton="${skeleton}"]`,
     )
   )
     return "skeleton";
@@ -174,18 +174,18 @@ describe("the header tiles remember", () => {
   });
 });
 
-describe("simple mode's tiles remember", () => {
-  const SIMPLE: Fixture[] = [
+describe("easy mode's tiles remember", () => {
+  const EASY: Fixture[] = [
     fx.member({ userId: TEST_USER.id, role: "owner", simpleMode: 1 }),
     fx.note({ occurredAt: at(new Date(Date.now() - 10 * 60_000)), text: "Slept well after lunch" }),
     todo({ title: "Water the plants", dueOn: day(-1), assigneeId: TEST_USER.id }),
   ];
-  const todos = () => seen("[data-simple-todos]", "todos");
-  const tiles = () => seen("[data-simple-tiles]", "tiles");
+  const todos = () => seen("[data-easy-todos]", "todos");
+  const tiles = () => seen("[data-easy-tiles]", "tiles");
 
   test("skeletons on a first mount; mounted again, the todos card and tiles paint dimmed, then fresh", async () => {
     const first = watchPage(() => ({ todos: todos(), tiles: tiles() }));
-    const device = await renderWithDevice({ route: ROUTES, url: TIMELINE_URL, role: null, fixtures: SIMPLE });
+    const device = await renderWithDevice({ route: ROUTES, url: TIMELINE_URL, role: null, fixtures: EASY });
     await waitUntil(
       () => typeof todos() === "object" && typeof tiles() === "object",
       4000,
@@ -197,7 +197,7 @@ describe("simple mode's tiles remember", () => {
     expect(todos()).toMatchObject({ stale: false });
     expect(tiles()).toMatchObject({ stale: false });
 
-    await userEvent.click(await found(() => document.querySelector<HTMLElement>("[data-simple-todos-all]")));
+    await userEvent.click(await found(() => document.querySelector<HTMLElement>("[data-easy-todos-all]")));
     await waitUntil(() => !!document.querySelector("h1")?.textContent?.includes("Elsewhere"));
     const again = watchPage(() => ({ todos: todos(), tiles: tiles() }));
     await userEvent.click(await found(() => document.querySelector<HTMLElement>("main a")));

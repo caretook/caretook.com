@@ -75,7 +75,7 @@ const groupServer = (connections: Connection[]) => {
       "connector.listForGroup": (): Connection[] => server.connections,
       "careGroup.update": (input) => {
         if ((input as { connectorsEnabled?: boolean }).connectorsEnabled === false) server.connections = [];
-        return { id: TEST_GROUP.id, name: TEST_GROUP.name, simpleTiles: null };
+        return { id: TEST_GROUP.id, name: TEST_GROUP.name, easyTiles: null };
       },
       "connector.revoke": (input) => {
         const { grantId } = input as { grantId: string };

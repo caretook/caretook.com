@@ -76,7 +76,7 @@ export type MemberDetailRow = {
   emergency_rank: number | null;
   is_primary_contact: number | null;
   emergency_dropped_at: string | null;
-  /** Simple mode: the managers' default for them and their lock (1 or 0; null until the columns sync). */
+  /** Easy mode: the managers' default for them and their lock (1 or 0; null until the columns sync). */
   simple_mode: number | null;
   simple_mode_locked: number | null;
 };

@@ -29,7 +29,7 @@ import { PendingInvites } from "./PendingInvites";
 
 // `…/settings/members`. Shared by web + native. Members and roles come from
 // the device's local copy (live, so they work offline and follow other
-// members' changes). Changing a role or a member's simple mode, removing and
+// members' changes). Changing a role or a member's easy mode, removing and
 // leaving go through the API: online only. So do invites (`InviteSheet`, `PendingInvites`), which
 // owners and admins send, resend and revoke here, and invite links and the
 // requests to join they bring (`InviteLinks`, `JoinRequests`). Each member's

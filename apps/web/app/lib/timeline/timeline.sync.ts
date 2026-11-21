@@ -332,7 +332,7 @@ export type GroupRow = {
   recipient_name: string | null;
   recipient_preferred_name: string | null;
   recipient_time_zone: string | null;
-  /** Simple mode: the managers' default for you and your lock (1 or 0; null until the columns sync). */
+  /** Easy mode: the managers' default for you and your lock (1 or 0; null until the columns sync). */
   simple_mode: number | null;
   simple_mode_locked: number | null;
 };

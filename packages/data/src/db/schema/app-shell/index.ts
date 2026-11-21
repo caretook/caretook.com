@@ -1,2 +1,2 @@
-export * from "./simpleMode";
+export * from "./easyMode";
 export * from "./userPreferences";

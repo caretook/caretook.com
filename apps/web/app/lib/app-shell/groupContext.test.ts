@@ -32,16 +32,16 @@ describe("toGroupContext", () => {
         displayName: "Grandma Pat",
         timeZone: "America/Los_Angeles",
       },
-      simpleMode: { ownerDefault: false, locked: false },
+      easyMode: { ownerDefault: false, locked: false },
     });
   });
 
-  it("carries the managers' simple-mode default and lock", () => {
-    expect(toGroupContext(row({ simple_mode: 1, simple_mode_locked: 1 }), "u1").simpleMode).toEqual({
+  it("carries the managers' easy-mode default and lock", () => {
+    expect(toGroupContext(row({ simple_mode: 1, simple_mode_locked: 1 }), "u1").easyMode).toEqual({
       ownerDefault: true,
       locked: true,
     });
-    expect(toGroupContext(row({ simple_mode: null, simple_mode_locked: null }), "u1").simpleMode).toEqual({
+    expect(toGroupContext(row({ simple_mode: null, simple_mode_locked: null }), "u1").easyMode).toEqual({
       ownerDefault: false,
       locked: false,
     });

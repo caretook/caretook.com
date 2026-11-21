@@ -1,7 +1,7 @@
 import type { Route } from "./+types/route";
 import type { ActionResult } from "~/lib/core/api";
 
-import { SIMPLE_TILE_COUNT } from "@caretook/data/schema";
+import { EASY_TILE_COUNT } from "@caretook/data/schema";
 import { UserRound } from "lucide-react";
 import { Link } from "react-router";
 import { Detail, Details, SettingsCard, SettingsPage } from "~/components/settings";
@@ -14,13 +14,13 @@ import { loadDetailsAllowed, useDetailsAllowed } from "~/lib/calendars/detailsAl
 import { failedSave, loadRecipientProfile } from "../api";
 import { GroupNameForm, RecipientTimeZoneForm } from "./DetailsForms";
 import { DetailsOutsideCard } from "./DetailsOutsideCard";
-import { SimpleTilesCard } from "./SimpleTilesCard";
+import { EasyTilesCard } from "./EasyTilesCard";
 import {
   groupSettingsAccess,
   NEEDS_CONNECTION,
   parseGroupName,
   parseRecipientTimeZone,
-  parseSimpleTilesChoice,
+  parseEasyTilesChoice,
   tileFieldName,
   timeZoneLabel,
 } from "../groupSettings";
@@ -29,8 +29,8 @@ import {
 // recipient's time zone come from the device's local copy (live, so they work
 // offline and follow other members' changes); saving goes through the API:
 // online only. The rest of the recipient is edited on their profile
-// (`appUrls.profile`), linked from here. Simple mode's tiles card is the
-// group's too (`careGroup.update`'s `simpleTiles`). Owners also get the
+// (`appUrls.profile`), linked from here. Easy mode's tiles card is the
+// group's too (`careGroup.update`'s `easyTiles`). Owners also get the
 // "Details outside Caretook" switch (calendars), read from the device.
 
 export const meta = () => [{ title: "Details · Group settings · Caretook" }];
@@ -63,10 +63,10 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
       await rpc.careGroup.updateRecipient({ groupId, ...parsed.data });
       return { ok: true };
     }
-    if (intent === "simpleTiles") {
-      const parsed = parseSimpleTilesChoice({
+    if (intent === "easyTiles") {
+      const parsed = parseEasyTilesChoice({
         mode: formString(form, "mode"),
-        tiles: Array.from({ length: SIMPLE_TILE_COUNT }, (_, i) => formString(form, tileFieldName(i))),
+        tiles: Array.from({ length: EASY_TILE_COUNT }, (_, i) => formString(form, tileFieldName(i))),
       });
       if (!parsed.ok) return parsed;
       await rpc.careGroup.update({ groupId, ...parsed.data });
@@ -135,7 +135,7 @@ export default function GroupDetails({ loaderData }: Route.ComponentProps) {
         )}
       </SettingsCard>
 
-      <SimpleTilesCard
+      <EasyTilesCard
         groupId={group.id}
         displayName={group.recipient?.displayName ?? group.displayName}
         editable={online && access.renameGroup}

@@ -410,7 +410,7 @@ export const passLoggedText = (
 export const passLoggedLabel = (pass: Pick<PassWording, "name" | "slots">) => `${passTitle(pass)} logged`;
 
 /**
- * A due pass as one tap (quick entry's chip, simple mode's Now block): "Give
+ * A due pass as one tap (quick entry's chip, easy mode's Now block): "Give
  * evening meds (4)", with how many are still open. A pass already called
  * "… meds" isn't doubled; a time of its own is named by its medication.
  */

@@ -30,8 +30,8 @@ import { settledSearchIndexStatus, useSearchIndexStatus } from "./useSearchIndex
 import { useTimelineData } from "./useTimelineData";
 import { useTimelineView } from "./useTimelineView";
 import { useDaySummaryMode } from "./useDaySummaryMode";
-import { useSimpleMode } from "~/lib/assistant/useSimpleMode";
-import { SimpleTimeline } from "./SimpleTimeline";
+import { useEasyMode } from "~/lib/assistant/useEasyMode";
+import { EasyTimeline } from "./EasyTimeline";
 
 // Shared by web + native. Reads and writes go to the device's local copy
 // (PowerSync), so the timeline works offline and other members' changes
@@ -122,7 +122,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const { units } = settings;
   const group = useGroup();
   const { canWrite } = group;
-  const mode = useSimpleMode(userId, groupId, group, settings.simpleMode);
+  const mode = useEasyMode(userId, groupId, group, settings.easyMode);
   const period = usePeriodSearch(groupId, loaderData.period, loaderData.searchPeriods);
   const search = timelineSearch(groupId, q, useSearchIndexStatus(), period.range);
   const filters = { kind, author, vital, match: search.match };
@@ -140,7 +140,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const sheets = (
     <>
       {/* The sheets (`new/:kind`, `:entryId/edit`), over the timeline. */}
-      <Outlet context={{ units, simple: mode.simple } satisfies TimelineOutlet} />
+      <Outlet context={{ units, easy: mode.easy } satisfies TimelineOutlet} />
       {/* "Added Ibuprofen · Add details", once the Dose sheet's quick add closes it. */}
       <AddedMedicationToast groupId={groupId} />
       {/* The edit sheet's route module, fetched now so a row opens it offline (one link for every row). */}
@@ -160,22 +160,22 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         vitalTypes={data.latestVitals.map((v) => v.reading.type)}
         period={period}
         trailing={
-          !mode.simple && (
+          !mode.easy && (
             <TimelineViewMenu
               view={view}
               onViewChange={setView}
               summaryMode={summaryMode}
               onSummaryModeChange={setSummaryMode}
-              simpleMode={mode}
+              easyMode={mode}
             />
           )
         }
       />
     </div>
   );
-  if (mode.simple)
+  if (mode.easy)
     return (
-      <SimpleTimeline
+      <EasyTimeline
         data={data}
         units={units}
         mode={mode}
@@ -184,7 +184,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         filters={{ kind, author, vital, search: { q, state: search.state } }}
       >
         {sheets}
-      </SimpleTimeline>
+      </EasyTimeline>
     );
 
   return (

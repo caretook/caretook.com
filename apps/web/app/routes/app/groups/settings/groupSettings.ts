@@ -2,14 +2,10 @@ import type { AuthUser } from "@caretook/data/permissions";
 import type { ActionResult } from "~/lib/core/api";
 
 import { hasPermission } from "@caretook/data/permissions";
-import type { SimpleTile, SimpleTiles } from "@caretook/data/schema";
+import type { EasyTile, EasyTiles } from "@caretook/data/schema";
 
-import {
-  careGroupInsertZSchema,
-  careRecipientProfileZSchema,
-  SIMPLE_TILE_COUNT,
-} from "@caretook/data/schema";
-import { tileFromKey, tileKey } from "../../../../lib/assistant/simpleTiles";
+import { careGroupInsertZSchema, careRecipientProfileZSchema, EASY_TILE_COUNT } from "@caretook/data/schema";
+import { tileFromKey, tileKey } from "../../../../lib/assistant/easyTiles";
 
 // The pure parts of group settings (`./route.tsx`): who may
 // edit what, and turning a submitted form into a valid change or field errors.
@@ -94,22 +90,22 @@ export const parseRecipientTimeZone = (values: { timeZone: string }): Parsed<{ t
 export const tileFieldName = (index: number) => `tile${index}`;
 
 /**
- * A submitted "Simple mode tiles" choice: learned from use, the fixed set,
+ * A submitted "Easy mode tiles" choice: learned from use, the fixed set,
  * or four different tiles (`custom`). Anything else is the card's error.
  */
-export const parseSimpleTilesChoice = (form: {
+export const parseEasyTilesChoice = (form: {
   mode: string;
   tiles: readonly string[];
-}): Parsed<{ simpleTiles: SimpleTiles }> => {
+}): Parsed<{ easyTiles: EasyTiles }> => {
   if (form.mode === "learned" || form.mode === "fixed")
-    return { ok: true, data: { simpleTiles: { mode: form.mode } } };
+    return { ok: true, data: { easyTiles: { mode: form.mode } } };
   if (form.mode !== "custom") return { ok: false, error: "Choose how the tiles are picked.", issues: [] };
   const tiles = form.tiles.map(tileFromKey);
-  const picked = tiles.filter((tile): tile is SimpleTile => !!tile);
-  if (picked.length !== SIMPLE_TILE_COUNT) return { ok: false, error: "Pick four tiles.", issues: [] };
-  if (new Set(picked.map(tileKey)).size !== SIMPLE_TILE_COUNT)
+  const picked = tiles.filter((tile): tile is EasyTile => !!tile);
+  if (picked.length !== EASY_TILE_COUNT) return { ok: false, error: "Pick four tiles.", issues: [] };
+  if (new Set(picked.map(tileKey)).size !== EASY_TILE_COUNT)
     return { ok: false, error: "Pick four different tiles.", issues: [] };
-  return { ok: true, data: { simpleTiles: { mode: "custom", tiles: picked } } };
+  return { ok: true, data: { easyTiles: { mode: "custom", tiles: picked } } };
 };
 
 // ---------------------------------------------------------------------------
@@ -189,7 +185,7 @@ export const memberAccess = ({
     roles: manages ? MEMBER_ROLES.filter((role) => owner || role !== "owner") : [],
     remove: manages && !isSelf,
     leave: isSelf,
-    // Simple mode's default for them: whoever may change their role.
+    // Easy mode's default for them: whoever may change their role.
     simpleMode: manages,
     // Locking them in it: the same, but never yourself.
     lock: manages && !isSelf,

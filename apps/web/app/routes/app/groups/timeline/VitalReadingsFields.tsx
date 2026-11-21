@@ -8,7 +8,7 @@ import { VitalTypeMenu } from "./VitalTypeMenu";
 /**
  * The readings of one vitals entry: a block per type, each removable while
  * more than one is left, then "Add a reading". Values show and are typed in
- * the user's units; entryContentFromForm converts them back. `fixed` (simple
+ * the user's units; entryContentFromForm converts them back. `fixed` (easy
  * mode's tile) keeps to the types given: no removing or adding.
  */
 export function VitalReadingsFields({

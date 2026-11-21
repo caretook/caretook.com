@@ -308,7 +308,7 @@ describe("the empty Today", () => {
     ["a viewer", () => openTimeline({ role: "viewer", fixtures: olderDays })],
     ["a kind filter", () => openTimeline({ role: "caretaker", fixtures: olderDays, query: "?kind=symptom" })],
     [
-      "simple mode",
+      "easy mode",
       () =>
         openTimeline({
           role: null,

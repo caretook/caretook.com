@@ -19,7 +19,7 @@ export const schemaName = careGroupMemberModel.schemaName;
 // Writes add rules the permissions map can't express:
 //   - only owners add, promote to, demote from, or remove owners
 //   - a group always keeps at least one owner
-//   - nobody locks or unlocks simple mode for themselves
+//   - nobody locks or unlocks easy mode for themselves
 //   - a member who goes keeps their open todos as a typed-in name
 //   - a member who goes loses their assistants' connections to the group
 //   - a member who goes loses their calendar settings, feed and reminder overrides there
@@ -91,9 +91,9 @@ export const updateRole = (ctx: ServiceContext, { id, role }: { id: string; role
   }, ctx);
 
 /**
- * Set simple mode for a member (assistant PRD): `simpleMode` is the default
+ * Set easy mode for a member (assistant PRD): `simpleMode` is the default
  * the managers choose for them, and `locked` keeps them in it (a lock means
- * simple, so locking turns the default on, and turning the default off
+ * easy, so locking turns the default on, and turning the default off
  * unlocks). Owners and admins (the map); only owners change an owner's, and
  * nobody locks or unlocks themselves.
  */

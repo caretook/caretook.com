@@ -54,8 +54,8 @@ const NO_SEARCH = { q: "", state: "none" } as const;
 /** The empty Today's line (a writer's unfiltered full view with nothing logged today). */
 export const EMPTY_TODAY_TEXT = "Nothing logged today yet.";
 
-/** Simple mode's larger list: everything in it, text, icons and taps alike, a quarter bigger. */
-/** Simple mode shows no care period markers. */
+/** Easy mode's larger list: everything in it, text, icons and taps alike, a quarter bigger. */
+/** Easy mode shows no care period markers. */
 const NO_MARKERS: never[] = [];
 /** No day skips its rows (a restored window's first frames). */
 const NO_SETTLED = new Set<string>();
@@ -86,7 +86,7 @@ export type TimelineEntryListFilters = {
  * search on and nothing logged today, that heading says so and offers "Add an
  * entry" (`onAddEntry`), in place of the empty timeline's line.
  *
- * `simple` is simple mode's list: rows only, at the full timeline's type
+ * `easy` is easy mode's list: rows only, at the full timeline's type
  * scale (no zoom), with no filter links, no + menus and no care periods (markers or the day headers'
  * Change); the ⋯ menus, sheets and delete confirm are the full timeline's.
  */
@@ -100,7 +100,7 @@ export function TimelineEntryList({
   author,
   vital = null,
   search: searching = NO_SEARCH,
-  simple = false,
+  easy = false,
   summaryMode = "highlights",
   onAddEntry,
 }: {
@@ -131,8 +131,8 @@ export function TimelineEntryList({
   vital?: VitalType | null;
   /** The search (`?q=`) and what it's doing (`timelineSearch`). */
   search?: { q: string; state: TimelineSearchState };
-  /** Simple mode's list (above). */
-  simple?: boolean;
+  /** Easy mode's list (above). */
+  easy?: boolean;
   /** The day summaries' setting: none, highlights (the default) or everything. */
   summaryMode?: DaySummaryMode;
   /** The empty Today's "Add an entry" (the full view brings the quick-entry field up). */
@@ -170,9 +170,9 @@ export function TimelineEntryList({
   const recipientZone = useGroup().recipient?.timeZone ?? "UTC";
   const now = new Date();
   const timeZone = localTimeZone();
-  const days = withMarkers(data.days, simple ? NO_MARKERS : data.markers, timeZone, now);
+  const days = withMarkers(data.days, easy ? NO_MARKERS : data.markers, timeZone, now);
   const todayKey = dayKeyIn(now.toISOString(), timeZone);
-  const adding = canWrite && !simple;
+  const adding = canWrite && !easy;
   // Nothing logged today, with no filter or search on: the Today heading says so (`EmptyToday`).
   const emptyToday = adding && !kind && !author && !vital && !searching.q && data.days[0]?.key !== todayKey;
   const sections =
@@ -261,7 +261,7 @@ export function TimelineEntryList({
         liveLabel={data.liveLabelOf(entry.id)}
         providers={data.providersOf(entry.id)}
         search={marked ? parsed : undefined}
-        simple={simple}
+        easy={easy}
       />
     );
   };
@@ -272,7 +272,7 @@ export function TimelineEntryList({
         ref={list}
         aria-labelledby="timeline-heading"
         className={`space-y-4 ${COLUMN_CAP}`}
-        data-simple-list={simple ? "" : undefined}
+        data-easy-list={easy ? "" : undefined}
       >
         <h2 id="timeline-heading" className="sr-only">
           Timeline
@@ -294,7 +294,7 @@ export function TimelineEntryList({
               newestAt={day.entries[0]?.occurredAt}
               groupId={groupId}
               periods={data.periods}
-              simple={simple}
+              easy={easy}
               summary={summaries && <DaySummaryLine summary={summaries.get(day.key)} mode={summaryMode} />}
             />
             {day.entries.length > 0 && (
