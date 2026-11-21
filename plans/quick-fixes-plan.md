@@ -79,7 +79,7 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 | 61    | B-225             | merged | 8fe8a768 (31ff8c1d) sonnet                            |
 | 62    | B-211             | merged | 33adfc0a (6eb5d949) sonnet                            |
 
-| 63 | B-228 | started | sonnet |
+| 63 | B-228 | merged | 5255bf50 (349ba323) sonnet; last 4 sites 76ad3e78 |
 | 64 | B-230 | merged | d5701923 (2769bd66) sonnet |
 | 65 | B-232 | merged | 9f47380b (4bd81a3a) sonnet |
 | 66 | B-233 | started | sonnet |
