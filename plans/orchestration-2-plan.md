@@ -4,7 +4,7 @@
 
 ## Status
 
-**Wave 5 in flight (fresh session, 2026-11-21):** slice 7 started (worktree `orchestration-2-7`, opus agent spawned, B-403 claimed). Main checkout's `dev` still lacks PR #31 (ask `a2` open), so no sync yet. New backlog items B-412–B-415 are app UI, not this topic.
+**Wave 5 in flight (fresh session, 2026-11-21):** slice 7 merged (5241714c; quick check passed on a375489c, 525 tooling tests; worktree removed; B-403 done). Slice 8 started (worktree `orchestration-2-8`, sonnet agent spawned, B-409 claimed). Docs to fold at landing: `pnpm prd tidy` and `prompt tidy` in machinery.md and orchestrator.md; tidy skips `hold` rows. Main checkout's `dev` still lacks PR #31 (ask `a2` open), so no sync yet. New backlog items B-412–B-415 are app UI, not this topic.
 
 **Where it stood:** **wave 4 (slice 6) landed** through PR #31 (Codex clean on 5bdf20d; no check needed, tooling and docs; 503/503 tooling tests; 2026-11-21). Docs folded (planner, backlog, hotfix, AGENTS.md _Working rules_). **The split is done:** `fixes-ui`, `fixes-tooling`, `fixes-perf`, `fixes-bug`, `fixes-nit` added after `quick-fixes` with `standing,hold`; the 26 waiting items moved (B-385, B-386, B-393, filed after the planner's table, went to `fixes-bug` by the rule); `quick-fixes` set `done` (no worktree left). `doctor` shows only the same 6 findings left for the user. Report filed (ask `a3`) and pushed. Earlier: waves 1–3 landed (77c79ca PR #26, e12d774 PR #29); the first rotation worked (fresh session under `prd-orchestration-2` with `--auto`, old process gone).
 
@@ -18,15 +18,16 @@
 
 **Models:** slices 1, 2, 3 opus (new modules and design), 4 opus, 5 sonnet, 6 sonnet (mechanical), 7 opus, 8 and 9 sonnet — the plan gives no model, these are the handbook's _Models_.
 
-| Slice | Wave | State           | Merge into `prd/orchestration-2` (slice commits) |
-| ----- | ---- | --------------- | ------------------------------------------------ |
-| 1     | 1    | merged (opus)   | 3ba1e77b (9e722505)                              |
-| 2     | 1    | merged (opus)   | a0e66284 (c99d30c2)                              |
-| 3     | 1    | merged (opus)   | dda72b54 (84cdb649)                              |
-| 4     | 2    | merged (opus)   | 4c4a76cc (f5d86cc5)                              |
-| 5     | 3    | merged (sonnet) | 1a92480f (00a19c33)                              |
-| 6     | 4    | merged (sonnet) | 41ac39b6 (8522220d, 0b268a4e)                    |
-| 7     | 5    | started (opus)  |                                                  |
+| Slice | Wave | State            | Merge into `prd/orchestration-2` (slice commits) |
+| ----- | ---- | ---------------- | ------------------------------------------------ |
+| 1     | 1    | merged (opus)    | 3ba1e77b (9e722505)                              |
+| 2     | 1    | merged (opus)    | a0e66284 (c99d30c2)                              |
+| 3     | 1    | merged (opus)    | dda72b54 (84cdb649)                              |
+| 4     | 2    | merged (opus)    | 4c4a76cc (f5d86cc5)                              |
+| 5     | 3    | merged (sonnet)  | 1a92480f (00a19c33)                              |
+| 6     | 4    | merged (sonnet)  | 41ac39b6 (8522220d, 0b268a4e)                    |
+| 7     | 5    | merged (opus)    | 5241714c (a375489c)                              |
+| 8     | 5    | started (sonnet) |                                                  |
 
 **Backlog:** B-389 (the registry) closes with slice 1, B-390 (one session per wave) with slice 4, B-391 (the asks queue) with slice 5, B-395 (fix categories) with slice 6 (done); B-403 with slice 7, B-409 with 8, B-410 with 9 (`pnpm backlog done` when each merges).
 
