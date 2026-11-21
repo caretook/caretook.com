@@ -1,5 +1,7 @@
 import type {
   CarePeriodType,
+  ConditionChangeDetails,
+  ConditionChangeType,
   DoseStatus,
   MedicationChangeType,
   MedicationSchedule,
@@ -502,3 +504,31 @@ export const condition = (v: Partial<Values<"recipientConditions">> = {}) => {
     ...v,
   });
 };
+
+// --- Added by conditions slice 2 ---------------------------------------------
+
+/**
+ * A condition's change on the timeline (written with the condition, never by
+ * hand): "added" unless `details` says otherwise (`conditionId`,
+ * `conditionName` and `change` are filled in).
+ */
+export const conditionChangeEntry = ({
+  conditionId,
+  conditionName = "High blood pressure",
+  change = "added",
+  details = {},
+  ...v
+}: Omit<EntryValues, "details"> & {
+  conditionId: string;
+  conditionName?: string;
+  change?: ConditionChangeType;
+  details?: Partial<Omit<ConditionChangeDetails, "conditionId" | "conditionName" | "change">>;
+}) =>
+  row(
+    "timelineEntries",
+    entryBase("conditionChange", {
+      title: null,
+      details: JSON.stringify({ conditionId, conditionName, change, ...details }),
+      ...v,
+    }),
+  );

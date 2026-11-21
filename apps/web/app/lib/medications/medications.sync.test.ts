@@ -180,7 +180,9 @@ describe("medication queries", () => {
 
   it("lists doses and medication changes on the timeline, with a kind or without", () => {
     const all = entriesQuery("g1", { kind: null, author: null }, 50);
-    expect(all.sql).toContain("kind IN ('note', 'symptom', 'event', 'vital', 'dose', 'medicationChange')");
+    expect(all.sql).toContain(
+      "kind IN ('note', 'symptom', 'event', 'vital', 'dose', 'medicationChange', 'conditionChange')",
+    );
     expect(all.params).toEqual(["g1", 51]);
     expect(entriesQuery("g1", { kind: "dose", author: null }, 50).params).toEqual(["g1", "dose", 51]);
   });

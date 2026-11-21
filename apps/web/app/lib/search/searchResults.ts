@@ -29,7 +29,13 @@ export type HitSection = { hits: readonly RankedHit[]; total: number };
 export type SearchPageQuery = { q: string; all: SearchItemType | null; period: string | null };
 
 /** Sections in page order: the things you'd look up by name first, then tasks, then the timeline's entries. */
-export const SECTION_ORDER: readonly SearchItemType[] = ["provider", "medication", "task", "entry"];
+export const SECTION_ORDER: readonly SearchItemType[] = [
+  "provider",
+  "medication",
+  "condition",
+  "task",
+  "entry",
+];
 
 /** How many results a section shows before "Show all N". */
 export const SECTION_SIZE = 5;
@@ -42,6 +48,7 @@ export const SECTION_LABELS: Record<SearchItemType, string> = {
   medication: "Medications",
   task: "Tasks",
   entry: "Timeline entries",
+  condition: "Conditions",
 };
 
 const NOUNS: Record<SearchItemType, [one: string, many: string]> = {
@@ -49,6 +56,7 @@ const NOUNS: Record<SearchItemType, [one: string, many: string]> = {
   medication: ["medication", "medications"],
   task: ["task", "tasks"],
   entry: ["entry", "entries"],
+  condition: ["condition", "conditions"],
 };
 
 /**
@@ -75,6 +83,7 @@ export const sectionLimits = (all: SearchItemType | null): Record<SearchItemType
   medication: all === "medication" ? FULL_SECTION_SIZE : SECTION_SIZE,
   task: all === "task" ? FULL_SECTION_SIZE : SECTION_SIZE,
   entry: all === "entry" ? FULL_SECTION_SIZE : SECTION_SIZE,
+  condition: all === "condition" ? FULL_SECTION_SIZE : SECTION_SIZE,
 });
 
 /** Milliseconds since the epoch, from ISO 8601, the device's form or Postgres's ("… 10:00:00+00"). */

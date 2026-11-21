@@ -3,7 +3,12 @@ import type { ReactNode } from "react";
 import type { LinkedProviderName } from "~/lib/providers/entryProviders";
 import type { TimelineEntry } from "~/lib/core/rpc";
 
-import { highlightRanges, snippetIfHidden } from "@caretook/data/schema";
+import {
+  conditionChangeText,
+  highlightRanges,
+  isConditionChangeDetails,
+  snippetIfHidden,
+} from "@caretook/data/schema";
 import { useEffect, useRef, useState } from "react";
 import { Highlight } from "~/components/ui";
 import { entrySummary, KIND_META } from "~/lib/timeline/entryDisplay";
@@ -18,7 +23,8 @@ const TEXT_CAP = "max-w-[75ch]";
 /**
  * What an entry says, the same in rows and cards: the kind (for screen
  * readers), then its heading (title or symptom name, with severity; a dose's
- * or change's medication and what happened), its vital readings, who it was
+ * or change's medication and what happened; a condition change's "Added
+ * Type 2 diabetes" and its before → after lines), its vital readings, who it was
  * with (linked providers), a dose's or stop's note, and its text, in that order. The first of those can share a line
  * with `aside` (the card's live dot and time); `footer` comes last. Rows clamp
  * the text to two lines (`clamp`, with "More"); cards show all of it.
@@ -49,6 +55,10 @@ export function EntryBody({
 }) {
   const { heading, severity, readings, body } = entrySummary(entry, units);
   const medication = medicationEntryText(entry);
+  const condition =
+    entry.kind === "conditionChange" && isConditionChangeDetails(entry.details)
+      ? conditionChangeText(entry.details)
+      : null;
   const marks = (text: string) => (search ? highlightRanges(text, search) : undefined);
   const snippet =
     search && clamp && body && isLiveEntryKind(entry.kind) ? snippetIfHidden(body, search) : null;
@@ -63,6 +73,16 @@ export function EntryBody({
         className={TEXT_CAP}
       />
     ),
+    condition && (
+      <p key="condition" className={`font-semibold break-words ${TEXT_CAP}`} data-condition-entry>
+        <Highlight text={condition.heading} ranges={marks(condition.heading)} />
+      </p>
+    ),
+    ...(condition?.lines ?? []).map((line) => (
+      <p key={`condition-${line}`} className={`break-words ${TEXT_CAP}`} data-condition-change>
+        <Highlight text={line} ranges={marks(line)} />
+      </p>
+    )),
     heading && (
       <p key="heading" className={`font-semibold break-words ${TEXT_CAP}`}>
         <Highlight text={heading} ranges={marks(heading)} />

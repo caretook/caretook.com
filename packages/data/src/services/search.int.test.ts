@@ -14,6 +14,7 @@ import {
   medicationService,
   noteDocumentService,
   providerService,
+  recipientConditionService,
   searchService,
   timelineEntryService,
 } from ".";
@@ -255,6 +256,25 @@ describe("searchService: what matches", () => {
     const hits = (await s.search(s.caretaker.ctx, "garden")).entries;
     expect(hits.map((h) => h.id)).toEqual([inTitle.id, inBody.id]);
     expect(hits[0]!.rank).toBeGreaterThan(hits[1]!.rank);
+  });
+});
+
+describe("searchService: condition changes (conditions slice 2)", () => {
+  it("finds a condition's changes by its name, each titled by the name it had then", async () => {
+    const s = await setup();
+    const condition = ok(
+      await recipientConditionService.create(s.caretaker.ctx, { groupId: s.group.id, name: "Diabetes" }),
+    )!;
+    ok(await recipientConditionService.update(s.caretaker.ctx, condition.id, { name: "Type 2 diabetes" }));
+    const hits = (await s.search(s.viewer.ctx, "diabetes", { scopes: ["entry"] })).entries;
+    expect(hits).toHaveLength(2);
+    // Each is titled by the name it had then.
+    expect(hits.map((h) => [h.kind, h.title]).sort()).toEqual([
+      ["conditionChange", "Diabetes"],
+      ["conditionChange", "Type 2 diabetes"],
+    ]);
+    // Only the add knew it as just "Diabetes".
+    expect(await s.entryIds("diabetes -type")).toHaveLength(1);
   });
 });
 
