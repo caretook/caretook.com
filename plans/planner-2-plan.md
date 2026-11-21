@@ -4,17 +4,17 @@
 
 ## Status
 
-| Slice | Wave       | State                                                                                           | Merge into `prd/planner-2` (slice commits) |
-| ----- | ---------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| 1     | 1 (landed) | merged (sonnet, finished by a `--continue` agent on opus after a usage limit); worktree removed | 804c6e97 (cea61410, 56de7e22, 8d62fbe0)    |
-| 2     | 1 (landed) | merged (opus); worktree removed                                                                 | 7267ab9f (3ff6ccb2, 46ddd08f)              |
-| 3     | 2          | started (worktree `.loops/planner-2-3`, sonnet)                                                 |                                            |
-| 4     | 2          | merged; worktree removed                                                                        | 262f3dc0 (d42513b8, 30995550)              |
-| 5     | 2          | merged; worktree removed                                                                        | c0153854 (ceb78315)                        |
-| 6     | 2          | started (worktree `.loops/planner-2-6`, slot 4 stack, opus, 12:50 ET)                           |                                            |
-| 7     | 2          | merged; worktree removed                                                                        | c29fc769 (02f7f95b)                        |
-| 8     | 2          | merged; worktree removed; B-247, B-251, B-284 done                                              | 43846e09 (ee441db0, c0d508f0)              |
-| 9     | 2          | started (worktree `.loops/planner-2-9`, sonnet; B-246 claimed)                                  |                                            |
+| Slice | Wave       | State                                                                                                      | Merge into `prd/planner-2` (slice commits) |
+| ----- | ---------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| 1     | 1 (landed) | merged (sonnet, finished by a `--continue` agent on opus after a usage limit); worktree removed            | 804c6e97 (cea61410, 56de7e22, 8d62fbe0)    |
+| 2     | 1 (landed) | merged (opus); worktree removed                                                                            | 7267ab9f (3ff6ccb2, 46ddd08f)              |
+| 3     | 2          | started (worktree `.loops/planner-2-3`, sonnet)                                                            |                                            |
+| 4     | 2          | merged; worktree removed                                                                                   | 262f3dc0 (d42513b8, 30995550)              |
+| 5     | 2          | merged; worktree removed                                                                                   | c0153854 (ceb78315)                        |
+| 6     | 2          | started (worktree `.loops/planner-2-6`, slot 4 stack, opus, 12:50 ET)                                      |                                            |
+| 7     | 2          | merged; worktree removed                                                                                   | c29fc769 (02f7f95b)                        |
+| 8     | 2          | merged; worktree removed; B-247, B-251, B-284 done                                                         | 43846e09 (ee441db0, c0d508f0)              |
+| 9     | 2          | handed off (c3f1481c), reviewed; merges after slice 3 (shared useUpcomingData, plannerTodos, planner test) |                                            |
 
 **Wave 1: landed** in dev through PR #22 (8069cf9, 2026-11-21; full check on 9d08fdd5, quick on 3f4456e0, the lean suite with roundtrip fixed and passing alone, Codex clean after 2 rounds). Codex follow-ups filed: B-382–B-387 (repeat-chain edge cases; B-382, an offline Undo deleting an edited successor, is the P1). Wave 1's docs are folded (appointments, timeline, todos, data-layer). The user still needs to run `pnpm datastore:reset` and `docker compose restart powersync` in the main checkout. Filed B-381 (the readTools birth-year flake, quick-fixes).
 
