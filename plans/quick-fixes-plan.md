@@ -67,14 +67,21 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 | 49    | B-184             | merged  | 14aa977f (7b4942e4)                                   |
 | 50    | B-185, B-186      | merged  | 0cace532 (6d3c06cc)                                   |
 | 51    | B-187             | merged  | 7bc05133 (e9be4770)                                   |
-| 52    | B-192             | started |                                                       |
-| 53    | B-198             | started |                                                       |
-| 54    | B-201             | started |                                                       |
-| 55    | B-191             | started |                                                       |
-| 56    | B-174             | started |                                                       |
-| 57    | B-175             | started |                                                       |
+| 52    | B-192             | landed  | fa9ad005 (wave 14)                                    |
+| 53    | B-198             | landed  | fa9ad005 (wave 14)                                    |
+| 54    | B-201             | landed  | fa9ad005 (wave 14)                                    |
+| 55    | B-191             | landed  | fa9ad005 (wave 14)                                    |
+| 56    | B-174             | landed  | fa9ad005 (wave 14)                                    |
+| 57    | B-175             | landed  | fa9ad005 (wave 14)                                    |
+| 58    | B-205, B-206      | landed  | fa9ad005 (wave 14)                                    |
+| 59    | B-180             | started | sonnet                                                |
+| 60    | B-182             | started | sonnet                                                |
+| 61    | B-225             | started | sonnet                                                |
+| 62    | B-211             | started | sonnet                                                |
 
 **Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
+
+**Wave 15 (2026-11-21, run-through mode, queued again):** `prd/quick-fixes` level with `dev` (43fe7b0b); wave 14 was fully in `dev` (the table's "started" rows were stale). Backlog ingested (nothing new); slices 59–62 written from the four items triaged to quick-fixes (B-180, B-182, B-225, B-211), claimed, stackless worktrees made and loops spawned, all sonnet. Lands on a quick check if the slices pass `pnpm check` with no code conflicts; test-only slices 59–61 plus one small screen change (62), so the landing runs `pnpm prd browser --changed --base dev`.
 
 **Wave 14 landed in `dev` as fa9ad005 (2026-11-20)** on a quick check (the user: no full check unless really required) and `--changed --base dev` (phase2: pass); conditions and appointments-2 told. Every planned slice is in `dev`; the PRD worktree was removed. Triaged for a later wave (no slices yet): B-180, B-182, B-207.
 
@@ -1385,6 +1392,71 @@ Added to wave 14 by its orchestrator (2026-11-20): it fails every full check in 
 **Acceptance criteria.**
 
 - [ ] The test passes with the clock set to several times across the day, including 21:20 EST (record how it was run).
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Wave 15 (written 2026-11-21 by the orchestrator, from the items triaged to quick-fixes)
+
+The user moved B-180 and B-182 here for "the next quick-fixes wave" (2026-11-20); B-211 and B-225 were triaged here since. All four are stackless and run together. Files are split so the three test slices don't overlap: slice 60 owns `providers.browser.test.tsx`, slice 61 owns `entryPrint`, `timelineCarePeriods` and `timelineSimple*` tests; slice 59 sweeps every other component test.
+
+## Slice 59: Component tests stop reading synchronously right after render (B-180)
+
+Stack: no · Reads: docs/domain/components.md · Tests: component
+
+**Problem.** Component tests still read the DOM synchronously right after a render or an action: `expect(X()!.textContent…)`, `expect(X()!.querySelector…)`, and `X()!.focus()` / `.blur()` (named on B-180: entry, today, entryWithRow, visitPrep, providerSheets; `grep -rlE 'expect\([A-Za-z]+\(\)!\.(textContent|querySelector)|\(\)!\.(focus|blur)\('` finds about 20 files). Under load these are the next likeliest races. B-176's sweep already did the click/fill/hover/type/clear sites.
+
+**Build.** Convert each site to `await expect.poll(...)` or `found()` (or `expect.element`), keeping what each assertion reads. Two `timelineLayout` tests inline the same "wait until the element stops moving" loop: move it into a shared helper beside `found()` and use it in both. **Leave out** `providers.browser.test.tsx` (slice 60) and `entryPrint`, `timelineCarePeriods`, `timelineSimple*` (slice 61). Change test code only.
+
+**Acceptance criteria.**
+
+- [ ] The grep above finds no synchronous read-after-render site outside the files left out (list any kept on purpose, with why).
+- [ ] The stop-moving loop is one shared helper.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 60: providers' "a practice's name finds its clinicians too" stops flaking (B-182)
+
+Stack: no · Reads: docs/domain/components.md, docs/domain/providers.md · Tests: component
+
+**Problem.** In `routes/app/groups/providers/providers.browser.test.tsx`, "a practice's name finds its clinicians too; the Clinicians chip keeps the search…" flakes under load (seen in connectors slices 1, 2, 5 and a landing check, load ~14): after tapping Clinicians, `expect.poll(listNames('Current providers')).toEqual(['Dr. Elena Alvarez'])` (about line 73) times out with Dr. Samuel Patel still listed. Line 70 also reads `listNames` synchronously. Passes alone.
+
+**Build.** Find why the list lags (a debounced search racing the chip, a read before the tap's state settles, a too-short poll), and fix the test's waits; if the screen is wrong (the chip drops or reorders the search), fix the screen and say so. Convert the file's synchronous reads after render too. Reproduce under load (e.g. run the file several times in parallel, or with CPU throttled) before and after, and record how.
+
+**Acceptance criteria.**
+
+- [ ] The cause is in the hand-off; the test passes repeatedly under the load you reproduced it with.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 61: Component tests pass between midnight and 5 a.m. (B-225)
+
+Stack: no · Reads: docs/domain/components.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** Component tests put entries a few hours before now, which lands on yesterday after midnight: `entryPrint` "an event's: title, time…" gets "Yesterday, 10:18 PM" for `/^Event · Today/`; `timelineCarePeriods` "a period at a place…" gets "day 2"; `timelineSimple` "a day header names the care period…" times out (connectors-2's landing check, 3:18 a.m. 2026-11-21; reproduced alone).
+
+**Build.** Make these tests independent of the wall clock: a fixed clock (`vi.setSystemTime`, if the browser runner and sync allow it) or times anchored to the start of today. Then look for the same pattern across component tests (times from `Date.now()` minus hours, `minutesAgo`, "Today" assertions) and fix what you find, **except** in `providers.browser.test.tsx` (slice 60); slice 59 is converting synchronous reads in other files, so keep edits there to the time setup. Also convert synchronous read-after-render sites in the three named files.
+
+**Acceptance criteria.**
+
+- [ ] The three named tests pass with the clock at 00:30, 03:00, 12:00 and 23:30 (record how it was run).
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 62: The profile's basics sheet links to the group's time zone setting (B-211)
+
+Stack: no · Reads: docs/domain/profiles.md, docs/domain/care-groups.md, docs/domain/components.md · Tests: component
+
+**Problem.** The care recipient's time zone lives in group settings → Details (slice 27), but someone editing the recipient's profile looks for it there and finds nothing.
+
+**Build.** On the profile's basics edit sheet (`routes/app/groups/profile/basics`, `BasicsForm.tsx`), add one short line with a link to `careGroupUrls.groupSettings(groupId, "details")`, e.g. "Time zone: <current zone> · Change in group settings". Show it only to members who can edit group details (use the existing permission check; others see the zone without the link, or nothing). Native link, no new primitive.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the basics sheet shows the link to group settings' Details for an owner, and no link for a member who can't edit details.
 - [ ] `pnpm check` passes.
 
 **Blocks:** none. **Blocked by:** none.
