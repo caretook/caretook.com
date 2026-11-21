@@ -248,7 +248,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-392 | feature | triaged | orchestration-3 |  | A dispatcher (pnpm prd dispatch) that plans and starts PRDs by registry order, dependencies, hot files and slots, and reopens dead sessions; pnpm prd queue just reorders |
 | B-393 | bug | triaged | fixes-bug |  | Repeating todos: reopening Repeat on a 'last Friday' monthly todo whose occurrence falls on a 4th Friday and pressing Done turns BYDAY=-1FR into 4FR (todoFormData initialRepeat → choiceOfRule drops nth); the same shared choiceOfRule/choiceRule bug as B-234 for appointment series: one fix should cover both |
 | B-394 | bug | triaged | fixes-tooling |  | mcp.int.test.ts 'list_timeline: the group's entries in the recipient's zone, with note text, paged at 50' times out at Vitest's 5 s default under load (full check, 5-min load ~21); passes alone 3x |
-| B-395 | change | ready | orchestration-2 | prd/orchestration-2 | Split quick-fixes into categories that land separately: UI/UX, tooling, optimizations, bugfixes, nits (a plan or topic per category; the dispatcher treats each as a standing topic) |
+| B-395 | change | landed | orchestration-2 | prd/orchestration-2 | Split quick-fixes into categories that land separately: UI/UX, tooling, optimizations, bugfixes, nits (a plan or topic per category; the dispatcher treats each as a standing topic) |
 | B-396 | change | in-progress | ui-kit | prd/ui-kit | Redesign TabNav as a pill bar: a fully rounded floating container, plain text tabs, and the current tab as a tinted pill with optional icon and count badge |
 | B-397 | change | triaged | ui-kit |  | Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages |
 | B-398 | change | triaged | ui-kit-2 |  | Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame |
@@ -272,6 +272,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-416 | bug | triaged | fixes-ui |  | owner pill on planner/planner list should be below time/date field. Too busy under title. |
 | B-417 | feature | triaged | marketing |  | We are getting close to feature complete. We need another marketing content pass that updates copy… |
 | B-418 | bug | triaged | test-health |  | Flaky tooling test under load: recover.test.mjs '--at a time that has passed waits until tomorrow' fails in the full pnpm test:tooling run and passes alone |
+| B-419 | bug | inbox |  |  | on providers page, import from another group is too wordy. Import icon is fine. It is for power… |
+| B-420 | bug | inbox |  |  | planner add button can just be a plus icon. Maybe wait on button component. every main page header… |
+| B-421 | bug | inbox |  |  | type pill on medication list items should float right. |
+| B-422 | feature | inbox |  |  | In providers list page, contact links in rows make it too hard to know what to click. Make those… |
+| B-423 | feature | inbox |  |  | Standardize on single Button design component. Can have options like primary, secondary, danger,… |
+| B-424 | feature | inbox |  |  | medications page should have passes as a tab, not in header. + button should be a dropdown with add… |
 
 ## Items
 
@@ -1881,7 +1887,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-395 · change · Split quick-fixes into categories that land separately: UI/UX, tooling, optimizations, bugfixes, nits (a plan or topic per category; the dispatcher treats each as a standing topic)
 
-- status: ready
+- status: landed
 - prd: orchestration-2
 - owner: prd/orchestration-2
 - commit: db507fe2
@@ -2118,3 +2124,55 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Seen 2026-11-21 about 17:20 PT in a full pnpm test:tooling run on dev (1 of 495 failed) with load averages 19 to 30; the file alone passed 3 of 3 (22 tests each). The assertion output was not captured. Likely a timing or wall-clock dependence (the case compares against the current time); reproduce under load, then fix the race rather than rerun. Proposed for test-health, which holds the flaky-test work.
+
+### B-419 · bug · on providers page, import from another group is too wordy. Import icon is fine. It is for power…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: on providers page, import from another group is too wordy. Import icon is fine. It is for power users anyway. Move the add button (just a + icon) and import icons to the right side of the header. Add is primary, import is secondary. and they should be similarly sized/styled.
+
+### B-420 · bug · planner add button can just be a plus icon. Maybe wait on button component. every main page header…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: planner add button can just be a plus icon. Maybe wait on button component. every main page header can have a + icon button in the top right of header to add a new item. other secondary buttons should be to left of the + button.
+
+### B-421 · bug · type pill on medication list items should float right.
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+### B-422 · feature · In providers list page, contact links in rows make it too hard to know what to click. Make those…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: In providers list page, contact links in rows make it too hard to know what to click. Make those clickable in the details sheet and remove the information from the rows. Most of the time we want notes open during contact anyway.
+
+### B-423 · feature · Standardize on single Button design component. Can have options like primary, secondary, danger,…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: Standardize on single Button design component. Can have options like primary, secondary, danger, etc. Can have sizes like small, medium, large. Can have variants like icon, text, etc. Can have shape like pill, square, round, etc. use it for every interactive link icon or text button in the app other than header and footer, expand actions, and hamburgers. Ask me if there should be other exceptions.
+
+### B-424 · feature · medications page should have passes as a tab, not in header. + button should be a dropdown with add…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: medications page should have passes as a tab, not in header. + button should be a dropdown with add selection like other pages. Should probably wait on button component and standardized header add button.
