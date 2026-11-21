@@ -121,7 +121,7 @@ describe("tasks in Upcoming", () => {
     const patch = (await device.queued()).find((w) => w.op === "PATCH");
     expect(Object.keys(patch?.data ?? {}).sort()).toEqual(["done_at", "done_by"]);
 
-    await userEvent.click(page.getByRole("button", { name: "Undo" }));
+    await userEvent.click(page.getByRole("button", { name: "Undo Call the pharmacy" }));
     await expect.poll(() => taskTitles(today)).toEqual(["Call the pharmacy", "Pick up the walker"]);
   });
 
