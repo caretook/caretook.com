@@ -24,6 +24,7 @@ export function ConfirmDialog({
   message,
   confirmDisabled = false,
   cancelLabel = "Cancel",
+  confirmClassName = "btn-error",
   children,
   onConfirm,
   onClose,
@@ -34,6 +35,8 @@ export function ConfirmDialog({
   message?: string | null;
   confirmDisabled?: boolean;
   cancelLabel?: string;
+  /** The confirm button's daisyUI colour: red by default, for deletes; pass "btn-primary" for a plain action. */
+  confirmClassName?: string;
   children?: ReactNode;
   onConfirm: () => void;
   onClose: () => void;
@@ -67,7 +70,12 @@ export function ConfirmDialog({
           <button type="button" className="btn" onClick={onClose}>
             {cancelLabel}
           </button>
-          <button type="button" className="btn btn-error" disabled={confirmDisabled} onClick={onConfirm}>
+          <button
+            type="button"
+            className={`btn ${confirmClassName}`}
+            disabled={confirmDisabled}
+            onClick={onConfirm}
+          >
             {confirmLabel}
           </button>
         </div>

@@ -22,7 +22,7 @@ export { UserAvatar } from "./UserAvatar";
 export { ChipList } from "./ChipList";
 export type { ListChip } from "./ChipList";
 export { ComboBox } from "./ComboBox";
-export type { ComboBoxOption } from "./ComboBox";
+export type { ComboBoxOption, ComboBoxSection } from "./ComboBox";
 export { Highlight, MARK_CLASS } from "./Highlight";
 export { Toast } from "./Toast";
 export { ViaTag } from "./ViaTag";

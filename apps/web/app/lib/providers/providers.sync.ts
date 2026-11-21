@@ -9,6 +9,7 @@ import type {
 import type { ActionResult } from "../core/api";
 import type { SyncDb } from "../sync/index";
 import type { EntryFilters, LocalQuery } from "../timeline/timeline.sync";
+import type { ImportResult, ImportSource } from "./providerImport";
 
 import {
   canLinkProviders,
@@ -34,6 +35,7 @@ import {
   readRows,
   WRITER_ROLES,
 } from "../timeline/timeline.sync";
+import { planImport } from "./providerImport";
 
 // The provider directory and entry links on this device: local queries for
 // `useLiveQuery` and loaders, and local writes that validate with the shared
@@ -497,6 +499,47 @@ export const createProviderDocument = async (db: SyncDb, providerId: string): Pr
   return { ok: true };
 };
 
+/**
+ * Import providers from another of the user's groups (`providerImport`'s
+ * plan: a copy with new ids, practices first) in one local transaction.
+ * They upload as ordinary provider creates, so the server checks them again
+ * (a writer in the target, a practice in the same group). Only writers in
+ * the target may; `sourceProviders` are the source group's, as the device
+ * holds them.
+ */
+export const importProviders = async (
+  db: SyncDb,
+  targetGroupId: string,
+  sourceProviders: readonly ImportSource[],
+  chosenIds: readonly string[],
+): Promise<{ ok: true; results: ImportResult[] } | Refusal> => {
+  if (!(await canWrite(db, targetGroupId))) return forbidden as Refusal;
+  const target = toProviders(await readRows<ProviderRow>(db, providersQuery(targetGroupId)));
+  const plan = planImport(sourceProviders, target, chosenIds);
+  const now = nowTimestamp();
+  const rows: (typeof providers.$inferInsert)[] = [];
+  for (const { id, content } of plan.rows) {
+    const parsed = providerContentZSchema.safeParse(content);
+    if (!parsed.success) return invalid(parsed.error);
+    rows.push({
+      id,
+      groupId: targetGroupId,
+      ...contentColumns(parsed.data),
+      deletedAt: null,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: db.userId,
+      updatedBy: db.userId,
+    });
+  }
+  if (rows.length)
+    await db.drizzle.transaction(async (tx) => {
+      // One at a time, in order: a practice's PUT queues before its clinicians'.
+      for (const row of rows) await tx.insert(providers).values(row);
+    });
+  return { ok: true, results: plan.results };
+};
+
 // ---------------------------------------------------------------------------
 // The timeline's "with …" line
 // ---------------------------------------------------------------------------
@@ -525,3 +568,49 @@ export const timelineLinksQuery = (
   limit: number,
   cutoff: string,
 ): LocalQuery => windowLinksQuery(historyWindow(groupId, filters, limit, cutoff));
+
+/**
+ * Import one provider from another of the user's groups (with its practice,
+ * as `importProviders` would) and link it to an event or note, in one local
+ * transaction: the pickers' "From <group>" pick on an entry. A provider
+ * that's already here (the same type and name) isn't copied; that one is
+ * linked instead. Returns the id here, for the chip or the mention.
+ */
+export const importAndLinkProvider = async (
+  db: SyncDb,
+  entryId: string,
+  sourceProviders: readonly ImportSource[],
+  sourceId: string,
+): Promise<ProviderWriteResult> => {
+  const entry = await linkableEntry(db, entryId);
+  if ("ok" in entry) return entry;
+  if (!(await canWrite(db, entry.groupId))) return forbidden as Refusal;
+  const target = toProviders(await readRows<ProviderRow>(db, providersQuery(entry.groupId)));
+  const plan = planImport(sourceProviders, target, [sourceId]);
+  const result = plan.results[0];
+  if (!result) return providerMissing;
+  const now = nowTimestamp();
+  const rows: (typeof providers.$inferInsert)[] = [];
+  for (const { id, content } of plan.rows) {
+    const parsed = providerContentZSchema.safeParse(content);
+    if (!parsed.success) return invalid(parsed.error);
+    rows.push({
+      id,
+      groupId: entry.groupId,
+      ...contentColumns(parsed.data),
+      deletedAt: null,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: db.userId,
+      updatedBy: db.userId,
+    });
+  }
+  const link = linkRow(entry.groupId, entryId, result.id, db);
+  const linked = await isLinked(db, link.id);
+  await db.drizzle.transaction(async (tx) => {
+    // The practice first, then the provider, then the link: the upload queue keeps that order.
+    for (const row of rows) await tx.insert(providers).values(row);
+    if (!linked) await tx.insert(timelineEntryProviders).values(link);
+  });
+  return { ok: true, id: result.id };
+};

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { editProviderGuard, newProviderGuard, onlyProviderSheetChanged } from "./providerSheetGuard";
+import {
+  editProviderGuard,
+  importProvidersGuard,
+  newProviderGuard,
+  onlyProviderSheetChanged,
+} from "./providerSheetGuard";
 
 const G = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 const LIST = `/app/groups/${G}/providers`;
@@ -44,6 +49,23 @@ describe("editProviderGuard", () => {
   });
 });
 
+describe("importProvidersGuard", () => {
+  const groups = [{ id: G }, { id: "other" }, { id: "third" }];
+  it("lists the other groups for a writer", () => {
+    expect(importProvidersGuard({ groupId: G, search: "", canWrite: true, groups })).toEqual({
+      sheet: [{ id: "other" }, { id: "third" }],
+    });
+  });
+  it("sends a viewer, and a writer in no other group, to the list with its search", () => {
+    expect(importProvidersGuard({ groupId: G, search: "?q=a", canWrite: false, groups })).toEqual({
+      redirect: `/app/groups/${G}/providers?q=a`,
+    });
+    expect(importProvidersGuard({ groupId: G, search: "", canWrite: true, groups: [{ id: G }] })).toEqual({
+      redirect: `/app/groups/${G}/providers`,
+    });
+  });
+});
+
 describe("onlyProviderSheetChanged", () => {
   const url = (path: string) => new URL(`http://x${path}`);
 
@@ -52,6 +74,8 @@ describe("onlyProviderSheetChanged", () => {
     expect(onlyProviderSheetChanged(G, url(`${LIST}/new?q=a`), url(`${LIST}?q=a`))).toBe(true);
     expect(onlyProviderSheetChanged(G, url(LIST), url(`${LIST}/${P}/edit`))).toBe(true);
     expect(onlyProviderSheetChanged(G, url(`${LIST}/${P}/edit`), url(LIST))).toBe(true);
+    expect(onlyProviderSheetChanged(G, url(LIST), url(`${LIST}/import`))).toBe(true);
+    expect(onlyProviderSheetChanged(G, url(`${LIST}/import?q=a`), url(`${LIST}?q=a`))).toBe(true);
   });
 
   it("is false for the same path, a provider's page, or anywhere else", () => {
