@@ -14,6 +14,7 @@ import {
   menuItem,
   menuItems,
   openPlanner,
+  PAST_NOTE,
 } from "./plannerWorld";
 
 // "Remind me" (appointments-2 slice 8): the ⋯ item before Print on Upcoming,
@@ -161,6 +162,12 @@ describe("Remind me elsewhere", () => {
   test("is not offered for a cancelled appointment", async () => {
     await openPlanner({ api: server().api });
     await rowMenu(DENTIST.id);
+    expect(menuItems()).not.toContain("Remind me");
+  });
+
+  test("is not on a note's entry page menu", async () => {
+    await openPlanner({ url: entryUrl(PAST_NOTE.id), api: server().api });
+    await openMenu(await found(() => document.querySelector(ENTRY_MENU)));
     expect(menuItems()).not.toContain("Remind me");
   });
 
