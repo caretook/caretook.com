@@ -26,7 +26,7 @@ Ask only when a wrong guess is costly to undo or the choice is the user's alone,
 - **A new dependency or paid service.**
 - **Product direction:** removing or renaming something users know, or two designs that give users a different product, where you can't pick with confidence.
 
-Never ask about module layout, naming, the slice breakdown, test choices or UI details the [components](../domain/components.md) doc settles. Ask in **one** AskUserQuestion round (at most four questions, your recommendation first, never numbered lists) after exploring; with nothing to ask, say so and carry on. **Notify first:** the user is often away, so send a PushNotification naming the topic and the decision just before you ask (it reaches their phone through Remote Control), and again when you report. A skipped question is no answer: take your recommendation and record it as assumed.
+Never ask about module layout, naming, the slice breakdown, test choices, or layout and visual design (how a page or component looks, which pages get a look first, optional extras): pick the smallest version, record it as `assumed`, and the user vetoes from the table. An item's note saying "ask when the PRD is written" doesn't make a question worth asking: this list decides. Ask in **one** AskUserQuestion round (at most four questions, your recommendation first, never numbered lists) after exploring; with nothing to ask, say so and carry on. **Notify first:** the user is often away, so send a PushNotification naming the topic and the decision just before you ask (it reaches their phone through Remote Control), and again when you report. A skipped question is no answer: take your recommendation and record it as assumed.
 
 ## The Decisions table
 

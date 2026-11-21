@@ -7,7 +7,7 @@ For planning agents: what the user has already decided, so nobody asks again. Re
 
 ## Product
 
-(none yet)
+- **Layout and visual design are decided, not asked:** how a page or component looks, which pages get a new look first and which optional extras to add. Take the smallest version and list it as assumed; the user vetoes by reading the table. (ui-kit, 2026-11-21)
 
 ## Planning and slices
 
