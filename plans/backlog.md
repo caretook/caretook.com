@@ -114,14 +114,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-257 | change | landed | ui-kit | prd/ui-kit | Button primitive (ui/Button): variants, sizes, link form and a built-in busy label, replacing hand-written btn class strings |
 | B-258 | change | landed | ui-kit | prd/ui-kit | Form footer primitive (Cancel and Save row) for sheets and forms; settings' SaveRow builds on it |
 | B-259 | change | ready | ui-kit | prd/ui-kit | Message primitives: one inline error/status line and one Notice box, replacing 93 role=alert and 54 role=status hand-written lines |
-| B-260 | change | triaged | ui-kit |  | Card primitive in ui/ (titled section card); SettingsCard and the route cards use it; one card title size |
-| B-261 | change | triaged | ui-kit |  | List primitives: one bordered, divided list box and a row, replacing six hand-written variants |
+| B-260 | change | in-progress | ui-kit | prd/ui-kit | Card primitive in ui/ (titled section card); SettingsCard and the route cards use it; one card title size |
+| B-261 | change | in-progress | ui-kit | prd/ui-kit | List primitives: one bordered, divided list box and a row, replacing six hand-written variants |
 | B-262 | change | ready | ui-kit | prd/ui-kit | Empty and loading states: an EmptyState line (optional action) and one Skeleton/Loading placeholder |
-| B-263 | change | in-progress | ui-kit | prd/ui-kit | Page frame: a Page container and one heading scale; every section page uses PageHeader |
-| B-264 | change | triaged | ui-kit |  | DetailHeader primitive for the provider, care period, todo, medication and profile pages |
+| B-263 | change | ready | ui-kit | prd/ui-kit | Page frame: a Page container and one heading scale; every section page uses PageHeader |
+| B-264 | change | in-progress | ui-kit | prd/ui-kit | DetailHeader primitive for the provider, care period, todo, medication and profile pages |
 | B-265 | change | ready | ui-kit | prd/ui-kit | Badge primitive with named tones and one size |
-| B-266 | change | triaged | ui-kit |  | Checkbox and toggle rows (CheckField, ToggleField), and Field-owned control classes so callers stop passing 'input w-full' |
-| B-267 | change | in-progress | ui-kit | prd/ui-kit | Text and icon tokens: named muted and faint text, inline link style, icon sizes |
+| B-266 | change | in-progress | ui-kit | prd/ui-kit | Checkbox and toggle rows (CheckField, ToggleField), and Field-owned control classes so callers stop passing 'input w-full' |
+| B-267 | change | ready | ui-kit | prd/ui-kit | Text and icon tokens: named muted and faint text, inline link style, icon sizes |
 | B-268 | chore | triaged | ui-kit-2 |  | Move SeriesScopeDialog's raw <dialog> into a ui/ choice dialog on useShowModal |
 | B-269 | chore | triaged | ui-kit-2 |  | Guard the kit: a lint rule or layout test that keeps react-aria imports in ui/ and flags raw btn, card, badge and alert classes outside ui/ |
 | B-270 | feature | landed | ui-kit | prd/ui-kit | Dev-only component gallery (/dev/ui): every primitive and its variants in both themes |
@@ -250,7 +250,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-394 | bug | triaged | fixes-tooling |  | mcp.int.test.ts 'list_timeline: the group's entries in the recipient's zone, with note text, paged at 50' times out at Vitest's 5 s default under load (full check, 5-min load ~21); passes alone 3x |
 | B-395 | change | landed | orchestration-2 | prd/orchestration-2 | Split quick-fixes into categories that land separately: UI/UX, tooling, optimizations, bugfixes, nits (a plan or topic per category; the dispatcher treats each as a standing topic) |
 | B-396 | change | ready | ui-kit | prd/ui-kit | Redesign TabNav as a pill bar: a fully rounded floating container, plain text tabs, and the current tab as a tinted pill with optional icon and count badge |
-| B-397 | change | triaged | ui-kit |  | Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages |
+| B-397 | change | in-progress | ui-kit | prd/ui-kit | Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages |
 | B-398 | change | triaged | ui-kit-2 |  | Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame |
 | B-399 | bug | ready | ui-kit | prd/ui-kit | Bottom menu on mobile need a better deign. I like floating menus. It needs to be a different bg… |
 | B-400 | change | triaged | simple-mode |  | Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the… |
@@ -293,6 +293,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-437 | change | triaged | orchestration-3 |  | Record backlog, hotfix and recovery sessions like orchestrator sessions, so pnpm prd status shows them and they can be reopened |
 | B-438 | plan | triaged | orchestration-3 |  | Headless orchestrator sessions: runs that need no terminal tab, so a helper cannot outlive or die with its window |
 | B-439 | change | triaged | orchestration-3 |  | A hold between a planner landing and its topic starting: the dispatcher waits for the user to release a newly planned topic, or a stated rule says when it may start alone |
+| B-440 | bug | triaged | fixes-tooling |  | pnpm prd tidy --yes: a database for a topic ending -w1..-w16 reads as an orphan worker copy and is dropped |
+| B-441 | bug | triaged | fixes-tooling |  | pnpm prd tidy: a missing or failing lsof reads as no process in any worktree, so --yes can remove an active one |
+| B-442 | bug | triaged | fixes-tooling |  | pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check |
+| B-443 | bug | triaged | fixes-tooling |  | land.sh to-test file lists no items after a local landing: items are already landed, not ready, once dev has the merge |
+| B-444 | bug | triaged | fixes-tooling |  | docs_only counts a code file renamed to .md as docs only (git diff --name-only shows only the rename's destination) |
+| B-445 | bug | triaged | fixes-tooling |  | Agents wait on checks with `until ! pgrep -f "prd check"`, which never exits: it matches its own shell and every orchestrator whose prompt mentions `pnpm prd check` |
+| B-446 | bug | triaged | fixes-tooling |  | browser.test.mjs 'kills a spec at its cap, worker and all, and retries it once' fails under heavy load (load 47), passes alone 3x |
 
 ## Items
 
@@ -612,9 +619,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-260 · change · Card primitive in ui/ (titled section card); SettingsCard and the route cards use it; one card title size
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit
-- owner:
+- owner: prd/ui-kit
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Review 2026-11-21: 'card bg-base-100 shadow-sm' + card-body is hand-written 24+ times (19 as <section>), card-body gap is 1/2/3/4 or none, card-title is plain, text-base, text-lg or text-2xl. SettingsCard already wraps the same markup but lives in components/settings.
@@ -622,9 +629,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-261 · change · List primitives: one bordered, divided list box and a row, replacing six hand-written variants
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit
-- owner:
+- owner: prd/ui-kit
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Review 2026-11-21: about 30 lists. 'rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border' x11 plus variants without overflow-hidden or bg, and divide-base-300 ones (x13 plain, x4 boxed, class order differs); rows pad py-2, py-2.5 or py-3, with or without px-3. Dividers should be base-300 per the Surfaces rule; divide-base-200 breaks it.
@@ -642,19 +649,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-263 · change · Page frame: a Page container and one heading scale; every section page uses PageHeader
 
-- status: in-progress
+- status: ready
 - prd: ui-kit
 - owner: prd/ui-kit
-- commit:
+- commit: a59e35d2
 
 - 2026-11-21 (Robert Bo Davis): Review 2026-11-21: <main className='mx-auto max-w-2xl space-y-4 px-4 py-5'> is copied 13 times with 10 more variants (max-w xl/2xl/3xl/4xl, py-5/6/10, p-4 sm:p-6). 39 files write an h1; only 4 routes use PageHeader, and periods, passes and profile hand-write the same text-lg h1. h1 is text-lg (section pages), text-xl (detail pages), text-2xl (home, settings) and card-title (all of admin). Section h2/h3: 'font-semibold' x17 and 12 other styles. Related: B-229 (timeline header column width).
 - 2026-11-21 (plan/ui-kit): ui-kit plan (2026-11-21, plans/ui-kit-plan.md): done here when the primitive exists and its first adopters use it (settings, sign-in, the five detail pages); the rest of the app is swept in ui-kit-2 (B-398).
 
 ### B-264 · change · DetailHeader primitive for the provider, care period, todo, medication and profile pages
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit
-- owner:
+- owner: prd/ui-kit
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Review 2026-11-21: ProviderHeader, PeriodHeader, TodoHeader and MedicationHeader copy the same header line for line: a size-9 icon disc (primary or muted), h1 text-xl with badges, a details line, and the editors and actions regions (data-region). ProfileHeader is a fifth near copy. Callers pass icon, tone, title, badges, details, editors, actions.
@@ -672,9 +679,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-266 · change · Checkbox and toggle rows (CheckField, ToggleField), and Field-owned control classes so callers stop passing 'input w-full'
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit
-- owner:
+- owner: prd/ui-kit
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Review 2026-11-21: 39 checkboxes and 20 toggles sit in 15 different hand-written <label> wrappers (label text-base-content cursor-pointer gap-2…, flex items-start gap-3…; mt-0.5 nudges; sizes sm or default). Field callers pass the control class themselves: 'input w-full' x65, 'select w-full' x15, 'textarea w-full' x12, plus *-error by hand x17. components.md says every labelled control is a Field; checkboxes and toggles have no primitive.
@@ -682,10 +689,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-267 · change · Text and icon tokens: named muted and faint text, inline link style, icon sizes
 
-- status: in-progress
+- status: ready
 - prd: ui-kit
 - owner: prd/ui-kit
-- commit:
+- commit: a59e35d2
 
 - 2026-11-21 (Robert Bo Davis): Review 2026-11-21: secondary text uses 8 opacities (text-base-content/70 x307, /80 x35, /60 x32, /50 x16, /40, /75, /85, /90) with no rule for which; inline links have 15 class variants (link, link font-medium, link link-primary, link link-hover text-primary…); icons are size-4 mostly, with size-3, 3.5, 5 mixed in like roles. Define the tokens in app.css or ui/styles.ts and sweep.
 - 2026-11-21 (plan/ui-kit): ui-kit plan (2026-11-21, plans/ui-kit-plan.md): done here when the primitive exists and its first adopters use it (settings, sign-in, the five detail pages); the rest of the app is swept in ui-kit-2 (B-398).
@@ -1923,9 +1930,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-397 · change · Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit
-- owner:
+- owner: prd/ui-kit
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From the user (2026-11-21): pages read as long blocks of text; split the space vertically in a sensible way. Options proposed to the user, to choose from when the PRD is written: (1) each section a titled card on the base-200 page with a fixed gap; (2) small uppercase section labels with an icon and a one-line summary; (3) a two-step spacing scale, large between sections and small inside; (4) definition rows (label left, value right) instead of paragraphs; (5) collapsible secondary sections (details/summary) showing a summary line; (6) a sticky in-page section bar on long detail pages, using the new pill TabNav; (7) two columns on wide screens (main and side cards), one on phones; (8) summary tiles at the top of detail pages. Triage: ui-kit, with Card (B-260), Page frame (B-263) and DetailHeader (B-264), which this builds on.
@@ -2333,3 +2340,66 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. An open question in the orchestration-3 notes with no item.
+
+### B-440 · bug · pnpm prd tidy --yes: a database for a topic ending -w1..-w16 reads as an orphan worker copy and is dropped
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (prd/orchestration-2): Codex P1 on PR #33 (tidy-cli.mjs:158), verified in code: the worker-copy label from test-db.sh list overrides the known owner. Match names against known worktree bases and their worker names first. No such topic exists today.
+
+### B-441 · bug · pnpm prd tidy: a missing or failing lsof reads as no process in any worktree, so --yes can remove an active one
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (prd/orchestration-2): Codex P2 on PR #33 (tidy-cli.mjs:52), verified in code: a failed run is an empty list. Treat an unavailable inspection as unknown and keep worktrees. macOS always has lsof.
+
+### B-442 · bug · pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (prd/orchestration-2): Codex P2 on PR #33 (tidy-cli.mjs:259), verified: plain rmSync on the lease path; a lease retaken in between is deleted. Use lease_take_over's .takeover protocol.
+
+### B-443 · bug · land.sh to-test file lists no items after a local landing: items are already landed, not ready, once dev has the merge
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (prd/orchestration-2): Codex P2 on PR #33 (land.sh:140): capture the ready items before the merge and reuse them in the report. The PR path is unaffected only if the backlog read precedes dev-sync; check both.
+
+### B-444 · bug · docs_only counts a code file renamed to .md as docs only (git diff --name-only shows only the rename's destination)
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (prd/orchestration-2): Codex P2 on PR #33 (lib.sh:137), verified in code: use --no-renames (or --name-status both sides) so a .sh→.md rename keeps the Codex verdict and the to-test file.
+
+### B-445 · bug · Agents wait on checks with `until ! pgrep -f "prd check"`, which never exits: it matches its own shell and every orchestrator whose prompt mentions `pnpm prd check`
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (prd/simple-mode): Found 2026-11-21: a simple-mode slice 1 loop left one spinning 76 min after hand-off (killed); ui-kit and orchestration-2 sessions had similar long-lived shells (not inspected). Fix: loop.md says to wait on the check lease (pnpm prd status, or a prd wait helper), never pgrep -f; optionally a prd command that blocks until a lease frees.
+
+### B-446 · bug · browser.test.mjs 'kills a spec at its cap, worker and all, and retries it once' fails under heavy load (load 47), passes alone 3x
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (prd/orchestration-2): Seen in orchestration-2 wave 5's quick check on b7541467 (2026-11-21): expected false to be true after 9.7 s. Real-time sleeps; make it wait on the event, not the clock.
