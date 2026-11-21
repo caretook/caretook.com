@@ -16,6 +16,8 @@
 
 **Log:** 2026-11-20: backlog ingest: nothing new. `conditions` is in `dev` (a95acb73), so slice 4 waits only on slice 3. Overlap check: `appointments-2` (all merged, landing) touches `components/entry/EntryActions` etc., not `LiveNotesEditor` or the With row; `quick-fixes` not running. Wave 1: B-25 and B-48 claimed; worktrees `providers-2-1` (slot 5, stack) and `providers-2-3` (stackless) made; agents spawned (opus both: new UX).
 
+**Pending sync:** `appointments-2` landed in `dev` (f49aa958): migration 0029, `appointment_series` synced table, `care_group.details_outside_allowed`, new deps (`pnpm install`), `entryActionItems` changes. We have no migration. `pnpm prd sync` (then `pnpm install`, `pnpm datastore:reset`) after wave 1 merges, before wave 2.
+
 **Start conditions:** none for wave 1, but before slice 1 check the open `appointments-2` and `quick-fixes` slices for changes to `LiveNotesEditor`, the entry page or the With row. Slice 4 waits for `conditions` in `dev` (it changes the provider page); `pnpm prd sync` before it.
 
 **Landing:** no migration. Slice 1 adds dependencies (the lean set). Land when every slice is merged; run the checks once at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking, beyond slice 1's own.
