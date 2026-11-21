@@ -4,20 +4,22 @@
 
 ## Status
 
-| Slice | Wave | State                                                                                | Merge into `prd/conditions` (slice commits) |
-| ----- | ---- | ------------------------------------------------------------------------------------ | ------------------------------------------- |
-| 1     | 1    | in progress (worktree `.loops/conditions-1`, slot 5; agent spawned 2026-11-20, opus) |                                             |
-| 2     | 2    | blocked by 1                                                                         |                                             |
-| 4     | 2    | blocked by 1                                                                         |                                             |
-| 5     | 2    | blocked by 1                                                                         |                                             |
-| 3     | 3    | blocked by 2                                                                         |                                             |
-| 6     | 4    | blocked by 2, 3                                                                      |                                             |
+| Slice | Wave | State                                                                 | Merge into `prd/conditions` (slice commits) |
+| ----- | ---- | --------------------------------------------------------------------- | ------------------------------------------- |
+| 1     | 1    | merged                                                                | `74b47c0b` (`5d01bf1c`, `11ddee21`)         |
+| 2     | 2    | in progress (`.loops/conditions-2`, stackless; agent spawned, opus)   |                                             |
+| 4     | 2    | in progress (`.loops/conditions-4`, stackless; agent spawned, opus)   |                                             |
+| 5     | 2    | in progress (`.loops/conditions-5`, stackless; agent spawned, sonnet) |                                             |
+| 3     | 3    | blocked by 2                                                          |                                             |
+| 6     | 4    | blocked by 2, 3                                                       |                                             |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue conditions`): start every ready slice, land each green wave, clean up; ask only real questions. B-181 claimed 2026-11-20.
 
-**Models:** slice 1 opus (schema, sync, new UX).
+**Models:** slice 1 opus; 2 opus (timeline kind, migration, search); 4 opus (link table, sync, form); 5 sonnet (print sections).
 
-**Open:** quick-fixes wave 13 landed in `dev` as `bf0891df` (B-187 filter sheet, B-189/190 connector text): `pnpm prd sync` after slice 1 merges, before wave 2; slices 2 and 6 then need no follow-up.
+**Open:** quick-fixes wave 13 (`bf0891df`, B-187, B-189/190) synced into `prd/conditions` after slice 1; slices 2 and 6 build on it directly. Slices 2 and 4 each generate the next migration in parallel: whichever merges second regenerates on top (keep its `ALTER PUBLICATION`).
+
+**Docs to fold at landing (slice 1):** profiles.md (table, flag, service, `conditions.ts`/`conditionSuggestions.ts`/`conditionNames.ts`, `conditions.sync.ts` offline writes, card, sheets, URLs, the profile route's `clientAction`, seeds, tests); sync.md (`recipient_condition` in `care_groups`, `no_known_conditions_at`, `recipientConditionOp` with `diagnosed_by_id` unmapped until slice 3, `care_recipient`'s single-column flag PATCH, matrix row); care-groups.md (permission row); data-layer.md (stale "0000–0023").
 
 **Start conditions:** none for slice 1. Slice 2 waits for quick-fixes slice 51 (the timeline's Filter sheet, B-187) to be in `dev`, and slice 6 for quick-fixes slice 48 (the connector's timeline text, B-189 and B-190). Check with `pnpm backlog show B-187` / `B-189` that they've landed, and `pnpm prd sync` before starting either slice. If quick-fixes hasn't landed them, the slice may start and leave its filter or text line to a short follow-up once they do (say so in the hand-off).
 
