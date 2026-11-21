@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { DaySummaryMode, UnitChoices } from "@caretook/data/schema";
 import type { SimpleModeState } from "~/lib/assistant/useSimpleMode";
 import type { TimelineData } from "./useTimelineData";
+import type { TimelineEntryListFilters } from "./TimelineEntryList";
 
 import { QuickEntryBox } from "~/components/quick-entry";
 import { useGroup } from "~/lib/app-shell/group";
@@ -28,15 +29,18 @@ export const simpleTodayText = (now: Date, locale?: string) =>
  * the next appointment, which opens the next five; for viewers as text); "My tasks" (mine, with big ticks;
  * viewers too); for writers the four tiles in one row and "Remove my last
  * entry", then the quick-entry box (normal size, with a hint to dictate on
- * phones and tablets) directly above the timeline's rows, read-only (`TimelineEntryList`'s `simple`). No strips, filters,
- * search, add menu or layout switch; the /app header is reduced to match
- * (`useSimpleFrame`).
+ * phones and tablets), the full timeline's search, Filter button and chips
+ * (`chips`), then the timeline's rows (`TimelineEntryList`'s `simple`: the
+ * full ⋯ menus and sheets for writers). No strips, add menu or layout switch;
+ * the /app header is reduced to match (`useSimpleFrame`).
  */
 export function SimpleTimeline({
   data,
   units,
   mode,
   summaryMode,
+  chips,
+  filters,
   children,
 }: {
   data: TimelineData;
@@ -44,6 +48,10 @@ export function SimpleTimeline({
   mode: SimpleModeState;
   /** The viewer's day summaries setting (set from the full view's header). */
   summaryMode?: DaySummaryMode;
+  /** The full timeline's `FilterChips` (search, Filter, chips). */
+  chips?: ReactNode;
+  /** The filters and search on (the URL's), for the list. */
+  filters?: TimelineEntryListFilters;
   /** The sheets over the timeline (its `Outlet`), so a card's Edit opens. */
   children?: ReactNode;
 }) {
@@ -83,14 +91,17 @@ export function SimpleTimeline({
           )}
         </div>
       )}
+      {chips}
       <TimelineEntryList
         data={data}
         view="rows"
         units={units}
         groupId={group.id}
         canWrite={group.canWrite}
-        kind={null}
-        author={null}
+        kind={filters?.kind ?? null}
+        author={filters?.author ?? null}
+        vital={filters?.vital}
+        search={filters?.search}
         simple
         summaryMode={summaryMode}
       />
