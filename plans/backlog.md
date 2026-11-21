@@ -65,9 +65,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
 | B-60 | feature | in-progress | appointments-2 | prd/appointments-2 | Recurring appointments (weekly PT, dialysis three times a week) |
-| B-61 | feature | triaged | appointments-2 |  | Appointment reminders by email and push before the appointment |
-| B-62 | feature | triaged | appointments-2 |  | iCal feed of a care group's upcoming appointments |
-| B-63 | feature | triaged | appointments-2 |  | Google Calendar sync of a care group's appointments |
+| B-61 | feature | in-progress | appointments-2 | prd/appointments-2 | Appointment reminders by email and push before the appointment |
+| B-62 | feature | in-progress | appointments-2 | prd/appointments-2 | iCal feed of a care group's upcoming appointments |
+| B-63 | feature | in-progress | appointments-2 | prd/appointments-2 | Google Calendar sync of a care group's appointments |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-104 | plan | staging | connectors | prd/connectors | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
@@ -95,8 +95,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-170 | change | live | timeline-ux | prd/timeline-ux | When creating a new timeline entry for a note or event, we should navigate to edit page on save so… |
 | B-171 | change | live | timeline-ux | prd/timeline-ux | your recent lines should exclude notes and events. vitals should only show the vital key, not the… |
 | B-173 | bug | live | check-migration | prd/check-migration | app-shell.mjs step 'a member's shared details reach the owner's device (the member-share stream)' failed once in the lean suite at load 20 and passed alone (33 s): its 30 s poll for a SQL-inserted member_contact_share row reaching the owner's device timed out |
-| B-174 | bug | triaged | quick-fixes |  | Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page |
-| B-175 | chore | triaged | quick-fixes |  | Remove the timeline's now-unused care-period place query (placeNamesQuery, the loader's placeRows, periods.placeName) after timeline-ux slice 6 |
+| B-174 | bug | in-progress | quick-fixes | prd/quick-fixes | Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page |
+| B-175 | chore | in-progress | quick-fixes | prd/quick-fixes | Remove the timeline's now-unused care-period place query (placeNamesQuery, the loader's placeRows, periods.placeName) after timeline-ux slice 6 |
 | B-176 | bug | live | check-migration | prd/check-migration | Component tests click or fill a synchronous DOM query right after render (userEvent.click(X()!)), which is null when the screen renders late under load: 24 files |
 | B-177 | bug | triaged | check-migration |  | rateLimit.int.test.ts 'counts get-session across instances' failed once in a full check at load 26 with a failed rate_limit query (its 101 concurrent get-sessions); passes alone |
 | B-178 | bug | live | check-migration | prd/check-migration | medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone |
@@ -112,17 +112,17 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-188 | bug | landed | quick-fixes | prd/quick-fixes | when signing up mcp connector, the oauth request just returns json, not the accept flow |
 | B-189 | bug | landed | quick-fixes | prd/quick-fixes | mcp connector for medication change records on the timeline, it isn't providing information about… |
 | B-190 | bug | landed | quick-fixes | prd/quick-fixes | mcp connector returning truncated notes on doses, and maybe other things |
-| B-191 | bug | triaged | quick-fixes |  | clicking the next entry in the upcoming section of the simple timeline should expand the section,… |
-| B-192 | bug | triaged | quick-fixes |  | undo when checking off a todo should list all the todos that were checked off, not just the last… |
+| B-191 | bug | in-progress | quick-fixes | prd/quick-fixes | clicking the next entry in the upcoming section of the simple timeline should expand the section,… |
+| B-192 | bug | in-progress | quick-fixes | prd/quick-fixes | undo when checking off a todo should list all the todos that were checked off, not just the last… |
 | B-193 | feature | triaged | connectors-2 |  | In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states |
 | B-194 | feature | triaged | connectors-2 |  | A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off |
 | B-195 | feature | triaged | connectors-2 |  | Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state |
 | B-196 | feature | triaged | connectors-2 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
 | B-197 | feature | triaged | connectors-2 |  | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
-| B-198 | bug | triaged | quick-fixes |  | rotating placeholder in the timeline entry box is distracting and confusing. Use a static… |
+| B-198 | bug | in-progress | quick-fixes | prd/quick-fixes | rotating placeholder in the timeline entry box is distracting and confusing. Use a static… |
 | B-199 | bug | triaged | medications-3 |  | ability to add a medication quickly from the log a dose screen. |
 | B-200 | bug | triaged | medications-3 |  | medications need a type field: rx, otc, supplement, etc. |
-| B-201 | bug | triaged | quick-fixes |  | simple timeline date header should show the care period as well |
+| B-201 | bug | in-progress | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
 | B-202 | bug | landed | agent-tooling |  | lint before typecheck in check command. Do the fast thing first, then the slow thing. |
 | B-203 | feature | triaged | github-review |  | Now that we are we have github fixed, we should start using it for some of the merge management so… |
 | B-204 | feature | triaged | connectors-2 |  | connector should be able to edit notes and events so it can help you draft questions or add… |
@@ -244,9 +244,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-61 · feature · Appointment reminders by email and push before the appointment
 
-- status: triaged
+- status: in-progress
 - prd: appointments-2
-- owner:
+- owner: prd/appointments-2
 - commit:
 
 - 2026-11-18 (plan/appointments): Follow-up to the appointments PRD (B-47), decided in its interview 2026-11-18: not in the first PRD.
@@ -255,9 +255,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-62 · feature · iCal feed of a care group's upcoming appointments
 
-- status: triaged
+- status: in-progress
 - prd: appointments-2
-- owner:
+- owner: prd/appointments-2
 - commit:
 
 - 2026-11-18 (plan/appointments): Follow-up to the appointments PRD (B-47), decided in its interview 2026-11-18: not in the first PRD.
@@ -266,9 +266,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-63 · feature · Google Calendar sync of a care group's appointments
 
-- status: triaged
+- status: in-progress
 - prd: appointments-2
-- owner:
+- owner: prd/appointments-2
 - commit:
 
 - 2026-11-18 (plan/appointments): Follow-up to the appointments PRD (B-47), decided in its interview 2026-11-18: not in the first PRD.
@@ -588,9 +588,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-174 · bug · Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-20 (prd/timeline-ux): Found by timeline-ux slice 6 in the component-test router; check with the real ScrollRestoration before fixing.
@@ -599,9 +599,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-175 · chore · Remove the timeline's now-unused care-period place query (placeNamesQuery, the loader's placeRows, periods.placeName) after timeline-ux slice 6
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-20 (prd/timeline-ux): Slice 6 dropped places from the timeline; left in place to stay clear of slice 5.
@@ -759,9 +759,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-191 · bug · clicking the next entry in the upcoming section of the simple timeline should expand the section,…
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-20 (prd/quick-fixes): From the inbox: clicking the next entry in the upcoming section of the simple timeline should expand the section, not take you to the next entry. once expanded, clicking on any item should take you to the full view of that item.
@@ -769,9 +769,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-192 · bug · undo when checking off a todo should list all the todos that were checked off, not just the last…
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-20 (prd/quick-fixes): From the inbox: undo when checking off a todo should list all the todos that were checked off, not just the last one that was checked off.
@@ -824,9 +824,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-198 · bug · rotating placeholder in the timeline entry box is distracting and confusing. Use a static…
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-20 (prd/conditions): From the inbox: rotating placeholder in the timeline entry box is distracting and confusing. Use a static placeholder that is a prompt to type something. and move to a ? with tooltip to explain the format/power.
@@ -854,9 +854,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-201 · bug · simple timeline date header should show the care period as well
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Triage: quick-fixes, wave 14. Simple mode's day header gains the care period label that the full day header already has.
