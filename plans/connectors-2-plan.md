@@ -6,13 +6,17 @@
 
 | Slice | Wave | State           | Merge into `prd/connectors-2` (slice commits) |
 | ----- | ---- | --------------- | --------------------------------------------- |
-| 1     | 1    | not started     |                                               |
+| 1     | 1    | started (opus)  |                                               |
 | 2     | 2    | blocked by 1, 3 |                                               |
-| 3     | 1    | not started     |                                               |
-| 4     | 1    | not started     |                                               |
+| 3     | 1    | started (opus)  |                                               |
+| 4     | 1    | started (opus)  |                                               |
 | 5     | 2    | blocked by 4    |                                               |
 
-**Start conditions:** none for wave 1. Slice 5 waits for `conditions` landed in `dev` (`recipientConditionService` and its schema); `pnpm prd sync` before it.
+**Landing mode: run everything through** (queued with `pnpm prd queue connectors-2`): start every ready slice, land each green wave, clean up, ask only real questions.
+
+**Wave 1** (2026-11-21): worktrees `.loops/connectors-2-{1,3,4}` made, agents spawned on opus; B-193, B-195, B-204 claimed. To keep the merges conflict-free, slice 1 creates the wording module at `apps/web/app/lib/connectors/connectGuide.ts` and slice 3 puts its success-step examples in its own `apps/web/app/lib/connectors/connectSuccess.ts` (instead of appending to `connectGuide`).
+
+**Start conditions:** none for wave 1. Slice 5 waited for `conditions`: landed in `dev` (B-181, a95acb73) and already in `prd/connectors-2`, so slice 5 is ready once slice 4 merges.
 
 **Landing:** slice 2 adds a migration, so hold landing until every slice is merged, then run the checks once at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking.
 
