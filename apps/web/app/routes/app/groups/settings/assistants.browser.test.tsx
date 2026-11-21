@@ -1,13 +1,21 @@
 import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as assistants from "./assistants/route";
 import * as settingsLayout from "./layout/route";
 import { apiCalls, refusal } from "../../../../../test/api";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, TEST_GROUP } from "../../../../../test/fixtures";
+import {
+  CONNECT_CLIENTS,
+  COPIED,
+  COPY_FAILED,
+  mcpUrl,
+  OFF_NOTE,
+  VIEWER_NOTE,
+} from "../../../../lib/connectors/connectGuide";
 import { OFFLINE_ASSISTANTS } from "./assistants/assistants";
 
 // Group settings → Assistants (connectors slice 5): owners turn the switch
@@ -221,5 +229,75 @@ describe("group settings → Assistants", () => {
     expect(status()).toBe("Assistants are on for this care group.");
     expect(toggle().elements()).toHaveLength(0);
     expect(document.querySelector('section[data-section="group-connections"]')).toBeNull();
+  });
+});
+
+// The connect guide (connectors-2 slice 1): after the switch, for everyone.
+const MCP_URL = mcpUrl(import.meta.env.VITE_API_ORIGIN, location.origin);
+const guide = () => document.querySelector<HTMLElement>('section[data-section="connect-guide"]');
+const guideUrl = () => guide()?.querySelector<HTMLInputElement>("input[data-guide-url]") ?? null;
+const guideNote = (kind: "off" | "viewer") =>
+  guide()?.querySelector(`[data-guide-note="${kind}"]`)?.textContent.trim() ?? null;
+
+describe("group settings → Assistants' connect guide", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  test("with the switch on, comes after the switch: the address, each client's steps and help link", async () => {
+    await open({ enabled: true, api: groupServer([]).api });
+    await expect.poll(() => guideUrl()?.value).toBe(MCP_URL);
+    expect(MCP_URL).toMatch(/\/mcp$/);
+    const switchCard = document.querySelector('section[data-section="assistants-switch"]')!;
+    expect(switchCard.compareDocumentPosition(guide()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    for (const client of CONNECT_CLIENTS) {
+      const section = guide()!.querySelector(`[data-guide-client="${client.id}"]`)!;
+      expect(section.querySelector("h3")!.textContent).toBe(client.name);
+      expect([...section.querySelectorAll("ol > li")].map((li) => li.textContent)).toEqual(client.steps);
+      await expect
+        .element(page.getByRole("link", { name: client.help.label }))
+        .toHaveAttribute("href", client.help.href);
+    }
+    expect(guideNote("off")).toBeNull();
+    expect(guideNote("viewer")).toBeNull();
+  });
+
+  test("Copy puts the address on the clipboard and says Copied", async () => {
+    const written: string[] = [];
+    vi.spyOn(navigator.clipboard, "writeText").mockImplementation(
+      (text) => (written.push(text), Promise.resolve()),
+    );
+    await open({ role: "caretaker", enabled: true });
+    await userEvent.click(page.getByRole("button", { name: "Copy", exact: true }));
+    await expect.element(page.getByRole("status").filter({ hasText: COPIED })).toBeVisible();
+    expect(written).toEqual([MCP_URL]);
+  });
+
+  test("a copy that fails says to copy the address by hand, which stays shown", async () => {
+    vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("NotAllowedError"));
+    await open({ role: "caretaker", enabled: true });
+    await userEvent.click(page.getByRole("button", { name: "Copy", exact: true }));
+    await expect.element(page.getByRole("alert").filter({ hasText: COPY_FAILED })).toBeVisible();
+    expect(guideUrl()?.value).toBe(MCP_URL);
+  });
+
+  test("with the switch off, an owner gets the off note instead of the steps", async () => {
+    await open({ api: groupServer([]).api });
+    await expect.poll(() => guideNote("off")).toBe(OFF_NOTE.owner);
+    expect(guideUrl()).toBeNull();
+    expect(guide()!.querySelector("[data-guide-client]")).toBeNull();
+  });
+
+  test("with the switch off, a caretaker gets the off note; when an owner turns it on, the steps", async () => {
+    const device = await open({ role: "caretaker" });
+    await expect.poll(() => guideNote("off")).toBe(OFF_NOTE.member);
+    expect(guideUrl()).toBeNull();
+    await device.sync(fx.group({ connectorsEnabled: 1 }));
+    await expect.poll(() => guideUrl()?.value).toBe(MCP_URL);
+    expect(guideNote("off")).toBeNull();
+  });
+
+  test("a viewer gets the steps with the read-only note", async () => {
+    await open({ role: "viewer", enabled: true });
+    await expect.poll(() => guideNote("viewer")).toBe(VIEWER_NOTE.group);
+    expect(guideUrl()?.value).toBe(MCP_URL);
   });
 });
