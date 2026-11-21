@@ -13,7 +13,7 @@ PRDs: [`connectors-prd.md`](../../plans/connectors-prd.md) (B-104), [`connectors
 ## Consent (`/connect`)
 
 - Authorize sends to `/connect?…&sig=…` (signed, 10 minutes); signed out, to `/sign-in?redirectTo=…`. **It reads the session live** (`getAuthUser(…, { live: true })`): it mints 30-day tokens. A browser navigation's dead end (error redirect, 4xx, 429) gets an HTML page (`withConnectorAuthorizePage`, `connectorAuthorize.ts`); other requests keep JSON.
-- `ConnectConsent.tsx`: client and redirect host, groups with the switch on, scope by role, the consent checkbox (`CONNECTOR_CONSENT_TEXT`, `_VERSION`), Connect, Cancel. With none on: the off groups (`offGroups`), the ask button for non-owners, Assistants' link for owners.
+- `ConnectConsent.tsx`: client and redirect host, groups with the switch on, scope by role, the consent checkbox (`CONNECTOR_CONSENT_TEXT`, which lists todos; `_VERSION` "2026-11-21"), Connect, Cancel. With none on: the off groups (`offGroups`), the ask button for non-owners, Assistants' link for owners.
 - **Success:** Connect returns `{ connected }` (Cancel redirects): "Connected to <group>", three examples (`lib/connectors/connectSuccess.ts`), "Return to <client>", auto-return after 5 s. **Needs JS:** CSP `form-action 'self'` blocks a cross-origin 302, so it's `window.location`. Server side: `packages/api/src/connectors/connect.ts`.
 
 ## Grants (`connector_grant`, `connectorGrantService`)
@@ -39,15 +39,15 @@ PRDs: [`connectors-prd.md`](../../plans/connectors-prd.md) (B-104), [`connectors
 
 ## Tools
 
-- **Reads:** `group_overview`, `list_timeline` (day, kind, author; 90 days; changes as `changeText`/`conditionChangeText` before → after), `latest_vitals`, `search` (≤ 25; no tasks), `list_medications` (`includePast`; `type`), `todays_doses` (`dueDoses`, `duePasses`: agrees with Today), `upcoming` (30 days, 90 max), `list_tasks` (open; done 90 days back; `mine`), `list_providers`, `recipient_profile` (`conditions` with ids by `sortConditions`, `noKnownConditions`; providers by name). Entries carry ids. Lists page at 50 (`readSupport.ts`). Times carry the recipient's offset (`zonedIso`).
+- **Reads:** `group_overview`, `list_timeline` (day, kind, author; 90 days; changes as `changeText`/`conditionChangeText` before → after), `latest_vitals`, `search` (≤ 25; no todos), `list_medications` (`includePast`; `type`), `todays_doses` (`dueDoses`, `duePasses`: agrees with Today), `upcoming` (30 days, 90 max), `list_todos` (open; done 90 days back; `mine`; structured `todos`), `list_providers`, `recipient_profile` (`conditions` with ids by `sortConditions`, `noKnownConditions`; providers by name). Entries carry ids. Lists page at 50 (`readSupport.ts`). Times carry the recipient's offset (`zonedIso`).
 - **Never returned:** members', the recipient's and emergency contacts' emails, phones and addresses; invite and access-code data; the date of birth (age only); `rxNumber`, quantity; a provider's email, or more than name, role and status for an "other" provider. A sweep test (`readTools.int.test.ts`) guards this.
-- **Writes** (`tools/writes.ts`): `log_vitals` (canonical units), `log_symptom`, `log_dose`, `give_pass`, `add_note`, `add_event`, `add_task`, `append_to_entry`, `update_entry`, `add_condition`, `update_condition`, `resolve_condition`. Each runs through **`assistantActionService.run(ctx, groupId, actions, { via })`**, the server twin of `runActions`: one transaction, all checked first (schemas, future skew, writer role, live medications and providers, passes by `givenAllWrites`), errors with `meta.index`. `add_task` takes the assignee by name. Answers use quick entry's `actionPreview` wording and a link (`links.ts`, kept equal to `appUrls` by a test).
+- **Writes** (`tools/writes.ts`): `log_vitals` (canonical units), `log_symptom`, `log_dose`, `give_pass`, `add_note`, `add_event`, `add_todo`, `append_to_entry`, `update_entry`, `add_condition`, `update_condition`, `resolve_condition`. Each runs through **`assistantActionService.run(ctx, groupId, actions, { via })`**, the server twin of `runActions`: one transaction, all checked first (schemas, future skew, writer role, live medications and providers, passes by `givenAllWrites`), errors with `meta.index`. `add_todo` (action kind `addTodo`) takes the assignee by name, answers "Added todo: …" and returns `todoId`; `add_task` is an unknown tool. Answers use quick entry's `actionPreview` wording and a link (`links.ts`, kept equal to `appUrls` by a test).
 - **Edits and conditions** are server-only kinds (`runnableActionZSchema`). `append_to_entry` (≤ 50 lines, 5,000 characters): a live note or event, one `note_update` as the member (`appendNoteSection`), compacted at once. `update_entry`: title, time (an event's end follows; a series visit detaches). Conditions go through `recipientConditionService` (no provider links). Refused: deleted (`entryDeleted`, `conditionDeleted`), symptoms, vitals, doses (`notEditable`); another group's id is `entryNotFound`/`conditionNotFound`. Edits set no `via`.
 
 ## The "via" tag
 
-- `timeline_entry.via`, `task.via` (condition changes too) come only from the grant's `client_name`: `create(…, { via })` is server-only, create schemas strip it, it's `SYSTEM_ONLY` on update, uploads drop it.
-- `ui/ViaTag` shows in `EntryBody`'s footer, a card's footer, `EntryHeader`'s time line, the task row and `TaskHeader`.
+- `timeline_entry.via`, `todo.via` (condition changes too) come only from the grant's `client_name`: `create(…, { via })` is server-only, create schemas strip it, it's `SYSTEM_ONLY` on update, uploads drop it.
+- `ui/ViaTag` shows in `EntryBody`'s footer, a card's footer, `EntryHeader`'s time line, the todo row and `TodoHeader`.
 
 ## Managing connections
 

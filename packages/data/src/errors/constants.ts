@@ -13,7 +13,7 @@ import { NOTIFICATION_SERVICE_ERRORS } from "./notifications";
 import { PROFILES_ERRORS } from "./profiles";
 import { PROVIDERS_ERRORS } from "./providers";
 import { SEARCH_ERRORS } from "./search";
-import { TASKS_ERRORS } from "./tasks";
+import { TODOS_ERRORS } from "./todos";
 import { TIMELINE_ERRORS } from "./timeline";
 
 export const DB_ERRORS = {
@@ -200,8 +200,8 @@ export const MODEL_ERRORS = {
   "appointmentSeriesModel:remove": {
     message: "Failed to delete the repeating series",
   },
-  "taskModel:remove": {
-    message: "Failed to delete the task",
+  "todoModel:remove": {
+    message: "Failed to delete the todo",
   },
   "adminAuditLogModel:insert": {
     message: "Failed to record the audit entry",
@@ -256,7 +256,7 @@ export const SERVICE_ERRORS = {
   ...PROFILES_ERRORS,
   ...PROVIDERS_ERRORS,
   ...SEARCH_ERRORS,
-  ...TASKS_ERRORS,
+  ...TODOS_ERRORS,
   ...TIMELINE_ERRORS,
 } as const;
 

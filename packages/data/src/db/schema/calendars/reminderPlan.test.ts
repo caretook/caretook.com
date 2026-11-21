@@ -48,13 +48,13 @@ const item = (v: Partial<ReminderItem> = {}): ReminderItem => {
   };
 };
 
-const taskItem = (v: Partial<ReminderItem> = {}): ReminderItem => {
+const todoItem = (v: Partial<ReminderItem> = {}): ReminderItem => {
   const id = nextId();
   return item({
-    uid: `task:${id}`,
-    source: { type: "task", id },
-    kind: "task",
-    appUrl: `/app/groups/${GROUP}/tasks/${id}`,
+    uid: `todo:${id}`,
+    source: { type: "todo", id },
+    kind: "todo",
+    appUrl: `/app/groups/${GROUP}/todos/${id}`,
     ...v,
   });
 };
@@ -185,18 +185,18 @@ describe("planReminders", () => {
     expect(plan({ items: [allDay], settings: [morning], at: "2026-11-19T15:00:00.000Z" })).toHaveLength(1);
   });
 
-  it("reminds a task's assignee only: the morning it's due, or 1 h before its time", () => {
+  it("reminds a todo's assignee only: the morning it's due, or 1 h before its time", () => {
     const ben = member({ userId: BEN, leads: [30] });
     const settings = [member(), ben];
-    const dayTask = taskItem({ allDay: true, start: "2026-11-19", end: "2026-11-20" });
-    const timedTask = taskItem({ start: "2026-11-19T21:00:00.000Z", end: "2026-11-19T21:30:00.000Z" });
-    const unassigned = taskItem({ allDay: true, start: "2026-11-19", end: "2026-11-20" });
-    const assignees = { [dayTask.source.id]: BEN, [timedTask.source.id]: BEN, [unassigned.source.id]: null };
-    const items = [dayTask, timedTask, unassigned];
+    const dayTodo = todoItem({ allDay: true, start: "2026-11-19", end: "2026-11-20" });
+    const timedTodo = todoItem({ start: "2026-11-19T21:00:00.000Z", end: "2026-11-19T21:30:00.000Z" });
+    const unassigned = todoItem({ allDay: true, start: "2026-11-19", end: "2026-11-20" });
+    const assignees = { [dayTodo.source.id]: BEN, [timedTodo.source.id]: BEN, [unassigned.source.id]: null };
+    const items = [dayTodo, timedTodo, unassigned];
     const morning = plan({ items, settings, assignees, at: "2026-11-19T15:00:00.000Z" });
-    expect(morning.map((s) => [s.userId, s.item.uid, s.lead])).toEqual([[BEN, dayTask.uid, "morningOf"]]);
+    expect(morning.map((s) => [s.userId, s.item.uid, s.lead])).toEqual([[BEN, dayTodo.uid, "morningOf"]]);
     const hourBefore = plan({ items, settings, assignees, at: "2026-11-19T20:00:00.000Z" });
-    expect(hourBefore.map((s) => [s.userId, s.item.uid, s.lead])).toEqual([[BEN, timedTask.uid, 60]]);
+    expect(hourBefore.map((s) => [s.userId, s.item.uid, s.lead])).toEqual([[BEN, timedTodo.uid, 60]]);
     // An assignee who hasn't turned reminders on, or isn't a member any more, gets nothing.
     const off = [member(), member({ userId: BEN, remindersOn: false })];
     expect(plan({ items, settings: off, assignees, at: "2026-11-19T15:00:00.000Z" })).toEqual([]);

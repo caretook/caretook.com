@@ -12,7 +12,7 @@ import { REMINDER_LEADS } from "./calendarRules";
 //
 // - Appointments and reminders go to members with reminders on, at their
 //   leads plus an override's extras, minus a mute.
-// - A task goes to its assignee (a member with reminders on) only: the
+// - A todo goes to its assignee (a member with reminders on) only: the
 //   morning of its due day, or 1 h before its due time.
 // - Leads are worked out in the member's zone: the evening before is 18:00
 //   the day before, the morning of 7:00. All-day items take only those two;
@@ -30,8 +30,8 @@ export const REMINDER_CATCH_UP_MS = 6 * 60 * 60_000;
 export const REMINDER_CHANNELS = ["email"] as const;
 export type ReminderChannel = (typeof REMINDER_CHANNELS)[number];
 
-/** The lead a task's reminder uses: the morning of its due day, or 1 h before its time. */
-export const TASK_LEADS = { allDay: "morningOf", timed: 60 } as const satisfies Record<string, ReminderLead>;
+/** The lead a todo's reminder uses: the morning of its due day, or 1 h before its time. */
+export const TODO_LEADS = { allDay: "morningOf", timed: 60 } as const satisfies Record<string, ReminderLead>;
 
 const LEAD_LABELS: Record<string, string> = {
   eveningBefore: "The evening before, at 18:00",
@@ -68,7 +68,7 @@ export type PlanRemindersArgs = {
   items: readonly ReminderItem[];
   settings: readonly ReminderMember[];
   overrides: readonly ReminderOverrideRule[];
-  /** Each task's assignee (a user id), by task id. Free-text and unassigned tasks have none. */
+  /** Each todo's assignee (a user id), by todo id. Free-text and unassigned todos have none. */
   assignees: Readonly<Record<string, string | null | undefined>>;
   now: Date;
   /** The previous run's `now`; none (the first run) catches up the full 6 h. */
@@ -183,10 +183,10 @@ export const planReminders = ({
 
   for (const item of items) {
     if (item.status === "cancelled") continue;
-    if (item.kind === "task") {
+    if (item.kind === "todo") {
       const assignee = assignees[item.source.id];
       const member = assignee ? members.get(assignee) : undefined;
-      if (member) add(item, member, [item.allDay ? TASK_LEADS.allDay : TASK_LEADS.timed]);
+      if (member) add(item, member, [item.allDay ? TODO_LEADS.allDay : TODO_LEADS.timed]);
       continue;
     }
     for (const member of members.values()) {

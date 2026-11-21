@@ -10,7 +10,7 @@ import { appPathZ } from "./appPath";
 import { ButtonLink, EmailLayout, Muted, Paragraph } from "./layout";
 
 // Reminder emails (appointments-2 slice 6): an appointment or reminder
-// coming up (`appointmentReminder`) and a task due (`taskDue`), sent by the
+// coming up (`appointmentReminder`) and a todo due (`todoDue`), sent by the
 // calendar cron's reminder sweep. The wording comes from `calendarText`:
 // generic by default ("Appointment for Pat", the time and a link back), with
 // the title, place and providers only when the member consented and the
@@ -96,12 +96,12 @@ export const appointmentReminder = defineNotification({
   headers: unsubscribeHeaders,
 });
 
-export const taskDue = defineNotification({
-  name: "taskDue",
+export const todoDue = defineNotification({
+  name: "todoDue",
   data: reminderDataZ,
   email: (data, { link }) => ({
     subject: `${data.summary} · ${data.when}`,
-    react: <ReminderEmail data={data} link={link} button="Open the task" />,
+    react: <ReminderEmail data={data} link={link} button="Open the todo" />,
   }),
   headers: unsubscribeHeaders,
 });

@@ -4,7 +4,7 @@ import {
   addCondition,
   addEvent,
   addNote,
-  addTask,
+  addTodo,
   appendToEntry,
   givePass,
   logDose,
@@ -25,7 +25,7 @@ const WRITES = [
   givePass,
   addNote,
   addEvent,
-  addTask,
+  addTodo,
   appendToEntry,
   updateEntry,
   addCondition,
@@ -68,8 +68,8 @@ describe("the write tools", () => {
       names: ["title", "occurredAt", "endsAt", "allDay", "place", "providerIds", "timeZone"],
       required: ["title", "occurredAt"],
     });
-    // A task's assignee is a member's name (the overview lists names, not ids).
-    expect(propertiesOf(addTask)).toEqual({
+    // A todo's assignee is a member's name (the overview lists names, not ids).
+    expect(propertiesOf(addTodo)).toEqual({
       names: ["title", "dueOn", "dueTime", "providerId", "medicationId", "eventId", "assignee"],
       required: ["title"],
     });

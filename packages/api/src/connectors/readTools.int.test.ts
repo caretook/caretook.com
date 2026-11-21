@@ -16,7 +16,7 @@ import {
   providerService,
   recipientAllergyService,
   recipientConditionService,
-  taskService,
+  todoService,
   timelineEntryService,
   userContactService,
 } from "@caretook/data";
@@ -563,49 +563,49 @@ describe("read tools", { timeout: 60_000 }, () => {
     expect(JSON.stringify(quarter)).not.toContain("Elsewhere");
   });
 
-  it("list_tasks: open by default in the app's order, done on request, paged, mine, never another group's", async () => {
+  it("list_todos: open by default in the app's order, done on request, paged, mine, never another group's", async () => {
     const handler = handlerAt();
     const w = await world();
-    const task = async (title: string, extra: Record<string, unknown> = {}) =>
-      ok(await taskService.create(w.caretaker.ctx, { groupId: w.group.id, title, ...extra }))!;
-    await task("Undated");
-    await task("Overdue", { dueOn: "2020-01-02" });
-    await task("Mine", { assigneeId: w.viewer.user.id, dueOn: "2099-01-01", dueTime: "09:30" });
-    await task("Named", { assigneeName: "Rosa" });
-    const finished = await task("Finished");
-    ok(await taskService.complete(w.caretaker.ctx, finished.id));
-    ok(await taskService.create(w.owner.ctx, { groupId: w.second.group.id, title: "Elsewhere" }));
+    const todo = async (title: string, extra: Record<string, unknown> = {}) =>
+      ok(await todoService.create(w.caretaker.ctx, { groupId: w.group.id, title, ...extra }))!;
+    await todo("Undated");
+    await todo("Overdue", { dueOn: "2020-01-02" });
+    await todo("Mine", { assigneeId: w.viewer.user.id, dueOn: "2099-01-01", dueTime: "09:30" });
+    await todo("Named", { assigneeName: "Rosa" });
+    const finished = await todo("Finished");
+    ok(await todoService.complete(w.caretaker.ctx, finished.id));
+    ok(await todoService.create(w.owner.ctx, { groupId: w.second.group.id, title: "Elsewhere" }));
     const token = await w.connect(w.viewer);
 
-    const open = await callTool(handler, token, "list_tasks");
-    const tasks = open.structuredContent.tasks as {
+    const open = await callTool(handler, token, "list_todos");
+    const todos = open.structuredContent.todos as {
       title: string;
       state: string;
       assignee: { name: string | null } | null;
     }[];
-    expect(tasks.map((t) => [t.title, t.state])).toEqual([
+    expect(todos.map((t) => [t.title, t.state])).toEqual([
       ["Overdue", "overdue"],
       ["Mine", "upcoming"],
       ["Named", "undated"],
       ["Undated", "undated"],
     ]);
-    expect(tasks[1]?.assignee?.name).toBe("viewer");
-    expect(tasks[2]?.assignee?.name).toBe("Rosa");
+    expect(todos[1]?.assignee?.name).toBe("viewer");
+    expect(todos[2]?.assignee?.name).toBe("Rosa");
 
-    const done = await callTool(handler, token, "list_tasks", { status: "done" });
-    expect(done.structuredContent.tasks).toEqual([
+    const done = await callTool(handler, token, "list_todos", { status: "done" });
+    expect(done.structuredContent.todos).toEqual([
       expect.objectContaining({ title: "Finished", state: "done", doneBy: "caretaker" }),
     ]);
-    expect((done.structuredContent.tasks as { doneAt: string }[])[0]?.doneAt).toMatch(OFFSET);
-    const mine = await callTool(handler, token, "list_tasks", { status: "all", mine: true });
-    expect((mine.structuredContent.tasks as { title: string }[]).map((t) => t.title)).toEqual(["Mine"]);
-    const page = await callTool(handler, token, "list_tasks", { status: "all", limit: 2 });
+    expect((done.structuredContent.todos as { doneAt: string }[])[0]?.doneAt).toMatch(OFFSET);
+    const mine = await callTool(handler, token, "list_todos", { status: "all", mine: true });
+    expect((mine.structuredContent.todos as { title: string }[]).map((t) => t.title)).toEqual(["Mine"]);
+    const page = await callTool(handler, token, "list_todos", { status: "all", limit: 2 });
     expect(page.structuredContent.nextCursor).toBe("2");
-    const page2 = await callTool(handler, token, "list_tasks", { status: "all", limit: 2, cursor: "2" });
-    expect(page2.structuredContent.tasks).toHaveLength(2);
+    const page2 = await callTool(handler, token, "list_todos", { status: "all", limit: 2, cursor: "2" });
+    expect(page2.structuredContent.todos).toHaveLength(2);
     expect(page2.structuredContent.nextCursor).toBe("4");
-    const page3 = await callTool(handler, token, "list_tasks", { status: "all", limit: 2, cursor: "4" });
-    expect(page3.structuredContent.tasks).toHaveLength(1);
+    const page3 = await callTool(handler, token, "list_todos", { status: "all", limit: 2, cursor: "4" });
+    expect(page3.structuredContent.todos).toHaveLength(1);
     expect(page3.structuredContent.nextCursor).toBeNull();
     expect(JSON.stringify([open, done, page, page2])).not.toContain("Elsewhere");
   });
@@ -906,7 +906,7 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
       }),
     );
     ok(
-      await taskService.create(w.caretaker.ctx, {
+      await todoService.create(w.caretaker.ctx, {
         groupId: w.group.id,
         title: "Call the clinic",
         assigneeId: w.caretaker.user.id,
@@ -944,7 +944,7 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
         "list_medications",
         "todays_doses",
         "upcoming",
-        "list_tasks",
+        "list_todos",
         "list_providers",
         "recipient_profile",
       ]),
@@ -952,7 +952,7 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
     const inputs: Record<string, Record<string, unknown>> = {
       search: { q: "cardio aspirin dr penicillin" },
       list_timeline: { from: hoursAgo(24 * 80) },
-      list_tasks: { status: "all" },
+      list_todos: { status: "all" },
       list_medications: { includePast: true },
       list_providers: { includePast: true },
     };

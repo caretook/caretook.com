@@ -10,10 +10,10 @@ import { VITALS } from "../timeline/vitals";
 // ranks above `body` (what's written about it: text, notes, place, author).
 // Soft-deleted rows have no document, so they never match.
 
-export const SEARCH_ITEM_TYPES = ["entry", "provider", "medication", "task", "condition"] as const;
+export const SEARCH_ITEM_TYPES = ["entry", "provider", "medication", "todo", "condition"] as const;
 export type SearchItemType = (typeof SEARCH_ITEM_TYPES)[number];
 
-/** What server search (`searchService`) covers: tasks and conditions are searched on the device only. */
+/** What server search (`searchService`) covers: todos and conditions are searched on the device only. */
 export const SERVER_SEARCH_ITEM_TYPES = [
   "entry",
   "provider",
@@ -81,11 +81,11 @@ export type ConditionSearchSource = {
   deletedAt?: Text;
 };
 
-export type TaskSearchSource = {
+export type TodoSearchSource = {
   id: string;
   groupId: string;
   title?: Text;
-  /** The task's live notes text, including edits not compacted yet. */
+  /** The todo's live notes text, including edits not compacted yet. */
   documentText?: Text;
   deletedAt?: Text;
 };
@@ -177,15 +177,15 @@ export const medicationSearchDocument = (medication: MedicationSearchSource): Se
   };
 };
 
-/** A task: its title weighted, its notes as body. Done tasks are found too (the page marks them). */
-export const taskSearchDocument = (task: TaskSearchSource): SearchDocument | null => {
-  if (task.deletedAt) return null;
+/** A todo: its title weighted, its notes as body. Done todos are found too (the page marks them). */
+export const todoSearchDocument = (todo: TodoSearchSource): SearchDocument | null => {
+  if (todo.deletedAt) return null;
   return {
-    id: task.id,
-    type: "task",
-    groupId: task.groupId,
-    title: join([task.title]),
-    body: join([task.documentText]),
+    id: todo.id,
+    type: "todo",
+    groupId: todo.groupId,
+    title: join([todo.title]),
+    body: join([todo.documentText]),
   };
 };
 

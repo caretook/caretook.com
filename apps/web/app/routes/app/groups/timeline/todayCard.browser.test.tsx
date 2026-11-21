@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
-import { at, fx, medicationPass, task, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
+import { at, fx, medicationPass, todo, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { materializeLiveEntry } from "~/lib/live-notes/liveEntry.sync";
 import { clearUndo } from "~/lib/medications/passUndo";
 import { clockAt, clockMoment, CLOCK, DOSES_SQL, fixClock } from "../medications/medicationWorld";
@@ -16,7 +16,7 @@ import { TIMELINE_URL } from "./timelineWorld";
 
 // The Today card (timeline-ux slice 5, B-169) on a fixed clock: 10:00 on
 // Wed Nov 18 2026 in Los Angeles. Its rows (vitals, the next appointment,
-// the medications due and the tasks) each show only with something to say,
+// the medications due and the todos) each show only with something to say,
 // tinted and iconned by `todayStatus` (whose edges are todayStatus.test.ts's),
 // each ending in "See all ›" to its full view (vitals: Show all in place,
 // B-186). Given all stays on the medications row for writers. The card starts
@@ -47,9 +47,9 @@ const ROUTES: DeviceRoute[] = [
     children: [{ path: "/app/groups/:groupId/timeline/new/dose", module: newDose }],
   },
   { path: "/app/groups/:groupId/entries/:entryId", module: { default: Probe } },
-  { path: "/app/groups/:groupId/upcoming", module: { default: Probe } },
+  { path: "/app/groups/:groupId/planner", module: { default: Probe } },
   { path: "/app/groups/:groupId/medications", module: { default: Probe } },
-  { path: "/app/groups/:groupId/tasks", module: { default: Probe } },
+  { path: "/app/groups/:groupId/todos", module: { default: Probe } },
 ];
 
 const TODAY = "2026-11-18";
@@ -71,7 +71,7 @@ const OLD_BP = fx.vital({
 } as never);
 /** In an hour: blue. */
 const CARDIOLOGY = fx.event({ title: "Cardiology", occurredAt: clockMoment(60) });
-const WALKER = task({ title: "Pick up the walker", dueOn: TODAY });
+const WALKER = todo({ title: "Pick up the walker", dueOn: TODAY });
 const DAY_NOTE = fx.note({ text: "A day", occurredAt: clockMoment(-30) });
 const EVERYTHING: Fixture[] = [DAY_NOTE, OLD_BP, CARDIOLOGY, WALKER, ...PASSES];
 
@@ -110,9 +110,9 @@ afterEach(() => {
 
 describe("the Today card's rows", () => {
   test("only rows with something to say; none at all hides the card; a row arrives with its data", async () => {
-    const device = await open([DAY_NOTE, task({ title: "Fax the form", dueOn: "2026-11-21" })]);
+    const device = await open([DAY_NOTE, todo({ title: "Fax the form", dueOn: "2026-11-21" })]);
     await expect.element(page.getByText("A day")).toBeInTheDocument();
-    // Once the medications and tasks have answered (skeletons until then), nothing is left.
+    // Once the medications and todos have answered (skeletons until then), nothing is left.
     await expect.poll(CARD).toBeNull();
 
     await device.sync([OLD_BP]);
@@ -121,7 +121,7 @@ describe("the Today card's rows", () => {
 
     await device.sync([WALKER, ...PASSES]);
     await device.settle();
-    await expect.poll(shownRows).toEqual(["vitals", "medications", "tasks"]);
+    await expect.poll(shownRows).toEqual(["vitals", "medications", "todos"]);
     // It sits above the list, at every width (the old vitals strip hid below `sm`).
     expect(CARD()!.compareDocumentPosition(document.querySelector("main ol")!) & 4).toBeTruthy();
     await openCard();
@@ -130,7 +130,7 @@ describe("the Today card's rows", () => {
 
   test("each status: its tint, its own icon and its words for screen readers; a calm row has neither", async () => {
     await open(EVERYTHING);
-    await expect.poll(shownRows).toEqual(["vitals", "appointment", "medications", "tasks"]);
+    await expect.poll(shownRows).toEqual(["vitals", "appointment", "medications", "todos"]);
     const look = (name: string) => {
       const r = row(name)!;
       return {
@@ -158,12 +158,12 @@ describe("the Today card's rows", () => {
       said: "Coming up soon: ",
       tint: "bg-info/10",
     });
-    expect(look("tasks")).toEqual({ status: "neutral", icon: null, said: null, tint: null });
+    expect(look("todos")).toEqual({ status: "neutral", icon: null, said: null, tint: null });
     // Every row's icon is hidden from screen readers: the words carry it.
     await expect.poll(() => CARD()?.querySelectorAll("li svg:not([aria-hidden])")).toHaveLength(0);
   });
 
-  test("the rows' words: the latest readings with their time, the next appointment (+N more), the pass, the task", async () => {
+  test("the rows' words: the latest readings with their time, the next appointment (+N more), the pass, the todo", async () => {
     await open([...EVERYTHING, fx.event({ title: "Dentist", occurredAt: clockMoment(26 * 60) })]);
     await expect.poll(shownRows).toHaveLength(4);
     expect(row("vitals")!.textContent).toMatch(/^Needs attention: Latest vitals: BP 130\/85 mmHg 2d ago/);
@@ -171,31 +171,31 @@ describe("the Today card's rows", () => {
     expect(next.textContent).toBe("Next: Cardiology · Today 11:00 AM · +1 more");
     expect(next.getAttribute("href")).toBe(`/app/groups/${G}/entries/${CARDIOLOGY.id}`);
     expect(row("medications")!.textContent).toContain("Overdue: Late · 8:55 · 1 med · +1 more");
-    expect(row("tasks")!.textContent).toMatch(/^Today: Pick up the walker/);
+    expect(row("todos")!.textContent).toMatch(/^Today: Pick up the walker/);
   });
 
   test("every row but vitals ends in See all, alike, to its full view", async () => {
     await open(EVERYTHING);
     await expect.poll(shownRows).toHaveLength(4);
-    const links = ["appointment", "medications", "tasks"].map((name) => ({
+    const links = ["appointment", "medications", "todos"].map((name) => ({
       name: seeAll(name).getAttribute("aria-label"),
       text: seeAll(name).textContent,
       href: seeAll(name).getAttribute("href"),
       look: seeAll(name).className,
     }));
     expect(links.map(({ name, text, href }) => ({ name, text, href }))).toEqual([
-      { name: "See all upcoming", text: "See all", href: `/app/groups/${G}/upcoming` },
+      { name: "See all in Planner", text: "See all", href: `/app/groups/${G}/planner` },
       { name: "See all medications", text: "See all", href: `/app/groups/${G}/medications` },
-      { name: "See all tasks", text: "See all", href: `/app/groups/${G}/tasks?who=everyone` },
+      { name: "See all todos", text: "See all", href: `/app/groups/${G}/todos?who=everyone` },
     ]);
     expect(new Set(links.map((l) => l.look)).size).toBe(1);
     // Vitals shows its readings in place instead (below).
     expect(row("vitals")!.querySelector("a[data-see-all]")).toBeNull();
 
     await openCard();
-    await userEvent.click(seeAll("tasks"));
+    await userEvent.click(seeAll("todos"));
     await expect
-      .element(page.getByRole("heading", { name: `Probe /app/groups/${G}/tasks?who=everyone` }))
+      .element(page.getByRole("heading", { name: `Probe /app/groups/${G}/todos?who=everyone` }))
       .toBeVisible();
   });
 });
@@ -271,7 +271,7 @@ describe("the Today card's width", () => {
     expect(Math.abs(r.width - 1152)).toBeLessThan(1);
     expect(Math.abs(r.left + r.right - pageWidth)).toBeLessThan(2);
     // Each row is one line.
-    for (const name of ["vitals", "appointment", "medications", "tasks"])
+    for (const name of ["vitals", "appointment", "medications", "todos"])
       expect(row(name)!.getBoundingClientRect().height).toBeLessThan(40);
   });
 });
@@ -325,39 +325,39 @@ describe("the medications row", () => {
   });
 });
 
-describe("the tasks row", () => {
-  test("overdue: red, my late task first, +N more counting today's; done on another device, it goes", async () => {
+describe("the todos row", () => {
+  test("overdue: red, my late todo first, +N more counting today's; done on another device, it goes", async () => {
     const SAM = fx.person({ name: "Sam Okafor", role: "caretaker" });
-    type TaskValues = Parameters<typeof task>[0] & { id: string };
+    type TodoValues = Parameters<typeof todo>[0] & { id: string };
     const id = () => crypto.randomUUID();
-    const walker: TaskValues = { id: id(), title: "Pick up the walker", dueOn: TODAY };
-    const mine: TaskValues = {
+    const walker: TodoValues = { id: id(), title: "Pick up the walker", dueOn: TODAY };
+    const mine: TodoValues = {
       id: id(),
       title: "Refill the pill box",
       dueOn: "2026-11-17",
       assigneeId: TEST_USER.id,
     };
-    const sams: TaskValues = {
+    const sams: TodoValues = {
       id: id(),
       title: "Call the pharmacy",
       dueOn: "2026-11-16",
       assigneeId: SAM.id,
     };
-    const device = await open([SAM, DAY_NOTE, task(walker), task(sams), task(mine)]);
-    const words = () => row("tasks")?.querySelector("[data-task]")?.textContent ?? null;
-    await expect.poll(() => row("tasks")?.dataset.status).toBe("error");
+    const device = await open([SAM, DAY_NOTE, todo(walker), todo(sams), todo(mine)]);
+    const words = () => row("todos")?.querySelector("[data-todo]")?.textContent ?? null;
+    await expect.poll(() => row("todos")?.dataset.status).toBe("error");
     expect(words()).toBe("Overdue: Refill the pill box · +2 more");
-    expect(seeAll("tasks").getAttribute("href")).toBe(`/app/groups/${G}/tasks?who=mine`);
+    expect(seeAll("todos").getAttribute("href")).toBe(`/app/groups/${G}/todos?who=mine`);
 
-    const done = (t: TaskValues) => task({ ...t, doneAt: at(), doneBy: SAM.id });
+    const done = (t: TodoValues) => todo({ ...t, doneAt: at(), doneBy: SAM.id });
     await device.sync([done(mine), done(walker)]);
     await device.settle();
     await expect.poll(words).toBe("Overdue: Call the pharmacy");
-    expect(seeAll("tasks").getAttribute("href")).toBe(`/app/groups/${G}/tasks?who=everyone`);
+    expect(seeAll("todos").getAttribute("href")).toBe(`/app/groups/${G}/todos?who=everyone`);
 
     await device.sync(done(sams));
     await device.settle();
-    await expect.poll(() => row("tasks")).toBeNull();
+    await expect.poll(() => row("todos")).toBeNull();
   });
 });
 
@@ -404,7 +404,7 @@ describe("collapsing the card", () => {
     await expect.poll(shownRows).toHaveLength(4);
     await expect
       .poll(() => summary()?.textContent)
-      .toBe("1 overdue · 4 due soon · BP 130/85 mmHg · 1 task today");
+      .toBe("1 overdue · 4 due soon · BP 130/85 mmHg · 1 todo today");
     expect(expanded()).toBe("false");
     expect(part("overdue")!.classList).toContain("text-error");
     expect(part("soon")!.classList).toContain("text-warning");
@@ -422,8 +422,8 @@ describe("collapsing the card", () => {
 
   test("nothing overdue or due soon: the line is the rest alone", async () => {
     await open([DAY_NOTE, OLD_BP, WALKER]);
-    await expect.poll(shownRows).toEqual(["vitals", "tasks"]);
-    await expect.poll(() => summary()?.textContent).toBe("BP 130/85 mmHg · 1 task today");
+    await expect.poll(shownRows).toEqual(["vitals", "todos"]);
+    await expect.poll(() => summary()?.textContent).toBe("BP 130/85 mmHg · 1 todo today");
     expect(part("overdue")).toBeNull();
     expect(part("soon")).toBeNull();
   });
@@ -446,7 +446,7 @@ describe("collapsing the card", () => {
     await openCard();
     await device.screen.unmount();
     await open([DAY_NOTE, OLD_BP, WALKER]);
-    await expect.poll(shownRows).toEqual(["vitals", "tasks"]);
+    await expect.poll(shownRows).toEqual(["vitals", "todos"]);
     expect(expanded()).toBe("false");
   });
 });

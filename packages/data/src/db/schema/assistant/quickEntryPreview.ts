@@ -3,7 +3,7 @@ import type { AssistantAction } from "./assistantActions";
 
 import { dayLabel } from "../core/dayLabel";
 import { doseText, listText, medicationCountText, medicationTitle } from "../medications/medicationDisplay";
-import { dueText } from "../tasks/taskDisplay";
+import { dueText } from "../todos/todoDisplay";
 import { formatReading, isKnownReading } from "../timeline/vitals";
 
 // The wording of a quick-entry card: what an assistant action will save, in
@@ -21,9 +21,9 @@ export type PreviewContext = {
   locale?: string;
   /** The zone times read in (the device's, by default). */
   timeZone?: string;
-  /** The group's members by id, for a task's assignee. */
+  /** The group's members by id, for a todo's assignee. */
   members?: ReadonlyMap<string, { name: string }>;
-  /** The recipient's zone, which a task's due day is in (else `timeZone`). */
+  /** The recipient's zone, which a todo's due day is in (else `timeZone`). */
   recipientTimeZone?: string;
 };
 
@@ -32,7 +32,7 @@ export type ActionPreview = {
   title: string;
   /** What else it says: a note, "Given 1 tablet", a place and providers. */
   detail: string | null;
-  /** When: "Now", "7:30 AM", "Yesterday 9:00 PM", "Tuesday, Nov 24 2:00 PM", "Friday, Nov 20 · All day"; a task's due ("Due Fri"). */
+  /** When: "Now", "7:30 AM", "Yesterday 9:00 PM", "Tuesday, Nov 24 2:00 PM", "Friday, Nov 20 · All day"; a todo's due ("Due Fri"). */
   when: string;
 };
 
@@ -65,8 +65,8 @@ const joined = (...parts: (string | null | undefined)[]) => parts.filter(Boolean
 
 /** A card's words for one action. */
 export const actionPreview = (action: AssistantAction, context: PreviewContext): ActionPreview => {
-  if (action.type === "addTask") {
-    // "Task · Due Fri", "Call pharmacy", "Sam Rivera".
+  if (action.type === "addTodo") {
+    // "Todo · Due Fri", "Call pharmacy", "Sam Rivera".
     const zone = context.recipientTimeZone ?? context.timeZone ?? deviceZone();
     const due = { dueOn: action.dueOn ?? null, dueTime: action.dueTime ?? null, doneAt: null };
     return {

@@ -8,7 +8,7 @@
 // and later" split reaching the other member, a read-only viewer, a reschedule's one
 // transaction uploading and reaching the other member, the sync matrix (every
 // synced table's row on both devices: sync-matrix.mjs), an upload refused by
-// permissions (a member demoted while offline), a viewer's task ticked
+// permissions (a member demoted while offline), a viewer's todo ticked
 // offline and their refused title change, and sign-out wiping the
 // device. Every row it writes has this run's tag, so it passes run after run
 // without a reset.
@@ -174,14 +174,14 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
   const memberId = userId("member@example.com");
   const caretakerId = userId("caretaker@example.com");
   const viewerId = userId("viewer@example.com");
-  // The viewer's seeded open task (seeds/tasks.ts): ticked offline in 6d, reopened after.
-  const viewerTask = psql(
-    `SELECT id FROM task WHERE group_id = '${DEV_FAMILY}' AND title = 'Pick up groceries' AND assignee_id = '${viewerId}' AND deleted_at IS NULL`,
+  // The viewer's seeded open todo (seeds/todos.ts): ticked offline in 6d, reopened after.
+  const viewerTodo = psql(
+    `SELECT id FROM todo WHERE group_id = '${DEV_FAMILY}' AND title = 'Pick up groceries' AND assignee_id = '${viewerId}' AND deleted_at IS NULL`,
   );
-  const VIEWER_TASK_TITLE = "Pick up groceries";
-  const reopenViewerTaskSql = `UPDATE task SET done_at = NULL, done_by = NULL, title = '${VIEWER_TASK_TITLE}' WHERE id = '${viewerTask}' AND (done_at IS NOT NULL OR title <> '${VIEWER_TASK_TITLE}')`;
+  const VIEWER_TODO_TITLE = "Pick up groceries";
+  const reopenViewerTodoSql = `UPDATE todo SET done_at = NULL, done_by = NULL, title = '${VIEWER_TODO_TITLE}' WHERE id = '${viewerTodo}' AND (done_at IS NOT NULL OR title <> '${VIEWER_TODO_TITLE}')`;
   // A run that died mid-step left it done: open again before anyone loads.
-  if (viewerTask) psql(reopenViewerTaskSql);
+  if (viewerTodo) psql(reopenViewerTodoSql);
   const tag = `RT-${Date.now().toString(36)}`;
   const matrix = matrixContext({
     tag,
@@ -366,7 +366,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
 
     // 6-series. The series 5a made offline, checked once the viewer is in
     // (it uploads meanwhile): the server holds it and every visit, and the
-    // other member's Upcoming shows the visits with the repeat mark
+    // other member's Planner shows the visits with the repeat mark
     // (client-side, through the tab bar).
     tSeries = Date.now();
     const idList = visitIds.map((id) => `'${id}'`).join(", ") || "NULL";
@@ -390,14 +390,14 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
         )
       ).map((r) => r.id);
     const onB = await until(async () => (await visitsOn(B, made.seriesId)).length === visitIds.length);
-    const upcomingTab = `document.querySelector('nav.dock a[href="/app/groups/${DEV_FAMILY}/upcoming"]')`;
+    const upcomingTab = `document.querySelector('nav.dock a[href="/app/groups/${DEV_FAMILY}/planner"]')`;
     const upcomingRow = (id) => `document.querySelector('main [data-upcoming-item="${id}"]')`;
     await press(B, upcomingTab);
     const marked = `${JSON.stringify(visitIds)}.filter((id) => document.querySelector('main [data-upcoming-item="' + id + '"] [data-repeat-mark]')).length`;
-    // Upcoming is 90 days ahead, the visits through today + 90: all but possibly the last.
+    // The Planner is 90 days ahead, the visits through today + 90: all but possibly the last.
     const shownOnB = await waits(B, `${marked} >= ${visitIds.length - 1}`, 20_000);
     await check(
-      "series: the other member's Upcoming shows the visits with the repeat mark",
+      "series: the other member's Planner shows the visits with the repeat mark",
       !!onB && shownOnB,
       `${await B.evaluate(marked)}/${visitIds.length} marked rows`,
     );
@@ -599,27 +599,33 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       )[0]?.role;
     const titleOn = async (page) =>
       (await localRows(page, "SELECT title FROM timeline_entry WHERE id = ?", [matrix.ids.entry]))[0]?.title;
-    // 6d. A viewer's task: viewer@ ticks their own task offline (a tick is
+    // 6d. A viewer's todo: viewer@ ticks their own todo offline (a tick is
     // all a viewer may do) and forces a title change through the device; on
     // reconnect the tick uploads and member@'s list shows it done by them,
     // while the title change is refused and the next sync puts the server's
-    // title back. Client-side navigation through the tab bar: no new page
-    // loads or sign-ins.
-    const tasksTab = `document.querySelector('nav.dock a[href="/app/groups/${DEV_FAMILY}/tasks"]')`;
-    const taskRow = `document.querySelector('main [data-task="${viewerTask}"]')`;
-    const doneLine = `${taskRow}?.querySelector("[data-task-due]")?.textContent.trim()`;
+    // title back. Client-side navigation through the tab bar's Planner and
+    // its Todos tab: no new page loads or sign-ins.
+    const plannerTab = `document.querySelector('nav.dock a[href="/app/groups/${DEV_FAMILY}/planner"]')`;
+    const todosTab = `document.querySelector('main nav[aria-label="Planner, todos or past"] a[href="/app/groups/${DEV_FAMILY}/todos"]')`;
+    const openTodos = async (page) => {
+      await press(page, plannerTab);
+      await wf(page, todosTab, 20_000);
+      await press(page, todosTab);
+    };
+    const todoRow = `document.querySelector('main [data-todo="${viewerTodo}"]')`;
+    const doneLine = `${todoRow}?.querySelector("[data-todo-due]")?.textContent.trim()`;
     const everyone = `[...document.querySelectorAll("main a")].find((a) => a.textContent.trim() === "Everyone")`;
-    const taskOn = async (page) =>
-      (await localRows(page, "SELECT title, done_at, done_by FROM task WHERE id = ?", [viewerTask]))[0];
-    const refusedTask = `${tag} groceries, refused`;
-    // Both task lists while online: the viewer's (Mine), and member@'s on
-    // Everyone (the viewer's task isn't Mine).
-    await press(C, tasksTab);
-    await press(A, tasksTab);
-    await wf(C, `${taskRow}?.querySelector("[data-task-tick]")`, 20_000);
+    const todoOn = async (page) =>
+      (await localRows(page, "SELECT title, done_at, done_by FROM todo WHERE id = ?", [viewerTodo]))[0];
+    const refusedTodo = `${tag} groceries, refused`;
+    // Both todo lists while online: the viewer's (Mine), and member@'s on
+    // Everyone (the viewer's todo isn't Mine).
+    await openTodos(C);
+    await openTodos(A);
+    await wf(C, `${todoRow}?.querySelector("[data-todo-tick]")`, 20_000);
     await wf(A, everyone, 20_000);
     await press(A, everyone);
-    await wf(A, `location.search.includes("who=everyone") && ${taskRow}`, 20_000);
+    await wf(A, `location.search.includes("who=everyone") && ${todoRow}`, 20_000);
 
     dB.offline(true);
     dC.offline(true);
@@ -642,20 +648,20 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       demoted === 200 && before.role === "caretaker" && before.title === refusedTitle && before.queued === 1,
       `changeRole ${demoted}, local role ${before.role}, ${before.queued} queued`,
     );
-    await press(C, `${taskRow}.querySelector("[data-task-tick]")`);
-    await wf(C, `${taskRow}?.querySelector("[data-task-tick]")?.checked`);
+    await press(C, `${todoRow}.querySelector("[data-todo-tick]")`);
+    await wf(C, `${todoRow}?.querySelector("[data-todo-tick]")?.checked`);
     await localWrite(C, [
       {
-        sql: "UPDATE task SET title = ?, updated_at = ?, updated_by = ? WHERE id = ?",
-        params: [refusedTask, localTimestamp(), viewerId, viewerTask],
+        sql: "UPDATE todo SET title = ?, updated_at = ?, updated_by = ? WHERE id = ?",
+        params: [refusedTodo, localTimestamp(), viewerId, viewerTodo],
       },
     ]);
-    const ticked = { local: await taskOn(C), queued: await queued(C) };
-    const serverDone = psql(`SELECT count(*) FROM task WHERE id = '${viewerTask}' AND done_at IS NOT NULL`);
+    const ticked = { local: await todoOn(C), queued: await queued(C) };
+    const serverDone = psql(`SELECT count(*) FROM todo WHERE id = '${viewerTodo}' AND done_at IS NOT NULL`);
     await check(
-      "task: offline, the viewer ticks their own task and forces a title change; both queued",
+      "todo: offline, the viewer ticks their own todo and forces a title change; both queued",
       !!ticked.local?.done_at &&
-        ticked.local?.title === refusedTask &&
+        ticked.local?.title === refusedTodo &&
         ticked.queued === 2 &&
         serverDone === "0",
       `${ticked.queued} queued, done on the server: ${serverDone}`,
@@ -695,28 +701,28 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     );
 
     const doneBy = await waitForSql(
-      `SELECT coalesce(done_by::text, '') FROM task WHERE id = '${viewerTask}'`,
+      `SELECT coalesce(done_by::text, '') FROM todo WHERE id = '${viewerTodo}'`,
       (r) => r !== "",
       60_000,
     );
-    await check("task: on reconnect the tick uploads, done by the viewer", doneBy === viewerId, doneBy);
+    await check("todo: on reconnect the tick uploads, done by the viewer", doneBy === viewerId, doneBy);
     const shown = await waits(A, `${doneLine}?.startsWith("Done by Dev Viewer")`, 20_000);
     await check(
-      "task: the member's list shows it done, with the done-by line",
-      shown && (await A.evaluate(`${taskRow}?.dataset.taskState`)) === "done",
+      "todo: the member's list shows it done, with the done-by line",
+      shown && (await A.evaluate(`${todoRow}?.dataset.todoState`)) === "done",
       `${await A.evaluate(doneLine)}, ${Date.now() - t2} ms after reconnecting`,
     );
     const titleBack = await until(async () => {
-      const row = await taskOn(C);
-      return row?.title === VIEWER_TASK_TITLE && (await queued(C)) === 0 ? row : null;
+      const row = await todoOn(C);
+      return row?.title === VIEWER_TODO_TITLE && (await queued(C)) === 0 ? row : null;
     }, 30_000);
-    const serverTaskTitle = psql(`SELECT title FROM task WHERE id = '${viewerTask}'`);
+    const serverTodoTitle = psql(`SELECT title FROM todo WHERE id = '${viewerTodo}'`);
     await check(
-      "task: the viewer's title change is refused, and the next sync restores the title (still done)",
-      !!titleBack && serverTaskTitle === VIEWER_TASK_TITLE && !!titleBack.done_at,
+      "todo: the viewer's title change is refused, and the next sync restores the title (still done)",
+      !!titleBack && serverTodoTitle === VIEWER_TODO_TITLE && !!titleBack.done_at,
       titleBack
         ? `${Date.now() - t2} ms after reconnecting`
-        : `device ${(await taskOn(C))?.title}, server ${serverTaskTitle}`,
+        : `device ${(await todoOn(C))?.title}, server ${serverTodoTitle}`,
     );
 
     // 7. Tidy up, then sign-out wipes the device.
@@ -743,7 +749,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     );
   } finally {
     try {
-      if (viewerTask) psql(reopenViewerTaskSql);
+      if (viewerTodo) psql(reopenViewerTodoSql);
       psql(
         `UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' LIKE '${tag}%' AND deleted_at IS NULL`,
       );

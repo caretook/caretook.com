@@ -1,5 +1,5 @@
 /**
- * "via Claude": an entry or task a member added through their own AI
+ * "via Claude": an entry or todo a member added through their own AI
  * assistant (connectors), named as the assistant registered itself. Nothing
  * when `via` is empty. A small ghost badge, truncated past its width; the
  * name is the client's own, so it says how it got here, not who wrote it

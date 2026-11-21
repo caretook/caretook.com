@@ -11,8 +11,8 @@ import {
   upcomingTitle,
   upcomingWhen,
 } from "~/lib/appointments/upcomingLabels";
-import { isUpcomingTask } from "~/lib/tasks/upcomingTasks";
-import { dueText } from "~/lib/tasks/taskDisplay";
+import { isPlannerTodo } from "~/lib/todos/plannerTodos";
+import { dueText } from "~/lib/todos/todoDisplay";
 import { useSimpleUpcoming } from "./useSimpleUpcoming";
 
 const ITEM_LINK = "hover:bg-base-content/5 rounded-box -mx-2 block px-2 py-2";
@@ -20,7 +20,7 @@ const ITEM_LINK = "hover:bg-base-content/5 rounded-box -mx-2 block px-2 py-2";
 /**
  * The next appointment or reminder, the Upcoming block's last line (B-191):
  * a button that opens the next five upcoming items under it, each a link to
- * its page, then "See all" to Upcoming; another tap closes it. Closed on
+ * its page, then "See all" to the Planner; another tap closes it. Closed on
  * every visit. Nothing when nothing is ahead.
  */
 export function SimpleNext({ next, now }: { next: TimelineData["next"]; now: Date }) {
@@ -55,20 +55,20 @@ export function SimpleNext({ next, now }: { next: TimelineData["next"]; now: Dat
 
 /** The opened list: the next five, then See all. A skeleton until the device answers. */
 function SimpleUpcomingList({ groupId }: { groupId: string }) {
-  const { items, ready, now, taskZone } = useSimpleUpcoming(groupId);
+  const { items, ready, now, todoZone } = useSimpleUpcoming(groupId);
   if (!ready) return <div className="skeleton rounded-box h-24" aria-hidden="true" />;
   return (
     <>
       <ul aria-label="Next upcoming">
         {items.map((item) =>
-          isUpcomingTask(item) ? (
+          isPlannerTodo(item) ? (
             <li key={item.key} data-simple-upcoming-item={item.key}>
-              <Link to={appUrls.task(groupId, item.task.id)} className={ITEM_LINK}>
-                <span className="block text-xl font-medium break-words">{item.task.title}</span>
+              <Link to={appUrls.todo(groupId, item.todo.id)} className={ITEM_LINK}>
+                <span className="block text-xl font-medium break-words">{item.todo.title}</span>
                 <span
                   className={`block text-base ${item.state === "overdue" ? "text-error" : "text-base-content/70"}`}
                 >
-                  {dueText(item.task, now, taskZone)}
+                  {dueText(item.todo, now, todoZone)}
                 </span>
               </Link>
             </li>
@@ -89,7 +89,7 @@ function SimpleUpcomingList({ groupId }: { groupId: string }) {
         )}
       </ul>
       <p className="text-xl">
-        <Link to={appUrls.upcoming(groupId)} className="link" data-simple-upcoming-all="">
+        <Link to={appUrls.planner(groupId)} className="link" data-simple-upcoming-all="">
           See all
         </Link>
       </p>
