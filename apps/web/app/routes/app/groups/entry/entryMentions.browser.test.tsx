@@ -99,9 +99,9 @@ describe("mentions on the entry page", () => {
       "Providers to mention",
     );
     expect(highlighted()).toBe("Cornerstone Pharmacy");
-    expect(NOTES()!.getAttribute("aria-activedescendant")).toBe(
-      $('[data-mention-popup] [role="option"][aria-selected="true"]')!.id,
-    );
+    await expect
+      .poll(() => NOTES()?.getAttribute("aria-activedescendant"))
+      .toBe($('[data-mention-popup] [role="option"][aria-selected="true"]')!.id);
 
     await userEvent.keyboard("card");
     await waitUntil(() => shown().length === 1, 4000, "the popup narrowed");
@@ -222,7 +222,7 @@ describe("mentions on the entry page", () => {
     expect(mentionChips()).toEqual([
       { id: WESTSIDE.id, text: "Westside Family Medicine", href: providerUrl(WESTSIDE.id) },
     ]);
-    expect(NOTES()!.getAttribute("contenteditable")).toBe("false");
+    await expect.poll(() => NOTES()?.getAttribute("contenteditable")).toBe("false");
     await userEvent.click(NOTES()!);
     await userEvent.keyboard("@");
     await pause(300);

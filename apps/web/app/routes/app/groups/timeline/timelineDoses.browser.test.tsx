@@ -435,7 +435,7 @@ describe("the Dose sheet's + New medication", () => {
     expect(NAME()).toBeNull();
     await userEvent.click(radio("medicationId", "+ New medication")!);
     await expect.poll(NAME).toBeTruthy();
-    expect(NAME()!.value).toBe("");
+    await expect.poll(() => NAME()?.value).toBe("");
     expect(typeChecked()).toBe("Prescription");
     // The amount starts empty (nothing typed for the new one), then follows its dose.
     await expect.poll(() => AMOUNT().value).toBe("");
@@ -470,7 +470,7 @@ describe("the Dose sheet's + New medication", () => {
     await pickNew();
     await userEvent.fill(NAME()!, "Ibuprofen");
     await expect.poll(() => SHEET()!.textContent).toContain("Matches an allergy on file: Ibuprofen (severe)");
-    expect(NAME()!.getAttribute("aria-invalid")).not.toBe("true");
+    await expect.poll(() => NAME()?.getAttribute("aria-invalid")).not.toBe("true");
   });
 
   test("an empty name is refused on its field, and nothing is written", async () => {
