@@ -81,7 +81,7 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 
 | 63 | B-228 | started | sonnet |
 | 64 | B-230 | merged | d5701923 (2769bd66) sonnet |
-| 65 | B-232 | started | sonnet |
+| 65 | B-232 | merged | 9f47380b (4bd81a3a) sonnet |
 | 66 | B-233 | started | sonnet |
 | 67 | B-234 | started | sonnet |
 | 68 | B-235 | started | opus |
