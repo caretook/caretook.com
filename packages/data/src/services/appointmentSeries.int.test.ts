@@ -506,4 +506,65 @@ describe("appointmentSeriesService.topUp", () => {
     expect(res).toMatchObject({ failed: 1, toppedUp: 1 });
     expect((await days(good.id)).length).toBeGreaterThan(0);
   });
+  it("moves today's all-day visit onto a new series, but not a timed visit that started earlier today", async () => {
+    const { u, group, recipient, input } = await setup();
+    const old = ok(
+      await appointmentSeriesService.create(u.owner.ctx, input({ toppedUpThrough: "2026-11-17" })),
+    );
+    const next = ok(
+      await appointmentSeriesService.create(u.owner.ctx, input({ toppedUpThrough: "2026-11-17" })),
+    );
+    const other = ok(
+      await appointmentSeriesService.create(u.owner.ctx, input({ toppedUpThrough: "2026-11-17" })),
+    );
+    const third = ok(
+      await appointmentSeriesService.create(u.owner.ctx, input({ toppedUpThrough: "2026-11-17" })),
+    );
+    const visit = (seriesId: string, day: string, extra: { occurredAt: string; allDay?: boolean }) => ({
+      groupId: group.id,
+      recipientId: recipient.id,
+      kind: "event" as const,
+      title: "Dialysis",
+      timeZone: "America/Los_Angeles",
+      details: null,
+      seriesId,
+      seriesDay: day,
+      ...extra,
+    });
+    // NOW is 10:00 on Wed 2026-11-18 in Los Angeles.
+    const allDay = ok(
+      await timelineEntryService.create(
+        u.owner.ctx,
+        visit(old.id, "2026-11-18", { occurredAt: "2026-11-18T08:00:00.000Z", allDay: true }),
+      ),
+    )!;
+    const timed = ok(
+      await timelineEntryService.create(
+        u.owner.ctx,
+        visit(other.id, "2026-11-18", { occurredAt: "2026-11-18T16:00:00.000Z" }),
+      ),
+    )!;
+
+    const moved = await timelineEntryService.update(
+      u.owner.ctx,
+      allDay.id,
+      { seriesId: next.id },
+      { now: NOW },
+    );
+    expect(codeOf(moved)).toBe("ok");
+    expect(ok(await timelineEntryService.getById(u.owner.ctx, allDay.id))).toMatchObject({
+      seriesId: next.id,
+    });
+
+    const refused = await timelineEntryService.update(
+      u.owner.ctx,
+      timed.id,
+      { seriesId: third.id },
+      { now: NOW },
+    );
+    expect(codeOf(refused)).toBe("timelineEntryService:pastVisit");
+    expect(ok(await timelineEntryService.getById(u.owner.ctx, timed.id))).toMatchObject({
+      seriesId: other.id,
+    });
+  });
 });
