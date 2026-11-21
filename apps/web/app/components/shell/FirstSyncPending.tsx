@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useRevalidator } from "react-router";
+import { Loading } from "~/components/ui";
 import { useFirstSyncDone } from "~/lib/sync";
 
 /**
@@ -14,10 +15,7 @@ export function FirstSyncPending() {
   }, [done, revalidate]);
   return (
     <main className="mx-auto max-w-2xl px-4 py-10" data-first-sync-pending="">
-      <p role="status" className="text-base-content/70 flex items-center gap-3">
-        <span className="loading loading-spinner loading-sm" aria-hidden="true" />
-        Getting your care groups…
-      </p>
+      <Loading label="Getting your care groups…" />
     </main>
   );
 }

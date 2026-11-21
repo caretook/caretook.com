@@ -3,7 +3,7 @@ import type { ActionResult } from "~/lib/core/api";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { SaveRow } from "~/components/settings";
-import { Field } from "~/components/ui";
+import { Button, Field } from "~/components/ui";
 import { timeZoneLabel, timeZoneOptions } from "../groupSettings";
 
 // The Details page's forms (online, with the role): the group's name and the
@@ -65,14 +65,9 @@ function TimeZoneField({ value, result }: { value: string | null; result: Action
             ))}
           </select>
           {device && zone !== device && (
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              data-use-device-zone
-              onClick={() => setZone(device)}
-            >
+            <Button variant="ghost" size="sm" data-use-device-zone="" onClick={() => setZone(device)}>
               Use this device's ({timeZoneLabel(device)})
-            </button>
+            </Button>
           )}
         </div>
       )}

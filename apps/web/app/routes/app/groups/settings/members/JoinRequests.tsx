@@ -4,7 +4,7 @@ import type { JoinRequestRow } from "./linkRules";
 import { UserRoundPlus } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import { ConfirmDialog } from "~/components/ui";
+import { Button, ConfirmDialog, EmptyState, Message } from "~/components/ui";
 import { roleLabel } from "../groupSettings";
 import { requestedLine, requesterName } from "./linkRules";
 
@@ -48,13 +48,9 @@ export function JoinRequests({ requests }: { requests: JoinRequestRow[] }) {
             ))}
           </ul>
         ) : (
-          <p className="text-base-content/70 text-sm">No one is waiting.</p>
+          <EmptyState>No one is waiting.</EmptyState>
         )}
-        {declineResult && !declineResult.ok && (
-          <p role="alert" className="text-error text-sm">
-            {declineResult.error}
-          </p>
-        )}
+        {declineResult && !declineResult.ok && <Message tone="error">{declineResult.error}</Message>}
       </div>
       <ConfirmDialog
         open={!!declining}
@@ -91,32 +87,32 @@ function JoinRequest({
             {roleLabel(request.role)} · {requestedLine(request)}
           </p>
         </div>
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          disabled={approving || declining}
+        <Button
+          variant="primary"
+          size="sm"
+          busy={approving}
+          busyLabel="Approving…"
+          disabled={declining}
           aria-label={`Approve ${name}`}
           onClick={() =>
             void fetcher.submit({ intent: "approveRequest", requestId: request.id }, { method: "post" })
           }
         >
-          {approving ? "Approving…" : "Approve"}
-        </button>
-        <button
-          type="button"
-          className="btn btn-sm btn-ghost"
-          disabled={approving || declining}
+          Approve
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          busy={declining}
+          busyLabel="Declining…"
+          disabled={approving}
           aria-label={`Decline ${name}`}
           onClick={onDecline}
         >
-          {declining ? "Declining…" : "Decline"}
-        </button>
+          Decline
+        </Button>
       </div>
-      {result && !result.ok && (
-        <p role="alert" className="text-error text-sm">
-          {result.error}
-        </p>
-      )}
+      {result && !result.ok && <Message tone="error">{result.error}</Message>}
     </li>
   );
 }

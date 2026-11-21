@@ -51,6 +51,18 @@ describe("Button", () => {
     await expect.poll(location).toBe("/somewhere?x=1");
   });
 
+  test("with `href` it's a plain anchor the router leaves alone", async () => {
+    const { screen } = await renderInRouter(
+      <Button href="https://calendar.example.test/add" target="_blank" rel="noreferrer" data-probe="">
+        Add to Google
+      </Button>,
+    );
+    const link = screen.getByRole("link", { name: "Add to Google" });
+    await expect.element(link).toHaveAttribute("href", "https://calendar.example.test/add");
+    await expect.element(link).toHaveAttribute("target", "_blank");
+    expect(link.element().classList.contains("btn")).toBe(true);
+  });
+
   test("a submit Button submits its form once, however quickly it's tapped", async () => {
     let submits = 0;
     function Form() {

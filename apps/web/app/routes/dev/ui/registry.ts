@@ -25,6 +25,11 @@ import { ToastSection } from "./sections/ToastSection";
 import { TooltipSection } from "./sections/TooltipSection";
 import { UserAvatarSection } from "./sections/UserAvatarSection";
 import { ViaTagSection } from "./sections/ViaTagSection";
+import { MessageSection } from "./sections/MessageSection";
+import { NoticeSection } from "./sections/NoticeSection";
+import { EmptyStateSection } from "./sections/EmptyStateSection";
+import { LoadingSection } from "./sections/LoadingSection";
+import { BadgeSection } from "./sections/BadgeSection";
 
 /** One gallery section: a primitive's variants, with fictional data. */
 export type GallerySection = { id: string; title: string; Section: ComponentType };
@@ -57,6 +62,11 @@ export const GALLERY: readonly GallerySection[] = [
   // ui-kit: each slice appends its primitives' sections below.
   { id: "button", title: "Button", Section: ButtonSection },
   { id: "form-footer", title: "FormFooter", Section: FormFooterSection },
+  { id: "message", title: "Message", Section: MessageSection },
+  { id: "notice", title: "Notice", Section: NoticeSection },
+  { id: "empty-state", title: "EmptyState", Section: EmptyStateSection },
+  { id: "loading", title: "Loading and Skeleton", Section: LoadingSection },
+  { id: "badge", title: "Badge", Section: BadgeSection },
   { id: "page", title: "Page", Section: PageSection },
   { id: "tokens", title: "Tokens and the heading scale", Section: TokensSection },
 ];
