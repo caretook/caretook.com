@@ -4,9 +4,7 @@
 
 ## Status
 
-**Where it stands:** wave 1 merged (slices 1–3, 2026-11-21); next: gate (`pnpm test:tooling`, prettier; tooling only, no app check, no browser checks), PR, Codex, land; then the table migration, the opener try and the docs fold. Slices 4–6 wait for check-speed's wave 2 (B-272, B-278) in `dev`; `check-speed-28` will message. For slice 4: find the pid to end with `node scripts/loops/sessions.mjs self`, set `rotating` with `sessions.mjs set <name> rotating=true`, open the tab with `open-session.sh --command <line> --title <t> --background`.
-
-**For the table migration (after wave 1 lands):** slice 1 says `migrate` flags only a bare `**done**` cell, so list-filters, github-review, agent-tooling, timeline-ux, app-speed, planner-2 come out `—` (set `done` where they are), marketing and hosting need `hold`, and encryption and documents `hold`; the intro under `## PRDs` still says "at most three PRDs". Doctor will find B-196 triaged on done connectors-2.
+**Where it stands:** **wave 1 landed** in `dev` (77c79ca, PR #26, Codex clean after one fix, 0bc6ff1c; 2026-11-21). After it: the table is migrated and set (flags, `After`, `Hot files`; `doctor` leaves 6 findings for the user: B-196 on done connectors-2, B-239–B-242 and B-244 on done github-review); check-speed and quick-fixes were told to edit it only with `pnpm backlog prd`. The opener try: `--background` kept the selected tab (same session id before and after) but first failed to write the command (an AppleScript variable named `title`); fixed in 86afe808 (goes out with the next PR), and the retry ran the command and the tab closed. **Next:** slices 4–6 wait for check-speed's wave 2 (B-272, B-278) in `dev`; `check-speed-28` will message, and a background check watches `dev`. For slice 4: find the pid to end with `node scripts/loops/sessions.mjs self`, set `rotating` with `sessions.mjs set <name> rotating=true`, open the tab with `open-session.sh --command <line> --title <t> --background`.
 
 **B-403** (the cleanup run) is slice 7 (wave 5, after 6), added at the wave 1 boundary; scheduling past `/loop` stays with `orchestration-3`.
 
