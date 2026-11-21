@@ -17,6 +17,11 @@ export { SEPARATOR } from "./menuModel";
 export { Popover } from "./Popover";
 /** The menus' and popovers' surface, for a feature's own overlay (quick entry's matching names). */
 export { SURFACE } from "./styles";
+/** The list tools' round control (the timeline's row and `FilterMenu`'s button). */
+export { CIRCLE, TOOL_CIRCLE } from "./styles";
+export { FilterMenu, FilterMenuChips } from "./FilterMenu";
+export type { FilterMenuProps } from "./FilterMenu";
+export type { FilterExtraChip, FilterOption, FilterSection } from "./filterModel";
 export { Sheet } from "./Sheet";
 export { UserAvatar } from "./UserAvatar";
 export { ChipList } from "./ChipList";

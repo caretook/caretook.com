@@ -1,15 +1,19 @@
 import { Pencil, Rows3, Trash2 } from "lucide-react";
 import { useLayoutEffect, useState } from "react";
-import { createRoutesStub, Link, Outlet, useNavigate } from "react-router";
+import { createRoutesStub, Link, Outlet, useLocation, useNavigate } from "react-router";
 import { render } from "vitest-browser-react";
 import { describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import type { FilterMenuProps } from "./index";
+
 import { renderInRouter } from "../../../test/device";
 import {
   ChipGroup,
   ChoiceGroup,
   ConfirmDialog,
   Field,
+  FilterMenu,
+  FilterMenuChips,
   IconButton,
   Menu,
   Popover,
@@ -639,3 +643,133 @@ const renderField = async (options: { width: number; theme: "light" | "dark" }) 
     rerenderField: (props: { error?: string; warning?: string }) => screen.rerender(field(props)),
   };
 };
+
+describe("FilterMenu", () => {
+  // A list with two filters in the URL, `?size=` (S, L) and `?color=` (Red), and a search (`?q=`) the menu keeps.
+  const withParam = (search: string, key: string, value: string | null) => {
+    const params = new URLSearchParams(search);
+    if (value) params.set(key, value);
+    else params.delete(key);
+    const text = params.toString();
+    return text ? `?${text}` : "";
+  };
+  const filters = (search: string, extra = false): FilterMenuProps => {
+    const params = new URLSearchParams(search);
+    return {
+      label: "Filter shirts",
+      clear: withParam(withParam(search, "size", null), "color", null),
+      sections: [
+        {
+          id: "size",
+          title: "Size",
+          current: params.get("size") ?? "any",
+          defaultId: "any",
+          options: [
+            { id: "any", label: "Any size", search: withParam(search, "size", null) },
+            { id: "s", label: "Small", search: withParam(search, "size", "s") },
+            { id: "l", label: "Large", search: withParam(search, "size", "l") },
+          ],
+        },
+        {
+          id: "color",
+          title: "Color",
+          current: params.get("color") ?? "any",
+          defaultId: "any",
+          options: [
+            { id: "any", label: "Any color", search: withParam(search, "color", null) },
+            { id: "red", label: "Red", search: withParam(search, "color", "red") },
+          ],
+        },
+      ],
+      chips: extra ? [{ id: "maker", label: "By Ann", search: withParam(search, "maker", null) }] : [],
+    };
+  };
+  function Shirts({ extra = false }: { extra?: boolean }) {
+    const { search } = useLocation();
+    const props = filters(search, extra);
+    return (
+      <>
+        <BackProbe />
+        <Link to="/shirts?q=tee">Shirts</Link>
+        <FilterMenu {...props} />
+        <FilterMenuChips {...props} />
+      </>
+    );
+  }
+  const button = () => page.getByRole("button", { name: /^Filter(, \d+ on)?$/ });
+  const badge = () => document.querySelector("[data-filter-count]")?.textContent;
+  const chips = () =>
+    [...document.querySelectorAll('nav[aria-label="Filters on"] a')].map((a) => a.getAttribute("aria-label"));
+
+  test("named Filter with no badge and no chips; Filter, 2 on with a badge of 2 and a chip each", async () => {
+    const { screen } = await renderInRouter(<Shirts />, { url: "/shirts" });
+    await expect.element(button()).toHaveAccessibleName("Filter");
+    await expect.element(button()).toHaveAttribute("title", "Filter");
+    expect(badge()).toBeUndefined();
+    expect(document.querySelector('nav[aria-label="Filters on"]')).toBeNull();
+    await screen.unmount();
+
+    await renderInRouter(<Shirts />, { url: "/shirts?size=l&color=red" });
+    await expect.element(button()).toHaveAccessibleName("Filter, 2 on");
+    await expect.element(button()).toHaveAttribute("title", "Filter, 2 on");
+    expect(badge()).toBe("2");
+    expect(chips()).toEqual(["Large: clear this filter", "Red: clear this filter"]);
+  });
+
+  test("Enter opens it named, each section's current option checked; arrows move; Escape closes with focus back", async () => {
+    await renderInRouter(<Shirts />, { url: "/shirts?size=s" });
+    (button().element() as HTMLElement).focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByRole("menu", { name: "Filter shirts" })).toBeVisible();
+    await expect.element(page.getByRole("menuitemradio", { name: "Small" })).toBeChecked();
+    await expect.element(page.getByRole("menuitemradio", { name: "Any size" })).not.toBeChecked();
+    await expect.element(page.getByRole("menuitemradio", { name: "Any color" })).toBeChecked();
+    await expect.poll(active).toBe(page.getByRole("menuitemradio", { name: "Any size" }).element());
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(active).toBe(page.getByRole("menuitemradio", { name: "Small" }).element());
+    await userEvent.keyboard("{Escape}");
+    await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
+    await expect.poll(active).toBe(button().element());
+  });
+
+  test("a choice goes to its search in place of the entry (Back skips it) and closes the menu", async () => {
+    const { location } = await renderInRouter(<Shirts />, { url: "/start" });
+    await userEvent.click(page.getByRole("link", { name: "Shirts" }));
+    await expect.poll(location).toBe("/shirts?q=tee");
+    await userEvent.click(button());
+    await userEvent.click(page.getByRole("menuitemradio", { name: "Red" }));
+    await expect.poll(location).toBe("/shirts?q=tee&color=red");
+    await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
+    await expect.element(button()).toHaveAccessibleName("Filter, 1 on");
+    await userEvent.click(button());
+    await userEvent.click(page.getByRole("menuitemradio", { name: "Large" }));
+    await expect.poll(location).toBe("/shirts?q=tee&color=red&size=l");
+    back();
+    await expect.poll(location).toBe("/start");
+  });
+
+  test("a chip's ✕ clears only its filter; Clear filters (only while any is on) keeps the search; extra chips show, uncounted", async () => {
+    const { location } = await renderInRouter(<Shirts extra />, {
+      url: "/shirts?q=tee&size=l&color=red&maker=ann",
+    });
+    await expect.element(button()).toHaveAccessibleName("Filter, 2 on");
+    expect(chips()).toEqual([
+      "Large: clear this filter",
+      "Red: clear this filter",
+      "By Ann: clear this filter",
+    ]);
+    await userEvent.click(page.getByRole("link", { name: "Red: clear this filter" }));
+    await expect.poll(location).toBe("/shirts?q=tee&size=l&maker=ann");
+    await expect.element(button()).toHaveAccessibleName("Filter, 1 on");
+
+    await userEvent.click(button());
+    await userEvent.click(page.getByRole("menuitem", { name: "Clear filters" }));
+    await expect.poll(location).toBe("/shirts?q=tee&maker=ann");
+    await expect.element(button()).toHaveAccessibleName("Filter");
+    expect(chips()).toEqual(["By Ann: clear this filter"]);
+    await userEvent.click(button());
+    await expect.element(page.getByRole("menu")).toBeVisible();
+    expect(page.getByRole("menuitem", { name: "Clear filters" }).elements()).toEqual([]);
+    await userEvent.keyboard("{Escape}");
+  });
+});
