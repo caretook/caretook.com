@@ -6,11 +6,15 @@
 
 | Slice | Wave | State           | Merge into `prd/providers-2` (slice commits) |
 | ----- | ---- | --------------- | -------------------------------------------- |
-| 1     | 1    | not started     |                                              |
+| 1     | 1    | started (opus)  |                                              |
 | 2     | 2    | blocked by 1    |                                              |
-| 3     | 1    | not started     |                                              |
+| 3     | 1    | started (opus)  |                                              |
 | 4     | 2    | blocked by 3    |                                              |
 | 5     | 3    | blocked by 2, 3 |                                              |
+
+**Landing mode (2026-11-20): run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave, clean up; ask only real questions. Per _Landing_, land when every slice is merged.
+
+**Log:** 2026-11-20: backlog ingest: nothing new. `conditions` is in `dev` (a95acb73), so slice 4 waits only on slice 3. Overlap check: `appointments-2` (all merged, landing) touches `components/entry/EntryActions` etc., not `LiveNotesEditor` or the With row; `quick-fixes` not running. Wave 1: B-25 and B-48 claimed; worktrees `providers-2-1` (slot 5, stack) and `providers-2-3` (stackless) made; agents spawned (opus both: new UX).
 
 **Start conditions:** none for wave 1, but before slice 1 check the open `appointments-2` and `quick-fixes` slices for changes to `LiveNotesEditor`, the entry page or the With row. Slice 4 waits for `conditions` in `dev` (it changes the provider page); `pnpm prd sync` before it.
 
