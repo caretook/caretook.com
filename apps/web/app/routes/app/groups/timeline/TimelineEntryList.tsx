@@ -46,9 +46,9 @@ const NO_SEARCH = { q: "", state: "none" } as const;
 const NO_MARKERS: never[] = [];
 
 const LIST_CLASS: Record<TimelineView, string> = {
-  rows: "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border",
+  rows: "mt-2 rounded-box border-base-300 bg-base-100 divide-base-300 divide-y overflow-hidden border shadow-sm",
   // One column at every width: side-by-side cards are hard to read in time order.
-  cards: "space-y-2",
+  cards: "mt-2 space-y-2",
 };
 
 /**

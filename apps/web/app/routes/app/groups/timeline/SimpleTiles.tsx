@@ -9,11 +9,12 @@ import { STALE } from "./layout";
 import { SHEET_LINK_STATE } from "./sheet";
 
 /**
- * The tiles share one row, scrolling sideways when a phone can't fit four:
- * each at least 5.5rem wide, and (with the buttons' min-h-11) never under 44 px.
+ * The tiles: two by two on phones (four don't fit a row inside the block's
+ * card), one row of four from `sm`. Nothing scrolls or clips; the buttons'
+ * min-h-11 keeps every target at least 44 px.
  */
-const TILE_ROW = "flex items-stretch gap-2 overflow-x-auto";
-const TILE_CELL = "min-w-[5.5rem] flex-1";
+const TILE_ROW = "grid grid-cols-2 items-stretch gap-2 sm:grid-cols-4";
+const TILE_CELL = "min-w-0";
 
 /** Where a tile goes: its kind's simple sheet over the timeline, or a new note's page. */
 const tileHref = (groupId: string, tile: SimpleTile) => {

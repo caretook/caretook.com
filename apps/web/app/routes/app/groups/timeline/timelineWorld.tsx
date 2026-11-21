@@ -148,9 +148,26 @@ export const button = (text: string) =>
   [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === text);
 export const view = () => document.querySelector("ol")?.dataset.view;
 
-/** Switch rows/cards with the header's toggle, and wait for the list. */
+/** Open the header's View options menu (layout, day summaries, simple view). */
+export const openViewOptions = async () => {
+  await userEvent.click(document.querySelector<HTMLElement>('button[aria-label="View options"]')!);
+  await waitUntil(() => !!document.querySelector('[role="menu"]'), 4000, "the View options menu");
+};
+
+/** Choose an item of the View options menu by its name ("Cards", "Simple view"). */
+export const chooseViewOption = async (name: string) => {
+  await openViewOptions();
+  const item = [...document.querySelectorAll<HTMLElement>('[role="menu"] [role^="menuitem"]')].find((el) =>
+    el.textContent?.trim().startsWith(name),
+  );
+  if (!item) throw new Error(`no "${name}" in View options`);
+  await userEvent.click(item);
+};
+
+/** Switch rows/cards in the header's View options menu, and wait for the list. */
 export const setView = async (to: "Rows" | "Cards") => {
-  await userEvent.click(document.querySelector(`[aria-label="${to}"]`)!);
+  if (view() === to.toLowerCase()) return;
+  await chooseViewOption(to);
   await waitUntil(() => view() === to.toLowerCase());
 };
 

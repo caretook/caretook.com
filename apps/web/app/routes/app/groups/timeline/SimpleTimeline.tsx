@@ -17,6 +17,7 @@ import { SimpleTiles, SimpleTilesSkeleton } from "./SimpleTiles";
 import { DICTATION_HINT } from "~/components/quick-entry/QuickEntryBox";
 import { useCanDictate } from "~/lib/assistant/canDictate";
 import { useSimpleTiles } from "./useSimpleTiles";
+import { SIMPLE_BLOCK } from "./layout";
 
 /** "Thursday, November 19": today, under the recipient's name. */
 export const simpleTodayText = (now: Date, locale?: string) =>
@@ -58,7 +59,7 @@ export function SimpleTimeline({
             Today · <span data-simple-today>{simpleTodayText(new Date())}</span>
           </p>
         </div>
-        <SimpleModeToggle mode={mode} large />
+        <SimpleModeToggle mode={mode} />
       </header>
       <SimpleNow
         groupId={group.id}
@@ -68,13 +69,13 @@ export function SimpleTimeline({
       />
       <SimpleTasks className={COLUMN_CAP} />
       {mode.inputs && (
-        <div className={`space-y-3 ${COLUMN_CAP}`}>
+        <div className={`space-y-3 ${SIMPLE_BLOCK} ${COLUMN_CAP}`}>
           <WriterTiles canChoose={(group.role === "owner" || group.role === "admin") && !mode.locked} />
           <RemoveLastEntry groupId={group.id} userId={group.userId} now={data.now} />
         </div>
       )}
       {mode.inputs && (
-        <div className={`space-y-2 ${COLUMN_CAP}`}>
+        <div className={`space-y-2 ${SIMPLE_BLOCK} ${COLUMN_CAP}`}>
           <QuickEntryBox groupId={group.id} units={units} size="md" passChips={false} />
           {dictate && (
             <p className="text-base-content/70 text-sm" data-dictation-hint="">

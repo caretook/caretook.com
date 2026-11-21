@@ -241,7 +241,7 @@ describe.each([
     expect(device.location()).toBe(TIMELINE);
   });
 
-  test("the timeline's chips and toggles: the kind filter a nav with All current, a tap filters; the layout buttons named, one pressed", async () => {
+  test("the timeline's chips and toggles: the kind filter a nav with All current, a tap filters; View options a named menu with the layouts, one checked", async () => {
     const device = await open(TIMELINE, layout);
     const nav = page.getByRole("navigation", { name: "Show entries" });
     await expect
@@ -251,9 +251,14 @@ describe.each([
     await userEvent.click(nav.getByRole("link", { name: "Symptoms" }));
     await expect.poll(device.location).toBe(`${TIMELINE}?kind=symptom`);
     await expect.element(nav.getByRole("link", { name: "Symptoms" })).toHaveAttribute("aria-current", "true");
-    const toggles = page.getByRole("group", { name: "Layout" }).getByRole("button").elements();
-    expect(toggles.map((b) => b.getAttribute("aria-label"))).toEqual(["Rows", "Cards"]);
-    expect(toggles.filter((b) => b.getAttribute("aria-pressed") === "true")).toHaveLength(1);
+    const viewOptions = () => page.getByRole("button", { name: "View options" }).element() as HTMLElement;
+    await menu(viewOptions, { name: "View options" });
+    await userEvent.click(viewOptions());
+    await expect.poll(() => q(MENU)).not.toBeNull();
+    const layouts = [...document.querySelectorAll('[role="menuitemradio"]')].slice(0, 2);
+    expect(layouts.map((r) => r.textContent?.trim())).toEqual(["Rows", "Cards"]);
+    expect(layouts.filter((r) => r.getAttribute("aria-checked") === "true")).toHaveLength(1);
+    await userEvent.keyboard("{Escape}");
   });
 
   test("the add and edit sheets; the field's error; the calendar inside a sheet (Escape closes only it); the kind picker's and Add a reading's menus", async () => {
