@@ -1,5 +1,6 @@
 import type {
   AppError,
+  AppointmentSeriesUpsertInput,
   AuthUser,
   MedicationPassUpsertInput,
   CarePeriodUpsertInput,
@@ -11,6 +12,7 @@ import type {
 } from "@caretook/data";
 
 import {
+  appointmentSeriesService,
   entryProviderService,
   ERRORS,
   isError,
@@ -119,6 +121,10 @@ const CONTENT_COLUMNS = {
   cancelled_at: (v: unknown) => ["cancelledAt", toIsoTimestamp(v)],
   cancel_reason: (v: unknown) => ["cancelReason", text(v)],
   rescheduled_to: (v: unknown) => ["rescheduledTo", text(v)],
+  // A series visit (appointments-2).
+  series_id: (v: unknown) => ["seriesId", text(v)],
+  series_day: (v: unknown) => ["seriesDay", text(v)],
+  series_detached: (v: unknown) => ["seriesDetached", bool(v) ?? false],
 } as const satisfies Record<string, (v: unknown) => [string, unknown]>;
 
 const FIXED_COLUMNS = ["group_id", "recipient_id", "kind"];
@@ -653,6 +659,76 @@ const taskOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome>
 };
 
 // ---------------------------------------------------------------------------
+// appointment_series (appointments-2): like task (soft deletes; the group,
+// recipient and kind never change). A series PUT comes before its visits'
+// entry PUTs, which carry `series_id`. `topped_up_through` is set on create
+// only: after that, the server tops up.
+// ---------------------------------------------------------------------------
+
+const SERIES_COLUMNS = {
+  rule: (v: unknown) => ["rule", text(v)],
+  starts_on: (v: unknown) => ["startsOn", text(v)],
+  start_time: (v: unknown) => ["startTime", text(v)],
+  all_day: (v: unknown) => ["allDay", bool(v) ?? false],
+  time_zone: (v: unknown) => ["timeZone", text(v)],
+  title: (v: unknown) => ["title", text(v)],
+  duration_minutes: (v: unknown) => ["durationMinutes", int(v)],
+  place: (v: unknown) => ["place", text(v)],
+  provider_ids: (v: unknown) => ["providerIds", json(v) ?? []],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const seriesContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = SERIES_COLUMNS[column as keyof typeof SERIES_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting a series that's already deleted is a replay: fine. */
+const removeSeries = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await appointmentSeriesService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "appointmentSeriesService:notFound") return res;
+  const series = await appointmentSeriesService.getById(ctx, id, { includeDeleted: true });
+  if (isError(series)) return series;
+  return series?.deletedAt ? applied : res;
+};
+
+const appointmentSeriesOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+
+  if (op.op === "PUT") {
+    const input = {
+      id: op.id,
+      groupId: text(data.group_id),
+      recipientId: text(data.recipient_id) ?? undefined,
+      kind: text(data.kind),
+      ...seriesContentFrom(data),
+      toppedUpThrough: text(data.topped_up_through),
+    };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await appointmentSeriesService.upsert(ctx, input as unknown as AppointmentSeriesUpsertInput);
+    if (isError(res)) return res;
+    // Created and deleted before it was uploaded.
+    if (data.deleted_at) return removeSeries(ctx, op.id);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removeSeries(ctx, op.id);
+
+  // PATCH: only the columns that changed.
+  if ("group_id" in data || "recipient_id" in data || "kind" in data)
+    return newError({ code: "appointmentSeriesService:immutable" });
+  if (data.deleted_at) return removeSeries(ctx, op.id);
+  const content = seriesContentFrom(data);
+  if (Object.keys(content).length === 0) return applied;
+  const res = await appointmentSeriesService.update(ctx, op.id, content);
+  if (isError(res)) return res;
+  return res ? applied : newError({ code: "appointmentSeriesService:notFound" });
+};
+
+// ---------------------------------------------------------------------------
 // Procedure
 // ---------------------------------------------------------------------------
 
@@ -668,6 +744,7 @@ const HANDLERS: Record<string, (ctx: { authUser: AuthUser }, op: CrudOp) => Prom
   care_recipient: careRecipientOp,
   care_period: carePeriodOp,
   task: taskOp,
+  appointment_series: appointmentSeriesOp,
 };
 
 /**

@@ -95,6 +95,10 @@ export type EntryRow = {
   rescheduled_to?: string | null;
   // Written through a member's AI assistant (connectors; optional until the device schema has it).
   via?: string | null;
+  // A repeating series' visit (appointments-2; optional: rows from before they synced).
+  series_id?: string | null;
+  series_day?: string | null;
+  series_detached?: number | null;
 };
 
 /**
@@ -126,6 +130,9 @@ export const toTimelineEntry = (row: EntryRow): TimelineEntry | null => {
     cancelReason: row.cancel_reason ?? null,
     rescheduledTo: row.rescheduled_to ?? null,
     via: row.via ?? null,
+    seriesId: row.series_id ?? null,
+    seriesDay: row.series_day ?? null,
+    seriesDetached: row.series_detached === 1,
   };
 };
 
@@ -446,6 +453,9 @@ export const contentColumns = (content: Omit<TimelineEntryContent, "kind">) => (
   cancelledAt: content.cancelledAt ? toLocalTimestamp(content.cancelledAt) : null,
   cancelReason: content.cancelReason ?? null,
   rescheduledTo: content.rescheduledTo ?? null,
+  seriesId: content.seriesId ?? null,
+  seriesDay: content.seriesDay ?? null,
+  seriesDetached: content.seriesDetached ? 1 : 0,
 });
 
 /** The refusal when an entry of this kind is dated past now plus the device's skew (5 minutes). */
@@ -518,6 +528,9 @@ export const updateEntry = async (
     cancelledAt: entry.cancelledAt,
     cancelReason: entry.cancelReason,
     rescheduledTo: entry.rescheduledTo,
+    seriesId: entry.seriesId,
+    seriesDay: entry.seriesDay,
+    seriesDetached: entry.seriesDetached,
     ...defined,
   });
   if (!merged.success) return invalid(merged.error);

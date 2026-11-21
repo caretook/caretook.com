@@ -5,7 +5,14 @@ import type { EntryCancelActions } from "~/components/entry";
 import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
-import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink, KindIcon } from "~/components/entry";
+import {
+  AuthorFilterLink,
+  EntryActions,
+  EntryBody,
+  KindFilterLink,
+  KindIcon,
+  RepeatMark,
+} from "~/components/entry";
 import { ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { initials } from "~/lib/timeline/entryDisplay";
@@ -78,6 +85,8 @@ export function TimelineEntryRow({
         className="text-base-content/70 w-[4.1rem] shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums"
       >
         {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
+        {/* A series visit: the mark under its time, so the text column stays aligned. */}
+        {entry.seriesId && <RepeatMark seriesId={entry.seriesId} className="flex" />}
       </time>
       <EntryBody
         entry={entry}

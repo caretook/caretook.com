@@ -115,6 +115,9 @@ export const rescheduleEvent = async (
     cancelledAt: old.cancelledAt ?? new Date().toISOString(),
     cancelReason: old.cancelReason,
     rescheduledTo: newId,
+    seriesId: old.seriesId,
+    seriesDay: old.seriesDay,
+    seriesDetached: old.seriesDetached,
   });
   if (!cancelled.success) return invalid(cancelled.error) as RescheduleResult;
 

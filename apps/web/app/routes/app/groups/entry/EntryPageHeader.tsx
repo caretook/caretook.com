@@ -10,6 +10,7 @@ import { canReschedule } from "~/lib/appointments/eventReschedule";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { EntryHeader, EntryTime } from "./EntryHeader";
 import { EntryPlaceRow } from "./EntryPlaceRow";
+import { EntryRepeat } from "./EntryRepeat";
 import { EntryTimeChip } from "./EntryTimeChip";
 import { EntryTitleRegion } from "./EntryTitleRegion";
 import { EntryWithRow } from "./EntryWithRow";
@@ -113,6 +114,7 @@ export function EntryPageHeader({
         }
         editors={editors}
         via={entry.via && <ViaTag via={entry.via} />}
+        repeat={<EntryRepeat live={live} />}
         with={
           !deleted && (
             <EntryWithRow
