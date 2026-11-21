@@ -1,13 +1,20 @@
 import type { ReactNode } from "react";
-import type { ConnectGroup } from "~/.server/connectors";
+import type { ConnectGroup, ConnectSuccessData } from "~/.server/connectors";
 import type { ConnectorScope } from "@caretook/data/schema";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Form, useNavigation } from "react-router";
 import { CONNECTOR_CONSENT_TEXT, CONNECTOR_SCOPE_LABELS } from "@caretook/data/schema";
 import { ChoiceGroup } from "~/components/ui/plain";
+import {
+  CONNECT_RETURN_DELAY_MS,
+  CONNECT_SUCCESS_EXAMPLES,
+  returningNote,
+  returnLabel,
+} from "~/lib/connectors/connectSuccess";
 
-// /connect's parts: the card, the consent form, and its two dead ends.
+// /connect's parts: the card, the consent form, its two dead ends, and the
+// success step.
 
 export function ConnectCard({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -132,5 +139,58 @@ export function ConnectConsent({ groups, error }: { groups: ConnectGroup[]; erro
         </button>
       </div>
     </Form>
+  );
+}
+
+/**
+ * Back to the assistant, with the code. A plain navigation: CSP's
+ * `form-action 'self'` would block a form's redirect to another origin, so
+ * the action answers with the URL and the page goes there. An object, so the
+ * component tests can stand in for it.
+ */
+export const connectReturn = {
+  go: (url: string) => window.location.assign(url),
+};
+
+/**
+ * After Connect: what was connected, three things to ask first, and Return.
+ * It returns on its own after a few seconds; Return goes at once.
+ */
+export function ConnectSuccess({ connected }: { connected: ConnectSuccessData }) {
+  const [returning, setReturning] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const { redirect, clientName } = connected;
+
+  const goBack = () => {
+    clearTimeout(timer.current);
+    setReturning(true);
+    connectReturn.go(redirect);
+  };
+
+  useEffect(() => {
+    timer.current = setTimeout(() => {
+      setReturning(true);
+      connectReturn.go(redirect);
+    }, CONNECT_RETURN_DELAY_MS);
+    return () => clearTimeout(timer.current);
+  }, [redirect]);
+
+  return (
+    <div className="space-y-4" data-connect-success="">
+      <p className="text-sm">Try asking {clientName}:</p>
+      <ul className="list-disc space-y-1 pl-5 text-sm" data-connect-examples="">
+        {CONNECT_SUCCESS_EXAMPLES.map((example) => (
+          <li key={example}>{example}</li>
+        ))}
+      </ul>
+      <p role="status" className="text-base-content/70 text-sm">
+        {returning ? `Returning to ${clientName}…` : returningNote(clientName)}
+      </p>
+      <div className="flex justify-end">
+        <button type="button" className="btn btn-primary" onClick={goBack} disabled={returning}>
+          {returnLabel(clientName)}
+        </button>
+      </div>
+    </div>
   );
 }

@@ -197,6 +197,61 @@ describe("/mcp", () => {
     ).toBe("Added");
   });
 
+  it("advertises prompts, lists them by scope and gets one with its arguments", async () => {
+    const handler = handlerWith();
+    const w = await world();
+    const writer = await connectAssistant({ email: w.caretaker.user.email, groupId: w.group.id });
+    const reader = await connectAssistant({ email: w.viewer.user.email, groupId: w.group.id, scope: "read" });
+
+    const init = (await (
+      await post(handler, reader.tokens.access_token, call("initialize", { protocolVersion: "2025-11-25" }))
+    ).json()) as { result: { capabilities: Record<string, unknown> } };
+    expect(init.result.capabilities.prompts).toEqual({ listChanged: false });
+
+    const names = async (token: string) =>
+      (
+        (await (await post(handler, token, call("prompts/list"))).json()) as {
+          result: { prompts: { name: string }[] };
+        }
+      ).result.prompts.map((p) => p.name);
+    expect(await names(writer.tokens.access_token)).toEqual([
+      "catch_me_up",
+      "prepare_for_appointment",
+      "weekly_summary",
+      "log_what_happened",
+    ]);
+    expect(await names(reader.tokens.access_token)).toEqual([
+      "catch_me_up",
+      "prepare_for_appointment",
+      "weekly_summary",
+    ]);
+
+    const got = await post(
+      handler,
+      writer.tokens.access_token,
+      call("prompts/get", { name: "log_what_happened", arguments: { account: "Walked to the mailbox." } }),
+    );
+    expect(got.status).toBe(200);
+    const body = (await got.json()) as {
+      result: { messages: { role: string; content: { text: string } }[] };
+    };
+    expect(body.result.messages[0]?.role).toBe("user");
+    expect(body.result.messages[0]?.content.text).toContain("Walked to the mailbox.");
+
+    const missing = (await (
+      await post(handler, writer.tokens.access_token, call("prompts/get", { name: "log_what_happened" }))
+    ).json()) as { error: { code: number } };
+    expect(missing.error.code).toBe(-32602);
+    const readerLog = (await (
+      await post(
+        handler,
+        reader.tokens.access_token,
+        call("prompts/get", { name: "log_what_happened", arguments: { account: "Slept well." } }),
+      )
+    ).json()) as { error: { code: number } };
+    expect(readerLog.error.code).toBe(-32602);
+  });
+
   it("group_overview: the group, recipient, zone, the member's scope and members' names and roles", async () => {
     const handler = handlerWith();
     const w = await world();

@@ -147,7 +147,21 @@ describe("the OAuth dance", () => {
     expect("redirect" in cancelled && new URL(cancelled.redirect).searchParams.get("error")).toBe(
       "access_denied",
     );
+    expect(cancelled).not.toHaveProperty("connected");
     expect(ok(await connectorGrantService.listMine(m.ctx))).toEqual([]);
+  });
+
+  it("says what was connected where, for the success step, beside the client's redirect", async () => {
+    const m = await member();
+    const at = await atConsent(m.email);
+    const outcome = await consentTo(at, {
+      groupId: m.group.id,
+      scope: "read",
+      consent: "on",
+      intent: "connect",
+    });
+    expect(codeFrom(outcome)).toBeTruthy();
+    expect(outcome).toMatchObject({ connected: { groupName: m.group.name, clientName: "Test Claude" } });
   });
 
   it("exchanges the code with PKCE (a wrong verifier is refused), refreshes and revokes", async () => {

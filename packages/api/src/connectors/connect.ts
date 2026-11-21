@@ -35,8 +35,15 @@ export type ConnectPage =
   | { state: "invalid" }
   | { state: "consent"; client: { name: string; redirectHost: string }; groups: ConnectGroup[] };
 
-/** Connect's outcome: where to send the member (the client, with a code or access denied), or what to fix. */
-export type ConnectOutcome = { redirect: string } | { error: string };
+/** Who was connected where, for the success step (connectors-2 PRD). */
+export type ConnectedTo = { groupName: string; clientName: string };
+
+/**
+ * Connect's outcome: where to send the member (the client, with a code or
+ * access denied), or what to fix. A connection also says what was connected,
+ * so the page shows the success step before it returns.
+ */
+export type ConnectOutcome = { redirect: string; connected?: ConnectedTo } | { error: string };
 
 const hostOf = (uri: string) => {
   try {
@@ -161,11 +168,18 @@ export const submitConnectPage = async (
     return granted;
   }
 
+  let redirect: string;
   try {
-    return { redirect: (await consent({ accept: true, scope: accepted.join(" ") })).url };
+    redirect = (await consent({ accept: true, scope: accepted.join(" ") })).url;
   } catch (error) {
     // The plugin refused: nothing reaches the group without its tokens, but take the grant back.
     await connectorGrantService.revoke({ authUser }, granted.id);
     throw error;
   }
+  const group = await careGroupService.getById({ authUser }, groupId);
+  if (isError(group)) return group;
+  return {
+    redirect,
+    connected: { groupName: group?.name ?? "your care group", clientName: granted.clientName },
+  };
 };

@@ -20,9 +20,13 @@ export type ConnectPage =
   | { state: "invalid" }
   | { state: "consent"; client: { name: string; redirectHost: string }; groups: ConnectGroup[] };
 
+export type ConnectSuccessData = { groupName: string; clientName: string; redirect: string };
+
 export const loadConnect: (request: Request) => Promise<ConnectPage> = serverOnly("loadConnect");
-export const submitConnect: (request: Request, form: FormData) => Promise<{ error: string }> =
-  serverOnly("submitConnect");
+export const submitConnect: (
+  request: Request,
+  form: FormData,
+) => Promise<{ error: string } | { connected: ConnectSuccessData }> = serverOnly("submitConnect");
 export const handleMcpRequest: (request: Request) => Promise<Response> = serverOnly("handleMcpRequest");
 export const protectedResourceMetadata: () => Response = serverOnly("protectedResourceMetadata");
 export const authorizationServerMetadata: (request: Request) => Promise<Response> = serverOnly(
