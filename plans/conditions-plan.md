@@ -27,7 +27,7 @@
 
 **Docs:** every slice folded into the area docs (connectors.md with slice 6). B-181 done.
 
-**Now:** landing. All six slices merged; next `pnpm prd sync`, `pnpm datastore:reset`, full `pnpm prd check` (migrations), `pnpm prd serve --restart`, then ask the user about `--suite` (lean set named by slices 1–4, `marketing` by 6), then `pnpm prd ready` and land.
+**Now:** landing. Full `pnpm prd check` passed on `9d07cf1f`; `--suite` run once (user said yes): 9/12. app-shell (`[data-simple-toggle]`), layout-offline (`[aria-label="Cards"]`) and invites (first `/entries/` link is the collapsed Today card's Next link) fail on specs `dev`'s hotfixes `76375c07` (one View options menu) and `1ff53864` (Today card collapsed) left stale; invites confirmed alone. Not conditions. User: land, and file the specs (B-210). Synced `dev` (B-208) as `f3982012`: only search.md and timeline.md shared (resolved, budget kept), so `pnpm prd check --quick`.
 
 **Browser checks at landing:** slices 1 and 4 name the whole lean set (migration, sync config): run `pnpm prd browser --suite` once at landing — ask the user first (plan: never `--suite` without asking).
 
