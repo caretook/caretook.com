@@ -23,7 +23,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `connectors`      | [PRD](connectors-prd.md), [plan](connectors-plan.md): 7 slices, waves (1, 2, 7) → (3, 4, 5) → 6: the due-doses core and preview moved to `@caretook/data`, then the tracer bullet (OAuth via `@better-auth/oauth-provider` 1.7.25, `/connect` consent, one-group grants, the owners' switch, a hand-rolled stateless MCP server at `/mcp`, the first read tools), the privacy text, then write tools with the "via" tag, the other read tools, and the Assistants and Devices screens, then a `roundtrip` step (B-104). **Ready to start** | `assistant` (done); B-80 (done); slice 3's tag waits for `timeline-ux`'s row and header slices in `dev` | `packages/auth` (`auth.ts`, the plugin), `db/schema/auth/`, one migration (`care_group`, `timeline_entry`, `task` columns), `sync-config.yaml` and the device schema (`via`), the upload switch, timeline rows and cards, the entry header, the task page, `GROUP_SETTINGS`, Settings → Devices, the legal pages, `roundtrip` |
 | `providers-2` | [PRD](providers-2-prd.md), [plan](providers-2-plan.md): 5 slices, waves (1, 3) → (2, 4) → 5: @-mentions of providers in every live document (a chip with the current name; on notes and events it links the provider like the With row; `@Name` in derived text; add-as-provider from the popup; deleting a mention keeps the link), then importing providers from another group you belong to (a copy: new ids, contact details and practice, primary off, notes stay behind, "Already here" skipped) from the Providers list, the provider page and the With and `@` pickers (B-25, B-48). No migration; new deps `@tiptap/extension-mention`, `@tiptap/suggestion` (3.34.0). **Ready to start** | none for waves 1 and 3; slice 4 after `conditions` is in `dev` (the provider page) | `LiveNotesEditor`, `noteText` (`noteYjs.ts`), the entry page and With row (`withProviders.ts`), `providers.sync.ts`, the Providers list header and a new import sheet, the provider page actions, the `live-notes` check (lean ceiling is full) |
 | `appointments-2` | [PRD](appointments-2-prd.md), [plan](appointments-2-plan.md): 10 slices, waves 1 → (2, 3, 4) → (5, 6, 7) → (8, 9, 10): repeating appointments and reminders (series, 90-day visits, only this / this and later), the calendar cron and top-up, calendar items with generic-by-default sharing and the Calendar & reminders page, the iCal feed, reminder emails (push later), Google Calendar two-way sync (connect and push, then pull), "Remind me" per appointment, a roundtrip step (B-60–B-63). Three migrations; new deps `rrule`, `ical-generator`, `@googleapis/calendar`, `google-auth-library`. **Ready to start** once `timeline-ux` slice 5 is in `dev` | `timeline-ux` slice 5 (the Today card, B-169) in `dev` | `timeline_entry` (series columns), the appointment and reminder sheets, `entryActionItems`, Upcoming and timeline rows and `TodayCard` (the repeat mark), sync and upload registries, the sync matrix, `NOTIFICATIONS`, `timelineEntryService` and `taskService` (calendar jobs), `careGroupMemberService` (removal), group settings, `vercel.json` crons, a new `calendars` area |
-| `connectors-2` | to write (B-193–B-196): make connecting easier: an in-app connect guide (URL, steps for Claude and ChatGPT), members asking owners to turn assistants on, starter prompts (MCP instructions and prompts, a success state), then directory listings after launch | `connectors` (done); quick-fixes slices 47–48 (B-188–B-190) first (soft); B-196 waits on B-33 and B-54 | group settings → Assistants, Settings → Devices, `/connect` (`ConnectConsent.tsx`, `packages/api/src/connectors/connect.ts`), `packages/api/src/connectors/protocol.ts`, `NOTIFICATIONS` (the request) |
+| `connectors-2` | [PRD](connectors-2-prd.md), [plan](connectors-2-plan.md): 5 slices, waves (1, 3, 4) → (2, 5): an in-app connect guide (URL with Copy, short steps and links for Claude and ChatGPT) on Assistants and Devices; members asking owners to turn assistants on (an email, once a week, "Asked on"; also on `/connect`'s empty state); four MCP prompts and a "Connected to <group>" success step; `append_to_entry` and `update_entry` (append and title or time on any live note or event, merged through Yjs); `add_condition`, `update_condition`, `resolve_condition` (B-193, B-194, B-195, B-204, B-197). One migration (`assistant_request`), no new deps. B-196 (directory listings) stays for after launch (B-33, B-54). **Ready to start** | none for wave 1; slice 5 after `conditions` has landed | group settings → Assistants, Settings → Devices, `/connect` (`ConnectConsent.tsx`, `connect.ts`), `protocol.ts` (prompts), `tools/writes.ts` and `tools/index.ts`, `assistantActionService`, `noteYjs.ts` (`appendNoteSection`), `NOTIFICATIONS` (the request email) |
 | `medications-3` | [PRD](medications-3-prd.md), [plan](medications-3-plan.md): 4 slices, waves 1 → (2, 3, 4): medication types (prescription, over the counter, supplement, other; required on new, default Rx; Rx fields collapse for other types; the list badge, `?type=`, the printed list grouped by type, search, `list_medications`; no change entry), then adding a medication from the Log a dose sheet ("+ New medication": name, dose, type, as needed; one local transaction; an "Add details" toast; the empty state) (B-200, B-199). One migration, no new deps. **Ready to start** once `conditions` has landed | `conditions` landed (it changes the medication form and page) | `medication` schema and migration, `sync-config.yaml`, the device schema, the upload switch, the sync matrix, `MedicationForm.tsx`, `medicationList.ts` and `MedicationFilters.tsx`, `printSheet`, `medicationSearchDocument`, the Dose sheet (`new-dose/`, `DoseForm.tsx`, `doseFormData.ts`), the connector `list_medications` |
 | `conditions` | [PRD](conditions-prd.md), [plan](conditions-plan.md): 6 slices, waves 1 → (2, 4, 5) → 3 → 6: a conditions list on the recipient's profile (status, since, note, suggestions, no known conditions; synced, edited offline), condition changes on the timeline and in search, diagnosed by and managed by providers (the provider page), medications for a condition, the printed sheets, the connector (read only; the writer is B-197). Four migrations, no new deps. **Ready to start** (B-181) | none for slice 1; quick-fixes slice 51 (B-187) before slice 2, slice 48 (B-189) before slice 6 | the profile's card and sheets, `sync-config.yaml`, the device schema, the upload switch, the sync matrix, `TIMELINE_ENTRY_KINDS` and the kind check, `KIND_META`, `TimelineFilters.tsx`, `SEARCH_ITEM_TYPES`, the medication form and page, the provider page, the print sheets, `recipientProfile.ts`, `listTimeline.ts` |
 | `github-review` | [PRD](github-review-prd.md), [plan](github-review-plan.md): 3 slices, waves 1 → (2, 3): Codex's verdict and `pnpm prd review`; `pnpm prd pr`, land's PR path into `dev` (prd/ always, hotfixes `--pr`/`--local`, `--no-review` on the user's word) and dev-sync after a GitHub merge; `ready`, prompts and `rm`. Tooling only, no deps, no migration (B-203). **Ready to start** | none (wave 1 lands locally; wave 2 is the new path's first run) | `scripts/loops/` `land.sh`, `prd.sh`, `lib.sh`, `ready.sh`, `prompt.sh`, `rm.sh`; at landing orchestrator.md, hotfix.md, orchestration.md, `ops/runbook.md`, AGENTS.md |
@@ -66,7 +66,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-56 | feature | triaged | documents |  | ability to upload photos of patient drivers license, insurance card, DNR, etc. |
 | B-60 | feature | in-progress | appointments-2 | prd/appointments-2 | Recurring appointments (weekly PT, dialysis three times a week) |
 | B-61 | feature | in-progress | appointments-2 | prd/appointments-2 | Appointment reminders by email and push before the appointment |
-| B-62 | feature | in-progress | appointments-2 | prd/appointments-2 | iCal feed of a care group's upcoming appointments |
+| B-62 | feature | ready | appointments-2 | prd/appointments-2 | iCal feed of a care group's upcoming appointments |
 | B-63 | feature | in-progress | appointments-2 | prd/appointments-2 | Google Calendar sync of a care group's appointments |
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
@@ -222,10 +222,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-62 · feature · iCal feed of a care group's upcoming appointments
 
-- status: in-progress
+- status: ready
 - prd: appointments-2
 - owner: prd/appointments-2
-- commit:
+- commit: 6e343bd8
 
 - 2026-11-18 (plan/appointments): Follow-up to the appointments PRD (B-47), decided in its interview 2026-11-18: not in the first PRD.
 - 2026-11-20 (Robert Bo Davis): Moved from appointments (done) to a new appointments-2 PRD, to plan now (the user, 2026-11-20). Touches timeline-ux's Today card, so start it after timeline-ux wave 2; B-61's push needs a decision in the interview. -- backlog agent
@@ -362,6 +362,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20 (the user chose): today nothing in the app tells a member the URL or where to add it; connectors-2 PRD, to write
+- 2026-11-20 (Robert Bo Davis): PRD and plan written in the backlog session (2026-11-20): slices 1 (B-193), 2 (B-194, a migration), 3 (B-195), 4 (B-204: append and title or time, any live note or event), 5 (B-197: add, update, resolve; after conditions lands). -- backlog agent
 
 ### B-194 · feature · A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off
 
@@ -371,6 +372,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20 (the user chose): connectors-2 PRD, to write; touches notifications
+- 2026-11-20 (Robert Bo Davis): PRD and plan written in the backlog session (2026-11-20): slices 1 (B-193), 2 (B-194, a migration), 3 (B-195), 4 (B-204: append and title or time, any live note or event), 5 (B-197: add, update, resolve; after conditions lands). -- backlog agent
 
 ### B-195 · feature · Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state
 
@@ -380,6 +382,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20 (the user chose): MCP prompts were out of scope in connectors; connectors-2 PRD, to write
+- 2026-11-20 (Robert Bo Davis): PRD and plan written in the backlog session (2026-11-20): slices 1 (B-193), 2 (B-194, a migration), 3 (B-195), 4 (B-204: append and title or time, any live note or event), 5 (B-197: add, update, resolve; after conditions lands). -- backlog agent
 
 ### B-196 · feature · List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting
 
@@ -389,6 +392,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20 (the user chose): after the production launch (B-33) and the privacy policy and terms (B-54); vendor review
+- 2026-11-20 (Robert Bo Davis): Left out of the connectors-2 PRD (the user, 2026-11-20): after the launch (B-33) and the privacy policy (B-54); the PRD's Out of Scope lists what a listing needs. -- backlog agent
 
 ### B-197 · feature · Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService
 
@@ -398,6 +402,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-20 (plan/conditions): Conditions planning 2026-11-20 (the user): conditions ship read-only to assistants; the writer is a follow-up, after the conditions PRD lands
+- 2026-11-20 (Robert Bo Davis): PRD and plan written in the backlog session (2026-11-20): slices 1 (B-193), 2 (B-194, a migration), 3 (B-195), 4 (B-204: append and title or time, any live note or event), 5 (B-197: add, update, resolve; after conditions lands). -- backlog agent
 
 ### B-198 · bug · rotating placeholder in the timeline entry box is distracting and confusing. Use a static…
 
@@ -461,6 +466,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (prd/appointments-2): From the inbox: connector should be able to edit notes and events so it can help you draft questions or add information to the entries.
 - 2026-11-20 (Robert Bo Davis): Triage 2026-11-20: connectors-2 (a write tool beside add_note/add_event, like B-197). Notes and events are live Yjs docs, so an edit tool must append a server-side Yjs update (note_update) rather than overwrite, so open editors merge it; likely append-or-section-edit, not full replace. Same via tag and confirm-each-write as the other writes.
+- 2026-11-20 (Robert Bo Davis): PRD and plan written in the backlog session (2026-11-20): slices 1 (B-193), 2 (B-194, a migration), 3 (B-195), 4 (B-204: append and title or time, any live note or event), 5 (B-197: add, update, resolve; after conditions lands). -- backlog agent
 
 ### B-205 · bug · mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails at some times of day: give_pass on w.evening returns isError (line 160)
 
