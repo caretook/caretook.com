@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands (2026-11-20, overnight, orchestrator stopped):** every slice is merged into `prd/github-review` and synced with `dev` (086ace6f). **Nothing has landed**, and the real PR isn't open. B-203 is `ready`. No worktree is left: the PRD worktree was removed with `pnpm prd rm github-review` to free the PRD slot for the queue; the branch `prd/github-review` stays (local only, never pushed).
+**Where it stands (2026-11-21, landing on the user's word):** worktree recreated stackless as a 4th PRD (cap full, `CARETOOK_MAX_PRDS=4`); synced with `dev` (tasks-2 included); docs folded (c00699f6); tooling tests 209 pass. Landing with `--force` for the check gate only (the user: tooling needs no checks; `.claude/settings.json` is the one non-exempt file). Next: `pnpm prd pr`, Codex review (verified findings become backlog follow-ups, per the user), land through the PR.
 
 | Slice | Wave | State                    | Merge into `prd/github-review` (slice commits)                       |
 | ----- | ---- | ------------------------ | -------------------------------------------------------------------- |
@@ -31,7 +31,7 @@ Checks on the merged tip: `vitest --project scripts:unit scripts/loops` 17 files
 - Beyond the plan, keep or drop: `pnpm prd dev-sync`; `land --local` on a `prd/` branch as a warned fallback; backlog-tool commits may also touch `plans/inbox.md` (matches `backlog.mjs`); `review --wait` waits through `stale` too; `--again --wait` first waits up to 5 min for Codex's summary to change.
 - `origin/dev` was pushed at 23:37 on 2026-11-20 (not by this PRD) while slice 2 tested.
 
-**Landing mode:** queued run-through, **overridden overnight by the user: don't prompt, don't land.** Ask before landing in the morning.
+**Landing mode:** the user said land (2026-11-21), no checks for tooling.
 
 **Backlog:** B-203 (all three slices), claimed by `prd/github-review`, `ready` at 6ece6441. No other items for this topic.
 
