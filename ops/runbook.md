@@ -43,7 +43,7 @@ Every secret the workflows and `checkDeployEnv` (`apps/web/app/.server/deployEnv
 | `RESEND_API_KEY`          | Resend → API keys: a sending-only key restricted to this environment's domain                                           | yes            |
 | `MAIL_FROM`               | e.g. `Caretook <no-reply@mail.caretook.com>`; the domain must start with `mail.`                                        | yes            |
 | `SUPPORT_EMAIL`           | the team's real support inbox (not `@example.com`)                                                                      | yes            |
-| `CRON_SECRET`             | `openssl rand -base64 32`; Vercel sends it as the outbox cron's bearer                                                  | yes            |
+| `CRON_SECRET`             | `openssl rand -base64 32`; Vercel sends it as the crons' bearer                                                         | yes            |
 | `INVITE_LINK_KEY`         | `openssl rand -base64 32`                                                                                               | yes            |
 | `RESEND_WEBHOOK_SECRET`   | Resend → Webhooks → this environment's endpoint → signing secret (`whsec_…`)                                            | yes            |
 | `CLIENT_IP_HEADER`        | `x-vercel-forwarded-for`                                                                                                | yes            |
@@ -156,7 +156,7 @@ Staging only:
    - production: `caretook.com`, and `www.caretook.com` redirecting (308) to it;
    - staging: `staging.caretook.com`. Its noindex comes from `APP_ENV=staging` (robots.txt and the page meta) and `vercel.json`'s `X-Robots-Tag` on that host.
 4. **Off:** Web Analytics, Speed Insights and log drains (no analytics that can see health data). Don't buy longer log retention (Observability Plus). Record the runtime log retention in `data-copies.md` (**to confirm**).
-5. **Cron:** `vercel.json` runs `/api/cron/outbox` every minute; Vercel sends `CRON_SECRET` as the bearer. Crons run on production deployments only, which is what both projects deploy.
+5. **Cron:** `vercel.json` runs `/api/cron/outbox` (email) and `/api/cron/calendar` (the calendar steps: series top-up so far; reminders and Google sync add theirs) every minute; Vercel sends `CRON_SECRET` as the bearer. Crons run on production deployments only, which is what both projects deploy.
 6. **Headers:** confirmed on staging: on a function's response the function's own header wins (one `Content-Security-Policy`, the full nonce policy; `/app`, `/sign-in`); prerendered and static files (`/`, `/features/`) get `vercel.json`'s short policy plus the page's `<meta>` CSP. Both match `docs/domain/security-headers.md`.
 7. `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` and `VERCEL_TOKEN` into the GitHub environment.
 
@@ -237,14 +237,14 @@ Better Auth (1.7.25) encrypts the JWT signing key's private half (`jwks.private_
 
 The previous deploy is still live. GitHub emails the pusher. Look at the run's failed step:
 
-| Step      | Usual causes                                                                                                                                                                                                                             |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| env check | a missing or malformed secret: the log names the variable (never the value)                                                                                                                                                              |
-| migrate   | a migration error, or `MIGRATIONS_DATABASE_URL` wrong. Migrations run in a transaction each; fix the migration and push.                                                                                                                 |
-| roles     | a stream column the schema doesn't have, a `*` in `sync-config.yaml`, or a synced table the replication role can't `SELECT *` (add its columns to the stream or to `REPLICATION_WHOLE_TABLES`)                                           |
-| powersync | the instance id or token, or the instance not set up yet (it must be deployed once in the dashboard), or a sync config PowerSync rejects                                                                                                 |
-| vercel    | the token or project ids, or a build error (reproduce with `pnpm build`)                                                                                                                                                                 |
-| smoke     | the check's table names what failed: `home` (status or security headers), `jwks`, `rpc-unauthenticated`, `cron-locked`, `mcp-unauthenticated` (`/mcp` without a token is 401 with `resource_metadata`), `powersync`, `noindex` (staging) |
+| Step      | Usual causes                                                                                                                                                                                                                                                           |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| env check | a missing or malformed secret: the log names the variable (never the value)                                                                                                                                                                                            |
+| migrate   | a migration error, or `MIGRATIONS_DATABASE_URL` wrong. Migrations run in a transaction each; fix the migration and push.                                                                                                                                               |
+| roles     | a stream column the schema doesn't have, a `*` in `sync-config.yaml`, or a synced table the replication role can't `SELECT *` (add its columns to the stream or to `REPLICATION_WHOLE_TABLES`)                                                                         |
+| powersync | the instance id or token, or the instance not set up yet (it must be deployed once in the dashboard), or a sync config PowerSync rejects                                                                                                                               |
+| vercel    | the token or project ids, or a build error (reproduce with `pnpm build`)                                                                                                                                                                                               |
+| smoke     | the check's table names what failed: `home` (status or security headers), `jwks`, `rpc-unauthenticated`, `cron-locked` (both cron routes answer 401), `mcp-unauthenticated` (`/mcp` without a token is 401 with `resource_metadata`), `powersync`, `noindex` (staging) |
 
 - **Smoke fails after the Vercel deploy:** the new code **is** live. Roll back in Vercel first, then investigate.
 - **A 503 "configuration is incomplete":** the server's own env check; Vercel's function log names the variables. Fix them in Vercel and redeploy.

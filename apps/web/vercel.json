@@ -2,7 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["cle1"],
   "git": { "deploymentEnabled": false },
-  "crons": [{ "path": "/api/cron/outbox", "schedule": "* * * * *" }],
+  "crons": [
+    { "path": "/api/cron/outbox", "schedule": "* * * * *" },
+    { "path": "/api/cron/calendar", "schedule": "* * * * *" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

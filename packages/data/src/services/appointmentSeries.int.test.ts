@@ -307,3 +307,167 @@ describe("appointmentSeriesService: visits", () => {
     expect(replay.deletedAt).not.toBeNull();
   });
 });
+
+describe("appointmentSeriesService.topUp", () => {
+  // The series' own zone (Los Angeles) is at 2026-11-18 on NOW, so the
+  // target is 2027-02-16. The test database is shared with other tests'
+  // series, so each run loops until nothing is left to do.
+  const TARGET = "2027-02-16";
+  const topUpAll = async (now = NOW) => {
+    const total = { checked: 0, toppedUp: 0, visits: 0, failed: 0 };
+    for (let i = 0; i < 20; i++) {
+      const res = ok(await appointmentSeriesService.topUp(now, { limit: 100 }));
+      total.checked += res.checked;
+      total.toppedUp += res.toppedUp;
+      total.visits += res.visits;
+      total.failed += res.failed;
+      if (!res.checked) break;
+    }
+    return total;
+  };
+
+  const days = async (seriesId: string) =>
+    (await visitsOf(seriesId)).filter((v) => !v.deletedAt).map((v) => v.seriesDay);
+
+  /** A visit as a device (or an earlier run) made it. */
+  const visit = (
+    s: { id: string; groupId: string; recipientId: string },
+    day: string,
+    visitId = seriesVisitId(s.id, day),
+  ) => ({
+    id: visitId,
+    groupId: s.groupId,
+    recipientId: s.recipientId,
+    kind: "event" as const,
+    title: "Dialysis",
+    occurredAt: `${day}T14:00:00.000Z`,
+    timeZone: "America/Los_Angeles",
+    details: null,
+    seriesId: s.id,
+    seriesDay: day,
+  });
+
+  it("adds the missing days after topped_up_through, with documents and provider links, and a second run writes nothing", async () => {
+    const { u, group, input } = await setup();
+    const provider = ok(
+      await providerService.create(u.owner.ctx, { groupId: group.id, type: "practice", name: "Clinic" }),
+    )!;
+    const series = ok(
+      await appointmentSeriesService.create(
+        u.owner.ctx,
+        input({ startsOn: "2026-11-16", toppedUpThrough: "2026-11-20", providerIds: [provider.id] }),
+      ),
+    );
+
+    const first = await topUpAll();
+    expect(first).toMatchObject({ toppedUp: 1, failed: 0 });
+    const got = await days(series.id);
+    // Mon, Wed, Fri from 2026-11-23 through 2027-02-15; nothing at or before the old edge.
+    expect(got[0]).toBe("2026-11-23");
+    expect(got.at(-1)).toBe("2027-02-15");
+    expect(got).toHaveLength(37);
+    expect(got.every((d) => d! > "2026-11-20" && d! <= TARGET)).toBe(true);
+
+    const rows = await visitsOf(series.id);
+    expect(rows[0]).toMatchObject({
+      id: seriesVisitId(series.id, "2026-11-23"),
+      kind: "event",
+      title: "Dialysis",
+    });
+    expect(new Date(rows[0]!.occurredAt).toISOString()).toBe("2026-11-23T14:00:00.000Z");
+    expect(new Date(rows[0]!.endsAt!).toISOString()).toBe("2026-11-23T18:00:00.000Z");
+    expect(
+      ok(await entryProviderService.listForEntry(u.owner.ctx, rows[0]!.id)).data.map((l) => l.providerId),
+    ).toEqual([provider.id]);
+    expect(ok(await appointmentSeriesService.getById(u.owner.ctx, series.id))).toMatchObject({
+      toppedUpThrough: TARGET,
+    });
+    expect(ok(await noteDocumentService.getById(u.owner.ctx, rows[0]!.id))).toBeTruthy();
+
+    const second = await topUpAll();
+    expect(second).toMatchObject({ toppedUp: 0, visits: 0, failed: 0 });
+    expect(await days(series.id)).toEqual(got);
+  });
+
+  it("skips days that already have a live or deleted visit, and converges with a device's ids", async () => {
+    const { u, group, recipient, input } = await setup();
+    const series = ok(
+      await appointmentSeriesService.create(
+        u.owner.ctx,
+        input({ startsOn: "2026-11-16", toppedUpThrough: "2026-11-20" }),
+      ),
+    );
+    const s = { id: series.id, groupId: group.id, recipientId: recipient.id };
+    // A draft-id visit (the first visit's pattern), a device-made v5 visit, and a deleted one.
+    const draftId = randomUUID();
+    ok(await timelineEntryService.create(u.owner.ctx, visit(s, "2026-11-23", draftId)));
+    ok(await timelineEntryService.create(u.owner.ctx, visit(s, "2026-11-25")));
+    ok(await timelineEntryService.create(u.owner.ctx, visit(s, "2026-11-27")));
+    ok(await timelineEntryService.remove(u.owner.ctx, seriesVisitId(series.id, "2026-11-27")));
+
+    await topUpAll();
+    const rows = await visitsOf(series.id);
+    const on = (day: string) => rows.filter((r) => r.seriesDay === day);
+    expect(on("2026-11-23").map((r) => r.id)).toEqual([draftId]);
+    expect(on("2026-11-25").map((r) => r.id)).toEqual([seriesVisitId(series.id, "2026-11-25")]);
+    expect(on("2026-11-27")).toHaveLength(1);
+    expect(on("2026-11-27")[0]!.deletedAt).not.toBeNull();
+    // Every other day has exactly one live visit.
+    expect(new Set(rows.map((r) => r.seriesDay)).size).toBe(rows.length);
+    expect(rows).toHaveLength(37);
+  });
+
+  it("stops at COUNT and UNTIL, and ignores deleted series", async () => {
+    const { u, input } = await setup();
+    const counted = ok(
+      await appointmentSeriesService.create(
+        u.owner.ctx,
+        input({
+          rule: "FREQ=DAILY;INTERVAL=1;COUNT=3",
+          startsOn: "2026-11-18",
+          toppedUpThrough: "2026-11-17",
+        }),
+      ),
+    );
+    const until = ok(
+      await appointmentSeriesService.create(
+        u.owner.ctx,
+        input({
+          rule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO;UNTIL=20261207",
+          startsOn: "2026-11-16",
+          toppedUpThrough: "2026-11-17",
+        }),
+      ),
+    );
+    const gone = ok(
+      await appointmentSeriesService.create(u.owner.ctx, input({ toppedUpThrough: "2026-11-17" })),
+    );
+    ok(await appointmentSeriesService.remove(u.owner.ctx, gone.id));
+
+    await topUpAll();
+    expect(await days(counted.id)).toEqual(["2026-11-18", "2026-11-19", "2026-11-20"]);
+    expect(await days(until.id)).toEqual(["2026-11-23", "2026-11-30", "2026-12-07"]);
+    expect(await visitsOf(gone.id)).toEqual([]);
+    expect(ok(await appointmentSeriesService.getById(u.owner.ctx, until.id))).toMatchObject({
+      toppedUpThrough: TARGET,
+    });
+    expect(
+      ok(await appointmentSeriesService.getById(u.owner.ctx, gone.id, { includeDeleted: true })),
+    ).toMatchObject({ toppedUpThrough: "2026-11-17" });
+  });
+
+  it("leaves a series that is already 90 days ahead alone, and follows the clock", async () => {
+    const { u, input } = await setup();
+    const series = ok(await appointmentSeriesService.create(u.owner.ctx, input({ toppedUpThrough: TARGET })));
+    await topUpAll();
+    expect(await visitsOf(series.id)).toEqual([]);
+
+    // Three days later the edge moves and the new days arrive.
+    const later = new Date("2026-11-21T18:00:00.000Z");
+    await topUpAll(later);
+    expect(await days(series.id)).toEqual(["2027-02-17", "2027-02-19"]);
+    expect(ok(await appointmentSeriesService.getById(u.owner.ctx, series.id))).toMatchObject({
+      toppedUpThrough: "2027-02-19",
+    });
+  });
+});
