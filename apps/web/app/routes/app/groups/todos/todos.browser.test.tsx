@@ -123,7 +123,7 @@ describe("the todo list", () => {
       .poll(() => [...document.querySelectorAll("[data-todo-section] [data-todo-title]")].length)
       .toBe(1);
     expect(titles("undated")).toEqual(["Sort the batteries"]);
-    expect(titles("done")).toEqual([]);
+    await expect.poll(() => titles("done")).toEqual([]);
   });
 
   test("opens on Everyone when nothing open is mine", async () => {
@@ -191,7 +191,7 @@ describe("the todo list", () => {
     await expect.element(page.getByText("Done by Sam Okafor · today")).toBeInTheDocument();
     await userEvent.click(page.getByRole("checkbox", { name: "Reopen “Book the eye exam”" }));
     await expect.poll(() => titles("undated")).toEqual(["Book the eye exam", "Sort the batteries"]);
-    expect(titles("done")).toEqual([]);
+    await expect.poll(() => titles("done")).toEqual([]);
   });
 
   test("a viewer sees ticks only on their own todos and no Add, under the same header", async () => {
