@@ -4,21 +4,21 @@
 
 ## Status
 
-| Slice | Wave | State                                                                                           | Merge into `prd/planner-2` (slice commits) |
-| ----- | ---- | ----------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| 1     | 1    | merged (sonnet, finished by a `--continue` agent on opus after a usage limit); worktree removed | 804c6e97 (cea61410, 56de7e22, 8d62fbe0)    |
-| 2     | 1    | merged (opus); worktree removed                                                                 | 7267ab9f (3ff6ccb2, 46ddd08f)              |
-| 3     | 2    | not started: blocked by slice 8                                                                 |                                            |
-| 4     | 2    | handed off, reviewed; merges after wave 1 lands                                                 |                                            |
-| 5     | 2    | handed off, reviewed; merges after wave 1 lands                                                 |                                            |
-| 6     | 2    | started (worktree `.loops/planner-2-6`, slot 4 stack, opus, 12:50 ET)                           |                                            |
-| 7     | 2    | handed off, reviewed; merges after wave 1 lands                                                 |                                            |
-| 8     | 2    | handed off, reviewed; merges after wave 1 lands                                                 |                                            |
-| 9     | 2    | not started: blocked by slice 8 (B-246)                                                         |                                            |
+| Slice | Wave       | State                                                                                           | Merge into `prd/planner-2` (slice commits) |
+| ----- | ---------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| 1     | 1 (landed) | merged (sonnet, finished by a `--continue` agent on opus after a usage limit); worktree removed | 804c6e97 (cea61410, 56de7e22, 8d62fbe0)    |
+| 2     | 1 (landed) | merged (opus); worktree removed                                                                 | 7267ab9f (3ff6ccb2, 46ddd08f)              |
+| 3     | 2          | started (worktree `.loops/planner-2-3`, sonnet)                                                 |                                            |
+| 4     | 2          | merged; worktree removed                                                                        | 262f3dc0 (d42513b8, 30995550)              |
+| 5     | 2          | merged; worktree removed                                                                        | c0153854 (ceb78315)                        |
+| 6     | 2          | started (worktree `.loops/planner-2-6`, slot 4 stack, opus, 12:50 ET)                           |                                            |
+| 7     | 2          | merged; worktree removed                                                                        | c29fc769 (02f7f95b)                        |
+| 8     | 2          | merged; worktree removed; B-247, B-251, B-284 done                                              | 43846e09 (ee441db0, c0d508f0)              |
+| 9     | 2          | started (worktree `.loops/planner-2-9`, sonnet; B-246 claimed)                                  |                                            |
 
-**Wave 1:** merged; synced with `dev` twice (009a2e58, then b5ec49b3 for list-filters wave 2, PR #21; clean). The first full check failed on timelineQuickEntry "Edit on a provider event…" (a race from dev's quick entry), fixed test-only in 14ecbde1. **Full `pnpm prd check` passed on 9d08fdd5.** PR #22 opened. Codex had 4 findings on slice 2's repeat logic, filed as follow-ups B-382 (P1: an offline Undo's delete of the next occurrence lands unconditionally), B-383, B-384 and B-385, replied on and resolved; Codex clean on 9d08fdd. The browser suite (the user said yes to `--suite` once) passed 11/12: roundtrip failed because sync-matrix.mjs wrote a note series (now refused), so the fixture became an event series and roundtrip passed alone. Then a quick check, the PR update and `review --again`, then land. Filed B-381 (the readTools birth-year flake, quick-fixes).
+**Wave 1: landed** in dev through PR #22 (8069cf9, 2026-11-21; full check on 9d08fdd5, quick on 3f4456e0, the lean suite with roundtrip fixed and passing alone, Codex clean after 2 rounds). Codex follow-ups filed: B-382–B-387 (repeat-chain edge cases; B-382, an offline Undo deleting an edited successor, is the P1). Wave 1's docs are folded (appointments, timeline, todos, data-layer). The user still needs to run `pnpm datastore:reset` and `docker compose restart powersync` in the main checkout. Filed B-381 (the readTools birth-year flake, quick-fixes).
 
-**Wave 2 hand-offs waiting to merge after wave 1 lands:** slice 4 (d42513b8, 30995550; sonnet), slice 5 (ceb78315; opus), slice 7 (02f7f95b; sonnet) and slice 8 (ee441db0, c0d508f0, already merged with b5ec49b3; sonnet; the todos-only filter is `?show=todos`). Slice 6 (opus) is still running; slices 3 and 9 start when slice 8 merges.
+**Wave 2:** slices 4, 5, 7 and 8 merged after wave 1 landed (no conflicts); B-247, B-251 and B-284 marked done. Slice 6 is still running (told to merge prd/planner-2 before hand-off); slices 3 and 9 started (sonnet), with B-246 claimed. Slice 8's appointments.md lines are already folded.
 
 **Landing mode: run everything through** (queued with `pnpm prd queue planner-2`): start every ready slice, land each green wave through the PR + Codex, clean up; ask only real questions. B-248 claimed by prd/planner-2 (2026-11-21). At the wave 1 boundary: `quick-entry` (B-220) is in `dev`. The Planner items B-247, B-251, B-284 and B-246 moved from `quick-fixes` into planner-2 at the user's word (via the backlog session, 2026-11-21) as slices 8 and 9; slice 3 is now blocked by slice 8, not by another PRD.
 

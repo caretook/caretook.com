@@ -17,6 +17,14 @@ PRD: [`plans/tasks-prd.md`](../../plans/tasks-prd.md) (B-55); renamed todos by [
   - **A deleted appointment:** `releaseEvent`, from `timelineEntryService.remove` (now one transaction), clears `event_id` on its todos, done ones included. Entries are soft-deleted, so the FK's `SET NULL` only covers hard deletes. The device's `removeEntry` does the same locally.
 - **Sync:** see [sync](sync.md) (`todo` in the `care_groups` stream, soft-deleted rows included; `todoOp`).
 
+## Repeating todos (planner-2, B-248)
+
+- **Columns** (`0033_todo_repeats`): `repeat_rule` (RRULE text, `appointment_series.rule`'s grammar), `repeat_starts_on` (the chain's anchor) and `repeat_id` (the chain; the first todo's id). Checks: all three or none (`todo_repeat_check`); a rule needs `due_on` (`todo_repeat_due_check`, Zod `REPEAT_NEEDS_DAY_ISSUE`). `repeatColumnsFor` sets them on create and update: a new rule starts a chain on the todo; a changed rule or due day moves the anchor; no rule clears all three. `completionOnly` covers them. `todoRepeatText` says the rule.
+- **`todoRepeat`** (pure, only in `@caretook/data/series`; the device imports it dynamically): `nextDueDay` (the first rule day after both the due day and today, null once ended), `nextTodoId` (UUID v5 of chain and day), `nextOccurrence` (title, assignee, time, provider and medication links and the repeat; never the appointment link, notes or done state), `isUntouchedNext` (open, live and as the tick made it, by content).
+- **A repeating todo is one open row.** The server is the author of the next: `complete` makes it as the system in the same transaction, "today" being the tick's `doneAt` in the recipient's zone, unless a live row with its id exists (a soft-deleted one is restored). `reopen` soft-deletes an untouched next, else keeps both and the reopened todo stops repeating. `skip` (writers) soft-deletes and makes the next. Stop is the ordinary delete.
+- **The device's next is a twin** with the same id, written in the tick's local transaction (`completeTodo`, `reopenTodo`, `skipTodo`). `todoOp`: a PUT whose `repeat_id` is another todo's goes to `upsertOccurrence` (an existing row counts as done for any role; a chain that already has another open todo makes it a stale no-op; else a writer's skip); a PATCH of `deleted_at` to null restores (`restoreOccurrence`); a PATCH with `done_at` ignores `repeat_rule`.
+- **Open edge cases** (Codex, filed): B-382–B-387.
+
 ## On the device (`lib/todos/todos.sync.ts`)
 
 - `toTodo`/`todosQuery`/`doneCountQuery`/`todoQuery` read; `createTodo` (over `plannedTodo`, which quick entry uses too), `updateTodo`, `completeTodo`, `reopenTodo`, `removeTodo` write. A done-only change is a PATCH of `done_at`/`done_by` that the server maps to `complete` or `reopen`.
