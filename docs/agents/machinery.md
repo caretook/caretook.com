@@ -33,3 +33,7 @@ The scripts behind `pnpm prd` (`scripts/loops/`) that every session leans on: wo
 - One place for the user to answer: `.loops/.asks/<id>.json` in the main checkout (`CARETOOK_ASKS_DIR`), ids `a1`, `a2`…, created exclusively. A question stays open until answered or dismissed; a report until dismissed.
 - `pnpm prd ask --topic <t> --question <text> --option <a>… --recommend <a>` or `--report <text>` (the topic and session default to the worktree's) prints the id and a "Now send a PushNotification" line; it shows a macOS notification and runs `$CARETOOK_ASK_NOTIFY <id> <kind> <topic> <text>` when set (failures and hangs ignored, `CARETOOK_ASK_NOTIFY_TIMEOUT`).
 - `pnpm prd ask --wait <id> [--timeout <s>]` prints the answer (exit 0; 75 at the timeout, 1 if dismissed). `pnpm prd asks [--json]` lists the open ones oldest first; `pnpm prd answer <id> <n|text>`; `pnpm prd asks --done <id>` dismisses.
+
+## Landing reports
+
+- After merging a `prd/` or `hotfix/` branch (fix topics included) whose diff isn't Markdown only (`docs_only` in `lib.sh`), `land.sh` writes `to-test/<date>-<HHMM>-<topic>.md` in the main checkout (gitignored), itself, so it exists even if the session dies: the topic's title, what changed and landed, the commit and PR, the dev URL and seed accounts, and what wasn't checked (browser checks land can't see). The user reads and deletes them; agents only add. A failure writing it never fails the landing.
