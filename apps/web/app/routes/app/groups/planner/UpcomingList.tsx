@@ -23,10 +23,8 @@ import { useGroup } from "~/lib/app-shell/group";
 import { getSync } from "~/lib/sync";
 import { removeEntry } from "~/lib/timeline/timeline.sync";
 import { isUpcoming } from "~/lib/appointments/upcoming";
-import { isUpcomingDose } from "~/lib/appointments/upcomingDoses";
 import { isPlannerTodo } from "~/lib/todos/plannerTodos";
 import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
-import { UpcomingDoseRow } from "./UpcomingDoseRow";
 import { UpcomingRow } from "./UpcomingRow";
 import { PlannerTodoRow } from "./PlannerTodoRow";
 
@@ -44,8 +42,7 @@ const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divi
  * Print, then Delete, with one Cancel and one Delete confirm for the list;
  * for viewers, Print. A series visit's Edit, Reschedule, Cancel and Delete
  * ask Only this visit or This and later visits first (`useSeriesScope`).
- * The Planner tab's sections can also hold today's open dose slots (`UpcomingDoseRow`)
- * and open dated todos (`PlannerTodoRow`).
+ * The Planner tab's sections can also hold open dated todos (`PlannerTodoRow`).
  */
 export function UpcomingList({
   data,
@@ -148,8 +145,6 @@ export function UpcomingList({
                   timeZone={data.todoZone ?? "UTC"}
                   now={data.now}
                 />
-              ) : isUpcomingDose(entry) ? (
-                <UpcomingDoseRow key={entry.key} dose={entry} groupId={groupId} canWrite={canWrite} />
               ) : (
                 <UpcomingRow
                   key={entry.id}

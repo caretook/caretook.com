@@ -1,7 +1,7 @@
 import { localDate } from "@caretook/data/schema";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { fx, TEST_GROUP, TEST_TIME_ZONE, todo } from "../../../../../test/fixtures";
+import { fx, medicationPass, TEST_GROUP, TEST_TIME_ZONE, todo } from "../../../../../test/fixtures";
 import { pageHeader } from "../../../../../test/pageHeader";
 import {
   BLOOD_DRAW,
@@ -36,8 +36,8 @@ import * as plannerRoute from "./route";
 // the tabs, the Add menu), Upcoming | Past, the Filter menu, the Planner tab's list (order, days, Now, all
 // day, ranges, cancelled and rescheduled, call and map),
 // the kind and author filters in the URL, the Past tab (newest first,
-// cancelled ones, paging), items leaving as their time passes, today's due
-// doses, the viewer and a non-member. The device never connects, so every
+// cancelled ones, paging), items leaving as their time passes, no due doses
+// or passes, the viewer and a non-member. The device never connects, so every
 // test here is also "offline, from the device's copy". The rules themselves
 // (timing, order, labels, filters, actions) are the pure modules' unit
 // tests; this is what's on the screen.
@@ -429,82 +429,27 @@ describe("a non-member", () => {
   });
 });
 
-describe("today's due doses", () => {
-  // At 10:00: a slot at 9:57 (due) and one at 10:20 (later), with an event at 10:10 between them.
+describe("no due doses or passes", () => {
+  // At 10:00: a slot at 9:57 (due) and one at 10:20 (later), and a pass given today.
+  const PASS = medicationPass({ name: "Rounds", time: "09:53", sortOrder: 0 });
   const DONEPEZIL = fx.medication({
     name: "Donepezil",
     strength: "5 mg",
     schedule: { type: "scheduled", slots: [{ time: "09:57" }, { time: "10:20" }] },
   });
+  const XA = fx.medication({
+    name: "Xa",
+    strength: "5 mg",
+    schedule: { type: "scheduled", slots: [{ passId: PASS.id }] },
+  });
+  const GIVEN = fx.dose({ medicationId: XA.id, scheduledFor: "09:53", occurredAt: laTime(0, 9, 55) });
   const BETWEEN = fx.event({ title: "Between doses", occurredAt: laTime(0, 10, 10) });
-  const DUE = `${DONEPEZIL.id}@09:57`;
-  const LATER = `${DONEPEZIL.id}@10:20`;
-  const doseRow = (key: string) => document.querySelector<HTMLElement>(`main [data-upcoming-dose="${key}"]`);
-  const today = () => {
-    const day = [...document.querySelectorAll("main [data-upcoming-list] [data-day]")].find(
-      (d) => d.querySelector("h3")?.textContent?.trim() === "Today",
-    )!;
-    return [...day.querySelectorAll<HTMLElement>("li[data-upcoming-dose], li[data-upcoming-item]")].map(
-      (li) => li.dataset.upcomingDose ?? li.dataset.upcomingItem,
-    );
-  };
-  const doses = [DONEPEZIL, BETWEEN];
 
-  test("they show under Today in time order around an event between them; the due one says Due, the later one nothing, both named", async () => {
-    await openPlanner({ extra: doses });
-    expect(today()).toEqual([DUE, BETWEEN.id, LATER, THERAPY.id]);
-    const due = doseRow(DUE)!;
-    const later = doseRow(LATER)!;
-    expect(due.dataset.slotState).toBe("due");
-    expect(due.querySelector("[data-dose-state]")?.textContent).toBe("Due");
-    expect(later.dataset.slotState).toBe("upcoming");
-    expect(later.querySelector("[data-dose-state]")).toBeNull();
-    for (const row of [due, later]) expect(row.textContent).toContain("Donepezil 5 mg dose");
-    expect(due.querySelector("a")?.getAttribute("aria-label")).toMatch(/^Log .* dose, due$/);
-  });
-
-  test("a viewer sees the doses, with no link", async () => {
-    await openPlanner({ extra: doses, role: "viewer" });
-    expect(doseRow(DUE)).not.toBeNull();
-    expect(doseRow(LATER)).not.toBeNull();
-    expect(doseRow(DUE)!.querySelectorAll("a")).toHaveLength(0);
-    expect(doseRow(LATER)!.querySelectorAll("a")).toHaveLength(0);
-  });
-
-  test("a kind filter hides them", async () => {
-    await openPlanner({ extra: doses, url: `${PLANNER_URL}?kind=event` });
-    expect(listed().length).toBeGreaterThan(0);
+  test("the Planner lists the appointment and no dose or pass row", async () => {
+    await openPlanner({ extra: [PASS, DONEPEZIL, XA, GIVEN, BETWEEN] });
+    expect(listed().map((r) => r.id)).toContain(BETWEEN.id);
     expect(document.querySelector("main [data-upcoming-dose]")).toBeNull();
-  });
-
-  test("the due one opens the Dose sheet on its medication and slot; logging it comes back to the Planner without it, the later one kept, one dose queued", async () => {
-    const device = await openPlanner({ extra: doses });
-    await userEvent.click(doseRow(DUE)!.querySelector("a")!);
-    await expect.poll(() => device.location()).toMatch(/\/timeline\/new\/dose\?/);
-    const search = new URLSearchParams(device.location().split("?")[1]);
-    expect(search.get("slot")).toBe("09:57");
-    expect(device.location()).toContain(DONEPEZIL.id);
-    const sheet = page.getByRole("dialog");
-    await expect
-      .poll(
-        () =>
-          sheet.element().querySelector<HTMLInputElement>(`input[name="medicationId"][value="${DUE}"]`)
-            ?.checked,
-      )
-      .toBe(true);
-    const submits = sheet.element().querySelectorAll<HTMLButtonElement>("button[type=submit]");
-    await userEvent.click(submits[submits.length - 1]!);
-    await expect.poll(() => device.location(), { timeout: 5000 }).toBe(PLANNER_URL);
-    await device.settle();
-    await expect.poll(() => doseRow(DUE)).toBeNull();
-    expect(doseRow(LATER)).not.toBeNull();
-    const queued = (await device.queued()).filter((w) => w.type === "timeline_entry");
-    expect(queued).toHaveLength(1);
-    expect(queued[0]!.data).toMatchObject({ kind: "dose" });
-    expect(JSON.parse(queued[0]!.data!.details as string)).toMatchObject({
-      medicationId: DONEPEZIL.id,
-      scheduledFor: "09:57",
-    });
+    expect(document.querySelector("main [data-upcoming-list]")?.textContent).not.toMatch(/Donepezil|Rounds/);
   });
 });
 
