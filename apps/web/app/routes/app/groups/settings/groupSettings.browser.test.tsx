@@ -434,6 +434,7 @@ describe("Members", () => {
     expect(
       document.querySelectorAll('main ol button[aria-label^="Actions"], main ol [aria-label^="Edit "]'),
     ).toHaveLength(0);
-    await expect.element(page.getByText(/You can view this timeline/)).toBeVisible();
+    // No viewer note (timeline-ux-2): the missing writer controls say it.
+    expect(page.getByText(/You can view/).query()).toBeNull();
   });
 });

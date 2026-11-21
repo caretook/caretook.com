@@ -4,12 +4,33 @@
 
 ## Status
 
-| Slice | Wave | State        | Merge into `prd/medications-3` (slice commits) |
-| ----- | ---- | ------------ | ---------------------------------------------- |
-| 1     | 1    | not started  |                                                |
-| 2     | 2    | blocked by 1 |                                                |
-| 3     | 2    | blocked by 1 |                                                |
-| 4     | 2    | blocked by 1 |                                                |
+| Slice | Wave | State                                             | Merge into `prd/medications-3` (slice commits) |
+| ----- | ---- | ------------------------------------------------- | ---------------------------------------------- |
+| 1     | 1    | merged (opus)                                     | `995796c8` (`e0ced8b3`)                        |
+| 2     | 2    | merged (sonnet)                                   | `76004b11` (`5d3b1eab`)                        |
+| 3     | 2    | merged (sonnet); `signout-wipe` to run at landing | `26213ec5` (`4e3778b2`)                        |
+| 4     | 2    | merged (opus); `roundtrip` to run at landing      | `b44af440` (`b91918de`)                        |
+| 5     | 3    | merged (sonnet)                                   | `a4308e4a` (`9e2b6750`)                        |
+
+**Landing mode: run everything through** (queued with `pnpm prd queue medications-3`): start every ready slice, land each green wave, clean up; ask only real questions.
+
+**Now (2026-11-21):** wave 1 done: slice 1 merged (`995796c8`), its worktree removed. Synced `dev` (`appointments-2`, `f49aa958`) as `01b8328a`: kept dev's `0029_appointments_calendars` and regenerated ours as **`0030_medication_types`** (the same SQL: the column and `medication_type_check`); `pnpm install` for the new deps; typecheck clean. The sync conflicted only on migration meta, but it touched a migration and `package.json`, so **the landing needs the full `pnpm prd check`** and `pnpm datastore:reset` in this worktree first. B-199 claimed. Wave 2 started: slices 2, 3 and 4 spawned (stackless, all on `01b8328a`). No `quick-fixes` slices open (no overlap).
+
+**Backlog proposals (for the user to review):** B-212 (the medications header's icon order: + Add, labeled Passes, printer-only Print) → medications-3 as slice 5, wave 3 after slice 2; not to be built until the user OKs it. B-213 (redesign Today's schedule) → a follow-up PRD `medications-4`.
+
+**Docs to fold (slice 2):** medications.md (`?type=` beside `?status=`, `setType`/`clearType`, the `TypeFilter` chips, print's `currentGroups` by `medicationTypeGroupHeading`, stopped ungrouped). **(slice 3):** search.md (the type label first in `medicationSearchDocument`'s body, null adds nothing, `SEARCH_INDEX_VERSION` 4; server `searchMedications` doesn't match on type); connectors.md (`list_medications`' `type`, label in the text when set). B-200 ready at `26213ec5`; slices 2 and 3 worktrees removed.
+
+**Docs to fold (slice 4):** medications.md (the Dose sheet's last option "+ New medication" (`new`): name, dose, type, as needed, no maximum; the pure `quickAddRows` and `logDoseOfNewMedication`, one transaction (medication, "started" entry, dose); no dose warnings for a new one; the "Added <name> · Add details" notice (`addedNotice.ts`, `AddedMedicationToast` on the timeline, ~10 s, gone on navigation); the empty state opens on the quick add; `NameField` now in `components/medications`). B-199 ready at `b44af440`; worktree removed.
+
+**Slice 5 (B-212, approved by the user 2026-11-21):** the header reorder. `timeline-ux-2` (not started) slice 1 later wraps this header in `PageHeader`; noted on B-212 so it keeps the order.
+
+**Landing in progress (2026-11-21):** every slice merged; B-200, B-199, B-212 ready. Docs folded (`c0454699`). Synced `dev` (`timeline-ux-2` plan docs only) as `d971cb60`, clean. Next: `pnpm datastore:reset`, full `pnpm prd check` (migration and deps since the last full pass), `serve --restart`, `roundtrip` and `signout-wipe` by name, `ready`, land.
+
+**Browser checks at landing (user, 2026-11-21): no `--suite`.** Run `roundtrip` (slice 4) and `signout-wipe` (slice 3) by name, plus any `e2e no` check `pnpm prd browser --changed --base dev --list` names that hasn't passed; slice 1's lean set passed 12/12 on its stack.
+
+**Landing:** one landing after wave 2 (the plan holds it until every slice is merged). Slice 1's `--changed` named the whole lean set (migration, sync config) and passed 12/12 on its stack; at landing ask before `--suite`.
+
+**Docs to fold (slice 1):** medications.md (the nullable checked `type`, no backfill; required where asked: `medicationFormContentZSchema` and `requireType`; not tracked; the Type choice and the `<details>` "Prescription details"; the badge and the page's Type row; `medicationTypeDisplay.ts`; the seeds' types); sync.md (`medication.type`); data-layer.md (0000–0030); components.md (`ChoiceGroup`'s controlled `value` may be null).
 
 **Start conditions:** `conditions` landed in `dev` (its slice 4 changes the medication form and page; both PRDs touch `sync-config.yaml`, the device schema and the upload switch). Check its PRD row says done, then `pnpm prd sync` before slice 1.
 
@@ -24,6 +45,7 @@ Fold into the area docs at each landing (only rules and pointers into AGENTS.md 
 - **Slice 1:** the `type` column, the required-where-asked rule, "not tracked", the form's collapse, the badge and the page in `docs/domain/medications.md`; the column in `sync.md` if it lists columns.
 - **Slice 2:** `?type=` and the print grouping in `medications.md`.
 - **Slice 3:** the type in `medicationSearchDocument` and the index version in `search.md`; `list_medications`'s `type` in `connectors.md`.
+- **Slice 5:** the header's order (+ Add, Passes, printer) in `medications.md` if it describes the header.
 - **Slice 4:** the quick add (the option, the one transaction, the toast, the empty state) in `medications.md`.
 
 ## Architectural decisions
@@ -120,6 +142,22 @@ Stack: no · Reads: docs/domain/search.md, docs/domain/connectors.md, docs/domai
 - [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
 
 **Blocked by:** 1. **Blocks:** none.
+
+## Slice 5: The medications header's icons (B-212)
+
+Stack: no · Reads: docs/domain/medications.md, docs/domain/components.md · Tests: component
+
+**Build.**
+
+- The Medications list's header actions, in this order: Add medication as a `+` icon button (`lucide-react` `Plus`, the accessible name "Add medication"), then Passes as a labeled button, then Print as a printer icon only (`Printer`, the accessible name "Print", the print menu as it is today). Same targets, same permissions (no Add for a viewer), the same 44 px touch targets.
+- No other header changes: the title and subtitle stay (`timeline-ux-2` changes those later).
+
+**Acceptance criteria.**
+
+- [ ] Component tests (`medicationList.browser.test.tsx`): the three actions in order by accessible name; Add opens the new sheet; Print still opens the menu; a viewer sees no Add.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once (report what it names).
+
+**Blocked by:** 2 (merged). **Blocks:** none.
 
 ## Slice 4: Add a medication from the Log a dose sheet
 

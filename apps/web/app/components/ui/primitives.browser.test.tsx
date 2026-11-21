@@ -133,6 +133,75 @@ describe.each(LAYOUTS)("at $width, $theme", ({ width, theme }) => {
     await expect.poll(active).toBe(trigger.element());
   });
 
+  test("Menu: a group expands in place with a press and with Enter, keeps the menu open, and starts closed when the menu reopens", async () => {
+    const onWeight = vi.fn();
+    const { screen } = await renderInRouter(
+      <Menu
+        label="Add"
+        items={[
+          { id: "note", label: "Note", onAction: () => undefined },
+          {
+            type: "group",
+            id: "vitals",
+            label: "Vitals",
+            icon: Rows3,
+            items: [
+              { id: "weight", label: "Weight", onAction: onWeight },
+              { id: "pulse", label: "Pulse", onAction: () => undefined },
+            ],
+          },
+        ]}
+      >
+        +
+      </Menu>,
+      { width, theme },
+    );
+    const trigger = screen.getByRole("button", { name: "Add" });
+    const menu = page.getByRole("menu", { name: "Add" });
+    const group = page.getByRole("menuitem", { name: "Vitals" });
+    const weight = page.getByRole("menuitem", { name: "Weight" });
+    const names = () => [...document.querySelectorAll('[role="menuitem"]')].map((el) => el.textContent);
+
+    // A press: open, then closed again; the menu stays open throughout.
+    await userEvent.click(trigger);
+    await expect.element(group).toHaveAttribute("aria-expanded", "false");
+    expect(names()).toEqual(["Note", "Vitals"]);
+    await userEvent.click(group);
+    await expect.element(group).toHaveAttribute("aria-expanded", "true");
+    expect(names()).toEqual(["Note", "Vitals", "Weight", "Pulse"]);
+    expect(weight.element().hasAttribute("data-menu-group-item")).toBe(true);
+    await expect.element(menu).toBeVisible();
+    await userEvent.click(group);
+    await expect.element(group).toHaveAttribute("aria-expanded", "false");
+    await expect.element(weight).not.toBeInTheDocument();
+    await expect.element(menu).toBeVisible();
+
+    // Enter: expands it, focus stays on it; the arrow reaches its items, and one acts and closes the menu.
+    await userEvent.keyboard("{Escape}");
+    await expect.element(menu).not.toBeInTheDocument();
+    (trigger.element() as HTMLElement).focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(active).toBe(page.getByRole("menuitem", { name: "Note" }).element());
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(active).toBe(group.element());
+    await userEvent.keyboard("{Enter}");
+    await expect.element(group).toHaveAttribute("aria-expanded", "true");
+    await expect.element(menu).toBeVisible();
+    expect(active()).toBe(group.element());
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(active).toBe(weight.element());
+    await userEvent.keyboard("{Enter}");
+    expect(onWeight).toHaveBeenCalledOnce();
+    await expect.element(menu).not.toBeInTheDocument();
+    await expect.poll(active).toBe(trigger.element());
+
+    // Reopened: the group is closed again.
+    await userEvent.click(trigger);
+    await expect.element(group).toHaveAttribute("aria-expanded", "false");
+    expect(names()).toEqual(["Note", "Vitals"]);
+    await userEvent.keyboard("{Escape}");
+  });
+
   test("Menu: a link item navigates through the router", async () => {
     const { location } = await renderInRouter(
       <Menu

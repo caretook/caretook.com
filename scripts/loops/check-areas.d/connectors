@@ -5,8 +5,12 @@
 # owns a connector flow yet.
 apps/web/app/routes/connectors/*         -
 # Group settings → Assistants (slice 5): component tests (assistants.browser.test.tsx);
-# its switch reads care_group through lib/care-groups/assistantsSwitch.sync.ts.
+# its switch reads care_group through lib/care-groups/assistantsSwitch.sync.ts,
+# which only Assistants and Devices (the guide) read: their component tests.
 apps/web/app/routes/app/groups/settings/assistants/* -
+apps/web/app/lib/care-groups/assistantsSwitch.sync.ts -
+# The connect guide (connectors-2 slice 1), on Assistants and Devices: their component tests.
+apps/web/app/components/connectors/*     -
 apps/web/app/.server/connectors.ts       -
 # The OAuth plugin's hooks run on every sign-in.
 packages/auth/src/connectors.ts          sign-in

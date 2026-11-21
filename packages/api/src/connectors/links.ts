@@ -18,5 +18,8 @@ export const passLogPath = (groupId: string, passLogId: string) =>
 export const taskPath = (groupId: string, taskId: string) =>
   `${groupPath(groupId)}/tasks/${encodeURIComponent(taskId)}`;
 
+/** The care recipient's profile page (where a condition's conditions card is). */
+export const profilePath = (groupId: string) => `${groupPath(groupId)}/profile`;
+
 /** `path` on `origin` (a bare path when there's none). */
 export const linkTo = (origin: string | undefined, path: string) => `${origin ?? ""}${path}`;

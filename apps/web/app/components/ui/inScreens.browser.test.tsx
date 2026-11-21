@@ -1,5 +1,6 @@
 import type { DeviceRoute } from "../../../test/device";
 
+import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as entry from "~/routes/app/groups/entry/route";
@@ -11,6 +12,7 @@ import * as newDose from "~/routes/app/groups/timeline/new-dose/route";
 import * as newSheet from "~/routes/app/groups/timeline/new/route";
 import * as timeline from "~/routes/app/groups/timeline/route";
 import { renderWithDevice } from "../../../test/device";
+import { found } from "../../../test/found";
 import { fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../test/fixtures";
 
 // The ui/ primitives where the screens use them (ui.mjs's steps): every menu,
@@ -237,8 +239,27 @@ describe.each([
     });
     await menu(rowActions("note"), { name: /^Actions for note at /, items: "Print,Delete" });
     await menu(rowActions("symptom"), { name: /^Actions for symptom at /, items: "Edit,Delete" });
-    await menu(addButton, { name: "Add to Today", count: 14 });
+    await menu(addButton, { name: "Add to Today", count: 5 });
     expect(device.location()).toBe(TIMELINE);
+  });
+
+  test("the + menu's Vitals: a group that expands in place to the vital types, the menu staying open; Blood pressure opens the vital sheet for it", async () => {
+    const device = await open(TIMELINE, layout);
+    await expect.poll(rows).toBe(4);
+    await userEvent.click(addButton());
+    const vitals = page.getByRole("menuitem", { name: "Vitals" });
+    await expect.element(vitals).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(vitals);
+    await expect.element(vitals).toHaveAttribute("aria-expanded", "true");
+    expect(q(MENU)).not.toBeNull();
+    const types = [...document.querySelectorAll(`${ITEMS}[data-menu-group-item]`)].map((el) =>
+      el.textContent?.trim(),
+    );
+    expect(types).toEqual(VITAL_TYPES.map((t) => VITALS[t].label));
+    await userEvent.click(page.getByRole("menuitem", { name: "Blood pressure" }));
+    await expect.poll(() => q(MENU)).toBeNull();
+    await expect.poll(device.location).toBe(`${TIMELINE}/new/vital?type=bloodPressure`);
+    await expect.poll(() => nameOf(top())).toBe("Add to the timeline");
   });
 
   test("the timeline's chips and toggles: Filter opens a sheet whose kind filter is a nav with All current, a tap filters; Done returns focus; View options a named menu with the layouts, one checked", async () => {
@@ -255,7 +276,7 @@ describe.each([
     await expect.poll(device.location).toBe(`${TIMELINE}?kind=symptom`);
     await expect.element(nav.getByRole("link", { name: "Symptoms" })).toHaveAttribute("aria-current", "true");
     await userEvent.click(page.getByRole("button", { name: "Done" }));
-    await expect.poll(() => document.activeElement?.textContent?.trim()).toBe("Filter · 1");
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Filter, 1 on");
     const viewOptions = () => page.getByRole("button", { name: "View options" }).element() as HTMLElement;
     await menu(viewOptions, { name: "View options" });
     await userEvent.click(viewOptions());
@@ -498,5 +519,34 @@ describe.each([360, 390, 420, 1280])("the date field at %i", (width) => {
     await userEvent.click(TIME_CHIP());
     await expect.poll(() => q('[role="dialog"] [aria-label="Pick a date"]')).not.toBeNull();
     await dateFieldFits();
+  });
+});
+
+describe.each([420, 1280])("the page header at %i", (width) => {
+  test.each([{ url: PROVIDERS, title: "Providers", action: "Add provider" }])(
+    "$title: the title is the h1, its action beside it on the right",
+    async ({ url, title, action }) => {
+      await renderWithDevice({ route: ROUTES, url, fixtures: FIXTURES, width });
+      const header = await found(() => q("main header"));
+      const h1 = header.querySelector("h1")!;
+      expect(h1.textContent).toBe(title);
+      const control = [...header.querySelectorAll<HTMLElement>("a, button")].find(
+        (el) => (el.getAttribute("aria-label") ?? el.textContent?.trim()) === action,
+      )!;
+      expect(control).toBeDefined();
+      const [a, b] = [h1.getBoundingClientRect(), control.getBoundingClientRect()];
+      // On the same row, the action at the right.
+      expect(b.left).toBeGreaterThan(a.right);
+      expect(b.top).toBeLessThan(a.bottom);
+      expect(Math.round(header.getBoundingClientRect().right - b.right)).toBeLessThanOrEqual(1);
+    },
+  );
+
+  test("Timeline: the title is the h1, with no actions (View options is in the filter row)", async () => {
+    await renderWithDevice({ route: ROUTES, url: TIMELINE, fixtures: FIXTURES, width });
+    const header = await found(() => q("main header"));
+    expect(header.querySelector("h1")!.textContent).toBe("Timeline");
+    expect(header.querySelectorAll("a, button")).toHaveLength(0);
+    await found(() => q('[data-timeline-filters] button[aria-label="View options"]'));
   });
 });

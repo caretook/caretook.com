@@ -2,6 +2,8 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { found } from "../../../../../test/found";
+import { pageHeader } from "../../../../../test/pageHeader";
+import { fx } from "../../../../../test/fixtures";
 import {
   $,
   $$,
@@ -77,6 +79,34 @@ describe("the list", () => {
     );
   });
 
+  test("each row has a badge with its type, and none when the type isn't set", async () => {
+    await open({
+      fixtures: [
+        world(),
+        fx.medication({ name: "Vitamin D3", strength: "1000 IU", type: "supplement" }),
+        fx.medication({ name: "Zinc barrier cream", strength: null, type: "other" }),
+      ],
+    });
+    await expect.poll(() => listNames(CURRENT)).toContain("Vitamin D3 1000 IU");
+    /** A row's badge: what it shows, and what it says to a screen reader. */
+    const badge = (name: string) => {
+      const row = [...document.querySelectorAll("main li[data-medication-id]")].find((li) =>
+        li.querySelector("[data-medication-name]")?.textContent?.startsWith(name),
+      );
+      const el = row?.querySelector("[data-medication-type]");
+      if (!el) return null;
+      return [
+        el.querySelector('[aria-hidden="true"]')?.textContent,
+        el.querySelector(".sr-only")?.textContent,
+      ];
+    };
+    expect(badge("Lisinopril")).toEqual(["Rx", "Prescription"]);
+    expect(badge("Acetaminophen")).toEqual(["OTC", "Over the counter"]);
+    expect(badge("Vitamin D3")).toEqual(["Supplement", "Supplement"]);
+    expect(badge("Zinc barrier cream")).toEqual(["Other", "Other"]);
+    expect(badge("Oxybutynin")).toBeNull();
+  });
+
   test("search filters as it's typed (by reason too) and goes in the URL; the URL's search opens filtered", async () => {
     const device = await open();
     // The search box can render after open() resolves on a loaded machine: wait for it.
@@ -110,11 +140,76 @@ describe("the list", () => {
     expect(listNames(STOPPED)).toEqual(SEEDED_STOPPED);
   });
 
-  test("a viewer sees the list, told it's view-only, with no Add medication", async () => {
+  test("the type chips filter the list and go in the URL with the status, which opens filtered; All types clears only the type", async () => {
+    const typeChip = (label: string) =>
+      $$<HTMLAnchorElement>('main nav[aria-label="Medication type"] a').find(
+        (a) => a.textContent?.trim() === label,
+      )!;
+    const device = await open();
+    await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
+    expect($$('main nav[aria-label="Medication type"] a').map((a) => a.textContent?.trim())).toEqual([
+      "All types",
+      "Prescription",
+      "Over the counter",
+      "Supplement",
+      "Other",
+    ]);
+    await userEvent.click(await found(() => typeChip("Over the counter")));
+    await expect.poll(device.location).toBe(`${LIST}?type=otc`);
+    await expect.poll(() => listNames(CURRENT)).toEqual(["Acetaminophen 500 mg"]);
+    expect(listNames(STOPPED)).toEqual([]);
+    await userEvent.click(chip("Current"));
+    await expect.poll(device.location).toBe(`${LIST}?status=current&type=otc`);
+    await userEvent.click(typeChip("Supplement"));
+    await expect.poll(device.location).toBe(`${LIST}?status=current&type=supplement`);
+    await expect
+      .poll(() => document.querySelector("[data-empty]")?.textContent)
+      .toContain("No current supplement");
+    await device.screen.unmount();
+
+    const again = await open({ url: `${LIST}?status=current&type=otc` });
+    await expect.poll(() => listNames(CURRENT)).toEqual(["Acetaminophen 500 mg"]);
+    expect(currentChip()).toBe("Current");
+    expect($('main nav[aria-label="Medication type"] [aria-current="true"]')?.textContent?.trim()).toBe(
+      "Over the counter",
+    );
+    await userEvent.click(typeChip("All types"));
+    await expect.poll(again.location).toBe(`${LIST}?status=current`);
+    await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
+  });
+
+  test("an unknown type in the URL shows everything", async () => {
+    await open({ url: `${LIST}?type=bogus` });
+    await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
+    expect($('main nav[aria-label="Medication type"] [aria-current="true"]')?.textContent?.trim()).toBe(
+      "All types",
+    );
+  });
+
+  test("a viewer sees the list with no Add medication; the header is just “Medications”, as a writer's is", async () => {
     await open({ role: "viewer" });
     await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
-    expect($("main header p")?.textContent).toContain("You can view this list");
+    expect(pageHeader()).toEqual({ h1: "Medications", namesRecipient: false, viewerNote: false });
     expect($("main [data-add-medication]")).toBeNull();
+  });
+
+  test("the header's actions run + Add medication, labeled Passes, then a printer-only Print; Add opens the sheet and Print its menu", async () => {
+    const device = await open();
+    await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
+    expect(pageHeader()).toEqual({ h1: "Medications", namesRecipient: false, viewerNote: false });
+    const actions = $$("main header a, main header button");
+    expect(actions.map((a) => a.getAttribute("aria-label") ?? a.textContent?.trim())).toEqual([
+      "Add medication",
+      "Passes",
+      "Print",
+    ]);
+    expect(actions[0]?.textContent?.trim()).toBe("");
+    expect(actions[2]?.textContent?.trim()).toBe("");
+    await userEvent.click(page.getByRole("button", { name: "Print" }));
+    await expect.element(page.getByRole("menuitem", { name: /Weekly chart/ })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(actions[0]!);
+    await expect.poll(device.location).toContain("/medications/new");
   });
 
   test("a medication stopped on another device moves below the current ones", async () => {

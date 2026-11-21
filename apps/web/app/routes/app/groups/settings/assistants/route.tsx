@@ -4,6 +4,7 @@ import type { ApiOutputs } from "~/lib/core/rpc";
 
 import { ORPCError } from "@orpc/client";
 import { Link } from "react-router";
+import { ConnectGuide } from "~/components/connectors";
 import { SettingsCard, SettingsPage } from "~/components/settings";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
@@ -30,7 +31,10 @@ import { GroupConnections } from "./GroupConnections";
 // one). Owners and admins see every member's connection to the group and
 // disconnect any of them (`connector.listForGroup`, `connector.revoke`),
 // online only. Everyone else sees the status and a link to their own
-// connections on Settings → Devices.
+// connections on Settings → Devices. After the switch, for everyone, the
+// connect guide (connectors-2 slice 1): the address and each client's steps,
+// or the off note while the switch is off, with "Ask owners to turn this on"
+// for everyone but owners (slice 2, `connector.requestEnable`).
 
 export const meta = () => [{ title: "Assistants · Group settings · Caretook" }];
 
@@ -107,6 +111,12 @@ export default function GroupAssistants({ loaderData }: Route.ComponentProps) {
           </p>
         )}
       </SettingsCard>
+      <ConnectGuide
+        place="group"
+        groups={[{ role: group.role, enabled }]}
+        canToggle={access.toggle}
+        askGroupId={access.toggle ? undefined : group.id}
+      />
       {access.manage && online && connections && <GroupConnections connections={connections} />}
     </SettingsPage>
   );

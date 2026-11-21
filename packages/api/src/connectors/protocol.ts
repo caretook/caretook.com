@@ -1,15 +1,18 @@
 import type { AppError } from "@caretook/data";
+import type { Prompt } from "./prompts";
 import type { Tool, ToolContext } from "./registry";
 
 import { ERRORS, isError } from "@caretook/data";
 import { CONNECTOR_OAUTH_SCOPES } from "@caretook/data/schema";
+import { CONNECTOR_PROMPTS, describePrompt, promptAllowed } from "./prompts";
 import { describeTool, toolAllowed } from "./registry";
 
 // The Model Context Protocol's server side, as much as connectors need:
 // JSON-RPC 2.0 over one POST per message, stateless (no sessions, no SSE).
-// `initialize` (version negotiation; the `tools` capability only),
-// `notifications/initialized`, `ping`, `tools/list` (filtered by the grant's
-// scope) and `tools/call`. A tool's own failure (a refusal, a not-found) is
+// `initialize` (version negotiation; the `tools` and `prompts`
+// capabilities), `notifications/initialized`, `ping`, `tools/list` and
+// `prompts/list` (filtered by the grant's scope), `tools/call` and
+// `prompts/get`. A tool's own failure (a refusal, a not-found) is
 // a result with `isError: true`, so the model can correct itself; only
 // protocol faults are JSON-RPC errors. Pure apart from the tools' handlers.
 
@@ -19,7 +22,7 @@ export const MCP_PROTOCOL_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", 
 export const MCP_SERVER_INFO = { name: "caretook", title: "Caretook", version: "1.0.0" } as const;
 
 const INSTRUCTIONS =
-  "Caretook is a shared care log for one care group. Every tool works on the one group this connection was granted; start with group_overview for its time zone and your scope. Times are ISO 8601 in the care recipient's time zone.";
+  "Caretook is a shared care log for one care group. Every tool works on the one group this connection was granted; start with group_overview for its time zone and your scope. Times are ISO 8601 in the care recipient's time zone. Its prompts are ready-made starting points: catch me up, prepare for an appointment, a weekly summary and, when you may write, log what happened.";
 
 /** JSON-RPC 2.0's error codes. */
 export const JSON_RPC = {
@@ -106,7 +109,7 @@ const initialize = (id: Id, params: Record<string, unknown>) => {
   const protocolVersion = MCP_PROTOCOL_VERSIONS.find((v) => v === asked) ?? MCP_PROTOCOL_VERSIONS[0];
   return result(id, {
     protocolVersion,
-    capabilities: { tools: { listChanged: false } },
+    capabilities: { tools: { listChanged: false }, prompts: { listChanged: false } },
     serverInfo: MCP_SERVER_INFO,
     instructions: INSTRUCTIONS,
   });
@@ -160,6 +163,29 @@ const callTool = async (
   });
 };
 
+/** `prompts/get`: the prompt's user message, its arguments checked (a bad one is invalid params). */
+const getPrompt = (id: Id, params: Record<string, unknown>, ctx: ToolContext, prompts: readonly Prompt[]) => {
+  const { name } = params;
+  if (typeof name !== "string")
+    return failure(id, JSON_RPC.invalidParams, "params.name must be a prompt's name");
+  const args = params.arguments ?? {};
+  if (!isObject(args)) return failure(id, JSON_RPC.invalidParams, "params.arguments must be an object");
+  // A prompt the grant can't use is as unknown as one that doesn't exist: it isn't listed.
+  const prompt = prompts.find((p) => p.name === name && promptAllowed(p, ctx.scope));
+  if (!prompt) return failure(id, JSON_RPC.invalidParams, `Unknown prompt: ${name}`);
+
+  const parsed = prompt.args.safeParse(args);
+  if (!parsed.success) {
+    return failure(id, JSON_RPC.invalidParams, "The prompt's arguments are invalid", {
+      issues: issuesOf(parsed.error.issues),
+    });
+  }
+  return result(id, {
+    description: prompt.description,
+    messages: [{ role: "user", content: { type: "text", text: prompt.render(parsed.data) } }],
+  });
+};
+
 /**
  * Answer one JSON-RPC message (already parsed from the body) for a verified
  * connection. Throws only what the tools throw (a server fault), which the
@@ -169,6 +195,7 @@ export const handleMcp = async (
   message: unknown,
   ctx: ToolContext,
   registry: readonly Tool[],
+  prompts: readonly Prompt[] = CONNECTOR_PROMPTS,
 ): Promise<McpReply> => {
   // JSON-RPC batches went in MCP 2025-06-18; we answer one message per POST.
   if (Array.isArray(message))
@@ -203,6 +230,12 @@ export const handleMcp = async (
       return result(id, { tools: registry.filter((tool) => toolAllowed(tool, ctx.scope)).map(describeTool) });
     case "tools/call":
       return callTool(id, params, ctx, registry);
+    case "prompts/list":
+      return result(id, {
+        prompts: prompts.filter((prompt) => promptAllowed(prompt, ctx.scope)).map(describePrompt),
+      });
+    case "prompts/get":
+      return getPrompt(id, params, ctx, prompts);
     default:
       return failure(id, JSON_RPC.methodNotFound, `Method not found: ${method}`);
   }

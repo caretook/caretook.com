@@ -16,6 +16,7 @@ import {
 } from "../../../../../test/fixtures";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { clearUndo } from "~/lib/medications/passUndo";
+import { forgetRecentLines, recordLine } from "~/lib/assistant/recentLines";
 import { dayInZone, timeInZone } from "~/lib/core/zonedDay";
 import * as timeline from "./route";
 import { waitUntil } from "./timelineWorld";
@@ -65,7 +66,30 @@ const undo = () => now()?.querySelector<HTMLButtonElement>("[data-pass-undo-butt
 const doses = async (device: Awaited<ReturnType<typeof open>>) =>
   device.query<{ id: string }>("SELECT id FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL");
 
-afterEach(() => clearUndo());
+afterEach(() => {
+  clearUndo();
+  forgetRecentLines();
+});
+
+describe("the quick-entry box", () => {
+  test("its Suggestions button opens the same popover, with no Due now row", async () => {
+    recordLine(TEST_USER.id, TEST_GROUP.id, "pain 4 left knee");
+    await open("caretaker");
+    await waitUntil(() => give().length === 1, 4000, "the due pass");
+    const button = page.getByRole("button", { name: "Suggestions", exact: true });
+    await expect.element(button).toBeVisible();
+    expect(document.querySelector("[data-quick-entry]")!.contains(button.element())).toBe(true);
+    await userEvent.click(button);
+    const dialog = page.getByRole("dialog", { name: "Suggestions" });
+    await expect.element(dialog.getByRole("list", { name: "Your recent lines" })).toBeVisible();
+    expect(dialog.element().querySelector('[data-quick-row="due"]')).toBeNull();
+    await userEvent.click(dialog.getByRole("button", { name: "pain 4 left knee" }));
+    await expect
+      .element(page.getByRole("textbox", { name: "What happened?" }))
+      .toHaveValue("pain 4 left knee");
+    await expect.element(dialog).not.toBeInTheDocument();
+  });
+});
 
 describe("the Upcoming block", () => {
   test("a writer: the due pass as one big Given all, with Undo there, and the next appointment", async () => {
@@ -75,17 +99,21 @@ describe("the Upcoming block", () => {
     await expect.element(block).toBeVisible();
     await expect.element(block.getByRole("heading", { name: "Upcoming" })).toBeVisible();
     expect(give()[0]!.textContent).toBe("Give evening meds (2)");
-    expect(now()!.querySelector("[data-simple-next]")?.textContent).toMatch(/^Next: Visit with Dr\. Lark · /);
+    await expect
+      .poll(() => now()?.querySelector("[data-simple-next]")?.textContent)
+      .toMatch(/^Next: Visit with Dr\. Lark · /);
     // It comes before the quick-entry box.
     const box = document.querySelector("[data-quick-entry]")!;
     expect(now()!.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // The box offers no due-pass chip of its own: Given all is here (passChips={false}).
-    expect(box.querySelectorAll('[data-quick-row="due"] button')).toHaveLength(0);
+    // The box offers no due pass of its own: Given all is here (passChips={false}).
+    expect(box.querySelector('button[aria-label^="Suggestions"]')).toBeNull();
 
     await userEvent.click(give()[0]!);
     await expect.poll(async () => (await doses(device)).length).toBe(2);
     await waitUntil(() => !!undo(), 4000, "Undo");
-    expect(now()!.querySelector("[data-pass-undo-label]")?.textContent).toBe("Evening logged");
+    await expect
+      .poll(() => now()?.querySelector("[data-pass-undo-label]")?.textContent)
+      .toBe("Evening logged");
     await waitUntil(() => give().length === 0, 4000, "the pass to be done");
 
     await userEvent.click(undo()!);
@@ -96,10 +124,12 @@ describe("the Upcoming block", () => {
   test("a viewer: the due pass and the next appointment as text, no Given all", async () => {
     await open("viewer");
     await waitUntil(() => !!now()?.querySelector("[data-simple-due]"), 4000, "the due pass");
-    expect(now()!.querySelector("[data-simple-due]")!.textContent).toMatch(
-      /^(Due now|Overdue): Evening · 2 medications$/,
-    );
-    expect(now()!.querySelector("[data-simple-next]")?.textContent).toMatch(/^Next: Visit with Dr\. Lark/);
+    await expect
+      .poll(() => now()?.querySelector("[data-simple-due]")?.textContent)
+      .toMatch(/^(Due now|Overdue): Evening · 2 medications$/);
+    await expect
+      .poll(() => now()?.querySelector("[data-simple-next]")?.textContent)
+      .toMatch(/^Next: Visit with Dr\. Lark/);
     // No Given all: the one button is the next appointment's, which opens the list (B-191).
     expect([...now()!.querySelectorAll("button")].map((b) => b.getAttribute("aria-expanded"))).toEqual([
       "false",
@@ -107,8 +137,9 @@ describe("the Upcoming block", () => {
   });
 
   test("nothing due and nothing ahead: no Upcoming heading", async () => {
-    await open("caretaker", []);
+    const device = await open("caretaker", []);
     await waitUntil(() => !!document.querySelector("[data-simple-timeline]"), 4000, "the simple view");
+    await device.settle();
     expect(now()?.querySelector("h2") ?? null).toBeNull();
     expect(give()).toHaveLength(0);
   });
@@ -199,6 +230,6 @@ describe("the next appointment opens the next five upcoming items", () => {
     await userEvent.click(toggle());
     await waitUntil(() => items().length > 0, 4000, "the list");
     expect(titles()).toEqual(["Visit with Dr. Lark"]);
-    expect(list()!.querySelector("[data-simple-upcoming-all]")?.textContent).toBe("See all");
+    await expect.poll(() => list()?.querySelector("[data-simple-upcoming-all]")?.textContent).toBe("See all");
   });
 });

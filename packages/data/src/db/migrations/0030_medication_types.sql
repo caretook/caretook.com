@@ -1,0 +1,2 @@
+ALTER TABLE "medication" ADD COLUMN "type" text;--> statement-breakpoint
+ALTER TABLE "medication" ADD CONSTRAINT "medication_type_check" CHECK ("medication"."type" IN ('prescription', 'otc', 'supplement', 'other'));

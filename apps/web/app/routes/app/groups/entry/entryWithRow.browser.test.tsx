@@ -6,6 +6,7 @@ import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo } from "../../../../../test/fixtures";
 import {
   $,
+  $$,
   ADD_LINK,
   ALVAREZ,
   chips,
@@ -23,6 +24,8 @@ import {
   pick,
   PICKER,
   PROVIDER_ROUTES,
+  SECOND_GROUP,
+  secondGroup,
   providerUrl,
   suggested,
   suggestion,
@@ -259,5 +262,73 @@ describe("suggestions", () => {
     });
     await waitUntil(() => suggested().includes("Maria Reyes"), 4000, "a recent link");
     expect(suggested().length).toBeLessThanOrEqual(5);
+  });
+});
+
+describe("other groups' providers in the picker", () => {
+  /** Another group's practice and its clinician, and a provider that's here too (fictional). */
+  const HARBOR = fx.provider({
+    groupId: SECOND_GROUP.id,
+    type: "practice",
+    name: "Harbor Clinic",
+    phones: [{ label: "Front desk", number: "(555) 010-1100" }],
+  });
+  const OKAFOR = fx.provider({
+    groupId: SECOND_GROUP.id,
+    name: "Dr. Nia Okafor",
+    specialty: "Geriatrics",
+    practiceId: HARBOR.id,
+  });
+  const PATEL_THERE = fx.provider({
+    groupId: SECOND_GROUP.id,
+    name: "Dr. Samuel Patel",
+    specialty: "Cardiology",
+  });
+  const OTHERS = [secondGroup(), HARBOR, OKAFOR, PATEL_THERE];
+
+  /** The picker's "From <group>" sections: each heading and the names under it. */
+  const sections = () =>
+    $$('[role="listbox"] [role="group"]').map((g) => ({
+      heading: document.getElementById(g.getAttribute("aria-labelledby") ?? "")?.textContent ?? null,
+      names: [...g.querySelectorAll('[role="option"]')].map((o) => o.firstElementChild?.textContent),
+    }));
+
+  test("a “From <group>” section once something is typed (after this group's, minus ones already here); a pick copies it with its practice and links the copy, whose chip opens this group's page", async () => {
+    const device = await open(entryUrl(VISIT.id), { fixtures: [directory(), VISIT, ...OTHERS] });
+    await userEvent.click(await found(ADD_LINK));
+    await waitUntil(() => document.activeElement === PICKER(), 4000, "the picker");
+    await waitUntil(() => !!option("Dr. Samuel Patel"), 4000, "this group's providers");
+    expect(sections()).toEqual([]);
+
+    await userEvent.keyboard("dr");
+    await waitUntil(() => sections().length === 1, 4000, "the other group's section");
+    expect(sections()).toEqual([
+      { heading: "From Lou Lindqvist", names: ["Dr. Grace Lindqvist", "Dr. Nia Okafor"] },
+    ]);
+    // This group's matches come first; the other group's Dr. Patel is already here.
+    const names = $$('[role="option"]').map((o) => o.firstElementChild?.textContent);
+    expect(names.indexOf("Dr. Samuel Patel")).toBeLessThan(names.indexOf("Dr. Grace Lindqvist"));
+    expect(names.filter((n) => n === "Dr. Samuel Patel")).toHaveLength(1);
+
+    await userEvent.click(option("Dr. Nia Okafor")!);
+    await waitUntil(() => chips().length === 1, 4000, "the chip");
+    const copied = await device.query<{ id: string; name: string; practice_id: string | null }>(
+      "SELECT id, name, practice_id FROM provider WHERE group_id = ? AND name IN ('Dr. Nia Okafor', 'Harbor Clinic') ORDER BY name",
+      [GROUP],
+    );
+    const [copy, practice] = copied;
+    expect(copied.map((p) => p.name)).toEqual(["Dr. Nia Okafor", "Harbor Clinic"]);
+    expect([copy!.id, practice!.id]).not.toContain(OKAFOR.id);
+    expect(copy!.practice_id).toBe(practice!.id);
+    expect(await linkedIds(device, VISIT.id)).toEqual([copy!.id]);
+    // One write: the practice, the clinician, then the link.
+    const order = (await device.queued())
+      .filter((w) => w.type === "provider" || w.type === "timeline_entry_provider")
+      .map((w) => w.id);
+    expect(order).toEqual([practice!.id, copy!.id, entryProviderId(VISIT.id, copy!.id)]);
+
+    expect(chips()[0]).toMatchObject({ id: copy!.id, text: "Dr. Nia Okafor", href: providerUrl(copy!.id) });
+    await userEvent.click(WITH()!.querySelector(`li[data-chip="${copy!.id}"] a`)!);
+    await expect.poll(() => device.location()).toBe(providerUrl(copy!.id));
   });
 });

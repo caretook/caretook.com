@@ -31,5 +31,6 @@ describe("providerUrls", () => {
     expect(appUrls.editProvider("g", "p 1", { q: "cardio" })).toBe(
       "/app/groups/g/providers/p%201/edit?q=cardio",
     );
+    expect(appUrls.importProviders("g", "?q=west")).toBe("/app/groups/g/providers/import?q=west");
   });
 });

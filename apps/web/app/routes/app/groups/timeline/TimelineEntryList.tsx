@@ -51,6 +51,9 @@ export { COLUMN_CAP } from "./layout";
 
 const NO_SEARCH = { q: "", state: "none" } as const;
 
+/** The empty Today's line (a writer's unfiltered full view with nothing logged today). */
+export const EMPTY_TODAY_TEXT = "Nothing logged today yet.";
+
 /** Simple mode's larger list: everything in it, text, icons and taps alike, a quarter bigger. */
 /** Simple mode shows no care period markers. */
 const NO_MARKERS: never[] = [];
@@ -79,8 +82,9 @@ export type TimelineEntryListFilters = {
  * line in its sticky header while no filter or search is on, then `OlderEntries`,
  * which loads older pages as the end comes near. Writers get each entry's ⋯ menu, with one delete
  * confirm for the whole list, and each day heading's + menu; a writer's list
- * always has a Today heading (empty when nothing's logged today), so today's
- * + is always there.
+ * always has a Today heading, so today's + is always there. With no filter or
+ * search on and nothing logged today, that heading says so and offers "Add an
+ * entry" (`onAddEntry`), in place of the empty timeline's line.
  *
  * `simple` is simple mode's list: rows only, at the full timeline's type
  * scale (no zoom), with no filter links, no + menus and no care periods (markers or the day headers'
@@ -98,6 +102,7 @@ export function TimelineEntryList({
   search: searching = NO_SEARCH,
   simple = false,
   summaryMode = "highlights",
+  onAddEntry,
 }: {
   data: Pick<
     TimelineData,
@@ -130,6 +135,8 @@ export function TimelineEntryList({
   simple?: boolean;
   /** The day summaries' setting: none, highlights (the default) or everything. */
   summaryMode?: DaySummaryMode;
+  /** The empty Today's "Add an entry" (the full view brings the quick-entry field up). */
+  onAddEntry?: () => void;
 }) {
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -166,6 +173,8 @@ export function TimelineEntryList({
   const days = withMarkers(data.days, simple ? NO_MARKERS : data.markers, timeZone, now);
   const todayKey = dayKeyIn(now.toISOString(), timeZone);
   const adding = canWrite && !simple;
+  // Nothing logged today, with no filter or search on: the Today heading says so (`EmptyToday`).
+  const emptyToday = adding && !kind && !author && !vital && !searching.q && data.days[0]?.key !== todayKey;
   const sections =
     adding && days[0]?.key !== todayKey
       ? [{ key: todayKey, label: dayLabel(now.toISOString(), timeZone, now), entries: [] }, ...days]
@@ -321,10 +330,11 @@ export function TimelineEntryList({
                 )}
               </ol>
             )}
+            {emptyToday && day.key === todayKey && <EmptyToday onAddEntry={onAddEntry} />}
           </section>
         ))}
         {/* After the headings, so a writer's empty timeline starts with Today's +. */}
-        {data.days.length === 0 && (
+        {data.days.length === 0 && !emptyToday && (
           <p className="text-base-content/70" data-empty>
             {searchStateText(searching.state) ?? emptyText}
           </p>
@@ -352,5 +362,19 @@ export function TimelineEntryList({
       {remind.sheet}
       {scope.element}
     </>
+  );
+}
+
+/** Under an empty Today: a muted line and "Add an entry" (when there's a quick-entry box to go to). */
+function EmptyToday({ onAddEntry }: { onAddEntry?: () => void }) {
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2" data-empty-today>
+      <p className="text-base-content/70">{EMPTY_TODAY_TEXT}</p>
+      {onAddEntry && (
+        <button type="button" className="btn btn-sm btn-outline" onClick={onAddEntry}>
+          Add an entry
+        </button>
+      )}
+    </div>
   );
 }

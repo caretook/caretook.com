@@ -8,6 +8,7 @@ import * as settingsLayout from "~/routes/app/settings/layout/route";
 import * as timelineSettings from "~/routes/app/settings/timeline/route";
 import { DICTATION_HINT } from "~/components/quick-entry/QuickEntryBox";
 import { apiCalls } from "../../../../../test/api";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_GROUP, TEST_RECIPIENT, TEST_USER } from "../../../../../test/fixtures";
 import * as editSheet from "./edit/route";
@@ -128,7 +129,7 @@ describe("the simple view", () => {
     await expect
       .element(page.getByRole("heading", { level: 1, name: TEST_RECIPIENT.preferredName }))
       .toBeVisible();
-    expect(simpleView()!.textContent).toContain("Today · ");
+    await expect.poll(() => simpleView()?.textContent ?? "").toContain("Today · ");
     // The box at the normal size, then the search and Filter row, then the rows; no dictation tip on a desktop.
     const box = page.getByRole("textbox", { name: "What happened?" });
     await expect.element(box).toBeVisible();
@@ -138,11 +139,13 @@ describe("the simple view", () => {
     expect(section.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const chips = section.parentElement!.nextElementSibling!;
     expect(chips.querySelector('button[aria-label="Search entries"]')).not.toBeNull();
-    expect(chips.textContent).toContain("Filter");
+    expect(chips.querySelector("button[data-filter-button]")?.getAttribute("aria-label")).toBe("Filter");
+    // No View options in the simple view's toolbar (the full view's sits at its end).
+    expect(chips.querySelector('button[aria-label="View options"]')).toBeNull();
     expect(chips.nextElementSibling).toBe(list);
     expect(document.querySelector("[data-dictation-hint]")).toBeNull();
     // No text-2xl heading anywhere in simple mode.
-    expect(simpleView()!.querySelector(".text-2xl")).toBeNull();
+    expect((await found(simpleView)).querySelector(".text-2xl")).toBeNull();
 
     // The rows, with the full timeline's ⋯ menus; the kind icon and initials aren't filters.
     await waitUntil(() => rows().length === 2, 4000, "the rows");

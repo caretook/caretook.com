@@ -9,6 +9,7 @@ import * as newSheet from "./new/route";
 import * as tasksRoute from "./route";
 import * as taskPage from "../task/route";
 import { renderWithDevice } from "../../../../../test/device";
+import { pageHeader } from "../../../../../test/pageHeader";
 import { at, fx, hoursAgo, task, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { clearTaskUndo } from "~/lib/tasks/taskUndo";
 
@@ -90,6 +91,7 @@ describe("the task list", () => {
   test("opens on Mine when I have open tasks, in sections; Everyone shows the rest, typed names too", async () => {
     const device = await open();
     await expect.element(page.getByRole("heading", { name: "Tasks", level: 1 })).toBeInTheDocument();
+    expect(pageHeader()).toEqual({ h1: "Tasks", namesRecipient: false, viewerNote: false });
     await expect.element(chip("Mine")).toHaveAttribute("aria-current", "true");
     expect(titles("overdue")).toEqual(["Call the pharmacy"]);
     expect(titles("today")).toEqual(["Pick up the walker"]);
@@ -159,9 +161,10 @@ describe("the task list", () => {
     await userEvent.click(page.getByRole("button", { name: "Undo Call the pharmacy" }));
     await expect.poll(() => titles("overdue")).toEqual(["Call the pharmacy"]);
     await expect.poll(lines).toEqual(["Done: Pick up the walker"]);
-    expect(titles("today")).toEqual([]);
-    expect(titles("done")).toContain("Pick up the walker");
-    expect(titles("done")).not.toContain("Call the pharmacy");
+    // Each list is its own query, so the done list can still be catching up.
+    await expect.poll(() => titles("today")).toEqual([]);
+    await expect.poll(() => titles("done")).toContain("Pick up the walker");
+    await expect.poll(() => titles("done")).not.toContain("Call the pharmacy");
     const rows = await device.query<{ title: string; done: number }>(
       "SELECT title, done_at IS NOT NULL AS done FROM task WHERE title IN ('Call the pharmacy', 'Pick up the walker') ORDER BY title",
     );
@@ -180,7 +183,7 @@ describe("the task list", () => {
     expect(titles("done")).toEqual([]);
   });
 
-  test("a viewer sees ticks only on their own tasks and no Add", async () => {
+  test("a viewer sees ticks only on their own tasks and no Add, under the same header", async () => {
     const mine = task({
       title: "Pick up groceries",
       dueOn: today,
@@ -195,6 +198,7 @@ describe("the task list", () => {
       "Mark “Pick up groceries” done",
     ]);
     expect(document.querySelector("[data-add-task]")).toBeNull();
+    expect(pageHeader()).toEqual({ h1: "Tasks", namesRecipient: false, viewerNote: false });
   });
 
   test("a row opens the task's page, for viewers too; its way back keeps the chip", async () => {

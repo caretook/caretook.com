@@ -42,28 +42,44 @@ export type MenuSection = {
   selection?: { selected: string; onChange: (id: string) => void };
 };
 
+/**
+ * An item that expands, in place, to its `items` (indented after it; no
+ * flyout). It keeps the menu open when pressed, says whether it's expanded,
+ * and starts closed each time the menu opens. Its items act as usual.
+ */
+export type MenuGroup = {
+  type: "group";
+  id: string;
+  label: string;
+  icon?: LucideIcon;
+  items: readonly MenuEntryItem[];
+};
+
 export type MenuSeparator = { type: "separator" };
 
 /** Items may be left out with `false`/`null`/`undefined` (`canEdit && { … }`). */
 type Skippable<T> = T | false | null | undefined;
 export type MenuEntryItem = Skippable<MenuItem>;
-export type MenuEntry = Skippable<MenuItem | MenuSection | MenuSeparator>;
+export type MenuEntry = Skippable<MenuItem | MenuSection | MenuGroup | MenuSeparator>;
 
 export type NormalizedSection = Omit<MenuSection, "items"> & { items: MenuItem[] };
+export type NormalizedGroup = Omit<MenuGroup, "items"> & { items: MenuItem[] };
 export type NormalizedEntry =
-  ({ type: "item" } & MenuItem) | NormalizedSection | { type: "separator"; id: string };
+  ({ type: "item" } & MenuItem) | NormalizedSection | NormalizedGroup | { type: "separator"; id: string };
 
 export const SEPARATOR: MenuSeparator = { type: "separator" };
 
-const isSection = (e: MenuItem | MenuSection | MenuSeparator): e is MenuSection =>
-  "type" in e && e.type === "section";
-const isSeparator = (e: MenuItem | MenuSection | MenuSeparator): e is MenuSeparator =>
-  "type" in e && e.type === "separator";
+type Entry = MenuItem | MenuSection | MenuGroup | MenuSeparator;
+const isSection = (e: Entry): e is MenuSection => "type" in e && e.type === "section";
+const isGroup = (e: Entry): e is MenuGroup => "type" in e && e.type === "group";
+const isSeparator = (e: Entry): e is MenuSeparator => "type" in e && e.type === "separator";
+const shown = (items: readonly MenuEntryItem[]) => items.filter((i): i is MenuItem => !!i);
 
 /**
  * What the menu renders: skipped items dropped, sections with no items
- * (and no header) dropped, and separators only between two shown entries
- * (never first, last or twice in a row). Separators get stable ids.
+ * (and no header) and groups with no items dropped, and separators only
+ * between two shown entries (never first, last or twice in a row; a group
+ * counts as one entry, its items with it). Separators get stable ids.
  */
 export function normalizeMenu(entries: readonly MenuEntry[]): NormalizedEntry[] {
   const out: NormalizedEntry[] = [];
@@ -77,8 +93,12 @@ export function normalizeMenu(entries: readonly MenuEntry[]): NormalizedEntry[] 
     }
     let next: NormalizedEntry;
     if (isSection(entry)) {
-      const items = entry.items.filter((i): i is MenuItem => !!i);
+      const items = shown(entry.items);
       if (items.length === 0 && !entry.header) continue;
+      next = { ...entry, items };
+    } else if (isGroup(entry)) {
+      const items = shown(entry.items);
+      if (items.length === 0) continue;
       next = { ...entry, items };
     } else {
       next = { type: "item", ...entry };

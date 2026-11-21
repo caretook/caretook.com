@@ -7,6 +7,7 @@ import { Clock, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { AllergiesRegion } from "~/components/medications";
+import { PageHeader } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { medicationList, parseMedicationFilters } from "~/lib/medications/medicationList";
@@ -17,7 +18,7 @@ import { loadAllergies, useAllergies } from "~/lib/medications/allergies.sync";
 import { loadDueDoses, useDueDoses } from "~/lib/medications/dueDoses.sync";
 import { logDose, medicationsQuery, toMedications } from "~/lib/medications/medications.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
-import { MedicationSearch, StatusFilter } from "./MedicationFilters";
+import { MedicationSearch, StatusFilter, TypeFilter } from "./MedicationFilters";
 import { MedicationList } from "./MedicationList";
 import { PrintMenu } from "./PrintMenu";
 import { todayDoseFromForm } from "./todayDose";
@@ -86,47 +87,44 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
   // The box filters as you type; the URL follows (see `MedicationSearch`).
   const [text, setText] = useState(filters.q);
   const list = useMemo(
-    () => medicationList(medications, { q: text, status: filters.status }),
-    [medications, text, filters.status],
+    () => medicationList(medications, { q: text, status: filters.status, type: filters.type }),
+    [medications, text, filters.status, filters.type],
   );
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold">Medications</h1>
-          <p className="text-base-content/70 text-sm">
-            {group.displayName}
-            {!group.canWrite && " · You can view this list"}
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-          <Link
-            to={appUrls.medicationPasses(params.groupId)}
-            prefetch="render"
-            className="btn btn-ghost btn-sm gap-1.5"
-            data-passes-link
-          >
-            <Clock className="size-4" aria-hidden="true" />
-            Passes
-          </Link>
-          <PrintMenu groupId={params.groupId} />
-          {group.canWrite && (
+      <PageHeader
+        title="Medications"
+        actions={
+          <>
+            {group.canWrite && (
+              <Link
+                to={appUrls.newMedication(params.groupId, search)}
+                state={MEDICATION_SHEET_STATE}
+                // Loaded ahead, so the sheet opens offline too.
+                prefetch="render"
+                preventScrollReset
+                aria-label="Add medication"
+                title="Add medication"
+                className="btn btn-primary btn-sm btn-square"
+                data-add-medication
+              >
+                <Plus className="size-4" aria-hidden="true" />
+              </Link>
+            )}
             <Link
-              to={appUrls.newMedication(params.groupId, search)}
-              state={MEDICATION_SHEET_STATE}
-              // Loaded ahead, so the sheet opens offline too.
+              to={appUrls.medicationPasses(params.groupId)}
               prefetch="render"
-              preventScrollReset
-              className="btn btn-primary btn-sm"
-              data-add-medication
+              className="btn btn-ghost btn-sm gap-1.5"
+              data-passes-link
             >
-              <Plus className="size-4" aria-hidden="true" />
-              Add medication
+              <Clock className="size-4" aria-hidden="true" />
+              Passes
             </Link>
-          )}
-        </div>
-      </header>
+            <PrintMenu groupId={params.groupId} />
+          </>
+        }
+      />
 
       <AllergiesRegion groupId={params.groupId} state={allergies} canWrite={group.canWrite} />
 
@@ -140,6 +138,7 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
 
       <MedicationSearch value={text} urlQuery={filters.q} onChange={setText} />
       <StatusFilter status={filters.status} />
+      <TypeFilter type={filters.type} />
 
       <MedicationList
         total={medications.length}
@@ -147,6 +146,7 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
         passes={passes}
         text={text}
         status={filters.status}
+        type={filters.type}
       />
 
       {/* The add, edit and allergies sheets render here, over the list. */}

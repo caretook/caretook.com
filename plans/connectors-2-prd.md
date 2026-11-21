@@ -1,5 +1,7 @@
 # PRD: Connectors 2 (easier connecting, more writes)
 
+> **Done** (2026-11-21): every slice merged; the decisions are in [connectors](../docs/domain/connectors.md), [live notes](../docs/domain/live-notes.md) and [notifications](../docs/domain/notifications.md).
+
 Backlog items B-193 (the in-app connect guide), B-194 (asking owners to turn assistants on), B-195 (starter prompts and a success state), B-204 (editing notes and events) and B-197 (condition writes). B-196 (directory listings) stays in the backlog until after the launch. Topic `connectors-2`. It follows the connectors PRD ([`connectors-prd.md`](connectors-prd.md), done); the rules it builds on are in [connectors](../docs/domain/connectors.md), [notifications](../docs/domain/notifications.md), [live notes](../docs/domain/live-notes.md) and [care groups](../docs/domain/care-groups.md).
 
 ## Problem Statement

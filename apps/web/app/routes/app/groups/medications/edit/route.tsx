@@ -84,7 +84,9 @@ export async function clientAction({
   const { input, newProviders, slotRows, conditionIds } = medicationFromForm(form);
   const badConditions = await checkMedicationConditions(db, group.id, conditionIds);
   if (badConditions) return badConditions;
-  const result = await updateMedication(db, params.medicationId, input, newProviders);
+  const result = await updateMedication(db, params.medicationId, input, newProviders, {
+    requireType: true,
+  });
   if (!result.ok) return { ...result, issues: issuesForSlotRows(result.issues, slotRows) };
   return setMedicationConditions(db, params.medicationId, conditionIds);
 }

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import {
+  appendNoteSection,
   buildNoteDoc,
   encodeNoteDoc,
   fromBase64,
   isYjsUpdate,
+  MENTION_NODE,
   NOTE_FRAGMENT,
   noteDocFromText,
   noteText,
@@ -98,6 +100,33 @@ describe("noteText", () => {
 
   it("is empty for an empty document", () => {
     expect(noteText(new Y.Doc())).toBe("");
+  });
+
+  it("reads a mention as @ and its label, where it sits in the line", () => {
+    // As Tiptap's Collaboration stores it: text, the mention atom, text.
+    const doc = new Y.Doc();
+    const p = new Y.XmlElement("paragraph");
+    doc.getXmlFragment(NOTE_FRAGMENT).insert(0, [p]);
+    const before = new Y.XmlText();
+    const mention = new Y.XmlElement(MENTION_NODE);
+    const after = new Y.XmlText();
+    p.insert(0, [before, mention, after]);
+    before.insert(0, "Called ");
+    mention.setAttribute("id", "4b7e7a52-6f1c-4a3e-9b51-2f0d1c8e9a10");
+    mention.setAttribute("label", "Dr. Samuel Patel");
+    mention.setAttribute("mentionSuggestionChar", "@");
+    after.insert(0, " about the dose.");
+    expect(noteText(doc)).toBe("Called @Dr. Samuel Patel about the dose.");
+    // And the same after a round trip through a stored snapshot.
+    expect(noteText(buildNoteDoc(encodeNoteDoc(doc)))).toBe("Called @Dr. Samuel Patel about the dose.");
+  });
+
+  it("reads a mention without a label as a bare @", () => {
+    const doc = new Y.Doc();
+    const p = new Y.XmlElement("paragraph");
+    doc.getXmlFragment(NOTE_FRAGMENT).insert(0, [p]);
+    p.insert(0, [new Y.XmlElement(MENTION_NODE)]);
+    expect(noteText(doc)).toBe("@");
   });
 });
 
@@ -214,6 +243,90 @@ describe("prependNoteSection", () => {
     const start = lines.indexOf(SECTION[0]!.text);
     expect(lines.slice(start, start + SECTION.length).map((l) => l.replace(/^• /, ""))).toEqual(
       SECTION.map((l) => l.text),
+    );
+  });
+});
+
+describe("appendNoteSection", () => {
+  const QUESTIONS = [
+    { text: "Questions for Dr. Lee" },
+    { text: "Can the evening dose move earlier?", style: "bullet" as const },
+    { text: "Is the dizziness from the new tablet?", style: "bullet" as const },
+  ];
+
+  it("puts the lines at the end, after the last block, as paragraphs and one list", () => {
+    const doc = noteDocFromText("Visit notes\n• Bring the pill box");
+    appendNoteSection(doc, QUESTIONS);
+    expect(noteText(doc)).toBe(
+      [
+        "Visit notes",
+        "• Bring the pill box",
+        "Questions for Dr. Lee",
+        "• Can the evening dose move earlier?",
+        "• Is the dizziness from the new tablet?",
+      ].join("\n"),
+    );
+    const nodes = doc.getXmlFragment(NOTE_FRAGMENT).toArray() as Y.XmlElement[];
+    // The existing list is left alone: the appended bullets are a list of their own.
+    expect(nodes.map((n) => n.nodeName)).toEqual(["paragraph", "bulletList", "paragraph", "bulletList"]);
+    expect((nodes[1]!.toArray() as Y.XmlElement[]).length).toBe(1);
+    expect((nodes[3]!.toArray() as Y.XmlElement[]).length).toBe(2);
+  });
+
+  it("fills an empty document", () => {
+    const doc = new Y.Doc();
+    appendNoteSection(doc, [{ text: "First line" }, { text: "Second line" }]);
+    expect(noteText(doc)).toBe("First line\nSecond line");
+  });
+
+  it("leaves existing content untouched: one update, adding only", () => {
+    const base = sampleDoc();
+    const snapshot = encodeNoteDoc(base);
+    const before = noteText(base);
+    const doc = buildNoteDoc(snapshot);
+    let count = 0;
+    doc.on("update", () => count++);
+    const update = appendNoteSection(doc, QUESTIONS);
+    expect(count).toBe(1);
+    // The update deletes nothing, and rebuilds the same document elsewhere.
+    expect(Y.decodeUpdate(update).ds.clients.size).toBe(0);
+    const rebuilt = buildNoteDoc(snapshot, [toBase64(update)]);
+    expect(noteText(rebuilt)).toBe(noteText(doc));
+    expect(noteText(rebuilt).startsWith(before)).toBe(true);
+    // Formatting already there stays.
+    const bold = (rebuilt.getXmlFragment(NOTE_FRAGMENT).get(1) as Y.XmlElement).get(0) as Y.XmlText;
+    expect((bold.toDelta() as unknown[])[0]).toMatchObject({ attributes: { bold: true } });
+  });
+
+  it("merges with someone typing at the same time, keeping both", () => {
+    const snapshot = encodeNoteDoc(noteDocFromText("Ask about the cough"));
+    const a = buildNoteDoc(snapshot);
+    const b = buildNoteDoc(snapshot);
+    const fromA = appendNoteSection(a, QUESTIONS);
+    // B types at the end of the existing paragraph, and adds a line at the end.
+    const fromB: Uint8Array[] = [];
+    b.on("update", (u: Uint8Array) => fromB.push(u));
+    const root = b.getXmlFragment(NOTE_FRAGMENT);
+    const first = (root.get(0) as Y.XmlElement).get(0) as Y.XmlText;
+    first.insert(first.length, " at night");
+    const p = new Y.XmlElement("paragraph");
+    root.insert(root.length, [p]);
+    const t = new Y.XmlText();
+    p.insert(0, [t]);
+    t.insert(0, "Bring the pill box");
+
+    Y.applyUpdate(a, Y.mergeUpdates(fromB));
+    Y.applyUpdate(b, fromA);
+    const text = noteText(a);
+    expect(noteText(b)).toBe(text);
+    expect(text.startsWith("Ask about the cough at night")).toBe(true);
+    expect(text).toContain("Bring the pill box");
+    // The appended section stays in one piece, in order.
+    const lines = text.split("\n");
+    const start = lines.indexOf(QUESTIONS[0]!.text);
+    expect(start).toBeGreaterThan(0);
+    expect(lines.slice(start, start + QUESTIONS.length).map((l) => l.replace(/^• /, ""))).toEqual(
+      QUESTIONS.map((l) => l.text),
     );
   });
 });

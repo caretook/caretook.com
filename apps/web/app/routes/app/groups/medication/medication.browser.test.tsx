@@ -7,6 +7,7 @@ import { medicationEntriesQuery } from "~/lib/medications/medications.sync";
 import * as provider from "../provider/route";
 import {
   $,
+  ACETAMINOPHEN,
   daysAgo,
   ELM,
   GROUP,
@@ -25,7 +26,7 @@ import {
 } from "../medications/medicationWorld";
 
 // A medication's page (medications.mjs's page, notes, offline, viewer and
-// 404 steps): the details with the schedule's zone note when the recipient
+// 404 steps): the details (its type, or "not set") with the schedule's zone note when the recipient
 // lives elsewhere, the prescriber and pharmacy as links to their pages with
 // contact actions, refills, the history newest first, a stopped medication's
 // how and why, the notes (writable for a writer, made on the first
@@ -53,6 +54,8 @@ describe("the page", () => {
     const state = medPage();
     expect(state).toMatchObject({ h1: "Lisinopril 10 mg", badge: null, details: "Tablet · 1 tablet" });
     expect(state.rows.schedule).toBe("Morning");
+    expect(state.rows.type).toBe("Prescription");
+    expect($('main [data-detail="type"] dt')?.textContent).toBe("Type");
     expect(state.rows.reason).toBe("Blood pressure");
     expect(state.rows.directions).toMatch(/^Once every morning/);
     expect(state.rows.started).toBeTruthy();
@@ -78,6 +81,12 @@ describe("the page", () => {
     await expect.poll(device.location).toBe(`/app/groups/${GROUP}/providers/${LARK.id}`);
   });
 
+  test("an over-the-counter medication says so", async () => {
+    await open(medicationUrl(ACETAMINOPHEN.id));
+    await waitUntil(onPage, 4000, "the page");
+    expect(medPage().rows.type).toBe("Over the counter");
+  });
+
   test("with the recipient in another zone, the schedule says whose times they are", async () => {
     await open(medicationUrl(LISINOPRIL.id), {
       fixtures: [world(), { ...RECIPIENT, row: { ...RECIPIENT.row, time_zone: "America/New_York" } }],
@@ -91,6 +100,8 @@ describe("the page", () => {
     await waitUntil(onPage, 4000, "the page");
     const state = medPage();
     expect(state.badge).toBe("Discontinued");
+    // Added before types.
+    expect(state.rows.type).toBe("not set");
     expect(state.stopped).toMatch(/^Discontinued \w{3} \d{1,2}, \d{4} · Side effects/);
     expect(state.stopped).toContain("Dry mouth");
     expect(state.history[0]?.text).toBe("Discontinued: side effects");

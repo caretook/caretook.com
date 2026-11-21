@@ -14,7 +14,9 @@ import { PROVIDER_SHEET_STATE } from "~/lib/providers/providerSheetLink";
 import { sessionContext } from "~/lib/auth/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
+import { useMentionProviders } from "~/lib/providers/mentionProviders.sync";
 import { ContactList } from "./ContactList";
+import { CopyToGroup } from "./CopyToGroup";
 import { LinkedEntries } from "./LinkedEntries";
 import { loadProvider } from "./loadProvider";
 import { ProviderConditions } from "./ProviderConditions";
@@ -53,7 +55,8 @@ export default function Provider(props: Route.ComponentProps) {
 function ProviderPage({ loaderData, params }: Route.ComponentProps) {
   const { groupId, providerId } = params;
   // Live: a role changed on another device shows without a reload.
-  const { canWrite } = useGroup();
+  const { canWrite, displayName } = useGroup();
+  const [copyStatus, setCopyStatus] = useState("");
   // Read once: after sign-out closes the database, this page may render once more before it goes.
   const [db] = useState(getSync);
   const directoryUrl = appUrls.providers(groupId);
@@ -66,6 +69,8 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
   const deleted = !live || !!live.deletedAt || live.groupId !== groupId;
 
   const { ensureSaved, saveError } = useProviderNotes(providerId, loaderData.hasDocument);
+  // The group's providers, for mentions in the notes (chips only: nothing links here).
+  const mentionProviders = useMentionProviders(groupId);
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
@@ -77,20 +82,27 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
         actions={
           canWrite &&
           !deleted && (
-            <Link
-              to={appUrls.editProvider(groupId, providerId)}
-              // Closing the sheet goes back here.
-              state={PROVIDER_SHEET_STATE}
-              prefetch="render"
-              className="btn btn-ghost btn-sm gap-1"
-              data-edit-provider
-            >
-              <Pencil className="size-4" aria-hidden="true" />
-              Edit
-            </Link>
+            <>
+              <CopyToGroup provider={provider} groupName={displayName} onResult={setCopyStatus} />
+              <Link
+                to={appUrls.editProvider(groupId, providerId)}
+                // Closing the sheet goes back here.
+                state={PROVIDER_SHEET_STATE}
+                prefetch="render"
+                className="btn btn-ghost btn-sm gap-1"
+                data-edit-provider
+              >
+                <Pencil className="size-4" aria-hidden="true" />
+                Edit
+              </Link>
+            </>
           )
         }
       />
+
+      <p role="status" className="text-sm empty:hidden" data-copy-status>
+        {copyStatus}
+      </p>
 
       {deleted ? (
         <div role="alert" className="alert">
@@ -134,6 +146,7 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
               canWrite={canWrite}
               initial={loaderData.initial}
               ensureSaved={ensureSaved}
+              providers={mentionProviders}
             />
           </section>
 

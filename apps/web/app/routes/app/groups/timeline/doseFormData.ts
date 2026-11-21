@@ -1,7 +1,12 @@
 import type { DoseStatus } from "@caretook/data/schema";
 import type { DoseSlot, DueDoses } from "../../../../lib/medications/dueDoses";
 import type { DoseChoice } from "../../../../lib/medications/medicationTimeline.sync";
-import type { DoseInput, DosePatch } from "../../../../lib/medications/medications.sync";
+import type {
+  DoseInput,
+  DosePatch,
+  NewMedicationDose,
+  QuickAddMedication,
+} from "../../../../lib/medications/medications.sync";
 
 import { DOSE_STATUSES } from "@caretook/data/schema";
 import { isDueNow } from "../../../../lib/medications/dueDoses";
@@ -40,6 +45,36 @@ export const doseFromForm = (form: FormData): DoseInput & { occurredAt: string }
   };
 };
 
+/**
+ * The Dose sheet's last choice, "+ New medication": a reserved value (never
+ * a medication's id, which is a UUID) that shows the quick add's name, dose
+ * and type.
+ */
+export const NEW_MEDICATION_OPTION = "new";
+
+/** The quick add's fields, as the form posts them (the dose's are `doseFromForm`'s). */
+export const QUICK_ADD_FIELD = { name: "name", dose: "dose", type: "type" } as const;
+
+/**
+ * A dose of a medication added with it ("+ New medication"): the
+ * medication's name, dose and type, and the dose as `doseFromForm` reads it;
+ * null when the choice is a medication already on the list.
+ */
+export const quickAddFromForm = (
+  form: FormData,
+): { medication: QuickAddMedication; dose: NewMedicationDose & { occurredAt: string } } | null => {
+  if (formString(form, "medicationId") !== NEW_MEDICATION_OPTION) return null;
+  const { medicationId: _, ...dose } = doseFromForm(form);
+  return {
+    medication: {
+      name: formString(form, QUICK_ADD_FIELD.name),
+      dose: optional(formString(form, QUICK_ADD_FIELD.dose)),
+      type: optional(formString(form, QUICK_ADD_FIELD.type)),
+    },
+    dose,
+  };
+};
+
 /** An edit to a logged dose: everything but its medication and slot. A blank amount or note clears it. */
 export const dosePatchFromForm = (form: FormData): DosePatch => ({
   status: statusOf(form),
@@ -48,7 +83,7 @@ export const dosePatchFromForm = (form: FormData): DosePatch => ({
   occurredAt: parseOccurredAt(formString(form, "occurredAt")),
 });
 
-/** One choice in the Dose sheet: a medication, or a medication's slot ("08:00"). */
+/** One choice in the Dose sheet: a medication, a medication's slot ("08:00"), or "+ New medication". */
 export type DoseOption = {
   value: string;
   label: string;
@@ -58,6 +93,17 @@ export type DoseOption = {
   passId: string | null;
   /** What's given: the slot's amount, else the medication's dose. */
   dose: string | null;
+};
+
+/** "+ New medication", always last: with no current medications, the only choice. */
+const NEW_MEDICATION_CHOICE: DoseOption = {
+  value: NEW_MEDICATION_OPTION,
+  label: "+ New medication",
+  medicationId: "",
+  slot: null,
+  passId: null,
+  // The quick add's typed dose stands in for it (`DoseForm`).
+  dose: null,
 };
 
 const optionValue = (medicationId: string, slot: string | null) =>
@@ -73,7 +119,8 @@ export const parseDoseOption = (value: string) => {
  * The Dose sheet's choices: the slots due now first (overdue ones say so),
  * with the slot the sheet was opened for at the top when it isn't one of
  * them; then every current medication without a slot, as `choices` orders
- * them (most recently given first). `initial` is the choice to start on.
+ * them (most recently given first); last, "+ New medication". `initial` is
+ * the choice to start on (the first; with no medications, the new one).
  * Slots in `shownPasses` (the passes the sheet shows above, with Given all
  * and each medication) aren't repeated here, unless asked for.
  */
@@ -127,6 +174,7 @@ export function doseSheetOptions(
       passId: null,
       dose: c.dose,
     })),
+    NEW_MEDICATION_CHOICE,
   ];
   const wanted =
     requested.medicationId && byId.has(requested.medicationId)

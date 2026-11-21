@@ -39,6 +39,9 @@ const SAM = fx.person({ name: "Sam Okafor", role: "caretaker" });
 const NOTE = fx.note({ title: "Morning walk", text: "Walked to the corner and back." });
 
 const heading = () => document.querySelector("h1")?.textContent?.trim();
+/** The header's group menu, which names the recipient (the timeline's heading is "Timeline"). */
+const groupButton = () =>
+  document.querySelector<HTMLElement>('header [aria-label$="switch care group"]')?.textContent?.trim();
 const TITLE = () => document.querySelector<HTMLInputElement>("main header input");
 const EDITOR = () => document.querySelector(".ProseMirror");
 /** Whether anything in main names the group, its recipient or its members. */
@@ -53,20 +56,24 @@ const myMembership = async (device: Awaited<ReturnType<typeof renderWithDevice>>
 };
 
 describe("the group route", () => {
-  test("/app/groups/<id> on its own opens the group's timeline, headed by the recipient's name", async () => {
+  test("/app/groups/<id> on its own opens the group's timeline", async () => {
     const device = await renderWithDevice({ route: ROUTES, url: G, fixtures: [fx.symptom()] });
     await expect.poll(device.location).toBe(`${G}/timeline`);
-    await expect.poll(heading).toBe(TEST_RECIPIENT.preferredName);
+    await expect.poll(heading).toBe("Timeline");
   });
 
-  test("a recipient renamed on another device shows in the heading without a reload", async () => {
-    const device = await renderWithDevice({ route: ROUTES, url: `${G}/timeline`, fixtures: [fx.symptom()] });
-    // The heading's profile query can report after the first settle under load.
-    await expect.poll(heading).toBe(TEST_RECIPIENT.preferredName);
-    const list = document.querySelector("ol");
+  test("a recipient renamed on another device shows in the group menu without a reload", async () => {
+    const device = await renderWithDevice({
+      route: ROUTES,
+      url: `${G}/timeline`,
+      fixtures: [fx.symptom()],
+      frame: true,
+    });
+    await expect.poll(groupButton).toBe(TEST_RECIPIENT.preferredName);
+    const list = document.querySelector("main ol");
     await device.sync(fx.recipient({ preferredName: "Nana June" }));
     await device.settle();
-    await expect.poll(heading).toBe("Nana June");
+    await expect.poll(groupButton).toBe("Nana June");
     // The same screen, not a new one.
     expect(list?.isConnected).toBe(true);
   });
