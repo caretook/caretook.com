@@ -6,7 +6,7 @@
 
 | Slice | Wave | State        | Merge into `prd/medications-3` (slice commits) |
 | ----- | ---- | ------------ | ---------------------------------------------- |
-| 1     | 1    | in progress (opus, slot 3) |                                                |
+| 1     | 1    | merged (opus) | `995796c8` (`e0ced8b3`) |
 | 2     | 2    | blocked by 1 |                                                |
 | 3     | 2    | blocked by 1 |                                                |
 | 4     | 2    | blocked by 1 |                                                |
