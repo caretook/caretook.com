@@ -32,6 +32,10 @@
 
 **Syncs before landing:** medications-3 landed with migration 0030 (`medication_types`); ours was regenerated on top as `0031_assistant_requests` (same SQL, only `assistant_request`) in fbc1a861. providers-2 (df4d0c05) synced after it (new Tiptap deps, `pnpm install`). An earlier full check passed on fe049520 before these syncs; `live-notes` passed there too.
 
+**Docs folded** (before landing): `connectors.md` (guide, asking owners, prompts, success step, edit and condition tools; trimmed to stay under 10 KB), `live-notes.md` (`appendNoteSection`, `currentDoc`), `notifications.md` (`assistantsRequested`). `components.md`, `profiles.md` and `care-groups.md` are at their budgets, so the `components/connectors/` folder, the conditions `via` and the table's permissions live in `connectors.md`.
+
+**Full check (3:18 a.m.):** 3 timeline/print component tests fail between midnight and ~5 a.m. (they put entries hours before now); filed as B-225 (quick-fixes). The check reruns after 6 a.m.
+
 **Start conditions:** none for wave 1. Slice 5 waited for `conditions`: landed in `dev` (B-181, a95acb73) and already in `prd/connectors-2`, so slice 5 is ready once slice 4 merges.
 
 **Landing:** slice 2 adds a migration, so hold landing until every slice is merged, then run the checks once at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking.
