@@ -25,7 +25,7 @@
 
 **Docs to fold at landing (slice 4):** medications.md (`medication_condition`, `medicationConditionService`, the op, For field and page row, save order: check, medication, then links; seeds; tests); profiles.md (condition sheet's medications; `PROFILE_SHEET_STATE` in `lib/profiles/profileSheetLink.ts`); sync.md (stream, op: PUT/DELETE, PATCH read-only); care-groups.md (`medicationConditionSchema` row).
 
-**Open issue:** B-205 (filed; quick-fixes is taking it as a slice and will message when it lands in `dev`; sync before the landing check): `mcpWrites.int.test.ts` give_pass fails at some times of day, also on the base without our slices; not ours, but it can fail `pnpm prd check` at landing.
+**Open issue:** none blocking. B-205 and the stale `timelineSimpleTiles` test are fixed in `dev` (`fa9ad005`, quick-fixes wave 14): `pnpm prd sync` after slice 3 merges, before slice 6 and the landing check.
 
 **Browser checks at landing:** slices 1 and 4 name the whole lean set (migration, sync config): run `pnpm prd browser --suite` once at landing — ask the user first (plan: never `--suite` without asking).
 
