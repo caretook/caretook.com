@@ -21,7 +21,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `medications-2` | [PRD](medications-2-prd.md), [plan](medications-2-plan.md): **done** (`a6738b4`) | — | none now |
 | `assistant` | [PRD](assistant-prd.md), [plan](assistant-plan.md): **done** (`7f3ec10`) | — | none now |
 | `connectors`      | [PRD](connectors-prd.md), [plan](connectors-plan.md): 7 slices, waves (1, 2, 7) → (3, 4, 5) → 6: the due-doses core and preview moved to `@caretook/data`, then the tracer bullet (OAuth via `@better-auth/oauth-provider` 1.7.25, `/connect` consent, one-group grants, the owners' switch, a hand-rolled stateless MCP server at `/mcp`, the first read tools), the privacy text, then write tools with the "via" tag, the other read tools, and the Assistants and Devices screens, then a `roundtrip` step (B-104). **Ready to start** | `assistant` (done); B-80 (done); slice 3's tag waits for `timeline-ux`'s row and header slices in `dev` | `packages/auth` (`auth.ts`, the plugin), `db/schema/auth/`, one migration (`care_group`, `timeline_entry`, `task` columns), `sync-config.yaml` and the device schema (`via`), the upload switch, timeline rows and cards, the entry header, the task page, `GROUP_SETTINGS`, Settings → Devices, the legal pages, `roundtrip` |
-| `providers-2` | to write (B-25, B-48): @-mentions of providers in notes and events, and importing providers from another group you belong to (its cross-group permission rules) | `providers` (done) | live-notes editor (mentions), `providerService`, its area's `permissions/` part |
+| `providers-2` | [PRD](providers-2-prd.md), [plan](providers-2-plan.md): 5 slices, waves (1, 3) → (2, 4) → 5: @-mentions of providers in every live document (a chip with the current name; on notes and events it links the provider like the With row; `@Name` in derived text; add-as-provider from the popup; deleting a mention keeps the link), then importing providers from another group you belong to (a copy: new ids, contact details and practice, primary off, notes stay behind, "Already here" skipped) from the Providers list, the provider page and the With and `@` pickers (B-25, B-48). No migration; new deps `@tiptap/extension-mention`, `@tiptap/suggestion` (3.34.0). **Ready to start** | none for waves 1 and 3; slice 4 after `conditions` is in `dev` (the provider page) | `LiveNotesEditor`, `noteText` (`noteYjs.ts`), the entry page and With row (`withProviders.ts`), `providers.sync.ts`, the Providers list header and a new import sheet, the provider page actions, the `live-notes` check (lean ceiling is full) |
 | `appointments-2` | [PRD](appointments-2-prd.md), [plan](appointments-2-plan.md): 10 slices, waves 1 → (2, 3, 4) → (5, 6, 7) → (8, 9, 10): repeating appointments and reminders (series, 90-day visits, only this / this and later), the calendar cron and top-up, calendar items with generic-by-default sharing and the Calendar & reminders page, the iCal feed, reminder emails (push later), Google Calendar two-way sync (connect and push, then pull), "Remind me" per appointment, a roundtrip step (B-60–B-63). Three migrations; new deps `rrule`, `ical-generator`, `@googleapis/calendar`, `google-auth-library`. **Ready to start** once `timeline-ux` slice 5 is in `dev` | `timeline-ux` slice 5 (the Today card, B-169) in `dev` | `timeline_entry` (series columns), the appointment and reminder sheets, `entryActionItems`, Upcoming and timeline rows and `TodayCard` (the repeat mark), sync and upload registries, the sync matrix, `NOTIFICATIONS`, `timelineEntryService` and `taskService` (calendar jobs), `careGroupMemberService` (removal), group settings, `vercel.json` crons, a new `calendars` area |
 | `connectors-2` | to write (B-193–B-196): make connecting easier: an in-app connect guide (URL, steps for Claude and ChatGPT), members asking owners to turn assistants on, starter prompts (MCP instructions and prompts, a success state), then directory listings after launch | `connectors` (done); quick-fixes slices 47–48 (B-188–B-190) first (soft); B-196 waits on B-33 and B-54 | group settings → Assistants, Settings → Devices, `/connect` (`ConnectConsent.tsx`, `packages/api/src/connectors/connect.ts`), `packages/api/src/connectors/protocol.ts`, `NOTIFICATIONS` (the request) |
 | `medications-3` | [PRD](medications-3-prd.md), [plan](medications-3-plan.md): 4 slices, waves 1 → (2, 3, 4): medication types (prescription, over the counter, supplement, other; required on new, default Rx; Rx fields collapse for other types; the list badge, `?type=`, the printed list grouped by type, search, `list_medications`; no change entry), then adding a medication from the Log a dose sheet ("+ New medication": name, dose, type, as needed; one local transaction; an "Add details" toast; the empty state) (B-200, B-199). One migration, no new deps. **Ready to start** once `conditions` has landed | `conditions` landed (it changes the medication form and page) | `medication` schema and migration, `sync-config.yaml`, the device schema, the upload switch, the sync matrix, `MedicationForm.tsx`, `medicationList.ts` and `MedicationFilters.tsx`, `printSheet`, `medicationSearchDocument`, the Dose sheet (`new-dose/`, `DoseForm.tsx`, `doseFormData.ts`), the connector `list_medications` |
@@ -122,7 +122,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-198 | bug | ready | quick-fixes | prd/quick-fixes | rotating placeholder in the timeline entry box is distracting and confusing. Use a static… |
 | B-199 | bug | triaged | medications-3 |  | ability to add a medication quickly from the log a dose screen. |
 | B-200 | bug | triaged | medications-3 |  | medications need a type field: rx, otc, supplement, etc. |
-| B-201 | bug | in-progress | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
+| B-201 | bug | ready | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
 | B-202 | bug | landed | agent-tooling |  | lint before typecheck in check command. Do the fast thing first, then the slow thing. |
 | B-203 | feature | triaged | github-review |  | Now that we are we have github fixed, we should start using it for some of the merge management so… |
 | B-204 | feature | triaged | connectors-2 |  | connector should be able to edit notes and events so it can help you draft questions or add… |
@@ -140,6 +140,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-18 (Robert Bo Davis): Later, after providers' linking lands. Typing @ in a note's or event's text suggests providers; a mention links the provider like the With row. Needs @tiptap/extension-mention and @tiptap/suggestion (new dependencies: the user's approval). Out of scope for the providers PRD.
 - 2026-11-18 (prd/providers): Triaged to providers by its orchestrator: @-mentions need the provider table and links (slices 1 and 5). A follow-up after slice 5, not in the current plan.
 - 2026-11-20 (Robert Bo Davis): Moved from providers (done) to a new providers-2 PRD, to write (the user, 2026-11-20): B-48's cross-group permission rules want an interview, and B-25 touches the live-notes editor. Same commit: the PRD table's done rows shortened, rows added for providers-2 and appointments-2. -- backlog agent
+- 2026-11-20 (Robert Bo Davis): PRD and plan written in the backlog session (2026-11-20): B-25 is slices 1-2 (mentions; deps approved), B-48 slices 3-5 (import as a copy: writer here, any member there; three entry points; notes not copied). -- backlog agent
 
 ### B-31 · feature · Demo group for every new user: a seeded, fictional care group to explore the app
 
@@ -191,6 +192,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-18 (Robert Bo Davis): Proposed as a providers follow-up (the PRD is done, like B-25): copy a provider from another group you belong to into this one (a copy, not a shared row, since providers are per group and synced per group). Needs a small PRD addendum or a quick-fixes slice once scoped.
 - 2026-11-20 (Robert Bo Davis): Moved from providers (done) to a new providers-2 PRD, to write (the user, 2026-11-20): B-48's cross-group permission rules want an interview, and B-25 touches the live-notes editor. Same commit: the PRD table's done rows shortened, rows added for providers-2 and appointments-2. -- backlog agent
+- 2026-11-20 (Robert Bo Davis): PRD and plan written in the backlog session (2026-11-20): B-25 is slices 1-2 (mentions; deps approved), B-48 slices 3-5 (import as a copy: writer here, any member there; three entry points; notes not copied). -- backlog agent
 
 ### B-52 · feature · Ability to download all data from the app to a file for backup or transfer to another device.
 
@@ -857,10 +859,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-201 · bug · simple timeline date header should show the care period as well
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: b1f0a6d0
 
 - 2026-11-20 (Robert Bo Davis): Triage: quick-fixes, wave 14. Simple mode's day header gains the care period label that the full day header already has.
 
