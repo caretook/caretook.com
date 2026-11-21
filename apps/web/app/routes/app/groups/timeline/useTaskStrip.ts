@@ -9,7 +9,8 @@ import { taskStrip } from "~/lib/tasks/taskStrip";
  * the recipient's zone. `ready` is false until the device's rows are known
  * (remembered from earlier this session or read; the row shows a
  * skeleton), and `fresh` once they're read live (until then the row is dimmed).
- * `strip` is null before `ready` and while nothing is overdue or due today.
+ * `strip` is null before `ready` and while nothing is overdue or due today;
+ * `tasks` are those overdue or due today, and `timeZone` the recipient's.
  */
 export function useTaskStrip(groupId: string) {
   const group = useGroup();
@@ -19,5 +20,5 @@ export function useTaskStrip(groupId: string) {
     () => (ready ? taskStrip(tasks, now, timeZone, group.userId) : null),
     [ready, tasks, now, timeZone, group.userId],
   );
-  return { strip, ready, fresh };
+  return { strip, tasks, timeZone, ready, fresh };
 }

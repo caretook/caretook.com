@@ -30,7 +30,7 @@ export function TimelineEntryCard({
   const cancelled = cancelledLabel(entry);
   return (
     <li
-      className={`rounded-box border-base-300 bg-base-100 relative isolate flex items-start gap-3 border p-3 ${removing ? "opacity-50" : ""}`}
+      className={`rounded-box border-base-300 bg-base-100 relative isolate flex items-start gap-3 border p-3 shadow-sm ${removing ? "opacity-50" : ""}`}
       data-cancelled={cancelled ? "" : undefined}
     >
       {open && <EntryOpenTarget open={open} entry={entry} />}

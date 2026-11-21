@@ -10,7 +10,7 @@ import type { TimelineEntry } from "~/lib/core/rpc";
 import type { TimelineSearchState } from "./timelineSearch";
 
 import { parseSearch } from "@caretook/data/schema";
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
   CancelEventDialog,
@@ -54,11 +54,13 @@ const NO_SEARCH = { q: "", state: "none" } as const;
 /** Simple mode's larger list: everything in it, text, icons and taps alike, a quarter bigger. */
 /** Simple mode shows no care period markers. */
 const NO_MARKERS: never[] = [];
+/** No day skips its rows (a restored window's first frames). */
+const NO_SETTLED = new Set<string>();
 
 const LIST_CLASS: Record<TimelineView, string> = {
-  rows: "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border",
+  rows: "mt-2 rounded-box border-base-300 bg-base-100 divide-base-300 divide-y overflow-hidden border shadow-sm",
   // One column at every width: side-by-side cards are hard to read in time order.
-  cards: "space-y-2",
+  cards: "mt-2 space-y-2",
 };
 
 /**
@@ -104,6 +106,7 @@ export function TimelineEntryList({
     | "markers"
     | "periods"
     | "summaryEntries"
+    | "restored"
   >;
   view: TimelineView;
   units: UnitChoices;
@@ -161,7 +164,18 @@ export function TimelineEntryList({
       ? [{ key: todayKey, label: dayLabel(now.toISOString(), timeZone, now), entries: [] }, ...days]
       : days;
   // Days before the newest page skip drawing their rows while off screen (`offscreenRows`).
-  const settled = settledDays(sections);
+  // A restored window's rows (Back to it, `timelinePaging.ts`) are new elements with no
+  // remembered size, so its first frames draw them all: the page is as tall as the one left
+  // when the scroll position comes back, and each row remembers its size before it skips again.
+  const [drawAll, setDrawAll] = useState(data.restored);
+  useEffect(() => {
+    if (!drawAll) return;
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => setDrawAll(false));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [drawAll]);
+  const settled = drawAll ? NO_SETTLED : settledDays(sections);
   // Each day's summary line (none while a filter or search is on: `summaryEntries` is null then; none when they're off).
   const summaries =
     summaryMode !== "off" &&

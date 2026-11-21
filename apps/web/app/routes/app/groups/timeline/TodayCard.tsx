@@ -1,5 +1,6 @@
 import type { UnitChoices } from "@caretook/data/schema";
 import type { LatestVital } from "~/lib/core/rpc";
+import type { TodaySummary } from "./todayStatus";
 import type { TimelineData } from "./useTimelineData";
 
 import { formatReading, VITALS } from "@caretook/data/schema";
@@ -19,15 +20,43 @@ import { useTodayCard } from "./useTodayCard";
 const VitalsIcon = KIND_META.vital.Icon;
 
 /**
+ * The collapsed card's line: "3 overdue" in red and "2 due soon" in orange
+ * first, never cut off, then the rest, cut off with an ellipsis when it
+ * doesn't fit. Nothing when there's nothing to say.
+ */
+function SummaryLine({ summary: { overdue, soon, rest } }: { summary: TodaySummary }) {
+  const parts = [
+    overdue && { text: overdue, className: "text-error shrink-0 font-semibold", data: "overdue" },
+    soon && { text: soon, className: "text-warning shrink-0 font-semibold", data: "soon" },
+    rest && {
+      text: rest,
+      className: "text-base-content/70 min-w-0 overflow-hidden text-ellipsis",
+      data: "rest",
+    },
+  ].filter((p) => !!p);
+  if (!parts.length) return null;
+  return (
+    <span className="flex min-w-0 whitespace-pre" data-today-summary>
+      {parts.map((p, i) => (
+        <span key={p.data} className={p.className} data-summary-part={p.data}>
+          {i > 0 && <span className="text-base-content/40"> · </span>}
+          {p.text}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/**
  * The Today card (B-169), above the full timeline: one row each for the
  * latest vitals, the next appointment, the medications due and the tasks
  * overdue (or due today), each hidden when it has nothing, each tinted by its
  * status (`todayStatus`) and ending in "See all ›" to its full view (the
  * vitals row instead shows all its readings in place when they don't fit,
- * B-186). Its header collapses it to one line ("BP 130/85 mmHg · 1 appt · 2
- * meds due"): collapsed unless something needs attention (B-185), a tap
- * remembered on this device until what needs attention changes. Viewers see it too (without Given all). The
- * whole card hides once every row is known to be empty.
+ * B-186). Its header collapses it to one line ("3 overdue · 2 due soon · BP
+ * 130/85 mmHg · 1 appt"): collapsed on every load, a tap opening it for the
+ * page view. Viewers see it too (without Given all). The whole card hides
+ * once every row is known to be empty.
  */
 export function TodayCard({
   groupId,
@@ -72,11 +101,7 @@ export function TodayCard({
             aria-hidden="true"
           />
           <span className="font-semibold">Today</span>
-          {collapsed && today.summary && (
-            <span className="text-base-content/70 min-w-0 truncate" data-today-summary>
-              {today.summary}
-            </span>
-          )}
+          {collapsed && <SummaryLine summary={today.summary} />}
         </button>
       </h2>
       <ul

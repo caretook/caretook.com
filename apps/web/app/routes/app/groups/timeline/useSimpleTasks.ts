@@ -6,13 +6,14 @@ import { useGroup } from "~/lib/app-shell/group";
 import { useNow } from "~/lib/live-notes/editors.sync";
 import { useRememberedQuery } from "~/lib/sync/useRememberedQuery";
 import { tasksQuery, toTasks } from "~/lib/tasks/tasks.sync";
-import { subscribeTaskUndo, taskUndoFor, taskUndoSnapshot } from "~/lib/tasks/taskUndo";
+import { subscribeTaskUndo, type TaskUndo, taskUndoFor, taskUndoSnapshot } from "~/lib/tasks/taskUndo";
 
 /** How many tasks simple mode's card shows; "See all" opens the rest. */
 export const SIMPLE_TASKS_CAP = 5;
 
 const NO_ROWS: TaskRow[] = [];
-const noOffer = () => null;
+const NO_OFFERS: readonly TaskUndo[] = [];
+const noOffers = () => NO_OFFERS;
 
 /**
  * Simple mode's "My tasks": my open tasks in list order (`taskOrder`:
@@ -31,8 +32,8 @@ export function useSimpleTasks(groupId: string) {
   const { value, fresh } = useRememberedQuery<TaskRow>({ groupId, name: "simpleTasks:mine" }, query);
   const rows = value ?? NO_ROWS;
   const mine = useMemo(() => taskOrder(toTasks(rows), now, timeZone), [rows, now, timeZone]);
-  const offer = useSyncExternalStore(subscribeTaskUndo, taskUndoSnapshot, noOffer);
-  const undoing = !!offer && !!taskUndoFor(groupId);
+  const offers = useSyncExternalStore(subscribeTaskUndo, taskUndoSnapshot, noOffers);
+  const undoing = offers.length > 0 && taskUndoFor(groupId).length > 0;
 
   return {
     tasks: mine.slice(0, SIMPLE_TASKS_CAP),

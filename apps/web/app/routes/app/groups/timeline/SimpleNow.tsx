@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 
-import { CheckCheck } from "lucide-react";
+import { CalendarClock, CheckCheck } from "lucide-react";
 import { useMemo } from "react";
 import { PassUndoStatus, usePassLog } from "~/components/medications";
 import { duePasses, isPassDueNow } from "~/lib/medications/duePasses";
 import { givePassText, medicationCountText, passTitle } from "~/lib/medications/medicationDisplay";
 import { useDueDoses } from "~/lib/medications/dueDoses.sync";
-import { STALE } from "./layout";
+import { SIMPLE_BLOCK, SIMPLE_HEADING, STALE } from "./layout";
 
 /** Where the Upcoming block's Undo is shown (`PassUndoStatus`'s `place`). */
 export const SIMPLE_NOW_UNDO = "simpleNow";
@@ -15,8 +15,8 @@ export const SIMPLE_NOW_UNDO = "simpleNow";
  * Simple mode's Upcoming block (assistant PRD): what needs doing. Each pass due
  * now (named or a time of its own) as one big Given all button ("Give
  * evening meds (4)"), with Undo for about 10 s, as on the medication strip;
- * then `next` (the next appointment, given by the caller). Viewers get the
- * due passes as text and no buttons. Nothing at all when nothing is due and
+ * then `next` (the next appointment, given by the caller: `SimpleNext`, which
+ * opens the next five). Viewers get the due passes as text and no Given all. Nothing at all when nothing is due and
  * there's no `next`. Local data, so it works offline.
  *
  * It never pops in (the tile cache): passes remembered from earlier this
@@ -44,9 +44,20 @@ export function SimpleNow({
   // The Undo line stays mounted while a round was just logged, even once nothing is due.
   if (ready && !dueNow.length && !next && !canWrite) return null;
   const stale = fresh ? "" : STALE;
+  // A card only while it shows something (an Undo line alone stays plain).
+  const shows = dueNow.length > 0 || !!next || !ready;
   return (
-    <section aria-label="Upcoming" className={`space-y-3 ${className}`} data-simple-now="">
-      {(dueNow.length > 0 || next || !ready) && <h2 className="text-lg font-semibold">Upcoming</h2>}
+    <section
+      aria-label="Upcoming"
+      className={`space-y-3 ${shows ? SIMPLE_BLOCK : ""} ${className}`}
+      data-simple-now=""
+    >
+      {shows && (
+        <h2 className={SIMPLE_HEADING}>
+          <CalendarClock aria-hidden="true" className="text-primary size-5" />
+          Upcoming
+        </h2>
+      )}
       {!ready && <div className="skeleton rounded-box h-16" aria-hidden="true" data-simple-skeleton="now" />}
       {dueNow.length > 0 &&
         (canWrite ? (
