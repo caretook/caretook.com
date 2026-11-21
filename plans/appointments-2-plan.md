@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State            | Merge into `prd/appointments-2` (slice commits) |
-| ----- | ---- | ---------------- | ----------------------------------------------- |
-| 1     | 1    | merged (opus)    | a589f8fa (716e20cd, 2b37171b)                   |
-| 2     | 2    | merged (opus)    | 20b816d5 (0b254449, 3990c7ec)                   |
-| 3     | 2    | merged (sonnet)  | 8b41d9c8 (da53f874, 160c7ee3)                   |
-| 4     | 2    | merged (opus)    | 9f79243e (f2073aaa, 537c6236)                   |
-| 5     | 3    | started (sonnet) |                                                 |
-| 6     | 3    | started (opus)   |                                                 |
-| 7     | 3    | started (opus)   |                                                 |
-| 8     | 4    | blocked by 6     |                                                 |
-| 9     | 4    | blocked by 2, 7  |                                                 |
-| 10    | 4    | started (opus)   |                                                 |
+| Slice | Wave | State           | Merge into `prd/appointments-2` (slice commits) |
+| ----- | ---- | --------------- | ----------------------------------------------- |
+| 1     | 1    | merged (opus)   | a589f8fa (716e20cd, 2b37171b)                   |
+| 2     | 2    | merged (opus)   | 20b816d5 (0b254449, 3990c7ec)                   |
+| 3     | 2    | merged (sonnet) | 8b41d9c8 (da53f874, 160c7ee3)                   |
+| 4     | 2    | merged (opus)   | 9f79243e (f2073aaa, 537c6236)                   |
+| 5     | 3    | merged (sonnet) | 6e343bd8 (6c228c9c)                             |
+| 6     | 3    | started (opus)  |                                                 |
+| 7     | 3    | started (opus)  |                                                 |
+| 8     | 4    | blocked by 6    |                                                 |
+| 9     | 4    | blocked by 2, 7 |                                                 |
+| 10    | 4    | started (opus)  |                                                 |
 
 **Landing mode (2026-11-20): run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave, clean up; ask only real questions. Per this plan's _Landing_, landing waits until every slice is merged.
 
@@ -30,6 +30,12 @@ Slices 2 and 3 merged (20b816d5, 8b41d9c8); worktrees removed. Slice 10 is now u
 Slice 4 merged (9f79243e); wave 2 done. Next: sync dev, then wave 3 (5, 6, 7) and slice 10.
 
 Wave 3 (5, 6, 7) and slice 10 (ready since slice 2) worktrees made, agents spawned; B-61, B-62, B-63 claimed. Load was 59 at start.
+
+Slice 5 merged (6e343bd8); B-62 done (ready).
+
+**Open issue (not ours):** `packages/api/src/connectors/mcpWrites.int.test.ts` "log vitals, a symptom, a dose and a pass's Given all" fails by time of day: in the evening, its Metformin dose a minute earlier fills the Evening pass, so `give_pass` says "Nothing is left to give in Evening today". No connectors diff on this branch. It will fail `pnpm prd check` in the evening; reported to the user to file.
+
+**Carried from slice 5's hand-off:** `ical-generator` 11.1.4 in `packages/api`. `calendarFeedService` (`create` refuses a second feed, 409; `rotate`, `revoke`, `resolve`, `load`); `renderIcs` in `packages/api/src/calendars/renderIcs.ts` with golden files; `GET /api/calendar/:file` (handler `packages/api/src/calendars/feed.ts`, door `.server/calendarFeed.ts`; 404 bodyless, 405, rate limits 60/min/IP and 30/min/token keyed by hash); `calendars.feed.*` in `feedProcedures.ts`; `FeedCard` + `feedActions.ts` (intents `feedCreate`, `feedRotate`, `feedRevoke`); `lib/calendars/feedLinks.ts`. Feed URL from `APP_URL`. Frozen lists `routes.test.ts`, `routerPaths.test.ts` likely conflict with 6 and 7. Docs: calendars.md (service, renderIcs, route, procedures, card); AGENTS.md stack (`ical-generator`); api.md (route, procedures); care-groups.md (removal revokes the feed, tested); security-headers.md (web layout middleware, no CSP change); layout.md (`routes/api/calendar/feed.ts`, `.server/calendarFeed.ts`).
 
 **Carried from slice 4's hand-off:** migration `0026_calendar_settings.sql` (no hand edits). **Deviation:** `care_group.details_outside_allowed` is synced (care_group stream + device schema; `rolesSql.test` refuses a partly synced table) so the owners' switch shows offline and live; PowerSync needs a restart. Settings page `routes/app/groups/settings/calendar/` with card files `RemindersCard`, `FeedCard`, `GoogleCard` (not on native), `DetailsCard`; cards take `CalendarCardProps`, posts go through `CARD_ACTIONS` (`cardActions.ts`) by `intent`; `useCalendarSave`/`CalendarSaveLine` for own settings. Item uids `entry:<id>`/`task:<id>`; notes count as reminders when a series visit or created before due; default lengths 60 min (appointment), 30 (reminder, timed task). Slice 7 enqueues its Google job in `calendarSettingService.update` and `setDetailsAllowed`. Stub `docs/domain/calendars.md` exists (libLayout.test needs it). Docs: calendars.md (replace stub) + Area index; care-groups.md (column, removal clears rows, permission rows); app-shell.md (subpage, owners' card on Details); sync.md (care_group column); data-layer.md (0000–0026, feed hash in personal-access exclusions).
 
