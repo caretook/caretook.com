@@ -666,6 +666,9 @@ const taskOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome>
 // ---------------------------------------------------------------------------
 // recipient_condition: like recipient_allergy. Soft deletes; the group and
 // recipient never change. A status PATCH (resolve, reactivate) is an update.
+// Each write records its `conditionChange` entry (id from the condition and
+// the device's `updated_at`, like a medication's change), so the device's own
+// copy, uploaded next, changes nothing.
 // `diagnosed_by_id` isn't mapped yet (conditions slice 3).
 // ---------------------------------------------------------------------------
 
@@ -697,6 +700,7 @@ const removeCondition = async (ctx: { authUser: AuthUser }, id: string): Promise
 
 const recipientConditionOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
   const data = op.data ?? {};
+  const opts = { changedAt: text(data.updated_at) };
 
   if (op.op === "PUT") {
     const input = {
@@ -709,6 +713,7 @@ const recipientConditionOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Pr
     const res = await recipientConditionService.upsert(
       ctx,
       input as unknown as RecipientConditionUpsertInput,
+      opts,
     );
     if (isError(res)) return res;
     if (data.deleted_at) return removeCondition(ctx, op.id);
@@ -722,7 +727,7 @@ const recipientConditionOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Pr
   if (data.deleted_at) return removeCondition(ctx, op.id);
   const content = conditionContentFrom(data);
   if (Object.keys(content).length === 0) return applied;
-  const res = await recipientConditionService.update(ctx, op.id, content);
+  const res = await recipientConditionService.update(ctx, op.id, content, opts);
   if (isError(res)) return res;
   return res ? applied : newError({ code: "recipientConditionService:notFound" });
 };

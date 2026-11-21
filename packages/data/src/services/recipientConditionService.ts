@@ -1,5 +1,6 @@
 import type {
   ConditionStatus,
+  RecipientCondition,
   RecipientConditionCreateInput,
   RecipientConditionUpdateInput,
   RecipientConditionUpsertInput,
@@ -12,13 +13,17 @@ import { z } from "zod";
 import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
+  conditionChange,
+  conditionChangeId,
   recipientConditionContentZSchema,
   recipientConditionCreateZSchema,
   recipientConditionUpdateZSchema,
   recipientConditionUpsertZSchema,
+  timelineEntryContentZSchema,
+  toChangeTime,
 } from "../db/schema";
 import { isError, newError } from "../errors";
-import { careRecipientModel, recipientConditionModel } from "../models";
+import { careRecipientModel, recipientConditionModel, timelineEntryModel } from "../models";
 import { rejectError } from "../permissions";
 import { resolveRecipient } from "./medicationService";
 
@@ -39,6 +44,71 @@ const invalid = (error: z.ZodError) =>
   });
 
 const notFound = () => newError({ code: "recipientConditionService:notFound" });
+
+/**
+ * When a save happened, for its change entry (as `MedicationWriteOptions`):
+ * a device passes its row's `updated_at`, so the entry it wrote locally and
+ * the one written here get the same derived id; without one, it's now.
+ */
+export type ConditionWriteOptions = { changedAt?: string | null };
+
+const changeTimeOf = (opts: ConditionWriteOptions) =>
+  (opts.changedAt ? toChangeTime(opts.changedAt) : null) ?? new Date().toISOString();
+
+/**
+ * Record what a save did on the timeline, as the actor: one
+ * `conditionChange` entry for a new condition, a resolve or reactivate, or
+ * an edit to a tracked field (name, since, note); none for a save that
+ * changed none of them. Its id comes from the condition and `changedAt`, so
+ * a replay (or the device's own copy of the entry, uploaded next) lands on
+ * the same row and changes nothing. In the recipient's time zone.
+ */
+const writeChange = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  {
+    before,
+    after,
+    changedAt,
+  }: { before: Parameters<typeof conditionChange>[0]; after: RecipientCondition; changedAt: string },
+) => {
+  const change = conditionChange(before, after);
+  if (!change) return null;
+
+  const id = conditionChangeId(after.id, changedAt);
+  const existing = await timelineEntryModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
+  if (isError(existing)) return existing;
+  if (existing) return existing;
+
+  // Read as the system: the actor could already write the condition.
+  const recipient = await careRecipientModel.getById(after.recipientId, { authUser: SYSTEM_USER, tx });
+  if (isError(recipient)) return recipient;
+  const timeZone = recipient?.timeZone ?? "UTC";
+
+  const content = timelineEntryContentZSchema.safeParse({
+    kind: "conditionChange",
+    occurredAt: changedAt,
+    timeZone,
+    details: { conditionId: after.id, ...change },
+  });
+  if (!content.success) return invalid(content.error);
+
+  return timelineEntryModel.create({
+    ...ctx,
+    tx,
+    data: {
+      id,
+      groupId: after.groupId,
+      recipientId: after.recipientId,
+      kind: "conditionChange",
+      occurredAt: changedAt,
+      timeZone,
+      title: null,
+      body: null,
+      details: content.data.details ?? null,
+    },
+  });
+};
 
 /** A condition on file means the recipient no longer has "No known conditions". As the system. */
 const clearNoKnownConditions = async (tx: Tx, recipientId: string) => {
@@ -66,8 +136,15 @@ export const list = (ctx: ServiceContext, { groupId, ...opts }: IncludeDeleted &
 // Writes
 // ---------------------------------------------------------------------------
 
-/** Add a condition (writers). `id` may come from an offline device. Clears "No known conditions". */
-export const create = (ctx: ServiceContext, input: RecipientConditionCreateInput) =>
+/**
+ * Add a condition (writers), and its "added" entry on the timeline. `id` may
+ * come from an offline device. Clears "No known conditions".
+ */
+export const create = (
+  ctx: ServiceContext,
+  input: RecipientConditionCreateInput,
+  opts: ConditionWriteOptions = {},
+) =>
   withTransaction(async (tx) => {
     const parsed = recipientConditionCreateZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
@@ -84,15 +161,27 @@ export const create = (ctx: ServiceContext, input: RecipientConditionCreateInput
     if (isError(created) || !created) return created;
     const cleared = await clearNoKnownConditions(tx, recipient.id);
     if (cleared) return cleared;
+    const change = await writeChange(ctx, tx, {
+      before: null,
+      after: created,
+      changedAt: changeTimeOf(opts),
+    });
+    if (isError(change)) return change;
     return created;
   }, ctx);
 
 /**
  * Edit a condition's name, status, since or note (writers). What's left out
  * keeps its value; the merged condition must be valid. An edit that changes
- * nothing still succeeds.
+ * nothing still succeeds (and records nothing); one that does records its
+ * `conditionChange` entry (see `writeChange`).
  */
-export const update = (ctx: ServiceContext, id: string, input: RecipientConditionUpdateInput) =>
+export const update = (
+  ctx: ServiceContext,
+  id: string,
+  input: RecipientConditionUpdateInput,
+  opts: ConditionWriteOptions = {},
+) =>
   withTransaction(async (tx) => {
     const parsed = recipientConditionUpdateZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
@@ -114,24 +203,41 @@ export const update = (ctx: ServiceContext, id: string, input: RecipientConditio
     if (isError(updated) && updated.code === "baseModel:update:nothingUpdated")
       return rejectError(ctx.authUser);
     if (isError(updated)) return updated;
-    return updated[0] ?? null;
+    const after = updated[0];
+    if (!after) return null;
+
+    const change = await writeChange(ctx, tx, {
+      before,
+      after,
+      changedAt: changeTimeOf(opts),
+    });
+    if (isError(change)) return change;
+    return after;
   }, ctx);
 
 /** Resolve a condition, or make a resolved one active again (writers). Safe to replay. */
-const setStatus = (ctx: ServiceContext, id: string, status: ConditionStatus) => update(ctx, id, { status });
+const setStatus = (ctx: ServiceContext, id: string, status: ConditionStatus, opts: ConditionWriteOptions) =>
+  update(ctx, id, { status }, opts);
 
 /** Mark a condition resolved: it moves to Past (writers). */
-export const resolve = (ctx: ServiceContext, id: string) => setStatus(ctx, id, "resolved");
+export const resolve = (ctx: ServiceContext, id: string, opts: ConditionWriteOptions = {}) =>
+  setStatus(ctx, id, "resolved", opts);
 
 /** Mark a resolved condition active again, for a recurrence (writers). */
-export const reactivate = (ctx: ServiceContext, id: string) => setStatus(ctx, id, "active");
+export const reactivate = (ctx: ServiceContext, id: string, opts: ConditionWriteOptions = {}) =>
+  setStatus(ctx, id, "active", opts);
 
 /**
  * Create the condition with this id, or bring the existing one up to date
  * (PowerSync's upload queue). Safe to replay; the group and recipient never
- * change, and a deleted condition stays deleted.
+ * change, and a deleted condition stays deleted. A replay records no second
+ * change entry.
  */
-export const upsert = (ctx: ServiceContext, input: RecipientConditionUpsertInput) =>
+export const upsert = (
+  ctx: ServiceContext,
+  input: RecipientConditionUpsertInput,
+  opts: ConditionWriteOptions = {},
+) =>
   withTransaction(async (tx) => {
     const parsed = recipientConditionUpsertZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
@@ -143,7 +249,7 @@ export const upsert = (ctx: ServiceContext, input: RecipientConditionUpsertInput
       includeDeleted: true,
     });
     if (isError(existing)) return existing;
-    if (!existing) return create({ ...ctx, tx }, input);
+    if (!existing) return create({ ...ctx, tx }, input, opts);
 
     const visible = await recipientConditionModel.getById(id, { ...ctx, tx, includeDeleted: true });
     if (isError(visible)) return visible;
@@ -152,10 +258,10 @@ export const upsert = (ctx: ServiceContext, input: RecipientConditionUpsertInput
       return newError({ code: "recipientConditionService:immutable" });
     if (visible.deletedAt) return visible;
 
-    return update({ ...ctx, tx }, id, content);
+    return update({ ...ctx, tx }, id, content, opts);
   }, ctx);
 
-/** Soft delete (writers), for a condition entered by mistake. It leaves every list. */
+/** Soft delete (writers), for a condition entered by mistake. It leaves every list; no change entry. */
 export const remove = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
     const res = await recipientConditionModel.remove({

@@ -19,6 +19,8 @@ describe("openRule (kind × role)", () => {
     ["dose", false, null],
     ["medicationChange", true, null],
     ["medicationChange", false, null],
+    ["conditionChange", true, null],
+    ["conditionChange", false, null],
   ] as const)("%s, writer %s → %s", (kind, canWrite, rule) => {
     expect(openRule(kind, canWrite)).toBe(rule);
   });

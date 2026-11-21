@@ -1,6 +1,7 @@
 import type { AuthUser } from "@caretook/data";
 
-import { getDb, recipientConditionService } from "@caretook/data";
+import { getDb, recipientConditionService, timelineEntryService } from "@caretook/data";
+import { conditionChangeId } from "@caretook/data/schema";
 import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
@@ -203,5 +204,98 @@ describe("sync.upload: care_recipient's No known conditions", () => {
       ops: [{ ...patch(null), data: { no_known_conditions_at: null, name: "Someone else" } }],
     });
     expect(mixed.results[0]).toMatchObject({ status: "rejected", code: "sync:readOnlyTable" });
+  });
+});
+
+// Conditions slice 2: the device writes each change's entry beside the
+// condition, under the id the service derives from the condition and its
+// `updated_at`; the condition's op records it, so the entry's own PUT, next
+// in the batch, lands on the same row.
+describe("sync.upload: a condition's change entries", () => {
+  const entryPut = (
+    id: string,
+    groupId: string,
+    recipientId: string,
+    occurredAt: string,
+    details: Record<string, unknown>,
+  ) => ({
+    op: "PUT" as const,
+    table: "timeline_entry",
+    id,
+    data: {
+      group_id: groupId,
+      recipient_id: recipientId,
+      kind: "conditionChange",
+      occurred_at: occurredAt,
+      time_zone: "America/Los_Angeles",
+      title: null,
+      body: null,
+      details: JSON.stringify(details),
+    },
+  });
+
+  it("accepts the device's entries for an add and a resolve, with the derived ids, once each", async () => {
+    const { owner, viewer, group, recipient } = await setup();
+    const id = randomUUID();
+    const added = conditionChangeId(id, SAVED_AT);
+    const resolved = conditionChangeId(id, LATER);
+    const ops = [
+      { op: "PUT" as const, table: "recipient_condition", id, data: conditionRow(group.id, recipient.id) },
+      entryPut(added, group.id, recipient.id, SAVED_AT, {
+        conditionId: id,
+        conditionName: "Type 2 diabetes",
+        change: "added",
+        after: {
+          name: "Type 2 diabetes",
+          status: "active",
+          sinceYear: 2016,
+          sinceMonth: 3,
+          note: "Diet-controlled",
+        },
+      }),
+      {
+        op: "PATCH" as const,
+        table: "recipient_condition",
+        id,
+        data: { status: "resolved", updated_at: LATER },
+      },
+      entryPut(resolved, group.id, recipient.id, LATER, {
+        conditionId: id,
+        conditionName: "Type 2 diabetes",
+        change: "resolved",
+      }),
+    ];
+    const statuses = async () => (await owner.api.sync.upload({ ops })).results.map((r) => r.status);
+    expect(await statuses()).toEqual(["applied", "applied", "applied", "applied"]);
+    // Replayed: the same two entries.
+    expect(await statuses()).toEqual(["applied", "applied", "applied", "applied"]);
+
+    const page = ok(
+      await timelineEntryService.list(viewer.ctx, { groupId: group.id, kinds: ["conditionChange"] }),
+    );
+    expect(page.data.map((e) => e.id).sort()).toEqual([added, resolved].sort());
+    expect(ok(await timelineEntryService.getById(viewer.ctx, resolved))).toMatchObject({
+      kind: "conditionChange",
+      createdBy: owner.user.id,
+      details: { conditionId: id, conditionName: "Type 2 diabetes", change: "resolved" },
+    });
+  });
+
+  it("refuses a condition change entry that no condition write made", async () => {
+    const { owner, group, recipient } = await setup();
+    const id = randomUUID();
+    const res = await owner.api.sync.upload({
+      ops: [
+        entryPut(randomUUID(), group.id, recipient.id, SAVED_AT, {
+          conditionId: id,
+          conditionName: "Made up",
+          change: "added",
+        }),
+      ],
+    });
+    expect(res.results[0]).toMatchObject({
+      status: "rejected",
+      code: "timelineEntryService:systemWrittenKind",
+    });
   });
 });

@@ -6,6 +6,8 @@ import type { LocalQuery } from "../timeline/timeline.sync";
 
 import {
   CONDITION_STATUSES,
+  conditionChange,
+  conditionChangeId,
   recipientConditionContentZSchema,
   recipientConditionUpdateZSchema,
 } from "@caretook/data/schema";
@@ -13,7 +15,7 @@ import { and, eq, isNotNull } from "drizzle-orm";
 import { useMemo } from "react";
 import { conditionState } from "./conditions";
 import { useLiveQuery } from "../sync/index";
-import { careRecipients, recipientConditions } from "../sync/schema";
+import { careRecipients, recipientConditions, timelineEntries } from "../sync/schema";
 import { forbidden, groupFor, nowTimestamp, readRows, WRITER_ROLES } from "../timeline/timeline.sync";
 
 // The recipient's conditions on this device (conditions PRD): local queries
@@ -25,6 +27,12 @@ import { forbidden, groupFor, nowTimestamp, readRows, WRITER_ROLES } from "../ti
 //
 // "No known conditions" is the recipient's `no_known_conditions_at`. Adding a
 // condition clears it in the same local transaction (the server does the same).
+//
+// Adding, editing, resolving and reactivating write the condition's
+// `conditionChange` timeline entry in the same transaction, after it (so it
+// uploads after it), with the id the service derives for the same save
+// (`conditionChangeId` of the condition and its new `updated_at`): the two
+// are one row. Deleting writes none.
 
 export type ConditionRow = {
   id: string;
@@ -192,7 +200,51 @@ const liveCondition = async (db: SyncDb, id: string) => {
   return row ? toCondition(row) : null;
 };
 
-/** Add a condition (writers). Clears "No known conditions" in the same transaction. */
+/** The recipient's time zone: a change entry's. */
+const recipientZone = async (db: SyncDb, groupId: string) => {
+  const [row] = await readRows<{ time_zone: string | null }>(db, {
+    sql: "SELECT time_zone FROM care_recipient WHERE group_id = ?",
+    params: [groupId],
+  });
+  return row?.time_zone || "UTC";
+};
+
+type ChangeSource = Parameters<typeof conditionChange>[1];
+
+/**
+ * The timeline row for what a save did, or null when it records nothing.
+ * `now` is the condition's new `updated_at`: the entry's time, and with the
+ * condition's id, its id.
+ */
+const changeEntryRow = (
+  db: SyncDb,
+  condition: { id: string; groupId: string; recipientId: string },
+  before: ChangeSource | null,
+  after: ChangeSource,
+  now: string,
+  timeZone: string,
+) => {
+  const change = conditionChange(before, after);
+  if (!change) return null;
+  return {
+    id: conditionChangeId(condition.id, now),
+    groupId: condition.groupId,
+    recipientId: condition.recipientId,
+    kind: "conditionChange",
+    occurredAt: now,
+    timeZone,
+    title: null,
+    body: null,
+    details: JSON.stringify({ conditionId: condition.id, ...change }),
+    deletedAt: null,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: db.userId,
+    updatedBy: db.userId,
+  };
+};
+
+/** Add a condition (writers), with its "added" entry. Clears "No known conditions" in the same transaction. */
 export const addCondition = async (
   db: SyncDb,
   groupId: string,
@@ -206,6 +258,14 @@ export const addCondition = async (
 
   const id = crypto.randomUUID();
   const now = nowTimestamp();
+  const entry = changeEntryRow(
+    db,
+    { id, groupId, recipientId: recipient.id },
+    null,
+    parsed.data,
+    now,
+    await recipientZone(db, groupId),
+  );
   await db.drizzle.transaction(async (tx) => {
     await tx.insert(recipientConditions).values({
       id,
@@ -224,6 +284,7 @@ export const addCondition = async (
         .update(careRecipients)
         .set({ noKnownConditionsAt: null })
         .where(and(eq(careRecipients.id, recipient.id), isNotNull(careRecipients.noKnownConditionsAt)));
+    if (entry) await tx.insert(timelineEntries).values(entry);
   });
   return { ok: true, id };
 };
@@ -239,7 +300,8 @@ export type ConditionPatch = {
 /**
  * Change a condition (writers): what's left out keeps its value; the merged
  * condition must be valid. Only the columns that changed are written, so an
- * edit that changes nothing queues nothing.
+ * edit that changes nothing queues nothing. What changed is recorded on the
+ * timeline in the same transaction.
  */
 export const updateCondition = async (
   db: SyncDb,
@@ -259,11 +321,21 @@ export const updateCondition = async (
     Object.entries(merged.data).filter(([key, value]) => existing[key as keyof LocalCondition] !== value),
   );
   if (!Object.keys(changed).length) return { ok: true, id };
+  const now = nowTimestamp();
+  const entry = changeEntryRow(
+    db,
+    existing,
+    existing,
+    merged.data,
+    now,
+    await recipientZone(db, existing.groupId),
+  );
   await db.drizzle.transaction(async (tx) => {
     await tx
       .update(recipientConditions)
-      .set({ ...changed, updatedAt: nowTimestamp(), updatedBy: db.userId })
+      .set({ ...changed, updatedAt: now, updatedBy: db.userId })
       .where(eq(recipientConditions.id, id));
+    if (entry) await tx.insert(timelineEntries).values(entry);
   });
   return { ok: true, id };
 };

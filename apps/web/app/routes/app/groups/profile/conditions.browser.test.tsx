@@ -246,7 +246,12 @@ describe("a condition's sheet", () => {
       .poll(() => SHEET()?.querySelector("[data-condition-line=note] dd")?.textContent?.trim())
       .toBe("Metformin and diet");
     const writes = await device.queued();
-    expect(writes.map((w) => [w.op, w.type, w.id])).toEqual([["PATCH", "recipient_condition", DIABETES.id]]);
+    // The condition's columns that changed, then its change entry (conditions slice 2).
+    expect(writes.map((w) => [w.op, w.type])).toEqual([
+      ["PATCH", "recipient_condition"],
+      ["PUT", "timeline_entry"],
+    ]);
+    expect(writes[0]?.id).toBe(DIABETES.id);
     expect(Object.keys(writes[0]?.data ?? {}).sort()).toEqual(["note", "updated_at"]);
 
     // The upload lands; the server's copy comes back with it.

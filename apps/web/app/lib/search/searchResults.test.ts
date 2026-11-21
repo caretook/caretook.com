@@ -61,7 +61,9 @@ describe("sectionLimits", () => {
       medication: SECTION_SIZE,
       task: SECTION_SIZE,
       entry: SECTION_SIZE,
+      condition: SECTION_SIZE,
     });
+    expect(sectionLimits("condition").condition).toBe(FULL_SECTION_SIZE);
     expect(sectionLimits("medication").medication).toBe(FULL_SECTION_SIZE);
     expect(sectionLimits("medication").entry).toBe(SECTION_SIZE);
     expect(sectionLimits("task").task).toBe(FULL_SECTION_SIZE);
@@ -110,6 +112,18 @@ describe("searchSections", () => {
     });
     expect(sections.map((s) => s.type)).toEqual(["provider", "medication", "task", "entry"]);
     expect(sections.map((s) => s.label)).toEqual(["Providers", "Medications", "Tasks", "Timeline entries"]);
+  });
+
+  it("puts conditions after medications and before tasks", () => {
+    const sections = searchSections({
+      entry: { hits: [hit("e1")], total: 1 },
+      task: { hits: [hit("t1", { type: "task" })], total: 1 },
+      condition: { hits: [hit("c1", { type: "condition" })], total: 1 },
+      medication: { hits: [hit("m1", { type: "medication" })], total: 1 },
+    });
+    expect(sections.map((s) => s.type)).toEqual(["medication", "condition", "task", "entry"]);
+    expect(sections.map((s) => s.label)).toEqual(["Medications", "Conditions", "Tasks", "Timeline entries"]);
+    expect(resultCountText(sections, "x")).toBe("1 medication, 1 condition, 1 task and 1 entry");
   });
 
   it("sorts each section best first", () => {
