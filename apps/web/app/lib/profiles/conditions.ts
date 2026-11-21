@@ -1,5 +1,7 @@
 import type { ConditionStatus } from "@caretook/data/schema";
 
+import { sortConditions } from "@caretook/data/schema";
+
 // The recipient's conditions, in words: their order (active first), the
 // "since" text, a condition's one-line summary and the card's states. Pure:
 // web:unit tests it; the profile's card and sheets use it (and later the
@@ -34,24 +36,7 @@ export const MONTH_NAMES = [
   "December",
 ] as const;
 
-const collator = new Intl.Collator("en", { sensitivity: "base", numeric: true });
-
-/** A since as one number for ordering: later is bigger; no since is smallest; a year alone sorts as its start. */
-const sinceKey = ({ sinceYear, sinceMonth }: Pick<ConditionLike, "sinceYear" | "sinceMonth">) =>
-  sinceYear === null ? -1 : sinceYear * 13 + (sinceMonth ?? 0);
-
-/**
- * Active first, then resolved; within each, the most recent since first
- * (none last), then by name.
- */
-export const sortConditions = <C extends ConditionLike>(conditions: readonly C[]): C[] =>
-  [...conditions].sort(
-    (a, b) =>
-      (a.status === "active" ? 0 : 1) - (b.status === "active" ? 0 : 1) ||
-      sinceKey(b) - sinceKey(a) ||
-      collator.compare(a.name, b.name) ||
-      (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
-  );
+export { sortConditions };
 
 /** "2015", "March 2021", or null when there's no since. */
 export const sinceDate = ({ sinceYear, sinceMonth }: Pick<ConditionLike, "sinceYear" | "sinceMonth">) => {

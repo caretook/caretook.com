@@ -500,6 +500,7 @@ const EXPORTS = [
   "slotStateText",
   "slotTimes",
   "snippetIfHidden",
+  "sortConditions",
   "sortPasses",
   "spamVerdict",
   "splitQuickEntry",
