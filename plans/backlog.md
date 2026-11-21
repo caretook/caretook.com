@@ -127,9 +127,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-229 | bug | triaged | quick-fixes |  | on timeline page, header and Today section should be in same column width as the rest of the… |
 | B-230 | bug | ready | quick-fixes | prd/quick-fixes | reminders.int.test.ts 'reminds a task's assignee, and skips a suppressed address' times out at 5000 ms under load in a full check (then 'turns reminders off from the email's unsubscribe link' gets Invalid URL); passes alone |
 | B-231 | bug | triaged | quick-fixes |  | "Nothing logged today yet." message should be in a border box like a timeline entry box to match… |
-| B-232 | bug | in-progress | quick-fixes | prd/quick-fixes | Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar |
+| B-232 | bug | ready | quick-fixes | prd/quick-fixes | Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar |
 | B-233 | bug | in-progress | quick-fixes | prd/quick-fixes | A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series |
-| B-234 | bug | in-progress | quick-fixes | prd/quick-fixes | Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR) |
+| B-234 | bug | ready | quick-fixes | prd/quick-fixes | Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR) |
 | B-235 | bug | in-progress | quick-fixes | prd/quick-fixes | After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch |
 | B-236 | bug | triaged | simple-mode |  | In locked simple mode, SimpleNext's 'See all' (Upcoming) and task links look clickable but bounce back to the timeline: lockAllows only permits the timeline and entry routes |
 | B-237 | bug | ready | quick-fixes | prd/quick-fixes | An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits |
@@ -143,13 +143,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-245 | plan | triaged | planner-3 |  | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
 | B-246 | change | triaged | quick-fixes |  | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
 | B-247 | change | triaged | quick-fixes |  | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
-| B-248 | change | triaged | planner-2 |  | Remove reminders: notes can no longer be dated in the future; use todos instead |
+| B-248 | change | in-progress | planner-2 | prd/planner-2 | Remove reminders: notes can no longer be dated in the future; use todos instead |
 | B-249 | change | in-progress | list-filters | prd/list-filters | Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner |
 | B-250 | bug | triaged | quick-fixes |  | lint tests seem to be failing regularly because types haven't been generated. Maybe regression… |
 | B-251 | bug | triaged | quick-fixes |  | convert planner tabs to TabNav component. |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-254 | feature | triaged | planner-3 |  | Quick entry: 'bins out every monday' makes a repeating todo |
+| B-255 | bug | triaged | list-filters |  | default filter on todos should be "everyone" and then reduce the list. |
+| B-256 | bug | triaged | quick-fixes |  | call and directions icons on planner schedule should be below the time, not beside the… |
 
 ## Items
 
@@ -833,10 +835,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-232 · bug · Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 9f47380b
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 9 (dev → staging), checked against dev 2026-11-21: Codex P1, a data-access gap. accountAdminService.disable keeps the Google connection; calendarFeedService.resolve and calendarPullService.memberContext both refuse disabled users. Fix: join user and skip disabledAt in connectionsFor (or disconnect on disable), with an int test. Proposed first in the next quick-fixes wave, or a hotfix before the staging PR merges.
 - 2026-11-21 (Robert Bo Davis): User 2026-11-21: nothing is live, so Codex findings go to follow-ups unless critical and breaking; this one waits for a normal quick-fixes wave, no hotfix.
@@ -852,10 +854,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-234 · bug · Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR)
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: f4c84585
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 9 (dev → staging), checked against dev 2026-11-21: Codex P2, confirmed in apps/web/app/lib/appointments/repeatChoice.ts. Keep the stored ordinal and weekday unless the user changes the repeat; a unit test round-tripping -1FR.
 
@@ -983,9 +985,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-248 · change · Remove reminders: notes can no longer be dated in the future; use todos instead
 
-- status: triaged
+- status: in-progress
 - prd: planner-2
-- owner:
+- owner: prd/planner-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21, the user's decision: a reminder (a future-dated note) goes away in favour of todos. Notes become past-only on the device and the server; remove Reminder from the Planner's + menu, the Planner rows and kind filter, the Today card and simple mode's next, the calendar projection's reminder kind (feed, Google push and pull, reminder emails, Remind me), quick entry's future-note reading and the connector's upcoming and add_note. No data migration (nothing live): seeds change, existing future notes are not converted. Starts after quick-entry (B-220) is in dev: it rewrites the same date rules. B-245 (attach a todo to a note) is the later follow-up.
@@ -1045,3 +1047,22 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (plan/planner-2): From the planner-2 planning interview, 2026-11-21: repeating todos are created from the todo form only in planner-2; reading a repeat in quick entry is this follow-up, after planner-2 (B-248 remove reminders) is in dev. Proposed alongside B-245 (attach a todo to a note) in planner-3; for the user to check.
+
+### B-255 · bug · default filter on todos should be "everyone" and then reduce the list.
+
+- status: triaged
+- prd: list-filters
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Triage: the todos filter's default (everyone, then narrow). Proposed for list-filters (B-249 shared Filter dropdown), which is rewriting the todos filter now; in quick-fixes it would collide on the same files. If list-filters lands first, move to quick-fixes.
+
+### B-256 · bug · call and directions icons on planner schedule should be below the time, not beside the…
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the inbox: call and directions icons on planner schedule should be below the time, not beside the title/description to free up space on mobile.
+- 2026-11-21 (Robert Bo Davis): Triage: a small layout fix on the Planner schedule rows (call and directions icons under the time), so quick-fixes; the Planner files are hot for planner-2 and list-filters, so pick it up after those land.
