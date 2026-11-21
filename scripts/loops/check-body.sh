@@ -13,12 +13,15 @@ mode=$1 base=$2 tooling=$3; shift 3
 default=(--project '!tooling:unit')
 
 if [[ $mode == full ]]; then
-  pnpm check && pnpm build:budget
+  pnpm check
+  pnpm build:budget
 else
-  pnpm typecheck && pnpm lint && pnpm format:check
+  pnpm typecheck
+  pnpm lint
+  pnpm format:check
   files() { pnpm exec vitest list --filesOnly "${default[@]}" "$@" | awk '/\.test\.[a-z]+$/ {print $NF}' | sort -u; }
   all=$(files | grep -c . || true)
-  run=$( { files --changed "$base"; (($#)) && printf '%s\n' "$@"; true; } | sort -u | grep -c . || true)
+  run=$( { files --changed "$base"; if (($#)); then printf '%s\n' "$@"; fi; } | sort -u | grep -c . || true)
   [[ -z ${CARETOOK_CHECK_COUNTS:-} ]] || echo "$run $all" > "$CARETOOK_CHECK_COUNTS"
   echo "quick check: $run of $all test files (the tests related to the diff, plus the ones that read files by path)"
   if ((run * 2 > all)); then
@@ -29,4 +32,7 @@ else
   node scripts/loops/check-areas.mjs lint
   pnpm docs:budget
 fi
-if [[ $tooling == 1 ]]; then pnpm test:tooling; fi
+if [[ $tooling == 1 ]]; then
+  pnpm test:tooling
+fi
+exit 0
