@@ -37,6 +37,8 @@ const FROZEN_PATHS = [
   "calendars.feed.create",
   "calendars.feed.revoke",
   "calendars.feed.rotate",
+  "calendars.google.disconnect",
+  "calendars.google.status",
   "calendars.group.setDetailsAllowed",
   "calendars.settings.get",
   "calendars.settings.update",

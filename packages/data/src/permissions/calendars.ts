@@ -1,6 +1,6 @@
 import type { PartialPermissions } from "./types";
 
-import { NO_ACCESS, SYSTEM_ONLY } from "./blocks";
+import { NO_ACCESS, SYSTEM_ONLY, SYSTEM_ONLY_SCHEMA } from "./blocks";
 
 /** The member's own rows only: nobody else reads or writes them, owners and staff included. */
 const OWN = {
@@ -43,4 +43,11 @@ export const CALENDARS_PERMISSIONS = {
     update: { ...OWN, fields: { userId: SYSTEM_ONLY, groupId: SYSTEM_ONLY, entryId: SYSTEM_ONLY } },
     delete: OWN,
   },
+  // Google Calendar (slice 7): the system's only. googleConnectionService and
+  // calendarSyncService check membership themselves and return a status,
+  // never a token; nothing is written through a model.
+  googleCalendarConnectionSchema: SYSTEM_ONLY_SCHEMA,
+  googleEventLinkSchema: SYSTEM_ONLY_SCHEMA,
+  calendarSyncJobSchema: SYSTEM_ONLY_SCHEMA,
+  googleOauthStateSchema: SYSTEM_ONLY_SCHEMA,
 } as const satisfies PartialPermissions;

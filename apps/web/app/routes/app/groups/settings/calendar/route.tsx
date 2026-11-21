@@ -13,6 +13,7 @@ import { OFFLINE_CALENDAR } from "./calendarPage";
 import { DetailsCard } from "./DetailsCard";
 import { FeedCard } from "./FeedCard";
 import { GoogleCard } from "./GoogleCard";
+import { showsGoogleCard } from "./googleCardView";
 import { RemindersCard } from "./RemindersCard";
 
 // `…/settings/calendar`: Calendar & reminders (calendars, appointments-2).
@@ -31,7 +32,7 @@ export const meta = () => [{ title: "Calendar & reminders · Group settings · C
 export { shouldRevalidate } from "../api";
 
 /** Google Calendar connects through web-only routes: the native app has no card for it. */
-const SHOWS_GOOGLE = import.meta.env.BUILD_TARGET !== "native";
+const SHOWS_GOOGLE = showsGoogleCard(import.meta.env.BUILD_TARGET);
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const { groupId } = params;

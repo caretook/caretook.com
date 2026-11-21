@@ -6,6 +6,7 @@ import { iso } from "../dto";
 import { unwrap } from "../errors";
 import { authedProcedure } from "../procedures";
 import { feed } from "./feedProcedures";
+import { google } from "./google";
 
 // A member's calendar settings for one group (appointments-2): the
 // "Calendar & reminders" page reads and writes them, each member only their
@@ -48,4 +49,5 @@ export const calendars = {
         unwrap(await calendarSettingService.setDetailsAllowed(context, input.groupId, input.allowed)),
       ),
   },
+  google,
 };

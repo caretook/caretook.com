@@ -2,6 +2,7 @@
 // imports only the `Router` type (import type), never values.
 export * from "./calendars/feed";
 export * from "./calendars/renderIcs";
+export * from "./calendars/googleRoutes";
 export * from "./connectors";
 export * from "./dto";
 export * from "./errors";

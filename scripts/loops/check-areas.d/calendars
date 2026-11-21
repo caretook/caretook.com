@@ -15,3 +15,6 @@ apps/web/app/routes/api/calendar/*       -
 apps/web/app/.server/calendarFeed.ts     -
 # Reminder emails' unsubscribe link (web only, slice 6): integration tests (packages/notifications).
 apps/web/app/routes/api/reminders/*      -
+# Google Calendar's Connect and OAuth callback (web-only redirects): integration
+# tests over their handlers (packages/api/src/calendars/googleRoutes.int.test.ts).
+apps/web/app/routes/api/google/*         -

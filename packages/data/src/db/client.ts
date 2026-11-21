@@ -68,6 +68,9 @@ export const endClient = async () => {
   db = null;
 };
 
+/** Work to start after each open `withTransaction` commits (`afterCommit`). */
+const commitHooks = new WeakMap<Tx, (() => void)[]>();
+
 /**
  * Run `fn` in a transaction, reusing `opts.tx` when already inside one.
  *
@@ -82,9 +85,11 @@ export const withTransaction = async <T>(
   if (opts.tx) return fn(opts.tx);
 
   let failure: AppError | undefined;
+  const hooks: (() => void)[] = [];
   const res = await dbMayFail(
     () =>
       getDb().transaction(async (tx) => {
+        commitHooks.set(tx, hooks);
         const result = await fn(tx);
         if (isError(result)) {
           failure = result;
@@ -95,5 +100,24 @@ export const withTransaction = async <T>(
     "db:transaction",
   );
 
-  return failure ?? res;
+  if (failure || isError(res)) return failure ?? res;
+  for (const hook of hooks) {
+    try {
+      hook();
+    } catch {
+      // A hook only starts background work; the cron catches up on anything it missed.
+    }
+  }
+  return res;
+};
+
+/**
+ * Run `fn` once the transaction `tx` (from `withTransaction`) commits; never
+ * on a rollback. Outside a transaction it runs now. For starting background
+ * work that must see the committed rows (appointments-2: a Google push).
+ * A `tx` from anywhere else runs nothing: callers have a sweep behind them.
+ */
+export const afterCommit = (tx: Tx | undefined, fn: () => void) => {
+  if (!tx) return fn();
+  commitHooks.get(tx)?.push(fn);
 };

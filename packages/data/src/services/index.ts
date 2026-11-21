@@ -144,6 +144,12 @@ export type { CalendarFeed } from "./calendarFeedService";
 import * as calendarReminderService from "./calendarReminderService";
 export { calendarReminderService };
 export type { ReminderGroupInputs } from "./calendarReminderService";
+// Google Calendar (appointments-2, slice 7): no model (system-only tables).
+import * as googleConnectionService from "./googleConnectionService";
+export { googleConnectionService };
+import * as calendarSyncService from "./calendarSyncService";
+export { calendarSyncService };
+export type { PushResult, SyncRunSummary, SyncTarget } from "./calendarSyncService";
 
 export const services = {
   user: userService,
