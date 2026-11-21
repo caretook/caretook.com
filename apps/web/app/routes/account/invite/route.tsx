@@ -5,7 +5,7 @@ import type { Route } from "./+types/route";
 import { ATTESTATION_TEXT, CONSENT_TEXT, SHARED_WITH_MEMBERS } from "@caretook/data/schema";
 import { ORPCError } from "@orpc/client";
 import { Form, Link, redirect, useNavigation } from "react-router";
-import { Field } from "~/components/ui/plain";
+import { Button, Field } from "~/components/ui/plain";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { authClient } from "~/lib/auth/auth-client";
@@ -152,9 +152,9 @@ export default function Invite({ loaderData, actionData }: Route.ComponentProps)
     return (
       <AuthCard title="Invitation">
         <ErrorMessage>{authMessages.offline}</ErrorMessage>
-        <Link to={accountUrls.invite(token)} className="btn btn-primary btn-block">
+        <Button to={accountUrls.invite(token)} variant="primary" block>
           Try again
-        </Link>
+        </Button>
       </AuthCard>
     );
   }
@@ -174,9 +174,9 @@ export default function Invite({ loaderData, actionData }: Route.ComponentProps)
         <p data-invite-state={preview.state} className="text-sm">
           {view.message}
         </p>
-        <Link to={user ? appUrls.home() : accountUrls.signIn()} className="btn btn-block">
+        <Button to={user ? appUrls.home() : accountUrls.signIn()} block>
           {user ? "Go to Caretook" : "Sign in"}
-        </Link>
+        </Button>
       </AuthCard>
     );
   }
@@ -282,9 +282,16 @@ function SignUpForm({ token, invite, error }: { token: string; invite: UsablePre
           )}
         </Field>
         {error && <ErrorMessage>{error}</ErrorMessage>}
-        <button type="submit" className="btn btn-primary btn-block mt-2" disabled={busy}>
-          {busy ? "Creating your account…" : "Create account"}
-        </button>
+        <Button
+          type="submit"
+          variant="primary"
+          block
+          className="mt-2"
+          busy={busy}
+          busyLabel="Creating your account…"
+        >
+          Create account
+        </Button>
       </Form>
       <p className="text-center text-sm">
         Already have a Caretook account?{" "}
@@ -323,9 +330,9 @@ function ConsentForm({ invite, error }: { invite: UsablePreview; error?: string 
         <span>{CONSENT_TEXT}</span>
       </label>
       {error && <ErrorMessage>{error}</ErrorMessage>}
-      <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
+      <Button type="submit" variant="primary" block busy={busy}>
         {joinLabel(invite, busy)}
-      </button>
+      </Button>
     </Form>
   );
 }
@@ -337,9 +344,9 @@ function DeclineForm({ error }: { error?: string }) {
     <Form method="post" onSubmit={submitOnce} className="text-center" data-invite-form="decline">
       <input type="hidden" name="intent" value="decline" />
       {error && <ErrorMessage>{error}</ErrorMessage>}
-      <button type="submit" className="btn btn-ghost btn-sm" disabled={busy}>
+      <Button type="submit" variant="ghost" size="sm" busy={busy}>
         Decline invitation
-      </button>
+      </Button>
     </Form>
   );
 }
@@ -350,9 +357,9 @@ function SignOutButton({ token }: { token: string }) {
   return (
     <Form method="post" action="/sign-out" onSubmit={submitOnce}>
       <input type="hidden" name="redirectTo" value={accountUrls.invite(token)} />
-      <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
-        {busy ? "Signing out…" : "Sign out"}
-      </button>
+      <Button type="submit" variant="primary" block busy={busy} busyLabel="Signing out…">
+        Sign out
+      </Button>
     </Form>
   );
 }

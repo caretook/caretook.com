@@ -97,7 +97,7 @@ export function CopyToGroup({
         message={target ? notesStayIn(groupName) : undefined}
         confirmLabel={COPY_BUTTON}
         confirmDisabled={!target || busy}
-        confirmClassName="btn-primary"
+        confirmVariant="primary"
         onConfirm={() => void copy()}
         onClose={close}
       >

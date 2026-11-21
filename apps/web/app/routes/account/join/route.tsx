@@ -7,7 +7,7 @@ import { ORPCError } from "@orpc/client";
 import { useRef, useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
 import { NewGroupFields, newGroupFromForm } from "~/components/groups";
-import { Field } from "~/components/ui/plain";
+import { Button, Field } from "~/components/ui/plain";
 import { toActionResult } from "~/lib/core/api";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -108,9 +108,9 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
     return (
       <AuthCard title="Start a care group">
         <ErrorMessage>{authMessages.offline}</ErrorMessage>
-        <Link to={accountUrls.join(code)} className="btn btn-primary btn-block">
+        <Button to={accountUrls.join(code)} variant="primary" block>
           Try again
-        </Link>
+        </Button>
       </AuthCard>
     );
   }
@@ -122,9 +122,9 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
         <p data-code-state={preview.state} className="text-sm">
           {closed.message}
         </p>
-        <Link to={user ? appUrls.home() : accountUrls.signIn()} className="btn btn-block">
+        <Button to={user ? appUrls.home() : accountUrls.signIn()} block>
           {user ? "Go to Caretook" : "Sign in"}
-        </Link>
+        </Button>
       </AuthCard>
     );
   }
@@ -136,12 +136,12 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
           You're signed in as <strong>{user.email}</strong>. You don't need a code to start another care
           group.
         </p>
-        <Link to={appUrls.newGroup()} state={NEW_GROUP_LINK_STATE} className="btn btn-primary btn-block">
+        <Button to={appUrls.newGroup()} state={NEW_GROUP_LINK_STATE} variant="primary" block>
           New care group
-        </Link>
-        <Link to={appUrls.home()} className="btn btn-ghost btn-block">
+        </Button>
+        <Button to={appUrls.home()} variant="ghost" block>
           Go to Caretook
-        </Link>
+        </Button>
       </AuthCard>
     );
   }
@@ -226,17 +226,17 @@ function JoinForm({ actionData }: { actionData: ActionData | undefined }) {
         </div>
         {actionData?.error && <ErrorMessage>{actionData.error}</ErrorMessage>}
         {step === "account" ? (
-          <button type="button" className="btn btn-primary btn-block mt-2" onClick={next}>
+          <Button variant="primary" block className="mt-2" onClick={next}>
             Continue
-          </button>
+          </Button>
         ) : (
           <div className="mt-2 flex gap-2">
-            <button type="button" className="btn" onClick={() => setStep("account")} disabled={busy}>
+            <Button onClick={() => setStep("account")} disabled={busy}>
               Back
-            </button>
-            <button type="submit" className="btn btn-primary grow" disabled={busy}>
-              {busy ? "Creating…" : "Create care group"}
-            </button>
+            </Button>
+            <Button type="submit" variant="primary" className="grow" busy={busy} busyLabel="Creating…">
+              Create care group
+            </Button>
           </div>
         )}
       </Form>

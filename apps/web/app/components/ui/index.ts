@@ -35,3 +35,8 @@ export { useShowModal } from "./useShowModal";
 export { PageHeader } from "./PageHeader";
 export { TabNav } from "./TabNav";
 export type { TabNavTab } from "./TabNav";
+// ui-kit (later slices append below, one block each).
+export { Button } from "./Button";
+export type { ButtonSize, ButtonVariant } from "./buttonClass";
+export { FormFooter } from "./FormFooter";
+export type { FormFooterCancel } from "./FormFooter";
