@@ -8,7 +8,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
-import { openedFromApp } from "~/lib/medications/medicationSheets";
+import { openedFromApp, sheetTab } from "~/lib/medications/medicationSheets";
 import { useLiveQuery } from "~/lib/sync";
 import { loadSchedulePasses, useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
 import { medicationNamesQuery } from "~/lib/medications/medications.sync";
@@ -16,34 +16,38 @@ import { conditionsQuery, toConditions } from "~/lib/profiles/conditions.sync";
 import { providersQuery, toProviders } from "~/lib/providers/providers.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
 
-// Sheets over the medication list are child routes (`medications/new`,
-// `medications/:medicationId/edit`): the list stays mounted underneath, with
-// its search, filter and scroll position. Like the directory's sheets
+// Sheets over the Medications tabs are child routes (`medications/<tab>/new`,
+// `medications/<tab>/:medicationId/edit`, `medications/<tab>/allergies`): the
+// tab stays mounted underneath, with its search, filter and scroll position. Like the directory's sheets
 // (`providerSheet.ts`).
 
 /**
  * Close the sheet by leaving its route; Back, Escape, Cancel and a save all
  * end up in the same place: back, when it was opened by one of the app's
- * links (from the list, or from a medication's page, which it returns to);
- * otherwise (a bookmark, a reload) the list replaces it, with its search
- * kept. `toList` goes to the list whatever opened it (after a delete, the
- * page it came from is gone). Only the first call counts.
+ * links (from a tab, or from a medication's page, which it returns to);
+ * otherwise (a bookmark, a reload) the tab underneath replaces it, with its
+ * search kept. `toTab` goes to that tab whatever opened it (after a delete,
+ * the page it came from is gone). Only the first call counts.
  */
 export function useCloseMedicationSheet() {
   const navigate = useNavigate();
   const location = useLocation();
   const state: unknown = location.state;
-  const { search } = location;
+  const { pathname, search } = location;
   const { id } = useGroup();
   const closed = useRef(false);
   return useCallback(
-    (toList = false) => {
+    (toTab = false) => {
       if (closed.current) return;
       closed.current = true;
-      if (!toList && openedFromApp(state)) void navigate(-1);
-      else void navigate(appUrls.medications(id, search), { replace: true, preventScrollReset: true });
+      if (!toTab && openedFromApp(state)) void navigate(-1);
+      else
+        void navigate(appUrls.medicationTab(id, sheetTab(id, pathname), search), {
+          replace: true,
+          preventScrollReset: true,
+        });
     },
-    [navigate, state, search, id],
+    [navigate, state, pathname, search, id],
   );
 }
 

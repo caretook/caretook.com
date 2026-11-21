@@ -58,7 +58,7 @@ export default function MedicationsPrintWeek({ loaderData, params }: Route.Compo
       data-print-page
     >
       <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
-        <BackLink to={appUrls.medications(params.groupId)} label="Medications" />
+        <BackLink to={appUrls.medicationSchedule(params.groupId)} label="Medications" />
         <button type="button" className="btn btn-primary btn-sm gap-1.5" onClick={() => window.print()}>
           <Printer className="size-4" aria-hidden="true" />
           Print

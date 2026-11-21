@@ -25,7 +25,7 @@ pnpm prd ready <topic>   # is it ready to land? what's in it?
 
 Not everything needs a PRD. For a small change (a docs or tooling tweak, a config change, a contained fix), open an agent in the main checkout, ask for it, and have it commit straight onto `dev`. Use a PRD when the work needs its own database and dev server, runs in parallel with other work, or adds a migration. An agent that can't tell which a request is will ask you.
 
-To keep a small fix off `dev` until you've seen it, ask for a **hotfix**: `pnpm prd hotfix <name>` makes a stackless worktree on `hotfix/<name>`, the agent works there and asks you before each long test, commit and sync, and you land it with `pnpm prd land hotfix/<name>` when you're happy ([hotfix](agents/hotfix.md)). Either tell an agent in the main checkout it's a hotfix agent (it makes the worktree and moves there), or start one in a new terminal with `pnpm prd hotfix <name> --open "<the fix>"` (without `--open` it prints the command instead).
+To keep a small fix off `dev` until you've seen it, ask for a **hotfix**: `pnpm prd hotfix <name>` makes a stackless worktree on `hotfix/<name>`; the agent asks before each long test, commit and sync, and you land it with `pnpm prd land hotfix/<name> --pr` (reviewed) or `--local` ([hotfix](agents/hotfix.md)). Either tell an agent in the main checkout it's a hotfix agent (it makes the worktree and moves there), or start one in a new terminal with `pnpm prd hotfix <name> --open "<the fix>"`.
 
 ## Branches
 
@@ -92,7 +92,7 @@ Every change is committed straight onto `dev` (only those two files), so every s
 
 ### Starting a PRD
 
-1. A PRD needs a written PRD and plan first. Not sure which? `pnpm prd plan` with no topic opens a backlog session that reads the inbox and backlog and helps you choose. Then run `pnpm prd plan <topic> --open` (add the backlog ids it covers, e.g. `B-52 B-53`): it makes a docs-only worktree and starts a planning agent there that interviews you, writes the PRD and plan, updates the backlog and lands them in `dev`.
+1. A PRD needs a written PRD and plan first. Not sure which? `pnpm prd plan` with no topic opens a backlog session that reads the inbox and backlog and helps you choose. Then run `pnpm prd plan <topic> --open` (add the backlog ids it covers, e.g. `B-52 B-53`): it makes a docs-only worktree and starts a planning agent there that interviews you, writes the PRD and plan, updates the backlog and lands them in `dev`. Planning and hotfix sessions run on fable; `--model <name>` runs one on another model.
 2. `pnpm prd start <topic>` creates the PRD's worktree and stack, and prints a command.
 3. Open a **new terminal** and run that command. It starts the orchestrator session with the right first prompt:
 
@@ -123,9 +123,9 @@ A resumed orchestrator first checks its _Status_ against git (the slice worktree
 
 ### What runs where
 
-Every PRD and every slice gets its own **worktree** in `.loops/` (a separate checkout of its branch), and most get their own **stack**: a private Postgres, test Postgres, PowerSync and dev server on their own ports. So agents can reset databases and run browser checks without touching yours or each other's.
+Every PRD and every slice gets its own **worktree** in `.loops/` (a separate checkout of its branch), and most get their own **stack**: a private Postgres, test Postgres, PowerSync and dev server on their own ports. So agents reset databases and run browser checks without touching yours.
 
-`pnpm prd status` lists them all, with each one's dev server link and whether it's running. `pnpm prd serve <name>` starts one (it keeps running after the agent's session ends); `--stop` stops it.
+`pnpm prd status` lists them all, with each one's dev server link and whether it's running. `pnpm prd serve <name>` starts one; `--stop` stops it.
 
 ### Ready to land: try it first
 
@@ -150,10 +150,10 @@ If something isn't ready (not synced with `dev`, checks not passed on the latest
 
 Open the link, try it, and then tell the orchestrator one of:
 
-- **"land it"**: it runs `pnpm prd land <topic>`, which merges the branch into `dev` in your main checkout. The command refuses unless the branch is synced and checked, so what lands is exactly what you tried. It tells you if your main checkout then needs `pnpm datastore:reset` or `pnpm install`.
+- **"land it"**: it runs `pnpm prd land <topic>`, which merges the wave's GitHub PR into `dev` and updates your main checkout. The PR opens once the wave is green, so Codex reviews it while you try it (about three rounds, then the orchestrator asks you). It refuses unless the branch is synced and checked, the PR's head is that tip and the review is clean (`--no-review` on your word), so what lands is what you tried. It tells you if your main checkout then needs `pnpm datastore:reset` or `pnpm install`.
 - **what to change**: it sends the work back to a slice agent and comes back with a new report.
 
-You can also land it yourself from any terminal: `pnpm prd land <topic>`. Either way, pushing is yours: `git push origin dev`.
+You can also land it yourself from any terminal: `pnpm prd land <topic>`. `pr` and `land` push `dev` (fast-forward only). A hotfix asks "PR or local?".
 
 Land one PRD at a time. The others sync with `dev` at their next wave.
 

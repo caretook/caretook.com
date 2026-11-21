@@ -145,6 +145,17 @@ const carryOut = async (
   };
 };
 
+/** The providers' names, for the preview's "with Dr. Lee". */
+const providerNames = async (ctx: ToolContext, ids: readonly string[]) => {
+  const providers = new Map<string, { name: string }>();
+  for (const id of ids) {
+    const provider = await providerService.getById({ authUser: ctx.authUser }, id);
+    if (isError(provider)) return provider;
+    if (provider) providers.set(id, { name: provider.name });
+  }
+  return { providers };
+};
+
 // ---------------------------------------------------------------------------
 // The tools
 // ---------------------------------------------------------------------------
@@ -239,15 +250,21 @@ export const addNote = defineTool({
   name: "add_note",
   title: "Add a note",
   description:
-    "Add a note to the timeline: plain text (new lines for paragraphs), with an optional short title. Members can go on editing it in the app. Ask the member before calling.",
+    "Add a note to the timeline: plain text (new lines for paragraphs), with an optional short title and providers it mentions (ids from the provider directory; each is mentioned where the text says @ and their name, else at the end, and linked). Members can go on editing it in the app. Ask the member before calling.",
   scope: "readWrite",
   input: z.object({
     ...shapeOf(addNoteActionZSchema),
     occurredAt: when,
   }),
   annotations: WRITE_ANNOTATIONS,
-  handler: (input, ctx) =>
-    carryOut(ctx, { type: "addNote", ...input, occurredAt: input.occurredAt ?? ctx.now.toISOString() }),
+  handler: (input, ctx) => {
+    const providerIds = input.providerIds ?? [];
+    return carryOut(
+      ctx,
+      { type: "addNote", ...input, providerIds, occurredAt: input.occurredAt ?? ctx.now.toISOString() },
+      () => providerNames(ctx, providerIds),
+    );
+  },
 });
 
 export const addEvent = defineTool({
@@ -273,15 +290,7 @@ export const addEvent = defineTool({
     return carryOut(
       ctx,
       { type: "addEvent", ...input, providerIds, timeZone: input.timeZone ?? loaded.timeZone },
-      async () => {
-        const providers = new Map<string, { name: string }>();
-        for (const id of providerIds) {
-          const provider = await providerService.getById({ authUser: ctx.authUser }, id);
-          if (isError(provider)) return provider;
-          if (provider) providers.set(id, { name: provider.name });
-        }
-        return { providers };
-      },
+      () => providerNames(ctx, providerIds),
     );
   },
 });

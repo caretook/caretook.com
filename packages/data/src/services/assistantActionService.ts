@@ -4,6 +4,7 @@ import type {
   DueDose,
   DueMedication,
   EntryEditAction,
+  NoteMention,
   NoteSectionLine,
   TimelineEntryCreateInput,
   TimelineEntryUpdateInput,
@@ -112,8 +113,8 @@ const invalid = (issues: Issue[]) => newError({ code: "assistantActionService:in
 type EntryPlan = {
   type: "entry";
   input: TimelineEntryCreateInput;
-  /** A note's or event's live document, with a note's text. */
-  document?: { text: string | null };
+  /** A note's or event's live document: a note's text, with its providers mentioned. */
+  document?: { text: string | null; mentions: NoteMention[] };
   providerIds: string[];
 };
 type EditPlan =
@@ -467,21 +468,24 @@ const planAction = async (
     const medication = await currentMedication(ctx, tx, groupId, action.medicationId);
     if (isError(medication)) return medication;
   }
-  const providerIds = action.type === "addEvent" ? [...new Set(action.providerIds)] : [];
+  const providerIds =
+    action.type === "addEvent" || action.type === "addNote" ? [...new Set(action.providerIds)] : [];
+  const mentions: NoteMention[] = [];
   for (const providerId of providerIds) {
     const provider = await providerModel.getById(providerId, { ...ctx, tx });
     if (isError(provider)) return provider;
     if (!provider || provider.groupId !== groupId)
       return newError({ code: "assistantActionService:providerGone" });
+    mentions.push({ id: provider.id, label: provider.name });
   }
   return [
     {
       type: "entry",
       input: { groupId, recipientId, ...content.data },
       // A note's or event's text is its live document, written with it.
-      ...((action.type === "addNote" || action.type === "addEvent") && {
-        document: { text: action.type === "addNote" ? action.text : null },
-      }),
+      // A note mentions its providers in it; both link them.
+      ...(action.type === "addNote" && { document: { text: action.text, mentions } }),
+      ...(action.type === "addEvent" && { document: { text: null, mentions: [] } }),
       providerIds,
     },
   ];
@@ -497,7 +501,7 @@ const writeEntry = async (ctx: ServiceContext, plan: EntryPlan, via: string) => 
     const doc = await noteDocumentService.create(ctx, { id: entry.id, groupId });
     if (isError(doc)) return doc;
     if (plan.document.text?.trim()) {
-      const ydoc = noteDocFromText(plan.document.text);
+      const ydoc = noteDocFromText(plan.document.text, plan.document.mentions);
       const update = await noteDocumentService.appendUpdate(ctx, {
         id: crypto.randomUUID(),
         groupId,

@@ -28,3 +28,5 @@ export { Toast } from "./Toast";
 export { ViaTag } from "./ViaTag";
 export { useShowModal } from "./useShowModal";
 export { PageHeader } from "./PageHeader";
+export { TabNav } from "./TabNav";
+export type { TabNavTab } from "./TabNav";

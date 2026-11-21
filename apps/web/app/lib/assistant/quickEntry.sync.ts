@@ -1,4 +1,4 @@
-import type { AssistantAction } from "@caretook/data/schema";
+import type { AssistantAction, NoteMention } from "@caretook/data/schema";
 import type { ActionResult, FieldIssue } from "../core/api";
 import type { SyncDb } from "../sync/index";
 import type { PassRow } from "../medications/medicationPasses.sync";
@@ -72,7 +72,8 @@ type EntryRows = {
   entry: EntryInsert;
   /** More entries the action writes with it (a pass's other doses). */
   more?: EntryInsert[];
-  document?: { text: string | null };
+  /** A note's or event's live document: a note's text, with its providers mentioned. */
+  document?: { text: string | null; mentions: NoteMention[] };
   providerIds?: string[];
 };
 
@@ -197,12 +198,15 @@ export const runActions = async (
       if (!medication || medication.deletedAt || medication.groupId !== groupId)
         return refuse("That medication is gone. It may have been deleted.", index);
     }
-    const providerIds = action.type === "addEvent" ? [...new Set(action.providerIds)] : [];
+    const providerIds =
+      action.type === "addEvent" || action.type === "addNote" ? [...new Set(action.providerIds)] : [];
+    const mentions: NoteMention[] = [];
     for (const providerId of providerIds) {
       const [row] = await readRows<ProviderRow>(db, providerQuery(providerId));
       const provider = row ? toProvider(row) : null;
       if (!provider || provider.deletedAt || provider.groupId !== groupId)
         return refuse("That provider is gone. It may have been deleted.", index);
+      mentions.push({ id: provider.id, label: provider.name });
     }
 
     const id = crypto.randomUUID();
@@ -218,9 +222,9 @@ export const runActions = async (
         ...audit,
       },
       // A note's or event's text is its live document, written with it.
-      ...((action.type === "addNote" || action.type === "addEvent") && {
-        document: { text: action.type === "addNote" ? action.text : null },
-      }),
+      // A note mentions its providers in it; both link them.
+      ...(action.type === "addNote" && { document: { text: action.text, mentions } }),
+      ...(action.type === "addEvent" && { document: { text: null, mentions: [] } }),
       providerIds,
     });
   }
@@ -247,7 +251,7 @@ export const runActions = async (
         });
         if (document.text?.trim()) {
           // Devices can't write a snapshot: the text goes in as the document's first update.
-          const doc = noteDocFromText(document.text);
+          const doc = noteDocFromText(document.text, document.mentions);
           await tx.insert(noteUpdates).values({
             id: crypto.randomUUID(),
             groupId,

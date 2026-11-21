@@ -52,7 +52,7 @@ export const GROUP_SECTIONS: readonly GroupSection[] = [
     id: "medications",
     label: "Medications",
     icon: Pill,
-    path: (groupId) => appUrls.medications(groupId),
+    path: (groupId) => appUrls.medicationSchedule(groupId),
     match: (subpath) => under(subpath, "/medications"),
   },
   {
