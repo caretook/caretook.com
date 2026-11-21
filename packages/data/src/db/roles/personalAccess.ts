@@ -37,6 +37,8 @@ export const PERSONAL_ACCESS_EXCLUDED = [
   "oauth_access_token",
   "oauth_refresh_token",
   "oauth_client.client_secret",
+  // A member's calendar feed URL holds its token; only the hash is stored (appointments-2).
+  "member_calendar_setting.feed_token_hash",
 ] as const;
 
 /** A table or column name that looks like it holds a secret. */

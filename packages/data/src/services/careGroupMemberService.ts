@@ -7,6 +7,7 @@ import { isError, newError } from "../errors";
 import { careGroupMemberModel } from "../models";
 import { isSystemUser } from "../permissions";
 import { getService } from "./baseService";
+import { removeForMember as removeCalendarSettings } from "./calendarSettingService";
 import { revokeForMember } from "./connectorGrantService";
 import { releaseAssignee } from "./taskService";
 
@@ -20,6 +21,7 @@ export const schemaName = careGroupMemberModel.schemaName;
 //   - nobody locks or unlocks simple mode for themselves
 //   - a member who goes keeps their open tasks as a typed-in name
 //   - a member who goes loses their assistants' connections to the group
+//   - a member who goes loses their calendar settings, feed and reminder overrides there
 export const { get, getById, list } = getService(careGroupMemberModel);
 
 /** Whether the actor may touch owner memberships in `groupId`. */
@@ -158,6 +160,9 @@ export const remove = (ctx: ServiceContext, id: string) =>
     // Their AI assistants' access to the group ends with the membership (connectors PRD).
     const disconnected = await revokeForMember(tx, target.groupId, target.userId);
     if (disconnected) return disconnected;
+    // Their reminders, feed and details consent end with it too (appointments-2).
+    const forgotten = await removeCalendarSettings(tx, target.groupId, target.userId);
+    if (forgotten) return forgotten;
     return removed;
   }, ctx);
 

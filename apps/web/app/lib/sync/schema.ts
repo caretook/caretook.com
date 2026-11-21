@@ -15,6 +15,8 @@ export const careGroups = sqliteTable("care_group", {
   simpleTiles: text("simple_tiles"),
   // The owners' Assistants switch (connectors; 1 or 0): whether members may connect their own AI assistant.
   connectorsEnabled: integer("connectors_enabled"),
+  // The owners' "Details outside Caretook" switch (appointments-2; 1 or 0): whether members may opt in to details.
+  detailsOutsideAllowed: integer("details_outside_allowed"),
 });
 
 export const careGroupMembers = sqliteTable(

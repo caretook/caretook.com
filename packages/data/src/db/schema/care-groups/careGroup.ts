@@ -20,6 +20,10 @@ export const careGroupSchema = pgTable("care_group", {
   // Members may connect their own AI assistant (connectors PRD): off until
   // an owner turns it on (careGroupService.update); off revokes every grant.
   connectorsEnabled: boolean("connectors_enabled").notNull().default(false),
+  // Members may opt in to titles, places and providers in their emails,
+  // feed and Google calendar (appointments-2). Owners turn it off for
+  // everyone (calendarSettingService.setDetailsAllowed); not synced.
+  detailsOutsideAllowed: boolean("details_outside_allowed").notNull().default(true),
   ...timestamps,
   ...audits,
 });
