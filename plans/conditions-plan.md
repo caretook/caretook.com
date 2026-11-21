@@ -4,14 +4,14 @@
 
 ## Status
 
-| Slice | Wave | State                                                                 | Merge into `prd/conditions` (slice commits) |
-| ----- | ---- | --------------------------------------------------------------------- | ------------------------------------------- |
-| 1     | 1    | merged                                                                | `74b47c0b` (`5d01bf1c`, `11ddee21`)         |
-| 2     | 2    | in progress (`.loops/conditions-2`, stackless; agent spawned, opus)   |                                             |
-| 4     | 2    | in progress (`.loops/conditions-4`, stackless; agent spawned, opus)   |                                             |
-| 5     | 2    | in progress (`.loops/conditions-5`, stackless; agent spawned, sonnet) |                                             |
-| 3     | 3    | blocked by 2                                                          |                                             |
-| 6     | 4    | blocked by 2, 3                                                       |                                             |
+| Slice | Wave | State                                                                                                                      | Merge into `prd/conditions` (slice commits) |
+| ----- | ---- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| 1     | 1    | merged                                                                                                                     | `74b47c0b` (`5d01bf1c`, `11ddee21`)         |
+| 2     | 2    | in progress (`.loops/conditions-2`, stackless; agent spawned, opus)                                                        |                                             |
+| 4     | 2    | handed off (`3105e06e`, `fbdf2d7e`; check green but B-205; names the lean set); migration 0026 to regenerate after slice 2 |                                             |
+| 5     | 2    | handed off (`ca84af98`; check green; no browser checks named); waits for 2 and 4 to merge first                            |                                             |
+| 3     | 3    | blocked by 2                                                                                                               |                                             |
+| 6     | 4    | blocked by 2, 3                                                                                                            |                                             |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue conditions`): start every ready slice, land each green wave, clean up; ask only real questions. B-181 claimed 2026-11-20.
 
@@ -20,6 +20,14 @@
 **Open:** quick-fixes wave 13 (`bf0891df`, B-187, B-189/190) synced into `prd/conditions` after slice 1; slices 2 and 6 build on it directly. Slices 2 and 4 each generate the next migration in parallel: whichever merges second regenerates on top (keep its `ALTER PUBLICATION`).
 
 **Docs to fold at landing (slice 1):** profiles.md (table, flag, service, `conditions.ts`/`conditionSuggestions.ts`/`conditionNames.ts`, `conditions.sync.ts` offline writes, card, sheets, URLs, the profile route's `clientAction`, seeds, tests); sync.md (`recipient_condition` in `care_groups`, `no_known_conditions_at`, `recipientConditionOp` with `diagnosed_by_id` unmapped until slice 3, `care_recipient`'s single-column flag PATCH, matrix row); care-groups.md (permission row); data-layer.md (stale "0000–0023").
+
+**Docs to fold at landing (slice 5):** profiles.md (emergency sheet Conditions section after Allergies, active only via `conditionText`, `EMERGENCY_SECTION_ORDER`); medications.md (`PrintConditions` under `PrintAllergies` on the list and weekly chart).
+
+**Docs to fold at landing (slice 4):** medications.md (`medication_condition`, `medicationConditionService`, the op, For field and page row, save order: check, medication, then links; seeds; tests); profiles.md (condition sheet's medications; `PROFILE_SHEET_STATE` in `lib/profiles/profileSheetLink.ts`); sync.md (stream, op: PUT/DELETE, PATCH read-only); care-groups.md (`medicationConditionSchema` row).
+
+**Open issue:** B-205 (filed; quick-fixes is taking it as a slice and will message when it lands in `dev`; sync before the landing check): `mcpWrites.int.test.ts` give_pass fails at some times of day, also on the base without our slices; not ours, but it can fail `pnpm prd check` at landing.
+
+**Browser checks at landing:** slices 1 and 4 name the whole lean set (migration, sync config): run `pnpm prd browser --suite` once at landing — ask the user first (plan: never `--suite` without asking).
 
 **Start conditions:** none for slice 1. Slice 2 waits for quick-fixes slice 51 (the timeline's Filter sheet, B-187) to be in `dev`, and slice 6 for quick-fixes slice 48 (the connector's timeline text, B-189 and B-190). Check with `pnpm backlog show B-187` / `B-189` that they've landed, and `pnpm prd sync` before starting either slice. If quick-fixes hasn't landed them, the slice may start and leave its filter or text line to a short follow-up once they do (say so in the hand-off).
 
