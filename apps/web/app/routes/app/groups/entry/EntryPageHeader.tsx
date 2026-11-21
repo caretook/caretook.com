@@ -9,10 +9,12 @@ import {
   EntryActions,
   SeriesScopeDialog,
   useEventReschedule,
+  useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
 import { ConfirmDialog, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { canRemind } from "~/lib/calendars/remindMe";
 import { canReschedule } from "~/lib/appointments/eventReschedule";
 import { asksScope } from "~/lib/appointments/seriesScope";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
@@ -61,6 +63,7 @@ export function EntryPageHeader({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const rescheduling = useEventReschedule(groupId, canWrite && entry.kind === "event");
+  const remind = useRemindMe(groupId);
   const scope = useSeriesScope(canWrite && !!entry.seriesId);
   const navigate = useNavigate();
   // The title being typed counts for suggestions until it's saved (or someone else renames it).
@@ -125,6 +128,11 @@ export function EntryPageHeader({
                           ? () => scope.ask(entry, "reschedule", { only: () => rescheduling.ask(entry) })
                           : undefined,
                       }
+                    : undefined
+                }
+                onRemind={
+                  canRemind(entry, new Date())
+                    ? () => remind.ask({ id: entry.id, title: heading })
                     : undefined
                 }
                 // Everyone can print; only writers delete.
@@ -204,6 +212,7 @@ export function EntryPageHeader({
         onClose={() => setConfirmCancel(false)}
       />
       {rescheduling.sheet}
+      {remind.sheet}
       {scope.element}
       <SeriesScopeDialog
         open={live.scopeAsked}

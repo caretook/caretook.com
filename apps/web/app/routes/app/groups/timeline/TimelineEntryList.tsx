@@ -17,10 +17,13 @@ import {
   OlderEntries,
   useEventCancel,
   useEventReschedule,
+  useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
 import { canReschedule } from "~/lib/appointments/eventReschedule";
+import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
+import { canRemind } from "~/lib/calendars/remindMe";
 import { asksScope, ONLY_THIS_VISIT_STATE } from "~/lib/appointments/seriesScope";
 import { dayLabel, localTimeZone } from "~/lib/core/format";
 import { useGroup } from "~/lib/app-shell/group";
@@ -123,6 +126,7 @@ export function TimelineEntryList({
   const removal = useEntryRemoval();
   const cancelling = useEventCancel();
   const rescheduling = useEventReschedule(groupId, canWrite);
+  const remind = useRemindMe(groupId);
   // A series visit's Edit, Reschedule, Cancel and Delete ask Only this visit or This and later first.
   const scope = useSeriesScope(canWrite && !simple);
   // Writers reschedule or cancel an event (or undo the cancel) from its ⋯ menu.
@@ -219,6 +223,11 @@ export function TimelineEntryList({
             : undefined
         }
         cancel={cancelOf(entry)}
+        onRemind={
+          !simple && canRemind(entry, new Date())
+            ? () => remind.ask({ id: entry.id, title: upcomingTitle(entry) })
+            : undefined
+        }
         liveLabel={data.liveLabelOf(entry.id)}
         providers={data.providersOf(entry.id)}
         search={marked ? parsed : undefined}
@@ -321,6 +330,7 @@ export function TimelineEntryList({
       />
       <CancelEventDialog open={cancelling.asking} onConfirm={cancelling.confirm} onClose={cancelling.close} />
       {rescheduling.sheet}
+      {remind.sheet}
       {scope.element}
     </>
   );

@@ -9,6 +9,7 @@ export { RepeatMark } from "./RepeatMark";
 export { SeriesScopeDialog } from "./SeriesScopeDialog";
 export type { ScopeAsk } from "./useSeriesScope";
 export { useSeriesScope } from "./useSeriesScope";
+export { useRemindMe } from "./useRemindMe";
 export { useEventCancel } from "./useEventCancel";
 export type { RescheduleTarget } from "./useEventReschedule";
 export { useEventReschedule } from "./useEventReschedule";

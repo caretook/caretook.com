@@ -10,11 +10,13 @@ import {
   EntryActions,
   useEventCancel,
   useEventReschedule,
+  useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
 import { ConfirmDialog } from "~/components/ui";
 import { useVisitPrep } from "~/components/visitPrep";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { canRemind } from "~/lib/calendars/remindMe";
 import { canReschedule } from "~/lib/appointments/eventReschedule";
 import { asksScope, ONLY_THIS_VISIT_STATE } from "~/lib/appointments/seriesScope";
 import { useGroup } from "~/lib/app-shell/group";
@@ -63,6 +65,7 @@ export function UpcomingList({
   const taskNameOf = (id: string) => (id === userId ? "you" : data.nameOf(id));
   const cancelling = useEventCancel();
   const rescheduling = useEventReschedule(groupId, canWrite);
+  const remind = useRemindMe(groupId);
   const [deleting, setDeleting] = useState<string | null>(null);
   const scope = useSeriesScope(canWrite);
   const navigate = useNavigate();
@@ -82,6 +85,11 @@ export function UpcomingList({
           : undefined
       }
       onPrepare={canWrite && preparable(entry) ? () => prep.ask(entry) : undefined}
+      onRemind={
+        canRemind(entry, data.now)
+          ? () => remind.ask({ id: entry.id, title: upcomingTitle(entry) })
+          : undefined
+      }
       printHref={appUrls.printEntry(groupId, entry.id)}
       cancel={
         canWrite && entry.kind === "event"
@@ -163,6 +171,7 @@ export function UpcomingList({
       {children}
       <CancelEventDialog open={cancelling.asking} onConfirm={cancelling.confirm} onClose={cancelling.close} />
       {rescheduling.sheet}
+      {remind.sheet}
       {scope.element}
       {prep.sheet}
       <ConfirmDialog

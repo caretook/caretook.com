@@ -38,6 +38,8 @@ const FROZEN_PATHS = [
   "calendars.feed.revoke",
   "calendars.feed.rotate",
   "calendars.group.setDetailsAllowed",
+  "calendars.overrides.get",
+  "calendars.overrides.set",
   "calendars.settings.get",
   "calendars.settings.update",
   "careGroup.changeRole",
