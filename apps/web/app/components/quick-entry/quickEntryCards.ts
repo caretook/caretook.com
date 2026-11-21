@@ -17,8 +17,10 @@ export type QuickEntryCard = {
   /** The reading shown, and its index among the part's readings. */
   reading: QuickEntryReading;
   index: number;
-  /** The other readings, as chips: their index and a label. */
+  /** Other readings of the same kind (two medications), as named chips: their index and a label. */
   alternatives: { index: number; label: string }[];
+  /** The other kinds the part reads as, one button each ("Make it a note"), on that kind's best reading. */
+  kindChoices: { index: number; kind: string; label: string }[];
   /** Messages that stop this card from saving. */
   blocking: string[];
   /** Messages worth a look that don't. */
@@ -30,10 +32,13 @@ export const partKey = (index: number, part: QuickEntryPart) => `${index}:${part
 
 /**
  * The cards for a line's parts: removed ones left out, each showing the
- * reading chosen for it (the best one until a chip picks another). An
- * alternative is named by its kind ("Note instead"), or by what it says when
- * several share a kind ("Metoprolol 25 mg instead").
+ * reading chosen for it (the best one until a button picks another). The card's
+ * kind is its chip; each other kind is a button ("Make it a note"), and other
+ * readings of the same kind are named by what they say ("Metoprolol 25 mg instead").
  */
+export const makeItLabel = (label: string) =>
+  `Make it ${/^[aeiou]/i.test(label) ? "an" : "a"} ${label.toLowerCase()}`;
+
 export const buildCards = (
   parts: readonly QuickEntryPart[],
   { chosen, removed }: { chosen: ReadonlyMap<string, number>; removed: ReadonlySet<string> },
@@ -45,7 +50,6 @@ export const buildCards = (
     const wanted = chosen.get(key) ?? 0;
     const index = wanted < part.readings.length ? wanted : 0;
     const reading = part.readings[index]!;
-    const kindCount = (kind: string) => part.readings.filter((r) => r.kind === kind).length;
     return [
       {
         key,
@@ -53,7 +57,12 @@ export const buildCards = (
         reading,
         index,
         alternatives: part.readings.flatMap((r, k) =>
-          k === index ? [] : [{ index: k, label: `${kindCount(r.kind) > 1 ? titleOf(r) : r.label} instead` }],
+          k !== index && r.kind === reading.kind ? [{ index: k, label: `${titleOf(r)} instead` }] : [],
+        ),
+        kindChoices: part.readings.flatMap((r, k) =>
+          r.kind !== reading.kind && part.readings.findIndex((o) => o.kind === r.kind) === k
+            ? [{ index: k, kind: r.kind, label: makeItLabel(r.label) }]
+            : [],
         ),
         blocking: reading.warnings.filter((w) => w.blocking).map((w) => w.message),
         notices: reading.warnings.filter((w) => !w.blocking).map((w) => w.message),
