@@ -6,6 +6,8 @@ import {
   parseGroupName,
   parseRecipientTimeZone,
   parseEasyTilesChoice,
+  roleDescription,
+  roleGroups,
   roleLabel,
   sortMembers,
   timeZoneLabel,
@@ -90,8 +92,8 @@ describe("timeZoneOptions", () => {
 });
 
 describe("memberAccess", () => {
-  const ALL = ["owner", "admin", "caretaker", "viewer"];
-  const BELOW_OWNER = ["admin", "caretaker", "viewer"];
+  const ALL = ["owner", "admin", "caretaker", "viewer", "easy_helper", "easy_viewer"];
+  const BELOW_OWNER = ["admin", "caretaker", "viewer", "easy_helper", "easy_viewer"];
   const access = (actorRole: string | null, memberRole: string, isSelf = false) =>
     memberAccess({ actorRole, memberRole, isSelf });
 
@@ -182,13 +184,39 @@ describe("sortMembers", () => {
   });
 });
 
+describe("roleGroups and roleDescription", () => {
+  it("groups a picker's roles: the regular ones, then the easy ones under Easier to use", () => {
+    expect(roleGroups(["admin", "caretaker", "viewer", "easy_helper", "easy_viewer"])).toEqual([
+      { id: "regular", label: "Regular roles", roles: ["admin", "caretaker", "viewer"] },
+      { id: "easier", label: "Easier to use", roles: ["easy_helper", "easy_viewer"] },
+    ]);
+  });
+
+  it("leaves out an empty group and roles this build doesn't know", () => {
+    expect(roleGroups(["caretaker", "guest"])).toEqual([
+      { id: "regular", label: "Regular roles", roles: ["caretaker"] },
+    ]);
+    expect(roleGroups([])).toEqual([]);
+  });
+
+  it("describes each role from GROUP_ROLES, who the easy ones are for included", () => {
+    expect(roleDescription("viewer")).toBe("Reads care data only.");
+    expect(roleDescription("easy_helper")).toMatch(
+      /^For someone who isn't comfortable with apps or who has memory or thinking difficulties\./,
+    );
+    expect(roleDescription("guest")).toBe("");
+  });
+});
+
 describe("roleLabel and memberName", () => {
   it("names the known roles, and shows an unknown one as it is", () => {
-    expect(["owner", "admin", "caretaker", "viewer"].map(roleLabel)).toEqual([
+    expect(["owner", "admin", "caretaker", "viewer", "easy_helper", "easy_viewer"].map(roleLabel)).toEqual([
       "Owner",
       "Admin",
       "Caretaker",
       "Viewer",
+      "Easy helper",
+      "Easy viewer",
     ]);
     expect(roleLabel("guest")).toBe("guest");
     expect(roleLabel(null)).toBe("Member");

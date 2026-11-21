@@ -8,7 +8,7 @@ import { useFetcher } from "react-router";
 import { ConfirmDialog, Field, Sheet } from "~/components/ui";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { rpc } from "~/lib/core/rpc";
-import { roleLabel } from "../groupSettings";
+import { roleDescription, roleLabel } from "../groupSettings";
 import {
   copyLinkText,
   DEFAULT_INVITE_OPTIONS,
@@ -20,17 +20,13 @@ import {
   linkStatusLine,
   shareLinkText,
 } from "./linkRules";
+import { RoleOptions } from "./RoleOptions";
 
 // The Members page's invite links (owners and admins, online): "Create a
-// link" (a role of caretaker or viewer, how long it works, and an optional
+// link" (a role of caretaker, viewer or an easy role, how long it works, and an optional
 // number of uses) and the list of links, each with Copy, Share, its uses
 // and Revoke. Anyone with a link can ask to join; an owner or admin
 // approves each request (JoinRequests).
-
-const ROLE_HELP: Record<string, string> = {
-  caretaker: "Reads and adds to the timeline.",
-  viewer: "Reads only.",
-};
 
 export function CreateLinkButton({
   myRole,
@@ -45,6 +41,7 @@ export function CreateLinkButton({
   const limits = options.link;
   const roles = linkRoles(myRole);
   const [open, setOpen] = useState(false);
+  const [role, setRole] = useState("viewer");
   const fetcher = useFetcher<LinkActionResult>();
   const busy = fetcher.state !== "idle";
   const result = busy ? undefined : fetcher.data;
@@ -90,14 +87,16 @@ export function CreateLinkButton({
             Anyone with the link can ask to join. You or another owner or admin approves each request, and
             they see nothing until then.
           </p>
-          <Field label="Role" error={issue("role")}>
+          <Field label="Role" help={roleDescription(role)} error={issue("role")}>
             {(control) => (
-              <select {...control} className="select w-full" name="role" defaultValue="viewer">
-                {roles.map((role) => (
-                  <option key={role} value={role}>
-                    {roleLabel(role)}: {ROLE_HELP[role]}
-                  </option>
-                ))}
+              <select
+                {...control}
+                className="select w-full"
+                name="role"
+                value={role}
+                onChange={(event) => setRole(event.target.value)}
+              >
+                <RoleOptions roles={roles} />
               </select>
             )}
           </Field>

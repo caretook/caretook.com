@@ -26,9 +26,9 @@ const link: LinkRow = {
 };
 
 describe("who may make links", () => {
-  it("offers owners and admins caretaker and viewer only, others nothing", () => {
-    expect(linkRoles("owner")).toEqual(["caretaker", "viewer"]);
-    expect(linkRoles("admin")).toEqual(["caretaker", "viewer"]);
+  it("offers owners and admins caretaker, viewer and the easy roles only, others nothing", () => {
+    expect(linkRoles("owner")).toEqual(["caretaker", "viewer", "easy_helper", "easy_viewer"]);
+    expect(linkRoles("admin")).toEqual(["caretaker", "viewer", "easy_helper", "easy_viewer"]);
     expect(linkRoles("caretaker")).toEqual([]);
     expect(linkRoles(null)).toEqual([]);
   });
@@ -67,6 +67,8 @@ describe("the link form", () => {
       ok: true,
       data: { role: "caretaker", expiresInDays: 90, maxUses: 3 },
     });
+    for (const role of ["easy_helper", "easy_viewer"])
+      expect(parseLinkForm({ ...values, role }, "admin")).toMatchObject({ ok: true, data: { role } });
   });
 
   it("refuses owner and admin links, days outside 1–90, and bad limits", () => {

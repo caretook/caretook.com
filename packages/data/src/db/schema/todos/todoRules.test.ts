@@ -183,6 +183,12 @@ describe("who", () => {
     ["viewer", { assigneeId: USER }, true],
     ["viewer", { assigneeId: OTHER }, false],
     ["viewer", { assigneeId: null }, false],
+    ["easy_helper", { assigneeId: USER }, true],
+    ["easy_helper", { assigneeId: OTHER }, false],
+    ["easy_helper", { assigneeId: null }, false],
+    ["easy_viewer", { assigneeId: USER }, true],
+    ["easy_viewer", { assigneeId: OTHER }, false],
+    ["easy_viewer", { assigneeId: null }, false],
     [null, { assigneeId: USER }, false],
   ] as const)("canCompleteTodo: %s on %j", (role, t, expected) => {
     expect(canCompleteTodo({ role, userId: USER, todo: t })).toBe(expected);

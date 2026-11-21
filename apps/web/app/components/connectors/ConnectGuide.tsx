@@ -55,6 +55,8 @@ export function ConnectGuide({
     }
   };
 
+  if (view.show === "none") return null;
+
   return (
     <SettingsCard id="connect-guide" title="Connect your assistant">
       {view.show === "off" ? (

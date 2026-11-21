@@ -18,6 +18,7 @@ import {
 import { memberDetailsQuery } from "~/lib/care-groups/members.sync";
 import { memberAccess, memberName, roleLabel, sortMembers } from "../groupSettings";
 import { memberHistory } from "./invites";
+import { RoleOptions } from "./RoleOptions";
 import { SharingForm } from "./SharingForm";
 
 // The members list and its rows. Each change posts an intent (`changeRole`,
@@ -199,11 +200,7 @@ function MemberItem({
             {!access.roles.some((role) => role === shownRole) && (
               <option value={shownRole ?? ""}>{roleLabel(shownRole)}</option>
             )}
-            {access.roles.map((role) => (
-              <option key={role} value={role}>
-                {roleLabel(role)}
-              </option>
-            ))}
+            <RoleOptions roles={access.roles} />
           </select>
         ) : (
           <span data-role className="text-base-content/70 text-sm">

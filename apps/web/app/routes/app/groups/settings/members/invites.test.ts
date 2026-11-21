@@ -24,8 +24,15 @@ const row: InviteRow = {
 
 describe("who may invite", () => {
   it("offers owners every role, admins all but owner, others nothing", () => {
-    expect(emailInviteRoles("owner")).toEqual(["owner", "admin", "caretaker", "viewer"]);
-    expect(emailInviteRoles("admin")).toEqual(["admin", "caretaker", "viewer"]);
+    expect(emailInviteRoles("owner")).toEqual([
+      "owner",
+      "admin",
+      "caretaker",
+      "viewer",
+      "easy_helper",
+      "easy_viewer",
+    ]);
+    expect(emailInviteRoles("admin")).toEqual(["admin", "caretaker", "viewer", "easy_helper", "easy_viewer"]);
     expect(emailInviteRoles("caretaker")).toEqual([]);
     expect(emailInviteRoles("viewer")).toEqual([]);
   });

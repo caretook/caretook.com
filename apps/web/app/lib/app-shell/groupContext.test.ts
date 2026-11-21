@@ -25,6 +25,8 @@ describe("toGroupContext", () => {
       displayName: "Grandma Pat",
       role: "caretaker",
       canWrite: true,
+      canLog: true,
+      easyRole: false,
       recipient: {
         id: "r1",
         name: "Patricia",
@@ -61,5 +63,17 @@ describe("toGroupContext", () => {
     expect(toGroupContext(row({ role: "viewer" }), "u").canWrite).toBe(false);
     expect(toGroupContext(row({ role: "superuser" }), "u").canWrite).toBe(false);
     expect(toGroupContext(row({ role: null }), "u")).toMatchObject({ role: null, canWrite: false });
+  });
+
+  it.each([
+    ["owner", { canWrite: true, canLog: true, easyRole: false }],
+    ["admin", { canWrite: true, canLog: true, easyRole: false }],
+    ["caretaker", { canWrite: true, canLog: true, easyRole: false }],
+    ["viewer", { canWrite: false, canLog: false, easyRole: false }],
+    ["easy_helper", { canWrite: false, canLog: true, easyRole: true }],
+    ["easy_viewer", { canWrite: false, canLog: false, easyRole: true }],
+    ["superuser", { canWrite: false, canLog: false, easyRole: false }],
+  ] as const)("gives a %s canWrite, canLog and easyRole from the role sets", (role, expected) => {
+    expect(toGroupContext(row({ role }), "u")).toMatchObject(expected);
   });
 });

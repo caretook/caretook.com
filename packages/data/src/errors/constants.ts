@@ -140,6 +140,9 @@ export const MODEL_ERRORS = {
   "timelineEntryModel:remove": {
     message: "Failed to delete the timeline entry",
   },
+  "timelineEntryModel:mayChange": {
+    message: "Failed to check access to the timeline entry",
+  },
   "noteDocumentModel:lock": {
     message: "Failed to lock the live document",
   },

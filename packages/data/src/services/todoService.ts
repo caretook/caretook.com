@@ -4,13 +4,14 @@ import type { IncludeDeleted } from "../models/todo";
 import type { ServiceContext } from "./types";
 
 import { randomUUID } from "node:crypto";
-import { SYSTEM_USER } from "../constants";
+import { SYSTEM_USER, isEasyRole } from "../constants";
 import { withTransaction } from "../db";
 import {
   ASSIGNEE_NOT_MEMBER_ISSUE,
   BAD_TODO_LINK_ISSUES,
   canCompleteTodo,
   completionOnly,
+  isTodoCompleter,
   isTodoWriter,
   localDate,
   repeatColumnsFor,
@@ -54,7 +55,11 @@ const invalid = (error: z.ZodError) =>
   newError({ code: "todoService:invalid", meta: { issues: issuesOf(error) } });
 
 const notFound = () => newError({ code: "todoService:notFound" });
-const viewerCompletionOnly = () => newError({ code: "todoService:viewerCompletionOnly" });
+/** A completer's refusal (`isTodoCompleter`): its own code for the easy roles. */
+const completionOnlyFor = (role: string | null) =>
+  newError({
+    code: isEasyRole(role) ? "todoService:easyCompletionOnly" : "todoService:viewerCompletionOnly",
+  });
 
 /**
  * The actor's role in the group, or null. The system acts as an owner; a
@@ -258,7 +263,7 @@ export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWr
 
     const role = await roleIn(ctx, tx, data.groupId);
     if (isError(role)) return role;
-    if (role === "viewer") return rejectError(ctx.authUser);
+    if (!isTodoWriter(role)) return rejectError(ctx.authUser);
 
     const assignee = await checkAssignee(tx, data.groupId, data.assigneeId);
     if (assignee) return assignee;
@@ -285,8 +290,9 @@ export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWr
 /**
  * Edit a todo's content: title, assignee, due and links. The group and
  * recipient are fixed; the merged todo must be valid; a changed assignee
- * must be a member and a changed link live in the group. Viewers are
- * refused (`viewerCompletionOnly`): they only complete and reopen.
+ * must be a member and a changed link live in the group. Viewers and the
+ * easy roles are refused (`viewerCompletionOnly`, `easyCompletionOnly`):
+ * they only complete and reopen.
  */
 export const update = (ctx: ServiceContext, id: string, input: TodoUpdateInput) =>
   withTransaction(async (tx) => {
@@ -303,10 +309,10 @@ export const update = (ctx: ServiceContext, id: string, input: TodoUpdateInput) 
 
     const role = await roleIn(ctx, tx, existing.groupId);
     if (isError(role)) return role;
-    if (role === "viewer") {
+    if (isTodoCompleter(role)) {
       const own = canCompleteTodo({ role, userId: ctx.authUser?.id, todo: existing });
-      if (!own || !completionOnly(existing, merged.data)) return viewerCompletionOnly();
-    }
+      if (!own || !completionOnly(existing, merged.data)) return completionOnlyFor(role);
+    } else if (!isTodoWriter(role)) return rejectError(ctx.authUser);
 
     const assignee = await checkAssignee(
       tx,
@@ -341,7 +347,7 @@ export const complete = (ctx: ServiceContext, id: string, { doneAt }: { doneAt?:
     const role = await roleIn(ctx, tx, existing.groupId);
     if (isError(role)) return role;
     if (!canCompleteTodo({ role, userId: ctx.authUser?.id, todo: existing }))
-      return role === "viewer" ? viewerCompletionOnly() : rejectError(ctx.authUser);
+      return isTodoCompleter(role) ? completionOnlyFor(role) : rejectError(ctx.authUser);
     if (existing.doneAt) return existing;
 
     const at = doneAt && Number.isFinite(new Date(doneAt).getTime()) ? new Date(doneAt) : new Date();
@@ -371,7 +377,7 @@ export const reopen = (ctx: ServiceContext, id: string) =>
     const role = await roleIn(ctx, tx, existing.groupId);
     if (isError(role)) return role;
     if (!canCompleteTodo({ role, userId: ctx.authUser?.id, todo: existing }))
-      return role === "viewer" ? viewerCompletionOnly() : rejectError(ctx.authUser);
+      return isTodoCompleter(role) ? completionOnlyFor(role) : rejectError(ctx.authUser);
     if (!existing.doneAt) return existing;
     if (!existing.repeatRule) return write(ctx, tx, id, { doneAt: null, doneBy: null });
 

@@ -30,7 +30,7 @@ describe("getPermissionScope", () => {
           type: "groupUser",
           field: "id",
           userId: "u-member",
-          groupRoles: ["owner", "admin", "caretaker", "viewer"],
+          groupRoles: ["owner", "admin", "caretaker", "viewer", "easy_helper", "easy_viewer"],
           fields: ["id", "name", "image"],
         },
       ],
@@ -46,7 +46,7 @@ describe("getPermissionScope", () => {
           type: "group",
           field: "groupId",
           userId: "u-staff",
-          groupRoles: ["owner", "admin", "caretaker", "viewer"],
+          groupRoles: ["owner", "admin", "caretaker", "viewer", "easy_helper", "easy_viewer"],
         },
       ],
     });
@@ -70,6 +70,39 @@ describe("getPermissionScope", () => {
       "owned",
       "group",
     ]);
+  });
+
+  it("adds a groupOwn rule (created_by) for an Easy helper's entry updates and deletes", () => {
+    for (const permission of ["update", "delete"] as const)
+      expect(getPermissionScope("timelineEntrySchema", permission, member)).toEqual({
+        type: "rules",
+        rules: [
+          {
+            type: "group",
+            field: "groupId",
+            userId: "u-member",
+            groupRoles: ["owner", "admin", "caretaker"],
+          },
+          {
+            type: "groupOwn",
+            field: "groupId",
+            ownerField: "createdBy",
+            userId: "u-member",
+            groupRoles: ["easy_helper"],
+          },
+        ],
+      });
+    expect(getPermissionScope("timelineEntrySchema", "create", member)).toEqual({
+      type: "rules",
+      rules: [
+        {
+          type: "group",
+          field: "groupId",
+          userId: "u-member",
+          groupRoles: ["owner", "admin", "caretaker", "easy_helper"],
+        },
+      ],
+    });
   });
 
   it("lets any signed-in user create a group", () => {
@@ -133,6 +166,30 @@ describe("hasPermission", () => {
     const args = { authUser: member, schemaName: "userSchema", permission: "update" } as const;
     expect(hasPermission({ ...args, target: { id: "u-member" } })).toBe(true);
     expect(hasPermission({ ...args, target: { id: "someone-else" } })).toBe(false);
+  });
+
+  it("decides groupOwn rules from the role and the target's creator", () => {
+    const can = (role: "caretaker" | "viewer" | "easy_helper" | "easy_viewer", createdBy: string) =>
+      hasPermission({
+        authUser: { ...member, groupRoles: { g1: role } },
+        schemaName: "timelineEntrySchema",
+        permission: "update",
+        target: { groupId: "g1", createdBy },
+      });
+    expect(can("caretaker", "someone-else")).toBe(true);
+    expect(can("easy_helper", "u-member")).toBe(true);
+    expect(can("easy_helper", "someone-else")).toBe(false);
+    expect(can("easy_viewer", "u-member")).toBe(false);
+    expect(can("viewer", "u-member")).toBe(false);
+    // Their own row in another group they're not in grants nothing.
+    expect(
+      hasPermission({
+        authUser: { ...member, groupRoles: { g1: "easy_helper" } },
+        schemaName: "timelineEntrySchema",
+        permission: "delete",
+        target: { groupId: "g2", createdBy: "u-member" },
+      }),
+    ).toBe(false);
   });
 
   it("is false without a target unless access is unrestricted", () => {

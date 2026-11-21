@@ -70,7 +70,7 @@ const restoreSeeds = () => {
 const serverGroup = () => psql(`SELECT name FROM care_group WHERE id = '${DEV_FAMILY}'`);
 const serverMembers = () =>
   psql(
-    `SELECT coalesce(string_agg(u.name || ':' || m.role, ',' ORDER BY array_position(ARRAY['owner','admin','caretaker','viewer'], m.role), u.name), '') FROM care_group_member m JOIN "user" u ON u.id = m.user_id WHERE m.group_id = '${DEV_FAMILY}'`,
+    `SELECT coalesce(string_agg(u.name || ':' || m.role, ',' ORDER BY array_position(ARRAY['owner','admin','caretaker','viewer'], m.role), u.name), '') FROM care_group_member m JOIN "user" u ON u.id = m.user_id WHERE m.group_id = '${DEV_FAMILY}' AND m.role NOT IN ('easy_helper', 'easy_viewer')`,
   );
 /** Polls Postgres (20 s) until the members list reads `expected`. */
 const serverBecomes = (expected) =>
@@ -232,6 +232,8 @@ test("members: changes reach another device", async ({ device }) => {
           const button = li.querySelector("button")?.textContent.trim();
           return li.querySelector("p").textContent.trim() + ":" + role + (button ? ":" + button : "");
         })
+        // The seeded Easy helper and Easy viewer stay as they are: this step is about the other three.
+        .filter((line) => !line.startsWith("Dev Easy "))
         .join(","),
     );
   const onMembers = async (p) => {

@@ -1,7 +1,7 @@
 import type { MyGroup } from "../core/rpc";
 import type { GroupRow } from "../timeline/timeline.sync";
 
-import { WRITER_ROLES } from "../timeline/timeline.sync";
+import { isEasyRole, isLoggerRole, isWriterRole } from "@caretook/data/permissions";
 
 // The care group a group route is about, as its layout loads it once per
 // navigation (`routes/app/groups/layout`). Pure: no database or React here,
@@ -28,8 +28,12 @@ export type GroupContext = Readonly<{
   displayName: string;
   /** Your role in the group (null for a role this build doesn't know). */
   role: MyGroup["role"];
-  /** Whether you may add, change and delete entries. */
+  /** Whether you may change the group's setup and anyone's entries (owners, admins, caretakers). */
   canWrite: boolean;
+  /** Whether you may log care: add entries, doses and Given all (writers, and an Easy helper). */
+  canLog: boolean;
+  /** Whether your role is one of the easy roles (Easy helper, Easy viewer). */
+  easyRole: boolean;
   recipient: GroupRecipient | null;
   /** Easy mode as the group's managers set it for you: their default, and whether you're locked in it. */
   easyMode: Readonly<{ ownerDefault: boolean; locked: boolean }>;
@@ -53,7 +57,9 @@ export const toGroupContext = (row: GroupRow, userId: string): GroupContext => {
     name,
     displayName: recipient?.displayName || name,
     role: (row.role ?? null) as MyGroup["role"],
-    canWrite: !!row.role && WRITER_ROLES.includes(row.role),
+    canWrite: isWriterRole(row.role),
+    canLog: isLoggerRole(row.role),
+    easyRole: isEasyRole(row.role),
     recipient,
     easyMode: { ownerDefault: !!row.simple_mode, locked: !!row.simple_mode_locked },
   };
