@@ -112,9 +112,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-217 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
 | B-218 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | expand icon for day summary on timeline should be at the left of the day summary, not the right. |
 | B-219 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
-| B-220 | change | triaged | quick-entry |  | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
+| B-220 | change | in-progress | quick-entry | prd/quick-entry | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
 | B-221 | feature | triaged | simple-mode |  | locked simple mode is really confusing. We may want to just add a new user type at this point for… |
-| B-222 | feature | ready | tasks-2 | prd/tasks-2 | Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to… |
+| B-222 | feature | landed | tasks-2 | prd/tasks-2 | Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to… |
 | B-223 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | in header care group drop down, we don't need to show the current care period line. New care group… |
 | B-224 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for… |
 | B-225 | bug | landed | quick-fixes | prd/quick-fixes | Component tests fail between midnight and about 5 a.m.: they put entries a few hours before now, which lands on yesterday (entryPrint 'an event's: title, time…' gets 'Yesterday, 10:18 PM' for /^Event · Today/; timelineCarePeriods 'a period at a place…' gets 'day 2'; timelineSimple 'a day header names the care period…' times out) |
@@ -684,9 +684,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-220 · change · Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,…
 
-- status: triaged
+- status: in-progress
 - prd: quick-entry
-- owner:
+- owner: prd/quick-entry
 - commit:
 
 - 2026-11-21 (prd/medications-3): From the inbox: Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event, providers do suggest like they should, but creates a note instead of an appointment. "Dr. Elena Alvarez on the 25th" creates a note as do most provider auto completes when it should be an event. Need to improve the logic for this.
@@ -706,7 +706,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-222 · feature · Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to…
 
-- status: ready
+- status: landed
 - prd: tasks-2
 - owner: prd/tasks-2
 - commit: 1495e01a
