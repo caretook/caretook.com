@@ -24,6 +24,8 @@
 
 **Wave 2:** slice 2 started after slice 3's merge (worktree `.loops/connectors-2-2` with a stack, opus; B-194 claimed). Slice 5 started after slice 4's merge (worktree `.loops/connectors-2-5`, no stack, sonnet: it follows slice 4's pattern; B-197 claimed).
 
+**Slice 5 hand-off notes:** 111d1e14, `pnpm check` passed, `--changed` names nothing. `recipient_profile` now returns condition ids; `recipientConditionService`'s write options gain a server-only `via` (stored on the change entry). Docs to fold: `connectors.md` _Tools_ (the three tools and action kinds, `conditionNotFound`/`conditionDeleted`, service refusals pass through, provider links not editable, `via` on change entries, condition ids); `profiles.md` (the server-only `via`). Waiting to merge after slice 2 (plan order).
+
 **Start conditions:** none for wave 1. Slice 5 waited for `conditions`: landed in `dev` (B-181, a95acb73) and already in `prd/connectors-2`, so slice 5 is ready once slice 4 merges.
 
 **Landing:** slice 2 adds a migration, so hold landing until every slice is merged, then run the checks once at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking.
