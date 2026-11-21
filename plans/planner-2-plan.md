@@ -4,15 +4,15 @@
 
 ## Status
 
-| Slice | Wave | State                                                                                                                               | Merge into `prd/planner-2` (slice commits) |
-| ----- | ---- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| 1     | 1    | started (worktree `.loops/planner-2-1`, agent on sonnet, 2026-11-21)                                                                |                                            |
-| 2     | 1    | built (opus): migration 0033_todo_repeats, build:budget passes; committing, then `pnpm check` once the load is under 16 (it was 53) |                                            |
-| 3     | 2    | not started                                                                                                                         |                                            |
-| 4     | 2    | not started                                                                                                                         |                                            |
-| 5     | 2    | not started                                                                                                                         |                                            |
-| 6     | 2    | not started                                                                                                                         |                                            |
-| 7     | 2    | not started                                                                                                                         |                                            |
+| Slice | Wave | State                                                                                                                      | Merge into `prd/planner-2` (slice commits) |
+| ----- | ---- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| 1     | 1    | the sonnet agent hit a usage limit at about 12:00 ET with uncommitted work; a `--continue` agent on opus is finishing it   |                                            |
+| 2     | 1    | built (opus): migration 0033_todo_repeats, build:budget passes; committed 3ff6ccb2; `pnpm check` once the load is under 16 |                                            |
+| 3     | 2    | not started                                                                                                                |                                            |
+| 4     | 2    | not started                                                                                                                |                                            |
+| 5     | 2    | not started                                                                                                                |                                            |
+| 6     | 2    | not started                                                                                                                |                                            |
+| 7     | 2    | not started                                                                                                                |                                            |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue planner-2`): start every ready slice, land each green wave through the PR + Codex, clean up; ask only real questions. B-248 claimed by prd/planner-2 (2026-11-21). At the wave 1 boundary: `quick-entry` (B-220) is in `dev`; B-247 is still `triaged` (slice 3 waits): the quick-fixes orchestrator says the user held B-247 and B-246 back and no slice is written; it will message planner-2 if it's scheduled and when it lands. A background check watches `dev` for it. Open: ask the user whether to schedule B-247, or land wave 2 without slice 3.
 
