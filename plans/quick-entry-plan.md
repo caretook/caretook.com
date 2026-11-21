@@ -4,16 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State                                              | Merge into `prd/quick-entry` (slice commits) |
-| ----- | ---- | -------------------------------------------------- | -------------------------------------------- |
-| 1     | 1    | merged, worktree removed                           | 285342b7 (14374ab2)                          |
-| 2     | 2    | started (opus, `.loops/quick-entry-2`, no stack)   |                                              |
-| 3     | 2    | started (opus, `.loops/quick-entry-3`, no stack)   |                                              |
-| 4     | 2    | started (sonnet, `.loops/quick-entry-4`, no stack) |                                              |
+| Slice | Wave | State                                                        | Merge into `prd/quick-entry` (slice commits) |
+| ----- | ---- | ------------------------------------------------------------ | -------------------------------------------- |
+| 1     | 1    | merged, worktree removed                                     | 285342b7 (14374ab2)                          |
+| 2     | 2    | started (opus, `.loops/quick-entry-2`, no stack)             |                                              |
+| 3     | 2    | started (opus, `.loops/quick-entry-3`, no stack)             |                                              |
+| 4     | 2    | handed off 63cd4e7b, reviewed; merges after 2 and 3 (sonnet) |                                              |
 
 **Landing mode (2026-11-21): run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave, clean up; ask only real questions.
 
 **Now (2026-11-21):** synced with `dev` after `tasks-2` (d65bf19f; brings migration 0032_todos and a sync-config change: `pnpm datastore:reset` before serving). B-220 claimed. Slice 1 merged; wave 2 (slices 2, 3, 4) running. Merge 2, 3, 4 in order (3 and 4 both touch `quickEntryCards.ts` and the card component), then `pnpm prd sync` (medications-tabs B-226 landed in `dev` at 07a6b59: `appUrls.medications` is gone, sheet helpers take a tab; no migration) and one landing. B-231 (a timeline empty-state box) isn't ours.
+
+**Slice 4 docs:** assistant.md's 'alternatives as chips ("Note instead")' becomes: the card's kind is a badge, other kinds are "Make it a …" buttons (`kindChoices`), same-kind alternatives keep "<title> instead".
 
 **Slice 1 hand-off notes (for docs at landing):** the vocabulary (`quickEntryVocabulary.ts`, roles, `unlessNext` e.g. "fell asleep"; a miss is one row plus a test row; not exported from `@caretook/data/schema`, whose list is frozen); a provider is "named clearly" by a last name, title + name, a practice's full name, or its first word after at/to/from or a verb (a bare first name doesn't make an event); titles drop time, provider words, verbs and filler; place from "at …" else the provider's address; no time → all-day today; contact verbs and note incidents rank the note first (event at 0.5), symptom incidents give the canonical symptom with severity null; the reading decides the time's direction; "25th"/"the 25th"/"on the 25th" with count-word guards, months without that day skipped. Deliberate changes: "fell in bathroom last night" is now the symptom Fall; "appointment with dr lee" is all-day today with no warning. "slipped"/"tripped" dropped (plain notes now).
 
