@@ -4,15 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State                                                                                                                    | Merge into `prd/planner-2` (slice commits) |
-| ----- | ---- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
-| 1     | 1    | the sonnet agent hit a usage limit at about 12:00 ET with uncommitted work; a `--continue` agent on opus is finishing it |                                            |
-| 2     | 1    | handed off (opus), reviewed: 3ff6ccb2, 46ddd08f; check green apart from flakes that passed alone; merges after slice 1   |                                            |
-| 3     | 2    | not started                                                                                                              |                                            |
-| 4     | 2    | not started                                                                                                              |                                            |
-| 5     | 2    | not started                                                                                                              |                                            |
-| 6     | 2    | not started                                                                                                              |                                            |
-| 7     | 2    | not started                                                                                                              |                                            |
+| Slice | Wave | State                                                                                           | Merge into `prd/planner-2` (slice commits) |
+| ----- | ---- | ----------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| 1     | 1    | merged (sonnet, finished by a `--continue` agent on opus after a usage limit); worktree removed | 804c6e97 (cea61410, 56de7e22, 8d62fbe0)    |
+| 2     | 1    | merged (opus); worktree removed                                                                 | 7267ab9f (3ff6ccb2, 46ddd08f)              |
+| 3     | 2    | not started                                                                                     |                                            |
+| 4     | 2    | not started                                                                                     |                                            |
+| 5     | 2    | not started                                                                                     |                                            |
+| 6     | 2    | not started                                                                                     |                                            |
+| 7     | 2    | not started                                                                                     |                                            |
+
+**Wave 1:** merged and synced with `dev` (009a2e58: only `typegen` scripts and docs came in). Next: the full `pnpm prd check` (the branch has migration 0033), serve, browser checks (asking the user before `--suite`, as the plan says), the PR and Codex review, then land. Wave 2 slices 4–7 start now from the merged tip; slice 3 waits for B-247. Filed B-381 (the readTools birth-year flake, quick-fixes).
 
 **Landing mode: run everything through** (queued with `pnpm prd queue planner-2`): start every ready slice, land each green wave through the PR + Codex, clean up; ask only real questions. B-248 claimed by prd/planner-2 (2026-11-21). At the wave 1 boundary: `quick-entry` (B-220) is in `dev`; B-247 is still `triaged` (slice 3 waits): the quick-fixes orchestrator says the user held B-247 and B-246 back and no slice is written; it will message planner-2 if it's scheduled and when it lands. A background check watches `dev` for it. Open: ask the user whether to schedule B-247, or land wave 2 without slice 3.
 
