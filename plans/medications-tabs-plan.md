@@ -4,10 +4,10 @@
 
 ## Status
 
-| Slice | Wave | State                                                                                     | Merge into `prd/medications-tabs` (slice commits) |
-| ----- | ---- | ----------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| 1     | 1    | merged (opus)                                                                             | 412e3bbe (a7cb2735)                               |
-| 2     | 2    | merged (opus); synced with `dev` (72e65cc6: 3 test conflicts resolved, so the full check) | 3f8c4d1c (6a02c767)                               |
+| Slice | Wave | State                                                                                                                                                         | Merge into `prd/medications-tabs` (slice commits) |
+| ----- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| 1     | 1    | merged (opus)                                                                                                                                                 | 412e3bbe (a7cb2735)                               |
+| 2     | 2    | merged (opus); synced (72e65cc6, 3 test conflicts resolved); full check passed on 3e029536; browser ui, layout-offline, first-sync pass; docs folded; landing | 3f8c4d1c (6a02c767)                               |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue`; land each green wave without asking, clean up, ask only real questions).
 
