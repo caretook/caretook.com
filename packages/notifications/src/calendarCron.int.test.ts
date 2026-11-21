@@ -45,11 +45,11 @@ describe("/api/cron/calendar", () => {
     });
   });
 
-  it("runs the reminders first, then Google push, and the series top-up last by default", async () => {
+  it("runs the reminders first, then Google push and pull, and the series top-up last by default", async () => {
     const res = await handleCalendarCron(request(`Bearer ${secret}`), { secret });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { steps: { name: string; ok: boolean }[] };
-    expect(body.steps.map((s) => s.name)).toEqual(["reminders", "googlePush", "seriesTopUp"]);
+    expect(body.steps.map((s) => s.name)).toEqual(["reminders", "googlePush", "googlePull", "seriesTopUp"]);
     expect(body.steps[0]).toMatchObject({ name: "reminders", ok: true });
     expect(body.steps.at(-1)).toMatchObject({ name: "seriesTopUp", ok: true });
   });
