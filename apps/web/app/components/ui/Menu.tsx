@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import type { NavigateOptions } from "react-router";
-import type { MenuEntry, MenuItem, NormalizedSection } from "./menuModel";
+import type { MenuEntry, MenuItem, NormalizedGroup, NormalizedSection } from "./menuModel";
 
-import { Check } from "lucide-react";
-import { useMemo } from "react";
+import { Check, ChevronRight } from "lucide-react";
+import { useMemo, useState } from "react";
 import {
   Button,
   Header,
@@ -27,8 +27,9 @@ declare module "react-aria-components" {
 }
 
 const WIDTH = { sm: "w-44", md: "w-56", lg: "w-64" } as const;
+// Without its inline padding: px-3, or pl-9 (a group's items, under its label).
 const ITEM =
-  "rounded-field flex cursor-pointer items-center gap-2 px-3 py-2 outline-none data-[focused]:bg-base-200 data-[disabled]:cursor-default data-[disabled]:opacity-50";
+  "rounded-field flex cursor-pointer items-center gap-2 py-2 outline-none data-[focused]:bg-base-200 data-[disabled]:cursor-default data-[disabled]:opacity-50";
 
 /**
  * A button that opens a menu (React Aria: tap or Enter/Space/arrows to
@@ -36,7 +37,9 @@ const ITEM =
  * back on the button). Callers pass data, never React Aria parts or class
  * strings: `items` is a list of items, sections (with a heading, a
  * non-interactive header block, or single selection, whose items are
- * `menuitemradio`) and `SEPARATOR`s; see `menuModel.ts`.
+ * `menuitemradio`), groups (an item that expands in place to its items,
+ * keeping the menu open; all closed again each time it opens) and
+ * `SEPARATOR`s; see `menuModel.ts`.
  *
  * The menu is named by the button (its `label`, else its text) unless
  * `menuLabel` is given. Link items navigate through React Router, with their
@@ -70,10 +73,17 @@ export function Menu({
 }) {
   const navigate = useNavigate();
   const entries = useMemo(() => normalizeMenu(items), [items]);
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
+  const toggle = (id: string) =>
+    setExpanded((open) => {
+      const next = new Set(open);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
 
   return (
     <RouterProvider navigate={(to, options) => void navigate(to, options)} useHref={useHref}>
-      <MenuTrigger>
+      <MenuTrigger onOpenChange={(isOpen) => isOpen && setExpanded(new Set())}>
         <Button aria-label={label} className={className} isDisabled={isDisabled}>
           {children}
         </Button>
@@ -82,11 +92,13 @@ export function Menu({
           className={`${SURFACE} ${scrollable ? "max-h-80 overflow-y-auto" : ""}`}
         >
           <AriaMenu aria-label={menuLabel} className={`menu ${WIDTH[width]} outline-none`}>
-            {entries.map((entry) =>
+            {entries.flatMap((entry) =>
               entry.type === "separator" ? (
                 <Separator key={entry.id} className="border-base-300 my-1 border-t" />
               ) : entry.type === "section" ? (
                 <Section key={entry.id} section={entry} />
+              ) : entry.type === "group" ? (
+                groupEntries(entry, expanded.has(entry.id), () => toggle(entry.id))
               ) : (
                 <Item key={entry.id} item={entry} />
               ),
@@ -135,17 +147,43 @@ function Section({ section }: { section: NormalizedSection }) {
   );
 }
 
-function Item({ item, selectable }: { item: MenuItem; selectable?: boolean }) {
+/** A group's toggle, then (while it's expanded) its items, indented. */
+function groupEntries(group: NormalizedGroup, isExpanded: boolean, onToggle: () => void) {
+  const Icon = group.icon;
+  const toggle = (
+    <AriaMenuItem
+      key={group.id}
+      id={group.id}
+      textValue={group.label}
+      aria-expanded={isExpanded}
+      shouldCloseOnSelect={false}
+      onAction={onToggle}
+      className={`${ITEM} px-3`}
+    >
+      {Icon && <Icon aria-hidden="true" className="size-4 shrink-0" />}
+      <span className="min-w-0 flex-1 truncate">{group.label}</span>
+      <ChevronRight
+        aria-hidden="true"
+        className={`size-4 shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+      />
+    </AriaMenuItem>
+  );
+  if (!isExpanded) return [toggle];
+  return [toggle, ...group.items.map((item) => <Item key={item.id} item={item} inGroup />)];
+}
+
+function Item({ item, selectable, inGroup }: { item: MenuItem; selectable?: boolean; inGroup?: boolean }) {
   const Icon = item.icon;
   return (
     <AriaMenuItem
+      data-menu-group-item={inGroup || undefined}
       id={item.id}
       textValue={item.label}
       href={item.href}
       routerOptions={linkOptions(item)}
       isDisabled={item.isDisabled}
       onAction={selectable ? undefined : item.onAction}
-      className={`${ITEM} ${item.tone === "danger" ? "text-error" : ""}`}
+      className={`${ITEM} ${inGroup ? "pr-3 pl-9" : "px-3"} ${item.tone === "danger" ? "text-error" : ""}`}
     >
       {({ isSelected }) => (
         <>

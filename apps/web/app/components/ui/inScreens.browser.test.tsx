@@ -1,5 +1,6 @@
 import type { DeviceRoute } from "../../../test/device";
 
+import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as entry from "~/routes/app/groups/entry/route";
@@ -237,8 +238,27 @@ describe.each([
     });
     await menu(rowActions("note"), { name: /^Actions for note at /, items: "Print,Delete" });
     await menu(rowActions("symptom"), { name: /^Actions for symptom at /, items: "Edit,Delete" });
-    await menu(addButton, { name: "Add to Today", count: 14 });
+    await menu(addButton, { name: "Add to Today", count: 5 });
     expect(device.location()).toBe(TIMELINE);
+  });
+
+  test("the + menu's Vitals: a group that expands in place to the vital types, the menu staying open; Blood pressure opens the vital sheet for it", async () => {
+    const device = await open(TIMELINE, layout);
+    await expect.poll(rows).toBe(4);
+    await userEvent.click(addButton());
+    const vitals = page.getByRole("menuitem", { name: "Vitals" });
+    await expect.element(vitals).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(vitals);
+    await expect.element(vitals).toHaveAttribute("aria-expanded", "true");
+    expect(q(MENU)).not.toBeNull();
+    const types = [...document.querySelectorAll(`${ITEMS}[data-menu-group-item]`)].map((el) =>
+      el.textContent?.trim(),
+    );
+    expect(types).toEqual(VITAL_TYPES.map((t) => VITALS[t].label));
+    await userEvent.click(page.getByRole("menuitem", { name: "Blood pressure" }));
+    await expect.poll(() => q(MENU)).toBeNull();
+    await expect.poll(device.location).toBe(`${TIMELINE}/new/vital?type=bloodPressure`);
+    await expect.poll(() => nameOf(top())).toBe("Add to the timeline");
   });
 
   test("the timeline's chips and toggles: Filter opens a sheet whose kind filter is a nav with All current, a tap filters; Done returns focus; View options a named menu with the layouts, one checked", async () => {

@@ -15,8 +15,8 @@ import { dayKeyIn, dayStartAt } from "./timelineDays";
 /**
  * A day heading's + button ("Add to Today", "Add to Monday, Nov 16"; writers
  * only: `DayHeader` leaves it out for viewers and in simple mode), opening
- * one menu of what can be added: Note, Event, Dose, Symptom, then each vital
- * type under "Vitals". Notes and events open their page; doses, symptoms and
+ * one menu of what can be added: Note, Event, Dose, Symptom, then "Vitals",
+ * a group that expands in place to each vital type. Notes and events open their page; doses, symptoms and
  * vitals their add sheet over the timeline (which keeps the scroll position
  * and the filters, and carries `SHEET_LINK_STATE`). Today's adds start at
  * now; another day's at 12:00 that day (`dayStartAt`, passed as `?at=`).
@@ -45,9 +45,10 @@ export function QuickAddMenu({ groupId, dayKey, label }: { groupId: string; dayK
     kind("dose", () => toSheet(appUrls.newDose(groupId, { search, at: startAt() }))),
     kind("symptom", () => sheet("symptom")),
     {
-      type: "section",
+      type: "group",
       id: "vitals",
-      title: "Vitals",
+      label: "Vitals",
+      icon: KIND_META.vital.Icon,
       items: VITAL_TYPES.map((type) => ({
         id: `vital-${type}`,
         label: VITALS[type].label,
