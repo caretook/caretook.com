@@ -51,10 +51,10 @@ describe("pass logs", () => {
     await openTimeline({ fixtures: round() });
     await waitUntil(() => text() === "Morning: 1 given, 1 refused", 4000, "the pass row");
     expect(tagged()).toBe(1);
-    expect(row()!.querySelector('a[aria-label^="Edit Morning log"]')).toBeTruthy();
+    await expect.poll(() => row()?.querySelector('a[aria-label^="Edit Morning log"]')).toBeTruthy();
     await userEvent.click(row()!.querySelector("[data-pass-log-toggle]")!);
     await waitUntil(() => !row()!.querySelector<HTMLElement>("[data-pass-log-doses]")!.hidden);
-    expect(row()!.querySelectorAll("[data-pass-log-doses] li").length).toBe(2);
+    await expect.poll(() => row()?.querySelectorAll("[data-pass-log-doses] li").length).toBe(2);
     await setView("Cards");
     await waitUntil(() => text() === "Morning: 1 given, 1 refused");
     expect(tagged()).toBe(1);
@@ -63,8 +63,8 @@ describe("pass logs", () => {
   test("viewer: the pass row with its toggle, and no pass sheet", async () => {
     await openTimeline({ role: "viewer", fixtures: round() });
     await waitUntil(() => text() === "Morning: 1 given, 1 refused", 4000, "the pass row");
-    expect(row()!.querySelector("[data-pass-log-toggle]")).toBeTruthy();
-    expect(row()!.querySelector("a[aria-label^='Edit']")).toBeNull();
+    await expect.poll(() => row()?.querySelector("[data-pass-log-toggle]")).toBeTruthy();
+    await expect.poll(() => row()?.querySelector("a[aria-label^='Edit']")).toBeNull();
   });
 });
 

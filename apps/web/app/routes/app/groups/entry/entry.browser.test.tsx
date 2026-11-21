@@ -139,7 +139,7 @@ const counts = async (device: Awaited<ReturnType<typeof open>>) =>
 const shiftDay = async (steps: number) => {
   await userEvent.click(await found(TIME_CHIP));
   await waitUntil(() => !!DAY(), 4000, "the day segment");
-  DAY()!.focus();
+  (await found(DAY)).focus();
   for (let i = 0; i < Math.abs(steps); i++) await userEvent.keyboard(steps < 0 ? "{ArrowDown}" : "{ArrowUp}");
   await userEvent.click(button("Done")!);
   await waitUntil(() => !DAY());
@@ -176,12 +176,12 @@ describe("a note in one tap", () => {
     await userEvent.keyboard("first words");
     await expect.poll(() => device.location()).toMatch(ON_ENTRY);
     const id = idOf(device.location());
-    expect(EDITOR()!.textContent).toContain("first words");
+    await expect.poll(() => EDITOR()?.textContent).toContain("first words");
     expect(editorFocused()).toBe(true);
 
-    TITLE()!.focus();
+    (await found(TITLE)).focus();
     await userEvent.keyboard("Morning");
-    TITLE()!.blur();
+    (await found(TITLE)).blur();
     await expect.poll(async () => (await stored(device, id))?.title).toBe("Morning");
     const row = (await stored(device, id))!;
     expect([row.kind, row.body, row.created_by]).toEqual(["note", null, TEST_USER.id]);
@@ -248,10 +248,10 @@ describe("an event in one tap, and title chips", () => {
     await userEvent.click(await found(() => CHIPS()[0]));
     await waitUntil(() => TITLE()?.value === pick && CHIPS().length === 0, 4000, "the chip's title");
     await expect.poll(async () => (await stored(device, id))?.title).toBe(pick);
-    TITLE()!.focus();
+    (await found(TITLE)).focus();
     await userEvent.clear(await found(TITLE));
     await userEvent.keyboard("Dr. Lee visit");
-    TITLE()!.blur();
+    (await found(TITLE)).blur();
     await expect.poll(async () => (await stored(device, id))?.title).toBe("Dr. Lee visit");
     await waitUntil(() => TITLE()?.placeholder === "Title", 10_000, "the named event's placeholder");
   });
@@ -278,13 +278,13 @@ describe("an event in one tap, and title chips", () => {
   test("typing a title hides the chips, clearing it brings them back, and a typed title saves the event", async () => {
     const device = await open(`/app/groups/${GROUP}/entries/new?kind=event`);
     await waitUntil(() => CHIPS().length > 0, 4000, "the chips");
-    TITLE()!.focus();
+    (await found(TITLE)).focus();
     await userEvent.keyboard("Podiatrist");
     await waitUntil(() => CHIPS().length === 0, 3000, "the chips to go");
     await userEvent.clear(await found(TITLE));
     await waitUntil(() => CHIPS().length > 0, 3000, "the chips to come back");
     await userEvent.keyboard("Podiatrist");
-    TITLE()!.blur();
+    (await found(TITLE)).blur();
     await expect.poll(() => device.location()).toMatch(ON_ENTRY);
     await waitUntil(() => TITLE()?.value === "Podiatrist");
     expect(CHIPS().length).toBe(0);
@@ -328,7 +328,7 @@ describe("who's writing", () => {
     await waitUntil(() => AVATARS().length === 1, 4000, "avatars");
     // The viewer is the signed-in user here, so only Sam shows.
     expect(AVATARS().map((el) => el.dataset.person)).toEqual([SAM.id]);
-    expect(HEADER()!.textContent).toContain("Event");
+    await expect.poll(() => HEADER()?.textContent).toContain("Event");
     expect(EDITOR()!.getAttribute("contenteditable")).toBe("false");
     expect([!!TITLE(), !!$('[aria-label="Suggested titles"]'), !!TOOLBAR(), !!TIME_CHIP()]).toEqual([
       false,
@@ -372,7 +372,7 @@ describe("the header: time and Delete", () => {
     expect(device.location()).toMatch(/\/entries\/new/);
     expect((await device.queued()).length).toBe(0);
 
-    EDITOR()!.focus();
+    (await found(EDITOR)).focus();
     await userEvent.keyboard("written later");
     await expect.poll(() => device.location()).toMatch(ON_ENTRY);
     const id = idOf(device.location());
@@ -556,9 +556,9 @@ describe("appointments", () => {
     expect(device.location()).toMatch(/\/entries\/new/);
     expect((await device.queued()).length).toBe(0);
 
-    TITLE()!.focus();
+    (await found(TITLE)).focus();
     await userEvent.keyboard("Eye appointment");
-    TITLE()!.blur();
+    (await found(TITLE)).blur();
     await expect.poll(() => device.location()).toMatch(ON_ENTRY);
     await expect
       .poll(async () => Date.parse((await stored(device, idOf(device.location())))!.occurred_at))
@@ -611,7 +611,7 @@ describe("appointments", () => {
     expect(PLACE_REGION()!.textContent).toContain("from Harbor Heart Clinic");
     expect(MAP()!.href).toContain(encodeURIComponent("12 Example Way, Springfield"));
 
-    PLACE()!.focus();
+    (await found(PLACE)).focus();
     await userEvent.keyboard("Lab, 2nd floor{Enter}");
     await expect.poll(async () => (await stored(device, appt.id))?.place).toBe("Lab, 2nd floor");
     await waitUntil(

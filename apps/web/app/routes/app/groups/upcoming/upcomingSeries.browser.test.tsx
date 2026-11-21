@@ -277,7 +277,7 @@ describe("on a visit's page", () => {
     await userEvent.fill(title, "Dialysis, chair 4");
     await userEvent.keyboard("{Enter}");
     await found(SCOPE);
-    expect(SCOPE()!.textContent).toContain("Change a repeating appointment");
+    await expect.poll(() => SCOPE()?.textContent).toContain("Change a repeating appointment");
     await userEvent.click(dialogButton("Cancel")!);
     await expect.poll(() => TITLE()?.value).toBe("Dialysis");
     expect(await device.queued()).toEqual([]);

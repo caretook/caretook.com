@@ -106,8 +106,10 @@ describe("the emergency sheet", () => {
     expect(field("name")).toBe("June Moreno (Grandma June)");
     expect(field("born")).toBe(`Born June 2, 1940 · ${juneAge()}`);
     expect(field("printed")).toMatch(/^Printed \w{3} \d{1,2}, \d{4}$/);
-    expect(sheet()!.querySelector('[data-sheet-basic="codeStatus"] dd')?.textContent?.trim()).toBe("DNR");
-    expect(sheet()!.querySelectorAll("[data-sheet-plan]")).toHaveLength(2);
+    await expect
+      .poll(() => sheet()?.querySelector('[data-sheet-basic="codeStatus"] dd')?.textContent?.trim())
+      .toBe("DNR");
+    await expect.poll(() => sheet()?.querySelectorAll("[data-sheet-plan]")).toHaveLength(2);
     expect(names("[data-sheet-contact]")).toEqual(["Alex Moreno*", SAM.name, "Nora Example"]);
     expect(
       sheet()!.querySelector('[data-sheet-contact][data-primary] [data-sheet-badge="primary"]'),

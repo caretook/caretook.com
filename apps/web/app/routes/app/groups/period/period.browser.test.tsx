@@ -226,7 +226,9 @@ describe("deleting", () => {
     await userEvent.click(page.getByRole("menuitem", { name: "Delete" }));
     const dialog = () => $<HTMLDialogElement>("dialog[open]");
     await waitUntil(() => !!dialog(), 4000, "the confirm");
-    expect(dialog()!.querySelector("p")!.textContent?.trim()).toBe(`Notes stay will continue until ${end}.`);
+    await expect
+      .poll(() => dialog()?.querySelector("p")?.textContent?.trim())
+      .toBe(`Notes stay will continue until ${end}.`);
     await userEvent.click(dialog()!.querySelector(".btn-error")!);
     await expect.poll(device.location).toBe(PERIODS_URL);
     await device.settle();

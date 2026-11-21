@@ -160,7 +160,7 @@ describe("the Today card's rows", () => {
     });
     expect(look("tasks")).toEqual({ status: "neutral", icon: null, said: null, tint: null });
     // Every row's icon is hidden from screen readers: the words carry it.
-    expect(CARD()!.querySelectorAll("li svg:not([aria-hidden])")).toHaveLength(0);
+    await expect.poll(() => CARD()?.querySelectorAll("li svg:not([aria-hidden])")).toHaveLength(0);
   });
 
   test("the rows' words: the latest readings with their time, the next appointment (+N more), the pass, the task", async () => {
@@ -235,7 +235,7 @@ describe("the vitals row", () => {
 
     await userEvent.click(button);
     await expect.poll(() => showAll()?.getAttribute("aria-expanded")).toBe("true");
-    expect(showAll()!.textContent).toBe("Show less");
+    await expect.poll(() => showAll()?.textContent).toBe("Show less");
     expect(device.location()).toBe(TIMELINE_URL);
     expect(line().querySelectorAll("[data-vital]")).toHaveLength(4);
     expect(allInside()).toBe(true);

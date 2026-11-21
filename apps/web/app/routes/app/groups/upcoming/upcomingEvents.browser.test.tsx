@@ -195,9 +195,9 @@ describe("cancel and undo", () => {
       await expect
         .poll(() => BANNER()?.querySelector("[data-cancelled-by]")?.textContent)
         .toBe("Cancelled by Sam Okafor · Today, 9:30 AM");
-      expect(BANNER()!.querySelector("[data-cancel-reason]")?.textContent).toBe(
-        "Office called, doctor out sick",
-      );
+      await expect
+        .poll(() => BANNER()?.querySelector("[data-cancel-reason]")?.textContent)
+        .toBe("Office called, doctor out sick");
       expect(page.getByRole("button", { name: "Undo cancel" }).query()).toBeNull();
       await viewer.screen.unmount();
 

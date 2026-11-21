@@ -80,7 +80,7 @@ describe("the Reminders card", () => {
     const server = calendarServer("caretaker");
     await open({ api: server.api });
     await expect.element(onSwitch()).not.toBeChecked();
-    expect(card()!.querySelector("[data-reminder-leads]")).toBeNull();
+    await expect.poll(() => card()?.querySelector("[data-reminder-leads]")).toBeNull();
     await expect
       .element(page.getByText(/Tasks assigned to you remind you the morning they're due/))
       .toBeVisible();
@@ -128,13 +128,13 @@ describe("the Reminders card", () => {
     await userEvent.click(onSwitch());
     await expect.poll(() => updates(server)).toEqual([{ groupId: TEST_GROUP.id, remindersOn: false }]);
     await expect.element(onSwitch()).not.toBeChecked();
-    expect(card()!.querySelector("[data-reminder-leads]")).toBeNull();
+    await expect.poll(() => card()?.querySelector("[data-reminder-leads]")).toBeNull();
   });
 
   test("offline with nothing on the device, it needs a connection", async () => {
     await open({});
     await found(() => card()?.querySelector("[data-reminders-unknown]"));
-    expect(card()!.textContent).toContain("Needs a connection to show your reminders.");
-    expect(card()!.querySelector("[data-reminders-on]")).toBeNull();
+    await expect.poll(() => card()?.textContent).toContain("Needs a connection to show your reminders.");
+    await expect.poll(() => card()?.querySelector("[data-reminders-on]")).toBeNull();
   });
 });

@@ -152,7 +152,7 @@ describe("the region and the sheet", () => {
     await expect.poll(device.location).toBe(LIST);
     await waitUntil(() => !!REGION(), 4000, "the region");
     expect(region().state).toBe("recorded");
-    expect(REGION()!.querySelectorAll("a, button")).toHaveLength(0);
+    await expect.poll(() => REGION()?.querySelectorAll("a, button")).toHaveLength(0);
     expect($("[role=dialog]")).toBeNull();
   });
 });
