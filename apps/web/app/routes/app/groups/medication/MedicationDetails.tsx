@@ -5,7 +5,13 @@ import type { LocalMedication } from "~/lib/medications/medications.sync";
 import { Link } from "react-router";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { localTimeZone } from "~/lib/core/format";
-import { formatDate, scheduleText, scheduleZoneNote, stoppedText } from "~/lib/medications/medicationDisplay";
+import {
+  formatDate,
+  medicationTypeDetail,
+  scheduleText,
+  scheduleZoneNote,
+  stoppedText,
+} from "~/lib/medications/medicationDisplay";
 import { PROFILE_SHEET_STATE } from "~/lib/profiles/profileSheetLink";
 
 function Row({ id, label, children }: { id: string; label: string; children: ReactNode }) {
@@ -20,9 +26,9 @@ function Row({ id, label, children }: { id: string; label: string; children: Rea
 const LIST = "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border";
 
 /**
- * What the medication is and how it's taken (schedule, dose, directions,
- * the conditions it's for, reason, dates), and how and why it stopped. Only
- * what's set is shown. Each condition opens its sheet over the profile, and
+ * What the medication is (its type, or "not set") and how it's taken
+ * (schedule, dose, directions, the conditions it's for, reason, dates), and
+ * how and why it stopped. Only what's set is shown, but for the type. Each condition opens its sheet over the profile, and
  * closing it comes back here.
  */
 export function MedicationDetails({
@@ -59,6 +65,9 @@ export function MedicationDetails({
           Details
         </h2>
         <dl className={LIST} data-medication-details>
+          <Row id="type" label="Type">
+            {medicationTypeDetail(medication.type)}
+          </Row>
           <Row id="schedule" label="Schedule">
             {scheduleText(medication.schedule, passes, medication.dose)}
             {zoneNote && <span className="text-base-content/70 block text-sm">{zoneNote}</span>}

@@ -1,12 +1,12 @@
-import type { MedicationStatus } from "@caretook/data/schema";
+import type { MedicationStatus, MedicationType } from "@caretook/data/schema";
 
-import { MEDICATION_STATUSES } from "@caretook/data/schema";
+import { MEDICATION_STATUSES, MEDICATION_TYPES } from "@caretook/data/schema";
 import { Search } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { ChipGroup } from "~/components/ui";
-import { STATUS_LABELS } from "~/lib/medications/medicationDisplay";
-import { clearStatus, setQuery, setStatus } from "~/lib/medications/medicationList";
+import { MEDICATION_TYPE_LABELS, STATUS_LABELS } from "~/lib/medications/medicationDisplay";
+import { clearStatus, clearType, setQuery, setStatus, setType } from "~/lib/medications/medicationList";
 
 /** Navigation state that marks a URL change as the search box's own. */
 const FROM_SEARCH_BOX = { medicationSearch: true } as const;
@@ -79,6 +79,27 @@ export function StatusFilter({ status }: { status: MedicationStatus | null }) {
           label: STATUS_LABELS[s],
           to: { search: setStatus(search, s) },
           current: status === s,
+        })),
+      ]}
+    />
+  );
+}
+
+/** Type chips beside the status ones: links that set `?type=`, changing only the type. */
+export function TypeFilter({ type }: { type: MedicationType | null }) {
+  const { search } = useLocation();
+  return (
+    <ChipGroup
+      label="Medication type"
+      replace
+      preventScrollReset
+      links={[
+        { id: "all-types", label: "All types", to: { search: clearType(search) }, current: !type },
+        ...MEDICATION_TYPES.map((t) => ({
+          id: t,
+          label: MEDICATION_TYPE_LABELS[t],
+          to: { search: setType(search, t) },
+          current: type === t,
         })),
       ]}
     />

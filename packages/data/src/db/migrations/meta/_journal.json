@@ -211,6 +211,13 @@
       "when": 1795236843775,
       "tag": "0029_appointments_calendars",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1795239519106,
+      "tag": "0030_medication_types",
+      "breakpoints": true
     }
   ]
 }
