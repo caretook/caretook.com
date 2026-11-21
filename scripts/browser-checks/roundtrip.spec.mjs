@@ -615,7 +615,6 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     };
     const todoRow = `document.querySelector('main [data-todo="${viewerTodo}"]')`;
     const doneLine = `${todoRow}?.querySelector("[data-todo-due]")?.textContent.trim()`;
-    const everyone = `[...document.querySelectorAll("main a")].find((a) => a.textContent.trim() === "Everyone")`;
     const todoOn = async (page) =>
       (await localRows(page, "SELECT title, done_at, done_by FROM todo WHERE id = ?", [viewerTodo]))[0];
     const refusedTodo = `${tag} groceries, refused`;
@@ -630,14 +629,12 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
        WHERE r.id = '${matrix.recipientId}'
        RETURNING id`,
     );
-    // Both todo lists while online: the viewer's (Mine), and member@'s on
-    // Everyone (the viewer's todo isn't Mine).
+    // Both todo lists while online, each on its default, Everyone (B-255):
+    // the viewer's, and member@'s (where the viewer's todo isn't Mine).
     await openTodos(C);
     await openTodos(A);
     await wf(C, `${todoRow}?.querySelector("[data-todo-tick]")`, 20_000);
-    await wf(A, everyone, 20_000);
-    await press(A, everyone);
-    await wf(A, `location.search.includes("who=everyone") && ${todoRow}`, 20_000);
+    await wf(A, todoRow, 20_000);
 
     dB.offline(true);
     dC.offline(true);

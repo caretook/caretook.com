@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultWho, parseWho, setWho, showsTodo, todoSections } from "./todoList";
+import { clearWho, parseWho, setWho, showsTodo, TODO_WHO, todoSections, whoOf } from "./todoList";
 
 const LA = "America/Los_Angeles";
 // Friday 2026-11-20, 12:00 in Los Angeles.
@@ -27,11 +27,18 @@ describe("the chip", () => {
     expect(setWho("?x=1", "everyone")).toBe("?x=1&who=everyone");
   });
 
-  it("defaults to Mine when I have open todos, else Everyone", () => {
-    expect(defaultWho([todo("a", { assigneeId: ME })], ME)).toBe("mine");
-    expect(defaultWho([todo("a", { assigneeId: ME, doneAt: "2026-11-19T00:00:00Z" })], ME)).toBe("everyone");
-    expect(defaultWho([todo("a", { assigneeId: SAM })], ME)).toBe("everyone");
-    expect(defaultWho([], ME)).toBe("everyone");
+  it("defaults to Everyone, first in the menu; an explicit ?who= wins", () => {
+    expect(TODO_WHO).toEqual(["everyone", "mine", "unassigned"]);
+    expect(whoOf("")).toBe("everyone");
+    expect(whoOf("?who=bogus")).toBe("everyone");
+    expect(whoOf("?who=mine")).toBe("mine");
+    expect(whoOf("?who=unassigned")).toBe("unassigned");
+  });
+
+  it("clears ?who= and keeps the rest", () => {
+    expect(clearWho("?who=mine")).toBe("");
+    expect(clearWho("?x=1&who=mine")).toBe("?x=1");
+    expect(clearWho("")).toBe("");
   });
 
   it("shows a typed name's todo under Everyone only", () => {
