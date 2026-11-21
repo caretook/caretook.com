@@ -8,8 +8,11 @@ import {
   $,
   $$,
   ADD_PROVIDER,
+  filterChips,
+  chooseFilter,
   CURRENT_NAMES,
   directory,
+  filterButton,
   FORM,
   GROUP,
   LINDQVIST,
@@ -22,7 +25,6 @@ import {
   secondGroup,
   SHEET,
   SHOW_PAST,
-  typeChip,
   waitUntil,
   WESTSIDE,
 } from "./providerWorld";
@@ -71,21 +73,18 @@ describe("the directory", () => {
     await expect.poll(() => listNames("Current providers")).toEqual(["Dr. Samuel Patel"]);
   });
 
-  test("a practice's name finds its clinicians too; the Clinicians chip keeps the search (?q=westside&type=clinician), and survives a reload", async () => {
+  test("a practice's name finds its clinicians too; choosing Clinicians in the Filter menu keeps the search (?q=westside&type=clinician), and survives a reload", async () => {
     const device = await open();
     await userEvent.type(await found(SEARCH), "westside");
     await expect
       .poll(() => listNames("Current providers"))
       .toEqual(["Dr. Elena Alvarez", "Westside Family Medicine"]);
     await expect.poll(() => params(device).q).toBe("westside");
-    await userEvent.click(await found(() => typeChip("Clinicians")));
+    await chooseFilter("Clinicians");
     await expect.poll(() => listNames("Current providers")).toEqual(["Dr. Elena Alvarez"]);
     await expect.poll(() => params(device)).toEqual({ q: "westside", type: "clinician" });
-    await expect
-      .poll(() =>
-        $$('main nav[aria-label="Show providers"] a[aria-current="true"]').map((a) => a.textContent.trim()),
-      )
-      .toEqual(["Clinicians"]);
+    await expect.poll(filterChips).toEqual(["Clinicians"]);
+    await expect.element(filterButton()).toHaveAccessibleName("Filter, 1 on");
     await expect.poll(() => SEARCH()?.value).toBe("westside");
 
     const url = device.location();
@@ -95,14 +94,33 @@ describe("the directory", () => {
     await expect.poll(() => listNames("Current providers")).toEqual(["Dr. Elena Alvarez"]);
   });
 
-  test("a chip tapped right after typing keeps the search, without waiting for ?q= to reach the URL", async () => {
+  test("a type chosen right after typing keeps the search, without waiting for ?q= to reach the URL", async () => {
     const device = await open();
     await userEvent.type(await found(SEARCH), "westside");
-    // The box writes ?q= a navigation behind the typing; the chip's link must not depend on it.
-    await userEvent.click(await found(() => typeChip("Clinicians")));
+    // The box writes ?q= a navigation behind the typing; the option's link must not depend on it.
+    await chooseFilter("Clinicians");
     await expect.poll(() => params(device)).toEqual({ q: "westside", type: "clinician" });
     await expect.poll(() => listNames("Current providers")).toEqual(["Dr. Elena Alvarez"]);
     await expect.poll(() => SEARCH()?.value).toBe("westside");
+  });
+
+  test("the search box and the Filter button share one row, with no type chip row above the directory; ✕ on the chip returns to All", async () => {
+    const device = await open();
+    await expect.element(filterButton()).toHaveAccessibleName("Filter");
+    expect($('main nav[aria-label="Show providers"]')).toBeNull();
+    expect($('main nav[aria-label="Filters on"]')).toBeNull();
+    expect(SEARCH()!.closest("form")?.parentElement).toBe(filterButton().element().parentElement);
+
+    await chooseFilter("Pharmacies");
+    await expect.poll(() => params(device)).toEqual({ type: "pharmacy" });
+    await expect.poll(filterChips).toEqual(["Pharmacies"]);
+    await expect.element(filterButton()).toHaveAccessibleName("Filter, 1 on");
+
+    await userEvent.click(page.getByRole("link", { name: /Pharmacies/ }));
+    await expect.poll(() => params(device)).toEqual({});
+    await expect.poll(filterChips).toEqual([]);
+    await expect.element(filterButton()).toHaveAccessibleName("Filter");
+    await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
   });
 
   test("a search that matches nothing says so", async () => {
