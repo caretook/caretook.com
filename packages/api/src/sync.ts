@@ -327,6 +327,7 @@ const MEDICATION_COLUMNS = {
   quantity: (v: unknown) => ["quantity", text(v)],
   refills_left: (v: unknown) => ["refillsLeft", int(v)],
   rx_number: (v: unknown) => ["rxNumber", text(v)],
+  type: (v: unknown) => ["type", text(v)],
 } as const satisfies Record<string, (v: unknown) => [string, unknown]>;
 
 const medicationContentFrom = (data: Record<string, unknown>) =>

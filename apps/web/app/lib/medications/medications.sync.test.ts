@@ -40,6 +40,7 @@ const row = (overrides: Partial<MedicationRow> = {}): MedicationRow => ({
   quantity: null,
   refills_left: 2,
   rx_number: null,
+  type: "prescription",
   deleted_at: null,
   created_at: "2026-11-17T21:45:25.229000Z",
   updated_at: "2026-11-17T21:45:25.229000Z",
@@ -100,6 +101,13 @@ describe("toMedication", () => {
       stopReason: null,
       status: "current",
     });
+  });
+
+  it("reads its type, and an unknown or missing one as not set", () => {
+    expect(toMedication(row())?.type).toBe("prescription");
+    expect(toMedication(row({ type: "supplement" }))?.type).toBe("supplement");
+    expect(toMedication(row({ type: "vitamin" }))?.type).toBeNull();
+    expect(toMedication(row({ type: null }))?.type).toBeNull();
   });
 });
 

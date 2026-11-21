@@ -31,7 +31,8 @@ import { occurredAtOf } from "./timelineEntries";
 // Fictional medication lists for both seeded groups: Grandma Pat's (four
 // current, one completed course, one discontinued for side effects), about
 // a week of her doses, and the change entries each save would have written;
-// and one medication for Grandpa Lou. Everything here is made up.
+// and Grandpa Lou's three. Every type is used, and Oxybutynin's isn't set (as
+// for a medication added before types). Everything here is made up.
 //
 // Grandma Pat's scheduled medications are in Dev Family's seeded passes
 // (Morning 08:00, Evening 20:00, `medicationPasses.ts`), with Latanoprost at
@@ -76,6 +77,7 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
     added: { daysAgo: 120, time: "10:15", author: "member@example.com" },
     content: {
       name: "Lisinopril",
+      type: "prescription",
       strength: "5 mg",
       form: "tablet",
       dose: "1 tablet",
@@ -99,6 +101,7 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
     added: { daysAgo: 300, time: "09:00", author: "member@example.com" },
     content: {
       name: "Metformin",
+      type: "prescription",
       strength: "500 mg",
       form: "tablet",
       dose: "1 tablet",
@@ -119,6 +122,7 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
     added: { daysAgo: 90, time: "14:30", author: "caretaker@example.com" },
     content: {
       name: "Acetaminophen",
+      type: "otc",
       strength: "500 mg",
       form: "tablet",
       dose: "2 tablets",
@@ -140,6 +144,7 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
     added: { daysAgo: 200, time: "13:20", author: "member@example.com" },
     content: {
       name: "Latanoprost",
+      type: "prescription",
       strength: "0.005%",
       form: "drops",
       dose: "1 drop in each eye",
@@ -164,6 +169,7 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
     added: { daysAgo: 24, time: "17:30", author: "member@example.com" },
     content: {
       name: "Amoxicillin",
+      type: "prescription",
       strength: "500 mg",
       form: "capsule",
       dose: "1 capsule",
@@ -191,6 +197,7 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
     added: { daysAgo: 60, time: "11:45", author: "member@example.com" },
     content: {
       name: "Oxybutynin",
+      // Added before medications had types: "Type not set".
       strength: "5 mg",
       form: "tablet",
       dose: "1 tablet",
@@ -215,19 +222,48 @@ export const DEV_FAMILY_MEDICATIONS: SeedMedication[] = [
   },
 ];
 
-/** Grandpa Lou's one medication (Dev Family 2), so the groups' lists stay separate. */
+/**
+ * Grandpa Lou's medications (Dev Family 2), so the groups' lists stay
+ * separate: a prescription, a supplement and another (a cream).
+ */
 export const SECOND_GROUP_MEDICATIONS: SeedMedication[] = [
   {
     key: "tamsulosin",
     added: { daysAgo: 150, time: "10:00", author: "member@example.com" },
     content: {
       name: "Tamsulosin",
+      type: "prescription",
       strength: "0.4 mg",
       form: "capsule",
       dose: "1 capsule",
       directions: "Once a day, half an hour after dinner.",
       reason: "Prostate",
       schedule: { type: "scheduled", slots: [{ time: "19:00" }] },
+    },
+  },
+  {
+    key: "vitaminD",
+    added: { daysAgo: 140, time: "10:05", author: "member@example.com" },
+    content: {
+      name: "Vitamin D3",
+      type: "supplement",
+      strength: "1000 IU",
+      form: "capsule",
+      dose: "1 capsule",
+      directions: "With breakfast.",
+      schedule: { type: "asNeeded", maxPerDay: 1 },
+    },
+  },
+  {
+    key: "barrierCream",
+    added: { daysAgo: 45, time: "18:20", author: "member@example.com" },
+    content: {
+      name: "Zinc barrier cream",
+      type: "other",
+      form: "cream",
+      dose: "A thin layer",
+      directions: "On the heels after washing, as needed.",
+      schedule: { type: "asNeeded" },
     },
   },
 ];

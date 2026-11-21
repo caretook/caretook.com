@@ -88,7 +88,8 @@ streams:
         SELECT id, group_id, recipient_id, name, strength, form, dose, directions, reason, schedule,
         status, started_on, stopped_on, stop_reason, stop_note, prescriber_id, pharmacy_id,
         last_filled_on, quantity, refills_left, rx_number,
-        deleted_at, created_at, updated_at, created_by, updated_by
+        deleted_at, created_at, updated_at, created_by, updated_by,
+        type
         FROM medication WHERE group_id IN my_groups
       # What each member shares with the group: only the values they chose
       # (a projection the services keep in step). Never user_contact itself.
