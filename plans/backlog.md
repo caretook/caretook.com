@@ -113,7 +113,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-217 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
 | B-218 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | expand icon for day summary on timeline should be at the left of the day summary, not the right. |
 | B-219 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
-| B-220 | change | in-progress | quick-entry | prd/quick-entry | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
+| B-220 | change | ready | quick-entry | prd/quick-entry | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
 | B-221 | feature | triaged | simple-mode |  | locked simple mode is really confusing. We may want to just add a new user type at this point for… |
 | B-222 | feature | staging | tasks-2 | prd/tasks-2 | Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to… |
 | B-223 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | in header care group drop down, we don't need to show the current care period line. New care group… |
@@ -695,10 +695,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-220 · change · Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,…
 
-- status: in-progress
+- status: ready
 - prd: quick-entry
 - owner: prd/quick-entry
-- commit:
+- commit: b5252045
 
 - 2026-11-21 (prd/medications-3): From the inbox: Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event, providers do suggest like they should, but creates a note instead of an appointment. "Dr. Elena Alvarez on the 25th" creates a note as do most provider auto completes when it should be an event. Need to improve the logic for this.
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): its own PRD to write, quick-entry: the parser picks the entry kind ("fell" makes an event, provider autocompletes and dates make appointments, not notes). It runs after quick-fixes' quick-entry slices (B-215, B-216, B-219).
