@@ -6,6 +6,7 @@ import type {
   MedicationUpsertInput,
   ProviderUpsertInput,
   RecipientAllergyUpsertInput,
+  RecipientConditionUpsertInput,
   TaskUpsertInput,
   TimelineEntryUpsertInput,
 } from "@caretook/data";
@@ -15,6 +16,7 @@ import {
   ERRORS,
   isError,
   logError,
+  medicationConditionService,
   medicationPassService,
   carePeriodService,
   medicationService,
@@ -22,6 +24,7 @@ import {
   noteDocumentService,
   providerService,
   recipientAllergyService,
+  recipientConditionService,
   taskService,
   timelineEntryService,
 } from "@caretook/data";
@@ -495,16 +498,25 @@ const recipientAllergyOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Prom
 };
 
 // ---------------------------------------------------------------------------
-// care_recipient: read-only, except "No known allergies". A PATCH touching only
-// `no_known_allergies_at` sets or clears it (care_recipient's update rule);
+// care_recipient: read-only, except "No known allergies" and "No known
+// conditions". A PATCH touching only `no_known_allergies_at` or only
+// `no_known_conditions_at` sets or clears it (care_recipient's update rule);
 // anything else is refused as before.
 // ---------------------------------------------------------------------------
 
 const careRecipientOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
   const data = op.data ?? {};
   const columns = Object.keys(data);
-  if (op.op !== "PATCH" || columns.length !== 1 || columns[0] !== "no_known_allergies_at")
-    return readOnly(op.table, op.op);
+  if (op.op !== "PATCH" || columns.length !== 1) return readOnly(op.table, op.op);
+  if (columns[0] === "no_known_conditions_at") {
+    const res = await recipientConditionService.setNoKnownConditions(
+      ctx,
+      op.id,
+      toIsoTimestamp(data.no_known_conditions_at),
+    );
+    return isError(res) ? res : applied;
+  }
+  if (columns[0] !== "no_known_allergies_at") return readOnly(op.table, op.op);
   const res = await recipientAllergyService.setNoKnownAllergies(
     ctx,
     op.id,
@@ -653,6 +665,135 @@ const taskOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome>
 };
 
 // ---------------------------------------------------------------------------
+// recipient_condition: like recipient_allergy. Soft deletes; the group and
+// recipient never change. A status PATCH (resolve, reactivate) is an update.
+// Each write records its `conditionChange` entry (id from the condition and
+// the device's `updated_at`, like a medication's change), so the device's own
+// copy, uploaded next, changes nothing.
+// ---------------------------------------------------------------------------
+
+const CONDITION_COLUMNS = {
+  name: (v: unknown) => ["name", text(v)],
+  status: (v: unknown) => ["status", text(v)],
+  since_year: (v: unknown) => ["sinceYear", int(v)],
+  since_month: (v: unknown) => ["sinceMonth", int(v)],
+  note: (v: unknown) => ["note", text(v)],
+  diagnosed_by_id: (v: unknown) => ["diagnosedById", text(v)],
+} as const satisfies Record<string, (v: unknown) => [string, unknown]>;
+
+const conditionContentFrom = (data: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(data).flatMap(([column, value]) => {
+      const map = CONDITION_COLUMNS[column as keyof typeof CONDITION_COLUMNS];
+      return map ? [map(value)] : [];
+    }),
+  );
+
+/** Soft delete. Deleting a condition that's already deleted is a replay: fine. */
+const removeCondition = async (ctx: { authUser: AuthUser }, id: string): Promise<Outcome> => {
+  const res = await recipientConditionService.remove(ctx, id);
+  if (!isError(res)) return applied;
+  if (res.code !== "recipientConditionService:notFound") return res;
+  const condition = await recipientConditionService.getById(ctx, id, { includeDeleted: true });
+  if (isError(condition)) return condition;
+  return condition?.deletedAt ? applied : res;
+};
+
+const recipientConditionOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+  const opts = { changedAt: text(data.updated_at) };
+
+  if (op.op === "PUT") {
+    const input = {
+      id: op.id,
+      groupId: text(data.group_id),
+      recipientId: text(data.recipient_id) ?? undefined,
+      ...conditionContentFrom(data),
+    };
+    // Unchecked here on purpose: the service validates the whole shape.
+    const res = await recipientConditionService.upsert(
+      ctx,
+      input as unknown as RecipientConditionUpsertInput,
+      opts,
+    );
+    if (isError(res)) return res;
+    if (data.deleted_at) return removeCondition(ctx, op.id);
+    return applied;
+  }
+
+  if (op.op === "DELETE") return removeCondition(ctx, op.id);
+
+  if ("group_id" in data || "recipient_id" in data)
+    return newError({ code: "recipientConditionService:immutable" });
+  if (data.deleted_at) return removeCondition(ctx, op.id);
+  const content = conditionContentFrom(data);
+  if (Object.keys(content).length === 0) return applied;
+  const res = await recipientConditionService.update(ctx, op.id, content, opts);
+  if (isError(res)) return res;
+  return res ? applied : newError({ code: "recipientConditionService:notFound" });
+};
+
+// ---------------------------------------------------------------------------
+// medication_condition: what a medication is for (conditions slice 4). Like
+// timeline_entry_provider: links are added (PUT) and removed (DELETE), never changed.
+// ---------------------------------------------------------------------------
+
+const medicationConditionOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  if (op.op === "PATCH") return readOnly("medication_condition", op.op);
+  if (op.op === "DELETE") {
+    const res = await medicationConditionService.unlink(ctx, op.id);
+    return isError(res) ? res : applied;
+  }
+  const data = op.data ?? {};
+  const res = await medicationConditionService.link(ctx, {
+    id: op.id,
+    groupId: text(data.group_id) ?? "",
+    medicationId: text(data.medication_id) ?? "",
+    conditionId: text(data.condition_id) ?? "",
+  });
+  return isError(res) ? res : applied;
+};
+
+// ---------------------------------------------------------------------------
+// condition_manager: who manages a condition (conditions slice 3). Links are
+// added (PUT) and removed, never changed. Each link and unlink is recorded in
+// the change entry of its save's time (the device's `updated_at`), so one
+// save's links are one entry. A DELETE carries no data, so the device first
+// PATCHes the link's `updated_at` to the save's time: that PATCH is the
+// unlink, and the DELETE after it a replay.
+// ---------------------------------------------------------------------------
+
+const UNLINK_STAMP_COLUMNS = new Set(["updated_at", "updated_by"]);
+
+const conditionManagerOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome> => {
+  const data = op.data ?? {};
+  if (op.op === "PATCH") {
+    const columns = Object.keys(data);
+    if (!columns.includes("updated_at") || !columns.every((c) => UNLINK_STAMP_COLUMNS.has(c)))
+      return readOnly("condition_manager", op.op);
+    const res = await recipientConditionService.unlinkManager(ctx, op.id, {
+      changedAt: text(data.updated_at),
+    });
+    return isError(res) ? res : applied;
+  }
+  if (op.op === "DELETE") {
+    const res = await recipientConditionService.unlinkManager(ctx, op.id);
+    return isError(res) ? res : applied;
+  }
+  const res = await recipientConditionService.linkManager(
+    ctx,
+    {
+      id: op.id,
+      groupId: text(data.group_id) ?? "",
+      conditionId: text(data.condition_id) ?? "",
+      providerId: text(data.provider_id) ?? "",
+    },
+    { changedAt: text(data.updated_at) ?? text(data.created_at) },
+  );
+  return isError(res) ? res : applied;
+};
+
+// ---------------------------------------------------------------------------
 // Procedure
 // ---------------------------------------------------------------------------
 
@@ -668,6 +809,9 @@ const HANDLERS: Record<string, (ctx: { authUser: AuthUser }, op: CrudOp) => Prom
   care_recipient: careRecipientOp,
   care_period: carePeriodOp,
   task: taskOp,
+  recipient_condition: recipientConditionOp,
+  medication_condition: medicationConditionOp,
+  condition_manager: conditionManagerOp,
 };
 
 /**

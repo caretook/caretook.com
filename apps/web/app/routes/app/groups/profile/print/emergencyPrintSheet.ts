@@ -8,11 +8,13 @@ import type {
   ProviderType,
 } from "@caretook/data/schema";
 import type { AllergyLike, AllergyState } from "../../../../../lib/medications/allergies";
+import type { ConditionLike, ConditionState } from "../../../../../lib/profiles/conditions";
 import type { EmergencyMemberRow } from "../../../../../lib/profiles/emergencyList";
 import type { SchedulePass } from "../../../../../lib/medications/medicationDisplay";
 import type { BasicLine } from "../../../../../lib/profiles/recipientDisplay";
 
 import { allergySummary, allergyText } from "../../../../../lib/medications/allergies";
+import { conditionText, NO_KNOWN_CONDITIONS } from "../../../../../lib/profiles/conditions";
 import { emergencyEntries } from "../../../../../lib/profiles/emergencyList";
 import { formatDate, medicationTitle, scheduleText } from "../../../../../lib/medications/medicationDisplay";
 import { PROVIDER_TYPE_META } from "../../../../../lib/providers/providerDirectory";
@@ -66,6 +68,9 @@ export type EmergencyProviderInput = {
 
 /** The recipient's allergies, as `allergyState` gives them (on file, "No known allergies", or not recorded). */
 export type EmergencyAllergiesInput = AllergyState<AllergyLike>;
+
+/** The recipient's conditions, as `conditionState` gives them (on file, "No known conditions", or not recorded). */
+export type EmergencyConditionsInput = ConditionState<ConditionLike>;
 
 export type SheetPhone = { label: string | null; number: string };
 
@@ -121,6 +126,14 @@ export type EmergencySection =
       empty: string | null;
     }
   | {
+      id: "conditions";
+      title: "Conditions";
+      /** Each active condition, as `conditionText` words it: "Type 2 diabetes (since 2015; diet-controlled)". */
+      conditions: { id: string; text: string }[];
+      /** "No known conditions" when that's recorded and none is on file. */
+      empty: string | null;
+    }
+  | {
       id: "careTeam";
       title: "Care team";
       providers: {
@@ -143,6 +156,7 @@ export const EMERGENCY_SECTION_ORDER: readonly EmergencySectionId[] = [
   "emergency",
   "medications",
   "allergies",
+  "conditions",
   "careTeam",
 ];
 
@@ -230,6 +244,8 @@ const careTeam = (
  *   with dose and schedule;
  * - allergies, whenever they're given: each one on file (most severe first),
  *   else "No known allergies" or "Allergies not recorded";
+ * - conditions: the active ones (active first order, with since and note),
+ *   or "No known conditions"; left out when not recorded or all resolved;
  * - the care team: primary providers and the pharmacy, with a phone each.
  *
  * `locale` is for tests; screens pass none.
@@ -241,6 +257,7 @@ export const emergencySheet = ({
   medications,
   providers,
   allergies,
+  conditions,
   passes = [],
   now,
   locale,
@@ -252,6 +269,8 @@ export const emergencySheet = ({
   providers: readonly EmergencyProviderInput[];
   /** Null or left out leaves the section out (no recipient to have any). */
   allergies?: EmergencyAllergiesInput | null;
+  /** Null or left out leaves the section out, as does "not recorded". */
+  conditions?: EmergencyConditionsInput | null;
   /** The group's passes, deleted ones too: schedules read by pass name, as the medication screens do. */
   passes?: readonly SchedulePass[];
   now: Date;
@@ -313,6 +332,16 @@ export const emergencySheet = ({
             }))
           : [],
       empty: allergies.kind === "recorded" ? null : allergySummary(allergies),
+    });
+
+  if (conditions?.kind === "none")
+    sections.push({ id: "conditions", title: "Conditions", conditions: [], empty: NO_KNOWN_CONDITIONS });
+  else if (conditions?.kind === "recorded" && conditions.active.length)
+    sections.push({
+      id: "conditions",
+      title: "Conditions",
+      conditions: conditions.active.map((c) => ({ id: c.id, text: conditionText(c) })),
+      empty: null,
     });
 
   const team = careTeam(providers, current);

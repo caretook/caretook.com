@@ -60,6 +60,8 @@ export const careRecipients = sqliteTable(
     notes: text("notes"),
     // When "No known allergies" was recorded (cleared when an allergy is added).
     noKnownAllergiesAt: text("no_known_allergies_at"),
+    // When "No known conditions" was recorded (cleared when a condition is added).
+    noKnownConditionsAt: text("no_known_conditions_at"),
   },
   (t) => [index("care_recipient_group").on(t.groupId)],
 );
@@ -363,6 +365,77 @@ export const tasks = sqliteTable(
   (t) => [index("task_group").on(t.groupId)],
 );
 
+/**
+ * The recipient's conditions (conditions PRD). `status` is active or
+ * resolved; `since_year` and `since_month` are integers. Deletes are soft.
+ */
+export const recipientConditions = sqliteTable(
+  "recipient_condition",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    recipientId: text("recipient_id"),
+    name: text("name"),
+    status: text("status"),
+    sinceYear: integer("since_year"),
+    sinceMonth: integer("since_month"),
+    note: text("note"),
+    diagnosedById: text("diagnosed_by_id"),
+    deletedAt: text("deleted_at"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [index("recipient_condition_group").on(t.groupId)],
+);
+
+/**
+ * What a medication is for (conditions slice 4): medication ↔ condition
+ * links. The id comes from the pair (`medicationConditionId`); unlinking
+ * deletes the row.
+ */
+export const medicationConditions = sqliteTable(
+  "medication_condition",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    medicationId: text("medication_id"),
+    conditionId: text("condition_id"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [
+    index("medication_condition_medication").on(t.medicationId),
+    index("medication_condition_condition").on(t.conditionId),
+  ],
+);
+
+/**
+ * Who manages a condition (conditions slice 3): condition ↔ provider links.
+ * The id comes from the pair (`conditionManagerId`); unlinking deletes the
+ * row (after a PATCH of its `updated_at`: see `conditions.sync.ts`).
+ */
+export const conditionManagers = sqliteTable(
+  "condition_manager",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    conditionId: text("condition_id"),
+    providerId: text("provider_id"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [
+    index("condition_manager_condition").on(t.conditionId),
+    index("condition_manager_provider").on(t.providerId),
+  ],
+);
+
 export const drizzleSchema = {
   careGroups,
   careGroupMembers,
@@ -380,4 +453,7 @@ export const drizzleSchema = {
   recipientAllergies,
   carePeriods,
   tasks,
+  recipientConditions,
+  medicationConditions,
+  conditionManagers,
 };

@@ -96,7 +96,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-207 | bug | triaged | quick-fixes |  | pnpm prd stack up fails at migrate with 'Connection terminated unexpectedly': the compose Postgres healthcheck (pg_isready -U caretook -d caretook) passes against the socket-only init server; use -h 127.0.0.1 (powersync-storage has the same pattern) |
 | B-208 | change | landed | simple-mode |  | you should be able to edit all entries, search, and filter in simple mode. |
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
-| B-210 | bug | triaged | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
+| B-210 | bug | landed | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
 | B-211 | change | triaged | quick-fixes |  | link to group details edit page from the edit profile screen for editing the care recipient's… |
 
 ## Items
@@ -534,14 +534,15 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-210 · bug · Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864
 
-- status: triaged
+- status: landed
 - prd: quick-fixes
 - owner:
-- commit:
+- commit: 570293a2
 
 - 2026-11-20 (prd/conditions): Found in conditions' landing --suite on prd/conditions (9/12, 2026-11-20 23:15); invites failed alone too at load 6. Not caused by conditions. Logs in .git/worktrees/conditions/caretook-browser/.
 - 2026-11-20 (Robert Bo Davis): Hotfix: the user started hotfix/test-fixes for the reported test issues (B-180, B-182, B-210), 2026-11-20.
 - 2026-11-20 (prd/conditions): Also test/device.browser.test.tsx:57 'fixtures render on a real route': getByText('Lisinopril 10 mg').first() can pick the collapsed Today card's hidden link (failed once in conditions' quick check at load 5, passed alone 2x): a race to fix, not rerun.
+- 2026-11-20 (hotfix/test-fixes): Fixed in hotfix/test-fixes (570293a2): app-shell waits for View options and keeps search in unlocked simple mode (B-208 made the toHaveCount(0) stale too); layout-offline picks the layout from View options; invites looks in main ol > li; device test finds Lisinopril's row by role. Named tests only: the device file 3x, the three specs on a stack, lint, format, typecheck; landed --force on the user's word.
 
 ### B-211 · change · link to group details edit page from the edit profile screen for editing the care recipient's…
 

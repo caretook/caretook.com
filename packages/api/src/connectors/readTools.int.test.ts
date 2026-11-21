@@ -15,6 +15,7 @@ import {
   normalizeSchedule,
   providerService,
   recipientAllergyService,
+  recipientConditionService,
   taskService,
   timelineEntryService,
   userContactService,
@@ -352,6 +353,35 @@ describe("read tools", { timeout: 60_000 }, () => {
     expect(result.content[0]!.text).toContain(longDose);
   });
 
+  it("list_timeline: condition changes in full (added, changed, resolved, reactivated)", async () => {
+    const handler = handlerAt(new Date());
+    const w = await world();
+    const c = ok(
+      await recipientConditionService.create(w.caretaker.ctx, {
+        groupId: w.group.id,
+        name: "Asthma",
+        sinceYear: 2015,
+      }),
+    )!;
+    ok(
+      await recipientConditionService.update(w.caretaker.ctx, c.id, {
+        sinceYear: 2014,
+        note: "Inhaler as needed",
+      }),
+    );
+    ok(await recipientConditionService.resolve(w.caretaker.ctx, c.id));
+    ok(await recipientConditionService.reactivate(w.caretaker.ctx, c.id));
+    const token = await w.connect(w.viewer);
+    const result = await callTool(handler, token, "list_timeline", { kinds: ["conditionChange"] });
+    const lines = result.content[0]!.text.split("\n").filter((l) => l.includes(" conditionChange "));
+    expect(lines).toHaveLength(4);
+    const has = (s: string) => lines.some((l) => l.includes(s));
+    expect(has("Added Asthma: Since 2015")).toBe(true);
+    expect(has("Changed Asthma: Since: 2015 → 2014; Note: none → Inhaler as needed")).toBe(true);
+    expect(has("Resolved Asthma")).toBe(true);
+    expect(has("Reactivated Asthma")).toBe(true);
+  });
+
   it("todays_doses: agrees with the app's due-doses core for the same data and now, in the recipient's zone", async () => {
     const now = new Date();
     const handler = handlerAt(now);
@@ -682,6 +712,95 @@ describe("read tools", { timeout: 60_000 }, () => {
     expect(JSON.stringify(result)).not.toContain(born.slice(0, 4));
     expect(result.content[0]?.text).toMatch(/Pat \(Pat Example\), age 8[34]/);
   });
+
+  it("recipient_profile: conditions in order with providers' names, the flag, no deleted ones, no contact details", async () => {
+    const handler = handlerAt(new Date());
+    const w = await world();
+    const token = await w.connect(w.viewer);
+    const profile = async () => {
+      const r = await callTool(handler, token, "recipient_profile");
+      return {
+        text: r.content[0]!.text,
+        recipient: r.structuredContent.recipient as { conditions: unknown[]; noKnownConditions: boolean },
+        raw: JSON.stringify(r),
+      };
+    };
+
+    expect((await profile()).text).toContain("Conditions not recorded.");
+    ok(
+      await recipientConditionService.setNoKnownConditions(
+        w.owner.ctx,
+        w.recipient.id,
+        new Date().toISOString(),
+      ),
+    );
+    let result = await profile();
+    expect(result.recipient).toMatchObject({ conditions: [], noKnownConditions: true });
+    expect(result.text).toContain("No known conditions.");
+
+    const lee = ok(
+      await providerService.create(w.owner.ctx, {
+        groupId: w.group.id,
+        type: "clinician",
+        name: "Dr. Lee",
+        phone: "555-0123",
+      } as never),
+    )!;
+    const gone = ok(
+      await providerService.create(w.owner.ctx, { groupId: w.group.id, type: "clinician", name: "Dr. Gone" }),
+    )!;
+    const add = async (input: Record<string, unknown>) =>
+      ok(
+        await recipientConditionService.create(w.caretaker.ctx, { groupId: w.group.id, ...input } as never),
+      )!;
+    const old = await add({ name: "Hip fracture", sinceYear: 2019, sinceMonth: 3 });
+    ok(await recipientConditionService.resolve(w.caretaker.ctx, old.id));
+    await add({ name: "Asthma", sinceYear: 2001 });
+    const diabetes = await add({
+      name: "Type 2 diabetes",
+      sinceYear: 2015,
+      note: "Diet-controlled",
+      diagnosedById: gone.id,
+    });
+    ok(
+      await recipientConditionService.setManagers(w.caretaker.ctx, {
+        conditionId: diabetes.id,
+        providerIds: [lee.id, gone.id],
+      }),
+    );
+    const removed = await add({ name: "Removed entry" });
+    ok(await recipientConditionService.remove(w.caretaker.ctx, removed.id));
+    ok(await providerService.remove(w.owner.ctx, gone.id));
+
+    result = await profile();
+    expect(result.recipient.noKnownConditions).toBe(false);
+    expect(result.recipient.conditions).toEqual([
+      {
+        name: "Type 2 diabetes",
+        status: "active",
+        since: "2015",
+        note: "Diet-controlled",
+        diagnosedBy: null,
+        managedBy: ["Dr. Lee"],
+      },
+      { name: "Asthma", status: "active", since: "2001", note: null, diagnosedBy: null, managedBy: [] },
+      {
+        name: "Hip fracture",
+        status: "resolved",
+        since: "March 2019",
+        note: null,
+        diagnosedBy: null,
+        managedBy: [],
+      },
+    ]);
+    const text = result.text;
+    expect(text).toContain(
+      "Conditions: Type 2 diabetes (since 2015; Diet-controlled; managed by Dr. Lee); Asthma (since 2001); Hip fracture (resolved; since March 2019).",
+    );
+    expect(text).not.toContain("Removed entry");
+    expect(text).not.toContain("Dr. Gone");
+    expect(result.raw).not.toContain("555-0123");
+  });
 });
 
 describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
@@ -788,6 +907,13 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
         groupId: w.group.id,
         substance: "Penicillin",
         severity: "severe",
+      }),
+    );
+    ok(
+      await recipientConditionService.create(w.owner.ctx, {
+        groupId: w.group.id,
+        name: "Atrial fibrillation",
+        sinceYear: 2018,
       }),
     );
 

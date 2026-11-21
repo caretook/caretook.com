@@ -130,6 +130,19 @@ describe("medicationFromForm", () => {
     expect(input.pharmacyId).toBe("ph1");
   });
 
+  it("reads the conditions it's for, each once, and none when none are chosen", () => {
+    const { conditionIds } = medicationFromForm(
+      form([
+        ["conditionId", "c1"],
+        ["conditionId", ""],
+        ["conditionId", "c2"],
+        ["conditionId", "c1"],
+      ]),
+    );
+    expect(conditionIds).toEqual(["c1", "c2"]);
+    expect(medicationFromForm(form([["name", "A"]])).conditionIds).toEqual([]);
+  });
+
   it("gives the shared schema what it needs for the form's messages", () => {
     const blank = medicationFromForm(form([["scheduleType", "scheduled"]])).input;
     expect(issuesOf(blank)).toEqual(
@@ -199,6 +212,7 @@ describe("isFieldIssue", () => {
     expect(isFieldIssue("schedule.passes")).toBe(true);
     expect(isFieldIssue(`schedule.passes.${MORNING}.amount`)).toBe(true);
     expect(isFieldIssue("schedule.maxPerDay")).toBe(true);
+    expect(isFieldIssue("conditionIds")).toBe(true);
     expect(isFieldIssue("stoppedOn")).toBe(false);
   });
 });

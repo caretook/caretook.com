@@ -17,4 +17,10 @@ describe("profileUrls", () => {
   it("builds the recipient's emergency sheet", () => {
     expect(appUrls.profilePrint(G)).toBe(`/app/groups/${G}/profile/print`);
   });
+
+  it("builds a condition's sheets", () => {
+    expect(appUrls.newCondition(G)).toBe(`/app/groups/${G}/profile/conditions/new`);
+    expect(appUrls.condition(G, "c 1")).toBe(`/app/groups/${G}/profile/conditions/c%201`);
+    expect(appUrls.editCondition(G, "c1")).toBe(`/app/groups/${G}/profile/conditions/c1/edit`);
+  });
 });
