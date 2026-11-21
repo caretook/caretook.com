@@ -4,14 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State           | Merge into `prd/conditions` (slice commits) |
-| ----- | ---- | --------------- | ------------------------------------------- |
-| 1     | 1    | not started     |                                             |
-| 2     | 2    | blocked by 1    |                                             |
-| 4     | 2    | blocked by 1    |                                             |
-| 5     | 2    | blocked by 1    |                                             |
-| 3     | 3    | blocked by 2    |                                             |
-| 6     | 4    | blocked by 2, 3 |                                             |
+| Slice | Wave | State                                                                                | Merge into `prd/conditions` (slice commits) |
+| ----- | ---- | ------------------------------------------------------------------------------------ | ------------------------------------------- |
+| 1     | 1    | in progress (worktree `.loops/conditions-1`, slot 5; agent spawned 2026-11-20, opus) |                                             |
+| 2     | 2    | blocked by 1                                                                         |                                             |
+| 4     | 2    | blocked by 1                                                                         |                                             |
+| 5     | 2    | blocked by 1                                                                         |                                             |
+| 3     | 3    | blocked by 2                                                                         |                                             |
+| 6     | 4    | blocked by 2, 3                                                                      |                                             |
+
+**Landing mode: run everything through** (queued with `pnpm prd queue conditions`): start every ready slice, land each green wave, clean up; ask only real questions. B-181 claimed 2026-11-20.
+
+**Models:** slice 1 opus (schema, sync, new UX).
 
 **Start conditions:** none for slice 1. Slice 2 waits for quick-fixes slice 51 (the timeline's Filter sheet, B-187) to be in `dev`, and slice 6 for quick-fixes slice 48 (the connector's timeline text, B-189 and B-190). Check with `pnpm backlog show B-187` / `B-189` that they've landed, and `pnpm prd sync` before starting either slice. If quick-fixes hasn't landed them, the slice may start and leave its filter or text line to a short follow-up once they do (say so in the hand-off).
 
