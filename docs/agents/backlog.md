@@ -13,7 +13,7 @@ For anyone who reads or writes the backlog: the user, orchestrators, planning an
 
 - **Ingest links them.** `pnpm backlog ingest` files every untagged inbox bullet as an item (status `inbox`) and appends its id to the bullet: `- Login link can be clicked twice (B-1)`. That's the only change agents make to the inbox. Editing or deleting a filed bullet doesn't change its item: say so in a new bullet, or change the tracker. `pnpm backlog inbox` shows bullets not filed yet.
 - **When:** orchestrators at every wave boundary (with `doctor`, then rereading the list); the user whenever they like. Nothing ingests on its own, so a half-typed bullet is never filed.
-- **Agents propose, the user reviews.** An orchestrator or planning agent sets a new item's PRD (`set B-<n> prd=<topic> status=triaged`) with a `note` saying why; the user checks the summary table.
+- **Agents propose, the user reviews.** An orchestrator or planning agent sets a new item's PRD (`set B-<n> prd=<topic> status=triaged`) with a `note` saying why; the user checks the summary table. A small fix goes to `prd=fixes-<cat>` by the category rule in [`plans/fixes-rules.md`](../../plans/fixes-rules.md), never `quick-fixes`.
 
 ## Statuses
 
