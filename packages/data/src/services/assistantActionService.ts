@@ -62,7 +62,7 @@ import * as timelineEntryService from "./timelineEntryService";
 // providers, a pass's open slots planned with `duePasses`/`givenAllWrites`),
 // then written in ONE transaction through the services, which check
 // everything again. A refusal anywhere writes nothing and names the action
-// (`meta.index`; null when it's the whole batch). Entries and tasks are the
+// (`meta.index`; null when it's the whole batch). Entries and todos are the
 // member's own (author, permissions, filters), carrying `via`: the
 // assistant's name.
 //
@@ -83,16 +83,16 @@ export const serviceName = "assistantAction";
 const WRITER_ROLES = ["owner", "admin", "caretaker"] as const;
 
 export type RunOptions = {
-  /** The assistant the batch came through ("Claude"): stored on every entry and task. */
+  /** The assistant the batch came through ("Claude"): stored on every entry and todo. */
   via: string;
   /** The server's clock (tests pin it). */
   now?: Date;
 };
 
 export type RunResult = {
-  /** Every entry (and task) written, in order (a pass writes one per medication). */
+  /** Every entry (and todo) written, in order (a pass writes one per medication). */
   ids: string[];
-  /** Each action's entries (an `addTask`'s task), in the actions' order. */
+  /** Each action's entries (an `addTask`'s todo), in the actions' order. */
   byAction: string[][];
 };
 
@@ -123,16 +123,16 @@ type ConditionPlan =
   | { type: "addCondition"; input: Parameters<typeof recipientConditionService.create>[1] }
   | { type: "updateCondition"; id: string; patch: Parameters<typeof recipientConditionService.update>[2] }
   | { type: "resolveCondition"; id: string };
-type TaskPlan = Parameters<typeof todoService.create>[1];
+type TodoPlan = Parameters<typeof todoService.create>[1];
 type Plan =
   | { index: number; rows: EntryPlan[] }
-  | { index: number; task: TaskPlan }
+  | { index: number; todo: TodoPlan }
   | { index: number; edit: EditPlan }
   | { index: number; condition: ConditionPlan };
 
-const isEditPlan = (plan: TaskPlan | EditPlan | ConditionPlan): plan is EditPlan =>
+const isEditPlan = (plan: TodoPlan | EditPlan | ConditionPlan): plan is EditPlan =>
   "type" in plan && (plan.type === "append" || plan.type === "update");
-const isConditionPlan = (plan: TaskPlan | EditPlan | ConditionPlan): plan is ConditionPlan =>
+const isConditionPlan = (plan: TodoPlan | EditPlan | ConditionPlan): plan is ConditionPlan =>
   "type" in plan &&
   (plan.type === "addCondition" || plan.type === "updateCondition" || plan.type === "resolveCondition");
 
@@ -145,7 +145,7 @@ const runnableActionZSchema = z.discriminatedUnion("type", [
 
 type Setting = { groupId: string; recipientId: string; timeZone: string; now: Date };
 
-/** The content an action writes (a pass's doses and a task are planned apart). */
+/** The content an action writes (a pass's doses and a todo are planned apart). */
 const contentOf = (action: Exclude<AssistantAction, { type: "givePass" | "addTask" }>, timeZone: string) => {
   switch (action.type) {
     case "logVital":
@@ -437,7 +437,7 @@ const planAction = async (
   tx: Tx,
   setting: Setting,
   input: unknown,
-): Promise<EntryPlan[] | TaskPlan | EditPlan | ConditionPlan | AppError> => {
+): Promise<EntryPlan[] | TodoPlan | EditPlan | ConditionPlan | AppError> => {
   const parsed = runnableActionZSchema.safeParse(input);
   if (!parsed.success) return invalid(issuesOf(parsed.error));
   const action = parsed.data;
@@ -454,8 +454,8 @@ const planAction = async (
   if (action.type === "givePass") return passDoses(ctx, tx, setting, action);
   // Checked by todoService as it writes (the assignee, the links).
   if (action.type === "addTask") {
-    const { type: _type, ...task } = action;
-    return { groupId, recipientId, ...task };
+    const { type: _type, ...todo } = action;
+    return { groupId, recipientId, ...todo };
   }
 
   const content = timelineEntryContentZSchema.safeParse(contentOf(action, timeZone));
@@ -520,7 +520,7 @@ const writeEntry = async (ctx: ServiceContext, plan: EntryPlan, via: string) => 
 
 /**
  * Carry out `actions` in the group as the member in `ctx`, in order, in one
- * transaction, each entry and task carrying `via`. Returns the ids written,
+ * transaction, each entry and todo carrying `via`. Returns the ids written,
  * or the first refusal (an AppError whose `meta.index` is the action
  * refused, null for the whole batch: a viewer, a non-member, a group with no
  * recipient) with nothing written. Entries are dated in the recipient's
@@ -564,7 +564,7 @@ export const run = (
             ? { index, edit: planned }
             : isConditionPlan(planned)
               ? { index, condition: planned }
-              : { index, task: planned },
+              : { index, todo: planned },
       );
     }
 
@@ -582,11 +582,11 @@ export const run = (
         byAction.push([id]);
         continue;
       }
-      if ("task" in plan) {
-        const task = await todoService.create(inTx, plan.task, { via });
-        if (isError(task)) return at(task, plan.index);
-        if (!task) return at(rejectError(ctx.authUser), plan.index);
-        byAction.push([task.id]);
+      if ("todo" in plan) {
+        const todo = await todoService.create(inTx, plan.todo, { via });
+        if (isError(todo)) return at(todo, plan.index);
+        if (!todo) return at(rejectError(ctx.authUser), plan.index);
+        byAction.push([todo.id]);
         continue;
       }
       const ids: string[] = [];

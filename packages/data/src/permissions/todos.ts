@@ -3,7 +3,7 @@ import type { PartialPermissions } from "./types";
 import { ANY_GROUP_ROLE, SYSTEM_ONLY, WRITERS, groupEntry } from "./blocks";
 
 export const TODOS_PERMISSIONS = {
-  // The group's todos (tasks PRD). Any member reads; writers create, edit
+  // The group's todos (todos PRD). Any member reads; writers create, edit
   // and soft-delete. Viewers may update, but todoService limits them to
   // completing and reopening todos assigned to them
   // (todoService:viewerCompletionOnly). Write through todoService.

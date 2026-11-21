@@ -26,7 +26,7 @@ import { doseRows, medicationQuery, recipientQuery, toMedication } from "../medi
 import { toPasses } from "../medications/medicationPasses.sync";
 import { providerQuery, toProvider } from "../providers/providers.sync";
 import { noteDocuments, noteUpdates, todos, timelineEntries, timelineEntryProviders } from "../sync/schema";
-import { plannedTask } from "../tasks/tasks.sync";
+import { plannedTodo } from "../todos/todos.sync";
 import {
   contentColumns,
   forbidden,
@@ -46,17 +46,17 @@ import {
 // schemas, the writer role, no future time on a past-only kind, a live
 // medication or provider in the group. A pass (`givePass`) is the medication
 // strip's Given all: the doses `givenAllWrites` plans for the pass's open
-// slots on its day, as one round. A task (`addTask`) is checked as
-// `createTask` checks it (`plannedTask`) and written in the same transaction;
+// slots on its day, as one round. A todo (`addTask`) is checked as
+// `createTodo` checks it (`plannedTodo`) and written in the same transaction;
 // it isn't an entry. A refused action refuses the batch, naming the action
 // it was.
 
 export type RunActionsResult =
   | {
       ok: true;
-      /** Every entry (and task) written, in order (a pass writes one per medication): what Undo removes. */
+      /** Every entry (and todo) written, in order (a pass writes one per medication): what Undo removes. */
       ids: string[];
-      /** Each action's entries (an `addTask`'s task), in the actions' order. */
+      /** Each action's entries (an `addTask`'s todo), in the actions' order. */
       byAction: string[][];
     }
   | { ok: false; error: string; issues: FieldIssue[]; index: number | null };
@@ -65,8 +65,8 @@ type EntryInsert = typeof timelineEntries.$inferInsert;
 
 type Rows =
   | EntryRows
-  /** A task (not an entry). */
-  | { task: typeof todos.$inferInsert };
+  /** A todo (not an entry). */
+  | { todo: typeof todos.$inferInsert };
 
 type EntryRows = {
   entry: EntryInsert;
@@ -178,9 +178,9 @@ export const runActions = async (
     }
     if (action.type === "addTask") {
       const { type: _type, ...input } = action;
-      const task = await plannedTask(db, groupId, input);
-      if (!task.ok) return refuse(task.error, index, task.issues);
-      planned.push({ task: task.row });
+      const todo = await plannedTodo(db, groupId, input);
+      if (!todo.ok) return refuse(todo.error, index, todo.issues);
+      planned.push({ todo: todo.row });
       continue;
     }
     const content = timelineEntryContentZSchema.safeParse(contentOf(action, timeZone));
@@ -227,8 +227,8 @@ export const runActions = async (
 
   await db.drizzle.transaction(async (tx) => {
     for (const rows of planned) {
-      if ("task" in rows) {
-        await tx.insert(todos).values(rows.task);
+      if ("todo" in rows) {
+        await tx.insert(todos).values(rows.todo);
         continue;
       }
       const { entry, more, document, providerIds } = rows;
@@ -270,7 +270,7 @@ export const runActions = async (
     }
   });
   const byAction = planned.map((p) =>
-    "task" in p ? [p.task.id] : [p.entry.id, ...(p.more ?? []).map((r) => r.id)],
+    "todo" in p ? [p.todo.id] : [p.entry.id, ...(p.more ?? []).map((r) => r.id)],
   );
   return { ok: true, ids: byAction.flat(), byAction };
 };
@@ -312,21 +312,21 @@ const passDoses = async (
 };
 
 /**
- * Soft delete exactly these entries (and tasks: quick entry's line can add
+ * Soft delete exactly these entries (and todos: quick entry's line can add
  * one), in one local transaction (quick entry's Undo: the line it just
  * saved). Ones already gone are left alone; any in a group you can't write
  * refuses the lot.
  */
 export const removeEntries = async (db: SyncDb, ids: readonly string[]): Promise<ActionResult> => {
-  const live: { id: string; groupId: string; task: boolean }[] = [];
+  const live: { id: string; groupId: string; todo: boolean }[] = [];
   for (const id of new Set(ids)) {
     // Any kind (doses and medication changes too), so not through `toTimelineEntry`.
-    const [row] = await readRows<{ id: string; group_id: string | null; task: number }>(db, {
-      sql: `SELECT id, group_id, 0 AS task FROM timeline_entry WHERE id = ? AND deleted_at IS NULL
-            UNION ALL SELECT id, group_id, 1 AS task FROM todo WHERE id = ? AND deleted_at IS NULL`,
+    const [row] = await readRows<{ id: string; group_id: string | null; todo: number }>(db, {
+      sql: `SELECT id, group_id, 0 AS todo FROM timeline_entry WHERE id = ? AND deleted_at IS NULL
+            UNION ALL SELECT id, group_id, 1 AS todo FROM todo WHERE id = ? AND deleted_at IS NULL`,
       params: [id, id],
     });
-    if (row?.group_id) live.push({ id: row.id, groupId: row.group_id, task: !!row.task });
+    if (row?.group_id) live.push({ id: row.id, groupId: row.group_id, todo: !!row.todo });
   }
   for (const groupId of new Set(live.map((e) => e.groupId))) {
     const group = await groupFor(db, groupId);
@@ -336,7 +336,7 @@ export const removeEntries = async (db: SyncDb, ids: readonly string[]): Promise
   const now = nowTimestamp();
   await db.drizzle.transaction(async (tx) => {
     for (const entry of live)
-      if (entry.task)
+      if (entry.todo)
         await tx
           .update(todos)
           .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })

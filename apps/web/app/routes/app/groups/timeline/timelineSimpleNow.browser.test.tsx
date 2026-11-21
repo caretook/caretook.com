@@ -9,7 +9,7 @@ import {
   at,
   fx,
   medicationPass,
-  task,
+  todo,
   TEST_GROUP,
   TEST_TIME_ZONE,
   TEST_USER,
@@ -32,7 +32,7 @@ const probe = (name: string) => ({ default: () => <h1>{name} page</h1> });
 const ROUTES: DeviceRoute[] = [
   { path: "/app/groups/:groupId/timeline", module: timeline },
   { path: "/app/groups/:groupId/entries/:entryId", module: probe("Entry") },
-  { path: "/app/groups/:groupId/tasks/:taskId", module: probe("Task") },
+  { path: "/app/groups/:groupId/todos/:todoId", module: probe("Todo") },
   { path: "/app/groups/:groupId/upcoming", module: probe("Upcoming") },
 ];
 const URL = `/app/groups/${TEST_GROUP.id}/timeline`;
@@ -139,10 +139,10 @@ describe("the Upcoming block", () => {
 });
 
 describe("the next appointment opens the next five upcoming items", () => {
-  // Seven upcoming items. Upcoming's order: the all-day task due today
+  // Seven upcoming items. Upcoming's order: the all-day todo due today
   // first (before today's timed items, or in today's section before
   // tomorrow's), then the rest by time; the last two are past the five.
-  const FAX = task({ title: "Fax the form", dueOn: localDate(new Date(), TEST_TIME_ZONE) });
+  const FAX = todo({ title: "Fax the form", dueOn: localDate(new Date(), TEST_TIME_ZONE) });
   const CALL = fx.note({ title: "Call about the walker", occurredAt: hoursAhead(3) });
   const THERAPY = fx.event({ title: "Physical therapy", occurredAt: hoursAhead(50) });
   const EYE = fx.event({ title: "Eye exam", occurredAt: hoursAhead(74) });
@@ -200,7 +200,7 @@ describe("the next appointment opens the next five upcoming items", () => {
     expect(device.location()).toBe(appUrls.upcoming(TEST_GROUP.id));
   });
 
-  test("a tap on an item opens its page: an entry's, or a task's", async () => {
+  test("a tap on an item opens its page: an entry's, or a todo's", async () => {
     const device = await open("caretaker", SEVEN);
     await userEvent.click(toggle());
     await waitUntil(() => items().length === 5, 4000, "the list");
@@ -209,13 +209,13 @@ describe("the next appointment opens the next five upcoming items", () => {
     expect(device.location()).toBe(appUrls.entry(TEST_GROUP.id, VISIT.id));
   });
 
-  test("a task in the list opens the task's page", async () => {
+  test("a todo in the list opens the todo's page", async () => {
     const device = await open("viewer", SEVEN);
     await userEvent.click(toggle());
     await waitUntil(() => items().length === 5, 4000, "the list");
     await userEvent.click(itemLink("Fax the form"));
-    await expect.element(page.getByRole("heading", { name: "Task page" })).toBeVisible();
-    expect(device.location()).toBe(appUrls.task(TEST_GROUP.id, FAX.id));
+    await expect.element(page.getByRole("heading", { name: "Todo page" })).toBeVisible();
+    expect(device.location()).toBe(appUrls.todo(TEST_GROUP.id, FAX.id));
   });
 
   test("with one upcoming item: that item, then See all", async () => {

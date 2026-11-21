@@ -54,7 +54,7 @@ const todoItem = (v: Partial<ReminderItem> = {}): ReminderItem => {
     uid: `todo:${id}`,
     source: { type: "todo", id },
     kind: "todo",
-    appUrl: `/app/groups/${GROUP}/tasks/${id}`,
+    appUrl: `/app/groups/${GROUP}/todos/${id}`,
     ...v,
   });
 };

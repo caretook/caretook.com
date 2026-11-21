@@ -24,11 +24,11 @@ import { getSync } from "~/lib/sync";
 import { removeEntry } from "~/lib/timeline/timeline.sync";
 import { isUpcoming } from "~/lib/appointments/upcoming";
 import { isUpcomingDose } from "~/lib/appointments/upcomingDoses";
-import { isUpcomingTask } from "~/lib/tasks/upcomingTasks";
+import { isUpcomingTodo } from "~/lib/todos/plannerTodos";
 import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { UpcomingDoseRow } from "./UpcomingDoseRow";
 import { UpcomingRow } from "./UpcomingRow";
-import { UpcomingTaskRow } from "./UpcomingTaskRow";
+import { UpcomingTodoRow } from "./UpcomingTodoRow";
 
 // Upcoming lists notes and events only, which show no vital readings: the default units do.
 const UNITS = resolveUnits(null);
@@ -45,7 +45,7 @@ const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divi
  * for viewers, Print. A series visit's Edit, Reschedule, Cancel and Delete
  * ask Only this visit or This and later visits first (`useSeriesScope`).
  * Upcoming's sections can also hold today's open dose slots (`UpcomingDoseRow`)
- * and open dated tasks (`UpcomingTaskRow`).
+ * and open dated todos (`UpcomingTodoRow`).
  */
 export function UpcomingList({
   data,
@@ -62,7 +62,7 @@ export function UpcomingList({
   children?: ReactNode;
 }) {
   const { canWrite, userId } = useGroup();
-  const taskNameOf = (id: string) => (id === userId ? "you" : data.nameOf(id));
+  const todoNameOf = (id: string) => (id === userId ? "you" : data.nameOf(id));
   const cancelling = useEventCancel();
   const rescheduling = useEventReschedule(groupId, canWrite);
   const remind = useRemindMe(groupId);
@@ -140,12 +140,12 @@ export function UpcomingList({
           </h3>
           <ol className={LIST_CLASS}>
             {section.items.map((entry) =>
-              isUpcomingTask(entry) ? (
-                <UpcomingTaskRow
+              isUpcomingTodo(entry) ? (
+                <UpcomingTodoRow
                   key={entry.key}
                   item={entry}
-                  nameOf={taskNameOf}
-                  timeZone={data.taskZone ?? "UTC"}
+                  nameOf={todoNameOf}
+                  timeZone={data.todoZone ?? "UTC"}
                   now={data.now}
                 />
               ) : isUpcomingDose(entry) ? (

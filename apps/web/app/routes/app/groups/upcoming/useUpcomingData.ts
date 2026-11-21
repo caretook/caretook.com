@@ -4,8 +4,8 @@ import type { EntryFilters, EntryRow, MemberRow } from "~/lib/timeline/timeline.
 import type { ContactRow, LinkedContact } from "./upcomingContact";
 import type { UpcomingSection } from "~/lib/appointments/upcomingDays";
 import type { WithDoses } from "~/lib/appointments/upcomingDoses";
-import type { WithTasks } from "~/lib/tasks/upcomingTasks";
-import type { LocalTask } from "~/lib/tasks/tasks.sync";
+import type { WithTodos } from "~/lib/todos/plannerTodos";
+import type { LocalTodo } from "~/lib/todos/todos.sync";
 import type { PastRows, UpcomingRows } from "./loadUpcoming";
 import type { RescheduledTargetRow } from "./upcomingQueries";
 
@@ -16,7 +16,7 @@ import { nextLimit, PAGE_SIZE, pageWindow } from "~/lib/core/paging";
 import { useLiveQuery } from "~/lib/sync";
 import { useDueDoses } from "~/lib/medications/dueDoses.sync";
 import { useNow } from "~/lib/live-notes/editors.sync";
-import { useDueTasks } from "~/lib/tasks/tasks.sync";
+import { useDueTodos } from "~/lib/todos/todos.sync";
 import { groupDocumentsQuery, toPreviews } from "~/lib/live-notes/notes.sync";
 import {
   fromLocalTimestamp,
@@ -29,7 +29,7 @@ import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { contactsByEntry } from "./upcomingContact";
 import { pastSections, upcomingSections } from "~/lib/appointments/upcomingDays";
 import { showsDoses, upcomingDoses, withDueDoses } from "~/lib/appointments/upcomingDoses";
-import { showsTasks, upcomingTasks, withDueTasks } from "~/lib/tasks/upcomingTasks";
+import { showsTodos, plannerTodos, withDueTodos } from "~/lib/todos/plannerTodos";
 import { pastQueries, rescheduledTargetsQuery, upcomingQueries } from "./upcomingQueries";
 
 // Upcoming's and the Past tab's data, live: the loaders read the first
@@ -40,8 +40,8 @@ import { pastQueries, rescheduledTargetsQuery, upcomingQueries } from "./upcomin
 /** How often the clock ticks: an item leaves Upcoming within this long of its end. */
 export const UPCOMING_TICK_MS = 30_000;
 
-/** An entry, or (in Upcoming only) one of today's open dose slots or an open dated task. */
-export type UpcomingListItem = WithTasks<WithDoses<TimelineEntry>, LocalTask>;
+/** An entry, or (in Upcoming only) one of today's open dose slots or an open dated todo. */
+export type UpcomingListItem = WithTodos<WithDoses<TimelineEntry>, LocalTodo>;
 
 export type UpcomingListData = {
   sections: UpcomingSection<UpcomingListItem>[];
@@ -53,8 +53,8 @@ export type UpcomingListData = {
   imageOf: (userId: string) => string | null;
   /** An entry's linked providers, in link order, with how to reach them. */
   contactsOf: (entryId: string) => LinkedContact[] | undefined;
-  /** The recipient's zone, which tasks' due days and times are in (Upcoming only). */
-  taskZone?: string;
+  /** The recipient's zone, which todos' due days and times are in (Upcoming only). */
+  todoZone?: string;
 };
 
 /** Where a cancelled event was rescheduled to. */
@@ -129,20 +129,20 @@ export function useUpcomingData({
   const shown = support.withPreview(toTimelineEntries(entryRows));
   const sections = upcomingSections(shown, at, zone);
   const doses = showsDoses(filters) ? upcomingDoses(dueDoses.due, dueDoses.passes) : [];
-  // Open dated tasks through Upcoming's last day, live: completing one drops it out.
-  const dueTasks = useDueTasks(groupId, dueDoses.timeZone, {
+  // Open dated todos through Upcoming's last day, live: completing one drops it out.
+  const dueTodos = useDueTodos(groupId, dueDoses.timeZone, {
     days: UPCOMING_HORIZON_DAYS,
-    initial: initial.taskRows,
+    initial: initial.todoRows,
   });
-  const tasks = showsTasks(filters) ? upcomingTasks(dueTasks.tasks, at, dueDoses.timeZone) : [];
+  const todos = showsTodos(filters) ? plannerTodos(dueTodos.todos, at, dueDoses.timeZone) : [];
   return {
-    sections: withDueTasks(withDueDoses(sections, doses, at, zone), tasks, at, zone, dueDoses.timeZone),
+    sections: withDueTodos(withDueDoses(sections, doses, at, zone), todos, at, zone, dueDoses.timeZone),
     rescheduledOf: support.rescheduledOf,
     now: at,
     nameOf: support.nameOf,
     imageOf: support.imageOf,
     contactsOf: support.contactsOf,
-    taskZone: dueDoses.timeZone,
+    todoZone: dueDoses.timeZone,
   };
 }
 

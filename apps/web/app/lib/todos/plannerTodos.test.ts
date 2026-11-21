@@ -1,0 +1,193 @@
+import type { TodoRuleFields } from "@caretook/data/schema";
+import type { UpcomingDose } from "../appointments/upcomingDoses";
+
+import { describe, expect, it } from "vitest";
+import { upcomingSections } from "../appointments/upcomingDays";
+import { withDueDoses } from "../appointments/upcomingDoses";
+import { isUpcomingTodo, showsTodos, plannerTodos, withDueTodos } from "./plannerTodos";
+
+const LA = "America/Los_Angeles";
+const NY = "America/New_York";
+// Wednesday, Nov 18, 2026, 10:00 AM in Los Angeles.
+const NOW = new Date("2026-11-18T18:00:00.000Z");
+
+const todo = (
+  id: string,
+  dueOn: string | null,
+  dueTime: string | null = null,
+  extra: Partial<TodoRuleFields> = {},
+) => ({
+  id,
+  assigneeId: null,
+  assigneeName: null,
+  dueOn,
+  dueTime,
+  doneAt: null,
+  createdAt: "2026-11-10T12:00:00.000Z",
+  ...extra,
+});
+
+type Item = { id: string; occurredAt: string; timeZone: string; allDay?: boolean; endsAt?: string | null };
+const entry = (id: string, occurredAt: string, extra: Partial<Item> = {}): Item => ({
+  id,
+  occurredAt,
+  timeZone: LA,
+  ...extra,
+});
+const dose = (key: string, at: string): UpcomingDose => ({
+  type: "dueDose",
+  key,
+  passId: null,
+  medicationId: "m",
+  title: "Metformin",
+  count: 1,
+  time: "00:00",
+  at,
+  state: "upcoming",
+});
+
+const keyOf = (i: object) => ("key" in i ? (i as { key: string }).key : (i as Item).id);
+const shape = (sections: { label: string; items: object[] }[]) =>
+  sections.map((s) => [s.label, s.items.map(keyOf)]);
+
+describe("plannerTodos", () => {
+  it("keeps open dated todos in the order given, with their state and the moment a timed one falls", () => {
+    const items = plannerTodos(
+      [
+        todo("late", "2026-11-16"),
+        todo("today", "2026-11-18", "17:00"),
+        todo("later", "2026-11-20"),
+        todo("undated", null),
+        todo("done", "2026-11-18", null, { doneAt: "2026-11-18T17:00:00.000Z" }),
+      ],
+      NOW,
+      LA,
+    );
+    expect(items.map((i) => [i.key, i.state, i.at])).toEqual([
+      ["todo:late", "overdue", null],
+      ["todo:today", "today", "2026-11-19T01:00:00.000Z"],
+      ["todo:later", "upcoming", null],
+    ]);
+    expect(items.every(isUpcomingTodo)).toBe(true);
+  });
+
+  it("a todo due today at a time already past is overdue", () => {
+    expect(plannerTodos([todo("t", "2026-11-18", "09:00")], NOW, LA)[0]?.state).toBe("overdue");
+  });
+});
+
+describe("withDueTodos", () => {
+  const place = (
+    entries: Item[],
+    todos: ReturnType<typeof todo>[],
+    { doses = [] as UpcomingDose[], viewer = LA, recipient = LA, now = NOW } = {},
+  ) =>
+    shape(
+      withDueTodos(
+        withDueDoses(upcomingSections(entries, now, viewer), doses, now, viewer),
+        plannerTodos(todos, now, recipient),
+        now,
+        viewer,
+        recipient,
+      ),
+    );
+
+  it("puts overdue todos first under Today, never under Now", () => {
+    const visit = entry("visit", "2026-11-18T17:30:00.000Z", { endsAt: "2026-11-18T19:00:00.000Z" });
+    const lunch = entry("lunch", "2026-11-18T20:00:00.000Z");
+    expect(
+      place(
+        [visit, lunch],
+        [todo("a", "2026-11-15"), todo("b", "2026-11-17"), todo("c", "2026-11-18", "08:00")],
+      ),
+    ).toEqual([
+      ["Now", ["visit"]],
+      ["Today", ["todo:a", "todo:b", "todo:c", "lunch"]],
+    ]);
+  });
+
+  it("makes a Today section for an overdue todo when nothing else is today, after Now and before later days", () => {
+    const visit = entry("visit", "2026-11-18T17:30:00.000Z", { endsAt: "2026-11-18T19:00:00.000Z" });
+    const friday = entry("friday", "2026-11-20T18:00:00.000Z");
+    expect(place([visit, friday], [todo("a", "2026-11-17")])).toEqual([
+      ["Now", ["visit"]],
+      ["Today", ["todo:a"]],
+      ["Friday, Nov 20", ["friday"]],
+    ]);
+  });
+
+  it("within a day: all-day entries, then all-day todos, then timed items by time (a todo after an item at the same time)", () => {
+    const allDay = entry("allday", "2026-11-20T08:00:00.000Z", { allDay: true });
+    const nine = entry("nine", "2026-11-20T17:00:00.000Z"); // 9:00 AM
+    const noon = entry("noon", "2026-11-20T20:00:00.000Z"); // 12:00 PM
+    expect(
+      place(
+        [allDay, nine, noon],
+        [
+          todo("at-noon", "2026-11-20", "12:00"),
+          todo("at-ten", "2026-11-20", "10:00"),
+          todo("whole-day", "2026-11-20"),
+        ],
+      ),
+    ).toEqual([
+      ["Friday, Nov 20", ["allday", "todo:whole-day", "nine", "todo:at-ten", "noon", "todo:at-noon"]],
+    ]);
+  });
+
+  it("sits among due doses by time", () => {
+    const doses = [dose("m@12:00", "2026-11-18T20:00:00.000Z"), dose("m@20:00", "2026-11-19T04:00:00.000Z")];
+    expect(place([], [todo("five", "2026-11-18", "17:00")], { doses })).toEqual([
+      ["Today", ["m@12:00", "todo:five", "m@20:00"]],
+    ]);
+  });
+
+  it("gives a day with only todos its own section, in day order", () => {
+    const monday = entry("monday", "2026-11-23T18:00:00.000Z");
+    expect(place([monday], [todo("tomorrow", "2026-11-19"), todo("sat", "2026-11-21", "09:00")])).toEqual([
+      ["Tomorrow", ["todo:tomorrow"]],
+      ["Saturday, Nov 21", ["todo:sat"]],
+      ["Monday, Nov 23", ["monday"]],
+    ]);
+  });
+
+  it("keeps the given order among todos at the same place", () => {
+    expect(place([], [todo("first", "2026-11-19"), todo("second", "2026-11-19")])).toEqual([
+      ["Tomorrow", ["todo:first", "todo:second"]],
+    ]);
+  });
+
+  it("places a timed todo by the moment it falls where the viewer is; an all-day one on its own day", () => {
+    // Recipient in New York: 23:30 there on Thursday is 8:30 PM Thursday in LA,
+    // and 00:30 Friday there is 9:30 PM Thursday in LA.
+    expect(
+      place(
+        [],
+        [
+          todo("late-thu", "2026-11-19", "23:30"),
+          todo("fri-early", "2026-11-20", "00:30"),
+          todo("fri", "2026-11-20"),
+        ],
+        {
+          recipient: NY,
+        },
+      ),
+    ).toEqual([
+      ["Tomorrow", ["todo:late-thu", "todo:fri-early"]],
+      ["Friday, Nov 20", ["todo:fri"]],
+    ]);
+  });
+
+  it("puts nothing in Now and leaves the sections alone with no todos", () => {
+    const visit = entry("visit", "2026-11-18T17:30:00.000Z", { endsAt: "2026-11-18T19:00:00.000Z" });
+    expect(place([visit], [])).toEqual([["Now", ["visit"]]]);
+  });
+});
+
+describe("showsTodos", () => {
+  it("shows todos only without a kind or author filter", () => {
+    expect(showsTodos({})).toBe(true);
+    expect(showsTodos({ kind: null, author: null })).toBe(true);
+    expect(showsTodos({ kind: "event" })).toBe(false);
+    expect(showsTodos({ author: "u1" })).toBe(false);
+  });
+});

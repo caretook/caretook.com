@@ -466,10 +466,10 @@ export const contactShare = ({
     ...v,
   });
 
-// --- Added by tasks slice 1 ---------------------------------------------------
+// --- Added by todos slice 1 ---------------------------------------------------
 
-/** A task in the default group: open, unassigned and undated unless overridden (`dueOn` "YYYY-MM-DD", `doneAt` timestamp text). */
-export const task = (v: Partial<Values<"todos">> = {}) => {
+/** A todo in the default group: open, unassigned and undated unless overridden (`dueOn` "YYYY-MM-DD", `doneAt` timestamp text). */
+export const todo = (v: Partial<Values<"todos">> = {}) => {
   const created = v.createdAt ?? hoursAgo(24 * 3);
   return row("todos", {
     id: newId(),

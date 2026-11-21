@@ -5,7 +5,7 @@ import type { LiveNotesEditorHandle } from "~/components/notes";
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
-import { LinkedTasks } from "~/components/tasks";
+import { LinkedTodos } from "~/components/todos";
 import { BackLink } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { START_AT_PARAM } from "~/lib/timeline/urls";
@@ -154,7 +154,7 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
               onAdd={mentions.onAdd}
               onImport={mentions.onImport}
             />
-            {entry.kind === "event" && live.stored && <LinkedTasks link={{ eventId: entry.id }} />}
+            {entry.kind === "event" && live.stored && <LinkedTodos link={{ eventId: entry.id }} />}
           </>
         )}
       </div>

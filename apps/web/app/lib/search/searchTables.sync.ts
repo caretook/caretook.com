@@ -4,7 +4,7 @@
 // PowerSync clears the local copy, so one user's index never outlives
 // their data on a shared device.
 //
-//   search_item    one row per indexed entry, provider, medication, task or condition
+//   search_item    one row per indexed entry, provider, medication, todo or condition
 //   search_fts     FTS5 over its weighted fields, rowid = search_item.rowid
 //   search_meta    the index's format version
 //   search_dirty   what changed since the indexer last ran, filled by triggers

@@ -60,11 +60,11 @@ export const GROUP_SECTIONS: readonly GroupSection[] = [
     match: (subpath) => under(subpath, "/upcoming"),
   },
   {
-    id: "tasks",
-    label: "Tasks",
+    id: "todos",
+    label: "Todos",
     icon: ListTodo,
-    path: (groupId) => appUrls.tasks(groupId),
-    match: (subpath) => under(subpath, "/tasks"),
+    path: (groupId) => appUrls.todos(groupId),
+    match: (subpath) => under(subpath, "/todos"),
   },
 ];
 

@@ -43,7 +43,7 @@ const todo: ReminderItem = {
   title: "Refill the insulin",
   place: null,
   providers: [],
-  appUrl: `/app/groups/${GROUP}/tasks/${TODO}`,
+  appUrl: `/app/groups/${GROUP}/todos/${TODO}`,
 };
 
 const render = async (
@@ -76,7 +76,7 @@ describe("reminder emails", () => {
       expect(out.text).toContain("Turn off reminder emails");
     }
     expect(visit.text).toContain(`${APP_URL}/app/groups/${GROUP}/entries/${ENTRY}`);
-    expect(due.text).toContain(`${APP_URL}/app/groups/${GROUP}/tasks/${TODO}`);
+    expect(due.text).toContain(`${APP_URL}/app/groups/${GROUP}/todos/${TODO}`);
   });
 
   it("add the title, place and providers with details", async () => {

@@ -31,7 +31,7 @@ export const OAUTH_SCOPES = [
  */
 export const CONNECTOR_CONSENT_VERSION = "2026-11-20";
 export const CONNECTOR_CONSENT_TEXT =
-  "I understand that connecting sends this care group's information that I can see (its timeline, notes, vitals, medications, appointments, tasks, providers and the care recipient's medical profile, including allergies and conditions, but no one's contact details) to the AI assistant I chose, under that company's terms. I can disconnect it at any time.";
+  "I understand that connecting sends this care group's information that I can see (its timeline, notes, vitals, medications, appointments, todos, providers and the care recipient's medical profile, including allergies and conditions, but no one's contact details) to the AI assistant I chose, under that company's terms. I can disconnect it at any time.";
 
 /** The longest client name we keep or show (names come from the client's own registration). */
 export const CONNECTOR_CLIENT_NAME_MAX = 40;

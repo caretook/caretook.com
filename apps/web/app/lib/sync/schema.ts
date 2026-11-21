@@ -346,7 +346,7 @@ export const carePeriods = sqliteTable(
 );
 
 /**
- * The group's todos (tasks PRD). `due_on` is "YYYY-MM-DD" and `due_time`
+ * The group's todos (todos PRD). `due_on` is "YYYY-MM-DD" and `due_time`
  * "HH:MM", wall-clock in the recipient's zone. Done ⇔ `done_at` and
  * `done_by` are set. Deletes are soft.
  */

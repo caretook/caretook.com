@@ -555,7 +555,7 @@ export const updateEntry = async (
 /**
  * Soft delete, so the deletion syncs to everyone's devices. Deleting an
  * event that others were rescheduled to leaves them cancelled, with no
- * link, and its linked tasks without their link (in the same local
+ * link, and its linked todos without their link (in the same local
  * transaction).
  */
 export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult> => {
@@ -581,7 +581,7 @@ export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult>
             isNull(timelineEntries.deletedAt),
           ),
         );
-      // Tasks linked to it lose the link quietly (tasks slice 3; the server does the same).
+      // Todos linked to it lose the link quietly (todos slice 3; the server does the same).
       await tx
         .update(todos)
         .set({ eventId: null, updatedAt: now, updatedBy: db.userId })

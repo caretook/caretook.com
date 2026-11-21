@@ -60,7 +60,7 @@ afterEach(() => {
 });
 
 describe("the section", () => {
-  // Later sections (Tasks) follow Upcoming, so find it by name.
+  // Later sections (Todos) follow Upcoming, so find it by name.
   const upcomingLink = (nav: string) => sectionLinks(nav).find(([name]) => name === "Upcoming");
   test("at 420 the tab bar lists Upcoming after Medications, current on its page; at 1280 the header's link is current; on Past the section is still Upcoming", async () => {
     await openUpcoming({ frame: true });

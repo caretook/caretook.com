@@ -58,7 +58,7 @@ const SAMPLES: { [N in keyof typeof NOTIFICATIONS]: Parameters<typeof renderNoti
     summary: "Todo for Pat",
     when: "Thu 19 Nov · 9:00",
     recipientName: "Pat",
-    itemPath: "/app/groups/0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001/tasks/0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0003",
+    itemPath: "/app/groups/0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001/todos/0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0003",
     unsubscribePath: "/api/reminders/unsubscribe/tok.en.sig",
   },
   assistantsRequested: {

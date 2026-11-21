@@ -3,12 +3,12 @@ import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
 import type { EntryFilters, EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 import type { ContactRow } from "./upcomingContact";
 import type { RescheduledTargetRow } from "./upcomingQueries";
-import type { TaskRow } from "~/lib/tasks/tasks.sync";
+import type { TodoRow } from "~/lib/todos/todos.sync";
 
 import { PAGE_SIZE } from "~/lib/core/paging";
 import { loadDueDoses } from "~/lib/medications/dueDoses.sync";
 import { groupDocumentsQuery } from "~/lib/live-notes/notes.sync";
-import { dueTasksQuery, dueTasksThrough } from "~/lib/tasks/tasks.sync";
+import { dueTodosQuery, dueTodosThrough } from "~/lib/todos/todos.sync";
 import { membersQuery, readRows, UPCOMING_HORIZON_DAYS } from "~/lib/timeline/timeline.sync";
 import { historyCutoff } from "~/lib/appointments/upcoming";
 import { pastQueries, rescheduledTargetsQuery, upcomingQueries } from "./upcomingQueries";
@@ -24,7 +24,7 @@ const shared = (db: SyncDb, groupId: string) =>
     readRows<RescheduledTargetRow>(db, rescheduledTargetsQuery(groupId)),
   ]);
 
-/** Upcoming's rows at `now`, with what today's due doses and the due tasks are worked out from. */
+/** Upcoming's rows at `now`, with what today's due doses and the due todos are worked out from. */
 export const loadUpcoming = async (db: SyncDb, groupId: string, filters: EntryFilters, now = new Date()) => {
   const queries = upcomingQueries(groupId, filters, now);
   const [entryRows, contactRows, [memberRows, documentRows, targetRows], dueRows] = await Promise.all([
@@ -33,11 +33,11 @@ export const loadUpcoming = async (db: SyncDb, groupId: string, filters: EntryFi
     shared(db, groupId),
     loadDueDoses(db, groupId),
   ]);
-  // Open dated tasks through Upcoming's last day, in the recipient's zone (`useDueTasks`'s first rows).
+  // Open dated todos through Upcoming's last day, in the recipient's zone (`useDueTodos`'s first rows).
   const zone = dueRows.recipient[0]?.time_zone || "UTC";
-  const through = dueTasksThrough(now, zone, UPCOMING_HORIZON_DAYS);
-  const taskRows = await readRows<TaskRow>(db, dueTasksQuery(groupId, null, through));
-  return { entryRows, contactRows, memberRows, documentRows, targetRows, dueRows, taskRows };
+  const through = dueTodosThrough(now, zone, UPCOMING_HORIZON_DAYS);
+  const todoRows = await readRows<TodoRow>(db, dueTodosQuery(groupId, null, through));
+  return { entryRows, contactRows, memberRows, documentRows, targetRows, dueRows, todoRows };
 };
 
 export type UpcomingRows = Awaited<ReturnType<typeof loadUpcoming>>;

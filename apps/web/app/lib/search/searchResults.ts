@@ -18,7 +18,7 @@ export type RankedHit = {
   rank: number;
   /** Every searched word matched in a title-like field (title, name, symptom, medication, provider). */
   titleMatch: boolean;
-  /** An entry's time (ISO 8601 or the local timestamp form); null for providers, medications and tasks. */
+  /** An entry's time (ISO 8601 or the local timestamp form); null for providers, medications and todos. */
   occurredAt: string | null;
 };
 
@@ -28,7 +28,7 @@ export type HitSection = { hits: readonly RankedHit[]; total: number };
 /** What the page's URL asks for: the text (as typed), the section shown in full, and the care period it's narrowed to. */
 export type SearchPageQuery = { q: string; all: SearchItemType | null; period: string | null };
 
-/** Sections in page order: the things you'd look up by name first, then tasks, then the timeline's entries. */
+/** Sections in page order: the things you'd look up by name first, then todos, then the timeline's entries. */
 export const SECTION_ORDER: readonly SearchItemType[] = [
   "provider",
   "medication",
@@ -46,7 +46,7 @@ export const FULL_SECTION_SIZE = 100;
 export const SECTION_LABELS: Record<SearchItemType, string> = {
   provider: "Providers",
   medication: "Medications",
-  todo: "Tasks",
+  todo: "Todos",
   entry: "Timeline entries",
   condition: "Conditions",
 };
@@ -54,7 +54,7 @@ export const SECTION_LABELS: Record<SearchItemType, string> = {
 const NOUNS: Record<SearchItemType, [one: string, many: string]> = {
   provider: ["provider", "providers"],
   medication: ["medication", "medications"],
-  todo: ["task", "tasks"],
+  todo: ["todo", "todos"],
   entry: ["entry", "entries"],
   condition: ["condition", "conditions"],
 };

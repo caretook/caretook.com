@@ -92,9 +92,9 @@ describe("buildCards", () => {
 test("savedText and cardsAnnouncement", () => {
   expect(savedText(1)).toBe("Saved 1 entry");
   expect(savedText(3)).toBe("Saved 3 entries");
-  expect(savedText(1, 1)).toBe("Saved 1 task");
-  expect(savedText(3, 1)).toBe("Saved 2 entries and 1 task");
-  expect(savedText(3, 2)).toBe("Saved 1 entry and 2 tasks");
+  expect(savedText(1, 1)).toBe("Saved 1 todo");
+  expect(savedText(3, 1)).toBe("Saved 2 entries and 1 todo");
+  expect(savedText(3, 2)).toBe("Saved 1 entry and 2 todos");
   const cards = buildCards([{ text: "hr 999", readings: [blocked] }], none, titleOf);
   expect(cardsAnnouncement(cards, titleOf)).toBe("1 card: Vital, Vital, can't be saved yet");
   expect(cardsAnnouncement([], titleOf)).toBe("");
@@ -147,7 +147,7 @@ describe("editTarget", () => {
     });
   });
 
-  test("a task opens the add-task sheet filled in, coming back on close", () => {
+  test("a todo opens the add-todo sheet filled in, coming back on close", () => {
     const SAM = "88888888-8888-4888-8888-888888888888";
     const target = editTarget(
       { type: "addTask", title: "Call pharmacy", assigneeId: SAM, dueOn: "2026-11-20", dueTime: null },
@@ -155,8 +155,8 @@ describe("editTarget", () => {
       "?kind=vital",
     );
     expect(target).toEqual({
-      to: `/app/groups/${GROUP}/tasks/new?dueOn=2026-11-20&title=Call+pharmacy&assigneeId=${SAM}`,
-      state: { taskSheet: true },
+      to: `/app/groups/${GROUP}/todos/new?dueOn=2026-11-20&title=Call+pharmacy&assigneeId=${SAM}`,
+      state: { todoSheet: true },
     });
   });
 
@@ -191,7 +191,7 @@ describe("openAfterSave", () => {
       ]),
     ).toBeNull();
   });
-  test("a lone dose, vital or task stays, and so does nothing saved", () => {
+  test("a lone dose, vital or todo stays, and so does nothing saved", () => {
     expect(openAfterSave([{ type: "logDose", ids: ["d1"] }])).toBeNull();
     expect(openAfterSave([{ type: "addTask", ids: ["t1"] }])).toBeNull();
     expect(openAfterSave([])).toBeNull();
