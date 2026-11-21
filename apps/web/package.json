@@ -8,6 +8,7 @@
     "build": "react-router build",
     "build:native": "BUILD_TARGET=native react-router build",
     "start": "react-router-serve ./build/web/server/index.js",
+    "typegen": "react-router typegen",
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
