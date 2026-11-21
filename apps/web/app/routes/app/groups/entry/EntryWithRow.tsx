@@ -25,6 +25,14 @@ import { useProviderSuggestions } from "~/lib/providers/providerSuggestions.sync
 import { canAddNamed, pickerOptions } from "./withProviders";
 
 const NO_ROWS: ProviderRow[] = [];
+const NO_IDS: readonly string[] = [];
+
+/** A draft's providers (live, in the group, not deleted), in the order given. */
+const pendingProvidersQuery = (groupId: string, ids: readonly string[]) => ({
+  sql: `SELECT p.* FROM json_each(?) j JOIN provider p ON p.id = j.value
+        WHERE p.group_id = ? AND p.deleted_at IS NULL ORDER BY j.key`,
+  params: [JSON.stringify(ids), groupId],
+});
 /** The linked providers before the first read: no suggestions until it's known that there are none. */
 const NOT_READ_YET: ProviderRow[] = [];
 
@@ -49,6 +57,8 @@ export function EntryWithRow({
   canWrite,
   title,
   ensureStored,
+  pending = NO_IDS,
+  onDropPending,
 }: {
   entryId: string;
   groupId: string;
@@ -57,10 +67,18 @@ export function EntryWithRow({
   title: string | null;
   /** Saves a draft; resolves true once the entry is stored. */
   ensureStored: () => Promise<boolean>;
+  /** A draft's providers, shown as linked until it's saved (then they are). */
+  pending?: readonly string[];
+  /** Drops one of the draft's providers. */
+  onDropPending?: (providerId: string) => void;
 }) {
   const query = entryProvidersQuery(entryId);
   const rows = useLiveQuery<ProviderRow>(query.sql, query.params, NOT_READ_YET);
-  const linked = useMemo(() => toProviders(rows), [rows]);
+  const pendingQuery = pendingProvidersQuery(groupId, pending);
+  const pendingRows = useLiveQuery<ProviderRow>(pendingQuery.sql, pendingQuery.params, NO_ROWS);
+  const stored = useMemo(() => toProviders(rows), [rows]);
+  const waiting = useMemo(() => (pending.length ? toProviders(pendingRows) : []), [pending, pendingRows]);
+  const linked = stored.length ? stored : waiting;
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const addButton = useRef<HTMLButtonElement>(null);
@@ -106,7 +124,10 @@ export function EntryWithRow({
     muted: !!provider.deletedAt,
     ...(canWrite && {
       removeLabel: `Remove ${provider.name}`,
-      onRemove: () => void unlinkProvider(getSync(), entryId, provider.id).then(report),
+      onRemove: () =>
+        stored.length
+          ? void unlinkProvider(getSync(), entryId, provider.id).then(report)
+          : onDropPending?.(provider.id),
     }),
   }));
 

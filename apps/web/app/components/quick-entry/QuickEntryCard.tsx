@@ -13,6 +13,7 @@ import { KIND_META } from "~/lib/timeline/entryDisplay";
 export function QuickEntryCard({
   card,
   preview,
+  draftLine,
   error,
   onChoose,
   onEdit,
@@ -20,6 +21,8 @@ export function QuickEntryCard({
 }: {
   card: Card;
   preview: ActionPreview;
+  /** A card that opens as the draft says so: "Opens to finish · Dr. Elena Alvarez · Wed, Nov 25". */
+  draftLine?: string | null;
   error?: string;
   onChoose: (index: number) => void;
   onEdit: () => void;
@@ -55,6 +58,11 @@ export function QuickEntryCard({
           {preview.detail && (
             <p className="text-base-content/80 text-sm break-words" data-quick-detail>
               {preview.detail}
+            </p>
+          )}
+          {draftLine && (
+            <p className="text-base-content/70 text-sm break-words" data-quick-opens-draft>
+              {draftLine}
             </p>
           )}
         </div>

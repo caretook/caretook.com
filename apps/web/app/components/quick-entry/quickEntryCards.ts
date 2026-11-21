@@ -23,6 +23,8 @@ export type QuickEntryCard = {
   blocking: string[];
   /** Messages worth a look that don't. */
   notices: string[];
+  /** Save opens this card on the new-event page to finish, instead of writing it (`draftCardOf`). */
+  opensDraft: boolean;
 };
 
 /** The part's key: its place in the line and its text. */
@@ -57,6 +59,7 @@ export const buildCards = (
         ),
         blocking: reading.warnings.filter((w) => w.blocking).map((w) => w.message),
         notices: reading.warnings.filter((w) => !w.blocking).map((w) => w.message),
+        opensDraft: false,
       },
     ];
   });
@@ -182,3 +185,33 @@ export const openAfterSave = (
   if (!only || only.ids.length !== 1) return null;
   return only.type === "addNote" || only.type === "addEvent" ? only.ids[0]! : null;
 };
+
+// ---------------------------------------------------------------------------
+// The event draft: a provider event opens on the new-event page to finish
+// ---------------------------------------------------------------------------
+
+/** Whether a reading is an event with a provider (it can open as the draft). */
+export const isDraftReading = (reading: QuickEntryReading) => {
+  const [action, ...more] = reading.actions;
+  return !more.length && action?.type === "addEvent" && action.providerIds.length > 0;
+};
+
+/** Marks the card that opens as the draft (`buildCards` leaves it to this): the first whose chosen reading is an event with a provider. */
+export const markDraft = (cards: QuickEntryCard[]): QuickEntryCard[] => {
+  const first = cards.findIndex((c) => isDraftReading(c.reading));
+  return first < 0 ? cards : cards.map((c, i) => (i === first ? { ...c, opensDraft: true } : c));
+};
+
+/**
+ * What Save does with a line: the card that opens as the draft (or null),
+ * and the rest, written as one batch. Only the first provider event opens;
+ * any later one is written directly. Pure.
+ */
+export const draftCardOf = (cards: readonly QuickEntryCard[]) => {
+  const draft = cards.find((c) => c.opensDraft) ?? null;
+  return { draft, rest: cards.filter((c) => c !== draft) };
+};
+
+/** The draft card's line: "Opens to finish · Dr. Elena Alvarez · Wed, Nov 25". */
+export const draftSummary = (providerNames: readonly string[], when: string) =>
+  ["Opens to finish", providerNames.join(", "), when].filter(Boolean).join(" · ");

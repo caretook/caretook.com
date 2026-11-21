@@ -7,7 +7,11 @@ import {
   canSaveCards,
   cardActions,
   cardsAnnouncement,
+  draftCardOf,
+  draftSummary,
   editTarget,
+  isDraftReading,
+  markDraft,
   openAfterSave,
   partKey,
   savedText,
@@ -195,5 +199,78 @@ describe("openAfterSave", () => {
     expect(openAfterSave([{ type: "logDose", ids: ["d1"] }])).toBeNull();
     expect(openAfterSave([{ type: "addTodo", ids: ["t1"] }])).toBeNull();
     expect(openAfterSave([])).toBeNull();
+  });
+});
+
+describe("the event draft (quick-entry slice 3)", () => {
+  const ALV = "33333333-3333-4333-8333-333333333333";
+  const LEE = "44444444-4444-4444-8444-444444444444";
+  const event = (title: string, providerIds: string[]): QuickEntryReading => ({
+    kind: "event",
+    label: "Event",
+    actions: [
+      { type: "addEvent", title, occurredAt: at, allDay: true, providerIds, timeZone: "America/Los_Angeles" },
+    ],
+    confidence: 0.8,
+    warnings: [],
+  });
+  const vital: QuickEntryReading = {
+    kind: "vital",
+    label: "Vital",
+    actions: [
+      {
+        type: "logVital",
+        readings: [{ type: "bloodPressure", systolic: 130, diastolic: 85 }],
+        occurredAt: at,
+      },
+    ],
+    confidence: 0.95,
+    warnings: [],
+  };
+  const cardsOf = (parts: QuickEntryPart[], chosen = new Map<string, number>()) =>
+    markDraft(buildCards(parts, { chosen, removed: new Set() }, titleOf));
+
+  test("the first event with a provider opens as the draft; the rest are written", () => {
+    const parts: QuickEntryPart[] = [
+      { text: "bp 130/85", readings: [vital, note("bp 130/85")] },
+      { text: "Dr. Lee friday 2pm", readings: [event("Dr. Lee", [LEE]), note("Dr. Lee friday 2pm")] },
+    ];
+    const cards = cardsOf(parts);
+    expect(cards.map((c) => c.opensDraft)).toEqual([false, true]);
+    const { draft, rest } = draftCardOf(cards);
+    expect(draft?.text).toBe("Dr. Lee friday 2pm");
+    expect(rest.map((c) => c.text)).toEqual(["bp 130/85"]);
+  });
+
+  test("a second provider event in the line is written directly", () => {
+    const parts: QuickEntryPart[] = [
+      { text: "Alvarez on the 25th", readings: [event("Dr. Elena Alvarez", [ALV])] },
+      { text: "Dr. Lee friday", readings: [event("Dr. Lee", [LEE])] },
+    ];
+    const { draft, rest } = draftCardOf(cardsOf(parts));
+    expect(draft?.text).toBe("Alvarez on the 25th");
+    expect(rest.map((c) => c.text)).toEqual(["Dr. Lee friday"]);
+  });
+
+  test("none: an event without a provider, a note, or the provider event switched to a note", () => {
+    const parts: QuickEntryPart[] = [
+      { text: "party saturday", readings: [event("Party", [])] },
+      { text: "Dr. Lee friday", readings: [event("Dr. Lee", [LEE]), note("Dr. Lee friday")] },
+    ];
+    const switched = cardsOf(parts, new Map([[partKey(1, parts[1]!), 1]]));
+    expect(switched.some((c) => c.opensDraft)).toBe(false);
+    expect(draftCardOf(switched)).toEqual({ draft: null, rest: switched });
+    expect(draftCardOf(cardsOf([parts[0]!])).draft).toBeNull();
+    expect(draftCardOf([]).draft).toBeNull();
+  });
+
+  test("buildCards alone marks nothing; the draft card's line", () => {
+    const parts: QuickEntryPart[] = [{ text: "Dr. Lee", readings: [event("Dr. Lee", [LEE])] }];
+    expect(buildCards(parts, none, titleOf)[0]!.opensDraft).toBe(false);
+    expect(isDraftReading(parts[0]!.readings[0]!)).toBe(true);
+    expect(draftSummary(["Dr. Elena Alvarez"], "Wed, Nov 25")).toBe(
+      "Opens to finish · Dr. Elena Alvarez · Wed, Nov 25",
+    );
+    expect(draftSummary([], "Fri")).toBe("Opens to finish · Fri");
   });
 });

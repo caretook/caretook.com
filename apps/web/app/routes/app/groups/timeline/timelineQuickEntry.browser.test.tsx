@@ -2,10 +2,12 @@ import type { DeviceRoute } from "../../../../../test/device";
 
 import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { clearUndo } from "~/lib/medications/passUndo";
 import { runActions } from "~/lib/assistant/quickEntry.sync";
+import * as entryRoute from "../entry/route";
 import * as editSheet from "./edit/route";
 import * as newDose from "./new-dose/route";
 import * as newSheet from "./new/route";
@@ -128,7 +130,7 @@ describe("the box and its cards", () => {
     expect(rowWith("Pain")).toBeTruthy();
   });
 
-  test("a note saves with its text as its document; an event with its provider linked", async () => {
+  test("a note saves with its text as its document; an event with a provider opens as a draft", async () => {
     const device = await open();
     await type("Ann visited and brought soup");
     // "and" splits it: two cards, both notes.
@@ -137,23 +139,12 @@ describe("the box and its cards", () => {
     await waitUntil(() => cards().length === 1);
     expect(cardKinds()).toEqual(["note"]);
 
+    // Changed (quick-entry): a provider event isn't written here; it opens on the new-event page to finish.
     await userEvent.fill(box(), "appt dr lee tomorrow 2pm");
     await waitUntil(() => !!cards()[0]?.textContent?.includes("with Dr. Sandra Lee"), 4000, "the provider");
     await userEvent.click(saveButton()!);
-    // A lone event opens on its page.
-    await expect.poll(() => device.location()).toMatch(/\/entries\//);
-    const [event] = await device.query<{ id: string; title: string }>(
-      "SELECT id, title FROM timeline_entry WHERE kind = 'event'",
-    );
-    expect(device.location()).toBe(`/app/groups/${TEST_GROUP.id}/entries/${event!.id}`);
-    expect(event!.title).toBe("Appointment with Dr. Sandra Lee");
-    const links = await device.query<{ provider_id: string }>(
-      "SELECT provider_id FROM timeline_entry_provider WHERE entry_id = ?",
-      [event!.id],
-    );
-    expect(links.map((l) => l.provider_id)).toEqual([LEE.id]);
-    const docs = await device.query("SELECT id FROM note_document WHERE id = ?", [event!.id]);
-    expect(docs).toHaveLength(1);
+    await expect.poll(() => device.location()).toBe(`/app/groups/${TEST_GROUP.id}/entries/new?kind=event`);
+    expect(await device.query("SELECT id FROM timeline_entry WHERE kind = 'event'")).toEqual([]);
   });
 
   test("a note beside a vital is saved and stays on the timeline", async () => {
@@ -396,5 +387,131 @@ describe("the runner", () => {
       "note_update",
       "timeline_entry",
     ]);
+  });
+});
+
+describe("provider events open a prefilled draft (quick-entry slice 3)", () => {
+  const ADDRESS = "400 Example Ave, Springfield";
+  const ALVAREZ = fx.provider({ name: "Dr. Elena Alvarez", address: ADDRESS });
+  const NEW_EVENT = `/app/groups/${TEST_GROUP.id}/entries/new?kind=event`;
+  const WITH_ENTRY_PAGE: DeviceRoute[] = [
+    ROUTES[0]!,
+    { path: "/app/groups/:groupId/entries/:entryId", module: entryRoute },
+  ];
+  const openWithPage = () =>
+    renderWithDevice({ route: WITH_ENTRY_PAGE, url: TIMELINE_URL, fixtures: [METFORMIN, LEE, ALVAREZ] });
+  type Device = Awaited<ReturnType<typeof openWithPage>>;
+  const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector<T>(sel);
+  const TITLE = () => $<HTMLInputElement>("main header input");
+  const HEADER_TIME = () => $<HTMLTimeElement>("main header time");
+  const PLACE = () => $<HTMLInputElement>('main [data-region="place"] input');
+  const chipNames = () =>
+    [...document.querySelectorAll('main header [data-region="with"] li[data-chip]')].map((li) =>
+      li.textContent.trim(),
+    );
+  const backToTimeline = () =>
+    [...document.querySelectorAll<HTMLAnchorElement>("main a")].find((a) =>
+      a.textContent?.includes("Timeline"),
+    );
+  const events = (device: Device) =>
+    device.query<{ id: string; title: string; all_day: number; place: string | null }>(
+      "SELECT id, title, all_day, place FROM timeline_entry WHERE kind = 'event' AND deleted_at IS NULL",
+    );
+  const linksOf = async (device: Device, entryId: string) =>
+    (
+      await device.query<{ provider_id: string }>(
+        "SELECT provider_id FROM timeline_entry_provider WHERE entry_id = ?",
+        [entryId],
+      )
+    ).map((r) => r.provider_id);
+  const undoButton = () =>
+    document.querySelector<HTMLButtonElement>("[data-quick-entry] [data-pass-undo-button]");
+
+  test('"Dr. Elena Alvarez on the 25th": the card says it opens to finish; Save opens the new-event page filled in, writing nothing', async () => {
+    const device = await openWithPage();
+    await type("Dr. Elena Alvarez on the 25th", ["event"]);
+    await waitUntil(
+      () => !!cardWith("Dr. Elena Alvarez").querySelector("[data-quick-opens-draft]"),
+      4000,
+      "the draft line",
+    );
+    expect(cardWith("Dr. Elena Alvarez").querySelector("[data-quick-opens-draft]")?.textContent).toMatch(
+      /^Opens to finish · Dr\. Elena Alvarez · .*25/,
+    );
+    await userEvent.click(saveButton()!);
+    await expect.poll(() => device.location()).toBe(NEW_EVENT);
+    await expect.poll(() => TITLE()?.value).toBe("Dr. Elena Alvarez");
+    await expect.poll(() => HEADER_TIME()?.textContent ?? "").toMatch(/25.*All day|All day.*25/);
+    await expect.poll(chipNames).toEqual(["Dr. Elena Alvarez"]);
+    await expect.poll(() => PLACE()?.value).toBe(ADDRESS);
+    expect(await events(device)).toEqual([]);
+    expect(await device.queued()).toEqual([]);
+
+    // Back leaves no entry, and no Undo: nothing was written.
+    await userEvent.click(backToTimeline()!);
+    await expect.poll(() => device.location()).toBe(TIMELINE_URL);
+    await expect.element(box()).toHaveValue("");
+    expect(status()).toBe("");
+    expect(await events(device)).toEqual([]);
+
+    // Saving on the page writes one event linked to the provider.
+    await type("Dr. Elena Alvarez on the 25th", ["event"]);
+    await userEvent.click(saveButton()!);
+    await expect.poll(() => device.location()).toBe(NEW_EVENT);
+    await userEvent.click(await found(() => $(".ProseMirror")));
+    await userEvent.keyboard("Questions about the new pills");
+    await expect.poll(() => device.location()).toMatch(/\/entries\/[0-9a-f-]{36}$/);
+    const saved = await events(device);
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({ title: "Dr. Elena Alvarez", all_day: 1, place: ADDRESS });
+    await expect.poll(() => linksOf(device, saved[0]!.id)).toEqual([ALVAREZ.id]);
+  });
+
+  test('"bp 130/85, Dr. Lee friday 2pm": saves the BP with Undo on the box\'s line, then opens the draft; Undo removes the BP', async () => {
+    const device = await openWithPage();
+    await type("bp 130/85, Dr. Lee friday 2pm", ["vital", "event"]);
+    expect(cardWith("BP 130/85").querySelector("[data-quick-opens-draft]")).toBeNull();
+    await waitUntil(() => !!cardWith("Dr. Sandra Lee").querySelector("[data-quick-opens-draft]"));
+    await userEvent.click(saveButton()!);
+    await expect.poll(() => device.location()).toBe(NEW_EVENT);
+    await expect.poll(chipNames).toEqual(["Dr. Sandra Lee"]);
+    const vitals = () =>
+      device.query<{ id: string; deleted_at: string | null }>(
+        "SELECT id, deleted_at FROM timeline_entry WHERE kind = 'vital'",
+      );
+    expect((await vitals()).map((v) => v.deleted_at)).toEqual([null]);
+    expect(await events(device)).toEqual([]);
+
+    await userEvent.click(backToTimeline()!);
+    await expect.poll(() => device.location()).toBe(TIMELINE_URL);
+    await expect.poll(status).toBe("Saved 1 entry");
+    await userEvent.click(undoButton()!);
+    await expect.poll(async () => (await vitals())[0]?.deleted_at ?? null).not.toBeNull();
+    expect(await events(device)).toEqual([]);
+  });
+
+  test("a second provider event in the line is written directly, with its provider; only the first opens", async () => {
+    const device = await openWithPage();
+    await type("Dr. Lee friday 2pm, Alvarez tomorrow 3pm", ["event", "event"]);
+    await waitUntil(() => !!cardWith("Dr. Sandra Lee").querySelector("[data-quick-opens-draft]"));
+    expect(cardWith("Dr. Elena Alvarez").querySelector("[data-quick-opens-draft]")).toBeNull();
+    await userEvent.click(saveButton()!);
+    await expect.poll(() => device.location()).toBe(NEW_EVENT);
+    await expect.poll(chipNames).toEqual(["Dr. Sandra Lee"]);
+    const saved = await events(device);
+    expect(saved).toHaveLength(1);
+    expect(saved[0]!.title).toBe("Dr. Elena Alvarez");
+    expect(await linksOf(device, saved[0]!.id)).toEqual([ALVAREZ.id]);
+    const docs = await device.query("SELECT id FROM note_document WHERE id = ?", [saved[0]!.id]);
+    expect(docs).toHaveLength(1);
+  });
+
+  test("Edit on a provider event opens its draft too, writing nothing", async () => {
+    const device = await openWithPage();
+    await type("Alvarez tomorrow 3pm", ["event"]);
+    await userEvent.click(page.getByRole("button", { name: 'Edit "Alvarez tomorrow 3pm"' }));
+    await expect.poll(() => device.location()).toBe(NEW_EVENT);
+    await expect.poll(() => TITLE()?.value).toBe("Dr. Elena Alvarez");
+    expect(await events(device)).toEqual([]);
   });
 });

@@ -1,4 +1,6 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
+import type { EventDraft } from "../../../../lib/assistant/quickEntryDraft";
+import type { EntryPageData } from "./loadEntry";
 
 import { isLiveEntryKind, isUnnamedEvent, titleField } from "../../../../lib/live-notes/liveEntry";
 
@@ -52,3 +54,26 @@ export const showTitleChips = ({
   title: string | null;
   typed: string;
 }): boolean => editable && isUnnamedEvent(kind, title) && typed.trim() === "";
+
+/**
+ * A new event's page opened from quick entry (its draft in history state):
+ * the draft's title, time, all day, place and providers, on top of
+ * `?provider=`'s. Anything else (a stored entry, a note, no draft) is the
+ * page's data as it was. Nothing is written here.
+ */
+export const withEventDraft = (data: EntryPageData, draft: EventDraft | null): EntryPageData =>
+  !draft || !data.isNew || data.entry.kind !== "event"
+    ? data
+    : {
+        ...data,
+        withProviders: [...new Set([...data.withProviders, ...draft.providerIds])],
+        entry: {
+          ...data.entry,
+          title: draft.title,
+          occurredAt: draft.occurredAt,
+          timeZone: draft.timeZone,
+          allDay: draft.allDay,
+          place: draft.place,
+        },
+        heading: entryHeading("Event", draft.title, true),
+      };
