@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
-import { found } from "../../../../../test/found";
 import { pageHeader } from "../../../../../test/pageHeader";
 import { fx } from "../../../../../test/fixtures";
 import {
@@ -25,7 +24,8 @@ import {
 // and offline steps): the Medications section current in the tab bar (420)
 // and the header (1280), current medications first by name and then the
 // completed and discontinued ones with how and when they stopped, search and
-// the status chips in the URL (kept when the page loads again), a viewer's
+// the Filter menu's status and type in the URL (kept when the page loads
+// again), the filter chips and Clear filters, a viewer's
 // list, and a medication stopped on another device moving down. The device
 // is offline throughout, so every screen here is the offline one too. The
 // tabs' order is frame.browser.test.tsx's; the list's order and matching
@@ -43,12 +43,20 @@ const current = (nav: string) =>
 const CURRENT = "Current medications";
 const STOPPED = "Completed and discontinued medications";
 const SEARCH = () => $<HTMLInputElement>('main input[type="search"]')!;
-const chip = (label: string) =>
-  $$<HTMLAnchorElement>('main nav[aria-label="Show medications"] a').find(
-    (a) => a.textContent?.trim() === label,
-  )!;
-const currentChip = () =>
-  $('main nav[aria-label="Show medications"] [aria-current="true"]')?.textContent?.trim();
+/** The Filter button, by its exact name: the menu ("Filter medications") and the chips ("Filters on") are named alike. */
+const filterButton = () => page.getByRole("button", { name: /^Filter(, \d+ on)?$/ });
+const openFilters = async () => {
+  await expect.element(filterButton()).toBeVisible();
+  await userEvent.click(filterButton());
+};
+/** The labels of the "Filters on" chips (without their ✕). */
+const chips = () => $$('main nav[aria-label="Filters on"] a').map((a) => a.textContent?.trim());
+/** Opens the Filter menu and chooses an option (the menu closes). */
+const choose = async (option: string) => {
+  await openFilters();
+  await userEvent.click(page.getByRole("menuitemradio", { name: option, exact: true }));
+  await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
+};
 
 describe("the list", () => {
   test("on the list tab, at 420 the tab bar has Medications current, and its link is Schedule; at 1280 the header's link is current", async () => {
@@ -124,45 +132,65 @@ describe("the list", () => {
     await expect.poll(() => listNames(CURRENT)).toEqual(["Lisinopril 10 mg"]);
   });
 
-  test("the Discontinued chip shows only Oxybutynin and goes in the URL, which opens filtered; All shows everything again", async () => {
+  test("the search box and the Filter button share one row, with no chip rows above the list", async () => {
+    await open();
+    await expect.poll(() => SEARCH()).toBeTruthy();
+    await expect.element(filterButton()).toHaveAccessibleName("Filter");
+    expect(SEARCH().closest("form")?.parentElement).toBe(filterButton().element().parentElement);
+    expect($('main nav[aria-label="Show medications"]')).toBeNull();
+    expect($('main nav[aria-label="Medication type"]')).toBeNull();
+    expect($('main nav[aria-label="Filters on"]')).toBeNull();
+  });
+
+  test("Discontinued in the Filter menu shows only Oxybutynin and goes in the URL, which opens filtered; All shows everything again", async () => {
     const device = await open();
-    await userEvent.click(await found(() => chip("Discontinued")));
+    await choose("Discontinued");
     await expect.poll(device.location).toBe(`${LIST}?status=discontinued`);
     await expect.poll(() => listNames("Discontinued medications")).toEqual(["Oxybutynin 5 mg"]);
     expect(listNames(CURRENT)).toEqual([]);
+    await expect.element(filterButton()).toHaveAccessibleName("Filter, 1 on");
+    expect(chips()).toEqual(["Discontinued"]);
     await device.screen.unmount();
 
     const again = await open({ url: `${LIST}?status=discontinued` });
     await expect.poll(() => listNames("Discontinued medications")).toEqual(["Oxybutynin 5 mg"]);
     expect(listNames(CURRENT)).toEqual([]);
-    expect(currentChip()).toBe("Discontinued");
-    await userEvent.click(chip("All"));
+    await openFilters();
+    await expect.element(page.getByRole("menuitemradio", { name: "Discontinued" })).toBeChecked();
+    await userEvent.click(page.getByRole("menuitemradio", { name: "All", exact: true }));
     await expect.poll(again.location).toBe(LIST);
     await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
     expect(listNames(STOPPED)).toEqual(SEEDED_STOPPED);
+    expect(chips()).toEqual([]);
   });
 
-  test("the type chips filter the list and go in the URL with the status, which opens filtered; All types clears only the type", async () => {
-    const typeChip = (label: string) =>
-      $$<HTMLAnchorElement>('main nav[aria-label="Medication type"] a').find(
-        (a) => a.textContent?.trim() === label,
-      )!;
+  test("Status and Type are the menu's sections; Current and Over the counter narrow the list, count 2 and show both chips; a chip's ✕ keeps the other", async () => {
     const device = await open();
     await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
-    expect($$('main nav[aria-label="Medication type"] a').map((a) => a.textContent?.trim())).toEqual([
-      "All types",
-      "Prescription",
-      "Over the counter",
-      "Supplement",
-      "Other",
+    await openFilters();
+    const menu = page.getByRole("menu", { name: "Filter medications" });
+    await expect.element(menu).toBeVisible();
+    const sections = [...menu.element().querySelectorAll('[role="group"]')].map((group) => [
+      group.getAttribute("aria-label") ??
+        document.getElementById(group.getAttribute("aria-labelledby") ?? "")?.textContent,
+      [...group.querySelectorAll('[role="menuitemradio"]')].map((item) => item.textContent?.trim()),
     ]);
-    await userEvent.click(await found(() => typeChip("Over the counter")));
+    expect(sections).toEqual([
+      ["Status", ["All", "Current", "Completed", "Discontinued"]],
+      ["Type", ["All types", "Prescription", "Over the counter", "Supplement", "Other"]],
+    ]);
+    await expect.element(page.getByRole("menuitemradio", { name: "All", exact: true })).toBeChecked();
+    await expect.element(page.getByRole("menuitemradio", { name: "All types" })).toBeChecked();
+    await userEvent.click(page.getByRole("menuitemradio", { name: "Over the counter" }));
     await expect.poll(device.location).toBe(`${LIST}?type=otc`);
     await expect.poll(() => listNames(CURRENT)).toEqual(["Acetaminophen 500 mg"]);
     expect(listNames(STOPPED)).toEqual([]);
-    await userEvent.click(chip("Current"));
+    await choose("Current");
     await expect.poll(device.location).toBe(`${LIST}?status=current&type=otc`);
-    await userEvent.click(typeChip("Supplement"));
+    await expect.element(filterButton()).toHaveAccessibleName("Filter, 2 on");
+    expect($("main [data-filter-count]")?.textContent).toBe("2");
+    expect(chips()).toEqual(["Current", "Over the counter"]);
+    await choose("Supplement");
     await expect.poll(device.location).toBe(`${LIST}?status=current&type=supplement`);
     await expect
       .poll(() => document.querySelector("[data-empty]")?.textContent)
@@ -171,21 +199,38 @@ describe("the list", () => {
 
     const again = await open({ url: `${LIST}?status=current&type=otc` });
     await expect.poll(() => listNames(CURRENT)).toEqual(["Acetaminophen 500 mg"]);
-    expect(currentChip()).toBe("Current");
-    expect($('main nav[aria-label="Medication type"] [aria-current="true"]')?.textContent?.trim()).toBe(
-      "Over the counter",
-    );
-    await userEvent.click(typeChip("All types"));
+    expect(chips()).toEqual(["Current", "Over the counter"]);
+    await userEvent.click(page.getByRole("link", { name: "Over the counter: clear this filter" }));
     await expect.poll(again.location).toBe(`${LIST}?status=current`);
     await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
+    expect(chips()).toEqual(["Current"]);
+    await expect.element(filterButton()).toHaveAccessibleName("Filter, 1 on");
   });
 
-  test("an unknown type in the URL shows everything", async () => {
+  test("Clear filters resets status and type and keeps the search text", async () => {
+    const device = await open();
+    await expect.poll(() => SEARCH()).toBeTruthy();
+    await userEvent.fill(SEARCH(), "acet");
+    await expect.poll(device.location).toBe(`${LIST}?q=acet`);
+    await choose("Current");
+    await choose("Over the counter");
+    await expect.poll(device.location).toBe(`${LIST}?q=acet&status=current&type=otc`);
+    await expect.poll(() => listNames(CURRENT)).toEqual(["Acetaminophen 500 mg"]);
+    await openFilters();
+    await userEvent.click(page.getByRole("menuitem", { name: "Clear filters" }));
+    await expect.poll(device.location).toBe(`${LIST}?q=acet`);
+    await expect.poll(() => SEARCH().value).toBe("acet");
+    await expect.element(filterButton()).toHaveAccessibleName("Filter");
+    expect(chips()).toEqual([]);
+    await expect.poll(() => listNames(CURRENT)).toEqual(["Acetaminophen 500 mg"]);
+  });
+
+  test("an unknown type in the URL shows everything, with no filter on", async () => {
     await open({ url: `${LIST}?type=bogus` });
     await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
-    expect($('main nav[aria-label="Medication type"] [aria-current="true"]')?.textContent?.trim()).toBe(
-      "All types",
-    );
+    await expect.element(filterButton()).toHaveAccessibleName("Filter");
+    await openFilters();
+    await expect.element(page.getByRole("menuitemradio", { name: "All types" })).toBeChecked();
   });
 
   test("a viewer sees the list with no Add medication; the header is just “Medications”, as a writer's is", async () => {
