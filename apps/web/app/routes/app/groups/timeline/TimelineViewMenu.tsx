@@ -3,6 +3,7 @@ import type { SimpleModeState } from "~/lib/assistant/useSimpleMode";
 
 import { Eye, LayoutList, List, Type } from "lucide-react";
 import { Menu, SEPARATOR } from "~/components/ui";
+import { TOOL_CIRCLE } from "./TimelineFilters";
 
 const VIEW_ITEMS: { id: TimelineView; label: string; icon: typeof List }[] = [
   { id: "rows", label: "Rows", icon: List },
@@ -19,8 +20,8 @@ const isView = (id: string): id is TimelineView => VIEW_ITEMS.some((v) => v.id =
 const isMode = (id: string): id is DaySummaryMode => MODE_ITEMS.some((m) => m.id === id);
 
 /**
- * The full timeline's one header control, "View options" (an eye icon), at
- * every width: Layout (Rows or Cards, one choice), Day summaries (Highlights,
+ * The full timeline's "View options" (an eye icon), at the right end of the
+ * filter row (`FilterChips`' `trailing`, the row's circle), at every width: Layout (Rows or Cards, one choice), Day summaries (Highlights,
  * Full or Off, the viewer's setting: `useDaySummaryMode`), then "Simple view"
  * (this device's toggle; left out while it can't toggle, e.g. locked).
  */
@@ -40,7 +41,7 @@ export function TimelineViewMenu({
   return (
     <Menu
       label="View options"
-      className="btn btn-sm btn-square btn-ghost"
+      className={TOOL_CIRCLE}
       width="md"
       items={[
         {

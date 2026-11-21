@@ -53,6 +53,25 @@ describe("the heading", () => {
   });
 });
 
+describe("the toolbar", () => {
+  test("View options sits at the right end of the filter row, after Filter, one circle like it; none in the page header", async () => {
+    await openTimeline({ width: 420 });
+    await ready();
+    const eye = await found(() => document.querySelector<HTMLElement>('button[aria-label="View options"]'));
+    const toolbar = document.querySelector<HTMLElement>("[data-timeline-filters]")!;
+    expect(toolbar.contains(eye)).toBe(true);
+    expect(document.querySelector('main header button[aria-label="View options"]')).toBeNull();
+    const filter = toolbar.querySelector<HTMLElement>("button[data-filter-button]")!;
+    expect(filter.compareDocumentPosition(eye) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const [f, v] = [filter, eye].map((el) => el.getBoundingClientRect());
+    expect([v!.width, v!.height]).toEqual([f!.width, f!.height]);
+    expect(Math.abs(v!.right - filter.parentElement!.getBoundingClientRect().right)).toBeLessThan(1);
+    await userEvent.click(eye);
+    await expect.element(page.getByRole("menu", { name: "View options" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+  });
+});
+
 describe("the + menu", () => {
   test("a writer's + opens every add kind in the bar's order, Vitals expanding to each vital type; there's no add bar", async () => {
     await openTimeline({ role: "caretaker" });

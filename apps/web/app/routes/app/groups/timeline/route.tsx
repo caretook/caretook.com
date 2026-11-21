@@ -20,6 +20,7 @@ import { onlySheetChanged } from "./sheetGuard";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
 import { FilterChips } from "./TimelineFilters";
 import { TimelineHeader } from "./TimelineHeader";
+import { TimelineViewMenu } from "./TimelineViewMenu";
 import { loadTimelineRows } from "./timelineRows";
 import { timelineSearch } from "./timelineSearch";
 import { TodayCard } from "./TodayCard";
@@ -140,7 +141,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       {canWrite && <PrefetchPageLinks page={appUrls.passSheet(groupId, "prefetch")} />}
     </>
   );
-  // The search, Filter button and chips: the same in both views.
+  // The search, Filter button and chips: the same in both views (View options at the end in the full one).
   const chips = (
     <div className={COLUMN_CAP}>
       <FilterChips
@@ -150,6 +151,17 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         vital={vital}
         vitalTypes={data.latestVitals.map((v) => v.reading.type)}
         period={period}
+        trailing={
+          !mode.simple && (
+            <TimelineViewMenu
+              view={view}
+              onViewChange={setView}
+              summaryMode={summaryMode}
+              onSummaryModeChange={setSummaryMode}
+              simpleMode={mode}
+            />
+          )
+        }
       />
     </div>
   );
@@ -169,13 +181,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5 lg:max-w-none">
-      <TimelineHeader
-        view={view}
-        onViewChange={setView}
-        summaryMode={summaryMode}
-        onSummaryModeChange={setSummaryMode}
-        simpleMode={mode}
-      />
+      <TimelineHeader />
       <InviteSomeoneCard />
       <TodayCard
         groupId={groupId}
