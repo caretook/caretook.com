@@ -4,20 +4,20 @@
 
 ## Status
 
-| Slice | Wave | State                          | Merge into `prd/list-filters` (slice commits) |
-| ----- | ---- | ------------------------------ | --------------------------------------------- |
-| 1     | 1    | landed (opus)                  | 69676563 (61b69c42, 898efdcc)                 |
-| 2     | 2    | merged (sonnet)                | bf68e368 (1d036869)                           |
-| 3     | 2    | merged (opus; B-255)           | 6471195a (83fae255)                           |
-| 4     | 3    | split out: B-284 (quick-fixes) | not in this PRD                               |
+| Slice | Wave | State                        | Merge into `prd/list-filters` (slice commits) |
+| ----- | ---- | ---------------------------- | --------------------------------------------- |
+| 1     | 1    | landed (opus)                | 69676563 (61b69c42, 898efdcc)                 |
+| 2     | 2    | merged (sonnet)              | bf68e368 (1d036869)                           |
+| 3     | 2    | merged (opus; B-255)         | 6471195a (83fae255)                           |
+| 4     | 3    | split out: B-284 (planner-2) | not in this PRD                               |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue list-filters`): start every ready slice, land each green wave through the Codex-reviewed PR, clean up; ask only real questions. B-249 claimed 2026-11-21.
 
 **Wave 1: landed** in `dev` through PR #18 (f48c0f5, Codex clean on 493312c, check `--quick` on 80d0b207, browser `ui` passed); docs folded (components, medications); quick-fixes and planner-2 told to sync.
 
-**Wave 2:** slices 2 (bf68e368, sonnet; its own `pnpm check` didn't finish clean: a load flake in timelineQuickEntry, its fixes rerun alone) and 3 (6471195a, opus; B-255) merged; worktrees removed; B-255 done. Docs folded (providers, todos). Landing: sync, then the **full** `pnpm prd check` (slice 2 had no clean full pass), browser `--changed`, PR. **Message planner-2 (planner-2-b7) when wave 2 lands** (its slice 6 changes the Todos tab and rows).
+**Wave 2:** slices 2 (bf68e368) and 3 (6471195a, B-255) merged, worktrees removed, docs folded (providers, todos). The full check found a read-before-render race in the Todos test (fixed, bb01d03d: every read polls); full `pnpm prd check` passed on bb01d03d, `--quick` on 58def14d after a dev sync (package.json scripts only); browser `roundtrip` passed. PR into `dev`, Codex review, land; then message planner-2 (planner-2-b7) and `pnpm prd rm list-filters`.
 
-**Slice 4:** the user chose (2026-11-21) to file it as **B-284** in quick-fixes, after B-247, instead of waiting; B-249 marked done with slice 3. This PRD finishes with wave 2: land it, tell planner-2, `pnpm prd rm list-filters`.
+**Slice 4:** the user chose (2026-11-21) to file it as **B-284** instead of waiting (the backlog session then moved B-284 and B-247 to planner-2's wave 2); B-249 marked done with slice 3. This PRD finishes with wave 2: land it, tell planner-2, `pnpm prd rm list-filters`.
 
 **Start conditions:** slices 1 to 3 can start at once (no dependency). **Slice 4 waits for B-247 in `dev`** (Planner: Past becomes an Upcoming | Past toggle, with the All / Events / Todos filter row; a `quick-fixes` item); `pnpm prd sync` before it.
 
