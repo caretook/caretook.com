@@ -6,13 +6,15 @@
 
 | Slice | Wave | State | Merge into `prd/simple-mode` (slice commits) |
 | ----- | ---- | ----- | -------------------------------------------- |
-| 1     | 1    | to do |                                              |
+| 1     | 1    | started (worktree simple-mode-1, slot 4; agent sonnet) |                                              |
 | 2     | 2    | to do |                                              |
 | 3     | 3    | to do |                                              |
 | 4     | 4    | to do |                                              |
 | 5     | 4    | to do |                                              |
 
-**Start conditions:** slice 1 renames files across the timeline, quick entry, todos and the app shell, which `list-filters` (the shared Filter dropdown, B-249), `planner-2` (remove reminders, repeating todos, B-248) and the current `quick-fixes` wave also touch. Start once those three are in `dev` (check `pnpm prd status`), and `pnpm prd sync` first. If the user starts it earlier, slice 1 syncs `dev` again right before its merge and redoes the rename over whatever arrived.
+**Landing mode: run everything through** (queued with `pnpm prd queue simple-mode`, 2026-11-21): start every ready slice, land each green wave, clean up; ask only real questions. Models: slice 1 sonnet (mechanical rename).
+
+**Start conditions (met 2026-11-21: list-filters, planner-2 and quick-fixes wave 17 in `dev`):** slice 1 renames files across the timeline, quick entry, todos and the app shell, which `list-filters` (the shared Filter dropdown, B-249), `planner-2` (remove reminders, repeating todos, B-248) and the current `quick-fixes` wave also touch. Start once those three are in `dev` (check `pnpm prd status`), and `pnpm prd sync` first. If the user starts it earlier, slice 1 syncs `dev` again right before its merge and redoes the rename over whatever arrived.
 
 **Landing:** this PRD adds migrations (slices 1, 2 and 3) and changes the sync config, so hold landing until every slice is merged, then check once at the end (`pnpm prd check --quick` unless a full check is needed). Never `--suite` without asking. The landing mode is the orchestrator's first question unless the PRD was queued; record it here.
 
