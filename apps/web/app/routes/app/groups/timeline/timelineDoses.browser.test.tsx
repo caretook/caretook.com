@@ -382,7 +382,8 @@ describe("the Dose sheet on a fixed clock", () => {
     await expect.poll(card).toBeTruthy();
     expect(card()!.querySelector("[data-given-all]")).toBeTruthy();
     expect(SHEET()!.querySelector(`input[name="medicationId"][value="${WD.id}@${R2}"]`)).toBeNull();
-    await userEvent.click(card()!.querySelector("[data-given-all]")!);
+    // Through the sheet: Today's card behind it has a Given all with the same name.
+    await userEvent.click(page.getByRole("dialog").getByRole("button", { name: /^Given all/ }));
     await expect.poll(() => card()?.dataset.passState, { timeout: 5000 }).toBe("done");
     await expect
       .poll(() => SHEET()?.querySelector("[data-pass-undo-label]")?.textContent?.trim())
