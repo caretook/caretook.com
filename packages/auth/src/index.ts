@@ -4,6 +4,7 @@ export * from "./auth";
 export * from "./authUser";
 export * from "./config";
 export * from "./connectors";
+export * from "./connectorAuthorize";
 export * from "./connectorToken";
 export * from "./tickets";
 export * from "./staffEmails";

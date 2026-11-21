@@ -2,6 +2,7 @@ import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { at, fx } from "../../../../../test/fixtures";
+import { found } from "../../../../../test/found";
 import { frames, openTimeline, rows, TIMELINE_URL, waitUntil, world } from "./timelineWorld";
 
 // The timeline's header on a phone and a desktop (quick-fixes slice 39): the
@@ -114,7 +115,7 @@ describe("the + menu", () => {
     expect(page.getByRole("button", { name: /^Add to / }).query()).toBeNull();
     expect(dayHeaders().length).toBeGreaterThan(2);
     expect(dayHeaders().some(plusOf)).toBe(false);
-    expect(page.getByRole("group", { name: "Layout" }).query()).not.toBeNull();
+    expect(page.getByRole("button", { name: "View options" }).query()).not.toBeNull();
   });
 
   test("a writer's timeline with nothing today still has Today's +", async () => {
@@ -143,10 +144,14 @@ describe("the Today card's vitals", () => {
     return !!s && s.getBoundingClientRect().height > 0 && s.checkVisibility();
   };
 
-  test("show at every width: 420 and 1280", async () => {
+  test("show at every width: 420 and 1280 (opened: nothing needs attention, so it starts collapsed)", async () => {
     await openTimeline({ width: 420 });
     await ready();
-    expect(shown()).toBe(true);
+    const toggle = await found(() =>
+      document.querySelector<HTMLElement>("main [data-today-card][data-collapsed] [data-today-toggle]"),
+    );
+    await userEvent.click(toggle);
+    await waitUntil(shown, 4000, "the vitals row");
     await page.viewport(1280, 900);
     await frames();
     expect(shown()).toBe(true);

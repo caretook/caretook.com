@@ -1,19 +1,20 @@
 import type { UnitChoices } from "@caretook/data/schema";
 import type { LatestVital } from "~/lib/core/rpc";
 import type { TimelineData } from "./useTimelineData";
-import type { TodayStatus } from "./todayStatus";
+import type { TodayRow, TodayStatus } from "./todayStatus";
 
 import { formatReading } from "@caretook/data/schema";
 import { localTimeZone } from "~/lib/core/format";
 import { clockTime } from "~/lib/medications/medicationDisplay";
-import { todayStatus, todaySummary } from "./todayStatus";
+import { attentionKey, todayStatus, todaySummary } from "./todayStatus";
 import { useMedicationStrip } from "./useMedicationStrip";
 import { useTaskStrip } from "./useTaskStrip";
 import { useTodayCardCollapsed } from "./useTodayCardCollapsed";
 
 /**
  * The Today card's data: its four rows' contents and statuses, the collapsed
- * line, and the collapse switch (remembered on this device).
+ * line, and the collapse switch (collapsed unless something needs attention,
+ * `attentionKey`; a tap is remembered on this device until that changes).
  *
  * - `vitals`: every type's newest reading, newest first (empty: no row);
  * - `next`: the next appointment or reminder (null: no row);
@@ -35,7 +36,6 @@ export function useTodayCard({
 }) {
   const medications = useMedicationStrip(groupId);
   const tasks = useTaskStrip(groupId);
-  const [collapsed, setCollapsed] = useTodayCardCollapsed();
   const { now } = medications;
   const zone = localTimeZone();
 
@@ -44,14 +44,26 @@ export function useTodayCard({
   const meds = medications.strip;
   const task = tasks.strip;
 
-  const status: Record<"vitals" | "appointment" | "medications" | "tasks", TodayStatus> = {
-    vitals: newest ? todayStatus({ kind: "vitals", latestAt: newest.occurredAt }, now, zone) : "neutral",
-    appointment: next.next ? todayStatus({ kind: "appointment", entry: next.next }, now, zone) : "neutral",
-    medications: meds
-      ? todayStatus({ kind: "medications", dueAt: meds.tomorrow ? null : meds.pass.at }, now, zone)
-      : "neutral",
-    tasks: task ? todayStatus({ kind: "tasks", overdue: task.state === "overdue" }, now, zone) : "neutral",
+  const rows = {
+    vitals: newest && { kind: "vitals", latestAt: newest.occurredAt },
+    appointment: next.next && { kind: "appointment", entry: next.next },
+    medications: meds && {
+      kind: "medications",
+      dueAt: meds.tomorrow ? null : meds.pass.at,
+      id: meds.pass.key,
+    },
+    tasks: task && { kind: "tasks", overdue: task.state === "overdue", id: task.task.id },
+  } satisfies Record<string, TodayRow | null | undefined>;
+  const status: Record<keyof typeof rows, TodayStatus> = {
+    vitals: rows.vitals ? todayStatus(rows.vitals, now, zone) : "neutral",
+    appointment: rows.appointment ? todayStatus(rows.appointment, now, zone) : "neutral",
+    medications: rows.medications ? todayStatus(rows.medications, now, zone) : "neutral",
+    tasks: rows.tasks ? todayStatus(rows.tasks, now, zone) : "neutral",
   };
+  const shown = Object.values(rows).filter((r): r is NonNullable<typeof r> => !!r);
+  const [collapsed, setCollapsed] = useTodayCardCollapsed(
+    medications.ready && tasks.ready ? attentionKey(shown, now) : null,
+  );
 
   const summary = todaySummary({
     vital: newest ? formatReading(newest.reading, units) : null,

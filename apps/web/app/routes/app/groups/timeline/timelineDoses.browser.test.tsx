@@ -26,7 +26,18 @@ import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
 import * as newDose from "./new-dose/route";
 import * as timeline from "./route";
-import { chip, chips, rowKinds, rows, rowWith, setView, tapAt, TIMELINE_URL } from "./timelineWorld";
+import {
+  chip,
+  chips,
+  closeFilters,
+  openFilters,
+  rowKinds,
+  rows,
+  rowWith,
+  setView,
+  tapAt,
+  TIMELINE_URL,
+} from "./timelineWorld";
 
 // Doses and medication changes on the timeline, and the Dose sheet
 // (medications.mjs's timeline steps, its Dose sheet warnings and pass, and
@@ -142,6 +153,7 @@ describe("on the timeline", () => {
     expect(rows()[1]!.querySelector("[data-medication]")?.getAttribute("href")).toBe(
       `/app/groups/${TEST_GROUP.id}/medications/${LISINOPRIL.id}`,
     );
+    await openFilters();
     expect(chips().map((a) => a.textContent?.trim())).toEqual(
       expect.arrayContaining(["Doses", "Medication changes"]),
     );
@@ -150,8 +162,10 @@ describe("on the timeline", () => {
 
   test("Medication changes lists only changes (Started, a strength change, stops with their reason); cards say the same", async () => {
     const device = await open({ query: "?kind=dose" });
+    await openFilters();
     await userEvent.click(chip("Medication changes"));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=medicationChange`);
+    await closeFilters();
     await device.settle();
     expect(rowKinds()).toBe("Medication change: ");
     await expect
@@ -368,7 +382,8 @@ describe("the Dose sheet on a fixed clock", () => {
     await expect.poll(card).toBeTruthy();
     expect(card()!.querySelector("[data-given-all]")).toBeTruthy();
     expect(SHEET()!.querySelector(`input[name="medicationId"][value="${WD.id}@${R2}"]`)).toBeNull();
-    await userEvent.click(card()!.querySelector("[data-given-all]")!);
+    // Through the sheet: Today's card behind it has a Given all with the same name.
+    await userEvent.click(page.getByRole("dialog").getByRole("button", { name: /^Given all/ }));
     await expect.poll(() => card()?.dataset.passState, { timeout: 5000 }).toBe("done");
     await expect
       .poll(() => SHEET()?.querySelector("[data-pass-undo-label]")?.textContent?.trim())

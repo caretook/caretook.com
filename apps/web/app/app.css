@@ -7,6 +7,37 @@
     dark --prefersdark;
 }
 
+/* Surfaces, tuned so sections read apart (stock daisyUI puts dark's three
+   bases within 4% lightness, borders darker than the cards they edge).
+   The app's convention: base-200 is the page (`body`), base-100 a card on
+   it, base-300 a card's border and divider and a quiet fill. Only the bases
+   change; every other token stays daisyUI's. */
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  --color-base-100: oklch(100% 0 0);
+  --color-base-200: oklch(96.5% 0.007 255);
+  --color-base-300: oklch(89.5% 0.012 255);
+}
+@plugin "daisyui/theme" {
+  name: "dark";
+  prefersdark: true;
+  --color-base-100: oklch(27% 0.018 255);
+  --color-base-200: oklch(19.5% 0.014 255);
+  --color-base-300: oklch(37% 0.02 255);
+}
+
+/* A day's sticky heading band (DayHeader): the page's own colour, opaque,
+   so rows scroll under it unseen. Borderless and window-wide: the shadow
+   paints the colour out to both edges and the clip keeps it to the band's
+   height (no layout change, no sideways scroll), so the heading stays
+   aligned with the rows. */
+@utility day-band {
+  background-color: var(--color-base-200);
+  box-shadow: 0 0 0 100vmax var(--color-base-200);
+  clip-path: inset(0 -100vmax);
+}
+
 /* React Aria marks state with data attributes; Tailwind v4 styles them as
    data-[focused]:…, data-[selected]:… without a plugin. */
 

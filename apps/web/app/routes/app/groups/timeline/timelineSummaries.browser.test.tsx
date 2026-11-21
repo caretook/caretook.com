@@ -147,9 +147,10 @@ describe("the day summary", () => {
   });
 
   test.each([
-    ["a kind", "?kind=symptom", /^All$/],
+    ["a kind", "?kind=symptom", /^Symptoms: clear this filter$/],
     ["an author", `?author=${TEST_USER.id}`, /clear this filter$/],
-    ["a vital type", "?kind=vital&vital=bloodPressure", /^All$/],
+    // The kind's chip takes the vital type with it.
+    ["a vital type", "?kind=vital&vital=bloodPressure", /^Vitals: clear this filter$/],
     ["a search", "?q=cough", /clear the search$/],
   ])("%s filter hides every summary; clearing it brings them back", async (_, query, clear) => {
     const device = await openTimeline({ fixtures, query });
@@ -165,7 +166,7 @@ describe("the day summary", () => {
     const device = await openTimeline({ fixtures });
     await waitUntil(() => summaries().length === 2);
     const choose = async (mode: string) => {
-      await userEvent.click(device.screen.getByRole("button", { name: "Day summaries" }));
+      await userEvent.click(device.screen.getByRole("button", { name: "View options" }));
       await userEvent.click(device.screen.getByRole("menuitemradio", { name: new RegExp(`^${mode}`) }));
     };
 
