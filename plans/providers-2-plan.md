@@ -32,6 +32,10 @@ Slice 4 handed off (pnpm check green; `prd browser --changed` ran ui.spec on a t
 
 **Docs folded** into providers.md (mentions, importing; trimmed to 10225 B), live-notes.md (the mention node, popup), components.md (`ComboBox` `sections`, `ConfirmDialog` `confirmClassName`). First full check failed at lint: `apps/web/.react-router` missing (typegen); generated it and reran.
 
+**Full check passed** on 0698e829 (510 files, 5217 tests, build budget ok). Served (`pnpm prd serve --restart`, :6473). `--changed --base dev` wants the whole lean set (deps); slice 1 already ran it 12/12 on its branch, so landing runs only the later slices' named checks, once each: roundtrip, live-notes, layout-offline, first-sync, ui.
+
+**Browser checks passed** (load ~28): roundtrip 44 s, live-notes 1m09s, layout-offline 24 s, first-sync 24 s, ui 11 s. Next: `pnpm prd ready`, land, `pnpm prd rm providers-2`.
+
 **Docs to fold (slice 1):** live-notes.md: `MENTION_NODE` (attrs `id`, `label`) always in the schema; `noteText` writes `@<label>`; `providers`/`onMention` props; popup keyboard/ARIA (listbox "Providers to mention", focus stays in the editor via `aria-activedescendant`); the two packages in `optimizeDeps`. providers.md (_Linking from notes and events_): a mention on an entry links like the With row (draft first, idempotent); deleting keeps the link; `mentionOptions` keeps linked ones; chip shows the current name, greyed for deleted/unknown.
 
 **Docs to fold (slice 3):** providers.md: importing is a copy (new ids, ordinary local creates, no server path/migration/source record; notes, links, tasks not copied); `planImport` rules in `lib/providers/providerImport.ts` (fields, primary off, already here by type + `foldName`, practice mapped by type + name else copied once, deleted source practice dropped, practices first, per-provider results with `id`/`practiceId`); wording in `importWording.ts`; the sheet (`providers/import`, `appUrls.importProviders`, `importProvidersGuard`, writers with another group; groups named by recipient display name, else group name); tests in `providers.browser.test.tsx` and `syncProviders.int.test.ts`.
