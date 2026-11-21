@@ -96,6 +96,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-101 | change | dropped |  |  | Hide add to timeline buttons behind a + icon in the timeline header. |
 | B-102 | change | dropped |  |  | Don't display recent vitals in the timeline header in mobile, |
 | B-103 | change | dropped |  |  | Add "recent vita averages" to the profile page. |
+| B-104 | plan | staging | connectors | prd/connectors | Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server |
 | B-105 | change | landed | quick-fixes | prd/quick-fixes | Care period display on timeline should be a part of the sticky header that includes date instead of… |
 | B-106 | bug | landed | quick-fixes | prd/quick-fixes | Turning email invites off also blocks staff owner invites from /admin |
 | B-107 | feature | landed | orchestration | prd/orchestration | Is there an alternative to the hard coded browser tests? Or a way to add prioritized browser tests… |
@@ -120,27 +121,62 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-126 | chore | landed | check-migration | prd/check-migration | Move roundtrip.mjs's sheet steps to component tests |
 | B-127 | chore | landed | check-migration | prd/check-migration | Move invites.mjs's screen steps to component tests |
 | B-128 | chore | landed | check-migration | prd/check-migration | Add a lean end-to-end step for an upload refused by permissions |
+| B-129 | chore | staging | check-migration | prd/check-migration | Port the lean end-to-end set to Playwright Test |
 | B-130 | bug | landed | quick-fixes | prd/quick-fixes | A rate-limited session check right after sign-in sends the user back to /sign-in with no message |
 | B-131 | bug | landed | check-migration | prd/check-migration | Component tests (web:components) can fail under pnpm check's load |
 | B-132 | feature | landed | loop-recovery | prd/loop-recovery | PRD tooling needs a way to recover after system restarts, crashes, or running out of tokens. When… |
 | B-133 | bug | landed | quick-fixes |  | Timeline: when the minute turns, the history query's key changes and the last loaded page unmounts briefly (flakes timelineScroll's 'three pages down' test) |
 | B-134 | bug | landed | quick-fixes | prd/quick-fixes | visitPrep component test 'the start can move back' fails on 2026-11-20 (date-dependent) |
 | B-135 | change | landed | quick-fixes | prd/quick-fixes | Move the timeline's + add-entry button next to the sticky day heading, and prefill that day's time (now for today, midday for other days) |
+| B-136 | change | live | timeline-ux | prd/timeline-ux | Stop blocking every /app navigation on a session request: use the session confirmed in the last few… |
+| B-137 | change | live | timeline-ux | prd/timeline-ux | Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk… |
+| B-138 | change | live | timeline-ux | prd/timeline-ux | Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only… |
+| B-139 | change | live | timeline-ux | prd/timeline-ux | Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no… |
+| B-140 | change | live | timeline-ux | prd/timeline-ux | Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every… |
 | B-141 | change | landed | hosting | prd/hosting | Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts). |
 | B-142 | change | landed | hosting | prd/hosting | Put the Capacitor origins (`capacitor://localhost`, `https://localhost`) behind an env flag until… |
 | B-143 | change | landed | hosting | prd/hosting | Take the client IP for rate limits from the host's own header: `clientIpOf` (routes/rpc.ts) trusts… |
+| B-144 | feature | live | timeline-ux | prd/timeline-ux | Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload… |
 | B-146 | question | dropped | check-migration |  | Move the end-to-end browser checks to Playwright's test runner? Playwright is already installed for… |
 | B-147 | chore | landed | agent-tooling | prd/agent-tooling | Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and… |
+| B-148 | chore | live | agent-tooling | prd/agent-tooling | Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and… |
 | B-149 | chore | landed | code-layout | prd/code-layout | Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop… |
 | B-150 | chore | landed | code-layout | prd/code-layout | Group apps/web/app/lib/ by domain: about 140 flat files named by prefix (`medication*`, `period*`,… |
+| B-151 | chore | dropped | check-migration |  | Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373. |
 | B-152 | chore | landed | agent-tooling |  | Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog`… |
 | B-153 | chore | landed | agent-tooling |  | Make the tooling scripts pick Node 24 themselves, instead of relying on `nvm use` in every agent… |
 | B-154 | chore | landed | agent-tooling | prd/agent-tooling | Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the… |
+| B-155 | chore | live | timeline-ux | prd/timeline-ux | Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first… |
+| B-156 | chore | live | timeline-ux | prd/timeline-ux | Check whether `loadSettings` in the timeline loader waits on the network before using its cache. |
 | B-157 | change | landed | quick-fixes | prd/quick-fixes | Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under… |
 | B-158 | change | landed | hosting | prd/hosting | Rotating BETTER_AUTH_SECRET breaks sync: the jwt plugin's private key (jwks table) is encrypted with it, so rows must be deleted by hand; add a rotation tool or use BETTER_AUTH_SECRETS |
 | B-159 | change | landed | hosting | prd/hosting | Narrow personal db:access roles: staff_ roles get SELECT on every table, including account (password hashes), session, verification, jwks and sealed invite tokens |
 | B-160 | change | landed | hosting | prd/hosting | Rotating SEED_USER_PASSWORD on staging doesn't change seeded accounts (seed uses onConflictDoNothing; @example.com can't get reset mail) |
+| B-161 | bug | live | check-migration | prd/check-migration | sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…') |
+| B-162 | change | live | timeline-ux | prd/timeline-ux | In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the… |
+| B-163 | change | live | timeline-ux | prd/timeline-ux | "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas… |
+| B-164 | change | live | timeline-ux | prd/timeline-ux | "day/date" heder for full timeline is too small compared to the + button. Make text larger. |
+| B-165 | change | live | timeline-ux | prd/timeline-ux | Move "author" tile below hamburger menu on timeline entries, it takes up valuable text space. |
+| B-166 | change | live | timeline-ux | prd/timeline-ux | Using back to timeline from timeline live-note entry (or any browse action) takes you back to the… |
+| B-167 | change | live | timeline-ux | prd/timeline-ux | Make day summary part of sticky header so it is always visible when scrolling up the timeline. |
+| B-168 | change | live | timeline-ux | prd/timeline-ux | timeline group titles that are too long wrap to multiple lines on small screens. Truncate the… |
+| B-169 | change | live | timeline-ux | prd/timeline-ux | vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is… |
+| B-170 | change | live | timeline-ux | prd/timeline-ux | When creating a new timeline entry for a note or event, we should navigate to edit page on save so… |
+| B-171 | change | live | timeline-ux | prd/timeline-ux | your recent lines should exclude notes and events. vitals should only show the vital key, not the… |
 | B-172 | bug | landed | check-migration | prd/check-migration | app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy |
+| B-173 | bug | live | check-migration | prd/check-migration | app-shell.mjs step 'a member's shared details reach the owner's device (the member-share stream)' failed once in the lean suite at load 20 and passed alone (33 s): its 30 s poll for a SQL-inserted member_contact_share row reaching the owner's device timed out |
+| B-176 | bug | live | check-migration | prd/check-migration | Component tests click or fill a synchronous DOM query right after render (userEvent.click(X()!)), which is null when the screen renders late under load: 24 files |
+| B-177 | bug | dropped | check-migration |  | rateLimit.int.test.ts 'counts get-session across instances' failed once in a full check at load 26 with a failed rate_limit query (its 101 concurrent get-sessions); passes alone |
+| B-178 | bug | live | check-migration | prd/check-migration | medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone |
+| B-179 | bug | dropped | check-migration |  | app-shell.mjs member-share step flakes under load: a psql insert doesn't reach an already-connected device within 30 s (PowerSync replication), no auto-retry |
+| B-184 | bug | landed | quick-fixes | prd/quick-fixes | When viewing the member page as an owner, the simple mode and locked buttons make the data too wide… |
+| B-185 | bug | landed | quick-fixes | prd/quick-fixes | The today bar on timeline should always be collapsed unless there is something overdue or upcoming. |
+| B-186 | bug | landed | quick-fixes | prd/quick-fixes | vitals section in today block doesn't expand when you click see all, it filters the data instead.… |
+| B-187 | bug | landed | quick-fixes | prd/quick-fixes | timeline filter interface is overwhelming on mobile and confusing on desktop, especially the vitals… |
+| B-188 | bug | landed | quick-fixes | prd/quick-fixes | when signing up mcp connector, the oauth request just returns json, not the accept flow |
+| B-189 | bug | landed | quick-fixes | prd/quick-fixes | mcp connector for medication change records on the timeline, it isn't providing information about… |
+| B-190 | bug | landed | quick-fixes | prd/quick-fixes | mcp connector returning truncated notes on doses, and maybe other things |
+| B-202 | bug | landed | agent-tooling |  | lint before typecheck in check command. Do the fast thing first, then the slow thing. |
 
 ## Items
 
@@ -1178,6 +1214,16 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-19 (Robert Bo Davis): Duplicate of B-100 (the inbox had these three bullets twice); dropped.
 
+### B-104 · plan · Connectors: let a user's own Claude or ChatGPT read and write their care group through an MCP server
+
+- status: staging
+- prd: connectors
+- owner: prd/connectors
+- commit: d77c5884
+
+- 2026-11-19 (Robert Bo Davis): From the 2026-11-19 planning discussion. A remote MCP server over the assistant PRD's actions layer (Claude connectors and ChatGPT's Apps SDK both speak MCP). Reads and writes; each write is confirmed in the chat, labelled as from an assistant on the timeline, and deletable as usual. Needs OAuth (check Better Auth's OAuth-provider plugins), tokens limited to one group with read and write scopes, revocable on the Devices page (B-80), a per-group consent record, an owners' on/off group setting, and a privacy-page change (data goes to the user's chosen AI vendor). Online only. Siri and Alexa are out for now: dictation only.
+- 2026-11-20 (plan/connectors): PRD and plan written (plans/connectors-prd.md, connectors-plan.md; user approved 2026-11-20): 7 slices, waves (1, 2, 7) → (3, 4, 5) → 6. New dependency approved: @better-auth/oauth-provider 1.7.25; MCP hand-rolled, no SDK. Owners' switch default off; one group per grant; scope by role; via tag; slice 3's tag waits for timeline-ux's row/header slices.
+
 ### B-105 · change · Care period display on timeline should be a part of the sticky header that includes date instead of…
 
 - status: landed
@@ -1451,6 +1497,18 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-19 (plan/check-migration): Planned: check-migration slice 2, wave 1 (plans/check-migration-plan.md).
 - 2026-11-19 (slice/check-migration/2): slice 2: roundtrip now has the refused-upload flow (caretaker demoted to viewer while offline; its edit is refused on upload, queue empties, server copy restored) and the sync matrix (sync-matrix.mjs, every device-schema table; unit test scripts/loops/sync-matrix.test.mjs).
 
+### B-129 · chore · Port the lean end-to-end set to Playwright Test
+
+- status: staging
+- prd: check-migration
+- owner: prd/check-migration
+- commit: f7eceabb
+
+- 2026-11-19 (slice/orchestration/9): A non-goal of the orchestration PRD, filed as its follow-up: the CDP harness (cdp.mjs, proxy.mjs) could become Playwright Test now that playwright is a dev dependency (component tests). Only the lean set (scripts/loops/checks e2e yes); keep the lease, the watchdog and the check build.
+- 2026-11-19 (Robert Bo Davis): Proposed for check-migration, last: port only the lean set to Playwright Test once B-114 to B-128 have shrunk it.
+- 2026-11-19 (plan/check-migration): Planned: check-migration slices 19-23, waves 8-10 (@playwright/test 1.65.1 approved by the user) (plans/check-migration-plan.md).
+- 2026-11-20 (slice/check-migration/19): slice 19: app-shell's member-share step ('a member's shared details reach the owner's device') failed again in --changed at load 14 (13:38, check-migration-19; slice 18 saw it at load 5.9). Not contention, so not retried; the row was inserted (ON CONFLICT DO NOTHING) but never reached the owner's device in 30 s. Unported .mjs, untouched by slice 19; slice 22 ports it.
+
 ### B-130 · bug · A rate-limited session check right after sign-in sends the user back to /sign-in with no message
 
 - status: landed
@@ -1521,6 +1579,73 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-20 (Robert Bo Davis): The user (2026-11-20): not a regression. The + is there, but in an awkward spot next to the view-mode switch. Move it beside the day heading in the timeline so it travels with the sticky header. Adding from a day's + sets that day's time: today gives now, any other day gives midday (12:00) that day. Still quick-fixes slice 44; it touches the timeline header and sticky day heading (tasks slice 4 changed the header), so start it after tasks lands.
 - 2026-11-20 (slice/quick-fixes/44): slice 44 built at 22bffaa: + on each day heading, ?at= start times; writer's list always has a Today heading (new behaviour, see hand-off)
 
+### B-136 · change · Stop blocking every /app navigation on a session request: use the session confirmed in the last few…
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 9e3a3ad
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Stop blocking every /app navigation on a session request: use the session confirmed in the last few minutes and recheck in the background. / `requireSession` (apps/web/app/lib/session.ts) awaits `get-session` on each navigation, with no timeout, so every tap waits a round trip and can hang on a weak connection. / Add a timeout of about 3 s that counts as "no answer". The server still checks every upload and sync token.
+- 2026-11-20 (backlog agent): Triage: new PRD app-speed (navigation and load speed). This one needs a design decision (how long a confirmed session is trusted, what a timeout means offline), so it is PRD work, not a quick fix. Hot file: lib/session.ts.
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 1 (plans/app-speed-plan.md). 15 min fresh window, background recheck at most once a minute, 3 s timeout; the app's check bypasses the cookie cache.
+- 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+- 2026-11-20 (Robert Bo Davis): Start now (the user, 2026-11-20): timeline-ux runs as a 4th PRD (CARETOOK_MAX_PRDS=4) without waiting for code-layout slice 5. This overrides the plan's start condition, which wrongly names B-150; B-149 is code-layout's last item. Wave 1 (slices 1-3) touches none of slice 5's files (routes.ts, appUrls). Before wave 2: pnpm prd sync; if code-layout hasn't landed yet, slices 5, 6, 8, 9 import appUrls, so message the code-layout orchestrator or hold wave 2 until it lands.
+- 2026-11-20 (slice/timeline-ux/1): slice 1: fresh session (15 min) skips the wait, background recheck after 1 min, 3 s NETWORK_ANSWER_MS; commit 28991ac on slice/timeline-ux/1
+
+### B-137 · change · Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk…
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: ddf36b0
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Prefetch the group section tabs, so the first tap on a section doesn't download its route chunk (and works offline). / The links in routes/app/layout/SectionNav.tsx (SectionNav and TabBar) have no `prefetch`; sheets already use `prefetch="render"`.
+- 2026-11-20 (backlog agent): Triage: app-speed. Small (prefetch on SectionNav and TabBar links), grouped with B-136 and B-138 because all three change the same navigation path.
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 2 (plans/app-speed-plan.md). prefetch=render on SectionNav and TabBar.
+- 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+
+### B-138 · change · Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only…
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: ddf36b0
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Highlight the tapped section tab at once, from the pending navigation (`useNavigation`), not only after the loaders finish.
+- 2026-11-20 (backlog agent): Triage: app-speed. Small (useNavigation in SectionNav), same file as B-137.
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 2 (plans/app-speed-plan.md). Highlight from useNavigation's pending location.
+- 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+
+### B-139 · change · Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no…
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 127670af
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Add `content-visibility: auto` to timeline entries: the list grows by 30 rows with no virtualization.
+- 2026-11-20 (backlog agent): Triage: app-speed. Small CSS change on timeline rows; needs a check that scroll restore and the paging sentinel still work.
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 3 (plans/app-speed-plan.md). content-visibility: auto + contain-intrinsic-size; timelineScroll tests guard restore and paging.
+- 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+
+### B-140 · change · Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every…
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 75f87df2
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Cut the per-request auth cost on /rpc: `getAuthUser` runs a session lookup and two queries on every call, public procedures included. / A short cookie cache, or skipping the lookup for public procedures (packages/auth/src/authUser.ts, routes/rpc.ts).
+- 2026-11-20 (backlog agent): Triage: app-speed. Touches packages/auth/src/authUser.ts and routes/rpc.ts, which hosting slice 3 also changes (rate limits): run it after hosting wave 1 is in dev.
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 6 (plans/app-speed-plan.md). Lazy AuthUser, one query, Better Auth cookie cache 3 min (staff and /token bypass it; tradeoff documented in auth.md and security-review.md). Needs hosting slice 3 in dev.
+- 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+
 ### B-141 · change · Back the rate limits with Postgres before launch (Better Auth's and packages/api/src/rateLimit.ts).
 
 - status: landed
@@ -1554,6 +1679,19 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-20 (backlog agent): Triage: proposed as a later-wave hosting slice with B-142. Slice 3 owns the limiter; this changes what key it gets (the host's own client-IP header, not the first x-forwarded-for entry).
 - 2026-11-20 (prd/hosting): Planned as hosting slice 8 (wave 2, after slices 1 and 3), with B-142.
 
+### B-144 · feature · Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload…
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 858936e7
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload works offline (docs/domain/sync.md already notes the gap).
+- 2026-11-20 (backlog agent): Triage: app-speed, its largest slice (a precached shell for the web target only; update flow, CSP worker-src, how it meets PowerSync's own workers). Needs the PRD interview. Likely a new dependency question (hand-written worker or a Vite plugin).
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 5 (plans/app-speed-plan.md). Hand-written worker, web only; cached shell for /app/* documents; 'new version ready: Reload' notice. Blocked by slices 1 and 4.
+- 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+
 ### B-146 · question · Move the end-to-end browser checks to Playwright's test runner? Playwright is already installed for…
 
 - status: dropped
@@ -1575,6 +1713,17 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-20 (Robert Bo Davis): From the inbox: Shrink what every agent loads: split AGENTS.md (31 KB, changed 97 times in 30 days) and docs/loops.md (52 KB, bullets up to 3.4 KB) by reader (loop agent, orchestrator, user), and keep the core to rules only.
 - 2026-11-20 (backlog agent): Triage: new PRD agent-tooling (what agents load and how the tooling runs). Docs only, but AGENTS.md and docs/loops.md are edited by every landing, so run it when few PRDs are landing.
 - 2026-11-20 (plan/agent-tooling): Planned: agent-tooling slices 3 (doc budget) and 4 (core plus docs/agents/ role docs; gated on no imminent landing).
+
+### B-148 · chore · Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and…
+
+- status: live
+- prd: agent-tooling
+- owner: prd/agent-tooling
+- commit: 2de3177
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Trim the domain docs to current contracts: timeline.md and medications.md are about 19 KB each and carry slice and backlog history that git already holds.
+- 2026-11-20 (backlog agent): Triage: agent-tooling. Docs only; timeline.md and medications.md first. Tasks folds into timeline.md at its landing, so trim after tasks lands.
+- 2026-11-20 (plan/agent-tooling): Planned: agent-tooling slices 5 (components, sync, care-groups, medications) and 6 (timeline, app-shell, after tasks lands).
 
 ### B-149 · chore · Split the shared registries by area, each composed by a thin index, so concurrent PRDs stop…
 
@@ -1598,6 +1747,17 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-20 (backlog agent): Triage: code-layout. Moves about 140 files, so it conflicts with any PRD touching lib/: same window as B-149, and check-areas rules change with it (check-migration edits check-areas additively).
 - 2026-11-20 (plan/code-layout): Planned (plan/code-layout): slice 4 groups lib/ into area folders + core/, device queries move in as <name>.sync.ts, lib/sync/ keeps plumbing only; direct imports, codemod, no shims; a layout guard test.
 - 2026-11-20 (slice/code-layout/4): slice 4 built (cc4a8e3): lib/ by area, .sync.ts device queries, layout guard. Component tests flaky under load (medicationList also flakes on the prd/code-layout base, 2/4 runs alone).
+
+### B-151 · chore · Break up the browser checks by flow: 18,500 lines in all, medications.mjs alone 4,373.
+
+- status: dropped
+- prd: check-migration
+- owner:
+- commit:
+
+- 2026-11-20 (backlog agent): Triage: check-migration is moving each area check to component tests (medications.mjs is B-118), which removes most of those lines; what stays is the lean set, ported to Playwright Test (B-129). Proposed: fold into that work, re-measure after it lands, and drop if nothing large remains.
+- 2026-11-20 (prd/check-migration): check-migration orchestrator: agreed, no slice of its own; re-measure the browser-check lines after slice 23 (the CDP harness deleted) and close or drop it then.
+- 2026-11-20 (prd/check-migration): Moot: check-migration moved every area check to component tests and ported the lean set to Playwright specs (one spec per check); medications.mjs and the other big .mjs files are deleted. -- check-migration orchestrator
 
 ### B-152 · chore · Add a `permissions` block to .claude/settings.json: allow `pnpm check`, `pnpm prd`, `pnpm backlog`…
 
@@ -1631,6 +1791,34 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-20 (Robert Bo Davis): From the inbox: Batch the backlog commits: 714 of the last 30 days' commits are `chore(backlog)`, which buries the history agents read.
 - 2026-11-20 (backlog agent): Triage: agent-tooling. Changes scripts/backlog (one commit per command batch, or several ids and a note in one write). Stackless.
 - 2026-11-20 (plan/agent-tooling): Planned: agent-tooling slices 1 (multi-id writes, guarded amend) and 2 (pnpm log).
+
+### B-155 · chore · Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first…
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 448be6e
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Add a bundle-size budget to the build check, so the editor and PowerSync stay out of the first chunk.
+- 2026-11-20 (backlog agent): Triage: app-speed. A budget in the build check that keeps the editor and PowerSync out of the first chunk; it guards the gains of the other slices.
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 4 (plans/app-speed-plan.md). pnpm build:budget (manifest reader + pure checker + budget.json), run by pnpm prd check.
+- 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+- 2026-11-20 (Robert Bo Davis): Start now (the user, 2026-11-20): timeline-ux runs as a 4th PRD (CARETOOK_MAX_PRDS=4) without waiting for code-layout slice 5. This overrides the plan's start condition, which wrongly names B-150; B-149 is code-layout's last item. Wave 1 (slices 1-3) touches none of slice 5's files (routes.ts, appUrls). Before wave 2: pnpm prd sync; if code-layout hasn't landed yet, slices 5, 6, 8, 9 import appUrls, so message the code-layout orchestrator or hold wave 2 until it lands.
+
+### B-156 · chore · Check whether `loadSettings` in the timeline loader waits on the network before using its cache.
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 9e3a3ad
+
+- 2026-11-20 (backlog agent): Triage: app-speed. An investigation first (does loadSettings wait on the network before using its cache?); a fix only if it does.
+- 2026-11-20 (plan/app-speed): Planned: app-speed slice 1 (plans/app-speed-plan.md). Investigated: it does wait (me.get, after pending updatePreferences). Becomes cache-first with a background refresh that updates the open screen.
+- 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+- 2026-11-20 (Robert Bo Davis): Start now (the user, 2026-11-20): timeline-ux runs as a 4th PRD (CARETOOK_MAX_PRDS=4) without waiting for code-layout slice 5. This overrides the plan's start condition, which wrongly names B-150; B-149 is code-layout's last item. Wave 1 (slices 1-3) touches none of slice 5's files (routes.ts, appUrls). Before wave 2: pnpm prd sync; if code-layout hasn't landed yet, slices 5, 6, 8, 9 import appUrls, so message the code-layout orchestrator or hold wave 2 until it lands.
+- 2026-11-20 (slice/timeline-ux/1): slice 1: loadSettings cache-first with background refresh and settings store (useMySettings); commit 940af0a on slice/timeline-ux/1
 
 ### B-157 · change · Simple mode's timeline has too much plain-text instruction: drop the quick-entry typing tips under…
 
@@ -1672,6 +1860,127 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-20 (prd/hosting): Found by hosting slice 6; for now rotating means recreating staging's database (runbook). Proposed for hosting, low priority: the seed could update the seeded accounts' password on staging.
 - 2026-11-20 (prd/hosting): The user chose to fix this before going live (2026-11-20): hosting slice 9.
 
+### B-161 · bug · sign-in.mjs flaked once in the lean suite at load 88: 'during the redirect the button is disabled and shows Signing in…' saw /app already ('Getting your care groups…')
+
+- status: live
+- prd: check-migration
+- owner: prd/check-migration
+- commit: d0c4496
+
+- 2026-11-20 (prd/check-migration): check-migration wave 4 suite, 2026-11-20 08:54, load 51→88; passed on the automatic retry (.loops/.browser-flakes.log). The redirect outran the assertion under load; slice 19's Playwright port may make the wait robust.
+- 2026-11-20 (prd/check-migration): Proposed for check-migration: sign-in is a lean session check that slice 20 ports to Playwright; fix the flaky redirect assertion there. -- check-migration orchestrator
+- 2026-11-20 (prd/check-migration): User approved for check-migration (2026-11-20): slice 19 fixes it while porting sign-in. -- check-migration orchestrator
+
+### B-162 · change · In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the…
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 3f342072
+
+- 2026-11-20 (prd/hosting): From the inbox: In simple mode, Reorder so that "What happend" is directly above the timeline, basically like the full layout. Replace "Now" heading with "Upcoming". Reduce size of quick action buttons so that they are one row with smaller buttons so they are one row."Tap the microphone on your keyboard to say it instead of typing." should only appear on devices that support voice input via keyboard (ios/andriod?). All text is too large and should be reduced in size. Assume users that can't see well will have there devices set to larger text, or zoom their browsers.
+- 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+
+### B-163 · change · "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas…
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 858936e7
+
+- 2026-11-20 (prd/hosting): From the inbox: "Try “bp 130/85 hr 72”, “gave metformin”, “pain 4 left knee” or “appt Dr Lee Friday 2pm”. Commas separate entries; start with “n:” for a note." should be a tooltip.
+- 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+
+### B-164 · change · "day/date" heder for full timeline is too small compared to the + button. Make text larger.
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 127670af
+
+- 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+
+### B-165 · change · Move "author" tile below hamburger menu on timeline entries, it takes up valuable text space.
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 127670af
+
+- 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+
+### B-166 · change · Using back to timeline from timeline live-note entry (or any browse action) takes you back to the…
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 448be6e
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: Using back to timeline from timeline live-note entry (or any browse action) takes you back to the timeline, causes all lazy loaded header elements to reload. Can we cache their state with a visual indicator (maybe greyed out) and load in the background so that it doesn't cause page shift? Maybe keep a placeholder in the header so that it doesn't cause a flash on load any time?
+- 2026-11-20 (Robert Bo Davis): Triaged to app-speed: header elements reloading on back-navigation is a caching/navigation-speed issue, next to B-136/B-137.
+- 2026-11-20 (Robert Bo Davis): Re-triaged from app-speed to timeline-ux (the user, 2026-11-20): app-speed and the timeline UI changes are planned as one PRD, since both wait on code-layout and touch the timeline header and rows. plans/app-speed-prd.md is the speed half's input.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+- 2026-11-20 (Robert Bo Davis): Start now (the user, 2026-11-20): timeline-ux runs as a 4th PRD (CARETOOK_MAX_PRDS=4) without waiting for code-layout slice 5. This overrides the plan's start condition, which wrongly names B-150; B-149 is code-layout's last item. Wave 1 (slices 1-3) touches none of slice 5's files (routes.ts, appUrls). Before wave 2: pnpm prd sync; if code-layout hasn't landed yet, slices 5, 6, 8, 9 import appUrls, so message the code-layout orchestrator or hold wave 2 until it lands.
+- 2026-11-20 (slice/timeline-ux/2): slice 2 built on slice/timeline-ux/2 (67f6e34): tile cache + useRememberedQuery; strips and simple blocks dimmed when remembered, skeletons on first visit
+
+### B-167 · change · Make day summary part of sticky header so it is always visible when scrolling up the timeline.
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 127670af
+
+- 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+
+### B-168 · change · timeline group titles that are too long wrap to multiple lines on small screens. Truncate the…
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 127670af
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: timeline group titles that are too long wrap to multiple lines on small screens. Truncate the provider on small screens.
+- 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+
+### B-169 · change · vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is…
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 127670af
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: vitals, upcoming, medication due, and todo overdue can be combined into a single tile that is collapsible. They should all have a right side link to the full view that is formatted similarly.
+- 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+
+### B-170 · change · When creating a new timeline entry for a note or event, we should navigate to edit page on save so…
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 858936e7
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: When creating a new timeline entry for a note or event, we should navigate to edit page on save so the user can add more info to the live document immediately without an extra tap.
+- 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+
+### B-171 · change · your recent lines should exclude notes and events. vitals should only show the vital key, not the…
+
+- status: live
+- prd: timeline-ux
+- owner: prd/timeline-ux
+- commit: 858936e7
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: your recent lines should exclude notes and events. vitals should only show the vital key, not the value so that the user can log those quickly without deleting the value.
+- 2026-11-20 (Robert Bo Davis): Triaged to new timeline-ux PRD (user's choice): timeline and simple-mode UI changes, grouped so one PRD owns the timeline header and rows.
+- 2026-11-20 (Robert Bo Davis): Planned in plans/timeline-ux-plan.md (10 slices, 4 waves; starts once code-layout is in dev). Slice map: 1 B-136/B-156, 2 B-166, 3 B-155, 4 B-137/B-138, 5 B-169, 6 B-164/B-165/B-167/B-168/B-139, 7 B-144, 8 B-162, 9 B-163/B-170/B-171, 10 B-140. B-168 turned out to be care-period places: dropped from the timeline (the user).
+
 ### B-172 · bug · app-shell.mjs's detailsGone and detailsBack checks always pass: cdp waitFor on a promise.then(...) expression is always truthy
 
 - status: landed
@@ -1681,3 +1990,132 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-20 (prd/check-migration): Found by slice 16 (2026-11-20). Proposed for check-migration: count in node with M.evaluate, as slice 16's member-share fold does; Playwright's port (slice 21/22) can fix it too. Grep other checks for waitFor(`${...}.then(` too. -- check-migration orchestrator
 - 2026-11-20 (prd/check-migration): User approved for check-migration (2026-11-20): slice 18 fixes it. -- check-migration orchestrator
+
+### B-173 · bug · app-shell.mjs step 'a member's shared details reach the owner's device (the member-share stream)' failed once in the lean suite at load 20 and passed alone (33 s): its 30 s poll for a SQL-inserted member_contact_share row reaching the owner's device timed out
+
+- status: live
+- prd: check-migration
+- owner: prd/check-migration
+- commit: 6502603
+
+- 2026-11-20 (prd/code-layout): Found at code-layout's final landing (2026-11-20, suite log app-shell-20261120-131200.log in code-layout's git dir). The step came in with check-migration slice 16 (the profiles-contacts fold). Proposed for check-migration: it owns the step. code-layout changes no stream, schema or sync code.
+- 2026-11-20 (prd/check-migration): Proposed for check-migration slice 22, which ports app-shell. It also failed once in slice 18's runs, at load 5.9, so it isn't only load: find why the row is slow to arrive before raising the timeout. -- check-migration orchestrator
+
+### B-176 · bug · Component tests click or fill a synchronous DOM query right after render (userEvent.click(X()!)), which is null when the screen renders late under load: 24 files
+
+- status: live
+- prd: check-migration
+- owner: prd/check-migration
+- commit: a8043f42
+
+- 2026-11-20 (prd/check-migration): Found at wave 8's landing (2026-11-20). medicationList's search and periods' Add each failed one full check this way and passed alone; both fixed (e4b332b and the periods commit). Proposed for check-migration: sweep the 24 files with grep -rlE 'await userEvent\.(click|fill|hover)\([A-Z_]+\(\)!', and use a waiting query (page.getByRole or a until-present helper beside settle) in renderWithDevice's tests. -- check-migration orchestrator
+- 2026-11-20 (prd/check-migration): User chose 2026-11-20: check-migration sweeps it now, as slice 24 alongside wave 9 (with B-178). -- check-migration orchestrator
+
+### B-177 · bug · rateLimit.int.test.ts 'counts get-session across instances' failed once in a full check at load 26 with a failed rate_limit query (its 101 concurrent get-sessions); passes alone
+
+- status: dropped
+- prd: check-migration
+- owner:
+- commit:
+
+- 2026-11-20 (prd/check-migration): Seen at check-migration's wave 8 landing (2026-11-20): 'Failed query: select … from rate_limit where key = $1', from Better Auth's rate limiter, likely the integration test's Postgres pool under load. Passed alone 2/2. From hosting slice 3 (B-141); not check-migration's. -- check-migration orchestrator
+- 2026-11-20 (Robert Bo Davis): Triage: check-migration, a load flake like B-180/B-182; confirm alone 3x, then fix the race
+- 2026-11-20 (Robert Bo Davis): Dropped (the user, 2026-11-20): failed once at load 26, passes alone; refile if it recurs. -- backlog agent
+
+### B-178 · bug · medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone
+
+- status: live
+- prd: check-migration
+- owner: prd/check-migration
+- commit: a8043f42
+
+- 2026-11-20 (prd/timeline-ux): Seen 2026-11-20 in timeline-ux slices 1, 2 and two landing checks (different test each time); fails before any timeline-ux change too. Probably waits on a fixed render instead of the live query's answer.
+- 2026-11-20 (prd/check-migration): Proposed for check-migration with B-176, the same race (a DOM read before the live query answers). Its search test was fixed in e4b332b; the other tests in the file are left for the B-176 sweep. -- check-migration orchestrator
+
+### B-179 · bug · app-shell.mjs member-share step flakes under load: a psql insert doesn't reach an already-connected device within 30 s (PowerSync replication), no auto-retry
+
+- status: dropped
+- prd: check-migration
+- owner:
+- commit:
+
+- 2026-11-20 (prd/timeline-ux): Seen 2026-11-20 by timeline-ux slice 10 at load 18-34; passed on a rerun at load 44-65. Not related to /rpc auth.
+- 2026-11-20 (prd/check-migration): Duplicate of B-173, fixed in 6502603 (in dev since e640ba50). The cause wasn't replication: the seeds give caretaker@ a share row, so the step's ON CONFLICT DO NOTHING never wrote its marker. The step is an upsert now, and app-shell is a spec since wave 9. -- check-migration orchestrator
+
+### B-184 · bug · When viewing the member page as an owner, the simple mode and locked buttons make the data too wide…
+
+- status: landed
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit: 14aa977f
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: When viewing the member page as an owner, the simple mode and locked buttons make the data too wide for the container. Stack those radios on top of each other
+- 2026-11-20 (Robert Bo Davis): Triage: small UI follow-ups (member page; timeline-ux slice 5's Today card), app-shell and timeline-ux are done, so quick-fixes slices
+
+### B-185 · bug · The today bar on timeline should always be collapsed unless there is something overdue or upcoming.
+
+- status: landed
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit: 0cace532
+
+- 2026-11-20 (Robert Bo Davis): Triage: small UI follow-ups (member page; timeline-ux slice 5's Today card), app-shell and timeline-ux are done, so quick-fixes slices
+
+### B-186 · bug · vitals section in today block doesn't expand when you click see all, it filters the data instead.…
+
+- status: landed
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit: 0cace532
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: vitals section in today block doesn't expand when you click see all, it filters the data instead. It should expand the number of rowsto show all the vitals if there are more than fit, and shouldn't appear if they fit in the container.
+- 2026-11-20 (Robert Bo Davis): Triage: small UI follow-ups (member page; timeline-ux slice 5's Today card), app-shell and timeline-ux are done, so quick-fixes slices
+
+### B-187 · bug · timeline filter interface is overwhelming on mobile and confusing on desktop, especially the vitals…
+
+- status: landed
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit: 7bc05133
+
+- 2026-11-20 (Robert Bo Davis): From the inbox: timeline filter interface is overwhelming on mobile and confusing on desktop, especially the vitals subfilters. Maybe move into a "filter" button that opens a modal with the filters.
+- 2026-11-20 (Robert Bo Davis): Triage: quick-fixes, one slice: a Filter button opening a sheet/dialog with the vitals subfilters inside; promote to its own topic if the design grows
+
+### B-188 · bug · when signing up mcp connector, the oauth request just returns json, not the accept flow
+
+- status: landed
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit: c505b681
+
+- 2026-11-20 (Robert Bo Davis): Triage: connectors is done, so quick-fixes slices; B-188 breaks connecting on the live site, first
+- 2026-11-20 (slice/quick-fixes/47): Slice 47: not reproduced. claude.ai's request shape (DCR to https://claude.ai/api/mcp/auth_callback, PKCE S256, scope incl. offline_access, prompt=consent, resource) 302s to /connect locally (dev and check build) and on staging (signed out); no authorize variant gives JSON for a navigation except the 429 rate limit (30/min/IP). Unknown client/bad redirect now render an HTML page; staging: remove + re-add the connector, then report the JSON body if it recurs.
+- 2026-11-20 (prd/quick-fixes): Slice 47 (orchestrator): not reproduced. claude.ai's shape (DCR with the auth_callback, PKCE, resource, prompt=consent, offline_access) 302s to /connect signed in and out, locally and on staging; error cases redirect. The only navigation JSON found is the plugin's authorize rate limit (30/60 s per IP, 429). Built: a browser navigation's dead ends at authorize now show an HTML page (invalid link, or too many tries). If it recurs on staging, reopen with the JSON body and URL.
+
+### B-189 · bug · mcp connector for medication change records on the timeline, it isn't providing information about…
+
+- status: landed
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit: 68a3cc50
+
+- 2026-11-20 (prd/appointments-2): From the inbox: mcp connector for medication change records on the timeline, it isn't providing information about what what kind of change it was (started, stopped, or a new dose), and there are no before-and-after values.
+- 2026-11-20 (Robert Bo Davis): Triage: connectors is done, so quick-fixes slices; B-188 breaks connecting on the live site, first
+
+### B-190 · bug · mcp connector returning truncated notes on doses, and maybe other things
+
+- status: landed
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit: 68a3cc50
+
+- 2026-11-20 (Robert Bo Davis): Triage: connectors is done, so quick-fixes slices; B-188 breaks connecting on the live site, first
+
+### B-202 · bug · lint before typecheck in check command. Do the fast thing first, then the slow thing.
+
+- status: landed
+- prd: agent-tooling
+- owner:
+- commit: ba84d886
+
+- 2026-11-20 (Robert Bo Davis): Triage: a small change straight on dev (package.json check order). Caveat: format:check is the fastest; type-aware ESLint may be slower than tsc, so time both before reordering.
