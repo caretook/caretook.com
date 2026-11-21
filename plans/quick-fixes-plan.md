@@ -85,7 +85,7 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 | 66 | B-233 | started | sonnet |
 | 67 | B-234 | started | sonnet |
 | 68 | B-235 | started | opus |
-| 69 | B-237 | started | opus |
+| 69 | B-237 | merged | 7f84efb1 (fe44fe0c) opus; landing runs live-notes |
 | 70 | B-238 | merged | 8fd57267 (9ce13af9) sonnet |
 
 **Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
