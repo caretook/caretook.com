@@ -366,7 +366,7 @@ test("simple mode: the owner's switch reaches the member's device", async ({ dev
   try {
     await signIn(S, "caretaker@example.com");
     await S.goto(DEV_FAMILY_TIMELINE);
-    await expect(S.locator('[data-simple-toggle="simple"]')).toBeVisible({ timeout: 40_000 });
+    await expect(S.getByRole("button", { name: "View options" })).toBeVisible({ timeout: 40_000 });
     await expect(rowsOf(S).first()).toBeVisible({ timeout: 40_000 });
     await stay(S);
 
@@ -385,7 +385,8 @@ test("simple mode: the owner's switch reaches the member's device", async ({ dev
         );
       await expect.poll(serverSimple, { timeout: 20_000, intervals: [500] }).toBe("t");
       await expect(S.locator("[data-simple-timeline]")).toBeVisible({ timeout: 30_000 });
-      await expect(S.locator('header [data-region="search"]')).toHaveCount(0);
+      // Search stays in simple mode unless locked (B-208).
+      await expect(S.locator('header [data-region="search"]')).toHaveCount(1);
       expect(await stayed(S)).toBe(1);
     });
     await noErrors(dM, dS);
