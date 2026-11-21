@@ -42,3 +42,12 @@ export const importSummary = (results: readonly ImportResult[]) => {
   }.`;
   return skipped ? `${addedText} ${skippedText}` : addedText;
 };
+
+/** The provider page's copy action and its dialog. */
+export const COPY_ACTION = "Copy to another group";
+export const copyTitle = (providerName: string) => `Copy ${providerName}`;
+export const COPY_BUTTON = "Copy";
+
+/** The status after copying one provider to a group. */
+export const copiedTo = (groupName: string) => `Copied to ${groupName}.`;
+export const alreadyIn = (groupName: string) => `Already in ${groupName}. Nothing was copied.`;
