@@ -91,8 +91,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-196 | feature | triaged | connectors-2 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
 | B-197 | feature | ready | connectors-2 | prd/connectors-2 | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
 | B-198 | bug | landed | quick-fixes | prd/quick-fixes | rotating placeholder in the timeline entry box is distracting and confusing. Use a static… |
-| B-199 | bug | ready | medications-3 | prd/medications-3 | ability to add a medication quickly from the log a dose screen. |
-| B-200 | bug | ready | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
+| B-199 | bug | landed | medications-3 | prd/medications-3 | ability to add a medication quickly from the log a dose screen. |
+| B-200 | bug | landed | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
 | B-201 | bug | landed | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
 | B-203 | feature | ready | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
 | B-204 | feature | ready | connectors-2 | prd/connectors-2 | connector should be able to edit notes and events so it can help you draft questions or add… |
@@ -103,7 +103,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
 | B-210 | bug | landed | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
 | B-211 | change | triaged | quick-fixes |  | link to group details edit page from the edit profile screen for editing the care recipient's… |
-| B-212 | bug | ready | medications-3 | prd/medications-3 | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
+| B-212 | bug | landed | medications-3 | prd/medications-3 | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
 | B-213 | bug | triaged | medications-4 |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
 | B-214 | bug | triaged | timeline-ux-2 |  | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
 | B-215 | bug | triaged | timeline-ux-2 |  | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
@@ -449,7 +449,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-199 · bug · ability to add a medication quickly from the log a dose screen.
 
-- status: ready
+- status: landed
 - prd: medications-3
 - owner: prd/medications-3
 - commit: b44af440
@@ -460,7 +460,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-200 · bug · medications need a type field: rx, otc, supplement, etc.
 
-- status: ready
+- status: landed
 - prd: medications-3
 - owner: prd/medications-3
 - commit: 26213ec5
@@ -578,7 +578,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-212 · bug · icon order at top of medications page is not great. Add medication button should be a + icon. Print…
 
-- status: ready
+- status: landed
 - prd: medications-3
 - owner: prd/medications-3
 - commit: a4308e4a
