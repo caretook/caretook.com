@@ -8,7 +8,7 @@
 | ----- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
 | 1     | 1    | merged; items done; worktree removed                                                                                                                                                                                  | a366522e (f4e2f86c)                     |
 | 2     | 2    | merged; items done; worktree removed. Accepted: the TabNav bar is 1.11/1.22:1 against the page, not 3:1 (shadow in light, border in dark; text clears 4.5:1). Gate runs sign-in, first-sync, session-end, invites, ui | b11e472e (2c0914ba)                     |
-| 3     | 2    | started 2026-11-21 (ui-kit-3, opus)                                                                                                                                                                                   |                                         |
+| 3     | 2    | merged (`ui/plain` index conflict: kept both); items done; worktree removed. Its browser checks passed (app-shell on a rerun after a fresh stack's PowerSync error). Added `Button href` (a plain `<a>`)              | 5360fe1e (f0ffcd6d)                     |
 | 4     | 2    | handed off (d8f002ff); sent back to merge prd/ui-kit and use slice 2's `apps/web/test/contrast.ts`                                                                                                                    |                                         |
 | 5     | 3    |                                                                                                                                                                                                                       |                                         |
 | 6     | 3    |                                                                                                                                                                                                                       |                                         |
@@ -16,7 +16,7 @@
 
 **Landing mode (recorded 2026-11-21): run everything through.** Queued with `pnpm prd queue ui-kit`: start every ready slice, land each green wave through its PR (Codex-reviewed, never `--force`), clean up; ask only real questions.
 
-**Now:** wave 1 landed in dev via PR #32 (e610517, 2026-11-21; quick d6dd666, Codex clean). Wave 2: slice 2 merged; slice 3 running; slice 4 resyncing onto prd/ui-kit. Then merge 3, 4; fold slice 2-4 docs; sync, quick gate, browser checks (first-sync, ui, sign-in, session-end, invites), PR. Models: slices 1, 2, 3 opus; 4 sonnet.
+**Now:** wave 1 landed via PR #32 (e610517). Wave 2: slices 2 and 3 merged, docs folded; slice 4 merging prd/ui-kit into its branch (one contrast helper). Then merge 4, fold its docs, sync, quick gate, browser checks (session-end, plus whatever `--changed` names that no slice ran), PR. **Docs moved:** the `ui/` primitives and contracts now live in `docs/domain/ui-kit.md` (components.md was at budget); later slices' primitive lines go there, not components.md. Models: slices 1, 2, 3 opus; 4 sonnet.
 
 **Start conditions:** none outstanding (`list-filters` and `planner-2` are in `dev`). Never beside `i18n` (it runs alone). `quick-fixes` and `simple-mode` may run beside it; sync between waves.
 
