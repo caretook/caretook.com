@@ -1462,3 +1462,128 @@ Stack: no · Reads: docs/domain/profiles.md, docs/domain/care-groups.md, docs/do
 - [ ] `pnpm check` passes.
 
 **Blocks:** none. **Blocked by:** none.
+
+## Wave 16 (written 2026-11-21 by the orchestrator, from the items triaged to quick-fixes)
+
+The user picked the test flakes (B-228, B-230) and the Codex follow-ups from the dev → staging PRs (B-232–B-235, B-237, B-238) for this wave; B-229, B-231 (timeline layout, after quick-entry lands) and B-246, B-247 (Planner) wait. All eight are stackless and run together. Slice 63 sweeps component tests but leaves out the test files slices 68–70 edit (`useMentionPopup`/mention tests, `DoseForm`/log-dose tests, timeline paging/restore tests); those slices convert synchronous reads in the files they touch. Slices 68 and 70 are in the timeline route folder, which quick-entry (running) also touches: keep edits to the files named.
+
+## Slice 63: Component tests stop reading attributes and values synchronously right after render (B-228)
+
+Stack: no · Reads: docs/domain/components.md · Tests: component
+
+**Problem.** Slice 59 (B-180) converted `textContent`/`querySelector`/`focus`/`blur` reads; about 40 sites still read attributes and values synchronously right after a render or an action: `expect(X()!.getAttribute|value|dataset|checked|placeholder|innerText…)` (`git grep -lE 'expect\([A-Za-z]+\(\)!\.(getAttribute|value|dataset|checked|placeholder|innerText)' -- '*.test.tsx'` finds about 15 files: staff, entry, provider, timelineSheetUrls…). Under load these race.
+
+**Build.** Convert each site to `await expect.poll(...)`, `found()` or `expect.element`, keeping what each assertion reads (the B-180 pattern, components.md _Component tests_). Leave out the test files slices 68–70 edit (above). Change test code only.
+
+**Acceptance criteria.**
+
+- [ ] The grep above finds no synchronous read-after-render site outside the files left out (list any kept on purpose, with why).
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 64: `reminders.int.test.ts` passes under load (B-230)
+
+Stack: no · Reads: docs/domain/notifications.md, docs/agents/loop.md · Tests: integration
+
+**Problem.** In `packages/notifications/src/reminders.int.test.ts`, "reminds a task's assignee, and skips a suppressed address" times out at 5000 ms in a full check under load (1523 s run), then "turns reminders off from the email's unsubscribe link" gets `Invalid URL` (a knock-on: it reads state the first test left). Passes alone.
+
+**Build.** Find where the time goes (per-test setup, a wait, the outbox read) and make the tests cheaper and independent: per-test fixtures that don't depend on another test's result, setup shared where safe, and a longer timeout only if the work is genuinely slow (say why). Reproduce under load before and after (e.g. several runs in parallel) and record how.
+
+**Acceptance criteria.**
+
+- [ ] The second test no longer depends on the first; the cause is in the hand-off.
+- [ ] The file passes repeatedly under the load you reproduced it with.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 65: Google Calendar stops pushing to a disabled account (B-232)
+
+Stack: no · Reads: docs/domain/calendars.md, docs/domain/admin.md, docs/domain/data-layer.md · Tests: integration
+
+**Problem.** `calendarSyncService`'s `connectionsFor` (`packages/data/src/services/calendarSyncService.ts`) never checks `user.disabledAt`, so after `accountAdminService.disable` new appointments and todos still reach a disabled member's Google Calendar. The feed (`calendarFeedService.resolve`) and pull (`calendarPullService.memberContext`) paths already refuse disabled users. Codex P1 on PR 9.
+
+**Build.** Join `user` in `connectionsFor` and skip connections whose user has `disabledAt` set (in SQL, like the other paths). Keep the connection itself (re-enabling resumes pushes). Integration test: a disabled member's connection gets no push; re-enabled, it does.
+
+**Acceptance criteria.**
+
+- [ ] Integration test: no push for a disabled member; pushes resume after re-enable.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 66: Today's repeating all-day visit can move to a new series (B-233)
+
+Stack: no · Reads: docs/domain/appointments.md, docs/domain/calendars.md · Tests: integration
+
+**Problem.** `timelineEntryService` update's "a series edit never rewrites a started visit" check uses `occurredAt < now`, but the UI and `planSeriesEdit` use `isPastVisit` (`packages/data/src/db/schema/appointments/seriesEdit.ts`: an all-day visit counts until its day ends in the group's time zone). So the upload rejects today's all-day visit and leaves it on the old series. Codex P2 on PR 9.
+
+**Build.** Call the shared `isPastVisit` with the group's time zone in that check, so server and device agree. Integration test: today's all-day visit moves to the new series; a timed visit that started earlier today still doesn't.
+
+**Acceptance criteria.**
+
+- [ ] Integration test: the all-day case moves, the started timed case is refused.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 67: A "last Friday" monthly series stays last Friday when edited (B-234)
+
+Stack: no · Reads: docs/domain/appointments.md · Tests: unit
+
+**Problem.** In `apps/web/app/lib/appointments/repeatChoice.ts`, `choiceOfRule` keeps `monthly.by` but drops the ordinal, and `choiceRule` rebuilds it from the visit's date, so `BYDAY=-1FR` opened from a month with four Fridays (2027-02-26) becomes `4FR`. Codex P2 on PR 9.
+
+**Build.** Keep the stored ordinal and weekday through `choiceOfRule` → `choiceRule` unless the user changes the repeat. Unit tests in `repeatChoice.test.ts`: `-1FR` round-trips from 2027-02-26; a positive ordinal round-trips; changing the repeat still builds from the date.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: `BYDAY=-1FR` round-trips unchanged from a four-Friday month.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 68: Medication names stay after Back restores the timeline and the filter is picked again (B-235)
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/sync.md, docs/domain/components.md · Tests: component
+
+**Problem.** After Back restores the timeline (slice 56's `timelinePaging.ts`), picking the current filter again in the same minute blanks medication names (doses show "Medication"): `restored` goes undefined, `useTimelineData` passes `restored?.medicationRows` with no loader fallback, so `useTimelineMedications`' `initial` becomes `NO_ROWS`, and `useLiveQuery` resets its rows without restarting the watch. Links fall back to `initial.linkRows`, and `useLiveRows` keeps rows on a same-key initial change. Codex P2 on PR 9.
+
+**Build.** Give medications the same stable fallback links have, or make the live query keep its rows when its key is unchanged (pick one and say why; the second fixes the class). Edit only the timeline data hooks and the live-query helper. Component test reproducing it: restore, re-pick the filter, dose rows keep their medication name.
+
+**Acceptance criteria.**
+
+- [ ] Component test: after a restore and re-picking the filter, doses still show their medication's name.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 69: An @-mention that adds a provider doesn't overwrite other note text (B-237)
+
+Stack: no · Reads: docs/domain/live-notes.md, docs/domain/providers.md, docs/domain/components.md · Tests: component
+
+**Problem.** In `apps/web/app/components/notes/useMentionPopup.ts` `pick()`, when an add or import of a provider finishes, it inserts into `(live.current.open ?? current)`: whatever popup is open now (a different @ query), else the captured range, which isn't mapped through edits made since. So a slow add can overwrite text. Codex P2 on PR 11.
+
+**Build.** Tie the insert to the suggestion that started it: map its range through the transactions since (Tiptap/ProseMirror mapping), and drop the insert (leaving the provider created) if that @ text is gone. Component test with a slow add: type elsewhere and open a second @ meanwhile; the mention lands at the first @ and nothing else changes.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a slow add with edits and a second popup in between inserts only at the original @.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 70: Log a dose's "+ New medication" doesn't refill a discarded amount (B-238)
+
+Stack: no · Reads: docs/domain/medications.md, docs/domain/timeline.md, docs/domain/components.md · Tests: component
+
+**Problem.** In `routes/app/groups/timeline/DoseForm.tsx`, switching from "+ New medication" to an existing medication and back remounts `QuickAddFields` (its fields reset) but keeps the parent's `newDose`, so `choose()` refills Amount with the old dose: the medication is saved with no usual dose and logged as the discarded "2 tablets". Codex P2 on PR 11.
+
+**Build.** Make the draft consistent: either keep the quick-add draft across switches (fields and dose together) or reset `newDose` with the fields. Pick the one that matches the sheet's other drafts and say why. Keep edits to `DoseForm.tsx` and its quick-add pieces (medications-4 will reshape it later). Component test for the switch-and-back.
+
+**Acceptance criteria.**
+
+- [ ] Component test: after switching away and back, Amount and the saved medication agree (both kept or both cleared).
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
