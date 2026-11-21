@@ -156,7 +156,7 @@ describe("quick entry adds todos", () => {
     const device = await open({ role: "viewer" });
     await waitUntil(() => !!rowWith("Older note"), 4000, "the timeline");
     expect(document.querySelector("[data-quick-entry]")).toBeNull();
-    const result = await runActions(device.db, TEST_GROUP.id, [{ type: "addTask", title: "Call pharmacy" }]);
+    const result = await runActions(device.db, TEST_GROUP.id, [{ type: "addTodo", title: "Call pharmacy" }]);
     expect(result).toMatchObject({ ok: false, index: null });
   });
 
@@ -164,7 +164,7 @@ describe("quick entry adds todos", () => {
     const device = await open();
     const result = await runActions(device.db, TEST_GROUP.id, [
       { type: "addNote", text: "Hello", occurredAt: new Date().toISOString() },
-      { type: "addTask", title: "Call pharmacy", assigneeId: crypto.randomUUID() },
+      { type: "addTodo", title: "Call pharmacy", assigneeId: crypto.randomUUID() },
     ]);
     expect(result).toMatchObject({
       ok: false,

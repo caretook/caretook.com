@@ -41,7 +41,7 @@ const input = z.object({
 export const search = defineTool({
   name: "search",
   title: "Search the care group",
-  description: `Search the care group's timeline entries (including the text of notes and events), providers and medications with the app's query language: words each match as a prefix, "quoted phrases" match in order, -word leaves one out. Best match first, at most ${SEARCH_LIMIT_MAX} of each kind; pass nextCursor back for more entries. Tasks aren't searched: use list_tasks.`,
+  description: `Search the care group's timeline entries (including the text of notes and events), providers and medications with the app's query language: words each match as a prefix, "quoted phrases" match in order, -word leaves one out. Best match first, at most ${SEARCH_LIMIT_MAX} of each kind; pass nextCursor back for more entries. Todos aren't searched: use list_todos.`,
   scope: "read",
   input,
   annotations: READ_ANNOTATIONS,

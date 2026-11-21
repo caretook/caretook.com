@@ -133,7 +133,7 @@ export const logWhatHappened = definePrompt({
     [
       "Log what happened in the care group from my account below.",
       START,
-      "Turn it into entries: log_vitals for measurements, log_dose for medications given (check todays_doses or list_medications for the exact medication), log_symptom for symptoms, add_event for appointments, add_task for things to do, and add_note for anything else.",
+      "Turn it into entries: log_vitals for measurements, log_dose for medications given (check todays_doses or list_medications for the exact medication), log_symptom for symptoms, add_event for appointments, add_todo for things to do, and add_note for anything else.",
       "List the entries you'll make first, then make each with its own tool call so I can confirm each one. Use the times I give, in the care recipient's time zone; if a time or a medication isn't clear, ask instead of guessing.",
       `My account:\n\n${account}`,
     ].join("\n\n"),

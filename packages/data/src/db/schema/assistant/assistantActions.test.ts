@@ -72,20 +72,20 @@ describe("givePass", () => {
   });
 });
 
-describe("addTask", () => {
+describe("addTodo", () => {
   test("a title, and optionally a member, a due day with a time, and links; no todo id, no occurredAt", () => {
-    expect(ok({ type: "addTask", title: "Call pharmacy" })).toBe(true);
+    expect(ok({ type: "addTodo", title: "Call pharmacy" })).toBe(true);
     expect(
-      ok({ type: "addTask", title: "Call pharmacy", assigneeId: MED, dueOn: "2026-11-20", dueTime: "17:00" }),
+      ok({ type: "addTodo", title: "Call pharmacy", assigneeId: MED, dueOn: "2026-11-20", dueTime: "17:00" }),
     ).toBe(true);
-    expect(ok({ type: "addTask", title: "Refill", providerId: MED, medicationId: MED, eventId: MED })).toBe(
+    expect(ok({ type: "addTodo", title: "Refill", providerId: MED, medicationId: MED, eventId: MED })).toBe(
       true,
     );
-    expect(issues({ type: "addTask", title: "  " })).toEqual(["title"]);
-    expect(issues({ type: "addTask", title: "Call", dueTime: "17:00" })).toEqual(["dueTime"]);
-    expect(issues({ type: "addTask", title: "Call", dueOn: "friday" })).toEqual(["dueOn"]);
-    expect(issues({ type: "addTask", title: "Call", assigneeName: "Aunt May" })).toEqual([""]);
-    expect(issues({ type: "addTask", title: "Call", id: MED })).toEqual([""]);
+    expect(issues({ type: "addTodo", title: "  " })).toEqual(["title"]);
+    expect(issues({ type: "addTodo", title: "Call", dueTime: "17:00" })).toEqual(["dueTime"]);
+    expect(issues({ type: "addTodo", title: "Call", dueOn: "friday" })).toEqual(["dueOn"]);
+    expect(issues({ type: "addTodo", title: "Call", assigneeName: "Aunt May" })).toEqual([""]);
+    expect(issues({ type: "addTodo", title: "Call", id: MED })).toEqual([""]);
   });
 });
 
@@ -122,6 +122,6 @@ test("every action names the kind it writes", () => {
     addNote: "note",
     addEvent: "event",
     givePass: "dose",
-    addTask: "todo",
+    addTodo: "todo",
   });
 });

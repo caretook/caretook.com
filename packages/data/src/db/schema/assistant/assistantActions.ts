@@ -93,9 +93,9 @@ export const addEventActionZSchema = z.strictObject({
  * links. Not a timeline entry, so it has no `occurredAt`. Whoever carries it
  * out checks the assignee is a member and the links are live in the group.
  */
-export const addTaskActionZSchema = z
+export const addTodoActionZSchema = z
   .strictObject({
-    type: z.literal("addTask"),
+    type: z.literal("addTodo"),
     title: z.string().trim().min(1).max(TODO_LIMITS.title),
     assigneeId: z.uuid().nullish(),
     dueOn: z.iso.date().nullish(),
@@ -117,7 +117,7 @@ export const assistantActionZSchema = z.discriminatedUnion("type", [
   addNoteActionZSchema,
   addEventActionZSchema,
   givePassActionZSchema,
-  addTaskActionZSchema,
+  addTodoActionZSchema,
 ]);
 export type AssistantAction = z.output<typeof assistantActionZSchema>;
 export type AssistantActionInput = z.input<typeof assistantActionZSchema>;
@@ -132,7 +132,7 @@ export const ACTION_KINDS = {
   addNote: "note",
   addEvent: "event",
   givePass: "dose",
-  addTask: "todo",
+  addTodo: "todo",
 } as const satisfies Record<AssistantActionType, string>;
 export type ActionKind = (typeof ACTION_KINDS)[AssistantActionType];
 

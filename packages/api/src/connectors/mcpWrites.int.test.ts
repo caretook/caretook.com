@@ -50,7 +50,7 @@ const callTool = (token: string, name: string, args: Record<string, unknown> = {
 
 type CallResult = {
   content: { type: string; text: string }[];
-  structuredContent: Record<string, unknown> & { url?: string | null; entryIds?: string[]; taskId?: string };
+  structuredContent: Record<string, unknown> & { url?: string | null; entryIds?: string[]; todoId?: string };
   isError?: boolean;
 };
 const resultOf = async (res: Response) => {
@@ -178,7 +178,7 @@ describe("/mcp write tools", () => {
     expect(pass.structuredContent.url).toBe(`${base}/timeline/pass/${passLogId}/edit`);
   });
 
-  it("add a note, an event with its provider, and a task by its assignee's name", async () => {
+  it("add a note, an event with its provider, and a todo by its assignee's name", async () => {
     const w = await world();
     const token = w.writer.tokens.access_token;
     const base = `${TEST_ORIGIN}/app/groups/${w.group.id}`;
@@ -206,20 +206,27 @@ describe("/mcp write tools", () => {
       via: CLIENT,
     });
 
-    const task = await resultOf(
-      await callTool(token, "add_task", {
+    const todo = await resultOf(
+      await callTool(token, "add_todo", {
         title: "Pick up prescription",
         assignee: "Caretaker",
         dueOn: "2027-01-10",
       }),
     );
-    const taskId = task.structuredContent.taskId!;
-    expect(textOf(task)).toMatch(/^Added task: Pick up prescription · caretaker · /);
-    expect(task.structuredContent.url).toBe(`${base}/todos/${taskId}`);
-    const row = ok(await todoService.getById(w.owner.ctx, taskId));
+    const todoId = todo.structuredContent.todoId!;
+    expect(textOf(todo)).toMatch(/^Added todo: Pick up prescription · caretaker · /);
+    expect(todo.structuredContent.url).toBe(`${base}/todos/${todoId}`);
+    const row = ok(await todoService.getById(w.owner.ctx, todoId));
     expect(row).toMatchObject({ assigneeId: w.caretaker.user.id, dueOn: "2027-01-10", via: CLIENT });
 
-    const nobody = await resultOf(await callTool(token, "add_task", { title: "Call", assignee: "Nobody" }));
+    // The old name is an unknown tool.
+    const old = await callTool(token, "add_task", { title: "Call" });
+    expect(((await old.json()) as { error: { code: number; message: string } }).error).toMatchObject({
+      code: -32602,
+      message: "Unknown tool: add_task",
+    });
+
+    const nobody = await resultOf(await callTool(token, "add_todo", { title: "Call", assignee: "Nobody" }));
     expect(nobody).toMatchObject({
       isError: true,
       structuredContent: {

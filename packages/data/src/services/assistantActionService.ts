@@ -92,7 +92,7 @@ export type RunOptions = {
 export type RunResult = {
   /** Every entry (and todo) written, in order (a pass writes one per medication). */
   ids: string[];
-  /** Each action's entries (an `addTask`'s todo), in the actions' order. */
+  /** Each action's entries (an `addTodo`'s todo), in the actions' order. */
   byAction: string[][];
 };
 
@@ -146,7 +146,7 @@ const runnableActionZSchema = z.discriminatedUnion("type", [
 type Setting = { groupId: string; recipientId: string; timeZone: string; now: Date };
 
 /** The content an action writes (a pass's doses and a todo are planned apart). */
-const contentOf = (action: Exclude<AssistantAction, { type: "givePass" | "addTask" }>, timeZone: string) => {
+const contentOf = (action: Exclude<AssistantAction, { type: "givePass" | "addTodo" }>, timeZone: string) => {
   switch (action.type) {
     case "logVital":
       return {
@@ -453,7 +453,7 @@ const planAction = async (
     return planCondition(tx, setting, action);
   if (action.type === "givePass") return passDoses(ctx, tx, setting, action);
   // Checked by todoService as it writes (the assignee, the links).
-  if (action.type === "addTask") {
+  if (action.type === "addTodo") {
     const { type: _type, ...todo } = action;
     return { groupId, recipientId, ...todo };
   }

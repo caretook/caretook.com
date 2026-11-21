@@ -65,7 +65,7 @@ const joined = (...parts: (string | null | undefined)[]) => parts.filter(Boolean
 
 /** A card's words for one action. */
 export const actionPreview = (action: AssistantAction, context: PreviewContext): ActionPreview => {
-  if (action.type === "addTask") {
+  if (action.type === "addTodo") {
     // "Todo · Due Fri", "Call pharmacy", "Sam Rivera".
     const zone = context.recipientTimeZone ?? context.timeZone ?? deviceZone();
     const due = { dueOn: action.dueOn ?? null, dueTime: action.dueTime ?? null, doneAt: null };

@@ -216,7 +216,7 @@ const EXPORTS = [
   "addDays",
   "addEventActionZSchema",
   "addNoteActionZSchema",
-  "addTaskActionZSchema",
+  "addTodoActionZSchema",
   "adminAuditLogSchema",
   "allowlistEntryZ",
   "announcementZ",

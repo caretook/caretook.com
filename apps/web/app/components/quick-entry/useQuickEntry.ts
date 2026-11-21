@@ -131,7 +131,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     );
     if (result.ok) {
       const todos = planned.reduce(
-        (n, p, i) => n + (p.action.type === "addTask" ? (result.byAction[i]?.length ?? 0) : 0),
+        (n, p, i) => n + (p.action.type === "addTodo" ? (result.byAction[i]?.length ?? 0) : 0),
         0,
       );
       const typed = planned.map((p, i) => ({ type: p.action.type, ids: result.byAction[i] ?? [] }));
