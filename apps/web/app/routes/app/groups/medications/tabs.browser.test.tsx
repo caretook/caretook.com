@@ -167,3 +167,11 @@ describe("the add sheet over a tab", () => {
     await expect.poll(() => !SHEET() && device.location()).toBe(SCHEDULE);
   });
 });
+
+describe("the page title", () => {
+  test.each([SCHEDULE, LIST])("is one h1, Medications, on %s", async (url) => {
+    await open(url);
+    await expect.poll(() => document.querySelector("main h1")?.textContent).toBe("Medications");
+    expect(document.querySelectorAll("h1")).toHaveLength(1);
+  });
+});

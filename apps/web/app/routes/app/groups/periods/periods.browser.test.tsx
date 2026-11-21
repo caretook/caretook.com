@@ -343,3 +343,11 @@ const rowOf = (f: ReturnType<typeof fx.period>) => {
     createdAt: r.created_at as string,
   };
 };
+
+describe("the page title", () => {
+  test("is one h1, Care periods", async () => {
+    await open();
+    await expect.poll(() => document.querySelector("main h1")?.textContent).toBe("Care periods");
+    expect(document.querySelectorAll("h1")).toHaveLength(1);
+  });
+});

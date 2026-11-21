@@ -146,3 +146,13 @@
     break-after: avoid;
   }
 }
+
+/* Secondary text (ui-kit): two tones of the content colour. `text-muted` is
+   for supporting copy, `text-faint` for the quietest (timestamps, hints). Both
+   keep 4.5:1 on base-200 and base-100 in both themes (a component test). */
+@utility text-muted {
+  color: color-mix(in oklab, var(--color-base-content) 70%, transparent);
+}
+@utility text-faint {
+  color: color-mix(in oklab, var(--color-base-content) 62%, transparent);
+}

@@ -15,10 +15,12 @@ import { FormFooterSection } from "./sections/FormFooterSection";
 import { HighlightSection } from "./sections/HighlightSection";
 import { IconButtonSection } from "./sections/IconButtonSection";
 import { MenuSection } from "./sections/MenuSection";
+import { PageSection } from "./sections/PageSection";
 import { PageHeaderSection } from "./sections/PageHeaderSection";
 import { PopoverSection } from "./sections/PopoverSection";
 import { SheetSection } from "./sections/SheetSection";
 import { TabNavSection } from "./sections/TabNavSection";
+import { TokensSection } from "./sections/TokensSection";
 import { ToastSection } from "./sections/ToastSection";
 import { TooltipSection } from "./sections/TooltipSection";
 import { UserAvatarSection } from "./sections/UserAvatarSection";
@@ -55,4 +57,6 @@ export const GALLERY: readonly GallerySection[] = [
   // ui-kit: each slice appends its primitives' sections below.
   { id: "button", title: "Button", Section: ButtonSection },
   { id: "form-footer", title: "FormFooter", Section: FormFooterSection },
+  { id: "page", title: "Page", Section: PageSection },
+  { id: "tokens", title: "Tokens and the heading scale", Section: TokensSection },
 ];

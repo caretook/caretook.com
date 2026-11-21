@@ -4,7 +4,7 @@ import type { ActionResult } from "~/lib/core/api";
 import { newCareGroupZSchema } from "@caretook/data/schema";
 import { redirect, useFetcher, useLocation, useNavigate } from "react-router";
 import { NewGroupFields, newGroupFromForm } from "~/components/groups";
-import { Sheet } from "~/components/ui";
+import { Page, Sheet } from "~/components/ui";
 import { toActionResult } from "~/lib/core/api";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { rpc } from "~/lib/core/rpc";
@@ -57,7 +57,7 @@ export default function NewGroupSheet() {
     else void navigate(appUrls.home(), { replace: true });
   };
   return (
-    <main className="mx-auto max-w-2xl px-4 py-6">
+    <Page>
       <Sheet isOpen onOpenChange={(open) => !open && close()} title="New care group">
         <fetcher.Form method="post" className="space-y-2" data-new-group-form="">
           <p className="text-base-content/70 text-sm">
@@ -74,6 +74,6 @@ export default function NewGroupSheet() {
           </button>
         </fetcher.Form>
       </Sheet>
-    </main>
+    </Page>
   );
 }
