@@ -1,6 +1,18 @@
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
-import { button, openTimeline, rows, TIMELINE_URL, waitUntil, world } from "./timelineWorld";
+import { at, fx } from "../../../../../test/fixtures";
+import {
+  button,
+  chip,
+  closeFilters,
+  openFilters,
+  openTimeline,
+  rows,
+  rowWith,
+  TIMELINE_URL,
+  waitUntil,
+  world,
+} from "./timelineWorld";
 
 // Back from a page outside the timeline (B-174): the entry page isn't one of
 // the timeline's child routes, so going to it unmounts the timeline, and Back
@@ -68,5 +80,31 @@ describe("back from the entry page", () => {
     // The next page loads as the end comes near.
     window.scrollTo(0, document.documentElement.scrollHeight);
     await waitUntil(() => rows().length > before.length, 8000, "the fourth page");
+  });
+
+  test("Back, then the filter that's on picked again: a dose still names its medication (B-235)", async () => {
+    const medication = fx.medication({ name: "Quinapril", strength: "20 mg" });
+    const dose = fx.dose({ medicationId: medication.id, occurredAt: at(new Date(Date.now() - 5 * 60_000)) });
+    const device = await openTimeline({ fixtures: [...world(130), medication, dose] });
+    await waitUntil(() => !!rowWith("Quinapril"), 4000, "the dose's row");
+    await scrollTo(90);
+    await device.settle();
+
+    await openLastNote();
+    await userEvent.click(button("Go back")!);
+    await waitUntil(() => rows().length > 0, 4000, "the timeline");
+    await device.settle();
+    expect(rowWith("Quinapril")).toBeTruthy();
+
+    // "All" is on: picking it again is new loader data for the same queries.
+    await openFilters();
+    await expect.poll(() => chip("All").getAttribute("aria-current")).toBe("true");
+    await userEvent.click(chip("All"));
+    await closeFilters();
+    await device.settle();
+    await expect.poll(() => !!rowWith("Quinapril")).toBe(true);
+    // Held for a moment: the names don't fall back to "Medication" after the screen settles.
+    await new Promise((r) => setTimeout(r, 300));
+    expect(rowWith("Quinapril")).toBeTruthy();
   });
 });
