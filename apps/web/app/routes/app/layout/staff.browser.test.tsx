@@ -72,7 +72,7 @@ describe("the announcement banner", () => {
     let answer = MAINTENANCE;
     const first = await open({ announcement: () => answer });
     await expect.poll(bannerText).toBe(MAINTENANCE.text);
-    expect(banner()!.getAttribute("data-tone")).toBe("warning");
+    await expect.poll(() => banner()?.getAttribute("data-tone")).toBe("warning");
     expect(document.querySelector('header + [data-region="announcement"]')).not.toBeNull();
     await expect.element(page.getByRole("complementary", { name: "Important announcement" })).toBeVisible();
 
@@ -89,7 +89,7 @@ describe("the announcement banner", () => {
     answer = SLOW;
     await open({ announcement: () => answer });
     await expect.poll(bannerText).toBe(SLOW.text);
-    expect(banner()!.getAttribute("data-tone")).toBe("info");
+    await expect.poll(() => banner()?.getAttribute("data-tone")).toBe("info");
   });
 
   test("offline, the cached banner shows; it goes at its end time without a reload", async () => {

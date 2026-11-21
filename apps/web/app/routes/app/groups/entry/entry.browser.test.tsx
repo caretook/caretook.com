@@ -227,7 +227,7 @@ describe("an event in one tap, and title chips", () => {
     const before = await counts(device);
     await addFrom("Event");
     await waitUntil(() => device.location().endsWith("?kind=event") && editorFocused(), 4000, "the draft");
-    expect(TITLE()!.placeholder).toBe("Title");
+    await expect.poll(() => TITLE()?.placeholder).toBe("Title");
     await waitUntil(() => CHIPS().length > 0, 4000, "the chips");
     expect(CHIPS().map((b) => b.textContent?.trim())).toContain("Physical therapy");
     await pause(300);
@@ -329,7 +329,7 @@ describe("who's writing", () => {
     // The viewer is the signed-in user here, so only Sam shows.
     expect(AVATARS().map((el) => el.dataset.person)).toEqual([SAM.id]);
     await expect.poll(() => HEADER()?.textContent).toContain("Event");
-    expect(EDITOR()!.getAttribute("contenteditable")).toBe("false");
+    await expect.poll(() => EDITOR()?.getAttribute("contenteditable")).toBe("false");
     expect([!!TITLE(), !!$('[aria-label="Suggested titles"]'), !!TOOLBAR(), !!TIME_CHIP()]).toEqual([
       false,
       false,
@@ -601,13 +601,13 @@ describe("appointments", () => {
     const clinic = fx.provider({ name: "Harbor Heart Clinic", address: "12 Example Way, Springfield" });
     const device = await open(entryPath(appt.id), { fixtures: [base(), appt, clinic] });
     await waitUntil(() => !!PLACE());
-    expect(PLACE()!.placeholder).toBe("Add a place");
+    await expect.poll(() => PLACE()?.placeholder).toBe("Add a place");
     expect(MAP()).toBeNull();
 
     await device.sync(fx.link(appt.id, clinic.id));
     await device.settle();
     expect(PLACE()?.placeholder).toBe("12 Example Way, Springfield");
-    expect(PLACE()!.value).toBe("");
+    await expect.poll(() => PLACE()?.value).toBe("");
     expect(PLACE_REGION()!.textContent).toContain("from Harbor Heart Clinic");
     expect(MAP()!.href).toContain(encodeURIComponent("12 Example Way, Springfield"));
 
