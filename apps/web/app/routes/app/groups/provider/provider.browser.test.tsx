@@ -210,7 +210,6 @@ describe("the notes", () => {
   });
 });
 
-<<<<<<< HEAD
 describe("mentions in the notes", () => {
   const mentionChips = () =>
     $$(".ProseMirror [data-mention]").map((m) => ({
@@ -263,7 +262,9 @@ describe("mentions in the notes", () => {
       .toEqual([{ id: made!.id, text: "Rosa Lind", href: providerUrl(made!.id) }]);
     expect((await device.queued()).some((w) => w.type === "provider" && w.id === made!.id)).toBe(true);
     expect(await entryLinks(device)).toEqual({ rows: PICKUP_LINKS.length, queued: [] });
-=======
+  });
+});
+
 describe("Copy to another group", () => {
   const COPY = () => $<HTMLButtonElement>("main header [data-copy-provider]");
   const STATUS = () => $("main [data-copy-status]")?.textContent?.trim() ?? "";
@@ -340,7 +341,6 @@ describe("Copy to another group", () => {
     await waitUntil(() => !!NOTES(), 4000, "the page");
     await device.settle();
     expect(COPY()).toBeNull();
->>>>>>> slice/providers-2/4
   });
 });
 

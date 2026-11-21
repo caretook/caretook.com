@@ -4,13 +4,13 @@
 
 ## Status
 
-| Slice | Wave | State            | Merge into `prd/providers-2` (slice commits) |
-| ----- | ---- | ---------------- | -------------------------------------------- |
-| 1     | 1    | merged (opus)    | 4e1bf908 (01e0ebf3, 4847e3a2)                |
-| 2     | 2    | started (opus)   |                                              |
-| 3     | 1    | merged (opus)    | 0de633e1 (eeb1218a, fd7e1deb)                |
-| 4     | 2    | started (sonnet) |                                              |
-| 5     | 3    | blocked by 2, 3  |                                              |
+| Slice | Wave | State           | Merge into `prd/providers-2` (slice commits)         |
+| ----- | ---- | --------------- | ---------------------------------------------------- |
+| 1     | 1    | merged (opus)   | 4e1bf908 (01e0ebf3, 4847e3a2)                        |
+| 2     | 2    | merged (opus)   | 680de235 (4952a984)                                  |
+| 3     | 1    | merged (opus)   | 0de633e1 (eeb1218a, fd7e1deb)                        |
+| 4     | 2    | merged (sonnet) | 2a3f4f66 (bab7192d); conflict fix in the next commit |
+| 5     | 3    | started (opus)  |                                                      |
 
 **Landing mode (2026-11-20): run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave, clean up; ask only real questions. Per _Landing_, land when every slice is merged.
 
@@ -27,6 +27,8 @@ Slice 3 handed off (pnpm check green; a `roles.int` load timeout passed on rerun
 Slice 2 handed off (pnpm check green; `--changed` names **roundtrip, live-notes**: run at landing). It made the `@` query allow spaces (`mentionQueryOpen`), so a two-word new name reaches the add row; slice 1's tests adjusted. Merged as 680de235 (before 4, plan order); B-25 done (ready); worktree removed. Slice 5 worktree `providers-2-5` (stackless) made; agent spawned (opus).
 
 Slice 4 handed off (pnpm check green; `prd browser --changed` ran ui.spec on a temporary stack, pass, stack down). It added `ConfirmDialog`'s optional `confirmClassName` (default `btn-error`) and `secondGroup(role)` in `providerWorld.tsx`; it edited `docs/domain/providers.md` (the provider page's Copy to another group): accurate, kept, counts as slice 4's fold. Merged as 915e1643; worktree removed. Wave 2 done.
+
+Slice 4 handed off (pnpm check green; `prd browser --changed` ran ui.spec on a temporary stack, pass, stack down). It added `ConfirmDialog`'s optional `confirmClassName` (default `btn-error`) and `secondGroup(role)` in `providerWorld.tsx`, and edited `docs/domain/providers.md` (the provider page's Copy to another group): accurate, kept as slice 4's fold. **Merge 2a3f4f66** went in with conflict markers and a wrong subject ("docs(providers-2): status: slice 4 merged"; a chained command committed past the conflict; a reset was refused, so fixed forward). The conflict was slices 2 and 4 each appending a `describe` to `provider.browser.test.tsx`: both kept, the file's 17 tests pass. **A code conflict was resolved: the landing check must be full.** Wave 2 done.
 
 **Docs to fold (slice 1):** live-notes.md: `MENTION_NODE` (attrs `id`, `label`) always in the schema; `noteText` writes `@<label>`; `providers`/`onMention` props; popup keyboard/ARIA (listbox "Providers to mention", focus stays in the editor via `aria-activedescendant`); the two packages in `optimizeDeps`. providers.md (_Linking from notes and events_): a mention on an entry links like the With row (draft first, idempotent); deleting keeps the link; `mentionOptions` keeps linked ones; chip shows the current name, greyed for deleted/unknown.
 
