@@ -19,9 +19,9 @@ import { TIMELINE_URL } from "./timelineWorld";
 // the medications due and the tasks) each show only with something to say,
 // tinted and iconned by `todayStatus` (whose edges are todayStatus.test.ts's),
 // each ending in "See all ›" to its full view (vitals: Show all in place,
-// B-186). Given all stays on the medications row for writers. The header
-// collapses the card to one line: collapsed unless something needs attention
-// (B-185), a tap remembered on this device until that changes. What the strips' old tests checked moved here;
+// B-186). Given all stays on the medications row for writers. The card starts
+// collapsed to one line on every load (red overdue and orange due-soon counts
+// first); a tap opens it for the page view. What the strips' old tests checked moved here;
 // remembering across a remount (dimmed, then fresh) is
 // timelineRemembered.browser.test.tsx's.
 
@@ -83,6 +83,15 @@ const row = (name: string) => CARD()?.querySelector<HTMLElement>(`[data-today-ro
 const shownRows = () =>
   [...(CARD()?.querySelectorAll<HTMLElement>("[data-today-row]") ?? [])].map((r) => r.dataset.todayRow);
 const toggle = () => CARD()!.querySelector<HTMLButtonElement>("[data-today-toggle]")!;
+/** Opens the card, which every load starts collapsed. */
+const openCard = async () => {
+  await userEvent.click(
+    await found(
+      () => CARD()?.querySelector<HTMLElement>('[data-today-toggle][aria-expanded="false"]') ?? null,
+    ),
+  );
+  await expect.poll(() => toggle().getAttribute("aria-expanded")).toBe("true");
+};
 const seeAll = (name: string) => row(name)!.querySelector<HTMLAnchorElement>("a[data-see-all]")!;
 const givenAll = () => row("medications")?.querySelector<HTMLButtonElement>("[data-given-all]") ?? null;
 const medState = () => {
@@ -115,6 +124,7 @@ describe("the Today card's rows", () => {
     await expect.poll(shownRows).toEqual(["vitals", "medications", "tasks"]);
     // It sits above the list, at every width (the old vitals strip hid below `sm`).
     expect(CARD()!.compareDocumentPosition(document.querySelector("main ol")!) & 4).toBeTruthy();
+    await openCard();
     expect(row("vitals")!.getBoundingClientRect().height).toBeGreaterThan(0);
   });
 
@@ -182,6 +192,7 @@ describe("the Today card's rows", () => {
     // Vitals shows its readings in place instead (below).
     expect(row("vitals")!.querySelector("a[data-see-all]")).toBeNull();
 
+    await openCard();
     await userEvent.click(seeAll("tasks"));
     await expect
       .element(page.getByRole("heading", { name: `Probe /app/groups/${G}/tasks?who=everyone` }))
@@ -212,10 +223,9 @@ describe("the vitals row", () => {
   };
 
   test("too many for the line: Show all wraps them in place (no navigation), Show less folds them back", async () => {
-    // A due pass opens the card.
     const device = await open([DAY_NOTE, MANY, ...PASSES]);
+    await openCard();
     await expect.poll(showAll).not.toBeNull();
-    expect(toggle().getAttribute("aria-expanded")).toBe("true");
     const button = showAll()!;
     expect(button.textContent).toBe("Show all");
     expect(button.getAttribute("aria-expanded")).toBe("false");
@@ -244,6 +254,7 @@ describe("the vitals row", () => {
       width: 1280,
     });
     await expect.poll(shownRows).toContain("medications");
+    await openCard();
     await expect.poll(() => row("vitals")?.checkVisibility()).toBe(true);
     expect(allInside()).toBe(true);
     expect(showAll()).toBeNull();
@@ -254,6 +265,7 @@ describe("the Today card's width", () => {
   test("1280: capped like Live now (1152 px), centred, framing the entries' column", async () => {
     await renderWithDevice({ route: ROUTES, url: TIMELINE_URL, fixtures: EVERYTHING, width: 1280 });
     await expect.poll(shownRows).toHaveLength(4);
+    await openCard();
     const r = CARD()!.getBoundingClientRect();
     const pageWidth = document.documentElement.clientWidth;
     expect(Math.abs(r.width - 1152)).toBeLessThan(1);
@@ -268,6 +280,7 @@ describe("the medications row", () => {
   test("Given all for a writer logs the overdue pass and offers Undo; the due pass follows; Undo brings it back", async () => {
     const device = await open([DAY_NOTE, ...PASSES]);
     await expect.poll(medState).toEqual(["overdue", `pass:${LATE.id}`]);
+    await openCard();
     expect(givenAll()!.disabled).toBe(false);
 
     await userEvent.click(givenAll()!);
@@ -289,6 +302,7 @@ describe("the medications row", () => {
     await expect.poll(medState).toEqual(["due", `pass:${NOW.id}`]);
     expect(row("medications")!.textContent).toContain("Due: Now · 9:57 · 2 meds");
 
+    await openCard();
     await userEvent.click(row("medications")!.querySelector<HTMLElement>("[data-med-open]")!);
     await expect.poll(() => device.location()).toContain(`/timeline/new/dose?`);
     expect(new URLSearchParams(device.location().split("?")[1]).get("pass")).toBe(NOW.id);
@@ -380,73 +394,59 @@ describe("the appointment row", () => {
 
 describe("collapsing the card", () => {
   const expanded = () => toggle().getAttribute("aria-expanded");
+  const summary = () => CARD()?.querySelector<HTMLElement>("[data-today-summary]") ?? null;
+  const part = (name: string) =>
+    summary()?.querySelector<HTMLElement>(`[data-summary-part="${name}"]`) ?? null;
 
-  test("nothing needing attention: collapsed to one line once its rows answer; opened, it stays open", async () => {
-    // Stale vitals and a task due today don't need attention.
-    const device = await open([DAY_NOTE, OLD_BP, WALKER]);
-    await expect.poll(shownRows).toEqual(["vitals", "tasks"]);
-    await expect.poll(expanded).toBe("false");
-    expect(CARD()!.querySelector("[data-today-summary]")?.textContent).toBe("BP 130/85 mmHg · 1 task today");
-
-    await userEvent.click(toggle());
-    await expect.poll(expanded).toBe("true");
-    await device.screen.unmount();
-    await open([DAY_NOTE, OLD_BP, WALKER]);
-    await expect.poll(shownRows).toEqual(["vitals", "tasks"]);
-    expect(expanded()).toBe("true");
-  });
-
-  test("an overdue dose opens it", async () => {
-    await open([DAY_NOTE, ...PASSES]);
-    await expect.poll(medState).toEqual(["overdue", `pass:${LATE.id}`]);
-    expect(expanded()).toBe("true");
-  });
-
-  test("collapsed by the user, it opens again for a new appointment within 2 h", async () => {
-    const device = await open([DAY_NOTE, ...PASSES]);
-    await expect.poll(medState).toEqual(["overdue", `pass:${LATE.id}`]);
-    await userEvent.click(toggle());
-    await expect.poll(expanded).toBe("false");
-
-    // Later today is not new attention: it stays collapsed.
-    const evening = fx.event({ title: "Evening call", occurredAt: clockMoment(5 * 60) });
-    await device.sync([evening]);
-    await device.settle();
-    await expect.poll(shownRows).toContain("appointment");
-    expect(expanded()).toBe("false");
-
-    await device.sync([CARDIOLOGY]);
-    await device.settle();
-    await expect
-      .poll(() => row("appointment")?.querySelector<HTMLElement>("[data-next]")?.dataset.next)
-      .toBe(CARDIOLOGY.id);
-    await expect.poll(expanded).toBe("true");
-  });
-
-  test("the header collapses it to one summary line, remembered on this device across a remount; it opens again", async () => {
-    const device = await open(EVERYTHING);
+  test("collapsed on load, an overdue dose too; red overdue and orange due-soon counts lead the line", async () => {
+    // 1 dose overdue; due soon: 2 doses due now, 1 in 30 min, Cardiology in an hour. The walker (no time) is due at 19:00.
+    await open(EVERYTHING);
     await expect.poll(shownRows).toHaveLength(4);
-    expect(expanded()).toBe("true");
-    expect(CARD()!.querySelector("[data-today-summary]")).toBeNull();
-
-    await userEvent.click(toggle());
-    await expect.poll(expanded).toBe("false");
-    const summary = CARD()!.querySelector<HTMLElement>("[data-today-summary]")!;
-    expect(summary.textContent).toBe("BP 130/85 mmHg · 1 appt · 1 med overdue · 1 task today");
+    await expect
+      .poll(() => summary()?.textContent)
+      .toBe("1 overdue · 4 due soon · BP 130/85 mmHg · 1 task today");
+    expect(expanded()).toBe("false");
+    expect(part("overdue")!.classList).toContain("text-error");
+    expect(part("soon")!.classList).toContain("text-warning");
     expect(document.getElementById(toggle().getAttribute("aria-controls")!)!.hidden).toBe(true);
     expect(row("vitals")!.checkVisibility()).toBe(false);
     // One line.
-    expect(summary.getBoundingClientRect().height).toBeLessThan(24);
-
-    await device.screen.unmount();
-    await open(EVERYTHING);
-    await expect
-      .poll(() => CARD()?.querySelector("[data-today-summary]")?.textContent)
-      .toBe("BP 130/85 mmHg · 1 appt · 1 med overdue · 1 task today");
-    expect(expanded()).toBe("false");
+    expect(summary()!.getBoundingClientRect().height).toBeLessThan(24);
 
     await userEvent.click(toggle());
     await expect.poll(() => row("vitals")?.checkVisibility()).toBe(true);
-    expect(CARD()!.querySelector("[data-today-summary]")).toBeNull();
+    expect(summary()).toBeNull();
+    await userEvent.click(toggle());
+    await expect.poll(expanded).toBe("false");
+  });
+
+  test("nothing overdue or due soon: the line is the rest alone", async () => {
+    await open([DAY_NOTE, OLD_BP, WALKER]);
+    await expect.poll(shownRows).toEqual(["vitals", "tasks"]);
+    await expect.poll(() => summary()?.textContent).toBe("BP 130/85 mmHg · 1 task today");
+    expect(part("overdue")).toBeNull();
+    expect(part("soon")).toBeNull();
+  });
+
+  test("on a narrow phone the counts stay whole; the rest is cut off", async () => {
+    await renderWithDevice({ route: ROUTES, url: TIMELINE_URL, fixtures: EVERYTHING, width: 320 });
+    await expect.poll(() => part("soon")?.textContent).toBe(" · 4 due soon");
+    const box = toggle().getBoundingClientRect();
+    for (const name of ["overdue", "soon"]) {
+      const el = part(name)!;
+      expect(el.scrollWidth).toBeLessThanOrEqual(el.clientWidth);
+      expect(el.getBoundingClientRect().right).toBeLessThanOrEqual(box.right + 1);
+    }
+    const rest = part("rest")!;
+    expect(rest.scrollWidth).toBeGreaterThan(rest.clientWidth);
+  });
+
+  test("opened, it's collapsed again on the next load", async () => {
+    const device = await open([DAY_NOTE, OLD_BP, WALKER]);
+    await openCard();
+    await device.screen.unmount();
+    await open([DAY_NOTE, OLD_BP, WALKER]);
+    await expect.poll(shownRows).toEqual(["vitals", "tasks"]);
+    expect(expanded()).toBe("false");
   });
 });
