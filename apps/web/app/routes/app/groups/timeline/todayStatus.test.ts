@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { todayStatus, todaySummary } from "./todayStatus";
+import { attentionKey, needsAttention, todayStatus, todaySummary } from "./todayStatus";
 
 const LA = "America/Los_Angeles";
 const MIN = 60_000;
@@ -64,6 +64,45 @@ describe("todayStatus", () => {
     it("neutral once past", () => {
       expect(todayStatus(appointment(plus(-MIN)), NOW, LA)).toBe("neutral");
     });
+  });
+});
+
+describe("needsAttention", () => {
+  const dose = (dueAt: string | null) => ({ kind: "medications" as const, dueAt, id: "pass:p" });
+  const vitals = (latestAt: string) => ({ kind: "vitals" as const, latestAt });
+  const tasks = (overdue: boolean) => ({ kind: "tasks" as const, overdue, id: "t" });
+
+  it("nothing at all, and nothing that needs it: stale vitals, a task due today, an appointment later today", () => {
+    expect(needsAttention([], NOW)).toBe(false);
+    expect(
+      needsAttention([vitals(plus(-3 * 24 * HOUR)), tasks(false), appointment(plus(5 * HOUR))], NOW),
+    ).toBe(false);
+  });
+  it("a dose 2 h out does; 2 h 1 min out doesn't; due and overdue do; tomorrow's pass doesn't", () => {
+    expect(needsAttention([dose(plus(2 * HOUR))], NOW)).toBe(true);
+    expect(needsAttention([dose(plus(2 * HOUR + MIN))], NOW)).toBe(false);
+    expect(needsAttention([dose(plus(0))], NOW)).toBe(true);
+    expect(needsAttention([dose(plus(-3 * HOUR))], NOW)).toBe(true);
+    expect(needsAttention([dose(null)], NOW)).toBe(false);
+  });
+  it("an overdue task does", () => {
+    expect(needsAttention([tasks(true)], NOW)).toBe(true);
+  });
+  it("an appointment now, or in 90 min, or at 2 h does; at 2 h 1 min, past or all-day today doesn't", () => {
+    expect(needsAttention([appointment(plus(-10 * MIN), { endsAt: plus(20 * MIN) })], NOW)).toBe(true);
+    expect(needsAttention([appointment(plus(90 * MIN))], NOW)).toBe(true);
+    expect(needsAttention([appointment(plus(2 * HOUR))], NOW)).toBe(true);
+    expect(needsAttention([appointment(plus(2 * HOUR + MIN))], NOW)).toBe(false);
+    expect(needsAttention([appointment(plus(-MIN))], NOW)).toBe(false);
+    expect(needsAttention([appointment("2026-11-19T08:00:00.000Z", { allDay: true })], NOW)).toBe(false);
+  });
+  it("its key names each item that needs it, so a new one (or tomorrow's same pass) is a new key", () => {
+    const rows = [dose(plus(-MIN)), tasks(true), appointment(plus(HOUR)), vitals(plus(-2 * 24 * HOUR))];
+    expect(attentionKey(rows, NOW)).toBe(`dose:pass:p@${plus(-MIN)} task:t appointment:a`);
+    expect(attentionKey([dose(plus(-MIN))], NOW)).not.toBe(
+      attentionKey([dose(plus(24 * HOUR - MIN))], NOW.getTime() + 24 * HOUR),
+    );
+    expect(attentionKey([tasks(false), appointment(plus(5 * HOUR))], NOW)).toBe("");
   });
 });
 
