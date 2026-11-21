@@ -15,6 +15,8 @@ export { Menu } from "./Menu";
 export type { MenuEntry, MenuItem, MenuSection } from "./menuModel";
 export { SEPARATOR } from "./menuModel";
 export { Popover } from "./Popover";
+/** The menus' and popovers' surface, for a feature's own overlay (quick entry's matching names). */
+export { SURFACE } from "./styles";
 export { Sheet } from "./Sheet";
 export { UserAvatar } from "./UserAvatar";
 export { ChipList } from "./ChipList";
