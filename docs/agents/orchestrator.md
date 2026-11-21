@@ -18,9 +18,11 @@ For a PRD orchestrator: a top-level session (spawned agents can't spawn more), o
 - **The landing mode:** unless _Status_ records one, ask first: before each landing, run everything through (start every ready slice, land each green wave, clean up, ask only real questions), or land chosen waves or slices automatically. Record it in _Status_.
 - **Queueing (the user):** `pnpm prd queue <topic>`, left running in its terminal, waits for fewer than `CARETOOK_MAX_PRDS` PRD worktrees (in queue order: tickets in `.loops/.queue/`, one lock in `.loops/.prd-start.lock`), then opens the orchestrator in run-through mode (`--manual` for the asking prompt). Queueing is the go-ahead for every landing of that PRD.
 - **Waiting on another PRD:** ask its orchestrator (ListAgents, SendMessage) to message you when the work lands in `dev`, and set a background check that exits when `pnpm log dev` or `pnpm backlog list` shows it; then sync and carry on.
-- **Keep your context small.** Work from _Status_, the backlog, hand-offs, `git diff --stat` and check output. Don't read whole diffs or debug inside a loop: send the problem back to its agent with SendMessage. Start a fresh session (the same command) when it gets slow or confused.
+- **Keep your context small.** Work from _Status_, the backlog, hand-offs, `git diff --stat` and check output. Don't read whole diffs or debug inside a loop: send the problem back to its agent with SendMessage.
+- **One session per wave: drain, then rotate.** After a landing (not the last) and its docs, start no new slice; once the slices in flight are merged, commit _Status_ and `pnpm prd rotate` (at once with none in flight): a fresh session with the same name opens from _Status_ in a background tab and the old one is ended. `--mid-wave` only on the user's word. After the last landing: `pnpm prd rm <topic>` (it sets the registry's `done`, except for a `standing` topic), then `cd` to the main checkout and `pnpm prd end`.
+- **Run-through sessions never ask in the terminal:** `pnpm prd ask` (a question, or a report at each landing), then a PushNotification with the line it prints, then `pnpm prd ask --wait <id>` in the background; carry on with what doesn't depend on it.
 - **Update _Status_ at every step:** a slice started (worktree made, agent spawned), handed off, merged (with the SHA), a wave landed; plus what's ready, open issues and the landing mode. Write it as you go, and commit it with your merges and before `pnpm prd check`, so a fresh orchestrator loses nothing.
-- **Capacity:** the limits are CPU and attention (a stack idles at about 250 MB); three PRDs with two or three slices each is about 12 slots. Every check, loops' included, is `pnpm prd check` and takes one of two check leases, so loops finishing together queue. Each run appends a line to `.loops/.check-times.log` (mode, reason, seconds, load at start and end, exit code); `pnpm prd check --times [--since <date>]` summarises it by mode and PRD. No load gate: the log is the evidence for one. Under heavy load tests and sign-ins time out: rerun once it drops before debugging.
+- **Capacity:** the limits are CPU and attention (a stack idles at about 250 MB); three PRDs with two or three slices each is about 12 slots. Every check is `pnpm prd check`, in one of two check leases. Each run appends a line to `.loops/.check-times.log` (mode, reason, seconds, load, exit, test files); `pnpm prd check --times [--since <date>]` summarises it. No load gate: the log is the evidence for one. Under heavy load tests and sign-ins time out: rerun once it drops before debugging.
 
 ## Models
 
@@ -46,7 +48,7 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 4. **Codex review, while the user tries it:** `pnpm prd review <topic> --wait` in the background (exit 0 clean, 1 findings, 2 waiting or stale, 75 timed out, 3 no PR). Send real findings to a fix agent; decline the rest with a reply on the thread giving the reason. Codex never resolves its own threads, so `--resolve <threadId>` each fixed or declined one, then `--again`. After about three rounds, or a 75, ask the user.
 5. **Wait for the user.** Changes go back to a loop, then repeat from step 1.
 6. **Land on their word only:** `pnpm prd land <topic> -m "feat(<topic>): <what the wave adds> (B-<n>, …)"`. On top of the sync, check-gate and doc-budget refusals, it needs the PR open with the local tip as its head and a clean verdict (`--no-review` skips the verdict, on the user's word only). It merges on GitHub pinned to that head, deletes the remote branch, then dev-syncs the main checkout (fast-forward; rebases unpushed backlog-tool commits; else a merge commit; reruns as `pnpm prd dev-sync`) and prints what it needs next (`pnpm datastore:reset`, a PowerSync restart, `pnpm install`). `--local` is the fallback, on the user's word. Hotfixes: `--pr` or `--local`, asked each time; plan branches merge locally.
-7. **Fold the docs** (below), then tell other orchestrators to `pnpm prd sync` at their next wave boundary, never mid-wave. When the PRD is finished, `pnpm prd rm <topic>`.
+7. **Fold the docs** (below), then tell other orchestrators to `pnpm prd sync` at their next wave boundary, never mid-wave. Then drain and rotate (above).
 
 - A go-ahead covers one landing, unless the landing mode or a queue covers more. Never land on your own judgement, never `--force` unless the user says so, never another PRD.
 - **Run each browser check once:** never rerun one that passed, never `--suite` twice for a landing. This overrides any plan that asks for checks after each merge.
@@ -58,9 +60,11 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 
 - **None needed:** everything `dev...<tip>` changes is Markdown, `scripts/loops/`, `scripts/backlog/` or `.githooks/`; later commits of only those also keep an earlier pass. Still run `pnpm test:tooling`.
 - **Full:** `pnpm prd check` (`pnpm check`, then `pnpm build:budget`: the entry and `/app` shell chunk ceilings in `scripts/build/budget.json`) passed on the tip.
-- **Quick:** `pnpm prd check --quick "<why>"` passed on the tip: typecheck, lint, format and the tests related to the diff since the last full pass (`vitest run --changed`). The reason is shown at landing.
+- **Quick:** `pnpm prd check --quick "<why>"` passed on the tip: typecheck, lint, format, the tests related to the diff since the last full pass, the always-run list (tests that read files by path), the check-areas lint and the docs budget; it prints how many test files it ran and warns above half. The reason is shown at landing.
 
-Quick is enough when everything since the last full pass is a conflict-free `pnpm prd sync` whose two sides share no file, slice merges whose slices each passed `pnpm check` with no code conflicts, or a hotfix. Run the full check when a conflict was resolved in code; when the diff touches a migration, seeds, `sync-config.yaml`, the lockfile or a `package.json`; when both sides changed a shared registry or hot file; or when unsure. Quick passes keep the last full pass as their base, so they don't drift.
+The plan is `check-plan.mjs` (pure, tested): a quick check on a diff touching a migration, seeds, `sync-config.yaml`, the lockfile, a `package.json` or `vitest.config.ts` runs full and records `full`; `pnpm test:tooling` joins either when the diff touches the tooling. Loops hand off on quick; **wave gates are quick, and the full check runs once per landing**, on the wave's tip before its PR.
+
+Quick is enough on top of a full pass for a conflict-free `pnpm prd sync` whose sides share no file, or a hotfix. Run full when a conflict was resolved in code, when both sides changed a shared registry or hot file, or when unsure. Quick passes keep the last full pass as their base.
 
 ### Docs at landing
 
@@ -74,14 +78,9 @@ Quick is enough when everything since the last full pass is a conflict-free `pnp
 
 - **Resuming as orchestrator:** reconcile _Status_ with git first, and **git wins**: the slice worktrees (dirty or clean), `slice/` branches ahead of `prd/<topic>`, the merges already in. Respawn each in-flight slice with no live agent (`pnpm prd prompt slice <topic> <n> --continue`). Review a slice handed off but not merged from its branch, spawning a `--continue` agent if you need its hand-off. Follow the recorded landing mode.
 
-## Worktrees and leases
+## Worktrees, leases, sessions and asks
 
-- `new.sh <kind>`: `prd <topic>` (`.loops/<topic>`, from `dev`, a stack), `slice <topic> <n>` (`.loops/<topic>-<n>`, from `prd/<topic>`, a stack only for `Stack: yes` or `--stack`), `plan <topic>` and `hotfix <name>` (stackless, from `dev`). Options: `--slot N`, `--stack`/`--no-stack`, `--base B`. An existing branch is checked out, resuming a removed worktree. Secrets come from the main checkout's env files.
-- **Slots** (1–19) are lock directories in `.loops/.slots/<N>`, taken atomically; a slot is also busy while a `.env` names it or a port listens. Ports: [loop](loop.md#your-worktree-and-stack).
-- **The shared test Postgres** (`pnpm prd test-db`, :5436, tmpfs, Compose project `caretook-shared-test`): a database per worktree, dropped by `rm.sh`; `test-db down` deletes them all. Older worktrees keep a `-test` container or switch with `test-db use`.
-- `pnpm prd status` flags `merged:` slice worktrees and `stopped stack:`s (over `CARETOOK_GC_STOPPED_HOURS`, 24); `gc` removes them after a yes. **The disk guard** refuses a new stack or check build under `CARETOOK_MIN_FREE_GB` (10) free; `reclaim` frees merged worktrees, dangling volumes and images, check builds and Vite caches (never the main checkout's, a dirty worktree, or a running server's caches).
-- `rm.sh <name>` removes the worktree, its stack, database files and slot, and deletes the branch if merged into its parent; it refuses uncommitted changes, or a PRD with slice worktrees left, unless `--force`.
-- **Machine leases** (`lease.sh`, `lease.mjs`): `browser` 3, `check` 2, others 1 (`CARETOOK_<KIND>_SLOTS`), lock directories in `.loops/.lease/<kind>/<N>`, taken over from dead holders. Waits are bounded (`CARETOOK_<KIND>_WAIT`; browser 20 min, check 30) and give up with exit 75. `CARETOOK_LEASES=off` takes none.
+The machinery (worktrees, slots, the shared test Postgres, leases, recorded sessions, the asks queue) is in [machinery](machinery.md).
 
 ## Rules across PRDs
 

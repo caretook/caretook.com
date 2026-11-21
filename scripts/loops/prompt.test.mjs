@@ -95,6 +95,21 @@ describe("orchestrator", () => {
     }
   });
 
+  it("drains, then rotates after a landing, and ends with rm then end, with and without --auto", () => {
+    for (const flags of [[], ["--auto"], ["--resume"], ["--resume", "--auto"]]) {
+      const out = ok("orchestrator", "T", ...flags);
+      expect(out).toContain("**One session per wave: drain, then rotate.**");
+      expect(out).toContain(
+        "After a landing and its docs (not the last one), start no new slice; once the slices in flight are merged, commit _Status_ and run `pnpm prd rotate`; with none in flight, rotate at once.",
+      );
+      expect(out).toContain("`pnpm prd rotate --mid-wave`");
+      expect(out).toContain("only on the user's word");
+      expect(out).toMatch(
+        /When the last wave has landed, run `pnpm prd rm T`, then `cd \S+ && pnpm prd end`/,
+      );
+    }
+  });
+
   it("--auto: the run-through mode, starting the first ready wave", () => {
     const out = ok("orchestrator", "T", "--auto");
     expect(out).toContain(EVERY_STEP);
@@ -103,6 +118,24 @@ describe("orchestrator", () => {
     expect(out).not.toContain(ASK_FIRST);
     expect(out).not.toContain(RESUME);
     expect(out).toContain("record the landing mode in the plan's _Status_, then start the first ready wave.");
+  });
+
+  it("--auto: questions and reports go through pnpm prd ask with a push, never AskUserQuestion", () => {
+    for (const flags of [["--auto"], ["--resume", "--auto"]]) {
+      const out = ok("orchestrator", "T", ...flags);
+      expect(out).toContain("`pnpm prd ask --topic T --question");
+      expect(out).toContain("PushNotification tool yourself");
+      expect(out).toContain("`pnpm prd ask --wait <id>` in the background");
+      expect(out).toContain("`pnpm prd answer <id>");
+      expect(out).toContain("`pnpm prd ask --topic T --report");
+      expect(out).toContain("Push other reports only when something failed");
+      expect(out).not.toContain("AskUserQuestion");
+    }
+    for (const flags of [[], ["--resume"]]) {
+      const out = ok("orchestrator", "T", ...flags);
+      expect(out).not.toContain("pnpm prd ask");
+      expect(out).toContain("AskUserQuestion");
+    }
   });
 
   it("--resume: reconcile _Status_ with git first, respawn with --continue, review handed-off slices", () => {
@@ -154,7 +187,7 @@ describe("slice", () => {
     const out = ok("slice", "T", "1");
     expect(out).toContain('You are the agent for slice 1 of the "T" PRD.');
     expect(out).toContain("  - Stack: no\n  - Reads: docs/loops.md\n  - Tests: unit\n");
-    expect(out).toContain("Check with `pnpm prd check`");
+    expect(out).toContain('Check with `pnpm prd check --quick "slice hand-off"`');
     expect(out).toContain("never a bare `pnpm check`");
     expect(out).not.toContain("`pnpm check` still runs everything");
     expect(out).not.toContain(CONTINUE);
@@ -170,7 +203,9 @@ describe("slice", () => {
     expect(out).toContain("`pnpm log --oneline prd/T..HEAD`, `git status`, `git diff prd/T...HEAD`");
     expect(out).toContain("`git diff` (what isn't)");
     expect(out).toContain("Don't start over, and don't redo committed work.");
-    expect(out).toContain("If everything is committed and `pnpm prd check` passes, don't rebuild");
+    expect(out).toContain(
+      "If everything is committed and `pnpm prd check` (or `--quick`) passes, don't rebuild",
+    );
     expect(out).toContain("write the hand-off");
   });
 
@@ -196,6 +231,23 @@ describe("plan and backlog", () => {
     const text = ok("backlog");
     expect(text).toMatch(/and the queue: `ls \S+\/\.queue`/);
     expect(text).toContain("never propose starting or queueing a topic that is already queued");
+  });
+
+  it("plan adds its registry row through pnpm backlog prd and ends with pnpm prd end", () => {
+    const plan = ok("plan", "T");
+    expect(plan).toContain("`pnpm backlog prd add T`");
+    expect(plan).toContain("`pnpm backlog prd set T after=<topic> hot=<path prefixes>`");
+    expect(plan.indexOf("`pnpm prd rm plan-T`")).toBeLessThan(plan.indexOf("&& pnpm prd end`"));
+    // rm deleted the worktree: end runs from the main checkout
+    expect(plan).toMatch(/`cd \S+ && pnpm prd end`/);
+    expect(plan.trimEnd()).toMatch(/Start by summarising[^]*$/);
+  });
+
+  it("backlog reads the open asks and the PRD registry, and leads with what waits on the user", () => {
+    const text = ok("backlog");
+    expect(text).toContain("`pnpm prd asks`");
+    expect(text).toContain("`pnpm backlog prd list`");
+    expect(text).toContain("what waits on the user");
   });
 
   it("backlog asks one multi-select question first: a PRD, what to run, or a new issue", () => {

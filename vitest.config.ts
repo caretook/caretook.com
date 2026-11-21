@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 import { deviceCommands } from "./apps/web/test/commands.ts";
+import { intWorkers } from "./packages/data/src/db/testDatabase.ts";
 
 // Vitest projects:
 //   data:unit    pure functions, no database (packages/data *.test.ts)
@@ -11,12 +12,14 @@ import { deviceCommands } from "./apps/web/test/commands.ts";
 //   server:unit  packages/auth and packages/api's pure parts (*.test.ts): origins,
 //                the client IP, /rpc's CORS answer; no database
 //   scripts:unit the tooling tests `pnpm test` keeps (sync-matrix, check-areas,
-//                checks, check-times, deploy, build)
+//                checks, check-times, check-plan, deploy, build)
 //   tooling:unit the other tooling tests (scripts/loops, backlog, hooks), against
 //                throwaway git repos in the OS temp dir; `pnpm test:tooling`
 //   integration  real Postgres, every package (*.int.test.ts): the test
 //                database on port 5435. Start it with `pnpm datastore:up:test`;
-//                each run clears and migrates it first. One project (not one
+//                each run clears and migrates it first, then copies it for
+//                each worker (CARETOOK_INT_WORKERS, default 3; 1 runs files
+//                one at a time on the database itself). One project (not one
 //                per package) because they share that database, and each
 //                project's globalSetup would clear it under the other.
 //   web:components  screens and components in real headless Chromium
@@ -37,6 +40,10 @@ const freePort = () =>
     });
   });
 const browserPort = await freePort();
+
+// Integration workers, each on its own database (packages/data/test/globalSetup.ts).
+const integrationWorkers = intWorkers(process.env.CARETOOK_INT_WORKERS);
+if (integrationWorkers === undefined) throw new Error("CARETOOK_INT_WORKERS must be a number from 1 to 16");
 
 export default defineConfig({
   test: {
@@ -88,6 +95,7 @@ export default defineConfig({
             "loops/check-areas.test.mjs",
             "loops/checks.test.mjs",
             "loops/check-times.test.mjs",
+            "loops/check-plan.test.mjs",
             "deploy/**/*.test.mjs",
             "build/**/*.test.mjs",
           ],
@@ -109,6 +117,7 @@ export default defineConfig({
             "loops/check-areas.test.mjs",
             "loops/checks.test.mjs",
             "loops/check-times.test.mjs",
+            "loops/check-plan.test.mjs",
           ],
           testTimeout: 20_000,
         },
@@ -175,11 +184,16 @@ export default defineConfig({
             NODE_ENV: "test",
             BETTER_AUTH_SECRET: "test-only-secret-never-used-outside-tests-0123456789",
             BETTER_AUTH_URL: "http://localhost:5173",
+            CARETOOK_INT_WORKERS: String(integrationWorkers),
           },
           globalSetup: ["./packages/data/test/globalSetup.ts"],
+          // Points each worker at its own database, `<name>_w<VITEST_POOL_ID>`.
           setupFiles: ["./packages/data/test/setup.ts"],
-          // One shared database: run files one at a time.
-          fileParallelism: false,
+          // Files in parallel, one per worker database. Its own maxWorkers needs
+          // a group of its own: after web:components (1), last as before, so
+          // the databases' load doesn't overlap Chromium's.
+          maxWorkers: integrationWorkers,
+          sequence: { groupOrder: 2 },
         },
       },
     ],

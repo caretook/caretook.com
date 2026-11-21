@@ -1,19 +1,25 @@
 # Plan: Orchestration 2
 
-> Source PRD: [`plans/orchestration-2-prd.md`](orchestration-2-prd.md). User-story numbers (US) refer to it. Backlog items B-389, B-390, B-391, B-395. Topic `orchestration-2`. The dispatcher (B-392) is the follow-on topic `orchestration-3`.
+> Source PRD: [`plans/orchestration-2-prd.md`](orchestration-2-prd.md). User-story numbers (US) refer to it. Backlog items B-389, B-390, B-391, B-395, B-403 (slice 7, added at the wave 1 boundary). Topic `orchestration-2`. The dispatcher (B-392) is the follow-on topic `orchestration-3`.
 
 ## Status
 
-**Where it stands:** planned (2026-11-21), not started. Runs after `check-speed` is in `dev` (shared `prd.sh`, `prompt.sh`; it adds `pnpm test:tooling`) and before `test-health`, never beside it.
+**Where it stands:** wave 1 landed (77c79ca, PR #26; 2026-11-21); the table migrated and set (`doctor` leaves 6 findings for the user: B-196, B-239–B-242, B-244 on done topics); the opener's `--background` tried (selected tab kept; a `title` variable bug fixed in 86afe808). check-speed is done (dea0b70). **Waves 2 and 3 merged** (slices 4, 5); docs folded (orchestrator, machinery, planner, recovery). **Next:** gate, PR, Codex, land; then **the first real rotation** (`pnpm prd rotate`, this session was started before the wrapper, so it tries the no-record path), then slice 6.
 
-| Slice | Wave | State       | Merge into `prd/orchestration-2` (slice commits) |
-| ----- | ---- | ----------- | ------------------------------------------------ |
-| 1     | 1    | not started |                                                  |
-| 2     | 1    | not started |                                                  |
-| 3     | 1    | not started |                                                  |
-| 4     | 2    | not started |                                                  |
-| 5     | 3    | not started |                                                  |
-| 6     | 4    | not started |                                                  |
+**B-403** (the cleanup run) is slice 7 (wave 5, after 6), added at the wave 1 boundary; scheduling past `/loop` stays with `orchestration-3`.
+
+**Landing mode: run everything through** (queued with `pnpm prd queue orchestration-2`): start every ready slice, land each green wave through its PR (Codex-reviewed), clean up; ask only real questions.
+
+**Models:** slices 1, 2, 3 opus (new modules and design), 4 opus, 5 sonnet, 6 sonnet (mechanical) — the plan gives no model, these are the handbook's _Models_.
+
+| Slice | Wave | State           | Merge into `prd/orchestration-2` (slice commits) |
+| ----- | ---- | --------------- | ------------------------------------------------ |
+| 1     | 1    | merged (opus)   | 3ba1e77b (9e722505)                              |
+| 2     | 1    | merged (opus)   | a0e66284 (c99d30c2)                              |
+| 3     | 1    | merged (opus)   | dda72b54 (84cdb649)                              |
+| 4     | 2    | merged (opus)   | 4c4a76cc (f5d86cc5)                              |
+| 5     | 3    | merged (sonnet) | 1a92480f (00a19c33)                              |
+| 6     | 4    | not started     |                                                  |
 
 **Backlog:** B-389 (the registry) closes with slice 1, B-390 (one session per wave) with slice 4, B-391 (the asks queue) with slice 5, B-395 (fix categories) with slice 6 and the split after it (`pnpm backlog done` when each merges).
 
@@ -32,7 +38,7 @@
 
 ## How to run this plan
 
-- **Waves:** (1, 2, 3) → 4 → 5 → 6. Slices 4, 5 and 6 each edit `prompt.sh`, its tests and `prd.sh`, so they run one after another, each from a branch that has the one before. Land after wave 1, after slice 5 (waves 2 and 3 together) and after slice 6.
+- **Waves:** (1, 2, 3) → 4 → 5 → 6 → 7. Slices 4, 5 and 6 each edit `prompt.sh`, its tests and `prd.sh`, so they run one after another, each from a branch that has the one before. Land after wave 1, after slice 5 (waves 2 and 3 together), after slice 6 and after slice 7. Slice 7 edits `prd.sh` and `prompt.sh` too, so it runs after 6.
 - **Gates:** every slice is tooling, so the check gate needs no app check: run the tooling tests (`pnpm test:tooling`) and prettier on the changed files. No browser checks.
 - **Shared files in wave 1:** slice 1 owns `scripts/backlog/`; slice 2 `session.sh`, `open-session.*`, `queue.sh`, `rm.sh` and `prd.sh`'s `start`, `open`, `plan` and `end` commands; slice 3 the asks files and a new "asks" group in `prd.sh`'s usage with its own `case` lines. Slices 2 and 3 each add lines to `prd.sh`: the orchestrator resolves that conflict at the merge (both sides are kept).
 - **Migrating the table (the orchestrator, once, after wave 1 lands):** the backlog tool writes `dev` in the main checkout, so no slice can do it.
@@ -195,3 +201,26 @@ Stack: no · Reads: docs/agents/planner.md, docs/agents/backlog.md · Tests: uni
 - [ ] No script orders the categories for running (the triage tie-break is the only list).
 
 **Blocked by:** 1, 5. **Blocks:** nothing.
+
+## Slice 7: A cleanup run (`pnpm prd tidy`)
+
+Stack: no · Reads: docs/agents/machinery.md, docs/agents/orchestrator.md · Tests: unit
+
+**Backlog:** B-403 (its note lists what the hand sweep found). **User stories:** 21.
+
+**What to build**
+
+- A pure module in `scripts/loops/` that takes the facts (worktrees with branch, merged-into-parent and dirty flags; session records with liveness; local and remote branches; lease, queue and slot tickets with their pids; test databases; Docker volumes; `.loops/.browser-hangs` logs and their age; backlog items that are archivable; registry rows) and sorts each finding into **safe** (remove without asking) or **ask** (report only), with the reason.
+  - Safe: a slice worktree merged into its `prd/` branch and clean, with no live agent; a `plan/<topic>` worktree level with `dev`, clean, with no live session; lease, queue and slot tickets whose pid is dead; test databases with no worktree; stale remote-tracking refs (`git fetch --prune`); dangling `caretook` Docker volumes; browser-hang logs older than a week; ended session records with no worktree.
+  - Ask: a live session whose worktree is gone or whose branch is in `dev` (looks finished); a local branch with no worktree (merged ones are named for deletion, unmerged ones never deleted); items to archive; registry rows that look done (`pnpm prd rm` normally sets `done`).
+  - Never: a dirty worktree, a live worktree's build or Vite caches (unlike `reclaim --yes`), the main checkout, an unmerged branch, a session.
+- `pnpm prd tidy [--yes] [--json]`: prints both lists; `--yes` does the safe ones (through `rm.sh`, `test-db`, `git fetch --prune`, `docker volume rm`) and files the ask list as one `pnpm prd ask --report` (none when it is empty), printing the PushNotification line.
+- `prompt.sh tidy`: a short brief for a cheap session (haiku): run `pnpm prd tidy --yes`; for each live session that looks finished, ask it over SendMessage whether it is done and add its answer to the report; never close a session, delete a branch or archive items itself. The brief says how to repeat it every few hours with `/loop` while PRDs run; the dispatcher (`orchestration-3`) takes this over.
+
+**Acceptance criteria**
+
+- [ ] Unit tests of the sorter: each safe, ask and never case above, with a dirty or live case beside each safe one.
+- [ ] Tooling tests in a temporary repo and `.loops`: `tidy` lists without changing anything; `tidy --yes` removes a merged slice worktree and a dead lease ticket, keeps a dirty worktree and an unmerged branch, and files one report ask (none when nothing is left to ask); no Docker or real `claude` is touched (stubs).
+- [ ] The prompt test: `prompt.sh tidy` names `pnpm prd tidy --yes`, SendMessage and `/loop`, and says never to close sessions or delete unmerged work.
+
+**Blocked by:** 2, 3, 6 (`prd.sh`, `prompt.sh`). **Blocks:** nothing.
