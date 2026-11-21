@@ -23,6 +23,9 @@ describe("repeat choices", () => {
     expect(monthWeekOf("2026-11-29")).toBe(-1);
     expect(monthlyLabels(WED)).toEqual({ date: "On the 18th", weekday: "On the 3rd Wednesday" });
     expect(monthlyLabels("2026-11-30").weekday).toBe("On the last Monday");
+    // A stored rule's ordinal and weekday win over the start's (the saved rule keeps them).
+    expect(monthlyLabels("2027-02-26", { nth: -1, weekday: "FR" }).weekday).toBe("On the last Friday");
+    expect(monthlyLabels("2027-02-26", { nth: 2, weekday: "TU" }).weekday).toBe("On the 2nd Tuesday");
   });
 
   it("start with no repeat, weekly on the first day's weekday if picked", () => {

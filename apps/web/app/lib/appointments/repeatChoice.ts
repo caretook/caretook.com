@@ -69,12 +69,12 @@ export const monthWeekOf = (day: string): MonthWeek => {
   return nth >= 5 ? -1 : (nth as MonthWeek);
 };
 
-/** The monthly options for a first day: "On the 18th", "On the 3rd Wednesday". */
-export const monthlyLabels = (startsOn: string) => {
-  const week = monthWeekOf(startsOn);
+/** The monthly options for a first day: "On the 18th", "On the 3rd Wednesday" (or a stored rule's kept ordinal and weekday). */
+export const monthlyLabels = (startsOn: string, kept?: RepeatChoice["keptWeekday"]) => {
+  const week = kept?.nth ?? monthWeekOf(startsOn);
   return {
     date: `On the ${ordinal(Number(startsOn.slice(8, 10)))}`,
-    weekday: `On the ${week === -1 ? "last" : ordinal(week)} ${weekdayName(weekdayOf(startsOn))}`,
+    weekday: `On the ${week === -1 ? "last" : ordinal(week)} ${weekdayName(kept?.weekday ?? weekdayOf(startsOn))}`,
   };
 };
 

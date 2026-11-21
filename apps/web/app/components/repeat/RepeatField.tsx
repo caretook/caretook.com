@@ -82,7 +82,7 @@ export function RepeatField({
   const set = (patch: Partial<RepeatChoice>) => onChange({ ...choice, ...patch });
   const freq: RepeatFreq | null =
     choice.preset === "none" ? null : choice.preset === "custom" ? choice.unit : choice.preset;
-  const monthly = monthlyLabels(timing.startsOn);
+  const monthly = monthlyLabels(timing.startsOn, choice.keptWeekday);
   const { rule, problem } = repeatOutcome(choice, timing, kind);
   const preview = rule ? nextVisits({ ...timing, rule }, timing.startsOn, 3) : [];
   const noun = kind === "note" ? "times" : "visits";
