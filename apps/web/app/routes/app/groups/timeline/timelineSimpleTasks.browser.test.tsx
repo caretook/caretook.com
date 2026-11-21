@@ -123,9 +123,39 @@ describe("My tasks in simple mode", () => {
     const done = await device.query<{ done_by: string | null }>("SELECT done_by FROM task");
     expect(done).toEqual([{ done_by: TEST_USER.id }]);
 
-    await userEvent.click(page.getByRole("button", { name: "Undo" }));
+    await userEvent.click(page.getByRole("button", { name: "Undo Pick up the walker" }));
     await expect.poll(() => titles()).toEqual(["Pick up the walker"]);
     expect(document.querySelector("[data-task-undo]")).toBeNull();
+  });
+
+  test("two ticks each keep their own Undo; undoing the first reopens only it", async () => {
+    const device = await open("caretaker", [
+      mine("Pick up the walker", { dueOn: today }),
+      mine("Water the plants", { dueOn: day(-1) }),
+    ]);
+    await waitUntil(() => titles().length === 2, 4000, "the card's tasks");
+    await userEvent.click(page.getByRole("checkbox", { name: "Mark “Water the plants” done" }));
+    await expect.poll(() => titles()).toEqual(["Pick up the walker"]);
+    await userEvent.click(page.getByRole("checkbox", { name: "Mark “Pick up the walker” done" }));
+    await expect.poll(() => titles()).toEqual([]);
+
+    const lines = () =>
+      [...(card()?.querySelectorAll("[data-task-undo] [data-task-undo-label]") ?? [])].map(
+        (el) => el.textContent,
+      );
+    await expect.poll(lines).toEqual(["Done: Pick up the walker", "Done: Water the plants"]);
+    await expect.element(page.getByRole("button", { name: "Undo Pick up the walker" })).toBeVisible();
+
+    await userEvent.click(page.getByRole("button", { name: "Undo Water the plants" }));
+    await expect.poll(() => titles()).toEqual(["Water the plants"]);
+    await expect.poll(lines).toEqual(["Done: Pick up the walker"]);
+    const rows = await device.query<{ title: string; done: number }>(
+      "SELECT title, done_at IS NOT NULL AS done FROM task ORDER BY title",
+    );
+    expect(rows).toEqual([
+      { title: "Pick up the walker", done: 1 },
+      { title: "Water the plants", done: 0 },
+    ]);
   });
 
   test("a viewer: the card too, and ticking their own task is a done-only change", async () => {
@@ -146,7 +176,7 @@ describe("My tasks in simple mode", () => {
       .toBeInTheDocument();
     const patch = (await device.queued()).find((w) => w.op === "PATCH");
     expect(Object.keys(patch?.data ?? {}).sort()).toEqual(["done_at", "done_by"]);
-    await userEvent.click(page.getByRole("button", { name: "Undo" }));
+    await userEvent.click(page.getByRole("button", { name: "Undo Pick up groceries" }));
     await expect.poll(() => titles()).toEqual(["Pick up groceries"]);
   });
 
