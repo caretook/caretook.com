@@ -92,6 +92,8 @@ Staging only:
    - `production` has the dev keeper as **required reviewer** (self-review allowed). Each workflow has one job in the environment, so it's one Approve per production deploy and per manual Action there. `staging` has none.
 3. Every secret and variable in the tables above, in each environment.
 4. **Ruleset** (Settings → Rules) `main and staging: PR only`, on `main` and `staging`: require a pull request (0 approvals: one maintainer can't approve their own PR), block force pushes, block deletion, no bypass. `staging` takes PRs from `dev`, `main` from `staging`; the ruleset doesn't check the source branch, so that and the local hooks (`.githooks/`) are the guard.
+   4b. **Ruleset** `dev: no force push`, on `dev`: block force pushes and deletion, no bypass, **no** PR requirement (backlog commits are pushed straight to `dev`). The user's manual step.
+   4c. **Codex** (ChatGPT's GitHub connector, bot `chatgpt-codex-connector`) auto-reviews every PR into `dev` and each push to it; `pnpm prd review` reads its verdict, and AGENTS.md's _Review guidelines_ steer it.
 5. Actions settings: default workflow permissions read-only; artifact and log retention 7 days; fork PR workflows need approval for all outside contributors.
    - **Run logs are public** (public repo) for those 7 days. Secrets are masked, but a manual Action's inputs print: never put health details or anyone else's address in one, and delete a run that shows a staff email (`gh run delete <id>`) until B-183 masks the inputs.
 6. Org security: **require two-factor** for members (Settings → Authentication security; the web UI only, the API ignores it).
