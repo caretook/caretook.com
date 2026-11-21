@@ -46,7 +46,7 @@ const DayHeads = ({ days }: { days: WeeklyDay[] }) =>
     </th>
   ));
 
-/** `allergies` is the allergies block, shown first under the header. */
+/** `allergies` is the allergies and conditions blocks, shown first under the header. */
 export function WeeklyChart({ sheet, allergies }: { sheet: WeeklySheet; allergies?: ReactNode }) {
   const empty = sheet.groups.length === 0 && sheet.asNeeded.length === 0;
   return (
