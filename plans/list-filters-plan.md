@@ -4,18 +4,20 @@
 
 ## Status
 
-| Slice | Wave | State                                   | Merge into `prd/list-filters` (slice commits) |
-| ----- | ---- | --------------------------------------- | --------------------------------------------- |
-| 1     | 1    | merged (opus)                           | 69676563 (61b69c42, 898efdcc)                 |     |
-| 2     | 2    | started (sonnet, 2026-11-21)            |                                               |
-| 3     | 2    | started (opus, 2026-11-21; takes B-255) |                                               |
-| 4     | 3    | not started                             |                                               |
+| Slice | Wave | State                        | Merge into `prd/list-filters` (slice commits) |
+| ----- | ---- | ---------------------------- | --------------------------------------------- |
+| 1     | 1    | landed (opus)                | 69676563 (61b69c42, 898efdcc)                 |
+| 2     | 2    | merged (sonnet)              | bf68e368 (1d036869)                           |
+| 3     | 2    | merged (opus; B-255)         | 6471195a (83fae255)                           |
+| 4     | 3    | split out: B-284 (planner-2) | not in this PRD                               |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue list-filters`): start every ready slice, land each green wave through the Codex-reviewed PR, clean up; ask only real questions. B-249 claimed 2026-11-21.
 
-**Wave 1:** slice 1 merged; synced with `dev` (quick-entry, B-220, c2ec744; conflict-free, no shared files). Landing wave 1 through its PR while wave 2 runs (slice 1's docs folded into components and medications; `check --quick` passed on 80d0b207; `browser --changed --base dev`: `ui` passed; PR opened, Codex review running; no Status commits until it lands); wave 2 merges wait until wave 1 has landed. Docs to fold for slice 1: see its _Fold_ line plus the `Menu` changes (`menuLabel` now names the menu; the trigger takes `title` and `data-*`).
+**Wave 1: landed** in `dev` through PR #18 (f48c0f5, Codex clean on 493312c, check `--quick` on 80d0b207, browser `ui` passed); docs folded (components, medications); quick-fixes and planner-2 told to sync.
 
-**Open:** B-247 isn't scheduled: the quick-fixes orchestrator says the user held it (and B-246) back for a later wave; it will message us if it's scheduled and when it lands. A background check watches `dev` too. Once slices 1–3 are merged, ask the user: wait for it, or land the three and file slice 4 as a `quick-fixes` item.
+**Wave 2:** slices 2 (bf68e368) and 3 (6471195a, B-255) merged, worktrees removed, docs folded (providers, todos). The full check found a read-before-render race in the Todos test (fixed, bb01d03d: every read polls); full `pnpm prd check` passed on bb01d03d, `--quick` on 58def14d after a dev sync (package.json scripts only); browser `roundtrip` passed. PR into `dev`, Codex review, land; then message planner-2 (planner-2-b7) and `pnpm prd rm list-filters`.
+
+**Slice 4:** the user chose (2026-11-21) to file it as **B-284** instead of waiting (the backlog session then moved B-284 and B-247 to planner-2's wave 2); B-249 marked done with slice 3. This PRD finishes with wave 2: land it, tell planner-2, `pnpm prd rm list-filters`.
 
 **Start conditions:** slices 1 to 3 can start at once (no dependency). **Slice 4 waits for B-247 in `dev`** (Planner: Past becomes an Upcoming | Past toggle, with the All / Events / Todos filter row; a `quick-fixes` item); `pnpm prd sync` before it.
 

@@ -8,20 +8,20 @@ import { Outlet } from "react-router";
 import { TodoUndoStatus, useTodoTick } from "~/components/todos";
 import { getGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
-import { todosQuery, toTodos } from "~/lib/todos/todos.sync";
+import { todosQuery } from "~/lib/todos/todos.sync";
 import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
-import { defaultWho, parseWho } from "~/lib/todos/todoList";
+import { whoOf } from "~/lib/todos/todoList";
 import { PlannerHeader } from "../planner/PlannerHeader";
 import { DoneTodos } from "./DoneTodos";
-import { TodoChips } from "./TodoChips";
+import { TodoFilterRow } from "./TodoFilters";
 import { TodoSections } from "./TodoSections";
 import { onlyTodoSheetChanged } from "~/lib/todos/todoSheets";
 import { DONE_PAGE, useTodoList } from "./useTodoList";
 
 // Shared by web + native. The Planner section's Todos tab: the group's
 // todos, read from the device's local copy (live, so it works offline and
-// follows other members' changes): the open ones the Mine / Unassigned /
-// Everyone chip shows (`?who=`), in sections by due, then Done. A tick
+// follows other members' changes): the open ones the Filter menu's Assigned
+// to shows (Everyone, or `?who=` Mine / Unassigned), in sections by due, then Done. A tick
 // completes a todo on the device, with Undo. The add and edit sheets render
 // over it (the header's Add menu opens the add sheet).
 
@@ -40,7 +40,7 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     readRows<TodoRow>(db, todosQuery(params.groupId)),
     readRows<MemberRow>(db, membersQuery(params.groupId)),
   ]);
-  const who = parseWho(new URL(request.url).search) ?? defaultWho(toTodos(openRows), group.userId);
+  const who = whoOf(new URL(request.url).search);
   const doneRows = await readRows<TodoRow>(
     db,
     todosQuery(params.groupId, { done: true, who, userId: group.userId, limit: DONE_PAGE }),
@@ -49,8 +49,8 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
 }
 
 /**
- * The live queries follow every change and the chip is applied on the
- * device, so a chip change (same path) or a sheet opening and closing over
+ * The live queries follow every change and the filter is applied on the
+ * device, so a filter change (same path) or a sheet opening and closing over
  * the list doesn't rerun the loader. Anything else (another group) does.
  */
 export function shouldRevalidate({
@@ -79,7 +79,7 @@ export default function Todos({ loaderData, params }: Route.ComponentProps) {
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
       <PlannerHeader tab="todos" />
 
-      <TodoChips who={list.who} />
+      <TodoFilterRow who={list.who} />
       <TodoUndoStatus groupId={params.groupId} />
       {error && (
         <p role="alert" className="text-error text-sm">
