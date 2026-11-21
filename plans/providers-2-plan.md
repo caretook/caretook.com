@@ -4,13 +4,51 @@
 
 ## Status
 
-| Slice | Wave | State           | Merge into `prd/providers-2` (slice commits) |
-| ----- | ---- | --------------- | -------------------------------------------- |
-| 1     | 1    | not started     |                                              |
-| 2     | 2    | blocked by 1    |                                              |
-| 3     | 1    | not started     |                                              |
-| 4     | 2    | blocked by 3    |                                              |
-| 5     | 3    | blocked by 2, 3 |                                              |
+| Slice | Wave | State           | Merge into `prd/providers-2` (slice commits)         |
+| ----- | ---- | --------------- | ---------------------------------------------------- |
+| 1     | 1    | merged (opus)   | 4e1bf908 (01e0ebf3, 4847e3a2)                        |
+| 2     | 2    | merged (opus)   | 680de235 (4952a984)                                  |
+| 3     | 1    | merged (opus)   | 0de633e1 (eeb1218a, fd7e1deb)                        |
+| 4     | 2    | merged (sonnet) | 2a3f4f66 (bab7192d); conflict fix in the next commit |
+| 5     | 3    | merged (opus)   | fc0d2e20 (cd6b09a8)                                  |
+
+**Landing mode (2026-11-20): run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave, clean up; ask only real questions. Per _Landing_, land when every slice is merged.
+
+**Log:** 2026-11-20: backlog ingest: nothing new. `conditions` is in `dev` (a95acb73), so slice 4 waits only on slice 3. Overlap check: `appointments-2` (all merged, landing) touches `components/entry/EntryActions` etc., not `LiveNotesEditor` or the With row; `quick-fixes` not running. Wave 1: B-25 and B-48 claimed; worktrees `providers-2-1` (slot 5, stack) and `providers-2-3` (stackless) made; agents spawned (opus both: new UX).
+
+Slice 1 handed off (pnpm check green bar one load-timing tooling test that passes alone; `prd browser --changed` ran the lean set 12/12, live-notes 58 s, usual seconds unchanged). Merged as 4e1bf908; worktree removed. Its component tests are a new `entry/entryMentions.browser.test.tsx`.
+
+**Synced** `dev` (appointments-2, f49aa958) into prd/providers-2 as b4d47ea0, conflict-free; `pnpm install`, `datastore:reset`. Slice 3 still on the pre-sync base.
+
+Slice 2 worktree `providers-2-2` (stackless) made from b4d47ea0; agent spawned (opus).
+
+Slice 3 handed off (pnpm check green; a `roles.int` load timeout passed on rerun). Merged as 0de633e1, conflict-free; worktree removed. Its `--changed` names **roundtrip, layout-offline, first-sync**: run at landing. Wave 1 done. Slice 4 worktree `providers-2-4` (stackless) made; agent spawned (sonnet: small, spelled out).
+
+Slice 2 handed off (pnpm check green; `--changed` names **roundtrip, live-notes**: run at landing). It made the `@` query allow spaces (`mentionQueryOpen`), so a two-word new name reaches the add row; slice 1's tests adjusted. Merged as 680de235 (before 4, plan order); B-25 done (ready); worktree removed. Slice 5 worktree `providers-2-5` (stackless) made; agent spawned (opus).
+
+Slice 4 handed off (pnpm check green; `prd browser --changed` ran ui.spec on a temporary stack, pass, stack down). It added `ConfirmDialog`'s optional `confirmClassName` (default `btn-error`) and `secondGroup(role)` in `providerWorld.tsx`; it edited `docs/domain/providers.md` (the provider page's Copy to another group): accurate, kept, counts as slice 4's fold. Merged as 915e1643; worktree removed. Wave 2 done.
+
+Slice 4 handed off (pnpm check green; `prd browser --changed` ran ui.spec on a temporary stack, pass, stack down). It added `ConfirmDialog`'s optional `confirmClassName` (default `btn-error`) and `secondGroup(role)` in `providerWorld.tsx`, and edited `docs/domain/providers.md` (the provider page's Copy to another group): accurate, kept as slice 4's fold. **Merge 2a3f4f66** went in with conflict markers and a wrong subject ("docs(providers-2): status: slice 4 merged"; a chained command committed past the conflict; a reset was refused, so fixed forward). The conflict was slices 2 and 4 each appending a `describe` to `provider.browser.test.tsx`: both kept, the file's 17 tests pass. **A code conflict was resolved: the landing check must be full.** Wave 2 done.
+
+**Docs folded** into providers.md (mentions, importing; trimmed to 10225 B), live-notes.md (the mention node, popup), components.md (`ComboBox` `sections`, `ConfirmDialog` `confirmClassName`). First full check failed at lint: `apps/web/.react-router` missing (typegen); generated it and reran.
+
+**Full check passed** on 0698e829 (510 files, 5217 tests, build budget ok). Served (`pnpm prd serve --restart`, :6473). `--changed --base dev` wants the whole lean set (deps); slice 1 already ran it 12/12 on its branch, so landing runs only the later slices' named checks, once each: roundtrip, live-notes, layout-offline, first-sync, ui.
+
+**Browser checks passed** (load ~28): roundtrip 44 s, live-notes 1m09s, layout-offline 24 s, first-sync 24 s, ui 11 s. `pnpm prd ready` clean (one warning: dependencies, `pnpm install` in the main checkout). PRD marked done. Landing (run-through mode).
+
+**Docs to fold (slice 1):** live-notes.md: `MENTION_NODE` (attrs `id`, `label`) always in the schema; `noteText` writes `@<label>`; `providers`/`onMention` props; popup keyboard/ARIA (listbox "Providers to mention", focus stays in the editor via `aria-activedescendant`); the two packages in `optimizeDeps`. providers.md (_Linking from notes and events_): a mention on an entry links like the With row (draft first, idempotent); deleting keeps the link; `mentionOptions` keeps linked ones; chip shows the current name, greyed for deleted/unknown.
+
+**Docs to fold (slice 3):** providers.md: importing is a copy (new ids, ordinary local creates, no server path/migration/source record; notes, links, tasks not copied); `planImport` rules in `lib/providers/providerImport.ts` (fields, primary off, already here by type + `foldName`, practice mapped by type + name else copied once, deleted source practice dropped, practices first, per-provider results with `id`/`practiceId`); wording in `importWording.ts`; the sheet (`providers/import`, `appUrls.importProviders`, `importProvidersGuard`, writers with another group; groups named by recipient display name, else group name); tests in `providers.browser.test.tsx` and `syncProviders.int.test.ts`.
+
+**Docs to fold (slice 2):** providers.md: mentions in every document, only notes and events link; add row (`mentionChoices`, last, writers, hidden when a live provider has the exact folded name; `createAndLinkProvider` on entries, else `createProvider` clinician); spaces in the query and when the popup closes (`mentionQueryOpen`); renamed / deleted / unknown chips; `useMentionProviders` (`lib/providers/mentionProviders.sync.ts`).
+
+Slice 5 handed off (pnpm check green; `--changed` names **roundtrip, live-notes, ui**; it changed the shared `ui/ComboBox.tsx` to static children with optional `sections`: if `ui` fails, look there). Merged as fc0d2e20, conflict-free; B-48 done (ready); worktree removed. **All five slices merged.**
+
+**Synced** `dev` (medications-3, 82221a92: migration 0030, seeds) as 57dce7e2; one conflict in the frozen export list `packages/data/src/db/schema/index.test.ts` (MEDICATION_TYPE* and MENTION_NODE, both kept in order; test passes). `pnpm install`, `datastore:reset`.
+
+**Landing:** full `pnpm prd check` (code conflicts resolved; sync brought a migration and seeds). Browser checks (screens change; slice 1's deps already ran the lean set on its branch): `pnpm prd browser --changed --base dev` covers roundtrip, layout-offline, first-sync, live-notes, ui. Per _Landing_, no `--suite` without asking.
+
+**Docs to fold (slice 5):** providers.md: "From <group>" sections in both pickers once typed (up to 5 per group, live matches minus already here by type + folded name, after this group's options, before the add row); a pick copies the provider and its practice, on an entry linked in one transaction (`importAndLinkProvider`), elsewhere mentioned without a link (`LiveNotesEditor`'s default `onImport`); `lib/providers/fromGroups.ts`, `otherGroupProviders.sync.ts`. components.md: `ComboBox`'s optional `sections` (heading + options, between options and create row; the caller filters).
 
 **Start conditions:** none for wave 1, but before slice 1 check the open `appointments-2` and `quick-fixes` slices for changes to `LiveNotesEditor`, the entry page or the With row. Slice 4 waits for `conditions` in `dev` (it changes the provider page); `pnpm prd sync` before it.
 

@@ -12,6 +12,13 @@ import * as Y from "yjs";
 
 export const NOTE_FRAGMENT = "default";
 
+/**
+ * The editor's mention node (Tiptap's Mention): an inline atom whose `id` is
+ * a provider's id and `label` its name when it was typed. Plain text reads
+ * it as `@<label>`.
+ */
+export const MENTION_NODE = "mention";
+
 /** Bytes → base64. Chunked, so large snapshots don't overflow the call stack. */
 export const toBase64 = (bytes: Uint8Array) => {
   let binary = "";
@@ -59,6 +66,8 @@ const inlineText = (node: Y.XmlElement | Y.XmlText): string => {
       .join("");
   }
   if (node.nodeName === "hardBreak") return "\n";
+  // A mention (an inline atom): its name as typed, so a search for it finds the note.
+  if (node.nodeName === MENTION_NODE) return `@${String(node.getAttribute("label") ?? "")}`;
   return node
     .toArray()
     .map((child) => (child instanceof Y.XmlElement || child instanceof Y.XmlText ? inlineText(child) : ""))
@@ -125,7 +134,7 @@ export const noteDocFromText = (text: string) => {
 
 /**
  * The document as plain text: one line per paragraph or heading, "• " for
- * list items. For previews, search and AI. Formatting is dropped.
+ * list items, `@<label>` for a mention. For previews, search and AI. Formatting is dropped.
  */
 export const noteText = (doc: Y.Doc) =>
   blockLines(doc.getXmlFragment(NOTE_FRAGMENT))

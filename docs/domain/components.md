@@ -4,13 +4,13 @@ The components area's rules and decisions. An orchestrator folds a landing's las
 
 ## Layout
 
-- **`ui/`** holds primitives that import nothing from feature folders: `Menu` (with `SEPARATOR`), `Sheet`, `Popover`, `ConfirmDialog` (and `useShowModal`), `Field`, `ChipGroup`, `ChipList`, `UserAvatar`, `AvatarStack`, `IconButton`, `ChoiceGroup`, `BackLink`, `ComboBox`, `Highlight`, `Toast` (`role="status"`, above the tab bar), `ViaTag` ("via X", `data-via`; nothing when empty). **Only `ui/` imports `react-aria-components`.**
+- **`ui/`** holds primitives that import nothing from feature folders: `Menu` (with `SEPARATOR`), `Sheet`, `Popover`, `ConfirmDialog` (`useShowModal`, `confirmClassName`), `Field`, `ChipGroup`, `ChipList`, `UserAvatar`, `AvatarStack`, `IconButton`, `ChoiceGroup`, `BackLink`, `ComboBox`, `Highlight`, `Toast` (`role="status"`, above the tab bar), `ViaTag` ("via X", `data-via`; nothing when empty). **Only `ui/` imports `react-aria-components`.**
   - `ui/tooltip/` and `ui/date/` (`DateTimeField`, which clamps a month or year step to a shorter month's last day) have their own indexes, so the date picker (~42 KB) and tooltip stay off other pages.
   - `ui/plain` is the light entry for pages that must not load React Aria (below); it exports `ChoiceGroup` (`/connect`).
-  - `ComboBox` takes data in (`options`, a controlled `inputValue`, `onSelect`, an optional `onCreate` last option); the caller filters.
+  - `ComboBox` takes data in (`options`, a controlled `inputValue`, `onSelect`, an optional `onCreate` last option, optional `sections` of a heading and options before it); the caller filters.
 - **Feature folders:** `brand/`, `contact/`, `entry/` (shared by the timeline and Upcoming: `RepeatMark`, `SeriesScopeDialog`, `RemindMeSheet`), `groups/`, `medications/`, `notes/` (the Tiptap editor, kept apart from the timeline's indexes), `providers/` (contact pieces and the provider pickers, [providers](providers.md)), `quick-entry/`, `repeat/` (`RepeatField`, `RepeatSheet`, `SeriesEditSheet`), `schedule/`, `settings/`, `shell/`, `tasks/`, `visitPrep/`.
 - **Import through each folder's `index.ts`**, never a file inside it, and a route never imports another route's folder. An index brings its folder's whole chunk, so keep heavy pieces (the editor, the date picker) out of indexes that light routes use.
-- **When a component moves:** it lives beside its route until a second route needs it, then moves to the matching feature folder (or `ui/` if it's feature-free) and is exported from that index.
+- **When a component moves:** it lives beside its route until a second route needs it, then moves to its feature folder (or `ui/`) and that index.
 - `components/tasks/` holds what the task list (`routes/app/groups/tasks/`) and the task page (`routes/app/groups/task/`) share: `TaskTick`, `useTaskTick`, `TaskUndoStatus`, `LinkedTasks`, `useLinkedTasks`.
 
 ## Rules

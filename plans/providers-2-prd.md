@@ -1,5 +1,7 @@
 # PRD: Providers 2 (mentions and importing)
 
+**Status: done** (2026-11-21). Its lasting decisions are in [providers](../docs/domain/providers.md), [live notes](../docs/domain/live-notes.md) and [components](../docs/domain/components.md).
+
 Backlog items B-25 (@-mentions of providers in live notes and events) and B-48 (importing providers from another care group you belong to). Topic `providers-2`. It follows the providers PRD ([`providers-prd.md`](providers-prd.md), done); the rules it builds on are in [providers](../docs/domain/providers.md), [live notes](../docs/domain/live-notes.md) and [care groups](../docs/domain/care-groups.md).
 
 ## Problem Statement

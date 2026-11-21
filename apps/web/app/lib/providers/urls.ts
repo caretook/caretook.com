@@ -20,6 +20,9 @@ export const providerUrls = {
     if (type && (PROVIDER_TYPES as readonly string[]).includes(type)) params.set(PROVIDER_TYPE_PARAM, type);
     return `${groupHome(groupId)}/providers/new${searchString(params)}`;
   },
+  /** The import sheet over the directory (copying providers from another group), carrying the list's search and filters. */
+  importProviders: (groupId: string, search?: Search) =>
+    `${groupHome(groupId)}/providers/import${searchString(search)}`,
   /** The edit sheet for one provider, over the directory, carrying the list's search and filters. */
   editProvider: (groupId: string, providerId: string, search?: Search) =>
     `${groupHome(groupId)}/providers/${segment(providerId)}/edit${searchString(search)}`,

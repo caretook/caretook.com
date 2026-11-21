@@ -6,6 +6,7 @@ import {
   encodeNoteDoc,
   fromBase64,
   isYjsUpdate,
+  MENTION_NODE,
   NOTE_FRAGMENT,
   noteDocFromText,
   noteText,
@@ -99,6 +100,33 @@ describe("noteText", () => {
 
   it("is empty for an empty document", () => {
     expect(noteText(new Y.Doc())).toBe("");
+  });
+
+  it("reads a mention as @ and its label, where it sits in the line", () => {
+    // As Tiptap's Collaboration stores it: text, the mention atom, text.
+    const doc = new Y.Doc();
+    const p = new Y.XmlElement("paragraph");
+    doc.getXmlFragment(NOTE_FRAGMENT).insert(0, [p]);
+    const before = new Y.XmlText();
+    const mention = new Y.XmlElement(MENTION_NODE);
+    const after = new Y.XmlText();
+    p.insert(0, [before, mention, after]);
+    before.insert(0, "Called ");
+    mention.setAttribute("id", "4b7e7a52-6f1c-4a3e-9b51-2f0d1c8e9a10");
+    mention.setAttribute("label", "Dr. Samuel Patel");
+    mention.setAttribute("mentionSuggestionChar", "@");
+    after.insert(0, " about the dose.");
+    expect(noteText(doc)).toBe("Called @Dr. Samuel Patel about the dose.");
+    // And the same after a round trip through a stored snapshot.
+    expect(noteText(buildNoteDoc(encodeNoteDoc(doc)))).toBe("Called @Dr. Samuel Patel about the dose.");
+  });
+
+  it("reads a mention without a label as a bare @", () => {
+    const doc = new Y.Doc();
+    const p = new Y.XmlElement("paragraph");
+    doc.getXmlFragment(NOTE_FRAGMENT).insert(0, [p]);
+    p.insert(0, [new Y.XmlElement(MENTION_NODE)]);
+    expect(noteText(doc)).toBe("@");
   });
 });
 
