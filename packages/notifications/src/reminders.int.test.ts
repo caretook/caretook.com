@@ -15,7 +15,7 @@ import {
   timelineEntryModel,
   timelineEntryService,
 } from "@caretook/data";
-import { addDays, dayInZone, zonedInstant } from "@caretook/data/schema";
+import { addDays, dayInZone, memberCalendarSettingSchema, zonedInstant } from "@caretook/data/schema";
 import { randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -43,9 +43,16 @@ const plus = (d: Date, minutes: number) => new Date(d.getTime() + minutes * MINU
 const resetLastRun = () =>
   getDb().delete(appSettingSchema).where(eq(appSettingSchema.key, calendarReminderService.LAST_RUN_KEY));
 
+// The sweep is global: it reads every group with reminders on and keeps one
+// shared last-run time. So each test starts with no other group's reminders
+// (earlier tests', other files') and no last run, and can't depend on a
+// neighbour. A sweep does many sequential round trips, so under a loaded full
+// check the 5 s default is too tight (a timed-out test keeps running and
+// moves the shared last run under the next one): 30 s.
 beforeEach(async () => {
+  await getDb().delete(memberCalendarSettingSchema);
   await resetLastRun();
-});
+}, 30_000);
 
 const setup = async () => {
   const ana = await createUser("ana");
@@ -90,7 +97,7 @@ const sweep = async (now: Date) => {
 
 const to = (sent: OutgoingMessage[], email: string) => sent.filter((m) => m.to === email);
 
-describe("sweepReminders", () => {
+describe("sweepReminders", { timeout: 30_000 }, () => {
   it("sends each reminder once, however often or late the cron runs", async () => {
     const { ana, remindersOn, addAppointment } = await setup();
     await remindersOn(ana);
@@ -246,6 +253,7 @@ describe("sweepReminders", () => {
     await remindersOn(ana);
     await addAppointment();
     const [message] = to((await sweep(EVENING_BEFORE)).sent, ana.user.email);
+    expect(message).toBeDefined();
     const header = message?.headers?.["List-Unsubscribe"] ?? "";
     const url = new URL(header.slice(1, -1));
     expect(message!.text).toContain(url.toString());

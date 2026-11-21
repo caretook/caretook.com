@@ -20,7 +20,7 @@ For a PRD orchestrator: a top-level session (spawned agents can't spawn more), o
 - **Waiting on another PRD:** ask its orchestrator (ListAgents, SendMessage) to message you when the work lands in `dev`, and set a background check that exits when `pnpm log dev` or `pnpm backlog list` shows it; then sync and carry on.
 - **Keep your context small.** Work from _Status_, the backlog, hand-offs, `git diff --stat` and check output. Don't read whole diffs or debug inside a loop: send the problem back to its agent with SendMessage. Start a fresh session (the same command) when it gets slow or confused.
 - **Update _Status_ at every step:** a slice started (worktree made, agent spawned), handed off, merged (with the SHA), a wave landed; plus what's ready, open issues and the landing mode. Write it as you go, and commit it with your merges and before `pnpm prd check`, so a fresh orchestrator loses nothing.
-- **Capacity:** the limits are CPU and attention (a stack idles at about 250 MB); three PRDs with two or three slices each is about 12 slots. `pnpm prd check` takes one of three check leases, so loops finishing together queue. Under heavy load tests and sign-ins time out: rerun once it drops before debugging.
+- **Capacity:** the limits are CPU and attention (a stack idles at about 250 MB); three PRDs with two or three slices each is about 12 slots. Every check, loops' included, is `pnpm prd check` and takes one of two check leases, so loops finishing together queue. Each run appends a line to `.loops/.check-times.log` (mode, reason, seconds, load at start and end, exit code); `pnpm prd check --times [--since <date>]` summarises it by mode and PRD. No load gate: the log is the evidence for one. Under heavy load tests and sign-ins time out: rerun once it drops before debugging.
 
 ## Models
 
@@ -56,7 +56,7 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 
 `pnpm prd land` and `ready` accept a tip on one of these, and say which (`lib.sh`, `checked_ok`, `checked_how`):
 
-- **None needed:** everything `dev...<tip>` changes is Markdown, `scripts/loops/`, `scripts/backlog/` or `.githooks/`; later commits of only those also keep an earlier pass. Still run the tooling's own tests.
+- **None needed:** everything `dev...<tip>` changes is Markdown, `scripts/loops/`, `scripts/backlog/` or `.githooks/`; later commits of only those also keep an earlier pass. Still run `pnpm test:tooling`.
 - **Full:** `pnpm prd check` (`pnpm check`, then `pnpm build:budget`: the entry and `/app` shell chunk ceilings in `scripts/build/budget.json`) passed on the tip.
 - **Quick:** `pnpm prd check --quick "<why>"` passed on the tip: typecheck, lint, format and the tests related to the diff since the last full pass (`vitest run --changed`). The reason is shown at landing.
 
@@ -81,7 +81,7 @@ Quick is enough when everything since the last full pass is a conflict-free `pnp
 - **The shared test Postgres** (`pnpm prd test-db`, :5436, tmpfs, Compose project `caretook-shared-test`): a database per worktree, dropped by `rm.sh`; `test-db down` deletes them all. Older worktrees keep a `-test` container or switch with `test-db use`.
 - `pnpm prd status` flags `merged:` slice worktrees and `stopped stack:`s (over `CARETOOK_GC_STOPPED_HOURS`, 24); `gc` removes them after a yes. **The disk guard** refuses a new stack or check build under `CARETOOK_MIN_FREE_GB` (10) free; `reclaim` frees merged worktrees, dangling volumes and images, check builds and Vite caches (never the main checkout's, a dirty worktree, or a running server's caches).
 - `rm.sh <name>` removes the worktree, its stack, database files and slot, and deletes the branch if merged into its parent; it refuses uncommitted changes, or a PRD with slice worktrees left, unless `--force`.
-- **Machine leases** (`lease.sh`, `lease.mjs`): `browser` 3, `check` 3, others 1 (`CARETOOK_<KIND>_SLOTS`), lock directories in `.loops/.lease/<kind>/<N>`, taken over from dead holders. Waits are bounded (`CARETOOK_<KIND>_WAIT`; browser 20 min, check 30) and give up with exit 75. `CARETOOK_LEASES=off` takes none.
+- **Machine leases** (`lease.sh`, `lease.mjs`): `browser` 3, `check` 2, others 1 (`CARETOOK_<KIND>_SLOTS`), lock directories in `.loops/.lease/<kind>/<N>`, taken over from dead holders. Waits are bounded (`CARETOOK_<KIND>_WAIT`; browser 20 min, check 30) and give up with exit 75. `CARETOOK_LEASES=off` takes none.
 
 ## Rules across PRDs
 

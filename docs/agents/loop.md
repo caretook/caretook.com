@@ -10,7 +10,7 @@ For a slice agent (a loop): one background agent working one slice of a PRD in `
 - Run the dev server with `pnpm prd serve` (background; `WEB_PORT` pins the port; `--restart` after merges). After editing `powersync/sync-config.yaml`, `docker compose restart powersync`.
 - Edits to shared files stay small and are listed in the hand-off. Don't edit AGENTS.md or `docs/` (the orchestrator folds at landing), and change the backlog only through `pnpm backlog note`.
 - No new dependencies. All data stays fictional.
-- When `pnpm check` and the slice's browser checks pass, **commit on your branch**: coherent Conventional Commits scoped to the topic, ending with the attribution line. Don't merge, rebase or push any other branch; never set `CARETOOK_ALLOW_PROTECTED`. Delete scratch scripts first.
+- **Commit on your branch**, then check (`pnpm prd check` refuses a dirty tree; fix in more commits): Conventional Commits scoped to the topic, with the attribution line. Don't merge, rebase or push any other branch; never set `CARETOOK_ALLOW_PROTECTED`. Delete scratch scripts first.
 
 ## Hand-off
 
@@ -18,23 +18,23 @@ Your final message:
 
 - what was built, grouped by area, with every shared-file edit called out;
 - each acceptance criterion, met or not, with evidence;
-- the `pnpm check` output, and `pnpm prd browser --changed`'s ■ lines and table;
+- the `pnpm prd check` output, and `pnpm prd browser --changed`'s ■ lines and table;
 - anything skipped or surprising that later slices need;
 - the commit SHAs.
 
 ## Your worktree and stack
 
-- A slice gets a stack only for `Stack: yes`. Stackless, `pnpm check` still runs everything: integration tests use your own database, `caretook_test_<name>`, on the shared test Postgres (:5436, `pnpm prd test-db`), created on first use. **Never run `pnpm datastore:*:test` stackless**: with no root `.env` it hits the main checkout's test project. `pnpm prd stack up` adds a stack and `stack down` removes it (containers, data, env files, slot); tell your orchestrator.
+- A slice gets a stack only for `Stack: yes`. Stackless, a check still runs everything: integration tests use your own database, `caretook_test_<name>`, on the shared test Postgres (:5436, `pnpm prd test-db`), created on first use. **Never run `pnpm datastore:*:test` stackless**: with no root `.env` it hits the main checkout's test project. `pnpm prd stack up` adds a stack and `stack down` removes it (containers, data, env files, slot); tell your orchestrator.
 - **Slots and ports.** A stack leases the lowest free slot (1–19). Slot N in 1–9: web 6N73, Postgres 6N34, test Postgres 6N35, PowerSync 6N80; slots 10–19 use 7(N−10) for 6N. Compose projects are `caretook-loopN`. The main checkout keeps 5173, 5434, 5435, 8080.
 - **Env files** (gitignored, written by `new.sh`): the root `.env` (Compose project and ports), `packages/data/.env` and `.env.test.local`, `apps/web/.env` (`WEB_PORT`, auth and PowerSync URLs), and `.env.loop` (`SLOT`, `BASE_BRANCH`, `BASE`, `CDP_PORT_OFFSET`, `PG_CONTAINER`, `SEED_USER_PASSWORD`).
 - Every port, Compose name and the PowerSync audience come from env. A new service, port or container name is configurable the same way; never a fixed name or port.
 
 ## Tests
 
-- **Vitest 5 projects** (root `vitest.config.ts`): `data:unit` (`*.test.ts`, no database); `scripts:unit` (the tooling, 20 s timeout: they spawn git and shells); `integration` (every `*.int.test.ts` on the test Postgres; its globalSetup clears and migrates once per run, refuses any other host or port, and runs files one at a time; tests build their own fixtures, `packages/data/test/fixtures.ts`); `web:unit` (apps/web's pure `app/**/*.test.ts`; no vite.config, so relative imports, not `~/`); `web:components` (`*.browser.test.tsx` in headless Chromium on the test device, under a `browser` lease: [components](../domain/components.md#component-tests)).
-- **Screens get component tests; cross-cutting flows get end-to-end checks.** What one device decides alone (layout, menus, filters, sheets, role rules, focus, keyboard, widths, themes, local writes and the live queries they update) is a component test beside the screen, run by `pnpm check`. What needs the real server, sync or a production build is a Playwright check: sign-in and the session, first sync, the sign-out wipe, two devices converging, offline then reconnect, refused uploads, invites and email, the CSP and the check build. A new screen gets component tests; a new check is only for a new flow.
+- **Vitest 5 projects** (root `vitest.config.ts`): `data:unit` (`*.test.ts`, no database); `scripts:unit` (sync matrix, check-areas, checks, check-times, deploy, build); `tooling:unit` (loops, backlog, hooks; 20 s timeout as they spawn git; not in `pnpm test`: `pnpm test:tooling`); `integration` (every `*.int.test.ts` on the test Postgres; its globalSetup clears and migrates once per run, refuses any other host or port, and runs files one at a time; tests build their own fixtures, `packages/data/test/fixtures.ts`); `web:unit` (apps/web's pure `app/**/*.test.ts`; no vite.config, so relative imports, not `~/`); `web:components` (`*.browser.test.tsx` in headless Chromium on the test device, under a `browser` lease: [components](../domain/components.md#component-tests)).
+- **Screens get component tests; cross-cutting flows get end-to-end checks.** What one device decides alone (layout, menus, filters, sheets, role rules, focus, keyboard, widths, themes, local writes and the live queries they update) is a component test beside the screen. What needs the real server, sync or a production build is a Playwright check: sign-in and the session, first sync, the sign-out wipe, two devices converging, offline then reconnect, refused uploads, invites and email, the CSP and the check build. A new screen gets component tests; a new check is only for a new flow.
 - A browser step that asserts pure logic goes once a unit test covers it, and one that asserts one device's screen once a component test does.
-- **While building:** `pnpm test:components --changed <base>`, plus `pnpm prd browser <check>` only for a flow you touch. **Before hand-off:** `pnpm check`, then `pnpm prd browser --changed` once. Never `--suite` (the orchestrator runs it at landing). Never rerun a check that passed, and never run two at once in one worktree.
+- **While building:** `pnpm test:components --changed <base>`, plus `pnpm prd browser <check>` only for a flow you touch. **Before hand-off:** `pnpm prd check` (never a bare `pnpm check`: it holds a check lease, and every run is timed in `.loops/.check-times.log`), then `pnpm prd browser --changed` once. Never `--suite` (the orchestrator's). Never rerun a passed check or run two at once in one worktree.
 
 ## Browser checks
 

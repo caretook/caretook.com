@@ -106,9 +106,9 @@ describe("Live now and the live dot", () => {
     await device.sync([live.entry, live.doc]);
     await device.settle();
     expect(bannerId()).toBe(live.entry.id);
-    expect(BANNER()!.innerText.replace(/\s+/g, " ").trim()).toMatch(
-      /^Sam Okafor is writing · Morning notes .*Join$/,
-    );
+    await expect
+      .poll(() => BANNER()?.innerText.replace(/\s+/g, " ").trim())
+      .toMatch(/^Sam Okafor is writing · Morning notes .*Join$/);
     expect(dotOf("Morning notes")!.textContent).toBe("Being written now by Sam Okafor");
     expect(dotOf("Idle note")).toBeNull();
     const li = rowWith("Morning notes")!;
@@ -151,7 +151,7 @@ describe("Live now and the live dot", () => {
       fixtures: [world(), first.entry, first.doc, second.entry, second.doc],
     });
     await waitUntil(() => bannerId() === second.entry.id, 4000, "the banner");
-    expect(BANNER()!.innerText.replace(/\s+/g, " ")).toMatch(/· \+1 more/);
+    await expect.poll(() => BANNER()?.innerText.replace(/\s+/g, " ")).toMatch(/· \+1 more/);
     expect(!!dotOf("Lunch") && !!dotOf("PT visit")).toBe(true);
     await setView("Cards");
     expect(dotOf("PT visit")).toBeTruthy();
