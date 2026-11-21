@@ -17,6 +17,7 @@ import { getSync, useLiveQuery } from "~/lib/sync";
 import { carePeriodsQuery, removeCarePeriod, toPeriodSpans } from "~/lib/care-periods/carePeriods.sync";
 import { useNow } from "~/lib/live-notes/editors.sync";
 import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
+import { useMentionProviders } from "~/lib/providers/mentionProviders.sync";
 import { loadPeriod } from "./loadPeriod";
 import { DELETE_INTENT, PeriodActions } from "./PeriodActions";
 import { PeriodDates } from "./PeriodDates";
@@ -97,6 +98,8 @@ function PeriodPage({ loaderData, params }: Route.ComponentProps) {
     period.placeProviderId && placeRows[0]?.id === period.placeProviderId ? toProvider(placeRows[0]) : null;
 
   const { ensureSaved, saveError } = useCarePeriodNotes(periodId, loaderData.hasDocument);
+  // The group's providers, for mentions in the notes (chips only: nothing links here).
+  const mentionProviders = useMentionProviders(groupId);
   const title = periodTitle(period);
   const navigate = useNavigate();
   // Deleted from here: back to the list (the page would only say it's gone).
@@ -162,6 +165,7 @@ function PeriodPage({ loaderData, params }: Route.ComponentProps) {
               canWrite={canWrite}
               initial={loaderData.initial}
               ensureSaved={ensureSaved}
+              providers={mentionProviders}
             />
           </section>
 

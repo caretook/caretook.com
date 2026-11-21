@@ -5,6 +5,9 @@ import { useLayoutEffect } from "react";
 import { useNavigate } from "react-router";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import type { SyncDb } from "~/lib/sync";
+import { providersQuery, toProviders } from "~/lib/providers/providers.sync";
+import { readRows } from "~/lib/timeline/timeline.sync";
 import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_USER } from "../../../../../test/fixtures";
@@ -20,9 +23,11 @@ import {
   formButton,
   LINDQVIST,
   NOTES,
+  PATEL,
   pageHeader,
   PICKUP,
   PICKUP_2,
+  PICKUP_LINKS,
   PROVIDER_ROUTES,
   providerUrl,
   SECOND_GROUP,
@@ -202,6 +207,140 @@ describe("the notes", () => {
     expect($('main [role=toolbar][aria-label="Formatting"]')).toBeNull();
     expect($("main header a[data-edit-provider]")).toBeNull();
     expect(mainText()).toContain("You can view these notes.");
+  });
+});
+
+describe("mentions in the notes", () => {
+  const mentionChips = () =>
+    $$(".ProseMirror [data-mention]").map((m) => ({
+      id: m.dataset.mention!,
+      text: m.textContent.trim(),
+      href: m.querySelector("a")?.getAttribute("href") ?? null,
+    }));
+  const shown = () => $$('[data-mention-popup] [role="option"]').map((o) => o.firstElementChild!.textContent);
+  const typeInNotes = async (text: string) => {
+    await waitUntil(() => !!NOTES()?.textContent?.includes("level 2"), 4000, "the notes");
+    await userEvent.click(NOTES()!);
+    await waitUntil(() => document.activeElement === NOTES(), 4000, "the editor focused");
+    await userEvent.keyboard(text);
+  };
+  const entryLinks = async (device: Awaited<ReturnType<typeof open>>) => ({
+    rows: (await device.query("SELECT id FROM timeline_entry_provider")).length,
+    queued: (await device.queued()).filter((w) => w.type === "timeline_entry_provider"),
+  });
+
+  test("@ picks a provider: a chip linking to their page, and no entry link", async () => {
+    const device = await open(providerUrl(WESTSIDE.id), { fixtures: [directory(), SAM] });
+    await typeInNotes(" Ask @alva");
+    await waitUntil(() => shown().length === 2, 4000, "the match and the add row");
+    expect(shown()).toEqual(["Dr. Elena Alvarez", 'Add "alva" as a provider']);
+    await userEvent.keyboard("{Enter}");
+    await waitUntil(() => mentionChips().length === 1, 4000, "the chip");
+    expect(mentionChips()).toEqual([
+      { id: ALVAREZ.id, text: "Dr. Elena Alvarez", href: providerUrl(ALVAREZ.id) },
+    ]);
+    await expect
+      .poll(async () => (await device.queued()).map((w) => w.type))
+      .toEqual(expect.arrayContaining(["note_update"]));
+    expect(await entryLinks(device)).toEqual({ rows: PICKUP_LINKS.length, queued: [] });
+  });
+
+  test("the add row adds a clinician in this group and mentions it, linking nothing", async () => {
+    const device = await open(providerUrl(WESTSIDE.id), { fixtures: [directory(), SAM] });
+    await typeInNotes(" Front desk: @Rosa Lind");
+    await waitUntil(() => shown().includes('Add "Rosa Lind" as a provider'), 4000, "the add row");
+    expect(shown()).toEqual(['Add "Rosa Lind" as a provider']);
+    await userEvent.keyboard("{Enter}");
+    await waitUntil(() => mentionChips().length === 1, 4000, "the chip");
+    const [made] = await device.query<{ id: string; type: string; group_id: string }>(
+      "SELECT id, type, group_id FROM provider WHERE name = ?",
+      ["Rosa Lind"],
+    );
+    expect(made).toMatchObject({ type: "clinician", group_id: WESTSIDE.row.group_id });
+    await expect
+      .poll(mentionChips)
+      .toEqual([{ id: made!.id, text: "Rosa Lind", href: providerUrl(made!.id) }]);
+    expect((await device.queued()).some((w) => w.type === "provider" && w.id === made!.id)).toBe(true);
+    expect(await entryLinks(device)).toEqual({ rows: PICKUP_LINKS.length, queued: [] });
+  });
+});
+
+describe("Copy to another group", () => {
+  const COPY = () => $<HTMLButtonElement>("main header [data-copy-provider]");
+  const STATUS = () => $("main [data-copy-status]")?.textContent?.trim() ?? "";
+  const DIALOG = () => $<HTMLDialogElement>("dialog.modal[open]");
+  const dialogButton = (name: string) =>
+    [...(DIALOG()?.querySelectorAll("button") ?? [])].find((b) => b.textContent?.trim() === name);
+  const secondNames = async (db: SyncDb) =>
+    toProviders(await readRows(db, providersQuery(SECOND_GROUP.id)))
+      .map((p) => p.name)
+      .sort();
+
+  test("a writer who writes in another group sees it; the dialog names the rule and the group, and copying adds the provider there, with its practice", async () => {
+    const device = await open(providerUrl(ALVAREZ.id), { role: "caretaker" });
+    await waitUntil(() => !!COPY(), 4000, "the Copy action");
+    await userEvent.click(COPY()!);
+    await waitUntil(() => !!DIALOG(), 4000, "the dialog");
+    expect(DIALOG()!.textContent).toContain("Copy Dr. Elena Alvarez");
+    expect(DIALOG()!.textContent).toContain("Provider notes stay in Grandma June.");
+    // One target: it's named and chosen.
+    expect(page.getByRole("radio", { name: "Lou Lindqvist" })).toBeTruthy();
+    await userEvent.click(dialogButton("Copy")!);
+    await expect.poll(STATUS).toBe("Copied to Lou Lindqvist.");
+    expect(DIALOG()).toBeNull();
+    await device.settle();
+    expect(await secondNames(device.db)).toEqual([
+      "Dr. Elena Alvarez",
+      "Dr. Grace Lindqvist",
+      "Westside Family Medicine",
+    ]);
+  });
+
+  test("a provider already in the other group says so and copies nothing", async () => {
+    const SAME = fx.provider({ groupId: SECOND_GROUP.id, name: "dr. samuel  patel" });
+    const device = await open(providerUrl(PATEL.id), {
+      role: "caretaker",
+      fixtures: [directory(), SAM, secondGroup(), SAME],
+    });
+    await waitUntil(() => !!COPY(), 4000, "the Copy action");
+    await userEvent.click(COPY()!);
+    await waitUntil(() => !!DIALOG(), 4000, "the dialog");
+    await userEvent.click(dialogButton("Copy")!);
+    await expect.poll(STATUS).toBe("Already in Lou Lindqvist. Nothing was copied.");
+    await device.settle();
+    expect(await secondNames(device.db)).toEqual(["dr. samuel  patel", "Dr. Grace Lindqvist"].sort());
+  });
+
+  test("Cancel copies nothing", async () => {
+    const device = await open(providerUrl(PATEL.id), { role: "caretaker" });
+    await waitUntil(() => !!COPY(), 4000, "the Copy action");
+    await userEvent.click(COPY()!);
+    await waitUntil(() => !!DIALOG(), 4000, "the dialog");
+    await userEvent.click(dialogButton("Cancel")!);
+    await waitUntil(() => !DIALOG(), 4000, "the dialog closing");
+    expect(STATUS()).toBe("");
+    expect(await secondNames(device.db)).toEqual(["Dr. Grace Lindqvist"]);
+  });
+
+  test("hidden for a viewer here, with no other group, and when every other group is a viewer role", async () => {
+    let device = await open(providerUrl(PATEL.id), { role: "viewer" });
+    await waitUntil(() => !!NOTES(), 4000, "the page");
+    expect(COPY()).toBeNull();
+    await device.screen.unmount();
+
+    device = await open(providerUrl(PATEL.id), { role: "caretaker", fixtures: [directory(), SAM] });
+    await waitUntil(() => !!NOTES(), 4000, "the page");
+    await device.settle();
+    expect(COPY()).toBeNull();
+    await device.screen.unmount();
+
+    device = await open(providerUrl(PATEL.id), {
+      role: "caretaker",
+      fixtures: [directory(), SAM, secondGroup("viewer")],
+    });
+    await waitUntil(() => !!NOTES(), 4000, "the page");
+    await device.settle();
+    expect(COPY()).toBeNull();
   });
 });
 

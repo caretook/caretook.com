@@ -4,8 +4,9 @@
 // kind), and they upload as the member (a null body, the document, "Event"
 // for an unnamed event); a rename reaches the viewer; Live now from another
 // device (the banner and dot on two other devices, Join in one tap); who's
-// typing across three devices (avatars, live typing, concurrent edits
-// converging, compaction, a heading); offline then reconnect (an edit, a new
+// typing across three devices (avatars, live typing, a provider mention
+// as a chip and a With link on the others, concurrent edits converging,
+// compaction, a heading); offline then reconnect (an edit, a new
 // note, an appointment's place and all day); a time change and a delete
 // reaching the others; and a shared link opened signed out.
 //
@@ -493,6 +494,24 @@ test(
           await wf(C, editorHas(word), 15_000);
         }
         await check("live: the others see the typing", true, `ms: ${lat.join(", ")}`);
+        // A mention typed here: a chip on the others' screens, and the provider linked to the note (its With chip).
+        await test.step("mention: the others see the chip and the provider's With chip", async () => {
+          const [pid, pname] = psql(
+            `SELECT id || '|' || name FROM provider WHERE group_id = '${GROUP}' AND deleted_at IS NULL ORDER BY name LIMIT 1`,
+          ).split("|");
+          const word = pname.split(/\s+/).find((w) => /^[A-Za-z]{3,}$/.test(w)) ?? pname;
+          const OPTION = `[...document.querySelectorAll('[data-mention-popup] [role="option"]')].find((o) => o.firstElementChild?.textContent === ${JSON.stringify(pname)})`;
+          await typeInEditor(A, ` @${word.toLowerCase()}`);
+          await wf(A, OPTION, 5000);
+          await press(A, OPTION);
+          const chip = `!!document.querySelector('.ProseMirror [data-mention="${pid}"] a') && !!document.querySelector('main header [data-region="with"] li[data-chip="${pid}"]')`;
+          for (const page of [A, B, C]) await wf(page, chip, 15_000);
+          const link = await waitForSql(
+            `SELECT count(*) FROM timeline_entry_provider WHERE entry_id = '${N1}' AND provider_id = '${pid}'`,
+            (r) => r === "1",
+          );
+          expect(link, "the link in Postgres").toBe("1");
+        });
         await newParagraph(A);
         await typeInEditor(A, `${tag} from A`);
         await typeInEditor(B, ` ${tag} from B`);
