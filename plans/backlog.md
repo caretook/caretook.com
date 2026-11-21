@@ -119,7 +119,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-196 | feature | triaged | connectors-2 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
 | B-197 | feature | triaged | connectors-2 |  | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
 | B-198 | bug | triaged | quick-fixes |  | rotating placeholder in the timeline entry box is distracting and confusing. Use a static… |
-| B-199 | bug | triaged | quick-fixes |  | ability to add a medication quickly from the log a dose screen. |
+| B-199 | bug | triaged | medications-3 |  | ability to add a medication quickly from the log a dose screen. |
 | B-200 | bug | triaged | medications-3 |  | medications need a type field: rx, otc, supplement, etc. |
 | B-201 | bug | triaged | quick-fixes |  | simple timeline date header should show the care period as well |
 | B-202 | bug | landed | agent-tooling |  | lint before typecheck in check command. Do the fast thing first, then the slow thing. |
@@ -835,11 +835,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-199 · bug · ability to add a medication quickly from the log a dose screen.
 
 - status: triaged
-- prd: quick-fixes
+- prd: medications-3
 - owner:
 - commit:
 
 - 2026-11-20 (Robert Bo Davis): Triage: quick-fixes, wave 14. A small 'new medication' path from the log-a-dose sheet; reuses the medications form. If it needs B-200's type field, run after it.
+- 2026-11-20 (plan/quick-fixes): 2026-11-20 (backlog session, the user): moved to medications-3, out of quick-fixes wave 14. The user's flow: an inline add in the log-a-dose sheet with name, dose and type (B-200's field), a link to add details on the medication's page, and the new medication picked for the dose; also offered in the no-medications empty state. Plan it with B-200.
 
 ### B-200 · bug · medications need a type field: rx, otc, supplement, etc.
 
