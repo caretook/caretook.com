@@ -4,7 +4,11 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-21), not started. Runs after `check-speed` is in `dev` (shared `prd.sh`, `prompt.sh`; it adds `pnpm test:tooling`) and before `test-health`, never beside it.
+**Where it stands:** orchestrator started (2026-11-21). Waiting on `check-speed`: its wave 1 (B-271, B-273: `pnpm test:tooling`, the check lease) is at its landing gate; its wave 2 (B-272, B-278: slices 3 and 4, which touch `prd.sh` and `prompt.sh`) is running. **Wave 1 here starts once check-speed's wave 1 is in `dev`** (after `pnpm prd sync`); slices 4–6 (`prompt.sh`, `prd.sh`) start only once all of check-speed is in `dev`. A background check watches `pnpm log dev`, and the check-speed orchestrator was asked to message on each landing.
+
+**Landing mode: run everything through** (queued with `pnpm prd queue orchestration-2`): start every ready slice, land each green wave through its PR (Codex-reviewed), clean up; ask only real questions.
+
+**Models:** slices 1, 2, 3 opus (new modules and design), 4 opus, 5 sonnet, 6 sonnet (mechanical) — the plan gives no model, these are the handbook's _Models_.
 
 | Slice | Wave | State       | Merge into `prd/orchestration-2` (slice commits) |
 | ----- | ---- | ----------- | ------------------------------------------------ |
