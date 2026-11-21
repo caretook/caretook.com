@@ -65,7 +65,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-31 | feature | triaged | onboarding |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-33 | plan | triaged | hosting |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
-| B-48 | feature | in-progress | providers-2 | prd/providers-2 | Allow import of providers from other care groups that you have access to. |
+| B-48 | feature | ready | providers-2 | prd/providers-2 | Allow import of providers from other care groups that you have access to. |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
@@ -91,8 +91,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-196 | feature | triaged | connectors-2 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
 | B-197 | feature | ready | connectors-2 | prd/connectors-2 | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
 | B-198 | bug | landed | quick-fixes | prd/quick-fixes | rotating placeholder in the timeline entry box is distracting and confusing. Use a static… |
-| B-199 | bug | ready | medications-3 | prd/medications-3 | ability to add a medication quickly from the log a dose screen. |
-| B-200 | bug | ready | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
+| B-199 | bug | landed | medications-3 | prd/medications-3 | ability to add a medication quickly from the log a dose screen. |
+| B-200 | bug | landed | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
 | B-201 | bug | landed | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
 | B-203 | feature | ready | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
 | B-204 | feature | ready | connectors-2 | prd/connectors-2 | connector should be able to edit notes and events so it can help you draft questions or add… |
@@ -103,19 +103,19 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
 | B-210 | bug | landed | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
 | B-211 | change | triaged | quick-fixes |  | link to group details edit page from the edit profile screen for editing the care recipient's… |
-| B-212 | bug | ready | medications-3 | prd/medications-3 | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
+| B-212 | bug | landed | medications-3 | prd/medications-3 | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
 | B-213 | bug | triaged | medications-4 |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
-| B-214 | bug | triaged | timeline-ux-2 |  | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
-| B-215 | bug | triaged | timeline-ux-2 |  | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
-| B-216 | bug | triaged | timeline-ux-2 |  | suggestion dropdown for quick entry box should appear above elements instead of pushing elements… |
+| B-214 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
+| B-215 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
+| B-216 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | suggestion dropdown for quick entry box should appear above elements instead of pushing elements… |
 | B-217 | bug | triaged | timeline-ux-2 |  | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
-| B-218 | bug | triaged | timeline-ux-2 |  | expand icon for day summary on timeline should be at the left of the day summary, not the right. |
-| B-219 | bug | triaged | timeline-ux-2 |  | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
+| B-218 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | expand icon for day summary on timeline should be at the left of the day summary, not the right. |
+| B-219 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
 | B-220 | change | triaged | quick-entry |  | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
 | B-221 | feature | triaged | simple-mode |  | locked simple mode is really confusing. We may want to just add a new user type at this point for… |
 | B-222 | feature | triaged | tasks-2 |  | Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to… |
-| B-223 | bug | triaged | timeline-ux-2 |  | in header care group drop down, we don't need to show the current care period line. New care group… |
-| B-224 | bug | triaged | timeline-ux-2 |  | in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for… |
+| B-223 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | in header care group drop down, we don't need to show the current care period line. New care group… |
+| B-224 | bug | in-progress | timeline-ux-2 | prd/timeline-ux-2 | in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for… |
 
 ## Items
 
@@ -174,10 +174,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-48 · feature · Allow import of providers from other care groups that you have access to.
 
-- status: in-progress
+- status: ready
 - prd: providers-2
 - owner: prd/providers-2
-- commit:
+- commit: fc0d2e20
 
 - 2026-11-18 (Robert Bo Davis): Proposed as a providers follow-up (the PRD is done, like B-25): copy a provider from another group you belong to into this one (a copy, not a shared row, since providers are per group and synced per group). Needs a small PRD addendum or a quick-fixes slice once scoped.
 - 2026-11-20 (Robert Bo Davis): Moved from providers (done) to a new providers-2 PRD, to write (the user, 2026-11-20): B-48's cross-group permission rules want an interview, and B-25 touches the live-notes editor. Same commit: the PRD table's done rows shortened, rows added for providers-2 and appointments-2. -- backlog agent
@@ -449,7 +449,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-199 · bug · ability to add a medication quickly from the log a dose screen.
 
-- status: ready
+- status: landed
 - prd: medications-3
 - owner: prd/medications-3
 - commit: b44af440
@@ -460,7 +460,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-200 · bug · medications need a type field: rx, otc, supplement, etc.
 
-- status: ready
+- status: landed
 - prd: medications-3
 - owner: prd/medications-3
 - commit: 26213ec5
@@ -578,7 +578,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-212 · bug · icon order at top of medications page is not great. Add medication button should be a + icon. Print…
 
-- status: ready
+- status: landed
 - prd: medications-3
 - owner: prd/medications-3
 - commit: a4308e4a
@@ -600,9 +600,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-214 · bug · don't need patient name on the providers, medications, upcoming, or tasks page page, just need it…
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux-2
-- owner:
+- owner: prd/timeline-ux-2
 - commit:
 
 - 2026-11-21 (prd/medications-3): From the inbox: don't need patient name on the providers, medications, upcoming, or tasks page page, just need it in the print version where applicable. it shows in the header all the time. Can also remove entire profile section in top left of the timeline to reduce clutter. Move eyeball icon inline with search and filter icons and size them appropriately.
@@ -611,9 +611,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-215 · bug · move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry…
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux-2
-- owner:
+- owner: prd/timeline-ux-2
 - commit:
 
 - 2026-11-21 (prd/medications-3): From the inbox: move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry box.
@@ -623,9 +623,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-216 · bug · suggestion dropdown for quick entry box should appear above elements instead of pushing elements…
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux-2
-- owner:
+- owner: prd/timeline-ux-2
 - commit:
 
 - 2026-11-21 (prd/medications-3): From the inbox: suggestion dropdown for quick entry box should appear above elements instead of pushing elements below down the page.
@@ -647,9 +647,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-218 · bug · expand icon for day summary on timeline should be at the left of the day summary, not the right.
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux-2
-- owner:
+- owner: prd/timeline-ux-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): timeline-ux-2, a declutter PRD to write: no recipient name in page headers (print only) and no profile corner on the timeline, the eye icon inline with search and filter, the day-summary expand icon on the left, the group dropdown reordered (no care-period line, New care group under the groups, Group settings last).
@@ -657,9 +657,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-219 · bug · can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also…
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux-2
-- owner:
+- owner: prd/timeline-ux-2
 - commit:
 
 - 2026-11-21 (prd/medications-3): From the inbox: can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also not very good.
@@ -700,9 +700,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-223 · bug · in header care group drop down, we don't need to show the current care period line. New care group…
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux-2
-- owner:
+- owner: prd/timeline-ux-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: in header care group drop down, we don't need to show the current care period line. New care group should be below the care group selector section, not at the bottom of the drop down. group settings should be the last entry in the drop down.
@@ -711,9 +711,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-224 · bug · in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for…
 
-- status: triaged
+- status: in-progress
 - prd: timeline-ux-2
-- owner:
+- owner: prd/timeline-ux-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for each vitals type instead of a separate entry for each vitals type.
