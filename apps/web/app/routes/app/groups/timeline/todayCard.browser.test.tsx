@@ -184,9 +184,7 @@ describe("the Today card's rows", () => {
     await userEvent.click(seeAll("vitals"));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=vital`);
     await expect
-      .poll(
-        () => document.querySelector('nav[aria-label="Show entries"] a[aria-current="true"]')?.textContent,
-      )
+      .poll(() => document.querySelector('nav[aria-label="Filters on"] a')?.textContent)
       .toBe("Vitals");
     await userEvent.click(seeAll("tasks"));
     await expect
