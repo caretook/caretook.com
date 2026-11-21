@@ -6,3 +6,4 @@ export * from "./profileVisibility";
 export * from "./recipientAllergy";
 export * from "./recipientCondition";
 export * from "./userContact";
+export * from "./medicationCondition";

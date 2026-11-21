@@ -17,10 +17,12 @@ import {
   toCondition,
   useCondition,
 } from "~/lib/profiles/conditions.sync";
+import { loadConditionMedications, useConditionMedications } from "~/lib/profiles/medicationConditions.sync";
 import { useCloseProfileSheet } from "../../profileSheet";
 import { CONDITION_FIELD, conditionActionFromForm } from "../conditionActions";
 import { ConditionDetails } from "../ConditionDetails";
 import { ConditionGone } from "../ConditionGone";
+import { ConditionMedications } from "../ConditionMedications";
 
 // Shared by web + native. `…/profile/conditions/:conditionId`: one of the
 // recipient's conditions in a sheet over the profile, for every member: its
@@ -33,7 +35,8 @@ export async function clientLoader({ params, context }: Route.ClientLoaderArgs) 
   const { db } = context.get(sessionContext);
   const rows = await loadConditionRows(db, group.id, params.conditionId);
   if (!rows[0] || !toCondition(rows[0])) throw redirect(appUrls.profile(group.id));
-  return { rows };
+  const medicationRows = await loadConditionMedications(db, params.conditionId);
+  return { rows, medicationRows };
 }
 
 export async function clientAction({
@@ -68,6 +71,7 @@ export default function ConditionSheet({ loaderData, params }: Route.ComponentPr
   const close = useCloseProfileSheet(params.groupId);
   const group = useGroup();
   const condition = useCondition(params.groupId, params.conditionId, loaderData.rows);
+  const medications = useConditionMedications(params.conditionId, loaderData.medicationRows);
   const fetcher = useFetcher<ActionResult>();
   // Deleting it here closes the sheet (rather than saying it's gone).
   const [removed, setRemoved] = useState(false);
@@ -92,6 +96,7 @@ export default function ConditionSheet({ loaderData, params }: Route.ComponentPr
           canWrite={group.canWrite}
           busy={fetcher.state !== "idle"}
           refusal={result && !result.ok ? result.error : null}
+          medications={<ConditionMedications groupId={group.id} medications={medications} />}
           onAction={act}
           onClose={close}
         />

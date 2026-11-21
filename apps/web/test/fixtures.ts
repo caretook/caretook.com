@@ -7,7 +7,12 @@ import type {
   VitalReading,
 } from "@caretook/data/schema";
 
-import { encodeNoteDoc, entryProviderId, noteDocFromText } from "@caretook/data/schema";
+import {
+  encodeNoteDoc,
+  entryProviderId,
+  medicationConditionId,
+  noteDocFromText,
+} from "@caretook/data/schema";
 import { getTableColumns, getTableName } from "drizzle-orm";
 import { drizzleSchema } from "~/lib/sync/schema";
 import { toLocalTimestamp } from "~/lib/timeline/timeline.sync";
@@ -495,6 +500,28 @@ export const condition = (v: Partial<Values<"recipientConditions">> = {}) => {
     sinceMonth: null,
     note: null,
     diagnosedById: null,
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};
+
+// --- Added by conditions slice 4 ---------------------------------------------
+
+/** A medication said to be for a condition (the medication's "For" row). */
+export const medicationCondition = (
+  medicationId: string,
+  conditionId: string,
+  v: Partial<Values<"medicationConditions">> = {},
+) => {
+  const created = hoursAgo(24);
+  return row("medicationConditions", {
+    id: medicationConditionId(medicationId, conditionId),
+    groupId,
+    medicationId,
+    conditionId,
     createdAt: created,
     updatedAt: created,
     createdBy: TEST_USER.id,

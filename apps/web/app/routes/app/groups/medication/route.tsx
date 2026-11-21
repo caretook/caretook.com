@@ -19,6 +19,7 @@ import { statusRequestFromForm } from "~/lib/medications/medicationStatusForm";
 import { sessionContext } from "~/lib/auth/session";
 import { getSync, useLiveQuery } from "~/lib/sync";
 import { useAllergies } from "~/lib/medications/allergies.sync";
+import { useMedicationConditions } from "~/lib/profiles/medicationConditions.sync";
 import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
 import {
   changeMedicationStatus,
@@ -95,6 +96,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
   const passes = useSchedulePasses(groupId, loaderData.passRows);
 
   const { state: allergies } = useAllergies(groupId, loaderData.allergies);
+  const conditions = useMedicationConditions(medicationId, loaderData.conditionRows);
   const { ensureSaved, saveError } = useMedicationNotes(medicationId, loaderData.hasDocument);
   const title = medicationTitle(medication);
   const navigate = useNavigate();
@@ -155,7 +157,9 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
           <AllergiesRegion groupId={groupId} state={allergies} canWrite={canWrite} />
 
           <MedicationDetails
+            groupId={groupId}
             medication={medication}
+            conditions={conditions}
             passes={passes}
             recipientTimeZone={loaderData.recipientTimeZone}
           />

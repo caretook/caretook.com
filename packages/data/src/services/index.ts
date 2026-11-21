@@ -133,6 +133,10 @@ export type {
 import * as recipientConditionService from "./recipientConditionService";
 export { recipientConditionService };
 
+import * as medicationConditionService from "./medicationConditionService";
+export { medicationConditionService };
+export type { SetMedicationConditionsInput } from "./medicationConditionService";
+
 export const services = {
   user: userService,
   careGroup: careGroupService,
@@ -164,6 +168,7 @@ export const services = {
   task: taskService,
   connectorGrant: connectorGrantService,
   recipientCondition: recipientConditionService,
+  medicationCondition: medicationConditionService,
 };
 
 export type ServiceTypeMap = typeof services;

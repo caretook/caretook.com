@@ -1,6 +1,7 @@
 import type { ActionResult, FieldIssue } from "~/lib/core/api";
 import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
 import type { LocalMedication, MedicationNameRow } from "~/lib/medications/medications.sync";
+import type { LocalCondition } from "~/lib/profiles/conditions.sync";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { useEffect, useRef, useState } from "react";
@@ -10,6 +11,8 @@ import { Field } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { FORM_LABELS } from "~/lib/medications/medicationDisplay";
+import { CONDITION_IDS_PATH } from "~/lib/profiles/medicationConditions.sync";
+import { ConditionsField } from "./ConditionsField";
 import { FIELD, isFieldIssue } from "./medicationFormData";
 import { NameField } from "./NameField";
 import { ProviderPickerField } from "./ProviderPickerField";
@@ -92,6 +95,8 @@ export function MedicationForm({
   providers,
   passes,
   names,
+  conditions = [],
+  conditionIds = [],
   zoneNote,
   onDone,
   onCancel,
@@ -102,6 +107,10 @@ export function MedicationForm({
   /** The group's passes, deleted ones too (`useSchedulePasses`). */
   passes: readonly LocalPass[];
   names: readonly MedicationNameRow[];
+  /** The recipient's live conditions, for the For field (conditions slice 4). */
+  conditions?: readonly LocalCondition[];
+  /** What the medication is for as the form opens. */
+  conditionIds?: readonly string[];
   zoneNote: string | null;
   onDone: () => void;
   onCancel: () => void;
@@ -132,7 +141,7 @@ export function MedicationForm({
         ? invalid.querySelector<HTMLElement>("input, button")
         : (invalid ??
           form?.querySelector<HTMLElement>(
-            '[data-provider-picker]:has([data-picker-error]) input:not([type="hidden"])',
+            '[data-provider-picker]:has([data-picker-error]) input:not([type="hidden"]), [data-conditions-picker]:has([data-picker-error]) input:not([type="hidden"])',
           ));
     target?.focus();
   }, [fetcher.state, fetcher.data, onDone]);
@@ -209,6 +218,12 @@ export function MedicationForm({
           />
         )}
       </Field>
+
+      <ConditionsField
+        conditions={conditions}
+        initialIds={conditionIds}
+        error={issueFor(issues, CONDITION_IDS_PATH)}
+      />
 
       <TextField
         label="Why it's taken (optional)"

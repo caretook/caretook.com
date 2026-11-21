@@ -20,6 +20,7 @@ import * as tasks from "./tasks";
 import * as timelineEntries from "./timelineEntries";
 import * as users from "./users";
 import * as conditions from "./conditions";
+import * as medicationConditions from "./medicationConditions";
 
 /**
  * Insert development data. Each seed must be idempotent (safe to re-run).
@@ -54,6 +55,7 @@ export const seed = async () => {
     await tasks.seed();
     await connectors.seed();
     await conditions.seed();
+    await medicationConditions.seed();
     // Last, once every seed has made its accounts.
     const { updated } = await accounts.rotateStagingPasswords();
     if (updated) console.log(`Set ${updated} seeded account(s) to the current SEED_USER_PASSWORD`);

@@ -120,6 +120,13 @@ describe("applyRoles", { timeout: 20_000 }, () => {
       ),
     ).toBeNull();
     expect(await failsWith(replication, `SELECT no_known_conditions_at FROM care_recipient`)).toBeNull();
+    // What a medication is for (conditions slice 4).
+    expect(
+      await failsWith(
+        replication,
+        `SELECT id, group_id, medication_id, condition_id FROM medication_condition`,
+      ),
+    ).toBeNull();
     expect(await failsWith(replication, `SELECT password FROM account`)).toBe(INSUFFICIENT_PRIVILEGE);
     expect(await failsWith(replication, `SELECT id FROM session`)).toBe(INSUFFICIENT_PRIVILEGE);
     expect(await failsWith(replication, `SELECT id FROM admin_audit_log`)).toBe(INSUFFICIENT_PRIVILEGE);
