@@ -4,9 +4,9 @@ The `ui/` primitives and their contracts: part of the components area ([componen
 
 ## What's in it
 
-- **Primitives** import nothing from feature folders; **only `ui/` imports `react-aria-components`**: `Menu` (with `SEPARATOR`), `FilterMenu` and `FilterMenuChips`, `Sheet`, `Popover`, `PageHeader`, `TabNav`, `ConfirmDialog` (`useShowModal`), `Field`, `ChipGroup`, `ChipList`, `UserAvatar`, `AvatarStack`, `IconButton`, `Button`, `FormFooter`, `ChoiceGroup`, `BackLink`, `ComboBox`, `Highlight`, `Toast` (`role="status"`, above the tab bar), `ViaTag` ("via X", `data-via`), `Message`, `Notice`, `EmptyState`, `Loading`, `Skeleton`, `Badge`.
+- **Primitives** import nothing from feature folders; **only `ui/` imports `react-aria-components`**: `Menu` (with `SEPARATOR`), `FilterMenu` and `FilterMenuChips`, `Sheet`, `Popover`, `PageHeader`, `TabNav`, `ConfirmDialog` (`useShowModal`), `Field`, `ChipGroup`, `ChipList`, `UserAvatar`, `AvatarStack`, `IconButton`, `Button`, `FormFooter`, `ChoiceGroup`, `BackLink`, `ComboBox`, `Highlight`, `Toast` (`role="status"`, above the tab bar), `ViaTag` ("via X", `data-via`), `Message`, `Notice`, `EmptyState`, `Loading`, `Skeleton`, `Badge`, `Page`.
 - `ui/tooltip/` and `ui/date/` (`DateTimeField`) have their own indexes, so the date picker (~42 KB) and tooltip stay off other pages.
-- **`ui/plain`**, the light entry: everything without React Aria (`Field`, `FieldControl`, `IconButton`, `ChoiceGroup`, `Button`, `FormFooter`, `TabNav`, `Message`, `Notice`, `EmptyState`, `Loading`, `Skeleton`, `Badge`). Light pages (sign-in, the account forms, `/connect`, marketing) import from it, never from `ui` (its chunk carries React Aria); `ui/plain/plain.test.ts` fails on any React Aria import it reaches.
+- **`ui/plain`**, the light entry: everything without React Aria (`Field`, `FieldControl`, `IconButton`, `ChoiceGroup`, `Button`, `FormFooter`, `TabNav`, `Message`, `Notice`, `EmptyState`, `Loading`, `Skeleton`, `Badge`, `Page`). Light pages (sign-in, the account forms, `/connect`, marketing) import from it, never from `ui` (its chunk carries React Aria); `ui/plain/plain.test.ts` fails on any React Aria import it reaches.
 - **Append-only:** the `ui` and `ui/plain` indexes, `ui/styles.ts` and the gallery registry take new lines at the end only.
 - **The gallery** `/dev/ui` (`routes/dev/ui/`, web only, 404 in production through `.server/devUi`, as `/dev/mail`): each primitive in both themes with fictional data, one `sections/` file each, listed in `registry.ts`. A new primitive adds its section. **Add a primitive only for a repeated pattern.**
 - **Contrast** is measured in component tests with `apps/web/test/contrast.ts` (translucent colours composited over what's behind them).
@@ -32,3 +32,10 @@ The `ui/` primitives and their contracts: part of the components area ([componen
 - `Loading` (`{ label, lines? }`): a status named by `label`, a spinner and the label, or with `lines` a `Skeleton` and a screen-reader label. `Skeleton` (`{ lines }`): bars, `aria-hidden`, `data-skeleton`.
 - `Badge` (`{ tone, icon? }`): one size, soft (`badgeClass`, pure); `neutral`, `primary`, `success`, `warning`, `danger`, `info`. **Status tones** (`STATUS_TONE`): current and now `primary`; past and stopped `neutral`; overdue `danger`; due soon `warning`; done `success`. `ViaTag` stays its own.
 - `Highlight` marks a search's matches (`MARK_CLASS`, `bg-warning`, 5.2:1 in both themes).
+
+## Page, headings and tokens (`/app` only; marketing, print and `/admin` keep theirs)
+
+- `Page` is a page's one `main` (`mx-auto max-w-2xl space-y-4 px-4 py-5`; `width="wide"` is `max-w-4xl`), passing `data-*`, `id` and `className` through. Every `/app` page uses it but the timeline and entry folders, print sheets, the error screen and first sync.
+- **Every section page starts with a `PageHeader`** (its `h1` and actions; `description` for one quiet line under the title).
+- **Heading scale** (`ui/styles.ts`): `TITLE_PAGE` `text-xl font-semibold` (`PageHeader` uses it), `TITLE_SECTION` `text-base font-semibold` (sections and cards), `TITLE_SUB` `text-sm font-semibold`.
+- **Tokens:** `text-muted` (70% of `base-content`) and `text-faint` (62%, the lowest whole step clearing 4.5:1 on the light page) in `app.css`; muted measures 6.24 / 6.57 light and 8.82 / 7.66 dark on `base-200` / `base-100`, faint 4.77 / 4.94 and 7.11 / 6.33. `LINK` (`link link-primary`), `ICON_SM`, `ICON`, `ICON_LG` (`size-3.5`, `4`, `5`) in `ui/styles.ts`.
