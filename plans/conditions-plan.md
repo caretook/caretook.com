@@ -11,7 +11,7 @@
 | 4     | 2    | merged; migration regenerated as `0027_medication_conditions` on slice 2's `0026_condition_changes` (publication line kept) | `8de43671` (`3105e06e`, `fbdf2d7e`)         |
 | 5     | 2    | merged                                                                                                                      | `39ad2ba5` (`ca84af98`)                     |
 | 3     | 3    | merged (migration `0028_condition_managers`)                                                                                | `a6a967f8` (`14043819`)                     |
-| 6     | 4    | in progress (`.loops/conditions-6`, stackless; agent spawned, sonnet)                                                       |                                             |
+| 6     | 4    | merged (consent version not bumped: meaning unchanged)                                                                      | `bd045d7d` (`5a0581fe`)                     |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue conditions`): start every ready slice, land each green wave, clean up; ask only real questions. B-181 claimed 2026-11-20.
 
@@ -25,9 +25,9 @@
 
 **Docs to fold at landing (slice 4):** medications.md (`medication_condition`, `medicationConditionService`, the op, For field and page row, save order: check, medication, then links; seeds; tests); profiles.md (condition sheet's medications; `PROFILE_SHEET_STATE` in `lib/profiles/profileSheetLink.ts`); sync.md (stream, op: PUT/DELETE, PATCH read-only); care-groups.md (`medicationConditionSchema` row).
 
-**Docs:** slices 1–5 folded into the area docs (uncommitted → committed with this note); slice 6 still to fold into connectors.md.
+**Docs:** every slice folded into the area docs (connectors.md with slice 6). B-181 done.
 
-**Open issue:** none. `dev` (with `fa9ad005`, the B-205 and tiles fixes) synced after slice 3 merged, clean.
+**Now:** landing. All six slices merged; next `pnpm prd sync`, `pnpm datastore:reset`, full `pnpm prd check` (migrations), `pnpm prd serve --restart`, then ask the user about `--suite` (lean set named by slices 1–4, `marketing` by 6), then `pnpm prd ready` and land.
 
 **Browser checks at landing:** slices 1 and 4 name the whole lean set (migration, sync config): run `pnpm prd browser --suite` once at landing — ask the user first (plan: never `--suite` without asking).
 
