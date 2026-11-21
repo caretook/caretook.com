@@ -121,8 +121,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-199 | bug | triaged | quick-fixes |  | ability to add a medication quickly from the log a dose screen. |
 | B-200 | bug | triaged | medications-3 |  | medications need a type field: rx, otc, supplement, etc. |
 | B-201 | bug | triaged | quick-fixes |  | simple timeline date header should show the care period as well |
-| B-202 | bug | triaged | agent-tooling |  | lint before typecheck in check command. Do the fast thing first, then the slow thing. |
+| B-202 | bug | landed | agent-tooling |  | lint before typecheck in check command. Do the fast thing first, then the slow thing. |
 | B-203 | feature | triaged | github-review |  | Now that we are we have github fixed, we should start using it for some of the merge management so… |
+| B-204 | feature | inbox |  |  | connector should be able to edit notes and events so it can help you draft questions or add… |
 
 ## Items
 
@@ -857,10 +858,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-202 · bug · lint before typecheck in check command. Do the fast thing first, then the slow thing.
 
-- status: triaged
+- status: landed
 - prd: agent-tooling
 - owner:
-- commit:
+- commit: ba84d886
 
 - 2026-11-20 (Robert Bo Davis): Triage: a small change straight on dev (package.json check order). Caveat: format:check is the fastest; type-aware ESLint may be slower than tsc, so time both before reordering.
 
@@ -874,3 +875,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (Robert Bo Davis): From the inbox: Now that we are we have github fixed, we should start using it for some of the merge management so codex can review PRs. I do NOT want PRDs or plans to be in github, only the code. Instead of merging to dev locally, we need to start pushing working branches to github and creating a PR into dev, then waiting for codex to review, then addressing any comments, then merging to dev.
 - 2026-11-20 (Robert Bo Davis): Triage: github-review (to write): pnpm prd land pushes the branch and opens a PR into dev, waits for Codex's review, addresses comments, then merges. Open: plans/ and the PRDs are already on origin/dev and origin/main (public repo), so 'code only on GitHub' means moving plans out of the repo or into an untracked/separate store; the live backlog commits onto dev, which then can't be PR-only.
 - 2026-11-20 (Robert Bo Davis): User 2026-11-20: keep plans/ tracked as now; only code branches go through PRs and Codex review; backlog commits stay direct onto dev. Planning session: github-review.
+
+### B-204 · feature · connector should be able to edit notes and events so it can help you draft questions or add…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-20 (prd/appointments-2): From the inbox: connector should be able to edit notes and events so it can help you draft questions or add information to the entries.

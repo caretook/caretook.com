@@ -52,6 +52,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - ability to upload photos of patient drivers license, insurance card, DNR, etc. (B-56)
 - Service worker for the web app: a precached shell, so repeat loads are near-instant and a reload works offline (docs/domain/sync.md already notes the gap). (B-144)
 - Now that we are we have github fixed, we should start using it for some of the merge management so codex can review PRs. I do NOT want PRDs or plans to be in github, only the code. Instead of merging to dev locally, we need to start pushing working branches to github and creating a PR into dev, then waiting for codex to review, then addressing any comments, then merging to dev. (B-203)
+- connector should be able to edit notes and events so it can help you draft questions or add information to the entries. (B-204)
 
 ## Big plans
 
