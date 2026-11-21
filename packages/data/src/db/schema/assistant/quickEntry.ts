@@ -35,10 +35,11 @@ import {
 // nothing typed is lost, and keeps every plausible kind as a reading. A time
 // phrase ("at 8am", "30 min ago", "yesterday 9pm", "the 25th") sets any
 // part's time, in the recipient's zone; which way an ambiguous one reads is
-// the reading's: ahead for events and reminders (back after a visit verb:
-// "saw Dr. Lee friday"), back for the rest. A todo (`t:`, `task:`, `todo:`)
-// is only ever asked for: its "for Sam" or "@Sam" names a member, and its
-// time phrase is the due day.
+// the reading's: ahead for events and todos (back after a visit verb:
+// "saw Dr. Lee friday"), back for the rest, notes included. A todo is asked
+// for (`t:`, `task:`, `todo:`: its "for Sam" or "@Sam" names a member, and
+// its time phrase is the due day), or is what a note that says a time ahead
+// becomes ("call the pharmacy tomorrow"): notes are past-only.
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1211,7 +1212,8 @@ const allDayToday = (s: PartState): ResolvedTime => ({
 /**
  * An event: an appointment word ("appt dr lee tue 2pm"), a provider named
  * clearly ("Dr. Elena Alvarez on the 25th", "saw Dr. Lee today"), or a time
- * ahead ("dinner tomorrow"). Its time reads ahead, or back after a visit
+ * ahead ("dinner tomorrow", only an alternative to the todo such a line
+ * makes). Its time reads ahead, or back after a visit
  * verb; a provider's event with no time is all day today. Its title is the
  * words left once the time, the provider, the verb and filler are out, else
  * the provider's name; its place is "at <place>" (a provider's address when
@@ -1290,7 +1292,7 @@ const eventReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
             ? 0.85
             : 0.8
         : ahead
-          ? 0.7
+          ? 0.3 // below the todo a note line ahead becomes: plans without a provider are todos
           : 0.5;
   return [
     reading(
@@ -1336,10 +1338,27 @@ const mentionedText = (s: PartState) => {
   return text;
 };
 
-const noteReading = (s: PartState, confidence: number): QuickEntryReading => {
-  // A note dated ahead is a reminder; otherwise it's about what happened.
-  const ahead = (!!s.time.spec && saysFuture(s.time.spec)) || hasRole(s, "appointmentWord");
-  const when = ahead ? s.time.future : s.time.past;
+/**
+ * Whether the part says a time ahead for a note: a phrase that points ahead
+ * on its own ("tomorrow", "in 2 hours", "next friday"), any time beside an
+ * appointment word that isn't a visit ("appt friday 3pm"), or one that, read
+ * back as a note's is, is still to come today ("tonight", "this evening").
+ * A note can't be ahead, so such a line is a todo.
+ */
+const noteAhead = (s: PartState) => {
+  if (!s.time.spec) return false;
+  const forward = saysFuture(s.time.spec) || (hasRole(s, "appointmentWord") && !hasRole(s, "visitVerb"));
+  const at = forward ? s.time.future.at : s.time.past.at;
+  return at.getTime() > s.context.now.getTime() + DEVICE_FUTURE_SKEW_MS;
+};
+
+/**
+ * A note: what happened, at the part's time read back (a bare weekday or
+ * day of the month is the last one). A time still ahead blocks it. With
+ * `now`, it's dated now whatever the line says (the note a todo line offers).
+ */
+const noteReading = (s: PartState, confidence: number, { now = false } = {}): QuickEntryReading => {
+  const at = now ? s.context.now : s.time.past.at;
   // The providers it names clearly are mentioned in it, and linked.
   const providerIds = [...new Set(s.naming.map((m) => m.item.id))];
   return reading(
@@ -1348,10 +1367,11 @@ const noteReading = (s: PartState, confidence: number): QuickEntryReading => {
       type: "addNote",
       title: null,
       text: truncate(providerIds.length ? mentionedText(s) : s.text, TIMELINE_LIMITS.body),
-      occurredAt: when.at.toISOString(),
+      occurredAt: at.toISOString(),
       providerIds,
     },
     confidence,
+    now ? [] : futureWarning(at, s.context),
   );
 };
 
@@ -1422,14 +1442,16 @@ const matchMember = (s: PartState, k: number, first: string) => {
 };
 
 /**
- * A todo (only when the part asks for one): its title is what's left once
- * the due phrase and the assignee are taken out. "for Sam" or "@Sam" names
- * a member (a name that matches nobody stays in the title; a typed-in
- * assignee is chosen in the sheet). A time phrase is the due day and,
- * when it says one, the time, read ahead in the recipient's zone.
+ * A todo (when the part asks for one, or a note line says a time ahead): its
+ * title is what's left once the due phrase and the assignee are taken out.
+ * "for Sam" or "@Sam" names a member (a name that matches nobody stays in the
+ * title; a typed-in assignee is chosen in the sheet). A time phrase is the
+ * due day and, when it says one, the time, read ahead in the recipient's zone.
  */
-const todoReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
-  if (!forced) return [];
+const todoReadings = (s: PartState, forced: boolean): QuickEntryReading[] =>
+  forced ? [todoReading(s, 1)] : [];
+
+const todoReading = (s: PartState, confidence: number): QuickEntryReading => {
   const warnings: QuickEntryWarning[] = [];
   let assigneeId: string | null = null;
   let assigneeUsed: number[] = [];
@@ -1474,23 +1496,21 @@ const todoReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
     if (passed) warnings.push({ message: "That's already past, so it's overdue.", blocking: false });
   }
 
-  return [
-    reading(
-      "todo",
-      {
-        type: "addTodo",
-        title,
-        assigneeId,
-        dueOn,
-        dueTime,
-        providerId: null,
-        medicationId: null,
-        eventId: null,
-      },
-      1,
-      warnings,
-    ),
-  ];
+  return reading(
+    "todo",
+    {
+      type: "addTodo",
+      title,
+      assigneeId,
+      dueOn,
+      dueTime,
+      providerId: null,
+      medicationId: null,
+      eventId: null,
+    },
+    confidence,
+    warnings,
+  );
 };
 
 const DETECTORS: Record<
@@ -1538,12 +1558,20 @@ const parsePart = (
   // ("called Dr. Lee"), makes a note first.
   const noteFirst = hasRole(s, "noteIncident") || (hasRole(s, "contactVerb") && s.naming.length > 0);
 
+  // A note can't be ahead: a line that says a time ahead offers a todo where
+  // its note would be, and the note (dated now, the whole line) after it.
+  const ahead = noteAhead(s);
+
   let readings: QuickEntryReading[];
-  if (forced === "note") readings = [noteReading(s, 1), eventFromText(s, 0.2)];
+  if (forced === "note")
+    // Asked for a note: it stays one (blocked when ahead), with the todo one tap away.
+    readings = [noteReading(s, 1), ...(ahead ? [todoReading(s, 0.3)] : []), eventFromText(s, 0.2)];
   else if (forced) {
     readings = DETECTORS[forced](s, true);
     if (!readings.length && forced === "event") readings = [eventFromText(s, 1)];
-    const fallback = noteReading(s, readings.length ? 0.4 : 0.5);
+    const confidence = readings.length ? 0.4 : 0.5;
+    const fallback =
+      forced === "todo" || ahead ? noteReading(s, confidence, { now: true }) : noteReading(s, confidence);
     if (!readings.length)
       fallback.warnings.push({
         message: `Couldn't read a ${KIND_LABELS[forced].toLowerCase()} in this, so it's a note.`,
@@ -1557,7 +1585,9 @@ const parsePart = (
       ...doseReadings(s, false),
       ...symptomReadings(s, false),
       ...eventReadings(s, false),
-      noteReading(s, noteFirst ? 0.8 : 0.4),
+      ...(ahead
+        ? [todoReading(s, noteFirst ? 0.8 : 0.4), noteReading(s, noteFirst ? 0.45 : 0.35, { now: true })]
+        : [noteReading(s, noteFirst ? 0.8 : 0.4)]),
     ];
     if (!readings.some((r) => r.kind === "event")) readings.push(eventFromText(s, 0.2));
   }
