@@ -10,6 +10,9 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - "Nothing logged today yet." message should be in a border box like a timeline entry box to match the rest of the page. (B-231)
 - call and directions icons on planner schedule should be below the time, not beside the title/description to free up space on mobile. (B-256)
 - Bottom menu on mobile need a better deign. I like floating menus. It needs to be a different bg color than the rest of the page and we can probably move to pure icon buttons instead of text buttons with aria tips (B-399)
+- plus button on timeline day header should be on far right so all actions are on right. Care period can swap with it. change link which adds care period can be an icon button. (B-412)
+- don't collapse past providers on list providers page, it breaks search and isn't needed. This list will never be THAT long. (B-413)
+- owner pill on planner/planner list should be below time/date field. Too busy under title. (B-416)
 
 ## Change requests
 
@@ -23,6 +26,9 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - ability to upload photos of patient drivers license, insurance card, DNR, etc. (B-56)
 - react-i18next or some other internationalization library to support multiple languages for all text in the app. (B-209)
 - locked simple mode is really confusing. We may want to just add a new user type at this point for locked simple mode. Or just review and fix all of the nits. (B-221)
+- animations are cool. add some to actions, hovers, etc... be classy about it. For instance the expand carat on the timeline today header animates, the expand on the day summary does not. search toggle should animate, etc... (B-414)
+- choose a more modern font set. (B-415)
+- We are getting close to feature complete. We need another marketing content pass that updates copy and layout to reflect the new features. Also improve ui to meet modern design standards. NO SCREENSHOTS yet. No videos. (B-417)
 
 ## Big plans
 
