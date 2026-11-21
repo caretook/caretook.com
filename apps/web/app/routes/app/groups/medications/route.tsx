@@ -17,7 +17,7 @@ import { loadAllergies, useAllergies } from "~/lib/medications/allergies.sync";
 import { loadDueDoses, useDueDoses } from "~/lib/medications/dueDoses.sync";
 import { logDose, medicationsQuery, toMedications } from "~/lib/medications/medications.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
-import { MedicationSearch, StatusFilter } from "./MedicationFilters";
+import { MedicationSearch, StatusFilter, TypeFilter } from "./MedicationFilters";
 import { MedicationList } from "./MedicationList";
 import { PrintMenu } from "./PrintMenu";
 import { todayDoseFromForm } from "./todayDose";
@@ -86,8 +86,8 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
   // The box filters as you type; the URL follows (see `MedicationSearch`).
   const [text, setText] = useState(filters.q);
   const list = useMemo(
-    () => medicationList(medications, { q: text, status: filters.status }),
-    [medications, text, filters.status],
+    () => medicationList(medications, { q: text, status: filters.status, type: filters.type }),
+    [medications, text, filters.status, filters.type],
   );
 
   return (
@@ -140,6 +140,7 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
 
       <MedicationSearch value={text} urlQuery={filters.q} onChange={setText} />
       <StatusFilter status={filters.status} />
+      <TypeFilter type={filters.type} />
 
       <MedicationList
         total={medications.length}
@@ -147,6 +148,7 @@ export default function Medications({ loaderData, params }: Route.ComponentProps
         passes={passes}
         text={text}
         status={filters.status}
+        type={filters.type}
       />
 
       {/* The add, edit and allergies sheets render here, over the list. */}
