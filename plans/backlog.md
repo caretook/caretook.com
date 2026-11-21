@@ -62,11 +62,11 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
-| B-25 | feature | landed | providers-2 | prd/providers-2 | @-mentions of providers inside live notes and events |
+| B-25 | feature | staging | providers-2 | prd/providers-2 | @-mentions of providers inside live notes and events |
 | B-31 | feature | triaged | onboarding |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-33 | plan | triaged | hosting |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
-| B-48 | feature | landed | providers-2 | prd/providers-2 | Allow import of providers from other care groups that you have access to. |
+| B-48 | feature | staging | providers-2 | prd/providers-2 | Allow import of providers from other care groups that you have access to. |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
@@ -80,45 +80,45 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
 | B-174 | bug | staging | quick-fixes | prd/quick-fixes | Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page |
 | B-175 | chore | staging | quick-fixes | prd/quick-fixes | Remove the timeline's now-unused care-period place query (placeNamesQuery, the loader's placeRows, periods.placeName) after timeline-ux slice 6 |
-| B-180 | bug | landed | quick-fixes | prd/quick-fixes | Component tests still read synchronously right after render in expect(X()!.textContent…), expect(X()!.querySelector…) and .focus()/.blur() (entry, today, entryWithRow, visitPrep, providerSheets): the next likeliest load races |
+| B-180 | bug | staging | quick-fixes | prd/quick-fixes | Component tests still read synchronously right after render in expect(X()!.textContent…), expect(X()!.querySelector…) and .focus()/.blur() (entry, today, entryWithRow, visitPrep, providerSheets): the next likeliest load races |
 | B-181 | feature | staging | conditions | prd/conditions | A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them |
-| B-182 | bug | landed | quick-fixes | prd/quick-fixes | providers.browser.test.tsx 'a practice's name finds its clinicians too; the Clinicians chip keeps the search…' flakes under load: after tapping Clinicians, the 'Current providers' list still has Dr. Samuel Patel when its expect.poll times out |
+| B-182 | bug | staging | quick-fixes | prd/quick-fixes | providers.browser.test.tsx 'a practice's name finds its clinicians too; the Clinicians chip keeps the search…' flakes under load: after tapping Clinicians, the 'Current providers' list still has Dr. Samuel Patel when its expect.poll times out |
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
 | B-191 | bug | staging | quick-fixes | prd/quick-fixes | clicking the next entry in the upcoming section of the simple timeline should expand the section,… |
 | B-192 | bug | staging | quick-fixes | prd/quick-fixes | undo when checking off a todo should list all the todos that were checked off, not just the last… |
-| B-193 | feature | landed | connectors-2 | prd/connectors-2 | In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states |
-| B-194 | feature | landed | connectors-2 | prd/connectors-2 | A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off |
-| B-195 | feature | landed | connectors-2 | prd/connectors-2 | Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state |
+| B-193 | feature | staging | connectors-2 | prd/connectors-2 | In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states |
+| B-194 | feature | staging | connectors-2 | prd/connectors-2 | A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off |
+| B-195 | feature | staging | connectors-2 | prd/connectors-2 | Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state |
 | B-196 | feature | triaged | connectors-2 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
-| B-197 | feature | landed | connectors-2 | prd/connectors-2 | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
+| B-197 | feature | staging | connectors-2 | prd/connectors-2 | Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService |
 | B-198 | bug | staging | quick-fixes | prd/quick-fixes | rotating placeholder in the timeline entry box is distracting and confusing. Use a static… |
-| B-199 | bug | landed | medications-3 | prd/medications-3 | ability to add a medication quickly from the log a dose screen. |
-| B-200 | bug | landed | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
+| B-199 | bug | staging | medications-3 | prd/medications-3 | ability to add a medication quickly from the log a dose screen. |
+| B-200 | bug | staging | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
 | B-201 | bug | staging | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
 | B-203 | feature | ready | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
-| B-204 | feature | landed | connectors-2 | prd/connectors-2 | connector should be able to edit notes and events so it can help you draft questions or add… |
+| B-204 | feature | staging | connectors-2 | prd/connectors-2 | connector should be able to edit notes and events so it can help you draft questions or add… |
 | B-205 | bug | staging | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails at some times of day: give_pass on w.evening returns isError (line 160) |
 | B-206 | bug | staging | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails in the evening: its Metformin dose a minute earlier fills the Evening pass, so give_pass says 'Nothing is left to give in Evening today' |
 | B-207 | bug | staging | quick-fixes | hotfix/stack-healthcheck | pnpm prd stack up fails at migrate with 'Connection terminated unexpectedly': the compose Postgres healthcheck (pg_isready -U caretook -d caretook) passes against the socket-only init server; use -h 127.0.0.1 (powersync-storage has the same pattern) |
 | B-208 | change | staging | simple-mode |  | you should be able to edit all entries, search, and filter in simple mode. |
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
 | B-210 | bug | staging | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
-| B-211 | change | landed | quick-fixes | prd/quick-fixes | link to group details edit page from the edit profile screen for editing the care recipient's… |
-| B-212 | bug | landed | medications-3 | prd/medications-3 | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
+| B-211 | change | staging | quick-fixes | prd/quick-fixes | link to group details edit page from the edit profile screen for editing the care recipient's… |
+| B-212 | bug | staging | medications-3 | prd/medications-3 | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
 | B-213 | bug | triaged | medications-4 |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
-| B-214 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
-| B-215 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
-| B-216 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | suggestion dropdown for quick entry box should appear above elements instead of pushing elements… |
-| B-217 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
-| B-218 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | expand icon for day summary on timeline should be at the left of the day summary, not the right. |
-| B-219 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
+| B-214 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
+| B-215 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
+| B-216 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | suggestion dropdown for quick entry box should appear above elements instead of pushing elements… |
+| B-217 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
+| B-218 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | expand icon for day summary on timeline should be at the left of the day summary, not the right. |
+| B-219 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
 | B-220 | change | in-progress | quick-entry | prd/quick-entry | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
 | B-221 | feature | triaged | simple-mode |  | locked simple mode is really confusing. We may want to just add a new user type at this point for… |
 | B-222 | feature | landed | tasks-2 | prd/tasks-2 | Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to… |
-| B-223 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | in header care group drop down, we don't need to show the current care period line. New care group… |
-| B-224 | bug | landed | timeline-ux-2 | prd/timeline-ux-2 | in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for… |
-| B-225 | bug | landed | quick-fixes | prd/quick-fixes | Component tests fail between midnight and about 5 a.m.: they put entries a few hours before now, which lands on yesterday (entryPrint 'an event's: title, time…' gets 'Yesterday, 10:18 PM' for /^Event · Today/; timelineCarePeriods 'a period at a place…' gets 'day 2'; timelineSimple 'a day header names the care period…' times out) |
-| B-226 | change | in-progress | medications-tabs | prd/medications-tabs | Medications page should be tabbed into Schedule and Medications |
+| B-223 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | in header care group drop down, we don't need to show the current care period line. New care group… |
+| B-224 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for… |
+| B-225 | bug | staging | quick-fixes | prd/quick-fixes | Component tests fail between midnight and about 5 a.m.: they put entries a few hours before now, which lands on yesterday (entryPrint 'an event's: title, time…' gets 'Yesterday, 10:18 PM' for /^Event · Today/; timelineCarePeriods 'a period at a place…' gets 'day 2'; timelineSimple 'a day header names the care period…' times out) |
+| B-226 | change | ready | medications-tabs | prd/medications-tabs | Medications page should be tabbed into Schedule and Medications |
 | B-227 | bug | dropped | quick-fixes |  | Component tests fail just after midnight America/Los_Angeles: 'today' fixtures made minutes or hours before now fall on yesterday (timelineSummaries, entryPrint 'an event's', timelineCarePeriods 'places', timelineSimple 'a day header names the care period') |
 | B-228 | bug | triaged | quick-fixes |  | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
 | B-229 | bug | triaged | quick-fixes |  | on timeline page, header and Today section should be in same column width as the rest of the… |
@@ -140,7 +140,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
-- status: landed
+- status: staging
 - prd: providers-2
 - owner: prd/providers-2
 - commit: 680de235
@@ -193,7 +193,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-48 · feature · Allow import of providers from other care groups that you have access to.
 
-- status: landed
+- status: staging
 - prd: providers-2
 - owner: prd/providers-2
 - commit: fc0d2e20
@@ -340,7 +340,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-180 · bug · Component tests still read synchronously right after render in expect(X()!.textContent…), expect(X()!.querySelector…) and .focus()/.blur() (entry, today, entryWithRow, visitPrep, providerSheets): the next likeliest load races
 
-- status: landed
+- status: staging
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 33adfc0a
@@ -364,7 +364,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-182 · bug · providers.browser.test.tsx 'a practice's name finds its clinicians too; the Clinicians chip keeps the search…' flakes under load: after tapping Clinicians, the 'Current providers' list still has Dr. Samuel Patel when its expect.poll times out
 
-- status: landed
+- status: staging
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 33adfc0a
@@ -406,7 +406,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-193 · feature · In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states
 
-- status: landed
+- status: staging
 - prd: connectors-2
 - owner: prd/connectors-2
 - commit: c691be06
@@ -416,7 +416,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-194 · feature · A member can ask the group's owners to turn assistants on (email or in-app notice) instead of a dead end when the switch is off
 
-- status: landed
+- status: staging
 - prd: connectors-2
 - owner: prd/connectors-2
 - commit: ea3cbc02
@@ -427,7 +427,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-195 · feature · Starter prompts for connected assistants: MCP server instructions and a few MCP prompts, plus a 'connected to <group>, try asking…' success state
 
-- status: landed
+- status: staging
 - prd: connectors-2
 - owner: prd/connectors-2
 - commit: 0b8c30f7
@@ -447,7 +447,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-197 · feature · Connector write tool add_condition (and resolve): a connected assistant adds or resolves a care recipient's condition through recipientConditionService
 
-- status: landed
+- status: staging
 - prd: connectors-2
 - owner: prd/connectors-2
 - commit: ea3cbc02
@@ -468,7 +468,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-199 · bug · ability to add a medication quickly from the log a dose screen.
 
-- status: landed
+- status: staging
 - prd: medications-3
 - owner: prd/medications-3
 - commit: b44af440
@@ -479,7 +479,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-200 · bug · medications need a type field: rx, otc, supplement, etc.
 
-- status: landed
+- status: staging
 - prd: medications-3
 - owner: prd/medications-3
 - commit: 26213ec5
@@ -510,7 +510,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-204 · feature · connector should be able to edit notes and events so it can help you draft questions or add…
 
-- status: landed
+- status: staging
 - prd: connectors-2
 - owner: prd/connectors-2
 - commit: c8c655b8
@@ -587,7 +587,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-211 · change · link to group details edit page from the edit profile screen for editing the care recipient's…
 
-- status: landed
+- status: staging
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 33adfc0a
@@ -597,7 +597,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-212 · bug · icon order at top of medications page is not great. Add medication button should be a + icon. Print…
 
-- status: landed
+- status: staging
 - prd: medications-3
 - owner: prd/medications-3
 - commit: a4308e4a
@@ -619,7 +619,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-214 · bug · don't need patient name on the providers, medications, upcoming, or tasks page page, just need it…
 
-- status: landed
+- status: staging
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: f58cd4b9
@@ -630,7 +630,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-215 · bug · move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry…
 
-- status: landed
+- status: staging
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: 95ac03f3
@@ -642,7 +642,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-216 · bug · suggestion dropdown for quick entry box should appear above elements instead of pushing elements…
 
-- status: landed
+- status: staging
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: 95ac03f3
@@ -654,7 +654,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-217 · bug · If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page…
 
-- status: landed
+- status: staging
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: f58cd4b9
@@ -666,7 +666,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-218 · bug · expand icon for day summary on timeline should be at the left of the day summary, not the right.
 
-- status: landed
+- status: staging
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: 95ac03f3
@@ -676,7 +676,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-219 · bug · can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also…
 
-- status: landed
+- status: staging
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: 95ac03f3
@@ -721,7 +721,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-223 · bug · in header care group drop down, we don't need to show the current care period line. New care group…
 
-- status: landed
+- status: staging
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: 95ac03f3
@@ -732,7 +732,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-224 · bug · in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for…
 
-- status: landed
+- status: staging
 - prd: timeline-ux-2
 - owner: prd/timeline-ux-2
 - commit: 95ac03f3
@@ -744,7 +744,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-225 · bug · Component tests fail between midnight and about 5 a.m.: they put entries a few hours before now, which lands on yesterday (entryPrint 'an event's: title, time…' gets 'Yesterday, 10:18 PM' for /^Event · Today/; timelineCarePeriods 'a period at a place…' gets 'day 2'; timelineSimple 'a day header names the care period…' times out)
 
-- status: landed
+- status: staging
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 33adfc0a
@@ -755,10 +755,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-226 · change · Medications page should be tabbed into Schedule and Medications
 
-- status: in-progress
+- status: ready
 - prd: medications-tabs
 - owner: prd/medications-tabs
-- commit:
+- commit: 3f8c4d1c
 
 - 2026-11-21 (Robert Bo Davis): Triaged to medications-4: splitting the page into Schedule and Medications tabs is part of B-213's redesign of the Today schedule, and the two touch the same files.
 - 2026-11-21 (Robert Bo Davis): Moved to quick-fixes at the user's word (wave 15), out of medications-4.
