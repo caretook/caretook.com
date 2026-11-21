@@ -1,7 +1,7 @@
 import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { at, fx, TEST_RECIPIENT } from "../../../../../test/fixtures";
+import { at, fx, TEST_RECIPIENT, TEST_USER } from "../../../../../test/fixtures";
 import { found } from "../../../../../test/found";
 import { frames, openTimeline, rows, TIMELINE_URL, waitUntil, world } from "./timelineWorld";
 
@@ -223,5 +223,64 @@ describe("the care period in the day headers", () => {
     );
     expect(document.querySelector("main > header")!.textContent).not.toMatch(/hospital/i);
     expect(document.querySelector('[data-period-line="empty"]')).toBeNull();
+  });
+});
+
+describe("the empty Today", () => {
+  const emptyToday = () => document.querySelector<HTMLElement>("[data-empty-today]");
+  const todaySection = () => dayHeaders()[0]?.closest("section");
+  const olderDays = [
+    fx.symptom({ name: "Sore knee", occurredAt: at(pastNoon(2)) }),
+    fx.note({ text: "Quiet afternoon", occurredAt: at(pastNoon(3)) }),
+  ];
+
+  test("a writer with nothing today sees the line under Today, older days below; Add an entry focuses the quick-entry field", async () => {
+    await openTimeline({ role: "caretaker", fixtures: olderDays });
+    await waitUntil(() => rows().length === 2, 8000, "the rows");
+    const prompt = await found(emptyToday);
+    expect(todaySection()!.querySelector("h3")!.textContent).toBe("Today");
+    expect(todaySection()!.contains(prompt)).toBe(true);
+    expect(prompt.textContent).toContain("Nothing logged today yet.");
+    expect(dayHeaders()).toHaveLength(3);
+    expect(document.querySelector("[data-empty]")).toBeNull();
+
+    await userEvent.click(page.getByRole("button", { name: "Add an entry" }));
+    const field = document.querySelector<HTMLTextAreaElement>('textarea[name="quickEntry"]')!;
+    await expect.poll(() => document.activeElement).toBe(field);
+    // It only focuses the field: no suggestions open.
+    expect(page.getByRole("dialog").query()).toBeNull();
+  });
+
+  test("something logged today shows no prompt", async () => {
+    await openTimeline({ role: "caretaker" });
+    await ready();
+    expect(emptyToday()).toBeNull();
+  });
+
+  test.each([
+    ["a viewer", () => openTimeline({ role: "viewer", fixtures: olderDays })],
+    ["a kind filter", () => openTimeline({ role: "caretaker", fixtures: olderDays, query: "?kind=symptom" })],
+    [
+      "simple mode",
+      () =>
+        openTimeline({
+          role: null,
+          frame: true,
+          fixtures: [fx.member({ userId: TEST_USER.id, role: "caretaker", simpleMode: 1 }), ...olderDays],
+        }),
+    ],
+  ])("%s shows no empty-Today prompt", async (_, open) => {
+    await open();
+    await waitUntil(() => rows().length > 0, 8000, "the rows");
+    expect(emptyToday()).toBeNull();
+    expect(page.getByRole("button", { name: "Add an entry" }).query()).toBeNull();
+  });
+
+  test("a writer's empty timeline shows the Today prompt, not “Nothing on the timeline yet.”", async () => {
+    await openTimeline({ role: "caretaker", fixtures: [] });
+    await found(emptyToday);
+    expect(dayHeaders().map((h) => h.querySelector("h3")!.textContent)).toEqual(["Today"]);
+    expect(document.querySelector("[data-empty]")).toBeNull();
+    expect(document.body.textContent).not.toContain("Nothing on the timeline yet.");
   });
 });
