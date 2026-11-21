@@ -37,7 +37,7 @@ inbox → triaged (has a PRD) → in-progress (claimed) → ready → landed →
 
 ## Deciding what's next
 
-The backlog session (`pnpm prd plan` with no topic, in the main checkout) ingests, lists, checks `pnpm prd status`, and proposes which PRDs to write or start, given the PRD table's dependencies and hot files and the cap of three running at once. Standing priorities:
+The backlog session (`pnpm prd plan` with no topic, in the main checkout) ingests, lists, checks `pnpm prd status`, and proposes which PRDs to write or start, given the PRD table's dependencies and hot files and the cap of three running at once. To plan a topic it asks first: a planner in a new terminal (the user runs `pnpm prd plan <topic> --open`; an agent never runs `--open` from its own shell, where the planner would run inside the command) or planning inline in this session (`pnpm prd plan <topic>`, in its worktree). Standing priorities:
 
 1. Write the PRDs the table marks "to write" (`pnpm prd plan <topic>`), then run them.
 2. Tests: cover every role against every table.
