@@ -4,7 +4,7 @@ import { PROVIDER_TYPES } from "@caretook/data/schema";
 import { appUrls } from "../../../../lib/app-shell/appUrls";
 import { PROVIDER_TYPE_PARAM } from "../../../../lib/providers/urls";
 
-// The directory's sheet routes (`providers/new`, `providers/:providerId/edit`):
+// The directory's sheet routes (`providers/new`, `providers/import`, `providers/:providerId/edit`):
 // which sheet a URL opens, or where it goes instead. Pure, so web:unit tests
 // it; the routes' loaders apply it. Like the timeline's `sheetGuard`.
 
@@ -57,10 +57,31 @@ export const editProviderGuard = <P extends { groupId: string; deletedAt: string
   return { sheet: provider };
 };
 
-/** The list, or one of its sheets: `providers`, `providers/new`, `providers/<id>/edit`. */
+/**
+ * `providers/import`: the user's other groups to import from, for a writer
+ * here. A viewer, and a writer in no other group, get the list.
+ */
+export const importProvidersGuard = <G extends { id: string }>({
+  groupId,
+  search,
+  canWrite,
+  groups,
+}: {
+  groupId: string;
+  search: string;
+  canWrite: boolean;
+  /** Every group the user belongs to (this one included or not). */
+  groups: readonly G[];
+}): ProviderSheetDecision<G[]> => {
+  const others = groups.filter((g) => g.id !== groupId);
+  if (!canWrite || others.length === 0) return { redirect: appUrls.providers(groupId, search) };
+  return { sheet: others };
+};
+
+/** The list, or one of its sheets: `providers`, `providers/new`, `providers/import`, `providers/<id>/edit`. */
 const isListOrSheet = (groupId: string, pathname: string) => {
   const base = appUrls.providers(groupId);
-  if (pathname === base || pathname === `${base}/new`) return true;
+  if (pathname === base || pathname === `${base}/new` || pathname === `${base}/import`) return true;
   if (!pathname.startsWith(`${base}/`)) return false;
   const rest = pathname.slice(base.length + 1).split("/");
   return rest.length === 2 && rest[0] !== "" && rest[1] === "edit";

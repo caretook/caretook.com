@@ -9,6 +9,7 @@ import type {
 import type { ActionResult } from "../core/api";
 import type { SyncDb } from "../sync/index";
 import type { EntryFilters, LocalQuery } from "../timeline/timeline.sync";
+import type { ImportResult, ImportSource } from "./providerImport";
 
 import {
   canLinkProviders,
@@ -34,6 +35,7 @@ import {
   readRows,
   WRITER_ROLES,
 } from "../timeline/timeline.sync";
+import { planImport } from "./providerImport";
 
 // The provider directory and entry links on this device: local queries for
 // `useLiveQuery` and loaders, and local writes that validate with the shared
@@ -495,6 +497,47 @@ export const createProviderDocument = async (db: SyncDb, providerId: string): Pr
     updatedBy: db.userId,
   });
   return { ok: true };
+};
+
+/**
+ * Import providers from another of the user's groups (`providerImport`'s
+ * plan: a copy with new ids, practices first) in one local transaction.
+ * They upload as ordinary provider creates, so the server checks them again
+ * (a writer in the target, a practice in the same group). Only writers in
+ * the target may; `sourceProviders` are the source group's, as the device
+ * holds them.
+ */
+export const importProviders = async (
+  db: SyncDb,
+  targetGroupId: string,
+  sourceProviders: readonly ImportSource[],
+  chosenIds: readonly string[],
+): Promise<{ ok: true; results: ImportResult[] } | Refusal> => {
+  if (!(await canWrite(db, targetGroupId))) return forbidden as Refusal;
+  const target = toProviders(await readRows<ProviderRow>(db, providersQuery(targetGroupId)));
+  const plan = planImport(sourceProviders, target, chosenIds);
+  const now = nowTimestamp();
+  const rows: (typeof providers.$inferInsert)[] = [];
+  for (const { id, content } of plan.rows) {
+    const parsed = providerContentZSchema.safeParse(content);
+    if (!parsed.success) return invalid(parsed.error);
+    rows.push({
+      id,
+      groupId: targetGroupId,
+      ...contentColumns(parsed.data),
+      deletedAt: null,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: db.userId,
+      updatedBy: db.userId,
+    });
+  }
+  if (rows.length)
+    await db.drizzle.transaction(async (tx) => {
+      // One at a time, in order: a practice's PUT queues before its clinicians'.
+      for (const row of rows) await tx.insert(providers).values(row);
+    });
+  return { ok: true, results: plan.results };
 };
 
 // ---------------------------------------------------------------------------
