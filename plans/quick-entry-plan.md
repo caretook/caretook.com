@@ -4,16 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State                                                  | Merge into `prd/quick-entry` (slice commits) |
-| ----- | ---- | ------------------------------------------------------ | -------------------------------------------- |
-| 1     | 1    | started (opus agent, `.loops/quick-entry-1`, no stack) |                                              |
-| 2     | 2    | planned                                                |                                              |
-| 3     | 2    | planned                                                |                                              |
-| 4     | 2    | planned                                                |                                              |
+| Slice | Wave | State                                              | Merge into `prd/quick-entry` (slice commits) |
+| ----- | ---- | -------------------------------------------------- | -------------------------------------------- |
+| 1     | 1    | merged, worktree removed                           | 285342b7 (14374ab2)                          |
+| 2     | 2    | started (opus, `.loops/quick-entry-2`, no stack)   |                                              |
+| 3     | 2    | started (opus, `.loops/quick-entry-3`, no stack)   |                                              |
+| 4     | 2    | started (sonnet, `.loops/quick-entry-4`, no stack) |                                              |
 
 **Landing mode (2026-11-21): run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave, clean up; ask only real questions.
 
-**Now (2026-11-21):** `tasks-2` landed in `dev` (2db975a7), `timeline-ux-2` too; synced (d65bf19f; it brings migration 0032_todos and a sync-config change, so `pnpm datastore:reset` before serving). B-220 claimed. Wave 1: slice 1 running (opus). Wave 2 (slices 2, 3, 4) starts once slice 1 is merged. B-231 (a timeline empty-state box) isn't ours.
+**Now (2026-11-21):** synced with `dev` after `tasks-2` (d65bf19f; brings migration 0032_todos and a sync-config change: `pnpm datastore:reset` before serving). B-220 claimed. Slice 1 merged; wave 2 (slices 2, 3, 4) running. Merge 2, 3, 4 in order (3 and 4 both touch `quickEntryCards.ts` and the card component), then one landing. B-231 (a timeline empty-state box) isn't ours.
+
+**Slice 1 hand-off notes (for docs at landing):** the vocabulary (`quickEntryVocabulary.ts`, roles, `unlessNext` e.g. "fell asleep"; a miss is one row plus a test row; not exported from `@caretook/data/schema`, whose list is frozen); a provider is "named clearly" by a last name, title + name, a practice's full name, or its first word after at/to/from or a verb (a bare first name doesn't make an event); titles drop time, provider words, verbs and filler; place from "at …" else the provider's address; no time → all-day today; contact verbs and note incidents rank the note first (event at 0.5), symptom incidents give the canonical symptom with severity null; the reading decides the time's direction; "25th"/"the 25th"/"on the 25th" with count-word guards, months without that day skipped. Deliberate changes: "fell in bathroom last night" is now the symptom Fall; "appointment with dr lee" is all-day today with no warning. "slipped"/"tripped" dropped (plain notes now).
 
 **Start conditions:** wait for **both** `timeline-ux-2` in `dev` (its quick-entry slices: B-215, B-216, B-219 reshape `components/quick-entry/`) **and** `tasks-2` in `dev` (it renames the to-do action, `actionPreview`, the parser's to-do reading and the connector's tools; last item B-222). `pnpm prd sync` before slice 1.
 
