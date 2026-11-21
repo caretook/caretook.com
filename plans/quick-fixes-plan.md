@@ -14,61 +14,63 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 
 ## Status
 
-| Slice | Item              | State  | Merge into `prd/quick-fixes` (slice commits)          |
-| ----- | ----------------- | ------ | ----------------------------------------------------- |
-| 1     | B-1               | merged | 1e00754 (5ab3b67)                                     |
-| 2     | B-17              | merged | 4629e8c (32355db)                                     |
-| 3     | B-22              | merged | b0325d0 (46ef320)                                     |
-| 4     | B-28              | merged | b15b140 (9911d1b, 8a0bb50)                            |
-| 5     | B-29              | merged | 8eaf3c3 (3b97174, a31bd85)                            |
-| 6     | B-34              | merged | 483f768 (7251a69, 10aa140)                            |
-| 7     | B-27              | merged | 75127be (004abfe)                                     |
-| 8     | B-35              | merged | 6dcc71d (7c0725f)                                     |
-| 9     | B-36              | merged | e6fc148 (cc12901)                                     |
-| 10    | B-39              | merged | 2052075 (1870973, 9e7d83b)                            |
-| 11    | B-38              | merged | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
-| 12    | B-41              | merged | e577fad (d75e3ba; 41b5bcb left out)                   |
-| 13    | B-42              | merged | 94ce803 (eccbd1a)                                     |
-| 14    | B-37              | merged | 9c08e01 (cf1f804)                                     |
-| 15    | B-71              | landed | 23e1be2 (wave 7)                                      |
-| 16    | B-72              | landed | 23e1be2 (wave 7)                                      |
-| 17    | B-44              | landed | 23e1be2 (wave 7)                                      |
-| 18    | B-73              | merged | 59f380a (f6a783e)                                     |
-| 19    | B-67              | merged | 0ddaaa7 (46e8be0)                                     |
-| 20    | B-74              | merged | 679fa87 (d7a1631)                                     |
-| 21    | B-70              | merged | 27c2c74 (62a459a)                                     |
-| 22    | B-81              | merged | 376f8b7 (22470b8)                                     |
-| 23    | B-82              | merged | 5047c71 (8d6f089)                                     |
-| 24    | B-64              | merged | 290fd21 (fbbf94f)                                     |
-| 25    | B-69              | merged | 2431a55 (14da487)                                     |
-| 26    | B-78              | merged | 17a89b1 (484d825)                                     |
-| 27    | B-65              | merged | 5d8af6e (07ab7bf)                                     |
-| 28    | B-79              | merged | 6573d31 (036c039)                                     |
-| 29    | B-80              | merged | 25757d4 (e392d3c, 21941f0)                            |
-| 30    | B-92              | merged | dab620f (51f5fb8)                                     |
-| 31    | B-93              | merged | 998cc44 (938bec1)                                     |
-| 32    | B-95              | merged | 420d5e9 (280d527)                                     |
-| 33    | B-83              | merged | dac3172 (b27a1ec)                                     |
-| 34    | B-90              | merged | dd5f4f3 (d366cac)                                     |
-| 35    | B-94              | merged | 1fc9168 (81fdddf)                                     |
-| 36    | B-97              | merged | 0065420 (6273693)                                     |
-| 37    | B-96              | merged | 8b28fda (5f1d8de)                                     |
-| 38    | B-79, B-90, B-97  | landed | f2a9079 (waves 9–10)                                  |
-| 39    | B-98, B-99, B-105 | landed | 5070e43 (0bbf0b9, b87450f)                            |
-| 40    | B-106             | landed | 29ebc9f (adfb130, 8fe09e0)                            |
-| 41    | B-112             | landed | 5116a8f (67b943d)                                     |
-| 42    | B-100             | landed | c85575d (5e87b1f, d030837)                            |
-| 43    | B-130             | landed | b8d516e (9fc492c)                                     |
-| 44    | B-135             | merged | df9e3df (22bffaa)                                     |
-| 45    | B-134             | merged | ee62ed9 (f068feb)                                     |
-| 46    | B-157             | merged | 03dfa05 (bec9a23)                                     |
-| 47    | B-188             | to do  |                                                       |
-| 48    | B-189, B-190      | to do  |                                                       |
-| 49    | B-184             | to do  |                                                       |
-| 50    | B-185, B-186      | to do  |                                                       |
-| 51    | B-187             | to do  |                                                       |
+| Slice | Item              | State   | Merge into `prd/quick-fixes` (slice commits)          |
+| ----- | ----------------- | ------- | ----------------------------------------------------- |
+| 1     | B-1               | merged  | 1e00754 (5ab3b67)                                     |
+| 2     | B-17              | merged  | 4629e8c (32355db)                                     |
+| 3     | B-22              | merged  | b0325d0 (46ef320)                                     |
+| 4     | B-28              | merged  | b15b140 (9911d1b, 8a0bb50)                            |
+| 5     | B-29              | merged  | 8eaf3c3 (3b97174, a31bd85)                            |
+| 6     | B-34              | merged  | 483f768 (7251a69, 10aa140)                            |
+| 7     | B-27              | merged  | 75127be (004abfe)                                     |
+| 8     | B-35              | merged  | 6dcc71d (7c0725f)                                     |
+| 9     | B-36              | merged  | e6fc148 (cc12901)                                     |
+| 10    | B-39              | merged  | 2052075 (1870973, 9e7d83b)                            |
+| 11    | B-38              | merged  | 36df463 (c8f7f59, 287cab0, ecc85e5, cede6b3, 7da2c38) |
+| 12    | B-41              | merged  | e577fad (d75e3ba; 41b5bcb left out)                   |
+| 13    | B-42              | merged  | 94ce803 (eccbd1a)                                     |
+| 14    | B-37              | merged  | 9c08e01 (cf1f804)                                     |
+| 15    | B-71              | landed  | 23e1be2 (wave 7)                                      |
+| 16    | B-72              | landed  | 23e1be2 (wave 7)                                      |
+| 17    | B-44              | landed  | 23e1be2 (wave 7)                                      |
+| 18    | B-73              | merged  | 59f380a (f6a783e)                                     |
+| 19    | B-67              | merged  | 0ddaaa7 (46e8be0)                                     |
+| 20    | B-74              | merged  | 679fa87 (d7a1631)                                     |
+| 21    | B-70              | merged  | 27c2c74 (62a459a)                                     |
+| 22    | B-81              | merged  | 376f8b7 (22470b8)                                     |
+| 23    | B-82              | merged  | 5047c71 (8d6f089)                                     |
+| 24    | B-64              | merged  | 290fd21 (fbbf94f)                                     |
+| 25    | B-69              | merged  | 2431a55 (14da487)                                     |
+| 26    | B-78              | merged  | 17a89b1 (484d825)                                     |
+| 27    | B-65              | merged  | 5d8af6e (07ab7bf)                                     |
+| 28    | B-79              | merged  | 6573d31 (036c039)                                     |
+| 29    | B-80              | merged  | 25757d4 (e392d3c, 21941f0)                            |
+| 30    | B-92              | merged  | dab620f (51f5fb8)                                     |
+| 31    | B-93              | merged  | 998cc44 (938bec1)                                     |
+| 32    | B-95              | merged  | 420d5e9 (280d527)                                     |
+| 33    | B-83              | merged  | dac3172 (b27a1ec)                                     |
+| 34    | B-90              | merged  | dd5f4f3 (d366cac)                                     |
+| 35    | B-94              | merged  | 1fc9168 (81fdddf)                                     |
+| 36    | B-97              | merged  | 0065420 (6273693)                                     |
+| 37    | B-96              | merged  | 8b28fda (5f1d8de)                                     |
+| 38    | B-79, B-90, B-97  | landed  | f2a9079 (waves 9–10)                                  |
+| 39    | B-98, B-99, B-105 | landed  | 5070e43 (0bbf0b9, b87450f)                            |
+| 40    | B-106             | landed  | 29ebc9f (adfb130, 8fe09e0)                            |
+| 41    | B-112             | landed  | 5116a8f (67b943d)                                     |
+| 42    | B-100             | landed  | c85575d (5e87b1f, d030837)                            |
+| 43    | B-130             | landed  | b8d516e (9fc492c)                                     |
+| 44    | B-135             | merged  | df9e3df (22bffaa)                                     |
+| 45    | B-134             | merged  | ee62ed9 (f068feb)                                     |
+| 46    | B-157             | merged  | 03dfa05 (bec9a23)                                     |
+| 47    | B-188             | started |                                                       |
+| 48    | B-189, B-190      | started |                                                       |
+| 49    | B-184             | started |                                                       |
+| 50    | B-185, B-186      | started |                                                       |
+| 51    | B-187             | started |                                                       |
 
 **Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
+
+**Wave 13 running (2026-11-20, run-through mode, this orchestrator):** backlog ingested (B-191, B-192 filed and proposed for quick-fixes as triaged: a later wave, the user reviews); B-184–B-190 claimed. Worktrees made for 47 (stack, slot 4) and 48–51 (stackless); all five loops spawned. Models: 47 opus, 48 sonnet, 49 sonnet, 50 opus, 51 opus. Loops were told to wait for load < 16 before `pnpm check`.
 
 **Wave 13 (slices 47–51), written 2026-11-20** in the backlog session from B-184 to B-190. All but 47 are stackless. 47 first: it breaks connecting from claude.ai on staging (production is live too). The user's answers: B-185's "upcoming" is due within about 2 hours; B-187 is a Filter button and `ui/Sheet`, with removable chips for the active filters; B-188 came from claude.ai only (the desktop app worked), on the authorize URL itself. 50 and 51 share the timeline folder but no files.
 
