@@ -15,6 +15,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Change requests
 
+- you should be able to edit all entries, search, and filter in simple mode.
+
 ## Feature requests
 
 - Allow import of providers from other care groups that you have access to. (B-48)
