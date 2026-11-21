@@ -124,7 +124,7 @@ export const LINDQVIST = fx.provider({
   phones: [{ label: "Office", number: "(555) 010-7700" }],
   isPrimary: 1,
 });
-export const secondGroup = () => [
+export const secondGroup = (role: "caretaker" | "viewer" = "caretaker") => [
   fx.group({ id: SECOND_GROUP.id, name: SECOND_GROUP.name }),
   fx.recipient({
     id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f1c02",
@@ -133,7 +133,7 @@ export const secondGroup = () => [
     // So the group shows as "Lou Lindqvist", not the default recipient's preferred name.
     preferredName: null,
   }),
-  fx.member({ userId: TEST_USER.id, groupId: SECOND_GROUP.id, role: "caretaker" }),
+  fx.member({ userId: TEST_USER.id, groupId: SECOND_GROUP.id, role }),
   LINDQVIST,
 ];
 
