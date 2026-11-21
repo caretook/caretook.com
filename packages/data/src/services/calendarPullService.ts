@@ -180,8 +180,6 @@ const apply = (
         },
         { now },
       );
-    case "removeEntry":
-      return timelineEntryService.remove(ctx, action.entryId);
     case "updateTodo":
       return todoService.update(ctx, action.todoId, { dueOn: action.dueOn, dueTime: action.dueTime });
     case "completeTodo":

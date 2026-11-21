@@ -31,17 +31,17 @@ URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/a2
 STATUS:CANCELLED
 END:VEVENT
 BEGIN:VEVENT
-UID:entry:a3@app.caretook.test
+UID:todo:t2@app.caretook.test
 SEQUENCE:0
 DTSTAMP:20261118T180000Z
 DTSTART;VALUE=DATE:20261121
 DTEND;VALUE=DATE:20261122
 X-MICROSOFT-CDO-ALLDAYEVENT:TRUE
 X-MICROSOFT-MSNCALENDAR-ALLDAYEVENT:TRUE
-SUMMARY:Reminder for Pat: Order refills
+SUMMARY:Todo for Pat: Order refills
 DESCRIPTION:Sat 21 Nov · All day\nOpen in Caretook: https://app.caretook.
- test/app/groups/g1/entry/a3
-URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/a3
+ test/app/groups/g1/entry/t2
+URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/t2
 STATUS:CONFIRMED
 END:VEVENT
 BEGIN:VEVENT
