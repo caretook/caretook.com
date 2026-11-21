@@ -106,8 +106,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-254 | feature | triaged | planner-3 |  | Quick entry: 'bins out every monday' makes a repeating todo |
 | B-256 | bug | triaged | quick-fixes |  | call and directions icons on planner schedule should be below the time, not beside the… |
-| B-257 | change | triaged | ui-kit |  | Button primitive (ui/Button): variants, sizes, link form and a built-in busy label, replacing hand-written btn class strings |
-| B-258 | change | triaged | ui-kit |  | Form footer primitive (Cancel and Save row) for sheets and forms; settings' SaveRow builds on it |
+| B-257 | change | in-progress | ui-kit | prd/ui-kit | Button primitive (ui/Button): variants, sizes, link form and a built-in busy label, replacing hand-written btn class strings |
+| B-258 | change | in-progress | ui-kit | prd/ui-kit | Form footer primitive (Cancel and Save row) for sheets and forms; settings' SaveRow builds on it |
 | B-259 | change | triaged | ui-kit |  | Message primitives: one inline error/status line and one Notice box, replacing 93 role=alert and 54 role=status hand-written lines |
 | B-260 | change | triaged | ui-kit |  | Card primitive in ui/ (titled section card); SettingsCard and the route cards use it; one card title size |
 | B-261 | change | triaged | ui-kit |  | List primitives: one bordered, divided list box and a row, replacing six hand-written variants |
@@ -119,7 +119,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-267 | change | triaged | ui-kit |  | Text and icon tokens: named muted and faint text, inline link style, icon sizes |
 | B-268 | chore | triaged | ui-kit-2 |  | Move SeriesScopeDialog's raw <dialog> into a ui/ choice dialog on useShowModal |
 | B-269 | chore | triaged | ui-kit-2 |  | Guard the kit: a lint rule or layout test that keeps react-aria imports in ui/ and flags raw btn, card, badge and alert classes outside ui/ |
-| B-270 | feature | triaged | ui-kit |  | Dev-only component gallery (/dev/ui): every primitive and its variants in both themes |
+| B-270 | feature | in-progress | ui-kit | prd/ui-kit | Dev-only component gallery (/dev/ui): every primitive and its variants in both themes |
 | B-271 | chore | staging | check-speed | prd/check-speed | Checks: slice loops run through the check lease (pnpm prd check, not bare pnpm check), and the lease waits while the machine load is high |
 | B-272 | chore | landed | check-speed | prd/check-speed | Checks: quick check at slice hand-off and the full suite only at landing, with prd.sh forcing a full run on migrations, seeds, sync config, lockfile and package.json, plus a short always-run list |
 | B-273 | chore | staging | check-speed | prd/check-speed | Checks: move the agent-tooling tests (scripts/loops, scripts/backlog, hooks) into their own Vitest project, run only when tooling changes |
@@ -238,7 +238,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-387 | bug | triaged | sync-safety |  | Repeating todos: a stopped chain (successor explicitly deleted) comes back when an offline writer ticks a stale copy of the original: complete leaves it done, but the twin of the next day finds no open row and upsertOccurrence creates it as if from a skip; tell an authorised skip from a stale completion twin |
 | B-388 | bug | triaged | quick-fixes |  | Integration flakes seen in 2026-11-21 full checks: the connector MCP tests (mcpWrites, mcp, readTools .int.test.ts) failed 14 times with 'Connection terminated' in the transcripts, and todoRename.int.test.ts 4 times; find the cause (dropped connections on the shared test Postgres under load?) and fix it |
 | B-389 | change | landed | orchestration-2 | prd/orchestration-2 | A PRD registry: the PRD table gets a state, the topics it comes after and its hot files, kept through pnpm backlog prd; row order is the priority |
-| B-390 | change | in-progress | orchestration-2 | prd/orchestration-2 | One orchestrator session per wave: recorded sessions and pnpm prd rotate, so a fresh session opens from Status after each landing |
+| B-390 | change | ready | orchestration-2 | prd/orchestration-2 | One orchestrator session per wave: recorded sessions and pnpm prd rotate, so a fresh session opens from Status after each landing |
 | B-391 | feature | in-progress | orchestration-2 | prd/orchestration-2 | One asks queue: unattended sessions file questions and landed-wave reports with pnpm prd ask; the user answers in one place |
 | B-392 | feature | triaged | orchestration-3 |  | A dispatcher (pnpm prd dispatch) that plans and starts PRDs by registry order, dependencies, hot files and slots, and reopens dead sessions; pnpm prd queue just reorders |
 | B-393 | bug | triaged | quick-fixes |  | Repeating todos: reopening Repeat on a 'last Friday' monthly todo whose occurrence falls on a 4th Friday and pressing Done turns BYDAY=-1FR into 4FR (todoFormData initialRepeat → choiceOfRule drops nth); the same shared choiceOfRule/choiceRule bug as B-234 for appointment series: one fix should cover both |
@@ -537,9 +537,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-257 · change · Button primitive (ui/Button): variants, sizes, link form and a built-in busy label, replacing hand-written btn class strings
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit
-- owner:
+- owner: prd/ui-kit
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Component review 2026-11-21: 268 btn class strings in 148 files, 81 distinct (btn btn-sm x47, btn btn-ghost btn-sm vs btn btn-sm btn-ghost, danger as btn-error or btn-ghost text-error). About 25 buttons hand-roll {busy ? 'Saving…' : 'Save'}. IconButton stays; chipClass could build on it.
@@ -547,9 +547,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-258 · change · Form footer primitive (Cancel and Save row) for sheets and forms; settings' SaveRow builds on it
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit
-- owner:
+- owner: prd/ui-kit
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Review 2026-11-21: 15 Cancel/Save footers in 6 layouts (flex justify-end gap-2 pt-3, pt-2, flex-wrap…, ml-auto); SaveRow (components/settings) is the only shared one and is settings-only. Depends on the Button item.
@@ -667,9 +667,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-270 · feature · Dev-only component gallery (/dev/ui): every primitive and its variants in both themes
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit
-- owner:
+- owner: prd/ui-kit
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Review 2026-11-21: nothing shows the kit in one place, so drift is only visible by grep. A web-only dev route beside /dev/mail, fictional data, no new dependency. Also fix docs/layout.md's ui/ list, which is behind components.md (no PageHeader, TabNav, ComboBox, ChipList, Toast, ViaTag, Highlight).
@@ -1770,10 +1770,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-390 · change · One orchestrator session per wave: recorded sessions and pnpm prd rotate, so a fresh session opens from Status after each landing
 
-- status: in-progress
+- status: ready
 - prd: orchestration-2
 - owner: prd/orchestration-2
-- commit:
+- commit: 4c4a76cc
 
 - 2026-11-21 (plan/orchestration-2): From the 2026-11-21 orchestration review; plan slice 2
 - 2026-11-21 (Robert Bo Davis): HAND-OFF to a new planner (2026-11-21): the user wants this topic re-planned or carried on by a fresh planning session. Context: a review of the flow found 3,042 commits on dev in 5 days (1,065 backlog writes, 799 slice merges, 580 feat, ~350 on the orchestration tooling), load 37 on 10 cores with all browser leases held, ten topics waiting for a PRD, and the user accepting ~98% of planning recommendations. So the limits are the user and the machine, not planning quality. Done already on dev (f5965053): the planner decides then reports (What to ask, the Decisions table, the skeptic pass, docs/agents/preferences.md). The user's answers: the dispatcher starts EVERYTHING by PRD-table row order (the recommendation was a run list they order), and green waves land in dev before they try them. New rules from the user for the planner: (1) keep a PRD to a reasonable number of slices (about six is the planner's reading, not the user's number) so the next planner or the user can reprioritise; this plan has 8, so consider cutting it in two, e.g. registry + sessions + asks + rotation first, then the pick, unattended prompts and the dispatcher; (2) quick-fixes splits into categories that land separately (B-394); (3) questions must reach the user's phone. Unproven: that a helper started from a session's own shell outlives that session being ended (plan slice 4). The skeptic's findings and what was declined are in the PRD's Decisions section.
