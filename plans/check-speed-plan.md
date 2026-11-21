@@ -4,24 +4,25 @@
 
 ## Status
 
-**Where it stands:** wave 1 merged and green (2026-11-21): full `pnpm prd check` passed on 4f2ba971 after a dev sync (planner-2 seeds), `pnpm test:tooling` passed; then a conflict-free sync of quick-fixes wave 16 (no shared files) → quick check, then PR + Codex. Docs folded (loop.md, orchestrator.md, the core's _Checks_). The merge of slice 2 moved `check-times.test.mjs` into `scripts:unit` (a pure-module test, per the PRD). First full check failed once on the MCP `list_timeline` 5 s timeout under load (passed alone 3x): filed B-394 for quick-fixes.
+**Where it stands:** wave 1 landed in dev through PR #24 (e34bf68, 2026-11-21; full on eef8499, Codex clean on 88a8ff1 after its two findings were filed as B-401, B-402). Wave 2 and slice 5 (those two findings) merged and docs folded; full check passed on a96e2366; PR #27. Codex round 1: P1 (check-body.sh's `&&` chains let a failing check pass) fixed by a sonnet fix agent in 52243380; P2 (worker names of long topics collide) filed as B-405. Then: full `pnpm prd check` + `pnpm test:tooling`, PR, Codex, land, fold docs, `pnpm prd rm check-speed`.
 
 **Wave 1 gate:** browser checks skipped on the user's word (2026-11-21): `--changed` asks for the lean set only because `vitest.config.ts`/`package.json` changed.
 
-**Other PRDs:** `orchestration-2` waits on us: message `orchestration-2-d2` when wave 1 lands (unblocks its wave 1) and when wave 2 lands (unblocks its slices 4–6, which edit `prompt.sh`/`prd.sh`).
+**Other PRDs:** `orchestration-2` waits on us: told `orchestration-2-d2` and `quick-fixes-7b` that wave 1 landed; message `orchestration-2-d2` again when wave 2 lands (unblocks its slices 4–6).
 
-**Wave 2:** slices 3 and 4 handed off and reviewed; merge them (3 then 4) after wave 1 lands, so wave 1's PR head stays put. Slice 3's own gate record is stale (a demo run overwrote it): irrelevant, the wave tip is checked. Slice 4 measured integration at 68–101 s on 3 workers vs 272 s on 1. Fold at wave 2: data-layer.md worker databases, loop.md's "runs files one at a time".
+**Wave 2:** slice 4 measured integration at 68–101 s on 3 workers vs 272 s on 1. Fold at wave 2: data-layer.md worker databases, loop.md ("runs files one at a time"; hand-off on a quick check), orchestrator.md _The check gate_ (quick wave gates, full once per landing, the forced list is the tooling's).
 
 **Landing mode: run everything through** (queued with `pnpm prd queue check-speed`): start every ready slice, land each green wave through its PR, clean up; ask only real questions.
 
-| Slice | Wave | State                        | Merge into `prd/check-speed` (slice commits) |
-| ----- | ---- | ---------------------------- | -------------------------------------------- |
-| 1     | 1    | merged (sonnet)              | 4d4a760f (571cc9f6)                          |
-| 2     | 1    | merged (sonnet)              | 4bb31f7f (8b68de30)                          |
-| 3     | 2    | handed off a7c94b21 (sonnet) |                                              |
-| 4     | 2    | handed off b5b1e9de (opus)   |                                              |
+| Slice | Wave | State           | Merge into `prd/check-speed` (slice commits) |
+| ----- | ---- | --------------- | -------------------------------------------- |
+| 1     | 1    | merged (sonnet) | 4d4a760f (571cc9f6)                          |
+| 2     | 1    | merged (sonnet) | 4bb31f7f (8b68de30)                          |
+| 3     | 2    | merged (sonnet) | 00d07881 (07121530, a7c94b21)                |
+| 4     | 2    | merged (opus)   | b725c7e4 (8b51d595, b5b1e9de)                |
+| 5     | 2    | merged (sonnet) | 44066ea0 (2fe203dc)                          |
 
-**Backlog:** B-271 closes with slice 1, B-273 with slice 2, B-272 with slice 3, B-278 with slice 4 (`pnpm backlog done` when each merges).
+**Backlog:** B-401, B-402 close with slice 5. B-271 closes with slice 1, B-273 with slice 2, B-272 with slice 3, B-278 with slice 4 (`pnpm backlog done` when each merges).
 
 ## Architectural decisions
 
@@ -138,3 +139,22 @@ Stack: no · Reads: docs/domain/data-layer.md · Tests: integration
 - [ ] The hand-off gives the integration project's wall time before and after (212 s for 86 files on 2026-11-21), and the setup time; `pnpm prd check` passes.
 
 **Blocked by:** 2 (it follows slice 2's `vitest.config.ts` edit). **Blocks:** `test-health` slice 11.
+
+## Slice 5: Codex follow-ups from wave 1
+
+Stack: no · Reads: none · Tests: unit
+
+**Backlog:** B-401, B-402 (Codex on PR #24). **User stories:** 4, 14.
+
+**What to build**
+
+- `scripts/loops/check-run.sh`: the load reading is one number whatever `load_avg` prints (a blank line from a failed `sysctl` under `pipefail` on Linux, a comma after the value from `uptime`), so a record stays on one line.
+- `pnpm test:tooling` also runs `scripts:unit` (about a second), so a tooling-only change to `checks.mjs`, `check-areas.mjs`, `sync-matrix`, `check-times.mjs` or `check-plan.mjs` runs its own tests under the docs-and-tooling gate. Keep `pnpm test` as it is.
+
+**Acceptance criteria**
+
+- [ ] A tooling test: with a `sysctl` stub that fails and an `uptime` stub that prints a Linux line, the log line has 11 fields and a numeric load; `check-times.mjs` counts it as a run, not malformed.
+- [ ] `pnpm test:tooling` lists both projects' files; `pnpm test` still leaves `tooling:unit` out.
+- [ ] `pnpm test:tooling` passes; hand off on `pnpm prd check --quick "slice hand-off"` (it forces full: `package.json`).
+
+**Blocked by:** 3, 4 (merged). **Blocks:** nothing.
