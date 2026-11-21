@@ -18,7 +18,7 @@ import { sessionContext } from "~/lib/auth/session";
 import { useLiveQuery } from "~/lib/sync";
 import { providersQuery, toProviders } from "~/lib/providers/providers.sync";
 import { myGroupsQuery, readRows } from "~/lib/timeline/timeline.sync";
-import { ProviderSearch, TypeFilter } from "./DirectoryFilters";
+import { DirectoryFilterRow } from "./DirectoryFilters";
 import { DirectoryResults } from "./DirectoryResults";
 import { onlyProviderSheetChanged } from "./providerSheetGuard";
 
@@ -122,8 +122,7 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
         }
       />
 
-      <ProviderSearch value={text} urlQuery={filters.q} onChange={setText} />
-      <TypeFilter type={filters.type} text={text} />
+      <DirectoryFilterRow value={text} urlQuery={filters.q} onChange={setText} type={filters.type} />
 
       <DirectoryResults
         total={providers.length}
