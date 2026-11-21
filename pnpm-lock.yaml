@@ -359,6 +359,9 @@ importers:
       '@orpc/server':
         specifier: 1.16.2
         version: 1.16.2(ws@8.21.3)
+      ical-generator:
+        specifier: 11.1.4
+        version: 11.1.4(@types/node@24.19.2)(rrule@2.8.1)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -3031,6 +3034,39 @@ packages:
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
+
+  ical-generator@11.1.4:
+    resolution: {integrity: sha512-mQRAdCWEroPJOG3j/xDom+AzG31bgplmGLIoGXG+mko26LB+80iexHsCnfoycvMldkaHMjW76E6aTFuGRG6JWQ==}
+    engines: {node: 22 || >=24.0.0}
+    peerDependencies:
+      '@touch4it/ical-timezones': '>=1.6.0'
+      '@types/luxon': '>= 1.26.0'
+      '@types/mocha': '>= 8.2.1'
+      '@types/node': '*'
+      dayjs: '>= 1.10.0'
+      luxon: '>= 1.26.0'
+      moment: '>= 2.29.0'
+      moment-timezone: '>= 0.5.33'
+      rrule: '>= 2.6.8'
+    peerDependenciesMeta:
+      '@touch4it/ical-timezones':
+        optional: true
+      '@types/luxon':
+        optional: true
+      '@types/mocha':
+        optional: true
+      '@types/node':
+        optional: true
+      dayjs:
+        optional: true
+      luxon:
+        optional: true
+      moment:
+        optional: true
+      moment-timezone:
+        optional: true
+      rrule:
+        optional: true
 
   iconv-lite@0.7.3:
     resolution: {integrity: sha512-IKXpvIzjnC9XTAUbVBcMfGS0EPaIXtW6v+zr+RRp+hqULEpo0owZax6wyRwPOJbWbzjYspQwusTsfVr0ifh4uQ==}
@@ -6927,6 +6963,11 @@ snapshots:
       toidentifier: 1.0.1
 
   human-signals@2.1.0: {}
+
+  ical-generator@11.1.4(@types/node@24.19.2)(rrule@2.8.1):
+    optionalDependencies:
+      '@types/node': 24.19.2
+      rrule: 2.8.1
 
   iconv-lite@0.7.3:
     dependencies:

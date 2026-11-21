@@ -138,6 +138,10 @@ import * as calendarSettingService from "./calendarSettingService";
 export { calendarSettingService };
 export type { CalendarSettingsView } from "./calendarSettingService";
 
+import * as calendarFeedService from "./calendarFeedService";
+export { calendarFeedService };
+export type { CalendarFeed } from "./calendarFeedService";
+
 export const services = {
   user: userService,
   careGroup: careGroupService,
@@ -170,6 +174,7 @@ export const services = {
   connectorGrant: connectorGrantService,
   appointmentSeries: appointmentSeriesService,
   calendarSetting: calendarSettingService,
+  calendarFeed: calendarFeedService,
 };
 
 export type ServiceTypeMap = typeof services;
