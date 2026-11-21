@@ -4,23 +4,25 @@ import type { TimelineData } from "./useTimelineData";
 import type { TodayRow, TodayStatus } from "./todayStatus";
 
 import { formatReading } from "@caretook/data/schema";
+import { useState } from "react";
 import { localTimeZone } from "~/lib/core/format";
 import { clockTime } from "~/lib/medications/medicationDisplay";
-import { attentionKey, todayStatus, todaySummary } from "./todayStatus";
+import { attentionCounts, todayStatus, todaySummary } from "./todayStatus";
 import { useMedicationStrip } from "./useMedicationStrip";
 import { useTaskStrip } from "./useTaskStrip";
-import { useTodayCardCollapsed } from "./useTodayCardCollapsed";
 
 /**
  * The Today card's data: its four rows' contents and statuses, the collapsed
- * line, and the collapse switch (collapsed unless something needs attention,
- * `attentionKey`; a tap is remembered on this device until that changes).
+ * line, and the collapse switch (collapsed on every load, the server's
+ * render too; a tap opens it until the page is left or reloaded).
  *
  * - `vitals`: every type's newest reading, newest first (empty: no row);
  * - `next`: the next appointment or reminder (null: no row);
  * - `medications` and `tasks`: the strips' hooks, remembered for the session
  *   (`ready`: known, so a row or nothing; `fresh`: read live, else dimmed);
  * - `status`: each row's urgency (`todayStatus`), at the passes' clock;
+ * - `summary`: the collapsed line (`todaySummary`): overdue and due-soon
+ *   counts first (`attentionCounts`), then the rest;
  * - `empty`: every row known and none to show (the card hides).
  */
 export function useTodayCard({
@@ -47,12 +49,8 @@ export function useTodayCard({
   const rows = {
     vitals: newest && { kind: "vitals", latestAt: newest.occurredAt },
     appointment: next.next && { kind: "appointment", entry: next.next },
-    medications: meds && {
-      kind: "medications",
-      dueAt: meds.tomorrow ? null : meds.pass.at,
-      id: meds.pass.key,
-    },
-    tasks: task && { kind: "tasks", overdue: task.state === "overdue", id: task.task.id },
+    medications: meds && { kind: "medications", dueAt: meds.tomorrow ? null : meds.pass.at },
+    tasks: task && { kind: "tasks", overdue: task.state === "overdue" },
   } satisfies Record<string, TodayRow | null | undefined>;
   const status: Record<keyof typeof rows, TodayStatus> = {
     vitals: rows.vitals ? todayStatus(rows.vitals, now, zone) : "neutral",
@@ -60,20 +58,20 @@ export function useTodayCard({
     medications: rows.medications ? todayStatus(rows.medications, now, zone) : "neutral",
     tasks: rows.tasks ? todayStatus(rows.tasks, now, zone) : "neutral",
   };
-  const shown = Object.values(rows).filter((r): r is NonNullable<typeof r> => !!r);
-  const [collapsed, setCollapsed] = useTodayCardCollapsed(
-    medications.ready && tasks.ready ? attentionKey(shown, now) : null,
-  );
+  const [collapsed, setCollapsed] = useState(true);
 
   const summary = todaySummary({
+    counts: attentionCounts({
+      doses: medications.ready ? medications.slots : [],
+      tasks: tasks.ready ? tasks.tasks : [],
+      appointment: next.next,
+      now,
+      timeZone: tasks.timeZone,
+    }),
     vital: newest ? formatReading(newest.reading, units) : null,
     appointments: next.next ? next.more + 1 : 0,
-    medications: meds && {
-      state: meds.state,
-      count: meds.state === "next" ? meds.pass.slots.length : meds.pass.open.length,
-      time: clockTime(meds.pass.time),
-    },
-    tasks: task && { overdue: task.overdue, total: task.more + 1 },
+    medications: meds && meds.state === "next" ? clockTime(meds.pass.time) : null,
+    tasks: task ? task.more + 1 : 0,
   });
 
   const empty = !newest && !next.next && medications.ready && !meds && tasks.ready && !task;

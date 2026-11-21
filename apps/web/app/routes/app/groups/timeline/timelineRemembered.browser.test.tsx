@@ -104,6 +104,8 @@ describe("the header tiles remember", () => {
     expect(taskStrip()).toEqual({ stale: false, text: "Overdue: Call the pharmacy" });
 
     // Away to another page, where the answer changes (another device's task arrives).
+    // The card starts collapsed: open it to reach See all.
+    await userEvent.click(await found(() => document.querySelector<HTMLElement>("main [data-today-toggle]")));
     await userEvent.click(
       await found(() => document.querySelector<HTMLElement>('[data-today-row="tasks"] a[data-see-all]')),
     );
