@@ -163,12 +163,12 @@ describe("the box and its cards", () => {
     await type("bp 120/80, dizzy");
     expect(cardKinds()).toEqual(["vital", "symptom"]);
     const chips = page.getByRole("list", { name: 'Other ways to save "dizzy"' });
-    await userEvent.click(chips.getByRole("button", { name: "Note instead" }));
+    await userEvent.click(chips.getByRole("button", { name: "Make it a note" }));
     await waitUntil(() => cardKinds().join() === "vital,note");
     expect(
       page
         .getByRole("list", { name: 'Other ways to save "dizzy"' })
-        .getByRole("button", { name: "Symptom instead" })
+        .getByRole("button", { name: "Make it a symptom" })
         .query(),
     ).toBeTruthy();
 
@@ -570,5 +570,29 @@ describe("provider events open a prefilled draft (quick-entry slice 3)", () => {
     await expect.poll(() => device.location()).toBe(NEW_EVENT);
     await expect.poll(() => TITLE()?.value).toBe("Dr. Elena Alvarez");
     expect(await events(device)).toEqual([]);
+  });
+});
+
+describe("kind chips", () => {
+  test("'fell' shows Symptom with Event and Note one tap away; Make it a note saves a note", async () => {
+    const device = await open();
+    await type("fell", ["symptom"]);
+    const card = () => cards()[0]!;
+    expect(card().querySelector("[data-quick-kind]")?.textContent).toBe("Symptom");
+    const choices = page.getByRole("list", { name: 'Other ways to save "fell"' });
+    expect(choices.getByRole("button", { name: "Make it an event" }).query()).toBeTruthy();
+    // Reachable by Tab, in order, from the card's first control.
+    const buttons = [...document.querySelectorAll<HTMLButtonElement>('ul[aria-label^="Other ways"] button')];
+    expect(buttons.map((b) => b.textContent).sort()).toEqual(["Make it a note", "Make it an event"]);
+    await userEvent.click(choices.getByRole("button", { name: "Make it a note" }));
+    await waitUntil(() => cardKinds().join() === "note");
+    expect(cards()[0]!.querySelector("[data-quick-kind]")?.textContent).toBe("Note");
+    await userEvent.click(saveButton()!);
+    await expect.poll(() => device.location()).toMatch(/\/entries\//);
+    const kinds = await device.query<{ kind: string }>(
+      "SELECT kind FROM timeline_entry WHERE created_at > ? ORDER BY kind",
+      [at(new Date(Date.now() - 60_000))],
+    );
+    expect(kinds.map((k) => k.kind)).toEqual(["note"]);
   });
 });

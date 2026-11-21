@@ -60,15 +60,48 @@ describe("buildCards", () => {
     },
   ];
 
-  test("each part shows its best reading, with the others as chips (named by what they say when a kind repeats)", () => {
+  test("each part shows its best reading, other kinds as 'Make it' buttons, and same-kind readings named by what they say", () => {
     const cards = buildCards(parts, none, titleOf);
-    expect(cards.map((c) => [c.key, c.reading.kind, c.alternatives.map((a) => a.label)])).toEqual([
-      ["0:hr 999", "vital", ["Note instead"]],
-      ["1:gave met", "dose", ["Medication 22 instead", "Note instead"]],
+    expect(
+      cards.map((c) => [
+        c.key,
+        c.reading.kind,
+        c.kindChoices.map((a) => a.label),
+        c.alternatives.map((a) => a.label),
+      ]),
+    ).toEqual([
+      ["0:hr 999", "vital", ["Make it a note"], []],
+      ["1:gave met", "dose", ["Make it a note"], ["Medication 22 instead"]],
     ]);
     expect(cards[0]!.blocking).toEqual(["Heart rate: enter a whole number from 20 to 300 bpm."]);
     expect(cards[0]!.notices).toEqual(["Something to check"]);
     expect(canSaveCards(cards)).toBe(false);
+  });
+
+  test("a part read as symptom, event and note offers the two other kinds", () => {
+    const symptom: QuickEntryReading = {
+      kind: "symptom",
+      label: "Symptom",
+      actions: [{ type: "logSymptom", name: "Fall", occurredAt: at }],
+      confidence: 0.9,
+      warnings: [],
+    };
+    const event: QuickEntryReading = {
+      kind: "event",
+      label: "Event",
+      actions: [{ type: "addEvent", title: "Fell", occurredAt: at, allDay: false }] as never,
+      confidence: 0.6,
+      warnings: [],
+    };
+    const part: QuickEntryPart = { text: "fell", readings: [symptom, event, note("fell")] };
+    const [first] = buildCards([part], none, titleOf);
+    expect(first!.kindChoices.map((c) => [c.index, c.label])).toEqual([
+      [1, "Make it an event"],
+      [2, "Make it a note"],
+    ]);
+    expect(first!.alternatives).toEqual([]);
+    const [second] = buildCards([part], { ...none, chosen: new Map([[partKey(0, part), 2]]) }, titleOf);
+    expect(second!.kindChoices.map((c) => c.label)).toEqual(["Make it a symptom", "Make it an event"]);
   });
 
   test("a chosen reading, and removed parts", () => {
@@ -78,7 +111,8 @@ describe("buildCards", () => {
       titleOf,
     );
     expect(cards.map((c) => c.reading.kind)).toEqual(["note"]);
-    expect(cards[0]!.alternatives.map((a) => a.index)).toEqual([0, 1]);
+    expect(cards[0]!.kindChoices.map((a) => [a.index, a.label])).toEqual([[0, "Make it a dose"]]);
+    expect(cards[0]!.alternatives).toEqual([]);
     expect(canSaveCards(cards)).toBe(true);
     expect(cardActions(cards)).toEqual([{ action: note("gave met").actions[0], key: "1:gave met" }]);
   });
