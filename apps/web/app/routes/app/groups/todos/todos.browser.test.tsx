@@ -100,7 +100,7 @@ describe("the todo list", () => {
     expect(pageHeader()).toEqual({ h1: "Planner", namesRecipient: false, viewerNote: false });
     await expect
       .element(
-        page.getByRole("navigation", { name: "Planner, todos or past" }).getByRole("link", { name: "Todos" }),
+        page.getByRole("navigation", { name: "Planner or todos" }).getByRole("link", { name: "Todos" }),
       )
       .toHaveAttribute("aria-current", "page");
     await expect.element(chip("Mine")).toHaveAttribute("aria-current", "true");

@@ -77,7 +77,7 @@ export default function Todos({ loaderData, params }: Route.ComponentProps) {
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
-      <PlannerHeader tab="todos" />
+      <PlannerHeader />
 
       <TodoChips who={list.who} />
       <TodoUndoStatus groupId={params.groupId} />
