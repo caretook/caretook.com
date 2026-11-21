@@ -26,7 +26,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `connectors-2` | [PRD](connectors-2-prd.md), [plan](connectors-2-plan.md): **done** (`017a9b29`) | — | none now |
 | `medications-3` | [PRD](medications-3-prd.md), [plan](medications-3-plan.md): **done** (`82221a92`) | — | none now |
 | `medications-4` | to write (B-213: a mobile redesign of Today's schedule: passes, scheduled, as needed) | `medications-3` landed | the medications Today view and its schedule rows, the Dose sheet (`new-dose/`, `DoseForm.tsx`), `TodayCard`'s dose items |
-| `medications-tabs` | to write (B-226: the Medications page split into Schedule and Medications tabs) | none; not alongside `medications-4` (same page) | the medications route and its layout, the Today view's header |
+| `medications-tabs` | [PRD](medications-tabs-prd.md), [plan](medications-tabs-plan.md): 2 slices, waves 1 → 2: a standard `ui/TabNav` primitive (tabs as links, reused by later pages), then the Medications page as a layout with `/medications/schedule` (Today, Passes) and `/medications/list` (allergies, search, filters, the list), sheets over either tab, no plain `/medications`. UI only: no migration, no deps, stackless (B-226). **Ready to start** (slice 1 now) | slice 2: `timeline-ux-2` in `dev` (its `PageHeader` rewrites this header); not alongside `medications-4` (same page) | `components/ui/` (`TabNav`, the index), the medications routes and `routes.ts`, `lib/medications/urls.ts`, `medicationSheets.ts`, the Medications `GROUP_SECTIONS` entry, `TodayMedicationsRow`, back links on passes, print and the medication page |
 | `conditions` | [PRD](conditions-prd.md), [plan](conditions-plan.md): **done** (`a95acb73`) | — | none now |
 | `github-review` | [PRD](github-review-prd.md), [plan](github-review-plan.md): 3 slices, waves 1 → (2, 3): Codex's verdict and `pnpm prd review`; `pnpm prd pr`, land's PR path into `dev` (prd/ always, hotfixes `--pr`/`--local`, `--no-review` on the user's word) and dev-sync after a GitHub merge; `ready`, prompts and `rm`. Tooling only, no deps, no migration (B-203). **Ready to start** | none (wave 1 lands locally; wave 2 is the new path's first run) | `scripts/loops/` `land.sh`, `prd.sh`, `lib.sh`, `ready.sh`, `prompt.sh`, `rm.sh`; at landing orchestrator.md, hotfix.md, orchestration.md, `ops/runbook.md`, AGENTS.md |
 | `routing` | [PRD](routing-prd.md), [plan](routing-plan.md): **done** (`ff25ef2`) | — | none now |
@@ -120,6 +120,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-225 | bug | in-progress | quick-fixes | prd/quick-fixes | Component tests fail between midnight and about 5 a.m.: they put entries a few hours before now, which lands on yesterday (entryPrint 'an event's: title, time…' gets 'Yesterday, 10:18 PM' for /^Event · Today/; timelineCarePeriods 'a period at a place…' gets 'day 2'; timelineSimple 'a day header names the care period…' times out) |
 | B-226 | change | triaged | medications-tabs |  | Medications page should be tabbed into Schedule and Medications |
 | B-227 | bug | triaged | quick-fixes |  | Component tests fail just after midnight America/Los_Angeles: 'today' fixtures made minutes or hours before now fall on yesterday (timelineSummaries, entryPrint 'an event's', timelineCarePeriods 'places', timelineSimple 'a day header names the care period') |
+| B-228 | bug | triaged | quick-fixes |  | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
 
 ## Items
 
@@ -745,6 +746,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-21 (Robert Bo Davis): Triaged to medications-4: splitting the page into Schedule and Medications tabs is part of B-213's redesign of the Today schedule, and the two touch the same files.
 - 2026-11-21 (Robert Bo Davis): Moved to quick-fixes at the user's word (wave 15), out of medications-4.
 - 2026-11-21 (Robert Bo Davis): Its own small PRD, medications-tabs, at the user's word (out of quick-fixes). It shares the medications page with medications-4 (B-213), so the two don't run at once.
+- 2026-11-21 (Robert Bo Davis): Planned: plans/medications-tabs-prd.md and -plan.md (2 slices; slice 2 after timeline-ux-2 is in dev).
 
 ### B-227 · bug · Component tests fail just after midnight America/Los_Angeles: 'today' fixtures made minutes or hours before now fall on yesterday (timelineSummaries, entryPrint 'an event's', timelineCarePeriods 'places', timelineSimple 'a day header names the care period')
 
@@ -754,3 +756,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (prd/timeline-ux-2): 2026-11-21 (prd/timeline-ux-2): 14 failures in timeline-ux-2's full check at 00:20 PST, e.g. 'Event · Yesterday, 10:17 PM' vs /^Event · Today, /; minutesAgo(40) day-summary fixtures. Fails every pnpm check from 00:00 to ~02:30 LA (03:00-05:30 EST). Fix: pin the clock (fixClock) or build today's fixtures after local midnight.
+
+### B-228 · bug · Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute|value|dataset|checked|placeholder|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-21 (prd/quick-fixes): Found by quick-fixes slice 59 (B-180), 2026-11-21: same fix (await expect.poll / found()); proposed for a later quick-fixes wave. -- quick-fixes orchestrator
