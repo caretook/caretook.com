@@ -12,7 +12,7 @@
 | 2     | 2    | merged; worktree removed | 2a2c3c43 (b85eae0c); opus; throwaway PR #10 closed unmerged          |
 | 3     | 2    | merged; worktree removed | 6ece6441 (76641328); sonnet; throwaway PR #8 closed unmerged         |
 
-Checks on the merged tip: `vitest --project scripts:unit scripts/loops` 17 files, 207 tests pass; `bash -n` clean on every changed script; **shellcheck isn't installed** (never run). Gate: "none needed" (`dev...` touches only `scripts/loops/`, `.claude/settings.json`?, Markdown; confirm `pnpm prd ready` agrees, since `.claude/settings.json` isn't in the none-needed list: if it refuses, run `pnpm prd check --quick "tooling and settings only"`).
+Checks on the merged tip: `vitest --project scripts:unit scripts/loops` 17 files, 207 tests pass; `bash -n` clean on every changed script; **shellcheck isn't installed** (never run). Gate: **not** "none needed": `.claude/settings.json` (d5c4c621) is outside the exempt paths (`lib.sh` `exempt_re`: Markdown, `scripts/loops/`, `scripts/backlog/`, `.githooks/`), so `land`/`ready` need a check pass. Before landing, `pnpm prd check --quick "tooling, Markdown and .claude/settings.json only"` (or ask the user whether to move the settings change onto `dev` separately and keep this PRD none-needed).
 
 **Wave 1 never landed on its own:** with the user's push rules in late, all three slices ran overnight, so the whole PRD lands at once, through the new PR path (its first real run).
 
