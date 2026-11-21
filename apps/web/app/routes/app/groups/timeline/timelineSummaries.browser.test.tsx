@@ -166,7 +166,7 @@ describe("the day summary", () => {
     const device = await openTimeline({ fixtures });
     await waitUntil(() => summaries().length === 2);
     const choose = async (mode: string) => {
-      await userEvent.click(device.screen.getByRole("button", { name: "Day summaries" }));
+      await userEvent.click(device.screen.getByRole("button", { name: "View options" }));
       await userEvent.click(device.screen.getByRole("menuitemradio", { name: new RegExp(`^${mode}`) }));
     };
 

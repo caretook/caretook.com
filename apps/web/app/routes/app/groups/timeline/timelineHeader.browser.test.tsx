@@ -115,7 +115,7 @@ describe("the + menu", () => {
     expect(page.getByRole("button", { name: /^Add to / }).query()).toBeNull();
     expect(dayHeaders().length).toBeGreaterThan(2);
     expect(dayHeaders().some(plusOf)).toBe(false);
-    expect(page.getByRole("group", { name: "Layout" }).query()).not.toBeNull();
+    expect(page.getByRole("button", { name: "View options" }).query()).not.toBeNull();
   });
 
   test("a writer's timeline with nothing today still has Today's +", async () => {

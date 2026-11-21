@@ -1,9 +1,9 @@
-import type { TimelineEntryKind, TimelineView, VitalType } from "@caretook/data/schema";
+import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 import type { LinkChip } from "~/components/ui";
 import type { PeriodChoice } from "~/lib/care-periods/periodSearch";
 
 import { VITALS } from "@caretook/data/schema";
-import { CalendarRange, LayoutList, List, Search, SlidersHorizontal, X } from "lucide-react";
+import { CalendarRange, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { ChipGroup, Field, IconButton, UserAvatar } from "~/components/ui";
@@ -183,31 +183,3 @@ const removable = (id: string, label: string, search: string): LinkChip => ({
 
 /** The search as its chip shows it: long text is cut short (the chip's name has it all). */
 const chipText = (q: string) => (q.length > 32 ? `${q.slice(0, 31).trimEnd()}…` : q);
-
-/** The rows/cards switch. */
-export function ViewToggle({
-  view,
-  onChange,
-}: {
-  view: TimelineView;
-  onChange: (view: TimelineView) => void;
-}) {
-  return (
-    <div role="group" aria-label="Layout" className="join shrink-0">
-      <IconButton
-        label="Rows"
-        icon={List}
-        pressed={view === "rows"}
-        onPress={() => onChange("rows")}
-        className="join-item"
-      />
-      <IconButton
-        label="Cards"
-        icon={LayoutList}
-        pressed={view === "cards"}
-        onPress={() => onChange("cards")}
-        className="join-item"
-      />
-    </div>
-  );
-}

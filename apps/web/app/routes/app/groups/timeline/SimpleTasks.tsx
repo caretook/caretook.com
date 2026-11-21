@@ -1,12 +1,13 @@
 import type { LocalTask } from "~/lib/tasks/tasks.sync";
 
 import { canCompleteTask, taskState } from "@caretook/data/schema";
+import { ListChecks } from "lucide-react";
 import { Link } from "react-router";
 import { TaskTick, TaskUndoStatus, useTaskTick } from "~/components/tasks";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { dueText } from "~/lib/tasks/taskDisplay";
-import { STALE } from "./layout";
+import { SIMPLE_BLOCK, SIMPLE_HEADING, STALE } from "./layout";
 import { useSimpleTasks } from "./useSimpleTasks";
 
 /**
@@ -38,11 +39,14 @@ export function SimpleTasks({ className = "" }: { className?: string }) {
   return (
     <section
       aria-label="My tasks"
-      className={`space-y-3 ${fresh ? "" : STALE} ${className}`}
+      className={`space-y-3 ${SIMPLE_BLOCK} ${fresh ? "" : STALE} ${className}`}
       data-simple-tasks=""
       data-stale={fresh ? undefined : ""}
     >
-      <h2 className="text-lg font-semibold">My tasks</h2>
+      <h2 className={SIMPLE_HEADING}>
+        <ListChecks aria-hidden="true" className="text-primary size-5" />
+        My tasks
+      </h2>
       {tasks.length > 0 && (
         <ul className="space-y-1" aria-label="My open tasks">
           {tasks.map((task) => {
