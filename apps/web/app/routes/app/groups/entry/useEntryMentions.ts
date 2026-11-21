@@ -1,10 +1,12 @@
 import type { MentionAddResult } from "~/components/notes/useMentionPopup";
+import type { MentionFromGroup } from "~/lib/providers/mentionOptions";
+import type { ImportSource } from "~/lib/providers/providerImport";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { useState } from "react";
 import { useMentionProviders } from "~/lib/providers/mentionProviders.sync";
 import { getSync } from "~/lib/sync";
-import { createAndLinkProvider, linkProvider } from "~/lib/providers/providers.sync";
+import { createAndLinkProvider, importAndLinkProvider, linkProvider } from "~/lib/providers/providers.sync";
 
 const NOT_STORED = "Couldn't save this entry, so the provider wasn't linked.";
 
@@ -13,8 +15,9 @@ const NOT_STORED = "Couldn't save this entry, so the provider wasn't linked.";
  * deleted ones included so their chips grey), and what a mention does here:
  * it links the provider to the entry, as the With row does (a draft is saved
  * first; a provider already linked stays one link). The popup's add row
- * creates a clinician and links it in one step. Deleting a mention changes
- * no link. Returns data and callbacks only.
+ * creates a clinician and links it in one step, and a "From <group>" pick
+ * copies that provider here and links the copy in one step. Deleting a
+ * mention changes no link. Returns data and callbacks only.
  */
 export function useEntryMentions({
   groupId,
@@ -29,6 +32,7 @@ export function useEntryMentions({
   providers: readonly LocalProvider[];
   onMention: (providerId: string) => void;
   onAdd: (name: string) => Promise<MentionAddResult>;
+  onImport: (choice: MentionFromGroup, source: readonly ImportSource[]) => Promise<MentionAddResult>;
   error: string | null;
 } {
   const providers = useMentionProviders(groupId);
@@ -46,5 +50,13 @@ export function useEntryMentions({
     return createAndLinkProvider(getSync(), entryId, { type: "clinician", name });
   };
 
-  return { providers, onMention, onAdd, error };
+  const onImport = async (
+    choice: MentionFromGroup,
+    source: readonly ImportSource[],
+  ): Promise<MentionAddResult> => {
+    if (!(await ensureStored())) return { ok: false, error: NOT_STORED };
+    return importAndLinkProvider(getSync(), entryId, source, choice.id);
+  };
+
+  return { providers, onMention, onAdd, onImport, error };
 }

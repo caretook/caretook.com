@@ -1,7 +1,8 @@
 import type { Editor } from "@tiptap/react";
 import type { Ref } from "react";
 import type { BindNoteDocOptions, NoteDocParts } from "~/lib/live-notes/notes.sync";
-import type { MentionProvider } from "~/lib/providers/mentionOptions";
+import type { MentionFromGroup, MentionProvider } from "~/lib/providers/mentionOptions";
+import type { ImportSource } from "~/lib/providers/providerImport";
 import type { MentionAddResult } from "./useMentionPopup";
 
 import { NOTE_FRAGMENT } from "@caretook/data/schema";
@@ -11,7 +12,8 @@ import StarterKit from "@tiptap/starter-kit";
 import { Bold, Heading2, Italic, List, ListOrdered } from "lucide-react";
 import { useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { bindNoteDoc, createNoteDoc } from "~/lib/live-notes/notes.sync";
-import { createProvider } from "~/lib/providers/providers.sync";
+import { useOtherGroupProviders } from "~/lib/providers/otherGroupProviders.sync";
+import { createProvider, importProviders } from "~/lib/providers/providers.sync";
 import { MentionTargets } from "./MentionChip";
 import { MentionPopup, mentionOptionId } from "./MentionPopup";
 import { ProviderMention, useMentionPopup } from "./useMentionPopup";
@@ -37,7 +39,10 @@ export type LiveNotesEditorHandle = {
  * provider to the entry). Deleting a mention calls nothing. The popup's
  * last row adds the typed name as a provider (a clinician), then mentions
  * it: through `onAdd` when given (the entry page creates and links), else
- * `createProvider` in this group.
+ * `createProvider` in this group. Once something is typed, the popup also
+ * lists the user's other groups' matches under "From <group>"; a pick copies
+ * the provider here and mentions the copy: through `onImport` when given
+ * (the entry page imports and links), else `importProviders` (no link).
  */
 export function LiveNotesEditor({
   label,
@@ -47,6 +52,7 @@ export function LiveNotesEditor({
   providers,
   onMention,
   onAdd,
+  onImport,
   ...options
 }: BindNoteDocOptions & {
   label: string;
@@ -57,6 +63,8 @@ export function LiveNotesEditor({
   onMention?: (providerId: string) => void;
   /** Adds the popup's typed name as a provider (and does any linking). Defaults to a clinician in this group. */
   onAdd?: (name: string) => Promise<MentionAddResult>;
+  /** Copies a "From <group>" pick here (and does any linking). Defaults to an import into this group. */
+  onImport?: (choice: MentionFromGroup, source: readonly ImportSource[]) => Promise<MentionAddResult>;
   /** Put the cursor in the document on open (a writer starting a new entry). */
   autofocus?: boolean;
   ref?: Ref<LiveNotesEditorHandle>;
@@ -83,11 +91,14 @@ export function LiveNotesEditor({
   // through a ref, because ProseMirror re-reads them on each update.
   const canWriteRef = useRef(canWrite);
 
+  const others = useOtherGroupProviders({ userId: db.userId, groupId, enabled: canWrite && !!providers });
   const mentions = useMentionPopup({
     providers: providers ?? NO_PROVIDERS,
     enabled: canWrite && !!providers,
     onMention,
     onAdd: onAdd ?? ((name) => createProvider(db, groupId, { type: "clinician", name })),
+    others,
+    onImport: onImport ?? ((choice, source) => importInto(db, groupId, choice, source)),
   });
   const targets = useMemo(
     () => ({ groupId, providers: new Map((providers ?? NO_PROVIDERS).map((p) => [p.id, p])) }),
@@ -153,6 +164,21 @@ export function LiveNotesEditor({
     </div>
   );
 }
+
+/** The default "From <group>" pick: copy the provider into this group (no link), and mention the copy. */
+const importInto = async (
+  db: BindNoteDocOptions["db"],
+  groupId: string,
+  choice: MentionFromGroup,
+  source: readonly ImportSource[],
+): Promise<MentionAddResult> => {
+  const res = await importProviders(db, groupId, source, [choice.id]);
+  if (!res.ok) return res;
+  const [result] = res.results;
+  return result
+    ? { ok: true, id: result.id }
+    : { ok: false, error: "That provider is gone from the other group." };
+};
 
 /** Formatting buttons. Kept small: these are working notes, not documents. */
 function Toolbar({ editor }: { editor: Editor }) {
