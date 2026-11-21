@@ -10,7 +10,7 @@
 
 | Slice | Wave | State                                  | Merge into `prd/check-speed` (slice commits) |
 | ----- | ---- | -------------------------------------- | -------------------------------------------- |
-| 1     | 1    | started: worktree made, agent (sonnet) |                                              |
+| 1     | 1    | merged (sonnet)                        | 4d4a760f (571cc9f6)                          |
 | 2     | 1    | started: worktree made, agent (sonnet) |                                              |
 | 3     | 2    | not started                            |                                              |
 | 4     | 2    | not started                            |                                              |
