@@ -9,6 +9,8 @@
 #   test-db.sh create <worktree> start it if needed and create that database
 #   test-db.sh drop <worktree>   drop that database and its integration workers'
 #                                copies, <name>_w<n> (nothing when it isn't running)
+#   test-db.sh drop-db <database>   the same by database name, for one whose
+#                                worktree is gone (pnpm prd tidy)
 #   test-db.sh list              the worktree databases on it, with their worker copies
 #   test-db.sh use [worktree]    point a worktree's integration tests at its
 #                                database here (packages/data/.env.test.local);
@@ -79,8 +81,13 @@ case $cmd in
     fi
     echo "$db"
     ;;
-  drop)
-    db=$(db_of "${1:-}")
+  drop | drop-db)
+    if [[ $cmd == drop-db ]]; then
+      db=${1:-}
+      [[ $db =~ ^caretook_test_[a-z0-9_]+$ ]] || die "drop-db: not a test database name: ${db:-(none)}"
+    else
+      db=$(db_of "${1:-}")
+    fi
     c=$(container)
     # Not running: its tmpfs went with it, so there's nothing to drop.
     [[ -n $c ]] || exit 0
@@ -115,5 +122,5 @@ case $cmd in
     write_test_env "$loops/$name" "$name"
     echo "$name's integration tests now use $(db_of "$name") on the shared test Postgres (:$shared_test_port)"
     ;;
-  *) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
+  *) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
 esac
