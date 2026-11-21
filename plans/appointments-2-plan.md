@@ -13,7 +13,7 @@
 | 5     | 3    | merged (sonnet)                                  | 6e343bd8 (6c228c9c)                             |
 | 6     | 3    | merged (opus)                                    | 4d8f9364 (24b03329)                             |
 | 7     | 3    | merged (opus)                                    | ca95085a (b5ea3fef, 91cdc5f2)                   |
-| 8     | 4    | started (sonnet)                                 |                                                 |
+| 8     | 4    | merged (sonnet)                                  | edfcedf0 (0f814ca5)                             |
 | 9     | 4    | started (opus)                                   |                                                 |
 | 10    | 4    | handed off, merge after 8 and 9 (opus; 4bdf82e8) |                                                 |
 
@@ -40,6 +40,12 @@ Slice 6 merged (4d8f9364; registry conflicts with slice 5 resolved by keeping bo
 Slice 7 merged (ca95085a; 12 additive conflicts with 5 and 6 resolved, incl. `linkToken.ts` = seal.ts + `createHmac` for `linkSubkey`, cron test expects [reminders, googlePush, seriesTopUp], routes.test.ts re-sorted). Wave 3 done. Slice 9 started. Slice 10 handed off; held for plan order (worktree `.loops/appointments-2-10` with a stack).
 
 **Pending sync:** quick-fixes wave 14 in dev (fa9ad005): fixes B-205/B-206 (mcpWrites) and the stale `timelineSimpleTiles` test; touches DayHeader, SimpleNow/SimpleTimeline, useTimelineData. Sync after wave 4 merges, before the landing check.
+
+Slice 8 merged (edfcedf0); B-61 done.
+
+**Question for the user at landing (product):** "Also remind me" from a member whose reminder emails are off sends nothing (the planner only sends to members with reminders on); the sheet says so and points to Calendar & reminders. PRD doesn't settle it; kept as is unless the user wants extras to send anyway.
+
+**Carried from slice 8's hand-off:** `reminderOverrideService` (`get`, `set` with `default` deleting the row, `mute`, `extra`); errors `reminderOverrideService:notFound` (404), `:invalid` (400); `calendars.overrides.get|set` in `overrideProcedures.ts`; "Remind me" before Print in `entryActionItems` for upcoming, uncancelled, unmoved events and notes, every role; `RemindMeSheet`, `useRemindMe` (`components/entry/`); `lib/calendars/remindMe.ts` (`canRemind`, `remindSummary`; summary lists lead labels, doesn't drop passed ones). The timeline list holds only past or started entries, so its wiring has no component test. Browser check to run at landing: roundtrip. Docs: calendars.md (service, procedures, item, sheet, reminders-off behaviour); api.md (procedures); components.md tests line (`upcoming/upcomingRemind.browser.test.tsx`); data-layer.md (service).
 
 **Question for the user at landing:** the lean budget. Slice 10's series step adds ~0.9–1.4 s to `roundtrip`; the lean set already sums to exactly the 255 s ceiling, so it'd be 256–257 s. `roundtrip` stays 28 in `scripts/loops/checks` until the landing suite's median; raising the ceiling is the user's call.
 
