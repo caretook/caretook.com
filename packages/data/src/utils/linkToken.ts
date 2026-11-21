@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
 
 // Invite links keep their raw token encrypted at rest, so owners and admins
 // can copy an active link again (`invite.copyLink`). Email invites never do:
@@ -34,6 +34,16 @@ const linkKey = (env: NodeJS.ProcessEnv = process.env) => {
   return createHash("sha256")
     .update(configured || DEV_KEY)
     .digest();
+};
+
+/**
+ * A key for another purpose ("reminders-unsubscribe"), derived from the same
+ * secret so nothing new needs configuring: HMAC-SHA256(key, purpose). Null
+ * where `linkKey` is (production without INVITE_LINK_KEY).
+ */
+export const linkSubkey = (purpose: string, env: NodeJS.ProcessEnv = process.env) => {
+  const key = linkKey(env);
+  return key ? createHmac("sha256", key).update(purpose).digest() : null;
 };
 
 /** Whether links can be sealed here (production needs INVITE_LINK_KEY). */

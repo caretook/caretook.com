@@ -141,6 +141,9 @@ export type { CalendarSettingsView } from "./calendarSettingService";
 import * as calendarFeedService from "./calendarFeedService";
 export { calendarFeedService };
 export type { CalendarFeed } from "./calendarFeedService";
+import * as calendarReminderService from "./calendarReminderService";
+export { calendarReminderService };
+export type { ReminderGroupInputs } from "./calendarReminderService";
 
 export const services = {
   user: userService,

@@ -1,5 +1,6 @@
 import { appointmentSeriesService, isError, logError } from "@caretook/data";
 import { hasCronSecret } from "./cron";
+import { sweepReminders } from "./reminders";
 
 // The calendar cron (`/api/cron/calendar`, every minute): a named, ordered
 // list of bounded steps. Each step's failure, thrown or returned, is caught
@@ -43,6 +44,7 @@ export const runCronSteps = async (
 
 /** The steps, in order. Slices 6, 7 and 9 add theirs before the top-up. */
 export const CALENDAR_STEPS: readonly CronStep[] = [
+  { name: "reminders", run: ({ now }) => sweepReminders(now) },
   { name: "seriesTopUp", run: ({ now }) => appointmentSeriesService.topUp(now) },
 ];
 

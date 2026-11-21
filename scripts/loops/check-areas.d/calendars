@@ -13,3 +13,5 @@ apps/web/app/lib/calendars/calendarSettings.ts signout-wipe
 # service, handler and procedures are integration tests (packages/api/src/calendars/).
 apps/web/app/routes/api/calendar/*       -
 apps/web/app/.server/calendarFeed.ts     -
+# Reminder emails' unsubscribe link (web only, slice 6): integration tests (packages/notifications).
+apps/web/app/routes/api/reminders/*      -

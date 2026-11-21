@@ -133,8 +133,6 @@ describe("Calendar & reminders", () => {
       "Google Calendar",
       "Details outside Caretook",
     ]);
-    // The other cards wait for their slices.
-    expect(section("reminders")!.textContent).toMatch(/Coming soon/);
   });
 
   test("says what leaves by default, with the consent's wording on the switch", async () => {

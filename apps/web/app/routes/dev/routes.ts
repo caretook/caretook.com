@@ -11,4 +11,6 @@ export const notificationRoutes: RouteConfigEntry[] = [
   route("dev/mail.json", "routes/dev/mail/json/route.ts"),
   route("dev/mail/:id", "routes/dev/mail/message/route.tsx"),
   route("api/webhooks/resend", "routes/api/webhooks/resend.ts"),
+  // A reminder email's one-click unsubscribe (calendars, appointments-2).
+  route("api/reminders/unsubscribe/:token", "routes/api/reminders/unsubscribe.ts"),
 ];

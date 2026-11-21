@@ -3,6 +3,7 @@ import type { GroupRoleName } from "../constants";
 import type { MemberCalendarSetting, ReminderLead, ShareLevel, Tx } from "../db";
 import type { ServiceContext } from "./types";
 
+import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
   calendarSettingsChangeZSchema,
@@ -13,6 +14,7 @@ import {
 import { isError, newError } from "../errors";
 import { careGroupMemberModel, careGroupModel, memberCalendarSettingModel } from "../models";
 import { isSystemUser } from "../permissions";
+import { readReminderUnsubscribeToken, reminderUnsubscribeToken } from "../utils/unsubscribeToken";
 
 // A member's calendar settings for one care group (appointments-2): reminder
 // emails, the details consent, and (slice 5) their feed. Every member,
@@ -198,3 +200,39 @@ export const setDetailsAllowed = (ctx: ServiceContext, groupId: string, allowed:
  */
 export const removeForMember = (tx: Tx, groupId: string, userId: string) =>
   memberCalendarSettingModel.removeForMember(tx, groupId, userId);
+
+/**
+ * The one-click unsubscribe token in a member's reminder emails for
+ * `groupId` (slice 6): signed, never stored. Null where it can't be signed
+ * (production without INVITE_LINK_KEY).
+ */
+export const unsubscribeToken = (userId: string, groupId: string) =>
+  reminderUnsubscribeToken(userId, groupId);
+
+/** Whether `token` is a reminder unsubscribe token of ours (the page asks before it's used). */
+export const isUnsubscribeToken = (token: string) => readReminderUnsubscribeToken(token) !== null;
+
+/**
+ * A reminder email's unsubscribe link, used: turns reminders off for its
+ * member in its group (as the system; no sign-in). Nothing to do for a
+ * former member or reminders already off. `badUnsubscribe` for a token that
+ * isn't ours.
+ */
+export const unsubscribeReminders = (token: string) =>
+  withTransaction(async (tx) => {
+    const target = readReminderUnsubscribeToken(token);
+    if (!target) return newError({ code: "calendarSettingService:badUnsubscribe" });
+    const ctx: ServiceContext = { authUser: SYSTEM_USER };
+    const row = await ownRow(ctx, target.groupId, target.userId, tx);
+    if (isError(row)) return row;
+    if (row?.remindersOn) {
+      const updated = await memberCalendarSettingModel.update({
+        ...ctx,
+        tx,
+        filter: { id: { type: "eq", value: row.id } },
+        data: { remindersOn: false },
+      });
+      if (isError(updated)) return updated;
+    }
+    return { groupId: target.groupId, remindersOn: false as const };
+  });

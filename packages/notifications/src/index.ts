@@ -14,6 +14,7 @@ export * from "./devMail";
 export * from "./links";
 export * from "./outbox";
 export * from "./registry";
+export * from "./reminders";
 export * from "./render";
 export * from "./senders";
 export * from "./resendWebhook";
