@@ -24,6 +24,8 @@
 
 **Slice 5 (B-212, approved by the user 2026-11-21):** the header reorder. `timeline-ux-2` (not started) slice 1 later wraps this header in `PageHeader`; noted on B-212 so it keeps the order.
 
+**Browser checks at landing (user, 2026-11-21): no `--suite`.** Run `roundtrip` (slice 4) and `signout-wipe` (slice 3) by name, plus any `e2e no` check `pnpm prd browser --changed --base dev --list` names that hasn't passed; slice 1's lean set passed 12/12 on its stack.
+
 **Landing:** one landing after wave 2 (the plan holds it until every slice is merged). Slice 1's `--changed` named the whole lean set (migration, sync config) and passed 12/12 on its stack; at landing ask before `--suite`.
 
 **Docs to fold (slice 1):** medications.md (the nullable checked `type`, no backfill; required where asked: `medicationFormContentZSchema` and `requireType`; not tracked; the Type choice and the `<details>` "Prescription details"; the badge and the page's Type row; `medicationTypeDisplay.ts`; the seeds' types); sync.md (`medication.type`); data-layer.md (0000–0030); components.md (`ChoiceGroup`'s controlled `value` may be null).
