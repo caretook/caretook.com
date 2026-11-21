@@ -1,5 +1,7 @@
 # PRD: Timeline UX 2 (declutter)
 
+> **Done** (2026-11-21): every slice landed in dev; its decisions are in the timeline, app-shell, components, assistant and profiles docs.
+
 > Topic `timeline-ux-2`. Backlog items B-214, B-218, B-223; added 2026-11-21: B-215, B-216, B-217, B-219, B-224. Plan: [`timeline-ux-2-plan.md`](timeline-ux-2-plan.md).
 
 ## Problem Statement

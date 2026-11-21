@@ -1,4 +1,5 @@
 import type { UnitChoices } from "@caretook/data/schema";
+import type { RefObject } from "react";
 
 import { useId, useRef } from "react";
 import { PassUndoStatus } from "~/components/medications";
@@ -36,16 +37,20 @@ export function QuickEntryBox({
   units,
   size = "md",
   passChips = size === "md",
+  fieldRef,
 }: {
   groupId: string;
   units: UnitChoices;
   size?: QuickEntrySize;
   /** Offer the due passes as one-tap chips ("Give evening meds"). Simple mode turns them off: its Upcoming block has Given all. */
   passChips?: boolean;
+  /** The field itself, for a caller that brings it into view and focuses it (the empty Today's "Add an entry"). */
+  fieldRef?: RefObject<HTMLTextAreaElement | null>;
 }) {
   const q = useQuickEntry({ groupId, units });
   const count = q.cards.length;
-  const field = useRef<HTMLTextAreaElement>(null);
+  const ownField = useRef<HTMLTextAreaElement>(null);
+  const field = fieldRef ?? ownField;
   const rulesId = useId();
   const { usual, recent, completions } = useQuickEntrySuggestions({
     groupId,

@@ -139,7 +139,9 @@ describe("the simple view", () => {
     expect(section.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const chips = section.parentElement!.nextElementSibling!;
     expect(chips.querySelector('button[aria-label="Search entries"]')).not.toBeNull();
-    expect(chips.textContent).toContain("Filter");
+    expect(chips.querySelector("button[data-filter-button]")?.getAttribute("aria-label")).toBe("Filter");
+    // No View options in the simple view's toolbar (the full view's sits at its end).
+    expect(chips.querySelector('button[aria-label="View options"]')).toBeNull();
     expect(chips.nextElementSibling).toBe(list);
     expect(document.querySelector("[data-dictation-hint]")).toBeNull();
     // No text-2xl heading anywhere in simple mode.
