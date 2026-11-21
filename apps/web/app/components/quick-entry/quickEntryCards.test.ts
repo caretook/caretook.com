@@ -20,7 +20,7 @@ const MED = "11111111-1111-4111-8111-111111111111";
 const note = (text: string): QuickEntryReading => ({
   kind: "note",
   label: "Note",
-  actions: [{ type: "addNote", text, occurredAt: at }],
+  actions: [{ type: "addNote", text, occurredAt: at, providerIds: [] }],
   confidence: 0.4,
   warnings: [],
 });
@@ -161,7 +161,9 @@ describe("editTarget", () => {
   });
 
   test("notes and events are saved and opened on their page", () => {
-    expect(editTarget({ type: "addNote", text: "Hi", occurredAt: at }, GROUP)).toBe("saveAndOpen");
+    expect(editTarget({ type: "addNote", text: "Hi", occurredAt: at, providerIds: [] }, GROUP)).toBe(
+      "saveAndOpen",
+    );
   });
 });
 
