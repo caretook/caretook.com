@@ -49,6 +49,8 @@ Slice 8 merged (edfcedf0); B-61 done.
 
 **User's answers (2026-11-20):** skip browser checks for this landing; raise the lean ceiling to 257 s (done: `lean-ceiling 257`, roundtrip 29, from slice 10's ~0.9–1.4 s; reset from a suite median later); "Also remind me" with reminders off keeps sending nothing.
 
+**Second full check passed on 3f716478** (4933 tests; build budget). Fixes: a0bbd910 (entryRepeat test opens the collapsed Today card), 3f716478 (device fixtures test scoped to the timeline list; a dev flake since a31c54a6). Docs folded (a1ffd328 + the owners' switch location fix). Server restarted. Next: `pnpm prd ready`, land, `pnpm prd rm appointments-2`.
+
 **First full check (ca4270a1) failed** on two component tests, both failing alone: `entryRepeat.browser.test.tsx` "offline: the series and every visit…" (3/3; `main a[href=…]` not visible after going to the Timeline, likely quick-fixes wave 14's Today card / simple timeline changes) and `test/device.browser.test.tsx` "fixtures render on a real route…" (2/3, toBeVisible timeout). Fix agent (opus) working in this worktree.
 
 **Was: question for the user at landing (product):** "Also remind me" from a member whose reminder emails are off sends nothing (the planner only sends to members with reminders on); the sheet says so and points to Calendar & reminders. PRD doesn't settle it; kept as is unless the user wants extras to send anyway.
