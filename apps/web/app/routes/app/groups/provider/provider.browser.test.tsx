@@ -23,6 +23,7 @@ import {
   pageHeader,
   PICKUP,
   PICKUP_2,
+  PICKUP_LINKS,
   PROVIDER_ROUTES,
   providerUrl,
   SECOND_GROUP,
@@ -202,6 +203,61 @@ describe("the notes", () => {
     expect($('main [role=toolbar][aria-label="Formatting"]')).toBeNull();
     expect($("main header a[data-edit-provider]")).toBeNull();
     expect(mainText()).toContain("You can view these notes.");
+  });
+});
+
+describe("mentions in the notes", () => {
+  const mentionChips = () =>
+    $$(".ProseMirror [data-mention]").map((m) => ({
+      id: m.dataset.mention!,
+      text: m.textContent.trim(),
+      href: m.querySelector("a")?.getAttribute("href") ?? null,
+    }));
+  const shown = () => $$('[data-mention-popup] [role="option"]').map((o) => o.firstElementChild!.textContent);
+  const typeInNotes = async (text: string) => {
+    await waitUntil(() => !!NOTES()?.textContent?.includes("level 2"), 4000, "the notes");
+    await userEvent.click(NOTES()!);
+    await waitUntil(() => document.activeElement === NOTES(), 4000, "the editor focused");
+    await userEvent.keyboard(text);
+  };
+  const entryLinks = async (device: Awaited<ReturnType<typeof open>>) => ({
+    rows: (await device.query("SELECT id FROM timeline_entry_provider")).length,
+    queued: (await device.queued()).filter((w) => w.type === "timeline_entry_provider"),
+  });
+
+  test("@ picks a provider: a chip linking to their page, and no entry link", async () => {
+    const device = await open(providerUrl(WESTSIDE.id), { fixtures: [directory(), SAM] });
+    await typeInNotes(" Ask @alva");
+    await waitUntil(() => shown().length === 2, 4000, "the match and the add row");
+    expect(shown()).toEqual(["Dr. Elena Alvarez", 'Add "alva" as a provider']);
+    await userEvent.keyboard("{Enter}");
+    await waitUntil(() => mentionChips().length === 1, 4000, "the chip");
+    expect(mentionChips()).toEqual([
+      { id: ALVAREZ.id, text: "Dr. Elena Alvarez", href: providerUrl(ALVAREZ.id) },
+    ]);
+    await expect
+      .poll(async () => (await device.queued()).map((w) => w.type))
+      .toEqual(expect.arrayContaining(["note_update"]));
+    expect(await entryLinks(device)).toEqual({ rows: PICKUP_LINKS.length, queued: [] });
+  });
+
+  test("the add row adds a clinician in this group and mentions it, linking nothing", async () => {
+    const device = await open(providerUrl(WESTSIDE.id), { fixtures: [directory(), SAM] });
+    await typeInNotes(" Front desk: @Rosa Lind");
+    await waitUntil(() => shown().includes('Add "Rosa Lind" as a provider'), 4000, "the add row");
+    expect(shown()).toEqual(['Add "Rosa Lind" as a provider']);
+    await userEvent.keyboard("{Enter}");
+    await waitUntil(() => mentionChips().length === 1, 4000, "the chip");
+    const [made] = await device.query<{ id: string; type: string; group_id: string }>(
+      "SELECT id, type, group_id FROM provider WHERE name = ?",
+      ["Rosa Lind"],
+    );
+    expect(made).toMatchObject({ type: "clinician", group_id: WESTSIDE.row.group_id });
+    await expect
+      .poll(mentionChips)
+      .toEqual([{ id: made!.id, text: "Rosa Lind", href: providerUrl(made!.id) }]);
+    expect((await device.queued()).some((w) => w.type === "provider" && w.id === made!.id)).toBe(true);
+    expect(await entryLinks(device)).toEqual({ rows: PICKUP_LINKS.length, queued: [] });
   });
 });
 
