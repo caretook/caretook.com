@@ -11,6 +11,7 @@ import {
   medicationPassService,
   medicationService,
   memberSharingService,
+  noteDocumentService,
   normalizeSchedule,
   providerService,
   recipientAllergyService,
@@ -18,8 +19,9 @@ import {
   timelineEntryService,
   userContactService,
 } from "@caretook/data";
+import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok } from "../../../data/test/fixtures";
+import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../../data/test/fixtures";
 import { createRateLimiter } from "../rateLimit";
 import { resourceMetadataUrl } from "./discovery";
 import { createMcpHandler } from "./http";
@@ -287,6 +289,67 @@ describe("read tools", { timeout: 60_000 }, () => {
     ]);
     expect(rest.structuredContent.nextCursor).toBeNull();
     expect(JSON.stringify([current, all, rest])).not.toContain("Elsewhere");
+  });
+
+  it("list_timeline: medication changes read in full (what changed, before and after), and long text isn't cut", async () => {
+    const handler = handlerAt();
+    const w = await world();
+    const med = await addMedication(w.caretaker.ctx, w.group.id, { name: "Metoprolol", strength: "25 mg" });
+    ok(
+      await medicationService.update(w.caretaker.ctx, med.id, {
+        dose: "2 tablets",
+        schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
+      } as never),
+    );
+    ok(
+      await medicationService.update(w.caretaker.ctx, med.id, {
+        status: "discontinued",
+        stoppedOn: "2026-11-01",
+        stopReason: "sideEffects",
+        stopNote: "Dizzy on standing",
+      } as never),
+    );
+    const passes = ok(await medicationPassService.list(w.owner.ctx, { groupId: w.group.id })).data;
+    const morning = passes.find((p) => p.name === "Morning")!;
+    ok(await medicationPassService.update(w.caretaker.ctx, morning.id, { time: "08:30" }));
+    const longNote = `Note start. ${"Slept badly and ate little. ".repeat(20)}Note end.`;
+    const longDose = `Dose start. ${"Took it with applesauce. ".repeat(12)}Dose end.`;
+    expect(longNote.length).toBeGreaterThan(280);
+    const note = ok(await addEntry(w.caretaker.ctx, w.group.id, { kind: "note" }))!;
+    ok(await noteDocumentService.create(w.caretaker.ctx, { id: note.id, groupId: w.group.id }));
+    ok(
+      await noteDocumentService.appendUpdate(w.caretaker.ctx, {
+        id: randomUUID(),
+        groupId: w.group.id,
+        documentId: note.id,
+        data: typeParagraph(newYDoc(), longNote),
+      }),
+    );
+    ok(await noteDocumentService.compact(note.id));
+    ok(
+      await addEntry(w.caretaker.ctx, w.group.id, {
+        kind: "dose",
+        details: { medicationId: med.id, status: "given", amount: "2 tablets", note: longDose },
+      }),
+    );
+
+    const token = await w.connect(w.viewer);
+    const result = await callTool(handler, token, "list_timeline", {
+      kinds: ["medicationChange", "note", "dose"],
+    });
+    const lines = result.content[0]!.text.split("\n");
+    const changes = lines.filter((l) => l.includes(" medicationChange "));
+    expect(changes.some((l) => /Metoprolol 25 mg: Started/.test(l))).toBe(true);
+    expect(changes.some((l) => l.includes("Metoprolol 25 mg: Changed dose 1 tablet → 2 tablets"))).toBe(true);
+    expect(changes.some((l) => l.includes("added 20:00"))).toBe(true);
+    expect(
+      changes.some((l) =>
+        l.includes("Metoprolol 25 mg: Discontinued: side effects; note: Dizzy on standing"),
+      ),
+    ).toBe(true);
+    expect(changes.some((l) => l.includes("Morning moved 8:00 → 8:30"))).toBe(true);
+    expect(result.content[0]!.text).toContain(longNote);
+    expect(result.content[0]!.text).toContain(longDose);
   });
 
   it("todays_doses: agrees with the app's due-doses core for the same data and now, in the recipient's zone", async () => {

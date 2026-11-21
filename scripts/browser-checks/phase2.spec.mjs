@@ -149,7 +149,11 @@ test("offline, then reconnect", async ({ device }) => {
        SELECT group_id, id, 'symptom', now(), '${TZ}', '{"name": "${tag}", "severity": 2}'::jsonb, '${caretaker}', '${caretaker}'
        FROM care_recipient WHERE group_id = '${DEV_FAMILY}' RETURNING id`,
     );
+    // The kind chips are in the Filter button's sheet.
+    await page.locator("button[data-filter-button]").click();
     await page.locator('nav[aria-label="Show entries"] a', { hasText: /^Symptoms$/ }).click();
+    await page.waitForURL(/\?kind=symptom$/);
+    await page.getByRole("button", { name: "Done" }).click();
 
     await test.step("offline: the kind filter works from the device, and the entry written elsewhere hasn't arrived", async () => {
       const filtered = await waits(

@@ -1,7 +1,7 @@
 import type { DaySummaryMode, TimelineView } from "@caretook/data/schema";
 import type { SimpleModeState } from "~/lib/assistant/useSimpleMode";
 
-import { LayoutList, List, SlidersHorizontal, Type } from "lucide-react";
+import { Eye, LayoutList, List, Type } from "lucide-react";
 import { Menu, SEPARATOR } from "~/components/ui";
 
 const VIEW_ITEMS: { id: TimelineView; label: string; icon: typeof List }[] = [
@@ -19,7 +19,7 @@ const isView = (id: string): id is TimelineView => VIEW_ITEMS.some((v) => v.id =
 const isMode = (id: string): id is DaySummaryMode => MODE_ITEMS.some((m) => m.id === id);
 
 /**
- * The full timeline's one header control, "View options" (a sliders icon), at
+ * The full timeline's one header control, "View options" (an eye icon), at
  * every width: Layout (Rows or Cards, one choice), Day summaries (Highlights,
  * Full or Off, the viewer's setting: `useDaySummaryMode`), then "Simple view"
  * (this device's toggle; left out while it can't toggle, e.g. locked).
@@ -66,7 +66,7 @@ export function TimelineViewMenu({
         },
       ]}
     >
-      <SlidersHorizontal className="size-4" aria-hidden="true" />
+      <Eye className="size-4" aria-hidden="true" />
     </Menu>
   );
 }

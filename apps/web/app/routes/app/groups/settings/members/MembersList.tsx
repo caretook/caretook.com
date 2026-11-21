@@ -210,45 +210,6 @@ function MemberItem({
             {roleLabel(member.role)}
           </span>
         )}
-        {access?.simpleMode ? (
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="toggle toggle-sm"
-              aria-label={`Simple mode for ${name}`}
-              checked={simple.on}
-              disabled={simple.busy || removing}
-              onChange={(event) => simple.set(event.target.checked)}
-              data-simple-mode-switch=""
-            />
-            <span aria-hidden="true">Simple mode</span>
-          </label>
-        ) : (
-          !!member.simple_mode && (
-            <span className="badge badge-sm badge-ghost" data-simple-mode-badge="">
-              {member.simple_mode_locked ? "Simple mode, locked" : "Simple mode"}
-            </span>
-          )
-        )}
-        {access?.lock && (
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="toggle toggle-sm"
-              aria-label={`Lock ${name} in simple mode`}
-              checked={simple.locked}
-              disabled={simple.busy || removing}
-              onChange={(event) => simple.lock(event.target.checked)}
-              data-simple-lock-switch=""
-            />
-            <span aria-hidden="true">Locked</span>
-          </label>
-        )}
-        {access?.simpleMode && !access.lock && !!member.simple_mode_locked && (
-          <span className="badge badge-sm badge-ghost" data-simple-mode-badge="">
-            Locked
-          </span>
-        )}
         {(access?.remove || access?.leave) && (
           <button
             type="button"
@@ -261,6 +222,53 @@ function MemberItem({
           </button>
         )}
       </div>
+      {(access?.simpleMode || !!member.simple_mode) && (
+        <div className="flex min-w-0 flex-col gap-2 pl-12" data-member-switches="">
+          {access?.simpleMode ? (
+            <label className="flex min-w-0 cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="toggle toggle-sm"
+                aria-label={`Simple mode for ${name}`}
+                checked={simple.on}
+                disabled={simple.busy || removing}
+                onChange={(event) => simple.set(event.target.checked)}
+                data-simple-mode-switch=""
+              />
+              <span aria-hidden="true" className="min-w-0">
+                Simple mode
+              </span>
+            </label>
+          ) : (
+            !!member.simple_mode && (
+              <span className="badge badge-sm badge-ghost" data-simple-mode-badge="">
+                {member.simple_mode_locked ? "Simple mode, locked" : "Simple mode"}
+              </span>
+            )
+          )}
+          {access?.lock && (
+            <label className="flex min-w-0 cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="toggle toggle-sm"
+                aria-label={`Lock ${name} in simple mode`}
+                checked={simple.locked}
+                disabled={simple.busy || removing}
+                onChange={(event) => simple.lock(event.target.checked)}
+                data-simple-lock-switch=""
+              />
+              <span aria-hidden="true" className="min-w-0">
+                Locked
+              </span>
+            </label>
+          )}
+          {access?.simpleMode && !access.lock && !!member.simple_mode_locked && (
+            <span className="badge badge-sm badge-ghost" data-simple-mode-badge="">
+              Locked
+            </span>
+          )}
+        </div>
+      )}
       {error && (
         <p role="alert" className="text-error text-sm">
           {error}
