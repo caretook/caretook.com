@@ -7,9 +7,9 @@
 | Slice | Wave | State                                                                 | Merge into `prd/tasks-2` (slice commits) |
 | ----- | ---- | --------------------------------------------------------------------- | ---------------------------------------- |
 | 1     | 1    | merged (opus); worktree removed                                       | 2bb1c667 (fcec2345)                      |
-| 2     | 2    | started 2026-11-21 (worktree `tasks-2-2`, stackless; agent on sonnet) |                                          |
-| 3     | 3    | —                                                                     |                                          |
-| 4     | 3    | —                                                                     |                                          |
+| 2     | 2    | merged (sonnet); worktree removed                                     | d378d00e (d5e2c45c)                      |
+| 3     | 3    | started 2026-11-21 (worktree `tasks-2-3`, stackless; agent on opus)   |                                          |
+| 4     | 3    | started 2026-11-21 (worktree `tasks-2-4`, stackless; agent on sonnet) |                                          |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue tasks-2`): start every ready slice, land each green wave, clean up; ask only real questions. B-222 claimed.
 
@@ -20,6 +20,8 @@
 **Synced** `dev` after slice 1 (57bdf86c, conflict-free; timeline-ux-2 wave 1 in).
 
 **Slice 1 notes:** migration `0032_todos` (renames, a `DO` block for Postgres 18's named NOT NULL constraints; rewrites subject, reason, `google_event_link.item_uid`, the reminder outbox idempotency keys and `taskDue` → `todoDue` names); `SEARCH_INDEX_VERSION` 5. `pnpm check` had one failure, `entryPrint`, the post-midnight clock flake B-225 (quick-fixes slice 61 fixes it). Lean browser set 12/12 passed in the slice. **Open:** the connector consent text in `connectorRules.ts` says "tasks": handed to slice 4 (report, don't bump the consent version without asking).
+
+**Slice 2 notes:** component tests 1117/1118 (the one failure `entryPrint`, B-225); browser `--changed` 9/9 passed. `libLayout.test.ts` needed `docs/domain/todos.md`, so the orchestrator moved `tasks.md` → `todos.md` and its links early (the content folds at landing). Slice 2 touched slice 4's `writes.ts` and `mcpWrites.int.test.ts` only for `todoPath`; `add_task`, `list_tasks`, `addTask*`, `prompts.ts`, the `taskId` response key and "Added task" stay for slice 4. Slice 3 renames `UpcomingTodo`, `isUpcomingTodo`, `data-upcoming-todo` with the folder.
 
 **Overlaps:** quick-fixes slices 59 and 61 edit `task.browser.test.tsx`, `upcomingEvents`/`upcomingSeries.browser.test.tsx` and `timelineSimpleTasks.browser.test.tsx`, which slices 2 and 3 rename (`git mv`, so the renames should carry their edits). quick-entry (B-220) waits for tasks-2 in `dev`.
 
@@ -158,7 +160,7 @@ Stack: no · Reads: docs/domain/tasks.md, docs/domain/components.md, docs/domain
 
 ## Slice 3: The Planner section
 
-Stack: no · Reads: docs/domain/app-shell.md, docs/domain/appointments.md, docs/domain/tasks.md, docs/domain/components.md · Tests: unit, component
+Stack: no · Reads: docs/domain/app-shell.md, docs/domain/appointments.md, docs/domain/todos.md, docs/domain/components.md · Tests: unit, component
 
 **User stories:** 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 23.
 
