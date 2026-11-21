@@ -23,10 +23,10 @@ const LARK = fx.provider({ name: "Dr. Mira Lark", address: "12 Elm Street\nSprin
 const PT = fx.provider({ name: "Jo Park", specialty: "Physical therapy" });
 const VISIT = fx.event({
   title: "Visit with Dr. Lark",
-  occurredAt: at(new Date(Date.now() - 2 * 3_600_000)),
+  occurredAt: at(new Date(Date.now() - 20 * 60_000)),
   text: "Blood pressure is better.\n• Keep the dose\n• Recheck in May",
 });
-const NOTE = fx.note({ title: null, text: "Slept well", occurredAt: at(new Date(Date.now() - 3_600_000)) });
+const NOTE = fx.note({ title: null, text: "Slept well", occurredAt: at(new Date(Date.now() - 10 * 60_000)) });
 const world = () => [
   LARK,
   PT,
@@ -61,15 +61,14 @@ describe("the print view", () => {
   test("an event's: title, time, its provider's address as the place, With, and the text; hidden on screen", async () => {
     await renderWithDevice({ route: ROUTES, url: entryPath(VISIT.id), fixtures: world() });
     await waitUntil(() => !!part("text")?.includes("Recheck in May"), 8000, "the print view");
-    expect(part("title")).toBe("Visit with Dr. Lark");
-    expect(part("time")).toMatch(/^Event · Today, /);
-    expect(part("place")).toBe("Place: 12 Elm Street, Springfield (from Dr. Mira Lark)");
-    expect(part("with")).toBe("With: Dr. Mira Lark, Jo Park");
-    expect([...VIEW()!.querySelectorAll("[data-print=text] li")].map((li) => li.textContent)).toEqual([
-      "Keep the dose",
-      "Recheck in May",
-    ]);
-    expect(getComputedStyle(VIEW()!).display).toBe("none");
+    await expect.poll(() => part("title")).toBe("Visit with Dr. Lark");
+    await expect.poll(() => part("time")).toMatch(/^Event · Today, /);
+    await expect.poll(() => part("place")).toBe("Place: 12 Elm Street, Springfield (from Dr. Mira Lark)");
+    await expect.poll(() => part("with")).toBe("With: Dr. Mira Lark, Jo Park");
+    expect(
+      [...(await found(VIEW)).querySelectorAll("[data-print=text] li")].map((li) => li.textContent),
+    ).toEqual(["Keep the dose", "Recheck in May"]);
+    expect(getComputedStyle(await found(VIEW)).display).toBe("none");
     // On paper the page's controls give way to it.
     expect($("main > div.print\\:hidden")).toBeTruthy();
   });
@@ -82,11 +81,11 @@ describe("the print view", () => {
       fixtures: [world(), typed, fx.link(typed.id, LARK.id)],
     });
     await waitUntil(() => part("text") === "Fasting");
-    expect(part("place")).toBe("Place: Main St Lab");
+    await expect.poll(() => part("place")).toBe("Place: Main St Lab");
     await device.screen.unmount();
     await renderWithDevice({ route: ROUTES, url: entryPath(NOTE.id), fixtures: world() });
     await waitUntil(() => part("text") === "Slept well");
-    expect(part("title")).toBe("Note");
+    await expect.poll(() => part("title")).toBe("Note");
     expect([part("place"), part("with")]).toEqual([null, null]);
   });
 });
@@ -99,7 +98,7 @@ describe("Print in the ⋯ menu", () => {
     await userEvent.click(await found(MENU));
     await waitUntil(() => !!menuItem("Print"), 4000, "the menu");
     expect(menuItems().slice(-2)).toEqual(["Print", "Delete"]);
-    await userEvent.click(menuItem("Print")!);
+    await userEvent.click(await found(() => menuItem("Print")));
     expect(print).toHaveBeenCalledTimes(1);
   });
 
@@ -110,7 +109,7 @@ describe("Print in the ⋯ menu", () => {
     await userEvent.click(await found(MENU));
     await waitUntil(() => !!menuItem("Print"), 4000, "the menu");
     expect(menuItems()).toEqual(["Print"]);
-    await userEvent.click(menuItem("Print")!);
+    await userEvent.click(await found(() => menuItem("Print")));
     expect(print).toHaveBeenCalledTimes(1);
   });
 
@@ -127,10 +126,10 @@ describe("Print in the ⋯ menu", () => {
     await waitUntil(() => !!actions(), 8000, "the event's ⋯");
     await userEvent.click(actions()!);
     await waitUntil(() => !!menuItem("Print"), 4000, "the menu");
-    await userEvent.click(menuItem("Print")!);
+    await userEvent.click(await found(() => menuItem("Print")));
     await expect.poll(() => print.mock.calls.length, { timeout: 4000 }).toBe(1);
     await expect.poll(() => device.location()).toBe(entryPath(VISIT.id));
-    expect(part("title")).toBe("Visit with Dr. Lark");
+    await expect.poll(() => part("title")).toBe("Visit with Dr. Lark");
     await pause(300);
     expect(print).toHaveBeenCalledTimes(1);
   });
