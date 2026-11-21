@@ -108,7 +108,7 @@ describe("actionPreview", () => {
   test("a todo is its title, its due in the recipient's zone and its assignee", () => {
     const SAM = "77777777-7777-4777-8777-777777777777";
     const withMembers = { ...context, members: new Map([[SAM, { name: "Sam Rivera" }]]) };
-    const todo = { type: "addTask", title: "Call pharmacy" } as const;
+    const todo = { type: "addTodo", title: "Call pharmacy" } as const;
     expect(actionPreview({ ...todo, dueOn: "2026-11-20", assigneeId: SAM }, withMembers)).toEqual({
       title: "Call pharmacy",
       detail: "Sam Rivera",

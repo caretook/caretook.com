@@ -46,7 +46,7 @@ import {
 // schemas, the writer role, no future time on a past-only kind, a live
 // medication or provider in the group. A pass (`givePass`) is the medication
 // strip's Given all: the doses `givenAllWrites` plans for the pass's open
-// slots on its day, as one round. A todo (`addTask`) is checked as
+// slots on its day, as one round. A todo (`addTodo`) is checked as
 // `createTodo` checks it (`plannedTodo`) and written in the same transaction;
 // it isn't an entry. A refused action refuses the batch, naming the action
 // it was.
@@ -56,7 +56,7 @@ export type RunActionsResult =
       ok: true;
       /** Every entry (and todo) written, in order (a pass writes one per medication): what Undo removes. */
       ids: string[];
-      /** Each action's entries (an `addTask`'s todo), in the actions' order. */
+      /** Each action's entries (an `addTodo`'s todo), in the actions' order. */
       byAction: string[][];
     }
   | { ok: false; error: string; issues: FieldIssue[]; index: number | null };
@@ -86,7 +86,7 @@ const refuse = (error: string, index: number | null, issues: FieldIssue[] = []):
 });
 
 /** The content an action writes, before the role and group checks (a pass's doses are planned apart). */
-const contentOf = (action: Exclude<AssistantAction, { type: "givePass" | "addTask" }>, timeZone: string) => {
+const contentOf = (action: Exclude<AssistantAction, { type: "givePass" | "addTodo" }>, timeZone: string) => {
   switch (action.type) {
     case "logVital":
       return {
@@ -176,7 +176,7 @@ export const runActions = async (
       planned.push({ entry: first!, more });
       continue;
     }
-    if (action.type === "addTask") {
+    if (action.type === "addTodo") {
       const { type: _type, ...input } = action;
       const todo = await plannedTodo(db, groupId, input);
       if (!todo.ok) return refuse(todo.error, index, todo.issues);

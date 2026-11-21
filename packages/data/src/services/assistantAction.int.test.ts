@@ -120,7 +120,7 @@ describe("assistantActionService.run", () => {
           timeZone: "America/Los_Angeles",
         },
         {
-          type: "addTask",
+          type: "addTodo",
           title: "Pick up prescription",
           assigneeId: u.caretaker.user.id,
           dueOn: "2026-12-01",
@@ -223,7 +223,7 @@ describe("assistantActionService.run", () => {
     )!;
     const before = (await entriesOf()).length;
     const good = { type: "addNote", text: "Fine", occurredAt: minutesAgo(1) };
-    const todo = { type: "addTask", title: "Call the pharmacy" };
+    const todo = { type: "addTodo", title: "Call the pharmacy" };
 
     const cases: [unknown, string, unknown?][] = [
       [
@@ -263,7 +263,7 @@ describe("assistantActionService.run", () => {
         "assistantActionService:passGone",
       ],
       [{ type: "givePass", passId: noon.id, occurredAt: minutesAgo(1) }, "assistantActionService:passEmpty"],
-      [{ type: "addTask", title: "Call", assigneeId: u.outsider.user.id }, "todoService:assigneeNotMember"],
+      [{ type: "addTodo", title: "Call", assigneeId: u.outsider.user.id }, "todoService:assigneeNotMember"],
     ];
     for (const [bad, code, issues] of cases) {
       const res = refusal(await run("caretaker", [good, todo, bad]));
@@ -286,11 +286,11 @@ describe("assistantActionService.run", () => {
   it("lets owners, admins and caretakers run a batch, and refuses viewers and outsiders", async () => {
     const { run, todosOf } = await setup();
     for (const who of ["owner", "admin", "caretaker"] as const)
-      ok(await run(who, [{ type: "addTask", title: `By ${who}` }]));
+      ok(await run(who, [{ type: "addTodo", title: `By ${who}` }]));
     expect((await todosOf()).map((t) => t.title).sort()).toEqual(["By admin", "By caretaker", "By owner"]);
 
     for (const who of ["viewer", "outsider"] as const)
-      expect(refusal(await run(who, [{ type: "addTask", title: "Nope" }]))).toMatchObject({
+      expect(refusal(await run(who, [{ type: "addTodo", title: "Nope" }]))).toMatchObject({
         code: "permissions:unauthorized",
         index: null,
       });
@@ -299,7 +299,7 @@ describe("assistantActionService.run", () => {
 
   it("keeps via out of reach of edits: a member's update can't set it", async () => {
     const { u, group, run } = await setup();
-    const [[todoId]] = ok(await run("caretaker", [{ type: "addTask", title: "Book a ride" }])).byAction as [
+    const [[todoId]] = ok(await run("caretaker", [{ type: "addTodo", title: "Book a ride" }])).byAction as [
       [string],
     ];
     ok(await todoService.update(u.caretaker.ctx, todoId, { title: "Book a taxi" }));

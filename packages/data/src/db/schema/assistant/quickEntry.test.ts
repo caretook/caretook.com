@@ -523,7 +523,7 @@ describe("todos", () => {
     expect(r.kind).toBe("todo");
     expect(r.label).toBe("Todo");
     const a = action(r);
-    if (a.type !== "addTask") throw new Error(`not a todo: ${a.type}`);
+    if (a.type !== "addTodo") throw new Error(`not a todo: ${a.type}`);
     return {
       title: a.title,
       assigneeId: a.assigneeId ?? null,
@@ -631,7 +631,7 @@ describe("todos", () => {
     const parts = parse("bp 130/85, todo: call pharmacy friday for Sam, gave metformin");
     expect(parts.map((p) => p.readings[0]!.kind)).toEqual(["vital", "todo", "dose"]);
     expect(action(parts[1]!.readings[0]!)).toMatchObject({
-      type: "addTask",
+      type: "addTodo",
       title: "Call pharmacy",
       assigneeId: SAM,
       dueOn: "2026-11-20",

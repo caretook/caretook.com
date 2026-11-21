@@ -1374,7 +1374,7 @@ const todoReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
     reading(
       "todo",
       {
-        type: "addTask",
+        type: "addTodo",
         title,
         assigneeId,
         dueOn,

@@ -74,7 +74,7 @@ describe("sync.upload: via", () => {
             severity: 2,
             occurredAt: new Date(Date.now() - 60_000).toISOString(),
           },
-          { type: "addTask", title: "Call the pharmacy" },
+          { type: "addTodo", title: "Call the pharmacy" },
         ],
         { via: "Test Claude" },
       ),

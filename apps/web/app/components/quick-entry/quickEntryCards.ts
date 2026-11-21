@@ -149,7 +149,7 @@ export const editTarget = (
         to: appUrls.newDose(groupId, { passId: action.passId, search }),
         state: { ...SHEET_LINK_STATE },
       };
-    case "addTask":
+    case "addTodo":
       return {
         to: appUrls.newTodo(groupId, {
           title: action.title,

@@ -150,7 +150,7 @@ describe("editTarget", () => {
   test("a todo opens the add-todo sheet filled in, coming back on close", () => {
     const SAM = "88888888-8888-4888-8888-888888888888";
     const target = editTarget(
-      { type: "addTask", title: "Call pharmacy", assigneeId: SAM, dueOn: "2026-11-20", dueTime: null },
+      { type: "addTodo", title: "Call pharmacy", assigneeId: SAM, dueOn: "2026-11-20", dueTime: null },
       GROUP,
       "?kind=vital",
     );
@@ -193,7 +193,7 @@ describe("openAfterSave", () => {
   });
   test("a lone dose, vital or todo stays, and so does nothing saved", () => {
     expect(openAfterSave([{ type: "logDose", ids: ["d1"] }])).toBeNull();
-    expect(openAfterSave([{ type: "addTask", ids: ["t1"] }])).toBeNull();
+    expect(openAfterSave([{ type: "addTodo", ids: ["t1"] }])).toBeNull();
     expect(openAfterSave([])).toBeNull();
   });
 });
