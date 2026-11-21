@@ -11,7 +11,7 @@ import { deviceCommands } from "./apps/web/test/commands.ts";
 //   server:unit  packages/auth and packages/api's pure parts (*.test.ts): origins,
 //                the client IP, /rpc's CORS answer; no database
 //   scripts:unit the tooling tests `pnpm test` keeps (sync-matrix, check-areas,
-//                checks, check-times, deploy, build)
+//                checks, check-times, check-plan, deploy, build)
 //   tooling:unit the other tooling tests (scripts/loops, backlog, hooks), against
 //                throwaway git repos in the OS temp dir; `pnpm test:tooling`
 //   integration  real Postgres, every package (*.int.test.ts): the test
@@ -88,6 +88,7 @@ export default defineConfig({
             "loops/check-areas.test.mjs",
             "loops/checks.test.mjs",
             "loops/check-times.test.mjs",
+            "loops/check-plan.test.mjs",
             "deploy/**/*.test.mjs",
             "build/**/*.test.mjs",
           ],
@@ -109,6 +110,7 @@ export default defineConfig({
             "loops/check-areas.test.mjs",
             "loops/checks.test.mjs",
             "loops/check-times.test.mjs",
+            "loops/check-plan.test.mjs",
           ],
           testTimeout: 20_000,
         },
