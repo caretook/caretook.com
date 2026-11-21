@@ -7,13 +7,15 @@
 | Slice | Wave | State                                                        | Merge into `prd/quick-entry` (slice commits) |
 | ----- | ---- | ------------------------------------------------------------ | -------------------------------------------- |
 | 1     | 1    | merged, worktree removed                                     | 285342b7 (14374ab2)                          |
-| 2     | 2    | started (opus, `.loops/quick-entry-2`, no stack)             |                                              |
+| 2     | 2    | merged, worktree removed (opus)                              | 3f5b57a1 (225f7a9c)                          |
 | 3     | 2    | started (opus, `.loops/quick-entry-3`, no stack)             |                                              |
 | 4     | 2    | handed off 63cd4e7b, reviewed; merges after 2 and 3 (sonnet) |                                              |
 
 **Landing mode (2026-11-21): run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave, clean up; ask only real questions.
 
 **Now (2026-11-21):** synced with `dev` after `tasks-2` (d65bf19f; brings migration 0032_todos and a sync-config change: `pnpm datastore:reset` before serving). B-220 claimed. Slice 1 merged; wave 2 (slices 2, 3, 4) running. Merge 2, 3, 4 in order (3 and 4 both touch `quickEntryCards.ts` and the card component), then `pnpm prd sync` (medications-tabs B-226 landed in `dev` at 07a6b59: `appUrls.medications` is gone, sheet helpers take a tab; no migration) and one landing. B-231 (a timeline empty-state box) isn't ours.
+
+**Slice 2 docs:** assistant: `addNote.providerIds`, the parser rewrites named providers to `@Name` on notes, both runners write mentions + links and refuse providers not live (`assistantActionService:providerGone`), previews say "with X" on notes. live-notes: `noteDocFromText(text, mentions?)`, `NoteMention {id,label}`, mentions placed at `@label` (longest first) or appended; the "makes none" line is stale. connectors: `add_note` takes `providerIds` and names them. Landing: `noteYjs.ts` maps to `live-notes` in check-areas, so run what `prd browser --changed` names. Slice 2 touched `quickEntryCards.test.ts` (two `providerIds: []`): small conflict likely with slice 4.
 
 **Slice 4 docs:** assistant.md's 'alternatives as chips ("Note instead")' becomes: the card's kind is a badge, other kinds are "Make it a …" buttons (`kindChoices`), same-kind alternatives keep "<title> instead".
 
