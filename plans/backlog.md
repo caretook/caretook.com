@@ -99,7 +99,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-178 | bug | live | check-migration | prd/check-migration | medicationList.browser.test.tsx flakes under load: a test sees an empty list ('expected []') or a null element in full pnpm check runs at load ~20+, passes alone |
 | B-179 | bug | dropped | check-migration |  | app-shell.mjs member-share step flakes under load: a psql insert doesn't reach an already-connected device within 30 s (PowerSync replication), no auto-retry |
 | B-180 | bug | triaged | check-migration |  | Component tests still read synchronously right after render in expect(X()!.textContent…), expect(X()!.querySelector…) and .focus()/.blur() (entry, today, entryWithRow, visitPrep, providerSheets): the next likeliest load races |
-| B-181 | feature | triaged |  |  | A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them |
+| B-181 | feature | triaged | conditions |  | A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them |
 | B-182 | bug | triaged | check-migration |  | providers.browser.test.tsx 'a practice's name finds its clinicians too; the Clinicians chip keeps the search…' flakes under load: after tapping Clinicians, the 'Current providers' list still has Dr. Samuel Patel when its expect.poll times out |
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
 | B-184 | bug | in-progress | quick-fixes | prd/quick-fixes | When viewing the member page as an owner, the simple mode and locked buttons make the data too wide… |
@@ -107,8 +107,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-186 | bug | in-progress | quick-fixes | prd/quick-fixes | vitals section in today block doesn't expand when you click see all, it filters the data instead.… |
 | B-187 | bug | in-progress | quick-fixes | prd/quick-fixes | timeline filter interface is overwhelming on mobile and confusing on desktop, especially the vitals… |
 | B-188 | bug | in-progress | quick-fixes | prd/quick-fixes | when signing up mcp connector, the oauth request just returns json, not the accept flow |
-| B-189 | bug | in-progress | quick-fixes | prd/quick-fixes | mcp connector for medication change records on the timeline, it isn't providing information about… |
-| B-190 | bug | in-progress | quick-fixes | prd/quick-fixes | mcp connector returning truncated notes on doses, and maybe other things |
+| B-189 | bug | ready | quick-fixes | prd/quick-fixes | mcp connector for medication change records on the timeline, it isn't providing information about… |
+| B-190 | bug | ready | quick-fixes | prd/quick-fixes | mcp connector returning truncated notes on doses, and maybe other things |
 | B-191 | bug | triaged | quick-fixes |  | clicking the next entry in the upcoming section of the simple timeline should expand the section,… |
 | B-192 | bug | triaged | quick-fixes |  | undo when checking off a todo should list all the todos that were checked off, not just the last… |
 | B-193 | feature | triaged | connectors-2 |  | In-app guide to connect an assistant: copyable /mcp URL and steps for Claude (web, desktop, mobile) and ChatGPT with links, on Group settings → Assistants and Settings → Devices; the switch-off states |
@@ -648,11 +648,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-181 · feature · A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them
 
 - status: triaged
-- prd:
+- prd: conditions
 - owner:
 - commit:
 
 - 2026-11-20 (prd/connectors): From connectors slice 4 (B-104): story 22 promises the assistant reads the recipient's conditions, but no conditions field exists; recipient_profile returns allergies, code status, blood type and the note for helpers. The user chose (2026-11-20) to drop 'conditions' from the privacy text for now and file this. When built, add it to recipient_profile and the privacy page.
+- 2026-11-20 (Robert Bo Davis): Backlog session 2026-11-20: the user asked for a conditions PRD and plan, planned in this session
 
 ### B-182 · bug · providers.browser.test.tsx 'a practice's name finds its clinicians too; the Clinicians chip keeps the search…' flakes under load: after tapping Clinicians, the 'Current providers' list still has Dr. Samuel Patel when its expect.poll times out
 
@@ -723,20 +724,20 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-189 · bug · mcp connector for medication change records on the timeline, it isn't providing information about…
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 68a3cc50
 
 - 2026-11-20 (prd/appointments-2): From the inbox: mcp connector for medication change records on the timeline, it isn't providing information about what what kind of change it was (started, stopped, or a new dose), and there are no before-and-after values.
 - 2026-11-20 (Robert Bo Davis): Triage: connectors is done, so quick-fixes slices; B-188 breaks connecting on the live site, first
 
 ### B-190 · bug · mcp connector returning truncated notes on doses, and maybe other things
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 68a3cc50
 
 - 2026-11-20 (Robert Bo Davis): Triage: connectors is done, so quick-fixes slices; B-188 breaks connecting on the live site, first
 
