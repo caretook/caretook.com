@@ -18,6 +18,9 @@ import {
   appendLineZSchema,
   CONDITION_STATUSES,
   conditionSinceWords,
+  DEVICE_FUTURE_SKEW_MS,
+  FUTURE_DATE_MESSAGE,
+  isTooFarAhead,
   assistantActionService,
   DOSE_STATUSES,
   ENTRY_APPEND_LIMITS,
@@ -71,6 +74,23 @@ const unitsOf = async (ctx: ToolContext) => {
   return isError(me) ? me : resolveUnits(me?.preferences);
 };
 
+/** What a note ahead is answered with: notes are for what has happened. */
+export const FUTURE_NOTE_REFUSAL =
+  "A note can't be in the future. Use add_todo with a due day for something to do later.";
+
+const futureNoteRefusal = () =>
+  newError({
+    code: "assistantActionService:invalid",
+    meta: { issues: [{ path: "occurredAt", message: FUTURE_NOTE_REFUSAL }] },
+  });
+
+/** A service's "Can't be in the future" (only a note is ever refused) in the connector's words. */
+const withNoteRefusal = <T>(res: T | AppError): T | AppError => {
+  if (!isError(res)) return res;
+  const issues = (res.meta as { issues?: { message?: string }[] } | undefined)?.issues;
+  return issues?.some((i) => i.message === FUTURE_DATE_MESSAGE) ? futureNoteRefusal() : res;
+};
+
 type Made =
   { kind: "entry"; id: string; entryKind: string; passLogId?: string | null } | { kind: "todo"; id: string };
 
@@ -85,10 +105,12 @@ const carryOut = async (
 ): Promise<ToolOutput | AppError> => {
   const loaded = await loadGroup(ctx);
   if (isError(loaded)) return loaded;
-  const res = await assistantActionService.run({ authUser: ctx.authUser }, ctx.groupId, [action], {
-    via: ctx.clientName,
-    now: ctx.now,
-  });
+  const res = withNoteRefusal(
+    await assistantActionService.run({ authUser: ctx.authUser }, ctx.groupId, [action], {
+      via: ctx.clientName,
+      now: ctx.now,
+    }),
+  );
   if (isError(res)) return res;
   const ids = res.byAction[0] ?? [];
 
@@ -250,7 +272,7 @@ export const addNote = defineTool({
   name: "add_note",
   title: "Add a note",
   description:
-    "Add a note to the timeline: plain text (new lines for paragraphs), with an optional short title and providers it mentions (ids from the provider directory; each is mentioned where the text says @ and their name, else at the end, and linked). Members can go on editing it in the app. Ask the member before calling.",
+    "Add a note to the timeline, for what has happened (a note can't be in the future: use add_todo with a due day for something to do later, or add_event for an appointment): plain text (new lines for paragraphs), with an optional short title and providers it mentions (ids from the provider directory; each is mentioned where the text says @ and their name, else at the end, and linked). Members can go on editing it in the app. Ask the member before calling.",
   scope: "readWrite",
   input: z.object({
     ...shapeOf(addNoteActionZSchema),
@@ -302,7 +324,7 @@ export const addTodo = defineTool({
   name: "add_todo",
   title: "Add a todo",
   description:
-    "Add a todo to the group's list: a title, optionally a member to do it (by name, as the group overview lists them), a due day (YYYY-MM-DD) with an optional time (HH:MM, the recipient's time zone), and links to a provider, a medication or an event by id. Ask the member before calling.",
+    "Add a todo to the group's list, the way to remember something for later: a title, optionally a member to do it (by name, as the group overview lists them), a due day (YYYY-MM-DD) with an optional time (HH:MM, the recipient's time zone), and links to a provider, a medication or an event by id. Ask the member before calling.",
   scope: "readWrite",
   input: z.object({
     ...(({ assigneeId: _assigneeId, ...rest }) => rest)(shapeOf(addTodoActionZSchema)),
@@ -371,10 +393,20 @@ const carryOutEdit = async (
   const loaded = await loadGroup(ctx);
   if (isError(loaded)) return loaded;
   const before = await timelineEntryService.getById({ authUser: ctx.authUser }, action.entryId);
-  const res = await assistantActionService.run({ authUser: ctx.authUser }, ctx.groupId, [action], {
-    via: ctx.clientName,
-    now: ctx.now,
-  });
+  // A note already dated ahead (stored before notes became past-only) takes no more text.
+  if (
+    action.type === "appendToEntry" &&
+    !isError(before) &&
+    before &&
+    isTooFarAhead(before.kind, new Date(before.occurredAt).toISOString(), ctx.now, DEVICE_FUTURE_SKEW_MS)
+  )
+    return futureNoteRefusal();
+  const res = withNoteRefusal(
+    await assistantActionService.run({ authUser: ctx.authUser }, ctx.groupId, [action], {
+      via: ctx.clientName,
+      now: ctx.now,
+    }),
+  );
   if (isError(res)) return res;
   const after = await timelineEntryService.getById({ authUser: ctx.authUser }, action.entryId);
   if (isError(after)) return after;
@@ -396,7 +428,7 @@ const carryOutEdit = async (
 export const appendToEntry = defineTool({
   name: "append_to_entry",
   title: "Add to a note or event",
-  description: `Add lines at the end of an existing note's or event's text (say, questions for an upcoming visit), leaving what's there as it is. Each line is a paragraph or a bullet; runs of bullets make one list. At most ${ENTRY_APPEND_LIMITS.lines} lines and ${ENTRY_APPEND_LIMITS.characters.toLocaleString("en-US")} characters. Anyone with the note open sees the lines arrive. Ask the member before calling.`,
+  description: `Add lines at the end of an existing note's or event's text (say, questions for an upcoming visit; notes are for what has happened), leaving what's there as it is. Each line is a paragraph or a bullet; runs of bullets make one list. At most ${ENTRY_APPEND_LIMITS.lines} lines and ${ENTRY_APPEND_LIMITS.characters.toLocaleString("en-US")} characters. Anyone with the note open sees the lines arrive. Ask the member before calling.`,
   scope: "readWrite",
   input: z.object({
     entryId: entryIdInput,
@@ -417,7 +449,7 @@ export const updateEntry = defineTool({
   name: "update_entry",
   title: "Change a note's or event's title or time",
   description:
-    "Change an existing note's or event's title, its time, or both (an event's end moves with its start). Its text is left alone: use append_to_entry to add to it. Ask the member before calling.",
+    "Change an existing note's or event's title, its time, or both (an event's end moves with its start; a note's time can't be moved into the future, since notes are for what has happened). Its text is left alone: use append_to_entry to add to it. Ask the member before calling.",
   scope: "readWrite",
   input: z.object({
     entryId: entryIdInput,

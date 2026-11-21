@@ -22,7 +22,7 @@ export const MCP_PROTOCOL_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", 
 export const MCP_SERVER_INFO = { name: "caretook", title: "Caretook", version: "1.0.0" } as const;
 
 const INSTRUCTIONS =
-  "Caretook is a shared care log for one care group. Every tool works on the one group this connection was granted; start with group_overview for its time zone and your scope. Times are ISO 8601 in the care recipient's time zone. Its prompts are ready-made starting points: catch me up, prepare for an appointment, a weekly summary and, when you may write, log what happened.";
+  "Caretook is a shared care log for one care group. Every tool works on the one group this connection was granted; start with group_overview for its time zone and your scope. Times are ISO 8601 in the care recipient's time zone. Notes are for what has happened; for something to do later, add a todo with a due day, and an appointment ahead is an event. Its prompts are ready-made starting points: catch me up, prepare for an appointment, a weekly summary and, when you may write, log what happened.";
 
 /** JSON-RPC 2.0's error codes. */
 export const JSON_RPC = {
