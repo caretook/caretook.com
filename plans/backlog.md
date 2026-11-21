@@ -153,7 +153,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-247 | change | triaged | quick-fixes |  | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
 | B-248 | change | in-progress | planner-2 | prd/planner-2 | Remove reminders: notes can no longer be dated in the future; use todos instead |
 | B-249 | change | ready | list-filters | prd/list-filters | Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner |
-| B-250 | bug | triaged | quick-fixes |  | lint tests seem to be failing regularly because types haven't been generated. Maybe regression… |
+| B-250 | bug | landed | quick-fixes |  | lint tests seem to be failing regularly because types haven't been generated. Maybe regression… |
 | B-251 | bug | triaged | quick-fixes |  | convert planner tabs to TabNav component. |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
@@ -1143,13 +1143,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-250 · bug · lint tests seem to be failing regularly because types haven't been generated. Maybe regression…
 
-- status: triaged
+- status: landed
 - prd: quick-fixes
 - owner:
-- commit:
+- commit: 8da818be
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: lint tests seem to be failing regularly because types haven't been generated. Maybe regression introduced by reordering the steps in check?
 - 2026-11-21 (Robert Bo Davis): Triage: tooling bug in the check pipeline (lint needs React Router's generated types; suspect the reordered steps in pnpm check). Small and self-contained, so quick-fixes next wave; if it blocks checks now, a hotfix on dev is the faster path.
+- 2026-11-21 (Robert Bo Davis): Landed as a hotfix (hotfix/check-typegen, merge caea6779, land --force on the user's word after full lint and format passed): pnpm lint and lint:fix run a new pnpm typegen first.
 
 ### B-251 · bug · convert planner tabs to TabNav component.
 
