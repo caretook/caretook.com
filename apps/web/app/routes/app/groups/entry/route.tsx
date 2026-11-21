@@ -21,6 +21,7 @@ import { EntryPrintView } from "./EntryPrintView";
 import { EntryVisitPrep } from "./EntryVisitPrep";
 import { entryHeading, titleState } from "./entryPage";
 import { loadEntry } from "./loadEntry";
+import { useEntryMentions } from "./useEntryMentions";
 import { useEntryPrint, usePrintOnOpen } from "./useEntryPrint";
 import { useLiveEntry } from "./useLiveEntry";
 
@@ -80,6 +81,8 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
   const timelineUrl = appUrls.timeline(groupId);
   const printed = useEntryPrint(entry.id, loaderData.initial);
   usePrintOnOpen();
+  // A mention in the text links the provider, as the With row does.
+  const mentions = useEntryMentions({ groupId, entryId: entry.id, ensureStored: live.ensureStored });
 
   const label = KIND_META[entry.kind].label;
   const heading = entryHeading(label, entry.title, live.isNew && !live.stored);
@@ -114,9 +117,9 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
           />
         )}
         <EntryVisitPrep live={live} groupId={groupId} />
-        {saveError && (
+        {(saveError || mentions.error) && (
           <p role="alert" className="text-error text-sm">
-            {saveError}
+            {saveError || mentions.error}
           </p>
         )}
 
@@ -146,6 +149,8 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
               initial={loaderData.initial}
               autofocus={live.isNew && !loaderData.pickDay}
               ensureSaved={live.ensureSaved}
+              providers={mentions.providers}
+              onMention={mentions.onMention}
             />
             {entry.kind === "event" && live.stored && <LinkedTasks link={{ eventId: entry.id }} />}
           </>

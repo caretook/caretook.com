@@ -78,6 +78,8 @@ export default defineConfig({
       "@tiptap/starter-kit",
       "@tiptap/extension-collaboration",
       "@tiptap/y-tiptap",
+      "@tiptap/extension-mention",
+      "@tiptap/suggestion",
     ],
   },
   worker: { format: "es" },

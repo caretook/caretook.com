@@ -6,7 +6,14 @@ import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { createGroup, createUser, ok, system, typeParagraph } from "../../test/fixtures";
 import { getDb } from "../db";
-import { buildNoteDoc, noteText, noteUpdateSchema } from "../db/schema";
+import {
+  buildNoteDoc,
+  MENTION_NODE,
+  NOTE_FRAGMENT,
+  noteText,
+  noteUpdateSchema,
+  toBase64,
+} from "../db/schema";
 import { isError } from "../errors";
 import { noteDocumentModel, noteUpdateModel, timelineEntryModel } from "../models";
 import { COMPACT_AFTER_UPDATES } from "./noteDocumentService";
@@ -253,6 +260,39 @@ describe("compaction", () => {
 
     // Nothing pending: nothing to do.
     expect(ok(await noteDocumentService.compact(doc.id))).toEqual({ compacted: 0 });
+  });
+
+  it("derives a mention's text as @ and the name it was typed with", async () => {
+    const { u, addDocument, append } = await setup();
+    const { doc } = await addDocument();
+    // As the editor writes one: text, the mention atom (a provider's id and name), text.
+    const typed = new Y.Doc();
+    let update: Uint8Array | null = null;
+    typed.on("update", (bytes: Uint8Array) => (update = bytes));
+    typed.transact(() => {
+      const p = new Y.XmlElement("paragraph");
+      typed.getXmlFragment(NOTE_FRAGMENT).insert(0, [p]);
+      const before = new Y.XmlText();
+      const mention = new Y.XmlElement(MENTION_NODE);
+      const after = new Y.XmlText();
+      p.insert(0, [before, mention, after]);
+      before.insert(0, "Asked ");
+      mention.setAttribute("id", randomUUID());
+      mention.setAttribute("label", "Dr. Rosa Lin");
+      mention.setAttribute("mentionSuggestionChar", "@");
+      after.insert(0, " to halve the dose.");
+    });
+    if (!update) throw new Error("no update");
+    ok(await append(u.caretaker.ctx, doc.id, toBase64(update)));
+    ok(await append(u.admin.ctx, doc.id, typeParagraph(typed, "Recheck Friday")));
+
+    expect(ok(await noteDocumentService.currentText(u.viewer.ctx, doc.id))).toBe(
+      "Asked @Dr. Rosa Lin to halve the dose.\nRecheck Friday",
+    );
+    ok(await noteDocumentService.compact(doc.id));
+    const compacted = ok(await noteDocumentService.getById(u.viewer.ctx, doc.id));
+    expect(compacted.text).toBe("Asked @Dr. Rosa Lin to halve the dose.\nRecheck Friday");
+    expect(noteText(buildNoteDoc(compacted.snapshot))).toBe(compacted.text);
   });
 
   it("only compacts when enough updates are waiting", async () => {
