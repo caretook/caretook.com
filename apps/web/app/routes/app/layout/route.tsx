@@ -50,7 +50,8 @@ export function clientLoader({ context }: Route.ClientLoaderArgs) {
  *
  * Screens outside a group (`/app`, `/app/settings`) get the header without a
  * group menu, sections or tab bar. So does a timeline in simple mode
- * (`useSimpleFrame`), which also has no search and a reduced user menu.
+ * (`useSimpleFrame`), which keeps the search magnifier (unless locked in
+ * simple mode) and has a reduced user menu.
  */
 export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const { user } = loaderData;
@@ -59,6 +60,8 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
   // Simple mode's timeline: only the mark, the sync status and a reduced user menu.
   const simple = useSimpleFrame(user.id, groupId, pathname);
   const groupFrame = groupId && !simple ? groupId : undefined;
+  // Search stays in simple mode, but not while locked (the lock keeps you off the search page).
+  const searchGroup = groupId && !simple?.locked ? groupId : undefined;
   const severalGroups = useSeveralGroups(user.id);
   return (
     <>
@@ -72,9 +75,9 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
         <div data-region="sections" className="hidden items-center sm:flex">
           {groupFrame && <SectionNav groupId={groupFrame} pathname={pathname} />}
         </div>
-        {groupFrame && (
+        {searchGroup && (
           <div data-region="search" className="flex items-center">
-            <IconButton to={appUrls.search(groupFrame)} icon={Search} label="Search this care group" />
+            <IconButton to={appUrls.search(searchGroup)} icon={Search} label="Search this care group" />
           </div>
         )}
         <div data-region="status" className="flex items-center">

@@ -53,6 +53,14 @@ const LIST_CLASS: Record<TimelineView, string> = {
   cards: "mt-2 space-y-2",
 };
 
+/** The filters and search a list shows (the URL's), as `TimelineEntryList` takes them. */
+export type TimelineEntryListFilters = {
+  kind: TimelineEntryKind | null;
+  author: string | null;
+  vital?: VitalType | null;
+  search?: { q: string; state: TimelineSearchState };
+};
+
 /**
  * The entries, a section per day under a sticky heading (with the care
  * period that covers the day: `DayHeader`), as rows or cards,
@@ -65,9 +73,8 @@ const LIST_CLASS: Record<TimelineView, string> = {
  * + is always there.
  *
  * `simple` is simple mode's list: rows only, at the full timeline's type
- * scale (no zoom), with no ⋯ menus, no filter links, no care periods (markers or the day headers'
- * period) and nothing to edit: notes and events open as usual, other rows
- * open nothing.
+ * scale (no zoom), with no filter links, no + menus and no care periods (markers or the day headers'
+ * Change); the ⋯ menus, sheets and delete confirm are the full timeline's.
  */
 export function TimelineEntryList({
   data,
@@ -109,7 +116,7 @@ export function TimelineEntryList({
   vital?: VitalType | null;
   /** The search (`?q=`) and what it's doing (`timelineSearch`). */
   search?: { q: string; state: TimelineSearchState };
-  /** Simple mode's larger, read-only list (above). */
+  /** Simple mode's list (above). */
   simple?: boolean;
   /** The day summaries' setting: none, highlights (the default) or everything. */
   summaryMode?: DaySummaryMode;
@@ -121,7 +128,7 @@ export function TimelineEntryList({
   const rescheduling = useEventReschedule(groupId, canWrite);
   // Writers reschedule or cancel an event (or undo the cancel) from its ⋯ menu.
   const cancelOf = (entry: TimelineEntry) =>
-    canWrite && !simple && entry.kind === "event"
+    canWrite && entry.kind === "event"
       ? {
           cancelled: !!entry.cancelledAt,
           onCancel: () => cancelling.ask(entry.id),
@@ -190,7 +197,7 @@ export function TimelineEntryList({
   // Matches are marked in the history's rows and cards (the Upcoming block stays as it is).
   const parsed = useMemo(() => (searching.q ? parseSearch(searching.q) : undefined), [searching.q]);
   const item = (entry: TimelineEntry, marked = false) => {
-    const open = entryOpen({ groupId, entry, canWrite: canWrite && !simple, search });
+    const open = entryOpen({ groupId, entry, canWrite, search });
     return (
       <Entry
         key={entry.id}
@@ -205,7 +212,7 @@ export function TimelineEntryList({
             ? () => void navigate(open.to, { state: SHEET_LINK_STATE, preventScrollReset: true })
             : undefined
         }
-        onDelete={canWrite && !simple ? () => removal.ask(entry) : undefined}
+        onDelete={canWrite ? () => removal.ask(entry) : undefined}
         cancel={cancelOf(entry)}
         liveLabel={data.liveLabelOf(entry.id)}
         providers={data.providersOf(entry.id)}
@@ -273,9 +280,7 @@ export function TimelineEntryList({
                       occurredAt={it.occurredAt}
                       authorName={data.nameOf(it.entries[0]!.createdBy)}
                       authorImage={data.imageOf(it.entries[0]!.createdBy)}
-                      sheetTo={
-                        canWrite && !simple ? appUrls.passSheet(groupId, it.id, { search }) : undefined
-                      }
+                      sheetTo={canWrite ? appUrls.passSheet(groupId, it.id, { search }) : undefined}
                     />
                   ),
                 )}

@@ -100,8 +100,8 @@ export function TimelineEntryRow({
       />
       {liveLabel && <LiveDot label={liveLabel} className="mt-2" />}
       {/* The right column: the ⋯ menu, the author under it, so the text gets the width. */}
-      <div className={`${ASIDE_CLASS} ${simple ? "" : "w-8"}`} data-entry-aside>
-        {!simple && (onDelete || canHaveNoteDocument(entry.kind)) && (
+      <div className={`${ASIDE_CLASS} w-8`} data-entry-aside>
+        {(onDelete || canHaveNoteDocument(entry.kind)) && (
           <EntryActions
             kind={entry.kind}
             label={actionsLabel(entry)}
