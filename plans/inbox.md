@@ -20,6 +20,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page looks goofy without it. (B-217)
 - expand icon for day summary on timeline should be at the left of the day summary, not the right. (B-218)
 - can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also not very good. (B-219)
+- in header care group drop down, we don't need to show the current care period line. New care group should be below the care group selector section, not at the bottom of the drop down. group settings should be the last entry in the drop down. (B-223)
+- in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for each vitals type instead of a separate entry for each vitals type. (B-224)
 
 ## Change requests
 
@@ -38,7 +40,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - connector should be able to edit notes and events so it can help you draft questions or add information to the entries. (B-204)
 - react-i18next or some other internationalization library to support multiple languages for all text in the app. (B-209)
 - locked simple mode is really confusing. We may want to just add a new user type at this point for locked simple mode. Or just review and fix all of the nits. (B-221)
-- Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to the Upcoming section... and maybe rename the upcoming page to something that covers both. (B-222)
+- Tasks, todos, and appointments/events are confusing. We should rename tasks "reminders". remove the "reminder notes" from the upcoming system (and the note field for dates) and standardized the naming of "events vs appointments" (B-222)
 
 ## Big plans
 
