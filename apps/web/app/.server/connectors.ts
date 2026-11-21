@@ -22,7 +22,7 @@ import { isError, logError } from "@caretook/data";
 import { redirect } from "react-router";
 import { signInUrl } from "~/lib/core/redirect";
 
-export type { ConnectGroup, ConnectPage } from "@caretook/api";
+export type { ConnectGroup, ConnectPage, OffGroup } from "@caretook/api";
 
 /** The success step's data: who was connected where, and the client's redirect (with its code). */
 export type ConnectSuccessData = ConnectedTo & { redirect: string };

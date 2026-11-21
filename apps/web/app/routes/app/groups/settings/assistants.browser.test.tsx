@@ -9,6 +9,10 @@ import { apiCalls, refusal } from "../../../../../test/api";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, TEST_GROUP } from "../../../../../test/fixtures";
 import {
+  ASK_OFFLINE,
+  ASK_OWNERS,
+  ASKED_NOTE,
+  askedOn,
   CONNECT_CLIENTS,
   COPIED,
   COPY_FAILED,
@@ -78,6 +82,7 @@ const groupServer = (connections: Connection[]) => {
         server.connections = server.connections.filter((c) => c.id !== grantId);
         return null;
       },
+      "connector.myRequest": () => null,
     }),
   };
   return server;
@@ -203,10 +208,11 @@ describe("group settings → Assistants", () => {
   });
 
   test.each(["caretaker", "viewer"] as const)(
-    "a %s sees the status and a link to Devices, and asks the server nothing",
+    "a %s sees the status and a link to Devices, and asks the server only for their last request",
     async (role) => {
       const server = groupServer([ANN]);
       const device = await open({ role, api: server.api });
+      await expect.poll(() => server.calls.calls.map((c) => c.path)).toEqual(["connector.myRequest"]);
       await expect.element(heading()).toBeVisible();
       expect(status()).toBe("Assistants are off for this care group. Only an owner can turn them on.");
       await expect
@@ -214,7 +220,6 @@ describe("group settings → Assistants", () => {
         .toHaveAttribute("href", "/app/settings/devices");
       expect(toggle().elements()).toHaveLength(0);
       expect(rows()).toEqual([]);
-      expect(server.calls.calls).toEqual([]);
       expect(document.querySelector("[data-needs-connection]")).toBeNull();
 
       // Another owner turns it on: it follows.
@@ -299,5 +304,108 @@ describe("group settings → Assistants' connect guide", () => {
     await open({ role: "viewer", enabled: true });
     await expect.poll(() => guideNote("viewer")).toBe(VIEWER_NOTE.group);
     expect(guideUrl()?.value).toBe(MCP_URL);
+  });
+});
+
+// Asking the owners (connectors-2 slice 2): beside the off note, for
+// everyone but owners, against stand-ins for `connector.myRequest` and
+// `connector.requestEnable`.
+const askButton = () => page.getByRole("button", { name: ASK_OWNERS });
+const askState = () => guide()?.querySelector("[data-ask-owners]")?.getAttribute("data-ask-owners") ?? null;
+const askedText = () => guide()?.querySelector("[data-asked-on]")?.textContent.trim() ?? null;
+
+/** The server's side of asking: the member's last request, and each ask. */
+const askServer = (last: string | null = null) => {
+  const calls = apiCalls();
+  const server: {
+    last: string | null;
+    calls: typeof calls;
+    api: Record<string, (input: unknown) => unknown>;
+  } = {
+    last,
+    calls,
+    api: calls.record({
+      "connector.myRequest": () =>
+        server.last ? { id: "req-1", groupId: TEST_GROUP.id, requestedAt: server.last } : null,
+      "connector.requestEnable": () => {
+        server.last = new Date().toISOString();
+        return { id: "req-2", groupId: TEST_GROUP.id, requestedAt: server.last, created: true };
+      },
+    }),
+  };
+  return server;
+};
+
+describe("group settings → Assistants' ask button", () => {
+  test.each(["caretaker", "viewer", "admin"] as const)(
+    "a %s with the switch off asks the owners, then sees Asked on <date>",
+    async (role) => {
+      const server = askServer();
+      await open({ role, api: { ...groupServer([]).api, ...server.api } });
+      await expect.poll(() => guideNote("off")).toBe(OFF_NOTE.member);
+      await expect.element(askButton()).toBeVisible();
+      // Beside the off note, in the guide.
+      expect(guide()!.contains(askButton().element())).toBe(true);
+
+      await userEvent.click(askButton());
+      await expect
+        .poll(() => server.calls.of("connector.requestEnable"))
+        .toEqual([{ groupId: TEST_GROUP.id }]);
+      await expect.poll(askedText).toBe(askedOn(server.last ?? ""));
+      expect(askButton().elements()).toHaveLength(0);
+      await expect.element(page.getByRole("status").filter({ hasText: ASKED_NOTE })).toBeVisible();
+    },
+  );
+
+  test("a request in the last week shows Asked on <date> and no button; an older one, the button", async () => {
+    const recent = new Date(Date.now() - 2 * 86_400_000).toISOString();
+    await open({ role: "caretaker", api: askServer(recent).api });
+    await expect.poll(askedText).toBe(askedOn(recent));
+    expect(askButton().elements()).toHaveLength(0);
+  });
+
+  test("a request over a week old lets the member ask again", async () => {
+    const old = new Date(Date.now() - 8 * 86_400_000).toISOString();
+    await open({ role: "caretaker", api: askServer(old).api });
+    await expect.poll(askState).toBe("ask");
+    await expect.element(askButton()).toBeVisible();
+    expect(askedText()).toBeNull();
+  });
+
+  test("an owner gets no button: they have the switch", async () => {
+    const server = askServer();
+    await open({ api: { ...groupServer([]).api, ...server.api } });
+    await expect.poll(() => guideNote("off")).toBe(OFF_NOTE.owner);
+    expect(askButton().elements()).toHaveLength(0);
+    expect(guide()!.querySelector("[data-ask-owners]")).toBeNull();
+    expect(server.calls.calls).toEqual([]);
+  });
+
+  test("the button goes once the switch is on", async () => {
+    const device = await open({ role: "caretaker", api: askServer().api });
+    await expect.element(askButton()).toBeVisible();
+    await device.sync(fx.group({ connectorsEnabled: 1 }));
+    await expect.poll(() => guideUrl()?.value).toBe(MCP_URL);
+    expect(askButton().elements()).toHaveLength(0);
+  });
+
+  test("a refused ask shows the reason and keeps the button", async () => {
+    const server = askServer();
+    await open({
+      role: "caretaker",
+      api: { ...server.api, "connector.requestEnable": () => refusal("assistantRequestService:alreadyOn") },
+    });
+    await userEvent.click(askButton());
+    await expect
+      .element(page.getByRole("alert"))
+      .toHaveTextContent("Assistants are already on for this care group");
+    await expect.element(askButton()).toBeEnabled();
+  });
+
+  test("offline, the button says it needs a connection", async () => {
+    await open({ role: "caretaker" });
+    await userEvent.click(askButton());
+    await expect.element(page.getByRole("alert")).toHaveTextContent(ASK_OFFLINE);
+    await expect.element(askButton()).toBeVisible();
   });
 });
