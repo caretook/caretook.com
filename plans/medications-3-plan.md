@@ -4,18 +4,20 @@
 
 ## Status
 
-| Slice | Wave | State                                                                 | Merge into `prd/medications-3` (slice commits) |
-| ----- | ---- | --------------------------------------------------------------------- | ---------------------------------------------- |
-| 1     | 1    | merged (opus)                                                         | `995796c8` (`e0ced8b3`)                        |
-| 2     | 2    | in progress (sonnet)                                                  |                                                |
-| 3     | 2    | handed off (`4e3778b2`); `signout-wipe` to run at landing (stackless) |                                                |
-| 4     | 2    | in progress (opus)                                                    |                                                |
+| Slice | Wave | State                                             | Merge into `prd/medications-3` (slice commits) |
+| ----- | ---- | ------------------------------------------------- | ---------------------------------------------- |
+| 1     | 1    | merged (opus)                                     | `995796c8` (`e0ced8b3`)                        |
+| 2     | 2    | merged (sonnet)                                   | `76004b11` (`5d3b1eab`)                        |
+| 3     | 2    | merged (sonnet); `signout-wipe` to run at landing | `26213ec5` (`4e3778b2`)                        |
+| 4     | 2    | in progress (opus)                                |                                                |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue medications-3`): start every ready slice, land each green wave, clean up; ask only real questions.
 
 **Now (2026-11-21):** wave 1 done: slice 1 merged (`995796c8`), its worktree removed. Synced `dev` (`appointments-2`, `f49aa958`) as `01b8328a`: kept dev's `0029_appointments_calendars` and regenerated ours as **`0030_medication_types`** (the same SQL: the column and `medication_type_check`); `pnpm install` for the new deps; typecheck clean. The sync conflicted only on migration meta, but it touched a migration and `package.json`, so **the landing needs the full `pnpm prd check`** and `pnpm datastore:reset` in this worktree first. B-199 claimed. Wave 2 started: slices 2, 3 and 4 spawned (stackless, all on `01b8328a`). No `quick-fixes` slices open (no overlap).
 
 **Backlog proposals (for the user to review):** B-212 (the medications header's icon order: + Add, labeled Passes, printer-only Print) → medications-3 as slice 5, wave 3 after slice 2; not to be built until the user OKs it. B-213 (redesign Today's schedule) → a follow-up PRD `medications-4`.
+
+**Docs to fold (slice 2):** medications.md (`?type=` beside `?status=`, `setType`/`clearType`, the `TypeFilter` chips, print's `currentGroups` by `medicationTypeGroupHeading`, stopped ungrouped). **(slice 3):** search.md (the type label first in `medicationSearchDocument`'s body, null adds nothing, `SEARCH_INDEX_VERSION` 4; server `searchMedications` doesn't match on type); connectors.md (`list_medications`' `type`, label in the text when set). B-200 ready at `26213ec5`; slices 2 and 3 worktrees removed.
 
 **Landing:** one landing after wave 2 (the plan holds it until every slice is merged). Slice 1's `--changed` named the whole lean set (migration, sync config) and passed 12/12 on its stack; at landing ask before `--suite`.
 
