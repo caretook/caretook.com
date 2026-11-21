@@ -9,7 +9,15 @@ import {
   isVitalDetails,
   TIMELINE_LIMITS,
 } from "@caretook/data/schema";
-import { Bandage, CalendarCheck, HeartPulse, NotebookPen, Pill, PillBottle } from "lucide-react";
+import {
+  Bandage,
+  CalendarCheck,
+  ClipboardPlus,
+  HeartPulse,
+  NotebookPen,
+  Pill,
+  PillBottle,
+} from "lucide-react";
 import { isTimelineKind } from "./timelineFilters";
 
 // How each kind of entry looks: label, icon and color. Colors avoid green,
@@ -40,6 +48,14 @@ export const KIND_META: Record<
     plural: "Medication changes",
     Icon: PillBottle,
     iconClass: "bg-primary/15 text-primary",
+  },
+  // A condition added, changed, resolved or reactivated (conditions PRD):
+  // soft blue, apart from an event's solid blue; the chart icon carries it.
+  conditionChange: {
+    label: "Condition change",
+    plural: "Condition changes",
+    Icon: ClipboardPlus,
+    iconClass: "bg-info/15 text-info",
   },
 };
 

@@ -29,7 +29,6 @@ import { useTimelineView } from "./useTimelineView";
 import { useDaySummaryMode } from "./useDaySummaryMode";
 import { useSimpleMode } from "~/lib/assistant/useSimpleMode";
 import { SimpleTimeline } from "./SimpleTimeline";
-import { useSimpleModeUrl } from "./useSimpleModeUrl";
 
 // Shared by web + native. Reads and writes go to the device's local copy
 // (PowerSync), so the timeline works offline and other members' changes
@@ -121,7 +120,6 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const group = useGroup();
   const { canWrite } = group;
   const mode = useSimpleMode(userId, groupId, group, settings.simpleMode);
-  useSimpleModeUrl(groupId, mode.simple, loaderData);
   const period = usePeriodSearch(groupId, loaderData.period, loaderData.searchPeriods);
   const search = timelineSearch(groupId, q, useSearchIndexStatus(), period.range);
   const filters = { kind, author, vital, match: search.match };
@@ -139,9 +137,29 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       {canWrite && <PrefetchPageLinks page={appUrls.passSheet(groupId, "prefetch")} />}
     </>
   );
+  // The search, Filter button and chips: the same in both views.
+  const chips = (
+    <div className={COLUMN_CAP}>
+      <FilterChips
+        kind={kind}
+        author={author ? { name: data.nameOf(author), image: data.imageOf(author) } : null}
+        q={q}
+        vital={vital}
+        vitalTypes={data.latestVitals.map((v) => v.reading.type)}
+        period={period}
+      />
+    </div>
+  );
   if (mode.simple)
     return (
-      <SimpleTimeline data={data} units={units} mode={mode} summaryMode={summaryMode}>
+      <SimpleTimeline
+        data={data}
+        units={units}
+        mode={mode}
+        summaryMode={summaryMode}
+        chips={chips}
+        filters={{ kind, author, vital, search: { q, state: search.state } }}
+      >
         {sheets}
       </SimpleTimeline>
     );
@@ -170,16 +188,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
           <QuickEntryBox groupId={groupId} units={units} />
         </div>
       )}
-      <div className={COLUMN_CAP}>
-        <FilterChips
-          kind={kind}
-          author={author ? { name: data.nameOf(author), image: data.imageOf(author) } : null}
-          q={q}
-          vital={vital}
-          vitalTypes={data.latestVitals.map((v) => v.reading.type)}
-          period={period}
-        />
-      </div>
+      {chips}
       <TimelineEntryList
         data={data}
         view={view}

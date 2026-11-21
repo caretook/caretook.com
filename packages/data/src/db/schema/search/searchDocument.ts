@@ -8,10 +8,10 @@ import { VITALS } from "../timeline/vitals";
 // ranks above `body` (what's written about it: text, notes, place, author).
 // Soft-deleted rows have no document, so they never match.
 
-export const SEARCH_ITEM_TYPES = ["entry", "provider", "medication", "task"] as const;
+export const SEARCH_ITEM_TYPES = ["entry", "provider", "medication", "task", "condition"] as const;
 export type SearchItemType = (typeof SEARCH_ITEM_TYPES)[number];
 
-/** What server search (`searchService`) covers: tasks are searched on the device only. */
+/** What server search (`searchService`) covers: tasks and conditions are searched on the device only. */
 export const SERVER_SEARCH_ITEM_TYPES = [
   "entry",
   "provider",
@@ -69,6 +69,14 @@ export type MedicationSearchSource = {
   deletedAt?: Text;
 };
 
+export type ConditionSearchSource = {
+  id: string;
+  groupId: string;
+  name?: Text;
+  note?: Text;
+  deletedAt?: Text;
+};
+
 export type TaskSearchSource = {
   id: string;
   groupId: string;
@@ -86,6 +94,16 @@ const join = (parts: Text[]) =>
     .join("\n");
 
 const str = (value: unknown): Text => (typeof value === "string" ? value : null);
+
+/** A condition change's names: the condition's, and a renamed one's old and new. */
+const conditionNames = (details: EntrySearchSource["details"]): Text[] => {
+  const d = details as {
+    conditionName?: unknown;
+    before?: { name?: unknown } | null;
+    after?: { name?: unknown } | null;
+  } | null;
+  return d ? [...new Set([str(d.conditionName), str(d.before?.name), str(d.after?.name)])] : [];
+};
 
 /** A vital's reading type names, as shown: "Blood pressure", "Sleep". Unknown types are skipped. */
 const vitalNames = (details: EntrySearchSource["details"]) => {
@@ -112,6 +130,7 @@ export const entrySearchDocument = (entry: EntrySearchSource): SearchDocument | 
       entry.kind === "symptom" ? str(details?.name) : null,
       ...vitalNames(details),
       medication,
+      ...(entry.kind === "conditionChange" ? conditionNames(details) : []),
       ...(entry.providerNames ?? []),
     ]),
     body: join([
@@ -157,5 +176,17 @@ export const taskSearchDocument = (task: TaskSearchSource): SearchDocument | nul
     groupId: task.groupId,
     title: join([task.title]),
     body: join([task.documentText]),
+  };
+};
+
+/** One of the recipient's conditions: its name weighted, its note as body. Resolved ones are found too. */
+export const conditionSearchDocument = (condition: ConditionSearchSource): SearchDocument | null => {
+  if (condition.deletedAt) return null;
+  return {
+    id: condition.id,
+    type: "condition",
+    groupId: condition.groupId,
+    title: join([condition.name]),
+    body: join([condition.note]),
   };
 };

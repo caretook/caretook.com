@@ -584,7 +584,7 @@ test("5. a new person is invited, signs up, consents and joins", { tag: "@smoke"
   await button(p, "Join the care group").click();
   await test.step("joining opens the group, and its timeline syncs", async () => {
     await p.waitForURL((u) => u.pathname.startsWith(`/app/groups/${DEV_FAMILY}`), { timeout: 60_000 });
-    await expect(p.locator('main a[href*="/entries/"]').first()).toBeVisible({ timeout: 60_000 });
+    await expect(p.locator('main ol > li a[href*="/entries/"]').first()).toBeVisible({ timeout: 60_000 });
   });
   const newbieId = psql(`SELECT id FROM "user" WHERE email = '${newbie}'`);
   await test.step("they join as the invited role, invited by the owner; consent is recorded; the invite is accepted", () => {

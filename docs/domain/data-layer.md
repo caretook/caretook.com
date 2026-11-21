@@ -4,7 +4,7 @@ The data layer area's rules and decisions, moved out of AGENTS.md (whose core ru
 
 - **Entry points:**
   - `@caretook/data` is **server only**: never import the root from client code.
-  - `/schema`, `/errors` and `/permissions` are client-safe.
+  - `/schema`, `/errors` and `/permissions` are client-safe; `/series` too (rrule, so loaded only where a series is written or previewed; kept out of the schema index and first load).
   - In apps/web, server code imports through `app/.server/data.ts`.
 - **Layers, bottom up:**
   - `errors/`: typescript-errors; each area's codes are a part, `errors/<area>.ts`, composed in `errors/constants.ts` (unique across parts: `errors.test.ts`). Errors are **returned, not thrown**; narrow with `isError()`. Wrap db calls as `dbMayFail(() => …, code)`.
@@ -17,7 +17,7 @@ The data layer area's rules and decisions, moved out of AGENTS.md (whose core ru
     - Update and remove refuse an empty filter.
     - Filters are serializable (`{ field: { type: "eq", value } }`) and checked against the table's columns.
   - `services/`: `getService(model)` with `ServiceContext = { authUser, tx? }`. Business rules, side effects and transactions go here. Services never read requests; use `SYSTEM_USER` for internal work.
-- **`withTransaction(fn)` rolls back when `fn` returns an AppError.** A returned error would otherwise commit.
+- **`withTransaction(fn)` rolls back when `fn` returns an AppError.** A returned error would otherwise commit. `afterCommit(tx, fn)` runs work after the outermost commit (e.g. starting a Google push with `waitUntil`).
 - **Arg types use `WithoutProtected<T>`:** a generic `Omit<DbInsert<K>, …>` silently drops optional columns such as `id`.
 - **Table conventions:**
   - UUID PKs via `id()`: clients create rows offline, so `create`/`upsert` accept a caller-supplied id.
@@ -27,7 +27,7 @@ The data layer area's rules and decisions, moved out of AGENTS.md (whose core ru
   2. Add its `PERMISSIONS` entry to `permissions/<area>.ts` (the type requires one, and a test checks every table has one); its errors go in `errors/<area>.ts`.
   3. Add `models/<name>/` and `services/<name>Service.ts`, and register both.
   4. If it syncs: `ALTER PUBLICATION powersync ADD TABLE …` in a migration, plus a stream query and a device schema entry.
-- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0023 so far.
+- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0029 so far.
   - **drizzle-kit can emit a unique constraint after the FK that needs it.** Read the generated SQL and reorder by hand.
   - Until the first deploy it's fine to delete and regenerate migrations.
 - **DB client:** the pool is created lazily (importing never needs `DATABASE_URL`). Only the **pool** survives HMR (`utils/remember.ts`); the drizzle wrapper is rebuilt, so new tables work without a restart.
@@ -41,5 +41,6 @@ The data layer area's rules and decisions, moved out of AGENTS.md (whose core ru
   - `caretook_app` (Neon's pooled `DATABASE_URL`): read and write on every table, no `CREATE`; default privileges cover tables the migrations role adds later.
   - `caretook_replication`: see [sync](sync.md), _Production_.
   - `db:roles` runs after every migration (it narrows the publication migrations widen). Integration tests that create roles use unique names and drop them.
-- **Personal access** (`pnpm db:access grant <email> --hours N | revoke <email> | list`, `dbAccessService`): a `staff_<slug>` LOGIN role, read-only (`default_transaction_read_only`), with SELECT on every table **except the secrets** (`PERSONAL_ACCESS_EXCLUDED` in `db/roles/personalAccess.ts`: Better Auth's `account`, `session`, `verification` and `jwks`, the rate-limit tables, and column grants that leave out invite token hashes and ciphertext, `access_code.code` and email bodies; a unit test fails on a new column or table matching `token|secret|hash|password|private` that isn't listed or allowed; `grant` starts with `REVOKE ALL`, so a re-grant narrows an older role, and `revoke` removes the column grants too), `VALID UNTIL` at most 24 h, the password sent only as a SCRAM verifier and printed once. Staff accounts only. Audited `db.accessGranted` / `db.accessRevoked` (system actor, the staff member as target). `revoke` ends its sessions and is safe twice. `VALID UNTIL` stops new sign-ins only. The procedure is [`ops/break-glass.md`](../../ops/break-glass.md).
-- **System-only tables written directly** (no model, no audits): `rate_limit_hit` and Better Auth's `rate_limit` (`rateLimitService`, Better Auth), and `email_suppression` (`emailSuppressionService`).
+- **Personal access** (`pnpm db:access grant <email> --hours N | revoke <email> | list`, `dbAccessService`): a `staff_<slug>` LOGIN role, read-only (`default_transaction_read_only`), with SELECT on every table **except the secrets** (`PERSONAL_ACCESS_EXCLUDED` in `db/roles/personalAccess.ts`: the feed token hash, Google's sealed refresh and sync tokens and OAuth state, Better Auth's `account`, `session`, `verification` and `jwks`, the rate-limit tables, and column grants that leave out invite token hashes and ciphertext, `access_code.code` and email bodies; a unit test fails on a new column or table matching `token|secret|hash|password|private` that isn't listed or allowed; `grant` starts with `REVOKE ALL`, so a re-grant narrows an older role, and `revoke` removes the column grants too), `VALID UNTIL` at most 24 h, the password sent only as a SCRAM verifier and printed once. Staff accounts only. Audited `db.accessGranted` / `db.accessRevoked` (system actor, the staff member as target). `revoke` ends its sessions and is safe twice. `VALID UNTIL` stops new sign-ins only. The procedure is [`ops/break-glass.md`](../../ops/break-glass.md).
+- **Sealing:** `utils/seal.ts` is AES-256-GCM with a key and associated data (Google refresh tokens; the `linkToken.ts` pattern, with `createHmac` `linkSubkey` for derived link tokens).
+- **System-only tables written directly** (no model, no audits): the `google_*` and `calendar_sync_job` tables (`googleConnectionService`, `calendarSyncService`), `rate_limit_hit` and Better Auth's `rate_limit` (`rateLimitService`, Better Auth), and `email_suppression` (`emailSuppressionService`).

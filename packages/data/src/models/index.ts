@@ -115,3 +115,27 @@ export type * from "./task/types";
 import * as connectorGrantModel from "./connectorGrant";
 export { connectorGrantModel };
 export type * from "./connectorGrant/types";
+
+import * as recipientConditionModel from "./recipientCondition";
+export { recipientConditionModel };
+export type * from "./recipientCondition/types";
+
+import * as medicationConditionModel from "./medicationCondition";
+export { medicationConditionModel };
+export type * from "./medicationCondition/types";
+
+import * as conditionManagerModel from "./conditionManager";
+export { conditionManagerModel };
+export type * from "./conditionManager/types";
+
+import * as appointmentSeriesModel from "./appointmentSeries";
+export { appointmentSeriesModel };
+export type * from "./appointmentSeries/types";
+
+import * as memberCalendarSettingModel from "./memberCalendarSetting";
+export { memberCalendarSettingModel };
+export type * from "./memberCalendarSetting/types";
+
+import * as reminderOverrideModel from "./reminderOverride";
+export { reminderOverrideModel };
+export type * from "./reminderOverride/types";

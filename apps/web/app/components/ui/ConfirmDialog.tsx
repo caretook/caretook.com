@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
-import { useEffect, useId, useRef } from "react";
+import { useId, useRef } from "react";
+import { useShowModal } from "./useShowModal";
 
 /**
  * A native modal <dialog>: the browser handles Escape, the inert background
@@ -41,27 +42,7 @@ export function ConfirmDialog({
   const titleId = useId();
   const messageId = useId();
 
-  useEffect(() => {
-    const dialog = ref.current;
-    if (!dialog) return;
-    if (!open) {
-      if (dialog.open) dialog.close();
-      return;
-    }
-    // A closing menu leaves the DOM after its exit, then React Aria restores
-    // its button's focus in the next frame. Waits at most about half a second.
-    let frames = 0;
-    let frame = 0;
-    const show = () => {
-      if (document.querySelector('[role="menu"]') && frames++ < 30) frame = requestAnimationFrame(show);
-      else
-        frame = requestAnimationFrame(() => {
-          if (!dialog.open) dialog.showModal();
-        });
-    };
-    frame = requestAnimationFrame(show);
-    return () => cancelAnimationFrame(frame);
-  }, [open]);
+  useShowModal(ref, open);
 
   return (
     <dialog

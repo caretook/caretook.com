@@ -1,5 +1,5 @@
 import type { DeviceRoute } from "../../../../../test/device";
-import type { GroupRole } from "../../../../../test/fixtures";
+import type { Fixtures, GroupRole } from "../../../../../test/fixtures";
 
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
@@ -13,11 +13,12 @@ import { at, fx, TEST_GROUP, TEST_RECIPIENT, TEST_USER } from "../../../../../te
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
 import * as timeline from "./route";
+import { daysAgo } from "../periods/periodWorld";
 import { chooseViewOption, waitUntil } from "./timelineWorld";
 
 // Simple mode on the timeline (assistant slice 5), in the real /app frame on
-// the test device: the simple view (large type, the box, bigger rows with no
-// menus or filters) and the reduced header, who gets it (the managers'
+// the test device: the simple view (large type, the box, the full timeline's
+// search, filters, row menus and edit sheets) and the reduced header, who gets it (the managers'
 // default, your own setting, this device's toggle; `resolveSimpleMode` has
 // every combination), a default arriving from another device, viewers, and
 // the account setting. The owner's switch reaching a real second device is
@@ -59,19 +60,21 @@ const open = ({
   locked = 0,
   url = TIMELINE_URL,
   api,
+  extra = [],
 }: {
   role?: GroupRole;
   simpleMode?: number;
   locked?: number;
   url?: string;
   api?: Record<string, (input: unknown) => unknown>;
+  extra?: Fixtures[];
 } = {}) =>
   renderWithDevice({
     route: ROUTES,
     url,
     role: null,
     frame: true,
-    fixtures: [membership(role, simpleMode, locked), ...ENTRIES],
+    fixtures: [membership(role, simpleMode, locked), ...ENTRIES, ...extra],
     api,
   });
 
@@ -117,7 +120,7 @@ describe("the mic tip", () => {
 });
 
 describe("the simple view", () => {
-  test("a member whose owner chose simple mode: their name and today, the box at the normal size directly before the rows, bigger rows without menus or filters, and a reduced header", async () => {
+  test("a member whose owner chose simple mode: their name and today, the box at the normal size, then the search and filters, then rows with menus, and a reduced header", async () => {
     await open({ simpleMode: 1 });
     await waitUntil(isSimple, 4000, "the simple view");
 
@@ -126,19 +129,22 @@ describe("the simple view", () => {
       .element(page.getByRole("heading", { level: 1, name: TEST_RECIPIENT.preferredName }))
       .toBeVisible();
     expect(simpleView()!.textContent).toContain("Today · ");
-    // The box at the normal size, directly before the rows; no dictation tip on a desktop.
+    // The box at the normal size, then the search and Filter row, then the rows; no dictation tip on a desktop.
     const box = page.getByRole("textbox", { name: "What happened?" });
     await expect.element(box).toBeVisible();
     expect(box.element().className).not.toContain("text-xl");
     const section = document.querySelector("[data-quick-entry]")!;
     const list = document.querySelector("[data-simple-list]")!;
     expect(section.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(section.parentElement!.nextElementSibling).toBe(list);
+    const chips = section.parentElement!.nextElementSibling!;
+    expect(chips.querySelector('button[aria-label="Search entries"]')).not.toBeNull();
+    expect(chips.textContent).toContain("Filter");
+    expect(chips.nextElementSibling).toBe(list);
     expect(document.querySelector("[data-dictation-hint]")).toBeNull();
     // No text-2xl heading anywhere in simple mode.
     expect(simpleView()!.querySelector(".text-2xl")).toBeNull();
 
-    // The rows, larger, with nothing to change or filter.
+    // The rows, with the full timeline's ⋯ menus; the kind icon and initials aren't filters.
     await waitUntil(() => rows().length === 2, 4000, "the rows");
     // At the full timeline's scale: no zoom on the list or its day summaries.
     expect(getComputedStyle(document.querySelector("[data-simple-list]")!).zoom).toBe("1");
@@ -146,26 +152,55 @@ describe("the simple view", () => {
       document.querySelector("[data-simple-list] [style*='zoom'], [data-simple-list] [class*='zoom']"),
     ).toBeNull();
     expect(document.querySelectorAll("[data-simple-list] [data-simple]").length).toBe(2);
-    expect(page.getByRole("button", { name: /^Actions for/ }).elements()).toHaveLength(0);
+    expect(document.querySelectorAll('[data-simple-list] button[aria-label^="Actions"]')).toHaveLength(2);
     expect(page.getByRole("link", { name: /^Show only/ }).elements()).toHaveLength(0);
-    // The note still opens; the symptom opens nothing.
+    // The note opens its page; the symptom its edit sheet.
     expect(document.querySelectorAll("[data-simple-list] a[href*='/entries/']")).toHaveLength(1);
-    expect(document.querySelectorAll("[data-simple-list] a[href*='/edit']")).toHaveLength(0);
+    expect(document.querySelectorAll("[data-simple-list] a[href*='/edit']")).toHaveLength(1);
 
-    // Hidden: the + menu, View options (layout, summaries), filter chips, strips and the period line.
+    // Hidden: the + menu, View options (layout, summaries) and strips.
     expect(page.getByRole("button", { name: /^Add to / }).elements()).toHaveLength(0);
     expect(page.getByRole("button", { name: "View options" }).elements()).toHaveLength(0);
     expect(page.getByRole("navigation", { name: "Show entries" }).elements()).toHaveLength(0);
-    expect(document.querySelector("[data-period-line]")).toBeNull();
 
-    // The header: the mark, the sync status and the user menu only; no tab bar.
-    expect(header().querySelector('[data-region="search"]')).toBeNull();
+    // The header: the mark, search, the sync status and the user menu; no tab bar.
+    expect(
+      header().querySelector(`[data-region="search"] a[href="/app/groups/${TEST_GROUP.id}/search"]`),
+    ).not.toBeNull();
     expect(header().querySelector('[data-region="sections"] nav')).toBeNull();
     expect(page.getByRole("button", { name: /switch care group$/ }).elements()).toHaveLength(0);
     expect(document.querySelector('nav.dock[aria-label="Group sections"]')).toBeNull();
     await userEvent.click(userButton());
     await expect.poll(menuItems).toEqual(["Settings", "Full app", "Sign out"]);
     await userEvent.keyboard("{Escape}");
+  });
+
+  test("a day header names the care period: today's, a past day's, and none outside any period", async () => {
+    const stay = fx.period({
+      type: "hospital",
+      startedAt: at(daysAgo(10, 9)),
+    });
+    const home = fx.period({ type: "home", startedAt: at(daysAgo(4, 9)) });
+    await open({
+      simpleMode: 1,
+      extra: [
+        stay,
+        home,
+        fx.note({ occurredAt: at(daysAgo(7, 12)), text: "In the ward" }),
+        fx.note({ occurredAt: at(daysAgo(15, 12)), text: "Before any period" }),
+      ],
+    });
+    await waitUntil(() => isSimple() && rows().length === 4, 4000, "the rows");
+    const lines = () =>
+      [...document.querySelectorAll("[data-simple-list] [data-day-header]")].map(
+        (h) => h.querySelector<HTMLElement>("[data-period-line]")?.textContent?.trim() ?? null,
+      );
+    await waitUntil(() => lines().length === 3, 4000, "the day headers");
+    expect(lines()).toEqual([expect.stringMatching(/^At home · day 5$/), "In hospital · day 4", null]);
+    // Today's line links to its period; no Change, no + menu in simple mode.
+    const link = document.querySelector<HTMLAnchorElement>("[data-simple-list] [data-period-current]")!;
+    expect(link.getAttribute("href")).toBe(`/app/groups/${TEST_GROUP.id}/periods/${home.id}`);
+    expect(document.querySelector("[data-period-change]")).toBeNull();
   });
 
   test("still saves through the box, on the device", async () => {
@@ -186,10 +221,27 @@ describe("the simple view", () => {
     expect(page.getByRole("textbox", { name: "What happened?" }).elements()).toHaveLength(0);
   });
 
-  test("drops filters from the URL", async () => {
+  test("keeps a filter from the URL, with its chip, and clearing the chip shows everything", async () => {
     const device = await open({ simpleMode: 1, url: `${TIMELINE_URL}?kind=note` });
-    await waitUntil(isSimple, 4000, "the simple view");
+    await waitUntil(() => isSimple() && rows().length === 1, 4000, "the filtered rows");
+    expect(device.location()).toBe(`${TIMELINE_URL}?kind=note`);
+    const chip = document.querySelector<HTMLAnchorElement>('nav[aria-label="Filters on"] a')!;
+    await userEvent.click(chip);
     await expect.poll(device.location).toBe(TIMELINE_URL);
+    await waitUntil(() => rows().length === 2, 4000, "every row");
+  });
+
+  test("⋯ → Edit opens the full edit sheet over the simple view", async () => {
+    const device = await open({ simpleMode: 1 });
+    await waitUntil(() => isSimple() && rows().length === 2, 4000, "the rows");
+    const knee = rows().find((li) => li.textContent?.includes("Sore knee"))!;
+    await userEvent.click(knee.querySelector('button[aria-label^="Actions"]')!);
+    await userEvent.click(page.getByRole("menuitem", { name: "Edit" }));
+    const name = () => document.querySelector<HTMLInputElement>('[role=dialog] input[name="symptomName"]');
+    await waitUntil(() => !!name(), 4000, "the edit sheet");
+    expect(name()!.value).toBe("Sore knee");
+    expect(device.location()).toMatch(/\/edit$/);
+    expect(isSimple()).toBe(true);
   });
 });
 
@@ -221,7 +273,11 @@ describe("who gets it", () => {
     await expect.element(page.getByRole("button", { name: "View options" })).toBeVisible();
     await device.sync(membership("caretaker", 1));
     await waitUntil(isSimple, 4000, "the simple view");
-    await waitUntil(() => !header().querySelector('[data-region="search"]'), 4000, "the reduced header");
+    await waitUntil(
+      () => !header().querySelector('[data-region="sections"] nav'),
+      4000,
+      "the reduced header",
+    );
 
     await device.sync(membership("caretaker", 0));
     await waitUntil(() => !isSimple(), 4000, "the full timeline");

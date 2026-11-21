@@ -21,7 +21,7 @@ PRD: [`plans/tasks-prd.md`](../../plans/tasks-prd.md) (B-55). A task is a to-do 
 
 - `toTask`/`tasksQuery`/`doneCountQuery`/`taskQuery` read; `createTask` (over `plannedTask`, which quick entry uses too), `updateTask`, `completeTask`, `reopenTask`, `removeTask` write. A done-only change is a PATCH of `done_at`/`done_by` that the server maps to `complete` or `reopen`.
 - `createTaskDocument` makes a task's notes document; `dueTasksQuery`, `dueTasksThrough` and `useDueTasks` (ticking every `DUE_TASKS_TICK_MS`) feed Upcoming, the Today card and the simple view; `linkedTasksQuery`, `taskEventChoicesQuery`, `linkedEventQuery`, `linkOf` and `TaskLink` serve links.
-- Wording in `lib/tasks/taskDisplay.ts` (`dueText`, `doneText` "Done by … · today", `assigneeLabel`, `linkLabel` "(removed)"); the chips and sections in `lib/tasks/taskList.ts`; the tick's 10-second Undo in `lib/tasks/taskUndo.ts`, shown by `TaskUndoStatus`.
+- Wording in `lib/tasks/taskDisplay.ts` (`dueText`, `doneText` "Done by … · today", `assigneeLabel`, `linkLabel` "(removed)"); the chips and sections in `lib/tasks/taskList.ts`; the tick's Undo in `lib/tasks/taskUndo.ts`: a list, newest first, each offer 10 s from its own tick; `TaskUndoStatus` shows a line per task with its own "Undo <title>" (one polite region, only additions announced).
 
 ## Screens
 

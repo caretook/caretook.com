@@ -67,4 +67,55 @@ export const PROFILES_ERRORS = {
     message: "No known allergies needs a time, or none to clear it",
     statusCode: 400,
   },
+  "recipientConditionService:invalid": {
+    message: "The condition is invalid",
+    statusCode: 400,
+  },
+  "recipientConditionService:notFound": {
+    message: "Condition not found",
+    statusCode: 404,
+  },
+  "recipientConditionService:immutable": {
+    message: "A condition's group and recipient can't change",
+    statusCode: 400,
+  },
+  "recipientConditionService:hasConditions": {
+    message: "Remove the conditions on file before recording No known conditions",
+    statusCode: 409,
+  },
+  "recipientConditionService:invalidNoKnown": {
+    message: "No known conditions needs a time, or none to clear it",
+    statusCode: 400,
+  },
+  "recipientConditionModel:remove": {
+    message: "Failed to delete the condition",
+  },
+  "medicationConditionService:invalid": {
+    message: "The medication's condition link is invalid",
+    statusCode: 400,
+  },
+  "medicationConditionService:medicationNotFound": {
+    message: "That medication is gone. It may have been deleted.",
+    statusCode: 404,
+  },
+  "medicationConditionService:conditionNotFound": {
+    message: "That condition is gone. It may have been deleted.",
+    statusCode: 404,
+  },
+  "medicationConditionService:immutable": {
+    message: "A link's medication and condition must be in its care group",
+    statusCode: 400,
+  },
+  "recipientConditionService:badProvider": {
+    message: "Choose a provider in this care group",
+    statusCode: 400,
+  },
+  "recipientConditionService:providerNotFound": {
+    message: "That provider is gone. It may have been deleted.",
+    statusCode: 404,
+  },
+  "recipientConditionService:managerNotInGroup": {
+    message: "A condition and the providers who manage it must be in one care group",
+    statusCode: 400,
+  },
 } as const;

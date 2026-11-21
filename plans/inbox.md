@@ -15,6 +15,9 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Change requests
 
+- you should be able to edit all entries, search, and filter in simple mode. (B-208)
+- link to group details edit page from the edit profile screen for editing the care recipient's timezone. (B-211)
+
 ## Feature requests
 
 - Allow import of providers from other care groups that you have access to. (B-48)
@@ -24,6 +27,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - ability to upload photos of patient drivers license, insurance card, DNR, etc. (B-56)
 - Now that we are we have github fixed, we should start using it for some of the merge management so codex can review PRs. I do NOT want PRDs or plans to be in github, only the code. Instead of merging to dev locally, we need to start pushing working branches to github and creating a PR into dev, then waiting for codex to review, then addressing any comments, then merging to dev. (B-203)
 - connector should be able to edit notes and events so it can help you draft questions or add information to the entries. (B-204)
+- react-i18next or some other internationalization library to support multiple languages for all text in the app. (B-209)
 
 ## Big plans
 

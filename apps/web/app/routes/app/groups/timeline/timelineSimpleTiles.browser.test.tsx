@@ -72,11 +72,12 @@ const queuedEntries = async (device: Awaited<ReturnType<typeof open>>) =>
 const FIXED = ["How she feels", "Blood pressure", "Her medicines", "A note about her day"];
 
 describe("the row", () => {
-  test("all four share one row at phone width, each a 44 px target at least", async () => {
+  test("two by two at phone width, each a 44 px target at least", async () => {
     await open();
     await ready();
-    const tops = new Set(tiles().map((t) => t.getBoundingClientRect().top));
-    expect(tops.size).toBe(1);
+    const tops = tiles().map((t) => t.getBoundingClientRect().top);
+    expect(new Set(tops).size).toBe(2);
+    expect(tops.filter((top) => top === tops[0])).toHaveLength(2);
     for (const t of tiles()) expect(t.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
   });
 });

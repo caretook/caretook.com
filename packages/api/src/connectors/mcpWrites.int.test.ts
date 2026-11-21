@@ -85,6 +85,16 @@ const world = async () => {
       schedule: { type: "scheduled", slots: [{ passId: morning!.id }, { passId: evening!.id }] },
     }),
   )!;
+  // As needed, so its dose never answers a pass's slot (a dose without a time
+  // answers the nearest open slot within two hours, Evening's from 18:00).
+  const ibuprofen = ok(
+    await medicationService.create(owner.ctx, {
+      groupId: group.id,
+      name: "Ibuprofen",
+      strength: "200 mg",
+      schedule: { type: "asNeeded" },
+    }),
+  )!;
   const provider = ok(
     await providerService.create(owner.ctx, { groupId: group.id, type: "clinician", name: "Dr. Example" }),
   )!;
@@ -103,6 +113,7 @@ const world = async () => {
     group,
     evening: evening!,
     metformin,
+    ibuprofen,
     provider,
     writer,
     entry,
@@ -147,13 +158,13 @@ describe("/mcp write tools", () => {
 
     const dose = await resultOf(
       await callTool(token, "log_dose", {
-        medicationId: w.metformin.id,
+        medicationId: w.ibuprofen.id,
         status: "given",
         amount: "1 tablet",
         occurredAt: minutesAgo(1),
       }),
     );
-    expect(textOf(dose)).toContain("Metformin 500 mg · Given 1 tablet");
+    expect(textOf(dose)).toContain("Ibuprofen 200 mg · Given 1 tablet");
     expect(await w.entry(dose.structuredContent.entryIds![0]!)).toMatchObject({ kind: "dose", via: CLIENT });
 
     const pass = await resultOf(await callTool(token, "give_pass", { passId: w.evening.id }));

@@ -3,9 +3,10 @@ import type { EntryResult, ProviderResult } from "./loadSearch";
 import type { ParsedSearch, Snippet, UnitChoices } from "@caretook/data/schema";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 import type { LocalTask } from "~/lib/tasks/tasks.sync";
+import type { LocalCondition } from "~/lib/profiles/conditions.sync";
 
 import { highlightRanges, notesSnippet } from "@caretook/data/schema";
-import { CircleCheck, ListTodo, Pill } from "lucide-react";
+import { CircleCheck, ClipboardPlus, ListTodo, Pill } from "lucide-react";
 import { Link } from "react-router";
 import { EntryBody, KindIcon } from "~/components/entry";
 import { ProviderTypeIcon } from "~/components/providers";
@@ -17,6 +18,8 @@ import { dayLabel, formatTime, localTimeZone } from "~/lib/core/format";
 import { medicationSummaryLine, medicationTitle, STATUS_LABELS } from "~/lib/medications/medicationDisplay";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 import { dueText } from "~/lib/tasks/taskDisplay";
+import { CONDITION_STATUS_LABELS, sinceText } from "~/lib/profiles/conditions";
+import { PROFILE_SHEET_STATE } from "../profile/profileSheet";
 
 /** A link stretched over its row, so a tap anywhere opens the result (the row is `relative isolate`). */
 const STRETCHED =
@@ -260,6 +263,58 @@ export function TaskResultItem({
         </p>
         {due && <p className="text-base-content/70 text-sm">{due}</p>}
         <NotesSnippet snippet={snippet} />
+      </div>
+    </li>
+  );
+}
+
+/**
+ * One of the recipient's conditions as a result: its name, since and note; a
+ * resolved one is marked. It opens the condition's sheet over the profile
+ * (closing it comes back here).
+ */
+export function ConditionResultItem({
+  condition,
+  search,
+}: {
+  condition: LocalCondition;
+  search: ParsedSearch;
+}) {
+  const resolved = condition.status === "resolved";
+  const line = [sinceText(condition), condition.note].filter(Boolean).join(" · ");
+  return (
+    <li
+      className={`${ROW} hover:bg-base-200/50`}
+      data-result="condition"
+      data-result-id={condition.id}
+      data-resolved={resolved ? "" : undefined}
+    >
+      <span
+        aria-hidden="true"
+        className={`grid size-8 shrink-0 place-items-center rounded-full ${resolved ? "bg-base-200 text-base-content/60" : "bg-info/15 text-info"}`}
+      >
+        <ClipboardPlus className="size-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="flex min-w-0 items-center gap-1.5">
+          <Link
+            to={appUrls.condition(condition.groupId, condition.id)}
+            state={PROFILE_SHEET_STATE}
+            className={`font-medium wrap-break-word ${STRETCHED} ${resolved ? "text-base-content/70" : ""}`}
+          >
+            <Marked text={condition.name} search={search} />
+          </Link>
+          {resolved && (
+            <span className="badge badge-ghost badge-sm shrink-0" data-marker>
+              {CONDITION_STATUS_LABELS.resolved}
+            </span>
+          )}
+        </p>
+        {line && (
+          <p className="text-base-content/70 text-sm break-words">
+            <Marked text={line} search={search} />
+          </p>
+        )}
       </div>
     </li>
   );

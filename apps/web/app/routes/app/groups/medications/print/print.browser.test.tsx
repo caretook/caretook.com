@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import { found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
-import { allergy } from "../../../../../../test/fixtures";
+import { allergy, condition } from "../../../../../../test/fixtures";
 import { $, $$, LIST, MEDICATION_ROUTES, SEEDED_CURRENT, waitUntil, world } from "../medicationWorld";
 
 // The printable sheets (medications.mjs's print, weekly and their offline
@@ -21,11 +21,13 @@ import { $, $$, LIST, MEDICATION_ROUTES, SEEDED_CURRENT, waitUntil, world } from
 // the sheets' rules.
 
 const PENICILLIN = allergy({ substance: "Penicillin", reaction: "hives", severity: "severe" });
+const DIABETES = condition({ name: "Type 2 diabetes", sinceYear: 2015 });
+const PAST = condition({ name: "Hip fracture", status: "resolved", sinceYear: 2019 });
 const open = (url: string, options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
   renderWithDevice({
     route: MEDICATION_ROUTES,
     url,
-    fixtures: [world(), PENICILLIN],
+    fixtures: [world(), PENICILLIN, DIABETES, PAST],
     frame: true,
     ...options,
   });
@@ -136,6 +138,20 @@ describe("the medication list sheet", () => {
     ]);
   });
 
+  test("the active conditions follow the allergies, past ones left out", async () => {
+    await open(`${LIST}/print`);
+    await waitUntil(() => !!$("main [data-print-conditions]"), 4000, "the conditions block");
+    const conditions = $("main [data-print-conditions]")!;
+    expect($$("main [data-print-condition]").map((c) => c.textContent?.trim())).toEqual([
+      "Type 2 diabetes (since 2015)",
+    ]);
+    expect(conditions.textContent).not.toContain("Hip fracture");
+    expect(
+      $("main [data-print-allergies]")!.compareDocumentPosition(conditions) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   test("Print calls window.print()", async () => {
     const print = vi.spyOn(window, "print").mockImplementation(() => undefined);
     await open(`${LIST}/print`);
@@ -233,6 +249,9 @@ describe("the weekly chart", () => {
       allergies.compareDocumentPosition($("main [data-week-table]")!) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(printField("name")).toContain("Grandma June");
+    const conditions = $("main [data-print-conditions]")!;
+    expect(conditions.textContent).toContain("Type 2 diabetes (since 2015)");
+    expect(allergies.compareDocumentPosition(conditions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   test("Next, Previous and This week move it by a week; a start day of its own shows that week, seven days across the clock change", async () => {

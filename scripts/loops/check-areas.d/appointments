@@ -12,3 +12,9 @@ apps/web/app/lib/appointments/visitPrep.sync.ts -
 apps/web/app/components/schedule/*       -
 # Fed to Upcoming (component tests).
 packages/data/src/db/seeds/appointments.ts -
+# Repeating series (appointments-2): the repeat field and its sheet, opened
+# from the entry page: component tests (entry/entryRepeat.browser.test.tsx).
+# The series' device writes are `*.sync.ts` above; the sync matrix row is roundtrip's.
+apps/web/app/components/repeat/*         -
+# Fed to Upcoming and the timeline (component tests).
+packages/data/src/db/seeds/appointmentSeries.ts -

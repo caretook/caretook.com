@@ -1,4 +1,5 @@
 import type { AppError, Tx } from "@caretook/data";
+import type { NotificationDefinition } from "./define";
 import type { NotificationName } from "./registry";
 import type { NotificationData } from "./render";
 import type { Sender } from "./senders";
@@ -19,6 +20,7 @@ import {
 import { and, eq, inArray, lt, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getMailConfig } from "./config";
+import { linkBuilder } from "./links";
 import { NOTIFICATIONS } from "./registry";
 import { renderNotification } from "./render";
 import { getSender } from "./senders";
@@ -192,16 +194,39 @@ const redactedBody = (name: string) =>
     ? { html: REDACTED_BODY, text: REDACTED_BODY }
     : {};
 
+type Definition = Pick<NotificationDefinition<string, z.ZodType>, "headers">;
+
+/** A row's extra headers, from its notification's `headers` (none when it has none, or it fails). */
+const headersOf = (row: typeof outbox.$inferSelect, appUrl: string) => {
+  const definition = (NOTIFICATIONS as Record<string, Definition | undefined>)[row.name];
+  if (!definition?.headers) return undefined;
+  try {
+    return (
+      definition.headers({ idempotencyKey: row.idempotencyKey }, { link: linkBuilder(appUrl) }) ?? undefined
+    );
+  } catch (error) {
+    logError("mail: couldn't work out a message's headers", error, {
+      notification: row.name,
+      recordId: row.id,
+    });
+    return undefined;
+  }
+};
+
 /** What the sender gets for an outbox row. */
-const messageOf = (row: typeof outbox.$inferSelect, from: string) => ({
-  name: row.name,
-  to: row.recipient,
-  from,
-  subject: row.subject,
-  html: row.html,
-  text: row.text,
-  idempotencyKey: row.idempotencyKey,
-});
+const messageOf = (row: typeof outbox.$inferSelect, config: { from: string; appUrl: string }) => {
+  const headers = headersOf(row, config.appUrl);
+  return {
+    name: row.name,
+    to: row.recipient,
+    from: config.from,
+    subject: row.subject,
+    html: row.html,
+    text: row.text,
+    idempotencyKey: row.idempotencyKey,
+    ...(headers ? { headers } : {}),
+  };
+};
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error)).slice(0, 2000);
 
@@ -274,14 +299,14 @@ export const deliverDue = async ({
     let result: Awaited<ReturnType<Sender["send"]>>;
     try {
       if (exempt(row.name)) {
-        result = await via.send(messageOf(row, config.from));
+        result = await via.send(messageOf(row, config));
       } else if (isError(suppressed)) {
         // Unknown whether it's suppressed: try again later rather than risk it.
         result = { status: "error", error: "Couldn't read the email suppressions" };
       } else if (suppressed.has(row.recipient.trim().toLowerCase())) {
         result = { status: "skipped", reason: SUPPRESSED_ERROR };
       } else {
-        result = await via.send(messageOf(row, config.from));
+        result = await via.send(messageOf(row, config));
       }
     } catch (error) {
       result = { status: "error", error: errorText(error) };

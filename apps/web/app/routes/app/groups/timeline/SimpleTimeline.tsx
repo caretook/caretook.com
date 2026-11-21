@@ -2,13 +2,13 @@ import type { ReactNode } from "react";
 import type { DaySummaryMode, UnitChoices } from "@caretook/data/schema";
 import type { SimpleModeState } from "~/lib/assistant/useSimpleMode";
 import type { TimelineData } from "./useTimelineData";
+import type { TimelineEntryListFilters } from "./TimelineEntryList";
 
-import { Link } from "react-router";
 import { QuickEntryBox } from "~/components/quick-entry";
-import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
-import { nextStripText, upcomingTitle } from "~/lib/appointments/upcomingLabels";
+import { nextStripText } from "~/lib/appointments/upcomingLabels";
 import { RemoveLastEntry } from "./RemoveLastEntry";
+import { SimpleNext } from "./SimpleNext";
 import { SimpleNow } from "./SimpleNow";
 import { SimpleTasks } from "./SimpleTasks";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
@@ -26,18 +26,21 @@ export const simpleTodayText = (now: Date, locale?: string) =>
 /**
  * Simple mode's timeline (assistant PRD): one column at the full timeline's type scale with the
  * recipient's name and today; the Upcoming block (due passes with Given all,
- * the next appointment; for viewers as text); "My tasks" (mine, with big ticks;
+ * the next appointment, which opens the next five; for viewers as text); "My tasks" (mine, with big ticks;
  * viewers too); for writers the four tiles in one row and "Remove my last
  * entry", then the quick-entry box (normal size, with a hint to dictate on
- * phones and tablets) directly above the timeline's rows, read-only (`TimelineEntryList`'s `simple`). No strips, filters,
- * search, add menu or layout switch; the /app header is reduced to match
- * (`useSimpleFrame`).
+ * phones and tablets), the full timeline's search, Filter button and chips
+ * (`chips`), then the timeline's rows (`TimelineEntryList`'s `simple`: the
+ * full ⋯ menus and sheets for writers). No strips, add menu or layout switch;
+ * the /app header is reduced to match (`useSimpleFrame`).
  */
 export function SimpleTimeline({
   data,
   units,
   mode,
   summaryMode,
+  chips,
+  filters,
   children,
 }: {
   data: TimelineData;
@@ -45,6 +48,10 @@ export function SimpleTimeline({
   mode: SimpleModeState;
   /** The viewer's day summaries setting (set from the full view's header). */
   summaryMode?: DaySummaryMode;
+  /** The full timeline's `FilterChips` (search, Filter, chips). */
+  chips?: ReactNode;
+  /** The filters and search on (the URL's), for the list. */
+  filters?: TimelineEntryListFilters;
   /** The sheets over the timeline (its `Outlet`), so a card's Edit opens. */
   children?: ReactNode;
 }) {
@@ -64,7 +71,7 @@ export function SimpleTimeline({
       <SimpleNow
         groupId={group.id}
         canWrite={mode.inputs}
-        next={hasNext(data.next, data.now) ? <NextText next={data.next} now={data.now} /> : null}
+        next={hasNext(data.next, data.now) ? <SimpleNext next={data.next} now={data.now} /> : null}
         className={COLUMN_CAP}
       />
       <SimpleTasks className={COLUMN_CAP} />
@@ -84,14 +91,17 @@ export function SimpleTimeline({
           )}
         </div>
       )}
+      {chips}
       <TimelineEntryList
         data={data}
         view="rows"
         units={units}
         groupId={group.id}
         canWrite={group.canWrite}
-        kind={null}
-        author={null}
+        kind={filters?.kind ?? null}
+        author={filters?.author ?? null}
+        vital={filters?.vital}
+        search={filters?.search}
         simple
         summaryMode={summaryMode}
       />
@@ -118,21 +128,3 @@ function WriterTiles({ canChoose }: { canChoose: boolean }) {
 }
 
 const hasNext = (next: TimelineData["next"], now: Date) => !!next.next && !!nextStripText(next, now);
-
-/** The next appointment or reminder, as a line of text that opens it (the Upcoming block's). Nothing when none is ahead. */
-function NextText({ next, now }: { next: TimelineData["next"]; now: Date }) {
-  const group = useGroup();
-  const text = nextStripText(next, now);
-  if (!next.next || !text) return null;
-  return (
-    <p className="text-xl" data-simple-next="">
-      <Link
-        to={appUrls.entry(group.id, next.next.id)}
-        className="link-hover"
-        aria-label={`${text}: open ${upcomingTitle(next.next)}`}
-      >
-        {text}
-      </Link>
-    </p>
-  );
-}

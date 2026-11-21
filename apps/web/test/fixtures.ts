@@ -1,5 +1,7 @@
 import type {
   CarePeriodType,
+  ConditionChangeDetails,
+  ConditionChangeType,
   DoseStatus,
   MedicationChangeType,
   MedicationSchedule,
@@ -7,7 +9,13 @@ import type {
   VitalReading,
 } from "@caretook/data/schema";
 
-import { encodeNoteDoc, entryProviderId, noteDocFromText } from "@caretook/data/schema";
+import {
+  conditionManagerId,
+  encodeNoteDoc,
+  entryProviderId,
+  medicationConditionId,
+  noteDocFromText,
+} from "@caretook/data/schema";
 import { getTableColumns, getTableName } from "drizzle-orm";
 import { drizzleSchema } from "~/lib/sync/schema";
 import { toLocalTimestamp } from "~/lib/timeline/timeline.sync";
@@ -472,6 +480,135 @@ export const task = (v: Partial<Values<"tasks">> = {}) => {
     dueTime: null,
     doneAt: null,
     doneBy: null,
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};
+
+// --- Added by conditions slice 1 ---------------------------------------------
+
+/** One of the recipient's conditions: active, with no since, unless overridden. "No known conditions" is the recipient's `noKnownConditionsAt`. */
+export const condition = (v: Partial<Values<"recipientConditions">> = {}) => {
+  const created = hoursAgo(24 * 30);
+  return row("recipientConditions", {
+    id: newId(),
+    groupId,
+    recipientId,
+    name: "High blood pressure",
+    status: "active",
+    sinceYear: null,
+    sinceMonth: null,
+    note: null,
+    diagnosedById: null,
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};
+
+// --- Added by conditions slice 2 ---------------------------------------------
+
+/**
+ * A condition's change on the timeline (written with the condition, never by
+ * hand): "added" unless `details` says otherwise (`conditionId`,
+ * `conditionName` and `change` are filled in).
+ */
+export const conditionChangeEntry = ({
+  conditionId,
+  conditionName = "High blood pressure",
+  change = "added",
+  details = {},
+  ...v
+}: Omit<EntryValues, "details"> & {
+  conditionId: string;
+  conditionName?: string;
+  change?: ConditionChangeType;
+  details?: Partial<Omit<ConditionChangeDetails, "conditionId" | "conditionName" | "change">>;
+}) =>
+  row(
+    "timelineEntries",
+    entryBase("conditionChange", {
+      title: null,
+      details: JSON.stringify({ conditionId, conditionName, change, ...details }),
+      ...v,
+    }),
+  );
+
+// --- Added by conditions slice 4 ---------------------------------------------
+
+/** A medication said to be for a condition (the medication's "For" row). */
+export const medicationCondition = (
+  medicationId: string,
+  conditionId: string,
+  v: Partial<Values<"medicationConditions">> = {},
+) => {
+  const created = hoursAgo(24);
+  return row("medicationConditions", {
+    id: medicationConditionId(medicationId, conditionId),
+    groupId,
+    medicationId,
+    conditionId,
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};
+
+// --- Added by conditions slice 3 ---------------------------------------------
+
+/** A provider who manages a condition (who diagnosed it is the condition's `diagnosedById`). */
+export const conditionManager = (
+  conditionId: string,
+  providerId: string,
+  v: Partial<Values<"conditionManagers">> = {},
+) => {
+  const created = hoursAgo(24);
+  return row("conditionManagers", {
+    id: conditionManagerId(conditionId, providerId),
+    groupId,
+    conditionId,
+    providerId,
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};
+
+// --- Added by appointments-2 slice 1 -------------------------------------------
+
+/**
+ * A repeating series in the default group (an appointment series unless
+ * overridden): weekly on Mon, Wed and Fri at 6:00 for 4 h, from Wed
+ * 2026-11-18, in Los Angeles. Its visits are ordinary events or notes with
+ * `seriesId` and `seriesDay`.
+ */
+export const series = (v: Partial<Values<"appointmentSeries">> = {}) => {
+  const created = v.createdAt ?? hoursAgo(24 * 3);
+  return row("appointmentSeries", {
+    id: newId(),
+    groupId,
+    recipientId,
+    kind: "event",
+    rule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,FR",
+    startsOn: "2026-11-18",
+    startTime: "06:00",
+    allDay: 0,
+    timeZone: TEST_TIME_ZONE,
+    title: "Dialysis",
+    durationMinutes: 240,
+    place: null,
+    providerIds: "[]",
+    toppedUpThrough: "2027-02-16",
+    deletedAt: null,
     createdAt: created,
     updatedAt: created,
     createdBy: TEST_USER.id,

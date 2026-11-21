@@ -98,7 +98,7 @@ describe("LinkedTasks", () => {
     await expect
       .element(page.getByRole("status").filter({ hasText: "Done: Ask about the stress test" }))
       .toBeInTheDocument();
-    await userEvent.click(page.getByRole("button", { name: "Undo" }));
+    await userEvent.click(page.getByRole("button", { name: "Undo Ask about the stress test" }));
     await expect.poll(titles).toEqual(["Call Dr. Lark's office", "Ask about the stress test"]);
     const [row] = await device.query<{ done_at: string | null }>("SELECT done_at FROM task WHERE id = ?", [
       linked(1, {}).id,

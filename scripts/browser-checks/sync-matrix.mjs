@@ -35,6 +35,16 @@ export const ENTRY_PROVIDER_NAMESPACE = "7c0e4f2a-9a51-4d5e-8b3f-2f6d1c9e4a10";
 export const entryProviderId = (entryId, providerId) =>
   uuidV5(`${entryId.toLowerCase()}:${providerId.toLowerCase()}`, ENTRY_PROVIDER_NAMESPACE);
 
+/** packages/data's MEDICATION_CONDITION_NAMESPACE: a link's id comes from its medication and condition. */
+export const MEDICATION_CONDITION_NAMESPACE = "3d6b8f1e-2c47-4a9d-b5e0-8f7a1c2d9e43";
+export const medicationConditionId = (medicationId, conditionId) =>
+  uuidV5(`${medicationId.toLowerCase()}:${conditionId.toLowerCase()}`, MEDICATION_CONDITION_NAMESPACE);
+
+/** packages/data's CONDITION_MANAGER_NAMESPACE: a link's id comes from its condition and provider. */
+export const CONDITION_MANAGER_NAMESPACE = "8a2e4c71-5b9d-4f06-a3c8-1e7d9b4f2a65";
+export const conditionManagerId = (conditionId, providerId) =>
+  uuidV5(`${conditionId.toLowerCase()}:${providerId.toLowerCase()}`, CONDITION_MANAGER_NAMESPACE);
+
 /** An empty Yjs update (base64): the smallest valid `note_update`. */
 const EMPTY_YJS_UPDATE = "AAA=";
 
@@ -46,6 +56,8 @@ const EMPTY_YJS_UPDATE = "AAA=";
 export const matrixContext = ({ tag, groupId, recipientId, userId }) => {
   const entry = randomUUID();
   const provider = randomUUID();
+  const medication = randomUUID();
+  const condition = randomUUID();
   return {
     tag,
     groupId,
@@ -56,12 +68,16 @@ export const matrixContext = ({ tag, groupId, recipientId, userId }) => {
       entry,
       provider,
       link: entryProviderId(entry, provider),
-      medication: randomUUID(),
+      medication,
       pass: randomUUID(),
       allergy: randomUUID(),
       period: randomUUID(),
       update: randomUUID(),
       task: randomUUID(),
+      condition,
+      medicationCondition: medicationConditionId(medication, condition),
+      conditionManager: conditionManagerId(condition, provider),
+      series: randomUUID(),
     },
   };
 };
@@ -246,6 +262,77 @@ export const SYNC_MATRIX = [
         ...audit(ctx),
       }),
   ),
+  // A resolved one, so the profile's active list doesn't change.
+  device(
+    "recipient_condition",
+    (ctx) => ctx.ids.condition,
+    (ctx) =>
+      insert("recipient_condition", {
+        id: ctx.ids.condition,
+        group_id: ctx.groupId,
+        recipient_id: ctx.recipientId,
+        name: `${ctx.tag} matrix condition`,
+        status: "resolved",
+        since_year: 2001,
+        since_month: null,
+        note: null,
+        diagnosed_by_id: null,
+        deleted_at: null,
+        ...audit(ctx),
+      }),
+  ),
+  // The matrix medication is for the matrix condition (both written above).
+  device(
+    "medication_condition",
+    (ctx) => ctx.ids.medicationCondition,
+    (ctx) =>
+      insert("medication_condition", {
+        id: ctx.ids.medicationCondition,
+        group_id: ctx.groupId,
+        medication_id: ctx.ids.medication,
+        condition_id: ctx.ids.condition,
+        ...audit(ctx),
+      }),
+  ),
+  // The matrix provider manages the matrix condition (both written above).
+  device(
+    "condition_manager",
+    (ctx) => ctx.ids.conditionManager,
+    (ctx) =>
+      insert("condition_manager", {
+        id: ctx.ids.conditionManager,
+        group_id: ctx.groupId,
+        condition_id: ctx.ids.condition,
+        provider_id: ctx.ids.provider,
+        ...audit(ctx),
+      }),
+  ),
+  // A reminder series (appointments-2) long ago, with one visit and
+  // `topped_up_through` set, so the server writes no visits of its own and
+  // nothing shows in Upcoming.
+  device(
+    "appointment_series",
+    (ctx) => ctx.ids.series,
+    (ctx) =>
+      insert("appointment_series", {
+        id: ctx.ids.series,
+        group_id: ctx.groupId,
+        recipient_id: ctx.recipientId,
+        kind: "note",
+        rule: "FREQ=DAILY;INTERVAL=1;COUNT=1",
+        starts_on: "2000-01-01",
+        start_time: null,
+        all_day: 1,
+        time_zone: "America/Los_Angeles",
+        title: `${ctx.tag} matrix series`,
+        duration_minutes: null,
+        place: null,
+        provider_ids: "[]",
+        topped_up_through: "2000-01-01",
+        deleted_at: null,
+        ...audit(ctx),
+      }),
+  ),
   // Patched, not inserted: see RECIPIENT_PATCH.
   { table: "care_recipient", by: "patch" },
   server("care_group", (ctx) => `SELECT '${ctx.groupId}'`),
@@ -291,13 +378,24 @@ export const RECIPIENT_PATCH = {
 export const cleanupSql = (ctx, recordedAt) =>
   [
     `DELETE FROM timeline_entry_provider WHERE id = '${ctx.ids.link}'`,
+    `DELETE FROM medication_condition WHERE id = '${ctx.ids.medicationCondition}'`,
+    `DELETE FROM condition_manager WHERE id = '${ctx.ids.conditionManager}'`,
     `DELETE FROM note_update WHERE document_id = '${ctx.ids.provider}'`,
     `DELETE FROM note_document WHERE id = '${ctx.ids.provider}'`,
     // The note, and the medication's "started" entry the service wrote with it.
-    `UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND (id = '${ctx.ids.entry}' OR details->>'medicationId' = '${ctx.ids.medication}')`,
-    ...["provider", "medication", "medication_pass", "recipient_allergy", "care_period", "task"].map(
+    `UPDATE timeline_entry SET deleted_at = now() WHERE deleted_at IS NULL AND (id = '${ctx.ids.entry}' OR details->>'medicationId' = '${ctx.ids.medication}' OR details->>'conditionId' = '${ctx.ids.condition}')`,
+    ...[
+      "provider",
+      "medication",
+      "medication_pass",
+      "recipient_allergy",
+      "care_period",
+      "task",
+      "appointment_series",
+    ].map(
       (t) =>
-        `UPDATE ${t} SET deleted_at = now() WHERE deleted_at IS NULL AND id IN ('${ctx.ids.provider}', '${ctx.ids.medication}', '${ctx.ids.pass}', '${ctx.ids.allergy}', '${ctx.ids.period}', '${ctx.ids.task}')`,
+        `UPDATE ${t} SET deleted_at = now() WHERE deleted_at IS NULL AND id IN ('${ctx.ids.provider}', '${ctx.ids.medication}', '${ctx.ids.pass}', '${ctx.ids.allergy}', '${ctx.ids.period}', '${ctx.ids.task}', '${ctx.ids.series}')`,
     ),
+    `UPDATE recipient_condition SET deleted_at = now() WHERE deleted_at IS NULL AND id = '${ctx.ids.condition}'`,
     `UPDATE care_recipient SET no_known_allergies_at = ${recordedAt ? `'${recordedAt}'` : "NULL"} WHERE id = '${ctx.recipientId}' AND no_known_allergies_at IS DISTINCT FROM ${recordedAt ? `'${recordedAt}'::timestamptz` : "NULL"}`,
   ].join(";\n");

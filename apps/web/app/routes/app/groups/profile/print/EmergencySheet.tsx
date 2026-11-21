@@ -145,6 +145,20 @@ function SectionBody({ section }: { section: EmergencySection }) {
           ))}
         </ul>
       );
+    case "conditions":
+      return section.empty ? (
+        <p className="font-semibold" data-sheet-conditions-empty="">
+          {section.empty}
+        </p>
+      ) : (
+        <ul className="space-y-0.5">
+          {section.conditions.map((c) => (
+            <li key={c.id} data-sheet-condition="">
+              {c.text}
+            </li>
+          ))}
+        </ul>
+      );
     case "careTeam":
       return (
         <ul className="space-y-1">

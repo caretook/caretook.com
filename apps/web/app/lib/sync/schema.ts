@@ -15,6 +15,8 @@ export const careGroups = sqliteTable("care_group", {
   simpleTiles: text("simple_tiles"),
   // The owners' Assistants switch (connectors; 1 or 0): whether members may connect their own AI assistant.
   connectorsEnabled: integer("connectors_enabled"),
+  // The owners' "Details outside Caretook" switch (appointments-2; 1 or 0): whether members may opt in to details.
+  detailsOutsideAllowed: integer("details_outside_allowed"),
 });
 
 export const careGroupMembers = sqliteTable(
@@ -60,6 +62,8 @@ export const careRecipients = sqliteTable(
     notes: text("notes"),
     // When "No known allergies" was recorded (cleared when an allergy is added).
     noKnownAllergiesAt: text("no_known_allergies_at"),
+    // When "No known conditions" was recorded (cleared when a condition is added).
+    noKnownConditionsAt: text("no_known_conditions_at"),
   },
   (t) => [index("care_recipient_group").on(t.groupId)],
 );
@@ -91,8 +95,16 @@ export const timelineEntries = sqliteTable(
     rescheduledTo: text("rescheduled_to"),
     // Written through a member's AI assistant ("via Claude"; connectors). Only the server sets it.
     via: text("via"),
+    // A repeating series' visit (appointments-2): its series, the local day the
+    // rule made it for ("YYYY-MM-DD"), and whether it was changed on its own (1 or 0).
+    seriesId: text("series_id"),
+    seriesDay: text("series_day"),
+    seriesDetached: integer("series_detached"),
   },
-  (t) => [index("timeline_entry_group_occurred").on(t.groupId, t.occurredAt)],
+  (t) => [
+    index("timeline_entry_group_occurred").on(t.groupId, t.occurredAt),
+    index("timeline_entry_series").on(t.seriesId),
+  ],
 );
 
 /**
@@ -363,6 +375,109 @@ export const tasks = sqliteTable(
   (t) => [index("task_group").on(t.groupId)],
 );
 
+/**
+ * The recipient's conditions (conditions PRD). `status` is active or
+ * resolved; `since_year` and `since_month` are integers. Deletes are soft.
+ */
+export const recipientConditions = sqliteTable(
+  "recipient_condition",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    recipientId: text("recipient_id"),
+    name: text("name"),
+    status: text("status"),
+    sinceYear: integer("since_year"),
+    sinceMonth: integer("since_month"),
+    note: text("note"),
+    diagnosedById: text("diagnosed_by_id"),
+    deletedAt: text("deleted_at"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [index("recipient_condition_group").on(t.groupId)],
+);
+
+/**
+ * What a medication is for (conditions slice 4): medication ↔ condition
+ * links. The id comes from the pair (`medicationConditionId`); unlinking
+ * deletes the row.
+ */
+export const medicationConditions = sqliteTable(
+  "medication_condition",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    medicationId: text("medication_id"),
+    conditionId: text("condition_id"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [
+    index("medication_condition_medication").on(t.medicationId),
+    index("medication_condition_condition").on(t.conditionId),
+  ],
+);
+
+/**
+ * Who manages a condition (conditions slice 3): condition ↔ provider links.
+ * The id comes from the pair (`conditionManagerId`); unlinking deletes the
+ * row (after a PATCH of its `updated_at`: see `conditions.sync.ts`).
+ */
+export const conditionManagers = sqliteTable(
+  "condition_manager",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    conditionId: text("condition_id"),
+    providerId: text("provider_id"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [
+    index("condition_manager_condition").on(t.conditionId),
+    index("condition_manager_provider").on(t.providerId),
+  ],
+);
+
+/**
+ * Repeating appointments and reminders (appointments-2). `rule` is RRULE
+ * text; `starts_on` and `topped_up_through` are "YYYY-MM-DD" and
+ * `start_time` "HH:MM" (null when all day), wall-clock in `time_zone`;
+ * `provider_ids` is JSON text; `all_day` is 1 or 0. Deletes are soft.
+ */
+export const appointmentSeries = sqliteTable(
+  "appointment_series",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    recipientId: text("recipient_id"),
+    kind: text("kind"),
+    rule: text("rule"),
+    startsOn: text("starts_on"),
+    startTime: text("start_time"),
+    allDay: integer("all_day"),
+    timeZone: text("time_zone"),
+    title: text("title"),
+    durationMinutes: integer("duration_minutes"),
+    place: text("place"),
+    providerIds: text("provider_ids"),
+    toppedUpThrough: text("topped_up_through"),
+    deletedAt: text("deleted_at"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [index("appointment_series_group").on(t.groupId)],
+);
+
 export const drizzleSchema = {
   careGroups,
   careGroupMembers,
@@ -380,4 +495,8 @@ export const drizzleSchema = {
   recipientAllergies,
   carePeriods,
   tasks,
+  recipientConditions,
+  medicationConditions,
+  conditionManagers,
+  appointmentSeries,
 };

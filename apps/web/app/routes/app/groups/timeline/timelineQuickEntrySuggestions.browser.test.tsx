@@ -6,7 +6,7 @@ import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { clearUndo } from "~/lib/medications/passUndo";
-import { PLACEHOLDER_MS } from "~/components/quick-entry/useRotatingPlaceholder";
+import { QUICK_ENTRY_EXAMPLES, QUICK_ENTRY_PLACEHOLDER } from "~/components/quick-entry/quickEntryCopy";
 import { forgetRecentLines, recentLines, recordLine } from "~/lib/assistant/recentLines";
 import { addDays, dayInZone, timeInZone, zonedInstant } from "~/lib/core/zonedDay";
 import * as timeline from "./route";
@@ -14,8 +14,8 @@ import { rowWith, TIMELINE_URL, waitUntil } from "./timelineWorld";
 
 // Quick entry's suggestions on the timeline, on the test device (offline
 // throughout, so they all work offline): name autocomplete while typing,
-// your recent lines, what the group usually logs around now, and the rotating
-// placeholder. Every chip only fills the box; Save is still yours.
+// your recent lines, what the group usually logs around now, and the static
+// placeholder with its ? help. Every chip only fills the box; Save is still yours.
 
 const METFORMIN = fx.medication({ name: "Metformin", strength: "500 mg", dose: "1 tablet" });
 const METOPROLOL = fx.medication({ name: "Metoprolol", strength: "25 mg", dose: "1 tablet" });
@@ -84,32 +84,43 @@ describe("the placeholder", () => {
     expect(described).toContain("“n:”");
   });
 
-  test("it rotates through the examples while the box is empty and unfocused", async () => {
+  test("the placeholder is one static prompt, unchanged as time passes", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     await open();
     await expect.element(box()).toBeVisible();
-    expect(placeholder()).toBe("bp 130/85 hr 72");
-    await vi.advanceTimersByTimeAsync(PLACEHOLDER_MS);
-    await expect.poll(placeholder).toBe("gave metformin");
-    await vi.advanceTimersByTimeAsync(PLACEHOLDER_MS);
-    await expect.poll(placeholder).toBe("pain 4 left knee");
-
-    // Focus stops it.
-    field().focus();
-    await vi.advanceTimersByTimeAsync(PLACEHOLDER_MS * 3);
-    await expect.poll(placeholder).toBe("bp 130/85 hr 72");
+    expect(placeholder()).toBe(QUICK_ENTRY_PLACEHOLDER);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(placeholder()).toBe(QUICK_ENTRY_PLACEHOLDER);
   });
 
-  test("under reduced motion it shows the first example and stays", async () => {
-    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
-    const real = window.matchMedia.bind(window);
-    vi.spyOn(window, "matchMedia").mockImplementation((q) =>
-      q.includes("prefers-reduced-motion") ? { ...real(q), matches: true } : real(q),
-    );
+  test("the ? opens a popover listing every example; Esc closes it and focus returns", async () => {
     await open();
     await expect.element(box()).toBeVisible();
-    await vi.advanceTimersByTimeAsync(PLACEHOLDER_MS * 3);
-    expect(placeholder()).toBe("bp 130/85 hr 72");
+    const help = page.getByRole("button", { name: "How quick entry works" });
+    await userEvent.click(help);
+    const dialog = page.getByRole("dialog", { name: "How quick entry works" });
+    await expect.element(dialog).toBeVisible();
+    for (const e of QUICK_ENTRY_EXAMPLES) await expect.element(dialog.getByText(e.line)).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.element(dialog).not.toBeInTheDocument();
+    await waitUntil(() => document.activeElement === help.element(), 2000, "focus back on the ? button");
+  });
+
+  test("at 320px the box and the ? stay inside the container", async () => {
+    await open();
+    await expect.element(box()).toBeVisible();
+    const container = field().closest("[data-quick-entry]") as HTMLElement;
+    const prev = container.style.width;
+    container.style.width = "320px";
+    try {
+      const right = container.getBoundingClientRect().right;
+      const help = page.getByRole("button", { name: "How quick entry works" }).element();
+      expect(field().getBoundingClientRect().right).toBeLessThanOrEqual(right);
+      expect(help.getBoundingClientRect().right).toBeLessThanOrEqual(right);
+      expect(container.scrollWidth).toBeLessThanOrEqual(container.clientWidth);
+    } finally {
+      container.style.width = prev;
+    }
   });
 });
 
