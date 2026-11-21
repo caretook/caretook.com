@@ -6,15 +6,15 @@
 
 **Landing mode: run everything through** (queued with `pnpm prd queue`, 2026-11-21): start every ready slice, land each green wave, clean up; ask only real questions.
 
-| Slice | Backlog             | Wave | Model  | State                 | Merge into `prd/timeline-ux-2` (slice commits) |
-| ----- | ------------------- | ---- | ------ | --------------------- | ---------------------------------------------- |
-| 1     | B-214               | 1    | opus   | handed off (891c7be7) |                                                |
-| 2     | B-214               | 2    |        | planned               |                                                |
-| 3     | B-218               | 1    | sonnet | handed off (1e05be90) |                                                |
-| 4     | B-223               | 1    | sonnet | handed off (ce9cfeaa) |                                                |
-| 5     | B-215, B-216, B-219 | 1    | opus   | handed off (e09d8a3c) |                                                |
-| 6     | B-217               | 2    |        | planned               |                                                |
-| 7     | B-224               | 1    | opus   | handed off (d28a7b10) |                                                |
+| Slice | Backlog             | Wave | Model  | State                   | Merge into `prd/timeline-ux-2` (slice commits) |
+| ----- | ------------------- | ---- | ------ | ----------------------- | ---------------------------------------------- |
+| 1     | B-214               | 1    | opus   | merged                  | 2f2635f0 (891c7be7)                            |
+| 2     | B-214               | 2    | opus   | started (agent spawned) |                                                |
+| 3     | B-218               | 1    | sonnet | merged                  | 5aa9e137 (1e05be90)                            |
+| 4     | B-223               | 1    | sonnet | merged                  | 0b327447 (ce9cfeaa)                            |
+| 5     | B-215, B-216, B-219 | 1    | opus   | merged                  | c8fbb4f7 (e09d8a3c)                            |
+| 6     | B-217               | 2    | opus   | started (agent spawned) |                                                |
+| 7     | B-224               | 1    | opus   | merged                  | 95ac03f3 (d28a7b10)                            |
 
 - 2026-11-21: wave 1 started; worktrees `.loops/timeline-ux-2-{1,3,4,5,7}` (stackless). B-214, B-215, B-216, B-218, B-219, B-223, B-224 claimed by `prd/timeline-ux-2`; B-217 claimed when slice 6 starts. No new backlog items for this topic at the wave boundary.
 - Slice 7 also changed `scripts/browser-checks/fixtures.mjs` (`addToTimeline` takes `{ group }`) and `layout-offline.spec.mjs` (Temperature under Vitals): run `layout-offline` at landing.
@@ -22,6 +22,9 @@
 - providers-2 landed in dev (df4d0c05): `pnpm prd sync` at wave 1's boundary (new deps → `pnpm install`; touches `ui/ComboBox`, `ConfirmDialog`; no migration). Its lockfile change means a full check at landing.
 - Slice 5 exports `SURFACE` from `ui/` (one index line); its diff needs the `ui` browser check at landing.
 - Slice 1 edited `scripts/browser-checks/app-shell.spec.mjs` (the rename step reads the group menu's checked item); it passed on slice 1's stack. `docs/domain/profiles.md` mentions `RecipientCard`: fix at landing.
+- Wave 1 merged (no conflicts); B-215, B-216, B-218, B-219, B-223, B-224 done (ready); B-214 waits for slice 2. Slice worktrees removed.
+- `pnpm prd sync` 9fd694a8 (providers-2): resolved a code conflict in `providers/route.tsx` (PageHeader + dev's Import action); providers test 15/15. Lockfile changed → full `pnpm prd check` for wave 1's landing.
+- Wave 2 started from 9fd694a8: `.loops/timeline-ux-2-{2,6}`; B-217 claimed. Wave 1 lands while wave 2 runs.
 - Open issues: none.
 
 ## Backlog map
