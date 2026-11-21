@@ -47,7 +47,11 @@ Slice 7 merged (ca95085a; 12 additive conflicts with 5 and 6 resolved, incl. `li
 
 Slice 8 merged (edfcedf0); B-61 done.
 
-**Question for the user at landing (product):** "Also remind me" from a member whose reminder emails are off sends nothing (the planner only sends to members with reminders on); the sheet says so and points to Calendar & reminders. PRD doesn't settle it; kept as is unless the user wants extras to send anyway.
+**User's answers (2026-11-20):** skip browser checks for this landing; raise the lean ceiling to 257 s (done: `lean-ceiling 257`, roundtrip 29, from slice 10's ~0.9–1.4 s; reset from a suite median later); "Also remind me" with reminders off keeps sending nothing.
+
+**First full check (ca4270a1) failed** on two component tests, both failing alone: `entryRepeat.browser.test.tsx` "offline: the series and every visit…" (3/3; `main a[href=…]` not visible after going to the Timeline, likely quick-fixes wave 14's Today card / simple timeline changes) and `test/device.browser.test.tsx` "fixtures render on a real route…" (2/3, toBeVisible timeout). Fix agent (opus) working in this worktree.
+
+**Was: question for the user at landing (product):** "Also remind me" from a member whose reminder emails are off sends nothing (the planner only sends to members with reminders on); the sheet says so and points to Calendar & reminders. PRD doesn't settle it; kept as is unless the user wants extras to send anyway.
 
 **Carried from slice 8's hand-off:** `reminderOverrideService` (`get`, `set` with `default` deleting the row, `mute`, `extra`); errors `reminderOverrideService:notFound` (404), `:invalid` (400); `calendars.overrides.get|set` in `overrideProcedures.ts`; "Remind me" before Print in `entryActionItems` for upcoming, uncancelled, unmoved events and notes, every role; `RemindMeSheet`, `useRemindMe` (`components/entry/`); `lib/calendars/remindMe.ts` (`canRemind`, `remindSummary`; summary lists lead labels, doesn't drop passed ones). The timeline list holds only past or started entries, so its wiring has no component test. Browser check to run at landing: roundtrip. Docs: calendars.md (service, procedures, item, sheet, reminders-off behaviour); api.md (procedures); components.md tests line (`upcoming/upcomingRemind.browser.test.tsx`); data-layer.md (service).
 
