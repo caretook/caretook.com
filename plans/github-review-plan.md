@@ -4,15 +4,15 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/github-review` (slice commits) |
-| ----- | ---- | ----------- | ---------------------------------------------- |
-| 1     | 1    | not started |                                                |
-| 2     | 2    | not started |                                                |
-| 3     | 2    | not started |                                                |
+| Slice | Wave | State                                                            | Merge into `prd/github-review` (slice commits) |
+| ----- | ---- | ---------------------------------------------------------------- | ---------------------------------------------- |
+| 1     | 1    | started (agent spawned, opus; worktree `.loops/github-review-1`) |                                                |
+| 2     | 2    | not started                                                      |                                                |
+| 3     | 2    | not started                                                      |                                                |
 
-**Landing mode:** not chosen yet: ask the user.
+**Landing mode:** run everything through (queued with `pnpm prd queue`): start every ready slice, land each green wave without asking, clean up; ask only real questions. Wave 1 lands locally (no `--force` unless the user says so); wave 2 through the new PR path.
 
-**Backlog:** B-203 is all three slices. Claim it at wave 1.
+**Backlog:** B-203 is all three slices; claimed by `prd/github-review` (2026-11-20). No other items for this topic at wave 1.
 
 ## Architectural decisions
 
