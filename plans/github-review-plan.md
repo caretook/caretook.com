@@ -4,11 +4,11 @@
 
 ## Status
 
-| Slice | Wave | State                                                                                                                                                                                                   | Merge into `prd/github-review` (slice commits) |
-| ----- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| 1     | 1    | blocked again: the agent's push was refused by the auto-mode classifier despite approval; waiting for the user to push b131ab72 and open the PR; module + `review` built (a8bc173b), needs live capture |                                                |
-| 2     | 2    | not started                                                                                                                                                                                             |                                                |
-| 3     | 2    | not started                                                                                                                                                                                             |                                                |
+| Slice | Wave | State                                                                                                                                                                      | Merge into `prd/github-review` (slice commits) |
+| ----- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| 1     | 1    | resumed: the user dropped the blanket push deny (d5c4c621, committed here, lands with the PRD); capturing fixtures; module + `review` built (a8bc173b), needs live capture |                                                |
+| 2     | 2    | not started                                                                                                                                                                |                                                |
+| 3     | 2    | not started                                                                                                                                                                |                                                |
 
 **Landing mode:** run everything through (queued with `pnpm prd queue`): start every ready slice, land each green wave without asking, clean up; ask only real questions. Wave 1 lands locally (no `--force` unless the user says so); wave 2 through the new PR path.
 
