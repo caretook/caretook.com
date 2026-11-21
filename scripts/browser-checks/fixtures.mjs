@@ -157,9 +157,15 @@ export async function signOut(page) {
  */
 export const addButton = (page) => page.locator('main [data-day-header] button[aria-label="Add to Today"]');
 
-/** Add to the timeline through Today's + menu: open it, then choose `item` ("Note", "Symptom"…). */
-export async function addToTimeline(page, item) {
-  const choice = page.locator('[role="menu"] [role="menuitem"]', { hasText: new RegExp(`^${item}$`) });
+/**
+ * Add to the timeline through Today's + menu: open it, then choose `item`
+ * ("Note", "Symptom"…); a vital type ("Temperature") with `{ group: "Vitals" }`,
+ * which expands that group first.
+ */
+export async function addToTimeline(page, item, { group } = {}) {
+  const menuItem = (text) =>
+    page.locator('[role="menu"] [role="menuitem"]', { hasText: new RegExp(`^${text}$`) });
+  const choice = menuItem(group ?? item);
   await addButton(page).click();
   // A tap that lands while a menu is still closing doesn't open it: once more.
   if (
@@ -171,6 +177,7 @@ export async function addToTimeline(page, item) {
     await addButton(page).click();
   }
   await choice.click();
+  if (group) await menuItem(item).click();
 }
 
 /**

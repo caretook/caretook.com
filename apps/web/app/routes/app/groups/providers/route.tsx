@@ -8,6 +8,7 @@ import type { ProvidersOutlet } from "./providerSheet";
 import { Import, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
+import { PageHeader } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { directoryList, parseDirectoryFilters } from "~/lib/providers/providerDirectory";
@@ -86,44 +87,40 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold">Providers</h1>
-          <p className="text-base-content/70 text-sm">
-            {group.displayName}
-            {!group.canWrite && " · You can view this directory"}
-          </p>
-        </div>
-        {group.canWrite && (
-          <div className="flex shrink-0 flex-wrap justify-end gap-2">
-            {canImport && (
+      <PageHeader
+        title="Providers"
+        actions={
+          group.canWrite && (
+            <div className="flex shrink-0 flex-wrap justify-end gap-2">
+              {canImport && (
+                <Link
+                  to={appUrls.importProviders(groupId, search)}
+                  state={PROVIDER_SHEET_STATE}
+                  prefetch="render"
+                  preventScrollReset
+                  className="btn btn-ghost btn-sm"
+                  data-import-providers
+                >
+                  <Import className="size-4" aria-hidden="true" />
+                  {IMPORT_ACTION}
+                </Link>
+              )}
               <Link
-                to={appUrls.importProviders(groupId, search)}
+                to={appUrls.newProvider(groupId, { search })}
                 state={PROVIDER_SHEET_STATE}
+                // Loaded ahead, so the sheet opens offline too.
                 prefetch="render"
                 preventScrollReset
-                className="btn btn-ghost btn-sm"
-                data-import-providers
+                className="btn btn-primary btn-sm"
+                data-add-provider
               >
-                <Import className="size-4" aria-hidden="true" />
-                {IMPORT_ACTION}
+                <Plus className="size-4" aria-hidden="true" />
+                Add provider
               </Link>
-            )}
-            <Link
-              to={appUrls.newProvider(groupId, { search })}
-              state={PROVIDER_SHEET_STATE}
-              // Loaded ahead, so the sheet opens offline too.
-              prefetch="render"
-              preventScrollReset
-              className="btn btn-primary btn-sm"
-              data-add-provider
-            >
-              <Plus className="size-4" aria-hidden="true" />
-              Add provider
-            </Link>
-          </div>
-        )}
-      </header>
+            </div>
+          )
+        }
+      />
 
       <ProviderSearch value={text} urlQuery={filters.q} onChange={setText} />
       <TypeFilter type={filters.type} />

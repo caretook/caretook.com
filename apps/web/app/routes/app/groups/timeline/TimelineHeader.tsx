@@ -1,14 +1,14 @@
 import type { DaySummaryMode, TimelineView } from "@caretook/data/schema";
 import type { SimpleModeState } from "~/lib/assistant/useSimpleMode";
 
-import { RecipientCard } from "./RecipientCard";
+import { PageHeader } from "~/components/ui";
 import { TimelineViewMenu } from "./TimelineViewMenu";
 
 /**
- * The care recipient's card (their name, the group's, and a link to their
- * profile), then one "View options" menu (`TimelineViewMenu`: the layout, the
- * day summaries and simple mode). The + menu is on each day's heading
- * (`DayHeader`).
+ * The full timeline's "Timeline" heading, like the other sections (no
+ * recipient card: the profile is in the group menu), then one "View options"
+ * menu (`TimelineViewMenu`: the layout, the day summaries and simple mode).
+ * The + menu is on each day's heading (`DayHeader`).
  */
 export function TimelineHeader({
   view,
@@ -24,9 +24,9 @@ export function TimelineHeader({
   simpleMode?: SimpleModeState;
 }) {
   return (
-    <header className="flex items-start justify-between gap-3">
-      <RecipientCard />
-      <div className="flex shrink-0 items-center">
+    <PageHeader
+      title="Timeline"
+      actions={
         <TimelineViewMenu
           view={view}
           onViewChange={onViewChange}
@@ -34,7 +34,7 @@ export function TimelineHeader({
           onSummaryModeChange={onSummaryModeChange}
           simpleMode={simpleMode}
         />
-      </div>
-    </header>
+      }
+    />
   );
 }
