@@ -35,12 +35,14 @@ const visitLabel = (visit: { day: string; start: string }, allDay: boolean) => {
   return allDay ? day : `${day}, ${formatTime(visit.start)}`;
 };
 
+/** What repeats: an appointment's visits, or a repeating todo (planner-2), counted in times. */
+export type RepeatKind = "event" | "note" | "todo";
+
+/** The series wording's kind: visits for an appointment, times otherwise. */
+const textKind = (kind: RepeatKind) => (kind === "event" ? "event" : "note");
+
 /** What the field's choice gives: its rule text, or why it can't be saved (null for Doesn't repeat). */
-export const repeatOutcome = (
-  choice: RepeatChoice,
-  timing: Omit<SeriesTiming, "rule">,
-  kind: "event" | "note",
-) => {
+export const repeatOutcome = (choice: RepeatChoice, timing: Omit<SeriesTiming, "rule">, kind: RepeatKind) => {
   const rule = choiceRule(choice, timing.startsOn);
   if (!rule) return { rule: null, problem: null };
   const text = ruleText(rule);
@@ -77,7 +79,7 @@ export function RepeatField({
   onChange: (choice: RepeatChoice) => void;
   /** The draft's first day and time, in the recipient's zone. */
   timing: Omit<SeriesTiming, "rule">;
-  kind: "event" | "note";
+  kind: RepeatKind;
 }) {
   const set = (patch: Partial<RepeatChoice>) => onChange({ ...choice, ...patch });
   const freq: RepeatFreq | null =
@@ -85,7 +87,7 @@ export function RepeatField({
   const monthly = monthlyLabels(timing.startsOn);
   const { rule, problem } = repeatOutcome(choice, timing, kind);
   const preview = rule ? nextVisits({ ...timing, rule }, timing.startsOn, 3) : [];
-  const noun = kind === "note" ? "times" : "visits";
+  const noun = kind === "event" ? "visits" : "times";
 
   return (
     <div className="space-y-2" data-repeat-field>
@@ -235,7 +237,7 @@ export function RepeatField({
                     startTime: timing.startTime,
                     allDay: timing.allDay,
                     startsOn: timing.startsOn,
-                    kind,
+                    kind: textKind(kind),
                   })}
                 </p>
                 <p className="text-base-content/70">Next:</p>
