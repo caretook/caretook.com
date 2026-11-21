@@ -31,7 +31,7 @@ describe("googleEventId", () => {
   it("is stable per item and in Google's base32hex alphabet", () => {
     expect(googleEventId("entry:e1")).toBe(googleEventId("entry:e1"));
     expect(googleEventId("entry:e1")).not.toBe(googleEventId("entry:e2"));
-    expect(googleEventId("task:t1")).toMatch(/^[a-v0-9]{5,1024}$/);
+    expect(googleEventId("todo:t1")).toMatch(/^[a-v0-9]{5,1024}$/);
   });
 });
 
@@ -76,8 +76,8 @@ describe("toGoogleEvent", () => {
 describe("planPush", () => {
   const first = item();
   const second = item({
-    uid: "task:t1",
-    kind: "task",
+    uid: "todo:t1",
+    kind: "todo",
     title: "Pick up the walker",
     place: null,
     providers: [],
@@ -90,7 +90,7 @@ describe("planPush", () => {
 
   it("writes every item on a first push", () => {
     const plan = planPush({ items: [first, second], links: [], level: "generic" });
-    expect(plan.upserts.map((u) => u.uid)).toEqual(["entry:e1", "task:t1"]);
+    expect(plan.upserts.map((u) => u.uid)).toEqual(["entry:e1", "todo:t1"]);
     expect(plan).toMatchObject({ deletes: [], unchanged: 0 });
   });
 

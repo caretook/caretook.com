@@ -4,22 +4,22 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { found } from "../../../../../test/found";
 import { fx, series, TEST_GROUP } from "../../../../../test/fixtures";
-import { fixClock, laTime, UPCOMING_ROUTES } from "../upcoming/upcomingWorld";
+import { fixClock, laTime, PLANNER_ROUTES } from "../planner/plannerWorld";
 import { renderWithDevice } from "../../../../../test/device";
 
 // Repeating appointments and reminders on the test device (appointments-2,
 // slice 1): the repeat field and its preview in a new appointment's sheet,
 // saving a draft as a series offline (the series and every visit in one
 // local transaction, queued for upload), a reminder series, the repeat text
-// on a visit's page (viewers too), and the repeat mark on Upcoming, the
+// on a visit's page (viewers too), and the repeat mark in the Planner, the
 // timeline and the Today card. The rules themselves are repeatRule.test.ts's
 // and seriesVisits.test.ts's; the upload is syncAppointmentSeries.int.test.ts's.
-// The clock is Upcoming's: Wed 2026-11-18, 10:00 AM in Los Angeles.
+// The clock is the Planner tests': Wed 2026-11-18, 10:00 AM in Los Angeles.
 
 const GROUP = TEST_GROUP.id;
 const NEW_EVENT = `/app/groups/${GROUP}/entries/new?kind=event`;
 const NEW_NOTE = `/app/groups/${GROUP}/entries/new?kind=note`;
-const UPCOMING = `/app/groups/${GROUP}/upcoming`;
+const PLANNER = `/app/groups/${GROUP}/planner`;
 const TIMELINE = `/app/groups/${GROUP}/timeline`;
 const entryPath = (id: string) => `/app/groups/${GROUP}/entries/${id}`;
 const ON_ENTRY = /\/entries\/([0-9a-f-]{36})$/;
@@ -50,7 +50,7 @@ const TITLE = () => $<HTMLInputElement>("main header input");
 const ENTRY_REPEAT_TEXT = () => $("main header [data-repeat-text]")?.textContent ?? null;
 
 const open = (url: string, options: Parameters<typeof renderWithDevice>[0] = {}) =>
-  renderWithDevice({ route: UPCOMING_ROUTES, url, ...options });
+  renderWithDevice({ route: PLANNER_ROUTES, url, ...options });
 
 const openRepeat = async () => {
   await userEvent.click(await found(REPEAT_BUTTON));
@@ -140,7 +140,7 @@ describe("the repeat field", () => {
 });
 
 describe("saving a series", () => {
-  test("offline: the series and every visit through 90 days in one transaction, the draft its first visit, shown in Upcoming with the mark", async () => {
+  test("offline: the series and every visit through 90 days in one transaction, the draft its first visit, shown in the Planner with the mark", async () => {
     const device = await open(NEW_EVENT);
     await openRepeat();
     await choose("weekly");
@@ -191,7 +191,7 @@ describe("saving a series", () => {
     await expect.poll(ENTRY_REPEAT_TEXT).toBe("RepeatsEvery Mon, Wed, Fri at 10:00");
     expect(REPEAT_BUTTON()).toBeNull();
 
-    // Back to the timeline, whose Today card has this series' next visit; then on to Upcoming.
+    // Back to the timeline, whose Today card has this series' next visit; then on to the Planner.
     const shown = (sel: string) => () =>
       [...document.querySelectorAll<HTMLElement>(sel)].find((el) => el.offsetParent) ?? null;
     const link = (href: string) => shown(`main a[href="${href}"]`);
@@ -200,8 +200,8 @@ describe("saving a series", () => {
     await userEvent.click(await found(() => $('main [data-today-toggle][aria-expanded="false"]')));
     const next = await found(shown("main [data-next]"));
     expect(next.parentElement!.querySelector("[data-repeat-mark]")).not.toBeNull();
-    await userEvent.click(await found(link(UPCOMING)));
-    await expect.poll(() => device.location()).toBe(UPCOMING);
+    await userEvent.click(await found(link(PLANNER)));
+    await expect.poll(() => device.location()).toBe(PLANNER);
     await expect
       .poll(() => document.querySelectorAll("main [data-upcoming-item] [data-repeat-mark]").length, {
         timeout: 5000,
@@ -281,8 +281,8 @@ describe("a series visit", () => {
     expect(REPEAT_BUTTON()).toBeNull();
   });
 
-  test("carries the mark in Upcoming and the Today card; a one-off doesn't", async () => {
-    await open(UPCOMING, { fixtures: world() });
+  test("carries the mark in the Planner and the Today card; a one-off doesn't", async () => {
+    await open(PLANNER, { fixtures: world() });
     const row = (id: string) => $(`main [data-upcoming-item="${id}"]`);
     await found(() => row(FRIDAY.id));
     expect(row(FRIDAY.id)!.querySelector("[data-repeat-mark]")).not.toBeNull();

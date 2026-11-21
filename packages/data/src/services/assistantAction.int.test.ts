@@ -8,7 +8,7 @@ import {
   FUTURE_DATE_MESSAGE,
   noteDocumentSchema,
   noteUpdateSchema,
-  taskSchema,
+  todoSchema,
   timelineEntryProviderSchema,
   timelineEntrySchema,
 } from "../db/schema";
@@ -19,7 +19,7 @@ import {
   medicationService,
   noteDocumentService,
   providerService,
-  taskService,
+  todoService,
   timelineEntryService,
 } from ".";
 
@@ -67,8 +67,8 @@ const setup = async () => {
     assistantActionService.run(u[who].ctx, group.id, actions, { via: VIA });
   const entriesOf = async () =>
     getDb().select().from(timelineEntrySchema).where(eq(timelineEntrySchema.groupId, group.id));
-  const tasksOf = async () => getDb().select().from(taskSchema).where(eq(taskSchema.groupId, group.id));
-  return { u, group, recipient, morning, evening, addMedication, provider, run, entriesOf, tasksOf };
+  const todosOf = async () => getDb().select().from(todoSchema).where(eq(todoSchema.groupId, group.id));
+  return { u, group, recipient, morning, evening, addMedication, provider, run, entriesOf, todosOf };
 };
 
 const refusal = (res: unknown) => {
@@ -78,7 +78,7 @@ const refusal = (res: unknown) => {
 
 describe("assistantActionService.run", () => {
   it("writes each action as quick entry would, carrying via", async () => {
-    const { u, group, recipient, evening, addMedication, provider, run, entriesOf, tasksOf } = await setup();
+    const { u, group, recipient, evening, addMedication, provider, run, entriesOf, todosOf } = await setup();
     const metformin = await addMedication("Metformin");
     const lisinopril = await addMedication("Lisinopril");
     const before = (await entriesOf()).length;
@@ -120,7 +120,7 @@ describe("assistantActionService.run", () => {
           timeZone: "America/Los_Angeles",
         },
         {
-          type: "addTask",
+          type: "addTodo",
           title: "Pick up prescription",
           assigneeId: u.caretaker.user.id,
           dueOn: "2026-12-01",
@@ -133,7 +133,7 @@ describe("assistantActionService.run", () => {
     const entries = await entriesOf();
     expect(entries.length - before).toBe(7);
     const byId = new Map(entries.map((e) => [e.id, e]));
-    const [[vital], [symptom], [dose], passDoses, [note], [event], [taskId]] = res.byAction as [
+    const [[vital], [symptom], [dose], passDoses, [note], [event], [todoId]] = res.byAction as [
       [string],
       [string],
       [string],
@@ -142,7 +142,7 @@ describe("assistantActionService.run", () => {
       [string],
       [string],
     ];
-    for (const id of res.ids.filter((id) => id !== taskId)) {
+    for (const id of res.ids.filter((id) => id !== todoId)) {
       expect(byId.get(id)).toMatchObject({
         via: VIA,
         createdBy: u.caretaker.user.id,
@@ -196,10 +196,10 @@ describe("assistantActionService.run", () => {
       .where(eq(timelineEntryProviderSchema.entryId, event));
     expect(links.map((l) => l.providerId)).toEqual([provider.id]);
 
-    const tasks = await tasksOf();
-    expect(tasks).toHaveLength(1);
-    expect(tasks[0]).toMatchObject({
-      id: taskId,
+    const todos = await todosOf();
+    expect(todos).toHaveLength(1);
+    expect(todos[0]).toMatchObject({
+      id: todoId,
       title: "Pick up prescription",
       assigneeId: u.caretaker.user.id,
       dueOn: "2026-12-01",
@@ -209,7 +209,7 @@ describe("assistantActionService.run", () => {
   });
 
   it("refuses a batch with one bad action, writing nothing and naming it", async () => {
-    const { u, group, evening, addMedication, run, entriesOf, tasksOf } = await setup();
+    const { u, group, evening, addMedication, run, entriesOf, todosOf } = await setup();
     const metformin = await addMedication("Metformin");
     const stopped = await addMedication("Atenolol");
     ok(
@@ -223,7 +223,7 @@ describe("assistantActionService.run", () => {
     )!;
     const before = (await entriesOf()).length;
     const good = { type: "addNote", text: "Fine", occurredAt: minutesAgo(1) };
-    const task = { type: "addTask", title: "Call the pharmacy" };
+    const todo = { type: "addTodo", title: "Call the pharmacy" };
 
     const cases: [unknown, string, unknown?][] = [
       [
@@ -263,15 +263,15 @@ describe("assistantActionService.run", () => {
         "assistantActionService:passGone",
       ],
       [{ type: "givePass", passId: noon.id, occurredAt: minutesAgo(1) }, "assistantActionService:passEmpty"],
-      [{ type: "addTask", title: "Call", assigneeId: u.outsider.user.id }, "taskService:assigneeNotMember"],
+      [{ type: "addTodo", title: "Call", assigneeId: u.outsider.user.id }, "todoService:assigneeNotMember"],
     ];
     for (const [bad, code, issues] of cases) {
-      const res = refusal(await run("caretaker", [good, task, bad]));
+      const res = refusal(await run("caretaker", [good, todo, bad]));
       expect(res, JSON.stringify(bad)).toMatchObject({ code, index: 2 });
       if (issues) expect(res.issues).toEqual(issues);
     }
     expect((await entriesOf()).length).toBe(before);
-    expect(await tasksOf()).toEqual([]);
+    expect(await todosOf()).toEqual([]);
 
     // A pass with nothing left: the second Given all in one batch plans from the same state, so
     // it's the next batch that's refused.
@@ -284,27 +284,27 @@ describe("assistantActionService.run", () => {
   });
 
   it("lets owners, admins and caretakers run a batch, and refuses viewers and outsiders", async () => {
-    const { run, tasksOf } = await setup();
+    const { run, todosOf } = await setup();
     for (const who of ["owner", "admin", "caretaker"] as const)
-      ok(await run(who, [{ type: "addTask", title: `By ${who}` }]));
-    expect((await tasksOf()).map((t) => t.title).sort()).toEqual(["By admin", "By caretaker", "By owner"]);
+      ok(await run(who, [{ type: "addTodo", title: `By ${who}` }]));
+    expect((await todosOf()).map((t) => t.title).sort()).toEqual(["By admin", "By caretaker", "By owner"]);
 
     for (const who of ["viewer", "outsider"] as const)
-      expect(refusal(await run(who, [{ type: "addTask", title: "Nope" }]))).toMatchObject({
+      expect(refusal(await run(who, [{ type: "addTodo", title: "Nope" }]))).toMatchObject({
         code: "permissions:unauthorized",
         index: null,
       });
-    expect(await tasksOf()).toHaveLength(3);
+    expect(await todosOf()).toHaveLength(3);
   });
 
   it("keeps via out of reach of edits: a member's update can't set it", async () => {
     const { u, group, run } = await setup();
-    const [[taskId]] = ok(await run("caretaker", [{ type: "addTask", title: "Book a ride" }])).byAction as [
+    const [[todoId]] = ok(await run("caretaker", [{ type: "addTodo", title: "Book a ride" }])).byAction as [
       [string],
     ];
-    ok(await taskService.update(u.caretaker.ctx, taskId, { title: "Book a taxi" }));
-    const task = ok(await taskService.getById(u.viewer.ctx, taskId));
-    expect(task).toMatchObject({ title: "Book a taxi", via: VIA, groupId: group.id });
+    ok(await todoService.update(u.caretaker.ctx, todoId, { title: "Book a taxi" }));
+    const todo = ok(await todoService.getById(u.viewer.ctx, todoId));
+    expect(todo).toMatchObject({ title: "Book a taxi", via: VIA, groupId: group.id });
   });
 });
 

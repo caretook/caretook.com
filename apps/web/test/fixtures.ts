@@ -167,7 +167,7 @@ const document = ({
   ...v
 }: Partial<Values<"noteDocuments">> & {
   ownerId: string;
-  subject?: "entry" | "provider" | "medication" | "carePeriod" | "task";
+  subject?: "entry" | "provider" | "medication" | "carePeriod" | "todo";
   text?: string;
   editedBy?: string;
   editedAt?: string;
@@ -177,7 +177,7 @@ const document = ({
     provider: "providerId",
     medication: "medicationId",
     carePeriod: "carePeriodId",
-    task: "taskId",
+    todo: "todoId",
   }[subject];
   return row("noteDocuments", {
     id: ownerId,
@@ -466,12 +466,12 @@ export const contactShare = ({
     ...v,
   });
 
-// --- Added by tasks slice 1 ---------------------------------------------------
+// --- Added by todos slice 1 ---------------------------------------------------
 
-/** A task in the default group: open, unassigned and undated unless overridden (`dueOn` "YYYY-MM-DD", `doneAt` timestamp text). */
-export const task = (v: Partial<Values<"tasks">> = {}) => {
+/** A todo in the default group: open, unassigned and undated unless overridden (`dueOn` "YYYY-MM-DD", `doneAt` timestamp text). */
+export const todo = (v: Partial<Values<"todos">> = {}) => {
   const created = v.createdAt ?? hoursAgo(24 * 3);
-  return row("tasks", {
+  return row("todos", {
     id: newId(),
     groupId,
     recipientId,

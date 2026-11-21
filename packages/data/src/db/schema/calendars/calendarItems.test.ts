@@ -1,10 +1,10 @@
-import type { CalendarEntryInput, CalendarTaskInput } from "./calendarItems";
+import type { CalendarEntryInput, CalendarTodoInput } from "./calendarItems";
 
 import { describe, expect, it } from "vitest";
 import { CALENDAR_WINDOW_DAYS, calendarItems, calendarWindow } from "./calendarItems";
 
 // calendarItems (appointments-2): one group's appointments, reminders and
-// open tasks as neutral items, on the appointments area's clock (Wed
+// open todos as neutral items, on the appointments area's clock (Wed
 // 2026-11-18 10:00 in Los Angeles). Names and data are made up.
 
 const NOW = new Date("2026-11-18T18:00:00.000Z");
@@ -36,7 +36,7 @@ const entry = (v: Partial<CalendarEntryInput> = {}): CalendarEntryInput => ({
   ...v,
 });
 
-const task = (v: Partial<CalendarTaskInput> = {}): CalendarTaskInput => ({
+const todo = (v: Partial<CalendarTodoInput> = {}): CalendarTodoInput => ({
   id: nextId(),
   groupId: GROUP,
   title: "Pick up the walker",
@@ -47,8 +47,8 @@ const task = (v: Partial<CalendarTaskInput> = {}): CalendarTaskInput => ({
   ...v,
 });
 
-const items = (entries: CalendarEntryInput[], tasks: CalendarTaskInput[] = [], window = { from, to }) =>
-  calendarItems({ entries, tasks, recipient: PAT, ...window, appUrl: APP });
+const items = (entries: CalendarEntryInput[], todos: CalendarTodoInput[] = [], window = { from, to }) =>
+  calendarItems({ entries, todos, recipient: PAT, ...window, appUrl: APP });
 
 describe("calendarWindow", () => {
   it("runs 90 days back to 90 days ahead of now", () => {
@@ -147,29 +147,29 @@ describe("calendarItems", () => {
     ]);
   });
 
-  it("takes open tasks with a due day, timed in the recipient's zone, across a DST change", () => {
-    const allDay = task({ dueOn: "2026-11-19" });
+  it("takes open todos with a due day, timed in the recipient's zone, across a DST change", () => {
+    const allDay = todo({ dueOn: "2026-11-19" });
     // 1 Nov 2026: Los Angeles falls back at 2:00, so 9:00 is UTC−8.
-    const timed = task({ dueOn: "2026-11-01", dueTime: "09:00" });
-    const summer = task({ dueOn: "2026-10-31", dueTime: "09:00" });
+    const timed = todo({ dueOn: "2026-11-01", dueTime: "09:00" });
+    const summer = todo({ dueOn: "2026-10-31", dueTime: "09:00" });
     const result = items([], [allDay, timed, summer]);
     expect(result.map((i) => [i.kind, i.allDay, i.start, i.end])).toEqual([
-      ["task", false, "2026-10-31T16:00:00.000Z", "2026-10-31T16:30:00.000Z"],
-      ["task", false, "2026-11-01T17:00:00.000Z", "2026-11-01T17:30:00.000Z"],
-      ["task", true, "2026-11-19", "2026-11-20"],
+      ["todo", false, "2026-10-31T16:00:00.000Z", "2026-10-31T16:30:00.000Z"],
+      ["todo", false, "2026-11-01T17:00:00.000Z", "2026-11-01T17:30:00.000Z"],
+      ["todo", true, "2026-11-19", "2026-11-20"],
     ]);
     expect(result[2]).toMatchObject({
-      uid: `task:${allDay.id}`,
+      uid: `todo:${allDay.id}`,
       timeZone: LA,
       title: "Pick up the walker",
-      appUrl: `https://caretook.example/app/groups/${GROUP}/tasks/${allDay.id}`,
+      appUrl: `https://caretook.example/app/groups/${GROUP}/todos/${allDay.id}`,
     });
   });
 
-  it("leaves out done, deleted and undated tasks", () => {
-    const done = task({ doneAt: "2026-11-18T17:00:00.000Z" });
-    const deleted = task({ deletedAt: "2026-11-18T17:00:00.000Z" });
-    const undated = task({ dueOn: null });
+  it("leaves out done, deleted and undated todos", () => {
+    const done = todo({ doneAt: "2026-11-18T17:00:00.000Z" });
+    const deleted = todo({ deletedAt: "2026-11-18T17:00:00.000Z" });
+    const undated = todo({ dueOn: null });
     expect(items([], [done, deleted, undated])).toEqual([]);
   });
 
@@ -183,8 +183,8 @@ describe("calendarItems", () => {
     const startsAtTo = entry({ occurredAt: "2026-11-19T08:00:00.000Z" });
     const lastMinute = entry({ occurredAt: "2026-11-19T07:59:00.000Z" });
     // The 18th in Los Angeles is exactly the window; the 19th starts at its end.
-    const today = task({ dueOn: "2026-11-18" });
-    const tomorrow = task({ dueOn: "2026-11-19" });
+    const today = todo({ dueOn: "2026-11-18" });
+    const tomorrow = todo({ dueOn: "2026-11-19" });
     expect(
       items([endsAtFrom, overlapsFrom, startsAtTo, lastMinute], [today, tomorrow], window).map(
         (i) => i.source.id,

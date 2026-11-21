@@ -55,7 +55,7 @@ export type PushedLink = { itemUid: string; googleEventId: string; pushedHash: s
 export type PushPlan = {
   /** Items new or changed since the last push, with the event and its hash. */
   upserts: { uid: string; event: GoogleEventInput; hash: string }[];
-  /** Links whose item left the window or was deleted (or a task done): delete the event. */
+  /** Links whose item left the window or was deleted (or a todo done): delete the event. */
   deletes: PushedLink[];
   /** Items whose event is already as pushed. */
   unchanged: number;

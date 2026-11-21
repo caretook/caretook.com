@@ -73,7 +73,7 @@ export const matrixContext = ({ tag, groupId, recipientId, userId }) => {
       allergy: randomUUID(),
       period: randomUUID(),
       update: randomUUID(),
-      task: randomUUID(),
+      todo: randomUUID(),
       condition,
       medicationCondition: medicationConditionId(medication, condition),
       conditionManager: conditionManagerId(condition, provider),
@@ -246,14 +246,14 @@ export const SYNC_MATRIX = [
   ),
   // Unassigned and undated, so it sits at the end of the open list.
   device(
-    "task",
-    (ctx) => ctx.ids.task,
+    "todo",
+    (ctx) => ctx.ids.todo,
     (ctx) =>
-      insert("task", {
-        id: ctx.ids.task,
+      insert("todo", {
+        id: ctx.ids.todo,
         group_id: ctx.groupId,
         recipient_id: ctx.recipientId,
-        title: `${ctx.tag} matrix task`,
+        title: `${ctx.tag} matrix todo`,
         assignee_id: null,
         assignee_name: null,
         due_on: null,
@@ -392,11 +392,11 @@ export const cleanupSql = (ctx, recordedAt) =>
       "medication_pass",
       "recipient_allergy",
       "care_period",
-      "task",
+      "todo",
       "appointment_series",
     ].map(
       (t) =>
-        `UPDATE ${t} SET deleted_at = now() WHERE deleted_at IS NULL AND id IN ('${ctx.ids.provider}', '${ctx.ids.medication}', '${ctx.ids.pass}', '${ctx.ids.allergy}', '${ctx.ids.period}', '${ctx.ids.task}', '${ctx.ids.series}')`,
+        `UPDATE ${t} SET deleted_at = now() WHERE deleted_at IS NULL AND id IN ('${ctx.ids.provider}', '${ctx.ids.medication}', '${ctx.ids.pass}', '${ctx.ids.allergy}', '${ctx.ids.period}', '${ctx.ids.todo}', '${ctx.ids.series}')`,
     ),
     `UPDATE recipient_condition SET deleted_at = now() WHERE deleted_at IS NULL AND id = '${ctx.ids.condition}'`,
     `UPDATE care_recipient SET no_known_allergies_at = ${recordedAt ? `'${recordedAt}'` : "NULL"} WHERE id = '${ctx.recipientId}' AND no_known_allergies_at IS DISTINCT FROM ${recordedAt ? `'${recordedAt}'::timestamptz` : "NULL"}`,

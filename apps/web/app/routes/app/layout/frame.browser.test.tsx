@@ -8,12 +8,15 @@ import * as groupSettingsIndex from "~/routes/app/groups/settings/index/route";
 import * as groupSettingsLayout from "~/routes/app/groups/settings/layout/route";
 import * as timeline from "~/routes/app/groups/timeline/route";
 import * as newSheet from "~/routes/app/groups/timeline/new/route";
+import * as planner from "~/routes/app/groups/planner/route";
+import * as todoPage from "~/routes/app/groups/todo/route";
+import * as todos from "~/routes/app/groups/todos/route";
 import * as home from "~/routes/app/home/route";
 import * as settingsIndex from "~/routes/app/settings/index/route";
 import * as settingsLayout from "~/routes/app/settings/layout/route";
 import * as units from "~/routes/app/settings/units/route";
 import { renderWithDevice } from "../../../../test/device";
-import { fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../../test/fixtures";
+import { fx, hoursAgo, TEST_GROUP, TEST_USER, todo } from "../../../../test/fixtures";
 
 // The /app frame (app-shell.mjs's screen steps): the header's regions, the
 // user menu, the theme, the group menu and the last group, the tab bar and
@@ -33,6 +36,9 @@ const ROUTES: DeviceRoute[] = [
     children: [{ path: `${TIMELINE_PATH}/new/:kind`, module: newSheet }],
   },
   { path: "/app/groups/:groupId/entries/:entryId", module: entry },
+  { path: "/app/groups/:groupId/planner", module: planner },
+  { path: "/app/groups/:groupId/todos", module: todos },
+  { path: "/app/groups/:groupId/todos/:todoId", module: todoPage },
   {
     path: "/app/settings",
     module: settingsLayout,
@@ -326,8 +332,7 @@ describe("the sections", () => {
       "Timeline",
       "Providers",
       "Medications",
-      "Upcoming",
-      "Tasks",
+      "Planner",
     ]);
     expect(
       links.filter((a) => a.getAttribute("aria-current") === "page").map((a) => a.textContent?.trim()),
@@ -394,11 +399,35 @@ describe("the sections", () => {
       "Timeline",
       "Providers",
       "Medications",
-      "Upcoming",
-      "Tasks",
+      "Planner",
     ]);
     expect(
       links.filter((a) => a.getAttribute("aria-current") === "page").map((a) => a.textContent?.trim()),
     ).toEqual(["Timeline"]);
+  });
+
+  test("Planner is current on the Planner tab (its page), and inside it on the Todos tab and a todo's page, in the tab bar and the header", async () => {
+    const errand = todo({ title: "Call the pharmacy" });
+    const current = (nav: string) =>
+      [...document.querySelectorAll(`${nav} a`)]
+        .filter((a) => a.hasAttribute("aria-current"))
+        .map((a) => [a.textContent?.trim(), a.getAttribute("aria-current")]);
+    const base = `/app/groups/${TEST_GROUP.id}`;
+    for (const [url, value, ready] of [
+      [`${base}/planner`, "page", "Planner"],
+      [`${base}/todos?who=everyone`, "true", "Planner"],
+      [`${base}/todos/${errand.id}`, "true", "Call the pharmacy"],
+    ] as const) {
+      for (const width of [420, 1280]) {
+        const device = await open({ url, width, fixtures: [errand] });
+        await expect.element(page.getByRole("heading", { level: 1, name: ready })).toBeVisible();
+        const nav = width === 420 ? TAB_BAR : HEADER_NAV;
+        expect(current(nav), `${url} at ${width}`).toEqual([["Planner", value]]);
+        expect(document.querySelector(`${nav} a[aria-current]`)?.getAttribute("href")).toBe(
+          `${base}/planner`,
+        );
+        await device.screen.unmount();
+      }
+    }
   });
 });

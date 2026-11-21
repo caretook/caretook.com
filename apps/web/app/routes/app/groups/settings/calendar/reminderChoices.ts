@@ -9,8 +9,8 @@ import { MAX_REMINDER_LEADS, REMINDER_LEADS, reminderLeadLabel } from "@caretook
 export const REMINDERS_EXPLAINED =
   "Emails before appointments and reminders in this group, at the times you pick.";
 
-export const TASKS_NOTE =
-  "Tasks assigned to you remind you the morning they're due, or 1 h before a due time.";
+export const TODOS_NOTE =
+  "Todos assigned to you remind you the morning they're due, or 1 h before a due time.";
 
 export const LEADS_CAP_NOTE = `Pick up to ${MAX_REMINDER_LEADS}.`;
 

@@ -26,7 +26,7 @@ import { careGroupMemberModel, userModel } from "../models";
 import { openGoogleToken } from "../utils/googleToken";
 import * as calendarSyncService from "./calendarSyncService";
 import * as noteDocumentService from "./noteDocumentService";
-import * as taskService from "./taskService";
+import * as todoService from "./todoService";
 import * as timelineEntryService from "./timelineEntryService";
 
 export const serviceName = "calendarPull";
@@ -182,10 +182,10 @@ const apply = (
       );
     case "removeEntry":
       return timelineEntryService.remove(ctx, action.entryId);
-    case "updateTask":
-      return taskService.update(ctx, action.taskId, { dueOn: action.dueOn, dueTime: action.dueTime });
-    case "completeTask":
-      return taskService.complete(ctx, action.taskId);
+    case "updateTodo":
+      return todoService.update(ctx, action.todoId, { dueOn: action.dueOn, dueTime: action.dueTime });
+    case "completeTodo":
+      return todoService.complete(ctx, action.todoId);
     case "createAppointment":
       return createAppointment(ctx, conn, action, change);
   }

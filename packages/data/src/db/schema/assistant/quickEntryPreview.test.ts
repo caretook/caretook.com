@@ -105,23 +105,23 @@ describe("actionPreview", () => {
     });
   });
 
-  test("a task is its title, its due in the recipient's zone and its assignee", () => {
+  test("a todo is its title, its due in the recipient's zone and its assignee", () => {
     const SAM = "77777777-7777-4777-8777-777777777777";
     const withMembers = { ...context, members: new Map([[SAM, { name: "Sam Rivera" }]]) };
-    const task = { type: "addTask", title: "Call pharmacy" } as const;
-    expect(actionPreview({ ...task, dueOn: "2026-11-20", assigneeId: SAM }, withMembers)).toEqual({
+    const todo = { type: "addTodo", title: "Call pharmacy" } as const;
+    expect(actionPreview({ ...todo, dueOn: "2026-11-20", assigneeId: SAM }, withMembers)).toEqual({
       title: "Call pharmacy",
       detail: "Sam Rivera",
       when: "Due tomorrow",
     });
-    expect(actionPreview({ ...task, dueOn: "2026-11-23", dueTime: "14:00" }, withMembers)).toMatchObject({
+    expect(actionPreview({ ...todo, dueOn: "2026-11-23", dueTime: "14:00" }, withMembers)).toMatchObject({
       detail: null,
       when: "Due Mon 14:00",
     });
-    expect(actionPreview(task, withMembers).when).toBe("No due date");
+    expect(actionPreview(todo, withMembers).when).toBe("No due date");
     // The recipient's day, not the device's: 16:00 UTC is already Friday in Tokyo.
     expect(
-      actionPreview({ ...task, dueOn: "2026-11-20" }, { ...withMembers, recipientTimeZone: "Asia/Tokyo" })
+      actionPreview({ ...todo, dueOn: "2026-11-20" }, { ...withMembers, recipientTimeZone: "Asia/Tokyo" })
         .when,
     ).toBe("Due today");
   });

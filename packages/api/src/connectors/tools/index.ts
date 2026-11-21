@@ -4,7 +4,7 @@ import { groupOverview } from "./groupOverview";
 import { latestVitals } from "./latestVitals";
 import { listMedications } from "./listMedications";
 import { listProviders } from "./listProviders";
-import { listTasks } from "./listTasks";
+import { listTodos } from "./listTodos";
 import { listTimeline } from "./listTimeline";
 import { recipientProfile } from "./recipientProfile";
 import { search } from "./search";
@@ -14,7 +14,7 @@ import {
   addCondition,
   addEvent,
   addNote,
-  addTask,
+  addTodo,
   appendToEntry,
   givePass,
   logDose,
@@ -36,7 +36,7 @@ export const CONNECTOR_TOOLS: readonly Tool[] = [
   listMedications,
   todaysDoses,
   upcoming,
-  listTasks,
+  listTodos,
   listProviders,
   recipientProfile,
   // Writes
@@ -46,7 +46,7 @@ export const CONNECTOR_TOOLS: readonly Tool[] = [
   givePass,
   addNote,
   addEvent,
-  addTask,
+  addTodo,
   appendToEntry,
   updateEntry,
   addCondition,

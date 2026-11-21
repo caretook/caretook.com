@@ -4,7 +4,7 @@ import type { DoseDraft, EntryDraft } from "../../lib/assistant/quickEntryDraft"
 
 import { appUrls } from "../../lib/app-shell/appUrls";
 import { QUICK_ENTRY_DRAFT } from "../../lib/assistant/quickEntryDraft";
-import { TASK_SHEET_STATE } from "../../lib/tasks/taskSheetLink";
+import { TODO_SHEET_STATE } from "../../lib/todos/todoSheetLink";
 import { SHEET_LINK_STATE } from "../../lib/timeline/timelineSheet";
 
 // The pure rules behind quick entry's cards: which reading each part shows,
@@ -71,12 +71,12 @@ export const canSaveCards = (cards: readonly QuickEntryCard[]) =>
 
 const counted = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-/** "Saved 3 entries", "Saved 1 entry", "Saved 1 task", "Saved 2 entries and 1 task". */
-export const savedText = (count: number, tasks = 0) => {
-  const entries = count - tasks;
-  if (!tasks) return `Saved ${counted(count, "entry", "entries")}`;
-  if (!entries) return `Saved ${counted(tasks, "task", "tasks")}`;
-  return `Saved ${counted(entries, "entry", "entries")} and ${counted(tasks, "task", "tasks")}`;
+/** "Saved 3 entries", "Saved 1 entry", "Saved 1 todo", "Saved 2 entries and 1 todo". */
+export const savedText = (count: number, todos = 0) => {
+  const entries = count - todos;
+  if (!todos) return `Saved ${counted(count, "entry", "entries")}`;
+  if (!entries) return `Saved ${counted(todos, "todo", "todos")}`;
+  return `Saved ${counted(entries, "entry", "entries")} and ${counted(todos, "todo", "todos")}`;
 };
 
 /** What the cards say, for screen readers: "2 cards: Vital, BP 130/85 mmHg; Dose, Metformin 500 mg". */
@@ -101,7 +101,7 @@ export const cardsAnnouncement = (
  * Where Edit takes a card: symptoms and vitals to the add sheet, doses to
  * the Dose sheet on that medication (a pass's Given all to the Dose sheet on
  * the pass), each filled in through history state
- * (and coming back to the timeline on close). A task opens the add-task
+ * (and coming back to the timeline on close). A todo opens the add-todo
  * sheet filled in through its URL (closing comes back). Notes and events
  * have no sheet: their page is where they're written, so Edit saves the
  * card and opens it.
@@ -149,9 +149,9 @@ export const editTarget = (
         to: appUrls.newDose(groupId, { passId: action.passId, search }),
         state: { ...SHEET_LINK_STATE },
       };
-    case "addTask":
+    case "addTodo":
       return {
-        to: appUrls.newTask(groupId, {
+        to: appUrls.newTodo(groupId, {
           title: action.title,
           assigneeId: action.assigneeId ?? undefined,
           dueOn: action.dueOn ?? undefined,
@@ -160,7 +160,7 @@ export const editTarget = (
           medicationId: action.medicationId ?? undefined,
           eventId: action.eventId ?? undefined,
         }),
-        state: { ...TASK_SHEET_STATE },
+        state: { ...TODO_SHEET_STATE },
       };
     case "addNote":
     case "addEvent":
@@ -171,7 +171,7 @@ export const editTarget = (
 /**
  * The entry to open after a line saved: its id when the whole line wrote
  * exactly one thing and it's a note or an event (their pages hold the live
- * document); nothing otherwise (several entries, a vital, a dose, a task).
+ * document); nothing otherwise (several entries, a vital, a dose, a todo).
  * `saved` is each action's type with the ids it wrote, in order. Pure.
  */
 export const openAfterSave = (

@@ -59,7 +59,7 @@ export function TodayRow({
   children,
   ...end
 }: {
-  /** `data-today-row`: vitals, appointment, medications or tasks. */
+  /** `data-today-row`: vitals, appointment, medications or todos. */
   row: string;
   status: TodayStatus;
   Icon: LucideIcon;

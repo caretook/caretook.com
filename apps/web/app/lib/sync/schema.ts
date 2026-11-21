@@ -111,7 +111,7 @@ export const timelineEntries = sqliteTable(
  * A live document on a note or event, a provider, a medication or a care
  * period. `id` is the owner's id; `subject` says which (`entry` with
  * `entry_id`, `provider` with `provider_id`, `medication` with
- * `medication_id`, `carePeriod` with `care_period_id`, or `task` with `task_id`, each equal to `id`). Snapshot, text and `editors` (JSON
+ * `medication_id`, `carePeriod` with `care_period_id`, or `todo` with `todo_id`, each equal to `id`). Snapshot, text and `editors` (JSON
  * `{ [userId]: lastEditAt }`) are the server's.
  */
 export const noteDocuments = sqliteTable(
@@ -131,7 +131,7 @@ export const noteDocuments = sqliteTable(
     providerId: text("provider_id"),
     medicationId: text("medication_id"),
     carePeriodId: text("care_period_id"),
-    taskId: text("task_id"),
+    todoId: text("todo_id"),
   },
   (t) => [index("note_document_group").on(t.groupId)],
 );
@@ -346,12 +346,12 @@ export const carePeriods = sqliteTable(
 );
 
 /**
- * The group's tasks (tasks PRD). `due_on` is "YYYY-MM-DD" and `due_time`
+ * The group's todos (todos PRD). `due_on` is "YYYY-MM-DD" and `due_time`
  * "HH:MM", wall-clock in the recipient's zone. Done ⇔ `done_at` and
  * `done_by` are set. Deletes are soft.
  */
-export const tasks = sqliteTable(
-  "task",
+export const todos = sqliteTable(
+  "todo",
   {
     id: text("id").primaryKey(),
     groupId: text("group_id"),
@@ -374,7 +374,7 @@ export const tasks = sqliteTable(
     // Added through a member's AI assistant (connectors). Only the server sets it.
     via: text("via"),
   },
-  (t) => [index("task_group").on(t.groupId)],
+  (t) => [index("todo_group").on(t.groupId)],
 );
 
 /**
@@ -496,7 +496,7 @@ export const drizzleSchema = {
   medicationPasses,
   recipientAllergies,
   carePeriods,
-  tasks,
+  todos,
   recipientConditions,
   medicationConditions,
   conditionManagers,

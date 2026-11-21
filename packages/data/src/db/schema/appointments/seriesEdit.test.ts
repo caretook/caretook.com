@@ -246,7 +246,7 @@ describe("planSeriesEdit: this and later (edit)", () => {
     expect(ops(p, "delete")).toHaveLength(visits.filter((v) => v.seriesDay > "2026-12-04").length);
   });
 
-  it("keeps detached visits as they are, and keeps touched ones (notes, a task, a cancel) detached", () => {
+  it("keeps detached visits as they are, and keeps touched ones (notes, a todo, a cancel) detached", () => {
     const touched = visits.map((v) =>
       v.seriesDay === "2026-11-23"
         ? { ...v, touched: true }
