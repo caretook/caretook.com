@@ -17,12 +17,16 @@ export type QuickEntryCard = {
   /** The reading shown, and its index among the part's readings. */
   reading: QuickEntryReading;
   index: number;
-  /** The other readings, as chips: their index and a label. */
+  /** Other readings of the same kind (two medications), as named chips: their index and a label. */
   alternatives: { index: number; label: string }[];
+  /** The other kinds the part reads as, one button each ("Make it a note"), on that kind's best reading. */
+  kindChoices: { index: number; kind: string; label: string }[];
   /** Messages that stop this card from saving. */
   blocking: string[];
   /** Messages worth a look that don't. */
   notices: string[];
+  /** Save opens this card on the new-event page to finish, instead of writing it (`draftCardOf`). */
+  opensDraft: boolean;
 };
 
 /** The part's key: its place in the line and its text. */
@@ -30,10 +34,13 @@ export const partKey = (index: number, part: QuickEntryPart) => `${index}:${part
 
 /**
  * The cards for a line's parts: removed ones left out, each showing the
- * reading chosen for it (the best one until a chip picks another). An
- * alternative is named by its kind ("Note instead"), or by what it says when
- * several share a kind ("Metoprolol 25 mg instead").
+ * reading chosen for it (the best one until a button picks another). The card's
+ * kind is its chip; each other kind is a button ("Make it a note"), and other
+ * readings of the same kind are named by what they say ("Metoprolol 25 mg instead").
  */
+export const makeItLabel = (label: string) =>
+  `Make it ${/^[aeiou]/i.test(label) ? "an" : "a"} ${label.toLowerCase()}`;
+
 export const buildCards = (
   parts: readonly QuickEntryPart[],
   { chosen, removed }: { chosen: ReadonlyMap<string, number>; removed: ReadonlySet<string> },
@@ -45,7 +52,6 @@ export const buildCards = (
     const wanted = chosen.get(key) ?? 0;
     const index = wanted < part.readings.length ? wanted : 0;
     const reading = part.readings[index]!;
-    const kindCount = (kind: string) => part.readings.filter((r) => r.kind === kind).length;
     return [
       {
         key,
@@ -53,10 +59,16 @@ export const buildCards = (
         reading,
         index,
         alternatives: part.readings.flatMap((r, k) =>
-          k === index ? [] : [{ index: k, label: `${kindCount(r.kind) > 1 ? titleOf(r) : r.label} instead` }],
+          k !== index && r.kind === reading.kind ? [{ index: k, label: `${titleOf(r)} instead` }] : [],
+        ),
+        kindChoices: part.readings.flatMap((r, k) =>
+          r.kind !== reading.kind && part.readings.findIndex((o) => o.kind === r.kind) === k
+            ? [{ index: k, kind: r.kind, label: makeItLabel(r.label) }]
+            : [],
         ),
         blocking: reading.warnings.filter((w) => w.blocking).map((w) => w.message),
         notices: reading.warnings.filter((w) => !w.blocking).map((w) => w.message),
+        opensDraft: false,
       },
     ];
   });
@@ -182,3 +194,33 @@ export const openAfterSave = (
   if (!only || only.ids.length !== 1) return null;
   return only.type === "addNote" || only.type === "addEvent" ? only.ids[0]! : null;
 };
+
+// ---------------------------------------------------------------------------
+// The event draft: a provider event opens on the new-event page to finish
+// ---------------------------------------------------------------------------
+
+/** Whether a reading is an event with a provider (it can open as the draft). */
+export const isDraftReading = (reading: QuickEntryReading) => {
+  const [action, ...more] = reading.actions;
+  return !more.length && action?.type === "addEvent" && action.providerIds.length > 0;
+};
+
+/** Marks the card that opens as the draft (`buildCards` leaves it to this): the first whose chosen reading is an event with a provider. */
+export const markDraft = (cards: QuickEntryCard[]): QuickEntryCard[] => {
+  const first = cards.findIndex((c) => isDraftReading(c.reading));
+  return first < 0 ? cards : cards.map((c, i) => (i === first ? { ...c, opensDraft: true } : c));
+};
+
+/**
+ * What Save does with a line: the card that opens as the draft (or null),
+ * and the rest, written as one batch. Only the first provider event opens;
+ * any later one is written directly. Pure.
+ */
+export const draftCardOf = (cards: readonly QuickEntryCard[]) => {
+  const draft = cards.find((c) => c.opensDraft) ?? null;
+  return { draft, rest: cards.filter((c) => c !== draft) };
+};
+
+/** The draft card's line: "Opens to finish · Dr. Elena Alvarez · Wed, Nov 25". */
+export const draftSummary = (providerNames: readonly string[], when: string) =>
+  ["Opens to finish", providerNames.join(", "), when].filter(Boolean).join(" · ");

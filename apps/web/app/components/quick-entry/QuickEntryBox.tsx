@@ -140,6 +140,7 @@ export function QuickEntryBox({
                   key={card.key}
                   card={card}
                   preview={q.preview(card.reading)}
+                  draftLine={q.draftLine(card)}
                   error={q.errors.get(card.key)}
                   onChoose={(index) => q.choose(card, index)}
                   onEdit={() => void q.edit(card)}

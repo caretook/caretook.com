@@ -2,10 +2,12 @@ import type { ActionKind, AssistantAction } from "./assistantActions";
 import type { DoseStatus } from "../medications/medication";
 import type { ProviderType } from "../providers/provider";
 import type { ResolvedTime, TimeDirection, TimeSpec } from "./quickEntryTime";
+import type { VocabularyMatch, VocabularyRole } from "./quickEntryVocabulary";
 import type { UnitChoices, UnitFor, VitalFieldSpec, VitalReading, VitalType } from "../timeline/vitals";
 
 import { DEVICE_FUTURE_SKEW_MS, FUTURE_DATE_MESSAGE, localDate } from "../core/entryTiming";
-import { findTime, resolveTime, saysFuture } from "./quickEntryTime";
+import { findTime, resolveTime, saysFuture, wallTime } from "./quickEntryTime";
+import { findVocabulary, vocabularyWord } from "./quickEntryVocabulary";
 import { foldSearchText } from "../search/search";
 import { TODO_LIMITS } from "../todos/todo";
 import { localTime } from "../todos/todoRules";
@@ -27,11 +29,16 @@ import {
 // Rules, in order, per part: a kind prefix (`n:` `e:` `s:` `v:` `d:`) forces
 // a kind; otherwise vitals (a keyword and a number, or a bare `n/n`), doses
 // (give/gave/skip/refuse and a medication), symptoms (a phrase and 0–10 or
-// `n/10`, or a symptom word), events (`appt`, or a time ahead), then a note.
-// Every part gets a note reading, so nothing typed is lost. A time phrase
-// ("at 8am", "30 min ago", "yesterday 9pm") sets any part's time, in the
-// recipient's zone. A todo (`t:`, `task:`, `todo:`) is only ever asked for:
-// its "for Sam" or "@Sam" names a member, and its time phrase is the due day.
+// `n/10`, a symptom word, or an incident: "fell"), events (`appt`, a named
+// provider, or a time ahead), then a note. The words that pick a kind live
+// in one table (quickEntryVocabulary.ts). Every part gets a note reading, so
+// nothing typed is lost, and keeps every plausible kind as a reading. A time
+// phrase ("at 8am", "30 min ago", "yesterday 9pm", "the 25th") sets any
+// part's time, in the recipient's zone; which way an ambiguous one reads is
+// the reading's: ahead for events and reminders (back after a visit verb:
+// "saw Dr. Lee friday"), back for the rest. A todo (`t:`, `task:`, `todo:`)
+// is only ever asked for: its "for Sam" or "@Sam" names a member, and its
+// time phrase is the due day.
 
 // ---------------------------------------------------------------------------
 // Types
@@ -372,36 +379,6 @@ const SYMPTOM_STEMS = [
   "bleed",
   "bruis",
 ];
-
-/** Words that make a line an appointment (with its time read ahead). */
-const APPOINTMENT_WORDS = new Set([
-  "appt",
-  "appts",
-  "appointment",
-  "appointments",
-  "apt",
-  "visit",
-  "checkup",
-  "check-up",
-  "consult",
-  "consultation",
-]);
-
-/** Things that happened, read as events. */
-const EVENT_WORDS = new Set([
-  "fell",
-  "fall",
-  "fallen",
-  "slipped",
-  "tripped",
-  "ambulance",
-  "911",
-  "hospital",
-  "hospitalized",
-  "admitted",
-  "discharged",
-  "er",
-]);
 
 const LEADING_SYMPTOM_FILLER = new Set([
   ...FILLER,
@@ -874,7 +851,29 @@ type PartState = {
   previousDose: DoseStatus | null;
   /** Words a vital or dose reading took, which a symptom can't use ("slept 7", "gave 2 tablets"). */
   claimed: Set<number>;
+  /** The vocabulary's phrases among the free words. */
+  vocab: VocabularyMatch[];
+  /** The providers the words name, best first. */
+  providers: NameMatch<QuickEntryProvider>[];
+  /** Those named clearly enough to make the part about them (an event, or a note with a contact verb). */
+  naming: NameMatch<QuickEntryProvider>[];
 };
+
+const roleIdx = (s: PartState, ...roles: VocabularyRole[]) =>
+  s.vocab.filter((m) => roles.includes(m.entry.role)).flatMap((m) => m.used);
+const hasRole = (s: PartState, ...roles: VocabularyRole[]) =>
+  s.vocab.some((m) => roles.includes(m.entry.role));
+
+/**
+ * Whether a match names its provider clearly: a clinician's last name or a
+ * title with a name ("Dr. Elena"), a practice's whole name, or its first word
+ * as a place or after a verb ("at Riverside", "called Riverside"). A first
+ * name alone ("Sandra said") only links when something else makes an event.
+ */
+const namesClearly = (m: NameMatch<QuickEntryProvider>, tokens: readonly Token[], verb: boolean) =>
+  m.score >= 0.95 ||
+  m.used.some((i) => HONORIFICS.has(tokens[i]!.w)) ||
+  (m.score === 0.8 && (verb || m.used.some((i) => ["at", "to", "from"].includes(tokens[i - 1]?.w ?? ""))));
 
 const vitalReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   const taken = new Set(s.tokens.map((_, i) => i).filter((i) => !s.free.includes(i)));
@@ -1116,6 +1115,25 @@ const symptomReadings = (s: PartState, forced: boolean): QuickEntryReading[] => 
     );
 
   const free = s.free.filter((i) => !s.claimed.has(i));
+
+  // An incident ("fell in the bathroom"): the symptom by its canonical name,
+  // no severity, the words after it as the note. A visit to a named provider
+  // ("saw Dr. Lee after the fall") is about the visit first.
+  const incident = s.vocab.find((m) => m.entry.role === "symptomIncident");
+  if (incident) {
+    const last = incident.used.at(-1)!;
+    const afterIdx = stripLeading(
+      s.tokens,
+      free.filter((i) => i > last),
+      new Set(["-", ":", "="]),
+    );
+    const note = meaningful(s.tokens, afterIdx)
+      ? truncate(rawOf(s.tokens, afterIdx), TIMELINE_LIMITS.body)
+      : null;
+    const visit = s.naming.length > 0 && hasRole(s, "visitVerb", "appointmentWord");
+    return [make(incident.entry.name!, null, note, forced ? 1 : visit ? 0.7 : 0.88)];
+  }
+
   if (free.some((i) => s.tokens[i]!.w in DOSE_VERBS)) return [];
   // A severity: "6", "6/10", "6 out of 10".
   for (const [pos, i] of free.entries()) {
@@ -1165,57 +1183,115 @@ const symptomReadings = (s: PartState, forced: boolean): QuickEntryReading[] => 
   return [make(rawOf(s.tokens, idx), null, null, forced ? 1 : short ? 0.6 : 0.3)];
 };
 
-const eventReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
-  const keywordIdx = s.free.filter((i) => APPOINTMENT_WORDS.has(s.tokens[i]!.w));
-  const keyword = keywordIdx.length > 0;
-  const happened = s.free.some((i) => EVENT_WORDS.has(s.tokens[i]!.w));
-  const ahead = !!s.time.spec && saysFuture(s.time.spec);
-  if (!keyword && !ahead && !happened && !forced) return [];
+/** Words that never start an event's title. */
+const TITLE_LEADING = new Set([...FILLER, "see", "seeing", "w/", "w", "about", "re"]);
 
-  const future = keyword || ahead;
-  const when = future ? s.time.future : s.time.past;
-  let rest = s.free.filter((i) => !keywordIdx.includes(i));
+/**
+ * An event's time, read `direction` when ambiguous: a day without a time of
+ * day is all day; no time phrase at all is null (the caller decides).
+ */
+const eventTime = (s: PartState, direction: TimeDirection): ResolvedTime | null => {
+  const spec = s.time.spec;
+  if (!spec) return null;
+  const resolved = direction === "past" ? s.time.past : s.time.future;
+  const dayOnly = !("relativeMinutes" in spec) && !!spec.day && !spec.clock && !spec.period;
+  if (dayOnly && !resolved.allDay) {
+    const tz = s.context.timeZone;
+    return { at: wallTime(localDate(resolved.at, tz), 0, 0, tz), allDay: true };
+  }
+  return resolved;
+};
+
+/** All day today, in the recipient's zone. */
+const allDayToday = (s: PartState): ResolvedTime => ({
+  at: wallTime(localDate(s.context.now, s.context.timeZone), 0, 0, s.context.timeZone),
+  allDay: true,
+});
+
+/**
+ * An event: an appointment word ("appt dr lee tue 2pm"), a provider named
+ * clearly ("Dr. Elena Alvarez on the 25th", "saw Dr. Lee today"), or a time
+ * ahead ("dinner tomorrow"). Its time reads ahead, or back after a visit
+ * verb; a provider's event with no time is all day today. Its title is the
+ * words left once the time, the provider, the verb and filler are out, else
+ * the provider's name; its place is "at <place>" (a provider's address when
+ * that names one), else the first provider's address. With a contact verb or
+ * a note incident it's only an alternative to the note.
+ */
+const eventReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
+  const keywordIdx = roleIdx(s, "appointmentWord");
+  const verbIdx = roleIdx(s, "visitVerb", "contactVerb");
+  const keyword = keywordIdx.length > 0;
+  const visit = hasRole(s, "visitVerb");
+  const naming = s.naming.length > 0;
+  const ahead = !!s.time.spec && saysFuture(s.time.spec);
+  if (!keyword && !ahead && !naming && !forced) return [];
+
+  let rest = s.free.filter((i) => !keywordIdx.includes(i) && !verbIdx.includes(i));
 
   // The place: "at Riverside" (a time after "at" was taken already).
   const placeIdx: number[] = [];
   const atPos = rest.findIndex((i) => s.tokens[i]!.w === "at");
-  if (keyword || ahead) {
-    if (atPos >= 0) {
-      for (
-        let k = atPos + 1;
-        k < rest.length && !["with", "for", "to", "about"].includes(s.tokens[rest[k]!]!.w);
-        k++
-      )
-        placeIdx.push(rest[k]!);
-      if (placeIdx.length) rest = rest.filter((i) => i !== rest[atPos] && !placeIdx.includes(i));
-    }
+  if (atPos >= 0) {
+    for (
+      let k = atPos + 1;
+      k < rest.length && !["with", "for", "to", "about"].includes(s.tokens[rest[k]!]!.w);
+      k++
+    )
+      placeIdx.push(rest[k]!);
+    if (placeIdx.length) rest = rest.filter((i) => i !== rest[atPos] && !placeIdx.includes(i));
   }
-  const providers = matchProviders(s.context, s.tokens, [...rest, ...placeIdx]);
+  const providers = s.providers;
   const providerUsed = new Set(providers.flatMap((p) => p.used));
   const placeProvider = providers.find((p) => p.used.some((i) => placeIdx.includes(i)));
   const placeText = placeIdx.length ? rawOf(s.tokens, placeIdx) : null;
-  const place = placeProvider ? placeProvider.item.address?.trim() || placeText : placeText;
+  const address = (p: NameMatch<QuickEntryProvider> | undefined) => p?.item.address?.trim() || null;
+  const place = placeProvider
+    ? address(placeProvider) || placeText
+    : (placeText ?? address(providers.find((p) => address(p))));
 
   const titleIdx = stripLeading(
     s.tokens,
     rest.filter((i) => !providerUsed.has(i)),
-    new Set([...FILLER, "see", "seeing", "w/", "w"]),
+    TITLE_LEADING,
   ).filter((i, k, all) => !(k === all.length - 1 && ["with", "w/", "for", "to"].includes(s.tokens[i]!.w)));
   const titleWords = meaningful(s.tokens, titleIdx) ? rawOf(s.tokens, titleIdx) : "";
-  const keywordWord = keyword ? "appointment" : "";
-  const named = providers[0]?.item.name;
+  const named = (s.naming[0] ?? providers[0])?.item.name;
   const title = keyword
     ? titleWords
-      ? `${capitalize(titleWords)} ${keywordWord}`
+      ? `${capitalize(titleWords)} appointment`
       : named
         ? `Appointment with ${named}`
         : "Appointment"
-    : capitalize(titleWords || s.text);
+    : capitalize(titleWords || named || s.text);
 
   const warnings: QuickEntryWarning[] = [];
-  if (keyword && !s.time.spec)
-    warnings.push({ message: "No time given, so it's set to now. Edit it to choose when.", blocking: false });
-  const confidence = forced ? 1 : keyword ? 0.9 : ahead ? 0.7 : 0.5;
+  let when = eventTime(s, visit ? "past" : "future");
+  if (!when) {
+    if (providers.length) when = allDayToday(s);
+    else {
+      when = s.time.past;
+      if (keyword)
+        warnings.push({
+          message: "No time given, so it's set to now. Edit it to choose when.",
+          blocking: false,
+        });
+    }
+  }
+  const noteFirst = hasRole(s, "contactVerb", "noteIncident");
+  const confidence = forced
+    ? 1
+    : keyword
+      ? 0.9
+      : naming
+        ? noteFirst
+          ? 0.5
+          : visit
+            ? 0.85
+            : 0.8
+        : ahead
+          ? 0.7
+          : 0.5;
   return [
     reading(
       "event",
@@ -1234,26 +1310,54 @@ const eventReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   ];
 };
 
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const TRAILING_PUNCTUATION = /[)"'”’\].,!?:;]+$/;
+
+/**
+ * The part's text with each clearly named provider's words ("dr lee") as
+ * "@<their name>" ("@Dr. Sandra Lee"), where the note's mention of them goes.
+ * Words that aren't one run in the text are left as typed; the mention then
+ * goes at the end (`noteDocFromText`).
+ */
+const mentionedText = (s: PartState) => {
+  let text = s.text;
+  for (const m of s.naming) {
+    const used = [...m.used].sort((a, b) => a - b);
+    if (used.some((i, k) => k > 0 && i !== used[k - 1]! + 1)) continue;
+    const raws = used.map((i) => s.tokens[i]!.raw);
+    const trailing = TRAILING_PUNCTUATION.exec(raws.at(-1)!)?.[0] ?? "";
+    raws[raws.length - 1] = raws.at(-1)!.slice(0, raws.at(-1)!.length - trailing.length);
+    const pattern = new RegExp(
+      `(^|[\\s("'“‘[])${raws.map(escapeRegExp).join("\\s+")}(?![\\p{L}\\p{N}])`,
+      "u",
+    );
+    text = text.replace(pattern, (_, before: string) => `${before}@${m.item.name}`);
+  }
+  return text;
+};
+
 const noteReading = (s: PartState, confidence: number): QuickEntryReading => {
   // A note dated ahead is a reminder; otherwise it's about what happened.
-  const ahead =
-    (!!s.time.spec && saysFuture(s.time.spec)) || s.free.some((i) => APPOINTMENT_WORDS.has(s.tokens[i]!.w));
+  const ahead = (!!s.time.spec && saysFuture(s.time.spec)) || hasRole(s, "appointmentWord");
   const when = ahead ? s.time.future : s.time.past;
+  // The providers it names clearly are mentioned in it, and linked.
+  const providerIds = [...new Set(s.naming.map((m) => m.item.id))];
   return reading(
     "note",
     {
       type: "addNote",
       title: null,
-      text: truncate(s.text, TIMELINE_LIMITS.body),
+      text: truncate(providerIds.length ? mentionedText(s) : s.text, TIMELINE_LIMITS.body),
       occurredAt: when.at.toISOString(),
+      providerIds,
     },
     confidence,
   );
 };
 
-/** An event from any text ("Save as event instead"): the text is its title. */
+/** An event from any text ("Save as event instead"): the text is its title, its time read ahead. */
 const eventFromText = (s: PartState, confidence: number): QuickEntryReading => {
-  const when = s.time.spec && saysFuture(s.time.spec) ? s.time.future : s.time.past;
+  const when = eventTime(s, "future") ?? s.time.past;
   return reading(
     "event",
     {
@@ -1411,15 +1515,28 @@ const parsePart = (
   const body = prefix ? text.slice(prefix[0].length).trim() : text.trim();
   const tokens = tokenize(body);
   const time = findTime(tokens.map((t) => t.w));
+  const free = tokens.map((_, i) => i).filter((i) => !time?.used.has(i));
+  const vocab = findVocabulary(
+    tokens.map((t) => vocabularyWord(t.w)),
+    (i) => free.includes(i),
+  );
+  const providers = matchProviders(context, tokens, free);
+  const verb = vocab.some((m) => m.entry.role !== "appointmentWord" && m.entry.role !== "symptomIncident");
   const s: PartState = {
     text: body,
     tokens,
     time: timeOf(time?.spec ?? null, context),
-    free: tokens.map((_, i) => i).filter((i) => !time?.used.has(i)),
+    free,
     context,
     previousDose,
     claimed: new Set(),
+    vocab,
+    providers,
+    naming: providers.filter((m) => namesClearly(m, tokens, verb)),
   };
+  // A note incident ("911", "the ER"), or a contact verb with a provider
+  // ("called Dr. Lee"), makes a note first.
+  const noteFirst = hasRole(s, "noteIncident") || (hasRole(s, "contactVerb") && s.naming.length > 0);
 
   let readings: QuickEntryReading[];
   if (forced === "note") readings = [noteReading(s, 1), eventFromText(s, 0.2)];
@@ -1440,7 +1557,7 @@ const parsePart = (
       ...doseReadings(s, false),
       ...symptomReadings(s, false),
       ...eventReadings(s, false),
-      noteReading(s, 0.4),
+      noteReading(s, noteFirst ? 0.8 : 0.4),
     ];
     if (!readings.some((r) => r.kind === "event")) readings.push(eventFromText(s, 0.2));
   }
@@ -1510,7 +1627,7 @@ const mergeVitals = (parts: QuickEntryPart[]): QuickEntryPart[] => {
       };
       const note: QuickEntryReading = {
         ...prev.readings.find((r) => r.kind === "note")!,
-        actions: [{ type: "addNote", title: null, text, occurredAt: av.occurredAt }],
+        actions: [{ type: "addNote", title: null, text, occurredAt: av.occurredAt, providerIds: [] }],
       };
       merged[merged.length - 1] = { text, readings: [vital, note] };
       continue;

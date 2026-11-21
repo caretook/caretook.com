@@ -63,12 +63,17 @@ export const givePassActionZSchema = z.strictObject({
   occurredAt,
 });
 
-/** A note: its text becomes the note's live document. */
+/**
+ * A note: its text becomes the note's live document. Each of its providers
+ * is mentioned in it (where the text says "@<their name>", else at the end)
+ * and linked to it, as a mention typed in the editor would be.
+ */
 export const addNoteActionZSchema = z.strictObject({
   type: z.literal("addNote"),
   title: optionalText(TIMELINE_LIMITS.title),
   text: z.string().trim().min(1).max(TIMELINE_LIMITS.body),
   occurredAt,
+  providerIds: z.array(z.uuid()).max(20).default([]),
 });
 
 /**
