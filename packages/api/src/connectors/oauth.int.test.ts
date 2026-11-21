@@ -7,7 +7,7 @@ import {
   getAuthUser,
   withConnectorAuthorizePage,
 } from "@caretook/auth";
-import { careGroupService, connectorGrantService } from "@caretook/data";
+import { assistantRequestService, careGroupService, connectorGrantService } from "@caretook/data";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
 import { loadConnectPage, submitConnectPage } from "./connect";
@@ -120,8 +120,35 @@ describe("the OAuth dance", () => {
           scopes: ["read", "readWrite"],
         },
       ],
+      offGroups: [],
     });
     expect(JSON.stringify(page)).not.toContain(offGroup.id);
+  });
+
+  it("with no group allowing assistants, lists the groups with the switch off and the member's last ask", async () => {
+    const asker = await createUser("connect-off");
+    await enablePasswordSignIn(asker.user.id);
+    const { group: owned } = await createGroup(asker); // theirs, switch off
+    const other = await createUser("connect-off-owner");
+    const { group: theirs } = await createGroup(other, [{ user: asker.user, role: "caretaker" }]);
+    const asked = ok(await assistantRequestService.request(asker.ctx, theirs.id));
+    const at = await atConsent(asker.user.email);
+    const page = ok(await loadConnectPage(at.authUser, at.search));
+    if (page.state !== "consent") throw new Error(page.state);
+    expect(page.groups).toEqual([]);
+    const byId = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id);
+    expect([...page.offGroups].sort(byId)).toEqual(
+      [
+        { id: owned.id, name: "Test Family", recipientName: "Pat Example", role: "owner", askedAt: null },
+        {
+          id: theirs.id,
+          name: "Test Family",
+          recipientName: "Pat Example",
+          role: "caretaker",
+          askedAt: new Date(asked.request.requestedAt).toISOString(),
+        },
+      ].sort(byId),
+    );
   });
 
   it("refuses a consent page whose query was tampered with", async () => {
