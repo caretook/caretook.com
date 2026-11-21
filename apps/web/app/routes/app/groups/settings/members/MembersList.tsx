@@ -151,9 +151,9 @@ function MemberItem({
     void fetcher.submit({ intent: "changeRole", userId: member.user_id, role }, { method: "post" });
   };
 
-  const simple = useSimpleModeSwitch(member);
+  const easy = useEasyModeSwitch(member);
 
-  const error = (result && !result.ok ? result.error : undefined) ?? simple.error ?? removeError;
+  const error = (result && !result.ok ? result.error : undefined) ?? easy.error ?? removeError;
   return (
     <li data-member={member.user_id} className="space-y-1 py-3 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -229,20 +229,20 @@ function MemberItem({
               <input
                 type="checkbox"
                 className="toggle toggle-sm"
-                aria-label={`Simple mode for ${name}`}
-                checked={simple.on}
-                disabled={simple.busy || removing}
-                onChange={(event) => simple.set(event.target.checked)}
-                data-simple-mode-switch=""
+                aria-label={`Easy mode for ${name}`}
+                checked={easy.on}
+                disabled={easy.busy || removing}
+                onChange={(event) => easy.set(event.target.checked)}
+                data-easy-mode-switch=""
               />
               <span aria-hidden="true" className="min-w-0">
-                Simple mode
+                Easy mode
               </span>
             </label>
           ) : (
             !!member.simple_mode && (
-              <span className="badge badge-sm badge-ghost" data-simple-mode-badge="">
-                {member.simple_mode_locked ? "Simple mode, locked" : "Simple mode"}
+              <span className="badge badge-sm badge-ghost" data-easy-mode-badge="">
+                {member.simple_mode_locked ? "Easy mode, locked" : "Easy mode"}
               </span>
             )
           )}
@@ -251,11 +251,11 @@ function MemberItem({
               <input
                 type="checkbox"
                 className="toggle toggle-sm"
-                aria-label={`Lock ${name} in simple mode`}
-                checked={simple.locked}
-                disabled={simple.busy || removing}
-                onChange={(event) => simple.lock(event.target.checked)}
-                data-simple-lock-switch=""
+                aria-label={`Lock ${name} in easy mode`}
+                checked={easy.locked}
+                disabled={easy.busy || removing}
+                onChange={(event) => easy.lock(event.target.checked)}
+                data-easy-lock-switch=""
               />
               <span aria-hidden="true" className="min-w-0">
                 Locked
@@ -263,7 +263,7 @@ function MemberItem({
             </label>
           )}
           {access?.simpleMode && !access.lock && !!member.simple_mode_locked && (
-            <span className="badge badge-sm badge-ghost" data-simple-mode-badge="">
+            <span className="badge badge-sm badge-ghost" data-easy-mode-badge="">
               Locked
             </span>
           )}
@@ -297,7 +297,7 @@ function MemberItem({
 }
 
 /**
- * A member's simple-mode switches: the managers' default for them, and the
+ * A member's easy-mode switches: the managers' default for them, and the
  * lock. Locking turns the default on, and turning the default off unlocks
  * (the server's rule, shown at once). The latest choice shows while it saves
  * and until it syncs back. Each change sent is remembered until its own echo
@@ -305,7 +305,7 @@ function MemberItem({
  * undo the later one on screen; a refused change, or a saved value none of
  * ours explains (anyone else's change), shows what's saved.
  */
-function useSimpleModeSwitch(member: MemberDetailRow) {
+function useEasyModeSwitch(member: MemberDetailRow) {
   const fetcher = useFetcher<ActionResult>();
   const busy = fetcher.state !== "idle";
   const result = busy ? undefined : fetcher.data;

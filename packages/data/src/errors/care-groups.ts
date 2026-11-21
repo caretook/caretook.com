@@ -16,7 +16,7 @@ export const CARE_GROUPS_ERRORS = {
     statusCode: 409,
   },
   "careGroupMemberService:ownLock": {
-    message: "You can't lock or unlock simple mode for yourself",
+    message: "You can't lock or unlock easy mode for yourself",
     statusCode: 403,
   },
   "careGroupInviteService:ownerOnly": {

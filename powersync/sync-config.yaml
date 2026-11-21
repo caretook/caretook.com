@@ -28,15 +28,15 @@ streams:
     with:
       my_groups: SELECT group_id FROM care_group_member WHERE user_id = auth.user_id()
     queries:
-      # `simple_tiles`: how simple mode picks its four tiles (assistant).
+      # `easy_tiles`: how easy mode picks its four tiles (assistant).
       # `connectors_enabled`: the owners' Assistants switch (connectors).
       # `details_outside_allowed`: the owners' "Details outside Caretook" switch (appointments-2).
-      - SELECT id, name, simple_tiles, created_at, updated_at, created_by, updated_by, connectors_enabled, details_outside_allowed FROM care_group WHERE id IN my_groups
+      - SELECT id, name, easy_tiles, created_at, updated_at, created_by, updated_by, connectors_enabled, details_outside_allowed FROM care_group WHERE id IN my_groups
       # `invited_by` and `created_at`: who invited each member and when they joined (the Members page).
       # `relationship` and `shared_fields`: the member's own sharing choices;
       # `emergency_rank` and `is_primary_contact`: the emergency list's badges;
       # `emergency_dropped_at`: the managers' note when someone fell off it.
-      # `simple_mode` and `simple_mode_locked`: the managers' simple-mode default and lock (assistant).
+      # `simple_mode` and `simple_mode_locked`: the managers' easy-mode default and lock (assistant).
       - >-
         SELECT id, group_id, user_id, role, invited_by, created_at,
         relationship, shared_fields, emergency_rank, is_primary_contact, emergency_dropped_at,

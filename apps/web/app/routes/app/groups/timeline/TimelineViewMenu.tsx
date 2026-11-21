@@ -1,5 +1,5 @@
 import type { DaySummaryMode, TimelineView } from "@caretook/data/schema";
-import type { SimpleModeState } from "~/lib/assistant/useSimpleMode";
+import type { EasyModeState } from "~/lib/assistant/useEasyMode";
 
 import { Eye, LayoutList, List, Type } from "lucide-react";
 import { Menu, SEPARATOR, TOOL_CIRCLE } from "~/components/ui";
@@ -21,7 +21,7 @@ const isMode = (id: string): id is DaySummaryMode => MODE_ITEMS.some((m) => m.id
 /**
  * The full timeline's "View options" (an eye icon), at the right end of the
  * filter row (`FilterChips`' `trailing`, the row's circle), at every width: Layout (Rows or Cards, one choice), Day summaries (Highlights,
- * Full or Off, the viewer's setting: `useDaySummaryMode`), then "Simple view"
+ * Full or Off, the viewer's setting: `useDaySummaryMode`), then "Easy view"
  * (this device's toggle; left out while it can't toggle, e.g. locked).
  */
 export function TimelineViewMenu({
@@ -29,13 +29,13 @@ export function TimelineViewMenu({
   onViewChange,
   summaryMode,
   onSummaryModeChange,
-  simpleMode,
+  easyMode,
 }: {
   view: TimelineView;
   onViewChange: (view: TimelineView) => void;
   summaryMode: DaySummaryMode;
   onSummaryModeChange: (mode: DaySummaryMode) => void;
-  simpleMode?: SimpleModeState;
+  easyMode?: EasyModeState;
 }) {
   return (
     <Menu
@@ -57,12 +57,12 @@ export function TimelineViewMenu({
           items: MODE_ITEMS,
           selection: { selected: summaryMode, onChange: (id) => isMode(id) && onSummaryModeChange(id) },
         },
-        simpleMode?.canToggle && SEPARATOR,
-        simpleMode?.canToggle && {
-          id: "simple-view",
-          label: "Simple view",
+        easyMode?.canToggle && SEPARATOR,
+        easyMode?.canToggle && {
+          id: "easy-view",
+          label: "Easy view",
           icon: Type,
-          onAction: simpleMode.toggle,
+          onAction: easyMode.toggle,
         },
       ]}
     >

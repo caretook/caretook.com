@@ -1,4 +1,4 @@
-import type { SimpleModeSetting, TimelineView } from "@caretook/data/schema";
+import type { EasyModeSetting, TimelineView } from "@caretook/data/schema";
 import type { Route } from "./+types/route";
 import type { ChoiceOption } from "~/components/ui";
 
@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
 import { SettingsCard, SettingsPage } from "~/components/settings";
 import { ChoiceGroup } from "~/components/ui";
 import { loadSettings, saveSettings, useMySettings } from "~/lib/app-shell/me";
-import { clearToggles } from "~/lib/assistant/simpleModeToggle";
+import { clearToggles } from "~/lib/assistant/easyModeToggle";
 import { sessionContext } from "~/lib/auth/session";
 
 // `/app/settings/timeline`. Shared by web + native: client-only data.
@@ -25,15 +25,15 @@ const TIMELINE_VIEW_OPTIONS: ChoiceOption<TimelineView>[] = [
   { value: "cards", label: "Cards" },
 ];
 
-const SIMPLE_MODE_OPTIONS: ChoiceOption<SimpleModeSetting>[] = [
+const EASY_MODE_OPTIONS: ChoiceOption<EasyModeSetting>[] = [
   { value: "group", label: "Follow the group" },
-  { value: "simple", label: "Always" },
+  { value: "easy", label: "Always" },
   { value: "full", label: "Never" },
 ];
 
 const LAYOUT_HEADING = "layout-heading";
 // `SettingsCard` names its heading `<id>-heading`.
-const SIMPLE_HEADING = "simple-mode-heading";
+const EASY_HEADING = "easy-mode-heading";
 
 type SaveStatus = "saving" | "saved" | "pending" | "failed";
 
@@ -78,9 +78,9 @@ function SaveStatusLine({ status }: { status: SaveStatus | null }) {
 /**
  * Rows or cards: the preference the timeline's own toggle changes, saved the
  * same way (`saveSettings`), as soon as it's chosen. Offline, it's kept on
- * this device and sent on the next online visit. Then simple mode: follow
+ * this device and sent on the next online visit. Then easy mode: follow
  * the group's default for you, always or never; choosing clears this
- * device's simple/full toggles, so the choice shows at once.
+ * device's easy/full toggles, so the choice shows at once.
  */
 export default function TimelineLayoutSettings({ loaderData }: Route.ComponentProps) {
   const { userId } = loaderData;
@@ -88,9 +88,9 @@ export default function TimelineLayoutSettings({ loaderData }: Route.ComponentPr
   const layout = useSavedChoice(settings.timelineView, (timelineView) =>
     saveSettings(userId, { timelineView }),
   );
-  const simple = useSavedChoice(settings.simpleMode, (simpleMode) => {
+  const easy = useSavedChoice(settings.easyMode, (easyMode) => {
     clearToggles(userId);
-    return saveSettings(userId, { simpleMode });
+    return saveSettings(userId, { easyMode });
   });
 
   return (
@@ -108,19 +108,19 @@ export default function TimelineLayoutSettings({ loaderData }: Route.ComponentPr
         />
         <SaveStatusLine status={layout.status} />
       </SettingsCard>
-      <SettingsCard id="simple-mode" title="Simple mode">
+      <SettingsCard id="easy-mode" title="Easy mode">
         <p className="text-base-content/70 text-sm">
           A simpler timeline in large type. &ldquo;Follow the group&rdquo; uses what the group&apos;s owners
           chose for you. You can also switch it on the timeline itself.
         </p>
         <ChoiceGroup
-          name="simpleMode"
-          labelledBy={SIMPLE_HEADING}
-          options={SIMPLE_MODE_OPTIONS}
-          value={simple.value}
-          onChange={simple.choose}
+          name="easyMode"
+          labelledBy={EASY_HEADING}
+          options={EASY_MODE_OPTIONS}
+          value={easy.value}
+          onChange={easy.choose}
         />
-        <SaveStatusLine status={simple.status} />
+        <SaveStatusLine status={easy.status} />
       </SettingsCard>
     </SettingsPage>
   );

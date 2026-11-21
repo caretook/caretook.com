@@ -27,7 +27,8 @@ The data layer area's rules and decisions, moved out of AGENTS.md (whose core ru
   2. Add its `PERMISSIONS` entry to `permissions/<area>.ts` (the type requires one, and a test checks every table has one); its errors go in `errors/<area>.ts`.
   3. Add `models/<name>/` and `services/<name>Service.ts`, and register both.
   4. If it syncs: `ALTER PUBLICATION powersync ADD TABLE …` in a migration, plus a stream query and a device schema entry.
-- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0033 so far.
+- **Migrations:** generated into `src/db/migrations/` and applied in-process (`src/db/migrate.ts`). There are 0000–0034 so far.
+  - **`0034` is a copy, not a rename** (simple becomes easy): `care_group.easy_tiles` is filled from `simple_tiles` and `user.preferences.easyMode` from `simpleMode` (`simple` becomes `easy`). The old column stays in the schema as `simpleTiles` and the old key stays in the data, both unread, until a contract migration; the two member columns `simple_mode` and `simple_mode_locked` keep their names until the easy roles retire them.
   - **drizzle-kit can emit a unique constraint after the FK that needs it.** Read the generated SQL and reorder by hand.
   - Until the first deploy it's fine to delete and regenerate migrations.
   - **`0032_todos` is a one-step rename** (tasks to todos), the user's one exception to additive migrations (production isn't live). Hand-edited: it renames the table, `note_document.task_id`, indexes and constraints rather than re-adding them (a `DO` block renames Postgres 18's named NOT NULL constraints), and rewrites the stored values that spelled the old word: note subject, `calendar_sync_job.reason`, `google_event_link.item_uid`, reminder outbox idempotency keys and `taskDue` → `todoDue`. Deploy: [runbook](../../ops/runbook.md#rollback).

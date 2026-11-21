@@ -166,13 +166,13 @@ export const button = (text: string) =>
   [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === text);
 export const view = () => document.querySelector("ol")?.dataset.view;
 
-/** Open the header's View options menu (layout, day summaries, simple view). */
+/** Open the header's View options menu (layout, day summaries, easy view). */
 export const openViewOptions = async () => {
   await userEvent.click(document.querySelector<HTMLElement>('button[aria-label="View options"]')!);
   await waitUntil(() => !!document.querySelector('[role="menu"]'), 4000, "the View options menu");
 };
 
-/** Choose an item of the View options menu by its name ("Cards", "Simple view"). */
+/** Choose an item of the View options menu by its name ("Cards", "Easy view"). */
 export const chooseViewOption = async (name: string) => {
   await openViewOptions();
   const item = [...document.querySelectorAll<HTMLElement>('[role="menu"] [role^="menuitem"]')].find((el) =>

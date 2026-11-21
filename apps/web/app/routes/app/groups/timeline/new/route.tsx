@@ -14,14 +14,14 @@ import { EntryForm } from "../EntryForm";
 import { Sheet } from "~/components/ui";
 import { useCloseSheet, useTimelineOutlet } from "../sheet";
 import { newSheetGuard } from "../sheetGuard";
-import { useRecipientWords } from "../useSimpleTiles";
-import { feelLabel } from "~/lib/assistant/simpleTiles";
+import { useRecipientWords } from "../useEasyTiles";
+import { feelLabel } from "~/lib/assistant/easyTiles";
 
 // Shared by web + native. `timeline/new/symptom` and `timeline/new/vital`
 // (`?type=heartRate` starts with that reading): the add sheet, over the
 // timeline (`?at=<ISO>` starts it at that time: a past day's +). Notes and events have a page instead (`entries/new?kind=`), so
-// any other kind, or a viewer, lands on the timeline. In simple mode (the
-// tiles) it's the simple variant: the feelings scale, or one vital type's
+// any other kind, or a viewer, lands on the timeline. In easy mode (the
+// tiles) it's the easy variant: the feelings scale, or one vital type's
 // fields, titled in plain words ("How she feels", "Blood pressure").
 
 export function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
@@ -47,7 +47,7 @@ export async function clientAction({ request, context }: Route.ClientActionArgs)
 }
 
 export default function NewEntrySheet({ loaderData, params }: Route.ComponentProps) {
-  const { units, simple } = useTimelineOutlet();
+  const { units, easy } = useTimelineOutlet();
   const words = useRecipientWords(params.groupId);
   const close = useCloseSheet();
   const location = useLocation();
@@ -55,7 +55,7 @@ export default function NewEntrySheet({ loaderData, params }: Route.ComponentPro
   // Opened from quick entry's Edit: the card's reading, filled in.
   const draft = entryDraftFrom(location.state as unknown);
   const feel = feelLabel(words);
-  const title = !simple
+  const title = !easy
     ? "Add to the timeline"
     : loaderData.kind === "symptom"
       ? feel
@@ -72,7 +72,7 @@ export default function NewEntrySheet({ loaderData, params }: Route.ComponentPro
         initialVitalType={loaderData.vitalType ?? undefined}
         initialAt={startAtFrom(search)}
         draft={draft?.kind === loaderData.kind ? draft : null}
-        simple={simple ? { feelLabel: feel } : null}
+        easy={easy ? { feelLabel: feel } : null}
         onDone={close}
         onCancel={close}
       />

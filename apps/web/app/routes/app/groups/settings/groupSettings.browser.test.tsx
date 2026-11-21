@@ -127,15 +127,15 @@ describe("Details", () => {
     await expect.element(NAME()).toHaveValue(TEST_GROUP.name);
     expect(
       [...document.querySelectorAll<HTMLElement>("main [data-section]")].map((s) => s.dataset.section),
-    ).toEqual(["group-details", "care-recipient", "simple-tiles", "details-outside-allowed"]);
+    ).toEqual(["group-details", "care-recipient", "easy-tiles", "details-outside-allowed"]);
     expect(document.querySelector("main [data-profile-note] a")?.getAttribute("href")).toBe(
       `/app/groups/${TEST_GROUP.id}/profile`,
     );
     expect(document.querySelector("[data-needs-connection]")).toBeNull();
-    // Every input is labelled: the name is the only one (simple mode's tiles card and the
+    // Every input is labelled: the name is the only one (easy mode's tiles card and the
     // owners' details switch have their own tests).
     const labels = [...document.querySelectorAll<HTMLInputElement>("main input:not([type=hidden])")]
-      .filter((i) => !i.closest("[data-section=simple-tiles], [data-section=details-outside-allowed]"))
+      .filter((i) => !i.closest("[data-section=easy-tiles], [data-section=details-outside-allowed]"))
       .map((i) => document.querySelector(`label[for="${i.id}"]`)?.textContent?.trim());
     expect(labels).toEqual(["Name"]);
   });

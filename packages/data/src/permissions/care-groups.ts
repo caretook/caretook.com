@@ -44,7 +44,7 @@ export const CARE_GROUPS_PERMISSIONS = {
         emergencyRank: SYSTEM_ONLY,
         isPrimaryContact: SYSTEM_ONLY,
         emergencyDroppedAt: SYSTEM_ONLY,
-        // Simple mode starts off; managers turn it on afterwards (setMode).
+        // Easy mode starts off; managers turn it on afterwards (setMode).
         simpleMode: SYSTEM_ONLY,
         simpleModeLocked: SYSTEM_ONLY,
       },
@@ -52,7 +52,7 @@ export const CARE_GROUPS_PERMISSIONS = {
     update: {
       ...groupEntry(MANAGERS),
       // A membership can change role, never group or user. Managers also set
-      // simple mode (`simpleMode`, `simpleModeLocked`); the owner and
+      // easy mode (`simpleMode`, `simpleModeLocked`); the owner and
       // own-lock rules are careGroupMemberService.setMode's.
       fields: {
         groupId: SYSTEM_ONLY,
