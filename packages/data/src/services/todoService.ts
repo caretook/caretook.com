@@ -1,8 +1,9 @@
 import type { z } from "zod";
-import type { Todo, TodoCreateInput, TodoUpdateInput, TodoUpsertInput, Tx } from "../db";
+import type { Todo, TodoCreateInput, TodoOccurrenceInput, TodoUpdateInput, TodoUpsertInput, Tx } from "../db";
 import type { IncludeDeleted } from "../models/todo";
 import type { ServiceContext } from "./types";
 
+import { randomUUID } from "node:crypto";
 import { SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
 import {
@@ -10,19 +11,25 @@ import {
   BAD_TODO_LINK_ISSUES,
   canCompleteTodo,
   completionOnly,
+  isTodoWriter,
+  localDate,
+  repeatColumnsFor,
   TODO_LIMITS,
   todoContentOf,
   todoContentZSchema,
   todoCreateZSchema,
+  todoOccurrenceZSchema,
   todoUpdateZSchema,
   todoUpsertZSchema,
 } from "../db/schema";
+import { isUntouchedNext, nextOccurrence, nextTodoId } from "../db/schema/appointments/series";
 import { isError, newError } from "../errors";
 import {
   careGroupMemberModel,
   careGroupModel,
   careRecipientModel,
   medicationModel,
+  noteDocumentModel,
   providerModel,
   todoModel,
   timelineEntryModel,
@@ -141,6 +148,68 @@ const write = async (ctx: ServiceContext, tx: Tx, id: string, data: Partial<Todo
 };
 
 // ---------------------------------------------------------------------------
+// Repeats (planner-2): a repeating todo is one open row. Ticking or skipping
+// it makes the next occurrence here, as the system (the server is its
+// author; a device's copy is a twin with the same id, see `upsertOccurrence`).
+// ---------------------------------------------------------------------------
+
+const system = (tx: Tx) => ({ authUser: SYSTEM_USER, tx });
+
+/** The day it is at `at` where the recipient is: a todo's days are theirs. */
+const recipientDay = async (tx: Tx, recipientId: string, at: Date) => {
+  const recipient = await careRecipientModel.getById(recipientId, system(tx));
+  if (isError(recipient)) return recipient;
+  return localDate(at, recipient?.timeZone ?? "UTC");
+};
+
+/**
+ * Make the occurrence after `todo` (ticked or skipped on `today`), unless a
+ * live row with its id exists (a replay, or another device's tick that day).
+ * A soft-deleted one (an Undo took it away) comes back as new. Returns the
+ * next todo's id, or null when the rule has ended or it doesn't repeat.
+ */
+const insertNext = async (tx: Tx, todo: Todo, today: string) => {
+  const next = nextOccurrence(todo, today);
+  if (!next) return null;
+  const existing = await todoModel.getById(next.id, { ...system(tx), includeDeleted: true });
+  if (isError(existing)) return existing;
+  if (existing && !existing.deletedAt) return next.id;
+  const { id, ...content } = next;
+  const written = existing
+    ? await todoModel.restore(id, content, tx)
+    : await todoModel.create({ ...system(tx), data: next });
+  if (isError(written)) return written;
+  return (await enqueueCalendarPush(tx, { todoId: id }, "todo")) ?? next.id;
+};
+
+/** The next live row of `todo`'s chain after its due day, if any (what ticking it made). */
+const laterInChain = async (tx: Tx, todo: Todo) => {
+  if (!todo.repeatId || !todo.dueOn) return null;
+  const rows = await todoModel.list({
+    ...system(tx),
+    filter: {
+      groupId: { type: "eq", value: todo.groupId },
+      repeatId: { type: "eq", value: todo.repeatId },
+      id: { type: "ne", value: todo.id },
+      dueOn: { type: "gt", value: todo.dueOn },
+    },
+    orderBy: [
+      { field: "dueOn", direction: "asc" },
+      { field: "id", direction: "asc" },
+    ],
+    paginate: { limit: 1, page: 1 },
+  });
+  if (isError(rows)) return rows;
+  return rows.data[0] ?? null;
+};
+
+const hasNotes = async (tx: Tx, todoId: string) => {
+  const doc = await noteDocumentModel.getById(todoId, system(tx));
+  if (isError(doc)) return doc;
+  return !!doc;
+};
+
+// ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
 
@@ -196,10 +265,17 @@ export const create = (ctx: ServiceContext, input: TodoCreateInput, opts: TodoWr
     const links = await checkLinks(ctx, tx, data.groupId, data);
     if (links) return links;
 
+    const id = data.id ?? randomUUID();
     const created = await todoModel.create({
       ...ctx,
       tx,
-      data: { ...data, recipientId: recipient.id, ...(opts.via ? { via: opts.via } : {}) },
+      data: {
+        ...data,
+        id,
+        recipientId: recipient.id,
+        ...repeatColumnsFor(id, null, data),
+        ...(opts.via ? { via: opts.via } : {}),
+      },
     });
     if (isError(created) || !created) return created;
     const queued = await enqueueCalendarPush(tx, { todoId: created.id }, "todo");
@@ -246,7 +322,8 @@ export const update = (ctx: ServiceContext, id: string, input: TodoUpdateInput) 
     if (links) return links;
 
     const { doneAt: _doneAt, doneBy: _doneBy, ...content } = merged.data;
-    return write(ctx, tx, id, content);
+    // A new rule or due day moves the anchor; no rule clears all three.
+    return write(ctx, tx, id, { ...content, ...repeatColumnsFor(id, existing, content) });
   }, ctx);
 
 /**
@@ -270,10 +347,18 @@ export const complete = (ctx: ServiceContext, id: string, { doneAt }: { doneAt?:
     const at = doneAt && Number.isFinite(new Date(doneAt).getTime()) ? new Date(doneAt) : new Date();
     // A device clock ahead of the server's: never in the future.
     const when = at.getTime() > Date.now() ? new Date() : at;
-    return write(ctx, tx, id, {
+    const done = await write(ctx, tx, id, {
       doneAt: when.toISOString(),
       doneBy: ctx.authUser?.id ?? SYSTEM_USER.id,
     });
+    if (isError(done) || !existing.repeatRule) return done;
+
+    // A repeating todo: the next one, after the day it was ticked (the
+    // device's tick time, so an offline tick and its twin agree on the day).
+    const today = await recipientDay(tx, existing.recipientId, when);
+    if (isError(today)) return today;
+    const next = await insertNext(tx, existing, today);
+    return isError(next) ? next : done;
   }, ctx);
 
 /** Reopen a done todo: clears who finished it and when. The same people as `complete`. */
@@ -288,8 +373,145 @@ export const reopen = (ctx: ServiceContext, id: string) =>
     if (!canCompleteTodo({ role, userId: ctx.authUser?.id, todo: existing }))
       return role === "viewer" ? viewerCompletionOnly() : rejectError(ctx.authUser);
     if (!existing.doneAt) return existing;
+    if (!existing.repeatRule) return write(ctx, tx, id, { doneAt: null, doneBy: null });
 
-    return write(ctx, tx, id, { doneAt: null, doneBy: null });
+    // A repeating todo: the next one goes when nobody has touched it (open,
+    // as ticking made it, no notes). Otherwise both stay, and the later one
+    // carries the repeat: this one stops repeating.
+    const next = await laterInChain(tx, existing);
+    if (isError(next)) return next;
+    const notes = next ? await hasNotes(tx, next.id) : false;
+    if (isError(notes)) return notes;
+    if (next && isUntouchedNext(existing, next) && !notes) {
+      const removed = await todoModel.remove({
+        ...system(tx),
+        filter: { id: { type: "eq", value: next.id } },
+      });
+      if (isError(removed)) return removed;
+      const queued = await enqueueCalendarPush(tx, { todoId: next.id }, "todo");
+      if (queued) return queued;
+      return write(ctx, tx, id, { doneAt: null, doneBy: null });
+    }
+    const stops = next ? { repeatRule: null, repeatStartsOn: null, repeatId: null } : {};
+    return write(ctx, tx, id, { doneAt: null, doneBy: null, ...stops });
+  }, ctx);
+
+/**
+ * Skip this occurrence of a repeating todo: it's soft-deleted and the next
+ * one made, in one transaction. A todo that doesn't repeat (or whose rule
+ * has ended) is just deleted. Writers only. Returns the next one's id, or
+ * null. "Delete and stop repeating" is the ordinary `remove`.
+ */
+export const skip = (ctx: ServiceContext, id: string) =>
+  withTransaction(async (tx) => {
+    const existing = await todoModel.getById(id, { ...ctx, tx });
+    if (isError(existing)) return existing;
+    if (!existing) return notFound();
+
+    const role = await roleIn(ctx, tx, existing.groupId);
+    if (isError(role)) return role;
+    if (!isTodoWriter(role)) return rejectError(ctx.authUser);
+
+    const removed = await todoModel.remove({ ...ctx, tx, filter: { id: { type: "eq", value: id } } });
+    if (isError(removed)) return removed;
+    const queued = await enqueueCalendarPush(tx, { todoId: id }, "todo");
+    if (queued) return queued;
+
+    const today = await recipientDay(tx, existing.recipientId, new Date());
+    if (isError(today)) return today;
+    const next = await insertNext(tx, existing, today);
+    if (isError(next)) return next;
+    return { nextId: next };
+  }, ctx);
+
+/**
+ * A device bringing a later occurrence back (its PATCH of `deleted_at` to
+ * null): its tick or skip remade one an Undo had taken away. A tick's is
+ * already back (`complete` restores it); a skip's comes back here when the
+ * chain has no other open todo, for writers. A stale one changes nothing,
+ * and a todo that isn't a later occurrence is never undeleted. Returns the
+ * row as it now is.
+ */
+export const restoreOccurrence = (ctx: ServiceContext, id: string) =>
+  withTransaction(async (tx) => {
+    const visible = await todoModel.getById(id, { ...ctx, tx, includeDeleted: true });
+    if (isError(visible)) return visible;
+    if (!visible) return notFound();
+    if (!visible.deletedAt || !visible.repeatId || visible.repeatId === id) return visible;
+
+    const open = await todoModel.get({
+      ...system(tx),
+      filter: {
+        groupId: { type: "eq", value: visible.groupId },
+        repeatId: { type: "eq", value: visible.repeatId },
+        doneAt: { type: "isNull" },
+      },
+    });
+    if (isError(open)) return open;
+    if (open) return visible;
+
+    const role = await roleIn(ctx, tx, visible.groupId);
+    if (isError(role)) return role;
+    if (!isTodoWriter(role)) return rejectError(ctx.authUser);
+    const restored = await todoModel.restore(id, {}, tx);
+    if (isError(restored) || !restored) return restored;
+    return (await enqueueCalendarPush(tx, { todoId: id }, "todo")) ?? restored;
+  }, ctx);
+
+/**
+ * A device's copy of a later occurrence (PowerSync's upload of the row its
+ * tick or skip made, with the id `nextTodoId` gives). When the server has
+ * the row (it made it on the tick), the upload is satisfied as it is,
+ * whatever the uploader's role: it changes nothing. When the chain already
+ * has another open todo (two devices ticked it on different days), it's a
+ * stale twin: nothing is written. Otherwise it's a skip the device made: a
+ * writer's create. Returns the row, or null when nothing was written.
+ */
+export const upsertOccurrence = (ctx: ServiceContext, input: TodoOccurrenceInput) =>
+  withTransaction(async (tx) => {
+    const parsed = todoOccurrenceZSchema.safeParse(input);
+    if (!parsed.success) return invalid(parsed.error);
+    const { id, groupId, recipientId, repeatStartsOn, repeatId, ...content } = parsed.data;
+    if (!content.dueOn || id !== nextTodoId(repeatId, content.dueOn))
+      return newError({ code: "todoService:notAnOccurrence" });
+
+    const existing = await todoModel.getById(id, { ...system(tx), includeDeleted: true });
+    if (isError(existing)) return existing;
+    if (existing) {
+      const visible = await todoModel.getById(id, { ...ctx, tx, includeDeleted: true });
+      if (isError(visible)) return visible;
+      if (!visible) return rejectError(ctx.authUser);
+      return visible.groupId === groupId ? visible : newError({ code: "todoService:immutable" });
+    }
+
+    const role = await roleIn(ctx, tx, groupId);
+    if (isError(role)) return role;
+    if (!role) return rejectError(ctx.authUser);
+    const open = await todoModel.get({
+      ...system(tx),
+      filter: {
+        groupId: { type: "eq", value: groupId },
+        repeatId: { type: "eq", value: repeatId },
+        doneAt: { type: "isNull" },
+      },
+    });
+    if (isError(open)) return open;
+    if (open) return null;
+
+    if (!isTodoWriter(role)) return rejectError(ctx.authUser);
+    const recipient = await resolveRecipient(ctx, tx, groupId, recipientId);
+    if (isError(recipient)) return recipient;
+    const assignee = await checkAssignee(tx, groupId, content.assigneeId);
+    if (assignee) return assignee;
+    // Links are carried from the chain as they are (a provider deleted
+    // since stays linked, greyed), so they aren't checked again.
+    const created = await todoModel.create({
+      ...ctx,
+      tx,
+      data: { ...content, id, groupId, recipientId: recipient.id, eventId: null, repeatStartsOn, repeatId },
+    });
+    if (isError(created) || !created) return created;
+    return (await enqueueCalendarPush(tx, { todoId: id }, "todo")) ?? created;
   }, ctx);
 
 /**

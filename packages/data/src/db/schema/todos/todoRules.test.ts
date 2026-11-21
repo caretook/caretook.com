@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { todoContentZSchema, todoCreateZSchema } from "./todo";
+import { todoContentZSchema, todoCreateZSchema, todoOccurrenceZSchema, todoUpdateZSchema } from "./todo";
 import {
   assigneeOf,
   canCompleteTodo,
   completionOnly,
   doneOrder,
   localTime,
+  repeatColumnsFor,
   todoOrder,
+  todoRepeatText,
   todoState,
 } from "./todoRules";
 
@@ -199,5 +201,110 @@ describe("who", () => {
     expect(completionOnly(before, { assigneeId: null })).toBe(false);
     expect(completionOnly(before, { dueTime: "" })).toBe(true);
     expect(completionOnly(before, { deletedAt: "2026-11-20T10:00:00Z" })).toBe(false);
+  });
+});
+
+describe("repeats", () => {
+  const WEEKLY = "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO";
+  const issues = (res: {
+    success: boolean;
+    error?: { issues: { path: PropertyKey[]; message: string }[] };
+  }) => (res.success ? [] : res.error!.issues.map((i) => `${i.path.join(".")}: ${i.message}`));
+
+  it("a repeat needs a due day and a rule Caretook writes; empty is none", () => {
+    expect(
+      issues(todoCreateZSchema.safeParse({ groupId: GROUP, title: "Bins", repeatRule: WEEKLY })),
+    ).toEqual(["repeatRule: Choose a due day to repeat"]);
+    expect(
+      issues(
+        todoCreateZSchema.safeParse({
+          groupId: GROUP,
+          title: "Bins",
+          dueOn: "2026-11-16",
+          repeatRule: "FREQ=HOURLY",
+        }),
+      ),
+    ).toEqual(["repeatRule: Choose daily, weekly or monthly"]);
+    const ok = todoCreateZSchema.parse({
+      groupId: GROUP,
+      title: "Bins",
+      dueOn: "2026-11-16",
+      repeatRule: ` ${WEEKLY} `,
+    });
+    expect(ok.repeatRule).toBe(WEEKLY);
+    expect(todoCreateZSchema.parse({ groupId: GROUP, title: "Bins", repeatRule: "" }).repeatRule).toBeNull();
+    // Clearing the due day of a repeating todo is refused on the merged row.
+    expect(issues(todoContentZSchema.safeParse({ title: "Bins", dueOn: null, repeatRule: WEEKLY }))).toEqual([
+      "repeatRule: Choose a due day to repeat",
+    ]);
+    expect(todoUpdateZSchema.safeParse({ repeatRule: null }).success).toBe(true);
+  });
+
+  it("an uploaded occurrence must repeat, with its chain and anchor", () => {
+    const base = { id: GROUP, groupId: GROUP, title: "Bins", dueOn: "2026-11-23" };
+    expect(
+      issues(todoOccurrenceZSchema.safeParse({ ...base, repeatStartsOn: "2026-11-16", repeatId: USER })),
+    ).toEqual(["repeatRule: Not a repeat"]);
+    expect(
+      todoOccurrenceZSchema.safeParse({
+        ...base,
+        repeatRule: WEEKLY,
+        repeatStartsOn: "2026-11-16",
+        repeatId: USER,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("repeatColumnsFor: a new repeat starts a chain on the todo; a rule or day change moves the anchor; clearing clears all three", () => {
+    const none = { repeatRule: null, repeatStartsOn: null, repeatId: null };
+    expect(
+      repeatColumnsFor("a", { dueOn: "2026-11-16", ...none }, { repeatRule: WEEKLY, dueOn: "2026-11-16" }),
+    ).toEqual({
+      repeatRule: WEEKLY,
+      repeatStartsOn: "2026-11-16",
+      repeatId: "a",
+    });
+    expect(repeatColumnsFor("a", null, { repeatRule: WEEKLY, dueOn: "2026-11-16" }).repeatId).toBe("a");
+    const chain = {
+      dueOn: "2026-11-23",
+      repeatRule: WEEKLY,
+      repeatStartsOn: "2026-11-16",
+      repeatId: "first",
+    };
+    // Unchanged (a title edit): all kept.
+    expect(repeatColumnsFor("b", chain, { repeatRule: WEEKLY, dueOn: "2026-11-23" })).toEqual({
+      repeatRule: WEEKLY,
+      repeatStartsOn: "2026-11-16",
+      repeatId: "first",
+    });
+    // A new due day or rule: the anchor moves to the due day; the chain stays.
+    expect(repeatColumnsFor("b", chain, { repeatRule: WEEKLY, dueOn: "2026-11-24" })).toEqual({
+      repeatRule: WEEKLY,
+      repeatStartsOn: "2026-11-24",
+      repeatId: "first",
+    });
+    const fortnightly = "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO";
+    expect(repeatColumnsFor("b", chain, { repeatRule: fortnightly, dueOn: "2026-11-23" })).toEqual({
+      repeatRule: fortnightly,
+      repeatStartsOn: "2026-11-23",
+      repeatId: "first",
+    });
+    expect(repeatColumnsFor("b", chain, { repeatRule: null, dueOn: "2026-11-23" })).toEqual(none);
+  });
+
+  it("todoRepeatText says the rule with the due time, or null", () => {
+    expect(todoRepeatText({ dueTime: "19:00", repeatRule: WEEKLY, repeatStartsOn: "2026-11-16" })).toBe(
+      "Every Mon at 19:00",
+    );
+    expect(todoRepeatText({ dueTime: null, repeatRule: "FREQ=MONTHLY;INTERVAL=1;BYDAY=-1FR" })).toBe(
+      "Monthly on the last Friday",
+    );
+    expect(todoRepeatText({ dueTime: null, repeatRule: null })).toBeNull();
+  });
+
+  it("completionOnly: a viewer can't change the repeat", () => {
+    const before = { title: "Bins", repeatRule: WEEKLY, repeatStartsOn: "2026-11-16", repeatId: USER };
+    expect(completionOnly(before, { repeatRule: null })).toBe(false);
+    expect(completionOnly(before, { repeatRule: WEEKLY, doneAt: "x" })).toBe(true);
   });
 });

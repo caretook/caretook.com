@@ -373,6 +373,10 @@ export const todos = sqliteTable(
     updatedBy: text("updated_by"),
     // Added through a member's AI assistant (connectors). Only the server sets it.
     via: text("via"),
+    // Repeating (planner-2): RRULE text, the anchor day and the chain's id; all or none.
+    repeatRule: text("repeat_rule"),
+    repeatStartsOn: text("repeat_starts_on"),
+    repeatId: text("repeat_id"),
   },
   (t) => [index("todo_group").on(t.groupId)],
 );
