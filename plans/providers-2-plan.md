@@ -36,6 +36,8 @@ Slice 4 handed off (pnpm check green; `prd browser --changed` ran ui.spec on a t
 
 **Docs to fold (slice 2):** providers.md: mentions in every document, only notes and events link; add row (`mentionChoices`, last, writers, hidden when a live provider has the exact folded name; `createAndLinkProvider` on entries, else `createProvider` clinician); spaces in the query and when the popup closes (`mentionQueryOpen`); renamed / deleted / unknown chips; `useMentionProviders` (`lib/providers/mentionProviders.sync.ts`).
 
+**Pending sync:** `medications-3` landed in `dev` (82221a92): migration 0030, seeds, `medication.type` in sync-config / device schema, SEARCH_INDEX_VERSION 4, NameField moved to `components/medications`. We have no migration. Sync after slice 5 merges, then `pnpm datastore:reset`, before the full check.
+
 **Start conditions:** none for wave 1, but before slice 1 check the open `appointments-2` and `quick-fixes` slices for changes to `LiveNotesEditor`, the entry page or the With row. Slice 4 waits for `conditions` in `dev` (it changes the provider page); `pnpm prd sync` before it.
 
 **Landing:** no migration. Slice 1 adds dependencies (the lean set). Land when every slice is merged; run the checks once at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking, beyond slice 1's own.
