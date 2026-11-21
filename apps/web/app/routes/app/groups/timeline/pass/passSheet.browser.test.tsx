@@ -161,7 +161,7 @@ describe("a pass log", () => {
 
   test("a viewer sees the row but no sheet link; the sheet's URL is the timeline, filters kept", async () => {
     const device = await open("viewer");
-    expect(row()!.querySelector('a[aria-label^="Edit"]')).toBeNull();
+    await expect.poll(() => row()?.querySelector('a[aria-label^="Edit"]')).toBeNull();
     await device.screen.unmount();
     const sheet = await open("viewer", `${SHEET_URL}?kind=dose`);
     await expect.poll(() => sheet.location()).toBe(DOSE_URL);

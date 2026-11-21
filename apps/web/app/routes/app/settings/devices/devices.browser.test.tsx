@@ -169,7 +169,9 @@ describe("the Devices page", () => {
 
     await userEvent.click(page.getByRole("button", { name: /^Sign out Safari on iPhone/ }));
     await expect.poll(() => dialog()?.open).toBe(true);
-    expect(dialog()!.querySelector("h2")!.textContent.trim()).toBe("Sign out Safari on iPhone?");
+    await expect
+      .poll(() => dialog()?.querySelector("h2")?.textContent.trim())
+      .toBe("Sign out Safari on iPhone?");
     await userEvent.click(dialogButton("Cancel"));
     await expect.poll(() => dialog()?.open).toBe(false);
     expect(server.revoked).toEqual([]);
@@ -200,9 +202,11 @@ describe("the Devices page", () => {
 
     await userEvent.click(page.getByRole("button", { name: "Sign out everywhere else" }));
     await expect.poll(() => dialog()?.open).toBe(true);
-    expect(dialog()!.querySelector("h2")!.textContent.trim()).toBe("Sign out everywhere else?");
-    expect(dialog()!.textContent).toMatch(/All 2 other devices go to sign-in/);
-    expect(dialog()!.textContent).toMatch(/This device stays signed in/);
+    await expect
+      .poll(() => dialog()?.querySelector("h2")?.textContent.trim())
+      .toBe("Sign out everywhere else?");
+    await expect.poll(() => dialog()?.textContent).toMatch(/All 2 other devices go to sign-in/);
+    await expect.poll(() => dialog()?.textContent).toMatch(/This device stays signed in/);
     await userEvent.click(dialogButton("Sign out"));
 
     await expect.poll(status).toBe("Signed out everywhere else.");
@@ -308,8 +312,8 @@ describe("the Devices page's connected assistants", () => {
 
     await userEvent.click(page.getByRole("button", { name: "Disconnect Claude from Grandma June" }));
     await expect.poll(() => aDialog()?.open).toBe(true);
-    expect(aDialog()!.querySelector("h2")!.textContent.trim()).toBe("Disconnect Claude?");
-    expect(aDialog()!.textContent).toMatch(/stops reaching Grandma June at once/);
+    await expect.poll(() => aDialog()?.querySelector("h2")?.textContent.trim()).toBe("Disconnect Claude?");
+    await expect.poll(() => aDialog()?.textContent).toMatch(/stops reaching Grandma June at once/);
     await userEvent.click(aDialogButton("Cancel"));
     await expect.poll(() => aDialog()?.open).toBe(false);
     expect(server.disconnected).toEqual([]);

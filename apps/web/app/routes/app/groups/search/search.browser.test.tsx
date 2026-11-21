@@ -193,7 +193,7 @@ describe("results", () => {
     expect(sections()).toEqual(["medication", "entry"]);
     expect(resultIds("medication")).toEqual([lisinopril.id]);
     expect(statusLine()!.getAttribute("role")).toBe("status");
-    expect(statusLine()!.textContent).toMatch(/medication/);
+    await expect.poll(() => statusLine()?.textContent).toMatch(/medication/);
     expect(device.location()).toBe(searchUrl("?q=lisinopril"));
     const before = resultIds("entry");
 
@@ -259,7 +259,7 @@ describe("results", () => {
 
     await searchFor("zzqx");
     expect(sections()).toEqual([]);
-    expect(statusLine()!.textContent).toMatch(/^No matches for/);
+    await expect.poll(() => statusLine()?.textContent).toMatch(/^No matches for/);
   });
 
   test("another group finds none of this group's medications or doses, but its own", async () => {

@@ -110,7 +110,9 @@ describe("adding a provider", () => {
     await openAdd();
     expect(device.location()).toBe(`${PROVIDERS_URL}/new`);
     expect($("[role=dialog] :is(h2, h3)")?.textContent).toBe("Add a provider");
-    expect(FORM()!.querySelector<HTMLInputElement>('[name="type"]:checked')?.value).toBe("clinician");
+    await expect
+      .poll(() => FORM()?.querySelector<HTMLInputElement>('[name="type"]:checked')?.value)
+      .toBe("clinician");
     expect(listNames("Current providers").length).toBe(6);
   });
 
@@ -120,7 +122,7 @@ describe("adding a provider", () => {
     await fill("email", "not-an-email");
     await fill("website", "not a site");
     for (let i = 0; i < 5; i++) await addPhone();
-    expect(FORM()!.querySelectorAll('[name="phoneNumber"]').length).toBe(6);
+    await expect.poll(() => FORM()?.querySelectorAll('[name="phoneNumber"]').length).toBe(6);
     expect(formButton("Add a phone number")!.disabled).toBe(true);
 
     // A seventh row, as an old or tampered form would send it.
@@ -196,7 +198,9 @@ describe("adding a provider", () => {
   test("?type=pharmacy starts the form as a pharmacy, with no practice field", async () => {
     await open({ url: `${PROVIDERS_URL}/new?type=pharmacy` });
     await waitUntil(() => !!FORM());
-    expect(FORM()!.querySelector<HTMLInputElement>('[name="type"]:checked')?.value).toBe("pharmacy");
+    await expect
+      .poll(() => FORM()?.querySelector<HTMLInputElement>('[name="type"]:checked')?.value)
+      .toBe("pharmacy");
     expect(field("practiceId")).toBeNull();
   });
 });
@@ -243,7 +247,7 @@ describe("editing a provider", () => {
     await waitUntil(() => !!FORM());
     await userEvent.click(formButton("Delete provider")!);
     await waitUntil(() => !!CONFIRM()?.open, 4000, "the confirm");
-    expect(CONFIRM()!.querySelector("h2")?.textContent).toBe("Delete Dr. Nadia Brooks?");
+    await expect.poll(() => CONFIRM()?.querySelector("h2")?.textContent).toBe("Delete Dr. Nadia Brooks?");
     await userEvent.keyboard("{Escape}");
     await waitUntil(() => !CONFIRM()?.open, 4000, "the confirm to close");
     expect(FORM()).not.toBeNull();
@@ -286,7 +290,9 @@ describe("editing a provider", () => {
     await waitUntil(() => !!FORM());
     await userEvent.click(formButton("Delete provider")!);
     await waitUntil(() => !!CONFIRM()?.open);
-    expect(CONFIRM()!.querySelector("p")?.textContent).toMatch(/^1 provider is linked to this practice\./);
+    await expect
+      .poll(() => CONFIRM()?.querySelector("p")?.textContent)
+      .toMatch(/^1 provider is linked to this practice\./);
     expect(confirmButton("Delete")!.disabled).toBe(true);
     await userEvent.click(confirmButton("Cancel")!);
     await waitUntil(() => !CONFIRM()?.open);
@@ -296,7 +302,7 @@ describe("editing a provider", () => {
     await device.settle();
     await userEvent.click(formButton("Delete provider")!);
     await waitUntil(() => !!CONFIRM()?.open);
-    expect(CONFIRM()!.querySelector("p")).toBeNull();
+    await expect.poll(() => CONFIRM()?.querySelector("p")).toBeNull();
     expect(confirmButton("Delete")!.disabled).toBe(false);
     await userEvent.click(confirmButton("Delete")!);
     await expect.poll(async () => (await stored(device, PRACTICE.id))?.deleted_at).not.toBeNull();

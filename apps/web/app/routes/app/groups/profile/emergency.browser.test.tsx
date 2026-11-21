@@ -40,17 +40,19 @@ describe("the card", () => {
       (li) => li.querySelector('a[data-action="call"]')?.getAttribute("href") ?? null,
     );
     expect(calls).toEqual(["tel:5550107001", "tel:5550107002", "tel:5550107044"]);
-    expect(card()!.querySelector('[data-badge="primary"]')?.textContent?.trim()).toBe("Primary contact");
-    expect(card()!.querySelector('a[data-edit-sheet="emergency"]')?.getAttribute("href")).toBe(
-      sheetUrl("emergency"),
-    );
-    expect(card()!.querySelector("[data-emergency-dropped]")).toBeNull();
+    await expect
+      .poll(() => card()?.querySelector('[data-badge="primary"]')?.textContent?.trim())
+      .toBe("Primary contact");
+    await expect
+      .poll(() => card()?.querySelector('a[data-edit-sheet="emergency"]')?.getAttribute("href"))
+      .toBe(sheetUrl("emergency"));
+    await expect.poll(() => card()?.querySelector("[data-emergency-dropped]")).toBeNull();
   });
 
   test("a caretaker: the list in order, with no Edit", async () => {
     await openProfile({ role: "caretaker" });
     await expect.poll(emergencyNames).toEqual(SEEDED);
-    expect(card()!.querySelector("[data-edit-sheet]")).toBeNull();
+    await expect.poll(() => card()?.querySelector("[data-edit-sheet]")).toBeNull();
   });
 
   test.each(["owner", "caretaker"] as const)(
@@ -84,10 +86,10 @@ describe("the owner's sheet", () => {
     await userEvent.click(page.getByRole("link", { name: "Edit emergency contacts" }));
     await expect.poll(device.location).toBe(sheetUrl("emergency"));
     await expect.poll(draft).toEqual([ME, SAM.name, "Nora Example"]);
-    expect(form()!.querySelector("[data-add-member]")).toBeNull();
-    expect(form()!.querySelector("[data-without-phone]")?.textContent?.trim()).toBe(
-      `${RITA.name} doesn't share a phone number with the group, so they can't be added.`,
-    );
+    await expect.poll(() => form()?.querySelector("[data-add-member]")).toBeNull();
+    await expect
+      .poll(() => form()?.querySelector("[data-without-phone]")?.textContent?.trim())
+      .toBe(`${RITA.name} doesn't share a phone number with the group, so they can't be added.`);
   });
 
   test("builds the list: a member removed and added back, moved up by keyboard, an outside contact refused then added, a new primary; one save", async () => {
