@@ -37,6 +37,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `appointments` | [PRD](appointments-prd.md), [plan](appointments-plan.md): **done** | — | none now |
 | `care-periods` | [PRD](care-periods-prd.md), [plan](care-periods-plan.md): **done** (`f6c4e92`) | — | none now |
 | `data-rights`     | to write (B-52, B-53, B-84)                                  | (none)                                               | `packages/api`, `lib/sync/client.ts` (wipe), `packages/auth`, account settings |
+| `ui-kit` | to write (B-257 to B-270): shared UI primitives from the 2026-11-21 component review (Button, form footer, messages, Card, lists, empty and loading states, page frame, DetailHeader, Badge, check and toggle rows, text tokens), then the sweeps, a guard and a dev gallery | `list-filters` and `planner-2` landed first (both edit the list and Planner screens the sweeps touch); `quick-fixes` between waves | `components/ui/` (its `index.ts`, `styles.ts`, `plain/`), `app.css`, `components/settings/SettingsPage.tsx`; the sweeps touch most route folders, so one area per slice and nothing else running in that area |
+| `test-health` | to write (B-271 to B-283): from the 2026-11-21 test review: how checks run (the check lease and a load gate, quick check at hand-off, tooling tests in their own project, a database per worker), the component harness (clock, one timeout, retrying locators and lint rules), then the cuts by layer (frozen lists, change detectors, duplicated component, Playwright and server tests) | (none) for the system and harness items; the component cuts (B-281) after `list-filters`, `planner-2` and `ui-kit` (they edit the same screens' tests); `quick-fixes` between waves | `vitest.config.ts`, `package.json`, `eslint.config.js`, `scripts/loops/` (`prd.sh`, `prompt.sh`, `lease.sh`, `checks`, `check-areas.mjs`), `apps/web/test/` (`setup.ts`, `found.ts`), the `*World.tsx` files, `packages/data/test/`, `docs/agents/loop.md` and `orchestrator.md`; the cuts touch test files in most areas, so one layer or area per slice |
 | `tasks` | [PRD](tasks-prd.md), [plan](tasks-plan.md): **done** (`1ee7864`) | — | none now |
 | `documents`       | to write (B-56)                                              | hosting (B-33, file storage); `profiles` (soft); `encryption` decision | file storage, its area's `routes.ts`, `urls.ts`, schema and `permissions/` parts, `GROUP_SECTIONS`              |
 | `encryption`      | [security review](security-review.md) (on `plan/encryption`): reviewed 2026-11-19. E2E: option A for launch, C (files) with `documents`; fixes filed as B-79 to B-85 | (none); affects `assistant` and `documents` | none itself: its fixes land through `quick-fixes`, `data-rights`, `account-security` and hosting |
@@ -50,13 +52,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | `agent-tooling` | [PRD](agent-tooling-prd.md), [plan](agent-tooling-plan.md): **done**, all 6 slices in `dev` (`5d5e1d7`): batched backlog commits, `pnpm log`, the doc budget guard, the core + `docs/agents/` split, the six area docs trimmed | (none) | none now |
 | `code-layout` | [PRD](code-layout-prd.md), [plan](code-layout-plan.md): **done** (`18e9cf8`) | — | none now |
 | `timeline-ux` | [PRD](timeline-ux-prd.md) (speed half: [app-speed PRD](app-speed-prd.md)), [plan](timeline-ux-plan.md): 10 slices, waves (1, 2, 3) → (4, 5, 6) → (7, 8, 9) → 10: navigation that doesn't wait, tiles that remember (dimmed until fresh), the bundle budget, prefetched tabs, one Today card with status hues, the day header with its summary and rows with the author under the menu and no period places, the service worker, simple mode's order and type scale, quick entry's rotating placeholder, open-after-save and lean recent lines, cheaper `/rpc` auth (B-136–B-140, B-144, B-155, B-156, B-162–B-171). **Done 2026-11-20**: all 10 slices in `dev` (8b3179ab); follow-ups B-174, B-175, B-178, B-179 | wave 1: none; wave 2 on: `code-layout` slice 5 in `dev` (`appUrls`), or coordinate with it | `lib/auth/session.ts`, `lib/auth/sessionRules.ts`, `lib/app-shell/me.ts`, `lib/sync/` (the remembering hook), `recentLines` (at code-layout's paths), `SectionNav`, the `/app` layout (update notice), the timeline route, its strips (replaced by `TodayCard`), `DayHeader`, `DaySummaryLine`, the row components, `PeriodMarkerItem`, `SimpleTimeline`, quick entry, `packages/auth`, `packages/api/src/procedures.ts`, `routes/rpc.ts`, `scripts/loops/prd.sh`, `scripts/loops/check-areas.d/`, new `scripts/build/` |
-| `i18n` | to write (B-209: translations for all text; needs a dependency approved) | best after the feature PRDs settle; runs alone | every user-facing string: routes, `ui/`, emails, MCP text, date formatting |
+| `i18n` | [PRD](i18n-prd.md), [plan](i18n-plan.md): 11 slices, waves 1 → 2 → (3, 4, 5, 6) → (7, 8, 9, 10) → 11: a per-user language (English and Spanish, AI-drafted, review before launch) in `user.preferences` with a cookie for server rendering; typed catalogs on `i18next` and `react-i18next`; format helpers, error codes and label maps take the language; the app swept area by area; emails, the invite's language, calendar text and the public site at `/es/`; a lint rule against literal text (`eslint-plugin-i18next`, dev). Quick entry is a plain box for non-English users; search matching, the connector and `/admin` stay English (B-209). Slice 8 adds a migration (one nullable invite column); three dependencies approved 2026-11-21; slice 1 needs a stack. **Ready to start** once its start condition holds | `list-filters` (last item B-249), `planner-2` (last item B-248), the current `quick-fixes` wave and `simple-mode` (last item B-221) in `dev`; **runs alone** (tooling-only work beside it) | every user-facing string: all `/app`, sign-in and marketing routes, `components/`, `lib/core/format.ts` and the other format helpers, the label maps in `packages/data` schema, `userPreferences.ts`, `root.tsx`, the service worker, `packages/notifications` templates and registry, the invite schema and service, `calendarText.ts`, ESLint config, `pnpm-workspace.yaml`, `scripts/build/budget.json` |
 | `timeline-ux-2` | [PRD](timeline-ux-2-prd.md), [plan](timeline-ux-2-plan.md): **done** (`f1fc883e`) | — | none now |
 | `quick-entry` | [PRD](quick-entry-prd.md), [plan](quick-entry-plan.md): 4 slices, waves 1 → (2, 3, 4): one vocabulary table of kind-picking words (falls, seizures and the like are symptoms; 911, ER and urgent care are notes; visit verbs make events, contact verbs make notes), provider lines as events (titles, places), "the 25th" and month dates, forward for events and back for past-only kinds; notes that @-mention named providers (`addNote.providerIds`, both runners, the connector's `add_note`); a provider event's Save opens a prefilled new-event draft (mixed lines save the rest with Undo); kind chips on the cards (B-220). No migration, no deps, stackless. **Ready to start** once `timeline-ux-2` and `tasks-2` are in `dev` | `timeline-ux-2` in `dev` (last item B-224); `tasks-2` in `dev` (the to-do rename in actions, `actionPreview`, connector tools; last item B-222) | `packages/data` assistant schema (`quickEntry.ts`, `quickEntryTime.ts`, the new `quickEntryVocabulary.ts`, `assistantActions.ts`, `quickEntryPreview.ts`), `noteYjs.ts` (`noteDocFromText`), `assistantActionService`, the connector's `add_note`, `lib/assistant/` (`quickEntry.sync.ts`, `quickEntryDraft.ts`, `openAfterSave`), `components/quick-entry/` (`useQuickEntry`, `quickEntryCards.ts`, the card), the entry page's new-event draft |
 | `planner-2` | [PRD](planner-2-prd.md), [plan](planner-2-plan.md): 7 slices, waves (1, 2) → (3, 4, 5, 6, 7): notes become past-only and reminders go (the rule, series are events only, the Planner, Today card and simple Next, the calendar projection's reminder kind, quick entry's future note becomes a todo, the connector's `upcoming` lists appointments and dated todos and `add_note` refuses a future time); todos can repeat (one open todo, the next made on tick; the form only) (B-248). Slice 2 adds a migration (three nullable `todo` columns); no deps; no data migration (staging is reseeded). **Ready to start**: `quick-entry` is in `dev` | `quick-entry` in `dev` (done); slice 3 waits for B-247 in `dev` (`quick-fixes`: the Planner's Upcoming / Past toggle); not alongside `list-filters` slice 4 (the Planner's filter row) | `entryTiming.ts`, `timelineEntryService`, the series service, `timeline.sync.ts`; the `todo` schema, `todoService`, `todos.sync.ts`, `todoOp`; `routes/app/groups/planner/`, `lib/appointments/upcoming*.ts`, the Today card and `SimpleNext`; `db/schema/calendars/` and the calendar services; `lib/assistant/` and the assistant schema; the todo form, list and page; `packages/api/src/connectors/`; seeds |
 | `planner-3` | to write (B-245: a note can carry a todo with its own due day and assignee, the replacement for reminders; B-254: quick entry reads a repeating todo) | `planner-2` in `dev` (last item B-248) | the note editor and entry page, `todoService` and the todo schema (a link to its note), the Planner's todo rows, the Today card, the connector's `add_note` and `add_todo`; quick entry (B-254) |
 | `connectors-3` | to write (B-252: a connector tool to read the dosing schedule beyond today; B-253: `add_todo` can make a repeating todo) | B-253 after `planner-2` in `dev` (last item B-248); B-252 has none | `packages/api/src/connectors/tools/` (`todaysDoses.ts` or a new schedule tool, `writes.ts`), the server instructions |
-| `simple-mode` | to write (B-221: locked simple mode, a new member type or a nit pass) | (none) | `@caretook/data/permissions`, `careGroupMemberService`, group settings Members, `SimpleTimeline`, the `/app` layout |
+| `simple-mode` | [PRD](simple-mode-prd.md), [plan](simple-mode-plan.md): 4 slices, one per wave (1 → 2 → 3 → 4): the lock becomes two member roles, Easy helper (log-only, own entries, own todos) and Easy viewer; "simple" is renamed "easy" everywhere, database included; the role decides the view; the Planner, todo pages and search open for the easy roles (B-221, B-236). Migrations in slices 1, 2 and 3; sync config changes. **Ready to start** once its start condition holds | `list-filters` (last item B-249), `planner-2` (last item B-248) and the current `quick-fixes` wave in `dev` (slice 1 renames files they touch) | slice 1: every `simple*` file (`lib/assistant/simpleMode*`, `SimpleTimeline` and its blocks, quick entry, `TodoTick`, the `/app` layout), `sync-config.yaml`, the device schema; slice 2: `constants/roles.ts`, `permissions/` (blocks, types, timeline, todos, live-notes, connectors), `todoService`, the upload switch, `groupContext.ts`, the role picker; slice 3: group settings Members, `careGroupMemberService`, `useSimpleFrame`; slice 4: the Planner and todo routes, the search route |
 | `tasks-2` | [PRD](tasks-2-prd.md), [plan](tasks-2-plan.md): **done** (`2db975a7`) | — | none now |
 
 ## Summary
@@ -98,7 +100,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-199 | bug | staging | medications-3 | prd/medications-3 | ability to add a medication quickly from the log a dose screen. |
 | B-200 | bug | staging | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
 | B-201 | bug | staging | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
-| B-203 | feature | landed | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
+| B-203 | feature | staging | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
 | B-204 | feature | staging | connectors-2 | prd/connectors-2 | connector should be able to edit notes and events so it can help you draft questions or add… |
 | B-205 | bug | staging | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails at some times of day: give_pass on w.evening returns isError (line 160) |
 | B-206 | bug | staging | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails in the evening: its Metformin dose a minute earlier fills the Evening pass, so give_pass says 'Nothing is left to give in Evening today' |
@@ -108,29 +110,29 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-210 | bug | staging | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
 | B-211 | change | staging | quick-fixes | prd/quick-fixes | link to group details edit page from the edit profile screen for editing the care recipient's… |
 | B-212 | bug | staging | medications-3 | prd/medications-3 | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
-| B-213 | bug | landed | medications-tabs |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
+| B-213 | bug | staging | medications-tabs |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
 | B-214 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
 | B-215 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
 | B-216 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | suggestion dropdown for quick entry box should appear above elements instead of pushing elements… |
 | B-217 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | If today is empty on the timeline, we need some kind of placeholder/prompt to add an entry. Page… |
 | B-218 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | expand icon for day summary on timeline should be at the left of the day summary, not the right. |
 | B-219 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
-| B-220 | change | landed | quick-entry | prd/quick-entry | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
+| B-220 | change | staging | quick-entry | prd/quick-entry | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
 | B-221 | feature | triaged | simple-mode |  | locked simple mode is really confusing. We may want to just add a new user type at this point for… |
 | B-222 | feature | staging | tasks-2 | prd/tasks-2 | Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to… |
 | B-223 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | in header care group drop down, we don't need to show the current care period line. New care group… |
 | B-224 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for… |
 | B-225 | bug | staging | quick-fixes | prd/quick-fixes | Component tests fail between midnight and about 5 a.m.: they put entries a few hours before now, which lands on yesterday (entryPrint 'an event's: title, time…' gets 'Yesterday, 10:18 PM' for /^Event · Today/; timelineCarePeriods 'a period at a place…' gets 'day 2'; timelineSimple 'a day header names the care period…' times out) |
-| B-226 | change | landed | medications-tabs | prd/medications-tabs | Medications page should be tabbed into Schedule and Medications |
+| B-226 | change | staging | medications-tabs | prd/medications-tabs | Medications page should be tabbed into Schedule and Medications |
 | B-227 | bug | dropped | quick-fixes |  | Component tests fail just after midnight America/Los_Angeles: 'today' fixtures made minutes or hours before now fall on yesterday (timelineSummaries, entryPrint 'an event's', timelineCarePeriods 'places', timelineSimple 'a day header names the care period') |
-| B-228 | bug | in-progress | quick-fixes | prd/quick-fixes | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
+| B-228 | bug | ready | quick-fixes | prd/quick-fixes | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
 | B-229 | bug | triaged | quick-fixes |  | on timeline page, header and Today section should be in same column width as the rest of the… |
 | B-230 | bug | ready | quick-fixes | prd/quick-fixes | reminders.int.test.ts 'reminds a task's assignee, and skips a suppressed address' times out at 5000 ms under load in a full check (then 'turns reminders off from the email's unsubscribe link' gets Invalid URL); passes alone |
 | B-231 | bug | triaged | quick-fixes |  | "Nothing logged today yet." message should be in a border box like a timeline entry box to match… |
 | B-232 | bug | ready | quick-fixes | prd/quick-fixes | Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar |
-| B-233 | bug | in-progress | quick-fixes | prd/quick-fixes | A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series |
+| B-233 | bug | ready | quick-fixes | prd/quick-fixes | A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series |
 | B-234 | bug | ready | quick-fixes | prd/quick-fixes | Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR) |
-| B-235 | bug | in-progress | quick-fixes | prd/quick-fixes | After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch |
+| B-235 | bug | ready | quick-fixes | prd/quick-fixes | After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch |
 | B-236 | bug | triaged | simple-mode |  | In locked simple mode, SimpleNext's 'See all' (Upcoming) and task links look clickable but bounce back to the timeline: lockAllows only permits the timeline and entry routes |
 | B-237 | bug | ready | quick-fixes | prd/quick-fixes | An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits |
 | B-238 | bug | ready | quick-fixes | prd/quick-fixes | Log a dose's '+ New medication': switching to an existing medication and back clears the quick-add fields but keeps newDose, so choose() refills Amount with the old dose (a medication saved with no usual dose, logged as the discarded '2 tablets') |
@@ -138,7 +140,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-240 | bug | triaged | github-review |  | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
 | B-241 | bug | triaged | github-review |  | codex-review: PR_QUERY reads only the first 100 review threads (and 50 comments each), so a PR with more could read as clean |
 | B-242 | bug | triaged | github-review |  | with_backlog_lock: on Linux, BSD 'stat -f %m' succeeds with non-numeric output before GNU stat is tried, breaking the lock-age arithmetic |
-| B-243 | bug | landed | hosting |  | don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of… |
+| B-243 | bug | staging | hosting |  | don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of… |
 | B-244 | chore | triaged | github-review |  | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
 | B-245 | plan | triaged | planner-3 |  | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
 | B-246 | change | triaged | quick-fixes |  | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
@@ -150,8 +152,35 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-254 | feature | triaged | planner-3 |  | Quick entry: 'bins out every monday' makes a repeating todo |
-| B-255 | bug | triaged | list-filters |  | default filter on todos should be "everyone" and then reduce the list. |
+| B-255 | bug | in-progress | list-filters | prd/list-filters | default filter on todos should be "everyone" and then reduce the list. |
 | B-256 | bug | triaged | quick-fixes |  | call and directions icons on planner schedule should be below the time, not beside the… |
+| B-257 | change | triaged | ui-kit |  | Button primitive (ui/Button): variants, sizes, link form and a built-in busy label, replacing hand-written btn class strings |
+| B-258 | change | triaged | ui-kit |  | Form footer primitive (Cancel and Save row) for sheets and forms; settings' SaveRow builds on it |
+| B-259 | change | triaged | ui-kit |  | Message primitives: one inline error/status line and one Notice box, replacing 93 role=alert and 54 role=status hand-written lines |
+| B-260 | change | triaged | ui-kit |  | Card primitive in ui/ (titled section card); SettingsCard and the route cards use it; one card title size |
+| B-261 | change | triaged | ui-kit |  | List primitives: one bordered, divided list box and a row, replacing six hand-written variants |
+| B-262 | change | triaged | ui-kit |  | Empty and loading states: an EmptyState line (optional action) and one Skeleton/Loading placeholder |
+| B-263 | change | triaged | ui-kit |  | Page frame: a Page container and one heading scale; every section page uses PageHeader |
+| B-264 | change | triaged | ui-kit |  | DetailHeader primitive for the provider, care period, todo, medication and profile pages |
+| B-265 | change | triaged | ui-kit |  | Badge primitive with named tones and one size |
+| B-266 | change | triaged | ui-kit |  | Checkbox and toggle rows (CheckField, ToggleField), and Field-owned control classes so callers stop passing 'input w-full' |
+| B-267 | change | triaged | ui-kit |  | Text and icon tokens: named muted and faint text, inline link style, icon sizes |
+| B-268 | chore | triaged | ui-kit |  | Move SeriesScopeDialog's raw <dialog> into a ui/ choice dialog on useShowModal |
+| B-269 | chore | triaged | ui-kit |  | Guard the kit: a lint rule or layout test that keeps react-aria imports in ui/ and flags raw btn, card, badge and alert classes outside ui/ |
+| B-270 | feature | triaged | ui-kit |  | Dev-only component gallery (/dev/ui): every primitive and its variants in both themes |
+| B-271 | chore | triaged | test-health |  | Checks: slice loops run through the check lease (pnpm prd check, not bare pnpm check), and the lease waits while the machine load is high |
+| B-272 | chore | triaged | test-health |  | Checks: quick check at slice hand-off and the full suite only at landing, with prd.sh forcing a full run on migrations, seeds, sync config, lockfile and package.json, plus a short always-run list |
+| B-273 | chore | triaged | test-health |  | Checks: move the agent-tooling tests (scripts/loops, scripts/backlog, hooks) into their own Vitest project, run only when tooling changes |
+| B-274 | chore | triaged | test-health |  | Component tests: one test clock on a fixed base date, reset per test, with harness deadlines on performance.now(); one shared fixClock |
+| B-275 | chore | triaged | test-health |  | Component tests: one waitUntil in test/found.ts with one central timeout; no per-call milliseconds (lint rule) |
+| B-276 | chore | triaged | test-health |  | Component tests: a retrying getByCss locator and world helpers that return locators, with lint rules against non-null reads in expect and userEvent calls and against fixed sleeps |
+| B-277 | chore | triaged | test-health |  | Browser-check bookkeeping: drop the usual seconds and lean-ceiling test (keep the caps), and give check-areas directory defaults so a new file needs no rule |
+| B-278 | chore | triaged | test-health |  | Integration tests: a database per Vitest worker, so files run in parallel |
+| B-279 | chore | triaged | test-health |  | Unit tests: delete the frozen lists (schema exports, appUrls keys, procedure paths) and replace the frozen route list with native-build invariants |
+| B-280 | chore | triaged | test-health |  | Unit tests: trim change detectors: URL tests that restate a template, marketing copy assertions, exact seed counts and names, label maps |
+| B-281 | chore | triaged | test-health |  | Component tests: cut duplicates and brittle layout assertions; frame, harness and primitive tests use a probe route, not the timeline |
+| B-282 | chore | triaged | test-health |  | Playwright specs: move one-device and no-browser steps out (marketing first), remove fixed sleeps, merge signout-wipe into session-end |
+| B-283 | chore | triaged | test-health |  | Server tests: shared fixtures (createWorld, a sync and MCP test helper) and trim rules re-tested through sync upload and the connector; first move the member matrix and condition refusals down to the data layer |
 
 ## Items
 
@@ -515,7 +544,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-203 · feature · Now that we are we have github fixed, we should start using it for some of the merge management so…
 
-- status: landed
+- status: staging
 - prd: github-review
 - owner: prd/github-review
 - commit: 6ece6441
@@ -589,6 +618,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-20 (prd/conditions): From the inbox: react-i18next or some other internationalization library to support multiple languages for all text in the app.
 - 2026-11-20 (Robert Bo Davis): Triage: a new big PRD (i18n). It touches every user-facing string (routes, ui/, emails, MCP text, dates and plural rules), so it should run alone or with tooling-only PRDs, ideally after the feature PRDs settle. Needs your approval for a new dependency (react-i18next/i18next, or a lighter alternative such as Lingui or FormatJS). Decide which languages and when it matters before launch.
+- 2026-11-21 (Robert Bo Davis): PRD and plan written (plans/i18n-prd.md, i18n-plan.md): English and Spanish (AI-drafted, human review before launch), per-user language, app + emails + public site at /es/; quick entry parsing, search matching, the connector and /admin stay English. Dependencies approved 2026-11-21: i18next, react-i18next, eslint-plugin-i18next (dev). Runs alone, after list-filters, planner-2, the quick-fixes wave and simple-mode.
 
 ### B-210 · bug · Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864
 
@@ -626,7 +656,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-213 · bug · medications today schedule layout is confusing especially on mobile. Plan an improved layout for…
 
-- status: landed
+- status: staging
 - prd: medications-tabs
 - owner:
 - commit: 07a6b59a
@@ -706,7 +736,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-220 · change · Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,…
 
-- status: landed
+- status: staging
 - prd: quick-entry
 - owner: prd/quick-entry
 - commit: b5252045
@@ -725,6 +755,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-21 (prd/medications-3): From the inbox: locked simple mode is really confusing. We may want to just add a new user type at this point for locked simple mode. Or just review and fix all of the nits.
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): a simple-mode PRD to write. Its interview decides between a new member type for locked simple mode and fixing the nits (touches roles and permissions).
+- 2026-11-21 (Robert Bo Davis): PRD and plan written 2026-11-21 (plans/simple-mode-prd.md, simple-mode-plan.md): the lock becomes two roles, Easy helper and Easy viewer; simple is renamed easy. B-236 is slice 4 (the Planner, todo pages and search open for the easy roles). -- backlog session
 
 ### B-222 · feature · Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to…
 
@@ -773,7 +804,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-226 · change · Medications page should be tabbed into Schedule and Medications
 
-- status: landed
+- status: staging
 - prd: medications-tabs
 - owner: prd/medications-tabs
 - commit: 3f8c4d1c
@@ -796,10 +827,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-228 · bug · Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute|value|dataset|checked|placeholder|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 76ad3e78
 
 - 2026-11-21 (prd/quick-fixes): Found by quick-fixes slice 59 (B-180), 2026-11-21: same fix (await expect.poll / found()); proposed for a later quick-fixes wave. -- quick-fixes orchestrator
 - 2026-11-21 (prd/quick-fixes): The tasks Undo test's sync reads after undoing were fixed in prd/quick-fixes 71dfbde4 (failed the wave 15 full check under load). -- quick-fixes orchestrator
@@ -845,10 +876,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-233 · bug · A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: c29f863a
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 9 (dev → staging), checked against dev 2026-11-21: Codex P2. timelineEntryService update (the 'A series edit never rewrites a started visit' check) should call the shared isPastVisit from packages/data/src/db/schema/appointments/seriesEdit.ts with the group's time zone. One slice with an int test.
 
@@ -863,10 +894,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-235 · bug · After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 08633433
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 9 (dev → staging), checked against dev 2026-11-21: Codex P2, an edge case. useTimelineData passes restored?.medicationRows with no loader fallback (links fall back to initial.linkRows, and useLiveRows keeps rows on a same-key initial change). Fix: a stable fallback, or have useLiveQuery keep rows when the key is unchanged.
 
@@ -878,6 +909,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 9 (dev → staging), checked against dev 2026-11-21: Codex P2. Belongs with B-221's rethink of locked simple mode (allow those pages, or hide the links when locked). tasks-2 renames Upcoming to Planner and tasks to todos, so fix it after tasks-2 lands; if simple-mode isn't planned soon, a quick-fixes slice that hides the links when locked.
+- 2026-11-21 (Robert Bo Davis): PRD and plan written 2026-11-21 (plans/simple-mode-prd.md, simple-mode-plan.md): the lock becomes two roles, Easy helper and Easy viewer; simple is renamed easy. B-236 is slice 4 (the Planner, todo pages and search open for the easy roles). -- backlog session
 
 ### B-237 · bug · An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits
 
@@ -914,6 +946,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (prd/github-review): Codex finding on PR #12 (review.sh:77), verified. Exit 75 when the summary never changes.
+- 2026-11-21 (Robert Bo Davis): Codex raised this again on PR #16 (dev into staging, head 30206f75), P2; still present on dev. Already filed, no new item.
 
 ### B-241 · bug · codex-review: PR_QUERY reads only the first 100 review threads (and 50 comments each), so a PR with more could read as clean
 
@@ -923,6 +956,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (prd/github-review): Codex finding on PR #12 (codex-review.mjs:37), verified. Paginate, or refuse clean when hasNextPage.
+- 2026-11-21 (Robert Bo Davis): Codex raised this again on PR #16 (dev into staging, head 30206f75), P2; still present on dev. Already filed, no new item.
 
 ### B-242 · bug · with_backlog_lock: on Linux, BSD 'stat -f %m' succeeds with non-numeric output before GNU stat is tried, breaking the lock-age arithmetic
 
@@ -932,10 +966,11 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (prd/github-review): Codex finding on PR #12 (lib.sh:328), verified. Macs are fine today; check the output is numeric before falling back.
+- 2026-11-21 (Robert Bo Davis): Codex raised this again on PR #16 (dev into staging, head 30206f75), P2; still present on dev. Already filed, no new item.
 
 ### B-243 · bug · don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of…
 
-- status: landed
+- status: staging
 - prd: hosting
 - owner:
 - commit: 8532372b
@@ -1050,9 +1085,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-255 · bug · default filter on todos should be "everyone" and then reduce the list.
 
-- status: triaged
+- status: in-progress
 - prd: list-filters
-- owner:
+- owner: prd/list-filters
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Triage: the todos filter's default (everyone, then narrow). Proposed for list-filters (B-249 shared Filter dropdown), which is rewriting the todos filter now; in quick-fixes it would collide on the same files. If list-filters lands first, move to quick-fixes.
@@ -1066,3 +1101,246 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: call and directions icons on planner schedule should be below the time, not beside the title/description to free up space on mobile.
 - 2026-11-21 (Robert Bo Davis): Triage: a small layout fix on the Planner schedule rows (call and directions icons under the time), so quick-fixes; the Planner files are hot for planner-2 and list-filters, so pick it up after those land.
+
+### B-257 · change · Button primitive (ui/Button): variants, sizes, link form and a built-in busy label, replacing hand-written btn class strings
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Component review 2026-11-21: 268 btn class strings in 148 files, 81 distinct (btn btn-sm x47, btn btn-ghost btn-sm vs btn btn-sm btn-ghost, danger as btn-error or btn-ghost text-error). About 25 buttons hand-roll {busy ? 'Saving…' : 'Save'}. IconButton stays; chipClass could build on it.
+
+### B-258 · change · Form footer primitive (Cancel and Save row) for sheets and forms; settings' SaveRow builds on it
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Review 2026-11-21: 15 Cancel/Save footers in 6 layouts (flex justify-end gap-2 pt-3, pt-2, flex-wrap…, ml-auto); SaveRow (components/settings) is the only shared one and is settings-only. Depends on the Button item.
+
+### B-259 · change · Message primitives: one inline error/status line and one Notice box, replacing 93 role=alert and 54 role=status hand-written lines
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Review 2026-11-21: <p role=alert className='text-error text-sm'> is copied about 80 times (class order and margins drift); success lines are text-success text-sm or alert alert-success alert-soft; 20 alert boxes use 15 class variants (soft or not, text-sm or text-base, py-2). Owns role, tone, icon and empty:hidden.
+
+### B-260 · change · Card primitive in ui/ (titled section card); SettingsCard and the route cards use it; one card title size
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Review 2026-11-21: 'card bg-base-100 shadow-sm' + card-body is hand-written 24+ times (19 as <section>), card-body gap is 1/2/3/4 or none, card-title is plain, text-base, text-lg or text-2xl. SettingsCard already wraps the same markup but lives in components/settings.
+
+### B-261 · change · List primitives: one bordered, divided list box and a row, replacing six hand-written variants
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Review 2026-11-21: about 30 lists. 'rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border' x11 plus variants without overflow-hidden or bg, and divide-base-300 ones (x13 plain, x4 boxed, class order differs); rows pad py-2, py-2.5 or py-3, with or without px-3. Dividers should be base-300 per the Surfaces rule; divide-base-200 breaks it.
+
+### B-262 · change · Empty and loading states: an EmptyState line (optional action) and one Skeleton/Loading placeholder
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Review 2026-11-21: 24 'No … yet.' messages in three stylings (text-base-content/70 text-sm x15, without text-sm x5, plain text-sm x5); MedicationSheet has its own local Empty. Loading is a skeleton in 4 timeline files, 'Loading…' text in GoogleCard, a spinner in FirstSyncPending, and nothing elsewhere.
+
+### B-263 · change · Page frame: a Page container and one heading scale; every section page uses PageHeader
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Review 2026-11-21: <main className='mx-auto max-w-2xl space-y-4 px-4 py-5'> is copied 13 times with 10 more variants (max-w xl/2xl/3xl/4xl, py-5/6/10, p-4 sm:p-6). 39 files write an h1; only 4 routes use PageHeader, and periods, passes and profile hand-write the same text-lg h1. h1 is text-lg (section pages), text-xl (detail pages), text-2xl (home, settings) and card-title (all of admin). Section h2/h3: 'font-semibold' x17 and 12 other styles. Related: B-229 (timeline header column width).
+
+### B-264 · change · DetailHeader primitive for the provider, care period, todo, medication and profile pages
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Review 2026-11-21: ProviderHeader, PeriodHeader, TodoHeader and MedicationHeader copy the same header line for line: a size-9 icon disc (primary or muted), h1 text-xl with badges, a details line, and the editors and actions regions (data-region). ProfileHeader is a fifth near copy. Callers pass icon, tone, title, badges, details, editors, actions.
+
+### B-265 · change · Badge primitive with named tones and one size
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Review 2026-11-21: 48 badges in 34 files, 25 class variants (badge badge-ghost badge-sm vs badge badge-sm badge-ghost, soft and outline mixed, gap-1, shrink-0, whitespace-nowrap added ad hoc). Status meanings (Primary, Past, Now, overdue, stopped) pick tones per file. ViaTag stays as is.
+
+### B-266 · change · Checkbox and toggle rows (CheckField, ToggleField), and Field-owned control classes so callers stop passing 'input w-full'
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Review 2026-11-21: 39 checkboxes and 20 toggles sit in 15 different hand-written <label> wrappers (label text-base-content cursor-pointer gap-2…, flex items-start gap-3…; mt-0.5 nudges; sizes sm or default). Field callers pass the control class themselves: 'input w-full' x65, 'select w-full' x15, 'textarea w-full' x12, plus *-error by hand x17. components.md says every labelled control is a Field; checkboxes and toggles have no primitive.
+
+### B-267 · change · Text and icon tokens: named muted and faint text, inline link style, icon sizes
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Review 2026-11-21: secondary text uses 8 opacities (text-base-content/70 x307, /80 x35, /60 x32, /50 x16, /40, /75, /85, /90) with no rule for which; inline links have 15 class variants (link, link font-medium, link link-primary, link link-hover text-primary…); icons are size-4 mostly, with size-3, 3.5, 5 mixed in like roles. Define the tokens in app.css or ui/styles.ts and sweep.
+
+### B-268 · chore · Move SeriesScopeDialog's raw <dialog> into a ui/ choice dialog on useShowModal
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Review 2026-11-21: components/entry/SeriesScopeDialog.tsx is the only raw <dialog> outside ui/, so it skips ConfirmDialog's wait-for-menu-close and focus rules. A three-choice dialog primitive (or ConfirmDialog with a second action) covers it.
+
+### B-269 · chore · Guard the kit: a lint rule or layout test that keeps react-aria imports in ui/ and flags raw btn, card, badge and alert classes outside ui/
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Review 2026-11-21: no no-restricted-imports or class guard found in the ESLint configs; the rules in components.md are held by review only (react-aria is clean today). Add after the primitives land, with an allowlist for marketing and print sheets.
+
+### B-270 · feature · Dev-only component gallery (/dev/ui): every primitive and its variants in both themes
+
+- status: triaged
+- prd: ui-kit
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): Review 2026-11-21: nothing shows the kit in one place, so drift is only visible by grep. A web-only dev route beside /dev/mail, fictional data, no new dependency. Also fix docs/layout.md's ui/ list, which is behind components.md (no PageHeader, TabNav, ComboBox, ChipList, Toast, ViaTag, Highlight).
+
+### B-271 · chore · Checks: slice loops run through the check lease (pnpm prd check, not bare pnpm check), and the lease waits while the machine load is high
+
+- status: triaged
+- prd: test-health
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). Loops bypass the lease (loop.md:13,37; prompt.sh:183,211); only prd.sh:212,217 takes it; Vitest runs have no load gate (browser.sh:450 gates only the retry). 38 of 53 logged browser flakes were at load above 30; a threshold near 20 is suggested.
+
+### B-272 · chore · Checks: quick check at slice hand-off and the full suite only at landing, with prd.sh forcing a full run on migrations, seeds, sync config, lockfile and package.json, plus a short always-run list
+
+- status: triaged
+- prd: test-health
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). vitest --changed misses files read by path (SQL migrations, sync-config.yaml, sync-matrix.test.mjs, libLayout, securityHeaders, errors tests), deleted files, the check-areas lint and the budgets. A 3-slice wave runs 3 full suites plus 1 to 5 gate checks today.
+
+### B-273 · chore · Checks: move the agent-tooling tests (scripts/loops, scripts/backlog, hooks) into their own Vitest project, run only when tooling changes
+
+- status: triaged
+- prd: test-health
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). About 240 of 306 scripts:unit tests guard agent workflow; 17 of 27 files spawn processes, lease and browser tests sleep for real. Keep in the default run: sync-matrix, check-areas, deploy/workflows, scripts/build. Also: check-gate.test.mjs rebuilds a git repo per test; prompt.test.mjs asserts prompt phrases.
+
+### B-274 · chore · Component tests: one test clock on a fixed base date, reset per test, with harness deadlines on performance.now(); one shared fixClock
+
+- status: triaged
+- prd: test-health
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). setup.ts restarts at 12:00 per file and keeps running (minute turns, B-133's retry: 2 still at timelineScroll:163); fixClock exists twice (medicationWorld:359, plannerWorld:43) on a different base. A fully frozen Date breaks found/waitUntil and ids built from updated_at. Wall-clock tolerance asserts: entry:174, timelineHeader:137.
+
+### B-275 · chore · Component tests: one waitUntil in test/found.ts with one central timeout; no per-call milliseconds (lint rule)
+
+- status: triaged
+- prd: test-health
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). Seven copies of waitUntil; 431 of 584 calls pass a number (378 at 4000, below the central 5 s); 43 timeout: literals, 30 redundant. Real exceptions: timelineStrips:175, device.browser.test:277,305.
+
+### B-276 · chore · Component tests: a retrying getByCss locator and world helpers that return locators, with lint rules against non-null reads in expect and userEvent calls and against fixed sleeps
+
+- status: triaged
+- prd: test-health
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). No auto-waiting way to reach a data- hook: $ and $$ are copied in four world files and six tests (338 calls, 30 files). Rules A (userEvent with a non-null argument, about 296 sites), B (non-null inside expect, 200 to 250), C (sleeps, about 45): warn first, migrate area by area. Supersedes sweeping sites as in B-176, B-178, B-180, B-228.
+
+### B-277 · chore · Browser-check bookkeeping: drop the usual seconds and lean-ceiling test (keep the caps), and give check-areas directory defaults so a new file needs no rule
+
+- status: triaged
+- prd: test-health
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). lean-ceiling edited 11 times in two days; browser.sh never reads usual (only columns 3 and 4). check-areas.d touched in 124 non-merge commits. Risk: suite growth (bounded by the suite cap) and a new file silently taking its area's checks.
+
+### B-278 · chore · Integration tests: a database per Vitest worker, so files run in parallel
+
+- status: triaged
+- prd: test-health
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). About 20 files touch global state (app_setting wipes, unscoped sweeps in reminders, outbox, calendarPull, rateLimit, JWKS rotation, todoRename), so parallel files on one database is fragile. Per-worker databases need no test changes (globalSetup, setup, testDatabase.ts:17, test-db.sh, rm.sh, vitest.config.ts:155); estimate 2.5 to 3x wall time with 3 workers.
+
+### B-279 · chore · Unit tests: delete the frozen lists (schema exports, appUrls keys, procedure paths) and replace the frozen route list with native-build invariants
+
+- status: triaged
+- prd: test-health
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). schema/index.test.ts (649 lines, 29 commits), appUrls KEYS (11), routerPaths (9): typecheck catches removals (rpc.ts:18 is a typed client); revisit a path guard when the native app ships. routes.test.ts (19 commits) is the only guard on native exclusion: keep uniqueness, add no /api, /rpc, /admin, /dev, connectors or marketing in native, every native route also in web.
+
+### B-280 · chore · Unit tests: trim change detectors: URL tests that restate a template, marketing copy assertions, exact seed counts and names, label maps
+
+- status: triaged
+- prd: test-health
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). About 900 lines. Per-file keep-lists are in the review: urls tests keep encoding, fallbacks and param rules (calendars/urls deleted); marketing keeps ids, icons, hrefs, JSON-LD, legal compliance regexes; seeds keep schema validity, ids and references (seed tests change in nearly every seed commit); medicationTypeDisplay to one test. Also merge the two deviceLabel and groupRoleLabel definitions.
+
+### B-281 · chore · Component tests: cut duplicates and brittle layout assertions; frame, harness and primitive tests use a probe route, not the timeline
+
+- status: triaged
+- prd: test-health
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). About 1,600 to 2,000 lines. Timeline: pixel and class asserts (timelineLayout 173, 303, 323, 425; todayCard 265), Given all and Undo in four files, todayCard and summaries repeating unit tests. Elsewhere: inScreens (12 commits, all following other areas) down to its screen-specific parts, device.browser.test to about 180 lines, section-current and settings-frame copies into one table, print tests repeating unit tests.
+
+### B-282 · chore · Playwright specs: move one-device and no-browser steps out (marketing first), remove fixed sleeps, merge signout-wipe into session-end
+
+- status: triaged
+- prd: test-health
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). About 880 lines. marketing: 10 of 16 tests need no browser or are unit-covered; five MIN_FORM_MS waits. live-notes: about 11 s of sleeps in one serial test. invites, app-shell, phase2, first-sync, sign-in, layout-offline: one-device steps a component test already covers. ui.spec keeps only production CSS and the CSP. fixtures.mjs:137 sleeps 1 s on every sign-in.
+
+### B-283 · chore · Server tests: shared fixtures (createWorld, a sync and MCP test helper) and trim rules re-tested through sync upload and the connector; first move the member matrix and condition refusals down to the data layer
+
+- status: triaged
+- prd: test-health
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). About 700 lines plus about 450 from fixtures (world rebuilt in 13 data files, clientFor copied in 34). Keep every entry-point branch: PATCH immutable, readOnlyTable, done_at mapping, mcp:invalidArguments. Move first: member role matrix (router.int 381-567 is its only owner) and conditionDeleted/conditionNotFound (only via mcpWrites 554-690). syncTodos 99-126 stays.
