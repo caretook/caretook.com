@@ -13,7 +13,7 @@
 | 3     | B-218               | 1    | sonnet | merged                  | 5aa9e137 (1e05be90)                            |
 | 4     | B-223               | 1    | sonnet | merged                  | 0b327447 (ce9cfeaa)                            |
 | 5     | B-215, B-216, B-219 | 1    | opus   | merged                  | c8fbb4f7 (e09d8a3c)                            |
-| 6     | B-217               | 2    | opus   | started (agent spawned) |                                                |
+| 6     | B-217               | 2    | opus   | handed off (13093950)   |                                                |
 | 7     | B-224               | 1    | opus   | merged                  | 95ac03f3 (d28a7b10)                            |
 
 - 2026-11-21: wave 1 started; worktrees `.loops/timeline-ux-2-{1,3,4,5,7}` (stackless). B-214, B-215, B-216, B-218, B-219, B-223, B-224 claimed by `prd/timeline-ux-2`; B-217 claimed when slice 6 starts. No new backlog items for this topic at the wave boundary.
@@ -27,6 +27,8 @@
 - Wave 2 started from 9fd694a8: `.loops/timeline-ux-2-{2,6}`; B-217 claimed. Wave 1 lands while wave 2 runs.
 - Docs folded for wave 1 (eed9341f).
 - Full check #1 on eed9341f failed 14 tests (`timelineSummaries`, `entryPrint`, `timelineCarePeriods`, `timelineSimple` period header): run at 00:20 America/Los_Angeles, the tests' zone, where `minutesAgo(40)` fixtures fall on yesterday. Clock-window failures, not this wave. Rerunning after 01:05 LA.
+- connectors-2 landed in dev (017a9b29, migration 0031, no pending migration here): sync before the 01:05 rerun, then `pnpm datastore:reset`.
+- tasks-2 (`tasks-2-20`) waits on wave 1 (PageHeader, the Upcoming and Tasks headers): message it at each landing.
 - Open issues: clock-dependent component tests fail in the first ~40 min after midnight LA (outside this PRD; tell the user).
 
 ## Backlog map
