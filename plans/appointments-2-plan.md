@@ -49,6 +49,8 @@ Slice 8 merged (edfcedf0); B-61 done.
 
 **User's answers (2026-11-20):** skip browser checks for this landing; raise the lean ceiling to 257 s (done: `lean-ceiling 257`, roundtrip 29, from slice 10's ~0.9–1.4 s; reset from a suite median later); "Also remind me" with reminders off keeps sending nothing.
 
+**Landing (2026-11-21):** full check passed on cde74ffb (5095 tests). Then synced dev's B-207 hotfix only (compose healthchecks, `scripts/loops/recover.sh`; no shared files) as abce2bc3; landed with `--force` on the user's word ("do not recheck on the tooling change from hotfix; you can force land if you feel like it is safe"). No browser checks (the user's choice). After landing: `pnpm prd rm appointments-2`.
+
 **Synced conditions** (72fb9164): dev gained conditions' migrations 0025–0028, so our 0025–0027 are regenerated as one, `0029_appointments_calendars.sql` (same statements; hand edits re-applied: series FK `ON DELETE SET NULL ("series_id")` and `ALTER PUBLICATION powersync ADD TABLE appointment_series` at the end). Registry conflicts merged as whole blocks (conditions first). Datastore reset. Full check running.
 
 **Synced dev again** (944cbbc6, B-208: simple mode gets the full ⋯ menus; TimelineEntryList conflict resolved in code: series scope, series Edit, Delete and Remind me no longer exclude simple mode). Third full check (eb60e151) failed only on a load flake in `scripts/loops/browser.test.mjs` (passed 2/2 alone). Synced dev again (78566531: B-210 spec fixes; took dev's device test). Fourth full check running.
