@@ -219,7 +219,6 @@ export function EntryPageHeader({
       <SeriesScopeDialog
         open={live.scopeAsked}
         action="edit"
-        kind={entry.kind}
         onChoose={live.chooseScope}
         onClose={() => live.chooseScope(null)}
       />

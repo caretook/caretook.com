@@ -102,15 +102,18 @@ describe("entryActionItems", () => {
 });
 
 describe("entryActionItems, Remind me", () => {
-  it("comes before Print, for a note or event, viewers included", () => {
+  it("comes before Print, for an event, viewers included", () => {
     expect(entryActionItems("event", { canEdit: false, canRemind: true, canPrint: true })).toEqual([
       "remind",
       "print",
       "delete",
     ]);
+  });
+
+  it("is never offered for a note", () => {
     expect(
       entryActionItems("note", { canEdit: false, canRemind: true, canPrint: true, canDelete: false }),
-    ).toEqual(["remind", "print"]);
+    ).toEqual(["print"]);
   });
 
   it("is never offered for other kinds or unless asked", () => {

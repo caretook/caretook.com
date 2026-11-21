@@ -1,12 +1,13 @@
 import type { SeriesTiming } from "@caretook/data/series";
 import type { RepeatChoice } from "~/lib/appointments/repeatChoice";
+import type { RepeatKind } from "./RepeatField";
 
 import { useState } from "react";
 import { Sheet } from "~/components/ui";
 import { repeatOutcome, RepeatField } from "./RepeatField";
 
 /**
- * The repeat field in a sheet, over a new appointment or reminder: Done
+ * The repeat field in a sheet, over a new appointment or a todo's form: Done
  * keeps the choice (with its rule text, or null for Doesn't repeat), Cancel
  * and Escape leave it as it was. Done stays put while the choice can't be
  * saved (the preview says why).
@@ -20,7 +21,7 @@ export function RepeatSheet({
 }: {
   initial: RepeatChoice;
   timing: Omit<SeriesTiming, "rule">;
-  kind: "event" | "note";
+  kind: RepeatKind;
   onDone: (choice: RepeatChoice, rule: string | null) => void;
   onClose: () => void;
 }) {

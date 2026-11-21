@@ -1,7 +1,7 @@
 import type { CalendarItem } from "./calendarItems";
 
 import { describe, expect, it } from "vitest";
-import { calendarItems } from "./calendarItems";
+import { CALENDAR_ITEM_KINDS, calendarItems } from "./calendarItems";
 import { calendarText, calendarWhen } from "./calendarText";
 
 // calendarText (appointments-2): generic by default, details only at the
@@ -38,12 +38,13 @@ describe("calendarText, generic", () => {
       description:
         "Thu 19 Nov · 9:00–10:00\nOpen in Caretook: https://caretook.example/app/groups/g1/entries/e1",
     });
-    expect(calendarText(item({ kind: "reminder" }), "generic").summary).toBe("Reminder for Pat");
+    expect(calendarText(item({ kind: "appointment" }), "generic").summary).toBe("Appointment for Pat");
+    expect(JSON.stringify(CALENDAR_ITEM_KINDS)).not.toMatch(/reminder/i);
     expect(calendarText(item({ kind: "todo" }), "generic").summary).toBe("Todo for Pat");
   });
 
   it("never holds the title, place or providers, for any kind or status", () => {
-    for (const kind of ["appointment", "reminder", "todo"] as const)
+    for (const kind of CALENDAR_ITEM_KINDS)
       for (const status of ["confirmed", "cancelled"] as const)
         for (const allDay of [false, true]) {
           const subject = item({
@@ -128,8 +129,7 @@ describe("calendarText, status and time", () => {
 });
 
 describe("calendarWhen", () => {
-  it("gives a reminder or todo only its start (its end is made up)", () => {
-    expect(calendarWhen(item({ kind: "reminder" }), LA)).toBe("Thu 19 Nov · 9:00");
+  it("gives a todo only its start (its end is made up)", () => {
     expect(calendarWhen(item({ kind: "todo" }), LA)).toBe("Thu 19 Nov · 9:00");
   });
 

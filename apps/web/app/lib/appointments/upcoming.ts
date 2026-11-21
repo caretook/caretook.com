@@ -1,6 +1,6 @@
 import { endOfDay, localDate } from "@caretook/data/schema";
 
-// The time rules for appointments and reminders (future events and notes).
+// The time rules for appointments (future events).
 // Every screen that splits the past from what's coming (the history, the
 // Next strip, the Upcoming block and section, the entry page) decides it
 // here, so they always agree. Pure: callers pass `now` (from a clock such as

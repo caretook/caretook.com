@@ -75,7 +75,7 @@ export const catchMeUp = definePrompt({
     [
       `Catch me up on the care group since ${since ? `"${since}"` : "the start of today"}, in the care recipient's time zone.`,
       START,
-      "Then use list_timeline with `from` set to that time for what was logged and by whom, todays_doses for the doses given, missed or still due today, and upcoming for what's coming in the next few days.",
+      "Then use list_timeline with `from` set to that time for what was logged and by whom, todays_doses for the doses given, missed or still due today, and upcoming for the appointments and todos coming in the next few days.",
       "Answer in a few short sections, most important first. If nothing was logged, say so plainly.",
     ].join("\n\n"),
 });
@@ -111,7 +111,7 @@ export const weeklySummary = definePrompt({
     [
       "Write a plain-language summary of the last 7 days of care, to share with family.",
       START,
-      "Then use list_timeline from 7 days ago (pass nextCursor back until there are no more), latest_vitals, list_medications for anything that changed, and upcoming for the week ahead.",
+      "Then use list_timeline from 7 days ago (pass nextCursor back until there are no more), latest_vitals, list_medications for anything that changed, and upcoming for the week's appointments and todos.",
       "Keep it short and warm, with no medical jargon. Leave out phone numbers, addresses and anything the family wouldn't need.",
     ].join("\n\n"),
 });

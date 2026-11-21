@@ -56,9 +56,8 @@ describe("cancelledLabel and rescheduledLabel", () => {
 });
 
 describe("upcomingTitle and upcomingWhen", () => {
-  it("falls back to Reminder or Appointment", () => {
+  it("falls back to Appointment", () => {
     expect(upcomingTitle({ kind: "event", title: "Dr. Alvarez" })).toBe("Dr. Alvarez");
-    expect(upcomingTitle({ kind: "note", title: null })).toBe("Reminder");
     expect(upcomingTitle({ kind: "event", title: " " })).toBe("Appointment");
   });
 
