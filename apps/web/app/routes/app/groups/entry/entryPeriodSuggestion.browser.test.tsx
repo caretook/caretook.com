@@ -69,7 +69,7 @@ describe("the period suggestion", () => {
     await waitUntil(onEntry, 4000, "the entry page");
     await waitUntil(() => !!chip(), 4000, "the chip");
     expect(chips()).toHaveLength(1);
-    expect(chip()!.dataset.periodSuggestion).toBe("hospital");
+    await expect.poll(() => chip()?.dataset.periodSuggestion).toBe("hospital");
     await expect.poll(() => chip()?.textContent?.trim()).toBe("Start a hospital period?");
 
     await userEvent.click(chip()!);

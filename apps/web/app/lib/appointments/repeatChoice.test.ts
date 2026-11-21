@@ -23,6 +23,9 @@ describe("repeat choices", () => {
     expect(monthWeekOf("2026-11-29")).toBe(-1);
     expect(monthlyLabels(WED)).toEqual({ date: "On the 18th", weekday: "On the 3rd Wednesday" });
     expect(monthlyLabels("2026-11-30").weekday).toBe("On the last Monday");
+    // A stored rule's ordinal and weekday win over the start's (the saved rule keeps them).
+    expect(monthlyLabels("2027-02-26", { nth: -1, weekday: "FR" }).weekday).toBe("On the last Friday");
+    expect(monthlyLabels("2027-02-26", { nth: 2, weekday: "TU" }).weekday).toBe("On the 2nd Tuesday");
   });
 
   it("start with no repeat, weekly on the first day's weekday if picked", () => {
@@ -106,6 +109,27 @@ describe("choiceOfRule", () => {
       const rule = ruleText(choiceRule({ ...choice, weekdays: [...choice.weekdays] }, start)!);
       expect(ruleText(choiceRule(choiceOfRule(rule, start), start)!)).toBe(rule);
     }
+  });
+
+  it("keeps a stored ordinal and weekday, the last Friday from a four-Friday month", () => {
+    const start = "2027-02-26"; // a month with four Fridays
+    for (const rule of ["FREQ=MONTHLY;INTERVAL=1;BYDAY=-1FR", "FREQ=MONTHLY;INTERVAL=1;BYDAY=2TU"]) {
+      const choice = choiceOfRule(rule, start);
+      expect(ruleText(choiceRule(choice, start)!)).toBe(rule);
+    }
+  });
+
+  it("builds from the date once the repeat changes", () => {
+    const start = "2027-02-26";
+    const choice = { ...choiceOfRule("FREQ=MONTHLY;INTERVAL=1;BYDAY=-1FR", start), keptWeekday: undefined };
+    expect(ruleText(choiceRule(choice, start)!)).toBe(
+      ruleText(choiceRule({ ...choice, monthlyBy: "weekday" }, start)!),
+    );
+    expect(choiceRule({ ...choice, monthlyBy: "weekday" }, start)!.monthly).toEqual({
+      by: "weekday",
+      nth: 4,
+      weekday: "FR",
+    });
   });
 
   it("starts from the default for an unreadable rule", () => {

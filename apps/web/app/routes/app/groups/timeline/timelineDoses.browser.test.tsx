@@ -435,7 +435,7 @@ describe("the Dose sheet's + New medication", () => {
     expect(NAME()).toBeNull();
     await userEvent.click(radio("medicationId", "+ New medication")!);
     await expect.poll(NAME).toBeTruthy();
-    expect(NAME()!.value).toBe("");
+    await expect.poll(() => NAME()?.value).toBe("");
     expect(typeChecked()).toBe("Prescription");
     // The amount starts empty (nothing typed for the new one), then follows its dose.
     await expect.poll(() => AMOUNT().value).toBe("");
@@ -449,6 +449,19 @@ describe("the Dose sheet's + New medication", () => {
     await expect.poll(NAME).toBeNull();
   });
 
+  test("switching to a medication and back leaves the amount empty, with the dose field, not the discarded dose", async () => {
+    await open({ query: "?kind=dose" });
+    await pickNew();
+    await userEvent.fill(NEW_DOSE()!, "2 tablets");
+    await expect.poll(() => AMOUNT().value).toBe("2 tablets");
+    await userEvent.click(radio("medicationId", "Lisinopril 10 mg")!);
+    await expect.poll(NAME).toBeNull();
+    await userEvent.click(radio("medicationId", "+ New medication")!);
+    await expect.poll(NAME).toBeTruthy();
+    await expect.poll(() => NEW_DOSE()!.value).toBe("");
+    await expect.poll(() => AMOUNT().value).toBe("");
+  });
+
   test("a name matching an allergy warns, without blocking", async () => {
     await open({
       query: "?kind=dose",
@@ -457,7 +470,7 @@ describe("the Dose sheet's + New medication", () => {
     await pickNew();
     await userEvent.fill(NAME()!, "Ibuprofen");
     await expect.poll(() => SHEET()!.textContent).toContain("Matches an allergy on file: Ibuprofen (severe)");
-    expect(NAME()!.getAttribute("aria-invalid")).not.toBe("true");
+    await expect.poll(() => NAME()?.getAttribute("aria-invalid")).not.toBe("true");
   });
 
   test("an empty name is refused on its field, and nothing is written", async () => {

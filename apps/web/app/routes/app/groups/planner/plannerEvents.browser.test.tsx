@@ -252,7 +252,7 @@ describe("reschedule", () => {
     const device = await openPlanner({ extra: [NEURO, fx.link(NEURO.id, TRAN.id)] });
     await openMenu(itemEl(NEURO.id)!.querySelector(ACTIONS));
     await openSheet();
-    expect(KEEP()!.checked).toBe(true);
+    await expect.poll(() => KEEP()?.checked).toBe(true);
     await rescheduleBy(3, true);
     await expect.poll(() => device.location(), { timeout: 5000 }).toMatch(/\/entries\/[0-9a-f-]{36}$/);
     const fresh = device.location().split("/").at(-1)!;
@@ -287,9 +287,9 @@ describe("reschedule", () => {
     const device = await openPlanner({ url: entryUrl(EYES_OLD.id), extra: [NOTED_OLD] });
     const link = () => BANNER()?.querySelector<HTMLAnchorElement>(`[data-rescheduled-to="${EYES_NEW.id}"] a`);
     await expect.poll(() => link()?.textContent).toBe("Rescheduled to Tue, Nov 24");
-    expect(link()!.getAttribute("href")).toBe(entryUrl(EYES_NEW.id));
+    await expect.poll(() => link()?.getAttribute("href")).toBe(entryUrl(EYES_NEW.id));
     await expect.poll(() => EDITOR()?.textContent).toContain("Ask about the drops");
-    expect(EDITOR()!.getAttribute("contenteditable")).toBe("false");
+    await expect.poll(() => EDITOR()?.getAttribute("contenteditable")).toBe("false");
     expect(document.querySelector("[data-earlier-notes]")).not.toBeNull();
     await device.screen.unmount();
 
@@ -343,7 +343,7 @@ describe("reschedule", () => {
     await expect.poll(() => !!timelineRow(BLOOD_DRAW.id)).toBe(true);
     await openMenu(timelineRow(BLOOD_DRAW.id)!.querySelector(ACTIONS));
     await openSheet();
-    expect(KEEP()!.checked).toBe(false);
+    await expect.poll(() => KEEP()?.checked).toBe(false);
     await userEvent.keyboard("{Escape}");
     await expect.poll(SHEET).toBeNull();
   });

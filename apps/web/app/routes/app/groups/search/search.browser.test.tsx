@@ -192,7 +192,7 @@ describe("results", () => {
     await searchFor("lisinopril");
     expect(sections()).toEqual(["medication", "entry"]);
     expect(resultIds("medication")).toEqual([lisinopril.id]);
-    expect(statusLine()!.getAttribute("role")).toBe("status");
+    await expect.poll(() => statusLine()?.getAttribute("role")).toBe("status");
     await expect.poll(() => statusLine()?.textContent).toMatch(/medication/);
     expect(device.location()).toBe(searchUrl("?q=lisinopril"));
     const before = resultIds("entry");

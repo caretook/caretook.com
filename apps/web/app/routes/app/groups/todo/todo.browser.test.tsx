@@ -146,7 +146,7 @@ describe("the todo page", () => {
     const device = await open(pageOf(MINE.id), "viewer", [...world(), notes]);
     await expect.element(heading("Call the pharmacy")).toBeInTheDocument();
     await expect.poll(() => EDITOR()?.textContent).toContain("Ask for the generic");
-    expect(EDITOR()!.getAttribute("contenteditable")).toBe("false");
+    await expect.poll(() => EDITOR()?.getAttribute("contenteditable")).toBe("false");
     await expect
       .element(page.getByText("Shared with the care group. You can view these notes."))
       .toBeInTheDocument();
