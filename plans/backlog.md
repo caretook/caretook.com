@@ -1935,6 +1935,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (prd/check-speed): Codex P2 on PR #27 (thread PRRT_kwDOVx-WLM66cict); slice 4 named it too. No topic today is that long, so a follow-up.
+- 2026-11-21 (prd/check-speed): check-speed is done (2026-11-21); proposed for test-health, whose slice 11 builds on the worker databases. Not urgent: no topic is long enough today.
 
 ### B-406 · feature · Set priority in the inbox, not the backlog: the user orders a short 'Next up' list in plans/inbox.md (plain lines, no ids or fields) and the dispatcher reads it as the order to plan and run, keeping the PRD table's row order in step; the user opens the backlog only when an agent asks
 
