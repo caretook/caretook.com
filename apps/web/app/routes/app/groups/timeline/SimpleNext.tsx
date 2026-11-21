@@ -18,7 +18,7 @@ import { useSimpleUpcoming } from "./useSimpleUpcoming";
 const ITEM_LINK = "hover:bg-base-content/5 rounded-box -mx-2 block px-2 py-2";
 
 /**
- * The next appointment or reminder, the Upcoming block's last line (B-191):
+ * The next appointment, the Upcoming block's last line (B-191):
  * a button that opens the next five upcoming items under it, each a link to
  * its page, then "See all" to the Planner; another tap closes it. Closed on
  * every visit. Nothing when nothing is ahead.

@@ -32,11 +32,11 @@ describe("asksScope", () => {
 });
 
 describe("scopeQuestion", () => {
-  it("names the action and the kind", () => {
-    expect(scopeQuestion("delete", "event").title).toBe("Delete a repeating appointment");
-    expect(scopeQuestion("edit", "note").title).toBe("Change a repeating reminder");
-    expect(scopeQuestion("cancel", "event").message).toContain("The series ends here");
-    expect(scopeQuestion("reschedule", "event").message).toContain("Past visits stay as they were");
+  it("names the action", () => {
+    expect(scopeQuestion("delete").title).toBe("Delete a repeating appointment");
+    expect(scopeQuestion("edit").title).toBe("Change a repeating appointment");
+    expect(scopeQuestion("cancel").message).toContain("The series ends here");
+    expect(scopeQuestion("reschedule").message).toContain("Past visits stay as they were");
   });
 });
 

@@ -17,7 +17,7 @@ export type TodayStatus = "error" | "warning" | "info" | "neutral";
 export type TodayRow =
   /** The newest of the latest vitals' readings. */
   | { kind: "vitals"; latestAt: string }
-  /** The next appointment or reminder. */
+  /** The next appointment. */
   | { kind: "appointment"; entry: TimedEntry }
   /** The pass the row shows: its moment today, or null when it's tomorrow's (nothing left today). */
   | { kind: "medications"; dueAt: string | null }
@@ -154,7 +154,7 @@ export type TodaySummaryParts = {
   counts: AttentionCounts;
   /** The newest reading, as the row words it ("BP 130/85 mmHg"). */
   vital?: string | null;
-  /** How many appointments and reminders are ahead (the next one and the rest). */
+  /** How many appointments are ahead (the next one and the rest). */
   appointments?: number;
   /** The next pass's time ("20:00"), while nothing is overdue or due soon. */
   medications?: string | null;

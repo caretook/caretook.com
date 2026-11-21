@@ -34,7 +34,7 @@ import * as plannerRoute from "./route";
 // The Planner on the test device (from upcoming.mjs): the section in the
 // tab bar and the header, the shared header on its two tabs (the heading,
 // the tabs, the Add menu), Upcoming | Past, the Filter menu, the Planner tab's list (order, days, Now, all
-// day, ranges, cancelled and rescheduled, the reminder note, call and map),
+// day, ranges, cancelled and rescheduled, call and map),
 // the kind and author filters in the URL, the Past tab (newest first,
 // cancelled ones, paging), items leaving as their time passes, today's due
 // doses, the viewer and a non-member. The device never connects, so every
@@ -244,19 +244,13 @@ describe("adding", () => {
   const items = () =>
     [...document.querySelectorAll("[role=menu] [role=menuitem]")].map((m) => m.textContent?.trim());
 
-  test("a writer's Add menu has Appointment, Reminder and Todo; Appointment is a draft that picks the time first, a Reminder (slice 3 removes it) a plain new note", async () => {
+  test("a writer's Add menu has Appointment and Todo; Appointment is a draft that picks the time first", async () => {
     const device = await openPlanner({ role: "caretaker" });
     await userEvent.click(addButton());
-    await expect.poll(items).toEqual(["Appointment", "Reminder", "Todo"]);
+    await expect.poll(items).toEqual(["Appointment", "Todo"]);
     const base = `/app/groups/${TEST_GROUP.id}/entries/new`;
     await userEvent.click(page.getByRole("menuitem", { name: "Appointment" }));
     await expect.poll(() => device.location()).toBe(`${base}?kind=event&when=pick`);
-    await device.screen.unmount();
-
-    const again = await openPlanner({ role: "caretaker" });
-    await userEvent.click(addButton());
-    await userEvent.click(page.getByRole("menuitem", { name: "Reminder" }));
-    await expect.poll(() => again.location()).toBe(`${base}?kind=note`);
   });
 
   for (const [name, tabName, url] of [
@@ -511,5 +505,16 @@ describe("today's due doses", () => {
       medicationId: DONEPEZIL.id,
       scheduledFor: "09:57",
     });
+  });
+});
+
+describe("a stored future note", () => {
+  test("shows in no Planner row, while the appointments do", async () => {
+    const FUTURE_NOTE = fx.note({ title: "Call the pharmacy", occurredAt: laTime(1, 9), text: "Refill." });
+    await openPlanner({ extra: [FUTURE_NOTE] });
+    await expect.poll(() => listed().length).toBeGreaterThan(0);
+    expect(listed().map((r) => r.id)).not.toContain(FUTURE_NOTE.id);
+    expect(listed().map((r) => r.id)).toContain(NURSE.id);
+    expect(document.body.textContent).not.toContain("Call the pharmacy");
   });
 });

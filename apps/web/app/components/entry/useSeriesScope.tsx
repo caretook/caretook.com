@@ -96,7 +96,6 @@ export function useSeriesScope(enabled: boolean) {
         <SeriesScopeDialog
           open={!!asking}
           action={asking?.action ?? "edit"}
-          kind={asking?.entry.kind ?? "event"}
           onChoose={choose}
           onClose={() => {
             const current = asking;

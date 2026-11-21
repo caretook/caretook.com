@@ -2,7 +2,7 @@ import type { TimedEntry } from "./upcoming";
 
 import { dayLabel } from "../core/format";
 
-// The words for appointments and reminders: time ranges, "Now · until …",
+// The words for appointments: time ranges, "Now · until …",
 // "Cancelled", "Rescheduled to …" and the Next strip. Pure, with `locale`
 // and `timeZone` passed in by tests (screens leave them to the device).
 // Unit-tested in web:unit.
@@ -36,9 +36,9 @@ export const rescheduledLabel = (to: Pick<TimedEntry, "occurredAt">, where: Wher
     timeZone: where.timeZone,
   }).format(new Date(to.occurredAt))}`;
 
-/** What an upcoming item is called: its title, else "Reminder" (a note) or "Appointment". */
+/** What an upcoming item is called: its title, else "Appointment". */
 export const upcomingTitle = (entry: { kind: string; title?: string | null }) =>
-  entry.title?.trim() || (entry.kind === "note" ? "Reminder" : "Appointment");
+  entry.title?.trim() || "Appointment";
 
 /**
  * When an upcoming item is, in a line: "Tomorrow 10:30 AM", "Friday, Nov 20"

@@ -2,7 +2,7 @@ import type { MenuEntry } from "~/components/ui";
 import type { FilterMenuProps } from "~/components/ui";
 import type { UpcomingShow } from "./upcomingFilters";
 
-import { CalendarPlus, ListTodo, NotebookPen, Plus } from "lucide-react";
+import { CalendarPlus, ListTodo, Plus } from "lucide-react";
 import { useMemo } from "react";
 import { useLocation } from "react-router";
 import {
@@ -22,8 +22,8 @@ import { setShow, tabSearch, UPCOMING_SHOW_LABELS, UPCOMING_SHOWS } from "./upco
 
 /**
  * The Planner section's header, the same on its tabs: the "Planner"
- * heading; for writers one "Add" menu (Appointment and Reminder, drafts
- * that pick the time first, `?when=pick`; Todo, the add sheet, which closes
+ * heading; for writers one "Add" menu (Appointment, a draft
+ * that picks the time first, `?when=pick`; Todo, the add sheet, which closes
  * back to the tab it was opened from); then the two tabs, Planner and Todos
  * (`TabNav`; Planner stays current on Past), links that carry the filters
  * each reads (Planner: what it shows and the author; Todos: its `?who=` chip).
@@ -42,7 +42,6 @@ export function PlannerHeader() {
       icon: CalendarPlus,
       href: appUrls.newPlannerEntry(groupId, "event"),
     },
-    { id: "reminder", label: "Reminder", icon: NotebookPen, href: appUrls.newPlannerEntry(groupId, "note") },
     {
       id: "todo",
       label: "Todo",
