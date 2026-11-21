@@ -27,7 +27,7 @@
 
 **Docs:** every slice folded into the area docs (connectors.md with slice 6). B-181 done.
 
-**Now:** landing. Full `pnpm prd check` passed on `9d07cf1f`; `--suite` run once (user said yes): 9/12. app-shell (`[data-simple-toggle]`), layout-offline (`[aria-label="Cards"]`) and invites (first `/entries/` link is the collapsed Today card's Next link) fail on specs `dev`'s hotfixes `76375c07` (one View options menu) and `1ff53864` (Today card collapsed) left stale; invites confirmed alone. Not conditions. User: land, and file the specs (B-210). Synced `dev` (B-208) as `f3982012`: only search.md and timeline.md shared (resolved, budget kept), so `pnpm prd check --quick`.
+**Now:** landing on the user's word, check skipped at their say (full `pnpm prd check` passed on `9d07cf1f`; since then only `dev` syncs: B-208 with search.md/timeline.md resolved by hand, and B-210's spec fixes `570293a2`). `--suite` ran once: 9/12, the three failures were B-210's stale specs. Ask before running any test but lint. Message medications-3-ca once landed.
 
 **Browser checks at landing:** slices 1 and 4 name the whole lean set (migration, sync config): run `pnpm prd browser --suite` once at landing — ask the user first (plan: never `--suite` without asking).
 
