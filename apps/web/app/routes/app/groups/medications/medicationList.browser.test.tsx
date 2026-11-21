@@ -139,6 +139,52 @@ describe("the list", () => {
     expect(listNames(STOPPED)).toEqual(SEEDED_STOPPED);
   });
 
+  test("the type chips filter the list and go in the URL with the status, which opens filtered; All types clears only the type", async () => {
+    const typeChip = (label: string) =>
+      $$<HTMLAnchorElement>('main nav[aria-label="Medication type"] a').find(
+        (a) => a.textContent?.trim() === label,
+      )!;
+    const device = await open();
+    await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
+    expect($$('main nav[aria-label="Medication type"] a').map((a) => a.textContent?.trim())).toEqual([
+      "All types",
+      "Prescription",
+      "Over the counter",
+      "Supplement",
+      "Other",
+    ]);
+    await userEvent.click(await found(() => typeChip("Over the counter")));
+    await expect.poll(device.location).toBe(`${LIST}?type=otc`);
+    await expect.poll(() => listNames(CURRENT)).toEqual(["Acetaminophen 500 mg"]);
+    expect(listNames(STOPPED)).toEqual([]);
+    await userEvent.click(chip("Current"));
+    await expect.poll(device.location).toBe(`${LIST}?status=current&type=otc`);
+    await userEvent.click(typeChip("Supplement"));
+    await expect.poll(device.location).toBe(`${LIST}?status=current&type=supplement`);
+    await expect
+      .poll(() => document.querySelector("[data-empty]")?.textContent)
+      .toContain("No current supplement");
+    await device.screen.unmount();
+
+    const again = await open({ url: `${LIST}?status=current&type=otc` });
+    await expect.poll(() => listNames(CURRENT)).toEqual(["Acetaminophen 500 mg"]);
+    expect(currentChip()).toBe("Current");
+    expect($('main nav[aria-label="Medication type"] [aria-current="true"]')?.textContent?.trim()).toBe(
+      "Over the counter",
+    );
+    await userEvent.click(typeChip("All types"));
+    await expect.poll(again.location).toBe(`${LIST}?status=current`);
+    await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
+  });
+
+  test("an unknown type in the URL shows everything", async () => {
+    await open({ url: `${LIST}?type=bogus` });
+    await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
+    expect($('main nav[aria-label="Medication type"] [aria-current="true"]')?.textContent?.trim()).toBe(
+      "All types",
+    );
+  });
+
   test("a viewer sees the list, told it's view-only, with no Add medication", async () => {
     await open({ role: "viewer" });
     await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);

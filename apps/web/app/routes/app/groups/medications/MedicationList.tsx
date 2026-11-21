@@ -1,9 +1,9 @@
-import type { MedicationStatus } from "@caretook/data/schema";
+import type { MedicationStatus, MedicationType } from "@caretook/data/schema";
 import type { MedicationList as Listed } from "~/lib/medications/medicationList";
 import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 
-import { STATUS_LABELS } from "~/lib/medications/medicationDisplay";
+import { MEDICATION_TYPE_LABELS, STATUS_LABELS } from "~/lib/medications/medicationDisplay";
 import { MedicationListItem } from "./MedicationListItem";
 
 const countLabel = (n: number) => `${n} ${n === 1 ? "medication" : "medications"}`;
@@ -41,6 +41,7 @@ export function MedicationList({
   passes,
   text,
   status,
+  type = null,
 }: {
   /** Every medication in the group (not deleted), before filtering. */
   total: number;
@@ -50,9 +51,15 @@ export function MedicationList({
   /** What's typed in the search box. */
   text: string;
   status: MedicationStatus | null;
+  type?: MedicationType | null;
 }) {
   const shown = list.current.length + list.stopped.length;
-  const what = status ? `${STATUS_LABELS[status].toLowerCase()} medications` : "medications";
+  const what = `${[
+    status && STATUS_LABELS[status].toLowerCase(),
+    type && MEDICATION_TYPE_LABELS[type].toLowerCase(),
+  ]
+    .filter(Boolean)
+    .join(" ")} medications`.trim();
   return (
     <>
       <p role="status" className="sr-only">

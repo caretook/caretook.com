@@ -1,10 +1,18 @@
-import type { MedicationContent, MedicationStatus, ProviderPhone, ProviderType } from "@caretook/data/schema";
+import type {
+  MedicationContent,
+  MedicationStatus,
+  MedicationType,
+  ProviderPhone,
+  ProviderType,
+} from "@caretook/data/schema";
 import type { SchedulePass } from "../../../../../lib/medications/medicationDisplay";
 
 import {
   FORM_LABELS,
   formatDate,
+  MEDICATION_TYPE_GROUPS,
   medicationTitle,
+  medicationTypeGroupHeading,
   scheduleText,
   STATUS_LABELS,
   STOP_REASON_LABELS,
@@ -43,7 +51,7 @@ export type PrintMedicationInput = Pick<
   | "stopNote"
   | "prescriberId"
   | "pharmacyId"
-> & { id: string; deletedAt?: string | null };
+> & { id: string; /** Missing reads as not set. */ type?: MedicationType | null; deletedAt?: string | null };
 
 export type PrintProviderInput = {
   id: string;
@@ -66,6 +74,14 @@ export type PrintCurrentRow = {
   prescriber: string | null;
   /** "Jul 21, 2026", or null. */
   started: string | null;
+};
+
+export type PrintTypeGroup = {
+  /** Null for the medications with no type. */
+  type: MedicationType | null;
+  /** "Prescriptions", "Supplements", "Type not set". */
+  heading: string;
+  rows: PrintCurrentRow[];
 };
 
 export type PrintStoppedRow = {
@@ -100,6 +116,9 @@ export type PrintSheet = {
   groupName: string;
   /** The recipient's day when printed: "Nov 18, 2026". */
   printedOn: string;
+  /** Current medications, grouped by type: a group for each type that has any, Type not set last. */
+  currentGroups: PrintTypeGroup[];
+  /** The same rows, flat, in group order. */
   current: PrintCurrentRow[];
   stopped: PrintStoppedRow[];
   contacts: PrintContact[];
@@ -153,7 +172,8 @@ const recipientName = ({ name, preferredName }: PrintRecipient) => {
 /**
  * The sheet for a group's medications:
  *
- * - current medications, by name;
+ * - current medications, grouped by type (Prescription, Over the counter,
+ *   Supplement, Other, then none; empty groups left out), each by name;
  * - medications completed or discontinued in the last 90 days (the stop day
  *   on or after the recipient's today less 90), most recently stopped first;
  * - every prescriber and pharmacy those name, once each (a provider that is
@@ -187,7 +207,10 @@ export const printSheet = ({
   const providerById = new Map(providers.map((p) => [p.id, p]));
   const nameOf = (id: string | null) => (id ? (providerById.get(id)?.name ?? null) : null);
 
-  const currentMeds = live.filter((m) => m.status === "current").sort(byName);
+  const currentLive = live.filter((m) => m.status === "current");
+  const currentMeds = MEDICATION_TYPE_GROUPS.flatMap((type) =>
+    currentLive.filter((m) => (m.type ?? null) === type).sort(byName),
+  );
   const stoppedMeds = live
     .filter(
       (m): m is PrintMedicationInput & { status: "completed" | "discontinued"; stoppedOn: string } =>
@@ -195,17 +218,26 @@ export const printSheet = ({
     )
     .sort((a, b) => (a.stoppedOn < b.stoppedOn ? 1 : a.stoppedOn > b.stoppedOn ? -1 : byName(a, b)));
 
-  const current: PrintCurrentRow[] = currentMeds.map((m) => ({
-    id: m.id,
-    title: medicationTitle(m),
-    form: m.form ? FORM_LABELS[m.form] : null,
-    dose: blank(m.dose),
-    directions: blank(m.directions),
-    schedule: scheduleText(m.schedule, passes, m.dose),
-    reason: blank(m.reason),
-    prescriber: nameOf(m.prescriberId),
-    started: m.startedOn ? formatDate(m.startedOn, locale) : null,
-  }));
+  const currentRows = new Map<string, PrintCurrentRow>();
+  for (const m of currentMeds)
+    currentRows.set(m.id, {
+      id: m.id,
+      title: medicationTitle(m),
+      form: m.form ? FORM_LABELS[m.form] : null,
+      dose: blank(m.dose),
+      directions: blank(m.directions),
+      schedule: scheduleText(m.schedule, passes, m.dose),
+      reason: blank(m.reason),
+      prescriber: nameOf(m.prescriberId),
+      started: m.startedOn ? formatDate(m.startedOn, locale) : null,
+    });
+  const currentGroups: PrintTypeGroup[] = MEDICATION_TYPE_GROUPS.flatMap((type) => {
+    const rows = currentMeds
+      .filter((m) => (m.type ?? null) === type)
+      .map((m) => currentRows.get(m.id) as PrintCurrentRow);
+    return rows.length ? [{ type, heading: medicationTypeGroupHeading(type), rows }] : [];
+  });
+  const current = currentGroups.flatMap((g) => g.rows);
 
   const stopped: PrintStoppedRow[] = stoppedMeds.map((m) => {
     const reason = m.status === "discontinued" && m.stopReason ? STOP_REASON_LABELS[m.stopReason] : null;
@@ -254,6 +286,7 @@ export const printSheet = ({
     },
     groupName,
     printedOn: formatDate(today, locale),
+    currentGroups,
     current,
     stopped,
     contacts,
