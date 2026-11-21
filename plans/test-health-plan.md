@@ -4,17 +4,17 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-21), not started. Waves 1 to 4 can start now. Waves 5 to 7 wait until `list-filters`, `planner-2` and `ui-kit` have all landed in `dev`.
+**Where it stands:** planned (2026-11-21), not started. **Slices 1, 2, 6 and 7 moved to [`check-speed`](check-speed-plan.md)** (its slices 1 to 4, with B-271, B-272, B-273 and B-278) on 2026-11-21: skip them here. The load gate was dropped there for two check leases and a check log. Waves 1 to 4 can start now, except slice 11, which waits for `check-speed` in `dev`. Waves 5 to 7 wait until `list-filters`, `planner-2` and `ui-kit` have all landed in `dev`.
 
 | Slice | Wave | State       | Merge into `prd/test-health` (slice commits) |
 | ----- | ---- | ----------- | -------------------------------------------- |
-| 1     | 1    | not started |                                              |
-| 2     | 1    | not started |                                              |
+| 1     | 1    | moved       |                                              |
+| 2     | 1    | moved       |                                              |
 | 3     | 1    | not started |                                              |
 | 4     | 1    | not started |                                              |
 | 5     | 1    | not started |                                              |
-| 6     | 2    | not started |                                              |
-| 7     | 2    | not started |                                              |
+| 6     | 2    | moved       |                                              |
+| 7     | 2    | moved       |                                              |
 | 8     | 2    | not started |                                              |
 | 9     | 2    | not started |                                              |
 | 10    | 2    | not started |                                              |
@@ -32,14 +32,10 @@
 
 | Item                                       | Slices          |
 | ------------------------------------------ | --------------- |
-| B-271 loops through the lease, load gate   | 1               |
-| B-272 quick at hand-off, full at landing   | 6               |
-| B-273 tooling tests in their own project   | 2               |
 | B-274 one test clock, one `fixClock`       | 3, 15 to 18, 19 |
 | B-275 one `waitUntil`, one timeout         | 3, 15 to 18, 19 |
 | B-276 `getByCss`, locators, the lint rules | 8, 15 to 18, 19 |
 | B-277 browser-check bookkeeping            | 4               |
-| B-278 a database per worker                | 7               |
 | B-279 frozen lists                         | 5               |
 | B-280 change detectors                     | 9               |
 | B-281 component cuts, probe route          | 14              |
@@ -53,11 +49,7 @@ Durable decisions every slice follows:
 - **No new dependencies, no migration, no schema change.** The only app-code change is slice 9's merge of the duplicate label definitions.
 - **The review isn't in the repo.** A cut slice (5, 9 to 14) works from its backlog note (`pnpm backlog show B-<n>`), re-derives the exact list from the code, and its hand-off has a table: what was deleted or moved, and the test that still covers it. A count that differs from the note is reported, not chased.
 - **Cut, don't rewrite.** A cut slice deletes or moves tests; it changes app code only where this plan says so. If a deletion would leave a rule with no test, keep the test and say so.
-- **Checks through the lease.** From slice 1 on, every check is `pnpm prd check` (never a bare `pnpm check`). From slice 6 on, a loop hands off on `pnpm prd check --quick "<why>"`.
-- **Load gate:** kind `check`, the 5-minute load average, threshold 16 (`CARETOOK_CHECK_MAX_LOAD`; `off` disables). When the wait runs out because of load alone, run with a warning that prints the load.
-- **Check plan** is a pure `.mjs` module in `scripts/loops/` that `prd.sh check` calls: changed files and the asked mode in; the mode to run with its reason, the always-run list and "tooling joins" out. Forced full: a migration, seeds, `sync-config.yaml`, the lockfile, any `package.json`, `vitest.config.ts`.
-- **Vitest projects:** `tooling:unit` (the `scripts/loops`, `scripts/backlog` and hooks tests) is outside `pnpm test`; `scripts:unit` keeps `sync-matrix`, `check-areas`, `checks`, `scripts/deploy`, `scripts/build` and the new rule and check-plan tests.
-- **Worker databases:** `<worktree database>_w<n>`, three workers by default (`CARETOOK_INT_WORKERS`; `1` runs files in order as today).
+- **How checks run is `check-speed`'s** (the lease, the check log, the check plan, the `tooling:unit` project, worker databases): follow its plan's decisions. Use `pnpm prd check` once its wave 1 is in `dev`, and hand off on `pnpm prd check --quick "<why>"` once its wave 2 is.
 - **The test clock:** a fixed base date at 12:00 America/Los_Angeles on a weekday away from daylight-saving changes and month ends (2027-06-09), set before the test file's imports, reset before each test, ticking. `VITE_TEST_CLOCK` still moves the time of day. Harness deadlines use `performance.now()`.
 - **The harness API** lives in `apps/web/test/` (`found.ts` and beside it): `found`, `waitUntil`, `stopsMoving`, `getByCss`, `fixClock`, one timeout constant. Tests and world files import from there and define no copies.
 - **Lint rules** are local ESLint rules in the repo, scoped to `*.browser.test.tsx`, `apps/web/test/` and `*World.tsx`: warnings until slice 19. A real exception carries `// eslint-disable-next-line <rule> -- <reason>`.
@@ -66,24 +58,20 @@ Durable decisions every slice follows:
 
 ## How to run this plan
 
-- **Waves:** (1, 2, 3, 4, 5) → (6, 7, 8, 9, 10) → (11, 12) → 13 → _pause_ → 14 → (15, 16, 17, 18) → 19.
+- **Waves:** (3, 4, 5) → (8, 9, 10) → (11, 12) → 13 → _pause_ → 14 → (15, 16, 17, 18) → 19. Slices 1, 2, 6 and 7 are `check-speed`'s.
 - **Land each wave** through its PR as it goes green. After wave 4, pause: stop the orchestrator and restart it (`pnpm prd start test-health`) once `list-filters`, `planner-2` and `ui-kit` are in `dev`. Wave 5's first step is `pnpm prd sync`.
-- **Gates:** until slice 6 lands, the gate rules in the orchestrator handbook apply as written. From wave 2's landing on, wave gates are quick checks (the check plan forces a full one where needed) and wave 7's gate is the full check. A wave whose diff is tooling and Markdown only needs the tooling tests and prettier, as now.
+- **Gates:** until `check-speed` lands, the gate rules in the orchestrator handbook apply as written. Once it has, wave gates are quick checks (the check plan forces a full one where needed) and wave 7's gate is the full check. A wave whose diff is tooling and Markdown only needs the tooling tests and prettier, as now.
 - **Browser checks:** slices 10 and 12 run the checks they edit (`pnpm prd browser <check>`); slice 4 runs `pnpm prd browser --changed --list` to show the resolver still answers. The orchestrator runs `--suite` once at wave 3's landing (the specs changed) and once at wave 7's.
 - **Shared files inside a wave:**
-  - Wave 2: slices 6 and 7 both edit `vitest.config.ts` only if slice 6 needs it (it shouldn't); slice 7 owns the `integration` block. Slices 6 and 8 both add tests to `scripts:unit`.
+  - Wave 2: slice 8 adds tests to `scripts:unit`; `check-speed` owns `vitest.config.ts`'s project blocks.
   - Wave 6: each slice owns its directories and its own `*World.tsx`; nobody edits `apps/web/test/`. A harness gap found in wave 6 goes to the orchestrator, who fixes it on `prd/test-health` and tells the four loops to merge it.
 - **Ownership:**
-  - Slice 1: `lease.sh`, `lease.mjs`, their tests, the loop lines of `prompt.sh`.
-  - Slice 2: the `scripts:unit` and `tooling:unit` blocks of `vitest.config.ts`, the `test` scripts in `package.json`.
   - Slice 3: `apps/web/test/setup.ts`, `found.ts`.
   - Slice 4: `scripts/loops/checks`, `checks.mjs`, `checks.test.mjs`, `browser.sh`'s manifest reading, `check-areas.mjs`, `check-areas.d/`.
-  - Slice 6: `prd.sh`'s `check`, the check-plan module, `prompt.sh`'s check lines.
-  - Slice 7: `packages/data/test/`, `testDatabase.ts`, `test-db.sh`, `rm.sh`, the `integration` block.
   - Slice 8: the locator in `apps/web/test/`, the rules and `eslint.config.js`.
 - **Docs at landing (the orchestrator):**
-  - Wave 1: `docs/agents/loop.md` (checks through `pnpm prd check`; the manifest and ceiling paragraphs; directory defaults in _Which checks a file needs_), `docs/agents/orchestrator.md` (the load gate in _Machine leases_; the registries line no longer says each composed result is frozen in a test), the core's _Checks_ rule and `loop.md`'s project list (`pnpm test:tooling`), `docs/domain/components.md` (the clock, `waitUntil`).
-  - Wave 2: `loop.md` (hand-off on a quick check, the worker databases), `orchestrator.md` (_The check gate_: quick gates, full on the last wave, the forced list is the tooling's), `components.md` (`getByCss`, the lint rules), `docs/domain/data-layer.md` (worker databases).
+  - Wave 1: `docs/agents/loop.md` (the manifest and ceiling paragraphs; directory defaults in _Which checks a file needs_), `docs/agents/orchestrator.md` (the registries line no longer says each composed result is frozen in a test), `docs/domain/components.md` (the clock, `waitUntil`).
+  - Wave 2: `components.md` (`getByCss`, the lint rules).
   - Waves 3 and 4: `loop.md` (the check list: `signout-wipe` gone, what `marketing` and `ui` still own), `data-layer.md` (`createWorld` and the helpers), `docs/domain/marketing.md` if its tests are named there.
   - Wave 7: `components.md` (the rules are errors; the probe route).
 
@@ -91,44 +79,11 @@ Durable decisions every slice follows:
 
 ## Slice 1: Loops check through the lease; the lease waits for load
 
-Stack: no · Reads: docs/agents/orchestrator.md · Tests: unit
-
-**Backlog:** B-271. **User stories:** 1 to 6.
-
-**What to build**
-
-- A load gate in the lease library (`lease.sh`, and `lease.mjs` if it takes `check` leases): for kind `check`, after a slot is taken and before the command runs, wait while the 5-minute load average is at or above `CARETOOK_CHECK_MAX_LOAD` (default 16; `off` disables). The wait counts against the lease's wait. When it runs out because of load alone, run the command and print one warning line with the load. Print the load when the command starts.
-- The load reading comes through one function that a test can replace (an environment variable naming a stub command is enough).
-- `prompt.sh`: the slice prompt's two `pnpm check` lines say `pnpm prd check`.
-
-**Acceptance criteria**
-
-- [ ] Tooling tests beside the lease tests, with a stubbed load and a short wait: the command doesn't start while the load is high; it starts when the load drops; it runs with a warning naming the load when the wait runs out; `off` skips the gate; a kind other than `check` isn't gated; a slot that never frees still exits 75.
-- [ ] `prompt.test.mjs` (or the slice prompt's own test) shows a loop is told `pnpm prd check`.
-- [ ] The tooling tests pass (`pnpm exec vitest run --project scripts:unit scripts/loops`) and prettier is clean on the changed files.
-
-**Blocked by:** nothing. **Blocks:** 6.
+Moved to [`check-speed`](check-speed-plan.md) as its slice 1. Nothing to build here.
 
 ## Slice 2: Tooling tests in their own Vitest project
 
-Stack: no · Reads: none · Tests: unit
-
-**Backlog:** B-273. **User stories:** 13, 15, 16.
-
-**What to build**
-
-- A `tooling:unit` project in `vitest.config.ts`: the tests under `scripts/loops/` and `scripts/backlog/` and `scripts/hooks.test.mjs`, except the ones the default run keeps. Keep the 20 s timeout there.
-- `scripts:unit` keeps `scripts/loops/sync-matrix.test.mjs`, `check-areas.test.mjs`, `checks.test.mjs`, `scripts/deploy/` and `scripts/build/`.
-- `pnpm test` leaves `tooling:unit` out; a new `pnpm test:tooling` runs it. (Slice 6 makes `pnpm prd check` add it by diff.)
-- Don't fix the tests themselves (the per-test git repo in `check-gate.test.mjs`, the prompt phrases): note them in the hand-off as follow-ups.
-
-**Acceptance criteria**
-
-- [ ] `pnpm exec vitest list --project scripts:unit` names only the kept files; `--project tooling:unit` names the rest; no test file is in neither.
-- [ ] `pnpm test` runs no `tooling:unit` test; `pnpm test:tooling` runs them all and passes.
-- [ ] `pnpm prd check` passes; the hand-off gives the test counts of both projects and the wall time of `scripts:unit` before and after.
-
-**Blocked by:** nothing. **Blocks:** 6.
+Moved to [`check-speed`](check-speed-plan.md) as its slice 2. Nothing to build here.
 
 ## Slice 3: Harness: one test clock and one `waitUntil`
 
@@ -195,50 +150,11 @@ Stack: no · Reads: docs/domain/app-shell.md, docs/domain/api.md · Tests: unit
 
 ## Slice 6: Check plan: quick at hand-off, forced full, the always-run list
 
-Stack: no · Reads: docs/agents/orchestrator.md · Tests: unit
-
-**Backlog:** B-272; completes B-273's "run only when tooling changes". **User stories:** 7 to 12, 14.
-
-**What to build**
-
-- A pure check-plan module in `scripts/loops/`: `(changed files, asked mode) → { mode, reason, alwaysRun, tooling }`.
-  - Forced full, with the reason naming the file: a migration, seeds, `powersync/sync-config.yaml`, the lockfile, any `package.json`, `vitest.config.ts`.
-  - `alwaysRun` on a quick check: `scripts/loops/sync-matrix.test.mjs`, `apps/web/app/libLayout.test.ts`, the security-header test, the error-registry tests (and any other test you find that reads source files by path: list them), the check-areas lint and the docs budget.
-  - `tooling` is true when a changed file is under `scripts/loops/`, `scripts/backlog/` or `.githooks/` (or is `scripts/hooks.test.mjs`).
-- `prd.sh check`: compute the diff against the quick base (as today; a slice's base is its `BASE_BRANCH`), ask the module, print the mode and reason, and run it inside the lease. A quick check runs typecheck, lint, format, `vitest run --changed <base>` without `tooling:unit`, then the always-run list, then `tooling:unit` when asked. A full check runs `pnpm check`, `pnpm build:budget`, and `tooling:unit` when asked. The record file still says `quick` or `full`.
-- `prompt.sh`: a loop hands off on `pnpm prd check --quick "slice hand-off"`; the orchestrator lines say wave gates are quick and the last wave's is full.
-
-**Acceptance criteria**
-
-- [ ] Unit tests of the module (in `scripts:unit`): each forced-full trigger with its reason; a plain app diff stays quick; the always-run list is returned for quick and not duplicated for full; tooling joins for each tooling path and not for an app path; an empty diff.
-- [ ] A test that every path in the always-run list exists (so a rename can't empty it silently).
-- [ ] `check-gate.test.mjs` (or beside it): a quick check asked on a diff with a migration records `full`; landing still accepts both records.
-- [ ] `pnpm test:tooling` and `pnpm prd check` pass; the hand-off shows the output of one quick and one forced-full run.
-
-**Blocked by:** 1, 2. **Blocks:** nothing.
+Moved to [`check-speed`](check-speed-plan.md) as its slice 3. Nothing to build here.
 
 ## Slice 7: Integration: a database per worker
 
-Stack: no · Reads: docs/domain/data-layer.md · Tests: integration
-
-**Backlog:** B-278. **User stories:** 17 to 20.
-
-**What to build**
-
-- `vitest.config.ts`, `integration`: files in parallel on `CARETOOK_INT_WORKERS` workers (default 3); `1` keeps today's one-at-a-time order.
-- `packages/data/test/globalSetup.ts`: make, clear and migrate `<database>_w<n>` for each worker (migrate one and create the others from it as a template where that works, else migrate each). Both the shared test Postgres and the main checkout's test database.
-- The test database resolver (`packages/data/src/db/testDatabase.ts`) and `packages/data/test/setup.ts`: a worker connects to its own database, picked from Vitest's worker id; the guard accepts only the worktree's own suffixed names.
-- `scripts/loops/test-db.sh` and `rm.sh`: `drop` and worktree removal drop every database of the worktree; `list` and `status` still read well.
-- No `*.int.test.ts` changes. If a file fails only in parallel, it shares state outside the database: fix that or report it; don't serialise the whole project.
-
-**Acceptance criteria**
-
-- [ ] `pnpm test:integration` passes with 3 workers twice in a row, and with `CARETOOK_INT_WORKERS=1`.
-- [ ] A unit test of the resolver: worker ids map to distinct names; a name outside the worktree's own is refused; the production and dev databases are still refused.
-- [ ] A tooling test (in `stack.test.mjs` or beside `test-db.sh`'s tests): removing a worktree drops all of its worker databases.
-- [ ] The hand-off gives the integration project's wall time before and after, and the setup time; `pnpm prd check` passes.
-
-**Blocked by:** nothing (wave 2 so it follows slice 2's `vitest.config.ts` edit). **Blocks:** 11.
+Moved to [`check-speed`](check-speed-plan.md) as its slice 4. Nothing to build here.
 
 ## Slice 8: Harness: a retrying `getByCss` and the lint rules
 
@@ -325,7 +241,7 @@ Stack: no · Reads: docs/domain/data-layer.md, docs/domain/care-groups.md, docs/
 - [ ] The router and connector files keep one pass-through test each for those rules; the hand-off maps every deleted test to its data-layer replacement.
 - [ ] `pnpm test:integration` passes on 3 workers; `pnpm prd check --quick "slice hand-off"` passes.
 
-**Blocked by:** 7. **Blocks:** 13.
+**Blocked by:** `check-speed` in `dev` (its slice 4, worker databases). **Blocks:** 13.
 
 ## Slice 12: Playwright: the other specs, the sleeps, `signout-wipe` into `session-end`
 
