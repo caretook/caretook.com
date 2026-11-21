@@ -31,6 +31,20 @@ export const CONNECTORS_ERRORS = {
     message: "The access token is invalid, expired or disconnected",
     statusCode: 401,
   },
+  // assistantRequestService (connectors-2): asking the owners to turn assistants on.
+  "assistantRequestService:notMember": {
+    message: "Care group not found",
+    statusCode: 404,
+  },
+  "assistantRequestService:owner": {
+    message: "You're an owner, so you can turn Assistants on yourself in the group's settings",
+    statusCode: 403,
+  },
+  "assistantRequestService:alreadyOn": {
+    message: "Assistants are already on for this care group",
+    statusCode: 409,
+  },
+  "assistantRequestModel:lockMembership": { message: "Failed to look up the membership" },
   "careGroupService:connectorsOwnerOnly": {
     message: "Only an owner can turn assistants on or off",
     statusCode: 403,

@@ -16,4 +16,17 @@ export const CONNECTORS_PERMISSIONS = {
     update: SYSTEM_ONLY_ENTRY,
     delete: { ...groupEntry(MANAGERS), admin: ["owned"], support: ["owned"], member: ["owned"] },
   },
+
+  // A member asking the group's owners to turn assistants on (connectors-2).
+  // The member reads their own; the group's owners and admins read every
+  // member's. Only assistantRequestService (as the system) writes them.
+  assistantRequestSchema: {
+    ownerField: "userId",
+    groupField: "groupId",
+    read: { ...groupEntry(MANAGERS), admin: ["owned"], support: ["owned"], member: ["owned"] },
+    list: { ...groupEntry(MANAGERS), admin: ["owned"], support: ["owned"], member: ["owned"] },
+    create: SYSTEM_ONLY_ENTRY,
+    update: SYSTEM_ONLY_ENTRY,
+    delete: SYSTEM_ONLY_ENTRY,
+  },
 } as const satisfies PartialPermissions;

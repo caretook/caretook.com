@@ -1,4 +1,5 @@
 import type { GuideGroup, GuidePlace } from "~/lib/connectors/connectGuide";
+import { AskOwners } from "./ask";
 
 import { Copy, ExternalLink } from "lucide-react";
 import { useEffect, useId, useState } from "react";
@@ -18,16 +19,20 @@ type CopyState = "copied" | "failed" | null;
  * How to connect a member's own Claude or ChatGPT (connectors-2, B-193): the
  * MCP address with Copy, each client's steps and help page. With no group
  * allowing assistants it says so instead; a viewer is told their assistant
- * only reads. Pure display: the wording is `lib/connectors/connectGuide`.
+ * only reads. With `askGroupId` (a group's page, for a member who isn't an
+ * owner), the off note comes with the button that asks the owners to turn
+ * it on (slice 2). The wording is `lib/connectors/connectGuide`.
  */
 export function ConnectGuide({
   place,
   groups,
   canToggle = false,
+  askGroupId,
 }: {
   place: GuidePlace;
   groups: readonly GuideGroup[];
   canToggle?: boolean;
+  askGroupId?: string;
 }) {
   const view = guideView(place, groups, canToggle);
   // Native apps give the web address, not `capacitor://localhost`.
@@ -53,9 +58,12 @@ export function ConnectGuide({
   return (
     <SettingsCard id="connect-guide" title="Connect your assistant">
       {view.show === "off" ? (
-        <p className="text-sm" data-guide-note="off">
-          {view.note}
-        </p>
+        <div className="space-y-3">
+          <p className="text-sm" data-guide-note="off">
+            {view.note}
+          </p>
+          {askGroupId && <AskOwners groupId={askGroupId} />}
+        </div>
       ) : (
         <div className="space-y-4">
           <p className="text-base-content/70 text-sm">{GUIDE_INTRO}</p>

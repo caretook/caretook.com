@@ -122,6 +122,14 @@ export type {
   VerifiedConnector,
 } from "./connectorGrantService";
 
+import * as assistantRequestService from "./assistantRequestService";
+export { assistantRequestService };
+export type {
+  AssistantRequestMailer,
+  AssistantRequestNotice,
+  AssistantRequestView,
+} from "./assistantRequestService";
+
 // Not in `services`: no model of its own (assistant actions through connectors).
 import * as assistantActionService from "./assistantActionService";
 export { assistantActionService };
@@ -196,6 +204,7 @@ export const services = {
   appSetting: appSettingService,
   task: taskService,
   connectorGrant: connectorGrantService,
+  assistantRequest: assistantRequestService,
   recipientCondition: recipientConditionService,
   medicationCondition: medicationConditionService,
   appointmentSeries: appointmentSeriesService,

@@ -109,3 +109,24 @@ export const guideView = (place: GuidePlace, groups: readonly GuideGroup[], canT
 
 export const COPIED = "Copied";
 export const COPY_FAILED = "Couldn't copy. Select the address above and copy it by hand.";
+
+// Asking the owners to turn assistants on (connectors-2, B-194): beside the
+// off note, for members who aren't owners. A member may ask once a week per
+// group (ASSISTANT_REQUEST_WINDOW_DAYS); until then the button reads "Asked on
+// <date>".
+
+export const ASK_OWNERS = "Ask owners to turn this on";
+export const ASKING_OWNERS = "Asking…";
+export const ASKED_NOTE = "The owners got an email. You can ask again after a week.";
+export const ASK_OFFLINE = "Needs a connection to ask the owners.";
+export const ASK_FAILED = "Couldn't ask the owners. Try again in a moment.";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Whether a member who last asked at `askedAt` (ISO, or null) may ask again at `now`. */
+export const canAskAgain = (askedAt: string | null, now: Date, windowDays: number) =>
+  !askedAt || now.getTime() - new Date(askedAt).getTime() >= windowDays * DAY_MS;
+
+/** "Asked on November 21": the day of the last request, in the device's zone. */
+export const askedOn = (askedAt: string, locale?: string, timeZone?: string) =>
+  `Asked on ${new Date(askedAt).toLocaleDateString(locale, { month: "long", day: "numeric", timeZone })}`;

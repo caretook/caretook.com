@@ -17,7 +17,9 @@ import {
 // They pick one care group (only groups whose owners turned Assistants on),
 // what the assistant may do (by their role), and tick the consent; Connect
 // records the grant and shows the success step, which returns them to the
-// assistant with a code; Cancel returns them with nothing connected.
+// assistant with a code; Cancel returns them with nothing connected. With no
+// group allowing assistants, it lists the member's groups with the switch
+// off, each with "Ask owners to turn this on" (connectors-2) for non-owners.
 
 export const meta = () => [
   { title: "Connect an assistant · Caretook" },
@@ -44,14 +46,18 @@ export default function Connect({ loaderData, actionData }: Route.ComponentProps
     );
   }
   if (loaderData.state === "invalid") return <ConnectInvalid />;
-  const { client, groups } = loaderData;
+  const { client, groups, offGroups } = loaderData;
   return (
     <ConnectCard title={`Connect ${client.name}`}>
       <p className="text-sm">
         <strong>{client.name}</strong> wants to use your Caretook account. When you’re done, it sends you back
         to <strong data-redirect-host="">{client.redirectHost}</strong>.
       </p>
-      {groups.length ? <ConnectConsent groups={groups} error={actionData?.error} /> : <NoEligibleGroups />}
+      {groups.length ? (
+        <ConnectConsent groups={groups} error={actionData?.error} />
+      ) : (
+        <NoEligibleGroups offGroups={offGroups} />
+      )}
     </ConnectCard>
   );
 }

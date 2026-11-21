@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
-import type { ConnectGroup, ConnectSuccessData } from "~/.server/connectors";
+import type { ConnectGroup, ConnectSuccessData, OffGroup } from "~/.server/connectors";
 import type { ConnectorScope } from "@caretook/data/schema";
 
 import { useEffect, useRef, useState } from "react";
 import { Form, useNavigation } from "react-router";
 import { CONNECTOR_CONSENT_TEXT, CONNECTOR_SCOPE_LABELS } from "@caretook/data/schema";
+import { AskOwners } from "~/components/connectors/ask";
 import { ChoiceGroup } from "~/components/ui/plain";
+import { appUrls } from "~/lib/app-shell/appUrls";
 import {
   CONNECT_RETURN_DELAY_MS,
   CONNECT_SUCCESS_EXAMPLES,
@@ -55,25 +57,49 @@ export function ConnectInvalid() {
   );
 }
 
-/** None of the member's groups allow assistants: say who can change that. */
-export function NoEligibleGroups() {
+const groupLabel = (group: { name: string; recipientName: string | null }) =>
+  group.recipientName && group.recipientName !== group.name
+    ? `${group.name} (${group.recipientName})`
+    : group.name;
+
+/**
+ * None of the member's groups allow assistants: each group with the switch
+ * off, where a member who isn't an owner asks its owners (connectors-2) and
+ * an owner gets a link to turn it on.
+ */
+export function NoEligibleGroups({ offGroups }: { offGroups: OffGroup[] }) {
   return (
     <Form method="post" className="space-y-4" data-no-groups="">
       <p role="status" className="alert alert-info alert-soft text-sm">
         None of your care groups allow assistants yet. Ask a group’s owner to turn on Assistants in the
         group’s settings, then connect again.
       </p>
+      {offGroups.length > 0 && (
+        <ul className="divide-base-300 divide-y">
+          {offGroups.map((group) => (
+            <li key={group.id} className="space-y-2 py-3" data-off-group={group.id}>
+              <p className="font-medium">{groupLabel(group)}</p>
+              {group.role === "owner" ? (
+                <p className="text-sm">
+                  You’re an owner:{" "}
+                  <a href={appUrls.groupSettings(group.id, "assistants")} className="link link-primary">
+                    turn on Assistants
+                  </a>
+                  , then connect again.
+                </p>
+              ) : (
+                <AskOwners groupId={group.id} askedAt={group.askedAt} />
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
       <div className="flex justify-end">
         <CancelButton />
       </div>
     </Form>
   );
 }
-
-const groupLabel = (group: ConnectGroup) =>
-  group.recipientName && group.recipientName !== group.name
-    ? `${group.name} (${group.recipientName})`
-    : group.name;
 
 /**
  * Pick one group, what the assistant may do there (a viewer reads only),

@@ -1,4 +1,5 @@
 import { accessCodeExistingAccount } from "./templates/accessCodeExistingAccount";
+import { assistantsRequested } from "./templates/assistantsRequested";
 import { contactMessage } from "./templates/contactMessage";
 import { groupInvite } from "./templates/groupInvite";
 import { joinApproved, joinDeclined, joinRequested } from "./templates/joinRequests";
@@ -26,6 +27,7 @@ export const NOTIFICATIONS = {
   signInEmail,
   appointmentReminder,
   taskDue,
+  assistantsRequested,
 } as const;
 
 export type Notifications = typeof NOTIFICATIONS;

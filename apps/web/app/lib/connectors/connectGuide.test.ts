@@ -1,5 +1,13 @@
 import { describe, expect, test } from "vitest";
-import { CONNECT_CLIENTS, guideView, mcpUrl, OFF_NOTE, VIEWER_NOTE } from "./connectGuide";
+import {
+  askedOn,
+  canAskAgain,
+  CONNECT_CLIENTS,
+  guideView,
+  mcpUrl,
+  OFF_NOTE,
+  VIEWER_NOTE,
+} from "./connectGuide";
 
 describe("mcpUrl", () => {
   test("is the page's origin plus /mcp", () => {
@@ -68,5 +76,24 @@ describe("guideView", () => {
     });
     expect(guideView("account", [viewer])).toEqual({ show: "steps", viewerNote: VIEWER_NOTE.account });
     expect(guideView("account", [viewer, owner])).toEqual({ show: "steps", viewerNote: VIEWER_NOTE.some });
+  });
+});
+
+describe("asking the owners", () => {
+  const now = new Date("2026-11-21T18:00:00.000Z");
+  const daysAgo = (days: number) => new Date(now.getTime() - days * 86_400_000).toISOString();
+
+  test("may ask with no request, and again only once the window has passed", () => {
+    expect(canAskAgain(null, now, 7)).toBe(true);
+    expect(canAskAgain(daysAgo(0), now, 7)).toBe(false);
+    expect(canAskAgain(daysAgo(6.9), now, 7)).toBe(false);
+    expect(canAskAgain(daysAgo(7), now, 7)).toBe(true);
+    expect(canAskAgain(daysAgo(30), now, 7)).toBe(true);
+  });
+
+  test("says the day of the last request, in the given zone", () => {
+    expect(askedOn("2026-11-21T18:00:00.000Z", "en-US", "America/Los_Angeles")).toBe("Asked on November 21");
+    expect(askedOn("2026-11-22T03:00:00.000Z", "en-US", "America/Los_Angeles")).toBe("Asked on November 21");
+    expect(askedOn("2026-11-22T03:00:00.000Z", "en-US", "UTC")).toBe("Asked on November 22");
   });
 });
