@@ -138,6 +138,10 @@ import * as calendarSettingService from "./calendarSettingService";
 export { calendarSettingService };
 export type { CalendarSettingsView } from "./calendarSettingService";
 
+import * as calendarReminderService from "./calendarReminderService";
+export { calendarReminderService };
+export type { ReminderGroupInputs } from "./calendarReminderService";
+
 export const services = {
   user: userService,
   careGroup: careGroupService,

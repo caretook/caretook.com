@@ -39,6 +39,7 @@ const WEB = [
   "/api/auth/*|routes/api/auth.ts|",
   "/api/cron/calendar|routes/api/cron/calendar.ts|",
   "/api/cron/outbox|routes/api/cron/outbox.ts|",
+  "/api/reminders/unsubscribe/:token|routes/api/reminders/unsubscribe.ts|",
   "/api/webhooks/resend|routes/api/webhooks/resend.ts|",
   "/app/groups/:groupId/entries/:entryId|routes/app/groups/entry/route.tsx|",
   "/app/groups/:groupId/medications/:medicationId/edit|routes/app/groups/medications/edit/route.tsx|",

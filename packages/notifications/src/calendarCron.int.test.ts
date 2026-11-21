@@ -45,10 +45,11 @@ describe("/api/cron/calendar", () => {
     });
   });
 
-  it("runs the series top-up first by default", async () => {
+  it("runs the reminders first and the series top-up last by default", async () => {
     const res = await handleCalendarCron(request(`Bearer ${secret}`), { secret });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { steps: { name: string; ok: boolean }[] };
-    expect(body.steps[0]).toMatchObject({ name: "seriesTopUp", ok: true });
+    expect(body.steps[0]).toMatchObject({ name: "reminders", ok: true });
+    expect(body.steps.at(-1)).toMatchObject({ name: "seriesTopUp", ok: true });
   });
 });
