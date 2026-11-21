@@ -1,49 +1,33 @@
 import type { TimelineEntryKind, TimelineView, VitalType } from "@caretook/data/schema";
+import type { LinkChip } from "~/components/ui";
 import type { PeriodChoice } from "~/lib/care-periods/periodSearch";
 
-import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
-import { CalendarRange, ChevronDown, LayoutList, List, Search, X } from "lucide-react";
-import { useEffect, useId, useRef } from "react";
-import { useLocation, useNavigate } from "react-router";
-import { ChipGroup, Field, IconButton, Menu, UserAvatar } from "~/components/ui";
+import { VITALS } from "@caretook/data/schema";
+import { CalendarRange, LayoutList, List, Search, SlidersHorizontal, X } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import { useLocation } from "react-router";
+import { ChipGroup, Field, IconButton, UserAvatar } from "~/components/ui";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { useGroup } from "~/lib/app-shell/group";
 import { duringChipName, duringText } from "~/lib/care-periods/periodSearch";
 import { recordSearch } from "~/lib/search/recentSearches";
-import {
-  clearAuthor,
-  clearKind,
-  clearPeriod,
-  clearQuery,
-  clearVital,
-  setKind,
-  setPeriod,
-  setVital,
-} from "~/lib/timeline/timelineFilters";
+import { clearAuthor, clearKind, clearPeriod, clearQuery, clearVital } from "~/lib/timeline/timelineFilters";
+import { FilterSheet } from "./FilterSheet";
 import { useSearchField } from "./useSearchField";
 
-const FILTERS = [
-  "note",
-  "symptom",
-  "event",
-  "vital",
-  "dose",
-  "medicationChange",
-] as const satisfies TimelineEntryKind[];
+const X_ICON = <X className="size-3.5" aria-hidden="true" />;
 
 /**
- * The filter row: the search magnifier, then the filter chips, links that
- * set `?kind=`, so the filter survives reloads and Back. They change only the
- * kind (see `lib/timeline/timelineFilters.ts`). With an author filter on (`author`:
- * that person's name and picture), a chip names them and clears it, keeping
- * the kind; with a search on (`q`), a last "Matching “…”" chip clears only
- * the search (and its period). While searching, "Within a period" narrows
- * the matches to one care period's dates (`?period=`), and a "During …"
- * chip clears only the period. The magnifier opens the search field: over the chips on
- * phones, beside them from `sm`. A search used there (Enter, leaving the
- * field) is saved to the recent searches the search page lists. Under the
- * Vitals chip, a second row filters by vital type (`?vital=`): one chip per
- * type the group has readings of (`vitalTypes`).
+ * The filter row: the search magnifier, then one Filter button with the
+ * count of filters on (kind, vital type, author, period), which opens
+ * `FilterSheet`. Under them, each filter on is a removable chip (a link that
+ * clears only it, so the URL keeps the rest; see
+ * `lib/timeline/timelineFilters.ts`): the kind, the vital type (`?vital=`),
+ * "By <name>" (`author`: that person's name and picture), "Matching “…”"
+ * (the search, while its field is closed) and "During …" (`?period=`). No
+ * filters, no chip row. The magnifier opens the search field beside the
+ * button; a search used there (Enter, leaving the field) is saved to the
+ * recent searches the search page lists.
  */
 export function FilterChips({
   kind,
@@ -64,12 +48,12 @@ export function FilterChips({
   period: { choices: readonly PeriodChoice[]; current: PeriodChoice | null };
 }) {
   const { search } = useLocation();
-  const navigate = useNavigate();
   const { userId } = useGroup();
   const field = useSearchField(q, (text) => recordSearch(userId, text));
   const fieldId = useId();
   const magnifier = useRef<HTMLButtonElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   useEffect(() => {
     if (field.open) input.current?.focus();
   }, [field.open]);
@@ -78,161 +62,124 @@ export function FilterChips({
     magnifier.current?.focus();
   };
 
+  const during = q ? period.current : null;
+  const count = [kind, vital, author, during].filter(Boolean).length;
+  const authorChip: LinkChip | null = author && {
+    id: "author",
+    label: `By ${author.name}`,
+    name: `By ${author.name}: clear this filter`,
+    to: { search: clearAuthor(search) },
+    current: true,
+    leading: <UserAvatar name={author.name} image={author.image} size="xs" className="-ml-1.5" />,
+    trailing: X_ICON,
+  };
+  const matchingChip: LinkChip | null = q
+    ? {
+        id: "search",
+        label: `Matching “${chipText(q)}”`,
+        name: `Matching “${q}”: clear the search`,
+        to: { search: clearQuery(search) },
+        current: true,
+        trailing: X_ICON,
+      }
+    : null;
+  const active: LinkChip[] = [
+    ...(kind ? [removable("kind", KIND_META[kind].plural, clearKind(search))] : []),
+    ...(vital ? [removable("vital", VITALS[vital].label, clearVital(search))] : []),
+    ...(authorChip ? [authorChip] : []),
+    ...(matchingChip && !field.open ? [matchingChip] : []),
+    ...(during
+      ? [
+          {
+            id: "period",
+            label: duringText(during),
+            name: duringChipName(during),
+            to: { search: clearPeriod(search) },
+            current: true,
+            leading: <CalendarRange className="size-3.5" aria-hidden="true" />,
+            trailing: X_ICON,
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <div className="flex items-start gap-1.5" data-timeline-filters>
-      <IconButton
-        ref={magnifier}
-        label="Search entries"
-        icon={Search}
-        expanded={field.open}
-        controls={field.open ? fieldId : undefined}
-        onPress={field.toggle}
-        className="border-base-300 bg-base-100 shrink-0 rounded-full"
-      />
-      {field.open && (
-        <div id={fieldId} className="min-w-0 flex-1 sm:w-64 sm:flex-none">
-          <Field label="Search entries" labelHidden>
-            {(control) => (
-              <input
-                {...control}
-                ref={input}
-                type="search"
-                autoComplete="off"
-                enterKeyHint="search"
-                placeholder="Search entries"
-                className="input input-sm w-full rounded-full"
-                value={field.value}
-                onChange={(e) => field.change(e.currentTarget.value)}
-                onBlur={field.used}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    field.submit();
-                  } else if (e.key === "Escape") {
-                    e.preventDefault();
-                    close();
-                  }
-                }}
-                data-search-field
-              />
-            )}
-          </Field>
-        </div>
-      )}
-      <div className={field.open ? "hidden min-w-0 flex-1 sm:block" : "min-w-0 flex-1"}>
-        <ChipGroup
-          label="Show entries"
-          replace
-          preventScrollReset
-          links={[
-            { id: "all", label: "All", to: { search: clearKind(search) }, current: !kind },
-            ...FILTERS.map((k) => ({
-              id: k,
-              label: KIND_META[k].plural,
-              to: { search: setKind(search, k) },
-              current: kind === k,
-            })),
-            ...(author
-              ? [
-                  {
-                    id: "author",
-                    label: `By ${author.name}`,
-                    name: `By ${author.name}: clear this filter`,
-                    to: { search: clearAuthor(search) },
-                    current: true,
-                    leading: (
-                      <UserAvatar name={author.name} image={author.image} size="xs" className="-ml-1.5" />
-                    ),
-                    trailing: <X className="size-3.5" aria-hidden="true" />,
-                  },
-                ]
-              : []),
-            ...(q && !field.open
-              ? [
-                  {
-                    id: "search",
-                    label: `Matching “${chipText(q)}”`,
-                    name: `Matching “${q}”: clear the search`,
-                    to: { search: clearQuery(search) },
-                    current: true,
-                    trailing: <X className="size-3.5" aria-hidden="true" />,
-                  },
-                ]
-              : []),
-            ...(q && !field.open && period.current
-              ? [
-                  {
-                    id: "period",
-                    label: duringText(period.current),
-                    name: duringChipName(period.current),
-                    to: { search: clearPeriod(search) },
-                    current: true,
-                    leading: <CalendarRange className="size-3.5" aria-hidden="true" />,
-                    trailing: <X className="size-3.5" aria-hidden="true" />,
-                  },
-                ]
-              : []),
-          ]}
+    <div className="space-y-1.5" data-timeline-filters>
+      <div className="flex items-center gap-1.5">
+        <IconButton
+          ref={magnifier}
+          label="Search entries"
+          icon={Search}
+          expanded={field.open}
+          controls={field.open ? fieldId : undefined}
+          onPress={field.toggle}
+          className="border-base-300 bg-base-100 shrink-0 rounded-full"
         />
-        {kind === "vital" && <VitalTypeChips search={search} vital={vital} present={vitalTypes} />}
-        {q && !field.open && !period.current && period.choices.length > 0 && (
-          <Menu
-            className="btn btn-ghost btn-sm border-base-300 bg-base-100 mt-1.5 rounded-full px-3"
-            menuLabel="Search within a care period"
-            placement="bottom start"
-            width="lg"
-            scrollable
-            items={period.choices.map((choice) => ({
-              id: choice.id,
-              label: choice.name,
-              description: choice.dates,
-              onAction: () =>
-                void navigate(
-                  { search: setPeriod(search, choice.id) },
-                  { replace: true, preventScrollReset: true },
-                ),
-            }))}
-          >
-            <CalendarRange className="size-4" aria-hidden="true" />
-            Within a period
-            <ChevronDown className="size-3.5" aria-hidden="true" />
-          </Menu>
+        {field.open && (
+          <div id={fieldId} className="min-w-0 flex-1 sm:w-64 sm:flex-none">
+            <Field label="Search entries" labelHidden>
+              {(control) => (
+                <input
+                  {...control}
+                  ref={input}
+                  type="search"
+                  autoComplete="off"
+                  enterKeyHint="search"
+                  placeholder="Search entries"
+                  className="input input-sm w-full rounded-full"
+                  value={field.value}
+                  onChange={(e) => field.change(e.currentTarget.value)}
+                  onBlur={field.used}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      field.submit();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      close();
+                    }
+                  }}
+                  data-search-field
+                />
+              )}
+            </Field>
+          </div>
         )}
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          className={`btn btn-sm shrink-0 rounded-full px-3 ${count ? "btn-neutral" : "btn-ghost border-base-300 bg-base-100"}`}
+          onClick={() => setSheetOpen(true)}
+          data-filter-button
+        >
+          <SlidersHorizontal className="size-4" aria-hidden="true" />
+          Filter{count > 0 && <span> · {count}</span>}
+        </button>
       </div>
+      {active.length > 0 && <ChipGroup label="Filters on" replace preventScrollReset links={active} />}
+      {sheetOpen && (
+        <FilterSheet
+          onClose={() => setSheetOpen(false)}
+          kind={kind}
+          vital={vital}
+          vitalTypes={vitalTypes}
+          period={q ? period : null}
+          extra={[...(authorChip ? [authorChip] : []), ...(matchingChip ? [matchingChip] : [])]}
+        />
+      )}
     </div>
   );
 }
 
-/** The vital-type row: "All vitals", then each type the group has (and the current one), in the spec's order. */
-function VitalTypeChips({
-  search,
-  vital,
-  present,
-}: {
-  search: string;
-  vital: VitalType | null;
-  present: readonly string[];
-}) {
-  const types = VITAL_TYPES.filter((t) => t === vital || present.includes(t));
-  if (types.length === 0) return null;
-  return (
-    <ChipGroup
-      label="Show vital types"
-      replace
-      preventScrollReset
-      className="mt-1.5"
-      links={[
-        { id: "all-vitals", label: "All vitals", to: { search: clearVital(search) }, current: !vital },
-        ...types.map((t) => ({
-          id: `vital-${t}`,
-          label: VITALS[t].label,
-          to: { search: setVital(search, t) },
-          current: vital === t,
-        })),
-      ]}
-    />
-  );
-}
+/** A filter's chip: its label and a ✕, named for what it does. */
+const removable = (id: string, label: string, search: string): LinkChip => ({
+  id,
+  label,
+  name: `${label}: clear this filter`,
+  to: { search },
+  current: true,
+  trailing: X_ICON,
+});
 
 /** The search as its chip shows it: long text is cut short (the chip's name has it all). */
 const chipText = (q: string) => (q.length > 32 ? `${q.slice(0, 31).trimEnd()}…` : q);

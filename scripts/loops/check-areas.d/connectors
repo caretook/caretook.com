@@ -11,6 +11,8 @@ apps/web/app/.server/connectors.ts       -
 # The OAuth plugin's hooks run on every sign-in.
 packages/auth/src/connectors.ts          sign-in
 packages/auth/src/connectorToken.ts      -
+# Authorize's dead ends as a page (B-188): oauth.int.test.ts; it wraps every /api/auth request.
+packages/auth/src/connectorAuthorize.ts  sign-in
 packages/data/src/db/seeds/connectors.ts app-shell
 # roundtrip's connector step mints its token with this (slice 6).
 packages/api/src/connectors/mintToken.ts roundtrip

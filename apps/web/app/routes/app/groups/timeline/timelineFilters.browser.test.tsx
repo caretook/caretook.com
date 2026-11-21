@@ -2,11 +2,14 @@ import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
 import { TEST_USER } from "../../../../../test/fixtures";
 import {
+  activeChips,
   authorOf,
   chip,
-  chips,
+  closeFilters,
   currentChips,
+  filterButton,
   iconOf,
+  openFilters,
   openTimeline,
   PRIMARY_VISIT,
   rowKinds,
@@ -21,8 +24,9 @@ import {
 
 // The timeline's filters on the test device (from phase2.mjs: kindIconFilters,
 // authorFilters and vitalTypeFilters): the kind icon and the author control
-// as links, the chips, both filters together, the empty state, the keyboard,
-// rows and cards, writer and viewer. The device is offline throughout, so
+// as links, the Filter button and its sheet, the removable chips, both
+// filters together, the empty state, the keyboard, rows and cards, writer
+// and viewer. The device is offline throughout, so
 // "offline: both filters" is every test here. The URLs are
 // timelineFilters.test.ts's.
 
@@ -36,11 +40,15 @@ const KNOWN = [
 ];
 const vitalsLine = () => document.querySelector('[data-today-row="vitals"]')?.textContent;
 const authorChip = () =>
-  document.querySelector<HTMLAnchorElement>('nav[aria-label="Show entries"] a[aria-label^="By "]');
+  document.querySelector<HTMLAnchorElement>('nav[aria-label="Filters on"] a[aria-label^="By "]');
+/** The kind's chip: the first one that isn't the author's. */
+const kindChip = () => activeChips().find((a) => !a.getAttribute("aria-label")?.startsWith("By "));
+const SYMPTOMS = "Symptoms: clear this filter";
+const BY_SAM = "By Sam Okafor: clear this filter";
 
 describe("the kind icon", () => {
   test.each(["owner", "viewer"] as const)(
-    "%s: every icon is a named link; a symptom's shows only symptoms, its chip current; All clears it",
+    "%s: every icon is a named link; a symptom's shows only symptoms, with its chip; the chip clears it",
     async (role) => {
       const device = await openTimeline({ role });
       await waitUntil(() => rows().length > 0);
@@ -50,23 +58,27 @@ describe("the kind icon", () => {
       await userEvent.click(iconOf(rowOf("Symptom")!));
       await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=symptom`);
       await expect.poll(rowKinds).toBe("Symptom: ");
-      expect(currentChips()).toBe("Symptoms");
+      expect(currentChips()).toBe(SYMPTOMS);
 
-      await userEvent.click(chips()[0]!);
+      await userEvent.click(kindChip()!);
       await expect.poll(() => device.location()).toBe(TIMELINE_URL);
       await expect.poll(() => rowKinds().split(",").length).toBeGreaterThan(1);
-      expect(currentChips()).toBe("All");
+      expect(currentChips()).toBe("");
     },
   );
 
-  test("a reload keeps the filter; another chip changes it; a tap on an event opens it, and Back keeps the filter", async () => {
+  test("a reload keeps the filter; another kind in the sheet changes it; a tap on an event opens it, and Back keeps the filter", async () => {
     const device = await openTimeline({ query: "?kind=symptom" });
     await expect.poll(rowKinds).toBe("Symptom: ");
-    expect(currentChips()).toBe("Symptoms");
+    expect(currentChips()).toBe(SYMPTOMS);
 
+    await openFilters();
+    expect(chip("Symptoms").getAttribute("aria-current")).toBe("true");
     await userEvent.click(chip("Events"));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=event`);
     await expect.poll(rowKinds).toBe("Event: ");
+    expect(chip("Events").getAttribute("aria-current")).toBe("true");
+    await closeFilters();
 
     // A tap elsewhere on the row (its text), not on a link.
     await tapAt(rowOf("Event")!.querySelector("p")!);
@@ -74,7 +86,7 @@ describe("the kind icon", () => {
     await userEvent.click(device.screen.getByRole("button", { name: "Go back" }));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=event`);
     await expect.poll(rowKinds).toBe("Event: ");
-    expect(currentChips()).toBe("Events");
+    expect(currentChips()).toBe("Events: clear this filter");
   });
 
   test("keyboard: Tab from a row's open link reaches its icon, named; Enter filters", async () => {
@@ -97,7 +109,7 @@ describe("the kind icon", () => {
     await userEvent.click(iconOf(rowOf("Symptom")!));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=symptom`);
     await expect.poll(rowKinds).toBe("Symptom: ");
-    expect(currentChips()).toBe("Symptoms");
+    expect(currentChips()).toBe(SYMPTOMS);
   });
 });
 
@@ -119,12 +131,12 @@ describe("the author filter", () => {
       await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?author=${SAM.id}`);
       await expect.poll(() => new Set(rows().map((li) => authorOf(li).dataset.author)).size).toBe(1);
       expect(authorOf(rows()[0]!).dataset.author).toBe(SAM.id);
-      expect(currentChips()).toBe("All,By Sam Okafor: clear this filter");
+      expect(currentChips()).toBe(BY_SAM);
       expect(authorChip()?.querySelector("[aria-hidden]")?.textContent?.trim()).toBe("SO");
     },
   );
 
-  test("then a kind on top; the author chip clears only the author, All only the kind; the same author again changes nothing", async () => {
+  test("then a kind on top; the author chip clears only the author, the kind chip only the kind; the same author again changes nothing", async () => {
     const device = await openTimeline();
     await waitUntil(() => rows().length > 0);
     const vitals = vitalsLine();
@@ -135,20 +147,20 @@ describe("the author filter", () => {
     await userEvent.click(iconOf(rowOf("Symptom")!));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=symptom&author=${SAM.id}`);
     await expect.poll(rowKinds).toBe("Symptom: ");
-    expect(currentChips()).toBe("Symptoms,By Sam Okafor: clear this filter");
+    expect(currentChips()).toBe(`${SYMPTOMS},${BY_SAM}`);
 
     await userEvent.click(authorChip()!);
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=symptom`);
-    expect(currentChips()).toBe("Symptoms");
+    expect(currentChips()).toBe(SYMPTOMS);
     expect(authorChip()).toBeNull();
 
     await userEvent.click(samLink());
-    // Wait for the author to apply: under load, All's link was read before it did and dropped the author too.
+    // Wait for the author to apply: under load, the kind chip's link was read before it did and dropped the author too.
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=symptom&author=${SAM.id}`);
     await device.settle();
-    await userEvent.click(chips()[0]!);
+    await userEvent.click(kindChip()!);
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?author=${SAM.id}`);
-    expect(currentChips()).toBe("All,By Sam Okafor: clear this filter");
+    expect(currentChips()).toBe(BY_SAM);
     await expect.poll(() => rowKinds().split(",").length).toBeGreaterThan(1);
 
     const count = rows().length;
@@ -171,7 +183,7 @@ describe("the author filter", () => {
     const device = await openTimeline({ query: `?kind=symptom&author=${TEST_USER.id}` });
     await expect.element(device.screen.getByText(`No symptoms by ${TEST_USER.name} yet.`)).toBeVisible();
     expect(rows().length).toBe(0);
-    expect(currentChips()).toBe(`Symptoms,By ${TEST_USER.name}: clear this filter`);
+    expect(currentChips()).toBe(`${SYMPTOMS},By ${TEST_USER.name}: clear this filter`);
   });
 
   test("keyboard: Tab from the kind icon reaches the author control; Enter filters", async () => {
@@ -192,34 +204,99 @@ describe("the author filter", () => {
     expect(samLink().textContent?.trim()).toBe("Sam Okafor");
     await userEvent.click(samLink());
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?author=${SAM.id}`);
-    expect(currentChips()).toBe("All,By Sam Okafor: clear this filter");
+    expect(currentChips()).toBe(BY_SAM);
   });
 });
 
-describe("the vital-type filter", () => {
-  test("Vitals brings up the type chips; Blood pressure lists only those; All clears both", async () => {
+describe("the Filter button and its sheet", () => {
+  const types = () => [
+    ...document.querySelectorAll<HTMLAnchorElement>('nav[aria-label="Show vital types"] a'),
+  ];
+  const typeChip = (label: string) => types().find((a) => a.textContent?.trim() === label)!;
+  const buttonText = () => filterButton().textContent?.trim();
+  const chipRow = () => document.querySelector('nav[aria-label="Filters on"]');
+
+  test("at phone width, no chip row and a plain Filter until a filter is set", async () => {
+    const device = await openTimeline({ width: 420 });
+    await waitUntil(() => rows().length > 0);
+    expect(buttonText()).toBe("Filter");
+    expect(chipRow()).toBeNull();
+    expect(document.querySelector('nav[aria-label="Show entries"]')).toBeNull();
+
+    await userEvent.click(iconOf(rowOf("Note")!));
+    await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=note`);
+    await expect.poll(buttonText).toBe("Filter · 1");
+    expect(chipRow()?.checkVisibility()).toBe(true);
+  });
+
+  test("Vitals, then Blood pressure in the sheet: both apply at once, the button counts 2, both chips show; Done closes it, focus back on the button", async () => {
     const device = await openTimeline();
     await waitUntil(() => rows().length > 0);
-    const types = () => [...document.querySelectorAll('nav[aria-label="Show vital types"] a')];
-    expect(types().length).toBe(0);
+    await openFilters();
+    expect(device.screen.getByRole("dialog", { name: "Filter entries" }).element()).toBeTruthy();
+    expect(chip("All").getAttribute("aria-current")).toBe("true");
+    expect(types()).toEqual([]);
 
     await userEvent.click(chip("Vitals"));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=vital`);
     await expect.poll(() => types().map((a) => a.textContent?.trim())).toContain("Blood pressure");
     expect(types()[0]?.textContent?.trim()).toBe("All vitals");
-    expect(
-      types()
-        .find((a) => a.getAttribute("aria-current") === "true")
-        ?.textContent?.trim(),
-    ).toBe("All vitals");
+    expect(typeChip("All vitals").getAttribute("aria-current")).toBe("true");
 
-    await userEvent.click(types().find((a) => a.textContent?.trim() === "Blood pressure")!);
+    await userEvent.click(typeChip("Blood pressure"));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=vital&vital=bloodPressure`);
     await expect.poll(() => rows().length).toBe(1);
     expect(rows()[0]!.textContent).toMatch(/BP \d+\/\d+ mmHg/);
+    expect(typeChip("Blood pressure").getAttribute("aria-current")).toBe("true");
 
-    await userEvent.click(chip("All"));
+    await closeFilters();
+    expect(document.activeElement).toBe(filterButton());
+    expect(buttonText()).toBe("Filter · 2");
+    expect(activeChips().map((a) => a.textContent?.trim())).toEqual(["Vitals", "Blood pressure"]);
+    expect(currentChips()).toBe("Vitals: clear this filter,Blood pressure: clear this filter");
+  });
+
+  test("removing a chip updates the URL and the count; the kind's chip takes its vital type with it", async () => {
+    const device = await openTimeline({ query: `?kind=vital&author=${SAM.id}&vital=bloodPressure` });
+    await waitUntil(() => activeChips().length === 3);
+    expect(buttonText()).toBe("Filter · 3");
+
+    await userEvent.click(activeChips().find((a) => a.textContent?.trim() === "Blood pressure")!);
+    await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=vital&author=${SAM.id}`);
+    await expect.poll(buttonText).toBe("Filter · 2");
+    expect(currentChips()).toBe(`Vitals: clear this filter,${BY_SAM}`);
+
+    await userEvent.click(device.screen.getByRole("link", { name: BY_SAM }));
+    await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=vital`);
+    await expect.poll(buttonText).toBe("Filter · 1");
+
+    await userEvent.click(device.screen.getByRole("link", { name: "Vitals: clear this filter" }));
     await expect.poll(() => device.location()).toBe(TIMELINE_URL);
-    expect(types().length).toBe(0);
+    await expect.poll(buttonText).toBe("Filter");
+    expect(chipRow()).toBeNull();
+  });
+
+  test("Clear removes every filter but the search; Escape closes the sheet, focus back on the button", async () => {
+    const device = await openTimeline({ query: `?kind=vital&author=${SAM.id}&q=reading&vital=weight` });
+    await openFilters();
+    // The author and the search are in the sheet too, as their chips.
+    const other = device.screen.getByRole("navigation", { name: "Other filters" });
+    expect(
+      other
+        .getByRole("link")
+        .elements()
+        .map((a) => a.getAttribute("aria-label")),
+    ).toEqual([BY_SAM, "Matching “reading”: clear the search"]);
+
+    await userEvent.click(device.screen.getByRole("link", { name: "Clear" }));
+    await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?q=reading`);
+    await expect.poll(() => chip("All").getAttribute("aria-current")).toBe("true");
+    expect(types()).toEqual([]);
+
+    await userEvent.keyboard("{Escape}");
+    await waitUntil(() => !document.querySelector('[role="dialog"]'), 4000, "the sheet to close");
+    await expect.poll(() => document.activeElement).toBe(filterButton());
+    expect(buttonText()).toBe("Filter");
+    expect(currentChips()).toBe("Matching “reading”: clear the search");
   });
 });
