@@ -6,6 +6,7 @@ import {
   dayInZone,
   localDate,
   ordinal,
+  parseRule,
   timeInZone,
   WEEKDAYS,
   weekdayName,
@@ -108,6 +109,29 @@ export const choiceRule = (choice: RepeatChoice, startsOn: string): RepeatRule |
         : choice.end === "after"
           ? { type: "after", count: Math.trunc(choice.count) }
           : { type: "never" },
+  };
+};
+
+/**
+ * The field's choice for a stored rule (editing a series' "This and later"):
+ * the presets for every 1 day, week or month, else Custom; the end as it is.
+ * An unreadable rule is the default.
+ */
+export const choiceOfRule = (rule: string, startsOn: string): RepeatChoice => {
+  const base = defaultChoice(startsOn);
+  const parsed = parseRule(rule);
+  if (!parsed.ok) return base;
+  const { freq, interval, weekdays, monthly, end } = parsed.rule;
+  return {
+    ...base,
+    preset: interval === 1 ? freq : "custom",
+    interval,
+    unit: freq,
+    weekdays: freq === "weekly" ? weekdays : base.weekdays,
+    monthlyBy: monthly?.by ?? "date",
+    end: end.type,
+    until: end.type === "on" ? end.until : base.until,
+    count: end.type === "after" ? end.count : base.count,
   };
 };
 

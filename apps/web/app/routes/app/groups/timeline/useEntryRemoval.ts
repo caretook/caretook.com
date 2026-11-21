@@ -7,7 +7,8 @@ import { useFetcher } from "react-router";
  * Deleting from the timeline: one confirm for the whole list. `ask` opens it
  * for an entry, `confirm` posts `remove` to the timeline's action (the local
  * database; live queries show it at once), and `isRemoving` fades the row
- * while that runs.
+ * while that runs. `removeNow` deletes without the confirm (a series
+ * visit's "Only this visit" was the confirm).
  */
 export function useEntryRemoval() {
   const [deleting, setDeleting] = useState<TimelineEntry | null>(null);
@@ -21,6 +22,8 @@ export function useEntryRemoval() {
       if (deleting) void remover.submit({ intent: "remove", id: deleting.id }, { method: "post" });
       setDeleting(null);
     },
+    removeNow: (entry: TimelineEntry) =>
+      void remover.submit({ intent: "remove", id: entry.id }, { method: "post" }),
     isRemoving: (entryId: string) => removingId === entryId,
   };
 }

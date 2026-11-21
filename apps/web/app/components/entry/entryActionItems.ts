@@ -2,7 +2,8 @@ import type { TimelineEntryKind } from "@caretook/data/schema";
 
 import { canHaveNoteDocument, isSystemWrittenKind } from "@caretook/data/schema";
 
-export type EntryAction = "edit" | "reschedule" | "cancel" | "uncancel" | "delete" | "prepare" | "print";
+export type EntryAction =
+  "edit" | "editSeries" | "reschedule" | "cancel" | "uncancel" | "delete" | "prepare" | "print";
 
 /**
  * The entry ⋯ menu's items, in order, wherever it shows (rows, cards,
@@ -16,7 +17,9 @@ export type EntryAction = "edit" | "reschedule" | "cancel" | "uncancel" | "delet
  * Prepare (visit prep) comes after Edit for an upcoming event the caller can
  * prepare, and Print before Delete for every note and event the caller can
  * print, viewers included: with `canDelete` false (a viewer) Print is the
- * only item.
+ * only item. A visit of a repeating series (`canEditSeries`) gets Edit
+ * first, for notes and events too: it asks Only this visit or This and
+ * later visits.
  */
 export function entryActionItems(
   kind: TimelineEntryKind,
@@ -28,6 +31,7 @@ export function entryActionItems(
     canPrepare = false,
     canPrint = false,
     canDelete = true,
+    canEditSeries = false,
   }: {
     canEdit: boolean;
     canCancel?: boolean;
@@ -36,9 +40,11 @@ export function entryActionItems(
     canPrepare?: boolean;
     canPrint?: boolean;
     canDelete?: boolean;
+    canEditSeries?: boolean;
   },
 ): EntryAction[] {
   const items: EntryAction[] = [];
+  if (canEditSeries && canHaveNoteDocument(kind)) items.push("editSeries");
   if (canEdit && !canHaveNoteDocument(kind) && !isSystemWrittenKind(kind)) items.push("edit");
   if (canPrepare && kind === "event") items.push("prepare");
   if (canReschedule && kind === "event") items.push("reschedule");

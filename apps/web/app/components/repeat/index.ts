@@ -3,3 +3,4 @@
 // is opened (lazily, from `routes/app/groups/entry/EntryRepeat`).
 export { RepeatField } from "./RepeatField";
 export { RepeatSheet } from "./RepeatSheet";
+export { SeriesEditSheet } from "./SeriesEditSheet";
