@@ -5,7 +5,7 @@ import type { InviteOptions, LinkRow, ShareOutcome } from "./linkRules";
 import { Copy, Link2, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
-import { ConfirmDialog, Field, Sheet } from "~/components/ui";
+import { Button, ConfirmDialog, EmptyState, Field, Message, Notice, Sheet } from "~/components/ui";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { rpc } from "~/lib/core/rpc";
 import { roleLabel } from "../groupSettings";
@@ -63,25 +63,22 @@ export function CreateLinkButton({
 
   return (
     <div data-link-controls="" className="space-y-2">
-      <button
-        type="button"
-        className="btn btn-sm"
+      <Button
+        size="sm"
+        icon={Link2}
         disabled={!online || !options.linkInvites}
         aria-describedby={online && !options.linkInvites ? "links-unavailable" : undefined}
         onClick={() => setOpen(true)}
       >
-        <Link2 aria-hidden="true" className="size-4" />
         Create a link
-      </button>
+      </Button>
       {online && !options.linkInvites && (
         <p id="links-unavailable" className="text-base-content/70 text-sm">
           {INVITES_UNAVAILABLE.link}
         </p>
       )}
       {created && !open && (
-        <p role="status" className="alert alert-success alert-soft text-sm">
-          Link created. Copy or share it from Invite links below.
-        </p>
+        <Notice tone="success">Link created. Copy or share it from Invite links below.</Notice>
       )}
       <Sheet isOpen={open} onOpenChange={setOpen} title="Create an invite link">
         <fetcher.Form method="post" className="space-y-2" data-link-sheet="">
@@ -134,14 +131,10 @@ export function CreateLinkButton({
               />
             )}
           </Field>
-          {result && !result.ok && !result.issues.length && (
-            <p role="alert" className="text-error text-sm">
-              {result.error}
-            </p>
-          )}
-          <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
-            {busy ? "Creating…" : "Create link"}
-          </button>
+          {result && !result.ok && !result.issues.length && <Message tone="error">{result.error}</Message>}
+          <Button type="submit" variant="primary" block busy={busy} busyLabel="Creating…">
+            Create link
+          </Button>
         </fetcher.Form>
       </Sheet>
     </div>
@@ -184,13 +177,9 @@ export function InviteLinks({ links, groupName }: { links: LinkRow[]; groupName:
             ))}
           </ul>
         ) : (
-          <p className="text-base-content/70 text-sm">No links. Create one to share by text or chat.</p>
+          <EmptyState>No links. Create one to share by text or chat.</EmptyState>
         )}
-        {revokeResult && !revokeResult.ok && (
-          <p role="alert" className="text-error text-sm">
-            {revokeResult.error}
-          </p>
-        )}
+        {revokeResult && !revokeResult.ok && <Message tone="error">{revokeResult.error}</Message>}
       </div>
       <ConfirmDialog
         open={!!revoking}
@@ -280,42 +269,40 @@ function InviteLink({
         </div>
         {active && (
           <>
-            <button
-              type="button"
-              className="btn btn-sm"
+            <Button
+              size="sm"
+              icon={Copy}
               disabled={!url || revoking}
               aria-label={`Copy the ${label.toLowerCase()}`}
               onClick={copy}
             >
-              <Copy aria-hidden="true" className="size-4" />
               Copy
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm"
+            </Button>
+            <Button
+              size="sm"
+              icon={Share2}
               disabled={!url || revoking}
               aria-label={`Share the ${label.toLowerCase()}`}
               onClick={share}
             >
-              <Share2 aria-hidden="true" className="size-4" />
               Share
-            </button>
+            </Button>
           </>
         )}
-        <button
-          type="button"
-          className="btn btn-sm btn-ghost"
-          disabled={revoking}
+        <Button
+          variant="ghost"
+          size="sm"
+          busy={revoking}
+          busyLabel="Revoking…"
           aria-label={`Revoke the ${label.toLowerCase()}`}
           onClick={onRevoke}
         >
-          {revoking ? "Revoking…" : "Revoke"}
-        </button>
+          Revoke
+        </Button>
       </div>
-      <div role="status">
-        {outcome === "copied" && <p className="text-success text-sm">Link copied.</p>}
-        {outcome === "shared" && <p className="text-success text-sm">Link shared.</p>}
-      </div>
+      <Message tone="success">
+        {outcome === "copied" ? "Link copied." : outcome === "shared" ? "Link shared." : null}
+      </Message>
       {outcome === "failed" && url && (
         <div className="text-sm">
           <p>Couldn't copy the link. Copy it here:</p>
@@ -328,11 +315,7 @@ function InviteLink({
           />
         </div>
       )}
-      {failed && (
-        <p role="alert" className="text-error text-sm">
-          Couldn't load this link. Reload the page to try again.
-        </p>
-      )}
+      {failed && <Message tone="error">Couldn't load this link. Reload the page to try again.</Message>}
     </li>
   );
 }
