@@ -240,8 +240,23 @@ describe("the care period in the day headers", () => {
     expect(document.querySelectorAll("main [data-period-line]")).toHaveLength(
       document.querySelectorAll("[data-day-header] [data-period-line]").length,
     );
-    expect(document.querySelector("main > header")!.textContent).not.toMatch(/hospital/i);
+    expect(document.querySelector("main > div > header")!.textContent).not.toMatch(/hospital/i);
     expect(document.querySelector('[data-period-line="empty"]')).toBeNull();
+  });
+});
+
+describe("the header's width", () => {
+  test("1440: the heading, Today card and entries share the column's left and right edges", async () => {
+    await openTimeline({ role: "caretaker", width: 1440 });
+    await waitUntil(() => rows().length > 0, 8000, "the rows");
+    const edges = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      return [Math.round(r.left), Math.round(r.right)];
+    };
+    const list = edges(document.querySelector("main ol")!);
+    expect(edges(document.querySelector("main > div > header")!.parentElement!)).toEqual(list);
+    const card = await found(() => document.querySelector("main [data-today-card]"));
+    expect(edges(card)).toEqual(list);
   });
 });
 
@@ -268,6 +283,19 @@ describe("the empty Today", () => {
     await expect.poll(() => document.activeElement).toBe(field);
     // It only focuses the field: no suggestions open.
     expect(page.getByRole("dialog").query()).toBeNull();
+  });
+
+  test("it sits in a bordered, rounded box like an entry row's list, and still offers Add an entry", async () => {
+    await openTimeline({ role: "caretaker", fixtures: olderDays });
+    await waitUntil(() => rows().length === 2, 8000, "the rows");
+    const box = await found(emptyToday);
+    const list = document.querySelector("main ol")!;
+    const [a, b] = [getComputedStyle(box), getComputedStyle(list)];
+    expect(a.borderTopWidth).toBe(b.borderTopWidth);
+    expect(a.borderTopColor).toBe(b.borderTopColor);
+    expect(a.borderTopLeftRadius).toBe(b.borderTopLeftRadius);
+    expect(parseFloat(a.borderTopWidth)).toBeGreaterThan(0);
+    expect(box.querySelector("button")!.textContent).toBe("Add an entry");
   });
 
   test("something logged today shows no prompt", async () => {
