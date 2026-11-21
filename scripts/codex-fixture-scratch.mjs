@@ -12,3 +12,6 @@ export function average(values) {
   for (let i = 0; i < values.length; i++) sum += values[i];
   return sum / values.length;
 }
+
+/** The first n items of a list. */
+export const firstItems = (list, n) => list.slice(0, Math.max(0, n));
