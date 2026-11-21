@@ -63,6 +63,7 @@ The project is five days old and has 3,042 commits on `dev`. The flow that produ
 18. As the dev keeper, I want small fixes sorted into UI, tooling, speed, bugs and nits, each landing separately, so that I can try and prioritise one kind at a time.
 19. As a triaging session, I want one rule for which category a fix belongs to, so that I don't guess.
 20. As the dev keeper, I want a fixes topic to run only while it has waiting items and never be marked done, so that it is always there for the next fix.
+21. As the dev keeper, I want a cleanup run every few hours that removes what is plainly finished (landed worktrees, dead tickets, stale refs) and sends me one report of the rest (sessions that look done, unmerged branches), so that leftovers don't pile up (B-403).
 
 ## Implementation Decisions
 
@@ -119,6 +120,8 @@ The project is five days old and has 3,042 commits on `dev`. The flow that produ
 - No app code, no stack, no browser checks. Two things only the real machine can show, and the orchestrator does (the plan, _Trying it_): a background tab that leaves the selected tab alone, and its own first rotation.
 
 ## Out of Scope
+
+- **Scheduling the cleanup run** beyond a session's own `/loop`: the dispatcher's tick in `orchestration-3` runs `pnpm prd tidy` there.
 
 - **The dispatcher, the pick, unattended planners, and `queue`, recovery and status for them** (B-392): `orchestration-3`.
 - **An order of priority between the fix categories.** The user's, later.
