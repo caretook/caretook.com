@@ -13,6 +13,10 @@
 
 **Landing mode: run everything through** (queued with `pnpm prd queue list-filters`): start every ready slice, land each green wave through the Codex-reviewed PR, clean up; ask only real questions. B-249 claimed 2026-11-21.
 
+**Sync due:** quick-entry (B-220) landed in `dev` (c2ec744, PR #15; no migration or dependency change, no shared files with this PRD): `pnpm prd sync` at the wave 1 boundary, after slice 1 merges.
+
+**Open:** B-247 isn't scheduled: the quick-fixes orchestrator says the user held it (and B-246) back for a later wave; it will message us if it's scheduled and when it lands. A background check watches `dev` too. Once slices 1–3 are merged, ask the user: wait for it, or land the three and file slice 4 as a `quick-fixes` item.
+
 **Start conditions:** slices 1 to 3 can start at once (no dependency). **Slice 4 waits for B-247 in `dev`** (Planner: Past becomes an Upcoming | Past toggle, with the All / Events / Todos filter row; a `quick-fixes` item); `pnpm prd sync` before it.
 
 **Landing:** no migration, no dependencies, stackless. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. If slices 1 to 3 are merged and B-247 still isn't in `dev`, ask the user: wait, or land the three and file slice 4 as a `quick-fixes` item. Never `--suite` without asking.
