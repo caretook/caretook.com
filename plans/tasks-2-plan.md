@@ -4,12 +4,16 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/tasks-2` (slice commits) |
-| ----- | ---- | ----- | ---------------------------------------- |
-| 1     | 1    | —     |                                          |
-| 2     | 2    | —     |                                          |
-| 3     | 3    | —     |                                          |
-| 4     | 3    | —     |                                          |
+| Slice | Wave | State                                                                   | Merge into `prd/tasks-2` (slice commits) |
+| ----- | ---- | ----------------------------------------------------------------------- | ---------------------------------------- |
+| 1     | 1    | started 2026-11-21 (worktree `tasks-2-1`, slot 3, stack; agent on opus) |                                          |
+| 2     | 2    | waiting on timeline-ux-2 in `dev`                                       |                                          |
+| 3     | 3    | —                                                                       |                                          |
+| 4     | 3    | —                                                                       |                                          |
+
+**Landing mode: run everything through** (queued with `pnpm prd queue tasks-2`): start every ready slice, land each green wave, clean up; ask only real questions. B-222 claimed.
+
+**Start-condition note:** timeline-ux-2 wasn't in `dev` at start (B-214, B-217 in progress). Its diff touches only `apps/web` UI and docs, none of slice 1's files, so slice 1 started; slice 2 waits for timeline-ux-2 to land (a background check on `pnpm log dev`), then `pnpm prd sync`.
 
 **Start conditions:** **`timeline-ux-2`** in `dev` (its `PageHeader` and the Upcoming and Tasks headers; last item B-224). `connectors-2` (the tools, `assistantActionService`, the MCP prompts) is already in `dev` (017a9b29). Run `pnpm prd sync` before slice 1 if `dev` moved.
 
