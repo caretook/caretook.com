@@ -24,3 +24,6 @@ export { Loading, Skeleton } from "../Loading";
 export { Badge } from "../Badge";
 export type { BadgeTone } from "../badgeClass";
 export { STATUS_TONE } from "../badgeClass";
+export { DetailHeader } from "../DetailHeader";
+export type { DetailTone } from "../DetailHeader";
+export { Section } from "../Section";

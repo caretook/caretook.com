@@ -52,3 +52,6 @@ export type { BadgeTone } from "./badgeClass";
 export { STATUS_TONE } from "./badgeClass";
 export { Page } from "./Page";
 export { ICON, ICON_LG, ICON_SM, LINK, TITLE_PAGE, TITLE_SECTION, TITLE_SUB } from "./styles";
+export { DetailHeader } from "./DetailHeader";
+export type { DetailTone } from "./DetailHeader";
+export { Section } from "./Section";

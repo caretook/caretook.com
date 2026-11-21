@@ -2,6 +2,7 @@ import type { LocalTodo } from "~/lib/todos/todos.sync";
 
 import { todoState } from "@caretook/data/schema";
 import { Repeat } from "lucide-react";
+import { Section } from "~/components/ui";
 import { todoRepeatLine } from "~/lib/todos/todoDisplay";
 import { assigneeText, doneByLine, dueLines } from "./todoPage";
 
@@ -28,21 +29,21 @@ export function TodoDetails({
   const overdue = todoState(todo, now, timeZone) === "overdue";
   const repeats = todoRepeatLine(todo);
   return (
-    <section aria-label="Details" className="space-y-3">
+    <Section title="Details" id="details">
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-        <dt className="text-base-content/70">Assigned to</dt>
+        <dt className="text-muted">Assigned to</dt>
         <dd data-todo-assignee>{assigneeText(todo, nameOf)}</dd>
-        <dt className="text-base-content/70">Due</dt>
+        <dt className="text-muted">Due</dt>
         <dd data-todo-due>
           <span>{due.day}</span>
           {due.status && (
-            <span className={`block ${overdue ? "text-error" : "text-base-content/70"}`}>{due.status}</span>
+            <span className={`block ${overdue ? "text-error" : "text-muted"}`}>{due.status}</span>
           )}
-          {todo.dueTime && zoneNote && <span className="text-base-content/70 block">{zoneNote}</span>}
+          {todo.dueTime && zoneNote && <span className="text-muted block">{zoneNote}</span>}
         </dd>
       </dl>
       {repeats && (
-        <p className="text-base-content/70 flex items-center gap-1.5 text-sm" data-todo-repeat>
+        <p className="text-muted flex items-center gap-1.5 text-sm" data-todo-repeat>
           <Repeat className="size-4 shrink-0" aria-hidden="true" />
           <span>{repeats}</span>
         </p>
@@ -52,6 +53,6 @@ export function TodoDetails({
           {doneBy}
         </p>
       )}
-    </section>
+    </Section>
   );
 }
