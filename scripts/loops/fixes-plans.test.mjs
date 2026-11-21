@@ -9,7 +9,7 @@ describe("fix topics", () => {
   it("has a rules file naming the category rule and its tie-break", () => {
     const rules = readFileSync(`${plans}fixes-rules.md`, "utf8");
     expect(rules).toContain("bug`, `perf`, `ui`, `tooling`, `nit`");
-    expect(rules).toContain("one slice and one backlog item per fix");
+    expect(rules).toContain("One slice and one backlog item per fix.");
   });
 
   it.each(CATEGORIES)("fixes-%s has a plan with a parsing Status table", (cat) => {
