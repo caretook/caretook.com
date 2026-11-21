@@ -152,13 +152,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-246 | change | triaged | planner-2 |  | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
 | B-247 | change | in-progress | planner-2 | prd/planner-2 | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
 | B-248 | change | in-progress | planner-2 | prd/planner-2 | Remove reminders: notes can no longer be dated in the future; use todos instead |
-| B-249 | change | ready | list-filters | prd/list-filters | Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner |
+| B-249 | change | landed | list-filters | prd/list-filters | Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner |
 | B-250 | bug | landed | quick-fixes |  | lint tests seem to be failing regularly because types haven't been generated. Maybe regression… |
 | B-251 | bug | in-progress | planner-2 | prd/planner-2 | convert planner tabs to TabNav component. |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-254 | feature | triaged | planner-3 |  | Quick entry: 'bins out every monday' makes a repeating todo |
-| B-255 | bug | ready | list-filters | prd/list-filters | default filter on todos should be "everyone" and then reduce the list. |
+| B-255 | bug | landed | list-filters | prd/list-filters | default filter on todos should be "everyone" and then reduce the list. |
 | B-256 | bug | triaged | quick-fixes |  | call and directions icons on planner schedule should be below the time, not beside the… |
 | B-257 | change | triaged | ui-kit |  | Button primitive (ui/Button): variants, sizes, link form and a built-in busy label, replacing hand-written btn class strings |
 | B-258 | change | triaged | ui-kit |  | Form footer primitive (Cancel and Save row) for sheets and forms; settings' SaveRow builds on it |
@@ -285,6 +285,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-379 | chore | triaged | quick-fixes |  | Later contract migrations nobody tracks: dropping the old columns the simple-mode and planner-2 PRDs leave behind, and medications-2's default-passes backfill |
 | B-380 | chore | triaged | quick-fixes |  | Backlog hygiene: B-205 and B-206 are the same test failure; B-208 is tagged simple-mode but landed as a hotfix; B-88 is landed with no commit; B-222's title and inbox line disagree; about 150 items read 'live' from one release merge though production hasn't started |
 | B-381 | bug | triaged | quick-fixes |  | readTools.int.test.ts 'nothing private leaves' flakes when a random user UUID contains the birth year (e.g. …072194195bed matches '1941'): assert on fields, not a substring of the whole output |
+| B-382 | bug | triaged | planner-2 |  | Repeating todos: an offline Undo's delete of the next occurrence lands unconditionally (todoOp removeTodo), deleting a successor another member edited or completed even though todoService.reopen kept it; tell an Undo's delete from an explicit one and apply it only when the server finds the successor untouched (todos.sync.ts:499) |
+| B-383 | bug | triaged | planner-2 |  | Repeating todos: reopen finds the successor by dueOn > the reopened todo's due day (todoService laterInChain, and the device's), so a successor rescheduled to the same day or earlier is missed and both rows stay open and repeating |
+| B-384 | bug | triaged | planner-2 |  | Repeating todos: two concurrent completions of the same todo with doneAt on different recipient days both read doneAt null and each insert a different next occurrence; lock and reread the row (or a conditional transition) so only the winner makes the next (todoService.complete) |
+| B-385 | bug | triaged | planner-2 |  | Repeating todos: nextDueDay uses nextVisits' ~5-year search horizon, so a valid long-interval rule (e.g. FREQ=MONTHLY;INTERVAL=99) reads as ended and the chain stops; search to the rule's next occurrence or cap the accepted interval |
 
 ## Items
 
@@ -1136,7 +1140,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-249 · change · Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner
 
-- status: ready
+- status: landed
 - prd: list-filters
 - owner: prd/list-filters
 - commit: 534ee5e0
@@ -1194,7 +1198,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-255 · bug · default filter on todos should be "everyone" and then reduce the list.
 
-- status: ready
+- status: landed
 - prd: list-filters
 - owner: prd/list-filters
 - commit: 6471195a
@@ -2349,3 +2353,40 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (prd/planner-2): Seen by planner-2 slice 1's full check (2026-11-21); passed on rerun.
+
+### B-382 · bug · Repeating todos: an offline Undo's delete of the next occurrence lands unconditionally (todoOp removeTodo), deleting a successor another member edited or completed even though todoService.reopen kept it; tell an Undo's delete from an explicit one and apply it only when the server finds the successor untouched (todos.sync.ts:499)
+
+- status: triaged
+- prd: planner-2
+- owner:
+- commit:
+
+- 2026-11-21 (prd/planner-2): Codex finding on PR #22 (planner-2 wave 1, 2026-11-21); filed as a follow-up. P1.
+
+### B-383 · bug · Repeating todos: reopen finds the successor by dueOn > the reopened todo's due day (todoService laterInChain, and the device's), so a successor rescheduled to the same day or earlier is missed and both rows stay open and repeating
+
+- status: triaged
+- prd: planner-2
+- owner:
+- commit:
+
+- 2026-11-21 (prd/planner-2): Codex finding on PR #22 (planner-2 wave 1, 2026-11-21); filed as a follow-up. P2.
+
+### B-384 · bug · Repeating todos: two concurrent completions of the same todo with doneAt on different recipient days both read doneAt null and each insert a different next occurrence; lock and reread the row (or a conditional transition) so only the winner makes the next (todoService.complete)
+
+- status: triaged
+- prd: planner-2
+- owner:
+- commit:
+
+- 2026-11-21 (prd/planner-2): Codex finding on PR #22 (planner-2 wave 1, 2026-11-21); filed as a follow-up. P2.
+
+### B-385 · bug · Repeating todos: nextDueDay uses nextVisits' ~5-year search horizon, so a valid long-interval rule (e.g. FREQ=MONTHLY;INTERVAL=99) reads as ended and the chain stops; search to the rule's next occurrence or cap the accepted interval
+
+- status: triaged
+- prd: planner-2
+- owner:
+- commit:
+
+- 2026-11-21 (prd/planner-2): Codex finding on PR #22 (planner-2 wave 1, 2026-11-21); filed as a follow-up. P2.
+- 2026-11-21 (prd/planner-2): The repeat sheet's interval input allows up to 99 (RepeatField.tsx max={99}), so this is reachable from the app.
