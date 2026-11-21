@@ -35,7 +35,7 @@ const COLUMNS: Record<string, string[]> = {
   note_update: ["group_id", "document_id", "data"],
   user: ["name"],
   provider: ["group_id", "type", "name", "specialty", "practice_id", "deleted_at"],
-  medication: ["group_id", "name", "strength", "reason", "directions", "deleted_at"],
+  medication: ["group_id", "name", "strength", "type", "reason", "directions", "deleted_at"],
   timeline_entry_provider: ["group_id", "entry_id", "provider_id"],
   task: ["group_id", "title", "done_at", "deleted_at"],
   recipient_condition: ["group_id", "name", "note", "status", "deleted_at"],
@@ -194,6 +194,15 @@ describe("the device search index", () => {
     expect(await ids(s, '"walking well"')).toEqual(["e-walk"]);
     expect(await ids(s, '"well walking"')).toEqual([]);
     expect(await ids(s, "kim -dizziness")).toEqual(["e-bp", "e-dose", "e-visit"]);
+  });
+
+  it("finds a medication by its type's label", async () => {
+    s.put("medication", "m-d3", { group_id: G1, name: "Vitamin D", strength: "1000 IU", type: "supplement" });
+    await indexSearchChanges(s.store);
+    expect((await searchGroup(s.db, G1, parseSearch("supplement"))).medication.hits.map((h) => h.id)).toEqual(
+      ["m-d3"],
+    );
+    expect((await searchGroup(s.db, G1, parseSearch("over the counter"))).medication.total).toBe(0);
   });
 
   it("never returns another group's rows", async () => {

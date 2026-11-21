@@ -30,7 +30,7 @@ export { parseSearch };
  * search document holds change: devices then rebuild their index on the
  * next open.
  */
-export const SEARCH_INDEX_VERSION = 3;
+export const SEARCH_INDEX_VERSION = 4;
 
 /** bm25 weights for (title, body): a match in a title-like field ranks above one in the text. */
 const WEIGHTS = "4.0, 1.0";
@@ -178,6 +178,7 @@ type MedicationSourceRow = DocumentColumns & {
   group_id: string | null;
   name: string | null;
   strength: string | null;
+  type: string | null;
   reason: string | null;
   directions: string | null;
   deleted_at: string | null;
@@ -186,7 +187,8 @@ type MedicationSourceRow = DocumentColumns & {
 const readMedications = async (db: SqlRunner, ids: string[] | null): Promise<SearchDocument[]> => {
   const filter = idFilter("m.id", ids);
   const rows = await db.getAll<MedicationSourceRow>(
-    `SELECT m.id, m.group_id, m.name, m.strength, m.reason, m.directions, m.deleted_at,
+    `SELECT m.id, m.group_id, m.name, m.strength, m.type, m.reason, m.directions,
+            m.deleted_at,
             ${documentColumns("m.id")}
      FROM medication m
      LEFT JOIN note_document d ON d.id = m.id
@@ -200,6 +202,7 @@ const readMedications = async (db: SqlRunner, ids: string[] | null): Promise<Sea
       groupId: row.group_id,
       name: row.name,
       strength: row.strength,
+      type: row.type,
       reason: row.reason,
       directions: row.directions,
       deletedAt: row.deleted_at,
