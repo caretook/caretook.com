@@ -550,7 +550,7 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
 /**
  * Soft delete. The entry disappears from the timeline but syncs as deleted.
  * Todos linked to a deleted event lose the link in the same transaction
- * (tasks PRD), as the todo table's FK does on a hard delete.
+ * (todos PRD), as the todo table's FK does on a hard delete.
  */
 export const remove = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {

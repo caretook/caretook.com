@@ -155,7 +155,7 @@ export const remove = (ctx: ServiceContext, id: string) =>
       filter: { id: { type: "eq", value: id } },
     });
     if (isError(removed)) return removed;
-    // Their open todos keep their name as a typed-in assignee (tasks PRD).
+    // Their open todos keep their name as a typed-in assignee (todos PRD).
     const released = await releaseAssignee(tx, target.groupId, target.userId);
     if (isError(released)) return released;
     // Their AI assistants' access to the group ends with the membership (connectors PRD).

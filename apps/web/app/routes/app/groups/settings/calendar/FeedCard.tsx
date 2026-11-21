@@ -11,7 +11,7 @@ import { feedLinks } from "~/lib/calendars/feedLinks";
 import { copyLinkText } from "../members/linkRules";
 
 export const FEED_EXPLAINED =
-  "A private link that shows this group's appointments, reminders and tasks with a due day in your own calendar app (Apple, Google, Outlook), from 90 days back to 90 days ahead.";
+  "A private link that shows this group's appointments, reminders and todos with a due day in your own calendar app (Apple, Google, Outlook), from 90 days back to 90 days ahead.";
 
 export const FEED_SECRET =
   "Anyone with the link can see the calendar, so keep it private. It's shown only now: if you lose it, regenerate one.";

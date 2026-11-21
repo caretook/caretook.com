@@ -215,7 +215,7 @@ describe("/mcp write tools", () => {
     );
     const taskId = task.structuredContent.taskId!;
     expect(textOf(task)).toMatch(/^Added task: Pick up prescription · caretaker · /);
-    expect(task.structuredContent.url).toBe(`${base}/tasks/${taskId}`);
+    expect(task.structuredContent.url).toBe(`${base}/todos/${taskId}`);
     const row = ok(await todoService.getById(w.owner.ctx, taskId));
     expect(row).toMatchObject({ assigneeId: w.caretaker.user.id, dueOn: "2027-01-10", via: CLIENT });
 

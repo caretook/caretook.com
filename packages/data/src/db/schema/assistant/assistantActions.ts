@@ -88,7 +88,7 @@ export const addEventActionZSchema = z.strictObject({
 });
 
 /**
- * A task: a title, at most one member to do it, and an optional due day
+ * A todo: a title, at most one member to do it, and an optional due day
  * with an optional time (wall-clock in the recipient's zone), plus optional
  * links. Not a timeline entry, so it has no `occurredAt`. Whoever carries it
  * out checks the assignee is a member and the links are live in the group.
@@ -124,7 +124,7 @@ export type AssistantActionInput = z.input<typeof assistantActionZSchema>;
 export type AssistantActionType = AssistantAction["type"];
 export type ActionOf<T extends AssistantActionType> = Extract<AssistantAction, { type: T }>;
 
-/** The kind each action writes: a timeline kind, or `task` (not an entry). */
+/** The kind each action writes: a timeline kind, or `todo` (not an entry). */
 export const ACTION_KINDS = {
   logVital: "vital",
   logSymptom: "symptom",
@@ -132,7 +132,7 @@ export const ACTION_KINDS = {
   addNote: "note",
   addEvent: "event",
   givePass: "dose",
-  addTask: "task",
+  addTask: "todo",
 } as const satisfies Record<AssistantActionType, string>;
 export type ActionKind = (typeof ACTION_KINDS)[AssistantActionType];
 

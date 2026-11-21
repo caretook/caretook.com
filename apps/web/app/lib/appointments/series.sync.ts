@@ -278,7 +278,7 @@ export const toPlanSeries = (row: FullSeriesRow): PlanSeries | null => {
 
 type VisitRow = EntryRow & { touched: number };
 
-/** A series' visits (deleted ones too), each with whether it has notes or linked tasks. */
+/** A series' visits (deleted ones too), each with whether it has notes or linked todos. */
 const visitsSql = `SELECT e.*,
     (EXISTS (SELECT 1 FROM note_document d WHERE d.id = e.id AND d.text IS NOT NULL AND d.text != '')
       OR EXISTS (SELECT 1 FROM note_update u WHERE u.document_id = e.id)
@@ -476,7 +476,7 @@ export const applySeriesEdit = async (
         .update(timelineEntries)
         .set({ deletedAt: at, ...changed })
         .where(eq(timelineEntries.id, id));
-      // As removeEntry: events pointing at it lose the link, and so do its tasks.
+      // As removeEntry: events pointing at it lose the link, and so do its todos.
       await tx
         .update(timelineEntries)
         .set({ rescheduledTo: null, ...changed })

@@ -14,7 +14,7 @@ import { fx, TEST_GROUP } from "../../../../../test/fixtures";
 
 // The Reminders card on Calendar & reminders (calendars, appointments-2
 // slice 6): turning reminder emails on, picking up to three lead times, the
-// note on tasks, a viewer's own, and offline with nothing on the device. The
+// note on todos, a viewer's own, and offline with nothing on the device. The
 // server is the test's stand-in for `calendars.settings.*`; what it decides
 // (and what the sweep sends) is in the integration tests.
 
@@ -82,7 +82,7 @@ describe("the Reminders card", () => {
     await expect.element(onSwitch()).not.toBeChecked();
     expect(card()!.querySelector("[data-reminder-leads]")).toBeNull();
     await expect
-      .element(page.getByText(/Tasks assigned to you remind you the morning they're due/))
+      .element(page.getByText(/Todos assigned to you remind you the morning they're due/))
       .toBeVisible();
 
     await userEvent.click(onSwitch());

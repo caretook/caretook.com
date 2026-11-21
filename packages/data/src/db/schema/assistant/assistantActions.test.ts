@@ -73,7 +73,7 @@ describe("givePass", () => {
 });
 
 describe("addTask", () => {
-  test("a title, and optionally a member, a due day with a time, and links; no task id, no occurredAt", () => {
+  test("a title, and optionally a member, a due day with a time, and links; no todo id, no occurredAt", () => {
     expect(ok({ type: "addTask", title: "Call pharmacy" })).toBe(true);
     expect(
       ok({ type: "addTask", title: "Call pharmacy", assigneeId: MED, dueOn: "2026-11-20", dueTime: "17:00" }),
@@ -122,6 +122,6 @@ test("every action names the kind it writes", () => {
     addNote: "note",
     addEvent: "event",
     givePass: "dose",
-    addTask: "task",
+    addTask: "todo",
   });
 });

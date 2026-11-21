@@ -12,7 +12,7 @@ import { useLocation } from "react-router";
 
 const G = TEST_GROUP.id;
 const TIMELINE = `/app/groups/${G}/timeline`;
-const TASKS = `/app/groups/${G}/tasks`;
+const TODOS = `/app/groups/${G}/todos`;
 
 function Frame() {
   const { pathname } = useLocation();
@@ -35,7 +35,7 @@ const open = async (width: number) => {
       children: [
         { path: "timeline", Component: () => null },
         // A target whose loader never resolves.
-        { path: "tasks", loader: () => new Promise(() => {}), Component: () => null },
+        { path: "todos", loader: () => new Promise(() => {}), Component: () => null },
       ],
     },
   ]);
@@ -54,15 +54,15 @@ describe.each([
   test("a tap moves aria-current at once, and a superseded navigation moves it back", async () => {
     await open(width);
     expect(links(nav, TIMELINE).getAttribute("aria-current")).toBe("page");
-    expect(links(nav, TASKS).getAttribute("aria-current")).toBeNull();
+    expect(links(nav, TODOS).getAttribute("aria-current")).toBeNull();
 
-    (links(nav, TASKS) as HTMLElement).click();
-    await expect.poll(() => links(nav, TASKS).getAttribute("aria-current")).toBe("page");
+    (links(nav, TODOS) as HTMLElement).click();
+    await expect.poll(() => links(nav, TODOS).getAttribute("aria-current")).toBe("page");
     expect(links(nav, TIMELINE).getAttribute("aria-current")).toBeNull();
 
     await userEvent.click(page.getByRole("link", { name: "Stay here" }));
     await expect.poll(() => links(nav, TIMELINE).getAttribute("aria-current")).toBe("page");
-    expect(links(nav, TASKS).getAttribute("aria-current")).toBeNull();
+    expect(links(nav, TODOS).getAttribute("aria-current")).toBeNull();
   });
 });
 

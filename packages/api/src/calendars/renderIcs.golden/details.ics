@@ -52,8 +52,8 @@ DTSTART:20261123T163000Z
 DTEND:20261123T170000Z
 SUMMARY:Todo for Pat: Pick up the walker
 DESCRIPTION:Mon 23 Nov · 8:30\nOpen in Caretook: https://app.caretook.tes
- t/app/groups/g1/tasks
-URL;VALUE=URI:https://app.caretook.test/app/groups/g1/tasks
+ t/app/groups/g1/todos
+URL;VALUE=URI:https://app.caretook.test/app/groups/g1/todos
 STATUS:CONFIRMED
 END:VEVENT
 BEGIN:VEVENT

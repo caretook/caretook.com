@@ -42,7 +42,7 @@ import {
   whenText,
 } from "@caretook/data";
 import { z } from "zod";
-import { entryPath, linkTo, passLogPath, profilePath, taskPath } from "../links";
+import { entryPath, linkTo, passLogPath, profilePath, todoPath } from "../links";
 import { defineTool, WRITE_ANNOTATIONS } from "../registry";
 import { loadGroup, loadMembers } from "./shared";
 
@@ -126,7 +126,7 @@ const carryOut = async (
   const path = !first
     ? null
     : first.kind === "task"
-      ? taskPath(ctx.groupId, first.id)
+      ? todoPath(ctx.groupId, first.id)
       : action.type === "givePass" && first.passLogId
         ? passLogPath(ctx.groupId, first.passLogId)
         : entryPath(ctx.groupId, { id: first.id, kind: first.entryKind });

@@ -30,7 +30,7 @@ import {
 // `n/10`, or a symptom word), events (`appt`, or a time ahead), then a note.
 // Every part gets a note reading, so nothing typed is lost. A time phrase
 // ("at 8am", "30 min ago", "yesterday 9pm") sets any part's time, in the
-// recipient's zone. A task (`t:`, `task:`, `todo:`) is only ever asked for:
+// recipient's zone. A todo (`t:`, `task:`, `todo:`) is only ever asked for:
 // its "for Sam" or "@Sam" names a member, and its time phrase is the due day.
 
 // ---------------------------------------------------------------------------
@@ -78,11 +78,11 @@ export type QuickEntryContext = {
   providers: readonly QuickEntryProvider[];
   /** The group's live passes, in the day's order (due ones flagged). */
   passes?: readonly QuickEntryPass[];
-  /** The group's members, whom a task's "for Sam" or "@Sam" can name. */
+  /** The group's members, whom a todo's "for Sam" or "@Sam" can name. */
   members?: readonly QuickEntryMember[];
 };
 
-/** A member of the group, as a task's assignee. */
+/** A member of the group, as a todo's assignee. */
 export type QuickEntryMember = { id: string; name: string };
 
 /** Something to show on a card. A blocking one stops that card from saving. */
@@ -107,14 +107,14 @@ export const KIND_LABELS: Record<ActionKind, string> = {
   dose: "Dose",
   note: "Note",
   event: "Event",
-  task: "Task",
+  todo: "Todo",
 };
 
 /** Kind prefixes: `v: …` is always a vital. */
 const PREFIXES: Record<string, ActionKind> = { n: "note", e: "event", s: "symptom", v: "vital", d: "dose" };
 
-/** A task's prefix: `t:`, `task:`, `todo:` (or `todo` alone, `to-do:`). */
-const TASK_PREFIX = /^\s*(?:(?:t|task|todo|to-do|to do)\s*:|todo\b)\s*/i;
+/** A todo's prefix: `t:`, `task:`, `todo:` (or `todo` alone, `to-do:`). */
+const TODO_PREFIX = /^\s*(?:(?:t|task|todo|to-do|to do)\s*:|todo\b)\s*/i;
 
 // ---------------------------------------------------------------------------
 // Words
@@ -1269,8 +1269,8 @@ const eventFromText = (s: PartState, confidence: number): QuickEntryReading => {
   );
 };
 
-/** Words left at the end of a task's title by its due or assignee ("call pharmacy by friday"). */
-const TASK_TRAILING = new Set([
+/** Words left at the end of a todo's title by its due or assignee ("call pharmacy by friday"). */
+const TODO_TRAILING = new Set([
   "by",
   "on",
   "at",
@@ -1286,7 +1286,7 @@ const TASK_TRAILING = new Set([
 ]);
 
 /**
- * The member a task names after "for" or "@", starting at word `k`: the
+ * The member a todo names after "for" or "@", starting at word `k`: the
  * longest match of a member's full name, else their first name. Two members
  * sharing the words is ambiguous (nobody is assigned).
  */
@@ -1318,13 +1318,13 @@ const matchMember = (s: PartState, k: number, first: string) => {
 };
 
 /**
- * A task (only when the part asks for one): its title is what's left once
+ * A todo (only when the part asks for one): its title is what's left once
  * the due phrase and the assignee are taken out. "for Sam" or "@Sam" names
  * a member (a name that matches nobody stays in the title; a typed-in
  * assignee is chosen in the sheet). A time phrase is the due day and,
  * when it says one, the time, read ahead in the recipient's zone.
  */
-const taskReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
+const todoReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   if (!forced) return [];
   const warnings: QuickEntryWarning[] = [];
   let assigneeId: string | null = null;
@@ -1352,11 +1352,11 @@ const taskReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   }
 
   let titleIdx = s.free.filter((i) => !assigneeUsed.includes(i));
-  while (titleIdx.length && TASK_TRAILING.has(s.tokens[titleIdx.at(-1)!]!.w))
+  while (titleIdx.length && TODO_TRAILING.has(s.tokens[titleIdx.at(-1)!]!.w))
     titleIdx = titleIdx.slice(0, -1);
   titleIdx = stripLeading(s.tokens, titleIdx, new Set(["due", "-", ":"]));
   const title = truncate(capitalize(rawOf(s.tokens, titleIdx)), TODO_LIMITS.title);
-  if (!title) warnings.push({ message: "Say what the task is.", blocking: true });
+  if (!title) warnings.push({ message: "Say what the todo is.", blocking: true });
 
   let dueOn: string | null = null;
   let dueTime: string | null = null;
@@ -1372,7 +1372,7 @@ const taskReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
 
   return [
     reading(
-      "task",
+      "todo",
       {
         type: "addTask",
         title,
@@ -1397,7 +1397,7 @@ const DETECTORS: Record<
   dose: (s, forced) => [...passReadings(s, forced), ...doseReadings(s, forced)],
   symptom: symptomReadings,
   event: eventReadings,
-  task: taskReadings,
+  todo: todoReadings,
 };
 
 const parsePart = (
@@ -1405,9 +1405,9 @@ const parsePart = (
   context: QuickEntryContext,
   previousDose: DoseStatus | null,
 ): QuickEntryPart => {
-  const taskPrefix = TASK_PREFIX.exec(text);
-  const prefix = taskPrefix ?? /^\s*([nesvd]):\s*/i.exec(text);
-  const forced = taskPrefix ? "task" : prefix ? PREFIXES[prefix[1]!.toLowerCase()]! : null;
+  const todoPrefix = TODO_PREFIX.exec(text);
+  const prefix = todoPrefix ?? /^\s*([nesvd]):\s*/i.exec(text);
+  const forced = todoPrefix ? "todo" : prefix ? PREFIXES[prefix[1]!.toLowerCase()]! : null;
   const body = prefix ? text.slice(prefix[0].length).trim() : text.trim();
   const tokens = tokenize(body);
   const time = findTime(tokens.map((t) => t.w));
@@ -1455,12 +1455,12 @@ const parsePart = (
 /**
  * A line's parts: split on commas, semicolons, new lines and "and" (not a
  * comma inside a number, "1,000"). A line that starts with `n:` or `e:` is
- * one note or event, whatever it says. A task keeps its "and" ("todo: pick
+ * one note or event, whatever it says. A todo keeps its "and" ("todo: pick
  * up milk and bread") up to the next comma, semicolon or line.
  */
 const SOFT_SPLIT = /\s*(?:\band\b|\bthen\b|&|\+)\s*/i;
 const SOFT_SPLIT_START = /^\s*(?:\band\b|\bthen\b|&|\+)\s*/i;
-const TASK_AFTER_SOFT = /\s*(?:\band\b|\bthen\b|&|\+)\s*(?=(?:t|task|todo|to-do|to do)\s*:|todo\b)/i;
+const TODO_AFTER_SOFT = /\s*(?:\band\b|\bthen\b|&|\+)\s*(?=(?:t|task|todo|to-do|to do)\s*:|todo\b)/i;
 
 export const splitQuickEntry = (text: string): string[] => {
   const line = text.trim();
@@ -1469,10 +1469,10 @@ export const splitQuickEntry = (text: string): string[] => {
   return line
     .split(/\s*(?:;|\n|(?<!\d),|,(?!\d))\s*/)
     .flatMap((piece) => {
-      // From a task's prefix on, the piece is the task.
-      const task = TASK_PREFIX.test(piece) ? 0 : piece.search(TASK_AFTER_SOFT);
-      const head = task < 0 ? piece : piece.slice(0, task);
-      const tail = task < 0 ? [] : [piece.slice(task).replace(SOFT_SPLIT_START, "")];
+      // From a todo's prefix on, the piece is the todo.
+      const todo = TODO_PREFIX.test(piece) ? 0 : piece.search(TODO_AFTER_SOFT);
+      const head = todo < 0 ? piece : piece.slice(0, todo);
+      const tail = todo < 0 ? [] : [piece.slice(todo).replace(SOFT_SPLIT_START, "")];
       return [...(head ? head.split(SOFT_SPLIT) : []), ...tail];
     })
     .map((p) => p.trim())

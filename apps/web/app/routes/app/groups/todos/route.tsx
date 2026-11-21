@@ -1,0 +1,118 @@
+import type { Route } from "./+types/route";
+import type { ShouldRevalidateFunctionArgs } from "react-router";
+import type { LocalTodo, TodoRow } from "~/lib/todos/todos.sync";
+import type { MemberRow } from "~/lib/timeline/timeline.sync";
+
+import { Plus } from "lucide-react";
+import { useCallback } from "react";
+import { Link, Outlet, useLocation } from "react-router";
+import { TodoUndoStatus, useTodoTick } from "~/components/todos";
+import { PageHeader } from "~/components/ui";
+import { appUrls } from "~/lib/app-shell/appUrls";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { sessionContext } from "~/lib/auth/session";
+import { todosQuery, toTodos } from "~/lib/todos/todos.sync";
+import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
+import { defaultWho, parseWho } from "~/lib/todos/todoList";
+import { DoneTodos } from "./DoneTodos";
+import { TodoChips } from "./TodoChips";
+import { TodoSections } from "./TodoSections";
+import { listSearch, onlyTodoSheetChanged, TODO_SHEET_STATE } from "~/lib/todos/todoSheets";
+import { DONE_PAGE, useTodoList } from "./useTodoList";
+
+// Shared by web + native. The group's todos, read from the device's local
+// copy (live, so it works offline and follows other members' changes):
+// the open ones the Mine / Unassigned / Everyone chip shows (`?who=`), in
+// sections by due, then Done. A tick completes a todo on the device, with
+// Undo. The add and edit sheets render over it.
+
+export const meta = () => [{ title: "Todos · Caretook" }];
+
+const EMPTY: Record<string, string> = {
+  mine: "Nothing assigned to you.",
+  unassigned: "No unassigned todos.",
+  everyone: "No open todos.",
+};
+
+export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
+  const group = getGroup(context);
+  const { db } = context.get(sessionContext);
+  const [openRows, memberRows] = await Promise.all([
+    readRows<TodoRow>(db, todosQuery(params.groupId)),
+    readRows<MemberRow>(db, membersQuery(params.groupId)),
+  ]);
+  const who = parseWho(new URL(request.url).search) ?? defaultWho(toTodos(openRows), group.userId);
+  const doneRows = await readRows<TodoRow>(
+    db,
+    todosQuery(params.groupId, { done: true, who, userId: group.userId, limit: DONE_PAGE }),
+  );
+  return { openRows, doneRows, memberRows };
+}
+
+/**
+ * The live queries follow every change and the chip is applied on the
+ * device, so a chip change (same path) or a sheet opening and closing over
+ * the list doesn't rerun the loader. Anything else (another group) does.
+ */
+export function shouldRevalidate({
+  formMethod,
+  currentUrl,
+  nextUrl,
+  nextParams,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  if (formMethod) return false;
+  if (currentUrl.pathname === nextUrl.pathname) return false;
+  if (nextParams.groupId && onlyTodoSheetChanged(nextParams.groupId, currentUrl, nextUrl)) return false;
+  return defaultShouldRevalidate;
+}
+
+export default function Todos({ loaderData, params }: Route.ComponentProps) {
+  const group = useGroup();
+  const { search } = useLocation();
+  const list = useTodoList(params.groupId, loaderData);
+  const { complete, reopen, busy, error } = useTodoTick(params.groupId);
+  const onTick = useCallback(
+    (todo: LocalTodo, done: boolean) => void (done ? complete(todo) : reopen(todo)),
+    [complete, reopen],
+  );
+  const row = { nameOf: list.nameOf, now: list.now, timeZone: list.timeZone, onTick, busy };
+
+  return (
+    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
+      <PageHeader
+        title="Todos"
+        actions={
+          group.canWrite && (
+            <Link
+              to={appUrls.newTodo(params.groupId, {}, listSearch(search))}
+              state={TODO_SHEET_STATE}
+              // Loaded ahead, so the sheet opens offline too.
+              prefetch="render"
+              preventScrollReset
+              className="btn btn-primary btn-sm shrink-0"
+              data-add-todo
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              Add todo
+            </Link>
+          )
+        }
+      />
+
+      <TodoChips who={list.who} />
+      <TodoUndoStatus groupId={params.groupId} />
+      {error && (
+        <p role="alert" className="text-error text-sm">
+          {error}
+        </p>
+      )}
+
+      <TodoSections sections={list.sections} empty={EMPTY[list.who] ?? EMPTY.everyone!} {...row} />
+      <DoneTodos todos={list.done} more={list.moreDone} onMore={list.showMoreDone} {...row} />
+
+      {/* The add and edit sheets render here, over the list. */}
+      <Outlet />
+    </main>
+  );
+}

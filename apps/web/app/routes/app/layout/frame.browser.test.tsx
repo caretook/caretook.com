@@ -327,7 +327,7 @@ describe("the sections", () => {
       "Providers",
       "Medications",
       "Upcoming",
-      "Tasks",
+      "Todos",
     ]);
     expect(
       links.filter((a) => a.getAttribute("aria-current") === "page").map((a) => a.textContent?.trim()),
@@ -395,7 +395,7 @@ describe("the sections", () => {
       "Providers",
       "Medications",
       "Upcoming",
-      "Tasks",
+      "Todos",
     ]);
     expect(
       links.filter((a) => a.getAttribute("aria-current") === "page").map((a) => a.textContent?.trim()),

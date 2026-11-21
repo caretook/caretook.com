@@ -227,7 +227,7 @@ export const calendarItems = ({
         place: null,
         providers: [],
         series: null,
-        appUrl: `${base}/app/groups/${todo.groupId}/tasks/${todo.id}`,
+        appUrl: `${base}/app/groups/${todo.groupId}/todos/${todo.id}`,
       },
     });
   }

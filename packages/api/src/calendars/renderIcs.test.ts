@@ -59,7 +59,7 @@ const ITEMS: CalendarItem[] = [
     title: "Pick up the walker",
     place: null,
     providers: [],
-    appUrl: `${APP_URL}/app/groups/g1/tasks`,
+    appUrl: `${APP_URL}/app/groups/g1/todos`,
   }),
   item({
     uid: "entry:s1",

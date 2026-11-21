@@ -21,8 +21,8 @@ export type TodayRow =
   | { kind: "appointment"; entry: TimedEntry }
   /** The pass the row shows: its moment today, or null when it's tomorrow's (nothing left today). */
   | { kind: "medications"; dueAt: string | null }
-  /** Whether the task the row names is overdue (else it's due today). */
-  | { kind: "tasks"; overdue: boolean };
+  /** Whether the todo the row names is overdue (else it's due today). */
+  | { kind: "todos"; overdue: boolean };
 
 const HOUR = 3_600_000;
 const MINUTE = 60_000;
@@ -36,7 +36,7 @@ export const APPOINTMENT_SOON_MS = 2 * HOUR;
  * "today"):
  *
  * - `error`: a dose overdue (`OVERDUE_AFTER_MINUTES` past its time, as the
- *   medication rules say) or an overdue task;
+ *   medication rules say) or an overdue todo;
  * - `warning`: a dose due now (from its time until it's overdue), or vitals
  *   whose newest reading is more than a day old;
  * - `info`: an appointment in progress, starting within 2 hours, or today;
@@ -57,7 +57,7 @@ export function todayStatus(
       if (late < 0) return "neutral";
       return late >= OVERDUE_AFTER_MINUTES * MINUTE ? "error" : "warning";
     }
-    case "tasks":
+    case "todos":
       return row.overdue ? "error" : "neutral";
     case "appointment": {
       const { entry } = row;
@@ -74,16 +74,16 @@ export function todayStatus(
   }
 }
 
-/** "Due soon": due now, or due within this long (doses, tasks and appointments alike). */
+/** "Due soon": due now, or due within this long (doses, todos and appointments alike). */
 export const SOON_MS = HOUR;
 
-/** A task due today without a time counts as due at this wall-clock time, in the recipient's zone. */
-export const UNTIMED_TASK_TIME = "19:00";
+/** A todo due today without a time counts as due at this wall-clock time, in the recipient's zone. */
+export const UNTIMED_TODO_TIME = "19:00";
 
 /** What the collapsed card leads with, by kind: how many are overdue and how many due soon. */
 export type AttentionCounts = {
   doses: { overdue: number; soon: number };
-  tasks: { overdue: number; soon: number };
+  todos: { overdue: number; soon: number };
   /** The next appointment, in progress or starting within `SOON_MS` (0 or 1). */
   appointments: { soon: number };
 };
@@ -98,21 +98,21 @@ const minutesOf = (hhmm: string) => {
  * card's red and orange counts:
  *
  * - doses: today's slots overdue (red); due, or upcoming within `SOON_MS` (orange);
- * - tasks (overdue or due today): overdue (red); due today within
+ * - todos (overdue or due today): overdue (red); due today within
  *   `SOON_MS`, or already past its time (orange). One without a time is due
- *   at `UNTIMED_TASK_TIME`, in the recipient's zone (`timeZone`);
+ *   at `UNTIMED_TODO_TIME`, in the recipient's zone (`timeZone`);
  * - the next appointment: in progress, or starting within `SOON_MS`
  *   (orange); an all-day item has no start, so it never counts.
  */
 export function attentionCounts({
   doses,
-  tasks,
+  todos,
   appointment,
   now,
   timeZone,
 }: {
   doses: readonly Pick<DoseSlot, "state" | "at">[];
-  tasks: readonly Pick<TodoRuleFields, "doneAt" | "dueOn" | "dueTime">[];
+  todos: readonly Pick<TodoRuleFields, "doneAt" | "dueOn" | "dueTime">[];
   appointment: TimedEntry | null;
   now: Date | number;
   timeZone: string;
@@ -120,7 +120,7 @@ export function attentionCounts({
   const at = typeof now === "number" ? now : now.getTime();
   const counts: AttentionCounts = {
     doses: { overdue: 0, soon: 0 },
-    tasks: { overdue: 0, soon: 0 },
+    todos: { overdue: 0, soon: 0 },
     appointments: { soon: 0 },
   };
   for (const slot of doses) {
@@ -129,11 +129,11 @@ export function attentionCounts({
     else if (slot.state === "upcoming" && new Date(slot.at).getTime() - at <= SOON_MS) counts.doses.soon++;
   }
   const clock = minutesOf(localTime(at, timeZone));
-  for (const task of tasks) {
-    const state = todoState(task, at, timeZone);
-    if (state === "overdue") counts.tasks.overdue++;
-    else if (state === "today" && minutesOf(task.dueTime ?? UNTIMED_TASK_TIME) - clock <= SOON_MS / MINUTE)
-      counts.tasks.soon++;
+  for (const todo of todos) {
+    const state = todoState(todo, at, timeZone);
+    if (state === "overdue") counts.todos.overdue++;
+    else if (state === "today" && minutesOf(todo.dueTime ?? UNTIMED_TODO_TIME) - clock <= SOON_MS / MINUTE)
+      counts.todos.soon++;
   }
   if (appointment) {
     const timing = entryTiming(appointment, new Date(at));
@@ -158,8 +158,8 @@ export type TodaySummaryParts = {
   appointments?: number;
   /** The next pass's time ("20:00"), while nothing is overdue or due soon. */
   medications?: string | null;
-  /** How many tasks the row counts (overdue and due today). */
-  tasks?: number;
+  /** How many todos the row counts (overdue and due today). */
+  todos?: number;
 };
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -167,20 +167,20 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 /**
  * The collapsed card's line, in three parts: `overdue` ("3 overdue", red)
  * and `soon` ("2 due soon", orange) lead so they're never cut off, then
- * `rest` ("BP 130/85 mmHg · 1 appt · Meds 20:00 · 1 task today"), in the
+ * `rest` ("BP 130/85 mmHg · 1 appt · Meds 20:00 · 1 todo today"), in the
  * card's order, without what the counts already hold. A part with nothing
  * to say is null (`rest` is "").
  */
-export function todaySummary({ counts, vital, appointments = 0, medications, tasks = 0 }: TodaySummaryParts) {
-  const overdue = counts.doses.overdue + counts.tasks.overdue;
-  const soon = counts.doses.soon + counts.tasks.soon + counts.appointments.soon;
+export function todaySummary({ counts, vital, appointments = 0, medications, todos = 0 }: TodaySummaryParts) {
+  const overdue = counts.doses.overdue + counts.todos.overdue;
+  const soon = counts.doses.soon + counts.todos.soon + counts.appointments.soon;
   const rest: string[] = [];
   if (vital) rest.push(vital);
   const appts = appointments - counts.appointments.soon;
   if (appts > 0) rest.push(plural(appts, "appt"));
   if (medications && !counts.doses.overdue && !counts.doses.soon) rest.push(`Meds ${medications}`);
-  const today = tasks - counts.tasks.overdue - counts.tasks.soon;
-  if (today > 0) rest.push(`${plural(today, "task")} today`);
+  const today = todos - counts.todos.overdue - counts.todos.soon;
+  if (today > 0) rest.push(`${plural(today, "todo")} today`);
   return {
     overdue: overdue ? `${overdue} overdue` : null,
     soon: soon ? `${soon} due soon` : null,

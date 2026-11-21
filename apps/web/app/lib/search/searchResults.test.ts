@@ -103,7 +103,7 @@ describe("searchSections", () => {
     expect(sections.map((s) => s.label)).toEqual(["Medications", "Timeline entries"]);
   });
 
-  it("puts tasks after medications and before entries", () => {
+  it("puts todos after medications and before entries", () => {
     const sections = searchSections({
       entry: { hits: [hit("e1")], total: 1 },
       todo: { hits: [hit("t1", { type: "todo" })], total: 1 },
@@ -111,10 +111,10 @@ describe("searchSections", () => {
       provider: { hits: [hit("p1", { type: "provider" })], total: 1 },
     });
     expect(sections.map((s) => s.type)).toEqual(["provider", "medication", "todo", "entry"]);
-    expect(sections.map((s) => s.label)).toEqual(["Providers", "Medications", "Tasks", "Timeline entries"]);
+    expect(sections.map((s) => s.label)).toEqual(["Providers", "Medications", "Todos", "Timeline entries"]);
   });
 
-  it("puts conditions after medications and before tasks", () => {
+  it("puts conditions after medications and before todos", () => {
     const sections = searchSections({
       entry: { hits: [hit("e1")], total: 1 },
       todo: { hits: [hit("t1", { type: "todo" })], total: 1 },
@@ -122,8 +122,8 @@ describe("searchSections", () => {
       medication: { hits: [hit("m1", { type: "medication" })], total: 1 },
     });
     expect(sections.map((s) => s.type)).toEqual(["medication", "condition", "todo", "entry"]);
-    expect(sections.map((s) => s.label)).toEqual(["Medications", "Conditions", "Tasks", "Timeline entries"]);
-    expect(resultCountText(sections, "x")).toBe("1 medication, 1 condition, 1 task and 1 entry");
+    expect(sections.map((s) => s.label)).toEqual(["Medications", "Conditions", "Todos", "Timeline entries"]);
+    expect(resultCountText(sections, "x")).toBe("1 medication, 1 condition, 1 todo and 1 entry");
   });
 
   it("sorts each section best first", () => {
@@ -171,8 +171,8 @@ describe("resultCountText", () => {
       "3 providers, 1 medication and 1 entry",
     );
     expect(resultCountText(sections({ provider: 1 }), "x")).toBe("1 provider");
-    expect(resultCountText(sections({ entry: 2, todo: 1 }), "x")).toBe("1 task and 2 entries");
-    expect(resultCountText(sections({ todo: 3 }), "x")).toBe("3 tasks");
+    expect(resultCountText(sections({ entry: 2, todo: 1 }), "x")).toBe("1 todo and 2 entries");
+    expect(resultCountText(sections({ todo: 3 }), "x")).toBe("3 todos");
   });
 
   it("says when nothing matched, naming the search", () => {

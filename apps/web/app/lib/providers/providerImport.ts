@@ -14,7 +14,7 @@ import { fold } from "./providerDirectory";
 //
 // - Copied: type, name, specialty, phones, email, address, website and
 //   status. `isPrimary` is off (the other group's primary isn't this one's).
-//   Provider notes, links and tasks stay behind.
+//   Provider notes, links and todos stay behind.
 // - Already here: a live provider in the target with the same type and name
 //   (folded: case, accents and spacing ignored). Skipped.
 // - A clinician's or other contact's practice maps to a live practice or

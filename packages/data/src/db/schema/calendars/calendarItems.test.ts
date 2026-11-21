@@ -162,7 +162,7 @@ describe("calendarItems", () => {
       uid: `todo:${allDay.id}`,
       timeZone: LA,
       title: "Pick up the walker",
-      appUrl: `https://caretook.example/app/groups/${GROUP}/tasks/${allDay.id}`,
+      appUrl: `https://caretook.example/app/groups/${GROUP}/todos/${allDay.id}`,
     });
   });
 

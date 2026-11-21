@@ -19,7 +19,7 @@ import { toLocalTimestamp } from "../timeline/timeline.sync";
 export { parseSearch };
 
 // The device's search index: SQLite FTS5 over every entry, provider,
-// medication, task and condition of every group on the device, kept current as rows change
+// medication, todo and condition of every group on the device, kept current as rows change
 // (synced or typed here), so search works offline and finds what was typed
 // a moment ago. Tables and triggers: ./searchTables. What each row's text
 // is: `@caretook/data/schema`'s search documents. Every query is scoped to
@@ -212,16 +212,16 @@ const readMedications = async (db: SqlRunner, ids: string[] | null): Promise<Sea
   });
 };
 
-type TaskSourceRow = DocumentColumns & {
+type TodoSourceRow = DocumentColumns & {
   id: string;
   group_id: string | null;
   title: string | null;
   deleted_at: string | null;
 };
 
-const readTasks = async (db: SqlRunner, ids: string[] | null): Promise<SearchDocument[]> => {
+const readTodos = async (db: SqlRunner, ids: string[] | null): Promise<SearchDocument[]> => {
   const filter = idFilter("t.id", ids);
-  const rows = await db.getAll<TaskSourceRow>(
+  const rows = await db.getAll<TodoSourceRow>(
     `SELECT t.id, t.group_id, t.title, t.deleted_at, ${documentColumns("t.id")}
      FROM todo t
      LEFT JOIN note_document d ON d.id = t.id
@@ -272,7 +272,7 @@ const READERS: Record<SearchItemType, (db: SqlRunner, ids: string[] | null) => P
   entry: readEntries,
   provider: readProviders,
   medication: readMedications,
-  todo: readTasks,
+  todo: readTodos,
   condition: readConditions,
 };
 
@@ -319,7 +319,7 @@ const replaceItems = async (tx: Tx, type: SearchItemType, ids: string[] | null, 
 const dirtyItems = async (tx: Tx): Promise<Record<SearchItemType, string[]>> => {
   const ids = (rows: { id: string | null }[]) => [...new Set(rows.flatMap((r) => (r.id ? [r.id] : [])))];
   const dirty = (sources: string) => `SELECT id FROM search_dirty WHERE source IN (${sources})`;
-  const [entry, provider, medication, task, condition] = await Promise.all([
+  const [entry, provider, medication, todo, condition] = await Promise.all([
     tx.getAll<{ id: string | null }>(
       `${dirty("'timeline_entry', 'note_document', 'note_update', 'timeline_entry_provider'")}
        UNION SELECT l.entry_id FROM timeline_entry_provider l WHERE l.provider_id IN (${dirty("'provider'")})
@@ -340,7 +340,7 @@ const dirtyItems = async (tx: Tx): Promise<Record<SearchItemType, string[]>> => 
     entry: ids(entry),
     provider: ids(provider),
     medication: ids(medication),
-    todo: ids(task),
+    todo: ids(todo),
     condition: ids(condition),
   };
 };
@@ -627,7 +627,7 @@ const DEFAULT_LIMIT = 5;
 /**
  * The search page's query: every matching item of the group, best first
  * (title matches, rank, newest). With a `range` (a care period's dates),
- * only entries within it: providers, medications, tasks and conditions aren't dated by it, so none.
+ * only entries within it: providers, medications, todos and conditions aren't dated by it, so none.
  */
 export const searchGroupQuery = (groupId: string, parsed: ParsedSearch, range?: SearchRange | null) => {
   const match = toFtsMatch(parsed);
