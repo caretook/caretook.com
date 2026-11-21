@@ -6,7 +6,7 @@
 
 | Slice | Wave | State           | Merge into `prd/appointments-2` (slice commits) |
 | ----- | ---- | --------------- | ----------------------------------------------- |
-| 1     | 1    | not started     |                                                 |
+| 1     | 1    | started (opus)  |                                                 |
 | 2     | 2    | blocked by 1    |                                                 |
 | 3     | 2    | blocked by 1    |                                                 |
 | 4     | 2    | blocked by 1    |                                                 |
@@ -16,6 +16,10 @@
 | 8     | 4    | blocked by 6    |                                                 |
 | 9     | 4    | blocked by 2, 7 |                                                 |
 | 10    | 4    | blocked by 2    |                                                 |
+
+**Landing mode (2026-11-20): run everything through** (queued with `pnpm prd queue`): start every ready slice, land each green wave, clean up; ask only real questions. Per this plan's _Landing_, landing waits until every slice is merged.
+
+**Log:** 2026-11-20: start condition met (B-169 live, 127670af in `prd/appointments-2`). Backlog ingest: B-188–B-190 (connectors bugs), none for this PRD. Slice 1 worktree made, agent spawned (opus).
 
 **Start condition:** `timeline-ux` slice 5 (the Today card, B-169) in `dev`, since slice 1 puts the repeat mark there. Check `pnpm backlog show B-169` says landed. If it isn't, slice 1 may start and leave the Today card's mark to whichever slice runs after it lands (say so in the hand-off).
 
