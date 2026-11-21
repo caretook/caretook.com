@@ -30,6 +30,8 @@
 
 **Landing (in progress):** every slice merged (2026-11-21); items B-193, B-194, B-195, B-197, B-204 done. Next: sync, full check (a migration), serve, browser checks (`live-notes` by name, since slice 2's lean set ran before slice 4), ready, land, fold docs, `pnpm prd rm connectors-2`.
 
+**Syncs before landing:** medications-3 landed with migration 0030 (`medication_types`); ours was regenerated on top as `0031_assistant_requests` (same SQL, only `assistant_request`) in fbc1a861. providers-2 (df4d0c05) synced after it (new Tiptap deps, `pnpm install`). An earlier full check passed on fe049520 before these syncs; `live-notes` passed there too.
+
 **Start conditions:** none for wave 1. Slice 5 waited for `conditions`: landed in `dev` (B-181, a95acb73) and already in `prd/connectors-2`, so slice 5 is ready once slice 4 merges.
 
 **Landing:** slice 2 adds a migration, so hold landing until every slice is merged, then run the checks once at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking.
