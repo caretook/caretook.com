@@ -11,7 +11,8 @@
 # The orchestrator runs fully autonomous (prompt.sh orchestrator <topic> --auto):
 # every wave, landing and clean-up without asking. --manual gives the usual
 # prompt (it asks which slices to run and waits for your word to land).
-# A topic whose worktree already exists opens at once.
+# A topic whose worktree already exists opens at once. The session starts
+# through session.sh, so it is recorded (.loops/.sessions/prd-<topic>.json).
 set -euo pipefail
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
@@ -78,4 +79,5 @@ rm -f "$ticket"
 command -v osascript >/dev/null && osascript -e "display notification \"Orchestrator for $topic is starting\" with title \"Caretook PRD queue\"" 2>/dev/null || true
 cd "$loops/$topic"
 prompt=$("$bin/prompt.sh" orchestrator "$topic" $mode)
-exec claude --remote-control "prd-$topic" ${claude_args[@]+"${claude_args[@]}"} "$prompt"
+exec "$bin/session.sh" "prd-$topic" --kind prd --topic "$topic" ${mode:+--auto} -- \
+  --remote-control "prd-$topic" ${claude_args[@]+"${claude_args[@]}"} "$prompt"
