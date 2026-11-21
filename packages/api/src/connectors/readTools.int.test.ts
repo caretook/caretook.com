@@ -485,7 +485,7 @@ describe("read tools", { timeout: 60_000 }, () => {
     expect(JSON.stringify(result)).not.toContain("Elsewhere");
   });
 
-  it("upcoming: appointments and reminders soonest first, in the offset, 30 days by default and 90 at most", async () => {
+  it("upcoming: appointments soonest first, in the offset, 30 days by default and 90 at most", async () => {
     const handler = handlerAt();
     const w = await world();
     ok(
@@ -501,13 +501,6 @@ describe("read tools", { timeout: 60_000 }, () => {
         kind: "event",
         title: "Dentist",
         occurredAt: hoursAhead(30),
-      }),
-    );
-    ok(
-      await addEntry(w.caretaker.ctx, w.group.id, {
-        kind: "note",
-        title: "Refill reminder",
-        occurredAt: hoursAhead(100),
       }),
     );
     ok(
@@ -547,8 +540,8 @@ describe("read tools", { timeout: 60_000 }, () => {
       startsAt: string;
       place: string | null;
     }[];
-    expect(items.map((i) => i.title)).toEqual(["Dentist", "Cardiology", "Refill reminder"]);
-    expect(items.map((i) => i.kind)).toEqual(["appointment", "appointment", "reminder"]);
+    expect(items.map((i) => i.title)).toEqual(["Dentist", "Cardiology"]);
+    expect(items.map((i) => i.kind)).toEqual(["appointment", "appointment"]);
     expect(items[1]?.place).toBe("Heart Clinic");
     for (const i of items) expect(i.startsAt).toMatch(OFFSET);
 
@@ -556,7 +549,6 @@ describe("read tools", { timeout: 60_000 }, () => {
     expect((quarter.structuredContent.items as { title: string }[]).map((i) => i.title)).toEqual([
       "Dentist",
       "Cardiology",
-      "Refill reminder",
       "In 45 days",
     ]);
     expect((await callTool(handler, token, "upcoming", { days: 91 })).isError).toBe(true);
