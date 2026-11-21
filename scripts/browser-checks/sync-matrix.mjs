@@ -320,7 +320,7 @@ export const SYNC_MATRIX = [
         id: ctx.ids.series,
         group_id: ctx.groupId,
         recipient_id: ctx.recipientId,
-        kind: "note",
+        kind: "event",
         rule: "FREQ=DAILY;INTERVAL=1;COUNT=1",
         starts_on: "2000-01-01",
         start_time: null,

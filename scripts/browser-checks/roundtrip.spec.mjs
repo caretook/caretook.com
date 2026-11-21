@@ -9,7 +9,8 @@
 // transaction uploading and reaching the other member, the sync matrix (every
 // synced table's row on both devices: sync-matrix.mjs), an upload refused by
 // permissions (a member demoted while offline), a viewer's todo ticked
-// offline and their refused title change, and sign-out wiping the
+// offline and their refused title change, a repeating todo ticked offline
+// bringing one next todo everywhere, and sign-out wiping the
 // device. Every row it writes has this run's tag, so it passes run after run
 // without a reset.
 //
@@ -618,6 +619,17 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     const todoOn = async (page) =>
       (await localRows(page, "SELECT title, done_at, done_by FROM todo WHERE id = ?", [viewerTodo]))[0];
     const refusedTodo = `${tag} groceries, refused`;
+    // This run's weekly todo for the viewer, due today in the recipient's zone (6e).
+    const repeatTodo = psql(
+      `INSERT INTO todo (id, group_id, recipient_id, title, assignee_id, due_on, repeat_rule, repeat_starts_on, repeat_id, created_by, updated_by)
+       SELECT n.id, r.group_id, r.id, '${tag} bins', '${viewerId}', d.day,
+              'FREQ=WEEKLY;INTERVAL=1;BYDAY=' || upper(left(to_char(d.day, 'Dy'), 2)), d.day, n.id,
+              '${memberId}', '${memberId}'
+       FROM care_recipient r, (SELECT gen_random_uuid() AS id) n,
+            LATERAL (SELECT (now() AT TIME ZONE r.time_zone)::date AS day) d
+       WHERE r.id = '${matrix.recipientId}'
+       RETURNING id`,
+    );
     // Both todo lists while online: the viewer's (Mine), and member@'s on
     // Everyone (the viewer's todo isn't Mine).
     await openTodos(C);
@@ -725,6 +737,63 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
         : `device ${(await todoOn(C))?.title}, server ${serverTodoTitle}`,
     );
 
+    // 6e. A repeating todo (planner-2): viewer@ ticks this run's weekly todo
+    // offline; the device shows it done and its next one at once (the twin,
+    // two uploads). On reconnect the server has it done and exactly one next,
+    // with the device's id, and member@'s list shows both.
+    const repeatRow = `document.querySelector('main [data-todo="${repeatTodo}"]')`;
+    const chainOn = async (page) =>
+      localRows(
+        page,
+        "SELECT id, done_at IS NOT NULL AS done FROM todo WHERE repeat_id = ? AND deleted_at IS NULL ORDER BY due_on",
+        [repeatTodo],
+      );
+    await wf(C, `${repeatRow}?.querySelector("[data-todo-tick]")`, 20_000);
+    await wf(A, repeatRow, 20_000);
+    dC.offline(true);
+    await wf(C, `!window.caretookSync.powersync.currentStatus.connected`, 20_000);
+    await press(C, `${repeatRow}.querySelector("[data-todo-tick]")`);
+    await wf(C, `${repeatRow}?.querySelector("[data-todo-tick]")?.checked`);
+    const offChain = await until(async () => {
+      const rows = await chainOn(C);
+      return rows.length === 2 ? rows : null;
+    }, 10_000);
+    const nextId = offChain?.find((r) => !r.done)?.id;
+    const repeatQueued = await queued(C);
+    await check(
+      "repeat: offline, ticking a repeating todo shows it done and its next one; both queued",
+      !!nextId &&
+        offChain?.[0]?.id === repeatTodo &&
+        !!offChain[0].done &&
+        (await waits(C, `!!document.querySelector('main [data-todo="${nextId}"]')`, 10_000)) &&
+        repeatQueued === 2,
+      `${JSON.stringify(offChain)}, ${repeatQueued} queued`,
+    );
+    dC.offline(false);
+    const t3 = Date.now();
+    const serverChain = await waitForSql(
+      `SELECT string_agg(id::text || ':' || (done_at IS NOT NULL)::text, ',' ORDER BY due_on)
+       FROM todo WHERE repeat_id = '${repeatTodo}' AND deleted_at IS NULL`,
+      (r) => r === `${repeatTodo}:true,${nextId}:false`,
+      60_000,
+    );
+    await check(
+      "repeat: on reconnect the server has it done and exactly one next, the device's",
+      serverChain === `${repeatTodo}:true,${nextId}:false`,
+      serverChain,
+    );
+    const memberSees = await waits(
+      A,
+      `${repeatRow}?.dataset.todoState === "done" && !!document.querySelector('main [data-todo="${nextId}"]')`,
+      20_000,
+    );
+    const viewerSettled = await until(async () => (await queued(C)) === 0 && (await chainOn(C)).length === 2);
+    await check(
+      "repeat: the member's list shows it done and the one next; the viewer's queue empties",
+      memberSees && !!viewerSettled,
+      `${Date.now() - t3} ms after reconnecting; viewer chain ${JSON.stringify(await chainOn(C))}`,
+    );
+
     // 7. Tidy up, then sign-out wipes the device.
     psql(`UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' = '${offName}'`);
     await wf(A, `!${rowWith(offName)}`, 15_000);
@@ -766,6 +835,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
         `UPDATE timeline_entry SET deleted_at = now() WHERE title LIKE '${tag} series%' AND deleted_at IS NULL;
          UPDATE appointment_series SET deleted_at = now() WHERE title LIKE '${tag} series%' AND deleted_at IS NULL`,
       );
+      psql(`UPDATE todo SET deleted_at = now() WHERE title LIKE '${tag}%' AND deleted_at IS NULL`);
       psql(
         `UPDATE care_group_member SET role = 'caretaker' WHERE group_id = '${DEV_FAMILY}' AND user_id = '${caretakerId}' AND role <> 'caretaker'`,
       );
