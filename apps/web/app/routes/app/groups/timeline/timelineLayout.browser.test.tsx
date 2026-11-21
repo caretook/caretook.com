@@ -422,7 +422,7 @@ describe("the wide layout", () => {
     expect(centred(open.firstElementChild ?? open)).toEqual(ok);
   });
 
-  test("1280: the Live now banner is capped like the strips (1152 px, centred) in one line, Join at its end", async () => {
+  test("1280: the Live now banner is in the entries' column (1024 px, centred) in one line, Join at its end", async () => {
     // Sam is writing in a note: its document's editors say so, as a sync from Sam's device would.
     const note = fx.note({ createdBy: SAM.id, title: "Morning" });
     await openTimeline({
@@ -438,7 +438,7 @@ describe("the wide layout", () => {
     const r = banner.getBoundingClientRect();
     const j = banner.querySelector("a")!.getBoundingClientRect();
     const page = document.documentElement.clientWidth;
-    expect(Math.abs(r.width - 1152)).toBeLessThan(1);
+    expect(Math.abs(r.width - 1024)).toBeLessThan(1);
     expect(Math.abs(r.left + r.right - page)).toBeLessThan(2);
     expect(r.height).toBeLessThan(60);
     expect(r.right - j.right).toBeGreaterThan(0);
