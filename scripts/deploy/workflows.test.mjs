@@ -53,10 +53,17 @@ describe("the deploy workflows", () => {
 
   it("deploys on pushes to staging and main, one at a time per environment", () => {
     const deploy = parseYaml(read(".github/workflows/deploy.yml"));
+    // Only those two branches ever deploy: no previews for dev, prd/ or PRs (B-243).
+    expect(Object.keys(deploy.on)).toEqual(["push"]);
+    expect(Object.keys(deploy.on.push)).toEqual(["branches"]);
     expect(deploy.on.push.branches).toEqual(["staging", "main"]);
     expect(deploy.concurrency.group).toMatch(/production.*staging/);
     expect(deploy.concurrency["cancel-in-progress"]).toBe("false");
     expect(deploy.jobs.deploy.environment).toMatch(/main.*production.*staging/);
+  });
+
+  it.each(WORKFLOWS.filter((p) => !p.endsWith("/deploy.yml")))("%s runs only by hand", (path) => {
+    expect(Object.keys(parseYaml(read(path)).on)).toEqual(["workflow_dispatch"]);
   });
 
   it("runs the deploy's steps in order", () => {

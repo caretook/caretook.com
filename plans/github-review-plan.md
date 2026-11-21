@@ -4,15 +4,36 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/github-review` (slice commits) |
-| ----- | ---- | ----------- | ---------------------------------------------- |
-| 1     | 1    | not started |                                                |
-| 2     | 2    | not started |                                                |
-| 3     | 2    | not started |                                                |
+**Where it stands (2026-11-21, landing on the user's word):** worktree recreated stackless as a 4th PRD (cap full, `CARETOOK_MAX_PRDS=4`); synced with `dev` (tasks-2 included); docs folded (c00699f6); tooling tests 209 pass. Landing with `--force` for the check gate only (the user: tooling needs no checks; `.claude/settings.json` is the one non-exempt file). Next: `pnpm prd pr`, Codex review (verified findings become backlog follow-ups, per the user), land through the PR.
 
-**Landing mode:** not chosen yet: ask the user.
+| Slice | Wave | State                    | Merge into `prd/github-review` (slice commits)                       |
+| ----- | ---- | ------------------------ | -------------------------------------------------------------------- |
+| 1     | 1    | merged; worktree removed | 46b76b00 (a8bc173b, 719012d1); opus; throwaway PR #7 closed unmerged |
+| 2     | 2    | merged; worktree removed | 2a2c3c43 (b85eae0c); opus; throwaway PR #10 closed unmerged          |
+| 3     | 2    | merged; worktree removed | 6ece6441 (76641328); sonnet; throwaway PR #8 closed unmerged         |
 
-**Backlog:** B-203 is all three slices. Claim it at wave 1.
+Checks on the merged tip: `vitest --project scripts:unit scripts/loops` 17 files, 207 tests pass; `bash -n` clean on every changed script; **shellcheck isn't installed** (never run). Gate: **not** "none needed": `.claude/settings.json` (d5c4c621) is outside the exempt paths (`lib.sh` `exempt_re`: Markdown, `scripts/loops/`, `scripts/backlog/`, `.githooks/`), so `land`/`ready` need a check pass. Before landing, `pnpm prd check --quick "tooling, Markdown and .claude/settings.json only"` (or ask the user whether to move the settings change onto `dev` separately and keep this PRD none-needed).
+
+**Wave 1 never landed on its own:** with the user's push rules in late, all three slices ran overnight, so the whole PRD lands at once, through the new PR path (its first real run).
+
+**Resume (the morning):**
+
+1. `pnpm prd start github-review` (checks out the existing branch), then the orchestrator prompt with `--resume`.
+2. `pnpm backlog ingest` / `list`; answer the open questions below.
+3. Fold the docs (the plan's _Docs at landing_), plus: the throwaway seam `CARETOOK_PR_THROWAWAY=1` (pr.sh, land.sh), `pnpm prd dev-sync [branch]` (new, rerun after a stopped dev-sync), `ready`'s `READY_PR_BRANCH`, `review`'s exit 3, and that the orchestrator resolves fixed threads too. Commit.
+4. `pnpm prd pr github-review` (pushes `dev` fast-forward and the branch: the user's first push of `prd/`), `pnpm prd review github-review --wait` in the background, triage, `--again` until clean (about three rounds).
+5. Land only on the user's word: `pnpm prd land github-review -m "feat(github-review): Codex review on PRs into dev (B-203)"`, then `pnpm prd rm github-review`.
+
+**Open for the user:**
+
+- Codex doesn't resolve its own threads when a fix lands (they go outdated, and its summary says `has_unresolved_findings:false`). The module keeps the PRD's rule that any unresolved Codex thread blocks, so the orchestrator resolves fixed threads as well as declined ones. Or trust Codex's clean summary over outdated threads (a one-line change in `openFindings`, `codex-review.mjs`).
+- `.claude/settings.json` (d5c4c621, the user's edit, committed on this branch): the blanket `git push *` deny is gone and no narrow push denies replaced it (force pushes to `prd/`/`hotfix/` aren't blocked by a rule; the pre-push hook still guards main/staging). Add narrow denies?
+- Beyond the plan, keep or drop: `pnpm prd dev-sync`; `land --local` on a `prd/` branch as a warned fallback; backlog-tool commits may also touch `plans/inbox.md` (matches `backlog.mjs`); `review --wait` waits through `stale` too; `--again --wait` first waits up to 5 min for Codex's summary to change.
+- `origin/dev` was pushed at 23:37 on 2026-11-20 (not by this PRD) while slice 2 tested.
+
+**Landing mode:** the user said land (2026-11-21), no checks for tooling.
+
+**Backlog:** B-203 (all three slices), claimed by `prd/github-review`, `ready` at 6ece6441. No other items for this topic.
 
 ## Architectural decisions
 

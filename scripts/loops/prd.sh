@@ -25,6 +25,7 @@ pnpm prd <command>
     plan <topic> [--open] [B-n …]   a docs-only worktree for writing a PRD and plan; --open starts its
                               planning session here (it interviews you, writes both, lands them)
     plan                      no topic: a backlog and inbox planning session in the main checkout, here
+                              (either form: --model <m> runs that session on model m, e.g. fable; once only)
                               (it reads the backlog and helps you decide what's next)
     slice <topic> <n>         a slice's worktree (orchestrators run this); a stack only for Stack: yes
     hotfix <name> [--open] ["<the fix>"]   a stackless worktree on hotfix/<name> from dev, for a fix
@@ -59,7 +60,21 @@ pnpm prd <command>
     browser --suite           the lean end-to-end set, with a table (--timeout S; one retry on contention)
 
   Land
-    land <topic> [-m subject] merge prd/<topic> into dev (only when the dev keeper says so)
+    land <topic> [-m subject] [--no-review] [--local]   merge prd/<topic> into dev (only when the dev keeper
+                              says so) through its PR: merged on GitHub once its head is the local tip and
+                              Codex's verdict is clean, then dev-sync (--no-review: skip the verdict, on the
+                              user's word only; --local: a local merge, the fallback, on their word)
+    land hotfix/<name> --pr|--local [-m subject]   a hotfix: ask the user "PR or local?" each time
+    land plan/<topic>         a plan branch: always a local merge
+    review <topic|branch> [--json] [--wait [min]] [--again] [--resolve <threadId>]
+                              Codex's verdict on the branch's open PR into dev (clean, findings, waiting,
+                              stale) and its findings; --again asks Codex again, --resolve closes a declined
+                              thread, --wait polls until Codex answers on the head (exit 0/1/2, 75 timed out)
+    pr <topic|hotfix/name> [-m subject]   push dev (fast-forward only) and the branch, then open its PR into
+                              dev, or update the open one (title: the landing subject; body: backlog items,
+                              the check pass); plan/ branches are refused
+    dev-sync [branch]         bring the main checkout's dev up to origin/dev after a GitHub merge (land runs
+                              it): fast-forward, rebase backlog-only commits, or merge
 
   prompt orchestrator|plan|slice <topic> [n|--auto]   the first prompt for a session (prompt backlog: no topic)
                      recover: the recovery agent (pnpm prd recover opens it)
@@ -98,10 +113,26 @@ case $cmd in
   recover) exec "$bin/recover.sh" "$@" ;;
   down) exec "$bin/down.sh" "$@" ;;
   open) exec "$bin/open-session.sh" "$@" ;;
+  review) exec "$bin/review.sh" "$@" ;;
+  pr) exec "$bin/pr.sh" "$@" ;;
+  dev-sync) (($# <= 1)) || die "dev-sync: at most one branch name"; dev_sync "${1:-}" ;;
   plan)
+    # --model <m> (or --model=<m>), anywhere: this one session's model, passed to claude --model.
+    model="" rest=()
+    while (($#)); do
+      case $1 in
+        --model) [[ -n ${2:-} && ${2:-} != -* ]] || die "plan: --model needs a model name (e.g. fable)"; model=$2; shift ;;
+        --model=*) model=${1#--model=}; [[ -n $model ]] || die "plan: --model needs a model name (e.g. fable)" ;;
+        *) rest+=("$1") ;;
+      esac
+      shift
+    done
+    set -- ${rest[@]+"${rest[@]}"}
+    model_args=()
+    [[ -z $model ]] || model_args=(--model "$model")
     if [[ ${1:-} == "" || ${1:-} == --open ]]; then
       (($# <= 1)) || die "plan: give a topic before other arguments"
-      cd "$main" && exec claude --remote-control backlog "$("$bin/prompt.sh" backlog)"
+      cd "$main" && exec claude ${model_args[@]+"${model_args[@]}"} --remote-control backlog "$("$bin/prompt.sh" backlog)"
     fi
     topic=$1; shift; open=0 items=()
     for a in "$@"; do
@@ -109,9 +140,9 @@ case $cmd in
     done
     dir=$loops/plan-$topic
     [[ -d $dir ]] || "$bin/new.sh" plan "$topic"
-    cmd_line="cd $dir && claude --remote-control plan-$topic \"\$(scripts/loops/prompt.sh plan $topic ${items[*]:-})\""
+    cmd_line="cd $dir && claude ${model:+--model $(printf %q "$model") }--remote-control plan-$topic \"\$(scripts/loops/prompt.sh plan $topic ${items[*]:-})\""
     if ((open)); then
-      cd "$dir" && exec claude --remote-control "plan-$topic" "$("$bin/prompt.sh" plan "$topic" ${items[@]+"${items[@]}"})"
+      cd "$dir" && exec claude ${model_args[@]+"${model_args[@]}"} --remote-control "plan-$topic" "$("$bin/prompt.sh" plan "$topic" ${items[@]+"${items[@]}"})"
     fi
     echo
     echo "Start its planning session in a new terminal (or rerun with --open):"
