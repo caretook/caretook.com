@@ -27,6 +27,10 @@ export const TODOS_ERRORS = {
     message: "A linked provider, medication or appointment must be in this care group",
     statusCode: 400,
   },
+  "todoService:notAnOccurrence": {
+    message: "That isn't a repeating todo's next occurrence",
+    statusCode: 400,
+  },
   "todoService:viewerCompletionOnly": {
     message: "Viewers can only complete or reopen todos assigned to them",
     statusCode: 403,
