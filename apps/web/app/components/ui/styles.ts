@@ -13,3 +13,12 @@ export const FIELD_WARNING = "text-warning text-sm";
 /** A chip: a small rounded button or link; the current one is filled. */
 export const chipClass = (current: boolean) =>
   `btn btn-sm rounded-full px-3 ${current ? "btn-neutral" : "btn-ghost border-base-300 bg-base-100"}`;
+
+/**
+ * The list tools' one control shape: an outlined, icon-only circle (the
+ * timeline's magnifier, Filter and View options; every list's Filter).
+ * `CIRCLE` is the shape for an `IconButton` (which adds the `btn` part);
+ * `TOOL_CIRCLE` the whole of it, for a control that isn't one (a menu's trigger).
+ */
+export const CIRCLE = "border-base-300 bg-base-100 shrink-0 rounded-full";
+export const TOOL_CIRCLE = `btn btn-sm btn-square btn-ghost ${CIRCLE}`;

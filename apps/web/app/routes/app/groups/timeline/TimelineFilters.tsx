@@ -7,7 +7,7 @@ import { VITALS } from "@caretook/data/schema";
 import { CalendarRange, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useLocation } from "react-router";
-import { ChipGroup, Field, IconButton, UserAvatar } from "~/components/ui";
+import { ChipGroup, CIRCLE, Field, IconButton, UserAvatar } from "~/components/ui";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { useGroup } from "~/lib/app-shell/group";
 import { duringChipName, duringText } from "~/lib/care-periods/periodSearch";
@@ -19,20 +19,11 @@ import { useSearchField } from "./useSearchField";
 const X_ICON = <X className="size-3.5" aria-hidden="true" />;
 
 /**
- * The row's one control shape: an outlined, icon-only circle, shared by the
- * magnifier, Filter and the trailing control (the full timeline's View
- * options). `IconButton` adds the `btn btn-sm btn-square btn-ghost` part.
- */
-const CIRCLE = "border-base-300 bg-base-100 shrink-0 rounded-full";
-/** The same circle for a control that isn't an `IconButton` (a menu's trigger). */
-export const TOOL_CIRCLE = `btn btn-sm btn-square btn-ghost ${CIRCLE}`;
-
-/**
  * The filter row: the search magnifier, then one icon-only Filter button
  * (its badge the count of filters on: kind, vital type, author, period;
  * named "Filter" or "Filter, N on"), which opens `FilterSheet`, then the
  * optional `trailing` control at the row's right end (the full timeline's
- * View options; drawn as `TOOL_CIRCLE`). All three are one size of circle. Under them, each filter on is a removable chip (a link that
+ * View options; drawn as `TOOL_CIRCLE`, from `ui/`). All three are one size of circle. Under them, each filter on is a removable chip (a link that
  * clears only it, so the URL keeps the rest; see
  * `lib/timeline/timelineFilters.ts`): the kind, the vital type (`?vital=`),
  * "By <name>" (`author`: that person's name and picture), "Matching “…”"
