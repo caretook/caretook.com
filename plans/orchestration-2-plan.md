@@ -6,6 +6,8 @@
 
 **Where it stands:** check-speed's wave 1 landed in `dev` (e34bf68, PR #24) and is synced in (297037b8). **Wave 1 started** (2026-11-21): slices 1, 2, 3 each have a worktree and a background agent (opus); B-389, B-390, B-391 claimed. Slices 4–6 (`prompt.sh`, `prd.sh`) wait for check-speed's wave 2 (B-272, B-278: it rewrites `prd.sh`'s `check` block and `prompt.sh`'s check lines); its orchestrator (`check-speed-28`) will message when it lands. Slice agents were told to stay out of those regions.
 
+**For the table migration (after wave 1 lands):** slice 1 says `migrate` flags only a bare `**done**` cell, so list-filters, github-review, agent-tooling, timeline-ux, app-speed, planner-2 come out `—` (set `done` where they are), marketing and hosting need `hold`, and encryption and documents `hold`; the intro under `## PRDs` still says "at most three PRDs". Doctor will find B-196 triaged on done connectors-2.
+
 **Open:** B-403 (a cleanup agent every few hours, `pnpm prd tidy`) was triaged here by the backlog session mid-wave. At the wave 1 boundary: add it as a slice after 5 (it needs sessions and asks), or note why it goes to `orchestration-3` (B-392's dispatcher).
 
 **Landing mode: run everything through** (queued with `pnpm prd queue orchestration-2`): start every ready slice, land each green wave through its PR (Codex-reviewed), clean up; ask only real questions.
@@ -14,7 +16,7 @@
 
 | Slice | Wave | State                                                              | Merge into `prd/orchestration-2` (slice commits) |
 | ----- | ---- | ------------------------------------------------------------------ | ------------------------------------------------ |
-| 1     | 1    | started: worktree made, agent (opus)                               |                                                  |
+| 1     | 1    | merged (opus)                                                      | 3ba1e77b (9e722505)                              |
 | 2     | 1    | started: worktree made, agent (opus)                               |                                                  |
 | 3     | 1    | handed off (84cdb649), reviewed; merges after 1 and 2 (plan order) |                                                  |
 | 4     | 2    | not started                                                        |                                                  |
