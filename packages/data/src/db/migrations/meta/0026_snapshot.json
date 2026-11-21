@@ -1,6 +1,6 @@
 {
-  "id": "dbfacacc-3902-4ef1-bb87-9df61733fe70",
-  "prevId": "4d4f3b4b-8c72-40c2-a2fb-cd9d5a7f7d9e",
+  "id": "2408b51f-a2f9-4c6d-be78-883e540bd677",
+  "prevId": "cfd37191-8fa6-4699-8bad-00a79baeb419",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -197,185 +197,6 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.appointment_series": {
-      "name": "appointment_series",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "group_id": {
-          "name": "group_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "recipient_id": {
-          "name": "recipient_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rule": {
-          "name": "rule",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "starts_on": {
-          "name": "starts_on",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "start_time": {
-          "name": "start_time",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "all_day": {
-          "name": "all_day",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "time_zone": {
-          "name": "time_zone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "duration_minutes": {
-          "name": "duration_minutes",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "place": {
-          "name": "place",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "provider_ids": {
-          "name": "provider_ids",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "topped_up_through": {
-          "name": "topped_up_through",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "appointment_series_group_id_care_group_id_fk": {
-          "name": "appointment_series_group_id_care_group_id_fk",
-          "tableFrom": "appointment_series",
-          "tableTo": "care_group",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "appointment_series_recipient_fk": {
-          "name": "appointment_series_recipient_fk",
-          "tableFrom": "appointment_series",
-          "tableTo": "care_recipient",
-          "columnsFrom": [
-            "group_id",
-            "recipient_id"
-          ],
-          "columnsTo": [
-            "group_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "appointment_series_group_id_id_unique": {
-          "name": "appointment_series_group_id_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "group_id",
-            "id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "appointment_series_kind_check": {
-          "name": "appointment_series_kind_check",
-          "value": "\"appointment_series\".\"kind\" IN ('event', 'note')"
-        },
-        "appointment_series_time_check": {
-          "name": "appointment_series_time_check",
-          "value": "(\"appointment_series\".\"all_day\") = (\"appointment_series\".\"start_time\" IS NULL)"
-        }
-      },
       "isRLSEnabled": false
     },
     "public.account": {
@@ -1998,347 +1819,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.member_calendar_setting": {
-      "name": "member_calendar_setting",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "group_id": {
-          "name": "group_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "details_consent_at": {
-          "name": "details_consent_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "details_consent_version": {
-          "name": "details_consent_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reminders_on": {
-          "name": "reminders_on",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "reminder_leads": {
-          "name": "reminder_leads",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[\"eveningBefore\",60]'::jsonb"
-        },
-        "feed_token_hash": {
-          "name": "feed_token_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "feed_rotated_at": {
-          "name": "feed_rotated_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "member_calendar_setting_user_group_unique": {
-          "name": "member_calendar_setting_user_group_unique",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "group_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "member_calendar_setting_group_idx": {
-          "name": "member_calendar_setting_group_idx",
-          "columns": [
-            {
-              "expression": "group_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "member_calendar_setting_feed_unique": {
-          "name": "member_calendar_setting_feed_unique",
-          "columns": [
-            {
-              "expression": "feed_token_hash",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "member_calendar_setting_user_id_user_id_fk": {
-          "name": "member_calendar_setting_user_id_user_id_fk",
-          "tableFrom": "member_calendar_setting",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "member_calendar_setting_group_id_care_group_id_fk": {
-          "name": "member_calendar_setting_group_id_care_group_id_fk",
-          "tableFrom": "member_calendar_setting",
-          "tableTo": "care_group",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.reminder_override": {
-      "name": "reminder_override",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "group_id": {
-          "name": "group_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "entry_id": {
-          "name": "entry_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "mode": {
-          "name": "mode",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "leads": {
-          "name": "leads",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "reminder_override_user_entry_unique": {
-          "name": "reminder_override_user_entry_unique",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "entry_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "reminder_override_group_user_idx": {
-          "name": "reminder_override_group_user_idx",
-          "columns": [
-            {
-              "expression": "group_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "reminder_override_user_id_user_id_fk": {
-          "name": "reminder_override_user_id_user_id_fk",
-          "tableFrom": "reminder_override",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "reminder_override_group_id_care_group_id_fk": {
-          "name": "reminder_override_group_id_care_group_id_fk",
-          "tableFrom": "reminder_override",
-          "tableTo": "care_group",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "reminder_override_entry_fk": {
-          "name": "reminder_override_entry_fk",
-          "tableFrom": "reminder_override",
-          "tableTo": "timeline_entry",
-          "columnsFrom": [
-            "group_id",
-            "entry_id"
-          ],
-          "columnsTo": [
-            "group_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "reminder_override_mode_check": {
-          "name": "reminder_override_mode_check",
-          "value": "\"reminder_override\".\"mode\" IN ('mute', 'extra')"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.access_code_redemption": {
       "name": "access_code_redemption",
       "schema": "",
@@ -2596,13 +2076,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "details_outside_allowed": {
-          "name": "details_outside_allowed",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
         },
         "created_at": {
           "name": "created_at",
@@ -5369,6 +4842,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "no_known_conditions_at": {
+          "name": "no_known_conditions_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp(3) with time zone",
@@ -5810,6 +5289,189 @@
         "recipient_allergy_severity_check": {
           "name": "recipient_allergy_severity_check",
           "value": "\"recipient_allergy\".\"severity\" IN ('mild', 'moderate', 'severe', 'unknown')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.recipient_condition": {
+      "name": "recipient_condition",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "group_id": {
+          "name": "group_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_id": {
+          "name": "recipient_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "since_year": {
+          "name": "since_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "since_month": {
+          "name": "since_month",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "diagnosed_by_id": {
+          "name": "diagnosed_by_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "recipient_condition_group_idx": {
+          "name": "recipient_condition_group_idx",
+          "columns": [
+            {
+              "expression": "group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "recipient_condition_group_id_care_group_id_fk": {
+          "name": "recipient_condition_group_id_care_group_id_fk",
+          "tableFrom": "recipient_condition",
+          "tableTo": "care_group",
+          "columnsFrom": [
+            "group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "recipient_condition_recipient_fk": {
+          "name": "recipient_condition_recipient_fk",
+          "tableFrom": "recipient_condition",
+          "tableTo": "care_recipient",
+          "columnsFrom": [
+            "group_id",
+            "recipient_id"
+          ],
+          "columnsTo": [
+            "group_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "recipient_condition_diagnosed_by_fk": {
+          "name": "recipient_condition_diagnosed_by_fk",
+          "tableFrom": "recipient_condition",
+          "tableTo": "provider",
+          "columnsFrom": [
+            "group_id",
+            "diagnosed_by_id"
+          ],
+          "columnsTo": [
+            "group_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "recipient_condition_group_id_id_unique": {
+          "name": "recipient_condition_group_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "group_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "recipient_condition_status_check": {
+          "name": "recipient_condition_status_check",
+          "value": "\"recipient_condition\".\"status\" IN ('active', 'resolved')"
+        },
+        "recipient_condition_since_year_check": {
+          "name": "recipient_condition_since_year_check",
+          "value": "\"recipient_condition\".\"since_year\" IS NULL OR \"recipient_condition\".\"since_year\" BETWEEN 1900 AND 2100"
+        },
+        "recipient_condition_since_month_check": {
+          "name": "recipient_condition_since_month_check",
+          "value": "\"recipient_condition\".\"since_month\" IS NULL OR (\"recipient_condition\".\"since_year\" IS NOT NULL AND \"recipient_condition\".\"since_month\" BETWEEN 1 AND 12)"
         }
       },
       "isRLSEnabled": false
@@ -6612,25 +6274,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "series_id": {
-          "name": "series_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "series_day": {
-          "name": "series_day",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "series_detached": {
-          "name": "series_detached",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp(3) with time zone",
@@ -6685,28 +6328,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "timeline_entry_series_day_unique": {
-          "name": "timeline_entry_series_day_unique",
-          "columns": [
-            {
-              "expression": "series_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "series_day",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"timeline_entry\".\"deleted_at\" IS NULL AND \"timeline_entry\".\"series_id\" IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -6752,21 +6373,6 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
-        },
-        "timeline_entry_series_fk": {
-          "name": "timeline_entry_series_fk",
-          "tableFrom": "timeline_entry",
-          "tableTo": "appointment_series",
-          "columnsFrom": [
-            "group_id",
-            "series_id"
-          ],
-          "columnsTo": [
-            "group_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -6784,7 +6390,7 @@
       "checkConstraints": {
         "timeline_entry_kind_check": {
           "name": "timeline_entry_kind_check",
-          "value": "\"timeline_entry\".\"kind\" IN ('note', 'symptom', 'event', 'vital', 'dose', 'medicationChange')"
+          "value": "\"timeline_entry\".\"kind\" IN ('note', 'symptom', 'event', 'vital', 'dose', 'medicationChange', 'conditionChange')"
         }
       },
       "isRLSEnabled": false

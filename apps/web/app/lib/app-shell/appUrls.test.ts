@@ -10,6 +10,8 @@ const G = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 /** Every key of `appUrls`, frozen before the builders moved into the areas' urls.ts files. */
 const KEYS = [
   "calendarSettings",
+  "condition",
+  "editCondition",
   "editMedication",
   "editPeriod",
   "editProvider",
@@ -27,6 +29,7 @@ const KEYS = [
   "medicationsPrint",
   "medicationsPrintWeek",
   "newAppointmentWith",
+  "newCondition",
   "newDose",
   "newEntry",
   "newGroup",

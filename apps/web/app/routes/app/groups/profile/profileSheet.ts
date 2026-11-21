@@ -4,6 +4,7 @@ import { useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { toActionResult } from "~/lib/core/api";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { openedFromProfile } from "~/lib/profiles/profileSheetLink";
 import { PROFILE_NEEDS_CONNECTION } from "~/lib/profiles/recipientDisplay";
 import { useSyncState } from "~/lib/sync";
 
@@ -11,12 +12,8 @@ import { useSyncState } from "~/lib/sync";
 // slices' `profile/contact`, …): the profile stays mounted underneath. Every
 // profile write is online only, through oRPC.
 
-/** History state on a link that opens a profile sheet (so closing it can go back). */
-export const PROFILE_SHEET_STATE = { profileSheet: true } as const;
-
-/** Whether a sheet was opened by one of this app's links. */
-export const openedFromProfile = (state: unknown) =>
-  typeof state === "object" && state !== null && "profileSheet" in state;
+// The history state that lets a sheet go back where it was opened (lib, since the medication page uses it too).
+export { openedFromProfile, PROFILE_SHEET_STATE } from "~/lib/profiles/profileSheetLink";
 
 /**
  * Close the sheet by leaving its route: back, when the profile opened it;

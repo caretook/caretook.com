@@ -32,7 +32,7 @@ const Muted = ({ children }: { children: ReactNode }) => (
   <span className="text-base-content/70 block">{children}</span>
 );
 
-/** `allergies` is the allergies block, shown first under the header. */
+/** `allergies` is the allergies and conditions blocks, shown first under the header. */
 export function MedicationSheet({ sheet, allergies }: { sheet: PrintSheet; allergies?: ReactNode }) {
   return (
     <article

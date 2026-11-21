@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { fx, medicationPass } from "../../../../../../test/fixtures";
+import { condition, fx, medicationPass } from "../../../../../../test/fixtures";
 import { $, juneAge, openProfile, PRINT_URL, SAM } from "../profileWorld";
 
 // The emergency sheet as a page (profiles.mjs's slice 6 steps): the
@@ -19,6 +19,7 @@ const SECTIONS = [
   "emergency",
   "medications",
   "allergies",
+  "conditions",
   "careTeam",
 ];
 
@@ -39,7 +40,12 @@ const MEDICATIONS = [
   fx.medication({ name: "Lisinopril", strength: "10 mg" }),
   fx.medication({ name: "Warfarin", strength: "5 mg", status: "discontinued" }),
 ];
-const WORLD = [PHARMACY, DOCTOR, MORNING, EVENING, MEDICATIONS];
+const CONDITIONS = [
+  condition({ name: "Type 2 diabetes", sinceYear: 2015, note: "diet-controlled" }),
+  condition({ name: "Atrial fibrillation", sinceYear: 2021, sinceMonth: 3 }),
+  condition({ name: "High blood pressure" }),
+];
+const WORLD = [PHARMACY, DOCTOR, MORNING, EVENING, MEDICATIONS, CONDITIONS];
 
 const sheet = () => $("main [data-emergency-sheet]");
 const names = (sel: string) =>

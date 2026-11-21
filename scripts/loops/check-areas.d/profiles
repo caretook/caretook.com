@@ -19,3 +19,20 @@ apps/web/app/routes/app/settings/contact/* -
 apps/web/app/routes/app/groups/settings/members/MembersList.tsx app-shell
 apps/web/app/routes/app/groups/settings/members/SharingForm.tsx -
 apps/web/app/components/contact/*        -
+# The recipient's conditions (conditions slice 1): the card and its sheets are
+# component tests (profile/conditions.browser.test.tsx); the suggestion list
+# is data, unit-tested with conditionSuggestions. A condition reaching a
+# second device is roundtrip's sync matrix (6b).
+apps/web/app/lib/profiles/conditionNames.ts -
+packages/data/src/db/schema/profiles/recipientCondition.ts roundtrip
+# What a medication is for (conditions slice 4): the For field, the page's
+# For row and a condition's medications are component tests
+# (medications/medicationConditions.browser.test.tsx); a link reaching a
+# second device is roundtrip's sync matrix (6b).
+packages/data/src/db/schema/profiles/medicationCondition.ts roundtrip
+apps/web/app/lib/profiles/profileSheetLink.ts -
+# Who diagnosed and who manages a condition (conditions slice 3): the sheets'
+# pickers and lines are component tests (profile/conditionProviders and
+# provider/providerConditions .browser.test.tsx); a link reaching a second
+# device is roundtrip's sync matrix (6b).
+packages/data/src/db/schema/profiles/conditionManager.ts roundtrip

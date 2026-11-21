@@ -1,6 +1,6 @@
 # Conditions PRD (B-181)
 
-Status: planned (2026-11-20). Plan: [`conditions-plan.md`](conditions-plan.md). Builds on the [profiles PRD](profiles-prd.md) and the medications area's allergies, whose shape it follows: a synced list on the care recipient, written on the device, every member reads, writers edit.
+Status: done (landed in `dev` as `a95acb73`, 2026-11-20); its decisions live in the area docs. Plan: [`conditions-plan.md`](conditions-plan.md). Builds on the [profiles PRD](profiles-prd.md) and the medications area's allergies, whose shape it follows: a synced list on the care recipient, written on the device, every member reads, writers edit.
 
 ## Problem Statement
 

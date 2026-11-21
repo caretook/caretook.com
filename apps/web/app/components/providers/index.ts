@@ -2,3 +2,5 @@
 export { ACTION_ICONS, actionLinkProps, ContactActions } from "./ContactActions";
 export { ContactDetails } from "./ContactDetails";
 export { ProviderTypeIcon } from "./ProviderTypeIcon";
+export { ProviderPickerField } from "./ProviderPickerField";
+export { ProvidersPickerField } from "./ProvidersPickerField";

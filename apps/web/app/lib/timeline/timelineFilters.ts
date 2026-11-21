@@ -49,6 +49,7 @@ export const TIMELINE_KINDS = [
   "vital",
   "dose",
   "medicationChange",
+  "conditionChange",
 ] as const satisfies readonly TimelineEntryKind[];
 
 export const isTimelineKind = (value: string | null): value is (typeof TIMELINE_KINDS)[number] =>

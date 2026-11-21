@@ -130,6 +130,14 @@ export type {
   RunResult as AssistantRunResult,
 } from "./assistantActionService";
 
+import * as recipientConditionService from "./recipientConditionService";
+export { recipientConditionService };
+
+import * as medicationConditionService from "./medicationConditionService";
+export { medicationConditionService };
+export type { SetMedicationConditionsInput } from "./medicationConditionService";
+export type { SetConditionManagersInput } from "./recipientConditionService";
+
 import * as appointmentSeriesService from "./appointmentSeriesService";
 export { appointmentSeriesService };
 export type { SeriesWriteOptions } from "./appointmentSeriesService";
@@ -188,6 +196,8 @@ export const services = {
   appSetting: appSettingService,
   task: taskService,
   connectorGrant: connectorGrantService,
+  recipientCondition: recipientConditionService,
+  medicationCondition: medicationConditionService,
   appointmentSeries: appointmentSeriesService,
   calendarSetting: calendarSettingService,
   calendarFeed: calendarFeedService,

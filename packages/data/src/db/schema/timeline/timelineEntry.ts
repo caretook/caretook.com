@@ -1,6 +1,7 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "../core/columns";
 import type { DoseDetails, MedicationChangeDetails, PassMovedDetails } from "../medications/medication";
+import type { ConditionChangeDetails } from "../profiles/conditionChange";
 import type { VitalDetails } from "./vitals";
 
 import { sql } from "drizzle-orm";
@@ -25,6 +26,7 @@ import { careRecipientSchema } from "../profiles/careRecipient";
 import { audits, enumCheck, id, timestamps } from "../core/columns";
 import { isStartOfDay } from "../core/entryTiming";
 import { doseDetailsZSchema, medicationChangeEntryDetailsZSchema } from "../medications/medication";
+import { conditionChangeDetailsZSchema } from "../profiles/conditionChange";
 import { timeZoneZSchema } from "../core/timeZone";
 import { vitalDetailsZSchema } from "./vitals";
 
@@ -35,17 +37,23 @@ export const TIMELINE_ENTRY_KINDS = [
   "vital",
   "dose",
   "medicationChange",
+  "conditionChange",
 ] as const;
 export type TimelineEntryKind = (typeof TIMELINE_ENTRY_KINDS)[number];
 
 /**
  * Kind-specific fields: a symptom's name and severity, a vital's readings,
  * a dose's medication and status, a medication change's what and why
- * (see medication.ts).
+ * (see medication.ts), a condition change's what (see conditionChange.ts).
  */
 export type SymptomDetails = { name: string; severity?: number | null };
 export type TimelineEntryDetails =
-  SymptomDetails | VitalDetails | DoseDetails | MedicationChangeDetails | PassMovedDetails;
+  | SymptomDetails
+  | VitalDetails
+  | DoseDetails
+  | MedicationChangeDetails
+  | PassMovedDetails
+  | ConditionChangeDetails;
 
 export const isSymptomDetails = (d: TimelineEntryDetails | null | undefined): d is SymptomDetails =>
   !!d && "name" in d;
@@ -59,12 +67,20 @@ export const isMedicationChangeDetails = (
 /** A pass's time moved (a `medicationChange` entry with no one medication). */
 export const isPassMovedDetails = (d: TimelineEntryDetails | null | undefined): d is PassMovedDetails =>
   !!d && "change" in d && d.change === "passMoved";
+/** A condition's add, edit, resolve or reactivate (a `conditionChange` entry). */
+export const isConditionChangeDetails = (
+  d: TimelineEntryDetails | null | undefined,
+): d is ConditionChangeDetails => !!d && "conditionId" in d && "change" in d;
 
 /**
- * Kinds written with a medication, never by hand: `timelineEntryService`
- * refuses to create or edit them (deleting one, as a correction, is allowed).
+ * Kinds written with a medication or a condition, never by hand:
+ * `timelineEntryService` refuses to create or edit them (deleting one, as a
+ * correction, is allowed).
  */
-export const SYSTEM_WRITTEN_KINDS = ["medicationChange"] as const satisfies readonly TimelineEntryKind[];
+export const SYSTEM_WRITTEN_KINDS = [
+  "medicationChange",
+  "conditionChange",
+] as const satisfies readonly TimelineEntryKind[];
 export const isSystemWrittenKind = (kind: string) =>
   (SYSTEM_WRITTEN_KINDS as readonly string[]).includes(kind);
 
@@ -323,6 +339,14 @@ export const timelineEntryContentZSchema = z.discriminatedUnion("kind", [
     title: noTitle,
     body: noText,
     details: medicationChangeEntryDetailsZSchema,
+  }),
+  z.object({
+    ...entryFields,
+    ...notScheduled,
+    kind: z.literal("conditionChange"),
+    title: noTitle,
+    body: noText,
+    details: conditionChangeDetailsZSchema,
   }),
 ]);
 export type TimelineEntryContent = z.infer<typeof timelineEntryContentZSchema>;

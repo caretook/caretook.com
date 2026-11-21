@@ -20,7 +20,7 @@ const CASES = [
     filters: { kind: null, author: null },
     // Without a kind, only the kinds the timeline shows (a newer app's kinds stay out).
     where:
-      "group_id = ? AND deleted_at IS NULL AND kind IN ('note', 'symptom', 'event', 'vital', 'dose', 'medicationChange')",
+      "group_id = ? AND deleted_at IS NULL AND kind IN ('note', 'symptom', 'event', 'vital', 'dose', 'medicationChange', 'conditionChange')",
     params: [GROUP, 31],
   },
   {
@@ -33,7 +33,7 @@ const CASES = [
     name: "an author",
     filters: { kind: null, author: AUTHOR },
     where:
-      "group_id = ? AND deleted_at IS NULL AND kind IN ('note', 'symptom', 'event', 'vital', 'dose', 'medicationChange') AND created_by = ?",
+      "group_id = ? AND deleted_at IS NULL AND kind IN ('note', 'symptom', 'event', 'vital', 'dose', 'medicationChange', 'conditionChange') AND created_by = ?",
     params: [GROUP, AUTHOR, 31],
   },
   {
