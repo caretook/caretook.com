@@ -122,17 +122,17 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-225 | bug | staging | quick-fixes | prd/quick-fixes | Component tests fail between midnight and about 5 a.m.: they put entries a few hours before now, which lands on yesterday (entryPrint 'an event's: title, time…' gets 'Yesterday, 10:18 PM' for /^Event · Today/; timelineCarePeriods 'a period at a place…' gets 'day 2'; timelineSimple 'a day header names the care period…' times out) |
 | B-226 | change | landed | medications-tabs | prd/medications-tabs | Medications page should be tabbed into Schedule and Medications |
 | B-227 | bug | dropped | quick-fixes |  | Component tests fail just after midnight America/Los_Angeles: 'today' fixtures made minutes or hours before now fall on yesterday (timelineSummaries, entryPrint 'an event's', timelineCarePeriods 'places', timelineSimple 'a day header names the care period') |
-| B-228 | bug | triaged | quick-fixes |  | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
+| B-228 | bug | in-progress | quick-fixes | prd/quick-fixes | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
 | B-229 | bug | triaged | quick-fixes |  | on timeline page, header and Today section should be in same column width as the rest of the… |
-| B-230 | bug | triaged | quick-fixes |  | reminders.int.test.ts 'reminds a task's assignee, and skips a suppressed address' times out at 5000 ms under load in a full check (then 'turns reminders off from the email's unsubscribe link' gets Invalid URL); passes alone |
+| B-230 | bug | in-progress | quick-fixes | prd/quick-fixes | reminders.int.test.ts 'reminds a task's assignee, and skips a suppressed address' times out at 5000 ms under load in a full check (then 'turns reminders off from the email's unsubscribe link' gets Invalid URL); passes alone |
 | B-231 | bug | triaged | quick-fixes |  | "Nothing logged today yet." message should be in a border box like a timeline entry box to match… |
-| B-232 | bug | triaged | quick-fixes |  | Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar |
-| B-233 | bug | triaged | quick-fixes |  | A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series |
-| B-234 | bug | triaged | quick-fixes |  | Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR) |
-| B-235 | bug | triaged | quick-fixes |  | After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch |
+| B-232 | bug | in-progress | quick-fixes | prd/quick-fixes | Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar |
+| B-233 | bug | in-progress | quick-fixes | prd/quick-fixes | A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series |
+| B-234 | bug | in-progress | quick-fixes | prd/quick-fixes | Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR) |
+| B-235 | bug | in-progress | quick-fixes | prd/quick-fixes | After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch |
 | B-236 | bug | triaged | simple-mode |  | In locked simple mode, SimpleNext's 'See all' (Upcoming) and task links look clickable but bounce back to the timeline: lockAllows only permits the timeline and entry routes |
-| B-237 | bug | triaged | quick-fixes |  | An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits |
-| B-238 | bug | triaged | quick-fixes |  | Log a dose's '+ New medication': switching to an existing medication and back clears the quick-add fields but keeps newDose, so choose() refills Amount with the old dose (a medication saved with no usual dose, logged as the discarded '2 tablets') |
+| B-237 | bug | in-progress | quick-fixes | prd/quick-fixes | An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits |
+| B-238 | bug | in-progress | quick-fixes | prd/quick-fixes | Log a dose's '+ New medication': switching to an existing medication and back clears the quick-add fields but keeps newDose, so choose() refills Amount with the old dose (a medication saved with no usual dose, logged as the discarded '2 tablets') |
 | B-239 | bug | triaged | github-review |  | pnpm prd review: --json mode prints progress lines (asked Codex…, waiting) on stdout, so its output isn't valid JSON |
 | B-240 | bug | triaged | github-review |  | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
 | B-241 | bug | triaged | github-review |  | codex-review: PR_QUERY reads only the first 100 review threads (and 50 comments each), so a PR with more could read as clean |
@@ -786,9 +786,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-228 · bug · Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute|value|dataset|checked|placeholder|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-21 (prd/quick-fixes): Found by quick-fixes slice 59 (B-180), 2026-11-21: same fix (await expect.poll / found()); proposed for a later quick-fixes wave. -- quick-fixes orchestrator
@@ -806,9 +806,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-230 · bug · reminders.int.test.ts 'reminds a task's assignee, and skips a suppressed address' times out at 5000 ms under load in a full check (then 'turns reminders off from the email's unsubscribe link' gets Invalid URL); passes alone
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-21 (prd/quick-fixes): Seen in quick-fixes wave 15's third full check (2026-11-21 05:18, a 1523 s run under contention); 6/6 alone 3x. Likely a longer per-test timeout or less setup per test; the second failure looks like a knock-on. -- quick-fixes orchestrator
@@ -825,9 +825,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-232 · bug · Google Calendar keeps pushing to a disabled account: calendarSyncService connectionsFor never checks user.disabledAt (the feed and pull paths do), so disabling a member doesn't stop new appointments and todos reaching their calendar
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 9 (dev → staging), checked against dev 2026-11-21: Codex P1, a data-access gap. accountAdminService.disable keeps the Google connection; calendarFeedService.resolve and calendarPullService.memberContext both refuse disabled users. Fix: join user and skip disabledAt in connectionsFor (or disconnect on disable), with an int test. Proposed first in the next quick-fixes wave, or a hotfix before the staging PR merges.
@@ -835,27 +835,27 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-233 · bug · A repeating all-day visit today can't move to a new series: the server's pastVisit check uses occurredAt < now, but the UI and planSeriesEdit use isPastVisit (all-day visits count until the day ends), so the upload rejects today's visit and leaves it on the old series
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 9 (dev → staging), checked against dev 2026-11-21: Codex P2. timelineEntryService update (the 'A series edit never rewrites a started visit' check) should call the shared isPastVisit from packages/data/src/db/schema/appointments/seriesEdit.ts with the group's time zone. One slice with an int test.
 
 ### B-234 · bug · Editing a 'last Friday' monthly series turns it into '4th Friday' when opened from a month with four Fridays: choiceOfRule keeps monthly.by but drops nth, and choiceRule rebuilds it from the visit's date (BYDAY=-1FR from 2027-02-26 becomes 4FR)
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 9 (dev → staging), checked against dev 2026-11-21: Codex P2, confirmed in apps/web/app/lib/appointments/repeatChoice.ts. Keep the stored ordinal and weekday unless the user changes the repeat; a unit test round-tripping -1FR.
 
 ### B-235 · bug · After Back restores the timeline, picking the current filter again in the same minute blanks the medication names (doses show 'Medication'): restored goes undefined, useTimelineMedications' initial becomes NO_ROWS, and useLiveQuery resets its rows without restarting the watch
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 9 (dev → staging), checked against dev 2026-11-21: Codex P2, an edge case. useTimelineData passes restored?.medicationRows with no loader fallback (links fall back to initial.linkRows, and useLiveRows keeps rows on a same-key initial change). Fix: a stable fallback, or have useLiveQuery keep rows when the key is unchanged.
@@ -871,18 +871,18 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-237 · bug · An @-mention that adds or imports a provider can overwrite note text: when the write finishes, useMentionPopup inserts into whatever popup is open now (a different @ query), else into the captured range, which isn't mapped through later edits
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 11 (dev → staging, cadadd63), checked against dev 2026-11-21: Codex P2, a follow-up (nothing live). In apps/web/app/components/notes/useMentionPopup.ts pick(): (live.current.open ?? current).insert. Fix: tie the insert to the original suggestion and map its range through the edits since, or drop the insert when that suggestion has closed; a component test with a slow add.
 
 ### B-238 · bug · Log a dose's '+ New medication': switching to an existing medication and back clears the quick-add fields but keeps newDose, so choose() refills Amount with the old dose (a medication saved with no usual dose, logged as the discarded '2 tablets')
 
-- status: triaged
+- status: in-progress
 - prd: quick-fixes
-- owner:
+- owner: prd/quick-fixes
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 11 (dev → staging, cadadd63), checked against dev 2026-11-21: Codex P2, a follow-up (nothing live). In DoseForm.tsx, QuickAddFields remounts on the switch and resets while the parent's newDose stays. Fix: keep the draft across switches, or reset newDose with the fields. DoseForm is in medications-4's hot files (not written yet), so not alongside it.
