@@ -13,14 +13,14 @@ import {
   clockMoment,
   DOSES_SQL,
   fixClock,
-  LIST,
+  SCHEDULE,
   MEDICATION_ROUTES,
   menuItem,
   OPEN_DIALOG,
   dialogButton,
 } from "./medicationWorld";
 
-// Today at the top of the medication list (medications.mjs's Today, pass
+// Today on the Schedule tab (medications.mjs's Today, pass
 // slot and Given all steps), on a fixed clock: 10:00 on Wednesday Nov 18 in
 // Los Angeles, the recipient's zone and the test browser's. Times of their
 // own and passes a few minutes back are due; one tap logs Given, the ⋯ marks
@@ -79,7 +79,7 @@ const UNDO = () => $("[data-pass-undo-label]")?.textContent?.trim() ?? null;
 const open = async (fixtures: Fixture[], role: "owner" | "caretaker" | "viewer" = "caretaker") => {
   const device = await renderWithDevice({
     route: MEDICATION_ROUTES,
-    url: LIST,
+    url: SCHEDULE,
     role,
     fixtures: [SAM, fixtures],
   });

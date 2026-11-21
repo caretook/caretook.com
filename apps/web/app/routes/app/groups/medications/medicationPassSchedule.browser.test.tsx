@@ -10,6 +10,7 @@ import {
   FORM,
   historyTexts,
   LIST,
+  MEDS,
   MEDICATION_ROUTES,
   MEDICATION_SQL,
   medicationUrl,
@@ -117,7 +118,7 @@ describe("a schedule by passes", () => {
   test("the page and the printed list read it by pass; Edit starts as saved, and unticking Evening and changing Morning's amount is named in the history", async () => {
     const print = await renderWithDevice({
       route: MEDICATION_ROUTES,
-      url: `${LIST}/print`,
+      url: `${MEDS}/print`,
       role: "caretaker",
       fixtures: [RECIPIENT, MORNING, EVENING, METOPROLOL],
     });

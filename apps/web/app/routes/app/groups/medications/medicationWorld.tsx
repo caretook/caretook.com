@@ -10,7 +10,9 @@ import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
 import * as weekSheet from "./print/week/route";
 import * as printSheet from "./print/route";
+import * as listTab from "./list/route";
 import * as medications from "./route";
+import * as scheduleTab from "./schedule/route";
 
 // The medications' component tests share one fictional world, like the
 // seeds' (medications.mjs used them): Grandma June's six medications on the
@@ -211,18 +213,32 @@ export const world = () => [
   METFORMIN_NOTES,
 ];
 
-export const LIST = `/app/groups/${GROUP}/medications`;
-export const medicationUrl = (id: string) => `${LIST}/${id}`;
+/** The group's medications paths: a medication's page, print and passes sit below it. */
+export const MEDS = `/app/groups/${GROUP}/medications`;
+/** The Schedule tab (Today), where the section opens. */
+export const SCHEDULE = `${MEDS}/schedule`;
+/** The list tab (allergies, search, chips and the list). */
+export const LIST = `${MEDS}/list`;
+export const medicationUrl = (id: string) => `${MEDS}/${id}`;
 
-/** The list with its sheets, a medication's page and the print sheets (as routes.ts nests them). */
+const sheetsOver = (tab: "schedule" | "list"): DeviceRoute[] => [
+  { path: `/app/groups/:groupId/medications/${tab}/new`, module: newSheet },
+  { path: `/app/groups/:groupId/medications/${tab}/:medicationId/edit`, module: editSheet },
+  { path: `/app/groups/:groupId/medications/${tab}/allergies`, module: allergiesSheet },
+];
+
+/** The page with its two tabs and their sheets, a medication's page and the print sheets (as routes.ts nests them). */
 export const MEDICATION_ROUTES: DeviceRoute[] = [
   {
     path: "/app/groups/:groupId/medications",
     module: medications,
     children: [
-      { path: "/app/groups/:groupId/medications/new", module: newSheet },
-      { path: "/app/groups/:groupId/medications/:medicationId/edit", module: editSheet },
-      { path: "/app/groups/:groupId/medications/allergies", module: allergiesSheet },
+      {
+        path: "/app/groups/:groupId/medications/schedule",
+        module: scheduleTab,
+        children: sheetsOver("schedule"),
+      },
+      { path: "/app/groups/:groupId/medications/list", module: listTab, children: sheetsOver("list") },
     ],
   },
   { path: "/app/groups/:groupId/medications/:medicationId", module: medicationPage },

@@ -73,7 +73,7 @@ export default function MedicationPasses({ loaderData, params }: Route.Component
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-passes-page>
-      <BackLink to={appUrls.medications(params.groupId)} label="Medications" />
+      <BackLink to={appUrls.medicationSchedule(params.groupId)} label="Medications" />
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-lg font-semibold">Passes</h1>
