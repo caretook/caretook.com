@@ -61,11 +61,11 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
-| B-25 | feature | ready | providers-2 | prd/providers-2 | @-mentions of providers inside live notes and events |
+| B-25 | feature | landed | providers-2 | prd/providers-2 | @-mentions of providers inside live notes and events |
 | B-31 | feature | triaged | onboarding |  | Demo group for every new user: a seeded, fictional care group to explore the app |
 | B-33 | plan | triaged | hosting |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
-| B-48 | feature | ready | providers-2 | prd/providers-2 | Allow import of providers from other care groups that you have access to. |
+| B-48 | feature | landed | providers-2 | prd/providers-2 | Allow import of providers from other care groups that you have access to. |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
 | B-53 | feature | triaged | data-rights |  | Ability to delete ALL data from the app. |
 | B-54 | feature | triaged | marketing |  | privacy policy and terms of service. |
@@ -121,7 +121,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-25 · feature · @-mentions of providers inside live notes and events
 
-- status: ready
+- status: landed
 - prd: providers-2
 - owner: prd/providers-2
 - commit: 680de235
@@ -174,7 +174,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-48 · feature · Allow import of providers from other care groups that you have access to.
 
-- status: ready
+- status: landed
 - prd: providers-2
 - owner: prd/providers-2
 - commit: fc0d2e20
