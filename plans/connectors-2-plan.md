@@ -4,19 +4,23 @@
 
 ## Status
 
-| Slice | Wave | State           | Merge into `prd/connectors-2` (slice commits) |
-| ----- | ---- | --------------- | --------------------------------------------- |
-| 1     | 1    | merged (opus)   | c691be06 (3a8100d7)                           |
-| 2     | 2    | blocked by 1, 3 |                                               |
-| 3     | 1    | started (opus)  |                                               |
-| 4     | 1    | started (opus)  |                                               |
-| 5     | 2    | blocked by 4    |                                               |
+| Slice | Wave | State          | Merge into `prd/connectors-2` (slice commits) |
+| ----- | ---- | -------------- | --------------------------------------------- |
+| 1     | 1    | merged (opus)  | c691be06 (3a8100d7)                           |
+| 2     | 2    | started (opus) |                                               |
+| 3     | 1    | merged (opus)  | 0b8c30f7 (9a92a2ba, cf033821)                 |
+| 4     | 1    | started (opus) |                                               |
+| 5     | 2    | blocked by 4   |                                               |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue connectors-2`): start every ready slice, land each green wave, clean up, ask only real questions.
 
 **Wave 1** (2026-11-21): worktrees `.loops/connectors-2-{1,3,4}` made, agents spawned on opus; B-193, B-195, B-204 claimed. To keep the merges conflict-free, slice 1 creates the wording module at `apps/web/app/lib/connectors/connectGuide.ts` and slice 3 puts its success-step examples in its own `apps/web/app/lib/connectors/connectSuccess.ts` (instead of appending to `connectGuide`).
 
 **Slice 1 hand-off notes:** the vendor steps and help links in `connectGuide.ts` are unverified (the runbook's hand check before launch). `check-areas.d/connectors` maps `assistantsSwitch.sync.ts` to no browser check (only Assistants and Devices read it). The off and viewer notes carry `data-guide-note="off|viewer"` for slice 2's ask button. Docs to fold: the guide's placement and wording module (`connectors.md`, _Managing connections_), how the notes are chosen (Devices uses every group on the device), and the new `components/connectors/` folder (`components.md`).
+
+**Slice 3 hand-off notes:** `/connect`'s action data is now `{ error } | { connected }` (Connect returns the redirect as data; Cancel still redirects). Its `pnpm check` had one load timeout in `scripts/loops/browser.test.mjs` ("kills a spec at its cap…"), passing alone. Docs to fold (`connectors.md`): _`/mcp`_ gets `prompts.ts` (`definePrompt`, `CONNECTOR_PROMPTS`), the four prompts, scope filtering, `prompts/get`'s -32602 cases, the instructions' sentence; _Consent_ gets the success step (`connectSuccess.ts`, 5 s auto-return through `window.location`, clear of CSP `form-action`) and `shouldRevalidate`.
+
+**Wave 2:** slice 2 started after slice 3's merge (worktree `.loops/connectors-2-2` with a stack, opus; B-194 claimed).
 
 **Start conditions:** none for wave 1. Slice 5 waited for `conditions`: landed in `dev` (B-181, a95acb73) and already in `prd/connectors-2`, so slice 5 is ready once slice 4 merges.
 
