@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** wave 1 landed in dev through PR #24 (e34bf68, 2026-11-21; full on eef8499, Codex clean on 88a8ff1 after its two findings were filed as B-401, B-402). Wave 2 merged; slice 5 (those two findings) started, to land with wave 2 in one PR. Then: full `pnpm prd check` + `pnpm test:tooling`, PR, Codex, land, fold docs, `pnpm prd rm check-speed`.
+**Where it stands:** wave 1 landed in dev through PR #24 (e34bf68, 2026-11-21; full on eef8499, Codex clean on 88a8ff1 after its two findings were filed as B-401, B-402). Wave 2 and slice 5 (those two findings) merged and docs folded; landing together in one PR. Then: full `pnpm prd check` + `pnpm test:tooling`, PR, Codex, land, fold docs, `pnpm prd rm check-speed`.
 
 **Wave 1 gate:** browser checks skipped on the user's word (2026-11-21): `--changed` asks for the lean set only because `vitest.config.ts`/`package.json` changed.
 
@@ -14,13 +14,13 @@
 
 **Landing mode: run everything through** (queued with `pnpm prd queue check-speed`): start every ready slice, land each green wave through its PR, clean up; ask only real questions.
 
-| Slice | Wave | State                                  | Merge into `prd/check-speed` (slice commits) |
-| ----- | ---- | -------------------------------------- | -------------------------------------------- |
-| 1     | 1    | merged (sonnet)                        | 4d4a760f (571cc9f6)                          |
-| 2     | 1    | merged (sonnet)                        | 4bb31f7f (8b68de30)                          |
-| 3     | 2    | merged (sonnet)                        | 00d07881 (07121530, a7c94b21)                |
-| 4     | 2    | merged (opus)                          | b725c7e4 (8b51d595, b5b1e9de)                |
-| 5     | 2    | started: worktree made, agent (sonnet) |                                              |
+| Slice | Wave | State           | Merge into `prd/check-speed` (slice commits) |
+| ----- | ---- | --------------- | -------------------------------------------- |
+| 1     | 1    | merged (sonnet) | 4d4a760f (571cc9f6)                          |
+| 2     | 1    | merged (sonnet) | 4bb31f7f (8b68de30)                          |
+| 3     | 2    | merged (sonnet) | 00d07881 (07121530, a7c94b21)                |
+| 4     | 2    | merged (opus)   | b725c7e4 (8b51d595, b5b1e9de)                |
+| 5     | 2    | merged (sonnet) | 44066ea0 (2fe203dc)                          |
 
 **Backlog:** B-401, B-402 close with slice 5. B-271 closes with slice 1, B-273 with slice 2, B-272 with slice 3, B-278 with slice 4 (`pnpm backlog done` when each merges).
 
