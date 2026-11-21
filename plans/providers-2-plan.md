@@ -6,8 +6,8 @@
 
 | Slice | Wave | State           | Merge into `prd/providers-2` (slice commits) |
 | ----- | ---- | --------------- | -------------------------------------------- |
-| 1     | 1    | started (opus)  |                                              |
-| 2     | 2    | blocked by 1    |                                              |
+| 1     | 1    | merged (opus)   | 4e1bf908 (01e0ebf3, 4847e3a2)                |
+| 2     | 2    | started (opus)  |                                              |
 | 3     | 1    | started (opus)  |                                              |
 | 4     | 2    | blocked by 3    |                                              |
 | 5     | 3    | blocked by 2, 3 |                                              |
@@ -16,7 +16,13 @@
 
 **Log:** 2026-11-20: backlog ingest: nothing new. `conditions` is in `dev` (a95acb73), so slice 4 waits only on slice 3. Overlap check: `appointments-2` (all merged, landing) touches `components/entry/EntryActions` etc., not `LiveNotesEditor` or the With row; `quick-fixes` not running. Wave 1: B-25 and B-48 claimed; worktrees `providers-2-1` (slot 5, stack) and `providers-2-3` (stackless) made; agents spawned (opus both: new UX).
 
-**Pending sync:** `appointments-2` landed in `dev` (f49aa958): migration 0029, `appointment_series` synced table, `care_group.details_outside_allowed`, new deps (`pnpm install`), `entryActionItems` changes. We have no migration. `pnpm prd sync` (then `pnpm install`, `pnpm datastore:reset`) after wave 1 merges, before wave 2.
+Slice 1 handed off (pnpm check green bar one load-timing tooling test that passes alone; `prd browser --changed` ran the lean set 12/12, live-notes 58 s, usual seconds unchanged). Merged as 4e1bf908; worktree removed. Its component tests are a new `entry/entryMentions.browser.test.tsx`.
+
+**Synced** `dev` (appointments-2, f49aa958) into prd/providers-2 as b4d47ea0, conflict-free; `pnpm install`, `datastore:reset`. Slice 3 still on the pre-sync base.
+
+Slice 2 worktree `providers-2-2` (stackless) made from b4d47ea0; agent spawned (opus).
+
+**Docs to fold (slice 1):** live-notes.md: `MENTION_NODE` (attrs `id`, `label`) always in the schema; `noteText` writes `@<label>`; `providers`/`onMention` props; popup keyboard/ARIA (listbox "Providers to mention", focus stays in the editor via `aria-activedescendant`); the two packages in `optimizeDeps`. providers.md (_Linking from notes and events_): a mention on an entry links like the With row (draft first, idempotent); deleting keeps the link; `mentionOptions` keeps linked ones; chip shows the current name, greyed for deleted/unknown.
 
 **Start conditions:** none for wave 1, but before slice 1 check the open `appointments-2` and `quick-fixes` slices for changes to `LiveNotesEditor`, the entry page or the With row. Slice 4 waits for `conditions` in `dev` (it changes the provider page); `pnpm prd sync` before it.
 
