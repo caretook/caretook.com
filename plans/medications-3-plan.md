@@ -13,7 +13,7 @@
 
 **Landing mode: run everything through** (queued with `pnpm prd queue medications-3`): start every ready slice, land each green wave, clean up; ask only real questions.
 
-**Now (2026-11-20):** `conditions` landed in `dev` (`a95acb73`); synced into `prd/medications-3`. B-200 claimed. Slice 1 started: worktree `.loops/medications-3-1` (slot 3, stack up after a B-207 migrate flake on the first try), agent spawned on opus. Wave 2 waits on its merge; before wave 2, check `quick-fixes`' open slices for the Dose sheet or the medication list.
+**Now (2026-11-20):** `conditions` landed in `dev` (`a95acb73`); synced into `prd/medications-3`. B-200 claimed. Slice 1 started: worktree `.loops/medications-3-1` (slot 3, stack up after a B-207 migrate flake on the first try), agent spawned on opus. **`appointments-2` landed in `dev` (`f49aa958`, 2026-11-21):** sync after slice 1 merges, before wave 2. It adds `0029_appointments_calendars`, so regenerate slice 1's migration on top (`pnpm datastore:generate`; keep its two hand edits, the series FK's ON DELETE SET NULL and the ALTER PUBLICATION, and reread our SQL). It also touches `sync-config.yaml`, the device schema, the upload switch and the sync matrix (expect additive conflicts), and adds deps (`pnpm install`, then `pnpm datastore:reset`). The landing therefore needs the full check. Wave 2 waits on its merge; before wave 2, check `quick-fixes`' open slices for the Dose sheet or the medication list.
 
 **Start conditions:** `conditions` landed in `dev` (its slice 4 changes the medication form and page; both PRDs touch `sync-config.yaml`, the device schema and the upload switch). Check its PRD row says done, then `pnpm prd sync` before slice 1.
 
