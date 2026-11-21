@@ -12,13 +12,14 @@ import {
   notificationOutboxSchema as outbox,
   providerService,
   todoService,
+  timelineEntryModel,
   timelineEntryService,
 } from "@caretook/data";
 import { addDays, dayInZone, zonedInstant } from "@caretook/data/schema";
 import { randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createGroup, createUser, ok } from "../../data/test/fixtures";
+import { createGroup, createUser, ok, system } from "../../data/test/fixtures";
 import { deliverDue } from "./outbox";
 import { handleReminderUnsubscribe, sweepReminders } from "./reminders";
 import { createMemorySender } from "./senders";
@@ -50,7 +51,7 @@ const setup = async () => {
   const ana = await createUser("ana");
   const ben = await createUser("ben");
   const cy = await createUser("cy");
-  const { group } = await createGroup(ana, [
+  const { group, recipient } = await createGroup(ana, [
     { user: ben.user, role: "caretaker" },
     { user: cy.user, role: "viewer" },
   ]);
@@ -72,7 +73,7 @@ const setup = async () => {
     if (!entry) throw new Error("entry not readable");
     return entry;
   };
-  return { ana, ben, cy, group, remindersOn, addAppointment };
+  return { ana, ben, cy, group, recipient, remindersOn, addAppointment };
 };
 
 /** Run the sweep at `now` and deliver what it queued to a fresh memory sender. */
@@ -182,6 +183,27 @@ describe("sweepReminders", () => {
     );
     const [forbidden] = to((await sweep(plus(later, -60))).sent, ana.user.email);
     expect(forbidden?.subject).not.toContain("Dialysis");
+  });
+
+  it("sends nothing for a stored future note", async () => {
+    const { ana, group, recipient, remindersOn } = await setup();
+    await remindersOn(ana, { reminderLeads: [60] });
+    ok(
+      await timelineEntryModel.create({
+        ...system,
+        data: {
+          groupId: group.id,
+          recipientId: recipient.id,
+          kind: "note",
+          title: "Call the pharmacy",
+          occurredAt: NINE.toISOString(),
+          timeZone: LA,
+        },
+      }),
+    );
+    const { ids, sent } = await sweep(HOUR_BEFORE);
+    expect(ids).toEqual([]);
+    expect(to(sent, ana.user.email)).toEqual([]);
   });
 
   it("reminds a todo's assignee, and skips a suppressed address", async () => {

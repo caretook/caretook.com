@@ -33,7 +33,7 @@ export const CALENDARS_PERMISSIONS = {
     },
     delete: OWN,
   },
-  // A member's reminder choice for one appointment or reminder: theirs alone.
+  // A member's reminder choice for one appointment: theirs alone.
   reminderOverrideSchema: {
     ownerField: "userId",
     groupField: "groupId",

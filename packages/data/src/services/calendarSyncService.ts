@@ -99,9 +99,9 @@ const enqueueStatement = (target: SyncTarget, reason: CalendarSyncReason) => {
     return sql`${insert("group_id")} SELECT ${target.groupId}::uuid, ${audit}
       WHERE ${liveConnectionIn(sql`${target.groupId}::uuid`)} ON CONFLICT DO NOTHING`;
   if ("entryId" in target)
-    // Only appointments and notes (reminders) reach a calendar.
+    // Only appointments reach a calendar (a note never does).
     return sql`${insert("group_id")} SELECT ${timelineEntrySchema.groupId}, ${audit} FROM ${timelineEntrySchema}
-      WHERE ${timelineEntrySchema.id} = ${target.entryId} AND ${timelineEntrySchema.kind} IN ('event', 'note')
+      WHERE ${timelineEntrySchema.id} = ${target.entryId} AND ${timelineEntrySchema.kind} = 'event'
       AND ${liveConnectionIn(timelineEntrySchema.groupId)} ON CONFLICT DO NOTHING`;
   return sql`${insert("group_id")} SELECT ${todoSchema.groupId}, ${audit} FROM ${todoSchema}
     WHERE ${todoSchema.id} = ${target.todoId} AND ${liveConnectionIn(todoSchema.groupId)} ON CONFLICT DO NOTHING`;
@@ -190,7 +190,7 @@ export const groupItems = async (groupId: string, now: Date): Promise<CalendarIt
       .where(
         and(
           eq(timelineEntrySchema.groupId, groupId),
-          inArray(timelineEntrySchema.kind, ["event", "note"]),
+          eq(timelineEntrySchema.kind, "event"),
           isNull(timelineEntrySchema.deletedAt),
           gte(timelineEntrySchema.occurredAt, after),
           lt(timelineEntrySchema.occurredAt, before),

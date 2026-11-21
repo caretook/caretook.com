@@ -231,6 +231,12 @@ describe("assistantActionService.run", () => {
         "assistantActionService:invalid",
         [{ path: "occurredAt", message: FUTURE_DATE_MESSAGE }],
       ],
+      // Notes are past-only (planner-2): a note ahead is refused through the service rule.
+      [
+        { type: "addNote", text: "Call the pharmacy", occurredAt: inHours(2) },
+        "assistantActionService:invalid",
+        [{ path: "occurredAt", message: FUTURE_DATE_MESSAGE }],
+      ],
       [
         { type: "logDose", medicationId: stopped.id, status: "given", occurredAt: minutesAgo(1) },
         "assistantActionService:medicationStopped",

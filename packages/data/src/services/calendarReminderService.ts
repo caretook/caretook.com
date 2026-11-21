@@ -22,7 +22,7 @@ export const serviceName = "calendarReminder";
 
 // What the reminder sweep reads (appointments-2 slice 6), as the system: for
 // every group where a current member has reminders on, its recipient, those
-// members (address, leads, consent), the appointments, reminders and their
+// members (address, leads, consent), the appointments and their
 // assignees' open todos starting in a window, and those members' overrides.
 // Not a model service: one sweep reads across groups with direct queries,
 // like the outbox's. The sweep itself (planning, notify) is
@@ -132,7 +132,7 @@ export const reminderInputs = async ({ from, to, tx }: { from: Date; to: Date; t
       .where(
         and(
           inArray(timelineEntrySchema.groupId, groupIds),
-          inArray(timelineEntrySchema.kind, ["event", "note"]),
+          eq(timelineEntrySchema.kind, "event"),
           isNull(timelineEntrySchema.deletedAt),
           gte(timelineEntrySchema.occurredAt, fromIso),
           lt(timelineEntrySchema.occurredAt, toIso),

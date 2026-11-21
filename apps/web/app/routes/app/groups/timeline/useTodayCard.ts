@@ -17,7 +17,7 @@ import { useTodoStrip } from "./useTodoStrip";
  * render too; a tap opens it until the page is left or reloaded).
  *
  * - `vitals`: every type's newest reading, newest first (empty: no row);
- * - `next`: the next appointment or reminder (null: no row);
+ * - `next`: the next appointment (null: no row);
  * - `medications` and `todos`: the strips' hooks, remembered for the session
  *   (`ready`: known, so a row or nothing; `fresh`: read live, else dimmed);
  * - `status`: each row's urgency (`todayStatus`), at the passes' clock;

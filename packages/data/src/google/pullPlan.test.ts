@@ -35,9 +35,6 @@ const item = (over: Partial<CalendarItem> = {}): CalendarItem => ({
   ...over,
 });
 
-const reminder = (over: Partial<CalendarItem> = {}) =>
-  item({ kind: "reminder", end: "2026-11-19T17:30:00.000Z", ...over });
-
 const todo = (over: Partial<CalendarItem> = {}) =>
   item({
     uid: "todo:t1",
@@ -94,8 +91,8 @@ describe("echoes and no-ops", () => {
     });
   });
 
-  it("ignores a reminder's or todo's end alone (their end is made up)", () => {
-    for (const it_ of [reminder(), todo()]) {
+  it("ignores a todo's end alone (its end is made up)", () => {
+    for (const it_ of [todo()]) {
       const change = eventFor(it_, movedEnd);
       expect(run({ change, link: linkFor(it_), item: it_, role: "owner" })).toEqual({
         type: "ignore",
@@ -268,44 +265,6 @@ describe("a series visit", () => {
       type: "overwrite",
       reason: "role",
     });
-  });
-});
-
-describe("a reminder", () => {
-  it.each(WRITERS)("moved in Google moves its time (no end), as %s", (role) => {
-    const it_ = reminder();
-    const change = eventFor(it_, moved);
-    expect(run({ change, link: linkFor(it_), item: it_, role })).toEqual({
-      type: "updateEntry",
-      entryId: "e1",
-      patch: { occurredAt: "2026-11-19T19:00:00.000Z", allDay: false },
-    });
-  });
-
-  it("made all-day in Google", () => {
-    const it_ = reminder();
-    const change = eventFor(it_, { start: { date: "2026-11-19" }, end: { date: "2026-11-20" } });
-    expect(run({ change, link: linkFor(it_), item: it_, role: "owner" })).toEqual({
-      type: "updateEntry",
-      entryId: "e1",
-      patch: { occurredAt: "2026-11-19T08:00:00.000Z", allDay: true },
-    });
-  });
-
-  it.each(WRITERS)("deleted in Google is removed, as %s", (role) => {
-    const it_ = reminder();
-    expect(
-      run({ change: eventFor(it_, { status: "cancelled" }), link: linkFor(it_), item: it_, role }),
-    ).toEqual({ type: "removeEntry", entryId: "e1" });
-  });
-
-  it("a viewer's move or delete is overwritten", () => {
-    const it_ = reminder();
-    for (const change of [eventFor(it_, moved), eventFor(it_, { status: "cancelled" })])
-      expect(run({ change, link: linkFor(it_), item: it_, role: "viewer" })).toEqual({
-        type: "overwrite",
-        reason: "role",
-      });
   });
 });
 

@@ -37,7 +37,7 @@ import {
   WRITER_ROLES,
 } from "../timeline/timeline.sync";
 
-// Repeating appointments and reminders on the device (appointments-2).
+// Repeating appointments on the device (appointments-2).
 // `createSeries` writes a series and its visits in one local transaction;
 // `seriesQuery` reads one for the entry page. Expanding a rule needs rrule
 // (`@caretook/data/series`), loaded here only when a series is written, so

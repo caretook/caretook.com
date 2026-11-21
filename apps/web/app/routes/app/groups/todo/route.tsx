@@ -12,11 +12,11 @@ import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { getSync } from "~/lib/sync";
-import { removeTodo } from "~/lib/todos/todos.sync";
+import { removeTodo, skipTodo } from "~/lib/todos/todos.sync";
 import { listSearchFromState } from "~/lib/todos/todoSheets";
 import { useMentionProviders } from "~/lib/providers/mentionProviders.sync";
 import { loadTodo } from "./loadTodo";
-import { DELETE_INTENT, TodoActions } from "./TodoActions";
+import { DELETE_INTENT, SKIP_INTENT, TodoActions } from "./TodoActions";
 import { TodoCompletion } from "./TodoCompletion";
 import { TodoDetails } from "./TodoDetails";
 import { TodoHeader } from "./TodoHeader";
@@ -41,7 +41,11 @@ export async function clientLoader({ params, context }: Route.ClientLoaderArgs) 
   return loadTodo(db, params.groupId, params.todoId);
 }
 
-/** Delete (soft): a local write; the live row shows it, and PowerSync uploads it. */
+/**
+ * Delete (soft), or skip a repeating todo's occurrence (planner-2: it goes
+ * and the next one comes): local writes; the live row shows them, and
+ * PowerSync uploads them.
+ */
 export async function clientAction({
   request,
   params,
@@ -50,7 +54,12 @@ export async function clientAction({
   getGroup(context);
   const { db } = context.get(sessionContext);
   const form = await request.formData();
-  if (form.get("intent") !== DELETE_INTENT) return { ok: false, error: "Nothing to do", issues: [] };
+  const intent = form.get("intent");
+  if (intent === SKIP_INTENT) {
+    const result = await skipTodo(db, params.todoId);
+    return result.ok ? { ok: true } : result;
+  }
+  if (intent !== DELETE_INTENT) return { ok: false, error: "Nothing to do", issues: [] };
   return removeTodo(db, params.todoId);
 }
 
@@ -106,6 +115,7 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
               todoId={todoId}
               title={todo.title}
               done={!!todo.doneAt}
+              repeats={!!todo.repeatRule}
               busy={tick.busy}
               onReopen={() => void tick.reopen(todo)}
               onDelete={deleting}
