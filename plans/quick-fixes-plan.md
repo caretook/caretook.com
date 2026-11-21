@@ -80,7 +80,7 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 | 62    | B-211             | merged | 33adfc0a (6eb5d949) sonnet                            |
 
 | 63 | B-228 | started | sonnet |
-| 64 | B-230 | started | sonnet |
+| 64 | B-230 | handed off (2769bd66), rechecking after typegen | sonnet |
 | 65 | B-232 | started | sonnet |
 | 66 | B-233 | started | sonnet |
 | 67 | B-234 | started | sonnet |
@@ -90,7 +90,7 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 
 **Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
 
-**Wave 16 (2026-11-21, run-through mode, a new orchestrator):** `prd/quick-fixes` was level with `dev`. Backlog ingested (nothing new). The user picked the test flakes (B-228, B-230) and the Codex follow-ups (B-232–B-235, B-237, B-238); B-229, B-231 (timeline layout, after quick-entry lands) and B-246, B-247 (Planner) stay triaged for a later wave. Slices 63–70 written, synced with `dev`, items claimed, stackless worktrees made and all eight loops spawned (10:27; models in the table). Loops wait for load < 16 before `pnpm check` and only list `prd browser --changed`. Lands through a PR into `dev` with Codex review.
+**Wave 16 (2026-11-21, run-through mode, a new orchestrator):** `prd/quick-fixes` was level with `dev`. Backlog ingested (nothing new). The user picked the test flakes (B-228, B-230) and the Codex follow-ups (B-232–B-235, B-237, B-238); B-229, B-231 (timeline layout, after quick-entry lands) and B-246, B-247 (Planner) stay triaged for a later wave. Slices 63–70 written, synced with `dev`, items claimed, stackless worktrees made and all eight loops spawned (10:27; models in the table). Loops wait for load < 16 before `pnpm check` and only list `prd browser --changed`. Lands through a PR into `dev` with Codex review. **Waiting on us:** list-filters' orchestrator (session list-filters-38) asked to be messaged when B-247 lands in `dev` (its slice 4 builds on the Planner's filter row); B-247 isn't scheduled, and they were told so.
 
 **Wave 15 landed in `dev` as 2152bbed (2026-11-21)** on a full check (fifth run; the first four each failed one unrelated test that passed alone under 1500–2900 s runs) and `--changed --base dev` (none needed). Every planned slice is in `dev`; the PRD worktree was removed. Triaged for a later wave, pending the user's review (no slices yet): B-228 (about 40 more synchronous reads in component tests), B-229 (the timeline header and Today match the column width on large screens; from the inbox), B-230 (`reminders.int.test.ts` times out under load).
 
