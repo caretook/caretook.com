@@ -1,16 +1,14 @@
 import type { TodoRuleFields } from "@caretook/data/schema";
 import type { TimedEntry } from "../appointments/upcoming";
 import type { UpcomingSection } from "../appointments/upcomingDays";
-import type { UpcomingDose } from "../appointments/upcomingDoses";
 
 import { localDate, todoState } from "@caretook/data/schema";
 import { dayLabel } from "../core/format";
 import { NOW_KEY } from "../appointments/upcomingDays";
-import { isUpcomingDose } from "../appointments/upcomingDoses";
 import { startOfDay, zonedInstant } from "../core/zonedDay";
 
 // Open todos with a due day in the Planner, under their day among the
-// appointments, reminders and due doses. Worked out, never written:
+// appointments and reminders. Worked out, never written:
 // completing a todo drops it out. Due days and times are wall-clock in the
 // recipient's zone (`todoState`); the Planner's days are the viewer's, so a
 // timed todo is placed by the moment it falls, an all-day one by its own
@@ -50,18 +48,17 @@ export const plannerTodos = <T extends TodoRuleFields>(
   });
 
 /**
- * Whether todos show with these filters: only unfiltered, like due doses
- * (a kind filter is a note or event kind, and an author filter is about who
+ * Whether todos show with these filters: only unfiltered, (a kind filter is a note or event kind, and an author filter is about who
  * wrote an entry).
  */
 export const showsTodos = ({ kind, author }: { kind?: string | null; author?: string | null }) =>
   !kind && !author;
 
-type Listed = TimedEntry | UpcomingDose | PlannerTodo;
+type Listed = TimedEntry | PlannerTodo;
 
 /**
  * Where an item sits in its day: overdue todos first, then all-day entries,
- * then all-day todos, then timed items (doses, timed entries and todos) by
+ * then all-day todos, then timed items (timed entries and todos) by
  * the moment they fall.
  */
 const rank = (item: Listed): { group: number; ms: number } => {
@@ -69,7 +66,6 @@ const rank = (item: Listed): { group: number; ms: number } => {
     if (item.state === "overdue") return { group: 0, ms: 0 };
     return item.at ? { group: 3, ms: Date.parse(item.at) } : { group: 2, ms: 0 };
   }
-  if (isUpcomingDose(item)) return { group: 3, ms: Date.parse(item.at) };
   return item.allDay ? { group: 1, ms: 0 } : { group: 3, ms: Date.parse(item.occurredAt) };
 };
 
@@ -80,7 +76,7 @@ const goesAfter = (todo: { group: number; ms: number }, item: Listed) => {
 };
 
 /**
- * The Planner's sections (`upcomingSections`, with due doses or not) with
+ * The Planner's sections (`upcomingSections`) with
  * `todos` in them. An overdue todo is listed under today, first; never under
  * "Now", which is for appointments in progress. A timed todo goes under the
  * day it falls on where the viewer is, by its time; an all-day one under its
