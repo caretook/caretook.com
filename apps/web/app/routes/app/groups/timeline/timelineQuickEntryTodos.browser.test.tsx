@@ -14,8 +14,10 @@ import { rowWith, TIMELINE_URL, waitUntil } from "./timelineWorld";
 // Quick entry adds todos (todos slice 7), on the test device (offline): a
 // `todo:` line previews as a todo card ("Todo · Due tomorrow 17:00", its
 // title and assignee), saves through the runner with the rest of the line,
-// Undo takes it back, and Edit opens the add-todo sheet filled in. The
-// parser's phrases are rows in quickEntry.test.ts.
+// Undo takes it back, and Edit opens the add-todo sheet filled in. A note
+// line that says a time ahead is a todo too (planner-2: notes are past-only),
+// with the note, dated now, one tap away. The parser's phrases are rows in
+// quickEntry.test.ts.
 
 const SAM_ID = "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f7c02";
 const SAM = fx.person({ id: SAM_ID, name: "Sam Okafor", role: "caretaker" });
@@ -150,6 +152,86 @@ describe("quick entry adds todos", () => {
     expect(dialog.getByLabelText("Due (optional)").element()).toHaveProperty("value", tomorrow);
     expect(dialog.getByLabelText("Time (optional)").element()).toHaveProperty("value", "15:00");
     expect(await device.query("SELECT id FROM todo")).toEqual([]);
+  });
+
+  test("a note line with a time ahead previews as a todo, Note one tap away; Save makes the todo with Undo", async () => {
+    const device = await open();
+    await type("call the pharmacy tomorrow 3pm", ["todo"]);
+    const card = cards()[0]!;
+    expect(card.querySelector("p")?.textContent).toBe("Todo · Due tomorrow 15:00");
+    expect(card.querySelector("[data-quick-title]")?.textContent).toBe("Call the pharmacy");
+    expect(
+      page
+        .getByRole("list", { name: 'Other ways to save "call the pharmacy tomorrow 3pm"' })
+        .getByRole("button", { name: "Make it a note" })
+        .query(),
+    ).toBeTruthy();
+
+    await userEvent.click(saveButton()!);
+    await expect.poll(status).toBe("Saved 1 todo");
+    const [saved] = await device.query<TodoDbRow>("SELECT * FROM todo");
+    expect(saved).toMatchObject({
+      title: "Call the pharmacy",
+      due_on: tomorrow,
+      due_time: "15:00",
+      deleted_at: null,
+    });
+    // Nothing on the timeline: no note dated ahead.
+    expect(
+      await device.query("SELECT id FROM timeline_entry WHERE created_at > ?", [
+        at(new Date(Date.now() - 60_000)),
+      ]),
+    ).toEqual([]);
+
+    await userEvent.click(page.getByRole("button", { name: "Undo" }));
+    await expect
+      .poll(async () => (await device.query<TodoDbRow>("SELECT * FROM todo"))[0]?.deleted_at)
+      .toBeTruthy();
+  });
+
+  test("choosing Note on a line ahead saves a note dated now, with the whole line", async () => {
+    const device = await open();
+    const before = Date.now();
+    await type("call the pharmacy tomorrow", ["todo"]);
+    await userEvent.click(page.getByRole("button", { name: "Make it a note" }));
+    await waitUntil(() => cardKinds().join() === "note", 4000, "the note card");
+    expect(cards()[0]!.querySelector("[data-quick-title]")?.textContent).toContain(
+      "call the pharmacy tomorrow",
+    );
+    await userEvent.click(saveButton()!);
+    // A lone note opens on its page.
+    await expect.poll(() => device.location()).toMatch(/\/entries\//);
+    expect(await device.query("SELECT id FROM todo")).toEqual([]);
+    const notes = await device.query<{ occurred_at: string }>(
+      "SELECT occurred_at FROM timeline_entry WHERE kind = 'note' AND created_at > ?",
+      [at(new Date(before - 60_000))],
+    );
+    expect(notes).toHaveLength(1);
+    const occurred = new Date(notes[0]!.occurred_at).getTime();
+    expect(occurred).toBeGreaterThanOrEqual(before - 60_000);
+    expect(occurred).toBeLessThanOrEqual(Date.now());
+  });
+
+  test("a note asked for with a time ahead can't be saved, and the runner refuses a note ahead", async () => {
+    const device = await open();
+    await type("n: call the pharmacy tomorrow", ["note"]);
+    expect(saveButton()!.disabled).toBe(true);
+    expect(cards()[0]!.querySelector("[data-quick-blocking]")?.textContent).toBe("Can't be in the future");
+    expect(page.getByRole("button", { name: "Make it a todo" }).query()).toBeTruthy();
+
+    const result = await runActions(device.db, TEST_GROUP.id, [
+      {
+        type: "addNote",
+        text: "Call the pharmacy",
+        occurredAt: new Date(Date.now() + 3_600_000).toISOString(),
+      },
+    ]);
+    expect(result).toMatchObject({
+      ok: false,
+      index: 0,
+      issues: [{ path: "occurredAt", message: "Can't be in the future" }],
+    });
+    expect(await device.queued()).toEqual([]);
   });
 
   test("a viewer gets no box, and the runner refuses their todo", async () => {
