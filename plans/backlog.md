@@ -89,7 +89,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-199 | bug | triaged | medications-3 |  | ability to add a medication quickly from the log a dose screen. |
 | B-200 | bug | triaged | medications-3 |  | medications need a type field: rx, otc, supplement, etc. |
 | B-201 | bug | landed | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
-| B-203 | feature | in-progress | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
+| B-203 | feature | ready | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
 | B-204 | feature | triaged | connectors-2 |  | connector should be able to edit notes and events so it can help you draft questions or add… |
 | B-205 | bug | landed | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails at some times of day: give_pass on w.evening returns isError (line 160) |
 | B-206 | bug | landed | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails in the evening: its Metformin dose a minute earlier fills the Evening pass, so give_pass says 'Nothing is left to give in Evening today' |
@@ -459,10 +459,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-203 · feature · Now that we are we have github fixed, we should start using it for some of the merge management so…
 
-- status: in-progress
+- status: ready
 - prd: github-review
 - owner: prd/github-review
-- commit:
+- commit: 6ece6441
 
 - 2026-11-20 (Robert Bo Davis): From the inbox: Now that we are we have github fixed, we should start using it for some of the merge management so codex can review PRs. I do NOT want PRDs or plans to be in github, only the code. Instead of merging to dev locally, we need to start pushing working branches to github and creating a PR into dev, then waiting for codex to review, then addressing any comments, then merging to dev.
 - 2026-11-20 (Robert Bo Davis): Triage: github-review (to write): pnpm prd land pushes the branch and opens a PR into dev, waits for Codex's review, addresses comments, then merges. Open: plans/ and the PRDs are already on origin/dev and origin/main (public repo), so 'code only on GitHub' means moving plans out of the repo or into an untracked/separate store; the live backlog commits onto dev, which then can't be PR-only.
