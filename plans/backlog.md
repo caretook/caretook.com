@@ -149,12 +149,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-243 | bug | staging | hosting |  | don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of… |
 | B-244 | chore | triaged | github-review |  | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
 | B-245 | plan | triaged | planner-3 |  | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
-| B-246 | change | triaged | planner-2 |  | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
-| B-247 | change | in-progress | planner-2 | prd/planner-2 | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
+| B-246 | change | in-progress | planner-2 | prd/planner-2 | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
+| B-247 | change | ready | planner-2 | prd/planner-2 | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
 | B-248 | change | in-progress | planner-2 | prd/planner-2 | Remove reminders: notes can no longer be dated in the future; use todos instead |
 | B-249 | change | landed | list-filters | prd/list-filters | Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner |
 | B-250 | bug | staging | quick-fixes |  | lint tests seem to be failing regularly because types haven't been generated. Maybe regression… |
-| B-251 | bug | in-progress | planner-2 | prd/planner-2 | convert planner tabs to TabNav component. |
+| B-251 | bug | ready | planner-2 | prd/planner-2 | convert planner tabs to TabNav component. |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-254 | feature | triaged | planner-3 |  | Quick entry: 'bins out every monday' makes a repeating todo |
@@ -187,7 +187,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-281 | chore | triaged | test-health |  | Component tests: cut duplicates and brittle layout assertions; frame, harness and primitive tests use a probe route, not the timeline |
 | B-282 | chore | triaged | test-health |  | Playwright specs: move one-device and no-browser steps out (marketing first), remove fixed sleeps, merge signout-wipe into session-end |
 | B-283 | chore | triaged | test-health |  | Server tests: shared fixtures (createWorld, a sync and MCP test helper) and trim rules re-tested through sync upload and the connector; first move the member matrix and condition refusals down to the data layer |
-| B-284 | change | in-progress | planner-2 | prd/planner-2 | Planner: move the All / Events / Todos filter under the shared Filter dropdown (FilterMenu), after B-247's Upcoming \| Past toggle |
+| B-284 | change | ready | planner-2 | prd/planner-2 | Planner: move the All / Events / Todos filter under the shared Filter dropdown (FilterMenu), after B-247's Upcoming \| Past toggle |
 | B-285 | bug | triaged | sync-safety |  | Server-refused sync changes vanish with only a console.warn: keep refused ops in a local table and show them with the server's reason |
 | B-286 | bug | triaged | sync-safety |  | A repeatable 5xx from sync.upload blocks a device's upload queue forever: no retry cap, and the sync indicator never shows uploadError or the queue length |
 | B-287 | bug | triaged | sync-safety |  | Offline medication and provider edits re-send unchanged JSON columns (schedule, phones), reverting a co-member's newer change |
@@ -1111,9 +1111,9 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-246 · change · Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab)
 
-- status: triaged
+- status: in-progress
 - prd: planner-2
-- owner:
+- owner: prd/planner-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21, agreed with the user: the Planner is for appointments and todos. Drop withDueDoses, UpcomingDoseRow and the pass rows from the Planner (lib/appointments/upcomingDoses.ts, plannerPasses tests); check whether the connector's upcoming tool lists doses and say so before changing it. UI only.
@@ -1121,10 +1121,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-247 · change · Planner: Past becomes an 'Upcoming | Past' toggle inside the Planner tab instead of its own tab
 
-- status: in-progress
+- status: ready
 - prd: planner-2
 - owner: prd/planner-2
-- commit:
+- commit: 43846e09
 
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21, agreed with the user: keep the /planner/past route and URL (Back, deep links, sheets closing back), drop Past from PlannerHeader's tab nav, add a two-option control of links in the filter row with the Planner tab active on both; Past stays events only (done todos stay under Todos). UI only.
 - 2026-11-21 (Robert Bo Davis): Also, at the user's request (2026-11-21): the Planner tab's filter chips become All, Events, Todos (today All, Appointments, Reminders, with todos hidden under any chip). Events is ?kind=event; Todos is a new todos-only filter (not a timeline kind: upcomingFilters, showsTodos in lib/todos/plannerTodos.ts, useUpcomingData, PlannerFilterChips, the empty text). The Reminders chip goes; until B-248 removes reminders they show only under All. Rework the filter row once, with the Upcoming | Past control.
@@ -1163,10 +1163,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-251 · bug · convert planner tabs to TabNav component.
 
-- status: in-progress
+- status: ready
 - prd: planner-2
 - owner: prd/planner-2
-- commit:
+- commit: 43846e09
 
 - 2026-11-21 (Robert Bo Davis): Triage: small UI change next to the other Planner tab items (B-246, B-247) in quick-fixes; do it with or after B-247, which changes the same tabs.
 - 2026-11-21 (plan/planner-tabs): Backlog session 2026-11-21, at the user's word: moved from quick-fixes into planner-2 as new wave 2 slices (B-247, B-251 and B-284 in one slice that reworks the Planner's header and filter row once, before slice 3; B-246 in its own slice), so planner-2's slice 3 no longer waits on another PRD. The planner-2 orchestrator appends the slices to its plan. Upcoming | Past is two link chips; no further design of the filter look.
@@ -1475,10 +1475,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-284 · change · Planner: move the All / Events / Todos filter under the shared Filter dropdown (FilterMenu), after B-247's Upcoming | Past toggle
 
-- status: in-progress
+- status: ready
 - prd: planner-2
 - owner: prd/planner-2
-- commit:
+- commit: 43846e09
 
 - 2026-11-21 (prd/list-filters): From list-filters slice 4 (B-249), split out on the user's word 2026-11-21 because B-247 isn't scheduled. Do after B-247 lands. Spec: plans/list-filters-plan.md, Slice 4 (until that PRD is removed, then git history at prd/list-filters). Keep Upcoming | Past visible; one FilterMenu section 'Show' (All, Events, Todos; default All) at the row's right end with FilterMenuChips beneath; the author filter ('By Ann') passed as an extra chip (not counted); Past shows no button, only the author chip when on. planner.browser.test.tsx's 'the tabs carry what each reads' test already uses the Todos tab's Filter menu. Also overlaps planner-2 (B-248).
 - 2026-11-21 (plan/planner-tabs): Backlog session 2026-11-21, at the user's word: moved from quick-fixes into planner-2 as new wave 2 slices (B-247, B-251 and B-284 in one slice that reworks the Planner's header and filter row once, before slice 3; B-246 in its own slice), so planner-2's slice 3 no longer waits on another PRD. The planner-2 orchestrator appends the slices to its plan. Upcoming | Past is two link chips; no further design of the filter look.
