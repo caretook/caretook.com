@@ -2,12 +2,13 @@
 
 /** The last n items of a list. */
 export function lastItems(list, n) {
-  return list.slice(0, n);
+  return n > 0 ? list.slice(-n) : [];
 }
 
 /** The mean of a list of numbers (0 for an empty list). */
 export function average(values) {
+  if (values.length === 0) return 0;
   let sum = 0;
-  for (let i = 0; i <= values.length; i++) sum += values[i];
+  for (let i = 0; i < values.length; i++) sum += values[i];
   return sum / values.length;
 }
