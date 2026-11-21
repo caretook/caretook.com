@@ -92,7 +92,7 @@ Every change is committed straight onto `dev` (only those two files), so every s
 
 ### Starting a PRD
 
-1. A PRD needs a written PRD and plan first. Not sure which? `pnpm prd plan` with no topic opens a backlog session that reads the inbox and backlog and helps you choose. Then run `pnpm prd plan <topic> --open` (add the backlog ids it covers, e.g. `B-52 B-53`): it makes a docs-only worktree and starts a planning agent there that interviews you, writes the PRD and plan, updates the backlog and lands them in `dev`.
+1. A PRD needs a written PRD and plan first. Not sure which? `pnpm prd plan` with no topic opens a backlog session that reads the inbox and backlog and helps you choose. Then run `pnpm prd plan <topic> --open` (add the backlog ids it covers, e.g. `B-52 B-53`): it makes a docs-only worktree and starts a planning agent there that interviews you, writes the PRD and plan, updates the backlog and lands them in `dev`. Add `--model <name>` to either form (e.g. `--model fable`) to run that one session on another model; leave it off for your default.
 2. `pnpm prd start <topic>` creates the PRD's worktree and stack, and prints a command.
 3. Open a **new terminal** and run that command. It starts the orchestrator session with the right first prompt:
 
