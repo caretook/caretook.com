@@ -4,17 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State                                                                                           | Merge into `prd/planner-2` (slice commits) |
-| ----- | ---- | ----------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| 1     | 1    | merged (sonnet, finished by a `--continue` agent on opus after a usage limit); worktree removed | 804c6e97 (cea61410, 56de7e22, 8d62fbe0)    |
-| 2     | 1    | merged (opus); worktree removed                                                                 | 7267ab9f (3ff6ccb2, 46ddd08f)              |
-| 3     | 2    | not started: blocked by slice 8                                                                 |                                            |
-| 4     | 2    | worktree made (`.loops/planner-2-4`); sonnet agent starts after 1pm ET (usage limit)            |                                            |
-| 5     | 2    | started (worktree `.loops/planner-2-5`, opus, 12:50 ET)                                         |                                            |
-| 6     | 2    | started (worktree `.loops/planner-2-6`, slot 4 stack, opus, 12:50 ET)                           |                                            |
-| 7     | 2    | worktree made (`.loops/planner-2-7`); sonnet agent starts after 1pm ET (usage limit)            |                                            |
-| 8     | 2    | worktree next (B-247, B-251, B-284)                                                             |                                            |
-| 9     | 2    | not started: blocked by slice 8 (B-246)                                                         |                                            |
+| Slice | Wave | State                                                                                             | Merge into `prd/planner-2` (slice commits) |
+| ----- | ---- | ------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| 1     | 1    | merged (sonnet, finished by a `--continue` agent on opus after a usage limit); worktree removed   | 804c6e97 (cea61410, 56de7e22, 8d62fbe0)    |
+| 2     | 1    | merged (opus); worktree removed                                                                   | 7267ab9f (3ff6ccb2, 46ddd08f)              |
+| 3     | 2    | not started: blocked by slice 8                                                                   |                                            |
+| 4     | 2    | worktree made (`.loops/planner-2-4`); sonnet agent starts after 1pm ET (usage limit)              |                                            |
+| 5     | 2    | started (worktree `.loops/planner-2-5`, opus, 12:50 ET)                                           |                                            |
+| 6     | 2    | started (worktree `.loops/planner-2-6`, slot 4 stack, opus, 12:50 ET)                             |                                            |
+| 7     | 2    | worktree made (`.loops/planner-2-7`); sonnet agent starts after 1pm ET (usage limit)              |                                            |
+| 8     | 2    | worktree made (`.loops/planner-2-8`), B-247/B-251/B-284 claimed; sonnet agent starts after 1pm ET |                                            |
+| 9     | 2    | not started: blocked by slice 8 (B-246)                                                           |                                            |
 
 **Wave 1:** merged and synced with `dev` (009a2e58: only `typegen` scripts and docs came in). Full `pnpm prd check` running on 54a04a59 (the branch has migration 0033). Next: serve, browser checks (asking the user before `--suite`, as the plan says), the PR and Codex review, then land. Wave 2 slices 4–7 start now from the merged tip; slice 3 waits for slice 8. Filed B-381 (the readTools birth-year flake, quick-fixes).
 
