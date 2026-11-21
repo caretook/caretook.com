@@ -1,6 +1,6 @@
-# Plan: The UI kit (shared primitives, the pill tab bar, section bands)
+# Plan: The UI kit (shared primitives, the pill tab bar, the floating bottom bar, section bands)
 
-> Source PRD: [`plans/ui-kit-prd.md`](ui-kit-prd.md). User-story numbers (US) refer to it. Backlog items B-257 to B-267, B-270, B-396, B-397. Topic `ui-kit`. The follow-on topic `ui-kit-2` (B-398 the area sweeps, B-268 the choice dialog, B-269 the guard) is to write.
+> Source PRD: [`plans/ui-kit-prd.md`](ui-kit-prd.md). User-story numbers (US) refer to it. Backlog items B-257 to B-267, B-270, B-396, B-397, B-399. Topic `ui-kit`. The follow-on topic `ui-kit-2` (B-398 the area sweeps, B-268 the choice dialog, B-269 the guard) is to write.
 
 ## Status
 
@@ -16,11 +16,11 @@
 
 **Start conditions:** none outstanding (`list-filters` and `planner-2` are in `dev`). Never beside `i18n` (it runs alone). `quick-fixes` and `simple-mode` may run beside it; sync between waves.
 
-**Landing:** no migration, no dependencies, stackless. Each wave lands something usable, so land wave by wave. The landing mode is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking.
+**Landing:** no migration, no dependencies; stackless but for slice 2. Each wave lands something usable, so land wave by wave. The landing mode is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking.
 
 **Backlog:** claim a slice's items when it starts; `done` them when it merges (the slice headings name them).
 
-Fold into the area docs at landing ([components](../docs/domain/components.md) unless named): each slice's _Docs_ section lists its primitives' lines for the `ui/` list and the contracts; slice 1 also fixes the `ui/` list in [layout](../docs/layout.md); slice 4 the heading scale and tokens; slices 6 and 7 the band rule and which pages are banded, with a line in [profiles](../docs/domain/profiles.md) (slice 7), [medications](../docs/domain/medications.md), [providers](../docs/domain/providers.md), [care-periods](../docs/domain/care-periods.md) and [todos](../docs/domain/todos.md) only where they describe the page's header or cards.
+Fold into the area docs at landing ([components](../docs/domain/components.md) unless named): each slice's _Docs_ section lists its primitives' lines for the `ui/` list and the contracts; slice 1 also fixes the `ui/` list in [layout](../docs/layout.md); slice 2 the tab bar's lines in [app-shell](../docs/domain/app-shell.md) (the `dock` wording) and the layers line here; slice 4 the heading scale and tokens; slices 6 and 7 the band rule and which pages are banded, with a line in [profiles](../docs/domain/profiles.md) (slice 7), [medications](../docs/domain/medications.md), [providers](../docs/domain/providers.md), [care-periods](../docs/domain/care-periods.md) and [todos](../docs/domain/todos.md) only where they describe the page's header or cards.
 
 ## Architectural decisions
 
@@ -39,18 +39,19 @@ Fold into the area docs at landing ([components](../docs/domain/components.md) u
 - **Page:** `Page` is the `main` (`mx-auto max-w-2xl space-y-4 px-4 py-5`; `width="wide"` is `max-w-4xl`); it passes `data-*` and `className` through. `Page bands` has no column; its children are `Section`s: full-width bands, each with an inner `max-w-2xl px-4` column, alternating `base-200` and `base-100` from the first, a `base-300` rule between, `py-6` per band and `space-y-2` inside; a `Section` with a `title` is a `section` named by its heading and takes `id` (`data-section`) and `actions`. **A page's part components become the `Section` themselves** (they already render their own named `section` and return nothing when empty or hidden by role), never a wrapper around them; alternation is by rendered position in CSS, so an absent part leaves no band and the rest still alternate.
 - **Banded pages:** the profile, medication, provider, care period and to-do pages only. No cards inside a band. A part shared with an unbanded page (`LinkedTodos`, also on the entry page; `AllergiesRegion`, also on the medications list) takes a `band` opt-in and looks as today without it.
 - **TabNav:** the contract in the components doc stays (a `nav` of links, first claimant current, pending navigation, prefetch on render). New per-tab fields: `icon`, `count`, `replace`, `current` (overrides the path match). Look: `rounded-full bg-base-100 shadow-sm` (a `base-300` border in dark), tabs `font-medium` without boxes, the current tab `bg-primary/15 text-primary` rounded-full, hover a quiet `base-200` fill, the count a small solid `primary` badge. `w-full` with equal tabs on phones, `sm:w-fit`; `overflow-x-auto` when the tabs don't fit.
+- **The bottom bar** (`TabBar` in `routes/app/layout/SectionNav.tsx`; it stays there, not in `ui/`): the contract in the app-shell doc stays (a `nav` named "Group sections" over `GROUP_SECTIONS`, `prefetch="render"`, `aria-current` from the pending navigation, `sm:hidden print:hidden`, `z-40`, nothing on an entry's page, an in-flow spacer of `--tab-bar-height`). Look: `fixed`, centred, `rounded-full shadow-lg` on a surface of its own: `neutral` with `neutral-content` in light, and in dark `base-300` with `base-content` (dark's `neutral` is within 1.1:1 of the dark page, so it can't be the surface there), set per theme by a variable beside the height rule in `app.css`; about 0.75rem clear of the bottom safe area and at least 1rem from the sides; each link an icon only (`size-5`) in a target of at least 44 px, with `aria-label` and `title` set to the section's label; the current one `bg-primary text-primary-content rounded-full`, the others a dimmed content colour. No daisyUI `dock`. The `nav` carries `data-tab-bar`, the hook every test selects it by. `--tab-bar-height` becomes the bar's height plus its bottom gap plus the safe area, so the spacer and `Toast` need no other change. The header's `SectionNav` keeps its text buttons.
 - **Unchanged:** routes, URLs, loaders, permissions, schema, sync, server; print sheets; the timeline, entry page and quick entry (their files aren't edited; their headers already use `PageHeader`, so their titles take the new size); marketing and `/admin`.
 
 ## How to run this plan
 
 - **Wave 1: slice 1** alone. It sets the gallery, its registry and the append-only pattern the others follow.
-- **Wave 2: slices 2, 3 and 4** together. Slice 2 owns `TabNav` and sign-in's tab row; slice 3 owns the settings area's files (`components/settings/`, `routes/app/settings/`, `routes/app/groups/settings/`), the account forms' shared card and `components/shell/FirstSyncPending.tsx`; slice 4 owns `app.css`, `PageHeader` and the outer `main` and `h1` of the other `/app` pages it lists. Slice 4 doesn't touch the settings folders, the timeline or entry folders (`simple-mode` renames files there) or `FirstSyncPending`, and edits nothing inside a page but its container and title.
+- **Wave 2: slices 2, 3 and 4** together. Slice 2 owns `TabNav`, sign-in's tab row, `routes/app/layout/SectionNav.tsx` and the one `--tab-bar-height` rule in `app.css` (slice 4 adds its utilities at the end of that file and leaves that rule alone), plus the bar's selector in the tests and browser specs that name it; slice 3 owns the settings area's files (`components/settings/`, `routes/app/settings/`, `routes/app/groups/settings/`), the account forms' shared card and `components/shell/FirstSyncPending.tsx`; slice 4 owns `app.css`, `PageHeader` and the outer `main` and `h1` of the other `/app` pages it lists. Slice 4 doesn't touch the settings folders, the timeline or entry folders (`simple-mode` renames files there) or `FirstSyncPending`, and edits nothing inside a page but its container and title.
 - **Wave 3: slices 5 and 6** together. Slice 5 owns the settings area again (cards, lists, switches, the settings frame's container and titles); slice 6 the medication, provider, care period and to-do page folders, `LinkedTodos` and `AllergiesRegion`.
 - **Wave 4: slice 7**, the profile (its folder alone is about 3,300 lines, more than the other four pages together).
-- **Stacks:** all stackless (component tests on the test device, unit tests).
+- **Stacks:** slice 2 has a stack (it edits the `app-shell` and `roundtrip` browser specs and must run both checks, which need the server and sync); the rest are stackless (component tests on the test device, unit tests).
 - **Checks:** every slice runs `pnpm check` and `pnpm test:components --changed prd/ui-kit`, and `pnpm prd browser --changed` once before hand-off, reporting what it named. A browser spec that selects markup a slice changed is updated in that slice.
 - **Tests select by role and name**, so most screen tests shouldn't change; where one selected a class or tag that moved, fix the selector, not the behaviour.
-- **Beside other PRDs:** `quick-fixes` items that sweep component tests (B-180, B-228) may touch the same test files: whoever lands second resolves. `simple-mode` works in the timeline, which this plan leaves alone.
+- **Beside other PRDs:** `quick-fixes` items that sweep component tests (B-180, B-228) may touch the same test files: whoever lands second resolves. `simple-mode` works in the timeline, which this plan leaves alone but for one selector line in `timelineSimple.browser.test.tsx` (slice 2): whoever lands second keeps the `data-tab-bar` selector. `test-health` slice 12 rewrites `app-shell.spec.mjs`, where slice 2 changes only the bar's locator: the same rule.
 - Every slice ends with a hand-off ([loop](../docs/agents/loop.md)), plus a _Docs_ section listing what the orchestrator should fold into the area docs.
 
 ---
@@ -84,15 +85,17 @@ The `/dev/ui` gallery as the decisions describe, with sections for the primitive
 
 ---
 
-## Slice 2: The pill tab bar
+## Slice 2: The pill tab bar and the floating bottom bar
 
-Stack: no · Reads: docs/domain/components.md, docs/domain/auth.md · Tests: component
+Stack: yes · Reads: docs/domain/components.md, docs/domain/app-shell.md, docs/domain/auth.md · Tests: component, e2e:app-shell, e2e:roundtrip
 
-**Item:** B-396. **User stories:** 16–21, 28.
+**Items:** B-396, B-399. **User stories:** 16–21, 28, 40–44.
 
 ### What to build
 
 Restyle `TabNav` as the pill bar in the decisions and add the per-tab `icon`, `count`, `replace` and `current`. Export it from `ui/plain`. Sign-in's "Ways to sign in" row becomes a `TabNav` (two tabs told apart by `?with=`, so each passes `current` and `replace`). Medications and the Planner get the new look without a caller change. Update the gallery's TabNav section: plain, with icons, with a count, many tabs at phone width, both themes.
+
+Then the phone's bottom bar (B-399): restyle `TabBar` as the floating bar in the decisions and set `--tab-bar-height` to match. Only `SectionNav.tsx` and that one CSS rule (with the surface variable beside it) change; the layout route, `GROUP_SECTIONS`, `isTabBarHidden` and `Toast` don't. Move every selector off the `dock` class onto `data-tab-bar`: the frame and pending-navigation tests, the medication list, Planner, both print tests, the simple timeline test (one line; it asserts the bar is absent, so a stale selector would pass for the wrong reason), and the `app-shell` and `roundtrip` browser specs' `nav.dock` locators (they tap by position or `href`, never by text). The links lose their visible text, so the tests that read a bar link's `textContent` read its `aria-label` instead: the frame test's list of sections and its current one, and the medication list's and the Planner's current-tab and tap-a-tab helpers. The frame test's "the bar is flush with the window's bottom" becomes the inset assertion below. No gallery section: it's the frame's, not a primitive.
 
 ### Acceptance criteria
 
@@ -102,7 +105,12 @@ Restyle `TabNav` as the pill bar in the decisions and add the per-tab `icon`, `c
 - [ ] Sign-in's component tests pass: both ways in are reachable by the tab row, the current one is announced, and switching keeps `redirectTo`.
 - [ ] The medications tabs and Planner component tests pass.
 - [ ] The `ui/plain` import-graph test (slice 1) passes with `TabNav` exported.
-- [ ] _Docs_: the `TabNav` contract line (new fields, the look, overflow), replacing "`tabs-box`".
+- [ ] The medication list's and the Planner's component tests still find the bar's current section and tap a section, by accessible name.
+- [ ] The frame's existing component tests (`frame.browser.test.tsx`, `sectionNavPending.browser.test.tsx`) pass on the `data-tab-bar` selector, reading each link's accessible name where they read its text, with the behaviour they check unchanged: the bar on group routes at 420 px only, gone on an entry's page, in simple mode, from `sm` and in print; a tapped section is current at once.
+- [ ] New component tests in the frame's test file, at 420 px: every link's accessible name is its section's label and equals its `title`, with no visible text; every link is at least 44 by 44 px; the bar's box is clear of the left, right and bottom edges of the window; the spacer is at least as tall as the bar plus its gap, and the last row of a long page can scroll clear of the bar; a toast sits above it.
+- [ ] A component test reads computed colours in light and dark: the bar's surface is at least 1.4:1 against the page's (`base-200`) and differs from a card's (`base-100`); a resting icon and the current icon each clear 3:1 against what is behind them; the current link differs from the others by its fill, not by colour of the icon alone. Raise the starting classes until it passes and record the numbers in _Docs_.
+- [ ] No `nav.dock`, `.dock` or `dock-label` is left in `apps/web` or `scripts/browser-checks/`; the hand-off lists the files changed. The `app-shell` and `roundtrip` checks each pass once (`pnpm prd browser <check>`), on the slice's stack.
+- [ ] _Docs_: the `TabNav` contract line (new fields, the look, overflow), replacing "`tabs-box`"; the app-shell doc's `TabBar` wording (floating, icon-only, `data-tab-bar`, what `--tab-bar-height` now covers), replacing "a daisyUI `dock`".
 
 **Blocked by:** 1. **Blocks:** nothing.
 
@@ -242,5 +250,12 @@ One fresh agent read the PRD, the plan and the items cold (2026-11-21). Acted on
 - The gallery's gate, routes part, area rule and test shape are spelled out.
 - Contrast values are starting points to be raised until they pass.
 - B-398's note now lists everything this PRD leaves behind.
+
+Added after landing (2026-11-21): B-399, the phone's floating bottom bar, joined slice 2 before anything started. A second skeptic pass read the change. Acted on:
+
+- Dark's `neutral` is darker than the dark page by only 1.1:1, so the bar wouldn't have had "a different background" there: the dark surface is `base-300`, and the criterion is a number (1.4:1 against the page).
+- Slice 2 edits two browser specs and must run their checks, so it has a stack and names them in `Tests`.
+- Three test files read the bar links' text, and one asserts the bar is flush with the bottom: the slice now says they move to the accessible name and the inset assertion, instead of calling it a selector move.
+- `test-health` slice 12 also rewrites `app-shell.spec.mjs`: named under _Beside other PRDs_ and in the PRD table's hot files.
 
 Declined: nothing. Seven slices rather than six, because the profile is the page the bands are for and doesn't fit beside the other four.
