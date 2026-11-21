@@ -13,7 +13,7 @@ import { at, fx, TEST_GROUP, TEST_RECIPIENT, TEST_USER } from "../../../../../te
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
 import * as timeline from "./route";
-import { waitUntil } from "./timelineWorld";
+import { chooseViewOption, waitUntil } from "./timelineWorld";
 
 // Simple mode on the timeline (assistant slice 5), in the real /app frame on
 // the test device: the simple view (large type, the box, bigger rows with no
@@ -152,9 +152,9 @@ describe("the simple view", () => {
     expect(document.querySelectorAll("[data-simple-list] a[href*='/entries/']")).toHaveLength(1);
     expect(document.querySelectorAll("[data-simple-list] a[href*='/edit']")).toHaveLength(0);
 
-    // Hidden: the + menu, layout switch, filter chips, strips and the period line.
+    // Hidden: the + menu, View options (layout, summaries), filter chips, strips and the period line.
     expect(page.getByRole("button", { name: /^Add to / }).elements()).toHaveLength(0);
-    expect(page.getByRole("group", { name: "Layout" }).elements()).toHaveLength(0);
+    expect(page.getByRole("button", { name: "View options" }).elements()).toHaveLength(0);
     expect(page.getByRole("navigation", { name: "Show entries" }).elements()).toHaveLength(0);
     expect(document.querySelector("[data-period-line]")).toBeNull();
 
@@ -199,7 +199,7 @@ describe("who gets it", () => {
     await expect.element(page.getByRole("button", { name: "Add to Today" })).toBeVisible();
     expect(isSimple()).toBe(false);
 
-    await userEvent.click(page.getByRole("button", { name: "Simple view" }));
+    await chooseViewOption("Simple view");
     await waitUntil(isSimple, 4000, "the simple view");
     expect(localStorage.getItem(TOGGLE_KEY)).toBe("simple");
 
@@ -210,7 +210,7 @@ describe("who gets it", () => {
     // The full header is back.
     await expect.element(page.getByRole("button", { name: /switch care group$/ })).toBeVisible();
 
-    await userEvent.click(page.getByRole("button", { name: "Simple view" }));
+    await chooseViewOption("Simple view");
     await waitUntil(isSimple, 4000, "the simple view again");
     await userEvent.click(page.getByRole("button", { name: "Full app" }));
     await waitUntil(() => !isSimple(), 4000, "the full timeline again");
@@ -218,7 +218,7 @@ describe("who gets it", () => {
 
   test("the owner's default arriving from another device switches the timeline without a reload, unless your own setting says otherwise", async () => {
     const device = await open();
-    await expect.element(page.getByRole("button", { name: "Simple view" })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: "View options" })).toBeVisible();
     await device.sync(membership("caretaker", 1));
     await waitUntil(isSimple, 4000, "the simple view");
     await waitUntil(() => !header().querySelector('[data-region="search"]'), 4000, "the reduced header");
@@ -230,9 +230,9 @@ describe("who gets it", () => {
   test("your own setting wins over the owner's default; the toggle wins over both", async () => {
     setOwnSetting("full");
     await open({ simpleMode: 1 });
-    await expect.element(page.getByRole("button", { name: "Simple view" })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: "View options" })).toBeVisible();
     expect(isSimple()).toBe(false);
-    await userEvent.click(page.getByRole("button", { name: "Simple view" }));
+    await chooseViewOption("Simple view");
     await waitUntil(isSimple, 4000, "the simple view");
   });
 

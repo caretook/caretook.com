@@ -43,10 +43,7 @@ export function DayHeader({
   const { canWrite } = useGroup();
   const today = dayKey === dayKeyIn(new Date().toISOString(), localTimeZone());
   return (
-    <div
-      className="bg-base-200/95 text-base-content sticky top-0 z-10 -mx-1 px-1 py-2 backdrop-blur"
-      data-day-header=""
-    >
+    <div className="day-band text-base-content sticky top-0 z-10 px-3 py-2" data-day-header="">
       <div className="flex flex-wrap items-center justify-between gap-x-3">
         <div className="flex items-center gap-2">
           {/* Large enough to balance the + button beside it. */}

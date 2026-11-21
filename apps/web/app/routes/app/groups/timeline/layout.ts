@@ -22,3 +22,9 @@ export const STRIP_CAP = "lg:mx-auto lg:max-w-6xl";
  * tile cache), until its live query confirms: dimmed, beside `data-stale`.
  */
 export const STALE = "opacity-60";
+
+/** One of simple mode's blocks (Upcoming, My tasks, the tiles, quick entry): a card on the page, so each reads apart. */
+export const SIMPLE_BLOCK = "rounded-box border-base-300 bg-base-100 border p-4 shadow-sm";
+
+/** A simple block's heading, with its small icon before the words. */
+export const SIMPLE_HEADING = "flex items-center gap-2 text-lg font-semibold";

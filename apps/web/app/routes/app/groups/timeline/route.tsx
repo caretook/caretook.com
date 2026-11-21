@@ -28,7 +28,6 @@ import { useTimelineData } from "./useTimelineData";
 import { useTimelineView } from "./useTimelineView";
 import { useDaySummaryMode } from "./useDaySummaryMode";
 import { useSimpleMode } from "~/lib/assistant/useSimpleMode";
-import { SimpleModeToggle } from "./SimpleModeToggle";
 import { SimpleTimeline } from "./SimpleTimeline";
 import { useSimpleModeUrl } from "./useSimpleModeUrl";
 
@@ -154,7 +153,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         onViewChange={setView}
         summaryMode={summaryMode}
         onSummaryModeChange={setSummaryMode}
-        simpleToggle={<SimpleModeToggle mode={mode} />}
+        simpleMode={mode}
       />
       <InviteSomeoneCard />
       <TodayCard
