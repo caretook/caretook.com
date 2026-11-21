@@ -107,7 +107,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-210 | bug | staging | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
 | B-211 | change | staging | quick-fixes | prd/quick-fixes | link to group details edit page from the edit profile screen for editing the care recipient's… |
 | B-212 | bug | staging | medications-3 | prd/medications-3 | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
-| B-213 | bug | triaged | medications-4 |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
+| B-213 | bug | triaged | medications-tabs |  | medications today schedule layout is confusing especially on mobile. Plan an improved layout for… |
 | B-214 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | don't need patient name on the providers, medications, upcoming, or tasks page page, just need it… |
 | B-215 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | move due now and usual around now into a dialog with an icon to toggle it on timeline quick entry… |
 | B-216 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | suggestion dropdown for quick entry box should appear above elements instead of pushing elements… |
@@ -143,6 +143,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-246 | change | triaged | quick-fixes |  | Planner: remove due doses and passes from the Planner tab (they stay on the Today card and the Medications Schedule tab) |
 | B-247 | change | triaged | quick-fixes |  | Planner: Past becomes an 'Upcoming \| Past' toggle inside the Planner tab instead of its own tab |
 | B-248 | change | triaged | planner-2 |  | Remove reminders: notes can no longer be dated in the future; use todos instead |
+| B-249 | change | triaged | list-filters |  | Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner |
 
 ## Items
 
@@ -618,12 +619,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 ### B-213 · bug · medications today schedule layout is confusing especially on mobile. Plan an improved layout for…
 
 - status: triaged
-- prd: medications-4
+- prd: medications-tabs
 - owner:
-- commit:
+- commit: 07a6b59a
 
 - 2026-11-21 (prd/medications-3): From the inbox: medications today schedule layout is confusing especially on mobile. Plan an improved layout for passes, scheduled, and as needed.
 - 2026-11-21 (prd/medications-3): Proposed for a follow-up PRD, medications-4: a redesign of Today's schedule (passes, scheduled, as needed) on mobile needs a PRD and plan, not a slice in medications-3.
+- 2026-11-21 (backlog agent): Resolved by the Schedule | Medications tab split (B-226, 07a6b59a): the user, 2026-11-21, finds Today's schedule fine since. No redesign; medications-4 is not needed. The list's filters move under a Filter dropdown in list-filters instead.
 
 ### B-214 · bug · don't need patient name on the providers, medications, upcoming, or tasks page page, just need it…
 
@@ -981,3 +983,12 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21, the user's decision: a reminder (a future-dated note) goes away in favour of todos. Notes become past-only on the device and the server; remove Reminder from the Planner's + menu, the Planner rows and kind filter, the Today card and simple mode's next, the calendar projection's reminder kind (feed, Google push and pull, reminder emails, Remind me), quick entry's future-note reading and the connector's upcoming and add_note. No data migration (nothing live): seeds change, existing future notes are not converted. Starts after quick-entry (B-220) is in dev: it rewrites the same date rules. B-245 (attach a todo to a note) is the later follow-up.
+
+### B-249 · change · Collapse list filters under a shared Filter dropdown (round sliders button, count badge, removable chips): medications list, providers directory, todos, Planner
+
+- status: triaged
+- prd: list-filters
+- owner:
+- commit:
+
+- 2026-11-21 (backlog agent): Backlog session 2026-11-21, the user's request while planning B-213: the medications list's status and type chips collapse under a Filter icon styled like the timeline's round controls; a shared ui/ component; also the providers directory, todos and the Planner (its slice waits for B-247). The search boxes stay visible; the timeline keeps its Filter sheet.
