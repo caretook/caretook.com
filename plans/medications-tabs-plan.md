@@ -4,10 +4,20 @@
 
 ## Status
 
-| Slice | Wave | State   | Merge into `prd/medications-tabs` (slice commits) |
-| ----- | ---- | ------- | ------------------------------------------------- |
-| 1     | 1    | planned |                                                   |
-| 2     | 2    | planned |                                                   |
+| Slice | Wave | State                                                                                                                                                         | Merge into `prd/medications-tabs` (slice commits) |
+| ----- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| 1     | 1    | merged (opus)                                                                                                                                                 | 412e3bbe (a7cb2735)                               |
+| 2     | 2    | merged (opus); synced (72e65cc6, 3 test conflicts resolved); full check passed on 3e029536; browser ui, layout-offline, first-sync pass; docs folded; landing | 3f8c4d1c (6a02c767)                               |
+
+**Landing mode: run everything through** (queued with `pnpm prd queue`; land each green wave without asking, clean up, ask only real questions).
+
+**timeline-ux-2 is in `dev`** (f1fc883e, f34eeeec) and in this branch, so slice 2 waits only for slice 1. B-226 claimed 2026-11-21.
+
+**Slice 1 notes:** its `pnpm check` never passed in one run under load up to 35 (integration, tooling and `timelineSheetUrls` tests timed out; each passed alone); the landing check covers it. `TabNav`'s default claims the tab's path and below; `match` replaces it, so the list tab's `match` must claim `/list…` and `/medications/:medicationId`.
+
+**Sync before landing:** quick-fixes wave 15 landed in `dev` (2152bbed, docs 51742670): `test/setup.ts` pins component tests to today 12:00 (`VITE_TEST_CLOCK`), `test/found.ts` adds `stopsMoving()`, about 30 component tests now poll (medications `today`, `medicationForm` among them). Also tasks-2 (B-222, 2db975a7): migration 0032_todos and sync-config changes (so `pnpm datastore:reset` after sync, and the **full** check), `LinkedTasks` → `LinkedTodos` (`components/todos/`), `appUrls.newTask` → `newTodo`, `GROUP_SECTIONS` now Timeline, Providers, Medications, Planner. Expect conflicts in slice 2's test edits at `pnpm prd sync`; resolving them in code means a full check.
+
+**Overlap seen before slice 2 (2026-11-21):** tasks-2 replaces the Upcoming and Tasks `GROUP_SECTIONS` entries with Planner (next to, not on, the Medications entry; a merge may need both kept). quick-fixes adds `expect.poll` to lines in `today`, `medicationForm` and `allergies` browser tests; whichever lands second resolves at sync.
 
 **Start conditions:** slice 1 can start at once. **Slice 2 waits for `timeline-ux-2` in `dev`** (its slice 1 rewrites the Medications header with `PageHeader`); `pnpm prd sync` before it. Not alongside `medications-4` (B-213: the Today schedule's mobile redesign), which changes the same page and comes after this PRD.
 

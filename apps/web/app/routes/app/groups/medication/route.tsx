@@ -86,7 +86,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
   const { canWrite } = useGroup();
   // Read once: after sign-out closes the database, this page may render once more before it goes.
   const [db] = useState(getSync);
-  const listUrl = appUrls.medications(groupId);
+  const listUrl = appUrls.medicationList(groupId);
 
   // The medication, live: other members' edits, and deletion.
   const query = medicationQuery(medicationId);
@@ -127,7 +127,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
           canWrite && (
             <>
               <Link
-                to={appUrls.editMedication(groupId, medicationId)}
+                to={appUrls.editMedication(groupId, medicationId, "list")}
                 // Closing the sheet comes back here.
                 state={MEDICATION_SHEET_STATE}
                 prefetch="render"

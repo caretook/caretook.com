@@ -12,8 +12,10 @@ import {
   LISINOPRIL,
   listNames,
   MEDICATION_ROUTES,
+  medicationUrl,
   OXYBUTYNIN,
   rowText,
+  SCHEDULE,
   SEEDED_CURRENT,
   SEEDED_STOPPED,
   world,
@@ -36,7 +38,7 @@ const TAB_BAR = 'nav.dock[aria-label="Group sections"]';
 const HEADER_NAV = 'header [data-region="sections"] nav[aria-label="Group sections"]';
 const current = (nav: string) =>
   $$(`${nav} a`)
-    .filter((a) => a.getAttribute("aria-current") === "page")
+    .filter((a) => a.hasAttribute("aria-current"))
     .map((a) => a.textContent?.trim());
 const CURRENT = "Current medications";
 const STOPPED = "Completed and discontinued medications";
@@ -49,12 +51,12 @@ const currentChip = () =>
   $('main nav[aria-label="Show medications"] [aria-current="true"]')?.textContent?.trim();
 
 describe("the list", () => {
-  test("at 420 the tab bar has Medications current, and its link is the list; at 1280 the header's link is", async () => {
+  test("on the list tab, at 420 the tab bar has Medications current, and its link is Schedule; at 1280 the header's link is current", async () => {
     const device = await open({ frame: true });
     await expect.element(page.getByRole("heading", { name: "Medications", level: 1 })).toBeVisible();
     expect(current(TAB_BAR)).toEqual(["Medications"]);
     const tab = $$<HTMLAnchorElement>(`${TAB_BAR} a`).find((a) => a.textContent?.trim() === "Medications")!;
-    expect(tab.getAttribute("href")).toBe(LIST);
+    expect(tab.getAttribute("href")).toBe(SCHEDULE);
     await device.screen.unmount();
 
     await open({ frame: true, width: 1280 });
@@ -75,7 +77,7 @@ describe("the list", () => {
     // The name's link covers the row: a tap anywhere on it opens the page.
     const row = $(`main li[data-medication-id="${OXYBUTYNIN.id}"]`)!;
     expect(row.querySelector("a[data-medication-name]")?.getAttribute("href")).toBe(
-      `${LIST}/${OXYBUTYNIN.id}`,
+      medicationUrl(OXYBUTYNIN.id),
     );
   });
 
@@ -193,9 +195,9 @@ describe("the list", () => {
     expect($("main [data-add-medication]")).toBeNull();
   });
 
-  test("the header's actions run + Add medication, labeled Passes, then a printer-only Print; Add opens the sheet and Print its menu", async () => {
-    const device = await open();
-    await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
+  test("on Schedule the header's actions run + Add medication, labeled Passes, then a printer-only Print; Add opens the sheet and Print its menu", async () => {
+    const device = await open({ url: SCHEDULE });
+    await expect.poll(() => $("main [data-today]")).toBeTruthy();
     expect(pageHeader()).toEqual({ h1: "Medications", namesRecipient: false, viewerNote: false });
     const actions = $$("main header a, main header button");
     expect(actions.map((a) => a.getAttribute("aria-label") ?? a.textContent?.trim())).toEqual([
@@ -209,7 +211,7 @@ describe("the list", () => {
     await expect.element(page.getByRole("menuitem", { name: /Weekly chart/ })).toBeVisible();
     await userEvent.keyboard("{Escape}");
     await userEvent.click(actions[0]!);
-    await expect.poll(device.location).toContain("/medications/new");
+    await expect.poll(device.location).toContain("/medications/schedule/new");
   });
 
   test("a medication stopped on another device moves below the current ones", async () => {

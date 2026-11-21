@@ -1,5 +1,7 @@
 import { Pencil, Rows3, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
+import { createRoutesStub, Link, Outlet, useNavigate } from "react-router";
+import { render } from "vitest-browser-react";
 import { describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderInRouter } from "../../../test/device";
@@ -13,6 +15,7 @@ import {
   Popover,
   SEPARATOR,
   Sheet,
+  TabNav,
 } from "./index";
 import { DateTimeField } from "./date";
 import { Tooltip } from "./tooltip";
@@ -39,6 +42,29 @@ const base100 = () => {
 };
 
 const active = () => document.activeElement;
+
+/** Back (history −1), as the browser's button does. */
+let back = () => {};
+function BackProbe() {
+  const navigate = useNavigate();
+  useLayoutEffect(() => {
+    back = () => void navigate(-1);
+  }, [navigate]);
+  return null;
+}
+
+const SCHEDULE = "/m/schedule";
+const LIST = "/m/list";
+const PASSES = "/m/passes";
+const TABS = [
+  { label: "Schedule", to: SCHEDULE },
+  {
+    label: "Medications",
+    to: LIST,
+    match: (path: string) => path.startsWith(LIST) || path.startsWith("/m/med-"),
+  },
+  { label: "Passes", to: PASSES },
+];
 
 describe.each(LAYOUTS)("at $width, $theme", ({ width, theme }) => {
   test("Menu: a tap opens it named, with its items; a choice closes it and focus returns", async () => {
@@ -458,6 +484,111 @@ describe.each(LAYOUTS)("at $width, $theme", ({ width, theme }) => {
     await expect
       .element(page.getByRole("link", { name: "Search this care group" }))
       .toHaveAttribute("href", "/search");
+  });
+  test("TabNav: a named nav of links; the current tab is marked, a tap and Back move it, keys reach and follow each", async () => {
+    const { location } = await renderInRouter(
+      <>
+        <BackProbe />
+        <button type="button">Before</button>
+        <TabNav label="Medications views" tabs={TABS} />
+      </>,
+      { url: SCHEDULE, width, theme },
+    );
+    const nav = page.getByRole("navigation", { name: "Medications views" });
+    const tab = (name: string) => nav.getByRole("link", { name });
+    await expect.element(tab("Schedule")).toHaveAttribute("aria-current", "page");
+    await expect.element(tab("Medications")).not.toHaveAttribute("aria-current");
+    await expect.element(tab("Passes")).not.toHaveAttribute("aria-current");
+
+    await userEvent.click(tab("Medications"));
+    await expect.poll(location).toBe(LIST);
+    await expect.element(tab("Medications")).toHaveAttribute("aria-current", "page");
+    await expect.element(tab("Schedule")).not.toHaveAttribute("aria-current");
+
+    back();
+    await expect.poll(location).toBe(SCHEDULE);
+    await expect.element(tab("Schedule")).toHaveAttribute("aria-current", "page");
+    await expect.element(tab("Medications")).not.toHaveAttribute("aria-current");
+
+    // Tab reaches each link in order; Enter follows the focused one.
+    page.getByRole("button", { name: "Before" }).element().focus();
+    await userEvent.keyboard("{Tab}");
+    expect(active()).toBe(tab("Schedule").element());
+    await userEvent.keyboard("{Tab}");
+    expect(active()).toBe(tab("Medications").element());
+    await userEvent.keyboard("{Tab}");
+    expect(active()).toBe(tab("Passes").element());
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(location).toBe(PASSES);
+    await expect.element(tab("Passes")).toHaveAttribute("aria-current", "page");
+  });
+
+  test("TabNav: a path under a tab keeps it current, and `match` claims other paths", async () => {
+    const { location } = await renderInRouter(
+      <>
+        <TabNav label="Medications views" tabs={TABS} />
+        <Link to={`${LIST}/new`}>Add over the list</Link>
+        <Link to="/m/med-1">A medication</Link>
+        <Link to="/m/other">Elsewhere</Link>
+      </>,
+      { url: SCHEDULE, width, theme },
+    );
+    const nav = page.getByRole("navigation", { name: "Medications views" });
+    const marked = () =>
+      [...nav.element().querySelectorAll('[aria-current="page"]')].map((el) => el.textContent);
+
+    await userEvent.click(page.getByRole("link", { name: "Add over the list" }));
+    await expect.poll(location).toBe(`${LIST}/new`);
+    expect(marked()).toEqual(["Medications"]);
+
+    await userEvent.click(page.getByRole("link", { name: "A medication" }));
+    await expect.poll(location).toBe("/m/med-1");
+    expect(marked()).toEqual(["Medications"]);
+
+    await userEvent.click(page.getByRole("link", { name: "Elsewhere" }));
+    await expect.poll(location).toBe("/m/other");
+    expect(marked()).toEqual([]);
+  });
+});
+
+describe("TabNav pending", () => {
+  // Tabs whose routes are real: the list's loader never resolves.
+  function Page() {
+    return (
+      <>
+        <TabNav label="Medications views" tabs={TABS} />
+        <Link to={SCHEDULE}>Stay here</Link>
+        <Outlet />
+      </>
+    );
+  }
+  test("a tap marks the tab at once while its loader is pending, a superseded navigation moves it back, and the links prefetch", async () => {
+    const Stub = createRoutesStub([
+      {
+        id: "page",
+        path: "/m",
+        Component: Page,
+        children: [
+          { path: "schedule", Component: () => null },
+          { path: "list", loader: () => new Promise(() => {}), Component: () => null },
+          { path: "passes", Component: () => null },
+        ],
+      },
+    ]);
+    await render(<Stub initialEntries={[SCHEDULE]} />);
+    const nav = page.getByRole("navigation", { name: "Medications views" });
+    const tab = (name: string) => nav.getByRole("link", { name });
+    await expect.element(tab("Schedule")).toHaveAttribute("aria-current", "page");
+    // The links prefetch their targets.
+    await expect.poll(() => document.querySelectorAll('link[rel="prefetch"]').length).toBeGreaterThan(0);
+
+    await userEvent.click(tab("Medications"));
+    await expect.element(tab("Medications")).toHaveAttribute("aria-current", "page");
+    await expect.element(tab("Schedule")).not.toHaveAttribute("aria-current");
+
+    await userEvent.click(page.getByRole("link", { name: "Stay here" }));
+    await expect.element(tab("Schedule")).toHaveAttribute("aria-current", "page");
+    await expect.element(tab("Medications")).not.toHaveAttribute("aria-current");
   });
 });
 

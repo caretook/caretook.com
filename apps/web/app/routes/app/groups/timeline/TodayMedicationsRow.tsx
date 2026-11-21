@@ -49,7 +49,7 @@ export function TodayMedicationsRow({
       status={status}
       Icon={Pill}
       stale={!fresh}
-      seeAll={appUrls.medications(groupId)}
+      seeAll={appUrls.medicationSchedule(groupId)}
       seeAllLabel="See all medications"
       action={
         canWrite &&

@@ -515,7 +515,7 @@ describe("the Dose sheet's + New medication", () => {
     await userEvent.click(page.getByRole("button", { name: "Add details" }));
     await expect
       .poll(() => device.location())
-      .toBe(`/app/groups/${TEST_GROUP.id}/medications/${medication!.id}/edit`);
+      .toBe(`/app/groups/${TEST_GROUP.id}/medications/list/${medication!.id}/edit`);
     await expect
       .poll(
         () => document.querySelector<HTMLInputElement>('[data-medication-form] input[name="name"]')?.value,

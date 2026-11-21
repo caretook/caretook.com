@@ -27,7 +27,7 @@ describe("GROUP_SECTIONS", () => {
     expect(GROUP_SECTIONS.map((s) => s.label)).toEqual(["Timeline", "Providers", "Medications", "Planner"]);
     expect(timeline.path(G)).toBe(appUrls.timeline(G));
     expect(providers.path(G)).toBe(appUrls.providers(G));
-    expect(medications.path(G)).toBe(appUrls.medications(G));
+    expect(medications.path(G)).toBe(appUrls.medicationSchedule(G));
     expect(planner.path(G)).toBe(appUrls.planner(G));
   });
 
@@ -91,9 +91,13 @@ describe("activeSection", () => {
     expect(activeSection(`${base}`, G)).toBeNull();
     expect(activeSection(appUrls.settings(), G)).toBeNull();
   });
-  it("is Medications on the list, and inside it below /medications", () => {
-    expect(activeSection(`${base}/medications`, G)).toEqual({ section: medications, isPage: true });
-    expect(activeSection(`${base}/medications/abc`, G)).toEqual({ section: medications, isPage: false });
+  it("is Medications on Schedule (its page), and inside it on the list, a sheet and a medication's page", () => {
+    expect(activeSection(`${base}/medications/schedule`, G)).toEqual({ section: medications, isPage: true });
+    for (const inside of ["list", "list/new", "schedule/allergies", "list/abc/edit", "abc", "print"])
+      expect(activeSection(`${base}/medications/${inside}`, G)).toEqual({
+        section: medications,
+        isPage: false,
+      });
     expect(activeSection(`${base}/medicationsx`, G)).toBeNull();
   });
   it("picks an appended section by its own match", () => {
@@ -108,7 +112,8 @@ describe("sectionCurrent", () => {
     expect(sectionCurrent(timeline, `${base}/entries/abc`, G)).toBe("true");
     expect(sectionCurrent(timeline, `${base}/settings`, G)).toBeUndefined();
     expect(sectionCurrent(timeline, `${base}/medications`, G)).toBeUndefined();
-    expect(sectionCurrent(medications, `${base}/medications`, G)).toBe("page");
+    expect(sectionCurrent(medications, `${base}/medications/schedule`, G)).toBe("page");
+    expect(sectionCurrent(medications, `${base}/medications/list`, G)).toBe("true");
     expect(sectionCurrent(medications, `${base}/medications/abc`, G)).toBe("true");
     expect(sectionCurrent(providers, `${base}/medications`, G)).toBeUndefined();
     expect(sectionCurrent(assistant, `${base}/assistant`, G, withMore)).toBe("page");

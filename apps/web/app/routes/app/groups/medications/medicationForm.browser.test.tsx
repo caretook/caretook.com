@@ -15,6 +15,7 @@ import {
   LARK,
   LISINOPRIL,
   LIST,
+  MEDS,
   listNames,
   MEDICATION_ROUTES,
   MEDICATION_SQL,
@@ -124,7 +125,7 @@ describe("adding", () => {
     expect(times()).toHaveLength(0);
     await expect
       .poll(() => FORM()?.querySelector("[data-manage-passes]")?.getAttribute("href"))
-      .toBe(`${LIST}/passes`);
+      .toBe(`${MEDS}/passes`);
     expect(suggestions()).toEqual([]);
   });
 
@@ -206,7 +207,7 @@ describe("editing", () => {
     await waitUntil(() => !!$("main [data-edit-medication]"), 4000, "Edit");
     await userEvent.click($("main [data-edit-medication]")!);
     await waitUntil(() => !!FORM(), 4000, "the edit sheet");
-    expect(device.location()).toBe(`${medicationUrl(LOSARTAN.id)}/edit`);
+    expect(device.location()).toBe(`${LIST}/${LOSARTAN.id}/edit`);
   };
 
   test("Edit on the page opens the sheet filled in, with the status; a refill edit goes back to the page and writes no change entry", async () => {
@@ -324,7 +325,7 @@ describe("the type", () => {
   });
 
   test("an over-the-counter one with an Rx number opens with the section open; one without, closed", async () => {
-    await openWith(`${medicationUrl(NAPROXEN.id)}/edit`);
+    await openWith(`${LIST}/${NAPROXEN.id}/edit`);
     await waitUntil(() => !!FORM(), 4000, "the edit sheet");
     expect(checkedType()).toBe("otc");
     expect(details().open).toBe(true);
@@ -332,14 +333,14 @@ describe("the type", () => {
   });
 
   test("one without prescription details opens with the section closed", async () => {
-    await openWith(`${medicationUrl(IBUPROFEN.id)}/edit`);
+    await openWith(`${LIST}/${IBUPROFEN.id}/edit`);
     await waitUntil(() => !!FORM(), 4000, "the edit sheet");
     expect(checkedType()).toBe("otc");
     expect(details().open).toBe(false);
   });
 
   test("an old one with no type starts on none and can't be saved until one is chosen; the type writes no change entry", async () => {
-    const device = await openWith(`${medicationUrl(FOLIC.id)}/edit`);
+    const device = await openWith(`${LIST}/${FOLIC.id}/edit`);
     await waitUntil(() => !!FORM(), 4000, "the edit sheet");
     expect(checkedType()).toBeNull();
     // No type yet: nothing to fold.
@@ -388,7 +389,7 @@ describe("the status actions", () => {
     await expect.poll(badge).toBe("Discontinued");
     expect(historyTexts()[0]).toBe("Discontinued: side effects");
 
-    await userEvent.click($("main a[href$='/medications']")!);
+    await userEvent.click($("main a[href$='/medications/list']")!);
     await expect.poll(device.location).toBe(LIST);
     await device.settle();
     expect(listNames("Current medications")).toEqual(SEEDED_CURRENT);
