@@ -1310,17 +1310,46 @@ const eventReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   ];
 };
 
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const TRAILING_PUNCTUATION = /[)"'”’\].,!?:;]+$/;
+
+/**
+ * The part's text with each clearly named provider's words ("dr lee") as
+ * "@<their name>" ("@Dr. Sandra Lee"), where the note's mention of them goes.
+ * Words that aren't one run in the text are left as typed; the mention then
+ * goes at the end (`noteDocFromText`).
+ */
+const mentionedText = (s: PartState) => {
+  let text = s.text;
+  for (const m of s.naming) {
+    const used = [...m.used].sort((a, b) => a - b);
+    if (used.some((i, k) => k > 0 && i !== used[k - 1]! + 1)) continue;
+    const raws = used.map((i) => s.tokens[i]!.raw);
+    const trailing = TRAILING_PUNCTUATION.exec(raws.at(-1)!)?.[0] ?? "";
+    raws[raws.length - 1] = raws.at(-1)!.slice(0, raws.at(-1)!.length - trailing.length);
+    const pattern = new RegExp(
+      `(^|[\\s("'“‘[])${raws.map(escapeRegExp).join("\\s+")}(?![\\p{L}\\p{N}])`,
+      "u",
+    );
+    text = text.replace(pattern, (_, before: string) => `${before}@${m.item.name}`);
+  }
+  return text;
+};
+
 const noteReading = (s: PartState, confidence: number): QuickEntryReading => {
   // A note dated ahead is a reminder; otherwise it's about what happened.
   const ahead = (!!s.time.spec && saysFuture(s.time.spec)) || hasRole(s, "appointmentWord");
   const when = ahead ? s.time.future : s.time.past;
+  // The providers it names clearly are mentioned in it, and linked.
+  const providerIds = [...new Set(s.naming.map((m) => m.item.id))];
   return reading(
     "note",
     {
       type: "addNote",
       title: null,
-      text: truncate(s.text, TIMELINE_LIMITS.body),
+      text: truncate(providerIds.length ? mentionedText(s) : s.text, TIMELINE_LIMITS.body),
       occurredAt: when.at.toISOString(),
+      providerIds,
     },
     confidence,
   );
@@ -1598,7 +1627,7 @@ const mergeVitals = (parts: QuickEntryPart[]): QuickEntryPart[] => {
       };
       const note: QuickEntryReading = {
         ...prev.readings.find((r) => r.kind === "note")!,
-        actions: [{ type: "addNote", title: null, text, occurredAt: av.occurredAt }],
+        actions: [{ type: "addNote", title: null, text, occurredAt: av.occurredAt, providerIds: [] }],
       };
       merged[merged.length - 1] = { text, readings: [vital, note] };
       continue;

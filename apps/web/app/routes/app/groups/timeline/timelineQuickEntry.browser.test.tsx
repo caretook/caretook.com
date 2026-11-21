@@ -6,6 +6,8 @@ import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { clearUndo } from "~/lib/medications/passUndo";
 import { runActions } from "~/lib/assistant/quickEntry.sync";
+import * as entryRoute from "../entry/route";
+import { chips as withChips } from "../providers/providerWorld";
 import * as editSheet from "./edit/route";
 import * as newDose from "./new-dose/route";
 import * as newSheet from "./new/route";
@@ -396,5 +398,61 @@ describe("the runner", () => {
       "note_update",
       "timeline_entry",
     ]);
+  });
+});
+
+describe("a note that mentions a provider (quick-entry slice 2)", () => {
+  /** The timeline and the real entry page, so the note's mention and With row show. */
+  const WITH_ENTRY: DeviceRoute[] = [
+    ROUTES[0]!,
+    { path: "/app/groups/:groupId/entries/:entryId", module: entryRoute },
+  ];
+  const mentionChips = () =>
+    [...document.querySelectorAll<HTMLElement>(".ProseMirror [data-mention]")].map((m) => ({
+      id: m.dataset.mention!,
+      text: m.textContent.trim(),
+    }));
+
+  test("'called dr lee about refill' saves a note mentioning Dr. Lee, linked in its With row", async () => {
+    const device = await open({ route: WITH_ENTRY });
+    await type("called dr lee about refill", ["note"]);
+    expect(cardWith("called @Dr. Sandra Lee about refill").textContent).toContain("with Dr. Sandra Lee");
+
+    await userEvent.click(saveButton()!);
+    // One note: its entry page opens.
+    await waitUntil(() => mentionChips().length === 1, 6000, "the mention chip");
+    expect(mentionChips()).toEqual([{ id: LEE.id, text: "Dr. Sandra Lee" }]);
+    expect(document.querySelector(".ProseMirror")!.textContent).toBe("called Dr. Sandra Lee about refill");
+    await waitUntil(() => withChips().length === 1, 4000, "the With chip");
+    expect(withChips()[0]).toMatchObject({ id: LEE.id, text: "Dr. Sandra Lee" });
+
+    const [note] = await device.query<{ id: string }>(
+      "SELECT id FROM timeline_entry WHERE kind = 'note' AND id IN (SELECT entry_id FROM timeline_entry_provider)",
+    );
+    expect(note).toBeTruthy();
+    const links = await device.query<{ provider_id: string }>(
+      "SELECT provider_id FROM timeline_entry_provider WHERE entry_id = ?",
+      [note!.id],
+    );
+    expect(links.map((l) => l.provider_id)).toEqual([LEE.id]);
+  });
+
+  test("a provider that's gone refuses the note whole", async () => {
+    const device = await open();
+    const before = await device.query("SELECT id FROM timeline_entry");
+    const result = await runActions(device.db, TEST_GROUP.id, [
+      {
+        type: "addNote",
+        text: "Called",
+        occurredAt: new Date().toISOString(),
+        providerIds: [crypto.randomUUID()],
+      },
+    ]);
+    expect(result).toMatchObject({
+      ok: false,
+      index: 0,
+      error: "That provider is gone. It may have been deleted.",
+    });
+    expect(await device.query("SELECT id FROM timeline_entry")).toHaveLength(before.length);
   });
 });

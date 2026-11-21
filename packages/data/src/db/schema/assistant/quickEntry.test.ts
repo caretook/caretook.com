@@ -578,8 +578,31 @@ describe("the user's lines (B-220)", () => {
   test("a contact verb with a provider is a note, with the provider's event as the alternative", () => {
     const readings = parse("called dr lee about refill")[0]!.readings;
     expect(readings.map((r) => r.kind)).toEqual(["note", "event"]);
-    expect(action(readings[0]!)).toMatchObject({ type: "addNote", text: "called dr lee about refill" });
+    // The note mentions Dr. Lee where the line names her, and links her.
+    expect(action(readings[0]!)).toMatchObject({
+      type: "addNote",
+      text: "called @Dr. Sandra Lee about refill",
+      providerIds: [LEE],
+    });
     expect(action(readings[1]!)).toMatchObject({ title: "Refill", providerIds: [LEE] });
+  });
+
+  test.each([
+    ["called dr lee about refill", "called @Dr. Sandra Lee about refill", [LEE]],
+    ["Talked to Dr. Lee about her rest", "Talked to @Dr. Sandra Lee about her rest", [LEE]],
+    ["went to the ER at Riverside", "went to the ER at @Riverside Dialysis", [RIVER]],
+    ["emailed Dr. Alvarez about the bill", "emailed @Dr. Elena Alvarez about the bill", [ALV]],
+    ["n: Dr. Lee is great", "@Dr. Sandra Lee is great", [LEE]],
+    // No provider named, or only a first name: a plain note.
+    ["urgent care", "urgent care", []],
+    ["911 call", "911 call", []],
+    ["Sandra said she's fine", "Sandra said she's fine", []],
+  ])("the note for %s mentions its providers", (line, text, providerIds) => {
+    const note = parse(line)
+      .flatMap((p) => p.readings)
+      .find((r) => r.kind === "note")!;
+    expect(action(note)).toMatchObject({ type: "addNote", text, providerIds });
+    expect(assistantActionZSchema.safeParse(action(note)).success).toBe(true);
   });
 
   test("an emergency at a named provider is a note, with the visit as the alternative", () => {

@@ -63,6 +63,12 @@ export const whenText = (
 
 const joined = (...parts: (string | null | undefined)[]) => parts.filter(Boolean).join(" · ") || null;
 
+/** "with Dr. Lee and Riverside Dialysis": the providers a note or event names, by their names. */
+const withText = (ids: readonly string[], context: PreviewContext) => {
+  const names = ids.map((id) => context.providers.get(id)?.name).filter((n): n is string => !!n);
+  return names.length ? `with ${listText(names)}` : null;
+};
+
 /** A card's words for one action. */
 export const actionPreview = (action: AssistantAction, context: PreviewContext): ActionPreview => {
   if (action.type === "addTodo") {
@@ -112,14 +118,16 @@ export const actionPreview = (action: AssistantAction, context: PreviewContext):
       };
     }
     case "addNote":
-      return { title: action.title?.trim() || action.text, detail: action.title ? action.text : null, when };
-    case "addEvent": {
-      const names = action.providerIds.map((id) => context.providers.get(id)?.name).filter((n) => !!n);
       return {
-        title: action.title,
-        detail: joined(action.place, names.length ? `with ${listText(names as string[])}` : null),
+        title: action.title?.trim() || action.text,
+        detail: joined(action.title ? action.text : null, withText(action.providerIds, context)),
         when,
       };
-    }
+    case "addEvent":
+      return {
+        title: action.title,
+        detail: joined(action.place, withText(action.providerIds, context)),
+        when,
+      };
   }
 };

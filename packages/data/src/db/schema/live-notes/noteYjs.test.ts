@@ -43,6 +43,59 @@ describe("noteDocFromText", () => {
       expect(noteText(doc)).toBe("");
     }
   });
+
+  describe("with mentions", () => {
+    const LEE = { id: "4b7e7a52-6f1c-4a3e-9b51-2f0d1c8e9a10", label: "Dr. Sandra Lee" };
+    const RIVER = { id: "6e2b1c3d-4f5a-4b6c-8d7e-9f0a1b2c3d4e", label: "Riverside Dialysis" };
+    /** Each line's inline nodes: text as is, a mention as { id, label }. */
+    const inline = (doc: Y.Doc): (string | Record<string, unknown>)[][] =>
+      doc
+        .getXmlFragment(NOTE_FRAGMENT)
+        .toArray()
+        .map((block) =>
+          (block as Y.XmlElement).toArray().map((node): string | Record<string, unknown> => {
+            if (node instanceof Y.XmlText) return String(node.toString());
+            const el = node as Y.XmlElement;
+            return { node: el.nodeName, ...(el.getAttributes() as Record<string, unknown>) };
+          }),
+        );
+
+    it("places a mention node where the text says @<label>, as the editor stores it", () => {
+      const doc = noteDocFromText("Called @Dr. Sandra Lee about the refill.", [LEE]);
+      expect(inline(doc)).toEqual([
+        [
+          "Called ",
+          { node: MENTION_NODE, id: LEE.id, label: LEE.label, mentionSuggestionChar: "@" },
+          " about the refill.",
+        ],
+      ]);
+      expect(noteText(buildNoteDoc(encodeNoteDoc(doc)))).toBe("Called @Dr. Sandra Lee about the refill.");
+    });
+
+    it("places one per provider, in any line and in bullets", () => {
+      const text = "@Riverside Dialysis at 9\n• Ask @Dr. Sandra Lee\n• Bring the list";
+      const doc = noteDocFromText(text, [LEE, RIVER]);
+      expect(noteText(buildNoteDoc(encodeNoteDoc(doc)))).toBe(text);
+      expect(inline(doc)[0]![0]).toMatchObject({ node: MENTION_NODE, id: RIVER.id });
+    });
+
+    it("adds a mention the text doesn't name at the end", () => {
+      expect(noteText(noteDocFromText("Refill sorted.\nAll good", [LEE]))).toBe(
+        "Refill sorted.\nAll good @Dr. Sandra Lee",
+      );
+      expect(noteText(noteDocFromText("", [LEE, RIVER]))).toBe("@Dr. Sandra Lee @Riverside Dialysis");
+      // The same provider twice is one mention.
+      expect(noteText(noteDocFromText("Done", [LEE, LEE]))).toBe("Done @Dr. Sandra Lee");
+    });
+
+    it("changes nothing with no mentions", () => {
+      const text = "Called @Dr. Sandra Lee\n• Lower the dose?";
+      expect(noteDocFromText(text, []).getXmlFragment(NOTE_FRAGMENT).toJSON()).toBe(
+        noteDocFromText(text).getXmlFragment(NOTE_FRAGMENT).toJSON(),
+      );
+      expect(inline(noteDocFromText("Called @Dr. Sandra Lee"))).toEqual([["Called @Dr. Sandra Lee"]]);
+    });
+  });
 });
 
 /** A Tiptap-shaped document: paragraphs, a heading, a bullet list. */
