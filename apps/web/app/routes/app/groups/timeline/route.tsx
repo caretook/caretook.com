@@ -189,8 +189,10 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5 lg:max-w-none">
-      <TimelineHeader />
-      <InviteSomeoneCard />
+      <div className={COLUMN_CAP}>
+        <TimelineHeader />
+      </div>
+      <InviteSomeoneCard className={COLUMN_CAP} />
       <TodayCard
         groupId={groupId}
         canWrite={canWrite}

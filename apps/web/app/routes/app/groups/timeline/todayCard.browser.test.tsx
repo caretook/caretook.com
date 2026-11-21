@@ -262,13 +262,13 @@ describe("the vitals row", () => {
 });
 
 describe("the Today card's width", () => {
-  test("1280: capped like Live now (1152 px), centred, framing the entries' column", async () => {
+  test("1280: in the entries' column (1024 px), centred", async () => {
     await renderWithDevice({ route: ROUTES, url: TIMELINE_URL, fixtures: EVERYTHING, width: 1280 });
     await expect.poll(shownRows).toHaveLength(4);
     await openCard();
     const r = CARD()!.getBoundingClientRect();
     const pageWidth = document.documentElement.clientWidth;
-    expect(Math.abs(r.width - 1152)).toBeLessThan(1);
+    expect(Math.abs(r.width - 1024)).toBeLessThan(1);
     expect(Math.abs(r.left + r.right - pageWidth)).toBeLessThan(2);
     // Each row is one line.
     for (const name of ["vitals", "appointment", "medications", "todos"])

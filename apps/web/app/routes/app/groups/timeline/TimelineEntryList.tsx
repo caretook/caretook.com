@@ -35,7 +35,7 @@ import { DayHeader } from "./DayHeader";
 import { foldPassLogs } from "./dayItems";
 import { PassLogItem } from "./PassLogItem";
 import { PeriodMarkerItem } from "./PeriodMarkerItem";
-import { COLUMN_CAP } from "./layout";
+import { COLUMN_CAP, ROWS_BOX } from "./layout";
 import { OFFSCREEN_ROWS, ROW_SIZE, settledDays } from "./offscreenRows";
 import { summariesByDay } from "./daySummary";
 import { DaySummaryLine } from "./DaySummaryLine";
@@ -61,7 +61,7 @@ const NO_MARKERS: never[] = [];
 const NO_SETTLED = new Set<string>();
 
 const LIST_CLASS: Record<TimelineView, string> = {
-  rows: "mt-2 rounded-box border-base-300 bg-base-100 divide-base-300 divide-y overflow-hidden border shadow-sm",
+  rows: `mt-2 divide-base-300 divide-y ${ROWS_BOX}`,
   // One column at every width: side-by-side cards are hard to read in time order.
   cards: "mt-2 space-y-2",
 };
@@ -368,7 +368,10 @@ export function TimelineEntryList({
 /** Under an empty Today: a muted line and "Add an entry" (when there's a quick-entry box to go to). */
 function EmptyToday({ onAddEntry }: { onAddEntry?: () => void }) {
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2" data-empty-today>
+    <div
+      className={`mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3 ${ROWS_BOX}`}
+      data-empty-today
+    >
       <p className="text-base-content/70">{EMPTY_TODAY_TEXT}</p>
       {onAddEntry && (
         <button type="button" className="btn btn-sm btn-outline" onClick={onAddEntry}>
