@@ -54,7 +54,10 @@ describe("the test device", () => {
     const { screen } = device;
     await expect.element(screen.getByText("Slept through the night")).toBeVisible();
     await expect.element(screen.getByText(/Dizzy when standing · 4/)).toBeVisible();
-    await expect.element(screen.getByText("Lisinopril 10 mg").first()).toBeVisible();
+    // The timeline's dose row, not the Today card's medications row (hidden while the card is collapsed).
+    await expect
+      .element(screen.getByRole("main").getByRole("list").getByText("Lisinopril 10 mg").first())
+      .toBeVisible();
     await expect
       .element(screen.getByRole("link", { name: "Show only Sam Okafor's entries" }))
       .toBeInTheDocument();
