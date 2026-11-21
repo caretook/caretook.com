@@ -4,12 +4,46 @@ For a planning agent: writing a PRD and its plan on `plan/<topic>` in `.loops/pl
 
 ## From idea to plan
 
-1. **PRD:** the `write-a-prd` skill (explore the code, interview the user, sketch the modules and test choices with them), saved as `plans/<topic>-prd.md`. No GitHub issues: the PRD, the plan and the backlog are the record.
-2. **Plan:** `prd-to-plan` cuts it into tracer-bullet vertical slices in `plans/<topic>-plan.md`. Ask the user to approve the breakdown before writing it.
-3. **Loops** run the slices, one agent per slice, under the PRD's [orchestrator](orchestrator.md).
-4. When the PRD is done, its decisions move into the area docs and it's marked done.
+**Decide, then report.** The user accepts nearly every recommendation, so don't interview: explore, decide, write, and ask only what _What to ask_ names.
 
-`pnpm prd plan <topic> --open [B-<n> …]` does steps 1 and 2 in one session: it makes the worktree and starts an agent there (`prompt.sh plan`) that interviews the user, writes both files, triages the items and lands them. Interview with AskUserQuestion, a few questions at a time, never numbered lists.
+1. **Explore:** the items, the area docs, the code and [preferences](preferences.md) (what the user has already settled).
+2. **Ask once, if at all** (_What to ask_), then decide everything else yourself.
+3. **PRD:** the `write-a-prd` skill for its exploration and template, without its interview, saved as `plans/<topic>-prd.md` with a _Decisions_ table (below). No GitHub issues: the PRD, the plan and the backlog are the record.
+4. **Plan:** `prd-to-plan` cuts it into tracer-bullet vertical slices in `plans/<topic>-plan.md`. The breakdown is yours; don't ask for approval.
+5. **The skeptic pass** (below), then land and report.
+6. **Loops** run the slices, one agent per slice, under the PRD's [orchestrator](orchestrator.md). When the PRD is done, its decisions move into the area docs and it's marked done.
+
+`pnpm prd plan <topic> --open [B-<n> …]` does steps 1 to 5 in one session: it makes the worktree and starts an agent there (`prompt.sh plan`).
+
+## What to ask
+
+Ask only when a wrong guess is costly to undo or the choice is the user's alone, and neither the items, the area docs nor [preferences](preferences.md) answer it:
+
+- **Scope:** dropping or deferring an item, or adding work no item asks for.
+- **Who can see or change what:** a role, a permission, sharing with someone new.
+- **Existing data:** deleting it, or changing what it means.
+- **Compliance:** consent, a vendor that sees health data, retention (AGENTS.md, _Compliance_).
+- **A new dependency or paid service.**
+- **Product direction:** removing or renaming something users know, or two designs that give users a different product, where you can't pick with confidence.
+
+Never ask about module layout, naming, the slice breakdown, test choices or UI details the [components](../domain/components.md) doc settles. Ask in **one** AskUserQuestion round (at most four questions, your recommendation first, never numbered lists) after exploring; with nothing to ask, say so and carry on. A skipped question is no answer: take your recommendation and record it as assumed.
+
+## The Decisions table
+
+The PRD opens with it, the costliest to change first, so the user can veto by reading one table:
+
+```
+| Decision | Why | Source | Cost to change later |
+| -------- | --- | ------ | -------------------- |
+| Owners only can export | least exposure | assumed | low: one permission |
+| Keep reminders until wave 2 | the user's call | asked: recommended drop, chose keep | high |
+```
+
+**Source** is `assumed` (you decided), `asked: as recommended`, `asked: recommended X, chose Y`, or `preference` (from the preferences doc). The `chose` rows show which kinds of question are still worth asking; when one states a rule that will outlast this topic, add it to [preferences](preferences.md) on your branch.
+
+## The skeptic pass
+
+Before landing, spawn one fresh agent (the session's own model) that reads the PRD, the plan and the items cold and returns a short list: an `assumed` decision that _What to ask_ says to ask; an item's need left uncovered; a slice too big for one agent or missing a `Blocked by`; a broken [rule across PRDs](orchestrator.md#rules-across-prds) or test budget. Fix what's right, note what you declined and why under the table, and ask the user only the decisions it rightly moved to "ask".
 
 ## The plan's shape
 
@@ -44,4 +78,4 @@ A `plan/<topic>` branch touches no code, so its agent lands it whenever the PRD 
 1. Commit both files (`docs(<topic>): …`). Through `pnpm backlog`, set the items' `prd=<topic> status=triaged` with a note, and add or update the topic's row in the PRD table.
 2. Check `git diff --stat dev...plan/<topic>` lists only `plans/` and `docs/` files; if anything else changed, it isn't a planning branch: ask first.
 3. `pnpm prd sync` if `dev` moved, then `pnpm prd land plan/<topic> --force -m "docs(<topic>): PRD and plan for … (B-<n>, …)"` and `pnpm prd rm plan-<topic>`.
-4. Tell the user how to start it: `pnpm prd start <topic>` or `pnpm prd queue <topic>`.
+4. **Report:** the _Decisions_ table's `assumed` rows (the top five, the costliest first), what the skeptic changed, and how to start it: `pnpm prd start <topic>` or `pnpm prd queue <topic>`. A veto is a docs edit until its slice starts: the user tells any planning or backlog session.
