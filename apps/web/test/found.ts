@@ -30,3 +30,28 @@ export async function found<T extends Element>(
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
 }
+
+/**
+ * Wait until an element has stopped moving: its top edge is the same for about 400 ms. Late content
+ * (quick-entry chips, a settling list) pushes the rows down, and a click or hover before that lands
+ * on whatever moved into the spot. Resolves once the element has been still, rejects after `timeout`.
+ */
+export async function stopsMoving(read: () => Element | null | undefined, timeout = 4000): Promise<void> {
+  const deadline = Date.now() + timeout;
+  let top = -1;
+  let still = 0;
+  for (;;) {
+    let now = -1;
+    try {
+      now = read()?.getBoundingClientRect().top ?? -1;
+    } catch {
+      // Not there yet.
+    }
+    still = now === top ? still + 1 : 0;
+    top = now;
+    if (still >= 20) return;
+    if (Date.now() >= deadline)
+      throw new Error(`stopsMoving: still moving after ${timeout} ms (${read.toString()}).`);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+}

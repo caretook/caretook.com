@@ -108,7 +108,9 @@ describe("mentions on the entry page", () => {
     expect(shown()).toEqual(["Dr. Samuel Patel"]);
     await userEvent.keyboard("zz");
     await waitUntil(() => !!POPUP()?.querySelector('[role="status"]'), 4000, "no match");
-    expect(POPUP()!.querySelector('[role="status"]')!.textContent).toBe("No providers match");
+    await expect
+      .poll(() => POPUP()?.querySelector('[role="status"]')?.textContent)
+      .toBe("No providers match");
     // A writer's only option is then adding the typed name.
     expect(rows()).toEqual(['Add "cardzz" as a provider']);
 
@@ -336,7 +338,7 @@ describe("other groups' providers in the popup", () => {
     await waitUntil(() => headings().length === 1, 4000, "the other group's section");
     expect(fromRows()).toEqual([{ name: "From Lou Lindqvist", rows: ["Dr. Grace Lindqvist"] }]);
     expect(rows()).toEqual(["Dr. Grace Lindqvist", 'Add "lind" as a provider']);
-    expect(POPUP()!.querySelector('[role="status"]')).toBeNull();
+    await expect.poll(() => POPUP()?.querySelector('[role="status"]')).toBeNull();
     expect(highlighted()).toBe("Dr. Grace Lindqvist");
     await userEvent.keyboard("{Enter}");
 

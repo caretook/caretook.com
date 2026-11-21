@@ -7,4 +7,6 @@ interface ImportMetaEnv {
   readonly APP_ENV?: string;
   /** The build target (`web` | `native`), from build-target.ts (vite.config.ts's `define`). */
   readonly BUILD_TARGET: "web" | "native";
+  /** Component tests only: the time of day their clock starts at, `HH:MM` (default 12:00; test/setup.ts). */
+  readonly VITE_TEST_CLOCK?: string;
 }
