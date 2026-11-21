@@ -95,7 +95,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-199 | bug | staging | medications-3 | prd/medications-3 | ability to add a medication quickly from the log a dose screen. |
 | B-200 | bug | staging | medications-3 | prd/medications-3 | medications need a type field: rx, otc, supplement, etc. |
 | B-201 | bug | staging | quick-fixes | prd/quick-fixes | simple timeline date header should show the care period as well |
-| B-203 | feature | ready | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
+| B-203 | feature | landed | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
 | B-204 | feature | staging | connectors-2 | prd/connectors-2 | connector should be able to edit notes and events so it can help you draft questions or add… |
 | B-205 | bug | staging | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails at some times of day: give_pass on w.evening returns isError (line 160) |
 | B-206 | bug | staging | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails in the evening: its Metformin dose a minute earlier fills the Evening pass, so give_pass says 'Nothing is left to give in Evening today' |
@@ -135,7 +135,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-240 | bug | triaged | github-review |  | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
 | B-241 | bug | triaged | github-review |  | codex-review: PR_QUERY reads only the first 100 review threads (and 50 comments each), so a PR with more could read as clean |
 | B-242 | bug | triaged | github-review |  | with_backlog_lock: on Linux, BSD 'stat -f %m' succeeds with non-numeric output before GNU stat is tried, breaking the lock-age arithmetic |
-| B-243 | bug | inbox |  |  | don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of… |
+| B-243 | bug | landed | hosting |  | don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of… |
 | B-244 | chore | triaged | github-review |  | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
 
 ## Items
@@ -500,7 +500,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-203 · feature · Now that we are we have github fixed, we should start using it for some of the merge management so…
 
-- status: ready
+- status: landed
 - prd: github-review
 - owner: prd/github-review
 - commit: 6ece6441
@@ -919,13 +919,14 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-243 · bug · don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of…
 
-- status: inbox
-- prd:
+- status: landed
+- prd: hosting
 - owner:
-- commit:
+- commit: 8532372b
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: don't deploy developer previews to vercel, we don't have a dev db running and it is a waste of action credits. Only staging (branch: staging) and production (branch: main) should be deployed to vercel.
 - 2026-11-21 (Robert Bo Davis): Checked 2026-11-21: already true. deploy.yml runs only on pushes to staging and main; Vercel's Git deploys are off (apps/web/vercel.json); GitHub has only staging and production deployments, no previews. Done inline on dev by the backlog session: workflows.test.mjs now fails if deploy.yml gains another trigger or branch, or another workflow runs on anything but workflow_dispatch.
+- 2026-11-21 (Robert Bo Davis): Triaged by the backlog session: hosting (deploys). Already true and guarded by the test in 8532372b, so recorded as done at that commit.
 
 ### B-244 · chore · codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false
 
