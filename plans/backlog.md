@@ -71,7 +71,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-84 | feature | triaged | data-rights |  | Deleting an entry, provider or medication scrubs its content everywhere |
 | B-85 | feature | triaged | account-security |  | Two-factor sign-in, required for owners, admins and staff; breached-password check |
 | B-145 | question | triaged | encryption |  | Encrypt the device's local copy? SQLite and the cached user in `localStorage` are unencrypted, for… |
-| B-174 | bug | in-progress | quick-fixes | prd/quick-fixes | Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page |
+| B-174 | bug | ready | quick-fixes | prd/quick-fixes | Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page |
 | B-175 | chore | ready | quick-fixes | prd/quick-fixes | Remove the timeline's now-unused care-period place query (placeNamesQuery, the loader's placeRows, periods.placeName) after timeline-ux slice 6 |
 | B-180 | bug | triaged | quick-fixes |  | Component tests still read synchronously right after render in expect(X()!.textContent…), expect(X()!.querySelector…) and .focus()/.blur() (entry, today, entryWithRow, visitPrep, providerSheets): the next likeliest load races |
 | B-181 | feature | in-progress | conditions | prd/conditions | A conditions list on the care recipient's profile (diagnoses), so helpers and a connected assistant's recipient_profile can see them |
@@ -91,6 +91,8 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-203 | feature | triaged | github-review |  | Now that we are we have github fixed, we should start using it for some of the merge management so… |
 | B-204 | feature | triaged | connectors-2 |  | connector should be able to edit notes and events so it can help you draft questions or add… |
 | B-205 | bug | in-progress | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails at some times of day: give_pass on w.evening returns isError (line 160) |
+| B-206 | bug | in-progress | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails in the evening: its Metformin dose a minute earlier fills the Evening pass, so give_pass says 'Nothing is left to give in Evening today' |
+| B-207 | bug | triaged | quick-fixes |  | pnpm prd stack up fails at migrate with 'Connection terminated unexpectedly': the compose Postgres healthcheck (pg_isready -U caretook -d caretook) passes against the socket-only init server; use -h 127.0.0.1 (powersync-storage has the same pattern) |
 
 ## Items
 
@@ -272,10 +274,10 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 
 ### B-174 · bug · Back from an entry page drops the timeline's loaded pages: paging is useState in useTimelineData, so the list remounts with one page
 
-- status: in-progress
+- status: ready
 - prd: quick-fixes
 - owner: prd/quick-fixes
-- commit:
+- commit: 592a29ab
 
 - 2026-11-20 (prd/timeline-ux): Found by timeline-ux slice 6 in the component-test router; check with the real ScrollRestoration before fixing.
 - 2026-11-20 (Robert Bo Davis): Triaged to timeline-ux: found by its slice 6 and touches its hot files (timeline route, useTimelineData); its orchestrator can add a slice or a follow-up after slice 5 lands.
@@ -478,3 +480,22 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - 2026-11-20 (prd/conditions): Failed in conditions slice 4's full check (~21:20 EST 2026-11-20) and again alone on prd/conditions without slice 4 at 21:24 EST, load 31. Looks time-of-day dependent (the Evening pass vs now, or the Metformin dose logged a minute earlier covering it). Not caused by conditions.
 - 2026-11-20 (prd/quick-fixes): Taken into quick-fixes as slice 58 (wave 14) at conditions' request; blocks evening full checks.
 - 2026-11-20 (prd/conditions): Cause (conditions slice 2's agent): the test logs a Metformin dose 1 minute ago; between 20:00 and ~22:00 that dose answers the Evening (20:00) slot, so give_pass returns assistantActionService:nothingLeft ('Nothing is left to give in Evening today').
+
+### B-206 · bug · mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails in the evening: its Metformin dose a minute earlier fills the Evening pass, so give_pass says 'Nothing is left to give in Evening today'
+
+- status: in-progress
+- prd: quick-fixes
+- owner: prd/quick-fixes
+- commit:
+
+- 2026-11-20 (prd/appointments-2): Found by appointments-2 at 21:52 EST, 3/3 alone, on a branch with no connectors diff. Time-of-day dependent: pin the test's clock or log the dose against the morning pass. Fails pnpm check in the evening for every PRD.
+- 2026-11-20 (prd/quick-fixes): Duplicate of B-205: quick-fixes slice 58 fixes both; done with it.
+
+### B-207 · bug · pnpm prd stack up fails at migrate with 'Connection terminated unexpectedly': the compose Postgres healthcheck (pg_isready -U caretook -d caretook) passes against the socket-only init server; use -h 127.0.0.1 (powersync-storage has the same pattern)
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-20 (prd/quick-fixes): Found by quick-fixes slice 56 (failed 4x at low load; -h 127.0.0.1 locally fixed it). Proposed for a later quick-fixes wave.
