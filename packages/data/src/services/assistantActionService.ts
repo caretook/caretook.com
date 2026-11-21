@@ -1,11 +1,23 @@
-import type { z } from "zod";
-import type { AssistantAction, DueDose, DueMedication, TimelineEntryCreateInput, Tx } from "../db";
+import type {
+  AssistantAction,
+  DueDose,
+  DueMedication,
+  EntryEditAction,
+  NoteSectionLine,
+  TimelineEntryCreateInput,
+  TimelineEntryUpdateInput,
+  Tx,
+} from "../db";
 import type { AppError } from "../errors";
 import type { ServiceContext } from "./types";
 
+import { z } from "zod";
 import { withTransaction } from "../db";
 import {
+  appendNoteSection,
   assistantActionZSchema,
+  canHaveNoteDocument,
+  entryEditActionZSchema,
   DEVICE_FUTURE_SKEW_MS,
   dueDoses,
   duePasses,
@@ -20,6 +32,7 @@ import {
   dayInZone,
   startOfDay,
   timelineEntryContentZSchema,
+  toBase64,
 } from "../db/schema";
 import { isError, newError } from "../errors";
 import {
@@ -47,6 +60,13 @@ import * as timelineEntryService from "./timelineEntryService";
 // (`meta.index`; null when it's the whole batch). Entries and tasks are the
 // member's own (author, permissions, filters), carrying `via`: the
 // assistant's name.
+//
+// Edits (connectors-2) ride the same batch: `appendToEntry` adds lines at
+// the end of a live note's or event's document (one `note_update`, the
+// member its author), and `updateEntry` changes its title or time through
+// the entry service. Either works on any live note or event in the group, as
+// the member can in the app; another group's id reads as not found. Edits
+// don't set `via`: it says who created a row.
 
 export const serviceName = "assistantAction";
 
@@ -86,8 +106,23 @@ type EntryPlan = {
   document?: { text: string | null };
   providerIds: string[];
 };
+type EditPlan =
+  | { type: "append"; entryId: string; lines: NoteSectionLine[] }
+  | { type: "update"; entryId: string; patch: TimelineEntryUpdateInput };
+type TaskPlan = Parameters<typeof taskService.create>[1];
 type Plan =
-  { index: number; rows: EntryPlan[] } | { index: number; task: Parameters<typeof taskService.create>[1] };
+  | { index: number; rows: EntryPlan[] }
+  | { index: number; task: TaskPlan }
+  | { index: number; edit: EditPlan };
+
+const isEditPlan = (plan: TaskPlan | EditPlan): plan is EditPlan =>
+  "type" in plan && (plan.type === "append" || plan.type === "update");
+
+/** What `run` carries out: quick entry's actions, and the edits only the server makes. */
+const runnableActionZSchema = z.discriminatedUnion("type", [
+  ...assistantActionZSchema.options,
+  ...entryEditActionZSchema.options,
+]);
 
 type Setting = { groupId: string; recipientId: string; timeZone: string; now: Date };
 
@@ -257,18 +292,95 @@ const dosesSince = async (ctx: ServiceContext, tx: Tx, groupId: string, from: st
   return doses;
 };
 
+/**
+ * An edit's entry: a live note or event in the group, as the member sees
+ * it. One in another group (or none) is `entryNotFound`, never saying it
+ * exists; a deleted one, or a symptom, vital or dose, is refused by name.
+ */
+const editableEntry = async (ctx: ServiceContext, tx: Tx, groupId: string, entryId: string) => {
+  const entry = await timelineEntryModel.getById(entryId, { ...ctx, tx, includeDeleted: true });
+  if (isError(entry)) return entry;
+  if (!entry || entry.groupId !== groupId) return newError({ code: "assistantActionService:entryNotFound" });
+  if (entry.deletedAt) return newError({ code: "assistantActionService:entryDeleted" });
+  if (!canHaveNoteDocument(entry.kind)) return newError({ code: "assistantActionService:notEditable" });
+  return entry;
+};
+
+/** An edit, checked; or why it's refused. */
+const planEdit = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  setting: Setting,
+  action: EntryEditAction,
+): Promise<EditPlan | AppError> => {
+  const entry = await editableEntry(ctx, tx, setting.groupId, action.entryId);
+  if (isError(entry)) return entry;
+  if (action.type === "appendToEntry")
+    return {
+      type: "append",
+      entryId: entry.id,
+      lines: action.lines.map(({ text, style }) => (style === "bullet" ? { text, style } : { text })),
+    };
+
+  const patch: TimelineEntryUpdateInput = {};
+  if (action.title !== undefined) patch.title = action.title;
+  if (action.occurredAt !== undefined) {
+    const refused = future(entry.kind, action.occurredAt, setting.now);
+    if (refused) return refused;
+    const from = new Date(entry.occurredAt).getTime();
+    const to = new Date(action.occurredAt).getTime();
+    patch.occurredAt = new Date(to).toISOString();
+    // An end moves with the start, keeping the length.
+    if (entry.endsAt) patch.endsAt = new Date(new Date(entry.endsAt).getTime() + to - from).toISOString();
+    // A series visit changed on its own ("Only this visit"), as the app does.
+    if (entry.seriesId && to !== from) patch.seriesDetached = true;
+  }
+  if (patch.title !== undefined && entry.seriesId) patch.seriesDetached = true;
+  return { type: "update", entryId: entry.id, patch };
+};
+
+/** Carry out an edit; its entry's id. */
+const writeEdit = async (ctx: ServiceContext, setting: Setting, plan: EditPlan) => {
+  const { groupId, now } = setting;
+  if (plan.type === "update") {
+    const updated = await timelineEntryService.update(ctx, plan.entryId, plan.patch, { now });
+    if (isError(updated)) return updated;
+    return updated ? plan.entryId : rejectError(ctx.authUser);
+  }
+  // A document is made first if the entry has none yet (idempotent).
+  const doc = await noteDocumentService.create(ctx, { id: plan.entryId, groupId });
+  if (isError(doc)) return doc;
+  const ydoc = await noteDocumentService.currentDoc(ctx, plan.entryId);
+  if (isError(ydoc)) return ydoc;
+  const update = appendNoteSection(ydoc, plan.lines);
+  ydoc.destroy();
+  const stored = await noteDocumentService.appendUpdate(ctx, {
+    id: crypto.randomUUID(),
+    groupId,
+    documentId: plan.entryId,
+    data: toBase64(update),
+  });
+  if (isError(stored)) return stored;
+  // Compacted at once (folding in anyone's pending updates), so reads have the text.
+  const compacted = await noteDocumentService.compact(plan.entryId, { tx: ctx.tx });
+  if (isError(compacted)) return compacted;
+  return plan.entryId;
+};
+
 /** One action's rows, checked; or why it's refused. */
 const planAction = async (
   ctx: ServiceContext,
   tx: Tx,
   setting: Setting,
   input: unknown,
-): Promise<EntryPlan[] | Parameters<typeof taskService.create>[1] | AppError> => {
-  const parsed = assistantActionZSchema.safeParse(input);
+): Promise<EntryPlan[] | TaskPlan | EditPlan | AppError> => {
+  const parsed = runnableActionZSchema.safeParse(input);
   if (!parsed.success) return invalid(issuesOf(parsed.error));
   const action = parsed.data;
   const { groupId, recipientId, timeZone } = setting;
 
+  if (action.type === "appendToEntry" || action.type === "updateEntry")
+    return planEdit(ctx, tx, setting, action);
   if (action.type === "givePass") return passDoses(ctx, tx, setting, action);
   // Checked by taskService as it writes (the assignee, the links).
   if (action.type === "addTask") {
@@ -375,11 +487,23 @@ export const run = (
     for (const [index, input] of actions.entries()) {
       const planned = await planAction(inTx, tx, setting, input);
       if (isError(planned)) return at(planned, index);
-      plans.push(Array.isArray(planned) ? { index, rows: planned } : { index, task: planned });
+      plans.push(
+        Array.isArray(planned)
+          ? { index, rows: planned }
+          : isEditPlan(planned)
+            ? { index, edit: planned }
+            : { index, task: planned },
+      );
     }
 
     const byAction: string[][] = [];
     for (const plan of plans) {
+      if ("edit" in plan) {
+        const id = await writeEdit(inTx, setting, plan.edit);
+        if (isError(id)) return at(id, plan.index);
+        byAction.push([id]);
+        continue;
+      }
       if ("task" in plan) {
         const task = await taskService.create(inTx, plan.task, { via });
         if (isError(task)) return at(task, plan.index);

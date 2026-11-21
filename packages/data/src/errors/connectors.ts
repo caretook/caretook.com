@@ -64,6 +64,19 @@ export const CONNECTORS_ERRORS = {
     message: "Nothing is left to give in that pass today.",
     statusCode: 409,
   },
+  // Edits (connectors-2): an entry not in the group reads the same as one that doesn't exist.
+  "assistantActionService:entryNotFound": {
+    message: "That entry wasn't found in this care group.",
+    statusCode: 404,
+  },
+  "assistantActionService:entryDeleted": {
+    message: "That entry was deleted, so it can't be changed.",
+    statusCode: 409,
+  },
+  "assistantActionService:notEditable": {
+    message: "Only notes and events can be changed this way. Change symptoms, vitals and doses in the app.",
+    statusCode: 409,
+  },
   // The grant model's own queries (database failures).
   "connectorGrantModel:revoke": { message: "Failed to revoke the connection" },
   "connectorGrantModel:revokeAll": { message: "Failed to revoke connections" },

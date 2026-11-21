@@ -10,7 +10,17 @@ import { recipientProfile } from "./recipientProfile";
 import { search } from "./search";
 import { todaysDoses } from "./todaysDoses";
 import { upcoming } from "./upcoming";
-import { addEvent, addNote, addTask, givePass, logDose, logSymptom, logVitals } from "./writes";
+import {
+  addEvent,
+  addNote,
+  addTask,
+  appendToEntry,
+  givePass,
+  logDose,
+  logSymptom,
+  logVitals,
+  updateEntry,
+} from "./writes";
 
 // Every connector tool, in the order tools/list shows them. Reads first,
 // then writes; a new tool adds one line at the end of its group.
@@ -34,4 +44,6 @@ export const CONNECTOR_TOOLS: readonly Tool[] = [
   addNote,
   addEvent,
   addTask,
+  appendToEntry,
+  updateEntry,
 ];
