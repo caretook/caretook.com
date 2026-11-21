@@ -58,8 +58,7 @@ Before landing, spawn one fresh agent (the session's own model) that reads the P
 - **A slice is a tracer bullet:** a thin, complete path through every layer it needs (schema, service, API, screen, tests) that can be shown or checked alone, never one layer across the feature. Name durable things (routes, tables, models), not files or functions.
 - Follow the [rules across PRDs](orchestrator.md#rules-across-prds): say "adds a migration", never a number; plan a regions slice first when two PRDs share a hot file.
 - **Keep a PRD small: about six slices at most.** Cut a bigger one into follow-on topics (`<topic>-2`) that each land something usable, so the next planner or the user can reorder fixes between them. Say in the report what you cut and where it went.
-- **Small fixes land by category.** Every `quick-fixes` item's triage note names one: `ui` (UI and UX), `tooling`, `perf` (optimizations), `bug` or `nit`. Each category lands separately, never mixed in one wave; their order of priority isn't decided yet, so don't invent one. Until the plan is split (B-395), the orchestrator groups a wave by category.
-- **`quick-fixes`** has a plan and no PRD (`plans/quick-fixes-plan.md`): small standalone fixes, one slice and one backlog item each, appended as the next slice. `prompt.sh` treats the plan as the whole spec.
+- **Small fixes go to five standing topics**, `fixes-ui`, `fixes-tooling`, `fixes-perf`, `fixes-bug`, `fixes-nit`: a plan each and no PRD, one slice and one item per fix, appended by its orchestrator before a wave; `prompt.sh` treats the plan as the whole spec. An item's topic is its category; [`plans/fixes-rules.md`](../../plans/fixes-rules.md) has the rules and the tie-break (`bug`, `perf`, `ui`, `tooling`, `nit`: for triage only). The order between the topics is the user's; never invent one. Never file a new fix as `quick-fixes`.
 
 ## Slice fields
 
