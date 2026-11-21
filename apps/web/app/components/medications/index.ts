@@ -1,4 +1,5 @@
-// Medication pieces shared by routes (the medication page, the list and its sheets, the printed sheets).
+// Medication pieces shared by routes (the medication page, the list and its sheets, the printed sheets,
+// the Dose sheet).
 export { MedicationStatusActions } from "./MedicationStatusActions";
 export { AllergiesRegion } from "./AllergiesRegion";
 export { PrintAllergies } from "./PrintAllergies";
@@ -10,3 +11,4 @@ export { MarkDoseDialog } from "./MarkDoseDialog";
 export type { Marking } from "./MarkDoseDialog";
 export { PassUndoStatus } from "./PassUndoStatus";
 export { usePassLog, undoPassLog } from "./usePassLog";
+export { NameField } from "./NameField";

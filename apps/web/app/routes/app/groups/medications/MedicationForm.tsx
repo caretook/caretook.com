@@ -8,6 +8,7 @@ import type { LocalProvider } from "~/lib/providers/providers.sync";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { MEDICATION_FORMS, MEDICATION_LIMITS, MEDICATION_TYPES } from "@caretook/data/schema";
+import { NameField } from "~/components/medications";
 import { ChoiceGroup, Field } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
@@ -15,7 +16,6 @@ import { FORM_LABELS, MEDICATION_TYPE_LABELS } from "~/lib/medications/medicatio
 import { CONDITION_IDS_PATH } from "~/lib/profiles/medicationConditions.sync";
 import { ConditionsField } from "./ConditionsField";
 import { FIELD, isFieldIssue } from "./medicationFormData";
-import { NameField } from "./NameField";
 import { ProviderPickerField } from "./ProviderPickerField";
 import { ScheduleFields } from "./ScheduleFields";
 

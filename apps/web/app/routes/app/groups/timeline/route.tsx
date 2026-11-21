@@ -13,6 +13,7 @@ import { sessionContext } from "~/lib/auth/session";
 import { loadSearchPeriods, searchPeriodRange } from "~/lib/care-periods/periodSearch.sync";
 import { removeEntry } from "~/lib/timeline/timeline.sync";
 import { parseFilters } from "~/lib/timeline/timelineFilters";
+import { AddedMedicationToast } from "./AddedMedicationToast";
 import { InviteSomeoneCard } from "./InviteSomeoneCard";
 import { LiveNowBanner } from "./LiveNowBanner";
 import { onlySheetChanged } from "./sheetGuard";
@@ -131,6 +132,8 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
     <>
       {/* The sheets (`new/:kind`, `:entryId/edit`), over the timeline. */}
       <Outlet context={{ units, simple: mode.simple } satisfies TimelineOutlet} />
+      {/* "Added Ibuprofen · Add details", once the Dose sheet's quick add closes it. */}
+      <AddedMedicationToast groupId={groupId} />
       {/* The edit sheet's route module, fetched now so a row opens it offline (one link for every row). */}
       {canWrite && <PrefetchPageLinks page={appUrls.editSheet(groupId, "prefetch")} />}
       {/* The pass sheet's too, so a pass log opens it offline. */}
