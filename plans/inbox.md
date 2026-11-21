@@ -23,6 +23,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - in header care group drop down, we don't need to show the current care period line. New care group should be below the care group selector section, not at the bottom of the drop down. group settings should be the last entry in the drop down. (B-223)
 - in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for each vitals type instead of a separate entry for each vitals type. (B-224)
 - on timeline page, header and Today section should be in same column width as the rest of the timeline on large screens. (B-229)
+- "Nothing logged today yet." message should be in a border box like a timeline entry box to match the rest of the page. (B-231)
 
 ## Change requests
 

@@ -123,6 +123,7 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 | B-228 | bug | triaged | quick-fixes |  | Component tests still read attributes and values synchronously right after render: about 40 expect(X()!.getAttribute\|value\|dataset\|checked\|placeholder\|innerText…) sites (staff, entry, provider, timelineSheetUrls…), outside B-180's sweep |
 | B-229 | bug | triaged | quick-fixes |  | on timeline page, header and Today section should be in same column width as the rest of the… |
 | B-230 | bug | triaged | quick-fixes |  | reminders.int.test.ts 'reminds a task's assignee, and skips a suppressed address' times out at 5000 ms under load in a full check (then 'turns reminders off from the email's unsubscribe link' gets Invalid URL); passes alone |
+| B-231 | bug | triaged | quick-fixes |  | "Nothing logged today yet." message should be in a border box like a timeline entry box to match… |
 
 ## Items
 
@@ -792,3 +793,13 @@ Which PRDs exist, what each depends on, and the shared files it touches: orchest
 - commit:
 
 - 2026-11-21 (prd/quick-fixes): Seen in quick-fixes wave 15's third full check (2026-11-21 05:18, a 1523 s run under contention); 6/6 alone 3x. Likely a longer per-test timeout or less setup per test; the second failure looks like a knock-on. -- quick-fixes orchestrator
+
+### B-231 · bug · "Nothing logged today yet." message should be in a border box like a timeline entry box to match…
+
+- status: triaged
+- prd: quick-fixes
+- owner:
+- commit:
+
+- 2026-11-21 (prd/quick-entry): From the inbox: "Nothing logged today yet." message should be in a border box like a timeline entry box to match the rest of the page.
+- 2026-11-21 (Robert Bo Davis): Triage: quick-fixes (the user reviews): a small style fix to timeline-ux-2's empty-Today placeholder (TimelineEntryList), one slice alongside B-229 (same timeline route, same wave). Avoid running it while quick-entry touches the empty Today's Add an entry.
