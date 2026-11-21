@@ -7,8 +7,8 @@
 | Slice | Wave | State           | Merge into `prd/appointments-2` (slice commits) |
 | ----- | ---- | --------------- | ----------------------------------------------- |
 | 1     | 1    | merged (opus)   | a589f8fa (716e20cd, 2b37171b)                   |
-| 2     | 2    | started (opus)  |                                                 |
-| 3     | 2    | ready to merge after 2 (sonnet; da53f874, 160c7ee3) |                                                 |
+| 2     | 2    | merged (opus)   | 20b816d5 (0b254449, 3990c7ec)                   |
+| 3     | 2    | merged (sonnet) | 8b41d9c8 (da53f874, 160c7ee3)                   |
 | 4     | 2    | started (opus)  |                                                 |
 | 5     | 3    | blocked by 4    |                                                 |
 | 6     | 3    | blocked by 3, 4 |                                                 |
@@ -24,6 +24,10 @@
 Slice 1 merged as a589f8fa; worktree removed. Wave 2 (slices 2, 3, 4) worktrees made, agents spawned.
 
 **Pending sync:** quick-fixes wave 13 landed in dev (bf0891df): rewrites TimelineFilters, the Today card (TodayCard/TodayRow/todayStatus/useTodayCard*) and phase2.spec.mjs; no migration. `pnpm prd sync` after wave 2 merges; expect a conflict on slice 1's RepeatMark in the Today card (keep it as one added element).
+
+Slices 2 and 3 merged (20b816d5, 8b41d9c8); worktrees removed. Slice 10 is now unblocked: start it after slice 4 merges and the pending sync (it needs `dev`'s harness).
+
+**Carried from slice 2's hand-off:** `@caretook/data/series` now points at `appointments/series.ts` (re-exports `seriesVisits`, `seriesEdit`), so `--changed` names the whole lean set: run `--suite` at landing only after asking the user. "This and later" takes time of day and length only (a day change goes through the rule); not offered on a started visit; the series sheet doesn't edit providers. A split uploads: new series PUT, old series PATCH, entry PATCHes, entry DELETEs, then new visit PUTs (for slice 10). New error `timelineEntryService:pastVisit` (409). `ui/useShowModal` extracted from ConfirmDialog. Docs: appointments.md (`planSeriesEdit` scope rules, `applySeriesEdit`, `updateEntry` `{ detach }`, cancel/reschedule detach, `SeriesScopeDialog`/`useSeriesScope`, `editSeries` item, `SeriesEditSheet`, entry page asks on title/time/place, `ONLY_THIS_VISIT_STATE`); components.md (`ui/useShowModal`); tests line (`upcoming/upcomingSeries.browser.test.tsx`). `timelineSimpleNow` flake seen again (load 57), 3/3 alone.
 
 **Carried from slice 3's hand-off:** steps go in `CALENDAR_STEPS` (`packages/notifications/src/calendarCron.ts`) before `seriesTopUp`; a returned error value counts as a failure. topUp starts at max(topped_up_through + 1, today in zone) and passes over failing series. Browser checks to run at landing: layout-offline, sign-in, first-sync, marketing. Its last fix ran related tests only (load 19), so the landing check must be full. Docs: appointments.md (topUp), notifications.md (`/api/cron/calendar`, `calendarCron.ts`, two crons), api.md (`cron-locked` covers both), layout.md (`routes/api/cron/calendar.ts`). Flake seen: `timelineSimpleNow.browser.test.tsx` "no Upcoming heading", 3/3 alone.
 
