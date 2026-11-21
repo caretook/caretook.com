@@ -29,10 +29,10 @@ describe("parsePastFilters", () => {
 });
 
 describe("tabSearch", () => {
-  it("carries kind and author to Upcoming, and only the author to Past", () => {
-    expect(tabSearch(`?kind=event&author=${A}&q=x`, "upcoming")).toEqual({ kind: "event", author: A });
+  it("carries kind and author to the Planner tab, and only the author to Past", () => {
+    expect(tabSearch(`?kind=event&author=${A}&q=x`, "planner")).toEqual({ kind: "event", author: A });
     expect(tabSearch(`?kind=event&author=${A}`, "past")).toEqual({ kind: null, author: A });
-    expect(tabSearch("?kind=vital", "upcoming")).toEqual({ kind: null, author: null });
+    expect(tabSearch("?kind=vital", "planner")).toEqual({ kind: null, author: null });
   });
 });
 

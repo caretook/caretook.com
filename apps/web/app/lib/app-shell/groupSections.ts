@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-import { CalendarClock, History, ListTodo, Pill, Stethoscope } from "lucide-react";
+import { CalendarCheck, History, Pill, Stethoscope } from "lucide-react";
 import { appUrls } from "./appUrls";
 
 /**
@@ -11,6 +11,10 @@ import { appUrls } from "./appUrls";
  * the end of `GROUP_SECTIONS` plus its route in `routes.ts`. Keep it a plain
  * ordered list: the order is the order on screen, and later PRDs append
  * (additive registry rule; never reorder).
+ *
+ * One deliberate exception (tasks-2): Upcoming and Tasks were merged into
+ * Planner, which took Upcoming's place, and Tasks' entry was removed. Planner
+ * also claims `/todos…` (its Todos tab and a todo's page and sheets).
  */
 export type GroupSection = {
   id: string;
@@ -52,19 +56,12 @@ export const GROUP_SECTIONS: readonly GroupSection[] = [
     match: (subpath) => under(subpath, "/medications"),
   },
   {
-    id: "upcoming",
-    label: "Upcoming",
-    icon: CalendarClock,
-    path: (groupId) => appUrls.upcoming(groupId),
-    // The Past tab is part of Upcoming.
-    match: (subpath) => under(subpath, "/upcoming"),
-  },
-  {
-    id: "todos",
-    label: "Todos",
-    icon: ListTodo,
-    path: (groupId) => appUrls.todos(groupId),
-    match: (subpath) => under(subpath, "/todos"),
+    id: "planner",
+    label: "Planner",
+    icon: CalendarCheck,
+    path: (groupId) => appUrls.planner(groupId),
+    // Its Past tab, its Todos tab, and a todo's page and sheets.
+    match: (subpath) => under(subpath, "/planner") || under(subpath, "/todos"),
   },
 ];
 

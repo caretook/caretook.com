@@ -14,7 +14,7 @@ import {
   menuItems,
   openUpcoming,
   TIMELINE_URL,
-} from "./upcomingWorld";
+} from "./plannerWorld";
 
 // Editing a series on the test device (appointments-2, slice 2): the
 // SeriesScopeDialog before Edit, Cancel, Reschedule and Delete on a series

@@ -4,7 +4,7 @@ import type { UpcomingDose } from "../appointments/upcomingDoses";
 import { describe, expect, it } from "vitest";
 import { upcomingSections } from "../appointments/upcomingDays";
 import { withDueDoses } from "../appointments/upcomingDoses";
-import { isUpcomingTodo, showsTodos, plannerTodos, withDueTodos } from "./plannerTodos";
+import { isPlannerTodo, showsTodos, plannerTodos, withDueTodos } from "./plannerTodos";
 
 const LA = "America/Los_Angeles";
 const NY = "America/New_York";
@@ -68,7 +68,7 @@ describe("plannerTodos", () => {
       ["todo:today", "today", "2026-11-19T01:00:00.000Z"],
       ["todo:later", "upcoming", null],
     ]);
-    expect(items.every(isUpcomingTodo)).toBe(true);
+    expect(items.every(isPlannerTodo)).toBe(true);
   });
 
   it("a todo due today at a time already past is overdue", () => {

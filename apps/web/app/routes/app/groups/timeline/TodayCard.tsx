@@ -134,8 +134,8 @@ export function TodayCard({
             row="appointment"
             status={status.appointment}
             Icon={CalendarClock}
-            seeAll={appUrls.upcoming(groupId)}
-            seeAllLabel="See all upcoming"
+            seeAll={appUrls.planner(groupId)}
+            seeAllLabel="See all in Planner"
           >
             <Link
               to={appUrls.entry(groupId, next.next.id)}

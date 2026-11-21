@@ -33,7 +33,7 @@ const ROUTES: DeviceRoute[] = [
   { path: "/app/groups/:groupId/timeline", module: timeline },
   { path: "/app/groups/:groupId/entries/:entryId", module: probe("Entry") },
   { path: "/app/groups/:groupId/todos/:todoId", module: probe("Todo") },
-  { path: "/app/groups/:groupId/upcoming", module: probe("Upcoming") },
+  { path: "/app/groups/:groupId/planner", module: probe("Planner") },
 ];
 const URL = `/app/groups/${TEST_GROUP.id}/timeline`;
 
@@ -192,12 +192,12 @@ describe("the next appointment opens the next five upcoming items", () => {
     expect(list()!.hidden).toBe(true);
     expect(items()).toHaveLength(0);
 
-    // Open again: See all goes to Upcoming.
+    // Open again: See all goes to the Planner.
     await userEvent.click(toggle());
     await waitUntil(() => items().length === 5, 4000, "the list again");
     await userEvent.click(page.getByRole("link", { name: "See all" }).last());
-    await expect.element(page.getByRole("heading", { name: "Upcoming page" })).toBeVisible();
-    expect(device.location()).toBe(appUrls.upcoming(TEST_GROUP.id));
+    await expect.element(page.getByRole("heading", { name: "Planner page" })).toBeVisible();
+    expect(device.location()).toBe(appUrls.planner(TEST_GROUP.id));
   });
 
   test("a tap on an item opens its page: an entry's, or a todo's", async () => {

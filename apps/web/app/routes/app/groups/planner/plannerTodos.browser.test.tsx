@@ -5,16 +5,16 @@ import { addDays, localDate } from "@caretook/data/schema";
 import { useParams } from "react-router";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import * as upcomingRoute from "./route";
+import * as plannerRoute from "./route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 
-// Todos in Upcoming (todos slice 4): open dated todos under their day
+// Todos on the Planner tab (todos slice 4): open dated todos under their day
 // (overdue first under Today), a tick for whoever may complete them, a link
 // to the todo, and none under a kind or author filter. Placement and order
 // are lib/todos/plannerTodos.ts's unit tests; this is what's on the screen.
 
-const UPCOMING = `/app/groups/${TEST_GROUP.id}/upcoming`;
+const PLANNER = `/app/groups/${TEST_GROUP.id}/planner`;
 
 /** Stands in for the todo page (slice 2's). */
 function TodoProbe() {
@@ -27,7 +27,7 @@ function TodoProbe() {
 }
 
 const ROUTES: DeviceRoute[] = [
-  { path: "/app/groups/:groupId/upcoming", module: upcomingRoute },
+  { path: "/app/groups/:groupId/planner", module: plannerRoute },
   { path: "/app/groups/:groupId/todos/:todoId", module: { default: TodoProbe } },
 ];
 
@@ -68,25 +68,25 @@ const world = () => [
 ];
 
 const open = (role: GroupRole = "owner", query = "") =>
-  renderWithDevice({ route: ROUTES, url: `${UPCOMING}${query}`, role, fixtures: world() });
+  renderWithDevice({ route: ROUTES, url: `${PLANNER}${query}`, role, fixtures: world() });
 
 /** The todo rows' titles in a day's section, in order. */
 const todoTitles = (key: string) =>
-  [...document.querySelectorAll(`[data-day="${key}"] [data-upcoming-todo] [data-todo-title]`)].map((el) =>
+  [...document.querySelectorAll(`[data-day="${key}"] [data-planner-todo] [data-todo-title]`)].map((el) =>
     el.textContent?.trim(),
   );
-const allTodos = () => [...document.querySelectorAll<HTMLElement>("[data-upcoming-todo]")];
-const ticks = () => [...document.querySelectorAll<HTMLInputElement>("[data-upcoming-todo] [data-todo-tick]")];
-const rowOf = (t: { id: string }) => document.querySelector<HTMLElement>(`[data-upcoming-todo="${t.id}"]`);
+const allTodos = () => [...document.querySelectorAll<HTMLElement>("[data-planner-todo]")];
+const ticks = () => [...document.querySelectorAll<HTMLInputElement>("[data-planner-todo] [data-todo-tick]")];
+const rowOf = (t: { id: string }) => document.querySelector<HTMLElement>(`[data-planner-todo="${t.id}"]`);
 
-describe("todos in Upcoming", () => {
+describe("todos on the Planner tab", () => {
   test("a writer sees open dated todos under their day, overdue first under Today, each with a tick and a link", async () => {
     await open();
     await expect.poll(() => todoTitles(today)).toEqual(["Call the pharmacy", "Pick up the walker"]);
     expect(todoTitles(day(3))).toEqual(["Fax the form"]);
     // Undated, done and deleted todos aren't upcoming.
     expect(allTodos()).toHaveLength(3);
-    expect(document.querySelector('[data-day="now"] [data-upcoming-todo]')).toBeNull();
+    expect(document.querySelector('[data-day="now"] [data-planner-todo]')).toBeNull();
     // The day of an appointment holds both.
     const fri = document.querySelector(`[data-day="${day(3)}"]`)!;
     expect(fri.querySelector("[data-upcoming-item]")).toBeTruthy();
@@ -101,14 +101,14 @@ describe("todos in Upcoming", () => {
     expect(rowOf(SAMS)!.querySelector("[data-todo-assignee]")?.textContent).toBe("Sam Okafor");
     expect(ticks()).toHaveLength(3);
 
-    const link = late.querySelector<HTMLAnchorElement>("a[data-upcoming-todo-open]")!;
+    const link = late.querySelector<HTMLAnchorElement>("a[data-planner-todo-open]")!;
     expect(link.getAttribute("href")).toBe(`/app/groups/${TEST_GROUP.id}/todos/${LATE.id}`);
     expect(link.getAttribute("aria-label")).toBe("Open todo Call the pharmacy, Overdue · 2 days");
     await userEvent.click(link, { force: true });
     await expect.element(page.getByRole("heading", { name: `Todo page ${LATE.id}` })).toBeInTheDocument();
   });
 
-  test("ticking a todo completes it (a done-only upload); it leaves Upcoming, and Undo brings it back", async () => {
+  test("ticking a todo completes it (a done-only upload); it leaves the Planner tab, and Undo brings it back", async () => {
     const device = await open();
     const tick = page.getByRole("checkbox", { name: "Mark “Call the pharmacy” done" });
     await expect.element(tick).toBeInTheDocument();
@@ -130,13 +130,13 @@ describe("todos in Upcoming", () => {
     await expect.poll(() => allTodos().length).toBe(3);
     expect(ticks().map((t) => t.getAttribute("aria-label"))).toEqual(["Mark “Pick up the walker” done"]);
     // The others still link to their page.
-    expect(rowOf(SAMS)!.querySelector("a[data-upcoming-todo-open]")).toBeTruthy();
+    expect(rowOf(SAMS)!.querySelector("a[data-planner-todo-open]")).toBeTruthy();
   });
 
   test("a viewer with nothing assigned sees the todos without ticks", async () => {
     await renderWithDevice({
       route: ROUTES,
-      url: UPCOMING,
+      url: PLANNER,
       role: "viewer",
       fixtures: [SAM, LATE, SAMS, todo({ title: "Pick up the walker", dueOn: today, assigneeId: SAM_ID })],
     });

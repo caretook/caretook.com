@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { fx, medicationPass } from "../../../../../test/fixtures";
-import { fixClock, laTime, openUpcoming } from "./upcomingWorld";
+import { fixClock, laTime, openPlanner } from "./plannerWorld";
 
 // Passes in Upcoming (medications.mjs's Given all steps), at 10:00 in Los
 // Angeles: an open pass is one row ("Round 2 · 1 medication") that opens the
@@ -38,9 +38,9 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("passes in Upcoming", () => {
+describe("passes in the Planner", () => {
   test("an open pass is one row and a given one isn't listed; the row opens the Dose sheet on that pass", async () => {
-    const device = await openUpcoming({ extra: passes() });
+    const device = await openPlanner({ extra: passes() });
     await expect.poll(() => passRow(ROUND_2.id)?.textContent ?? "").toContain("Round 2 · 1 medication");
     expect(passRow(ROUNDS.id)).toBeNull();
     await userEvent.click(passRow(ROUND_2.id)!.querySelector("a")!);
@@ -52,7 +52,7 @@ describe("passes in Upcoming", () => {
   });
 
   test("a viewer sees the pass's row, with no link", async () => {
-    await openUpcoming({ extra: passes(), role: "viewer" });
+    await openPlanner({ extra: passes(), role: "viewer" });
     await expect.poll(() => passRow(ROUND_2.id)).toBeTruthy();
     expect(passRow(ROUND_2.id)!.querySelectorAll("a")).toHaveLength(0);
   });

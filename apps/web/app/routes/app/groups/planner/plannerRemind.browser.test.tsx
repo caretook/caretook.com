@@ -13,9 +13,9 @@ import {
   itemEl,
   menuItem,
   menuItems,
-  openUpcoming,
+  openPlanner,
   REFILL,
-} from "./upcomingWorld";
+} from "./plannerWorld";
 
 // "Remind me" (appointments-2 slice 8): the ⋯ item before Print on Upcoming,
 // the timeline and the entry page, for a writer and a viewer; the sheet for
@@ -91,7 +91,7 @@ afterEach(() => vi.useRealTimers());
 
 describe.each(["caretaker", "viewer"] as const)("Remind me, a %s", (role) => {
   test("is in the menu before Print, for an upcoming appointment or reminder only", async () => {
-    await openUpcoming({ role, api: server().api });
+    await openPlanner({ role, api: server().api });
     await rowMenu(CARDIOLOGY.id);
     const items = menuItems();
     expect(items).toContain("Remind me");
@@ -103,7 +103,7 @@ describe.each(["caretaker", "viewer"] as const)("Remind me, a %s", (role) => {
 
   test("shows the member's settings on Use my settings, and saves a mute", async () => {
     const s = server({ mode: "default" });
-    await openUpcoming({ role, api: s.api });
+    await openPlanner({ role, api: s.api });
     await openSheet();
     await expect.element(radio("Use my settings")).toBeChecked();
     expect(SUMMARY()).toBe("Email: The evening before, at 18:00 · 1 h before");
@@ -119,7 +119,7 @@ describe.each(["caretaker", "viewer"] as const)("Remind me, a %s", (role) => {
 
   test("Also remind me adds leads to the settings (up to three) and saves them", async () => {
     const s = server();
-    await openUpcoming({ role, api: s.api });
+    await openPlanner({ role, api: s.api });
     await openSheet();
     await userEvent.click(radio("Also remind me"));
     expect(document.querySelector("[data-remind-leads]")).not.toBeNull();
@@ -134,7 +134,7 @@ describe.each(["caretaker", "viewer"] as const)("Remind me, a %s", (role) => {
 
   test("opens on a saved choice, and Use my settings clears it", async () => {
     const s = server({ mode: "extra", leads: [120] });
-    await openUpcoming({ role, api: s.api });
+    await openPlanner({ role, api: s.api });
     await openSheet();
     await expect.element(radio("Also remind me")).toBeChecked();
     await expect.element(page.getByRole("checkbox", { name: "2 h before" })).toBeChecked();
@@ -146,7 +146,7 @@ describe.each(["caretaker", "viewer"] as const)("Remind me, a %s", (role) => {
   });
 
   test("says reminders are off when the member's are", async () => {
-    await openUpcoming({ role, api: server({ mode: "default" }, { remindersOn: false }).api });
+    await openPlanner({ role, api: server({ mode: "default" }, { remindersOn: false }).api });
     await openSheet();
     expect(SUMMARY()).toContain("Your reminder emails are off");
   });
@@ -154,7 +154,7 @@ describe.each(["caretaker", "viewer"] as const)("Remind me, a %s", (role) => {
   test("offline, says it needs a connection", async () => {
     const s = server();
     s.online = false;
-    await openUpcoming({ role, api: s.api });
+    await openPlanner({ role, api: s.api });
     await openSheet();
     await expect.element(page.getByText(/Needs a connection/)).toBeVisible();
     expect(SHEET()).toBeNull();
@@ -163,13 +163,13 @@ describe.each(["caretaker", "viewer"] as const)("Remind me, a %s", (role) => {
 
 describe("Remind me elsewhere", () => {
   test("is not offered for a cancelled appointment", async () => {
-    await openUpcoming({ api: server().api });
+    await openPlanner({ api: server().api });
     await rowMenu(DENTIST.id);
     expect(menuItems()).not.toContain("Remind me");
   });
 
   test("is on the entry page's menu, before Print", async () => {
-    await openUpcoming({ url: entryUrl(CARDIOLOGY.id), api: server().api });
+    await openPlanner({ url: entryUrl(CARDIOLOGY.id), api: server().api });
     await openMenu(await found(() => document.querySelector(ENTRY_MENU)));
     const items = menuItems();
     expect(items.indexOf("Remind me")).toBe(items.indexOf("Print") - 1);
