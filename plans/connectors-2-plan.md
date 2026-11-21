@@ -20,7 +20,9 @@
 
 **Slice 3 hand-off notes:** `/connect`'s action data is now `{ error } | { connected }` (Connect returns the redirect as data; Cancel still redirects). Its `pnpm check` had one load timeout in `scripts/loops/browser.test.mjs` ("kills a spec at its cap…"), passing alone. Docs to fold (`connectors.md`): _`/mcp`_ gets `prompts.ts` (`definePrompt`, `CONNECTOR_PROMPTS`), the four prompts, scope filtering, `prompts/get`'s -32602 cases, the instructions' sentence; _Consent_ gets the success step (`connectSuccess.ts`, 5 s auto-return through `window.location`, clear of CSP `form-action`) and `shouldRevalidate`.
 
-**Wave 2:** slice 2 started after slice 3's merge (worktree `.loops/connectors-2-2` with a stack, opus; B-194 claimed).
+**Slice 4 hand-off notes:** `pnpm prd browser --changed` names `live-notes` (`noteYjs.ts`); the slice was stackless, so run it at landing. Edit kinds are server-only (`runnableActionZSchema` in `assistantActionService.ts`, outside `assistantActionZSchema`). Docs to fold: `appendNoteSection` and `noteDocumentService.currentDoc` (`live-notes.md`); `connectors.md` _Tools_ gets `append_to_entry`/`update_entry` and limits, an event's end moving with its start, a series visit detaching, the refusal codes (`entryNotFound` for other groups), edits never set `via`, and drop "Nothing edits" from _Writes_.
+
+**Wave 2:** slice 2 started after slice 3's merge (worktree `.loops/connectors-2-2` with a stack, opus; B-194 claimed). Slice 5 started after slice 4's merge (worktree `.loops/connectors-2-5`, no stack, sonnet: it follows slice 4's pattern; B-197 claimed).
 
 **Start conditions:** none for wave 1. Slice 5 waited for `conditions`: landed in `dev` (B-181, a95acb73) and already in `prd/connectors-2`, so slice 5 is ready once slice 4 merges.
 
