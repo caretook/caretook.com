@@ -14,13 +14,14 @@ import { onlyMedicationSheetChanged } from "~/lib/medications/medicationSheets";
 import { medicationsQuery, toMedications } from "~/lib/medications/medications.sync";
 import { useLiveQuery } from "~/lib/sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
-import { MedicationSearch, StatusFilter, TypeFilter } from "../MedicationFilters";
+import { MedicationFilterRow } from "../MedicationFilters";
 import { MedicationList } from "../MedicationList";
 
 // Shared by web + native. The Medications page's list tab: the recipient's
 // allergies, then the group's medications, read from the device's local copy
 // (live, so it works offline and follows other members' changes). Search
-// (`?q=`), the status (`?status=`) and the type (`?type=`) live in the URL;
+// (`?q=`), the status (`?status=`) and the type (`?type=`) live in the URL
+// (the search box, then one Filter menu for status and type);
 // the list is filtered and ordered on the device
 // (`lib/medications/medicationList.ts`). The header above it is the layout's.
 
@@ -77,9 +78,13 @@ export default function MedicationListTab({ loaderData, params }: Route.Componen
     <>
       <AllergiesRegion groupId={params.groupId} state={allergies} canWrite={group.canWrite} />
 
-      <MedicationSearch value={text} urlQuery={filters.q} onChange={setText} />
-      <StatusFilter status={filters.status} />
-      <TypeFilter type={filters.type} />
+      <MedicationFilterRow
+        value={text}
+        urlQuery={filters.q}
+        onChange={setText}
+        status={filters.status}
+        type={filters.type}
+      />
 
       <MedicationList
         total={medications.length}

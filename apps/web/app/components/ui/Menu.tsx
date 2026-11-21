@@ -55,6 +55,8 @@ export function Menu({
   placement = "bottom end",
   width = "sm",
   scrollable,
+  title,
+  ...data
 }: {
   /** The button's accessible name, when its content is only an icon or needs more words. */
   label?: string;
@@ -70,6 +72,10 @@ export function Menu({
   width?: keyof typeof WIDTH;
   /** Long lists: caps the height (20rem) and scrolls. */
   scrollable?: boolean;
+  /** The button's tooltip (e.g. the same words as an icon-only button's `label`). */
+  title?: string;
+  /** `data-*` attributes for the button (hooks for tests and checks). */
+  [data: `data-${string}`]: string | boolean | undefined;
 }) {
   const navigate = useNavigate();
   const entries = useMemo(() => normalizeMenu(items), [items]);
@@ -84,14 +90,26 @@ export function Menu({
   return (
     <RouterProvider navigate={(to, options) => void navigate(to, options)} useHref={useHref}>
       <MenuTrigger onOpenChange={(isOpen) => isOpen && setExpanded(new Set())}>
-        <Button aria-label={label} className={className} isDisabled={isDisabled}>
+        <Button
+          aria-label={label}
+          className={className}
+          isDisabled={isDisabled}
+          // React Aria drops `title` (it keeps `data-*`): add it to the element it renders.
+          render={title ? (props) => <button {...props} title={title} /> : undefined}
+          {...data}
+        >
           {children}
         </Button>
         <Popover
           placement={placement}
           className={`${SURFACE} ${scrollable ? "max-h-80 overflow-y-auto" : ""}`}
         >
-          <AriaMenu aria-label={menuLabel} className={`menu ${WIDTH[width]} outline-none`}>
+          <AriaMenu
+            aria-label={menuLabel}
+            // The trigger labels the menu by itself (`aria-labelledby`, which wins): an own name clears that.
+            aria-labelledby={menuLabel ? "" : undefined}
+            className={`menu ${WIDTH[width]} outline-none`}
+          >
             {entries.flatMap((entry) =>
               entry.type === "separator" ? (
                 <Separator key={entry.id} className="border-base-300 my-1 border-t" />

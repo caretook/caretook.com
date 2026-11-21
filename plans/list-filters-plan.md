@@ -4,12 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/list-filters` (slice commits) |
-| ----- | ---- | ----------- | --------------------------------------------- |
-| 1     | 1    | not started |                                               |
-| 2     | 2    | not started |                                               |
-| 3     | 2    | not started |                                               |
-| 4     | 3    | not started |                                               |
+| Slice | Wave | State                                   | Merge into `prd/list-filters` (slice commits) |
+| ----- | ---- | --------------------------------------- | --------------------------------------------- |
+| 1     | 1    | merged (opus)                           | 69676563 (61b69c42, 898efdcc)                 |     |
+| 2     | 2    | started (sonnet, 2026-11-21)            |                                               |
+| 3     | 2    | started (opus, 2026-11-21; takes B-255) |                                               |
+| 4     | 3    | not started                             |                                               |
+
+**Landing mode: run everything through** (queued with `pnpm prd queue list-filters`): start every ready slice, land each green wave through the Codex-reviewed PR, clean up; ask only real questions. B-249 claimed 2026-11-21.
+
+**Wave 1:** slice 1 merged; synced with `dev` (quick-entry, B-220, c2ec744; conflict-free, no shared files). Landing wave 1 through its PR while wave 2 runs (slice 1's docs folded into components and medications; `check --quick` passed on 80d0b207; `browser --changed --base dev`: `ui` passed; PR opened, Codex review running; no Status commits until it lands); wave 2 merges wait until wave 1 has landed. Docs to fold for slice 1: see its _Fold_ line plus the `Menu` changes (`menuLabel` now names the menu; the trigger takes `title` and `data-*`).
+
+**Open:** B-247 isn't scheduled: the quick-fixes orchestrator says the user held it (and B-246) back for a later wave; it will message us if it's scheduled and when it lands. A background check watches `dev` too. Once slices 1–3 are merged, ask the user: wait for it, or land the three and file slice 4 as a `quick-fixes` item.
 
 **Start conditions:** slices 1 to 3 can start at once (no dependency). **Slice 4 waits for B-247 in `dev`** (Planner: Past becomes an Upcoming | Past toggle, with the All / Events / Todos filter row; a `quick-fixes` item); `pnpm prd sync` before it.
 
@@ -93,15 +99,17 @@ On the providers directory: the search box and the Filter button in one row, the
 
 Stack: no · Reads: docs/domain/components.md, docs/domain/todos.md · Tests: component
 
-**User stories:** 16–18, 22–25.
+**User stories:** 16, 22–25; B-255 replaces 17–18.
 
 ### What to build
 
-On the Todos tab: a row under the tabs with the Filter button at its right end, the chips row beneath; one section, "Assigned to" (Mine, Unassigned, Everyone, from `TODO_WHO` and `WHO_LABELS`; default Mine). Remove `TodoChips`' row. The Planner header's tab links keep carrying `?who=` as they do.
+On the Todos tab: a row under the tabs with the Filter button at its right end, the chips row beneath; one section, "Assigned to" (Everyone, Mine, Unassigned, from `TODO_WHO` and `WHO_LABELS`; **default Everyone**). Remove `TodoChips`' row.
+
+**B-255 (added at the wave 1 boundary):** the list with no `?who=` is Everyone, always: `defaultWho`'s "Mine when I have open todos, else Everyone" goes, so the whole list shows first and Mine or Unassigned narrow it. Everyone shows no count and no chip; Mine and Unassigned show "Mine ✕" / "Unassigned ✕" and "Filter, 1 on". This replaces US 17–18's Mine default. Anything else that leans on `defaultWho` (the Planner header's tab links, the todo strip, `?who=mine` links from elsewhere) keeps working: an explicit `?who=` still wins. The Planner header's tab links keep carrying `?who=` as they do.
 
 ### Acceptance criteria
 
-- [ ] `todos.browser.test.tsx` (and `todoLinks` if it taps the chips) filters through the menu: on Mine there is no count and no chip; choosing Everyone lists everyone's todos, shows "Everyone ✕" and "Filter, 1 on"; its ✕ returns to Mine; the choice survives a reload (`?who=`) and the add sheet opening and closing.
+- [ ] `todos.browser.test.tsx` (and `todoLinks` if it taps the chips) filters through the menu: with no `?who=` the list is everyone's todos (even when I have open todos of my own), with no count and no chip; choosing Mine narrows it to mine, shows "Mine ✕" and "Filter, 1 on"; its ✕ returns to Everyone; the choice survives a reload (`?who=`) and the add sheet opening and closing.
 - [ ] `pnpm check` passes.
 
 **Blocked by:** slice 1. **Blocks:** none.
