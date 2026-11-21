@@ -568,6 +568,12 @@ describe("provider events open a prefilled draft (quick-entry slice 3)", () => {
   test("Edit on a provider event opens its draft too, writing nothing", async () => {
     const device = await openWithPage();
     await type("Alvarez tomorrow 3pm", ["event"]);
+    // It opens as a draft once the group's providers have loaded; before that it's a plain event.
+    await waitUntil(
+      () => !!cardWith("Dr. Elena Alvarez")?.querySelector("[data-quick-opens-draft]"),
+      4000,
+      "the draft line",
+    );
     await userEvent.click(page.getByRole("button", { name: 'Edit "Alvarez tomorrow 3pm"' }));
     await expect.poll(() => device.location()).toBe(NEW_EVENT);
     await expect.poll(() => TITLE()?.value).toBe("Dr. Elena Alvarez");
