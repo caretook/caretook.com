@@ -4,15 +4,20 @@
 
 ## Status
 
-| Slice | Backlog | Wave | State   | Merge into `prd/timeline-ux-2` (slice commits) |
-| ----- | ------- | ---- | ------- | ---------------------------------------------- |
-| 1     | B-214   | 1    | planned |                                                |
-| 2     | B-214   | 2    | planned |                                                |
-| 3     | B-218   | 1    | planned |                                                |
-| 4     | B-223   | 1    | planned |                                                |
-| 5     | B-215   | 1    | planned |                                                |
-| 6     | B-217   | 2    | planned |                                                |
-| 7     | B-224   | 1    | planned |                                                |
+**Landing mode: run everything through** (queued with `pnpm prd queue`, 2026-11-21): start every ready slice, land each green wave, clean up; ask only real questions.
+
+| Slice | Backlog             | Wave | Model  | State                   | Merge into `prd/timeline-ux-2` (slice commits) |
+| ----- | ------------------- | ---- | ------ | ----------------------- | ---------------------------------------------- |
+| 1     | B-214               | 1    | opus   | started (agent spawned) |                                                |
+| 2     | B-214               | 2    |        | planned                 |                                                |
+| 3     | B-218               | 1    | sonnet | started (agent spawned) |                                                |
+| 4     | B-223               | 1    | sonnet | started (agent spawned) |                                                |
+| 5     | B-215, B-216, B-219 | 1    | opus   | started (agent spawned) |                                                |
+| 6     | B-217               | 2    |        | planned                 |                                                |
+| 7     | B-224               | 1    | opus   | started (agent spawned) |                                                |
+
+- 2026-11-21: wave 1 started; worktrees `.loops/timeline-ux-2-{1,3,4,5,7}` (stackless). B-214, B-215, B-216, B-218, B-219, B-223, B-224 claimed by `prd/timeline-ux-2`; B-217 claimed when slice 6 starts. No new backlog items for this topic at the wave boundary.
+- Open issues: none.
 
 ## Backlog map
 
