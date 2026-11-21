@@ -11,9 +11,9 @@
 | 3     | 2    | merged (sonnet) | 8b41d9c8 (da53f874, 160c7ee3)                   |
 | 4     | 2    | merged (opus)   | 9f79243e (f2073aaa, 537c6236)                   |
 | 5     | 3    | merged (sonnet) | 6e343bd8 (6c228c9c)                             |
-| 6     | 3    | started (opus)  |                                                 |
+| 6     | 3    | merged (opus)   | 4d8f9364 (24b03329)                             |
 | 7     | 3    | started (opus)  |                                                 |
-| 8     | 4    | blocked by 6    |                                                 |
+| 8     | 4    | started (sonnet)|                                                 |
 | 9     | 4    | blocked by 2, 7 |                                                 |
 | 10    | 4    | started (opus)  |                                                 |
 
@@ -34,6 +34,10 @@ Wave 3 (5, 6, 7) and slice 10 (ready since slice 2) worktrees made, agents spawn
 Slice 5 merged (6e343bd8); B-62 done (ready).
 
 **Open issue (not ours):** `packages/api/src/connectors/mcpWrites.int.test.ts` "log vitals, a symptom, a dose and a pass's Given all" fails by time of day: in the evening, its Metformin dose a minute earlier fills the Evening pass, so `give_pass` says "Nothing is left to give in Evening today". No connectors diff on this branch. It will fail `pnpm prd check` in the evening; filed as B-206, a duplicate of B-205; quick-fixes slice 58 fixes it (test-only) and its orchestrator messages us when it lands in dev. Also known on dev: `timelineSimpleTiles.browser.test.tsx` "all four share one row at phone width" fails every run since hotfix/design (76375c07); fixed on prd/quick-fixes (5d1c76b0), lands with its wave 14. Sync both before the landing check, or treat those two as known.
+
+Slice 6 merged (4d8f9364; registry conflicts with slice 5 resolved by keeping both, frozen-list tests pass). Slice 8 now waits only on itself: start it.
+
+**Carried from slice 6's hand-off:** `planReminders` in `db/schema/calendars/reminderPlan.ts` (honours overrides already; `reminderLeadLabel`, `reminderSendAt`, `TASK_LEADS` for slice 8's summary). **Deviations:** lookahead 48 h, not 25 h (an evening-before send can be ~31 h ahead); members use the recipient's zone (no member zone exists); task reminders need the assignee's reminders on. `sweepReminders` is the cron's first step, one transaction, `calendars.lastReminderRunAt` locked in `app_setting`. Unsubscribe token HMAC under `linkSubkey(purpose)` of `INVITE_LINK_KEY` (sweep returns `noKey` without it); route `api/reminders/unsubscribe/:token`, GET asks, POST acts. Definitions gain optional `headers` (outbox builds them at send; Resend passes them). Browser checks to run at landing: layout-offline, first-sync. Docs: calendars.md (reminders, sweep, `calendarReminderService`, unsubscribe, card, `reminderChoices.ts`); notifications.md (two notifications, `headers`, `List-Unsubscribe`); care-groups.md (`linkSubkey`); layout.md (`routes/api/reminders/unsubscribe.ts`); components.md tests line (`settings/calendarReminders.browser.test.tsx`).
 
 **Carried from slice 5's hand-off:** `ical-generator` 11.1.4 in `packages/api`. `calendarFeedService` (`create` refuses a second feed, 409; `rotate`, `revoke`, `resolve`, `load`); `renderIcs` in `packages/api/src/calendars/renderIcs.ts` with golden files; `GET /api/calendar/:file` (handler `packages/api/src/calendars/feed.ts`, door `.server/calendarFeed.ts`; 404 bodyless, 405, rate limits 60/min/IP and 30/min/token keyed by hash); `calendars.feed.*` in `feedProcedures.ts`; `FeedCard` + `feedActions.ts` (intents `feedCreate`, `feedRotate`, `feedRevoke`); `lib/calendars/feedLinks.ts`. Feed URL from `APP_URL`. Frozen lists `routes.test.ts`, `routerPaths.test.ts` likely conflict with 6 and 7. Docs: calendars.md (service, renderIcs, route, procedures, card); AGENTS.md stack (`ical-generator`); api.md (route, procedures); care-groups.md (removal revokes the feed, tested); security-headers.md (web layout middleware, no CSP change); layout.md (`routes/api/calendar/feed.ts`, `.server/calendarFeed.ts`).
 
