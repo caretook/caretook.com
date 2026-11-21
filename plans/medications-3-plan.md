@@ -11,6 +11,10 @@
 | 3     | 2    | blocked by 1 |                                                |
 | 4     | 2    | blocked by 1 |                                                |
 
+**Landing mode: run everything through** (queued with `pnpm prd queue medications-3`): start every ready slice, land each green wave, clean up; ask only real questions.
+
+**Now (2026-11-20):** waiting on the start condition. `conditions` is ready (`bd045d7d`, B-181) and mid-landing, not yet in `dev`; asked its orchestrator (conditions-b6) to message on landing, and a background check waits for `bd045d7d` in `dev`. Then `pnpm prd sync`, claim B-200, start slice 1 (opus, stack). Backlog at this boundary: B-199, B-200 only for this PRD; nothing new to propose.
+
 **Start conditions:** `conditions` landed in `dev` (its slice 4 changes the medication form and page; both PRDs touch `sync-config.yaml`, the device schema and the upload switch). Check its PRD row says done, then `pnpm prd sync` before slice 1.
 
 **Landing:** slice 1 adds a migration and a synced column, so hold landing until every slice is merged, then run the checks once at the end. The landing mode (ask, run through, or chosen waves) is the orchestrator's first question unless the PRD was queued; record it here. Never `--suite` without asking.
