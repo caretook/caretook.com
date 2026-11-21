@@ -2,12 +2,15 @@ import { validateConnectorToken } from "@caretook/auth";
 import {
   careGroupMemberService,
   careGroupService,
+  careRecipientService,
   entryProviderService,
   medicationPassService,
   medicationService,
   noteDocumentService,
   providerService,
   recipientConditionService,
+  SYSTEM_USER,
+  timelineEntryModel,
   todoService,
   timelineEntryService,
 } from "@caretook/data";
@@ -687,5 +690,64 @@ describe("/mcp edit tools (connectors-2)", () => {
       name: "Foreign",
     });
     expect((await w.groupEntries()).filter((e) => e.kind === "conditionChange")).toHaveLength(2);
+  });
+
+  it("refuse a note ahead and point at add_todo, writing nothing", async () => {
+    const w = await world();
+    const token = w.writer.tokens.access_token;
+    const refusal = "A note can't be in the future. Use add_todo with a due day for something to do later.";
+    const ahead = new Date(Date.now() + 3 * 24 * 60 * 60_000).toISOString();
+    const before = (await w.groupEntries()).length;
+
+    const added = await resultOf(
+      await callTool(token, "add_note", { text: "Call later", occurredAt: ahead }),
+    );
+    expect(added.isError).toBe(true);
+    expect(textOf(added)).toContain(refusal);
+    expect((await w.groupEntries()).length).toBe(before);
+
+    // Moving a note's time ahead is refused the same way.
+    const note = await resultOf(await callTool(token, "add_note", { text: "Happened", title: "Visit" }));
+    const [noteId] = note.structuredContent.entryIds!;
+    const moved = await resultOf(
+      await callTool(token, "update_entry", { entryId: noteId, occurredAt: ahead }),
+    );
+    expect(moved.isError).toBe(true);
+    expect(textOf(moved)).toContain(refusal);
+    expect(new Date((await w.entry(noteId!))!.occurredAt).getTime()).toBeLessThan(Date.now());
+
+    // A note stored ahead (before notes became past-only) takes no more lines.
+    const recipient = ok(
+      await careRecipientService.list(w.owner.ctx, {
+        filter: { groupId: { type: "eq", value: w.group.id } },
+      }),
+    ).data[0]!;
+    const stored = ok(
+      await timelineEntryModel.create({
+        authUser: SYSTEM_USER,
+        data: {
+          groupId: w.group.id,
+          recipientId: recipient.id,
+          kind: "note",
+          title: "Old reminder",
+          occurredAt: ahead,
+          timeZone: "America/Los_Angeles",
+        },
+      }),
+    )!;
+    const appended = await resultOf(
+      await callTool(token, "append_to_entry", { entryId: stored.id, lines: [{ text: "More" }] }),
+    );
+    expect(appended.isError).toBe(true);
+    expect(textOf(appended)).toContain(refusal);
+    expect((await w.entry(stored.id))?.body ?? null).toBeNull();
+
+    // An event ahead and a todo with a due day still work.
+    const event = await resultOf(await callTool(token, "add_event", { title: "Dentist", occurredAt: ahead }));
+    expect(event.isError).toBeUndefined();
+    const todo = await resultOf(
+      await callTool(token, "add_todo", { title: "Call later", dueOn: "2027-01-10" }),
+    );
+    expect(todo.isError).toBeUndefined();
   });
 });
