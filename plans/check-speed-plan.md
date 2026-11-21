@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** wave 1 landed in dev through PR #24 (e34bf68, 2026-11-21; full on eef8499, Codex clean on 88a8ff1 after its two findings were filed as B-401, B-402). Wave 2 and slice 5 (those two findings) merged and docs folded; landing together in one PR. Then: full `pnpm prd check` + `pnpm test:tooling`, PR, Codex, land, fold docs, `pnpm prd rm check-speed`.
+**Where it stands:** wave 1 landed in dev through PR #24 (e34bf68, 2026-11-21; full on eef8499, Codex clean on 88a8ff1 after its two findings were filed as B-401, B-402). Wave 2 and slice 5 (those two findings) merged and docs folded; full check passed on a96e2366; PR #27. Codex round 1: P1 (check-body.sh's `&&` chains let a failing check pass) fixed by a sonnet fix agent in 52243380; P2 (worker names of long topics collide) filed as B-405. Then: full `pnpm prd check` + `pnpm test:tooling`, PR, Codex, land, fold docs, `pnpm prd rm check-speed`.
 
 **Wave 1 gate:** browser checks skipped on the user's word (2026-11-21): `--changed` asks for the lean set only because `vitest.config.ts`/`package.json` changed.
 
