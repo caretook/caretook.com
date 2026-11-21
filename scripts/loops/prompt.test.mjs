@@ -93,6 +93,9 @@ describe("orchestrator", () => {
       expect(out).toContain("`review --again` until clean");
       expect(out).toContain("After about three rounds, ask the user");
       expect(out).toContain("`--no-review` only when they say so");
+      expect(out).toContain(
+        "When the wave's diff is docs only (Markdown files, nothing else), don't run or wait for `pnpm prd review`: open the PR with `pnpm prd pr T` and land.",
+      );
     }
   });
 
@@ -130,6 +133,8 @@ describe("orchestrator", () => {
       expect(out).toContain("`pnpm prd answer <id>");
       expect(out).toContain("`pnpm prd ask --topic T --report");
       expect(out).toContain("Push other reports only when something failed");
+      expect(out).toContain("`to-test/<date>-<time>-<topic>.md`");
+      expect(out).toContain("names the topic, what landed and that to-test file, and stands alone");
       expect(out).not.toContain("AskUserQuestion");
     }
     for (const flags of [[], ["--resume"]]) {
@@ -280,6 +285,21 @@ describe("recover", () => {
 
   it("takes no topic", () => {
     expect(ok("recover", "ignored")).toMatch(/^You are the recovery agent\./);
+  });
+});
+
+describe("tidy", () => {
+  it("is the cleanup brief: tidy --yes, SendMessage for finished sessions, /loop, never close or delete", () => {
+    const text = ok("tidy");
+    expect(text).toMatch(/^You are the cleanup agent: .*\(run it on haiku\)/);
+    expect(text).toContain(`You're in the main checkout (${main}), on dev.`);
+    expect(text).toContain("Run `pnpm prd tidy --yes`.");
+    expect(text).toContain("SendMessage");
+    expect(text).toContain("`/loop 3h`");
+    expect(text).toContain("**Never close or end a session**");
+    expect(text).toContain("**Never delete unmerged work**");
+    expect(text).toContain("send that PushNotification");
+    expect(text).not.toContain(RESUME);
   });
 });
 
