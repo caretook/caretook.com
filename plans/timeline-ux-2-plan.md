@@ -31,7 +31,7 @@
 - tasks-2 (`tasks-2-20`) waits on wave 1 (PageHeader, the Upcoming and Tasks headers): message it at each landing.
 - Wave 1 landing (user, 2026-11-21): `--force` on the full run whose only failures were the 14 midnight-window tests (B-227, quick-fixes). Synced connectors-2; typecheck, lint, format clean; browser `layout-offline` and `app-shell` pass (the user chose only the edited specs).
 - **Wave 1 landed in dev as f1fc883e** (2026-11-21, `--force`, user's word). Told tasks-2 and quick-fixes to sync. Wave 2: slice 6 handed off, slice 2 running; merge 2 then 6.
-- Open issues: B-227 (quick-fixes) for the midnight-window tests; until it lands, run full checks outside 00:00–02:30 LA.
+- Open issues: the midnight-window tests are B-225 (quick-fixes slice 61; B-227 dropped as its duplicate); until it lands, run full checks outside 00:00–02:30 LA.
 
 ## Backlog map
 
