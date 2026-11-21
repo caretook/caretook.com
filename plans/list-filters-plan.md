@@ -4,12 +4,12 @@
 
 ## Status
 
-| Slice | Wave | State                         | Merge into `prd/list-filters` (slice commits) |
-| ----- | ---- | ----------------------------- | --------------------------------------------- |
-| 1     | 1    | landed (opus)                 | 69676563 (61b69c42, 898efdcc)                 |
-| 2     | 2    | merged (sonnet)               | bf68e368 (1d036869)                           |
-| 3     | 2    | merged (opus; B-255)          | 6471195a (83fae255)                           |
-| 4     | 3    | not started (waits for B-247) |                                               |
+| Slice | Wave | State                          | Merge into `prd/list-filters` (slice commits) |
+| ----- | ---- | ------------------------------ | --------------------------------------------- |
+| 1     | 1    | landed (opus)                  | 69676563 (61b69c42, 898efdcc)                 |
+| 2     | 2    | merged (sonnet)                | bf68e368 (1d036869)                           |
+| 3     | 2    | merged (opus; B-255)           | 6471195a (83fae255)                           |
+| 4     | 3    | split out: B-284 (quick-fixes) | not in this PRD                               |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue list-filters`): start every ready slice, land each green wave through the Codex-reviewed PR, clean up; ask only real questions. B-249 claimed 2026-11-21.
 
@@ -17,7 +17,7 @@
 
 **Wave 2:** slices 2 (bf68e368, sonnet; its own `pnpm check` didn't finish clean: a load flake in timelineQuickEntry, its fixes rerun alone) and 3 (6471195a, opus; B-255) merged; worktrees removed; B-255 done. Docs folded (providers, todos). Landing: sync, then the **full** `pnpm prd check` (slice 2 had no clean full pass), browser `--changed`, PR. **Message planner-2 (planner-2-b7) when wave 2 lands** (its slice 6 changes the Todos tab and rows).
 
-**Open:** B-247 isn't scheduled: the quick-fixes orchestrator says the user held it (and B-246) back for a later wave; it will message us if it's scheduled and when it lands. A background check watches `dev` too. Once slices 1–3 are merged, ask the user: wait for it, or land the three and file slice 4 as a `quick-fixes` item.
+**Slice 4:** the user chose (2026-11-21) to file it as **B-284** in quick-fixes, after B-247, instead of waiting; B-249 marked done with slice 3. This PRD finishes with wave 2: land it, tell planner-2, `pnpm prd rm list-filters`.
 
 **Start conditions:** slices 1 to 3 can start at once (no dependency). **Slice 4 waits for B-247 in `dev`** (Planner: Past becomes an Upcoming | Past toggle, with the All / Events / Todos filter row; a `quick-fixes` item); `pnpm prd sync` before it.
 
