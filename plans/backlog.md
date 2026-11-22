@@ -306,7 +306,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-446 | bug | triaged | fixes-tooling |  | browser.test.mjs 'kills a spec at its cap, worker and all, and retries it once' fails under heavy load (load 47), passes alone 3x |
 | B-447 | bug | triaged | fixes-tooling |  | to-test file: 'What wasn't checked' repeats the quick-check line, and a tooling-only landing still gets the app's dev URL and seed sign-ins under 'What to try' |
 | B-448 | chore | triaged | ui-kit-2 |  | Rename the profile's *Card components and files (ProfileCards.tsx, ConditionsCard, DetailsCards, EmergencyCard, VitalAveragesCard) now that they render bands, not cards |
-| B-449 | chore | in-progress | fixes-tooling | hotfix/reseed-staging | Reseed staging from scratch: a manual Action that wipes staging's data and runs the fictional seed again |
+| B-449 | chore | landed | fixes-tooling | hotfix/reseed-staging | Reseed staging from scratch: a manual Action that wipes staging's data and runs the fictional seed again |
 | B-450 | bug | triaged | fixes-tooling |  | Flaky under load: roles.int.test.ts beforeAll (applyRoles) times out at the 10s hookTimeout in a full check at load ~130; passes alone 3x |
 | B-451 | bug | triaged | fixes-tooling |  | Tooling-only landings run no eslint: the check gate's 'none needed' (Markdown, scripts/loops, scripts/backlog, .githooks) lets a lint error into dev, and every synced branch's full check then fails |
 | B-452 | bug | triaged | fixes-tooling |  | Dispatcher: a start or plan whose new.sh fails after making the worktree leaves it with no managed record, so later ticks treat it as opened by hand and it holds a slot for good |
@@ -2473,10 +2473,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-449 · chore · Reseed staging from scratch: a manual Action that wipes staging's data and runs the fictional seed again
 
-- status: in-progress
+- status: landed
 - prd: fixes-tooling
 - owner: hotfix/reseed-staging
-- commit:
+- commit: b1a78990
 
 - 2026-11-21 (Robert Bo Davis): From the user (backlog session, 2026-11-21). Today's Seed staging Action (seed-staging.yml) is idempotent: it adds and updates but never clears, so hand-made test data and stale rows stay. Wanted: one step that empties staging and seeds it fresh. To settle when built: what is wiped (all app data and accounts, or keep staff grants and connector/Google links), refusing production the way the seed does, a typed confirmation input, and that devices' PowerSync copies follow the wipe. Triage: fixes-tooling (a script and a workflow, no app code); hosting was the other fit but is on hold.
 
