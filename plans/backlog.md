@@ -16,7 +16,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `fixes-tooling` | standing, hold | — | — | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md |
 | `agent-autonomy` | — | `test-gates` | `scripts/loops/land`, `scripts/loops/lib.sh`, `scripts/loops/check-`, `scripts/loops/prompt.sh`, `scripts/loops/prd.sh` | [PRD](agent-autonomy-prd.md), [plan](agent-autonomy-plan.md) (B-503 to B-506, B-516 to B-518): 10 slices, waves (1, 2) → 3 → (4, 5) → 6 → 7 → (8, 9, 10): questions that take their recommendation after 30 minutes (planners' too), a notice board, a machine claim for a landing's full check, the flake rule, flakes filed by the check, a Checked: trailer and a full pass that carries over a dev sync, landing on an unsynced tip, landing notices and the hold. Tooling only. Follow-on: agent-autonomy-2. While test-health runs (its word, 2026-11-22): land no change to what quick or full means (check-plan.mjs, lib.sh checked_ok) or what land accepts in the middle of a test-health landing, only between its waves; never touch scripts/eslint/ or eslint.config.js. |
 | `agent-autonomy-2` | done | — | `scripts/loops/session`, `scripts/loops/context`, `scripts/loops/prompt.sh`, `scripts/loops/rotate`, `scripts/loops/open-session`, `scripts/loops/recover`, `scripts/loops/tidy`, `scripts/loops/end-session`, `scripts/loops/request` | [PRD](agent-autonomy-2-prd.md), [plan](agent-autonomy-2-plan.md) (B-507, B-508, B-509): 2 slices in 2 waves: a context hook that tells a session past 160k to rotate, sizes in status, the dispatcher's follow-up. Cut from agent-autonomy by its planner. Tooling only |
-| `test-gates-2` | — | `test-gates` | — | CI tiers 3-4: staging candidate, CI browser suites, staging to main gate, required checks (plans/test-gates-prd.md) |
+| `test-gates-2` | — | `test-gates` | `.github/workflows/ci.yml`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `scripts/browser-checks/`, `scripts/loops/browser.sh`, `scripts/loops/serve.sh`, `scripts/loops/check-plan`, `scripts/loops/check-areas.d/`, `scripts/loops/prd.sh`, `vitest.config.ts`, `ops/runbook.md` | CI tiers 3-4: staging candidate, CI browser suites, staging to main gate, required checks (plans/test-gates-prd.md) |
 | `test-health-2` | — | `test-gates` | — | Test coverage follow-ups: device-to-server round trip per table, a second time zone, role gaps, an uploadData error test (B-371, B-372, B-373, B-374) |
 | `worker-watch` | — | `test-gates`, `agent-autonomy-2`, `agent-autonomy-3` | `scripts/loops/prompt.sh`, `scripts/loops/prd.sh`, `scripts/loops/check-times`, `scripts/loops/check-run`, `scripts/loops/check-body`, `scripts/loops/land.sh`, `scripts/loops/review.sh`, `scripts/loops/browser.sh`, `scripts/loops/new.sh`, `scripts/loops/rm.sh`, `scripts/loops/status-extra`, `scripts/loops/dispatch`, `scripts/loops/context`, `scripts/loops/skeptic`, `scripts/loops/ask` | To write. Run metrics in one summary, then stuck workers handled against usual times (B-434, B-408). Cut from orchestration-3 |
 | `agent-autonomy-3` | — | `agent-autonomy`, `agent-autonomy-2` | `scripts/loops/ask`, `scripts/loops/skeptic`, `scripts/loops/prompt.sh`, `scripts/loops/land`, `scripts/loops/prd.sh`, `scripts/loops/dispatch`, `scripts/loops/open-session`, `scripts/backlog/registry` | To write. A Fable skeptic before every ask, before risky landings (a forced landing, a flaky pass, a declined Codex finding), and as the final check on Opus planners, with a registry flag that keeps a design topic's planner on Fable (B-511, B-512, B-513). Filed into agent-autonomy after its plan landed; builds on its defaulting asks and flake rule |
@@ -278,7 +278,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-466 | bug | landed | fixes-tooling | prd/fixes-tooling | resetStaging.int.test.ts 'wipes everything but real sign-ins, reseeds' times out at 30 s under load (passes alone in 3-10 s) |
 | B-467 | feature | triaged | asks-relay |  | The backlog session is the go-between for every agent's questions: agents file to the asks queue and wait, the backlog session ranks them by how soon an answer blocks real work, asks the user itself and decides which ones ping the phone |
 | B-468 | bug | triaged | fixes-tooling |  | open-session.sh fails when iTerm2 has windows but no current window: the dispatcher counts it as a planner death |
-| B-471 | feature | in-progress | ui-kit-3 | prd/ui-kit-3 | Overlay motion: menus, popovers, dialogs and toasts fade in and out, and a sheet closes with the reverse of its opening |
+| B-471 | feature | ready | ui-kit-3 | prd/ui-kit-3 | Overlay motion: menus, popovers, dialogs and toasts fade in and out, and a sheet closes with the reverse of its opening |
 | B-474 | change | triaged | inbox-agent |  | Inbox agent plan amendments from the user: it never leaves staged or uncommitted changes behind (stash, or commit and push), and someone is named as owning cleanup of completed items |
 | B-475 | bug | staging | fixes-tooling | prd/fixes-tooling | Flaky component test: timelineSimpleTodos 'a viewer… done-only change' leaves an undo timer (useTodoTick → reopenTodo → liveTodo) that fires after the test's database closes: Unhandled Rejection 'Client has already been closed' fails the run |
 | B-477 | change | triaged | fixes-tooling |  | PRD registry: a hold carries its reason |
@@ -369,6 +369,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-569 | bug | dropped | fixes-bug |  | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
 | B-570 | bug | triaged | fixes-tooling |  | Session request notices can exceed the notice board's 200 characters and get dropped |
 | B-571 | bug | triaged | fixes-tooling |  | Staging reset test still times out at 30 s now and then, in CI as well as under local load |
+| B-572 | bug | triaged | test-gates-2 |  | Check gate: a package.json change to scripts alone should not force a full check |
+| B-573 | bug | triaged | fixes-tooling |  | Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error |
 
 ## Items
 
@@ -2070,10 +2072,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-471 · feature · Overlay motion: menus, popovers, dialogs and toasts fade in and out, and a sheet closes with the reverse of its opening
 
-- status: in-progress
+- status: ready
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
-- commit:
+- commit: 6711b506
 
 - 2026-11-21 (plan/ui-kit-2): From the ui-kit-2 plan (2026-11-21), the part of B-414 cut by its skeptic pass: ui-kit-2 slice 5 animates buttons, rows, chevrons and Collapse only. Route sheets close by navigating, so the route unmounts before an exit can play: a sheet's exit needs the navigation delayed. Uses ui-kit-2's motion variables; nothing under reduced motion.
 - 2026-11-22 (plan/ui-kit-3): ui-kit-3 plan (2026-11-22): planned in plans/ui-kit-3-plan.md: slice 1 B-520 and B-481 (dark surfaces, field fill), slice 2 B-521 and B-522 (accents, entry icons), slice 3 B-523, slice 4 B-524, slices 5 and 6 B-471 (overlay fades, then the sheet's exit).
@@ -2586,6 +2588,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-22 (Robert Bo Davis): From the 2026-11-22 backlog session: the user's test-gate tiers and modes; being planned inline. User chose a candidate branch over freezing dev.
 - 2026-11-22 (plan/test-gates): Follow-on topic test-gates-2 (cut from test-gates on 2026-11-22; see plans/test-gates-prd.md, Solution tiers 3-4).
+- 2026-11-22 (plan/test-gates-2): Planned 2026-11-22 in plans/test-gates-2-plan.md (slices 1-4). Candidate branch with a merge -s ours of staging; the tool gates promotion and a hand merge is the user's override.
 
 ### B-533 · chore · staging to main gate: CI runs the full browser suite, a second time zone and repeated runs to catch flakes; a required status check on main always, on staging only in pre-deployment mode
 
@@ -2597,6 +2600,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-22 (Robert Bo Davis): From the 2026-11-22 backlog session: the user's test-gate tiers and modes; being planned inline. User chose main always, staging by mode. Relates to B-372 (a second time zone in tests).
 - 2026-11-22 (plan/test-gates): Follow-on topic test-gates-2 (cut from test-gates on 2026-11-22; see plans/test-gates-prd.md, Solution tiers 3-4).
 - 2026-11-22 (Robert Bo Davis): The modes (B-531) are dropped: decide the required check on staging without a pre-deployment mode when test-gates-2 is planned. With no automatic run on dev, the staging gate is the only check of dev as a whole.
+- 2026-11-22 (plan/test-gates-2): Planned 2026-11-22 in plans/test-gates-2-plan.md (slices 2, 5, 6). Required release-gate check on main with a recorded user override; second time zone reports first; the user adds the check to the ruleset after a first green status.
 
 ### B-534 · bug · Tooling tests that call new.sh without CARETOOK_LOAD_GATE=off wait on the real machine's load gate (15 s polls up to 600 s) and time out under load; also registry.cli.test.mjs 'doctor reports…' and rotate.test.mjs 'sets done only for a merged branch…' timed out at 20 s once under load
 
@@ -2789,6 +2793,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): From the 2026-11-22 quick-check triage with the user (check log: 111 quick runs, median 7.9 min, 30 failed). The slice check itself ships in hotfix/fast-gate; test-gates owns the orchestrator side: agents stay idle and addressable until the wave's run is back, release their stack at hand-off, and the orchestrator does not rotate before then.
+- 2026-11-22 (Robert Bo Davis): VERIFY AFTER test-gates LANDS (user, 2026-11-22): the 20-minute quick-check limit stays for now, though the slowest passing quick check on record took 28 minutes under load. The user expects the quick check to speed up once browser tests are out of the unit tests, which should come with test-gates. After it lands, compare quick-check times (pnpm prd check --times) against the limit; if healthy checks can still reach 20 minutes, raise it with the user.
 
 ### B-554 · change · CI runs only on request: the orchestrator asks for a tier (static, unit, integration, components, full) on any branch, and the landing gate checks for a green run of the tier it declared; no automatic run on a PR or a push
 
@@ -2964,3 +2969,23 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (prd/test-gates): After B-466's fix: timed out in CI run 45081669105 on 7bd82c6f, passed on the rerun of the same commit (45082124113) and in four earlier runs. test-gates slice 8 does not touch it.
+
+### B-572 · bug · Check gate: a package.json change to scripts alone should not force a full check
+
+- status: triaged
+- prd: test-gates-2
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): User's decision 2026-11-22: compare each changed package.json with its base, ignoring the scripts field. If only scripts differ (added, edited or removed, in any package, lifecycle hooks included), it does not force a full check, the browser @suite or a higher CI tier. Any other field, or an added/deleted/unparseable package.json, still forces them; the lockfile rule stays. Three places: FORCED in scripts/loops/check-plan.mjs (planCheck only gets paths today, so it needs the base's contents or a prefilter), the package.json @suite rules in scripts/loops/check-areas.d/_global, and test-gates' minimum-tier rule (plans/test-gates-plan.md). The user accepted that a script edit that breaks build, typecheck or the check itself gets only a quick check. Update the rule's wording in docs/agents/orchestrator.md and prd.sh.
+- 2026-11-22 (Robert Bo Davis): Moved to test-gates-2 on the user's word (2026-11-22). Its PRD and plan were written before this item: add it to a slice when the topic starts.
+- 2026-11-22 (plan/test-gates-2): Planned 2026-11-22 as slice 7 of plans/test-gates-2-plan.md, wave 1 beside the browser job.
+
+### B-573 · bug · Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (prd/test-gates): test-gates wave 2 gate on 6e805ecd (2026-11-22, load about 15): browser.test.mjs:182 got 3 lines, not 2; the check printed 'an unhandled error, so no rerun'. Passed 3/3 alone straight after at load 17. The extra line's content was not captured, so the cause is unknown.
