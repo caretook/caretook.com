@@ -391,7 +391,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
         )
       ).map((r) => r.id);
     const onB = await until(async () => (await visitsOn(B, made.seriesId)).length === visitIds.length);
-    const upcomingTab = `document.querySelector('nav.dock a[href="/app/groups/${DEV_FAMILY}/planner"]')`;
+    const upcomingTab = `document.querySelector('nav[data-tab-bar] a[href="/app/groups/${DEV_FAMILY}/planner"]')`;
     const upcomingRow = (id) => `document.querySelector('main [data-upcoming-item="${id}"]')`;
     await press(B, upcomingTab);
     const marked = `${JSON.stringify(visitIds)}.filter((id) => document.querySelector('main [data-upcoming-item="' + id + '"] [data-repeat-mark]')).length`;
@@ -606,7 +606,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     // while the title change is refused and the next sync puts the server's
     // title back. Client-side navigation through the tab bar's Planner and
     // its Todos tab: no new page loads or sign-ins.
-    const plannerTab = `document.querySelector('nav.dock a[href="/app/groups/${DEV_FAMILY}/planner"]')`;
+    const plannerTab = `document.querySelector('nav[data-tab-bar] a[href="/app/groups/${DEV_FAMILY}/planner"]')`;
     const todosTab = `document.querySelector('main nav[aria-label="Planner or todos"] a[href="/app/groups/${DEV_FAMILY}/todos"]')`;
     const openTodos = async (page) => {
       await press(page, plannerTab);

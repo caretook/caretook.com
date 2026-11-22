@@ -147,13 +147,11 @@ function Section({ section }: { section: NormalizedSection }) {
       {header ? (
         <Header className="min-w-0 px-3 py-2">
           {header.title && <span className="block truncate font-semibold">{header.title}</span>}
-          {header.subtitle && (
-            <span className="text-base-content/70 block truncate text-sm">{header.subtitle}</span>
-          )}
+          {header.subtitle && <span className="text-muted block truncate text-sm">{header.subtitle}</span>}
         </Header>
       ) : (
         title && (
-          <Header className="text-base-content/70 px-3 pt-1 text-xs font-semibold uppercase">
+          <Header className="text-muted px-3 pt-1 text-xs font-semibold uppercase">
             {sectionName(section)}
           </Header>
         )
@@ -209,7 +207,7 @@ function Item({ item, selectable, inGroup }: { item: MenuItem; selectable?: bool
           {item.description ? (
             <span className="min-w-0 flex-1">
               <span className="block truncate">{item.label}</span>
-              <span className="text-base-content/70 block truncate text-sm">{item.description}</span>
+              <span className="text-muted block truncate text-sm">{item.description}</span>
             </span>
           ) : (
             <span className="min-w-0 flex-1 truncate">{item.label}</span>

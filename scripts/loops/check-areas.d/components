@@ -4,3 +4,7 @@
 apps/web/app/components/ui/date/*        ui roundtrip
 apps/web/app/components/ui/*             ui
 apps/web/app/app.css                     ui
+# The dev UI gallery (/dev/ui, web only, 404 in production; ui-kit): component
+# tests render it, and its gate is unit-tested.
+apps/web/app/routes/dev/ui/*             -
+apps/web/app/.server/devUi.ts            -

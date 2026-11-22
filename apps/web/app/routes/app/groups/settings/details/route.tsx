@@ -5,6 +5,7 @@ import { EASY_TILE_COUNT } from "@caretook/data/schema";
 import { UserRound } from "lucide-react";
 import { Link } from "react-router";
 import { Detail, Details, SettingsCard, SettingsPage } from "~/components/settings";
+import { EmptyState } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formString } from "~/lib/core/form";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
@@ -107,7 +108,7 @@ export default function GroupDetails({ loaderData }: Route.ComponentProps) {
 
       <SettingsCard id="care-recipient" title="Care recipient">
         {!group.recipient ? (
-          <p className="text-base-content/70 text-sm">This care group has no care recipient yet.</p>
+          <EmptyState>This care group has no care recipient yet.</EmptyState>
         ) : (
           <>
             {online && access.editRecipient ? (

@@ -2,6 +2,7 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { Route } from "./+types/route";
 
 import { Form, Link, useNavigation } from "react-router";
+import { Button } from "~/components/ui/plain";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { authClient } from "~/lib/auth/auth-client";
 import { authMessages, requestFailure } from "~/lib/auth/authMessages";
@@ -59,9 +60,9 @@ export default function VerifyEmail({ loaderData, actionData }: Route.ComponentP
     return (
       <AuthCard title="Email confirmed">
         <StatusMessage>Your email address is confirmed. You're signed in.</StatusMessage>
-        <Link to={next} className="btn btn-primary btn-block">
+        <Button to={next} variant="primary" block>
           Continue to Caretook
-        </Link>
+        </Button>
       </AuthCard>
     );
   }
@@ -84,9 +85,9 @@ export default function VerifyEmail({ loaderData, actionData }: Route.ComponentP
         <input type="hidden" name="next" value={next} />
         {email ? <input type="hidden" name="email" value={email} /> : <EmailField defaultValue={sentTo} />}
         {error && <ErrorMessage>{error}</ErrorMessage>}
-        <button type="submit" className="btn btn-primary btn-block mt-2" disabled={busy}>
-          {busy ? "Sending…" : "Send a new link"}
-        </button>
+        <Button type="submit" variant="primary" block className="mt-2" busy={busy} busyLabel="Sending…">
+          Send a new link
+        </Button>
       </Form>
       <p className="text-center text-sm">
         <Link to={accountUrls.signIn("password", next)} className="link">

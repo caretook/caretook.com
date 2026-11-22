@@ -9,6 +9,13 @@
 # in the parent as well; an unmerged one stays. Refuses uncommitted changes, and a
 # PRD worktree whose slices still have worktrees, unless --force.
 #
+# A PRD worktree whose branch is merged into dev and whose plan's _Status_ has
+# no slice left to run marks its topic done in the PRD registry (pnpm backlog
+# prd set <topic> flags=…,done), except a standing topic; before the table is
+# migrated, or when _Status_ can't be read, it marks nothing and says so.
+# A standing topic's PRD worktree (a fixes wave) clears its row's hot files
+# instead (pnpm backlog prd set <topic> hot=—), merged or not; its flags stay.
+#
 #   scripts/loops/rm.sh <name> [--force] [--keep-branch]
 set -euo pipefail
 # shellcheck source=stack-lib.sh
@@ -37,6 +44,35 @@ if [[ -z $force && $branch == prd/* ]]; then
   done
 fi
 
+# Whether a finished PRD marks its topic done: decided now, while its plan (and
+# this script's own checkout, maybe the worktree) is still here.
+mark_done="" flags=""
+if [[ $branch == prd/* ]]; then
+  topic=${branch#prd/}
+  if ! git -C "$main" merge-base --is-ancestor "$branch" "$(parent_of "$branch")" 2>/dev/null; then
+    mark_done="" # not merged: nothing to say
+  elif left=$(node "$(dirname "$0")/rotate.mjs" slices-left "$dir/plans/$topic-plan.md"); then
+    if [[ -n $left ]]; then
+      echo "Not marking $topic done: slices $left are still to run (plans/$topic-plan.md)"
+    elif ! rows=$(cd "$main" && node "$main/scripts/backlog/backlog.mjs" prd list --json 2>&1); then
+      echo "Not marking $topic done: ${rows##*$'\n'}"
+    elif flags=$(node "$(dirname "$0")/rotate.mjs" done-flags "$topic" <<<"$rows"); then
+      mark_done=$topic
+    else
+      echo "Not marking $topic done: $flags"
+    fi
+  else
+    echo "Not marking $topic done: plans/$topic-plan.md has no _Status_ slice table to read"
+  fi
+fi
+
+# A standing topic's wave set its row's hot files; with its worktree gone they go too.
+clear_hot=""
+if [[ $branch == prd/* ]] && hot_rows=$(cd "$main" && node "$main/scripts/backlog/backlog.mjs" prd list --json 2>/dev/null) &&
+  node "$(dirname "$0")/rotate.mjs" clears-hot "${branch#prd/}" <<<"$hot_rows"; then
+  clear_hot=${branch#prd/}
+fi
+
 stack_teardown "$dir"
 # Its databases on the shared test Postgres, worker copies too (nothing when that isn't running).
 "$(dirname "$0")/test-db.sh" drop "$name" || echo "couldn't drop $(test_db_name "$name") (pnpm prd test-db list)" >&2
@@ -48,6 +84,24 @@ case $branch in
   prd/*) rm -f "$loops/.sessions/prd-${branch#prd/}.json" ;;
   plan/*) rm -f "$loops/.sessions/plan-${branch#plan/}.json" ;;
 esac
+
+# Mark it done through the main checkout's backlog tool (one commit on dev); a
+# failure here doesn't undo the removal.
+if [[ -n $mark_done ]]; then
+  if (cd "$main" && node "$main/scripts/backlog/backlog.mjs" prd set "$mark_done" "flags=$flags" >/dev/null); then
+    echo "Marked $mark_done done in the PRD registry (flags $flags)"
+  else
+    echo "couldn't mark $mark_done done (pnpm backlog prd set $mark_done flags=$flags)" >&2
+  fi
+fi
+
+if [[ -n $clear_hot ]]; then
+  if (cd "$main" && node "$main/scripts/backlog/backlog.mjs" prd set "$clear_hot" "hot=—" >/dev/null); then
+    echo "Cleared $clear_hot's hot files in the PRD registry (its wave is over)"
+  else
+    echo "couldn't clear $clear_hot's hot files (pnpm backlog prd set $clear_hot hot=—)" >&2
+  fi
+fi
 
 parent=$(parent_of "$branch")
 if [[ -n $keep || -z $branch ]]; then

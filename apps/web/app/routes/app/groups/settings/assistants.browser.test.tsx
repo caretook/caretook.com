@@ -109,7 +109,7 @@ const open = ({
   });
 
 const heading = () => page.getByRole("heading", { name: "Assistants", level: 1 });
-const toggle = () => page.getByRole("checkbox", { name: "Allow members to connect assistants" });
+const toggle = () => page.getByRole("switch", { name: "Allow members to connect assistants" });
 const dialog = () => document.querySelector<HTMLDialogElement>("dialog");
 const dialogButton = (name: string) =>
   [...(dialog()?.querySelectorAll("button") ?? [])].find((b) => b.textContent.trim() === name)!;

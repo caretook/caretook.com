@@ -4,6 +4,7 @@ import type { ActionResult } from "~/lib/core/api";
 import { WifiOff } from "lucide-react";
 import { useEffect, useId } from "react";
 import { useRevalidator } from "react-router";
+import { Card, FormFooter, Message, Notice, TITLE_PAGE } from "~/components/ui";
 
 // The parts every settings subpage (account and group) is made of: the page
 // with its heading, its cards, read-only details, and a form's Save row.
@@ -32,14 +33,13 @@ export function SettingsPage({
   useRevalidateWhenOnline(!!offlineNotice);
   return (
     <section aria-labelledby={heading} data-section={id} className="space-y-4">
-      <h1 id={heading} className="text-2xl font-semibold">
+      <h1 id={heading} className={TITLE_PAGE}>
         {title}
       </h1>
       {offlineNotice && (
-        <p role="status" data-needs-connection="" className="alert text-sm">
-          <WifiOff aria-hidden="true" className="size-4" />
+        <Notice icon={WifiOff} data-needs-connection="">
           {offlineNotice}
-        </p>
+        </Notice>
       )}
       {children}
     </section>
@@ -58,26 +58,15 @@ function useRevalidateWhenOnline(offline: boolean) {
 }
 
 /**
- * A card on a settings page. With a `title` it's a region of its own (a
- * `section` named by its heading, `data-section={id}`); without, a plain card.
+ * A card on a settings page (a `Card`). With a `title` it's a region of its
+ * own (a `section` named by its heading, `data-section={id}`, the heading's
+ * id `<id>-heading`); without, a plain card.
  */
 export function SettingsCard({ id, title, children }: { id?: string; title?: string; children: ReactNode }) {
-  if (!title)
-    return (
-      <div className="card bg-base-100 shadow-sm">
-        <div className="card-body">{children}</div>
-      </div>
-    );
-  const headingId = `${id ?? "card"}-heading`;
   return (
-    <section aria-labelledby={headingId} data-section={id} className="card bg-base-100 shadow-sm">
-      <div className="card-body">
-        <h2 id={headingId} className="card-title text-lg">
-          {title}
-        </h2>
-        {children}
-      </div>
-    </section>
+    <Card id={id} title={title} headingId={title ? `${id ?? "card"}-heading` : undefined}>
+      {children}
+    </Card>
   );
 }
 
@@ -114,20 +103,18 @@ export function SaveRow({
   savedText?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 pt-1">
-      <button type="submit" className="btn btn-primary" disabled={busy}>
-        {busy ? "Saving…" : "Save"}
-      </button>
-      {result?.ok && (
-        <p role="status" className="text-success text-sm">
-          {savedText}
-        </p>
-      )}
-      {result && !result.ok && (
-        <p role="alert" className="text-error text-sm">
-          {result.error}
-        </p>
-      )}
-    </div>
+    <FormFooter
+      align="start"
+      className="pt-1"
+      submitLabel="Save"
+      busy={busy}
+      busyLabel="Saving…"
+      status={
+        <>
+          {result?.ok && <Message tone="success">{savedText}</Message>}
+          {result && !result.ok && <Message tone="error">{result.error}</Message>}
+        </>
+      }
+    />
   );
 }

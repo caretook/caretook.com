@@ -171,7 +171,7 @@ describe("the easy view", () => {
     ).not.toBeNull();
     expect(header().querySelector('[data-region="sections"] nav')).toBeNull();
     expect(page.getByRole("button", { name: /switch care group$/ }).elements()).toHaveLength(0);
-    expect(document.querySelector('nav.dock[aria-label="Group sections"]')).toBeNull();
+    expect(document.querySelector('nav[data-tab-bar][aria-label="Group sections"]')).toBeNull();
     await userEvent.click(userButton());
     await expect.poll(menuItems).toEqual(["Settings", "Full app", "Sign out"]);
     await userEvent.keyboard("{Escape}");

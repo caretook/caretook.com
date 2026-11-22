@@ -4,7 +4,8 @@
 # machine's load averages, any stale slot lease, the shared test Postgres,
 # leftovers for `pnpm prd gc` (merged slice worktrees and stacks stopped for over
 # a day), and who holds the machine-wide leases (browser checks and pnpm prd
-# check: lease.sh holders). (pnpm prd status, and pnpm prd status-watch)
+# check: lease.sh holders), and after the worktree table the recorded sessions
+# and the open asks. (pnpm prd status, and pnpm prd status-watch)
 set -euo pipefail
 # shellcheck source=stack-lib.sh
 source "$(dirname "$0")/stack-lib.sh"
@@ -44,6 +45,10 @@ done
 [[ -n $found ]] || echo "(no worktrees: pnpm prd start <topic>)"
 echo "PRD worktrees: $(prd_count) of $max_prds"
 
+# Recorded sessions and open asks (status-extra.mjs): nothing, heading included, when there are none.
+extra=$(CARETOOK_SESSIONS_DIR=${CARETOOK_SESSIONS_DIR:-$loops/.sessions} CARETOOK_ASKS_DIR=${CARETOOK_ASKS_DIR:-$loops/.asks} node "$(dirname "$0")/status-extra.mjs" 2>/dev/null || true)
+[[ -z $extra ]] || printf '\n%s\n' "${extra%$'\n'}"
+
 # Sections are separated by a blank line; stale leases only show when there are any.
 stale=""
 for d in "$leases"/*/; do
@@ -65,4 +70,6 @@ echo
 load=$(load_avg) cores=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo '?')
 busy=${CARETOOK_BROWSER_BUSY:-40} l1=${load%% *}
 echo "load: $load (1, 5, 15 min) on $cores cores$( ((${l1%%.*} > busy)) && echo " · BUSY: over $busy, browser checks will wait before retrying")"
+# The load gate checks and slice starts wait on (load-gate.mjs).
+node "$(dirname "$0")/load-gate.mjs" --say 2>/dev/null || true
 disk_line

@@ -80,12 +80,11 @@ function EasyTilesForm({ setting, words }: { setting: EasyTiles | null; words: R
       {mode === "custom" && (
         <div className="grid gap-2 sm:grid-cols-2">
           {Array.from({ length: EASY_TILE_COUNT }, (_, index) => (
-            <Field key={index} label={`Tile ${index + 1}`}>
+            <Field key={index} kind="select" label={`Tile ${index + 1}`}>
               {(control) => (
                 <select
                   {...control}
                   name={tileFieldName(index)}
-                  className="select w-full"
                   defaultValue={tileKey(picked[index] ?? FIXED_TILES[index]!)}
                 >
                   {TILE_CHOICES.map((tile) => (

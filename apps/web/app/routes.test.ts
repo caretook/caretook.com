@@ -110,6 +110,7 @@ const WEB = [
   "/dev/mail.json|routes/dev/mail/json/route.ts|",
   "/dev/mail/:id|routes/dev/mail/message/route.tsx|",
   "/dev/mail|routes/dev/mail/list/route.tsx|",
+  "/dev/ui|routes/dev/ui/route.tsx|",
   "/faq|routes/marketing/faq/route.tsx|",
   "/features|routes/marketing/features/route.tsx|",
   "/health-data-privacy|routes/marketing/health-data-privacy/route.tsx|",

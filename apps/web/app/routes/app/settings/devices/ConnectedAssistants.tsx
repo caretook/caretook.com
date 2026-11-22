@@ -6,7 +6,7 @@ import { Bot } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { SettingsCard } from "~/components/settings";
-import { ConfirmDialog } from "~/components/ui";
+import { Button, ConfirmDialog, EmptyState, List, ListRow, Message } from "~/components/ui";
 import { formatAgo } from "~/lib/core/format";
 
 const scopeLabel = (scope: string) => CONNECTOR_SCOPE_LABELS[scope as ConnectorScope] ?? scope;
@@ -34,44 +34,42 @@ export function ConnectedAssistants({ connections }: { connections: MyConnection
   return (
     <SettingsCard id="connected-assistants" title="Connected assistants">
       {connections.length === 0 ? (
-        <p className="text-base-content/70 text-sm">
-          You haven&apos;t connected an AI assistant to a care group.
-        </p>
+        <EmptyState>You haven&apos;t connected an AI assistant to a care group.</EmptyState>
       ) : (
-        <ul data-connections="" className="divide-base-300 divide-y">
+        <List data-connections="">
           {connections.map((c) => (
-            <li key={c.id} data-connection={c.id} className="flex items-center gap-3 py-3">
-              <Bot aria-hidden="true" className="text-base-content/70 size-5 shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">
-                  {c.clientName} · {groupOf(c)}
-                </p>
-                <p className="text-base-content/70 text-sm">
-                  {scopeLabel(c.scope)} · Connected {formatAgo(c.consentedAt)} ·{" "}
-                  {c.lastUsedAt ? `Last used ${formatAgo(c.lastUsedAt)}` : "Not used yet"}
-                </p>
+            <ListRow
+              key={c.id}
+              data-connection={c.id}
+              trailing={
+                <Button
+                  size="sm"
+                  disabled={busy}
+                  aria-label={`Disconnect ${c.clientName} from ${groupOf(c)}`}
+                  onClick={() => setPending(c)}
+                >
+                  Disconnect
+                </Button>
+              }
+            >
+              <div className="flex items-center gap-3">
+                <Bot aria-hidden="true" className="text-muted size-5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">
+                    {c.clientName} · {groupOf(c)}
+                  </p>
+                  <p className="text-muted text-sm">
+                    {scopeLabel(c.scope)} · Connected {formatAgo(c.consentedAt)} ·{" "}
+                    {c.lastUsedAt ? `Last used ${formatAgo(c.lastUsedAt)}` : "Not used yet"}
+                  </p>
+                </div>
               </div>
-              <button
-                type="button"
-                className="btn btn-sm"
-                disabled={busy}
-                aria-label={`Disconnect ${c.clientName} from ${groupOf(c)}`}
-                onClick={() => setPending(c)}
-              >
-                Disconnect
-              </button>
-            </li>
+            </ListRow>
           ))}
-        </ul>
+        </List>
       )}
-      <p role="status" className="text-sm empty:hidden">
-        {busy ? "Disconnecting…" : fetcher.data?.ok ? (asked ?? "") : ""}
-      </p>
-      {!busy && fetcher.data && !fetcher.data.ok && (
-        <p role="alert" className="text-error text-sm">
-          {fetcher.data.error}
-        </p>
-      )}
+      <Message>{busy ? "Disconnecting…" : fetcher.data?.ok ? (asked ?? "") : ""}</Message>
+      {!busy && fetcher.data && !fetcher.data.ok && <Message tone="error">{fetcher.data.error}</Message>}
       <ConfirmDialog
         open={!!pending}
         title={pending ? `Disconnect ${pending.clientName}?` : "Disconnect?"}

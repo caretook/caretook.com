@@ -4,7 +4,7 @@ import type { ChoiceOption } from "~/components/ui";
 
 import { useRef, useState } from "react";
 import { SettingsCard, SettingsPage } from "~/components/settings";
-import { ChoiceGroup } from "~/components/ui";
+import { ChoiceGroup, Message } from "~/components/ui";
 import { loadSettings, saveSettings, useMySettings } from "~/lib/app-shell/me";
 import { clearToggles } from "~/lib/assistant/easyModeToggle";
 import { sessionContext } from "~/lib/auth/session";
@@ -60,16 +60,14 @@ function useSavedChoice<T>(value: T, save: (next: T) => Promise<"saved" | "pendi
 function SaveStatusLine({ status }: { status: SaveStatus | null }) {
   return (
     <div className="min-h-5">
-      {(status === "saved" || status === "pending") && (
-        <p role="status" className="text-success text-sm">
-          {status === "saved" ? "Saved." : "Saved on this device. It'll sync when you're back online."}
-        </p>
-      )}
-      {status === "failed" && (
-        <p role="alert" className="text-error text-sm">
-          Couldn&apos;t save that. Try again.
-        </p>
-      )}
+      <Message tone="success">
+        {status === "saved"
+          ? "Saved."
+          : status === "pending"
+            ? "Saved on this device. It'll sync when you're back online."
+            : null}
+      </Message>
+      {status === "failed" && <Message tone="error">Couldn't save that. Try again.</Message>}
     </div>
   );
 }

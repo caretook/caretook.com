@@ -86,7 +86,7 @@ const noErrors = (...devices) =>
 
 const rowsOf = (page) => page.locator("main ol > li:not([data-marker])");
 const trigger = (page) => page.locator('header [data-region="user"] button[aria-label^="Account menu for"]');
-const bar = (page) => page.locator('nav.dock[aria-label="Group sections"]');
+const bar = (page) => page.locator('nav[data-tab-bar][aria-label="Group sections"]');
 const stay = (page) => page.evaluate(() => (window.__stay = 1));
 const stayed = (page) => page.evaluate(() => window.__stay);
 

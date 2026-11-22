@@ -4,15 +4,25 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/ui-kit` (slice commits) |
-| ----- | ---- | ----- | --------------------------------------- |
-| 1     | 1    |       |                                         |
-| 2     | 2    |       |                                         |
-| 3     | 2    |       |                                         |
-| 4     | 2    |       |                                         |
-| 5     | 3    |       |                                         |
-| 6     | 3    |       |                                         |
-| 7     | 4    |       |                                         |
+| Slice | Wave | State                                                                                                                                                                                                                 | Merge into `prd/ui-kit` (slice commits) |
+| ----- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| 1     | 1    | merged; items done; worktree removed                                                                                                                                                                                  | a366522e (f4e2f86c)                     |
+| 2     | 2    | merged; items done; worktree removed. Accepted: the TabNav bar is 1.11/1.22:1 against the page, not 3:1 (shadow in light, border in dark; text clears 4.5:1). Gate runs sign-in, first-sync, session-end, invites, ui | b11e472e (2c0914ba)                     |
+| 3     | 2    | merged (`ui/plain` index conflict: kept both); items done; worktree removed. Its browser checks passed (app-shell on a rerun after a fresh stack's PowerSync error). Added `Button href` (a plain `<a>`)              | 5360fe1e (f0ffcd6d)                     |
+| 4     | 2    | merged (its check passed on its first re-merge; second run stopped); items done; worktree removed                                                                                                                     | a59e35d2 (ebcbf4ac)                     |
+| 5     | 3    | merged; items done; worktree removed. Accepted: the settings side nav keeps its own list classes (borderless from `md`)                                                                                               | 1ded63f4 (b73e0bc6)                     |
+| 6     | 3    | merged (append-only conflicts in both ui indexes and the registry: kept both); worktree removed; B-264, B-397 stay open for slice 7                                                                                   | 740deb62 (3b738564)                     |
+| 7     | 4    | started 2026-11-21 (ui-kit-7, opus); commit e0637f2c; agent respawned `--continue` (opus) 2026-11-21 by the new orchestrator; not handed off                                                                          |                                         |
+
+**Landing mode (recorded 2026-11-21): run everything through.** Queued with `pnpm prd queue ui-kit`: start every ready slice, land each green wave through its PR (Codex-reviewed, never `--force`), clean up; ask only real questions.
+
+**Now (hand-off 2026-11-21, orchestrator rotated for context):**
+
+- **Landed:** wave 1 (PR #32, dev e610517), wave 2 (PR #35, dev f5234c8). Both Codex clean.
+- **Wave 3 (slices 5, 6): merged into prd/ui-kit, docs folded, not yet landed.** A quick gate (`wave 3 gate: …`) was started on the tip (the docs commit after 740deb62); if `.loops/.check-times.log` shows no ui-kit pass for it, rerun `pnpm prd check --quick "wave 3 gate: slices 5 and 6 passed quick at hand-off; only append-only conflicts"`. Then browser checks: `pnpm prd browser --changed --base dev --list`, and run by name, once each, only the ones no slice ran (slice 5 ran app-shell, invites, ui; slice 6 ran ui). Then `pnpm prd serve --restart`, `pnpm prd pr ui-kit`, `pnpm prd review ui-kit --wait`, `pnpm prd ready`, land: `pnpm prd land ui-kit -m "feat(ui-kit): Card, List, check and toggle fields in settings; DetailHeader and section bands on four detail pages (wave 3, B-260, B-261, B-266)"`. B-264 and B-397 stay open until slice 7.
+- **Slice 7 (wave 4): in flight** in worktree `ui-kit-7` (branch slice/ui-kit/7 from 740deb62), opus agent spawned by the old session; that agent died with it. Check the branch and worktree (git wins), then respawn with `pnpm prd prompt slice ui-kit 7 --continue` (pass the notes: read docs/domain/ui-kit.md; reuse `DetailHeader` `media`/`data-*`, `Page bands`/`Section`, `apps/web/test/bands.ts`; run `browser --changed --list` checks once on a stack). Merge it after wave 3 lands; then `backlog done B-264 B-397`, fold its profiles line, gate, PR, land wave 4, `pnpm prd rm ui-kit`.
+- **Lessons:** quick gates flake under load (load ~20–30): confirm a failure alone 3x; read-before-render races get fixed (two fixed: medications tabs, provider copy dialog). `land --no-review` is classifier-blocked: a late dev sync means push and re-wait for Codex. Commit no Status between `pr` and `land` (it moves the PR head). Don't send a loop a second "merge again" mid-check. `docs/domain/ui-kit.md` now holds the primitives (components.md was at budget): fold primitive lines there; the area docs are at budget, so trim what you add.
+- Models: slices 1, 2, 3, 5, 6, 7 opus; 4 sonnet.
 
 **Start conditions:** none outstanding (`list-filters` and `planner-2` are in `dev`). Never beside `i18n` (it runs alone). `quick-fixes` and `simple-mode` may run beside it; sync between waves.
 

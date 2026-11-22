@@ -40,6 +40,11 @@ pnpm prd <command>
     gc [--list|--yes]         merged slice worktrees and stacks stopped over a day: list, ask, remove
     reclaim [--list|--yes]    disk: merged worktrees, dangling Docker volumes and images, check builds and
                               Vite caches, with sizes; frees them after a yes
+    tidy [--yes] [--json]     leftovers sorted into safe (merged slice and landed plan worktrees, dead tickets,
+                              orphan test databases, stale remote refs, dangling caretook volumes, old hang
+                              logs, ended records) and ask (finished-looking live sessions, branches without a
+                              worktree, items to archive, registry rows that look done); --yes removes the safe
+                              ones and files the ask list as one report (prompt tidy: the haiku brief)
     test-db status|up|down|list|use   the shared test Postgres (a database per worktree, :5436)
     recover [--at HH:MM] [--wait] [--no-agent]   after a restart, crash or usage limit: Docker, stale locks,
                               the test Postgres, stacks one at a time, servers; then the recovery agent here
@@ -52,6 +57,9 @@ pnpm prd <command>
                               (--background: iTerm2 stays where it is and the selected tab stays selected)
     end [<name>]              end a recorded session, or with no name the calling shell's own (a finished
                               orchestrator or planner, after pnpm prd rm); its tab closes
+    rotate [<topic>] [--mid-wave] [--reason <text>]   replace an orchestrator's session with a fresh one
+                              (resume prompt, same name) from a background tab; refuses an uncommitted plan or
+                              slice worktrees (--mid-wave: on the user's word); prints the command without iTerm2
 
   Asks (questions and reports for the dev keeper, in the main checkout's .loops/.asks)
     ask --topic <t> --question <text> [--option <a>]… [--recommend <a|n>]   file a question; prints its id
@@ -82,10 +90,13 @@ pnpm prd <command>
     browser --suite           the lean end-to-end set, with a table (--timeout S; one retry on contention)
 
   Land
-    land <topic> [-m subject] [--no-review] [--local]   merge prd/<topic> into dev (only when the dev keeper
-                              says so) through its PR: merged on GitHub once its head is the local tip and
-                              Codex's verdict is clean, then dev-sync (--no-review: skip the verdict, on the
-                              user's word only; --local: a local merge, the fallback, on their word)
+    land <topic> [-m subject] [--recheck "<why>"] [--no-review] [--local]
+                              merge prd/<topic> into dev (only when the dev keeper says so) through its
+                              PR: merged on GitHub once its head is the local tip and Codex's verdict is
+                              clean, then dev-sync (--recheck: when the last check is stale, run it on the
+                              tip in the branch's worktree and land on a pass; --no-review: skip the
+                              verdict, on the user's word only; --local: a local merge, the fallback, on
+                              their word)
     land hotfix/<name> --pr|--local [-m subject]   a hotfix: ask the user "PR or local?" each time
     land plan/<topic>         a plan branch: always a local merge
     review <topic|branch> [--json] [--wait [min]] [--again] [--resolve <threadId>]
@@ -100,6 +111,7 @@ pnpm prd <command>
 
   prompt orchestrator|plan|slice <topic> [n|--auto]   the first prompt for a session (prompt backlog: no topic)
                      recover: the recovery agent (pnpm prd recover opens it)
+                     tidy: the cleanup brief for a cheap session (haiku), repeated with /loop
                      orchestrator <topic> --resume [--auto]: take over after an interruption
                      slice <topic> <n> --continue: pick up an interrupted slice
 USAGE
@@ -129,6 +141,7 @@ case $cmd in
   stack) exec "$bin/stack.sh" "$@" ;;
   gc) exec "$bin/gc.sh" "$@" ;;
   reclaim) exec "$bin/reclaim.sh" "$@" ;;
+  tidy) exec node "$bin/tidy-cli.mjs" "$@" ;;
   test-db | testdb) exec "$bin/test-db.sh" "$@" ;;
   prompt) exec "$bin/prompt.sh" "$@" ;;
   queue) exec "$bin/queue.sh" "$@" ;;
@@ -136,6 +149,7 @@ case $cmd in
   down) exec "$bin/down.sh" "$@" ;;
   open) exec "$bin/open-session.sh" "$@" ;;
   end) exec "$bin/end-session.sh" "$@" ;;
+  rotate) exec "$bin/rotate.sh" "$@" ;;
   review) exec "$bin/review.sh" "$@" ;;
   pr) exec "$bin/pr.sh" "$@" ;;
   dev-sync) (($# <= 1)) || die "dev-sync: at most one branch name"; dev_sync "${1:-}" ;;

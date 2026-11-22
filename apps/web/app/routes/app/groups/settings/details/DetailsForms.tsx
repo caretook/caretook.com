@@ -3,7 +3,7 @@ import type { ActionResult } from "~/lib/core/api";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { SaveRow } from "~/components/settings";
-import { Field } from "~/components/ui";
+import { Button, Field } from "~/components/ui";
 import { timeZoneLabel, timeZoneOptions } from "../groupSettings";
 
 // The Details page's forms (online, with the role): the group's name and the
@@ -47,16 +47,10 @@ function TimeZoneField({ value, result }: { value: string | null; result: Action
   const error =
     result && !result.ok ? result.issues.find((issue) => issue.path === "timeZone")?.message : undefined;
   return (
-    <Field label="Time zone" help="Medication times follow this zone." error={error}>
+    <Field kind="select" label="Time zone" help="Medication times follow this zone." error={error}>
       {(control) => (
         <div className="flex flex-col items-start gap-2">
-          <select
-            {...control}
-            name="timeZone"
-            value={zone}
-            onChange={(e) => setZone(e.target.value)}
-            className={`select w-full ${error ? "select-error" : ""}`}
-          >
+          <select {...control} name="timeZone" value={zone} onChange={(e) => setZone(e.target.value)}>
             {!zone && <option value="">Not set</option>}
             {timeZoneOptions(value, device).map((option) => (
               <option key={option} value={option}>
@@ -65,14 +59,9 @@ function TimeZoneField({ value, result }: { value: string | null; result: Action
             ))}
           </select>
           {device && zone !== device && (
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              data-use-device-zone
-              onClick={() => setZone(device)}
-            >
+            <Button variant="ghost" size="sm" data-use-device-zone="" onClick={() => setZone(device)}>
               Use this device's ({timeZoneLabel(device)})
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -105,7 +94,7 @@ function TextField({
   const error =
     result && !result.ok ? result.issues.find((issue) => issue.path === name)?.message : undefined;
   return (
-    <Field label={label} help={help} error={error}>
+    <Field kind="input" label={label} help={help} error={error}>
       {(control) => (
         <input
           {...control}
@@ -115,7 +104,6 @@ function TextField({
           defaultValue={value}
           maxLength={maxLength}
           autoComplete="off"
-          className={`input w-full ${error ? "input-error" : ""}`}
         />
       )}
     </Field>

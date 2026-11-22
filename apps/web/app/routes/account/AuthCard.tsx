@@ -2,7 +2,7 @@ import type { FormEvent, ReactNode } from "react";
 
 import { useCallback, useRef } from "react";
 import { useSubmit } from "react-router";
-import { Field } from "~/components/ui/plain";
+import { Field, Message, Notice } from "~/components/ui/plain";
 
 // The card every signed-out account page sits in (sign-in, reset password,
 // verify email). Shared by those routes only, so it lives beside them.
@@ -67,18 +67,10 @@ export function EmailField({ defaultValue }: { defaultValue?: string }) {
 
 /** A polite announcement ("Check your email…"). */
 export function StatusMessage({ children }: { children: ReactNode }) {
-  return (
-    <p role="status" className="alert alert-info alert-soft text-sm">
-      {children}
-    </p>
-  );
+  return <Notice>{children}</Notice>;
 }
 
 /** A form error, announced at once. */
 export function ErrorMessage({ children }: { children: ReactNode }) {
-  return (
-    <p role="alert" className="text-error text-sm">
-      {children}
-    </p>
-  );
+  return <Message tone="error">{children}</Message>;
 }

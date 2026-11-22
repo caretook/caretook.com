@@ -6,7 +6,7 @@ import { visibleSharedFields } from "@caretook/data/schema";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { ContactLines } from "~/components/contact";
-import { ConfirmDialog, UserAvatar } from "~/components/ui";
+import { Badge, Button, ConfirmDialog, List, ListRow, Message, UserAvatar } from "~/components/ui";
 import { emergencyBadges } from "~/lib/profiles/emergencyList";
 import { useLiveQuery } from "~/lib/sync";
 import {
@@ -71,7 +71,7 @@ export function Members({
 
   return (
     <>
-      <ul className="divide-base-200 divide-y">
+      <List>
         {members.map((member) => {
           const isSelf = member.user_id === userId;
           const mine = target?.userId === member.user_id;
@@ -91,7 +91,7 @@ export function Members({
             />
           );
         })}
-      </ul>
+      </List>
       {/* Offline there's nothing to confirm: no controls at all. */}
       {online && (
         <ConfirmDialog
@@ -154,7 +154,7 @@ function MemberItem({
 
   const error = (result && !result.ok ? result.error : undefined) ?? removeError;
   return (
-    <li data-member={member.user_id} className="space-y-1 py-3 first:pt-0 last:pb-0">
+    <ListRow data-member={member.user_id} className="space-y-1">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <UserAvatar name={member.name} image={member.image} size="lg" />
         <div className="min-w-0 flex-1">
@@ -165,13 +165,13 @@ function MemberItem({
           {badges.length > 0 && (
             <p className="flex flex-wrap gap-1 py-0.5" data-member-badges="">
               {badges.map((badge) => (
-                <span
+                <Badge
                   key={badge}
-                  className={`badge badge-sm ${badge === "Primary contact" ? "badge-primary" : "badge-outline"}`}
+                  tone={badge === "Primary contact" ? "primary" : "neutral"}
                   data-badge={badge === "Primary contact" ? "primary" : "emergency"}
                 >
                   {badge}
-                </span>
+                </Badge>
               ))}
             </p>
           )}
@@ -206,22 +206,19 @@ function MemberItem({
           </span>
         )}
         {(access?.remove || access?.leave) && (
-          <button
-            type="button"
-            className="btn btn-sm"
-            disabled={busy || removing}
+          <Button
+            size="sm"
+            busy={removing}
+            busyLabel={access.leave ? "Leaving…" : "Removing…"}
+            disabled={busy}
             aria-label={access.leave ? "Leave this care group" : `Remove ${name}`}
             onClick={onRemove}
           >
-            {access.leave ? (removing ? "Leaving…" : "Leave") : removing ? "Removing…" : "Remove"}
-          </button>
+            {access.leave ? "Leave" : "Remove"}
+          </Button>
         )}
       </div>
-      {error && (
-        <p role="alert" className="text-error text-sm">
-          {error}
-        </p>
-      )}
+      {error && <Message tone="error">{error}</Message>}
       {contactLines.length > 0 && (
         <div className="pl-12">
           <ContactLines lines={contactLines} data-member-contact="" />
@@ -240,6 +237,6 @@ function MemberItem({
             {sharedSummary(visibleSharedFields(share))}
           </p>
         ))}
-    </li>
+    </ListRow>
   );
 }
