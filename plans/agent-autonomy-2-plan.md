@@ -12,8 +12,9 @@
 | 4     | 2    | —     | —                                                 |
 | 5     | 2    | —     | —                                                 |
 | 6     | 3    | —     | —                                                 |
+| 7     | 3    | —     | —                                                 |
 
-**Backlog:** claim B-507, B-509 and B-508 when slice 1 starts; `done` B-507 and B-509 when slice 1 merges, B-508 when slice 2 merges. B-437 with slice 3, B-514 with slice 4; claim B-515 when slice 5 starts and leave it open with a note when slice 6 merges unless `inbox` is in the kept-alive kinds by then (`inbox-agent`'s slice 5 then closes it).
+**Backlog:** claim B-507, B-509 and B-508 when slice 1 starts; `done` B-507 and B-509 when slice 1 merges, B-508 when slice 2 merges. B-437 with slice 3, B-514 with slice 4, B-541 with slice 7; claim B-515 when slice 5 starts and leave it open with a note when slice 6 merges unless `inbox` is in the kept-alive kinds by then (`inbox-agent`'s slice 5 then closes it).
 
 Fold into the docs at landing (the PRD's _Docs at landing_): wave 1, [machinery](../docs/agents/machinery.md) (the hook, the size record, `pnpm prd context`), [orchestrator](../docs/agents/orchestrator.md) (the rotation rule: reword the 160k line already there), [loop](../docs/agents/loop.md) (the loop's reminder), [orchestration](../docs/orchestration.md); wave 2, machinery (the dispatcher's follow-up, `rotate --self`), [backlog](../docs/agents/backlog.md) (the hand-off); wave 1 also [hotfix](../docs/agents/hotfix.md) and [recovery](../docs/agents/recovery.md) (recorded sessions); wave 3, machinery and backlog (the keep-alive). Trim at least what you fold in.
 
@@ -29,8 +30,8 @@ Fold into the docs at landing (the PRD's _Docs at landing_): wave 1, [machinery]
 
 ## How to run this plan
 
-- **Waves:** 1: slices 1 and 3. 2: slices 2, 4 and 5. 3: slice 6. Each lands something usable alone.
-- **Who owns what in a shared wave.** Wave 1: slice 1 owns the hook, the size record, `pnpm prd context` and status's size column; slice 3 owns `session.sh`'s kinds, the commands that start backlog, hotfix and recovery sessions, status's kind column and the opener's main-checkout case. Both touch `session.sh` (slice 1 the settings file it passes, slice 3 the kinds) and status's session lines: the orchestrator merges. Wave 2: slice 2 owns the dispatcher's context decision; slice 4 owns `rotate.sh`/`rotate-into.sh` and the backlog prompt. Slice 5 owns the keep-alive decision, its question and its tick step; slices 2 and 5 both add to the dispatcher's tick and state, in separate entries: the orchestrator merges. Slice 2's rotation calls slice 4's `--self` only for backlog sessions, and that wiring is slice 6's.
+- **Waves:** 1: slices 1 and 3. 2: slices 2, 4 and 5. 3: slices 6 and 7. Each lands something usable alone.
+- **Who owns what in a shared wave.** Wave 1: slice 1 owns the hook, the size record, `pnpm prd context` and status's size column; slice 3 owns `session.sh`'s kinds, the commands that start backlog, hotfix and recovery sessions, status's kind column and the opener's main-checkout case. Both touch `session.sh` (slice 1 the settings file it passes, slice 3 the kinds) and status's session lines: the orchestrator merges. Wave 2: slice 2 owns the dispatcher's context decision; slice 4 owns `rotate.sh`/`rotate-into.sh` and the backlog prompt. Slice 5 owns the keep-alive decision, its question and its tick step; slices 2 and 5 both add to the dispatcher's tick and state, in separate entries: the orchestrator merges. Slice 2's rotation calls slice 4's `--self` only for backlog sessions, and that wiring is slice 6's. Wave 3: slice 6 owns the context watch's backlog case; slice 7 owns the request queue, its commands and its tick step; both touch the dispatcher's tick in separate steps.
 - **Gate:** the diff is tooling and Markdown, so the check gate needs nothing; run `pnpm test:tooling` and `pnpm exec eslint scripts` before each landing. No browser checks.
 - **Models:** opus or stronger for every slice.
 - **Reaching sessions:** the hook reaches a session only when it is next started through the wrapper, so this PRD's own orchestrator gets it at its first rotation after wave 1. Say so in the landing report.
@@ -139,3 +140,21 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/backlog.md · Tests: u
 - `pnpm test:tooling` passes.
 
 **Blocked by:** 2, 4, 5. **Blocks:** nothing.
+
+## Slice 7: Named backlog sessions on request
+
+Stack: no · Reads: docs/agents/machinery.md, docs/agents/backlog.md · Tests: unit
+
+**User stories:** US 13, 14.
+
+**Build:** the PRD's _Named sessions on request_. `pnpm prd session request backlog <name> [--brief <file>] [--model <m>]` and `pnpm prd session requests [--json]`; the request store in `.loops/.requests/`; the dispatcher's tick step (the oldest pending request; refuse a live name or over `CARETOOK_MAX_BACKLOG_SESSIONS`; else open `backlog-<name>` with Remote Control `backlog - <name>`, the brief on top, managed, not kept alive; a notice either way; the request marked done); paused leaves requests pending; `pnpm prd status` lists pending ones. The backlog prompt: when the user asks for another backlog session for a task, write a brief and request it, then tell the user the name.
+
+**Acceptance criteria:**
+
+- Request tests: a good name files a request and prints its id; a bad name, or a brief file that can't be read, is refused; `requests --json` lists it.
+- Decision unit tests: the oldest pending request is taken; a live name is refused with a reason; the limit counts every live backlog-kind session, the default and by-hand ones included; paused takes nothing; a refused or opened request is never taken again.
+- Tick tests (stub opener): an accepted request opens `backlog-<name>` through `session.sh --kind backlog` with Remote Control `backlog - <name>` and the brief at the top of the prompt, posts the opened notice and marks it done; a refusal posts its notice; the keep-alive never reopens a named session.
+- Prompt tests: the backlog prompt has the request paragraph.
+- `pnpm test:tooling` passes.
+
+**Blocked by:** 3, 4. **Blocks:** nothing.
