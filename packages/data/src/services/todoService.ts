@@ -408,6 +408,62 @@ export const reopen = (ctx: ServiceContext, id: string) =>
     return write(ctx, tx, id, { doneAt: null, doneBy: null, ...stops });
   }, ctx);
 
+/** The open row of `next`'s chain due just before it (the one an Undo reopened), if any. */
+const openBeforeInChain = async (tx: Tx, next: Todo) => {
+  if (!next.repeatId || next.repeatId === next.id || !next.dueOn) return null;
+  const rows = await todoModel.list({
+    ...system(tx),
+    filter: {
+      groupId: { type: "eq", value: next.groupId },
+      repeatId: { type: "eq", value: next.repeatId },
+      id: { type: "ne", value: next.id },
+      dueOn: { type: "lt", value: next.dueOn },
+      doneAt: { type: "isNull" },
+    },
+    orderBy: [
+      { field: "dueOn", direction: "desc" },
+      { field: "id", direction: "desc" },
+    ],
+    paginate: { limit: 1, page: 1 },
+  });
+  if (isError(rows)) return rows;
+  return rows.data[0] ?? null;
+};
+
+/**
+ * A device's Undo taking away the next occurrence its tick made (that
+ * row's soft delete, flagged on the upload, B-382). `reopen`, uploaded just
+ * before it, has already decided; this removes the next only when it's
+ * still untouched after the reopened todo (the same test as `reopen`), so
+ * a next another member edited, completed or wrote notes on meanwhile
+ * stays. The same people as `reopen`. Returns the row when it stays.
+ */
+export const removeUndoneNext = (ctx: ServiceContext, id: string) =>
+  withTransaction(async (tx) => {
+    const next = await todoModel.getById(id, { ...ctx, tx, includeDeleted: true });
+    if (isError(next)) return next;
+    if (!next) return notFound();
+    if (next.deletedAt) return next;
+
+    const before = await openBeforeInChain(tx, next);
+    if (isError(before)) return before;
+    if (!before?.repeatRule) return next;
+
+    const role = await roleIn(ctx, tx, next.groupId);
+    if (isError(role)) return role;
+    if (!canCompleteTodo({ role, userId: ctx.authUser?.id, todo: before }))
+      return isTodoCompleter(role) ? completionRefused() : rejectError(ctx.authUser);
+
+    const notes = await hasNotes(tx, id);
+    if (isError(notes)) return notes;
+    if (!isUntouchedNext(before, next) || notes) return next;
+
+    const removed = await todoModel.remove({ ...system(tx), filter: { id: { type: "eq", value: id } } });
+    if (isError(removed)) return removed;
+    const queued = await enqueueCalendarPush(tx, { todoId: id }, "todo");
+    return queued ?? removed;
+  }, ctx);
+
 /**
  * Skip this occurrence of a repeating todo: it's soft-deleted and the next
  * one made, in one transaction. A todo that doesn't repeat (or whose rule

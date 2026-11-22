@@ -120,19 +120,27 @@ const readEntries = async (db: SyncDb, groupId: string, ids: string) => {
   );
 };
 
+/** A provider row with its practice's name, as `providerResultsSql` reads it. */
+export type ProviderResultRow = ProviderRow & { practice_name: string | null };
+
+/** Providers in a group (`p`, the first parameter) with their practice's name, by `where` on `p`. */
+export const providerResultsSql = (where: string) =>
+  `SELECT p.*, pr.name AS practice_name FROM provider p
+   LEFT JOIN provider pr ON pr.id = p.practice_id AND pr.group_id = p.group_id AND pr.deleted_at IS NULL
+   WHERE p.group_id = ? AND ${where}`;
+
+/** The result for a row, or null when it isn't one (unreadable, or deleted). */
+export const toProviderResult = (row: ProviderResultRow): ProviderResult | null => {
+  const provider = row.deleted_at ? null : toProvider(row);
+  return provider && { ...provider, practiceName: row.practice_name };
+};
+
 const readProviders = async (db: SyncDb, groupId: string, ids: string) => {
-  const rows = await db.powersync.getAll<ProviderRow & { practice_name: string | null }>(
-    `SELECT p.*, pr.name AS practice_name FROM provider p
-     LEFT JOIN provider pr ON pr.id = p.practice_id AND pr.group_id = p.group_id AND pr.deleted_at IS NULL
-     WHERE p.group_id = ? AND p.deleted_at IS NULL AND ${inIds("p.id")}`,
+  const rows = await db.powersync.getAll<ProviderResultRow>(
+    providerResultsSql(`p.deleted_at IS NULL AND ${inIds("p.id")}`),
     [groupId, ids],
   );
-  return byId(
-    rows.flatMap((row) => {
-      const provider = toProvider(row);
-      return provider ? [{ ...provider, practiceName: row.practice_name }] : [];
-    }),
-  );
+  return byId(rows.flatMap((row) => toProviderResult(row) ?? []));
 };
 
 const readMedications = async (db: SyncDb, groupId: string, ids: string) => {

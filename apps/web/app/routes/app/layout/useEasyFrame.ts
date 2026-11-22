@@ -6,7 +6,7 @@ import type { GroupRow } from "~/lib/timeline/timeline.sync";
 import { useMemo } from "react";
 import { useRouteLoaderData } from "react-router";
 import { appUrls } from "~/lib/app-shell/appUrls";
-import { cachedSettings } from "~/lib/app-shell/me";
+import { useCachedSettings } from "~/lib/app-shell/me";
 import { useLiveQuery } from "~/lib/sync";
 import { myGroupsQuery } from "~/lib/timeline/timeline.sync";
 import { useLiveMembership, useEasyMode } from "~/lib/assistant/useEasyMode";
@@ -20,7 +20,9 @@ const NO_MEMBERSHIP: EasyMembership = { role: null };
  * to the pages in `lib/assistant/easyModeLock.ts`).
  * The same inputs as the timeline's (`useEasyMode`): the membership live
  * from the device (the group route's loader data until the watch answers),
- * your own setting as this device last loaded it, and the device's toggle.
+ * your own setting as this device knows it (live from the settings store, as
+ * the timeline's `useMySettings` is, so a change from another device that a
+ * refresh brings switches both at once), and the device's toggle.
  * Null for the full header.
  */
 export function useEasyFrame(
@@ -30,12 +32,8 @@ export function useEasyFrame(
 ): EasyModeState | null {
   const loaded = useRouteLoaderData<GroupContext>("group");
   const membership = useLiveMembership(userId, groupId ?? "", loaded);
-  const mode = useEasyMode(
-    userId,
-    groupId ?? "",
-    membership ?? NO_MEMBERSHIP,
-    cachedSettings(userId).easyMode,
-  );
+  const { easyMode } = useCachedSettings(userId);
+  const mode = useEasyMode(userId, groupId ?? "", membership ?? NO_MEMBERSHIP, easyMode);
   const onTimeline = !!groupId && pathname.startsWith(appUrls.timeline(groupId));
   return membership && (mode.easyRole || (onTimeline && mode.easy)) ? mode : null;
 }
