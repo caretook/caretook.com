@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import type { DeviceRoute } from "../../../test/device";
 
 import { useState } from "react";
@@ -111,13 +112,34 @@ function RouteHarness({ onChange }: { onChange?: (open: boolean) => void }) {
   );
 }
 
+/** The browser's Back, pressed from outside the sheet's focus scope. */
+const pressBack = () => document.querySelector<HTMLElement>("[data-back]")?.click();
+
+/** The routes with a Back control beside the screen: the stub's history has no browser button. */
+function withBack(routes: DeviceRoute[]): DeviceRoute[] {
+  return routes.map((route) => {
+    const Screen = route.module.default as ComponentType<object>;
+    function WithBack(props: object) {
+      const navigate = useNavigate();
+      return (
+        <>
+          <button type="button" hidden data-back onClick={() => void navigate(-1)} />
+          <Screen {...props} />
+        </>
+      );
+    }
+    return { ...route, module: { ...route.module, default: WithBack } };
+  });
+}
+
 const DISMISSALS = [
   { way: "Close", act: () => userEvent.click(page.getByRole("button", { name: "Close" })) },
   { way: "Escape", act: () => userEvent.keyboard("{Escape}") },
   // Beside the centred sheet, on the dimming.
   {
     way: "a tap outside",
-    act: () => userEvent.click(page.elementLocator(overlay()!), { position: { x: 4, y: 4 } }),
+    act: async () =>
+      userEvent.click(page.elementLocator(await found(() => overlay())), { position: { x: 4, y: 4 } }),
   },
 ] as const;
 
@@ -146,8 +168,8 @@ describe.each(DISMISSALS)("dismissed by $way", ({ act }) => {
     const { screen } = await renderInRouter(<DismissHarness onChange={onChange} />, { width: 800 });
     await userEvent.click(screen.getByRole("button", { name: "Add symptom" }));
     await expect.element(page.getByRole("dialog", { name: "New symptom" })).toBeVisible();
-    expect(longest(overlay()!)).toBe(0);
-    expect(longest(panel()!)).toBe(0);
+    expect(longest(await found(() => overlay()))).toBe(0);
+    expect(longest(await found(() => panel()))).toBe(0);
     await act();
     await nextFrame();
     expect(overlay()).toBeNull();
@@ -197,7 +219,7 @@ describe("closed by navigating", () => {
     const { location } = await openRouteSheet(onChange);
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => overlay()?.hasAttribute("data-closing")).toBe(true);
-    document.querySelector<HTMLElement>("[data-back]")?.click();
+    pressBack();
     await expect.poll(location).toBe("/");
     await expect.poll(overlay).toBeNull();
     expect(onChange).not.toHaveBeenCalled();
@@ -206,10 +228,20 @@ describe("closed by navigating", () => {
   test("with reduced motion a navigation isn't held", async () => {
     await reduceMotion();
     const { location } = await openRouteSheet();
-    expect(longest(overlay()!)).toBe(0);
+    expect(longest(await found(() => overlay()))).toBe(0);
     await userEvent.click(page.getByRole("link", { name: "Cancel" }));
     await expect.poll(location).toBe("/");
     await nextFrame();
+    expect(overlay()).toBeNull();
+  });
+
+  test("with reduced motion Back completes in the next frame", async () => {
+    await reduceMotion();
+    const { location } = await openRouteSheet();
+    expect(longest(await found(() => overlay()))).toBe(0);
+    pressBack();
+    await nextFrame();
+    expect(location()).toBe("/");
     expect(overlay()).toBeNull();
   });
 });
@@ -218,7 +250,7 @@ describe("a real route sheet (adding a pass)", () => {
   const NEW_PASS = `${PASSES}/new`;
   const openSheet = async () => {
     const device = await renderWithDevice({
-      route: MEDICATION_ROUTES,
+      route: withBack(MEDICATION_ROUTES),
       url: PASSES,
       role: "caretaker",
       fixtures: [MORNING],
@@ -231,11 +263,14 @@ describe("a real route sheet (adding a pass)", () => {
     return { device, add };
   };
 
-  test("Cancel lands on the tab after the exit; focus returns to the opener", async () => {
+  test.each([
+    { way: "Cancel", leave: () => userEvent.click(page.getByRole("button", { name: "Cancel" })) },
+    { way: "Back", leave: () => Promise.resolve(pressBack()) },
+  ])("$way lands on the tab after the exit; focus returns to the opener", async ({ leave }) => {
     const { device, add } = await openSheet();
     await expect.poll(() => getComputedStyle(overlay()!).opacity).toBe("1");
     const exit = watchExit();
-    await userEvent.click(page.getByRole("button", { name: "Cancel" }));
+    await leave();
     await expect.poll(() => device.location()).toBe(PASSES);
     await expect.poll(overlay).toBeNull();
     expect((exit.removedAt ?? NaN) - (exit.exitAt ?? NaN)).toBeGreaterThanOrEqual(MOTION_MS - 20);
@@ -293,6 +328,8 @@ test("stacked sheets: the top one exits alone; the one under it then navigates; 
   expect(device.location()).toBe(`${LIST}/new`);
   expect(document.querySelector('[data-sheet="overlay"][data-closing]')).toBeNull();
 
+  // Escape reaches the sheet that holds focus, so wait for it to come back.
+  await expect.poll(() => todo.element().contains(document.activeElement)).toBe(true);
   await userEvent.keyboard("{Escape}");
   await expect.poll(() => device.location().split("?")[0]).toBe(LIST);
   await expect.poll(overlay).toBeNull();

@@ -6,6 +6,14 @@ import { Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { IconButton } from "./IconButton";
 import { NavigationHold, useSheetExit } from "./useSheetExit";
 
+/** What had focus as the sheet mounted. A menu item is gone by the close, so its menu's trigger instead. */
+function findOpener() {
+  if (typeof document === "undefined") return null;
+  const active = document.activeElement;
+  const trigger = active?.closest<HTMLElement>('[role="menu"]')?.dataset.menuOf;
+  return (trigger && document.querySelector(`[data-menu-trigger="${CSS.escape(trigger)}"]`)) || active;
+}
+
 /**
  * The full screen on phones (below `sm`: the whole viewport, no gap above for
  * the header, the safe-area insets kept, its own scroll), a centered dialog on
@@ -34,7 +42,7 @@ export function Sheet({
   title: string;
   children: ReactNode;
 }) {
-  const [opener] = useState(() => (typeof document === "undefined" ? null : document.activeElement));
+  const [opener] = useState(findOpener);
   useEffect(
     () => () => {
       // After React Aria's own restore (the next frame).
