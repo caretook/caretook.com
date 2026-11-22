@@ -11,7 +11,7 @@
 | 3     | 1    | merged (opus); conflicts resolved in session.sh and status-extra | 5162f553 (9da26376, 41a67e83)                     |
 | 4     | 2    | merged (opus)                                                    | 93b16067 (8104cb2e)                               |
 | 5     | 2    | merged (opus); conflicts resolved in dispatch.mjs and its test   | db78a219 (ba12c013)                               |
-| 6     | 3    | —                                                                | —                                                 |
+| 6     | 3    | merged (opus)                                                    | 0b028f59 (6c43892f)                               |
 | 7     | 3    | —                                                                | —                                                 |
 
 **Landing mode:** run everything through (started by the dispatcher): land each green wave, clean up, ask only real questions through `pnpm prd ask`.
@@ -23,6 +23,8 @@
 **Wave 2 landed** in dev as a7313664 through PR #70 (Codex clean on 04b2d4d; to-test `2026-11-22-1717-agent-autonomy-2.md`; landing report filed). Gate on the tip: 52 tooling test files, 971 tests, `eslint scripts` clean; `browser.test.mjs` and `pnpm prd check` skipped on the user's word. Docs folded, `machinery.md` trimmed to 15,320 B.
 
 **Wave 3 (started 2026-11-22):** the wave boundary is done (nothing new for this topic; synced with dev at a47a5963). B-541 claimed, B-515 still claimed. Worktrees `agent-autonomy-2-6` and `agent-autonomy-2-7` made and one opus agent spawned for each. `test-gates` wave 1 is in dev (adce90ee) but that topic is still running: once it is done, restore this topic's hot entries (see _Open issues_). Both wave 3 slices touch the dispatcher's tick in separate steps; merge 6, then 7.
+
+**Slice 6 merged** as 0b028f59; its worktree is removed and slice 7 is still running. Its gate: 52 tooling test files, 990 tests, `eslint scripts` clean, `browser.test.mjs` skipped; stubs only, no real session. The tick opens `rotate-into.sh <name> <pid> --reason context` itself, with `--brief <file>` or the new `--no-brief`. A backlog session's subagents get no reminder and no record. The command guard is one regex, so a running `pnpm backlog` now also holds an orchestrator's rotation. **Fold at landing:** machinery still says the hook is for `prd` sessions only; add backlog sessions, `--no-brief` and the wider guard. B-515 stays open until `inbox` is in the kept-alive kinds.
 
 **Hook live test:** passed for the session's own size: this orchestrator read 53k from `pnpm prd context` after a wrapper start. Whether a subagent's PostToolUse names its own transcript is still unproven.
 
