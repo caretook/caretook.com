@@ -4,6 +4,8 @@ import { afterEach, beforeEach, vi } from "vitest";
 import { cleanup } from "vitest-browser-react";
 import { closeDevices } from "./device";
 import { TEST_NOW } from "./found";
+// Registers `getByCss` on `page` and every locator.
+import "./locators";
 
 // The page as root.tsx renders it: the body's classes and the document's language.
 document.documentElement.lang = "en";
