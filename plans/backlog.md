@@ -102,7 +102,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `documents` | hold | `encryption` | — | to write (B-56) · Depends on: hosting (B-33, file storage); `profiles` (soft); `encryption` decision · Hot files: file storage, its area's `routes.ts`, `urls.ts`, schema and `permissions/` parts, `GROUP_SECTIONS` |
 | `contract-migrations` | hold | — | — | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** Contract steps tracked from fixes-nit (B-379): B-455, B-456, B-457. Migrations: run alone in its wave. To write. |
 | `timeline-jump` | — | `quick-entry-2` | — | Jump to a date on the timeline, by picker and quick entry (B-557) |
-| `assistant-access` | — | — | — | Owner chooses read/write or read only for a group's assistants (B-558) |
+| `assistant-access` | — | — | `packages/data/src/db/schema/care-groups/careGroup.ts`, `packages/data/src/db/schema/connectors/connectorRules`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/careGroupService.ts`, `packages/api/src/care-groups/careGroup.ts`, `packages/api/src/connectors/protocol.ts`, `packages/api/src/connectors/connect.ts`, `packages/api/src/connectors/connector.ts`, `packages/api/src/connectors/tools/groupOverview.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/care-groups/assistantsSwitch.sync.ts`, `apps/web/app/routes/app/groups/settings/assistants/`, `apps/web/app/routes/connectors/connect/`, `apps/web/app/routes/app/settings/devices/ConnectedAssistants.tsx` | Owner chooses read/write or read only for a group's assistants (B-558) |
 
 ## Summary
 
@@ -2824,6 +2824,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-22 (Robert Bo Davis): From the inbox: Assistants settings needs to allow owner to enable read/write or stick to read only for group assistant plugin. Default to read/write
 - 2026-11-22 (Robert Bo Davis): Decided with the user 2026-11-22: one owner-only group setting under Group settings > Assistants, default read and write. Read only keeps connections and removes write tools on the next call; switching back restores writing for connections approved for it, with no reconnecting. Shown in Assistants settings, Connected assistants and the connect screen as Read only, set by the group owner; no email. Triaged to assistant-access: needs an additive group column, and connectors-3 waits behind the held planner-3.
+- 2026-11-22 (plan/assistant-access): PRD and plan written: three slices (server gate, owner control, connect screen and Devices). See plans/assistant-access-prd.md.
 
 ### B-559 · bug · Tooling scripts break on Linux: BSD 'stat -f %m' succeeds under GNU stat, so watchdog caps and silence limits never fire
 
