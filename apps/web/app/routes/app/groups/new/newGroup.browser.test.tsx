@@ -98,7 +98,7 @@ describe("the New care group sheet", () => {
     await expect.element(field("Group name")).toHaveAttribute("placeholder", "Lou's care");
     await userEvent.click(sheet().getByRole("button", { name: "Create care group" }));
 
-    await expect.poll(device.location, { timeout: 5000 }).toBe(timelineUrl(NEW.group));
+    await expect.poll(device.location).toBe(timelineUrl(NEW.group));
     await expect.element(page.getByRole("heading", { name: "Invite someone" })).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: "Invite someone" }))

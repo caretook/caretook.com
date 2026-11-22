@@ -123,8 +123,9 @@ describe("TabNav", () => {
       { url: "/m/schedule", width: 420 },
     );
     const links = nav().getByRole("link").elements();
-    const [a, b] = links.map((l) => l.getBoundingClientRect().width);
-    expect(Math.abs(a! - b!)).toBeLessThan(2);
+    const widths = links.map((l) => l.getBoundingClientRect().width);
+    expect(widths).toHaveLength(2);
+    expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(2);
     expect(nav().element().getBoundingClientRect().width).toBeGreaterThan(380);
   });
 

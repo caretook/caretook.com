@@ -138,11 +138,13 @@ describe("Calendar & reminders", () => {
   test("says what leaves by default, with the consent's wording on the switch", async () => {
     await open({ api: calendarServer("caretaker").api });
     await expect.element(consent()).not.toBeChecked();
-    expect(section("details-outside")!.textContent).toContain(
+    expect((await found(() => section("details-outside"))).textContent).toContain(
       `say only "Appointment for Grandma June", the time and a link back`,
     );
     const describedBy = consent().element().getAttribute("aria-describedby")!;
-    expect(document.getElementById(describedBy)!.textContent).toMatch(/Notes never leave Caretook\./);
+    expect((await found(() => document.getElementById(describedBy))).textContent).toMatch(
+      /Notes never leave Caretook\./,
+    );
   });
 
   test("a writer turns details on, and sees when they agreed", async () => {

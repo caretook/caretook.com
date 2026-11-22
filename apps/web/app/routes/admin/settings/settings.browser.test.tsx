@@ -50,7 +50,7 @@ describe("/admin/settings", () => {
     await expect.element(card("signup.accessCodes")).toBeVisible();
     expect(document.querySelectorAll("[data-setting]")).toHaveLength(APP_SETTING_KEYS.length);
     expect(document.querySelectorAll("[data-setting-form]")).toHaveLength(APP_SETTING_KEYS.length);
-    expect(cardElement("signup.accessCodes").querySelector("[data-setting-value]")!.textContent).toBe("On");
+    expect(cardElement("signup.accessCodes").querySelector("[data-setting-value]")?.textContent).toBe("On");
     expect(cardElement("signup.accessCodes").textContent).toContain("(in use)");
   });
 
@@ -63,7 +63,7 @@ describe("/admin/settings", () => {
 
     await expect.element(accessCodes.getByRole("status")).toHaveTextContent("Access-code sign-up saved.");
     expect(cardElement("signup.accessCodes").getAttribute("data-value")).toBe("false");
-    expect(cardElement("signup.accessCodes").querySelector("[data-setting-value]")!.textContent).toBe("Off");
+    expect(cardElement("signup.accessCodes").querySelector("[data-setting-value]")?.textContent).toBe("Off");
     expect(posts).toEqual([{ key: "signup.accessCodes", value: "off", reason: "Pause sign-up" }]);
   });
 
@@ -85,7 +85,7 @@ describe("/admin/settings", () => {
     await userEvent.fill(announcement.getByRole("textbox", { name: /^Reason/ }), "Maintenance notice");
     await userEvent.click(announcement.getByRole("button", { name: "Save" }));
     await expect.element(announcement.getByRole("status")).toHaveTextContent("Announcement saved.");
-    expect(cardElement("announcement").querySelector("[data-setting-value]")!.textContent).toBe(
+    expect(cardElement("announcement").querySelector("[data-setting-value]")?.textContent).toBe(
       "Warning: Maintenance tonight from 22:00",
     );
     expect(posts[0]).toMatchObject({
