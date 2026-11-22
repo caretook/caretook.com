@@ -4,10 +4,10 @@ import type { LocalCondition } from "~/lib/profiles/conditions.sync";
 
 import { ChevronRight } from "lucide-react";
 import { Link, useFetcher } from "react-router";
+import { Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { CONDITIONS_NOT_RECORDED, NO_KNOWN_CONDITIONS, sinceText } from "~/lib/profiles/conditions";
 import { CONDITION_FIELD } from "./conditions/conditionActions";
-import { ProfileCard } from "./ProfileCards";
 import { PROFILE_SHEET_STATE } from "./profileSheet";
 
 /**
@@ -35,10 +35,10 @@ export function ConditionsCard({
     );
 
   return (
-    <ProfileCard
+    <Section
       id="conditions"
       title="Conditions"
-      action={
+      actions={
         canWrite && (
           <Link
             to={appUrls.newCondition(groupId)}
@@ -104,7 +104,7 @@ export function ConditionsCard({
           {refusal}
         </p>
       )}
-    </ProfileCard>
+    </Section>
   );
 }
 

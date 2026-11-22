@@ -5,6 +5,7 @@ import type { RecipientDetails } from "~/lib/profiles/recipientDetails";
 import { Pencil } from "lucide-react";
 import { Link } from "react-router";
 import { ContactLines } from "~/components/contact";
+import { Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { memberContactLines } from "~/lib/profiles/memberContact";
 import {
@@ -14,7 +15,6 @@ import {
   planTitle,
 } from "~/lib/profiles/recipientDetails";
 import { PROFILE_NEEDS_CONNECTION } from "~/lib/profiles/recipientDisplay";
-import { ProfileCard } from "./ProfileCards";
 import { PROFILE_SHEET_STATE, useOnline } from "./profileSheet";
 
 // The writers' cards (profiles slice 3): the recipient's Contact (phones with
@@ -36,17 +36,17 @@ export function ContactCard({
 }) {
   const lines = memberContactLines(name, details);
   return (
-    <ProfileCard
+    <Section
       id="contact"
       title="Contact"
-      action={canEdit && <EditSheetLink groupId={groupId} sheet="contact" label="Edit contact" />}
+      actions={canEdit && <EditSheetLink groupId={groupId} sheet="contact" label="Edit contact" />}
     >
       {lines.length ? (
         <ContactLines lines={lines} data-recipient-contact="" />
       ) : (
         <p className="text-base-content/70 text-sm">No phone, email or address yet.</p>
       )}
-    </ProfileCard>
+    </Section>
   );
 }
 
@@ -62,10 +62,10 @@ export function InsuranceCard({
 }) {
   const plans = plansByRank(details.insurance);
   return (
-    <ProfileCard
+    <Section
       id="insurance"
       title="Insurance"
-      action={canEdit && <EditSheetLink groupId={groupId} sheet="insurance" label="Edit insurance" />}
+      actions={canEdit && <EditSheetLink groupId={groupId} sheet="insurance" label="Edit insurance" />}
     >
       {plans.length ? (
         <ul className="divide-base-300 divide-y">
@@ -109,7 +109,7 @@ export function InsuranceCard({
       ) : (
         <p className="text-base-content/70 text-sm">No insurance plans yet.</p>
       )}
-    </ProfileCard>
+    </Section>
   );
 }
 

@@ -1,4 +1,4 @@
-import { Page, PageHeader } from "~/components/ui";
+import { Page, PageHeader, Section } from "~/components/ui";
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/core/api";
@@ -29,7 +29,8 @@ import { ProfileHeader } from "./ProfileHeader";
 import { VitalAveragesCard } from "./VitalAveragesCard";
 
 // Shared by web + native. `…/profile`: the care recipient's profile, for
-// every member. Read from the device's copy (live, so it works offline and
+// every member, in bands (`Page bands`: the header, then each part a
+// `Section`). Read from the device's copy (live, so it works offline and
 // follows other members' edits). Writers edit it in sheets over the page
 // (`profile/basics`, `profile/contact`, `profile/insurance`), online only.
 // Writers also see the recipient's Contact and Insurance (slice 3) and the
@@ -118,19 +119,21 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
   );
 
   return (
-    <Page data-profile="">
+    <Page bands data-profile="">
       {!profile ? (
-        <>
+        <Section>
           <PageHeader title={group.displayName} description="This care group has no care recipient yet." />
-        </>
+        </Section>
       ) : (
         <>
-          <ProfileHeader profile={profile} />
+          <Section>
+            <ProfileHeader profile={profile} />
+          </Section>
           <BasicsCard profile={profile} />
           <ConditionsCard groupId={group.id} state={conditions.state} canWrite={group.canWrite} />
           <NoteCard profile={profile} canEdit={group.canWrite} />
           {averages && <VitalAveragesCard rows={averages} />}
-          {readsDetails && (
+          {readsDetails ? (
             <>
               <ContactCard
                 groupId={group.id}
@@ -146,11 +149,12 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
                 canManage={canManageEmergencyContacts(group.role)}
               />
             </>
-          )}
-          {!readsDetails && (
-            <p className="text-base-content/70 text-sm" data-viewer-more="">
-              {VIEWER_DETAILS_LINE}
-            </p>
+          ) : (
+            <Section>
+              <p className="text-muted text-sm" data-viewer-more="">
+                {VIEWER_DETAILS_LINE}
+              </p>
+            </Section>
           )}
         </>
       )}
