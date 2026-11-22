@@ -37,7 +37,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `todo-subtasks` | — | `planner-3` | — | to write (B-550): nested todos, 3 levels in code, parent auto-completes |
 | `calendars-2` | — | — | `packages/data/src/google/`, `packages/data/src/services/calendar`, `packages/data/src/db/schema/calendars/`, `packages/data/src/db/schema/notifications/`, `packages/data/src/db/schema/appointments/repeatRule`, `packages/data/src/db/schema/appointments/seriesVisits`, `packages/notifications/`, `apps/web/app/lib/appointments/repeatChoice`, `apps/web/app/lib/calendars/`, `apps/web/app/components/repeat/`, `apps/web/app/routes/app/groups/settings/calendar/` | [PRD](calendars-2-prd.md), [plan](calendars-2-plan.md) (B-304 to B-309): 7 slices, waves (1, 3, 5, 6) → (2, 4) → 7: Google deletes leave started items and todos alone; Google sync looks a year ahead with a daily catch-up; reminders expire at the event's start; deleted providers leave pushes; a stale consent goes generic and asks again; times name their zone; monthly on the last day. Two additive migrations (waves 1 and 3), no deps, no stack. Push notifications (B-377) are calendars-3 |
 | `ui-kit-4` | — | `ui-kit-3` | `apps/web/app/routes/`, `apps/web/app/components/`, `eslint.config.js`, `scripts/eslint/` | — |
-| `tags` | — | — | — | to write (B-548): group-wide tags on every record, filterable on each list and in search; adds a migration |
+| `tags` | — | `symptom-catalog` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/routes/app/groups/timeline/FilterSheet.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/search/`, `scripts/browser-checks/sync-matrix.mjs` | to write (B-548): group-wide tags on every record, filterable on each list and in search; adds a migration |
 | `fixes-perf` | standing | — | — | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
 | `fixes-nit` | standing | — | — | plan: plans/fixes-nit-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety-2` | hold | `sync-safety` | `packages/api/src/sync`, `apps/web/app/lib/sync/`, `packages/data/src/services/`, `apps/web/app/lib/todos/` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** to write (B-294 to B-296, B-382 to B-384, B-387): cut from sync-safety by its planner, 2026-11-21: device transactions applied atomically, device clocks on change entries, the stale tab, and the repeating-todo races |
@@ -337,7 +337,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-538 | change | triaged | fixes-ui |  | Planner tabs become Upcoming \| Past \| Todos: Upcoming and Past move out of the chip row into the main pill tabs (the Planner heading names the section), the filter button sits beside the tabs on Upcoming, and switching to Todos and back keeps Past |
 | B-539 | change | triaged | hotfix |  | Seed: a new normal-activity group, Tedder Family (Grandpa Hal), beside Grandma Pat's heavy use: six months of quiet history with gaps, providers, passes and medications, a mostly filled profile, a few events and one series, mostly undated todos |
 | B-540 | bug | dropped | fixes-tooling |  | calendarCron.int.test.ts 'runs the reminders first…' times out at 5 s under load (load ~42) in a full check; passes alone 3/3 |
-| B-541 | feature | triaged | agent-autonomy-2 |  | Named backlog sessions on request: a backlog session asks the dispatcher (a request queue) to open another backlog session by name, e.g. 'backlog - seed', with an optional brief; the dispatcher opens it in a new tab on Remote Control outside the PRD slots, refuses a name already live, and tells the requester it's open so they can message it by name |
+| B-541 | feature | ready | agent-autonomy-2 | prd/agent-autonomy-2 | Named backlog sessions on request: a backlog session asks the dispatcher (a request queue) to open another backlog session by name, e.g. 'backlog - seed', with an optional brief; the dispatcher opens it in a new tab on Remote Control outside the PRD slots, refuses a name already live, and tells the requester it's open so they can message it by name |
 | B-542 | chore | triaged | fixes-tooling |  | Unit-test projects run at Vitest's default workers (cores - 1, 9 here): two overlapping checks run ~18 test processes on 10 cores, the load behind the under-load timeouts; cap the unit group at about 4 (or half the cores) and time it against check-times |
 | B-543 | question | triaged | orchestration-split |  | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
 | B-544 | chore | triaged | fixes-nit |  | vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405 |
@@ -2403,6 +2403,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: backlog and inbox sessions must hand off to a fresh agent of the same type from the phone, and stay running alongside the dispatcher. Needs the inbox agent (B-425, inbox-agent) for the inbox half; until it lands, the backlog session only.
 - 2026-11-22 (plan/agent-autonomy-2): 2026-11-22 planned: agent-autonomy-2 slices 5-6 keep the backlog session alive; the inbox half lands with whichever of agent-autonomy-2 and inbox-agent comes second (it then sets this landed)
 - 2026-11-22 (prd/agent-autonomy-2): Slice 5 (db78a219) keeps the backlog session alive; stays open until inbox joins the kept-alive kinds.
+- 2026-11-22 (prd/agent-autonomy-2): Slice 6 merged (0b028f59): the context watch rotates backlog sessions. Stays open until inbox is in the kept-alive kinds.
 
 ### B-516 · feature · Landing notices before and after: a landing posts a notice when its full check starts (topic, about when, the areas and hot files it touches) and after it merges (the sha, what it touched); an orchestrator that sees a landing coming holds its own full check, syncs after it, and checks once
 
@@ -2657,10 +2658,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-541 · feature · Named backlog sessions on request: a backlog session asks the dispatcher (a request queue) to open another backlog session by name, e.g. 'backlog - seed', with an optional brief; the dispatcher opens it in a new tab on Remote Control outside the PRD slots, refuses a name already live, and tells the requester it's open so they can message it by name
 
-- status: triaged
+- status: ready
 - prd: agent-autonomy-2
-- owner:
-- commit:
+- owner: prd/agent-autonomy-2
+- commit: 9a78216f
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22 from the user: run several backlog tasks at once (they had 'backlog - orchestrator' and 'backlog - seed' open by hand). Builds on agent-autonomy-2 slice 3 (recorded backlog sessions) and slice 4 (brief); kept-alive is only the default backlog session
 
@@ -2730,6 +2731,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): From the user (backlog session, 2026-11-22): first version is one shared tag list per care group, on all records (timeline entries, todos, providers, medications, events), with a tag filter on each list and in search. Triage: new topic tags (a new table and join rows, sync streams, every list's filter); big, wants a PRD. Overlaps planner-3's todo schema and search.
+- 2026-11-22 (Robert Bo Davis): User 2026-11-22, corrects the answer to a69: Easy helpers can rename only tags they created. Owners, admins and caretakers can rename any tag. Only owners can delete a tag.
+- 2026-11-22 (plan/tags): Planned 2026-11-22: plans/tags-prd.md and -plan.md, six slices. The user chose: owners, admins and caretakers tag and rename anything; Easy helpers create tags, tag their own entries and rename only tags they created; only owners delete a tag. Runs after symptom-catalog.
 
 ### B-549 · feature · Symptoms become a catalog type: a default set for every group, writers add new ones quickly with a similar-name check; filter the timeline by several symptoms at once
 
