@@ -1,7 +1,13 @@
 import type { AuthUser } from "@caretook/data";
 import type { Tool } from "./registry";
 
-import { careGroupService, noteDocumentService, timelineEntryService } from "@caretook/data";
+import {
+  careGroupService,
+  getDb,
+  noteDocumentService,
+  timelineEntrySchema,
+  timelineEntryService,
+} from "@caretook/data";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -71,12 +77,18 @@ const addSymptom = (ctx: { authUser: AuthUser }, groupId: string, occurredAt: st
     details: { name, severity: 2 },
   });
 
-/** A group with Assistants on: an owner, a caretaker and a viewer who can sign in. */
-const world = async () => {
+type Who = "owner" | "caretaker" | "viewer";
+
+/**
+ * A group with Assistants on: an owner, a caretaker and a viewer. `signIn`
+ * names who can sign in (each is a password hash, slow under load).
+ */
+const world = async ({ signIn = ["owner", "caretaker", "viewer"] }: { signIn?: Who[] } = {}) => {
   const owner = await createUser("owner");
   const caretaker = await createUser("caretaker");
   const viewer = await createUser("viewer");
-  for (const who of [owner, caretaker, viewer]) await enablePasswordSignIn(who.user.id);
+  const members = { owner, caretaker, viewer };
+  for (const who of signIn) await enablePasswordSignIn(members[who].user.id);
   const { group } = await createGroup(owner, [
     { user: caretaker.user, role: "caretaker" },
     { user: viewer.user, role: "viewer" },
@@ -247,15 +259,36 @@ describe("/mcp", () => {
     expect(result.content[0]?.text).toMatch(/Time zone: America\/Los_Angeles/);
   });
 
+  // Its own timeout (the end of the test): even with its entries made in one
+  // insert and one password hash, a sign-in and ten /mcp calls ran past
+  // Vitest's 5 s with the machine loaded (B-394; under 1 s otherwise).
   it("list_timeline: the group's entries in the recipient's zone, with note text, paged at 50", async () => {
     const handler = handlerWith();
-    const w = await world();
+    const w = await world({ signIn: ["owner"] });
     const { group: other } = await createGroup(w.owner);
     await addNote(w.owner.ctx, w.group.id, "Ate well and walked to the mailbox", "2026-11-10T03:30:00.000Z");
     // Older than the default window (90 days): only an explicit `from` reaches it.
     ok(await addSymptom(w.owner.ctx, w.group.id, "2026-01-05T18:00:00.000Z", "Long ago"));
     ok(await addSymptom(w.owner.ctx, other.id, hoursAgo(1), "Not this group"));
-    for (let i = 0; i < 55; i++) ok(await addSymptom(w.caretaker.ctx, w.group.id, hoursAgo(i + 2)));
+    // 55 of the caretaker's symptoms, to cross the page of 50: one through the
+    // service, the rest as copies of its row in one insert (fewer round trips
+    // to the shared test Postgres: B-394).
+    const symptom = ok(await addSymptom(w.caretaker.ctx, w.group.id, hoursAgo(2)))!;
+    await getDb()
+      .insert(timelineEntrySchema)
+      .values(
+        Array.from({ length: 54 }, (_, i) => ({
+          id: randomUUID(),
+          groupId: symptom.groupId,
+          recipientId: symptom.recipientId,
+          kind: symptom.kind,
+          occurredAt: hoursAgo(i + 3),
+          timeZone: symptom.timeZone,
+          details: symptom.details,
+          createdBy: symptom.createdBy,
+          updatedBy: symptom.updatedBy,
+        })),
+      );
 
     const { tokens } = await connectAssistant({
       email: w.owner.user.email,
