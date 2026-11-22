@@ -1,24 +1,12 @@
 import type { AuthUser } from "@caretook/data";
 
 import { noteDocumentService, providerService, timelineEntryService } from "@caretook/data";
-import { createRouterClient, ORPCError } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../../data/test/fixtures";
-import { router } from "..";
+import { clientFor, rejection } from "../testing";
 
 // Each test makes its own users and groups. All names and text are fictional.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
-
-const rejection = async (call: Promise<unknown>) => {
-  const error = await call.then(
-    () => undefined,
-    (e: unknown) => e,
-  );
-  if (!(error instanceof ORPCError)) throw new Error(`Expected an ORPCError, got ${String(error)}`);
-  return error as ORPCError<string, { code?: string }>;
-};
 
 const setup = async () => {
   const owner = await createUser("owner");

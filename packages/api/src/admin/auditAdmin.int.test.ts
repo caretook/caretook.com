@@ -1,19 +1,14 @@
-import type { AuthUser } from "@caretook/data";
-
 import { adminAuditService, isError } from "@caretook/data";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createUser } from "../../../data/test/fixtures";
-import { router } from "..";
 import { AUDIT_PAGE_SIZE } from "./auditAdmin";
+import { clientFor } from "../testing";
 
 // `admin.audit.list` as /admin/audit's loader and the account and group
 // pages call it (admin.mjs steps 2 and 5, moved): a target by id or by part
 // of an email, pages of 50 newest first, and the actor filter's choices.
 // The filters by actor, action and day are in staffAdmin.int.test.ts.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 
 const record = async (entry: Parameters<typeof adminAuditService.record>[1]) => {
   const res = await adminAuditService.record(undefined, entry);

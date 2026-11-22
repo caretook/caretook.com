@@ -1,5 +1,3 @@
-import type { AuthUser } from "@caretook/data";
-
 import {
   accessCodeModel,
   adminAuditLogModel,
@@ -12,12 +10,12 @@ import {
   userModel,
 } from "@caretook/data";
 import { setBackgroundRunner } from "@caretook/notifications";
-import { createRouterClient, ORPCError } from "@orpc/server";
+import type { ORPCError } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createGroup, createUser } from "../../../data/test/fixtures";
-import { router } from "..";
 import { resetPublicFormLimits } from "../marketing/publicForms";
+import { clientFor, codesOf } from "../testing";
 
 // The app settings (admin slice 5) through the router: admin.settings.list
 // and set (admins change, support reads, each change audited), and the
@@ -25,8 +23,6 @@ import { resetPublicFormLimits } from "../marketing/publicForms";
 // and the public forms' rate. Every test puts the settings back.
 
 const PASSWORD = "a long enough passphrase";
-const clientFor = (authUser: AuthUser | null, clientIp?: string) =>
-  createRouterClient(router, { context: { authUser, ...(clientIp ? { clientIp } : {}) } });
 const anonymous = clientFor(null);
 
 const pending: Promise<unknown>[] = [];
@@ -38,17 +34,6 @@ const resetSettings = async () => {
   appSettingService.clearSettingsCache();
 };
 afterEach(resetSettings);
-
-const codeOf = async (call: Promise<unknown>) => {
-  try {
-    await call;
-    return "ok";
-  } catch (e) {
-    if (e instanceof ORPCError)
-      return `${e.code}:${String((e.data as { code?: string } | undefined)?.code ?? "")}`;
-    throw e;
-  }
-};
 
 const newAddress = (label: string) => `${label}-${randomUUID().slice(0, 8)}@example.com`;
 
@@ -83,14 +68,14 @@ describe("admin.settings", () => {
       isDefault: true,
     });
     expect(await admin.api.admin.settings.list()).toEqual(list);
-    expect(await codeOf(clientFor(member.ctx.authUser).admin.settings.list())).toBe("FORBIDDEN:");
-    expect(await codeOf(anonymous.admin.settings.list())).toMatch(/^UNAUTHORIZED/);
+    expect(await codesOf(clientFor(member.ctx.authUser).admin.settings.list())).toBe("FORBIDDEN:");
+    expect(await codesOf(anonymous.admin.settings.list())).toMatch(/^UNAUTHORIZED/);
   });
 
   it("refuses support a change (a 403), writing nothing", async () => {
     const { support } = await staff();
     expect(
-      await codeOf(
+      await codesOf(
         support.api.admin.settings.set({ key: "signup.accessCodes", value: false, reason: "Trying" }),
       ),
     ).toBe("FORBIDDEN:");
@@ -126,7 +111,7 @@ describe("admin.settings", () => {
   it("refuses a value its schema doesn't allow, an unknown key and no reason", async () => {
     const { admin } = await staff();
     const set = (key: string, value: unknown, reason = "Testing") =>
-      codeOf(admin.api.admin.settings.set({ key, value, reason }));
+      codesOf(admin.api.admin.settings.set({ key, value, reason }));
     expect(await set("invites.linkMaxDays", 91)).toBe("BAD_REQUEST:settings:invalid");
     expect(await set("signup.accessCodes", "no")).toBe("BAD_REQUEST:settings:invalid");
     expect(await set("mail.allowlist", ["not an address"])).toBe("BAD_REQUEST:settings:invalid");
@@ -162,9 +147,9 @@ describe("sign-up switches", () => {
 
     expect(await anonymous.accessCode.preview({ code: code.code })).toEqual({ state: "unavailable" });
     const email = newAddress("closed");
-    expect(await codeOf(signUp(code.code, email))).toBe("FORBIDDEN:settings:signupClosed");
+    expect(await codesOf(signUp(code.code, email))).toBe("FORBIDDEN:settings:signupClosed");
     // An existing account gets the same answer.
-    expect(await codeOf(signUp(code.code, admin.user.email))).toBe("FORBIDDEN:settings:signupClosed");
+    expect(await codesOf(signUp(code.code, admin.user.email))).toBe("FORBIDDEN:settings:signupClosed");
     const user = await userModel.get({
       authUser: SYSTEM_USER,
       filter: { email: { type: "eq", value: email } },
@@ -186,13 +171,13 @@ describe("sign-up switches", () => {
     const made = await api.invite.createLink({ groupId: group.id, role: "viewer" });
     await admin.api.admin.settings.set({ key: "signup.linkInvites", value: false, reason: "Abuse" });
 
-    expect(await codeOf(api.invite.createLink({ groupId: group.id, role: "viewer" }))).toBe(
+    expect(await codesOf(api.invite.createLink({ groupId: group.id, role: "viewer" }))).toBe(
       "FORBIDDEN:settings:signupClosed",
     );
     expect(await anonymous.invite.preview({ token: made.token })).toEqual({ state: "unavailable" });
     const joiner = await createUser("set-joiner");
     expect(
-      await codeOf(clientFor(joiner.ctx.authUser).invite.accept({ token: made.token, consent: true })),
+      await codesOf(clientFor(joiner.ctx.authUser).invite.accept({ token: made.token, consent: true })),
     ).toBe("FORBIDDEN:settings:signupClosed");
     expect(await api.invite.options({ groupId: group.id })).toMatchObject({
       linkInvites: false,
@@ -200,7 +185,7 @@ describe("sign-up switches", () => {
     });
     // Email invites are a separate switch.
     expect(
-      await codeOf(
+      await codesOf(
         api.invite.createEmail({
           groupId: group.id,
           email: newAddress("inv"),
@@ -218,7 +203,7 @@ describe("sign-up switches", () => {
     const api = clientFor(owner.ctx.authUser);
     await admin.api.admin.settings.set({ key: "signup.emailInvites", value: false, reason: "Abuse" });
     expect(
-      await codeOf(
+      await codesOf(
         api.invite.createEmail({
           groupId: group.id,
           email: newAddress("inv"),
@@ -227,7 +212,7 @@ describe("sign-up switches", () => {
         }),
       ),
     ).toBe("FORBIDDEN:settings:signupClosed");
-    expect(await codeOf(api.invite.createLink({ groupId: group.id, role: "viewer" }))).toBe("ok");
+    expect(await codesOf(api.invite.createLink({ groupId: group.id, role: "viewer" }))).toBe("ok");
   });
 
   it("still lets staff invite an owner while email invites are off (B-106)", async () => {
@@ -242,7 +227,7 @@ describe("sign-up switches", () => {
 
     // A member's email invite is still refused.
     expect(
-      await codeOf(
+      await codesOf(
         clientFor(owner.ctx.authUser).invite.createEmail({
           groupId: group.id,
           email: newAddress("inv"),
@@ -304,7 +289,7 @@ describe("invite link limits", () => {
       });
     }
     expect(
-      await codeOf(
+      await codesOf(
         api.invite.createLink({ groupId: group.id, role: "viewer", expiresInDays: 5, maxUses: 4 }),
       ),
     ).toBe("BAD_REQUEST:careGroupInviteService:tooManyUses");
@@ -327,9 +312,9 @@ describe("public forms' rate", () => {
     const visitor = clientFor(null, "198.51.100.77");
     const join = () =>
       visitor.public.waitlist.join({ email: newAddress("rate"), elapsedMs: MIN_FORM_MS + 1000 });
-    expect(await codeOf(join())).toBe("ok");
-    expect(await codeOf(join())).toBe("ok");
-    expect(await codeOf(join())).toMatch(/^TOO_MANY_REQUESTS/);
+    expect(await codesOf(join())).toBe("ok");
+    expect(await codesOf(join())).toBe("ok");
+    expect(await codesOf(join())).toMatch(/^TOO_MANY_REQUESTS/);
     await resetPublicFormLimits();
   });
 });

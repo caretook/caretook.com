@@ -1,17 +1,23 @@
 import type { AuthUser } from "@caretook/data";
 import type { Tool } from "./registry";
 
-import { validateConnectorToken } from "@caretook/auth";
 import { careGroupService, noteDocumentService, timelineEntryService } from "@caretook/data";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../../data/test/fixtures";
 import { createRateLimiter } from "../rateLimit";
-import { resourceMetadataUrl } from "./discovery";
-import { createMcpHandler } from "./http";
 import { defineTool, WRITE_ANNOTATIONS } from "./registry";
-import { connectAssistant, enablePasswordSignIn, TEST_ORIGIN } from "./testing";
+import {
+  connectAssistant,
+  enablePasswordSignIn,
+  mcpHandler,
+  mcpPost,
+  rpc,
+  TEST_ORIGIN,
+  toolRequest,
+  toolResultOf,
+} from "./testing";
 import { CONNECTOR_TOOLS } from "./tools";
 
 // /mcp through its HTTP handler, with tokens from the real OAuth dance.
@@ -31,45 +37,7 @@ const addThing = defineTool({
 const TOOLS: Tool[] = [...CONNECTOR_TOOLS, addThing];
 
 const handlerWith = (limit = 60) =>
-  createMcpHandler({
-    resourceMetadataUrl: resourceMetadataUrl(TEST_ORIGIN),
-    validate: validateConnectorToken(),
-    limiter: createRateLimiter({ limit, windowMs: 60_000 }),
-    tools: TOOLS,
-  });
-
-let nextId = 1;
-const post = (handler: ReturnType<typeof handlerWith>, token: string | null, body: unknown) =>
-  handler(
-    new Request(`${TEST_ORIGIN}/mcp`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json, text/event-stream",
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(body),
-    }),
-  );
-const call = (method: string, params?: unknown) => ({
-  jsonrpc: "2.0",
-  id: nextId++,
-  method,
-  ...(params ? { params } : {}),
-});
-const tool = (name: string, args: Record<string, unknown> = {}) =>
-  call("tools/call", { name, arguments: args });
-
-type CallResult = {
-  content: { type: string; text: string }[];
-  structuredContent: Record<string, unknown>;
-  isError?: boolean;
-};
-const resultOf = async (res: Response) => {
-  expect(res.status).toBe(200);
-  const body = (await res.json()) as { result: CallResult };
-  return body.result;
-};
+  mcpHandler({ limiter: createRateLimiter({ limit, windowMs: 60_000 }), tools: TOOLS });
 
 const addNote = async (ctx: { authUser: AuthUser }, groupId: string, text: string, occurredAt: string) => {
   const entry = ok(
@@ -127,12 +95,12 @@ const hoursAgo = (hours: number) => new Date(Date.now() - hours * 60 * 60 * 1000
 describe("/mcp", () => {
   it("answers no token, or a bad one, with 401 and the resource metadata pointer", async () => {
     const handler = handlerWith();
-    const none = await post(handler, null, call("ping"));
+    const none = await mcpPost(handler, null, rpc("ping"));
     expect(none.status).toBe(401);
     expect(none.headers.get("www-authenticate")).toBe(
       `Bearer resource_metadata="${TEST_ORIGIN}/.well-known/oauth-protected-resource/mcp", scope="group:read group:write offline_access"`,
     );
-    const bad = await post(handler, "not-a-real-token", call("ping"));
+    const bad = await mcpPost(handler, "not-a-real-token", rpc("ping"));
     expect(bad.status).toBe(401);
     expect(bad.headers.get("www-authenticate")).toMatch(/^Bearer error="invalid_token", resource_metadata="/);
   });
@@ -148,7 +116,7 @@ describe("/mcp", () => {
       new Request(`${TEST_ORIGIN}/mcp`, {
         method: "POST",
         headers: { authorization: `Bearer ${tokens.access_token}`, origin: "https://evil.example.com" },
-        body: JSON.stringify(call("ping")),
+        body: JSON.stringify(rpc("ping")),
       }),
     );
     expect(res.status).toBe(403);
@@ -161,14 +129,14 @@ describe("/mcp", () => {
     const reader = await connectAssistant({ email: w.viewer.user.email, groupId: w.group.id, scope: "read" });
 
     const init = (await (
-      await post(
+      await mcpPost(
         handler,
         writer.tokens.access_token,
-        call("initialize", { protocolVersion: "2025-06-18", capabilities: {} }),
+        rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {} }),
       )
     ).json()) as { result: { protocolVersion: string } };
     expect(init.result.protocolVersion).toBe("2025-06-18");
-    const notified = await post(handler, writer.tokens.access_token, {
+    const notified = await mcpPost(handler, writer.tokens.access_token, {
       jsonrpc: "2.0",
       method: "notifications/initialized",
     });
@@ -176,7 +144,7 @@ describe("/mcp", () => {
 
     const names = async (token: string) =>
       (
-        (await (await post(handler, token, call("tools/list"))).json()) as {
+        (await (await mcpPost(handler, token, rpc("tools/list"))).json()) as {
           result: { tools: { name: string }[] };
         }
       ).result.tools.map((t) => t.name);
@@ -189,11 +157,12 @@ describe("/mcp", () => {
       expect.arrayContaining(["group_overview", "list_timeline"]),
     );
 
-    const refused = await post(handler, reader.tokens.access_token, tool("add_thing"));
+    const refused = await mcpPost(handler, reader.tokens.access_token, toolRequest("add_thing"));
     expect(refused.status).toBe(403);
     expect(refused.headers.get("www-authenticate")).toMatch(/^Bearer error="insufficient_scope", /);
     expect(
-      (await resultOf(await post(handler, writer.tokens.access_token, tool("add_thing")))).content[0]?.text,
+      (await toolResultOf(await mcpPost(handler, writer.tokens.access_token, toolRequest("add_thing"))))
+        .content[0]?.text,
     ).toBe("Added");
   });
 
@@ -204,13 +173,13 @@ describe("/mcp", () => {
     const reader = await connectAssistant({ email: w.viewer.user.email, groupId: w.group.id, scope: "read" });
 
     const init = (await (
-      await post(handler, reader.tokens.access_token, call("initialize", { protocolVersion: "2025-11-25" }))
+      await mcpPost(handler, reader.tokens.access_token, rpc("initialize", { protocolVersion: "2025-11-25" }))
     ).json()) as { result: { capabilities: Record<string, unknown> } };
     expect(init.result.capabilities.prompts).toEqual({ listChanged: false });
 
     const names = async (token: string) =>
       (
-        (await (await post(handler, token, call("prompts/list"))).json()) as {
+        (await (await mcpPost(handler, token, rpc("prompts/list"))).json()) as {
           result: { prompts: { name: string }[] };
         }
       ).result.prompts.map((p) => p.name);
@@ -226,10 +195,10 @@ describe("/mcp", () => {
       "weekly_summary",
     ]);
 
-    const got = await post(
+    const got = await mcpPost(
       handler,
       writer.tokens.access_token,
-      call("prompts/get", { name: "log_what_happened", arguments: { account: "Walked to the mailbox." } }),
+      rpc("prompts/get", { name: "log_what_happened", arguments: { account: "Walked to the mailbox." } }),
     );
     expect(got.status).toBe(200);
     const body = (await got.json()) as {
@@ -239,14 +208,14 @@ describe("/mcp", () => {
     expect(body.result.messages[0]?.content.text).toContain("Walked to the mailbox.");
 
     const missing = (await (
-      await post(handler, writer.tokens.access_token, call("prompts/get", { name: "log_what_happened" }))
+      await mcpPost(handler, writer.tokens.access_token, rpc("prompts/get", { name: "log_what_happened" }))
     ).json()) as { error: { code: number } };
     expect(missing.error.code).toBe(-32602);
     const readerLog = (await (
-      await post(
+      await mcpPost(
         handler,
         reader.tokens.access_token,
-        call("prompts/get", { name: "log_what_happened", arguments: { account: "Slept well." } }),
+        rpc("prompts/get", { name: "log_what_happened", arguments: { account: "Slept well." } }),
       )
     ).json()) as { error: { code: number } };
     expect(readerLog.error.code).toBe(-32602);
@@ -260,7 +229,9 @@ describe("/mcp", () => {
       groupId: w.group.id,
       scope: "read",
     });
-    const result = await resultOf(await post(handler, tokens.access_token, tool("group_overview")));
+    const result = await toolResultOf(
+      await mcpPost(handler, tokens.access_token, toolRequest("group_overview")),
+    );
     expect(result.structuredContent).toEqual({
       group: { name: "Test Family" },
       recipient: { preferredName: "Pat Example" },
@@ -291,7 +262,9 @@ describe("/mcp", () => {
       groupId: w.group.id,
       scope: "read",
     });
-    const first = await resultOf(await post(handler, tokens.access_token, tool("list_timeline")));
+    const first = await toolResultOf(
+      await mcpPost(handler, tokens.access_token, toolRequest("list_timeline")),
+    );
     const page = first.structuredContent as {
       entries: {
         kind: string;
@@ -311,8 +284,8 @@ describe("/mcp", () => {
     });
     expect(page.entries[0]?.occurredAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}-0[78]:00$/);
 
-    const second = await resultOf(
-      await post(handler, tokens.access_token, tool("list_timeline", { cursor: page.nextCursor })),
+    const second = await toolResultOf(
+      await mcpPost(handler, tokens.access_token, toolRequest("list_timeline", { cursor: page.nextCursor })),
     );
     const rest = second.structuredContent as typeof page;
     // The other 5 symptoms, then the note (10 days ago, inside the default 90).
@@ -327,11 +300,11 @@ describe("/mcp", () => {
     expect(rest.nextCursor).toBeNull();
 
     // An older range: the note, with its document's text, in Pacific time.
-    const notes = await resultOf(
-      await post(
+    const notes = await toolResultOf(
+      await mcpPost(
         handler,
         tokens.access_token,
-        tool("list_timeline", { from: "2026-11-01T00:00:00-08:00", kinds: ["note"] }),
+        toolRequest("list_timeline", { from: "2026-11-01T00:00:00-08:00", kinds: ["note"] }),
       ),
     );
     expect((notes.structuredContent as typeof page).entries).toEqual([
@@ -344,11 +317,11 @@ describe("/mcp", () => {
     expect(notes.content[0]?.text).toContain("Ate well and walked to the mailbox");
 
     // By author; and nothing from the other group, ever.
-    const byOwner = await resultOf(
-      await post(
+    const byOwner = await toolResultOf(
+      await mcpPost(
         handler,
         tokens.access_token,
-        tool("list_timeline", { authorId: w.owner.user.id, from: "2026-01-01T00:00:00Z" }),
+        toolRequest("list_timeline", { authorId: w.owner.user.id, from: "2026-01-01T00:00:00Z" }),
       ),
     );
     expect((byOwner.structuredContent as typeof page).entries.map((e) => e.kind)).toEqual([
@@ -359,8 +332,8 @@ describe("/mcp", () => {
     expect(JSON.stringify([first, second, notes, byOwner])).not.toContain("Not this group");
 
     // Bad arguments are the model's to fix.
-    const bad = await resultOf(
-      await post(handler, tokens.access_token, tool("list_timeline", { limit: 500 })),
+    const bad = await toolResultOf(
+      await mcpPost(handler, tokens.access_token, toolRequest("list_timeline", { limit: 500 })),
     );
     expect(bad).toMatchObject({
       isError: true,
@@ -374,9 +347,9 @@ describe("/mcp", () => {
     await addNote(w.caretaker.ctx, w.group.id, "Called the pharmacy", hoursAgo(3));
     const { tokens } = await connectAssistant({ email: w.caretaker.user.email, groupId: w.group.id });
     const outputs = [
-      await (await post(handler, tokens.access_token, tool("group_overview"))).text(),
-      await (await post(handler, tokens.access_token, tool("list_timeline"))).text(),
-      await (await post(handler, tokens.access_token, call("tools/list"))).text(),
+      await (await mcpPost(handler, tokens.access_token, toolRequest("group_overview"))).text(),
+      await (await mcpPost(handler, tokens.access_token, toolRequest("list_timeline"))).text(),
+      await (await mcpPost(handler, tokens.access_token, rpc("tools/list"))).text(),
     ].join("\n");
     for (const who of [w.owner, w.caretaker, w.viewer]) expect(outputs).not.toContain(who.user.email);
     expect(outputs).not.toMatch(/"(email|phones?|address)"\s*:/i);
@@ -388,8 +361,8 @@ describe("/mcp", () => {
     const w = await world();
     const { tokens } = await connectAssistant({ email: w.owner.user.email, groupId: w.group.id });
     for (let i = 0; i < 60; i++)
-      expect((await post(handler, tokens.access_token, call("ping"))).status).toBe(200);
-    const over = await post(handler, tokens.access_token, call("ping"));
+      expect((await mcpPost(handler, tokens.access_token, rpc("ping"))).status).toBe(200);
+    const over = await mcpPost(handler, tokens.access_token, rpc("ping"));
     expect(over.status).toBe(429);
     expect(over.headers.get("retry-after")).toBe("60");
   });
@@ -398,13 +371,13 @@ describe("/mcp", () => {
     const handler = handlerWith();
     const w = await world();
     const { tokens } = await connectAssistant({ email: w.caretaker.user.email, groupId: w.group.id });
-    expect((await post(handler, tokens.access_token, call("ping"))).status).toBe(200);
+    expect((await mcpPost(handler, tokens.access_token, rpc("ping"))).status).toBe(200);
     ok(
       await careGroupService.update(w.owner.ctx, {
         filter: { id: { type: "eq", value: w.group.id } },
         data: { connectorsEnabled: false },
       }),
     );
-    expect((await post(handler, tokens.access_token, call("ping"))).status).toBe(401);
+    expect((await mcpPost(handler, tokens.access_token, rpc("ping"))).status).toBe(401);
   });
 });

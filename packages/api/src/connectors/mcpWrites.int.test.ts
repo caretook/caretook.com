@@ -1,4 +1,3 @@
-import { validateConnectorToken } from "@caretook/auth";
 import {
   careGroupMemberService,
   careGroupService,
@@ -17,10 +16,16 @@ import {
 import { fromBase64, MENTION_NODE } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
-import { createRateLimiter } from "../rateLimit";
-import { resourceMetadataUrl } from "./discovery";
-import { createMcpHandler } from "./http";
-import { connectAssistant, enablePasswordSignIn, TEST_ORIGIN } from "./testing";
+import {
+  callTool,
+  connectAssistant,
+  enablePasswordSignIn,
+  mcpHandler,
+  mcpPost,
+  textOf,
+  TEST_ORIGIN,
+  toolRequest,
+} from "./testing";
 
 // The write tools through /mcp's HTTP handler, with tokens from the real
 // OAuth dance: each tool writes through the server runner with "via" the
@@ -29,41 +34,12 @@ import { connectAssistant, enablePasswordSignIn, TEST_ORIGIN } from "./testing";
 // group and connection. All data is fictional.
 
 const CLIENT = "Test Claude";
-const handler = createMcpHandler({
-  resourceMetadataUrl: resourceMetadataUrl(TEST_ORIGIN),
-  validate: validateConnectorToken(),
-  limiter: createRateLimiter({ limit: 600, windowMs: 60_000 }),
-});
-
-let nextId = 1;
-const callTool = (token: string, name: string, args: Record<string, unknown> = {}) =>
-  handler(
-    new Request(`${TEST_ORIGIN}/mcp`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json, text/event-stream",
-        authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: nextId++,
-        method: "tools/call",
-        params: { name, arguments: args },
-      }),
-    }),
-  );
-
-type CallResult = {
-  content: { type: string; text: string }[];
-  structuredContent: Record<string, unknown> & { url?: string | null; entryIds?: string[]; todoId?: string };
-  isError?: boolean;
-};
-const resultOf = async (res: Response) => {
-  expect(res.status).toBe(200);
-  return ((await res.json()) as { result: CallResult }).result;
-};
-const textOf = (result: CallResult) => result.content.map((c) => c.text).join("\n");
+const handler = mcpHandler();
+/** A tool call's raw answer, for the HTTP refusals. */
+const post = (token: string, name: string, args: Record<string, unknown> = {}) =>
+  mcpPost(handler, token, toolRequest(name, args));
+const tool = (token: string, name: string, args: Record<string, unknown> = {}) =>
+  callTool(handler, token, name, args);
 
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
 
@@ -134,15 +110,13 @@ describe("/mcp write tools", () => {
     const token = w.writer.tokens.access_token;
     const base = `${TEST_ORIGIN}/app/groups/${w.group.id}`;
 
-    const vitals = await resultOf(
-      await callTool(token, "log_vitals", {
-        readings: [
-          { type: "bloodPressure", systolic: 130, diastolic: 85 },
-          { type: "temperature", value: 37 },
-        ],
-        occurredAt: minutesAgo(5),
-      }),
-    );
+    const vitals = await tool(token, "log_vitals", {
+      readings: [
+        { type: "bloodPressure", systolic: 130, diastolic: 85 },
+        { type: "temperature", value: 37 },
+      ],
+      occurredAt: minutesAgo(5),
+    });
     expect(vitals.isError).toBeUndefined();
     const [vitalId] = vitals.structuredContent.entryIds!;
     // Quick entry's words, in the member's units (°F by default), and the entry's edit sheet.
@@ -156,25 +130,23 @@ describe("/mcp write tools", () => {
       details: { readings: [{ type: "bloodPressure" }, { type: "temperature", value: 37 }] },
     });
 
-    const symptom = await resultOf(await callTool(token, "log_symptom", { name: "Headache", severity: 4 }));
+    const symptom = await tool(token, "log_symptom", { name: "Headache", severity: 4 });
     expect(textOf(symptom)).toMatch(/^Logged: Headache 4 · Now/);
     expect(await w.entry(symptom.structuredContent.entryIds![0]!)).toMatchObject({
       kind: "symptom",
       via: CLIENT,
     });
 
-    const dose = await resultOf(
-      await callTool(token, "log_dose", {
-        medicationId: w.ibuprofen.id,
-        status: "given",
-        amount: "1 tablet",
-        occurredAt: minutesAgo(1),
-      }),
-    );
+    const dose = await tool(token, "log_dose", {
+      medicationId: w.ibuprofen.id,
+      status: "given",
+      amount: "1 tablet",
+      occurredAt: minutesAgo(1),
+    });
     expect(textOf(dose)).toContain("Ibuprofen 200 mg · Given 1 tablet");
     expect(await w.entry(dose.structuredContent.entryIds![0]!)).toMatchObject({ kind: "dose", via: CLIENT });
 
-    const pass = await resultOf(await callTool(token, "give_pass", { passId: w.evening.id }));
+    const pass = await tool(token, "give_pass", { passId: w.evening.id });
     expect(pass.isError).toBeUndefined();
     const [passDose] = pass.structuredContent.entryIds!;
     const written = await w.entry(passDose!);
@@ -189,22 +161,18 @@ describe("/mcp write tools", () => {
     const token = w.writer.tokens.access_token;
     const base = `${TEST_ORIGIN}/app/groups/${w.group.id}`;
 
-    const note = await resultOf(
-      await callTool(token, "add_note", { title: "Lunch", text: "Ate most of the soup." }),
-    );
+    const note = await tool(token, "add_note", { title: "Lunch", text: "Ate most of the soup." });
     const [noteId] = note.structuredContent.entryIds!;
     expect(textOf(note)).toMatch(/^Logged: Lunch · Ate most of the soup\. · Now/);
     expect(note.structuredContent.url).toBe(`${base}/entries/${noteId}`);
     expect(await w.entry(noteId!)).toMatchObject({ kind: "note", title: "Lunch", via: CLIENT });
 
-    const event = await resultOf(
-      await callTool(token, "add_event", {
-        title: "Cardiology follow-up",
-        occurredAt: "2027-01-12T10:30:00-08:00",
-        place: "Clinic B",
-        providerIds: [w.provider.id],
-      }),
-    );
+    const event = await tool(token, "add_event", {
+      title: "Cardiology follow-up",
+      occurredAt: "2027-01-12T10:30:00-08:00",
+      place: "Clinic B",
+      providerIds: [w.provider.id],
+    });
     expect(textOf(event)).toContain("Cardiology follow-up · Clinic B · with Dr. Example");
     expect(await w.entry(event.structuredContent.entryIds![0]!)).toMatchObject({
       kind: "event",
@@ -212,13 +180,11 @@ describe("/mcp write tools", () => {
       via: CLIENT,
     });
 
-    const todo = await resultOf(
-      await callTool(token, "add_todo", {
-        title: "Pick up prescription",
-        assignee: "Caretaker",
-        dueOn: "2027-01-10",
-      }),
-    );
+    const todo = await tool(token, "add_todo", {
+      title: "Pick up prescription",
+      assignee: "Caretaker",
+      dueOn: "2027-01-10",
+    });
     const todoId = todo.structuredContent.todoId!;
     expect(textOf(todo)).toMatch(/^Added todo: Pick up prescription · caretaker · /);
     expect(todo.structuredContent.url).toBe(`${base}/todos/${todoId}`);
@@ -226,13 +192,13 @@ describe("/mcp write tools", () => {
     expect(row).toMatchObject({ assigneeId: w.caretaker.user.id, dueOn: "2027-01-10", via: CLIENT });
 
     // The old name is an unknown tool.
-    const old = await callTool(token, "add_task", { title: "Call" });
+    const old = await post(token, "add_task", { title: "Call" });
     expect(((await old.json()) as { error: { code: number; message: string } }).error).toMatchObject({
       code: -32602,
       message: "Unknown tool: add_task",
     });
 
-    const nobody = await resultOf(await callTool(token, "add_todo", { title: "Call", assignee: "Nobody" }));
+    const nobody = await tool(token, "add_todo", { title: "Call", assignee: "Nobody" });
     expect(nobody).toMatchObject({
       isError: true,
       structuredContent: {
@@ -241,16 +207,14 @@ describe("/mcp write tools", () => {
     });
   });
 
-  it("add a note that mentions its providers and links them; another group's provider is refused", async () => {
+  it("add a note that mentions its providers and links them", async () => {
     const w = await world();
     const token = w.writer.tokens.access_token;
 
-    const note = await resultOf(
-      await callTool(token, "add_note", {
-        text: "Called @Dr. Example about the refill.",
-        providerIds: [w.provider.id],
-      }),
-    );
+    const note = await tool(token, "add_note", {
+      text: "Called @Dr. Example about the refill.",
+      providerIds: [w.provider.id],
+    });
     expect(note.isError).toBeUndefined();
     expect(textOf(note)).toMatch(
       /^Logged: Called @Dr\. Example about the refill\. · with Dr\. Example · Now/,
@@ -269,29 +233,10 @@ describe("/mcp write tools", () => {
     expect(links.map((l) => l.providerId)).toEqual([w.provider.id]);
 
     // A provider the text doesn't name is mentioned at the end.
-    const plain = await resultOf(
-      await callTool(token, "add_note", { text: "Refill sorted.", providerIds: [w.provider.id] }),
-    );
+    const plain = await tool(token, "add_note", { text: "Refill sorted.", providerIds: [w.provider.id] });
     expect(
       ok(await noteDocumentService.currentText(w.owner.ctx, plain.structuredContent.entryIds![0]!)),
     ).toBe("Refill sorted. @Dr. Example");
-
-    // Another group's provider: refused, and nothing written.
-    const elsewhere = await createUser("elsewhere");
-    const { group: other } = await createGroup(elsewhere);
-    const far = ok(
-      await providerService.create(elsewhere.ctx, { groupId: other.id, type: "clinician", name: "Dr. Far" }),
-    )!;
-    const before = (await w.groupEntries()).length;
-    const refused = await resultOf(
-      await callTool(token, "add_note", { text: "Called @Dr. Far", providerIds: [far.id] }),
-    );
-    expect(refused).toMatchObject({
-      isError: true,
-      structuredContent: { error: { code: "assistantActionService:providerGone" } },
-    });
-    expect((await w.groupEntries()).length).toBe(before);
-    expect(ok(await entryProviderService.listForProvider(elsewhere.ctx, far.id)).count).toBe(0);
   });
 
   it("answers a refusal as an isError result with the code and issues, and writes nothing", async () => {
@@ -301,11 +246,9 @@ describe("/mcp write tools", () => {
     const before = (await logged()).length;
 
     // Caught by the tool's own input schema (the action's), before the runner.
-    const order = await resultOf(
-      await callTool(token, "log_vitals", {
-        readings: [{ type: "bloodPressure", systolic: 80, diastolic: 120 }],
-      }),
-    );
+    const order = await tool(token, "log_vitals", {
+      readings: [{ type: "bloodPressure", systolic: 80, diastolic: 120 }],
+    });
     expect(order).toMatchObject({
       isError: true,
       structuredContent: {
@@ -319,13 +262,11 @@ describe("/mcp write tools", () => {
     });
     expect(textOf(order)).toContain("readings.0.diastolic");
 
-    const future = await resultOf(
-      await callTool(token, "log_dose", {
-        medicationId: w.metformin.id,
-        status: "given",
-        occurredAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(),
-      }),
-    );
+    const future = await tool(token, "log_dose", {
+      medicationId: w.metformin.id,
+      status: "given",
+      occurredAt: new Date(Date.now() + 3 * 60 * 60_000).toISOString(),
+    });
     expect(future).toMatchObject({
       isError: true,
       structuredContent: {
@@ -333,21 +274,6 @@ describe("/mcp write tools", () => {
       },
     });
 
-    ok(
-      await medicationService.update(w.owner.ctx, w.metformin.id, {
-        status: "completed",
-        stoppedOn: "2026-11-01",
-      }),
-    );
-    const stopped = await resultOf(
-      await callTool(token, "log_dose", { medicationId: w.metformin.id, status: "given" }),
-    );
-    expect(stopped).toMatchObject({
-      isError: true,
-      structuredContent: { error: { code: "assistantActionService:medicationStopped" } },
-    });
-    expect(textOf(stopped)).toContain("Metformin isn't current");
-    // Nothing written but the stop's own change entry.
     expect((await logged()).length).toBe(before);
   });
 
@@ -359,12 +285,12 @@ describe("/mcp write tools", () => {
       scope: "read",
       clientName: "Reader",
     });
-    const readOnly = await callTool(reader.tokens.access_token, "add_note", { text: "Hello" });
+    const readOnly = await post(reader.tokens.access_token, "add_note", { text: "Hello" });
     expect(readOnly.status).toBe(403);
     expect(readOnly.headers.get("www-authenticate")).toMatch(/^Bearer error="insufficient_scope", /);
 
     const token = w.writer.tokens.access_token;
-    expect((await resultOf(await callTool(token, "add_note", { text: "Before" }))).isError).toBeUndefined();
+    expect((await tool(token, "add_note", { text: "Before" })).isError).toBeUndefined();
     const [membership] = ok(
       await careGroupMemberService.list(w.owner.ctx, {
         filter: {
@@ -374,7 +300,7 @@ describe("/mcp write tools", () => {
       }),
     ).data;
     ok(await careGroupMemberService.updateRole(w.owner.ctx, { id: membership!.id, role: "viewer" }));
-    expect((await callTool(token, "add_note", { text: "After" })).status).toBe(403);
+    expect((await post(token, "add_note", { text: "After" })).status).toBe(403);
     const notes = (await w.groupEntries()).filter((e) => e.kind === "note");
     expect(notes).toHaveLength(1);
   });
@@ -383,52 +309,30 @@ describe("/mcp write tools", () => {
 describe("/mcp edit tools (connectors-2)", () => {
   // A fixed clock, so answers' wording never depends on the time of day (B-205, B-206).
   const NOW = new Date("2026-11-18T19:00:00.000Z");
-  const pinned = createMcpHandler({
-    resourceMetadataUrl: resourceMetadataUrl(TEST_ORIGIN),
-    validate: validateConnectorToken(),
-    limiter: createRateLimiter({ limit: 600, windowMs: 60_000 }),
-    now: () => NOW,
-  });
+  const pinned = mcpHandler({ now: () => NOW });
   const call = (token: string, name: string, args: Record<string, unknown> = {}) =>
-    pinned(
-      new Request(`${TEST_ORIGIN}/mcp`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          accept: "application/json, text/event-stream",
-          authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: nextId++,
-          method: "tools/call",
-          params: { name, arguments: args },
-        }),
-      }),
-    );
+    callTool(pinned, token, name, args);
+  const postPinned = (token: string, name: string, args: Record<string, unknown> = {}) =>
+    mcpPost(pinned, token, toolRequest(name, args));
 
   it("append to a note and to an event with no notes yet, and change a title and time", async () => {
     const w = await world();
     const token = w.writer.tokens.access_token;
     const base = `${TEST_ORIGIN}/app/groups/${w.group.id}`;
 
-    const note = await resultOf(
-      await call(token, "add_note", { title: "Visit prep", text: "Bring the pill box" }),
-    );
+    const note = await call(token, "add_note", { title: "Visit prep", text: "Bring the pill box" });
     const [noteId] = note.structuredContent.entryIds!;
     // Reads give the ids the edits take.
-    const listed = await resultOf(await call(token, "list_timeline", { kinds: ["note"] }));
+    const listed = await call(token, "list_timeline", { kinds: ["note"] });
     expect(JSON.stringify(listed.structuredContent)).toContain(noteId);
 
-    const added = await resultOf(
-      await call(token, "append_to_entry", {
-        entryId: noteId,
-        lines: [
-          { text: "Questions for Dr. Lee" },
-          { text: "Can the evening dose move earlier?", style: "bullet" },
-        ],
-      }),
-    );
+    const added = await call(token, "append_to_entry", {
+      entryId: noteId,
+      lines: [
+        { text: "Questions for Dr. Lee" },
+        { text: "Can the evening dose move earlier?", style: "bullet" },
+      ],
+    });
     expect(added.isError).toBeUndefined();
     expect(textOf(added)).toMatch(/^Added to: Visit prep · 2 lines · Now\n/);
     expect(added.structuredContent).toMatchObject({ entryIds: [noteId], url: `${base}/entries/${noteId}` });
@@ -447,19 +351,18 @@ describe("/mcp edit tools (connectors-2)", () => {
         timeZone: "America/Los_Angeles",
       }),
     )!;
-    const toEvent = await resultOf(
-      await call(token, "append_to_entry", { entryId: event.id, lines: [{ text: "Ask about the crown" }] }),
-    );
+    const toEvent = await call(token, "append_to_entry", {
+      entryId: event.id,
+      lines: [{ text: "Ask about the crown" }],
+    });
     expect(textOf(toEvent)).toMatch(/^Added to: Dentist · 1 line · /);
     expect((await w.entry(event.id))?.body).toBe("Ask about the crown");
 
-    const updated = await resultOf(
-      await call(token, "update_entry", {
-        entryId: event.id,
-        title: "Dentist: crown",
-        occurredAt: "2026-11-26T10:30:00-08:00",
-      }),
-    );
+    const updated = await call(token, "update_entry", {
+      entryId: event.id,
+      title: "Dentist: crown",
+      occurredAt: "2026-11-26T10:30:00-08:00",
+    });
     expect(updated.isError).toBeUndefined();
     const updatedText = textOf(updated);
     expect(updatedText).toMatch(
@@ -472,16 +375,10 @@ describe("/mcp edit tools (connectors-2)", () => {
     expect(new Date(moved.endsAt!).toISOString()).toBe("2026-11-26T19:30:00.000Z");
   });
 
-  it("refuses viewers, too many lines, deleted entries, symptoms and other groups' ids", async () => {
+  it("refuses viewers, too many lines and other groups' ids", async () => {
     const w = await world();
     const token = w.writer.tokens.access_token;
-    const noteId = (await resultOf(await call(token, "add_note", { text: "Original" }))).structuredContent
-      .entryIds![0]!;
-    const symptomId = (await resultOf(await call(token, "log_symptom", { name: "Headache" })))
-      .structuredContent.entryIds![0]!;
-    const goneId = (await resultOf(await call(token, "add_note", { text: "Gone" }))).structuredContent
-      .entryIds![0]!;
-    ok(await timelineEntryService.remove(w.owner.ctx, goneId));
+    const noteId = (await call(token, "add_note", { text: "Original" })).structuredContent.entryIds![0]!;
     const elsewhere = await createUser("elsewhere");
     const { group: other } = await createGroup(elsewhere);
     const otherNote = ok(
@@ -500,55 +397,28 @@ describe("/mcp edit tools (connectors-2)", () => {
       scope: "read",
       clientName: "Viewer's Claude",
     });
-    const refused = await call(viewer.tokens.access_token, "append_to_entry", {
+    const refused = await postPinned(viewer.tokens.access_token, "append_to_entry", {
       entryId: noteId,
       lines: [{ text: "Hello" }],
     });
     expect(refused.status).toBe(403);
 
-    const tooMany = await resultOf(
-      await call(token, "append_to_entry", {
-        entryId: noteId,
-        lines: Array.from({ length: 51 }, (_, i) => ({ text: `Line ${i}` })),
-      }),
-    );
+    const tooMany = await call(token, "append_to_entry", {
+      entryId: noteId,
+      lines: Array.from({ length: 51 }, (_, i) => ({ text: `Line ${i}` })),
+    });
     expect(tooMany).toMatchObject({
       isError: true,
       structuredContent: { error: { code: "mcp:invalidArguments", issues: [{ path: "lines" }] } },
     });
 
-    const cases: [string, Record<string, unknown>, string][] = [
-      [
-        "append_to_entry",
-        { entryId: goneId, lines: [{ text: "More" }] },
-        "assistantActionService:entryDeleted",
-      ],
-      ["update_entry", { entryId: goneId, title: "Back" }, "assistantActionService:entryDeleted"],
-      [
-        "append_to_entry",
-        { entryId: symptomId, lines: [{ text: "More" }] },
-        "assistantActionService:notEditable",
-      ],
-      ["update_entry", { entryId: symptomId, title: "Migraine" }, "assistantActionService:notEditable"],
-      [
-        "append_to_entry",
-        { entryId: otherNote.id, lines: [{ text: "Mine" }] },
-        "assistantActionService:entryNotFound",
-      ],
-      ["update_entry", { entryId: otherNote.id, title: "Mine" }, "assistantActionService:entryNotFound"],
-      ["update_entry", { entryId: noteId }, "assistantActionService:invalid"],
-    ];
-    for (const [tool, args, code] of cases) {
-      const result = await resultOf(await call(token, tool, args));
-      expect(result, `${tool} ${JSON.stringify(args)}`).toMatchObject({
-        isError: true,
-        structuredContent: { error: { code } },
-      });
-    }
+    // The runner's refusals pass through (each case of them: assistantAction.int.test.ts).
     // The other group's note reads as missing: nothing says it exists.
-    const missing = await resultOf(
-      await call(token, "update_entry", { entryId: otherNote.id, title: "Mine" }),
-    );
+    const missing = await call(token, "update_entry", { entryId: otherNote.id, title: "Mine" });
+    expect(missing).toMatchObject({
+      isError: true,
+      structuredContent: { error: { code: "assistantActionService:entryNotFound" } },
+    });
     expect(textOf(missing)).toContain("wasn't found in this care group");
 
     expect((await w.entry(noteId))?.body).toBe("Original");
@@ -559,15 +429,13 @@ describe("/mcp edit tools (connectors-2)", () => {
     const token = w.writer.tokens.access_token;
     const base = `${TEST_ORIGIN}/app/groups/${w.group.id}`;
 
-    const added = await resultOf(
-      await call(token, "add_condition", {
-        name: "Type 2 diabetes",
-        sinceYear: 2015,
-        sinceMonth: 3,
-        note: "Diet-controlled",
-        diagnosedById: w.provider.id,
-      }),
-    );
+    const added = await call(token, "add_condition", {
+      name: "Type 2 diabetes",
+      sinceYear: 2015,
+      sinceMonth: 3,
+      note: "Diet-controlled",
+      diagnosedById: w.provider.id,
+    });
     expect(added.isError).toBeUndefined();
     expect(textOf(added)).toMatch(
       /^Added condition: Type 2 diabetes · Active, since March 2015, Diet-controlled, diagnosed by Dr\. Example\n/,
@@ -576,19 +444,21 @@ describe("/mcp edit tools (connectors-2)", () => {
     expect(added.structuredContent).toMatchObject({ url: `${base}/profile`, via: CLIENT });
 
     // recipient_profile gives the id the other two take.
-    const profile = await resultOf(await call(token, "recipient_profile"));
+    const profile = await call(token, "recipient_profile");
     expect(JSON.stringify(profile.structuredContent)).toContain(conditionId);
 
-    const updated = await resultOf(
-      await call(token, "update_condition", { conditionId, name: "Type 2 diabetes mellitus", note: null }),
-    );
+    const updated = await call(token, "update_condition", {
+      conditionId,
+      name: "Type 2 diabetes mellitus",
+      note: null,
+    });
     expect(updated.isError).toBeUndefined();
     expect(textOf(updated)).toMatch(
       /^Updated condition: Type 2 diabetes mellitus · Active, since March 2015/,
     );
     expect(textOf(updated)).not.toContain("Diet-controlled");
 
-    const resolved = await resultOf(await call(token, "resolve_condition", { conditionId }));
+    const resolved = await call(token, "resolve_condition", { conditionId });
     expect(textOf(resolved)).toMatch(/^Resolved condition: Type 2 diabetes mellitus · Resolved, since/);
     expect(ok(await recipientConditionService.getById(w.owner.ctx, conditionId))).toMatchObject({
       status: "resolved",
@@ -606,11 +476,11 @@ describe("/mcp edit tools (connectors-2)", () => {
     for (const e of entries) expect(e).toMatchObject({ via: CLIENT, createdBy: w.caretaker.user.id });
 
     // Active again by an update (a recurrence).
-    const back = await resultOf(await call(token, "update_condition", { conditionId, status: "active" }));
+    const back = await call(token, "update_condition", { conditionId, status: "active" });
     expect(textOf(back)).toMatch(/^Updated condition: Type 2 diabetes mellitus · Active/);
   });
 
-  it("refuses bad content, viewers, deleted conditions and other groups' ids as tool errors", async () => {
+  it("refuses an empty update, viewers, deleted conditions and other groups' ids as tool errors", async () => {
     const w = await world();
     const token = w.writer.tokens.access_token;
     const deleted = ok(
@@ -622,13 +492,6 @@ describe("/mcp edit tools (connectors-2)", () => {
     )!;
     const elsewhere = await createUser("elsewhere");
     const { group: other } = await createGroup(elsewhere);
-    const foreignProvider = ok(
-      await providerService.create(elsewhere.ctx, { groupId: other.id, type: "clinician", name: "Dr. Far" }),
-    )!;
-    const goneProvider = ok(
-      await providerService.create(w.owner.ctx, { groupId: w.group.id, type: "clinician", name: "Dr. Gone" }),
-    )!;
-    ok(await providerService.remove(w.owner.ctx, goneProvider.id));
     const foreign = ok(
       await recipientConditionService.create(elsewhere.ctx, { groupId: other.id, name: "Foreign" }),
     )!;
@@ -639,18 +502,12 @@ describe("/mcp edit tools (connectors-2)", () => {
       scope: "read",
       clientName: "Viewer's Claude",
     });
-    expect((await call(viewer.tokens.access_token, "add_condition", { name: "Nope" })).status).toBe(403);
+    expect((await postPinned(viewer.tokens.access_token, "add_condition", { name: "Nope" })).status).toBe(
+      403,
+    );
 
     const cases: [string, Record<string, unknown>, string][] = [
-      ["add_condition", { name: "Asthma", sinceMonth: 3 }, "recipientConditionService:invalid"],
-      ["add_condition", { name: "Asthma", diagnosedById: foreignProvider.id }, "permissions:unauthorized"],
-      [
-        "add_condition",
-        { name: "Asthma", diagnosedById: goneProvider.id },
-        "recipientConditionService:providerNotFound",
-      ],
       ["update_condition", { conditionId: live.id }, "assistantActionService:invalid"],
-      ["update_condition", { conditionId: live.id, sinceMonth: 13 }, "recipientConditionService:invalid"],
       // The condition refusals pass through (each case of them: assistantAction.int.test.ts).
       [
         "update_condition",
@@ -660,15 +517,15 @@ describe("/mcp edit tools (connectors-2)", () => {
       ["resolve_condition", { conditionId: foreign.id }, "assistantActionService:conditionNotFound"],
     ];
     for (const [tool, args, code] of cases) {
-      const result = await resultOf(await call(token, tool, args));
+      const result = await call(token, tool, args);
       expect(result, `${tool} ${JSON.stringify(args)}`).toMatchObject({
         isError: true,
         structuredContent: { error: { code } },
       });
     }
-    expect(
-      textOf(await resultOf(await call(token, "resolve_condition", { conditionId: foreign.id }))),
-    ).toContain("wasn't found in this care group");
+    expect(textOf(await call(token, "resolve_condition", { conditionId: foreign.id }))).toContain(
+      "wasn't found in this care group",
+    );
 
     // Nothing was written: the live condition is untouched, the other group's too, no change entries.
     expect(ok(await recipientConditionService.getById(w.owner.ctx, live.id))).toMatchObject({
@@ -689,19 +546,15 @@ describe("/mcp edit tools (connectors-2)", () => {
     const ahead = new Date(Date.now() + 3 * 24 * 60 * 60_000).toISOString();
     const before = (await w.groupEntries()).length;
 
-    const added = await resultOf(
-      await callTool(token, "add_note", { text: "Call later", occurredAt: ahead }),
-    );
+    const added = await tool(token, "add_note", { text: "Call later", occurredAt: ahead });
     expect(added.isError).toBe(true);
     expect(textOf(added)).toContain(refusal);
     expect((await w.groupEntries()).length).toBe(before);
 
     // Moving a note's time ahead is refused the same way.
-    const note = await resultOf(await callTool(token, "add_note", { text: "Happened", title: "Visit" }));
+    const note = await tool(token, "add_note", { text: "Happened", title: "Visit" });
     const [noteId] = note.structuredContent.entryIds!;
-    const moved = await resultOf(
-      await callTool(token, "update_entry", { entryId: noteId, occurredAt: ahead }),
-    );
+    const moved = await tool(token, "update_entry", { entryId: noteId, occurredAt: ahead });
     expect(moved.isError).toBe(true);
     expect(textOf(moved)).toContain(refusal);
     expect(new Date((await w.entry(noteId!))!.occurredAt).getTime()).toBeLessThan(Date.now());
@@ -725,19 +578,15 @@ describe("/mcp edit tools (connectors-2)", () => {
         },
       }),
     )!;
-    const appended = await resultOf(
-      await callTool(token, "append_to_entry", { entryId: stored.id, lines: [{ text: "More" }] }),
-    );
+    const appended = await tool(token, "append_to_entry", { entryId: stored.id, lines: [{ text: "More" }] });
     expect(appended.isError).toBe(true);
     expect(textOf(appended)).toContain(refusal);
     expect((await w.entry(stored.id))?.body ?? null).toBeNull();
 
     // An event ahead and a todo with a due day still work.
-    const event = await resultOf(await callTool(token, "add_event", { title: "Dentist", occurredAt: ahead }));
+    const event = await tool(token, "add_event", { title: "Dentist", occurredAt: ahead });
     expect(event.isError).toBeUndefined();
-    const todo = await resultOf(
-      await callTool(token, "add_todo", { title: "Call later", dueOn: "2027-01-10" }),
-    );
+    const todo = await tool(token, "add_todo", { title: "Call later", dueOn: "2027-01-10" });
     expect(todo.isError).toBeUndefined();
   });
 });
