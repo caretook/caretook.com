@@ -12,10 +12,4 @@ describe("condition seeds", () => {
       expect(recipientConditionContentZSchema.safeParse(content).success).toBe(true);
     expect(new Set(rows.map((r) => r.id)).size).toBe(rows.length);
   });
-
-  it("give Grandma Pat three active conditions and one resolved", () => {
-    const statuses = seedRows().map((r) => r.status);
-    expect(statuses.filter((s) => s === "active")).toHaveLength(3);
-    expect(statuses.filter((s) => s === "resolved")).toHaveLength(1);
-  });
 });

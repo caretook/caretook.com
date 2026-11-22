@@ -7,15 +7,6 @@ import { STAFF_SETTABLE_GROUP_ROLES } from "@caretook/data/schema";
 
 type GroupRoleName = "owner" | StaffSettableGroupRole;
 
-export const GROUP_ROLE_LABELS: Record<GroupRoleName, string> = {
-  owner: "Owner",
-  admin: "Admin",
-  caretaker: "Caretaker",
-  viewer: "Viewer",
-  easy_helper: "Easy helper",
-  easy_viewer: "Easy viewer",
-};
-
 const ROLE_ORDER: readonly GroupRoleName[] = [
   "owner",
   "admin",
@@ -24,9 +15,6 @@ const ROLE_ORDER: readonly GroupRoleName[] = [
   "easy_helper",
   "easy_viewer",
 ];
-
-/** A role's label; an unknown role reads as it is. */
-export const groupRoleLabel = (role: string) => GROUP_ROLE_LABELS[role as GroupRoleName] ?? role;
 
 type Person = { name: string | null; email: string };
 

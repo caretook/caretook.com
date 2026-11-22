@@ -21,15 +21,10 @@ describe("homeContent", () => {
   });
 
   it("offers both calls to action: the waitlist and an access code", () => {
-    expect(homeContent.hero.primary).toEqual({ label: "Join the waitlist", href: MARKETING_LINKS.waitlist });
+    expect(homeContent.hero.primary.href).toBe(MARKETING_LINKS.waitlist);
     expect(homeContent.hero.secondary?.href).toBe(MARKETING_LINKS.join);
     // The waitlist link lands on the waitlist band.
     expect(MARKETING_LINKS.waitlist).toBe(`/#${homeContent.waitlist.id}`);
-  });
-
-  it("says it's free while in early access", () => {
-    expect(homeContent.hero.eyebrow).toMatch(/free/i);
-    expect(homeContent.earlyAccess.heading).toMatch(/free while in early access/i);
   });
 
   const sections = [

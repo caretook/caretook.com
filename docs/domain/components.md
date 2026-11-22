@@ -33,7 +33,8 @@ The components area's rules and decisions.
 - **Parallelism:** `maxWorkers: 4`, run after the other projects.
 - **Gotchas:**
   - Test Back with a `BackProbe` capturing `navigate(-1)`, never `history.back()` under `createRoutesStub`; pending navigation needs a `createRoutesStub` with loaders.
-  - On a route whose `clientLoader` calls the `api`, or before the first rows, wait on an element, since settle covers the database only: `await found(() => X()?.querySelector(…))` (`test/found.ts`: `found`, `waitUntil`, `stopsMoving`, `fixClock`, one `WAIT_TIMEOUT` of 5 s on `performance.now()`, matching `expect.poll`; no copies) before acting on it, never `X()!`; `expect.poll` for values.
+  - On a route whose `clientLoader` calls the `api`, or before the first rows, wait on an element, since settle covers the database only: `await found(() => X()?.querySelector(…))` (`test/found.ts`: `found`, `waitUntil`, `stopsMoving`, `fixClock`, one `WAIT_TIMEOUT` of 5 s on `performance.now()`, matching `expect.poll`; no copies) before acting on it, never `X()!`; `expect.poll` for values. For a `data-` hook, `getByCss(sel, { within? })` (`test/locators.ts`, also `page.getByCss`) is a strict, retrying locator for `expect.element` and `userEvent`.
+  - **Lint (`caretook/*`, `scripts/eslint/plugin.mjs`; warnings until test-health's last wave):** `no-call-timeout`, `no-non-null-user-event`, `no-non-null-in-expect`, `no-fixed-sleep`, on `*.browser.test.tsx`, `test/` and `*World.tsx`. A real exception: `// eslint-disable-next-line caretook/<rule> -- <reason>`.
   - `getByText("…")` matches whole text. A closed native `<dialog>` drops out of `getByRole` (assert `dialog.open`; poll `dialog[open]` after a `ConfirmDialog`).
   - Click a row's text with `{ force: true }` (a stretched link covers it). Pass a locator to `userEvent.hover`; a tooltip shows on hover only after the next pointer press.
   - A `DeviceRoute` child on its parent's path needs an `id`.

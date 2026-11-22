@@ -29,6 +29,7 @@ export const fixClock = (now: Date | number = TEST_NOW) => {
   });
 };
 
+// eslint-disable-next-line caretook/no-fixed-sleep -- the harness's poll interval, between reads of the thing
 const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
 
 /**

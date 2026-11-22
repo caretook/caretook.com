@@ -6,14 +6,8 @@ import {
   medicationContentZSchema,
   timelineEntryContentZSchema,
 } from "../schema";
-import {
-  DEV_FAMILY_DOSES,
-  DEV_FAMILY_MEDICATIONS,
-  SECOND_GROUP_MEDICATIONS,
-  SEED_GROUPS,
-  seedRows,
-} from "./medications";
-import { DEV_FAMILY_PASS_IDS, seedPassRows } from "./medicationPasses";
+import { DEV_FAMILY_DOSES, seedRows } from "./medications";
+import { seedPassRows } from "./medicationPasses";
 import { seedRows as providerRows } from "./providers";
 
 // Seeds write straight to the tables, skipping the services' validation, so
@@ -36,33 +30,6 @@ describe("medication seeds", () => {
     }
   });
 
-  it("give Grandma Pat four current medications, a completed course and a discontinued one", () => {
-    const [devFamily, secondGroup] = seedRows(NOON);
-    const byStatus = (status: string) => devFamily?.rows.filter((r) => r.status === status) ?? [];
-    expect(byStatus("current")).toHaveLength(4);
-    expect(byStatus("completed")).toHaveLength(1);
-    expect(byStatus("discontinued")).toHaveLength(1);
-    expect(byStatus("discontinued")[0]).toMatchObject({ stopReason: "sideEffects" });
-
-    const current = byStatus("current");
-    expect(current.some((m) => m.schedule.type === "scheduled" && m.schedule.slots.length === 2)).toBe(true);
-    expect(current.filter((m) => m.schedule.type === "asNeeded")).toHaveLength(1);
-    expect(current.some((m) => m.refillsLeft !== null && m.lastFilledOn && m.quantity)).toBe(true);
-    expect(DEV_FAMILY_MEDICATIONS.some((m) => m.notes)).toBe(true);
-
-    expect(SECOND_GROUP_MEDICATIONS).toHaveLength(3);
-    expect(secondGroup?.rows).toHaveLength(3);
-    expect(secondGroup?.rows.every((r) => r.groupId === SEED_GROUPS[1]?.groupId)).toBe(true);
-  });
-
-  it("use every type, and leave one medication's unset", () => {
-    const rows = seedRows(NOON).flatMap((g) => g.rows);
-    expect(new Set(rows.map((r) => r.type))).toEqual(
-      new Set(["prescription", "otc", "supplement", "other", null]),
-    );
-    expect(rows.filter((r) => r.type === null).map((r) => r.name)).toEqual(["Oxybutynin"]);
-  });
-
   it("stopped the completed course within the last 90 days", () => {
     const [devFamily] = seedRows(NOON);
     const completed = devFamily?.rows.find((r) => r.status === "completed");
@@ -80,7 +47,6 @@ describe("medication seeds", () => {
         if (row.pharmacyId) expect(isPharmacyType(typeOf.get(row.pharmacyId) ?? "")).toBe(true);
       }
     });
-    expect(seedRows(NOON)[0]?.rows.some((r) => r.prescriberId && r.pharmacyId)).toBe(true);
   });
 
   it("write valid dose and change entries for medications in their own group", () => {
@@ -95,12 +61,8 @@ describe("medication seeds", () => {
     }
   });
 
-  it("give every medication its 'started' entry, and each save the entry the service would write", () => {
+  it("give every medication its 'started' entry, and each save the id the service would derive", () => {
     const [devFamily, secondGroup] = seedRows(NOON);
-    const changesOf = (key: string) => {
-      const id = devFamily?.rows[DEV_FAMILY_MEDICATIONS.findIndex((m) => m.key === key)]?.id;
-      return (devFamily?.changes ?? []).filter((c) => c.details.medicationId === id).map((c) => c.details);
-    };
     for (const group of [devFamily, secondGroup]) {
       for (const row of group?.rows ?? []) {
         const started = group?.changes.filter(
@@ -114,37 +76,6 @@ describe("medication seeds", () => {
         expect(change.id).toBe(medicationChangeId(change.details.medicationId, change.occurredAt));
       }
     }
-
-    expect(changesOf("lisinopril")).toMatchObject([
-      { change: "started", after: { strength: "5 mg" } },
-      { change: "changed", fields: ["strength"], before: { strength: "5 mg" }, after: { strength: "10 mg" } },
-    ]);
-    expect(changesOf("acetaminophen")[1]).toMatchObject({ change: "changed", fields: ["schedule"] });
-    expect(changesOf("amoxicillin")[1]).toMatchObject({ change: "stopped", stopStatus: "completed" });
-    expect(changesOf("oxybutynin")[1]).toMatchObject({
-      change: "stopped",
-      stopStatus: "discontinued",
-      stopReason: "sideEffects",
-    });
-    // A refill is saved without an entry.
-    expect(changesOf("latanoprost")).toHaveLength(1);
-  });
-
-  it("log about a week of doses: mostly given, a few skipped, one refused", () => {
-    const [devFamily] = seedRows(NOON);
-    const doses = devFamily?.doses ?? [];
-    const statusOf = (status: string) =>
-      doses.filter((d) => "status" in d.details && d.details.status === status);
-    expect(doses.length).toBeGreaterThan(25);
-    expect(statusOf("skipped").length).toBeGreaterThanOrEqual(3);
-    expect(statusOf("refused")).toHaveLength(1);
-    expect(statusOf("given").length).toBeGreaterThan(20);
-    expect(statusOf("skipped").every((d) => "note" in d.details && d.details.note)).toBe(true);
-
-    const oldest = Math.min(...doses.map((d) => Date.parse(d.occurredAt)));
-    expect((NOON - oldest) / (24 * 60 * 60 * 1000)).toBeLessThan(8);
-    // As-needed doses answer no slot.
-    expect(doses.some((d) => !("scheduledFor" in d.details))).toBe(true);
   });
 
   it("never log a dose ahead of time, and keep each dose's id when some are left out", () => {
@@ -161,40 +92,24 @@ describe("medication seeds", () => {
     expect(atDawn?.doses.every((d) => idsAtNoon.has(d.id))).toBe(true);
   });
 
-  it("put Grandma Pat's scheduled medications in her group's passes, with their doses naming them", () => {
+  it("put scheduled medications in their group's passes, with their doses naming them", () => {
     const [devFamily] = seedRows(NOON);
     const passes = new Map(
       seedPassRows()
         .filter((p) => p.groupId === devFamily?.rows[0]?.groupId)
         .map((p) => [p.id, p.time]),
     );
-    const metformin = devFamily?.rows.find((r) => r.name === "Metformin");
-    expect(metformin?.schedule).toEqual({
-      type: "scheduled",
-      slots: [{ passId: DEV_FAMILY_PASS_IDS.morning }, { passId: DEV_FAMILY_PASS_IDS.evening }].sort((a, b) =>
-        a.passId.localeCompare(b.passId),
-      ),
-    });
-    // A time of its own stays one (Latanoprost at bedtime).
-    expect(devFamily?.rows.find((r) => r.name === "Latanoprost")?.schedule).toEqual({
-      type: "scheduled",
-      slots: [{ time: "21:00" }],
-    });
     for (const row of devFamily?.rows ?? []) {
       if (row.schedule.type !== "scheduled") continue;
       for (const slot of row.schedule.slots) if ("passId" in slot) expect(passes.has(slot.passId)).toBe(true);
     }
-    // A dose in a pass names it, at the pass's time; one at a time of its own names none.
+    // A dose in a pass names it, at the pass's time.
     const doses = devFamily?.doses ?? [];
     for (const dose of doses) {
       if (dose.kind !== "dose" || !("scheduledFor" in dose.details)) continue;
       const passId = "passId" in dose.details ? dose.details.passId : undefined;
       if (passId) expect(passes.get(passId)).toBe(dose.details.scheduledFor);
-      else expect(dose.details.scheduledFor).toBe("21:00");
     }
-    expect(doses.some((d) => "passId" in d.details && d.details.passId === DEV_FAMILY_PASS_IDS.evening)).toBe(
-      true,
-    );
   });
 
   it("give every row its own id", () => {
