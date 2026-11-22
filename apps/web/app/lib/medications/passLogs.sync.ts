@@ -9,11 +9,10 @@ import { isDoseEntry, logDose, removeDoses, toMedicationEntry } from "./medicati
 import { timelineEntries } from "../sync/schema";
 import {
   forbidden,
-  groupFor,
+  mayChangeEntry,
   nowTimestamp,
   readRows,
   toLocalTimestamp,
-  WRITER_ROLES,
 } from "../timeline/timeline.sync";
 
 // A pass log on this device: the doses logged in one round (one
@@ -50,11 +49,6 @@ export const passLogDosesQuery = (
   params: [groupId, passLogId],
 });
 
-const canWrite = async (db: SyncDb, groupId: string) => {
-  const group = await groupFor(db, groupId);
-  return !!group?.role && WRITER_ROLES.includes(group.role);
-};
-
 const goneMessage = "That entry is gone. It may have been deleted.";
 
 /**
@@ -76,7 +70,7 @@ export const updateDoses = async (
     });
     const entry = row ? toMedicationEntry(row) : null;
     if (!entry || !isDoseEntry(entry)) return { ok: false, error: goneMessage, issues: [] };
-    if (!(await canWrite(db, entry.groupId))) return forbidden;
+    if (!(await mayChangeEntry(db, entry))) return forbidden;
     const { occurredAt, ...details } = Object.fromEntries(
       Object.entries(patch).filter(([, v]) => v !== undefined),
     ) as DosePatch;

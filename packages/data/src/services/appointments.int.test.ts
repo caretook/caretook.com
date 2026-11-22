@@ -195,7 +195,7 @@ describe("appointment fields", () => {
       });
     }
     expect(codeOf(await timelineEntryService.update(u.viewer.ctx, entry.id, set))).toBe(
-      "baseModel:update:nothingUpdated",
+      "permissions:unauthorized",
     );
     expect(codeOf(await timelineEntryService.update(u.outsider.ctx, entry.id, set))).toBe(
       "timelineEntryService:notFound",

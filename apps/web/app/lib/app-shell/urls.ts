@@ -18,6 +18,6 @@ export const appShellUrls = {
    */
   settings: (page?: AccountSettingsPage) =>
     `${HOME}/settings${isAccountSettingsPage(page) ? `/${page}` : ""}`,
-  /** `/app`'s list of groups, even when it would go on to one (simple mode's way to another group). */
+  /** `/app`'s list of groups, even when it would go on to one (easy mode's way to another group). */
   groupList: () => `${HOME}${searchString({ [GROUP_LIST_PARAM]: "1" })}`,
 } as const;

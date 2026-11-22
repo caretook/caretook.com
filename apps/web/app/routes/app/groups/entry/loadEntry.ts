@@ -62,7 +62,7 @@ export async function loadEntry(
     when = null,
     withProvider = null,
     at = null,
-    canWrite,
+    canLog,
   }: {
     groupId: string;
     entryId: string;
@@ -71,11 +71,12 @@ export async function loadEntry(
     withProvider?: string | null;
     /** A draft's start time (`?at=<ISO>`, a past day's +); now when missing or not a time. */
     at?: string | null;
-    canWrite: boolean;
+    /** The group context's `canLog`: a draft is only for someone who logs care. */
+    canLog: boolean;
   },
 ): Promise<EntryPageData> {
   if (entryId === NEW_ENTRY) {
-    if (!isLiveEntryKind(kind) || !canWrite) throw notFound();
+    if (!isLiveEntryKind(kind) || !canLog) throw notFound();
     // Only a live provider in this group; anything else is dropped.
     const [provider] =
       kind === "event" && withProvider

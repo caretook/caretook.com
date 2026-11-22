@@ -44,7 +44,17 @@ function IconDot({ children }: { children: React.ReactNode }) {
 }
 
 /** The provider: its name linking to its page, and its quick contact actions; greyed "(removed)" once deleted. */
-function ProviderLink({ groupId, id, loaded }: { groupId: string; id: string; loaded: ProviderRow[] }) {
+function ProviderLink({
+  groupId,
+  id,
+  loaded,
+  linked,
+}: {
+  groupId: string;
+  id: string;
+  loaded: ProviderRow[];
+  linked: boolean;
+}) {
   const q = providerQuery(id);
   const rows = useLiveQuery<ProviderRow>(q.sql, q.params, loaded);
   const provider = rows[0] ? toProvider(rows[0]) : null;
@@ -58,6 +68,10 @@ function ProviderLink({ groupId, id, loaded }: { groupId: string; id: string; lo
         {removed ? (
           <p className="text-base-content/50 truncate" data-todo-link-name>
             {linkLabel(provider.name, true)}
+          </p>
+        ) : !linked ? (
+          <p className="truncate font-medium" data-todo-link-name>
+            {provider.name}
           </p>
         ) : (
           <Link to={appUrls.provider(groupId, provider.id)} className={STRETCHED} data-todo-link-name>
@@ -113,7 +127,17 @@ function EventLink({ groupId, id, loaded }: { groupId: string; id: string; loade
 }
 
 /** The medication: its name linking to its page; greyed "(removed)" once deleted. */
-function MedicationLink({ groupId, id, loaded }: { groupId: string; id: string; loaded: MedicationRow[] }) {
+function MedicationLink({
+  groupId,
+  id,
+  loaded,
+  linked,
+}: {
+  groupId: string;
+  id: string;
+  loaded: MedicationRow[];
+  linked: boolean;
+}) {
   const q = medicationQuery(id);
   const rows = useLiveQuery<MedicationRow>(q.sql, q.params, loaded);
   const medication = rows[0] ? toMedication(rows[0]) : null;
@@ -131,6 +155,10 @@ function MedicationLink({ groupId, id, loaded }: { groupId: string; id: string; 
           <p className="text-base-content/50 truncate" data-todo-link-name>
             {linkLabel(title, true)}
           </p>
+        ) : !linked ? (
+          <p className="font-medium break-words" data-todo-link-name>
+            {title}
+          </p>
         ) : (
           <Link to={appUrls.medication(groupId, medication.id)} className={STRETCHED} data-todo-link-name>
             {title}
@@ -146,19 +174,23 @@ function MedicationLink({ groupId, id, loaded }: { groupId: string; id: string; 
 
 /**
  * What the todo is about: its provider (with call and map actions), its
- * appointment and its medication, each opening its page. Nothing when it
- * has no links. Live: a provider deleted or an appointment cancelled on
+ * appointment and its medication, each opening its page (the provider and
+ * medication as plain names without `linkPages`: the easy roles can't
+ * open their pages). Nothing when it has no links. Live: a provider deleted or an appointment cancelled on
  * another device shows at once.
  */
 export function TodoLinks({
   groupId,
   todo,
   loaded,
+  linkPages = true,
 }: {
   groupId: string;
   todo: Pick<LocalTodo, "providerId" | "eventId" | "medicationId">;
   /** The loader's rows for the links (stable). */
   loaded: Loaded;
+  /** Whether the provider and medication link to their pages. */
+  linkPages?: boolean;
 }) {
   const { providerId, eventId, medicationId } = todo;
   const initial = useMemo(
@@ -174,7 +206,13 @@ export function TodoLinks({
     <Section title="Linked to" id="links" data-todo-links="">
       <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border">
         {providerId && (
-          <ProviderLink key={providerId} groupId={groupId} id={providerId} loaded={initial.provider} />
+          <ProviderLink
+            key={providerId}
+            groupId={groupId}
+            id={providerId}
+            loaded={initial.provider}
+            linked={linkPages}
+          />
         )}
         {eventId && <EventLink key={eventId} groupId={groupId} id={eventId} loaded={initial.event} />}
         {medicationId && (
@@ -183,6 +221,7 @@ export function TodoLinks({
             groupId={groupId}
             id={medicationId}
             loaded={initial.medication}
+            linked={linkPages}
           />
         )}
       </ul>

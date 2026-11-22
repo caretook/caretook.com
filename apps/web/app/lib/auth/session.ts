@@ -8,7 +8,7 @@ import { forgetSettings } from "../app-shell/me";
 import { forgetCalendarSettings } from "../calendars/calendarSettings";
 import { forgetRecentLines } from "../assistant/recentLines";
 import { forgetRecentSearches } from "../search/recentSearches";
-import { forgetToggles } from "../assistant/simpleModeToggle";
+import { forgetToggles } from "../assistant/easyModeToggle";
 import { signInUrl } from "../core/redirect";
 import { sessionEpoch } from "./sessionEpoch";
 import { askSession, sessionFreshness, shouldRecheck, withoutAnswer } from "./sessionRules";
@@ -107,7 +107,7 @@ const roleOf = (user: object) => {
 /**
  * Wipe this device's copy: stop syncing, empty the local database (vacuumed,
  * so no freed page keeps a deleted row) and drop its search index, and forget the cached user, settings and calendar settings (pending changes too),
- * last group, recent searches, quick entry's recent lines and simple-mode toggles. Sign-out, and a session the server says
+ * last group, recent searches, quick entry's recent lines and easy-mode toggles. Sign-out, and a session the server says
  * has ended, both go through here. Changes not uploaded yet are lost.
  */
 export const wipeDevice = async () => {

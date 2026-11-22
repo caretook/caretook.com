@@ -8,6 +8,8 @@ For planning agents: what the user has already decided, so nobody asks again. Re
 ## Product
 
 - **Layout and visual design are decided, not asked:** how a page or component looks, which pages get a new look first and which optional extras to add. Take the smallest version and list it as assumed; the user vetoes by reading the table. (ui-kit, 2026-11-21)
+- **Links between records are many to many**, not one slot on a row: "any todo's linked or discussed in the note can be linked. Similarly any event." Model a new link as a join table like the note-to-provider links. (planner-3, 2026-11-21; the general rule is the planner's reading of an answer about notes, todos and events)
+- **Say "event", not "appointment":** "there is no such thing as an appointment". New wording and plans say event; renaming existing screens is its own change. (planner-3, 2026-11-21; the second half is the planner's reading)
 
 ## Planning and slices
 

@@ -301,6 +301,40 @@ describe("connectorGrantService.verify", () => {
   });
 });
 
+describe("the easy roles (easy roles PRD)", () => {
+  it("refuses an Easy helper's and an Easy viewer's authorisation, read only included", async () => {
+    const w = await world();
+    for (const role of ["easy_helper", "easy_viewer"] as const) {
+      const who = await createUser(role);
+      ok(await careGroupMemberService.create(system, { groupId: w.group.id, userId: who.user.id, role }));
+      for (const scope of ["read", "readWrite"] as const)
+        expect(codeOf((await connect(who, w.group.id, scope)).grant)).toBe(
+          "connectorGrantService:scopeNotAllowed",
+        );
+    }
+  });
+
+  it("cuts a connected caretaker off when they become an Easy helper", async () => {
+    const w = await world();
+    const { clientId } = await connect(w.caretaker, w.group.id);
+    ok(await connectorGrantService.verify(tokenFor(w.caretaker.user.id, clientId), validate));
+
+    const membership = ok(
+      await careGroupMemberModel.get({
+        ...system,
+        filter: {
+          groupId: { type: "eq", value: w.group.id },
+          userId: { type: "eq", value: w.caretaker.user.id },
+        },
+      }),
+    );
+    ok(await careGroupMemberService.updateRole(w.owner.ctx, { id: membership!.id, role: "easy_helper" }));
+    expect(
+      codeOf(await connectorGrantService.verify(tokenFor(w.caretaker.user.id, clientId), validate)),
+    ).toBe("connectorGrantService:invalidToken");
+  });
+});
+
 describe("listing and revoking", () => {
   it("lists a member's own connections, and the group's for its owners and admins only", async () => {
     const w = await world();

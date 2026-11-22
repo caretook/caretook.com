@@ -6,16 +6,7 @@ import { visibleSharedFields } from "@caretook/data/schema";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { ContactLines } from "~/components/contact";
-import {
-  Badge,
-  Button,
-  ConfirmDialog,
-  List,
-  ListRow,
-  Message,
-  ToggleField,
-  UserAvatar,
-} from "~/components/ui";
+import { Badge, Button, ConfirmDialog, List, ListRow, Message, UserAvatar } from "~/components/ui";
 import { emergencyBadges } from "~/lib/profiles/emergencyList";
 import { useLiveQuery } from "~/lib/sync";
 import {
@@ -27,10 +18,11 @@ import {
 import { memberDetailsQuery } from "~/lib/care-groups/members.sync";
 import { memberAccess, memberName, roleLabel, sortMembers } from "../groupSettings";
 import { memberHistory } from "./invites";
+import { RoleOptions } from "./RoleOptions";
 import { SharingForm } from "./SharingForm";
 
 // The members list and its rows. Each change posts an intent (`changeRole`,
-// `setMemberMode`, `removeMember`, `updateSharing`) to the route's action. Every row shows the
+// `removeMember`, `updateSharing`) to the route's action. Every row shows the
 // member's relationship to the recipient and what they share with the group;
 // your own row has "What this group sees" (online, from your account's
 // contact details).
@@ -160,9 +152,7 @@ function MemberItem({
     void fetcher.submit({ intent: "changeRole", userId: member.user_id, role }, { method: "post" });
   };
 
-  const simple = useSimpleModeSwitch(member);
-
-  const error = (result && !result.ok ? result.error : undefined) ?? simple.error ?? removeError;
+  const error = (result && !result.ok ? result.error : undefined) ?? removeError;
   return (
     <ListRow data-member={member.user_id} className="space-y-1">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -208,11 +198,7 @@ function MemberItem({
             {!access.roles.some((role) => role === shownRole) && (
               <option value={shownRole ?? ""}>{roleLabel(shownRole)}</option>
             )}
-            {access.roles.map((role) => (
-              <option key={role} value={role}>
-                {roleLabel(role)}
-              </option>
-            ))}
+            <RoleOptions roles={access.roles} />
           </select>
         ) : (
           <span data-role className="text-base-content/70 text-sm">
@@ -232,41 +218,6 @@ function MemberItem({
           </Button>
         )}
       </div>
-      {(access?.simpleMode || !!member.simple_mode) && (
-        <div className="flex min-w-0 flex-col gap-2 pl-12" data-member-switches="">
-          {access?.simpleMode ? (
-            <ToggleField
-              label="Simple mode"
-              aria-label={`Simple mode for ${name}`}
-              checked={simple.on}
-              disabled={simple.busy || removing}
-              onChange={(event) => simple.set(event.target.checked)}
-              data-simple-mode-switch=""
-            />
-          ) : (
-            !!member.simple_mode && (
-              <Badge data-simple-mode-badge="" className="self-start">
-                {member.simple_mode_locked ? "Simple mode, locked" : "Simple mode"}
-              </Badge>
-            )
-          )}
-          {access?.lock && (
-            <ToggleField
-              label="Locked"
-              aria-label={`Lock ${name} in simple mode`}
-              checked={simple.locked}
-              disabled={simple.busy || removing}
-              onChange={(event) => simple.lock(event.target.checked)}
-              data-simple-lock-switch=""
-            />
-          )}
-          {access?.simpleMode && !access.lock && !!member.simple_mode_locked && (
-            <Badge data-simple-mode-badge="" className="self-start">
-              Locked
-            </Badge>
-          )}
-        </div>
-      )}
       {error && <Message tone="error">{error}</Message>}
       {contactLines.length > 0 && (
         <div className="pl-12">
@@ -289,51 +240,3 @@ function MemberItem({
     </ListRow>
   );
 }
-
-/**
- * A member's simple-mode switches: the managers' default for them, and the
- * lock. Locking turns the default on, and turning the default off unlocks
- * (the server's rule, shown at once). The latest choice shows while it saves
- * and until it syncs back. Each change sent is remembered until its own echo
- * arrives, so an earlier change syncing back after a later click doesn't
- * undo the later one on screen; a refused change, or a saved value none of
- * ours explains (anyone else's change), shows what's saved.
- */
-function useSimpleModeSwitch(member: MemberDetailRow) {
-  const fetcher = useFetcher<ActionResult>();
-  const busy = fetcher.state !== "idle";
-  const result = busy ? undefined : fetcher.data;
-  const saved = { on: !!member.simple_mode, locked: !!member.simple_mode_locked };
-  const savedKey = modeKey(saved);
-  // What we've sent, oldest first, and the saved value we last looked at.
-  const [sent, setSent] = useState<{ pending: string[]; seen: string }>({ pending: [], seen: savedKey });
-  if (sent.seen !== savedKey) {
-    const echo = sent.pending.indexOf(savedKey);
-    // Our own change arriving drops it and anything older; anything else is someone else's.
-    setSent({ pending: echo < 0 ? [] : sent.pending.slice(echo + 1), seen: savedKey });
-  }
-  const latest = sent.pending.at(-1);
-  const shown = latest && (busy || result?.ok) ? parseModeKey(latest) : saved;
-  const send = (next: ModeState, field: "simpleMode" | "locked", value: boolean) => {
-    setSent({ pending: [...sent.pending, modeKey(next)], seen: savedKey });
-    void fetcher.submit(
-      { intent: "setMemberMode", userId: member.user_id, [field]: value ? "on" : "off" },
-      { method: "post" },
-    );
-  };
-  return {
-    on: shown.on,
-    locked: shown.locked,
-    busy,
-    set: (on: boolean) => send({ on, locked: on && shown.locked }, "simpleMode", on),
-    lock: (locked: boolean) => send({ on: locked || shown.on, locked }, "locked", locked),
-    error: result && !result.ok ? result.error : undefined,
-  };
-}
-
-type ModeState = { on: boolean; locked: boolean };
-const modeKey = ({ on, locked }: ModeState) => `${on}:${locked}`;
-const parseModeKey = (key: string): ModeState => {
-  const [on, locked] = key.split(":");
-  return { on: on === "true", locked: locked === "true" };
-};

@@ -41,10 +41,8 @@ describe("CheckField", () => {
   });
 
   test("an aria-label names it instead, and the visible label isn't read twice", async () => {
-    const { screen } = await renderInRouter(
-      <CheckField label="Locked" aria-label="Lock Sam in simple mode" />,
-    );
-    await expect.element(screen.getByRole("checkbox", { name: "Lock Sam in simple mode" })).toBeVisible();
+    const { screen } = await renderInRouter(<CheckField label="Locked" aria-label="Lock Sam in easy mode" />);
+    await expect.element(screen.getByRole("checkbox", { name: "Lock Sam in easy mode" })).toBeVisible();
     await expect.element(screen.getByText("Locked")).toBeVisible();
   });
 });

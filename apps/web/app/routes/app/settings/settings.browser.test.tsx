@@ -73,7 +73,7 @@ describe.each([420, 1280])("at %i", (width) => {
     expect(after).toBeGreaterThanOrEqual(0);
   });
 
-  test("Timeline layout: the layout, named by the page's heading (Rows or Cards), then simple mode", async () => {
+  test("Timeline layout: the layout, named by the page's heading (Rows or Cards), then easy mode", async () => {
     await open("/app/settings/timeline", width);
     const group = page.getByRole("radiogroup", { name: "Timeline layout" });
     await expect.element(group).toBeVisible();
@@ -86,11 +86,11 @@ describe.each([420, 1280])("at %i", (width) => {
     expect(page.getByRole("radiogroup").elements()).toHaveLength(2);
     expect(
       page
-        .getByRole("radiogroup", { name: "Simple mode" })
+        .getByRole("radiogroup", { name: "Easy mode" })
         .getByRole("radio")
         .elements()
         .map((r) => r.getAttribute("aria-label")),
-    ).toEqual(["Follow the group", "Always", "Never"]);
+    ).toEqual(["Always", "Never"]);
     frameAt(width, "timeline");
   });
 
@@ -118,7 +118,7 @@ describe("the timeline layout: Settings and the timeline's toggle change one pre
    * in flight until `release()`.
    */
   const account = (timelineView: "rows" | "cards" = "rows") => {
-    const prefs = { units: {}, timelineView, simpleMode: "group" };
+    const prefs = { units: {}, timelineView, easyMode: "group" };
     let held: Promise<void> | null = null;
     let release = () => {};
     const api = {

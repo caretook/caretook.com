@@ -36,7 +36,7 @@ describe("settings from the cache, refreshed in the background", () => {
     answer({
       units: { ...UNITS_F, temperature: "c" },
       timelineView: "cards",
-      simpleMode: "group",
+      easyMode: "group",
       daySummary: "highlights",
     });
     await waitUntil(() => !!rowWith("°C"), 4000, "the temperature in °C");

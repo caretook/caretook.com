@@ -127,15 +127,15 @@ describe("Details", () => {
     await expect.element(NAME()).toHaveValue(TEST_GROUP.name);
     expect(
       [...document.querySelectorAll<HTMLElement>("main [data-section]")].map((s) => s.dataset.section),
-    ).toEqual(["group-details", "care-recipient", "simple-tiles", "details-outside-allowed"]);
+    ).toEqual(["group-details", "care-recipient", "easy-tiles", "details-outside-allowed"]);
     expect(document.querySelector("main [data-profile-note] a")?.getAttribute("href")).toBe(
       `/app/groups/${TEST_GROUP.id}/profile`,
     );
     expect(document.querySelector("[data-needs-connection]")).toBeNull();
-    // Every input is labelled: the name is the only one (simple mode's tiles card and the
+    // Every input is labelled: the name is the only one (easy mode's tiles card and the
     // owners' details switch have their own tests).
     const labels = [...document.querySelectorAll<HTMLInputElement>("main input:not([type=hidden])")]
-      .filter((i) => !i.closest("[data-section=simple-tiles], [data-section=details-outside-allowed]"))
+      .filter((i) => !i.closest("[data-section=easy-tiles], [data-section=details-outside-allowed]"))
       .map((i) => document.querySelector(`label[for="${i.id}"]`)?.textContent?.trim());
     expect(labels).toEqual(["Name"]);
   });
@@ -241,7 +241,7 @@ describe("Members", () => {
   const alertOn = (name: string) => row(name)?.querySelector('[role="alert"]')?.textContent?.trim() ?? "";
   const ready = () => expect.poll(() => document.querySelectorAll("main li[data-member]").length).toBe(3);
 
-  test("the owner, online: everyone by role, a role menu each (all four roles), Leave on their row and Remove on the others", async () => {
+  test("the owner, online: everyone by role, a role menu each (all six roles), Leave on their row and Remove on the others", async () => {
     await open({ url: MEMBERS });
     await ready();
     expect(
@@ -261,6 +261,8 @@ describe("Members", () => {
       "admin",
       "caretaker",
       "viewer",
+      "easy_helper",
+      "easy_viewer",
     ]);
     expect(
       [...list.querySelectorAll("li[data-member] select, li[data-member] button")].map((el) =>
@@ -276,6 +278,49 @@ describe("Members", () => {
     ]);
     // Sign-in emails never show (only shared contact details do).
     expect(list.textContent).not.toContain("@example.com");
+  });
+
+  test("the role menu groups the easy roles under Easier to use, each option described for the manager", async () => {
+    await open({ url: MEMBERS });
+    await ready();
+    const select = row("Rita").querySelector("select")!;
+    const groups = [...select.querySelectorAll("optgroup")].map((g) => [
+      g.label,
+      [...g.querySelectorAll("option")].map((o) => o.textContent),
+    ]);
+    expect(groups).toEqual([
+      ["Regular roles", ["Owner", "Admin", "Caretaker", "Viewer"]],
+      ["Easier to use", ["Easy helper", "Easy viewer"]],
+    ]);
+    const titles = Object.fromEntries([...select.options].map((o) => [o.value, o.title]));
+    expect(titles.viewer).toBe("Reads care data only.");
+    expect(titles.easy_helper).toMatch(/^For someone who isn't comfortable with apps or who has memory/);
+    expect(titles.easy_viewer).toMatch(/They can read and tick their own todos/);
+  });
+
+  test("a member with an easy role reads as Easy helper: a menu for the owner, plain text for a caretaker", async () => {
+    const helper = fx.person({
+      id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f1a04",
+      name: "June Park",
+      role: "easy_helper",
+    });
+    for (const [role, expected] of [
+      ["owner", "Easy helper*"],
+      ["caretaker", "Easy helper"],
+    ] as const) {
+      const device = await renderWithDevice({
+        route: ROUTES,
+        url: MEMBERS,
+        role,
+        fixtures: [SAM, RITA, helper],
+        api: ONLINE,
+      });
+      await expect.poll(() => document.querySelectorAll("main li[data-member]").length).toBe(4);
+      expect(listed().split(",").at(-1)).toMatch(new RegExp(`^June Park:${expected.replace("*", "\\*")}`));
+      // The description stays with the managers' menu: never on the member's row.
+      expect(row("June Park").textContent).not.toMatch(/memory|thinking/);
+      await device.screen.unmount();
+    }
   });
 
   test("the last owner: demoting themselves shows the server's reason and the menu goes back; leaving asks first, Cancel sends nothing, and a refusal keeps them here", async () => {
@@ -338,7 +383,13 @@ describe("Members", () => {
       .poll(listed)
       .toBe("Olga Moreno:Owner,Alex Moreno (you):Admin*:Leave,Rita Okafor:Viewer*:Remove");
     const rita = row("Rita").querySelector("select")!;
-    expect([...rita.options].map((o) => o.value)).toEqual(["admin", "caretaker", "viewer"]);
+    expect([...rita.options].map((o) => o.value)).toEqual([
+      "admin",
+      "caretaker",
+      "viewer",
+      "easy_helper",
+      "easy_viewer",
+    ]);
 
     // A forged request (an Owner option added by hand) gets the owner-only message, and the menu goes back.
     rita.append(Object.assign(document.createElement("option"), { value: "owner", textContent: "Owner" }));

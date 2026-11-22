@@ -12,6 +12,9 @@ export const USERS: UserInsert[] = [
   { email: "member@example.com", name: "Dev Member", role: "member", emailVerified: true },
   { email: "caretaker@example.com", name: "Dev Caretaker", role: "member", emailVerified: true },
   { email: "viewer@example.com", name: "Dev Viewer", role: "member", emailVerified: true },
+  // Dev Family's Easy helper and Easy viewer (easy roles PRD), appended.
+  { email: "easyhelper@example.com", name: "Dev Easy Helper", role: "member", emailVerified: true },
+  { email: "easyviewer@example.com", name: "Dev Easy Viewer", role: "member", emailVerified: true },
 ];
 
 export const seed = async () => {

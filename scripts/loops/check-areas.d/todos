@@ -1,7 +1,7 @@
 # check-areas: todos (todos PRD). The list and its sheets, the todo page,
-# links and backlinks, the shared tick and Undo pieces, simple mode's My todos
+# links and backlinks, the shared tick and Undo pieces, easy mode's My todos
 # card (timeline/*) and quick entry's todo card are component tests
-# (todos/, todo/, components/todos/ and timeline/timelineSimpleTodos,
+# (todos/, todo/, components/todos/ and timeline/timelineEasyTodos,
 # timelineQuickEntryTodos browser tests); the pure wording, list, links and
 # Undo store have unit tests; the service and upload are integration tests.
 apps/web/app/routes/app/groups/todos/    -

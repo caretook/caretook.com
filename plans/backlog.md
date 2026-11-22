@@ -73,9 +73,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `code-health` | — | `check-speed`, `orchestration-2` | `packages/data/src/db/schema/`, `packages/data/src/domain/`, `packages/data/src/services/`, `packages/data/package.json`, `package.json`, `apps/web/package.json`, `apps/web/app/`, `packages/api/src/`, `scripts/loops/lib.sh`, `scripts/loops/lease.sh`, `scripts/loops/land.test.mjs`, `scripts/loops/check-areas.d/`, `scripts/backlog/backlog.mjs`, `scripts/build/` | [PRD](code-health-prd.md), [plan](code-health-plan.md) (B-361, B-365, B-366, B-367): 6 slices, waves (1, 2, 3, 5) → 4 → 6: exact pins and a test refusing ranges, unused exports removed, the backlog lock held once and a knobs page, tests on pr/ready/review/land, pure logic moved to @caretook/data/domain, then every importer switched (slice 6, alone, after simple-mode lands; it touches import lines across apps/web/app and packages/api). No behaviour change, no migration. Follow-ons: code-health-2, code-health-3 |
 | `code-health-2` | — | `code-health`, `simple-mode`, `sync-safety` | `packages/data/src/models/`, `packages/data/src/services/`, `packages/data/src/constants/roles.ts`, `packages/data/src/permissions/`, `apps/web/app/lib/core/` | to write (B-362, B-363), cut from code-health by its planner, 2026-11-21: the role table as what simple-mode leaves (canComplete, role checks in the API's invites and join requests, a test refusing role names outside the role module, isUserRoleName and isGroupRoleName removed), the soft-delete model factory, one upsert helper on sync-safety's create-if-absent shape, one invalid, the device side's refuse, invalid, canWrite, formString and shouldRevalidate |
 | `code-health-3` | — | `code-health-2` | `apps/web/app/lib/`, `apps/web/app/libLayout.test.ts`, `packages/data/src/models/base/`, `packages/api/src/sync` | to write (B-364, B-368, B-369), cut from code-health by its planner, 2026-11-21: device row types derived from the device schema and the layout guard refusing SQL outside *.sync.ts (17 files today), the list count only on request and the sync PATCH's round trips (that slice after sync-safety-2), plan-pointing comments (a count that may only fall, then a sweep) |
-| `simple-mode` | — | — | `apps/web/app/lib/assistant/simpleMode`, `packages/data/src/constants/roles.ts`, `packages/data/src/permissions/`, `powersync/sync-config.yaml` | [PRD](simple-mode-prd.md), [plan](simple-mode-plan.md): 5 slices, waves 1 → 2 → 3 → (4, 5): the lock becomes two member roles, Easy helper (log-only, own entries, own todos) and Easy viewer; "simple" is renamed "easy" everywhere, database included; the role decides the view; the Planner, todo pages and search open for the easy roles (B-221, B-236); the Easy mode toggle moves from the View options menu into the full timeline's page header (slice 5, stackless, B-400). Migrations in slices 1, 2 and 3; sync config changes. **Ready to start** once its start condition holds · Depends on: `list-filters` (last item B-249), `planner-2` (last item B-248) and the current `quick-fixes` wave in `dev` (slice 1 renames files they touch) · Hot files: slice 1: every `simple*` file (`lib/assistant/simpleMode*`, `SimpleTimeline` and its blocks, quick entry, `TodoTick`, the `/app` layout), `sync-config.yaml`, the device schema; slice 2: `constants/roles.ts`, `permissions/` (blocks, types, timeline, todos, live-notes, connectors), `todoService`, the upload switch, `groupContext.ts`, the role picker; slice 3: group settings Members, `careGroupMemberService`, `useSimpleFrame`; slice 4: the Planner and todo routes, the search route; slice 5: `TimelineHeader.tsx`, `TimelineViewMenu.tsx`, the toggle button |
-| `planner-3` | — | — | — | to write (B-245: a note can carry a todo with its own due day and assignee, the replacement for reminders; B-254: quick entry reads a repeating todo) · Depends on: `planner-2` in `dev` (last item B-248) · Hot files: the note editor and entry page, `todoService` and the todo schema (a link to its note), the Planner's todo rows, the Today card, the connector's `add_note` and `add_todo`; quick entry (B-254) |
-| `quick-entry-2` | — | — | `packages/data/src/db/schema/assistant/quickEntry.ts`, `apps/web/app/components/quick-entry/` | to write (B-300 to B-303), from the 2026-11-21 code review: negated doses, typed counts, wrong times, the stuck card · Depends on: `planner-2` in `dev` (it edits quick entry's future note; last item B-248) · Hot files: `db/schema/assistant/quickEntry.ts`, `quickEntryTime.ts`, `components/quick-entry/` |
+| `simple-mode` | done | — | `apps/web/app/lib/assistant/simpleMode`, `packages/data/src/constants/roles.ts`, `packages/data/src/permissions/`, `powersync/sync-config.yaml` | [PRD](simple-mode-prd.md), [plan](simple-mode-plan.md): 5 slices, waves 1 → 2 → 3 → (4, 5): the lock becomes two member roles, Easy helper (log-only, own entries, own todos) and Easy viewer; "simple" is renamed "easy" everywhere, database included; the role decides the view; the Planner, todo pages and search open for the easy roles (B-221, B-236); the Easy mode toggle moves from the View options menu into the full timeline's page header (slice 5, stackless, B-400). Migrations in slices 1, 2 and 3; sync config changes. **Ready to start** once its start condition holds · Depends on: `list-filters` (last item B-249), `planner-2` (last item B-248) and the current `quick-fixes` wave in `dev` (slice 1 renames files they touch) · Hot files: slice 1: every `simple*` file (`lib/assistant/simpleMode*`, `SimpleTimeline` and its blocks, quick entry, `TodoTick`, the `/app` layout), `sync-config.yaml`, the device schema; slice 2: `constants/roles.ts`, `permissions/` (blocks, types, timeline, todos, live-notes, connectors), `todoService`, the upload switch, `groupContext.ts`, the role picker; slice 3: group settings Members, `careGroupMemberService`, `useSimpleFrame`; slice 4: the Planner and todo routes, the search route; slice 5: `TimelineHeader.tsx`, `TimelineViewMenu.tsx`, the toggle button |
+| `planner-3` | — | `simple-mode` | `packages/data/src/db/schema/timeline/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/timeline.ts`, `packages/data/src/services/entryLinkService.ts`, `packages/api/src/sync`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/timeline/entryLinks.sync.ts`, `apps/web/app/lib/todos/urls.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/new/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/lib/appointments/`, `packages/api/src/connectors/tools/writes.ts`, `scripts/browser-checks/sync-matrix.mjs` | to write (B-245: a note can carry a todo with its own due day and assignee, the replacement for reminders; B-254: quick entry reads a repeating todo) · Depends on: `planner-2` in `dev` (last item B-248) · Hot files: the note editor and entry page, `todoService` and the todo schema (a link to its note), the Planner's todo rows, the Today card, the connector's `add_note` and `add_todo`; quick entry (B-254) |
+| `quick-entry-2` | — | — | `packages/data/src/db/schema/assistant/quickEntry`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/timeline/timelineQuickEntry` | to write (B-300 to B-303), from the 2026-11-21 code review: negated doses, typed counts, wrong times, the stuck card · Depends on: `planner-2` in `dev` (it edits quick entry's future note; last item B-248) · Hot files: `db/schema/assistant/quickEntry.ts`, `quickEntryTime.ts`, `components/quick-entry/` |
 | `calendars-2` | — | — | `packages/data/src/google/`, `packages/notifications/` | to write (B-304 to B-309, B-377), from the 2026-11-21 code review: Google deletes of past items, events beyond 90 days, reminder expiry, deleted providers in pushes, the consent version, reminder time labels, push notifications · Depends on: `planner-2` in `dev` (it changes the calendar projection's reminder kind; last item B-248) · Hot files: `packages/data/src/google/`, `calendarPullService`, `calendarSyncService`, `packages/notifications` (outbox, reminders) |
 | `connectors-3` | — | — | `packages/api/src/connectors/tools/` | to write (B-252: a connector tool to read the dosing schedule beyond today; B-253: `add_todo` can make a repeating todo) · Depends on: B-253 after `planner-2` in `dev` (last item B-248); B-252 has none · Hot files: `packages/api/src/connectors/tools/` (`todaysDoses.ts` or a new schedule tool, `writes.ts`), the server instructions |
 | `onboarding` | hold | — | — | to write (B-31) · Depends on: `invites` (done) · Hot files: seeds, `careGroupService`, `/app` home |
@@ -107,10 +107,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
 | B-196 | feature | triaged | connectors-3 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
-| B-221 | feature | ready | simple-mode | prd/simple-mode | locked simple mode is really confusing. We may want to just add a new user type at this point for… |
+| B-221 | feature | landed | simple-mode | prd/simple-mode | locked simple mode is really confusing. We may want to just add a new user type at this point for… |
 | B-229 | bug | live | quick-fixes | prd/quick-fixes | on timeline page, header and Today section should be in same column width as the rest of the… |
 | B-231 | bug | live | quick-fixes | prd/quick-fixes | "Nothing logged today yet." message should be in a border box like a timeline entry box to match… |
-| B-236 | bug | ready | simple-mode | prd/simple-mode | In locked simple mode, SimpleNext's 'See all' (Upcoming) and task links look clickable but bounce back to the timeline: lockAllows only permits the timeline and entry routes |
+| B-236 | bug | landed | simple-mode | prd/simple-mode | In locked simple mode, SimpleNext's 'See all' (Upcoming) and task links look clickable but bounce back to the timeline: lockAllows only permits the timeline and entry routes |
 | B-239 | bug | triaged | fixes-tooling |  | pnpm prd review: --json mode prints progress lines (asked Codex…, waiting) on stdout, so its output isn't valid JSON |
 | B-240 | bug | triaged | fixes-tooling |  | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
 | B-241 | bug | triaged | fixes-tooling |  | codex-review: PR_QUERY reads only the first 100 review threads (and 50 comments each), so a PR with more could read as clean |
@@ -263,7 +263,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-397 | change | live | ui-kit | prd/ui-kit | Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages |
 | B-398 | change | triaged | ui-kit-3 |  | Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame |
 | B-399 | bug | live | ui-kit | prd/ui-kit | Bottom menu on mobile need a better deign. I like floating menus. It needs to be a different bg… |
-| B-400 | change | ready | simple-mode | prd/simple-mode | Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the… |
+| B-400 | change | landed | simple-mode | prd/simple-mode | Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the… |
 | B-401 | bug | live | check-speed | prd/check-speed | check-run.sh's load reading can carry a blank line on Linux (sysctl fails under pipefail before the uptime fallback), splitting a check-times.log record across lines; normalise it to one number |
 | B-402 | bug | live | check-speed | prd/check-speed | pnpm test:tooling runs only tooling:unit, so a tooling-only change to checks.mjs, check-areas.mjs, sync-matrix or check-times.mjs passes the docs-and-tooling gate without its own tests (they live in scripts:unit) |
 | B-403 | feature | live | orchestration-2 | prd/orchestration-2 | A cleanup agent every few hours (pnpm prd tidy): finds finished sessions still open, finished worktrees and branches, and other leftovers; removes the safe ones and reports the rest |
@@ -338,6 +338,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-472 | bug | triaged | fixes-bug |  | A device's offline-queued simpleMode setting change, left from before the easy rename, is retried forever and takes later queued settings changes down with it |
 | B-473 | change | triaged | ui-kit-2 |  | Timeline: a + add button at the top right of the page header, like the other main pages, that adds an entry with its time set to now; the per-day + in the day headers stays |
 | B-474 | change | triaged | inbox-agent |  | Inbox agent plan amendments from the user: it never leaves staged or uncommitted changes behind (stash, or commit and push), and someone is named as owning cleanup of completed items |
+| B-475 | bug | triaged | fixes-tooling |  | Flaky component test: timelineSimpleTodos 'a viewer… done-only change' leaves an undo timer (useTodoTick → reopenTodo → liveTodo) that fires after the test's database closes: Unhandled Rejection 'Client has already been closed' fails the run |
 
 ## Items
 
@@ -484,7 +485,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-221 · feature · locked simple mode is really confusing. We may want to just add a new user type at this point for…
 
-- status: ready
+- status: landed
 - prd: simple-mode
 - owner: prd/simple-mode
 - commit: 2152796a
@@ -515,7 +516,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-236 · bug · In locked simple mode, SimpleNext's 'See all' (Upcoming) and task links look clickable but bounce back to the timeline: lockAllows only permits the timeline and entry routes
 
-- status: ready
+- status: landed
 - prd: simple-mode
 - owner: prd/simple-mode
 - commit: 2152796a
@@ -586,6 +587,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-21 (Robert Bo Davis): From the backlog session, 2026-11-21, at the user's request: the future replacement for reminders (future-dated notes), which are to be removed from the Planner. Not triaged; no PRD yet.
 - 2026-11-21 (Robert Bo Davis): Follows planner-2 (B-248 remove reminders).
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21, proposed: its own PRD to write, planner-3 (a note carries a todo with its own due day and assignee), after planner-2 (B-248 remove reminders) is in dev, since it builds on notes being past-only. PRD table row added. For the user to check.
+- 2026-11-21 (plan/planner-3): Planned 2026-11-21 (plans/planner-3-prd.md, slices 1-4). The user's answer to the planner's question: links are many to many, a note links any todos and any events ('there is no such thing as an appointment'). So: a join table timeline_entry_link modelled on timeline_entry_provider (one migration, one sync stream); todo.event_id untouched. Slice 4 (notes link events) is the planner's reading of 'Similarly any event'.
 
 ### B-252 · feature · Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming
 
@@ -613,6 +615,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (plan/planner-2): From the planner-2 planning interview, 2026-11-21: repeating todos are created from the todo form only in planner-2; reading a repeat in quick entry is this follow-up, after planner-2 (B-248 remove reminders) is in dev. Proposed alongside B-245 (attach a todo to a note) in planner-3; for the user to check.
+- 2026-11-21 (plan/planner-3): Planned 2026-11-21 (plans/planner-3-prd.md, slices 5-6): a repeat phrase makes the line a repeating todo; addTodo gains repeatRule; the connector's add_todo leaves it out until B-253.
 
 ### B-256 · bug · call and directions icons on planner schedule should be below the time, not beside the…
 
@@ -1060,6 +1063,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. packages/data/src/db/schema/assistant/quickEntry.ts:257-279, 931-952. Reproduced with a scratch script. Negation is only recognised before take/have/swallow. Fix idea: any not/never/don't/couldn't near a dose verb makes it skipped or demotes the line to a note.
+- 2026-11-21 (plan/quick-entry-2): Planned in plans/quick-entry-2-plan.md (2026-11-21): B-300 slice 1, B-301 slice 2, B-302 slices 3 and 4, B-303 slice 5.
 
 ### B-301 · bug · Quick entry discards a typed count and records the usual dose: 'gave 3 tylenol' records '2 tabs' with '3' in the note; 'gave half a tylenol' too
 
@@ -1069,6 +1073,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. quickEntry.ts:910-924, 981. Reproduced. Related: 'tylenol 2 at 8' becomes a Symptom named Tylenol, severity 2.
+- 2026-11-21 (plan/quick-entry-2): Planned in plans/quick-entry-2-plan.md (2026-11-21): B-300 slice 1, B-301 slice 2, B-302 slices 3 and 4, B-303 slice 5.
 
 ### B-302 · bug · Quick entry gives silently wrong times: 'sat up in chair' is last Saturday, '2nd tylenol' is Nov 2, '11/25 at 2pm' is tomorrow, 'dr alvarez at 2' is 2 AM, 'pain 8 a bit better' is 8:00 AM
 
@@ -1078,6 +1083,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. packages/data/src/db/schema/assistant/quickEntryTime.ts (lines 84-101, 207-214, 297-342, 362-369, 465-474, 539-556). Reproduced. Also 'this morning' before 08:00 is blocked as future. Fix idea: tighten each rule, parse M/D, clamp period defaults to now for past kinds.
+- 2026-11-21 (plan/quick-entry-2): Planned in plans/quick-entry-2-plan.md (2026-11-21): B-300 slice 1, B-301 slice 2, B-302 slices 3 and 4, B-303 slice 5.
 
 ### B-303 · bug · Quick entry gets stuck: remove a card, delete the text, retype the same line: no card, no Save, Enter does nothing
 
@@ -1087,6 +1093,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. components/quick-entry/useQuickEntry.ts:98-118,206-216: removed and chosen reset only on Save or Clear, and Clear is hidden when no cards show. Prune both maps to the current part keys.
+- 2026-11-21 (plan/quick-entry-2): Planned in plans/quick-entry-2-plan.md (2026-11-21): B-300 slice 1, B-301 slice 2, B-302 slices 3 and 4, B-303 slice 5.
 
 ### B-304 · bug · Deleting an old event in Google Calendar rewrites past Caretook records: soft-deletes a past reminder note, cancels a past appointment, marks a todo done for the group
 
@@ -2046,7 +2053,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-400 · change · Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the…
 
-- status: ready
+- status: landed
 - prd: simple-mode
 - owner: prd/simple-mode
 - commit: 2152796a
@@ -2605,6 +2612,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (slice/fixes-nit/2): Contract step for simple-mode (plans/simple-mode-plan.md line 121: slice 3 moves locked caretakers to easy_helper, locked viewers to easy_viewer and takes the two columns out of Drizzle reads and writes, sync, device schema and grants, leaving them for a later contract migration). Columns: care_group_member.simple_mode and simple_mode_locked (migration 0021_simple_mode.sql; schema packages/data/src/db/schema/care-groups/careGroupMember.ts:64-65). Today (2026-11-21) still read and written: packages/api/src/care-groups/careGroup.ts:194-223 (setMemberMode), packages/data/src/permissions/care-groups.ts:48-49, careGroupMemberService. Precondition: simple-mode slices 1-3 landed in dev and the conversion has run on staging and production; then a drop migration (expand/contract, adds a migration: run it alone). Also check care_group.simple_tiles stays (still used by group settings) and the user_preferences simpleMode key.
+- 2026-11-21 (prd/simple-mode): 2026-11-21 (prd/simple-mode landed, PR #44, bd13f73): the conversion is migration 0036. Retired and now unread everywhere: care_group_member.simple_mode, simple_mode_locked AND care_group.simple_tiles (replaced by easy_tiles, 0034) and the user.preferences.simpleMode key (copied to easyMode). setMemberMode/setMode are deleted. care_group and care_group_member are in REPLICATION_WHOLE_TABLES only because of these retired columns: drop them from that list in the contract migration.
 
 ### B-456 · chore · Retire the leftover reminder data planner-2 left in place: the note kind on appointment_series and stored future notes and note series
 
@@ -2777,3 +2785,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): The user's answers to the inbox-agent planning report (ask a20, 2026-11-21, backlog session). They confirmed the plan (inbox-only pushes to origin/dev with automatic dev-sync; the Next up list; asks-relay after inbox-agent) with two additions, in their words: (1) 'inbox cannot leave staged changes ever. it must either stash or commit/push'; (2) 'inbox agent (or somebody) needs to have responsibility for cleanup of complete items'. For the inbox-agent orchestrator: fold both into the PRD and the slices that own them (B-425 the agent and its pushes; B-406 Next up; B-435 archiving). Backlog session's reading of (2): finished work must not pile up anywhere the user reads, so one named owner removes Next up lines and inbox bullets whose items have landed, as well as archiving tracker items; the plan's cleanup run archives tracker items only. Ask the user if the owner or the scope is unclear.
+
+### B-475 · bug · Flaky component test: timelineSimpleTodos 'a viewer… done-only change' leaves an undo timer (useTodoTick → reopenTodo → liveTodo) that fires after the test's database closes: Unhandled Rejection 'Client has already been closed' fails the run
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (prd/test-health): Seen once in the test-health wave 1 full check (2026-11-22, load 14); the file passes alone 3/3. The undo timeout should be cleared on unmount, or the harness should flush/clear pending timers before closing the database.

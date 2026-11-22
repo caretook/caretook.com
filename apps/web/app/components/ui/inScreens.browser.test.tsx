@@ -541,11 +541,14 @@ describe.each([420, 1280])("the page header at %i", (width) => {
     },
   );
 
-  test("Timeline: the title is the h1, with no actions (View options is in the filter row)", async () => {
+  test("Timeline: the title is the h1, whose one action is Easy mode (View options is in the filter row)", async () => {
     await renderWithDevice({ route: ROUTES, url: TIMELINE, fixtures: FIXTURES, width });
     const header = await found(() => q("main header"));
     expect(header.querySelector("h1")!.textContent).toBe("Timeline");
-    expect(header.querySelectorAll("a, button")).toHaveLength(0);
+    const controls = [...header.querySelectorAll("a, button")];
+    expect(controls).toHaveLength(1);
+    expect(controls[0]!.getAttribute("data-easy-toggle")).toBe("easy");
+    expect(controls[0]!.textContent).toContain("Easy mode");
     await found(() => q('[data-timeline-filters] button[aria-label="View options"]'));
   });
 });

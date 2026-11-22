@@ -48,6 +48,13 @@ export type PermissionEntry<K extends DbSchemaName> = Readonly<
    */
   group?: readonly GroupRoleName[];
   /**
+   * Care group roles that grant this permission only on the rows the actor
+   * created (`created_by` is the actor), in groups they belong to with one
+   * of these roles (easy roles PRD: an Easy helper edits their own entries).
+   * Requires `groupField`. Enforced in SQL like `group`.
+   */
+  groupOwn?: readonly GroupRoleName[];
+  /**
    * With `group`, on reads: the only columns a group-granted read returns.
    * A row the actor reaches only through `group` comes back with just these
    * fields; a row they also own, or reach through `all`, comes back whole.
@@ -82,6 +89,17 @@ export type ScopeRule =
       groupRoles: readonly GroupRoleName[];
       /** Rows matched only by this rule show just these fields (`groupFields`). */
       fields?: readonly string[];
+    }
+  /**
+   * `field` is a group the actor belongs to with one of `groupRoles`, and
+   * `ownerField` (`created_by`) is the actor.
+   */
+  | {
+      type: "groupOwn";
+      field: string;
+      ownerField: string;
+      userId: string;
+      groupRoles: readonly GroupRoleName[];
     }
   /** `field` is a user who shares a group the actor belongs to with one of `groupRoles`. */
   | {
