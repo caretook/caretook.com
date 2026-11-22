@@ -4,14 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/sync-safety` (slice commits) |
-| ----- | ---- | ----------- | -------------------------------------------- |
-| 1     | 1    | not started |                                              |
-| 2     | 1    | not started |                                              |
-| 3     | 2    | not started |                                              |
-| 4     | 2    | not started |                                              |
-| 5     | 2    | not started |                                              |
-| 6     | 1    | not started |                                              |
+| Slice | Wave | State                             | Merge into `prd/sync-safety` (slice commits) |
+| ----- | ---- | --------------------------------- | -------------------------------------------- |
+| 1     | 1    | in progress (opus, spawned 11-22) |                                              |
+| 2     | 1    | in progress (opus, spawned 11-22) |                                              |
+| 3     | 2    | not started                       |                                              |
+| 4     | 2    | not started                       |                                              |
+| 5     | 2    | not started                       |                                              |
+| 6     | 1    | in progress (opus, spawned 11-22) |                                              |
+
+**Landing mode:** run everything through (started run-through, 2026-11-22): start every ready slice, land each green wave, clean up; ask only real questions via `pnpm prd ask`.
+
+**Now:** wave 1 running (slices 1, 2, 6; worktrees `.loops/sync-safety-{1,2,6}`). Start condition checked 2026-11-22: no other branch touches `packages/api/src/sync.ts`. Items claimed: B-285, B-287, B-291, B-292, B-293. Backlog inbox empty at the wave-1 boundary; nothing new proposed.
 
 **Start conditions:** no other topic has an unlanded change to the upload procedure's file (`packages/api/src/sync.ts`) when slice 1 starts: this plan rewrites it wholesale, where the [rules across PRDs](../docs/agents/orchestrator.md#rules-across-prds) otherwise allow only additive edits. The service layer and `lib/auth/` are `fixes-bug`'s hot files, the browser checks `test-health`'s, and `powersync/sync-config.yaml` is `simple-mode`'s (this plan only reads it): `pnpm prd sync` before each wave, and whichever lands second syncs first.
 
