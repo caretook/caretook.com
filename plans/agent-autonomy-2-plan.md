@@ -16,7 +16,9 @@
 
 **Landing mode:** run everything through (started by the dispatcher): land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Now (2026-11-22):** wave 1 merged, synced with dev and its docs folded; slice worktrees removed. B-507, B-509 and B-437 done; B-508 stays claimed until slice 2. Gate: tooling and Markdown only, `pnpm test:tooling` (855 passed) and `eslint scripts` passed on the merge. Next: PR, Codex review, land, rotate.
+**Now (2026-11-22):** wave 1 **landed** in dev as 2b3a27d5 through PR #69 (Codex clean on dcd939f; report a60; to-test `2026-11-22-1632-agent-autonomy-2.md`). Docs folded; slice worktrees removed. B-507, B-509 and B-437 done; B-508 stays claimed until slice 2. Gate: `pnpm test:tooling` (855 passed) and `eslint scripts`.
+
+**Next (the fresh session):** first run `pnpm prd context` and record whether the hook gave this session a size (see _Open issues_). Then the wave boundary (`pnpm backlog ingest`, `doctor`, `list`, `pnpm prd sync`) and start wave 2: slices 2, 4 and 5, all ready, on opus. Claim B-514 and B-515 (B-508 is already claimed). `test-gates` had not landed at this rotation.
 
 **Open issues:**
 
