@@ -15,7 +15,7 @@
 
 **Landing mode:** run everything through (started run-through; land each green wave, PR + Codex; `--no-review` unasked only when Codex is out of credits).
 
-**Now:** wave 1 (slices 1, 4, 6) all merged; at the wave-1 gate: sync dev (test-health 43d53bf), full check on the tip, lean `--suite` (slice 4 touches root.tsx and the worker list), PR, Codex, land. Slices 2 and 5 handed off, waiting to merge after wave 1 lands (then this session drains and rotates). Backlog at the wave-1 boundary: nothing new for ui-kit-2; filed B-484 (banner end-time flake, fixes-tooling).
+**Now:** wave 1 (slices 1, 4, 6) merged and synced with dev (clean). Full check passed on 3839ce5d (fifth run, 2026-11-22; earlier runs overlapped fixes-bug's and failed on rotating load flakes: fixed two read-once races in tests (ae0e9ef6 profile focus, 3839ce5d mention chip), cherry-picked fixes-bug's roles.int stopgap (d8d19535, e659f7b8), filed B-484, B-485, B-488, noted B-450, B-466, B-486). fixes-bug and ui-kit-2 take turns on full checks. Next: serve --restart, lean `--suite`, PR, Codex, land. Slices 2 and 5 handed off, waiting to merge after wave 1 lands (then drain and rotate).
 
 **Docs to fold (from hand-offs):**
 
