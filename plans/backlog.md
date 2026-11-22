@@ -103,6 +103,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `contract-migrations` | hold | — | — | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** Contract steps tracked from fixes-nit (B-379): B-455, B-456, B-457. Migrations: run alone in its wave. To write. |
 | `timeline-jump` | — | `quick-entry-2` | — | Jump to a date on the timeline, by picker and quick entry (B-557) |
 | `assistant-access` | — | — | `packages/data/src/db/schema/care-groups/careGroup.ts`, `packages/data/src/db/schema/connectors/connectorRules`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/careGroupService.ts`, `packages/api/src/care-groups/careGroup.ts`, `packages/api/src/connectors/protocol.ts`, `packages/api/src/connectors/connect.ts`, `packages/api/src/connectors/connector.ts`, `packages/api/src/connectors/tools/groupOverview.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/care-groups/assistantsSwitch.sync.ts`, `apps/web/app/routes/app/groups/settings/assistants/`, `apps/web/app/routes/connectors/connect/`, `apps/web/app/routes/app/settings/devices/ConnectedAssistants.tsx` | Owner chooses read/write or read only for a group's assistants (B-558) |
+| `orchestration-split` | hold | — | — | Held until after launch by the user (B-543): extract the orchestration tooling or replace it with a prebuilt one |
 
 ## Summary
 
@@ -126,7 +127,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-239 | bug | triaged | fixes-tooling |  | pnpm prd review: --json mode prints progress lines (asked Codex…, waiting) on stdout, so its output isn't valid JSON |
 | B-240 | bug | triaged | fixes-tooling |  | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
 | B-241 | bug | triaged | fixes-tooling |  | codex-review: PR_QUERY reads only the first 100 review threads (and 50 comments each), so a PR with more could read as clean |
-| B-242 | bug | in-progress | test-gates | prd/test-gates | with_backlog_lock: on Linux, BSD 'stat -f %m' succeeds with non-numeric output before GNU stat is tried, breaking the lock-age arithmetic |
+| B-242 | bug | ready | test-gates | prd/test-gates | with_backlog_lock: on Linux, BSD 'stat -f %m' succeeds with non-numeric output before GNU stat is tried, breaking the lock-age arithmetic |
 | B-244 | chore | triaged | fixes-tooling |  | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
 | B-245 | plan | triaged | planner-3 |  | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
@@ -317,8 +318,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-518 | change | triaged | agent-autonomy |  | Land without re-syncing when dev's changes don't touch the branch: land.sh's drift refusal relaxes when dev's new commits share no file with the branch and bring none of the risky files; land still merges dev and typechecks the result, and the landing report says it landed on an unsynced tip |
 | B-519 | bug | triaged | fixes-ui |  | Easy mode button on the timeline sits lower than the Timeline page title: align it with the title's row (same vertical center and baseline) |
 | B-520 | change | staging | ui-kit-3 | prd/ui-kit-3 | Dark theme feels too dark: lift its surfaces (page about 23%, cards about 30%, hue toward the brand indigo, chroma at most about 0.025) and give text boxes their own fill in both themes |
-| B-521 | change | in-progress | ui-kit-3 | prd/ui-kit-3 | Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark |
-| B-522 | change | in-progress | ui-kit-3 | prd/ui-kit-3 | Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary) |
+| B-521 | change | ready | ui-kit-3 | prd/ui-kit-3 | Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark |
+| B-522 | change | ready | ui-kit-3 | prd/ui-kit-3 | Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary) |
 | B-523 | change | triaged | ui-kit-3 |  | Each section's accent color as an icon chip beside the page title and as the current tab's pill tint; Easy mode stays neutral |
 | B-524 | change | triaged | ui-kit-3 |  | Empty states show a colored icon circle in the section's accent color |
 | B-525 | bug | triaged | fixes-tooling |  | Asks: two processes taking over a dead holder's ask lock can both remove it, so one deletes the other's fresh lock and an answer and a default overlap (asks.mjs withAskLock) |
@@ -335,7 +336,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-536 | bug | triaged | fixes-ui |  | Danger text fails 4.5:1 in light: Menu's danger item and buttonClass's dangerQuiet use text-error (about 2.9:1); DateTimeField's placeholder segments at 60% opacity are a little under 4.5:1 on the light field fill |
 | B-537 | change | triaged | fixes-ui |  | One word in the app: Event, never Appointment; 'Upcoming event' / 'Past event' only where the two mix and timing isn't clear (an event's page heading, the Today card's next line, the todo form's event picker) |
 | B-538 | change | triaged | fixes-ui |  | Planner tabs become Upcoming \| Past \| Todos: Upcoming and Past move out of the chip row into the main pill tabs (the Planner heading names the section), the filter button sits beside the tabs on Upcoming, and switching to Todos and back keeps Past |
-| B-539 | change | triaged | hotfix |  | Seed: a new normal-activity group, Tedder Family (Grandpa Hal), beside Grandma Pat's heavy use: six months of quiet history with gaps, providers, passes and medications, a mostly filled profile, a few events and one series, mostly undated todos |
+| B-539 | change | staging | hotfix |  | Seed: a new normal-activity group, Tedder Family (Grandpa Hal), beside Grandma Pat's heavy use: six months of quiet history with gaps, providers, passes and medications, a mostly filled profile, a few events and one series, mostly undated todos |
 | B-540 | bug | dropped | fixes-tooling |  | calendarCron.int.test.ts 'runs the reminders first…' times out at 5 s under load (load ~42) in a full check; passes alone 3/3 |
 | B-541 | feature | landed | agent-autonomy-2 | prd/agent-autonomy-2 | Named backlog sessions on request: a backlog session asks the dispatcher (a request queue) to open another backlog session by name, e.g. 'backlog - seed', with an optional brief; the dispatcher opens it in a new tab on Remote Control outside the PRD slots, refuses a name already live, and tells the requester it's open so they can message it by name |
 | B-542 | chore | triaged | fixes-tooling |  | Unit-test projects run at Vitest's default workers (cores - 1, 9 here): two overlapping checks run ~18 test processes on 10 cores, the load behind the under-load timeouts; cap the unit group at about 4 (or half the cores) and time it against check-times |
@@ -347,7 +348,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-548 | feature | triaged | tags |  | Group-wide tags on every record (entries, todos, providers, medications, events), filterable |
 | B-549 | feature | triaged | symptom-catalog |  | Symptoms become a catalog type: a default set for every group, writers add new ones quickly with a similar-name check; filter the timeline by several symptoms at once |
 | B-550 | feature | triaged | todo-subtasks |  | Nested todos: subtasks up to 3 levels deep, a parent completes when its last subtask is done |
-| B-551 | feature | triaged | agent-autonomy-2 |  | 'bye' for every agent role: a message of just 'bye' runs a handover check; nothing left means the session closes itself, otherwise it asks the user what to do with what's left |
+| B-551 | feature | triaged | inbox-agent |  | 'bye' for every agent role: a message of just 'bye' runs a handover check; nothing left means the session closes itself, otherwise it asks the user what to do with what's left |
 | B-552 | bug | triaged | fixes-tooling |  | Flaky: print.browser.test.tsx 'the Print menu offers both sheets' clicks getByLabel('Print') while the closing menu, with the same label, is still fading, so the locator matches two elements |
 | B-553 | change | triaged | test-gates |  | Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent |
 | B-554 | change | in-progress | test-gates | prd/test-gates | CI runs only on request: the orchestrator asks for a tier (static, unit, integration, components, full) on any branch, and the landing gate checks for a green run of the tier it declared; no automatic run on a PR or a push |
@@ -355,18 +356,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-556 | chore | landed | test-gates | prd/test-gates | Faster static steps in a check: typecheck, lint and format take 2.2 minutes run one after another on a quiet machine (lint 79 s, typecheck 38 s, format 15 s), most of the new slice check's 2.5 minutes |
 | B-557 | feature | triaged | timeline-jump |  | quick date jump on timeline via date picker AND quick entry |
 | B-558 | feature | triaged | assistant-access |  | Assistants settings needs to allow owner to enable read/write or stick to read only for group… |
-| B-559 | bug | in-progress | test-gates | prd/test-gates | Tooling scripts break on Linux: BSD 'stat -f %m' succeeds under GNU stat, so watchdog caps and silence limits never fire |
+| B-559 | bug | ready | test-gates | prd/test-gates | Tooling scripts break on Linux: BSD 'stat -f %m' succeeds under GNU stat, so watchdog caps and silence limits never fire |
 | B-560 | feature | triaged | self-recovery-2 |  | A cost record: tokens by model per PRD and slice, from session and subagent transcripts, in pnpm prd cost |
 | B-561 | feature | triaged | demo-site |  | Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites |
 | B-562 | change | triaged | data-rights |  | Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet |
 | B-563 | feature | triaged | marketing |  | Accessibility statement page |
 | B-564 | change | triaged | hosting |  | App-store prerequisites for the Capacitor apps |
 | B-565 | feature | triaged | data-rights |  | Ownership transfer: a last owner can hand a care group to another member |
-| B-566 | bug | triaged | fixes-bug |  | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
-| B-567 | bug | triaged | fixes-bug |  | inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2 |
-| B-568 | bug | triaged | fixes-bug |  | Component tests that failed once on CI's Linux runners: providers rows, provider empty links, emergency sheet, search speed, timeline Back, weekly print chart |
+| B-566 | bug | triaged | test-gates |  | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
+| B-567 | bug | triaged | test-gates |  | inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2 |
+| B-568 | bug | triaged | test-gates |  | Component tests that failed once on CI's Linux runners: providers rows, provider empty links, emergency sheet, search speed, timeline Back, weekly print chart |
 | B-569 | bug | dropped | fixes-bug |  | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
 | B-570 | bug | triaged | fixes-tooling |  | Session request notices can exceed the notice board's 200 characters and get dropped |
+| B-571 | bug | triaged | fixes-tooling |  | Staging reset test still times out at 30 s now and then, in CI as well as under local load |
 
 ## Items
 
@@ -549,10 +551,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-242 · bug · with_backlog_lock: on Linux, BSD 'stat -f %m' succeeds with non-numeric output before GNU stat is tried, breaking the lock-age arithmetic
 
-- status: in-progress
+- status: ready
 - prd: test-gates
 - owner: prd/test-gates
-- commit:
+- commit: ff6ac3c3
 
 - 2026-11-21 (prd/github-review): Codex finding on PR #12 (lib.sh:328), verified. Macs are fine today; check the output is numeric before falling back.
 - 2026-11-21 (Robert Bo Davis): Codex raised this again on PR #16 (dev into staging, head 30206f75), P2; still present on dev. Already filed, no new item.
@@ -2467,20 +2469,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-521 · change · Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark
 
-- status: in-progress
+- status: ready
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
-- commit:
+- commit: 49d983dd
 
 - 2026-11-22 (Robert Bo Davis): Color plan (backlog session, 2026-11-22), revised after a Fable skeptic pass: lift surfaces first, then accent tokens distinct from status colors (info/success/warning/error), then apply them. Cut: a tinted Today card (dilutes its urgency tints) and a standalone header wash (banding, sticky header). Avoid amber and red (they read as warning/error, used for urgency in TodayRow). Timeline indigo is primary, so pick hues that read on their own (e.g. Planner orange or lime, Care periods pink or plum, Medications teal, Providers sky only if it is not info). TabNav already notes dark primary on its 15% tint is under 3:1. Before the next two items.
 - 2026-11-22 (plan/ui-kit-3): ui-kit-3 plan (2026-11-22): planned in plans/ui-kit-3-plan.md: slice 1 B-520 and B-481 (dark surfaces, field fill), slice 2 B-521 and B-522 (accents, entry icons), slice 3 B-523, slice 4 B-524, slices 5 and 6 B-471 (overlay fades, then the sheet's exit).
 
 ### B-522 · change · Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary)
 
-- status: in-progress
+- status: ready
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
-- commit:
+- commit: 49d983dd
 
 - 2026-11-22 (Robert Bo Davis): Color plan (backlog session, 2026-11-22), revised after a Fable skeptic pass: lift surfaces first, then accent tokens distinct from status colors (info/success/warning/error), then apply them. Cut: a tinted Today card (dilutes its urgency tints) and a standalone header wash (banding, sticky header). lib/timeline/entryDisplay.ts maps entry types to bg-warning/bg-info/bg-primary/bg-secondary today. Label and icon stay; color is never the only signal. Needs the accent tokens.
 - 2026-11-22 (plan/ui-kit-3): ui-kit-3 plan (2026-11-22): planned in plans/ui-kit-3-plan.md: slice 1 B-520 and B-481 (dark surfaces, field fill), slice 2 B-521 and B-522 (accents, entry icons), slice 3 B-523, slice 4 B-524, slices 5 and 6 B-471 (overlay fades, then the sheet's exit).
@@ -2644,10 +2646,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-539 · change · Seed: a new normal-activity group, Tedder Family (Grandpa Hal), beside Grandma Pat's heavy use: six months of quiet history with gaps, providers, passes and medications, a mostly filled profile, a few events and one series, mostly undated todos
 
-- status: triaged
+- status: staging
 - prd: hotfix
 - owner:
-- commit:
+- commit: b36300cf
 
 - 2026-11-22 (Robert Bo Davis): Seed data only (packages/data/src/db/seeds/, mainly secondGroup.ts), no app code. fixes-tooling: dev and test data, not user-visible behaviour. Tests and browser checks that read Lou's seeded rows need checking (B-529 treats seed tests as brakes). Grandma Pat's seed is unchanged.
 - 2026-11-22 (hotfix/steady-seed): Changed by the user: a fresh group no test touches (tedder@ owner, tedderhelper@ caretaker) instead of reshaping Grandpa Lou. Hotfix hotfix/steady-seed.
@@ -2763,11 +2765,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-551 · feature · 'bye' for every agent role: a message of just 'bye' runs a handover check; nothing left means the session closes itself, otherwise it asks the user what to do with what's left
 
 - status: triaged
-- prd: agent-autonomy-2
+- prd: inbox-agent
 - owner:
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): From the user (backlog session, 2026-11-22): every agent type needs this; details are the agent's. Proposed shape: one shared command (e.g. pnpm prd bye, or a step every role doc points at) that checks the handover state for the session's role: uncommitted or unpushed work, a worktree or branch still out, leases and dev servers held, running background jobs or subagents, open asks it filed, peers waiting on a promised reply, notices to act on, memory to update. Clean: write the hand-off line (what was done, what waits), release leases, run pnpm prd end (or the role's end), and close the session. Not clean: one AskUserQuestion per open thing (finish it, hand it off, drop it), then check again. Each role doc (loop, orchestrator, planner, backlog, hotfix, recovery) names its own extra checks. Fits agent-autonomy-2's session work (recorded sessions B-437, rotate --self B-514); that plan is written, so its orchestrator adds a slice or its planner folds it in.
+- 2026-11-22 (Robert Bo Davis): Moved to inbox-agent by the user (2026-11-22): agent-autonomy-2 is done and inbox-agent owns session handling. Its plan has no slice for this yet.
 
 ### B-552 · bug · Flaky: print.browser.test.tsx 'the Print menu offers both sheets' clicks getByLabel('Print') while the closing menu, with the same label, is still fading, so the locator matches two elements
 
@@ -2837,10 +2840,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-559 · bug · Tooling scripts break on Linux: BSD 'stat -f %m' succeeds under GNU stat, so watchdog caps and silence limits never fire
 
-- status: in-progress
+- status: ready
 - prd: test-gates
 - owner: prd/test-gates
-- commit:
+- commit: ff6ac3c3
 
 - 2026-11-22 (slice/test-gates/2): Found by the first CI runs (test-gates slice 2): https://github.com/caretook/caretook.com/actions/runs/45071425596. GNU stat -f prints filesystem text and exits 0, giving 'File: unbound variable'. Sites: browser.sh:369 (no GNU fallback), stack-lib.sh:167, lease.sh:134; lib.sh:386 is B-242. Fix: try stat -c %Y first, or a shared helper. 11 Linux-only tooling:unit failures: browser.test.mjs (6), lease.test.mjs (2), disk.test.mjs, load-gate.test.mjs, stack.test.mjs (1 each).
 - 2026-11-22 (prd/test-gates): Moved to test-gates slice 8 on the user's decision: the CI tiers need it green before landing.
@@ -2906,29 +2909,32 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-566 · bug · Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector
 
 - status: triaged
-- prd: fixes-bug
+- prd: test-gates
 - owner:
 - commit:
 
 - 2026-11-22 (slice/test-gates/3): Found by test-gates slice 3. accessCodes.browser.test.tsx:196 asserts BarcodeDetector is in window; failed in all 4 requested runs: https://github.com/caretook/caretook.com/actions/runs/45076033356 https://github.com/caretook/caretook.com/actions/runs/45076033291 https://github.com/caretook/caretook.com/actions/runs/45077489750 https://github.com/caretook/caretook.com/actions/runs/45077490098
+- 2026-11-22 (Robert Bo Davis): Moved to test-gates by the user (2026-11-22): these keep the components CI tier from going green. B-568's intermittent failures go through the flake quarantine (B-530).
 
 ### B-567 · bug · inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2
 
 - status: triaged
-- prd: fixes-bug
+- prd: test-gates
 - owner:
 - commit:
 
 - 2026-11-22 (slice/test-gates/3): Found by test-gates slice 3. actions() uses .element(), which does not retry; the body was still empty. Failed in both sharded runs (https://github.com/caretook/caretook.com/actions/runs/45077489750 https://github.com/caretook/caretook.com/actions/runs/45077490098), passed in both unsharded runs (https://github.com/caretook/caretook.com/actions/runs/45076033356 https://github.com/caretook/caretook.com/actions/runs/45076033291). The shard split exposes it. Root cause read from the log and code, fix not tried.
+- 2026-11-22 (Robert Bo Davis): Moved to test-gates by the user (2026-11-22): these keep the components CI tier from going green. B-568's intermittent failures go through the flake quarantine (B-530).
 
 ### B-568 · bug · Component tests that failed once on CI's Linux runners: providers rows, provider empty links, emergency sheet, search speed, timeline Back, weekly print chart
 
 - status: triaged
-- prd: fixes-bug
+- prd: test-gates
 - owner:
 - commit:
 
 - 2026-11-22 (slice/test-gates/3): Found by test-gates slice 3; each differs between runs of the same code, causes not investigated. providers.browser (rowLinks, two different tests: https://github.com/caretook/caretook.com/actions/runs/45076033356 https://github.com/caretook/caretook.com/actions/runs/45077489750); provider.browser 'with no links' and emergency.browser 'builds the list' (https://github.com/caretook/caretook.com/actions/runs/45076033356); search.sync.browser 2,000-entry speed, timelineBack.browser B-235 and medications print.browser weekly chart (https://github.com/caretook/caretook.com/actions/runs/45076033291).
+- 2026-11-22 (Robert Bo Davis): Moved to test-gates by the user (2026-11-22): these keep the components CI tier from going green. B-568's intermittent failures go through the flake quarantine (B-530).
 
 ### B-569 · bug · Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector
 
@@ -2949,3 +2955,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (prd/agent-autonomy-2): Codex P3 on PR #72, verified: requestNotice in scripts/loops/session-requests.mjs has no length bound. With 40-character names a refusal reaches 201 characters (longer opener errors too); createNotice rejects it, requestStep logs and ignores that, so the request settles but the requester hears nothing. Fix: truncate the text to MAX_TEXT, keeping the id and outcome.
+
+### B-571 · bug · Staging reset test still times out at 30 s now and then, in CI as well as under local load
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (prd/test-gates): After B-466's fix: timed out in CI run 45081669105 on 7bd82c6f, passed on the rerun of the same commit (45082124113) and in four earlier runs. test-gates slice 8 does not touch it.
