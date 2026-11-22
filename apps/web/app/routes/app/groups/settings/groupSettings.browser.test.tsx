@@ -13,9 +13,10 @@ import { apiCalls, refusal } from "../../../../../test/api";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 
-// Group settings (app-shell.mjs's and ui.mjs's screen steps): Details and
-// Members by role, online and offline, the refusals the server sends shown as
-// they are, and changes arriving from another device. The server is the
+// Group settings (app-shell.mjs's and ui.mjs's screen steps; the frame by
+// width is settingsFrame.browser.test.tsx's): Details and Members by role,
+// online and offline, the refusals the server sends shown as they are, and
+// changes arriving from another device. The server is the
 // test's `api` handlers; what the server itself decides is in the
 // integration tests, and a role change or removal reaching a second device
 // for real stays in app-shell.mjs.
@@ -56,19 +57,16 @@ const open = ({
   role = "owner",
   online = true,
   api = {},
-  width,
 }: {
   url: string;
   role?: GroupRole;
   online?: boolean;
   api?: Record<string, (input: unknown) => unknown>;
-  width?: number;
 }) =>
   renderWithDevice({
     route: ROUTES,
     url,
     role,
-    width,
     fixtures: [SAM, RITA],
     api: online ? { ...ONLINE, ...api } : undefined,
   });
@@ -87,39 +85,6 @@ const described = (el: Element) =>
     .filter(Boolean)
     .map((id) => document.getElementById(id)?.textContent?.trim())
     .join(" | ");
-
-describe("the settings frame", () => {
-  test("at 420: the list, then a subpage with a back link and no side nav", async () => {
-    const device = await open({ url: SETTINGS });
-    await expect.element(page.getByRole("heading", { name: "Group settings", level: 1 })).toBeVisible();
-    await userEvent.click(page.getByRole("link", { name: /^Details/ }));
-    await expect.poll(device.location).toBe(DETAILS);
-    await expect.element(page.getByRole("heading", { name: "Details", level: 1 })).toBeVisible();
-    const nav = document.querySelector("nav[data-settings-nav]");
-    expect(nav?.querySelector('a[aria-current="page"]')?.getAttribute("href")).toBe(DETAILS);
-    expect((nav as HTMLElement | null)?.offsetParent ?? null).toBeNull();
-    const back = [...document.querySelectorAll<HTMLAnchorElement>("main a")].find(
-      (a) => a.getAttribute("href") === SETTINGS,
-    );
-    expect(back?.offsetParent).not.toBeNull();
-  });
-
-  test("at 1280: the list opens the first subpage, beside a side nav with it current, and no back link", async () => {
-    const device = await open({ url: SETTINGS, width: 1280 });
-    await expect.poll(device.location).toBe(DETAILS);
-    await expect.element(page.getByRole("heading", { name: "Details", level: 1 })).toBeVisible();
-    const nav = document.querySelector<HTMLElement>("nav[data-settings-nav]")!;
-    expect(nav.offsetParent).not.toBeNull();
-    expect(nav.querySelector('a[aria-current="page"]')?.getAttribute("href")).toBe(DETAILS);
-    await userEvent.click(page.getByRole("link", { name: /^Members/ }));
-    await expect.poll(device.location).toBe(MEMBERS);
-    await expect.poll(() => nav.querySelector('a[aria-current="page"]')?.getAttribute("href")).toBe(MEMBERS);
-    const back = [...document.querySelectorAll<HTMLAnchorElement>("main a")].some(
-      (a) => a.getAttribute("href") === SETTINGS && a.offsetParent,
-    );
-    expect(back).toBe(false);
-  });
-});
 
 describe("Details", () => {
   test("the owner, online: the group's name and the recipient's zone as forms, the profile linked, no notice", async () => {
