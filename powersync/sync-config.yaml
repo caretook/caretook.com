@@ -16,7 +16,7 @@
 #   (`SELECT *`): a synced table lists all its columns, timestamps and audits
 #   included, except the few rolesSql grants whole (REPLICATION_WHOLE_TABLES).
 #
-# The service reads this only at startup: `pnpm powersync:restart` after a change.
+# The service reads this only at startup: `docker compose restart powersync` after a change.
 
 config:
   edition: 3
