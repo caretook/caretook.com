@@ -132,7 +132,7 @@ Staging only:
 
 5. **URLs:** the pooled one (`-pooler` host) as `caretook_app` → `DATABASE_URL`; the direct one as `caretook_migrations` → `MIGRATIONS_DATABASE_URL`; the direct one as `caretook_replication` → PowerSync (step 3). All with `sslmode=verify-full`.
 6. **Restore window** (Neon's history retention, which is PITR): production at least 7 days (**to confirm** the plan's limit); staging the plan minimum. Record the value in `data-copies.md`.
-7. **Compute:** turn **scale to zero off for production**. The pool waits only 2 s for a connection (`connectionTimeoutMillis: 2000`, `packages/data/src/db/client.ts`), which a compute waking from suspend may miss. Watch for connection timeouts after quiet periods on staging.
+7. **Compute:** turn **scale to zero off for production**. The pool waits only 2 s for a connection (`DATABASE_CONNECT_TIMEOUT_MS`, default 2000, `packages/data/src/db/client.ts`; tests use 10 s), which a compute waking from suspend may miss. Watch for connection timeouts after quiet periods on staging.
 8. **Logs and audit:** pgaudit, or Neon's own records, if the plan offers it (**to confirm**). Write in `data-copies.md` exactly what is recorded and for how long, so the legal pages promise only that. Don't create production branches except for a restore: a branch is a full copy.
 9. **Console access:** only the named people (`break-glass.md`), with two-factor sign-in. The SQL editor is not a way to read care data.
 
