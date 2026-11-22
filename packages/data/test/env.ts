@@ -20,7 +20,7 @@ export const loadTestEnv = () => {
 
 /**
  * In a test worker: load the test env, then point DATABASE_URL at this worker's
- * own database (`<name>_w<VITEST_POOL_ID>`, made by the global setup), before
+ * own database (`workerDatabaseName`, made by the global setup), before
  * anything connects. Real env vars win over the env files, so later loads keep it.
  */
 export const loadWorkerEnv = () => {
