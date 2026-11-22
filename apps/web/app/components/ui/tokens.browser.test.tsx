@@ -100,14 +100,14 @@ const placeholderOf = (el: Element): Rgba => {
 describe("surfaces (ui-kit-3)", () => {
   test("in dark the page, a card and a border step up in lightness, each visibly", async () => {
     await renderInRouter(<p>Surfaces</p>, { theme: "dark" });
-    const [page, card, border] = ["bg-base-200", "bg-base-100", "bg-base-300"].map(swatch);
-    const cardOnPage = ratio(card!, page!);
-    const borderOnCard = ratio(border!, card!);
+    const [page, card, border] = [swatch("bg-base-200"), swatch("bg-base-100"), swatch("bg-base-300")];
+    const cardOnPage = ratio(card, page);
+    const borderOnCard = ratio(border, card);
     expect(cardOnPage).toBeGreaterThanOrEqual(1.2);
     expect(borderOnCard).toBeGreaterThanOrEqual(1.2);
     const luma = ([r, g, b]: Rgba) => r + g + b;
-    expect(luma(card!)).toBeGreaterThan(luma(page!));
-    expect(luma(border!)).toBeGreaterThan(luma(card!));
+    expect(luma(card)).toBeGreaterThan(luma(page));
+    expect(luma(border)).toBeGreaterThan(luma(card));
     console.info(
       "dark",
       JSON.stringify({
@@ -135,17 +135,17 @@ describe("the field fill (ui-kit-3)", () => {
     "in %s every kind of field has a fill of its own on the page and a card, with readable text and placeholder",
     async (theme) => {
       await renderInRouter(<>{SURFACES.map((surface) => fields(surface))}</>, { theme });
-      const [page, card] = SURFACES.map(swatch);
+      const [page, card] = [swatch(SURFACES[0]), swatch(SURFACES[1])];
       const measured: Record<string, number> = {};
       for (const surface of SURFACES) {
         for (const kind of KINDS) {
           const control = box(`[data-surface="${surface}"] [data-kind="${kind}"]`);
           const fill = surfaceOf(control);
           const name = `${kind} on ${surface}, ${theme}`;
-          measured[`${kind} fill/page`] = round(ratio(fill, page!));
-          measured[`${kind} fill/card`] = round(ratio(fill, card!));
-          expect(ratio(fill, page!), `${name}: fill against the page`).toBeGreaterThanOrEqual(1.05);
-          expect(ratio(fill, card!), `${name}: fill against a card`).toBeGreaterThanOrEqual(1.05);
+          measured[`${kind} fill/page`] = round(ratio(fill, page));
+          measured[`${kind} fill/card`] = round(ratio(fill, card));
+          expect(ratio(fill, page), `${name}: fill against the page`).toBeGreaterThanOrEqual(1.05);
+          expect(ratio(fill, card), `${name}: fill against a card`).toBeGreaterThanOrEqual(1.05);
           expect(ratio(textOf(control), fill), `${name}: text`).toBeGreaterThanOrEqual(4.5);
           if (kind !== "select") {
             const placeholder = ratio(placeholderOf(control), fill);
