@@ -20,6 +20,9 @@ beforeAll(() => {
     '#!/bin/sh\necho "$*" >> "$STUB_CALLS"\n[ "$1" = "$STUB_FAIL" ] && exit 7\nexit 0\n',
   );
   chmodSync(join(bin, "pnpm"), 0o755);
+  // The check-areas lint a slice or quick check runs with node: an empty script here.
+  spawnSync("mkdir", ["-p", join(root, "scripts/loops")]);
+  writeFileSync(join(root, "scripts/loops/check-areas.mjs"), "");
 });
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
@@ -56,5 +59,46 @@ describe("check-body.sh", () => {
     const r = body(["full", "base", "1"]);
     expect(r.status).toBe(0);
     expect(r.ran).toEqual(["check", "build:budget", "test:tooling"]);
+  });
+
+  const UNIT =
+    "exec vitest run --project data:unit --project web:unit --project notifications:unit --project server:unit --project scripts:unit";
+  const runs = (r) => r.ran.filter((c) => !c.startsWith("exec vitest list"));
+
+  it("a slice check runs every unit test and only the diff's own test files that still exist", () => {
+    writeFileSync(join(root, "a.int.test.ts"), "");
+    writeFileSync(join(root, "b.browser.test.tsx"), "");
+    const r = body(["slice", "base", "0", "a.int.test.ts", "b.browser.test.tsx", "gone.int.test.ts"]);
+    expect(r.status).toBe(0);
+    expect(runs(r)).toEqual([
+      "typecheck",
+      "lint",
+      "format:check",
+      UNIT,
+      "exec vitest run --project integration a.int.test.ts",
+      "exec vitest run --project web:components b.browser.test.tsx",
+      "docs:budget",
+    ]);
+  });
+
+  it("a slice check with no test files of its own runs only the unit tests", () => {
+    const r = body(["slice", "base", "0"]);
+    expect(r.status).toBe(0);
+    expect(runs(r)).toEqual(["typecheck", "lint", "format:check", UNIT, "docs:budget"]);
+  });
+
+  it("a quick check adds the integration tests related to the diff, and no other component test", () => {
+    const r = body(["quick", "base", "1", "a.int.test.ts", "b.browser.test.tsx"]);
+    expect(r.status).toBe(0);
+    expect(runs(r)).toEqual([
+      "typecheck",
+      "lint",
+      "format:check",
+      UNIT,
+      "exec vitest run --changed base --passWithNoTests --project integration",
+      "exec vitest run --project web:components b.browser.test.tsx",
+      "docs:budget",
+      "test:tooling",
+    ]);
   });
 });
