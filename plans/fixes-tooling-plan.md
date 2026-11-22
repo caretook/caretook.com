@@ -15,7 +15,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 1     | B-381 | merged (quick passed on slice)                                                            | 3df76253 |
 | 2     | B-394 | merged (quick passed; 20 s timeout kept, see note)                                        | 26e83fa4 |
 | 3     | B-411 | merged (tooling: rotate.test 20 s timeout at load 126, passes alone)                      | 7ccc8ff8 |
-| 4     | B-440 | started (opus agent)                                                                      |          |
+| 4     | B-440 | merged (tooling; tidy-cli.test beforeAll 10 s timeout under load: B-460)                  | 1a7ad440 |
 | 5     | B-441 | started (opus agent)                                                                      |          |
 | 6     | B-458 | handed off 5418eb80 (tooling: tidy-cli/rotate/browser.test failed under load, pass alone) |          |
 | 7     | B-475 | handed off fd4f9f27 (test race, not a timer; Undo catch filed for fixes-bug)              |          |
