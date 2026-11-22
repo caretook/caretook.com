@@ -36,3 +36,6 @@ export { Section } from "../Section";
 // ui-kit-2 (slice 1): the button shapes and the props of the one Button.
 export type { ButtonShape } from "../buttonClass";
 export type { ButtonProps } from "../Button";
+// ui-kit-2 slice 6: the choice dialog.
+export { ChoiceDialog } from "../ChoiceDialog";
+export type { ChoiceTone, DialogChoice } from "../ChoiceDialog";
