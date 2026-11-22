@@ -7,9 +7,12 @@ export function ToastSection() {
   return (
     <Example label="Fixed at the bottom, above the tab bar">
       <Button onClick={() => setShown((s) => !s)}>{shown ? "Hide the toast" : "Show the toast"}</Button>
-      {shown && (
-        <Toast message="A new version is ready." actionLabel="Reload" onAction={() => setShown(false)} />
-      )}
+      <Toast
+        open={shown}
+        message="A new version is ready."
+        actionLabel="Reload"
+        onAction={() => setShown(false)}
+      />
     </Example>
   );
 }

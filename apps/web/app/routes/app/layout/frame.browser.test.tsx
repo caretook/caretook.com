@@ -432,7 +432,7 @@ describe("the floating tab bar", () => {
     await open();
     await expect.element(page.getByText("Slept well")).toBeVisible();
     const toast = await render(
-      <Toast message="A new version is ready" actionLabel="Reload" onAction={() => {}} />,
+      <Toast open message="A new version is ready" actionLabel="Reload" onAction={() => {}} />,
     );
     const status = toast
       .getByText("A new version is ready")
@@ -444,7 +444,7 @@ describe("the floating tab bar", () => {
   });
 
   test.each(["light", "dark"] as const)(
-    "in %s: the bar's surface stands off the page and from a card; resting and current icons clear 3:1; the current one has a fill of its own",
+    "in %s: the bar's surface stands off the page and from a card; resting icons clear 4.5:1 and the current one 3:1; the current one has a fill of its own",
     async (theme) => {
       await open({ theme });
       await expect.element(page.getByText("Slept well")).toBeVisible();
@@ -461,7 +461,7 @@ describe("the floating tab bar", () => {
       const fill = (a: Element) => rgba(getComputedStyle(a).backgroundColor)[3];
       expect(onPage).toBeGreaterThanOrEqual(1.4);
       expect(fromCard).toBeGreaterThan(1.2);
-      expect(icon(resting)).toBeGreaterThanOrEqual(3);
+      expect(icon(resting)).toBeGreaterThanOrEqual(4.5);
       expect(icon(current)).toBeGreaterThanOrEqual(3);
       expect(fill(current)).toBe(1);
       expect(fill(resting)).toBe(0);
