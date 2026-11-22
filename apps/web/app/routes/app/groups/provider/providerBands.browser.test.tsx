@@ -1,8 +1,9 @@
+import { waitUntil } from "../../../../../test/found";
 import { describe, expect, test } from "vitest";
 import { bandNames, bandsAlternate } from "../../../../../test/bands";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx } from "../../../../../test/fixtures";
-import { CORNERSTONE, directory, PROVIDER_ROUTES, providerUrl, waitUntil } from "../providers/providerWorld";
+import { CORNERSTONE, directory, PROVIDER_ROUTES, providerUrl } from "../providers/providerWorld";
 
 // The provider page in bands (ui-kit slice 6): the header band, then each
 // part as a named band in today's order; a viewer sees the same parts as
@@ -23,7 +24,7 @@ const open = (role: "caretaker" | "viewer", theme?: "light" | "dark") =>
 describe("the provider page's bands", () => {
   test("a writer's bands in order; no conditions, no band", async () => {
     await open("caretaker");
-    await waitUntil(() => onPage() && bandNames().includes("Medications"), 4000, "the page");
+    await waitUntil(() => onPage() && bandNames().includes("Medications"), "the page");
     expect(bandNames()).toEqual([
       "(header)",
       "Contact",
@@ -41,7 +42,7 @@ describe("the provider page's bands", () => {
     "a viewer sees the same parts, without visit prep or Add todo, still alternating (%s)",
     async (theme) => {
       await open("viewer", theme);
-      await waitUntil(() => onPage() && bandNames().includes("Medications"), 4000, "the page");
+      await waitUntil(() => onPage() && bandNames().includes("Medications"), "the page");
       expect(bandNames()).toEqual(["(header)", "Contact", "Notes", "Linked entries", "Medications"]);
       expect(bandsAlternate()).toBe(true);
     },

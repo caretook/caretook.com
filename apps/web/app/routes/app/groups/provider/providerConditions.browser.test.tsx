@@ -1,12 +1,12 @@
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
+import { waitUntil } from "../../../../../test/found";
+import { getByCss } from "../../../../../test/locators";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, condition, conditionManager, fx } from "../../../../../test/fixtures";
 import * as profile from "../profile/route";
 import * as viewCondition from "../profile/conditions/view/route";
 import {
-  $,
-  $$,
   ALVAREZ,
   directory,
   GROUP,
@@ -14,7 +14,6 @@ import {
   PATEL,
   PROVIDER_ROUTES,
   providerUrl,
-  waitUntil,
 } from "../providers/providerWorld";
 
 // The provider page's Conditions region (conditions slice 3): what the
@@ -53,46 +52,50 @@ const open = (id: string, fixtures = WORLD) =>
   renderWithDevice({ route: ROUTES, url: providerUrl(id), fixtures });
 
 const region = () =>
-  $$("main [data-provider-conditions] a[data-condition-id]").map((a) =>
-    [a.querySelector("[data-condition-name]"), a.querySelector("[data-condition-role]")]
-      .map((el) => el?.textContent?.trim())
-      .join(" · "),
+  [...document.querySelectorAll<HTMLElement>("main [data-provider-conditions] a[data-condition-id]")].map(
+    (a) =>
+      [a.querySelector("[data-condition-name]"), a.querySelector("[data-condition-role]")]
+        .map((el) => el?.textContent?.trim())
+        .join(" · "),
   );
-const ready = () => !!$("main [data-provider-conditions] a[data-condition-id]");
+const ready = () =>
+  !!document.querySelector<HTMLElement>("main [data-provider-conditions] a[data-condition-id]");
 
 describe("the provider page's conditions", () => {
   test("lists what they diagnosed or manage, active first, saying which; a deleted one is left out", async () => {
     await open(ALVAREZ.id);
-    await waitUntil(ready, 4000, "the region");
+    await waitUntil(ready, "the region");
     expect(region()).toEqual([
       "Atrial fibrillation · Manages",
       "High blood pressure · Diagnosed and Manages",
       "Pneumonia · Diagnosed",
     ]);
     expect(
-      $(`main [data-provider-conditions] a[data-condition-id="${PNEUMONIA.id}"]`)?.textContent,
+      document.querySelector<HTMLElement>(
+        `main [data-provider-conditions] a[data-condition-id="${PNEUMONIA.id}"]`,
+      )?.textContent,
     ).toContain("Resolved");
   });
 
   test("each opens its sheet over the profile", async () => {
     const device = await open(PATEL.id);
-    await waitUntil(ready, 4000, "the region");
+    await waitUntil(ready, "the region");
     expect(region()).toEqual(["Atrial fibrillation · Diagnosed"]);
-    await userEvent.click($(`main [data-provider-conditions] a[data-condition-id="${AFIB.id}"]`)!);
+    await userEvent.click(getByCss(`main [data-provider-conditions] a[data-condition-id="${AFIB.id}"]`));
     await expect.poll(device.location).toBe(`/app/groups/${GROUP}/profile/conditions/${AFIB.id}`);
   });
 
   test("a provider with none has no region; it goes once their last condition is deleted", async () => {
     await open(MARIA.id);
-    await waitUntil(() => !!$("main [data-linked-entries]"), 4000, "the page");
-    expect($("main [data-provider-conditions]")).toBeNull();
+    await waitUntil(() => !!document.querySelector<HTMLElement>("main [data-linked-entries]"), "the page");
+    expect(document.querySelector<HTMLElement>("main [data-provider-conditions]")).toBeNull();
 
     const device = await open(PATEL.id);
-    await waitUntil(ready, 4000, "the region");
+    await waitUntil(ready, "the region");
     await device.sync(
       condition({ id: AFIB.id, name: "Atrial fibrillation", diagnosedById: PATEL.id, deletedAt: at() }),
     );
     await device.settle();
-    expect($("main [data-provider-conditions]")).toBeNull();
+    expect(document.querySelector<HTMLElement>("main [data-provider-conditions]")).toBeNull();
   });
 });

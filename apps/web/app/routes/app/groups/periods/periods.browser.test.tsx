@@ -5,7 +5,7 @@ import { useLayoutEffect } from "react";
 import { useNavigate } from "react-router";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 import { createCarePeriod, removeCarePeriod, updateCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx } from "../../../../../test/fixtures";
@@ -32,7 +32,6 @@ import {
   track,
   TRACK_SQL,
   typeRadio,
-  waitUntil,
 } from "./periodWorld";
 
 // The periods page and its add sheet (care-periods.mjs's list, add, earlier,
@@ -90,7 +89,7 @@ describe("the periods page", () => {
       "Home",
     ]);
     expect(rows.map((r) => r.current)).toEqual([true, false, false, false, false]);
-    expect(rows[0]!.dates).toMatch(/– now · day \d+$/);
+    expect(rows[0]?.dates).toMatch(/– now · day \d+$/);
     const hospital = rows.find((r) => r.id === HOSPITAL.id)!;
     expect(hospital.place).toBe("Riverside General Hospital, Room 412, bed B");
     expect(hospital.dates).toMatch(/^\w{3} \d+, 03:15 – until \w{3} \d+ · 7 days$/);
@@ -118,20 +117,20 @@ describe("adding a period", () => {
   test("Add period opens the sheet over the list; Other needs a label; a new place from the picker; saving lists it first as Now with its place and room, ends the one before, and writes the place with it in one transaction", async () => {
     const device = await open();
     await userEvent.click(await found(ADD));
-    await waitUntil(() => !!FORM(), 4000, "the add sheet");
+    await waitUntil(() => !!FORM(), "the add sheet");
     expect(device.location()).toBe(`${PERIODS_URL}/new`);
     expect(document.querySelector("main [data-period-list]")).not.toBeNull();
 
     // Other with no label: the field says so.
-    await userEvent.click(typeRadio("Other")!);
+    await userEvent.click(await found(() => typeRadio("Other")));
     await userEvent.click(submit());
     await expect.poll(() => errorOf("label")).toBe("Say what this is");
 
-    await userEvent.click(typeRadio("Hospital")!);
-    await userEvent.fill(field("label")!, "Ward 7");
+    await userEvent.click(await found(() => typeRadio("Hospital")));
+    await userEvent.fill(await found(() => field("label")), "Ward 7");
     await pickPlace("Lakeview Medical", 'Add "Lakeview Medical" as a new place');
     await expect.poll(pickerChip).toBe("Lakeview Medical (new)");
-    await userEvent.fill(field("placeDetail")!, "Room 7");
+    await userEvent.fill(await found(() => field("placeDetail")), "Room 7");
     await userEvent.click(submit());
 
     await expect.poll(() => !SHEET() && device.location()).toBe(PERIODS_URL);
@@ -142,9 +141,9 @@ describe("adding a period", () => {
       current: true,
       place: "Lakeview Medical, Room 7",
     });
-    expect(top!.dates).toMatch(/– now · day 1$/);
+    expect(top?.dates).toMatch(/– now · day 1$/);
     expect(previous).toMatchObject({ id: HOME_NOW.id, current: false });
-    expect(previous!.dates).toMatch(/until/);
+    expect(previous?.dates).toMatch(/until/);
 
     // The place is a practice in the directory, written first, in the period's transaction.
     const crud = await device.query<{ tx_id: number; data: string }>(
@@ -155,9 +154,9 @@ describe("adding a period", () => {
       ...(JSON.parse(r.data) as { type: string; id: string; data: Record<string, unknown> }),
     }));
     expect(ops.map((o) => o.type)).toEqual(["provider", "care_period"]);
-    expect(ops[0]!.tx).toBe(ops[1]!.tx);
-    expect(ops[0]!.data).toMatchObject({ type: "practice", name: "Lakeview Medical" });
-    expect(ops[1]!.data).toMatchObject({
+    expect(ops[0]?.tx).toBe(ops[1]!.tx);
+    expect(ops[0]?.data).toMatchObject({ type: "practice", name: "Lakeview Medical" });
+    expect(ops[1]?.data).toMatchObject({
       type: "hospital",
       label: "Ward 7",
       place_detail: "Room 7",
@@ -174,9 +173,9 @@ describe("adding a period", () => {
     ];
     for (const [how, close] of closes) {
       // The list (and Add) can render after open(), or after a close, on a loaded machine.
-      await waitUntil(() => !!ADD(), 4000, `Add before ${how}`);
+      await waitUntil(() => !!ADD(), `Add before ${how}`);
       await userEvent.click(await found(ADD));
-      await waitUntil(() => !!FORM(), 4000, `the sheet before ${how}`);
+      await waitUntil(() => !!FORM(), `the sheet before ${how}`);
       await close();
       await expect.poll(() => !SHEET() && device.location(), { message: how }).toBe(PERIODS_URL);
     }
@@ -189,10 +188,10 @@ describe("adding a period", () => {
     const device = await open({
       url: `${PERIODS_URL}/new?type=rehab&startedAt=${encodeURIComponent(start.toISOString())}&dateOnly=1`,
     });
-    await waitUntil(() => !!FORM(), 4000, "the add sheet");
-    expect(typeRadio("Rehab or skilled nursing")!.checked).toBe(true);
-    expect(field("dateOnly")!.checked).toBe(true);
-    await userEvent.fill(field("label")!, "Short stay");
+    await waitUntil(() => !!FORM(), "the add sheet");
+    expect(typeRadio("Rehab or skilled nursing")?.checked).toBe(true);
+    expect(field("dateOnly")?.checked).toBe(true);
+    await userEvent.fill(await found(() => field("label")), "Short stay");
     await userEvent.click(submit());
     await expect.poll(() => !SHEET() && device.location()).toBe(PERIODS_URL);
     await device.settle();
@@ -200,25 +199,25 @@ describe("adding a period", () => {
     const rows = listRows();
     const i = rows.findIndex((r) => r.title === "Rehab · Short stay");
     expect(i).toBe(1);
-    expect(rows[i]!.current).toBe(false);
-    expect(rows[i]!.dates.split("–")[0]).not.toMatch(/\d:\d/);
+    expect(rows[i]?.current).toBe(false);
+    expect(rows[i]?.dates.split("–")[0]).not.toMatch(/\d:\d/);
     expect(rows[0]).toMatchObject({ id: HOME_NOW.id, current: true });
     const [stored] = await device.query<{ date_only: number; started_at: string }>(
       "SELECT date_only, started_at FROM care_period WHERE label = 'Short stay'",
     );
-    expect(stored!.date_only).toBe(1);
-    expect(new Date(stored!.started_at).getTime()).toBe(start.getTime());
+    expect(stored?.date_only).toBe(1);
+    expect(new Date(stored?.started_at ?? 0).getTime()).toBe(start.getTime());
     // The rehab stay before it now ends that day.
-    expect(rows[i + 1]!.id).toBe(REHAB.id);
-    expect(rows[i + 1]!.dates).toContain(`until ${dayOf(start)}`);
+    expect(rows[i + 1]?.id).toBe(REHAB.id);
+    expect(rows[i + 1]?.dates).toContain(`until ${dayOf(start)}`);
   });
 
   test("an earlier dated period between two others: the one before it now ends at its start", async () => {
     const device = await open({
       url: `${PERIODS_URL}/new?type=other&startedAt=${encodeURIComponent(daysAgo(15, 9).toISOString())}`,
     });
-    await waitUntil(() => !!FORM(), 4000, "the add sheet");
-    await userEvent.fill(field("label")!, "Daughter's house");
+    await waitUntil(() => !!FORM(), "the add sheet");
+    await userEvent.fill(await found(() => field("label")), "Daughter's house");
     await userEvent.click(submit());
     await expect.poll(() => !SHEET() && device.location()).toBe(PERIODS_URL);
     await device.settle();
@@ -227,7 +226,7 @@ describe("adding a period", () => {
     // Between the rehab stay (12 days back) and the hospital (19 days back).
     expect(ids.indexOf(mine.id)).toBe(ids.indexOf(REHAB.id) + 1);
     expect(ids.indexOf(HOSPITAL.id)).toBe(ids.indexOf(mine.id) + 1);
-    expect(listRows().find((r) => r.id === HOSPITAL.id)!.dates).toContain(`until ${dayOf(daysAgo(15))}`);
+    expect(listRows().find((r) => r.id === HOSPITAL.id)?.dates).toContain(`until ${dayOf(daysAgo(15))}`);
   });
 
   test("two periods with one start (one from another device) both stay, in (started_at, created_at, id) order", async () => {
@@ -242,8 +241,8 @@ describe("adding a period", () => {
     const device = await open({
       url: `${PERIODS_URL}/new?type=home&startedAt=${encodeURIComponent(daysAgo(1).toISOString())}&dateOnly=1`,
     });
-    await waitUntil(() => !!FORM(), 4000, "the add sheet");
-    await userEvent.fill(field("label")!, "Tie A");
+    await waitUntil(() => !!FORM(), "the add sheet");
+    await userEvent.fill(await found(() => field("label")), "Tie A");
     await userEvent.click(submit());
     await expect.poll(() => listed("Tie A") && !SHEET()).toBeTruthy();
     await device.sync(fromThere);
@@ -257,7 +256,7 @@ describe("adding a period", () => {
     const local = await device.query<{ label: string }>(TRACK_SQL, [GROUP]);
     expect(local.map((r) => r.label).filter((l) => l?.startsWith("Tie"))).toEqual(["Tie A", "Tie B"]);
     // The earlier-created one has zero length and still shows.
-    expect(listRows().find((r) => r.title === "Home · Tie A")!.dates).toMatch(/Less than a day$/);
+    expect(listRows().find((r) => r.title === "Home · Tie A")?.dates).toMatch(/Less than a day$/);
   });
 });
 
@@ -327,7 +326,7 @@ describe("the edit sheet's URL", () => {
 
   test("a period deleted on another device while its sheet is open closes the sheet onto the list", async () => {
     const device = await open({ url: `${PERIODS_URL}/${REHAB.id}/edit` });
-    await waitUntil(() => !!FORM(), 4000, "the edit sheet");
+    await waitUntil(() => !!FORM(), "the edit sheet");
     await device.sync(fx.period({ ...rowOf(REHAB), deletedAt: at() }));
     await expect.poll(() => !SHEET() && device.location()).toBe(PERIODS_URL);
   });
