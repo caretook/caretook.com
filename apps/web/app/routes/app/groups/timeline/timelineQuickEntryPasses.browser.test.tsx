@@ -154,7 +154,7 @@ describe("passes in the box", () => {
 });
 
 describe("the due pass as one tap", () => {
-  test("the button says a pass is due; Due now is the popover's first row, and one tap is Given all, with Undo in the box", async () => {
+  test("the button says a pass is due; Due now is the popover's first row, and one tap is Given all, its Undo in the box", async () => {
     const device = await open();
     await expect.element(passDueButton()).toBeVisible();
     expect(passDueButton().element().querySelector("[data-quick-due-dot]")).not.toBeNull();
@@ -173,10 +173,6 @@ describe("the due pass as one tap", () => {
     await expect.poll(async () => (await live(device)).length).toBe(2);
     // Nothing left in it, and nothing else to suggest: the button goes.
     await waitUntil(() => !suggestButton().query(), 4000, "the button to go");
-
-    await userEvent.click(undoButton()!);
-    await expect.poll(async () => (await live(device)).length).toBe(0);
-    await expect.element(passDueButton()).toBeVisible();
   });
 
   test("not while typing", async () => {

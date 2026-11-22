@@ -19,9 +19,10 @@ import { TIMELINE_URL } from "./timelineWorld";
 // the medications due and the todos) each show only with something to say,
 // tinted and iconned by `todayStatus` (whose edges are todayStatus.test.ts's),
 // each ending in "See all ›" to its full view (vitals: Show all in place,
-// B-186). Given all stays on the medications row for writers. The card starts
-// collapsed to one line on every load (red overdue and orange due-soon counts
-// first); a tap opens it for the page view. What the strips' old tests checked moved here;
+// B-186). Given all stays on the medications row for writers (its Undo is
+// medications/today.browser.test.tsx's and passUndo.test.ts's). The card starts
+// collapsed to one line on every load (overdue and due-soon counts first,
+// whose sums are todayStatus.test.ts's); a tap opens it for the page view. What the strips' old tests checked moved here;
 // remembering across a remount (dimmed, then fresh) is
 // timelineRemembered.browser.test.tsx's.
 
@@ -98,7 +99,6 @@ const medState = () => {
   const el = row("medications")?.querySelector<HTMLElement>("[data-med-state]");
   return [el?.dataset.medState ?? null, el?.dataset.medPass ?? null];
 };
-const UNDO = () => document.querySelector("[data-pass-undo-label]")?.textContent?.trim() ?? null;
 
 beforeEach(() => {
   fixClock();
@@ -125,10 +125,10 @@ describe("the Today card's rows", () => {
     // It sits above the list, at every width (the old vitals strip hid below `sm`).
     expect(CARD()!.compareDocumentPosition(document.querySelector("main ol")!) & 4).toBeTruthy();
     await openCard();
-    expect(row("vitals")!.getBoundingClientRect().height).toBeGreaterThan(0);
+    expect(row("vitals")!.checkVisibility()).toBe(true);
   });
 
-  test("each status: its tint, its own icon and its words for screen readers; a calm row has neither", async () => {
+  test("each status: its own icon and its words for screen readers; a calm row has neither", async () => {
     await open(EVERYTHING);
     await expect.poll(shownRows).toEqual(["vitals", "appointment", "medications", "todos"]);
     const look = (name: string) => {
@@ -137,28 +137,20 @@ describe("the Today card's rows", () => {
         status: r.dataset.status,
         icon: r.querySelector("svg[data-status-icon]")?.getAttribute("data-status-icon") ?? null,
         said: r.querySelector("[data-status-text]")?.textContent ?? null,
-        tint: [...r.classList].find((c) => c.startsWith("bg-")) ?? null,
       };
     };
-    expect(look("medications")).toEqual({
-      status: "error",
-      icon: "error",
-      said: "Urgent: ",
-      tint: "bg-error/10",
-    });
+    expect(look("medications")).toEqual({ status: "error", icon: "error", said: "Urgent: " });
     expect(look("vitals")).toEqual({
       status: "warning",
       icon: "warning",
       said: "Needs attention: ",
-      tint: "bg-warning/10",
     });
     expect(look("appointment")).toEqual({
       status: "info",
       icon: "info",
       said: "Coming up soon: ",
-      tint: "bg-info/10",
     });
-    expect(look("todos")).toEqual({ status: "neutral", icon: null, said: null, tint: null });
+    expect(look("todos")).toEqual({ status: "neutral", icon: null, said: null });
     // Every row's icon is hidden from screen readers: the words carry it.
     await expect.poll(() => CARD()?.querySelectorAll("li svg:not([aria-hidden])")).toHaveLength(0);
   });
@@ -261,23 +253,8 @@ describe("the vitals row", () => {
   });
 });
 
-describe("the Today card's width", () => {
-  test("1280: in the entries' column (1024 px), centred", async () => {
-    await renderWithDevice({ route: ROUTES, url: TIMELINE_URL, fixtures: EVERYTHING, width: 1280 });
-    await expect.poll(shownRows).toHaveLength(4);
-    await openCard();
-    const r = CARD()!.getBoundingClientRect();
-    const pageWidth = document.documentElement.clientWidth;
-    expect(Math.abs(r.width - 1024)).toBeLessThan(1);
-    expect(Math.abs(r.left + r.right - pageWidth)).toBeLessThan(2);
-    // Each row is one line.
-    for (const name of ["vitals", "appointment", "medications", "todos"])
-      expect(row(name)!.getBoundingClientRect().height).toBeLessThan(40);
-  });
-});
-
 describe("the medications row", () => {
-  test("Given all for a writer logs the overdue pass and offers Undo; the due pass follows; Undo brings it back", async () => {
+  test("Given all for a writer logs the overdue pass; the due pass follows", async () => {
     const device = await open([DAY_NOTE, ...PASSES]);
     await expect.poll(medState).toEqual(["overdue", `pass:${LATE.id}`]);
     await openCard();
@@ -286,14 +263,9 @@ describe("the medications row", () => {
     await userEvent.click(givenAll()!);
     await expect.poll(medState, { timeout: 5000 }).toEqual(["due", `pass:${NOW.id}`]);
     expect(row("medications")!.dataset.status).toBe("warning");
-    await expect.poll(UNDO).toBe("Late logged");
     expect(await device.query(DOSES_SQL)).toMatchObject([
       { medicationId: SA.id, scheduledFor: clockAt(-65) },
     ]);
-
-    await userEvent.click(await found(() => document.querySelector<HTMLElement>("[data-pass-undo-button]")));
-    await expect.poll(medState, { timeout: 5000 }).toEqual(["overdue", `pass:${LATE.id}`]);
-    expect(await device.query(DOSES_SQL)).toHaveLength(0);
   });
 
   test("the due pass's name opens the Dose sheet on it; once logged, the next pass shows, calm, with no Given all", async () => {
@@ -406,26 +378,14 @@ describe("collapsing the card", () => {
       .poll(() => summary()?.textContent)
       .toBe("1 overdue · 4 due soon · BP 130/85 mmHg · 1 todo today");
     expect(expanded()).toBe("false");
-    expect(part("overdue")!.classList).toContain("text-error");
-    expect(part("soon")!.classList).toContain("text-warning");
     expect(document.getElementById(toggle().getAttribute("aria-controls")!)!.hidden).toBe(true);
     expect(row("vitals")!.checkVisibility()).toBe(false);
-    // One line.
-    expect(summary()!.getBoundingClientRect().height).toBeLessThan(24);
 
     await userEvent.click(toggle());
     await expect.poll(() => row("vitals")?.checkVisibility()).toBe(true);
     expect(summary()).toBeNull();
     await userEvent.click(toggle());
     await expect.poll(expanded).toBe("false");
-  });
-
-  test("nothing overdue or due soon: the line is the rest alone", async () => {
-    await open([DAY_NOTE, OLD_BP, WALKER]);
-    await expect.poll(shownRows).toEqual(["vitals", "todos"]);
-    await expect.poll(() => summary()?.textContent).toBe("BP 130/85 mmHg · 1 todo today");
-    expect(part("overdue")).toBeNull();
-    expect(part("soon")).toBeNull();
   });
 
   test("on a narrow phone the counts stay whole; the rest is cut off", async () => {

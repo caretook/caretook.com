@@ -22,8 +22,9 @@ import * as timeline from "./route";
 import { chooseEasyMode, waitUntil } from "./timelineWorld";
 
 // Easy mode's Upcoming block (assistant slice 7), on the test device (offline):
-// the pass due now as one big Given all with Undo, and the next appointment,
-// for loggers (writers and an Easy helper); the same as text for viewers and an Easy viewer. Times are relative to now in
+// the pass due now as one big Given all (its Undo is medications/today's), and
+// the next appointment, for loggers (writers and an Easy helper); the same as
+// text for viewers and an Easy viewer. Times are relative to now in
 // the recipient's zone, so the pass is due whatever the clock. The next
 // appointment opens the next five upcoming items (B-191).
 
@@ -64,7 +65,6 @@ const open = (role: GroupRole, fixtures: Fixture[] = [...MEDS, VISIT]) => {
 
 const now = () => document.querySelector<HTMLElement>("[data-easy-now]");
 const give = () => [...(now()?.querySelectorAll<HTMLButtonElement>("[data-easy-give]") ?? [])];
-const undo = () => now()?.querySelector<HTMLButtonElement>("[data-pass-undo-button]") ?? null;
 const doses = async (device: Awaited<ReturnType<typeof open>>) =>
   device.query<{ id: string }>("SELECT id FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL");
 
@@ -95,7 +95,7 @@ describe("the quick-entry box", () => {
 
 describe("the Upcoming block", () => {
   test.each(["caretaker", "easy_helper"] as const)(
-    "a %s: the due pass as one big Given all, with Undo there, and the next appointment",
+    "a %s: the due pass as one big Given all, and the next appointment",
     async (role) => {
       const device = await open(role);
       await waitUntil(() => give().length === 1, 4000, "the due pass");
@@ -114,15 +114,7 @@ describe("the Upcoming block", () => {
 
       await userEvent.click(give()[0]!);
       await expect.poll(async () => (await doses(device)).length).toBe(2);
-      await waitUntil(() => !!undo(), 4000, "Undo");
-      await expect
-        .poll(() => now()?.querySelector("[data-pass-undo-label]")?.textContent)
-        .toBe("Evening logged");
       await waitUntil(() => give().length === 0, 4000, "the pass to be done");
-
-      await userEvent.click(undo()!);
-      await expect.poll(async () => (await doses(device)).length).toBe(0);
-      await waitUntil(() => give().length === 1, 4000, "the pass due again");
     },
   );
 

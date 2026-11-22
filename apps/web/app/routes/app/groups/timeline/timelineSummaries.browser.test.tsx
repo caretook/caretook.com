@@ -1,12 +1,14 @@
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
 import { at, fx, TEST_USER } from "../../../../../test/fixtures";
-import { frames, openTimeline, rows, SAM, setView, TIMELINE_URL, waitUntil } from "./timelineWorld";
+import { openTimeline, rows, SAM, setView, TIMELINE_URL, waitUntil } from "./timelineWorld";
 
 // The day summaries on the test device: the line in each day's sticky header,
 // what it says (arrows in words), expanding by tap and keyboard, live updates
 // (a local add and another device's entry), every filter hiding it, and the
-// header's Highlights / Full / Off switch.
+// header's Highlights / Full / Off switch. What a day's line holds (no
+// highlights, doses or notes alone) is daySummary.test.ts's; the header
+// staying stuck is timelineLayout.browser.test.tsx's.
 
 // Tens of seconds, not minutes: the entries stay on today for a run just after midnight (B-225, B-227).
 const minutesAgo = (m: number) => at(new Date(Date.now() - m * 10_000));
@@ -60,33 +62,6 @@ describe("the day summary", () => {
     expect(lineOf(0)).toBe(TODAY_TEXT);
     expect(lineOf(1)).toBe("Cough 3 (new)");
     expect(yesterday).toBeTruthy();
-  });
-
-  test("stays pinned with its date while the test scrolls through that day", async () => {
-    // A long yesterday: its summary line, then twenty notes (not in it) to scroll through.
-    const long = Array.from({ length: 20 }, (_, i) =>
-      fx.note({ occurredAt: daysAgo(1, 23 - i), text: `Checked in, round ${i + 1}.` }),
-    );
-    await openTimeline({ fixtures: [...fixtures, ...long] });
-    await waitUntil(() => summaries().length === 2, 4000, "two summaries");
-    const yesterday = summaries()[1]!;
-    const day = yesterday.closest("section")!;
-    const dayTop = day.getBoundingClientRect().top + scrollY;
-    const seen: { top: number; inside: boolean; text: string }[] = [];
-    for (const into of [200, 500, 800]) {
-      window.scrollTo(0, dayTop + into);
-      await frames();
-      const r = yesterday.getBoundingClientRect();
-      const h = yesterday.closest("[data-day-header]")!.getBoundingClientRect();
-      // The day is still on screen below the header.
-      expect(day.getBoundingClientRect().bottom).toBeGreaterThan(h.bottom + 50);
-      seen.push({
-        top: Math.round(h.top),
-        inside: r.top >= 0 && r.bottom <= h.bottom && r.height > 0,
-        text: lineOf(1),
-      });
-    }
-    expect(seen).toEqual(Array(3).fill({ top: 0, inside: true, text: "Cough 3 (new)" }));
   });
 
   test("is read as text, with the arrow in words", async () => {
@@ -183,25 +158,5 @@ describe("the day summary", () => {
 
     await choose("Highlights");
     await waitUntil(() => lineOf(0) === TODAY_TEXT, 4000, "highlights back");
-  });
-
-  test("a day with nothing that stands out has no line in highlights", async () => {
-    await openTimeline({
-      fixtures: [
-        fx.symptom({ occurredAt: minutesAgo(30), name: "Cough", severity: 2 }),
-        fx.symptom({ occurredAt: daysAgo(2), name: "Cough", severity: 2 }),
-      ],
-    });
-    await waitUntil(() => summaries().length === 1, 4000, "only the older day's line");
-    expect(lineOf(0)).toBe("Cough 2 (new)");
-  });
-
-  test("a day with only doses has no summary", async () => {
-    const med = fx.medication();
-    await openTimeline({
-      fixtures: [med, fx.dose({ medicationId: med.id, occurredAt: minutesAgo(30) })],
-    });
-    await waitUntil(() => rows().length > 0);
-    expect(summaries()).toHaveLength(0);
   });
 });

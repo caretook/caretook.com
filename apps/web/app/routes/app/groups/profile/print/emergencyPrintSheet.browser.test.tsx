@@ -6,11 +6,11 @@ import * as print from "./route";
 import { renderWithDevice } from "../../../../../../test/device";
 import { allergy, condition, fx, TEST_GROUP } from "../../../../../../test/fixtures";
 
-// The emergency sheet's allergies (quick-fixes slice 41, B-112): each one on
-// file, worded as the printed medication sheets word them, or what the
-// recipient's record says when there are none. The wording rules are unit
-// tested (emergencyPrintSheet.test.ts, allergies.test.ts); the sheet's flow
-// and print media are in emergencySheetPage.browser.test.tsx.
+// The emergency sheet's allergies and conditions (quick-fixes slice 41,
+// B-112) from the device's copy, and a change arriving before it's printed.
+// Their order, wording and the none / not recorded lines are unit tested
+// (emergencyPrintSheet.test.ts, allergies.test.ts); the sheet's flow and print
+// media are in emergencySheetPage.browser.test.tsx.
 
 const PRINT = `/app/groups/${TEST_GROUP.id}/profile/print`;
 const ROUTE = { path: "/app/groups/:groupId/profile/print", module: print };
@@ -20,32 +20,19 @@ const allergiesSection = () => page.getByRole("region", { name: "Allergies" });
 const openSheet = (fixtures: Fixtures) =>
   renderWithDevice({ route: ROUTE, url: PRINT, role: "owner", fixtures });
 
-describe("the emergency sheet's allergies", () => {
-  test("lists each allergy on file, most severe first, with its reaction and severity", async () => {
+describe("the emergency sheet's allergies and conditions", () => {
+  const conditionsSection = () => page.getByRole("region", { name: "Conditions" });
+
+  test("the device's allergies and active conditions are on the sheet", async () => {
     await openSheet([
-      allergy({ substance: "Sulfa", reaction: "rash", severity: "mild" }),
+      fx.recipient(),
       allergy({ substance: "Penicillin", reaction: "hives", severity: "severe" }),
-      allergy({ substance: "Latex", reaction: null, severity: "unknown" }),
-      allergy({ substance: "Peanuts", deletedAt: "2026-11-01 10:00:00" }),
+      condition({ name: "Type 2 diabetes", sinceYear: 2015, note: "diet-controlled" }),
     ]);
-    await expect.element(allergiesSection()).toBeVisible();
-    const items = allergiesSection().getByRole("listitem");
+    await expect.element(allergiesSection().getByText("Penicillin (hives, severe)")).toBeVisible();
     await expect
-      .poll(() => items.elements().map((el) => el.textContent))
-      .toEqual(["Penicillin (hives, severe)", "Sulfa (rash, mild)", "Latex"]);
-    expect(items.elements()[0]).toHaveClass("font-semibold");
-    expect(document.querySelector("[data-sheet-allergies-empty]")).toBeNull();
-  });
-
-  test("says No known allergies when that's recorded", async () => {
-    await openSheet([fx.recipient({ noKnownAllergiesAt: "2026-11-01 10:00:00" })]);
-    await expect.element(allergiesSection().getByText("No known allergies")).toBeVisible();
-    expect(allergiesSection().getByRole("listitem").elements()).toHaveLength(0);
-  });
-
-  test("says Allergies not recorded when nothing is, so a blank is never read as none", async () => {
-    await openSheet([]);
-    await expect.element(allergiesSection().getByText("Allergies not recorded")).toBeVisible();
+      .element(conditionsSection().getByText("Type 2 diabetes (since 2015; diet-controlled)"))
+      .toBeVisible();
   });
 
   test("an allergy added on another device shows before it's printed", async () => {
@@ -53,35 +40,5 @@ describe("the emergency sheet's allergies", () => {
     await expect.element(allergiesSection().getByText("Allergies not recorded")).toBeVisible();
     await device.sync(allergy({ substance: "Penicillin", reaction: "hives", severity: "severe" }));
     await expect.element(allergiesSection().getByText("Penicillin (hives, severe)")).toBeVisible();
-  });
-});
-
-describe("the emergency sheet's conditions", () => {
-  const conditionsSection = () => page.getByRole("region", { name: "Conditions" });
-
-  test("lists the active conditions with since and note, not the past ones", async () => {
-    await openSheet([
-      fx.recipient(),
-      condition({ name: "Type 2 diabetes", sinceYear: 2015, note: "diet-controlled" }),
-      condition({ name: "Asthma" }),
-      condition({ name: "Hip fracture", status: "resolved", sinceYear: 2019 }),
-      condition({ name: "Mistake", deletedAt: "2026-11-01 10:00:00" }),
-    ]);
-    await expect.element(conditionsSection()).toBeVisible();
-    const items = conditionsSection().getByRole("listitem");
-    await expect.element(items.nth(0)).toHaveTextContent("Type 2 diabetes (since 2015; diet-controlled)");
-    await expect.element(items.nth(1)).toHaveTextContent("Asthma");
-    expect(items.elements()).toHaveLength(2);
-  });
-
-  test("says No known conditions when that's recorded", async () => {
-    await openSheet([fx.recipient({ noKnownConditionsAt: "2026-11-01 10:00:00" })]);
-    await expect.element(conditionsSection().getByText("No known conditions")).toBeVisible();
-  });
-
-  test("is left out when conditions aren't recorded", async () => {
-    await openSheet([fx.recipient()]);
-    await expect.element(allergiesSection()).toBeVisible();
-    expect(conditionsSection().elements()).toHaveLength(0);
   });
 });

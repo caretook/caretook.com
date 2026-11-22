@@ -5,43 +5,31 @@ import { commands, page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { Toast } from "~/components/ui";
 import { THEME_KEY } from "~/lib/app-shell/theme";
-import * as entry from "~/routes/app/groups/entry/route";
 import * as groupSettingsIndex from "~/routes/app/groups/settings/index/route";
 import * as groupSettingsLayout from "~/routes/app/groups/settings/layout/route";
-import * as timeline from "~/routes/app/groups/timeline/route";
-import * as newSheet from "~/routes/app/groups/timeline/new/route";
-import * as planner from "~/routes/app/groups/planner/route";
-import * as todoPage from "~/routes/app/groups/todo/route";
-import * as todos from "~/routes/app/groups/todos/route";
 import * as home from "~/routes/app/home/route";
 import * as settingsIndex from "~/routes/app/settings/index/route";
 import * as settingsLayout from "~/routes/app/settings/layout/route";
 import * as units from "~/routes/app/settings/units/route";
 import { rgba, surfaceContrast, textContrast } from "../../../../test/contrast";
 import { renderWithDevice } from "../../../../test/device";
-import { fx, hoursAgo, TEST_GROUP, TEST_USER, todo } from "../../../../test/fixtures";
+import { found } from "../../../../test/found";
+import { fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../../test/fixtures";
+import { PROBE } from "../../../../test/probe";
 
 // The /app frame (app-shell.mjs's screen steps): the header's regions, the
 // user menu, the theme, the group menu and the last group, the tab bar and
-// the header's section links. The real layout (`frame: true`) around real
-// routes, on the test device. What needs a server or a real page load stays
-// in app-shell.mjs: sign-out, the theme before first paint, and changes
-// reaching another device.
+// the header's section links, which section is current where. The real
+// layout (`frame: true`) around the probe route (test/probe.tsx) at every
+// group path, so no screen's change breaks it; home and the settings pages
+// are real. What needs a server or a real page load stays in app-shell.mjs:
+// sign-out, the theme before first paint, and changes reaching another device.
 
-const TIMELINE_PATH = "/app/groups/:groupId/timeline";
 const timelineUrl = (groupId: string = TEST_GROUP.id) => `/app/groups/${groupId}/timeline`;
 
 const ROUTES: DeviceRoute[] = [
   { path: "/app", id: "home", module: home },
-  {
-    path: TIMELINE_PATH,
-    module: timeline,
-    children: [{ path: `${TIMELINE_PATH}/new/:kind`, module: newSheet }],
-  },
-  { path: "/app/groups/:groupId/entries/:entryId", module: entry },
-  { path: "/app/groups/:groupId/planner", module: planner },
-  { path: "/app/groups/:groupId/todos", module: todos },
-  { path: "/app/groups/:groupId/todos/:todoId", module: todoPage },
+  PROBE,
   {
     path: "/app/settings",
     module: settingsLayout,
@@ -275,7 +263,7 @@ describe("the group menu and the last group", () => {
     await expect.element(page.getByRole("menuitemradio", { name: /Grandpa Lou/ })).not.toBeChecked();
     await userEvent.click(page.getByRole("menuitemradio", { name: /Grandpa Lou/ }));
     await expect.poll(device.location).toBe(timelineUrl(LOU.id));
-    await expect.element(page.getByText(/Stiff back · 3/)).toBeVisible();
+    await expect.element(page.getByText("Stiff back")).toBeVisible();
     await expect.element(groupButton()).toHaveTextContent("Grandpa Lou");
     await expect.poll(lastGroup).toBe(LOU.id);
 
@@ -287,7 +275,7 @@ describe("the group menu and the last group", () => {
     // The Caretook link goes to /app, which opens the last group.
     await userEvent.click(page.getByRole("link", { name: "Caretook" }));
     await expect.poll(device.location).toBe(timelineUrl(LOU.id));
-    await expect.element(page.getByText(/Stiff back · 3/)).toBeVisible();
+    await expect.element(page.getByText("Stiff back")).toBeVisible();
   });
 
   test("opened at /app (as after a reload), the remembered group opens", async () => {
@@ -323,111 +311,87 @@ describe("the group menu and the last group", () => {
 });
 
 describe("the sections", () => {
-  // Enough entries that the page scrolls under the tab bar.
-  const many = Array.from({ length: 12 }, (_, i) =>
-    fx.note({ text: `Note ${i}`, occurredAt: hoursAgo(i + 1) }),
-  );
+  const G = `/app/groups/${TEST_GROUP.id}`;
+  const SECTIONS = ["Timeline", "Providers", "Medications", "Planner"];
+  /** Each section's own page, where its link goes. */
+  const PAGE: Record<string, string> = {
+    Timeline: `${G}/timeline`,
+    Providers: `${G}/providers`,
+    Medications: `${G}/medications/schedule`,
+    Planner: `${G}/planner`,
+  };
+  const current = (nav: string) =>
+    [...document.querySelectorAll(`${nav} a[aria-current]`)].map((a) => [
+      nameOf(a),
+      a.getAttribute("aria-current"),
+      a.getAttribute("href"),
+    ]);
+  const ENTRY = "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f1e01";
 
-  test("at 420: a bottom tab bar, Timeline current; the header's links hidden; the quick-add bar and the end of the page clear it", async () => {
-    await open({ fixtures: many });
-    await expect.element(page.getByText("Note 11")).toBeInTheDocument();
-    const bar = document.querySelector(TAB_BAR)!;
-    const links = [...bar.querySelectorAll("a")];
-    expect(links.map(nameOf)).toEqual(["Timeline", "Providers", "Medications", "Planner"]);
-    expect(links.filter((a) => a.getAttribute("aria-current") === "page").map(nameOf)).toEqual(["Timeline"]);
-    expect(links[0]?.getAttribute("href")).toBe(timelineUrl());
-    // It floats: clear of the window's bottom edge.
-    expect(innerHeight - bar.getBoundingClientRect().bottom).toBeGreaterThanOrEqual(8);
-    expect(shown(document.querySelector(HEADER_NAV))).toBe(false);
-
-    const quick = page.getByRole("button", { name: "Add to Today" }).element().getBoundingClientRect();
-    expect(quick.bottom).toBeLessThanOrEqual(bar.getBoundingClientRect().top);
-
-    const end = () => document.querySelector("[data-older-entries] [role=status]");
-    await expect.poll(() => end()?.textContent).toBe("That's the beginning of the timeline");
-    window.scrollTo(0, document.documentElement.scrollHeight);
-    await expect.poll(() => window.scrollY).toBeGreaterThan(0);
-    const top = bar.getBoundingClientRect().top;
-    const last = [...document.querySelectorAll("main ol > li")].at(-1)!.getBoundingClientRect().bottom;
-    const r = end()!.getBoundingClientRect();
-    expect(last).toBeLessThanOrEqual(top);
-    expect(r.bottom).toBeLessThanOrEqual(top);
-    expect(end()!.contains(document.elementFromPoint(r.left + r.width / 2, r.bottom - 4))).toBe(true);
+  // One table for the sections' current link (sectionCurrent's rule is groupSections.test.ts's):
+  // its section's own page is "page", a page inside it "true"; an entry's page has no tab bar.
+  test.each([
+    ["/timeline", "Timeline", "page"],
+    [`/entries/${ENTRY}`, "Timeline", "true"],
+    ["/entries/new?kind=note", "Timeline", "true"],
+    ["/providers", "Providers", "page"],
+    [`/providers/${ENTRY}`, "Providers", "true"],
+    ["/medications/schedule", "Medications", "page"],
+    ["/medications/list", "Medications", "true"],
+    ["/planner", "Planner", "page"],
+    ["/planner/past", "Planner", "true"],
+    ["/todos?who=everyone", "Planner", "true"],
+    [`/todos/${ENTRY}`, "Planner", "true"],
+  ])("%s: %s is current (%s), in the tab bar at 420 and the header at 1280", async (path, section, value) => {
+    for (const width of [420, 1280]) {
+      const device = await open({ url: `${G}${path}`, width });
+      await expect.element(page.getByRole("heading", { name: "Probe", level: 1 })).toBeVisible();
+      const bar = width === 420 && !path.startsWith("/entries");
+      expect(shown(document.querySelector(TAB_BAR)), `the tab bar at ${width}`).toBe(bar);
+      expect(shown(document.querySelector("[data-tab-bar-spacer]")), `the spacer at ${width}`).toBe(bar);
+      expect(shown(document.querySelector(HEADER_NAV)), `the header's links at ${width}`).toBe(
+        width === 1280,
+      );
+      const nav = bar ? TAB_BAR : HEADER_NAV;
+      expect([...document.querySelectorAll(`${nav} a`)].map(nameOf)).toEqual(SECTIONS);
+      expect(current(nav), `at ${width}`).toEqual([[section, value, PAGE[section]]]);
+      await device.screen.unmount();
+    }
   });
 
-  test("at 420: an open add sheet is over the tab bar, its Save button not hidden", async () => {
+  test("at 420: the end of a long page clears the tab bar", async () => {
+    await open({
+      fixtures: Array.from({ length: 40 }, (_, i) =>
+        fx.note({ text: `Note ${i}`, occurredAt: hoursAgo(i + 1) }),
+      ),
+    });
+    await expect.element(page.getByText("Note 39")).toBeInTheDocument();
+    const bar = document.querySelector(TAB_BAR)!;
+    // It floats: clear of the window's bottom edge.
+    expect(innerHeight - bar.getBoundingClientRect().bottom).toBeGreaterThanOrEqual(8);
+    window.scrollTo(0, document.documentElement.scrollHeight);
+    await expect.poll(() => window.scrollY).toBeGreaterThan(0);
+    const end = document.querySelector("[data-probe-end]")!;
+    const r = end.getBoundingClientRect();
+    expect(r.bottom).toBeLessThanOrEqual(bar.getBoundingClientRect().top);
+    expect(end.contains(document.elementFromPoint(r.left + r.width / 2, r.bottom - 4))).toBe(true);
+  });
+
+  test("at 420: an open sheet is over the tab bar, its Save button not hidden", async () => {
     await open();
-    await userEvent.click(page.getByRole("button", { name: "Add to Today" }));
-    await userEvent.click(page.getByRole("menuitem", { name: "Symptom" }));
-    const dialog = page.getByRole("dialog");
+    await userEvent.click(page.getByRole("button", { name: "Probe actions" }));
+    await userEvent.click(page.getByRole("menuitem", { name: "Open the sheet" }));
+    const dialog = page.getByRole("dialog", { name: "Probe sheet" });
     await expect.element(dialog).toBeVisible();
-    const submit = dialog.element().querySelector<HTMLElement>('button[type="submit"]')!;
+    const submit = dialog.getByRole("button", { name: "Save" }).element();
     submit.scrollIntoView({ block: "end" });
     const s = submit.getBoundingClientRect();
-    const bar = document.querySelector(TAB_BAR)!;
+    const bar = await found(() => document.querySelector(TAB_BAR));
     const b = bar.getBoundingClientRect();
     expect(
       dialog.element().contains(document.elementFromPoint(s.left + s.width / 2, s.top + s.height / 2)),
     ).toBe(true);
     expect(bar.contains(document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2))).toBe(false);
-  });
-
-  test("the entry page and a new entry: no tab bar and no spacer; the header link says it's inside Timeline", async () => {
-    const note = fx.note({ text: "Slept well" });
-    const device = await open({ url: `/app/groups/${TEST_GROUP.id}/entries/${note.id}`, fixtures: [note] });
-    await expect.element(page.getByRole("textbox").first()).toBeInTheDocument();
-    expect(document.querySelector(TAB_BAR)).toBeNull();
-    expect(document.querySelector("[data-tab-bar-spacer]")).toBeNull();
-    expect(document.querySelector(`${HEADER_NAV} a`)?.getAttribute("aria-current")).toBe("true");
-    await device.screen.unmount();
-
-    await open({ url: `/app/groups/${TEST_GROUP.id}/entries/new?kind=note` });
-    await expect.element(page.getByRole("textbox").first()).toBeInTheDocument();
-    expect(document.querySelector(TAB_BAR)).toBeNull();
-  });
-
-  test("at 1280: no tab bar or spacer; the header's links, Timeline current", async () => {
-    await open({ width: 1280 });
-    await expect.element(page.getByText("Slept well")).toBeVisible();
-    expect(shown(document.querySelector(TAB_BAR))).toBe(false);
-    expect(shown(document.querySelector("[data-tab-bar-spacer]"))).toBe(false);
-    const nav = document.querySelector(HEADER_NAV)!;
-    expect(shown(nav)).toBe(true);
-    const links = [...nav.querySelectorAll("a")];
-    expect(links.map((a) => a.textContent?.trim())).toEqual([
-      "Timeline",
-      "Providers",
-      "Medications",
-      "Planner",
-    ]);
-    expect(
-      links.filter((a) => a.getAttribute("aria-current") === "page").map((a) => a.textContent?.trim()),
-    ).toEqual(["Timeline"]);
-  });
-
-  test("Planner is current on the Planner tab (its page), and inside it on the Todos tab and a todo's page, in the tab bar and the header", async () => {
-    const errand = todo({ title: "Call the pharmacy" });
-    const current = (nav: string) =>
-      [...document.querySelectorAll(`${nav} a`)]
-        .filter((a) => a.hasAttribute("aria-current"))
-        .map((a) => [nameOf(a), a.getAttribute("aria-current")]);
-    const base = `/app/groups/${TEST_GROUP.id}`;
-    for (const [url, value, ready] of [
-      [`${base}/planner`, "page", "Planner"],
-      [`${base}/todos?who=everyone`, "true", "Planner"],
-      [`${base}/todos/${errand.id}`, "true", "Call the pharmacy"],
-    ] as const) {
-      for (const width of [420, 1280]) {
-        const device = await open({ url, width, fixtures: [errand] });
-        await expect.element(page.getByRole("heading", { level: 1, name: ready })).toBeVisible();
-        const nav = width === 420 ? TAB_BAR : HEADER_NAV;
-        expect(current(nav), `${url} at ${width}`).toEqual([["Planner", value]]);
-        expect(document.querySelector(`${nav} a[aria-current]`)?.getAttribute("href")).toBe(
-          `${base}/planner`,
-        );
-        await device.screen.unmount();
-      }
-    }
   });
 });
 
