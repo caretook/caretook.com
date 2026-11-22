@@ -317,8 +317,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-518 | change | triaged | agent-autonomy |  | Land without re-syncing when dev's changes don't touch the branch: land.sh's drift refusal relaxes when dev's new commits share no file with the branch and bring none of the risky files; land still merges dev and typechecks the result, and the landing report says it landed on an unsynced tip |
 | B-519 | bug | triaged | fixes-ui |  | Easy mode button on the timeline sits lower than the Timeline page title: align it with the title's row (same vertical center and baseline) |
 | B-520 | change | staging | ui-kit-3 | prd/ui-kit-3 | Dark theme feels too dark: lift its surfaces (page about 23%, cards about 30%, hue toward the brand indigo, chroma at most about 0.025) and give text boxes their own fill in both themes |
-| B-521 | change | triaged | ui-kit-3 |  | Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark |
-| B-522 | change | triaged | ui-kit-3 |  | Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary) |
+| B-521 | change | in-progress | ui-kit-3 | prd/ui-kit-3 | Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark |
+| B-522 | change | in-progress | ui-kit-3 | prd/ui-kit-3 | Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary) |
 | B-523 | change | triaged | ui-kit-3 |  | Each section's accent color as an icon chip beside the page title and as the current tab's pill tint; Easy mode stays neutral |
 | B-524 | change | triaged | ui-kit-3 |  | Empty states show a colored icon circle in the section's accent color |
 | B-525 | bug | triaged | fixes-tooling |  | Asks: two processes taking over a dead holder's ask lock can both remove it, so one deletes the other's fresh lock and an answer and a default overlap (asks.mjs withAskLock) |
@@ -2467,9 +2467,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-521 · change · Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit-3
-- owner:
+- owner: prd/ui-kit-3
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): Color plan (backlog session, 2026-11-22), revised after a Fable skeptic pass: lift surfaces first, then accent tokens distinct from status colors (info/success/warning/error), then apply them. Cut: a tinted Today card (dilutes its urgency tints) and a standalone header wash (banding, sticky header). Avoid amber and red (they read as warning/error, used for urgency in TodayRow). Timeline indigo is primary, so pick hues that read on their own (e.g. Planner orange or lime, Care periods pink or plum, Medications teal, Providers sky only if it is not info). TabNav already notes dark primary on its 15% tint is under 3:1. Before the next two items.
@@ -2477,9 +2477,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-522 · change · Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary)
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit-3
-- owner:
+- owner: prd/ui-kit-3
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): Color plan (backlog session, 2026-11-22), revised after a Fable skeptic pass: lift surfaces first, then accent tokens distinct from status colors (info/success/warning/error), then apply them. Cut: a tinted Today card (dilutes its urgency tints) and a standalone header wash (banding, sticky header). lib/timeline/entryDisplay.ts maps entry types to bg-warning/bg-info/bg-primary/bg-secondary today. Label and icon stay; color is never the only signal. Needs the accent tokens.
