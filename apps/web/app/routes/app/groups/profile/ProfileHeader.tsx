@@ -3,45 +3,52 @@ import type { RecipientProfile } from "~/lib/profiles/profile.sync";
 import { Pencil, Printer } from "lucide-react";
 import { Link } from "react-router";
 import { canEditRecipient, canReadRecipient } from "@caretook/data/schema";
-import { UserAvatar } from "~/components/ui";
+import { DetailHeader, UserAvatar } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { ageText, birthdayText, PROFILE_NEEDS_CONNECTION } from "~/lib/profiles/recipientDisplay";
 import { PROFILE_SHEET_STATE, useOnline } from "./profileSheet";
 
 /**
- * The profile's heading: the name everyone uses, the full name when a
- * preferred one is set, the birthday and age (on the recipient's own day),
- * and, for writers, the emergency sheet's Print link (it opens offline too)
- * and Edit (online only; offline it says why it's disabled).
+ * The profile's heading (`DetailHeader`): the recipient's avatar, the name
+ * everyone uses, the full name when a preferred one is set, the birthday and
+ * age (on the recipient's own day), and, for writers, the emergency sheet's
+ * Print link (it opens offline too) and Edit (online only; offline it says
+ * why it's disabled).
  */
 export function ProfileHeader({ profile }: { profile: RecipientProfile }) {
   const group = useGroup();
   const age = ageText(profile.dateOfBirth, profile.timeZone, new Date());
   const born = profile.dateOfBirth ? birthdayText(profile.dateOfBirth) : null;
+  const fullName = profile.preferredName && profile.name !== profile.preferredName ? profile.name : null;
+  const printable = canReadRecipient(group.role, "details");
+  const editable = canEditRecipient(group.role, "basics");
   return (
-    <header className="flex items-start justify-between gap-3" data-profile-header="">
-      <div className="flex min-w-0 items-center gap-3">
-        <UserAvatar name={profile.displayName} size="lg" />
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold">{profile.displayName}</h1>
-          {profile.preferredName && profile.name !== profile.preferredName && (
-            <p className="text-base-content/70 text-sm" data-full-name="">
-              {profile.name}
-            </p>
-          )}
-          {(born || age) && (
-            <p className="text-sm" data-birthday="">
-              {[born && `Born ${born}`, age].filter(Boolean).join(" · ")}
-            </p>
-          )}
-        </div>
-      </div>
-      <div className="flex shrink-0 flex-wrap items-start justify-end gap-2">
-        {canReadRecipient(group.role, "details") && <PrintLink groupId={group.id} />}
-        {canEditRecipient(group.role, "basics") && <EditBasics groupId={group.id} />}
-      </div>
-    </header>
+    <DetailHeader
+      data-profile-header=""
+      media={<UserAvatar name={profile.displayName} size="lg" />}
+      title={profile.displayName}
+      details={
+        (fullName || born || age) && (
+          <>
+            {fullName && <p data-full-name="">{fullName}</p>}
+            {(born || age) && (
+              <p className="text-base-content" data-birthday="">
+                {[born && `Born ${born}`, age].filter(Boolean).join(" · ")}
+              </p>
+            )}
+          </>
+        )
+      }
+      actions={
+        (printable || editable) && (
+          <div className="flex flex-wrap items-start justify-end gap-2">
+            {printable && <PrintLink groupId={group.id} />}
+            {editable && <EditBasics groupId={group.id} />}
+          </div>
+        )
+      }
+    />
   );
 }
 
