@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State                                                | Merge into `prd/ui-kit-3` (slice commits) |
-| ----- | ---- | ---------------------------------------------------- | ----------------------------------------- |
-| 1     | 1    | started (opus), worktree `.loops/ui-kit-3-1`         | —                                         |
-| 2     | 2    | —                                                    | —                                         |
-| 3     | 3    | —                                                    | —                                         |
-| 4     | 3    | —                                                    | —                                         |
-| 5     | 1    | started (opus), worktree `.loops/ui-kit-3-5`, slot 4 | —                                         |
-| 6     | 2    | —                                                    | —                                         |
+| Slice | Wave | State                                                                                               | Merge into `prd/ui-kit-3` (slice commits) |
+| ----- | ---- | --------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| 1     | 1    | handed off (8be9986a, quick pass); sent back to exclude quick entry's box from the field fill (PRD) | —                                         |
+| 2     | 2    | —                                                                                                   | —                                         |
+| 3     | 3    | —                                                                                                   | —                                         |
+| 4     | 3    | —                                                                                                   | —                                         |
+| 5     | 1    | started (opus), worktree `.loops/ui-kit-3-5`, slot 4                                                | —                                         |
+| 6     | 2    | —                                                                                                   | —                                         |
 
 **Landing mode: run everything through** (started run-through, 2026-11-22): start every ready slice, land each green wave unasked, clean up; questions only through `pnpm prd ask`.
 
-**Now:** wave 1 (slices 1, 5) running; items B-520, B-481, B-471 claimed. Backlog had nothing new for this topic at the wave 1 boundary.
+**Now:** wave 1 (slices 1, 5) running; items B-520, B-481, B-471 claimed. Backlog had nothing new for this topic at the wave 1 boundary. Filed B-536 (danger text and DateTimeField placeholder contrast in light, fixes-ui) from slice 1's hand-off. Notices to sync at the boundary: agent-autonomy (0e38a6e7), test-health (e35fecd1).
 
 **Start conditions:** `ui-kit-2` is in `dev` (done). Never beside `i18n`. `ui-kit-4` must not start before this lands. `fixes-ui` may touch the same screens, and `quick-entry-2` shares quick entry's cards and reads the entry metadata slice 2 reshapes (`KIND_META`'s class string becomes an accent and a look): sync first, and whoever lands second resolves and moves its readers onto the new shape.
 
