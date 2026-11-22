@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { page, userEvent } from "vitest/browser";
 import { bandNames, bandsAlternate } from "../../../../../test/bands";
 import { fx, hoursAgo } from "../../../../../test/fixtures";
 import { $, openProfile } from "./profileWorld";
@@ -6,7 +7,8 @@ import { $, openProfile } from "./profileWorld";
 // The profile in bands (ui-kit slice 7): the header band, then each section
 // as a named band in today's order. A viewer sees the sections they saw
 // before and the "more details" line, and the bands still alternate with the
-// writers' sections absent. No card surfaces are left on the page.
+// writers' sections absent. No card surfaces are left on the page. Each
+// band's Edit (or Add) still opens its sheet, and focus comes back to it.
 
 const PULSE = fx.vital({ occurredAt: hoursAgo(2), readings: [{ type: "heartRate", value: 72 }] });
 const onPage = () => !!$("main[data-bands] [data-profile-header] h1");
@@ -41,4 +43,21 @@ describe("the profile's bands", () => {
       expect(bandsAlternate()).toBe(true);
     },
   );
+
+  test.each([
+    ["Edit profile", "Edit profile"],
+    ["Add a condition", /^Add a condition/],
+    ["Edit contact", "Edit contact"],
+    ["Edit insurance", "Edit insurance"],
+    ["Edit emergency contacts", "Emergency contacts"],
+  ] as const)("%s opens its sheet over the bands and focus returns to it", async (opener, sheet) => {
+    await openProfile({});
+    const link = page.getByRole("link", { name: opener });
+    await expect.element(link).toBeVisible();
+    await userEvent.click(link);
+    await expect.element(page.getByRole("dialog", { name: sheet })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => $("[role=dialog]")).toBeNull();
+    await expect.poll(() => document.activeElement).toBe(link.element());
+  });
 });
