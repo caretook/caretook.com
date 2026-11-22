@@ -11,7 +11,7 @@
 | 3     | 2    | not started                       |                                              |
 | 4     | 2    | not started                       |                                              |
 | 5     | 2    | not started                       |                                              |
-| 6     | 1    | in progress (opus, spawned 11-22) |                                              |
+| 6     | 1    | handed off (opus), 625bf09a       |                                              |
 
 **Landing mode:** run everything through (started run-through, 2026-11-22): start every ready slice, land each green wave, clean up; ask only real questions via `pnpm prd ask`.
 
