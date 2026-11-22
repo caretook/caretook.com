@@ -748,13 +748,19 @@ test(
           `${localRows("SELECT count(*) AS n FROM timeline_entry WHERE id = ? AND place = ? AND all_day = 1", [E1, offPlace])}.then((r) => r[0].n === 1)`,
           5000,
         );
+        // …and the page shows them once its live query has the row.
+        const shown = await waits(
+          A,
+          `${PLACE}.value === ${JSON.stringify(offPlace)} && /All day/.test(${HEADER_TEXT})`,
+          5000,
+        );
+        const server = psql(
+          `SELECT (place IS NULL AND NOT all_day)::text FROM timeline_entry WHERE id = '${E1}'`,
+        );
         await check(
           "offline: the place and all day show locally, not on the server yet",
-          (await A.evaluate(
-            `${PLACE}.value === ${JSON.stringify(offPlace)} && /All day/.test(${HEADER_TEXT})`,
-          )) &&
-            psql(`SELECT (place IS NULL AND NOT all_day)::text FROM timeline_entry WHERE id = '${E1}'`) ===
-              "true",
+          shown && server === "true",
+          `shown ${shown}, ${await A.evaluate(HEADER_TEXT)}; server ${server}`,
         );
         dA.offline(false);
         const reached = await waitForSql(
