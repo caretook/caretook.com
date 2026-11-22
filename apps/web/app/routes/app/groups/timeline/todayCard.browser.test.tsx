@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
-import { at, fx, medicationPass, task, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
+import { at, fx, medicationPass, todo, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { materializeLiveEntry } from "~/lib/live-notes/liveEntry.sync";
 import { clearUndo } from "~/lib/medications/passUndo";
 import { clockAt, clockMoment, CLOCK, DOSES_SQL, fixClock } from "../medications/medicationWorld";
@@ -16,11 +16,12 @@ import { TIMELINE_URL } from "./timelineWorld";
 
 // The Today card (timeline-ux slice 5, B-169) on a fixed clock: 10:00 on
 // Wed Nov 18 2026 in Los Angeles. Its rows (vitals, the next appointment,
-// the medications due and the tasks) each show only with something to say,
+// the medications due and the todos) each show only with something to say,
 // tinted and iconned by `todayStatus` (whose edges are todayStatus.test.ts's),
-// each ending in "See all ›" to its full view. Given all stays on the
-// medications row for writers. The header collapses the card to one line,
-// remembered on this device. What the strips' old tests checked moved here;
+// each ending in "See all ›" to its full view (vitals: Show all in place,
+// B-186). Given all stays on the medications row for writers. The card starts
+// collapsed to one line on every load (red overdue and orange due-soon counts
+// first); a tap opens it for the page view. What the strips' old tests checked moved here;
 // remembering across a remount (dimmed, then fresh) is
 // timelineRemembered.browser.test.tsx's.
 
@@ -46,9 +47,9 @@ const ROUTES: DeviceRoute[] = [
     children: [{ path: "/app/groups/:groupId/timeline/new/dose", module: newDose }],
   },
   { path: "/app/groups/:groupId/entries/:entryId", module: { default: Probe } },
-  { path: "/app/groups/:groupId/upcoming", module: { default: Probe } },
-  { path: "/app/groups/:groupId/medications", module: { default: Probe } },
-  { path: "/app/groups/:groupId/tasks", module: { default: Probe } },
+  { path: "/app/groups/:groupId/planner", module: { default: Probe } },
+  { path: "/app/groups/:groupId/medications/schedule", module: { default: Probe } },
+  { path: "/app/groups/:groupId/todos", module: { default: Probe } },
 ];
 
 const TODAY = "2026-11-18";
@@ -70,7 +71,7 @@ const OLD_BP = fx.vital({
 } as never);
 /** In an hour: blue. */
 const CARDIOLOGY = fx.event({ title: "Cardiology", occurredAt: clockMoment(60) });
-const WALKER = task({ title: "Pick up the walker", dueOn: TODAY });
+const WALKER = todo({ title: "Pick up the walker", dueOn: TODAY });
 const DAY_NOTE = fx.note({ text: "A day", occurredAt: clockMoment(-30) });
 const EVERYTHING: Fixture[] = [DAY_NOTE, OLD_BP, CARDIOLOGY, WALKER, ...PASSES];
 
@@ -82,6 +83,15 @@ const row = (name: string) => CARD()?.querySelector<HTMLElement>(`[data-today-ro
 const shownRows = () =>
   [...(CARD()?.querySelectorAll<HTMLElement>("[data-today-row]") ?? [])].map((r) => r.dataset.todayRow);
 const toggle = () => CARD()!.querySelector<HTMLButtonElement>("[data-today-toggle]")!;
+/** Opens the card, which every load starts collapsed. */
+const openCard = async () => {
+  await userEvent.click(
+    await found(
+      () => CARD()?.querySelector<HTMLElement>('[data-today-toggle][aria-expanded="false"]') ?? null,
+    ),
+  );
+  await expect.poll(() => toggle().getAttribute("aria-expanded")).toBe("true");
+};
 const seeAll = (name: string) => row(name)!.querySelector<HTMLAnchorElement>("a[data-see-all]")!;
 const givenAll = () => row("medications")?.querySelector<HTMLButtonElement>("[data-given-all]") ?? null;
 const medState = () => {
@@ -100,9 +110,9 @@ afterEach(() => {
 
 describe("the Today card's rows", () => {
   test("only rows with something to say; none at all hides the card; a row arrives with its data", async () => {
-    const device = await open([DAY_NOTE, task({ title: "Fax the form", dueOn: "2026-11-21" })]);
+    const device = await open([DAY_NOTE, todo({ title: "Fax the form", dueOn: "2026-11-21" })]);
     await expect.element(page.getByText("A day")).toBeInTheDocument();
-    // Once the medications and tasks have answered (skeletons until then), nothing is left.
+    // Once the medications and todos have answered (skeletons until then), nothing is left.
     await expect.poll(CARD).toBeNull();
 
     await device.sync([OLD_BP]);
@@ -111,15 +121,16 @@ describe("the Today card's rows", () => {
 
     await device.sync([WALKER, ...PASSES]);
     await device.settle();
-    await expect.poll(shownRows).toEqual(["vitals", "medications", "tasks"]);
+    await expect.poll(shownRows).toEqual(["vitals", "medications", "todos"]);
     // It sits above the list, at every width (the old vitals strip hid below `sm`).
     expect(CARD()!.compareDocumentPosition(document.querySelector("main ol")!) & 4).toBeTruthy();
+    await openCard();
     expect(row("vitals")!.getBoundingClientRect().height).toBeGreaterThan(0);
   });
 
   test("each status: its tint, its own icon and its words for screen readers; a calm row has neither", async () => {
     await open(EVERYTHING);
-    await expect.poll(shownRows).toEqual(["vitals", "appointment", "medications", "tasks"]);
+    await expect.poll(shownRows).toEqual(["vitals", "appointment", "medications", "todos"]);
     const look = (name: string) => {
       const r = row(name)!;
       return {
@@ -147,12 +158,12 @@ describe("the Today card's rows", () => {
       said: "Coming up soon: ",
       tint: "bg-info/10",
     });
-    expect(look("tasks")).toEqual({ status: "neutral", icon: null, said: null, tint: null });
+    expect(look("todos")).toEqual({ status: "neutral", icon: null, said: null, tint: null });
     // Every row's icon is hidden from screen readers: the words carry it.
-    expect(CARD()!.querySelectorAll("li svg:not([aria-hidden])")).toHaveLength(0);
+    await expect.poll(() => CARD()?.querySelectorAll("li svg:not([aria-hidden])")).toHaveLength(0);
   });
 
-  test("the rows' words: the latest readings with their time, the next appointment (+N more), the pass, the task", async () => {
+  test("the rows' words: the latest readings with their time, the next appointment (+N more), the pass, the todo", async () => {
     await open([...EVERYTHING, fx.event({ title: "Dentist", occurredAt: clockMoment(26 * 60) })]);
     await expect.poll(shownRows).toHaveLength(4);
     expect(row("vitals")!.textContent).toMatch(/^Needs attention: Latest vitals: BP 130\/85 mmHg 2d ago/);
@@ -160,51 +171,107 @@ describe("the Today card's rows", () => {
     expect(next.textContent).toBe("Next: Cardiology · Today 11:00 AM · +1 more");
     expect(next.getAttribute("href")).toBe(`/app/groups/${G}/entries/${CARDIOLOGY.id}`);
     expect(row("medications")!.textContent).toContain("Overdue: Late · 8:55 · 1 med · +1 more");
-    expect(row("tasks")!.textContent).toMatch(/^Today: Pick up the walker/);
+    expect(row("todos")!.textContent).toMatch(/^Today: Pick up the walker/);
   });
 
-  test("every row ends in See all, alike, to its full view", async () => {
-    const device = await open(EVERYTHING);
+  test("every row but vitals ends in See all, alike, to its full view", async () => {
+    await open(EVERYTHING);
     await expect.poll(shownRows).toHaveLength(4);
-    const links = ["vitals", "appointment", "medications", "tasks"].map((name) => ({
+    const links = ["appointment", "medications", "todos"].map((name) => ({
       name: seeAll(name).getAttribute("aria-label"),
       text: seeAll(name).textContent,
       href: seeAll(name).getAttribute("href"),
       look: seeAll(name).className,
     }));
     expect(links.map(({ name, text, href }) => ({ name, text, href }))).toEqual([
-      { name: "See all vitals", text: "See all", href: `${TIMELINE_URL}?kind=vital` },
-      { name: "See all upcoming", text: "See all", href: `/app/groups/${G}/upcoming` },
-      { name: "See all medications", text: "See all", href: `/app/groups/${G}/medications` },
-      { name: "See all tasks", text: "See all", href: `/app/groups/${G}/tasks?who=everyone` },
+      { name: "See all in Planner", text: "See all", href: `/app/groups/${G}/planner` },
+      { name: "See all medications", text: "See all", href: `/app/groups/${G}/medications/schedule` },
+      { name: "See all todos", text: "See all", href: `/app/groups/${G}/todos?who=everyone` },
     ]);
     expect(new Set(links.map((l) => l.look)).size).toBe(1);
+    // Vitals shows its readings in place instead (below).
+    expect(row("vitals")!.querySelector("a[data-see-all]")).toBeNull();
 
-    // Vitals is the timeline's own kind filter.
-    await userEvent.click(seeAll("vitals"));
-    await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=vital`);
+    await openCard();
+    await userEvent.click(seeAll("todos"));
     await expect
-      .poll(
-        () => document.querySelector('nav[aria-label="Show entries"] a[aria-current="true"]')?.textContent,
-      )
-      .toBe("Vitals");
-    await userEvent.click(seeAll("tasks"));
-    await expect
-      .element(page.getByRole("heading", { name: `Probe /app/groups/${G}/tasks?who=everyone` }))
+      .element(page.getByRole("heading", { name: `Probe /app/groups/${G}/todos?who=everyone` }))
       .toBeVisible();
   });
 });
 
+describe("the vitals row", () => {
+  /** Four types' readings: more than a phone's line holds. */
+  const MANY = fx.vital({
+    occurredAt: clockMoment(-30),
+    readings: [
+      { type: "bloodPressure", systolic: 130, diastolic: 85 },
+      { type: "heartRate", value: 70 },
+      { type: "bloodGlucose", value: 120 },
+      { type: "spo2", value: 97 },
+    ],
+  } as never);
+  const showAll = () => row("vitals")?.querySelector<HTMLButtonElement>("button[data-show-all]") ?? null;
+  const line = () => row("vitals")!.querySelector<HTMLElement>("[data-today-line]")!;
+  /** Every reading lies inside the line's box (none cut off at its end). */
+  const allInside = () => {
+    const box = line().getBoundingClientRect();
+    return [...line().querySelectorAll<HTMLElement>("[data-vital]")].every((v) => {
+      const r = v.getBoundingClientRect();
+      return r.right <= box.right + 1 && r.bottom <= box.bottom + 1;
+    });
+  };
+
+  test("too many for the line: Show all wraps them in place (no navigation), Show less folds them back", async () => {
+    const device = await open([DAY_NOTE, MANY, ...PASSES]);
+    await openCard();
+    await expect.poll(showAll).not.toBeNull();
+    const button = showAll()!;
+    expect(button.textContent).toBe("Show all");
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(button.getAttribute("aria-controls")).toBe(line().id);
+    expect(allInside()).toBe(false);
+    const before = row("vitals")!.getBoundingClientRect().height;
+
+    await userEvent.click(button);
+    await expect.poll(() => showAll()?.getAttribute("aria-expanded")).toBe("true");
+    await expect.poll(() => showAll()?.textContent).toBe("Show less");
+    expect(device.location()).toBe(TIMELINE_URL);
+    expect(line().querySelectorAll("[data-vital]")).toHaveLength(4);
+    expect(allInside()).toBe(true);
+    expect(row("vitals")!.getBoundingClientRect().height).toBeGreaterThan(before);
+
+    await userEvent.click(showAll()!);
+    await expect.poll(() => showAll()?.getAttribute("aria-expanded")).toBe("false");
+    expect(allInside()).toBe(false);
+  });
+
+  test("vitals that fit: no button", async () => {
+    await renderWithDevice({
+      route: ROUTES,
+      url: TIMELINE_URL,
+      fixtures: [DAY_NOTE, OLD_BP, ...PASSES],
+      width: 1280,
+    });
+    await expect.poll(shownRows).toContain("medications");
+    await openCard();
+    await expect.poll(() => row("vitals")?.checkVisibility()).toBe(true);
+    expect(allInside()).toBe(true);
+    expect(showAll()).toBeNull();
+  });
+});
+
 describe("the Today card's width", () => {
-  test("1280: capped like Live now (1152 px), centred, framing the entries' column", async () => {
+  test("1280: in the entries' column (1024 px), centred", async () => {
     await renderWithDevice({ route: ROUTES, url: TIMELINE_URL, fixtures: EVERYTHING, width: 1280 });
     await expect.poll(shownRows).toHaveLength(4);
+    await openCard();
     const r = CARD()!.getBoundingClientRect();
     const pageWidth = document.documentElement.clientWidth;
-    expect(Math.abs(r.width - 1152)).toBeLessThan(1);
+    expect(Math.abs(r.width - 1024)).toBeLessThan(1);
     expect(Math.abs(r.left + r.right - pageWidth)).toBeLessThan(2);
     // Each row is one line.
-    for (const name of ["vitals", "appointment", "medications", "tasks"])
+    for (const name of ["vitals", "appointment", "medications", "todos"])
       expect(row(name)!.getBoundingClientRect().height).toBeLessThan(40);
   });
 });
@@ -213,6 +280,7 @@ describe("the medications row", () => {
   test("Given all for a writer logs the overdue pass and offers Undo; the due pass follows; Undo brings it back", async () => {
     const device = await open([DAY_NOTE, ...PASSES]);
     await expect.poll(medState).toEqual(["overdue", `pass:${LATE.id}`]);
+    await openCard();
     expect(givenAll()!.disabled).toBe(false);
 
     await userEvent.click(givenAll()!);
@@ -234,6 +302,7 @@ describe("the medications row", () => {
     await expect.poll(medState).toEqual(["due", `pass:${NOW.id}`]);
     expect(row("medications")!.textContent).toContain("Due: Now · 9:57 · 2 meds");
 
+    await openCard();
     await userEvent.click(row("medications")!.querySelector<HTMLElement>("[data-med-open]")!);
     await expect.poll(() => device.location()).toContain(`/timeline/new/dose?`);
     expect(new URLSearchParams(device.location().split("?")[1]).get("pass")).toBe(NOW.id);
@@ -256,39 +325,39 @@ describe("the medications row", () => {
   });
 });
 
-describe("the tasks row", () => {
-  test("overdue: red, my late task first, +N more counting today's; done on another device, it goes", async () => {
+describe("the todos row", () => {
+  test("overdue: red, my late todo first, +N more counting today's; done on another device, it goes", async () => {
     const SAM = fx.person({ name: "Sam Okafor", role: "caretaker" });
-    type TaskValues = Parameters<typeof task>[0] & { id: string };
+    type TodoValues = Parameters<typeof todo>[0] & { id: string };
     const id = () => crypto.randomUUID();
-    const walker: TaskValues = { id: id(), title: "Pick up the walker", dueOn: TODAY };
-    const mine: TaskValues = {
+    const walker: TodoValues = { id: id(), title: "Pick up the walker", dueOn: TODAY };
+    const mine: TodoValues = {
       id: id(),
       title: "Refill the pill box",
       dueOn: "2026-11-17",
       assigneeId: TEST_USER.id,
     };
-    const sams: TaskValues = {
+    const sams: TodoValues = {
       id: id(),
       title: "Call the pharmacy",
       dueOn: "2026-11-16",
       assigneeId: SAM.id,
     };
-    const device = await open([SAM, DAY_NOTE, task(walker), task(sams), task(mine)]);
-    const words = () => row("tasks")?.querySelector("[data-task]")?.textContent ?? null;
-    await expect.poll(() => row("tasks")?.dataset.status).toBe("error");
+    const device = await open([SAM, DAY_NOTE, todo(walker), todo(sams), todo(mine)]);
+    const words = () => row("todos")?.querySelector("[data-todo]")?.textContent ?? null;
+    await expect.poll(() => row("todos")?.dataset.status).toBe("error");
     expect(words()).toBe("Overdue: Refill the pill box · +2 more");
-    expect(seeAll("tasks").getAttribute("href")).toBe(`/app/groups/${G}/tasks?who=mine`);
+    expect(seeAll("todos").getAttribute("href")).toBe(`/app/groups/${G}/todos?who=mine`);
 
-    const done = (t: TaskValues) => task({ ...t, doneAt: at(), doneBy: SAM.id });
+    const done = (t: TodoValues) => todo({ ...t, doneAt: at(), doneBy: SAM.id });
     await device.sync([done(mine), done(walker)]);
     await device.settle();
     await expect.poll(words).toBe("Overdue: Call the pharmacy");
-    expect(seeAll("tasks").getAttribute("href")).toBe(`/app/groups/${G}/tasks?who=everyone`);
+    expect(seeAll("todos").getAttribute("href")).toBe(`/app/groups/${G}/todos?who=everyone`);
 
     await device.sync(done(sams));
     await device.settle();
-    await expect.poll(() => row("tasks")).toBeNull();
+    await expect.poll(() => row("todos")).toBeNull();
   });
 });
 
@@ -324,30 +393,60 @@ describe("the appointment row", () => {
 });
 
 describe("collapsing the card", () => {
-  test("the header collapses it to one summary line, remembered on this device across a remount; it opens again", async () => {
-    const device = await open(EVERYTHING);
-    await expect.poll(shownRows).toHaveLength(4);
-    expect(toggle().getAttribute("aria-expanded")).toBe("true");
-    expect(CARD()!.querySelector("[data-today-summary]")).toBeNull();
+  const expanded = () => toggle().getAttribute("aria-expanded");
+  const summary = () => CARD()?.querySelector<HTMLElement>("[data-today-summary]") ?? null;
+  const part = (name: string) =>
+    summary()?.querySelector<HTMLElement>(`[data-summary-part="${name}"]`) ?? null;
 
-    await userEvent.click(toggle());
-    await expect.poll(() => toggle().getAttribute("aria-expanded")).toBe("false");
-    const summary = CARD()!.querySelector<HTMLElement>("[data-today-summary]")!;
-    expect(summary.textContent).toBe("BP 130/85 mmHg · 1 appt · 1 med overdue · 1 task today");
+  test("collapsed on load, an overdue dose too; red overdue and orange due-soon counts lead the line", async () => {
+    // 1 dose overdue; due soon: 2 doses due now, 1 in 30 min, Cardiology in an hour. The walker (no time) is due at 19:00.
+    await open(EVERYTHING);
+    await expect.poll(shownRows).toHaveLength(4);
+    await expect
+      .poll(() => summary()?.textContent)
+      .toBe("1 overdue · 4 due soon · BP 130/85 mmHg · 1 todo today");
+    expect(expanded()).toBe("false");
+    expect(part("overdue")!.classList).toContain("text-error");
+    expect(part("soon")!.classList).toContain("text-warning");
     expect(document.getElementById(toggle().getAttribute("aria-controls")!)!.hidden).toBe(true);
     expect(row("vitals")!.checkVisibility()).toBe(false);
     // One line.
-    expect(summary.getBoundingClientRect().height).toBeLessThan(24);
-
-    await device.screen.unmount();
-    await open(EVERYTHING);
-    await expect
-      .poll(() => CARD()?.querySelector("[data-today-summary]")?.textContent)
-      .toBe("BP 130/85 mmHg · 1 appt · 1 med overdue · 1 task today");
-    expect(toggle().getAttribute("aria-expanded")).toBe("false");
+    expect(summary()!.getBoundingClientRect().height).toBeLessThan(24);
 
     await userEvent.click(toggle());
     await expect.poll(() => row("vitals")?.checkVisibility()).toBe(true);
-    expect(CARD()!.querySelector("[data-today-summary]")).toBeNull();
+    expect(summary()).toBeNull();
+    await userEvent.click(toggle());
+    await expect.poll(expanded).toBe("false");
+  });
+
+  test("nothing overdue or due soon: the line is the rest alone", async () => {
+    await open([DAY_NOTE, OLD_BP, WALKER]);
+    await expect.poll(shownRows).toEqual(["vitals", "todos"]);
+    await expect.poll(() => summary()?.textContent).toBe("BP 130/85 mmHg · 1 todo today");
+    expect(part("overdue")).toBeNull();
+    expect(part("soon")).toBeNull();
+  });
+
+  test("on a narrow phone the counts stay whole; the rest is cut off", async () => {
+    await renderWithDevice({ route: ROUTES, url: TIMELINE_URL, fixtures: EVERYTHING, width: 320 });
+    await expect.poll(() => part("soon")?.textContent).toBe(" · 4 due soon");
+    const box = toggle().getBoundingClientRect();
+    for (const name of ["overdue", "soon"]) {
+      const el = part(name)!;
+      expect(el.scrollWidth).toBeLessThanOrEqual(el.clientWidth);
+      expect(el.getBoundingClientRect().right).toBeLessThanOrEqual(box.right + 1);
+    }
+    const rest = part("rest")!;
+    expect(rest.scrollWidth).toBeGreaterThan(rest.clientWidth);
+  });
+
+  test("opened, it's collapsed again on the next load", async () => {
+    const device = await open([DAY_NOTE, OLD_BP, WALKER]);
+    await openCard();
+    await device.screen.unmount();
+    await open([DAY_NOTE, OLD_BP, WALKER]);
+    await expect.poll(shownRows).toEqual(["vitals", "todos"]);
+    expect(expanded()).toBe("false");
   });
 });

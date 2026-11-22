@@ -7,7 +7,7 @@ import { useCallback, useState } from "react";
 import { redirect } from "react-router";
 import { Sheet } from "~/components/ui";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
-import { allergiesSheetGuard } from "~/lib/medications/medicationSheets";
+import { allergiesSheetGuard, sheetTab } from "~/lib/medications/medicationSheets";
 import { sessionContext } from "~/lib/auth/session";
 import {
   addAllergy,
@@ -22,7 +22,7 @@ import { allergyActionFromForm } from "./allergyActions";
 import { AllergyForm } from "./AllergyForm";
 import { AllergyList } from "./AllergyList";
 
-// Shared by web + native. `medications/allergies`: the recipient's allergies
+// Shared by web + native. `medications/<tab>/allergies`: the recipient's allergies
 // in a sheet over the list (opened from the list or a medication's page, and
 // closing back there). Writers add, edit and remove allergies, and record "No
 // known allergies" while there are none; adding one clears it. Local writes
@@ -30,9 +30,11 @@ import { AllergyList } from "./AllergyList";
 
 export async function clientLoader({ request, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
+  const url = new URL(request.url);
   const decision = allergiesSheetGuard({
     groupId: group.id,
-    search: new URL(request.url).search,
+    tab: sheetTab(group.id, url.pathname),
+    search: url.search,
     canWrite: group.canWrite,
   });
   if ("redirect" in decision) throw redirect(decision.redirect);

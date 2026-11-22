@@ -8,7 +8,8 @@ import { frames, openTimeline, rows, SAM, setView, TIMELINE_URL, waitUntil } fro
 // (a local add and another device's entry), every filter hiding it, and the
 // header's Highlights / Full / Off switch.
 
-const minutesAgo = (m: number) => at(new Date(Date.now() - m * 60_000));
+// Tens of seconds, not minutes: the entries stay on today for a run just after midnight (B-225, B-227).
+const minutesAgo = (m: number) => at(new Date(Date.now() - m * 10_000));
 const daysAgo = (d: number, hour = 10) => {
   const t = new Date();
   t.setDate(t.getDate() - d);
@@ -104,6 +105,7 @@ describe("the day summary", () => {
     const details = document.getElementById(button.getAttribute("aria-controls")!)!;
     expect(button.getAttribute("aria-expanded")).toBe("false");
     expect(details.hidden).toBe(true);
+    expect(button.firstElementChild?.tagName.toLowerCase()).toBe("svg");
 
     await userEvent.click(button);
     expect(button.getAttribute("aria-expanded")).toBe("true");
@@ -147,9 +149,10 @@ describe("the day summary", () => {
   });
 
   test.each([
-    ["a kind", "?kind=symptom", /^All$/],
+    ["a kind", "?kind=symptom", /^Symptoms: clear this filter$/],
     ["an author", `?author=${TEST_USER.id}`, /clear this filter$/],
-    ["a vital type", "?kind=vital&vital=bloodPressure", /^All$/],
+    // The kind's chip takes the vital type with it.
+    ["a vital type", "?kind=vital&vital=bloodPressure", /^Vitals: clear this filter$/],
     ["a search", "?q=cough", /clear the search$/],
   ])("%s filter hides every summary; clearing it brings them back", async (_, query, clear) => {
     const device = await openTimeline({ fixtures, query });
@@ -165,7 +168,7 @@ describe("the day summary", () => {
     const device = await openTimeline({ fixtures });
     await waitUntil(() => summaries().length === 2);
     const choose = async (mode: string) => {
-      await userEvent.click(device.screen.getByRole("button", { name: "Day summaries" }));
+      await userEvent.click(device.screen.getByRole("button", { name: "View options" }));
       await userEvent.click(device.screen.getByRole("menuitemradio", { name: new RegExp(`^${mode}`) }));
     };
 

@@ -3,7 +3,6 @@ import type { EntryProviderLinkRow } from "~/lib/providers/entryProviders";
 import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
 import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/timeline/timeline.sync";
 import type { CarePeriodRow } from "~/lib/care-periods/carePeriods.sync";
-import type { PlaceNameRow } from "./timelinePeriods";
 
 import { groupDocumentsQuery } from "~/lib/live-notes/notes.sync";
 import { timelineLinksQuery } from "~/lib/providers/providers.sync";
@@ -18,7 +17,6 @@ import { PAGE_SIZE } from "~/lib/core/paging";
 import { historyCutoff } from "~/lib/appointments/upcoming";
 import { carePeriodsQuery } from "~/lib/care-periods/carePeriods.sync";
 import { aheadQueries } from "./aheadQueries";
-import { placeNamesQuery } from "./timelinePeriods";
 import { daySummaryQuery, summariesOff, summarySince } from "./daySummaryRows";
 import { localTimeZone } from "~/lib/core/format";
 
@@ -35,7 +33,7 @@ export const loadTimelineRows = async (
   cutoff = historyCutoff(new Date()),
 ) => {
   const ahead = aheadQueries(groupId, filters, cutoff);
-  const [entryRows, memberRows, readingRows, documentRows, linkRows, nextRows, periodRows, placeRows] =
+  const [entryRows, memberRows, readingRows, documentRows, linkRows, nextRows, periodRows] =
     await Promise.all([
       readRows<EntryRow>(db, historyQuery(groupId, filters, PAGE_SIZE, cutoff)),
       readRows<MemberRow>(db, membersQuery(groupId)),
@@ -43,9 +41,8 @@ export const loadTimelineRows = async (
       readRows<NoteDocRow>(db, groupDocumentsQuery(groupId)),
       readRows<EntryProviderLinkRow>(db, timelineLinksQuery(groupId, filters, PAGE_SIZE, cutoff)),
       readRows<EntryRow>(db, ahead.next),
-      // The care periods' track and its places (the current-period line and the markers).
+      // The care periods' track (the current-period line and the markers).
       readRows<CarePeriodRow>(db, carePeriodsQuery(groupId)),
-      readRows<PlaceNameRow>(db, placeNamesQuery(groupId)),
     ]);
   const oldest = entryRows.at(-1)?.occurred_at;
   // The day summaries: whole days from the oldest loaded one's baseline (none while filtered).
@@ -63,7 +60,6 @@ export const loadTimelineRows = async (
     linkRows,
     nextRows,
     periodRows,
-    placeRows,
     summaryRows,
   };
 };

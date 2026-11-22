@@ -7,8 +7,11 @@
 #   test-db.sh down              stop it (every worktree's test database goes)
 #   test-db.sh name <worktree>   the database name for a worktree
 #   test-db.sh create <worktree> start it if needed and create that database
-#   test-db.sh drop <worktree>   drop that database (nothing when it isn't running)
-#   test-db.sh list              the databases on it
+#   test-db.sh drop <worktree>   drop that database and its integration workers'
+#                                copies, <name>_w<n> (nothing when it isn't running)
+#   test-db.sh drop-db <database>   the same by database name, for one whose
+#                                worktree is gone (pnpm prd tidy)
+#   test-db.sh list              the worktree databases on it, with their worker copies
 #   test-db.sh use [worktree]    point a worktree's integration tests at its
 #                                database here (packages/data/.env.test.local);
 #                                for worktrees made before the shared server
@@ -30,6 +33,14 @@ container() {
 
 psql_c() { docker exec "$1" psql -U caretook -d postgres -Atqc "$2"; }
 
+# A worker copy's name: <database cut to 59>_w<n> (packages/data/src/db/testDatabase.ts).
+worker_re='_w([1-9]|1[0-6])$'
+
+# databases_of CONTAINER DB → DB and its worker copies that exist, one per line.
+databases_of() {
+  psql_c "$1" "SELECT datname FROM pg_database WHERE datname = '$2' OR datname ~ '^${2:0:59}$worker_re' ORDER BY 1"
+}
+
 up() {
   [[ -n $(container) ]] && return 0
   CARETOOK_SHARED_TEST_PORT=$shared_test_port CARETOOK_SHARED_TEST_PROJECT=$shared_test_project \
@@ -50,8 +61,9 @@ case $cmd in
     if [[ -z $c ]]; then
       echo "shared test Postgres: not running (started on first integration run, or pnpm prd test-db up)"
     else
-      n=$(psql_c "$c" "SELECT count(*) FROM pg_database WHERE datname LIKE 'caretook\_test\_%'" 2>/dev/null || echo '?')
-      echo "shared test Postgres: running on :$shared_test_port ($shared_test_project), $n worktree databases"
+      n=$(psql_c "$c" "SELECT count(*) FROM pg_database WHERE datname LIKE 'caretook\_test\_%' AND datname !~ '$worker_re'" 2>/dev/null || echo '?')
+      w=$(psql_c "$c" "SELECT count(*) FROM pg_database WHERE datname LIKE 'caretook\_test\_%' AND datname ~ '$worker_re'" 2>/dev/null || echo '?')
+      echo "shared test Postgres: running on :$shared_test_port ($shared_test_project), $n worktree databases (+$w worker copies)"
     fi
     ;;
   up) up; echo "shared test Postgres running on :$shared_test_port" ;;
@@ -69,17 +81,40 @@ case $cmd in
     fi
     echo "$db"
     ;;
-  drop)
-    db=$(db_of "${1:-}")
+  drop | drop-db)
+    if [[ $cmd == drop-db ]]; then
+      db=${1:-}
+      [[ $db =~ ^caretook_test_[a-z0-9_]+$ ]] || die "drop-db: not a test database name: ${db:-(none)}"
+    else
+      db=$(db_of "${1:-}")
+    fi
     c=$(container)
     # Not running: its tmpfs went with it, so there's nothing to drop.
     [[ -n $c ]] || exit 0
-    docker exec "$c" dropdb -U caretook --if-exists --force "$db"
-    echo "dropped test database $db"
+    # The database itself always (it may be missing), then each worker copy.
+    dbs=$( { echo "$db"; databases_of "$c" "$db"; } | grep -E '^caretook_test_[a-z0-9_]+$' | sort -u)
+    for d in $dbs; do
+      docker exec "$c" dropdb -U caretook --if-exists --force "$d"
+    done
+    n=$(($(wc -l <<<"$dbs") - 1))
+    echo "dropped test database $db$( ((n)) && echo " and $n worker copies")"
     ;;
   list)
     c=$(container); [[ -n $c ]] || { echo "(not running)"; exit 0; }
-    psql_c "$c" "SELECT datname FROM pg_database WHERE datname LIKE 'caretook\_test\_%' ORDER BY 1"
+    # One line per worktree database, with how many worker copies it has,
+    # then any copy whose database is gone.
+    all=$(psql_c "$c" "SELECT datname FROM pg_database WHERE datname LIKE 'caretook\_test\_%' ORDER BY 1")
+    owned=""
+    while read -r d; do
+      [[ -z $d || $d =~ $worker_re ]] && continue
+      copies=$(grep -E "^${d:0:59}$worker_re" <<<"$all" || true)
+      owned+=$copies$'\n'
+      n=$(grep -c . <<<"$copies" || true)
+      if ((n)); then echo "$d (+$n worker copies)"; else echo "$d"; fi
+    done <<<"$all"
+    while read -r d; do
+      if [[ $d =~ $worker_re ]] && ! grep -qxF "$d" <<<"$owned"; then echo "$d (worker copy, its database is gone)"; fi
+    done <<<"$all"
     ;;
   use)
     name=${1:-$(here_name)}
@@ -87,5 +122,5 @@ case $cmd in
     write_test_env "$loops/$name" "$name"
     echo "$name's integration tests now use $(db_of "$name") on the shared test Postgres (:$shared_test_port)"
     ;;
-  *) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
+  *) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
 esac

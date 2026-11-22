@@ -1,5 +1,7 @@
+import { Page, PageHeader, Section } from "~/components/ui";
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
+import type { ActionResult } from "~/lib/core/api";
 
 import { Outlet } from "react-router";
 import type { RecipientDetailsRow } from "~/lib/profiles/recipientDetails";
@@ -17,6 +19,9 @@ import { loadMemberDetailRows, memberDetailsQuery } from "~/lib/care-groups/memb
 import { loadRecipientProfileRows, useRecipientProfile } from "~/lib/profiles/profile.sync";
 import { loadRecipientDetailsRows, useRecipientDetails } from "~/lib/profiles/recipientDetails.sync";
 import { loadRecentReadingRows, useVitalAverages } from "~/lib/profiles/vitalAverages.sync";
+import { loadConditions, setNoKnownConditions, useConditions } from "~/lib/profiles/conditions.sync";
+import { conditionActionFromForm } from "./conditions/conditionActions";
+import { ConditionsCard } from "./ConditionsCard";
 import { ContactCard, InsuranceCard } from "./DetailsCards";
 import { EmergencyCard } from "./EmergencyCard";
 import { BasicsCard, NoteCard } from "./ProfileCards";
@@ -24,7 +29,8 @@ import { ProfileHeader } from "./ProfileHeader";
 import { VitalAveragesCard } from "./VitalAveragesCard";
 
 // Shared by web + native. `…/profile`: the care recipient's profile, for
-// every member. Read from the device's copy (live, so it works offline and
+// every member, in bands (`Page bands`: the header, then each part a
+// `Section`). Read from the device's copy (live, so it works offline and
 // follows other members' edits). Writers edit it in sheets over the page
 // (`profile/basics`, `profile/contact`, `profile/insurance`), online only.
 // Writers also see the recipient's Contact and Insurance (slice 3) and the
@@ -43,6 +49,8 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   ]);
   // Recent vital averages: the windows are days in the recipient's zone.
   const readingRows = await loadRecentReadingRows(db, params.groupId, rows[0]?.time_zone ?? null);
+  // The conditions card (every role).
+  const conditionRows = await loadConditions(db, params.groupId);
   // Writers' details: only owners', admins' and caretakers' devices have them.
   const detailsRows = canReadRecipient(group.role, "details")
     ? await loadRecipientDetailsRows(db, params.groupId)
@@ -57,8 +65,18 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     units,
     detailsRows,
     memberRows,
+    conditionRows,
     title: group.recipient?.displayName ?? group.displayName,
   };
+}
+
+/** The conditions card's "No known conditions" (writers; a local write, so it works offline). */
+export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<ActionResult> {
+  const group = getGroup(context);
+  const { db } = context.get(sessionContext);
+  const action = conditionActionFromForm(await request.formData());
+  if (action?.intent !== "noKnownConditions") return { ok: false, error: "Nothing to do", issues: [] };
+  return setNoKnownConditions(db, group.id, action.on);
 }
 
 /** A viewer's details rows: none (a module constant, so the live query's `initial` keeps its identity). */
@@ -92,6 +110,7 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
   const editsDetails = canEditRecipient(group.role, "details");
   const membersQuery = useMemo(() => memberDetailsQuery(params.groupId), [params.groupId]);
   const members = useLiveQuery<MemberDetailRow>(membersQuery.sql, membersQuery.params, loaderData.memberRows);
+  const conditions = useConditions(params.groupId, loaderData.conditionRows);
   const averages = useVitalAverages(
     params.groupId,
     profile?.timeZone ?? null,
@@ -100,19 +119,21 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
   );
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-profile="">
+    <Page bands data-profile="">
       {!profile ? (
-        <>
-          <h1 className="text-lg font-semibold">{group.displayName}</h1>
-          <p className="text-base-content/70 text-sm">This care group has no care recipient yet.</p>
-        </>
+        <Section>
+          <PageHeader title={group.displayName} description="This care group has no care recipient yet." />
+        </Section>
       ) : (
         <>
-          <ProfileHeader profile={profile} />
+          <Section>
+            <ProfileHeader profile={profile} />
+          </Section>
           <BasicsCard profile={profile} />
+          <ConditionsCard groupId={group.id} state={conditions.state} canWrite={group.canWrite} />
           <NoteCard profile={profile} canEdit={group.canWrite} />
           {averages && <VitalAveragesCard rows={averages} />}
-          {readsDetails && (
+          {readsDetails ? (
             <>
               <ContactCard
                 groupId={group.id}
@@ -128,17 +149,18 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
                 canManage={canManageEmergencyContacts(group.role)}
               />
             </>
-          )}
-          {!readsDetails && (
-            <p className="text-base-content/70 text-sm" data-viewer-more="">
-              {VIEWER_DETAILS_LINE}
-            </p>
+          ) : (
+            <Section>
+              <p className="text-muted text-sm" data-viewer-more="">
+                {VIEWER_DETAILS_LINE}
+              </p>
+            </Section>
           )}
         </>
       )}
 
       {/* The edit sheets render here, over the profile. */}
       <Outlet />
-    </main>
+    </Page>
   );
 }

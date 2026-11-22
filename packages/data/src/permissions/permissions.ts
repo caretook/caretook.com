@@ -13,9 +13,12 @@ import type {
 import { USER_ROLE_NAMES } from "../constants/roles";
 import { isError, newError } from "../errors";
 import { ADMIN_PERMISSIONS } from "./admin";
+import { APPOINTMENTS_PERMISSIONS } from "./appointments";
 import { AUTH_PERMISSIONS } from "./auth";
+import { CALENDARS_PERMISSIONS } from "./calendars";
 import { CARE_GROUPS_PERMISSIONS } from "./care-groups";
 import { CARE_PERIODS_PERMISSIONS } from "./care-periods";
+import { CONNECTORS_PERMISSIONS } from "./connectors";
 import { CORE_PERMISSIONS } from "./core";
 import { LIVE_NOTES_PERMISSIONS } from "./live-notes";
 import { MARKETING_PERMISSIONS } from "./marketing";
@@ -23,7 +26,7 @@ import { MEDICATIONS_PERMISSIONS } from "./medications";
 import { NOTIFICATIONS_PERMISSIONS } from "./notifications";
 import { PROFILES_PERMISSIONS } from "./profiles";
 import { PROVIDERS_PERMISSIONS } from "./providers";
-import { TASKS_PERMISSIONS } from "./tasks";
+import { TODOS_PERMISSIONS } from "./todos";
 import { TIMELINE_PERMISSIONS } from "./timeline";
 
 // The building blocks live in blocks.ts, and the tables' permissions in one part per
@@ -42,9 +45,12 @@ export {
 
 export const PERMISSIONS: Permissions = {
   ...ADMIN_PERMISSIONS,
+  ...APPOINTMENTS_PERMISSIONS,
   ...AUTH_PERMISSIONS,
+  ...CALENDARS_PERMISSIONS,
   ...CARE_GROUPS_PERMISSIONS,
   ...CARE_PERIODS_PERMISSIONS,
+  ...CONNECTORS_PERMISSIONS,
   ...CORE_PERMISSIONS,
   ...LIVE_NOTES_PERMISSIONS,
   ...MARKETING_PERMISSIONS,
@@ -52,7 +58,7 @@ export const PERMISSIONS: Permissions = {
   ...NOTIFICATIONS_PERMISSIONS,
   ...PROFILES_PERMISSIONS,
   ...PROVIDERS_PERMISSIONS,
-  ...TASKS_PERMISSIONS,
+  ...TODOS_PERMISSIONS,
   ...TIMELINE_PERMISSIONS,
 };
 

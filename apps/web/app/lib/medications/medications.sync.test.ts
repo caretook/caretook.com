@@ -1,6 +1,7 @@
 import type { MedicationRow } from "./medications.sync";
 import type { EntryRow } from "../timeline/timeline.sync";
 
+import { medicationChangeId } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import {
   dayBounds,
@@ -9,6 +10,7 @@ import {
   medicationEntriesQuery,
   medicationNamesQuery,
   medicationsQuery,
+  quickAddRows,
   toMedication,
   toMedicationEntries,
   toMedicationEntry,
@@ -40,6 +42,7 @@ const row = (overrides: Partial<MedicationRow> = {}): MedicationRow => ({
   quantity: null,
   refills_left: 2,
   rx_number: null,
+  type: "prescription",
   deleted_at: null,
   created_at: "2026-11-17T21:45:25.229000Z",
   updated_at: "2026-11-17T21:45:25.229000Z",
@@ -100,6 +103,13 @@ describe("toMedication", () => {
       stopReason: null,
       status: "current",
     });
+  });
+
+  it("reads its type, and an unknown or missing one as not set", () => {
+    expect(toMedication(row())?.type).toBe("prescription");
+    expect(toMedication(row({ type: "supplement" }))?.type).toBe("supplement");
+    expect(toMedication(row({ type: "vitamin" }))?.type).toBeNull();
+    expect(toMedication(row({ type: null }))?.type).toBeNull();
   });
 });
 
@@ -180,7 +190,9 @@ describe("medication queries", () => {
 
   it("lists doses and medication changes on the timeline, with a kind or without", () => {
     const all = entriesQuery("g1", { kind: null, author: null }, 50);
-    expect(all.sql).toContain("kind IN ('note', 'symptom', 'event', 'vital', 'dose', 'medicationChange')");
+    expect(all.sql).toContain(
+      "kind IN ('note', 'symptom', 'event', 'vital', 'dose', 'medicationChange', 'conditionChange')",
+    );
     expect(all.params).toEqual(["g1", 51]);
     expect(entriesQuery("g1", { kind: "dose", author: null }, 50).params).toEqual(["g1", "dose", 51]);
   });
@@ -209,5 +221,100 @@ describe("days in the recipient's zone", () => {
     expect(dayBounds(new Date("2026-11-01T20:00:00.000Z"), "America/Los_Angeles").from).toEqual(
       new Date("2026-11-01T07:00:00.000Z"),
     );
+  });
+});
+
+describe("quickAddRows (the Dose sheet's + New medication)", () => {
+  const NEW_ID = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b9a2001";
+  const DOSE_ID = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b9a2002";
+  const NOW = "2026-11-18T18:00:00.000000Z";
+  const ctx = {
+    id: NEW_ID,
+    doseId: DOSE_ID,
+    now: NOW,
+    groupId: "g1",
+    recipient: { id: "r1", timeZone: "America/Los_Angeles" },
+    userId: "u1",
+  };
+  const dose = {
+    status: "given" as const,
+    amount: "2 tablets",
+    note: "For a headache",
+    occurredAt: "2026-11-18T17:55:00.000Z",
+    timeZone: "America/New_York",
+  };
+  const plan = (medication: Partial<Parameters<typeof quickAddRows>[0]["medication"]> = {}, d = {}) =>
+    quickAddRows(
+      {
+        medication: { name: " Ibuprofen ", dose: "2 tablets", type: "otc", ...medication },
+        dose: { ...dose, ...d },
+      },
+      ctx,
+    );
+
+  it("plans the medication (as needed, no maximum, current, the group's recipient), its Started entry and the dose", () => {
+    const planned = plan();
+    if (!planned.ok) throw new Error(planned.error);
+    expect(planned.medication).toMatchObject({
+      id: NEW_ID,
+      groupId: "g1",
+      recipientId: "r1",
+      name: "Ibuprofen",
+      dose: "2 tablets",
+      type: "otc",
+      status: "current",
+      strength: null,
+      prescriberId: null,
+      createdAt: NOW,
+      updatedAt: NOW,
+      createdBy: "u1",
+    });
+    expect(JSON.parse(planned.medication.schedule)).toEqual({ type: "asNeeded" });
+    expect(planned.entry).toMatchObject({
+      // The id the server derives for the same create, so its upload is one row.
+      id: medicationChangeId(NEW_ID, NOW),
+      kind: "medicationChange",
+      occurredAt: NOW,
+      timeZone: "America/Los_Angeles",
+      recipientId: "r1",
+    });
+    expect(JSON.parse(planned.entry!.details)).toMatchObject({
+      medicationId: NEW_ID,
+      change: "started",
+    });
+    expect(planned.dose).toMatchObject({
+      id: DOSE_ID,
+      kind: "dose",
+      groupId: "g1",
+      recipientId: "r1",
+      occurredAt: "2026-11-18T17:55:00.000000Z",
+      timeZone: "America/New_York",
+      createdAt: NOW,
+    });
+    expect(JSON.parse(planned.dose.details as string)).toEqual({
+      medicationId: NEW_ID,
+      status: "given",
+      amount: "2 tablets",
+      note: "For a headache",
+    });
+  });
+
+  it("leaves a dose out when none is typed", () => {
+    const planned = plan({ dose: null }, { amount: null });
+    expect(planned.ok && planned.medication.dose).toBeNull();
+  });
+
+  it("needs a name and a type, each refused on its field, with the dose's own faults", () => {
+    const refused = plan({ name: "  ", type: null }, { occurredAt: "" });
+    expect(refused.ok).toBe(false);
+    if (refused.ok) return;
+    expect(refused.error).toBe("The medication is invalid");
+    expect(refused.issues.map((i) => i.path)).toEqual(["name", "type", "occurredAt"]);
+    expect(refused.issues.find((i) => i.path === "name")?.message).toBe("Enter a name");
+    expect(refused.issues.find((i) => i.path === "type")?.message).toBe("Choose a type");
+    const unknown = plan({ type: "vitamin" });
+    expect(!unknown.ok && unknown.issues.map((i) => i.path)).toEqual(["type"]);
+    const badDose = plan({}, { occurredAt: "" });
+    expect(!badDose.ok && badDose.error).toBe("The dose is invalid");
   });
 });

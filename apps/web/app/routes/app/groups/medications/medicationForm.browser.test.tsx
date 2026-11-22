@@ -15,6 +15,7 @@ import {
   LARK,
   LISINOPRIL,
   LIST,
+  MEDS,
   listNames,
   MEDICATION_ROUTES,
   MEDICATION_SQL,
@@ -118,9 +119,13 @@ describe("adding", () => {
       li.querySelector("label")?.textContent?.trim(),
     );
     expect(passes).toEqual(["Morning 8:00", "Evening 20:00"]);
-    expect(FORM()!.querySelectorAll('[data-pass-slot] input[type="checkbox"]:checked')).toHaveLength(0);
+    await expect
+      .poll(() => FORM()?.querySelectorAll('[data-pass-slot] input[type="checkbox"]:checked'))
+      .toHaveLength(0);
     expect(times()).toHaveLength(0);
-    expect(FORM()!.querySelector("[data-manage-passes]")?.getAttribute("href")).toBe(`${LIST}/passes`);
+    await expect
+      .poll(() => FORM()?.querySelector("[data-manage-passes]")?.getAttribute("href"))
+      .toBe(`${MEDS}/passes`);
     expect(suggestions()).toEqual([]);
   });
 
@@ -202,7 +207,7 @@ describe("editing", () => {
     await waitUntil(() => !!$("main [data-edit-medication]"), 4000, "Edit");
     await userEvent.click($("main [data-edit-medication]")!);
     await waitUntil(() => !!FORM(), 4000, "the edit sheet");
-    expect(device.location()).toBe(`${medicationUrl(LOSARTAN.id)}/edit`);
+    expect(device.location()).toBe(`${LIST}/${LOSARTAN.id}/edit`);
   };
 
   test("Edit on the page opens the sheet filled in, with the status; a refill edit goes back to the page and writes no change entry", async () => {
@@ -237,6 +242,127 @@ describe("editing", () => {
   });
 });
 
+describe("the type", () => {
+  /** Added before types: its type isn't set. */
+  const FOLIC = fx.medication({ name: "Folic acid", strength: "1 mg", type: null });
+  /** Over the counter, with an Rx number kept from when it was a prescription. */
+  const NAPROXEN = fx.medication({ name: "Naproxen", strength: "220 mg", type: "otc", rxNumber: "RX 5521" });
+  const IBUPROFEN = fx.medication({ name: "Ibuprofen", strength: "200 mg", type: "otc" });
+
+  const openWith = (url: string) => open(url, { fixtures: [world(), FOLIC, NAPROXEN, IBUPROFEN] });
+  const typeRadio = (value: string) =>
+    FORM()!.querySelector<HTMLInputElement>(`input[name="type"][value="${value}"]`)!;
+  const checkedType = () =>
+    FORM()?.querySelector<HTMLInputElement>('input[name="type"]:checked')?.value ?? null;
+  const typeGroup = () => FORM()!.querySelector<HTMLElement>('[role="radiogroup"]:has(input[name="type"])')!;
+  const typeError = () => {
+    const id = typeGroup().getAttribute("aria-describedby");
+    return id ? (document.getElementById(id)?.textContent?.trim() ?? null) : null;
+  };
+  const details = () => FORM()!.querySelector<HTMLDetailsElement>("details[data-prescription-details]")!;
+  const summaryShown = () => details().querySelector("summary")!.checkVisibility();
+  const inDetails = (name: string) => !!details().querySelector(`[name="${name}"]`);
+  const typeOf = async (device: Awaited<ReturnType<typeof open>>, id: string) =>
+    (await device.query<{ type: string | null }>("SELECT type FROM medication WHERE id = ?", [id]))[0]?.type;
+
+  test("a new medication starts on Prescription, with the prescription fields in place, and saves it", async () => {
+    const device = await openWith(`${LIST}/new`);
+    await waitUntil(() => !!FORM(), 4000, "the add sheet");
+    expect(
+      [...FORM()!.querySelectorAll<HTMLInputElement>('input[name="type"]')].map((r) => r.ariaLabel),
+    ).toEqual(["Prescription", "Over the counter", "Supplement", "Other"]);
+    expect(checkedType()).toBe("prescription");
+    expect(details().open).toBe(true);
+    expect(summaryShown()).toBe(false);
+
+    await userEvent.fill(field("name")!, "Sertraline");
+    await userEvent.click(
+      FORM()!.querySelector<HTMLInputElement>('input[name="scheduleType"][value="asNeeded"]')!,
+    );
+    await userEvent.click(submit());
+    await expect.poll(() => !SHEET() && device.location()).toBe(LIST);
+    const [made] = await device.query<{ id: string; type: string }>(
+      "SELECT id, type FROM medication WHERE name = 'Sertraline'",
+    );
+    expect(made?.type).toBe("prescription");
+  });
+
+  test("Over the counter folds Prescriber, Refills left and Rx number into Prescription details; pharmacy, last filled and quantity stay; what's typed is saved", async () => {
+    const device = await openWith(`${LIST}/new`);
+    await waitUntil(() => !!FORM(), 4000, "the add sheet");
+    await userEvent.fill(field("name")!, "Loratadine");
+    await userEvent.click(
+      FORM()!.querySelector<HTMLInputElement>('input[name="scheduleType"][value="asNeeded"]')!,
+    );
+    await userEvent.click(typeRadio("otc"));
+
+    await expect.poll(() => details().open).toBe(false);
+    expect(summaryShown()).toBe(true);
+    expect(details().querySelector("summary")?.textContent?.trim()).toBe("Prescription details");
+    expect(["prescriberId", "refillsLeft", "rxNumber"].map(inDetails)).toEqual([true, true, true]);
+    expect(["pharmacyId", "lastFilledOn", "quantity"].map(inDetails)).toEqual([false, false, false]);
+    expect(field("quantity")!.checkVisibility()).toBe(true);
+    expect(field("rxNumber")!.checkVisibility()).toBe(false);
+
+    await userEvent.click(details().querySelector("summary")!);
+    await expect.poll(() => field("rxNumber")!.checkVisibility()).toBe(true);
+    await userEvent.fill(field("rxNumber")!, "RX 7781");
+    // Back to Prescription and to Supplement: the section stays open, since it has a value now.
+    await userEvent.click(typeRadio("prescription"));
+    await expect.poll(() => summaryShown()).toBe(false);
+    await userEvent.click(typeRadio("supplement"));
+    await expect.poll(() => summaryShown()).toBe(true);
+    expect(details().open).toBe(true);
+    expect(field("rxNumber")!.value).toBe("RX 7781");
+    await userEvent.click(typeRadio("otc"));
+    await userEvent.click(submit());
+
+    await expect.poll(() => !SHEET() && device.location()).toBe(LIST);
+    const [made] = await device.query<{ type: string; rx_number: string }>(
+      "SELECT type, rx_number FROM medication WHERE name = 'Loratadine'",
+    );
+    expect(made).toEqual({ type: "otc", rx_number: "RX 7781" });
+  });
+
+  test("an over-the-counter one with an Rx number opens with the section open; one without, closed", async () => {
+    await openWith(`${LIST}/${NAPROXEN.id}/edit`);
+    await waitUntil(() => !!FORM(), 4000, "the edit sheet");
+    expect(checkedType()).toBe("otc");
+    expect(details().open).toBe(true);
+    expect(field("rxNumber")!.value).toBe("RX 5521");
+  });
+
+  test("one without prescription details opens with the section closed", async () => {
+    await openWith(`${LIST}/${IBUPROFEN.id}/edit`);
+    await waitUntil(() => !!FORM(), 4000, "the edit sheet");
+    expect(checkedType()).toBe("otc");
+    expect(details().open).toBe(false);
+  });
+
+  test("an old one with no type starts on none and can't be saved until one is chosen; the type writes no change entry", async () => {
+    const device = await openWith(`${LIST}/${FOLIC.id}/edit`);
+    await waitUntil(() => !!FORM(), 4000, "the edit sheet");
+    expect(checkedType()).toBeNull();
+    // No type yet: nothing to fold.
+    expect(details().open).toBe(true);
+    expect(summaryShown()).toBe(false);
+
+    await userEvent.click(submit());
+    await expect.poll(() => typeError()).toBe("Choose a type");
+    expect(typeGroup().getAttribute("aria-invalid")).toBe("true");
+    await expect.poll(() => document.activeElement).toBe(typeGroup());
+    expect(SHEET()).not.toBeNull();
+    expect(await typeOf(device, FOLIC.id)).toBeNull();
+
+    await userEvent.click(typeRadio("supplement"));
+    await userEvent.click(submit());
+    await expect.poll(() => !SHEET()).toBe(true);
+    await device.settle();
+    expect(await typeOf(device, FOLIC.id)).toBe("supplement");
+    expect(await changes(device, FOLIC.id)).toEqual([]);
+  });
+});
+
 describe("the status actions", () => {
   test("Discontinue needs a reason; with one and a note the page says so, its entry tops the history, and the list moves it down", async () => {
     const device = await open(medicationUrl(LOSARTAN.id));
@@ -263,7 +389,7 @@ describe("the status actions", () => {
     await expect.poll(badge).toBe("Discontinued");
     expect(historyTexts()[0]).toBe("Discontinued: side effects");
 
-    await userEvent.click($("main a[href$='/medications']")!);
+    await userEvent.click($("main a[href$='/medications/list']")!);
     await expect.poll(device.location).toBe(LIST);
     await device.settle();
     expect(listNames("Current medications")).toEqual(SEEDED_CURRENT);

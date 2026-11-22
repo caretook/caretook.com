@@ -81,7 +81,9 @@ describe("the Invite by email sheet", () => {
     await expect.element(page.getByLabelText("Email", { exact: true })).toHaveValue("");
     const roles = [...sheet()!.querySelectorAll<HTMLOptionElement>('select[name="role"] option')];
     expect(roles.map((o) => o.value)).toEqual(["owner", "admin", "caretaker", "viewer"]);
-    expect(sheet()!.querySelector<HTMLSelectElement>('select[name="role"]')!.value).toBe("caretaker");
+    await expect
+      .poll(() => sheet()?.querySelector<HTMLSelectElement>('select[name="role"]')?.value)
+      .toBe("caretaker");
     await expect.element(page.getByLabelText(ATTESTATION_TEXT)).not.toBeChecked();
   });
 
@@ -183,9 +185,11 @@ describe("Pending invitations", () => {
   test("a waiting invite shows the address, role, who sent it and when it expires", async () => {
     await open({ api: { "invite.listForGroup": () => [invite()] } });
     await expect.element(page.getByText("avery.invited@example.com")).toBeVisible();
-    expect(row()!.textContent).toMatch(/Caretaker · Sent by Sam Okafor · Expires Nov 27, 2026/);
-    expect(row()!.dataset.inviteStatus).toBe("usable");
-    expect(row()!.querySelectorAll("button")).toHaveLength(2);
+    await expect
+      .poll(() => row()?.textContent)
+      .toMatch(/Caretaker · Sent by Sam Okafor · Expires Nov 27, 2026/);
+    await expect.poll(() => row()?.dataset.inviteStatus).toBe("usable");
+    await expect.poll(() => row()?.querySelectorAll("button")).toHaveLength(2);
   });
 
   test("an expired one says so, and can still be sent again", async () => {
@@ -205,7 +209,7 @@ describe("Pending invitations", () => {
       },
     });
     await expect.element(page.getByText(/Declined Nov 18, 2026 · Sent by Sam Okafor/)).toBeVisible();
-    expect(row()!.querySelectorAll("button")).toHaveLength(0);
+    await expect.poll(() => row()?.querySelectorAll("button")).toHaveLength(0);
   });
 
   test("with none waiting, it says so", async () => {

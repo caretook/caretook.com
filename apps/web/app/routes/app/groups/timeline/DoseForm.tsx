@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import type { PlannedDose } from "~/lib/medications/dueDoses";
 import type { DoseDraft } from "~/lib/assistant/quickEntryDraft";
 import type { TimelineEntry } from "~/lib/core/rpc";
+import type { MedicationNameRow } from "~/lib/medications/medications.sync";
 import type { DoseOption } from "./doseFormData";
 
 import { useState } from "react";
@@ -10,9 +11,10 @@ import { isDoseDetails, MEDICATION_LIMITS } from "@caretook/data/schema";
 import { ChoiceGroup, Field } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
 import { formString } from "~/lib/core/form";
-import { DOSE_STATUS_OPTIONS, parseDoseOption } from "./doseFormData";
+import { DOSE_STATUS_OPTIONS, NEW_MEDICATION_OPTION, parseDoseOption } from "./doseFormData";
 import { parseOccurredAt } from "./entryFormData";
 import { issueFor } from "./formIssues";
+import { QuickAddFields } from "./QuickAddFields";
 import { useEntryFormSave } from "./useEntryFormSave";
 
 type Props = {
@@ -20,8 +22,10 @@ type Props = {
   onCancel?: () => void;
 } & (
   | {
-      /** Logging a new dose: the slots due now, then every current medication (`doseSheetOptions`). */
+      /** Logging a new dose: the slots due now, every current medication, then "+ New medication" (`doseSheetOptions`). */
       options: DoseOption[];
+      /** Names the group has used, suggested under the quick add's name. */
+      names?: readonly MedicationNameRow[];
       /** The option to start on; the first when left out. */
       initialOption?: string | null;
       /** Why a dose about to be logged may be a mistake ("already given"), asked before saving. */
@@ -39,6 +43,7 @@ type Props = {
       /** Its medication's label ("Lisinopril 10 mg"). */
       medicationName: string;
       options?: never;
+      names?: never;
       initialOption?: never;
       warningsFor?: never;
       draft?: never;
@@ -49,8 +54,10 @@ type Props = {
 /**
  * Log or edit a dose: the medication (a choice when logging), whether it was
  * given, skipped or refused, the amount (the medication's dose to start
- * with), when (now to start with) and a note. Posts to the sheet route's
- * clientAction, which writes it locally (`logDose`, `updateDose`).
+ * with), when (now to start with) and a note. Logging, the last choice
+ * ("+ New medication") asks for a medication's name, dose and type instead,
+ * and saving adds it with the dose. Posts to the sheet route's clientAction,
+ * which writes it locally (`logDose`, `logDoseOfNewMedication`, `updateDose`).
  */
 export function DoseForm(props: Props) {
   const { entry, onDone, onCancel } = props;
@@ -62,7 +69,11 @@ export function DoseForm(props: Props) {
   );
   const picked = parseDoseOption(choice);
   const medicationId = entry ? (stored?.medicationId ?? "") : picked.medicationId;
-  const doseOf = (value: string) => options.find((o) => o.value === value)?.dose ?? "";
+  // "+ New medication": its dose is the one typed for it.
+  const adding = !entry && choice === NEW_MEDICATION_OPTION;
+  const [newDose, setNewDose] = useState("");
+  const doseOf = (value: string) =>
+    value === NEW_MEDICATION_OPTION ? newDose : (options.find((o) => o.value === value)?.dose ?? "");
   // A slot in a pass logs the pass too, so the dose still answers it after the pass moves.
   const passId = options.find((o) => o.value === choice)?.passId ?? null;
   const draft = props.draft ?? null;
@@ -77,14 +88,23 @@ export function DoseForm(props: Props) {
   const choose = (value: string) => {
     setChoice(value);
     setWarnings([]);
+    // Leaving "+ New medication" unmounts its fields, which start empty on return like the other
+    // drafts here (each choice's own), so its typed dose goes with them.
+    const leaving = choice === NEW_MEDICATION_OPTION && value !== NEW_MEDICATION_OPTION;
+    if (leaving) setNewDose("");
     if (!amount.typed) setAmount({ value: doseOf(value), typed: false });
+  };
+  const typeNewDose = (value: string) => {
+    setNewDose(value);
+    if (!amount.typed) setAmount({ value, typed: false });
   };
   const chooseStatus = (value: DoseStatus) => {
     setStatus(value);
     setWarnings([]);
   };
   const checkWarnings = (event: FormEvent<HTMLFormElement>) => {
-    if (!props.warningsFor) return;
+    // A new medication has no doses to warn about.
+    if (!props.warningsFor || adding) return;
     const occurredAt = parseOccurredAt(formString(new FormData(event.currentTarget), "occurredAt"));
     const found = props.warningsFor({
       medicationId,
@@ -107,15 +127,21 @@ export function DoseForm(props: Props) {
         </p>
       ) : (
         <>
-          <ChoiceGroup
-            name="medicationId"
-            label="Medication"
-            options={options}
-            value={choice}
-            onChange={choose}
-            error={issueFor(issues, "details.medicationId")}
-          />
+          {options.length === 1 && adding ? (
+            // No medications yet: the quick add is the only choice.
+            <input type="hidden" name="medicationId" value={NEW_MEDICATION_OPTION} />
+          ) : (
+            <ChoiceGroup
+              name="medicationId"
+              label="Medication"
+              options={options}
+              value={choice}
+              onChange={choose}
+              error={issueFor(issues, "details.medicationId")}
+            />
+          )}
           {passId && <input type="hidden" name="passId" value={passId} />}
+          {adding && <QuickAddFields names={props.names ?? []} issues={issues} onDoseChange={typeNewDose} />}
         </>
       )}
 

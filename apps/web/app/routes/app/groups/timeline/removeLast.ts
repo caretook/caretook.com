@@ -7,7 +7,7 @@ import { isEntryKind, KIND_META } from "../../../../lib/timeline/entryDisplay";
 // Simple mode's "Remove my last entry" (assistant PRD): after Undo has gone,
 // you can still take back the latest entry you added in the last 30 minutes,
 // then the one before it. Only your own, and never one written for you (a
-// medication change). Pure, so web:unit tests it.
+// medication or condition change). Pure, so web:unit tests it.
 
 /** How long after adding an entry you can remove it from simple mode. */
 export const REMOVE_WINDOW_MS = 30 * 60_000;

@@ -2,9 +2,9 @@ import type { OutsideContact } from "@caretook/data/schema";
 import type { EmergencyMemberRow } from "~/lib/profiles/emergencyList";
 
 import { ContactLines } from "~/components/contact";
+import { Badge, Section, STATUS_TONE } from "~/components/ui";
 import { droppedNotes, emergencyEntries, emergencyPhoneLines } from "~/lib/profiles/emergencyList";
 import { EditSheetLink } from "./DetailsCards";
-import { ProfileCard } from "./ProfileCards";
 
 // The writers' Emergency contacts card (profiles slice 5): the group's one
 // ordered list across members (the phones they share) and outside contacts,
@@ -26,10 +26,10 @@ export function EmergencyCard({
   const entries = emergencyEntries(members, outside);
   const notes = canManage ? droppedNotes(members) : [];
   return (
-    <ProfileCard
+    <Section
       id="emergency"
       title="Emergency contacts"
-      action={
+      actions={
         canManage && <EditSheetLink groupId={groupId} sheet="emergency" label="Edit emergency contacts" />
       }
     >
@@ -56,9 +56,9 @@ export function EmergencyCard({
                     {entry.name}
                   </span>
                   {entry.isPrimary && (
-                    <span className="badge badge-sm badge-primary" data-badge="primary">
+                    <Badge tone={STATUS_TONE.current} data-badge="primary">
                       Primary contact
-                    </span>
+                    </Badge>
                   )}
                 </p>
                 {entry.relationship && <p className="text-sm">{entry.relationship}</p>}
@@ -70,6 +70,6 @@ export function EmergencyCard({
       ) : (
         <p className="text-base-content/70 text-sm">No emergency contacts yet.</p>
       )}
-    </ProfileCard>
+    </Section>
   );
 }

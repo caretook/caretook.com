@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./schema": "./src/db/schema/index.ts",
     "./errors": "./src/errors/index.ts",
-    "./permissions": "./src/permissions/index.ts"
+    "./permissions": "./src/permissions/index.ts",
+    "./series": "./src/db/schema/appointments/series.ts"
   },
   "scripts": {
     "typecheck": "tsc",
@@ -15,17 +16,22 @@
     "datastore:migrate": "tsx scripts/migrate.ts",
     "datastore:seed": "tsx scripts/seed.ts",
     "datastore:clear": "tsx scripts/clear.ts",
+    "datastore:reset:staging": "tsx scripts/resetStaging.ts",
     "datastore:powersync": "tsx scripts/powersync.ts",
     "datastore:studio": "drizzle-kit studio",
     "admin:grant": "tsx scripts/adminGrant.ts",
     "db:roles": "tsx scripts/dbRoles.ts",
     "db:access": "tsx scripts/dbAccess.ts",
-    "auth:rotate-jwks": "tsx scripts/authRotateJwks.ts"
+    "auth:rotate-jwks": "tsx scripts/authRotateJwks.ts",
+    "calendar:google-smoke": "tsx scripts/googleSmoke.ts"
   },
   "dependencies": {
+    "@googleapis/calendar": "20.2.0",
     "drizzle-orm": "^0.45.4",
     "drizzle-zod": "^0.8.3",
+    "google-auth-library": "11.3.4",
     "pg": "^8.23.1",
+    "rrule": "2.8.1",
     "typescript-errors": "^1.1.1",
     "yjs": "13.6.33",
     "zod": "^4.6.7"

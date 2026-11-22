@@ -46,6 +46,7 @@ export const openSync = async (userId: string): Promise<SyncDb> => {
           carePeriods: await import("../care-periods/carePeriods.sync"),
           medicationPasses: await import("../medications/medicationPasses.sync"),
           dueDoses: await import("../medications/dueDoses.sync"),
+          series: await import("../appointments/series.sync"),
         });
       }
       // The search index follows the database (built in the background).
@@ -186,15 +187,27 @@ export const watchLiveQuery = <T>(key: string, onRows: (rows: T[]) => void): (()
  */
 export const useLiveQuery = <T>(sql: string, params: unknown[], initial: T[]): T[] => {
   const key = JSON.stringify([sql, params]);
-  // New loader data (a navigation) replaces whatever the watch last said.
-  // When only the query changes (a bigger limit), the old rows stay up
-  // until the new results arrive, so the list doesn't jump.
-  const [state, setState] = useState({ initial, rows: initial });
-  if (state.initial !== initial) setState({ initial, rows: initial });
+  // New loader data (a navigation) replaces whatever the watch last said,
+  // unless the watch already answered this same query: it stays live (its
+  // effect doesn't rerun for the same key), so its rows are the current ones
+  // and resetting to `initial` would leave them stale until the next change
+  // (B-235: re-picking the filter that's on). When only the query changes
+  // (a bigger limit), the old rows stay up until the new results arrive, so
+  // the list doesn't jump.
+  const [state, setState] = useState<{ initial: T[]; rows: T[]; key: string | null }>({
+    initial,
+    rows: initial,
+    key: null,
+  });
+  let current = state;
+  if (state.initial !== initial) {
+    current = state.key === key ? { ...state, initial } : { initial, rows: initial, key: null };
+    setState(current);
+  }
 
-  useEffect(() => watchLiveQuery<T>(key, (rows) => setState((s) => ({ ...s, rows }))), [key]);
+  useEffect(() => watchLiveQuery<T>(key, (rows) => setState((s) => ({ ...s, rows, key }))), [key]);
 
-  return state.initial === initial ? state.rows : initial;
+  return current.rows;
 };
 
 export type SyncState = { connected: boolean; uploading: boolean; downloading: boolean; hasSynced: boolean };

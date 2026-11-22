@@ -1,18 +1,25 @@
 import { Pencil, Rows3, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
+import { createRoutesStub, Link, Outlet, useLocation, useNavigate } from "react-router";
+import { render } from "vitest-browser-react";
 import { describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import type { FilterMenuProps } from "./index";
+
 import { renderInRouter } from "../../../test/device";
 import {
   ChipGroup,
   ChoiceGroup,
   ConfirmDialog,
   Field,
+  FilterMenu,
+  FilterMenuChips,
   IconButton,
   Menu,
   Popover,
   SEPARATOR,
   Sheet,
+  TabNav,
 } from "./index";
 import { DateTimeField } from "./date";
 import { Tooltip } from "./tooltip";
@@ -39,6 +46,29 @@ const base100 = () => {
 };
 
 const active = () => document.activeElement;
+
+/** Back (history −1), as the browser's button does. */
+let back = () => {};
+function BackProbe() {
+  const navigate = useNavigate();
+  useLayoutEffect(() => {
+    back = () => void navigate(-1);
+  }, [navigate]);
+  return null;
+}
+
+const SCHEDULE = "/m/schedule";
+const LIST = "/m/list";
+const PASSES = "/m/passes";
+const TABS = [
+  { label: "Schedule", to: SCHEDULE },
+  {
+    label: "Medications",
+    to: LIST,
+    match: (path: string) => path.startsWith(LIST) || path.startsWith("/m/med-"),
+  },
+  { label: "Passes", to: PASSES },
+];
 
 describe.each(LAYOUTS)("at $width, $theme", ({ width, theme }) => {
   test("Menu: a tap opens it named, with its items; a choice closes it and focus returns", async () => {
@@ -131,6 +161,75 @@ describe.each(LAYOUTS)("at $width, $theme", ({ width, theme }) => {
     await userEvent.keyboard("{Escape}");
     await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
     await expect.poll(active).toBe(trigger.element());
+  });
+
+  test("Menu: a group expands in place with a press and with Enter, keeps the menu open, and starts closed when the menu reopens", async () => {
+    const onWeight = vi.fn();
+    const { screen } = await renderInRouter(
+      <Menu
+        label="Add"
+        items={[
+          { id: "note", label: "Note", onAction: () => undefined },
+          {
+            type: "group",
+            id: "vitals",
+            label: "Vitals",
+            icon: Rows3,
+            items: [
+              { id: "weight", label: "Weight", onAction: onWeight },
+              { id: "pulse", label: "Pulse", onAction: () => undefined },
+            ],
+          },
+        ]}
+      >
+        +
+      </Menu>,
+      { width, theme },
+    );
+    const trigger = screen.getByRole("button", { name: "Add" });
+    const menu = page.getByRole("menu", { name: "Add" });
+    const group = page.getByRole("menuitem", { name: "Vitals" });
+    const weight = page.getByRole("menuitem", { name: "Weight" });
+    const names = () => [...document.querySelectorAll('[role="menuitem"]')].map((el) => el.textContent);
+
+    // A press: open, then closed again; the menu stays open throughout.
+    await userEvent.click(trigger);
+    await expect.element(group).toHaveAttribute("aria-expanded", "false");
+    expect(names()).toEqual(["Note", "Vitals"]);
+    await userEvent.click(group);
+    await expect.element(group).toHaveAttribute("aria-expanded", "true");
+    expect(names()).toEqual(["Note", "Vitals", "Weight", "Pulse"]);
+    expect(weight.element().hasAttribute("data-menu-group-item")).toBe(true);
+    await expect.element(menu).toBeVisible();
+    await userEvent.click(group);
+    await expect.element(group).toHaveAttribute("aria-expanded", "false");
+    await expect.element(weight).not.toBeInTheDocument();
+    await expect.element(menu).toBeVisible();
+
+    // Enter: expands it, focus stays on it; the arrow reaches its items, and one acts and closes the menu.
+    await userEvent.keyboard("{Escape}");
+    await expect.element(menu).not.toBeInTheDocument();
+    (trigger.element() as HTMLElement).focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(active).toBe(page.getByRole("menuitem", { name: "Note" }).element());
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(active).toBe(group.element());
+    await userEvent.keyboard("{Enter}");
+    await expect.element(group).toHaveAttribute("aria-expanded", "true");
+    await expect.element(menu).toBeVisible();
+    expect(active()).toBe(group.element());
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(active).toBe(weight.element());
+    await userEvent.keyboard("{Enter}");
+    expect(onWeight).toHaveBeenCalledOnce();
+    await expect.element(menu).not.toBeInTheDocument();
+    await expect.poll(active).toBe(trigger.element());
+
+    // Reopened: the group is closed again.
+    await userEvent.click(trigger);
+    await expect.element(group).toHaveAttribute("aria-expanded", "false");
+    expect(names()).toEqual(["Note", "Vitals"]);
+    await userEvent.keyboard("{Escape}");
   });
 
   test("Menu: a link item navigates through the router", async () => {
@@ -390,6 +489,111 @@ describe.each(LAYOUTS)("at $width, $theme", ({ width, theme }) => {
       .element(page.getByRole("link", { name: "Search this care group" }))
       .toHaveAttribute("href", "/search");
   });
+  test("TabNav: a named nav of links; the current tab is marked, a tap and Back move it, keys reach and follow each", async () => {
+    const { location } = await renderInRouter(
+      <>
+        <BackProbe />
+        <button type="button">Before</button>
+        <TabNav label="Medications views" tabs={TABS} />
+      </>,
+      { url: SCHEDULE, width, theme },
+    );
+    const nav = page.getByRole("navigation", { name: "Medications views" });
+    const tab = (name: string) => nav.getByRole("link", { name });
+    await expect.element(tab("Schedule")).toHaveAttribute("aria-current", "page");
+    await expect.element(tab("Medications")).not.toHaveAttribute("aria-current");
+    await expect.element(tab("Passes")).not.toHaveAttribute("aria-current");
+
+    await userEvent.click(tab("Medications"));
+    await expect.poll(location).toBe(LIST);
+    await expect.element(tab("Medications")).toHaveAttribute("aria-current", "page");
+    await expect.element(tab("Schedule")).not.toHaveAttribute("aria-current");
+
+    back();
+    await expect.poll(location).toBe(SCHEDULE);
+    await expect.element(tab("Schedule")).toHaveAttribute("aria-current", "page");
+    await expect.element(tab("Medications")).not.toHaveAttribute("aria-current");
+
+    // Tab reaches each link in order; Enter follows the focused one.
+    page.getByRole("button", { name: "Before" }).element().focus();
+    await userEvent.keyboard("{Tab}");
+    expect(active()).toBe(tab("Schedule").element());
+    await userEvent.keyboard("{Tab}");
+    expect(active()).toBe(tab("Medications").element());
+    await userEvent.keyboard("{Tab}");
+    expect(active()).toBe(tab("Passes").element());
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(location).toBe(PASSES);
+    await expect.element(tab("Passes")).toHaveAttribute("aria-current", "page");
+  });
+
+  test("TabNav: a path under a tab keeps it current, and `match` claims other paths", async () => {
+    const { location } = await renderInRouter(
+      <>
+        <TabNav label="Medications views" tabs={TABS} />
+        <Link to={`${LIST}/new`}>Add over the list</Link>
+        <Link to="/m/med-1">A medication</Link>
+        <Link to="/m/other">Elsewhere</Link>
+      </>,
+      { url: SCHEDULE, width, theme },
+    );
+    const nav = page.getByRole("navigation", { name: "Medications views" });
+    const marked = () =>
+      [...nav.element().querySelectorAll('[aria-current="page"]')].map((el) => el.textContent);
+
+    await userEvent.click(page.getByRole("link", { name: "Add over the list" }));
+    await expect.poll(location).toBe(`${LIST}/new`);
+    expect(marked()).toEqual(["Medications"]);
+
+    await userEvent.click(page.getByRole("link", { name: "A medication" }));
+    await expect.poll(location).toBe("/m/med-1");
+    expect(marked()).toEqual(["Medications"]);
+
+    await userEvent.click(page.getByRole("link", { name: "Elsewhere" }));
+    await expect.poll(location).toBe("/m/other");
+    expect(marked()).toEqual([]);
+  });
+});
+
+describe("TabNav pending", () => {
+  // Tabs whose routes are real: the list's loader never resolves.
+  function Page() {
+    return (
+      <>
+        <TabNav label="Medications views" tabs={TABS} />
+        <Link to={SCHEDULE}>Stay here</Link>
+        <Outlet />
+      </>
+    );
+  }
+  test("a tap marks the tab at once while its loader is pending, a superseded navigation moves it back, and the links prefetch", async () => {
+    const Stub = createRoutesStub([
+      {
+        id: "page",
+        path: "/m",
+        Component: Page,
+        children: [
+          { path: "schedule", Component: () => null },
+          { path: "list", loader: () => new Promise(() => {}), Component: () => null },
+          { path: "passes", Component: () => null },
+        ],
+      },
+    ]);
+    await render(<Stub initialEntries={[SCHEDULE]} />);
+    const nav = page.getByRole("navigation", { name: "Medications views" });
+    const tab = (name: string) => nav.getByRole("link", { name });
+    await expect.element(tab("Schedule")).toHaveAttribute("aria-current", "page");
+    // The links prefetch their targets.
+    await expect.poll(() => document.querySelectorAll('link[rel="prefetch"]').length).toBeGreaterThan(0);
+
+    await userEvent.click(tab("Medications"));
+    await expect.element(tab("Medications")).toHaveAttribute("aria-current", "page");
+    await expect.element(tab("Schedule")).not.toHaveAttribute("aria-current");
+
+    await userEvent.click(page.getByRole("link", { name: "Stay here" }));
+    await expect.element(tab("Schedule")).toHaveAttribute("aria-current", "page");
+    await expect.element(tab("Medications")).not.toHaveAttribute("aria-current");
+  });
 });
 
 describe("DateTimeField", () => {
@@ -439,3 +643,133 @@ const renderField = async (options: { width: number; theme: "light" | "dark" }) 
     rerenderField: (props: { error?: string; warning?: string }) => screen.rerender(field(props)),
   };
 };
+
+describe("FilterMenu", () => {
+  // A list with two filters in the URL, `?size=` (S, L) and `?color=` (Red), and a search (`?q=`) the menu keeps.
+  const withParam = (search: string, key: string, value: string | null) => {
+    const params = new URLSearchParams(search);
+    if (value) params.set(key, value);
+    else params.delete(key);
+    const text = params.toString();
+    return text ? `?${text}` : "";
+  };
+  const filters = (search: string, extra = false): FilterMenuProps => {
+    const params = new URLSearchParams(search);
+    return {
+      label: "Filter shirts",
+      clear: withParam(withParam(search, "size", null), "color", null),
+      sections: [
+        {
+          id: "size",
+          title: "Size",
+          current: params.get("size") ?? "any",
+          defaultId: "any",
+          options: [
+            { id: "any", label: "Any size", search: withParam(search, "size", null) },
+            { id: "s", label: "Small", search: withParam(search, "size", "s") },
+            { id: "l", label: "Large", search: withParam(search, "size", "l") },
+          ],
+        },
+        {
+          id: "color",
+          title: "Color",
+          current: params.get("color") ?? "any",
+          defaultId: "any",
+          options: [
+            { id: "any", label: "Any color", search: withParam(search, "color", null) },
+            { id: "red", label: "Red", search: withParam(search, "color", "red") },
+          ],
+        },
+      ],
+      chips: extra ? [{ id: "maker", label: "By Ann", search: withParam(search, "maker", null) }] : [],
+    };
+  };
+  function Shirts({ extra = false }: { extra?: boolean }) {
+    const { search } = useLocation();
+    const props = filters(search, extra);
+    return (
+      <>
+        <BackProbe />
+        <Link to="/shirts?q=tee">Shirts</Link>
+        <FilterMenu {...props} />
+        <FilterMenuChips {...props} />
+      </>
+    );
+  }
+  const button = () => page.getByRole("button", { name: /^Filter(, \d+ on)?$/ });
+  const badge = () => document.querySelector("[data-filter-count]")?.textContent;
+  const chips = () =>
+    [...document.querySelectorAll('nav[aria-label="Filters on"] a')].map((a) => a.getAttribute("aria-label"));
+
+  test("named Filter with no badge and no chips; Filter, 2 on with a badge of 2 and a chip each", async () => {
+    const { screen } = await renderInRouter(<Shirts />, { url: "/shirts" });
+    await expect.element(button()).toHaveAccessibleName("Filter");
+    await expect.element(button()).toHaveAttribute("title", "Filter");
+    expect(badge()).toBeUndefined();
+    expect(document.querySelector('nav[aria-label="Filters on"]')).toBeNull();
+    await screen.unmount();
+
+    await renderInRouter(<Shirts />, { url: "/shirts?size=l&color=red" });
+    await expect.element(button()).toHaveAccessibleName("Filter, 2 on");
+    await expect.element(button()).toHaveAttribute("title", "Filter, 2 on");
+    expect(badge()).toBe("2");
+    expect(chips()).toEqual(["Large: clear this filter", "Red: clear this filter"]);
+  });
+
+  test("Enter opens it named, each section's current option checked; arrows move; Escape closes with focus back", async () => {
+    await renderInRouter(<Shirts />, { url: "/shirts?size=s" });
+    (button().element() as HTMLElement).focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByRole("menu", { name: "Filter shirts" })).toBeVisible();
+    await expect.element(page.getByRole("menuitemradio", { name: "Small" })).toBeChecked();
+    await expect.element(page.getByRole("menuitemradio", { name: "Any size" })).not.toBeChecked();
+    await expect.element(page.getByRole("menuitemradio", { name: "Any color" })).toBeChecked();
+    await expect.poll(active).toBe(page.getByRole("menuitemradio", { name: "Any size" }).element());
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(active).toBe(page.getByRole("menuitemradio", { name: "Small" }).element());
+    await userEvent.keyboard("{Escape}");
+    await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
+    await expect.poll(active).toBe(button().element());
+  });
+
+  test("a choice goes to its search in place of the entry (Back skips it) and closes the menu", async () => {
+    const { location } = await renderInRouter(<Shirts />, { url: "/start" });
+    await userEvent.click(page.getByRole("link", { name: "Shirts" }));
+    await expect.poll(location).toBe("/shirts?q=tee");
+    await userEvent.click(button());
+    await userEvent.click(page.getByRole("menuitemradio", { name: "Red" }));
+    await expect.poll(location).toBe("/shirts?q=tee&color=red");
+    await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
+    await expect.element(button()).toHaveAccessibleName("Filter, 1 on");
+    await userEvent.click(button());
+    await userEvent.click(page.getByRole("menuitemradio", { name: "Large" }));
+    await expect.poll(location).toBe("/shirts?q=tee&color=red&size=l");
+    back();
+    await expect.poll(location).toBe("/start");
+  });
+
+  test("a chip's ✕ clears only its filter; Clear filters (only while any is on) keeps the search; extra chips show, uncounted", async () => {
+    const { location } = await renderInRouter(<Shirts extra />, {
+      url: "/shirts?q=tee&size=l&color=red&maker=ann",
+    });
+    await expect.element(button()).toHaveAccessibleName("Filter, 2 on");
+    expect(chips()).toEqual([
+      "Large: clear this filter",
+      "Red: clear this filter",
+      "By Ann: clear this filter",
+    ]);
+    await userEvent.click(page.getByRole("link", { name: "Red: clear this filter" }));
+    await expect.poll(location).toBe("/shirts?q=tee&size=l&maker=ann");
+    await expect.element(button()).toHaveAccessibleName("Filter, 1 on");
+
+    await userEvent.click(button());
+    await userEvent.click(page.getByRole("menuitem", { name: "Clear filters" }));
+    await expect.poll(location).toBe("/shirts?q=tee&maker=ann");
+    await expect.element(button()).toHaveAccessibleName("Filter");
+    expect(chips()).toEqual(["By Ann: clear this filter"]);
+    await userEvent.click(button());
+    await expect.element(page.getByRole("menu")).toBeVisible();
+    expect(page.getByRole("menuitem", { name: "Clear filters" }).elements()).toEqual([]);
+    await userEvent.keyboard("{Escape}");
+  });
+});

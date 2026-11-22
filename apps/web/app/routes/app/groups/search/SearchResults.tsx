@@ -9,7 +9,13 @@ import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { resultCountText } from "~/lib/search/searchResults";
 import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
-import { EntryResultItem, MedicationResultItem, ProviderResultItem, TaskResultItem } from "./ResultItems";
+import {
+  ConditionResultItem,
+  EntryResultItem,
+  MedicationResultItem,
+  ProviderResultItem,
+  TodoResultItem,
+} from "./ResultItems";
 
 /**
  * Everything under the field: one polite status line (the count, "No
@@ -37,7 +43,7 @@ export function SearchResults({
   const search = useMemo(() => parseSearch(data.q), [data.q]);
   // Medications' schedules read by pass name.
   const passes = useSchedulePasses(groupId);
-  // Tasks' due days are the recipient's.
+  // Todos' due days are the recipient's.
   const timeZone = useGroup().recipient?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   const status = unavailable
     ? "Search isn't available on this device right now."
@@ -91,13 +97,19 @@ export function SearchResults({
                   )
                 );
               }
-              if (section.type === "task") {
-                const task = data.tasks[hit.id];
+              if (section.type === "condition") {
+                const condition = data.conditions[hit.id];
                 return (
-                  task && (
-                    <TaskResultItem
+                  condition && <ConditionResultItem key={hit.id} condition={condition} search={search} />
+                );
+              }
+              if (section.type === "todo") {
+                const todo = data.todos[hit.id];
+                return (
+                  todo && (
+                    <TodoResultItem
                       key={hit.id}
-                      task={task}
+                      todo={todo}
                       notes={data.notes[hit.id]}
                       now={now}
                       timeZone={timeZone}

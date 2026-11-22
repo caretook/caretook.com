@@ -1,52 +1,17 @@
-import type { ReactNode } from "react";
 import type { RecipientProfile } from "~/lib/profiles/profile.sync";
 
+import { Section } from "~/components/ui";
 import { basicLines } from "~/lib/profiles/recipientDisplay";
 
-// The profile's cards every member sees: the medical basics, and the note for
-// helpers. Each is a titled region (`data-section`), like the writers' cards
-// later slices add after them.
-
-export function ProfileCard({
-  id,
-  title,
-  action,
-  children,
-}: {
-  id: string;
-  title: string;
-  /** Beside the title: the card's Edit, for writers. */
-  action?: ReactNode;
-  children: ReactNode;
-}) {
-  const headingId = `profile-${id}-heading`;
-  const heading = (
-    <h2 id={headingId} className="card-title text-base">
-      {title}
-    </h2>
-  );
-  return (
-    <section aria-labelledby={headingId} data-section={id} className="card bg-base-100 shadow-sm">
-      <div className="card-body gap-3">
-        {action ? (
-          <div className="flex items-start justify-between gap-3">
-            {heading}
-            {action}
-          </div>
-        ) : (
-          heading
-        )}
-        {children}
-      </div>
-    </section>
-  );
-}
+// The profile's sections every member sees: the medical basics, and the note
+// for helpers. Each is a titled band (`Section`, `data-section`), like the
+// writers' sections after them.
 
 /** Code status, blood type, language and pronouns: each only when set. */
 export function BasicsCard({ profile }: { profile: RecipientProfile }) {
   const lines = basicLines(profile);
   return (
-    <ProfileCard id="basics" title="Basics">
+    <Section id="basics" title="Basics">
       {lines.length ? (
         <dl className="grid grid-cols-2 gap-3">
           {lines.map((line) => (
@@ -68,7 +33,7 @@ export function BasicsCard({ profile }: { profile: RecipientProfile }) {
       ) : (
         <p className="text-base-content/70 text-sm">Nothing added yet.</p>
       )}
-    </ProfileCard>
+    </Section>
   );
 }
 
@@ -76,7 +41,7 @@ export function BasicsCard({ profile }: { profile: RecipientProfile }) {
 export function NoteCard({ profile, canEdit }: { profile: RecipientProfile; canEdit: boolean }) {
   if (!profile.notes && !canEdit) return null;
   return (
-    <ProfileCard id="note" title="Note for helpers">
+    <Section id="note" title="Note for helpers">
       {profile.notes ? (
         <p className="whitespace-pre-line" data-note="">
           {profile.notes}
@@ -86,6 +51,6 @@ export function NoteCard({ profile, canEdit }: { profile: RecipientProfile; canE
           No note yet. Add what anyone helping should know, such as how they hear or get around.
         </p>
       )}
-    </ProfileCard>
+    </Section>
   );
 }

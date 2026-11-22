@@ -1,3 +1,4 @@
+import { Page, PageHeader } from "~/components/ui";
 import type { Route } from "./+types/route";
 
 import type { GroupRow } from "~/lib/timeline/timeline.sync";
@@ -49,8 +50,8 @@ export default function AppHome({ loaderData }: Route.ComponentProps) {
   const groups = useLiveQuery<GroupRow>(query.sql, query.params, loaderData.rows).map(toMyGroup);
   if (!loaderData.synced) return <FirstSyncPending />;
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-6">
-      <h1 className="text-2xl font-semibold">Your care groups</h1>
+    <Page>
+      <PageHeader title="Your care groups" />
       <PendingRequests requests={loaderData.requests} groupIds={groups.map((g) => g.id)} />
       {groups.length === 0 ? (
         <p className="text-base-content/70">
@@ -71,6 +72,6 @@ export default function AppHome({ loaderData }: Route.ComponentProps) {
         </ul>
       )}
       <NewGroupLink />
-    </main>
+    </Page>
   );
 }

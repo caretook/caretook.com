@@ -20,7 +20,10 @@ const server = createServer((req, res) => {
   if (req.url === "/api/auth/jwks") return res.writeHead(200).end(JSON.stringify({ keys: [{ kid: "k" }] }));
   if (req.url === "/rpc/me/get")
     return res.writeHead(401).end(JSON.stringify({ json: { code: "UNAUTHORIZED" } }));
-  if (req.url === "/api/cron/outbox") return res.writeHead(cronStatus).end();
+  if (req.url === "/api/cron/outbox" || req.url === "/api/cron/calendar")
+    return res.writeHead(cronStatus).end();
+  if (req.url === "/mcp")
+    return res.writeHead(401, { "www-authenticate": 'Bearer resource_metadata="x"' }).end();
   if (req.url === "/probes/liveness") return res.writeHead(200).end("{}");
   res.writeHead(404).end();
 });

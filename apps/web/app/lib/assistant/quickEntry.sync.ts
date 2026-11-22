@@ -1,4 +1,4 @@
-import type { AssistantAction } from "@caretook/data/schema";
+import type { AssistantAction, NoteMention } from "@caretook/data/schema";
 import type { ActionResult, FieldIssue } from "../core/api";
 import type { SyncDb } from "../sync/index";
 import type { PassRow } from "../medications/medicationPasses.sync";
@@ -25,8 +25,8 @@ import {
 import { doseRows, medicationQuery, recipientQuery, toMedication } from "../medications/medications.sync";
 import { toPasses } from "../medications/medicationPasses.sync";
 import { providerQuery, toProvider } from "../providers/providers.sync";
-import { noteDocuments, noteUpdates, tasks, timelineEntries, timelineEntryProviders } from "../sync/schema";
-import { plannedTask } from "../tasks/tasks.sync";
+import { noteDocuments, noteUpdates, todos, timelineEntries, timelineEntryProviders } from "../sync/schema";
+import { plannedTodo } from "../todos/todos.sync";
 import {
   contentColumns,
   forbidden,
@@ -46,17 +46,17 @@ import {
 // schemas, the writer role, no future time on a past-only kind, a live
 // medication or provider in the group. A pass (`givePass`) is the medication
 // strip's Given all: the doses `givenAllWrites` plans for the pass's open
-// slots on its day, as one round. A task (`addTask`) is checked as
-// `createTask` checks it (`plannedTask`) and written in the same transaction;
+// slots on its day, as one round. A todo (`addTodo`) is checked as
+// `createTodo` checks it (`plannedTodo`) and written in the same transaction;
 // it isn't an entry. A refused action refuses the batch, naming the action
 // it was.
 
 export type RunActionsResult =
   | {
       ok: true;
-      /** Every entry (and task) written, in order (a pass writes one per medication): what Undo removes. */
+      /** Every entry (and todo) written, in order (a pass writes one per medication): what Undo removes. */
       ids: string[];
-      /** Each action's entries (an `addTask`'s task), in the actions' order. */
+      /** Each action's entries (an `addTodo`'s todo), in the actions' order. */
       byAction: string[][];
     }
   | { ok: false; error: string; issues: FieldIssue[]; index: number | null };
@@ -65,14 +65,15 @@ type EntryInsert = typeof timelineEntries.$inferInsert;
 
 type Rows =
   | EntryRows
-  /** A task (not an entry). */
-  | { task: typeof tasks.$inferInsert };
+  /** A todo (not an entry). */
+  | { todo: typeof todos.$inferInsert };
 
 type EntryRows = {
   entry: EntryInsert;
   /** More entries the action writes with it (a pass's other doses). */
   more?: EntryInsert[];
-  document?: { text: string | null };
+  /** A note's or event's live document: a note's text, with its providers mentioned. */
+  document?: { text: string | null; mentions: NoteMention[] };
   providerIds?: string[];
 };
 
@@ -86,7 +87,7 @@ const refuse = (error: string, index: number | null, issues: FieldIssue[] = []):
 });
 
 /** The content an action writes, before the role and group checks (a pass's doses are planned apart). */
-const contentOf = (action: Exclude<AssistantAction, { type: "givePass" | "addTask" }>, timeZone: string) => {
+const contentOf = (action: Exclude<AssistantAction, { type: "givePass" | "addTodo" }>, timeZone: string) => {
   switch (action.type) {
     case "logVital":
       return {
@@ -176,11 +177,11 @@ export const runActions = async (
       planned.push({ entry: first!, more });
       continue;
     }
-    if (action.type === "addTask") {
+    if (action.type === "addTodo") {
       const { type: _type, ...input } = action;
-      const task = await plannedTask(db, groupId, input);
-      if (!task.ok) return refuse(task.error, index, task.issues);
-      planned.push({ task: task.row });
+      const todo = await plannedTodo(db, groupId, input);
+      if (!todo.ok) return refuse(todo.error, index, todo.issues);
+      planned.push({ todo: todo.row });
       continue;
     }
     const content = timelineEntryContentZSchema.safeParse(contentOf(action, timeZone));
@@ -197,12 +198,15 @@ export const runActions = async (
       if (!medication || medication.deletedAt || medication.groupId !== groupId)
         return refuse("That medication is gone. It may have been deleted.", index);
     }
-    const providerIds = action.type === "addEvent" ? [...new Set(action.providerIds)] : [];
+    const providerIds =
+      action.type === "addEvent" || action.type === "addNote" ? [...new Set(action.providerIds)] : [];
+    const mentions: NoteMention[] = [];
     for (const providerId of providerIds) {
       const [row] = await readRows<ProviderRow>(db, providerQuery(providerId));
       const provider = row ? toProvider(row) : null;
       if (!provider || provider.deletedAt || provider.groupId !== groupId)
         return refuse("That provider is gone. It may have been deleted.", index);
+      mentions.push({ id: provider.id, label: provider.name });
     }
 
     const id = crypto.randomUUID();
@@ -218,17 +222,17 @@ export const runActions = async (
         ...audit,
       },
       // A note's or event's text is its live document, written with it.
-      ...((action.type === "addNote" || action.type === "addEvent") && {
-        document: { text: action.type === "addNote" ? action.text : null },
-      }),
+      // A note mentions its providers in it; both link them.
+      ...(action.type === "addNote" && { document: { text: action.text, mentions } }),
+      ...(action.type === "addEvent" && { document: { text: null, mentions: [] } }),
       providerIds,
     });
   }
 
   await db.drizzle.transaction(async (tx) => {
     for (const rows of planned) {
-      if ("task" in rows) {
-        await tx.insert(tasks).values(rows.task);
+      if ("todo" in rows) {
+        await tx.insert(todos).values(rows.todo);
         continue;
       }
       const { entry, more, document, providerIds } = rows;
@@ -247,7 +251,7 @@ export const runActions = async (
         });
         if (document.text?.trim()) {
           // Devices can't write a snapshot: the text goes in as the document's first update.
-          const doc = noteDocFromText(document.text);
+          const doc = noteDocFromText(document.text, document.mentions);
           await tx.insert(noteUpdates).values({
             id: crypto.randomUUID(),
             groupId,
@@ -270,7 +274,7 @@ export const runActions = async (
     }
   });
   const byAction = planned.map((p) =>
-    "task" in p ? [p.task.id] : [p.entry.id, ...(p.more ?? []).map((r) => r.id)],
+    "todo" in p ? [p.todo.id] : [p.entry.id, ...(p.more ?? []).map((r) => r.id)],
   );
   return { ok: true, ids: byAction.flat(), byAction };
 };
@@ -312,21 +316,21 @@ const passDoses = async (
 };
 
 /**
- * Soft delete exactly these entries (and tasks: quick entry's line can add
+ * Soft delete exactly these entries (and todos: quick entry's line can add
  * one), in one local transaction (quick entry's Undo: the line it just
  * saved). Ones already gone are left alone; any in a group you can't write
  * refuses the lot.
  */
 export const removeEntries = async (db: SyncDb, ids: readonly string[]): Promise<ActionResult> => {
-  const live: { id: string; groupId: string; task: boolean }[] = [];
+  const live: { id: string; groupId: string; todo: boolean }[] = [];
   for (const id of new Set(ids)) {
     // Any kind (doses and medication changes too), so not through `toTimelineEntry`.
-    const [row] = await readRows<{ id: string; group_id: string | null; task: number }>(db, {
-      sql: `SELECT id, group_id, 0 AS task FROM timeline_entry WHERE id = ? AND deleted_at IS NULL
-            UNION ALL SELECT id, group_id, 1 AS task FROM task WHERE id = ? AND deleted_at IS NULL`,
+    const [row] = await readRows<{ id: string; group_id: string | null; todo: number }>(db, {
+      sql: `SELECT id, group_id, 0 AS todo FROM timeline_entry WHERE id = ? AND deleted_at IS NULL
+            UNION ALL SELECT id, group_id, 1 AS todo FROM todo WHERE id = ? AND deleted_at IS NULL`,
       params: [id, id],
     });
-    if (row?.group_id) live.push({ id: row.id, groupId: row.group_id, task: !!row.task });
+    if (row?.group_id) live.push({ id: row.id, groupId: row.group_id, todo: !!row.todo });
   }
   for (const groupId of new Set(live.map((e) => e.groupId))) {
     const group = await groupFor(db, groupId);
@@ -336,11 +340,11 @@ export const removeEntries = async (db: SyncDb, ids: readonly string[]): Promise
   const now = nowTimestamp();
   await db.drizzle.transaction(async (tx) => {
     for (const entry of live)
-      if (entry.task)
+      if (entry.todo)
         await tx
-          .update(tasks)
+          .update(todos)
           .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
-          .where(eq(tasks.id, entry.id));
+          .where(eq(todos.id, entry.id));
       else
         await tx
           .update(timelineEntries)

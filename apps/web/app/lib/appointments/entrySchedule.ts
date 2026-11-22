@@ -1,7 +1,13 @@
 import type { TimedEntry } from "./upcoming";
 
 import { CalendarDateTime, toZoned } from "@internationalized/date";
-import { dayStart, localDate } from "@caretook/data/schema";
+import {
+  DEVICE_FUTURE_SKEW_MS,
+  dayStart,
+  FUTURE_DATE_MESSAGE,
+  isTooFarAhead,
+  localDate,
+} from "@caretook/data/schema";
 import { dayLabel, localTimeZone } from "../core/format";
 import { timeRange } from "./upcomingLabels";
 
@@ -70,6 +76,10 @@ export const defaultEnd = (schedule: Schedule) => new Date(ms(schedule.occurredA
 export const endError = (schedule: Schedule) =>
   schedule.endsAt && ms(schedule.endsAt) <= ms(schedule.occurredAt) ? END_BEFORE_START : null;
 
+/** A note's start field error: a note is what happened, so it can't be ahead of now (events can). */
+export const startError = (kind: "note" | "event", schedule: Schedule, now = new Date()) =>
+  isTooFarAhead(kind, schedule.occurredAt, now, DEVICE_FUTURE_SKEW_MS) ? FUTURE_DATE_MESSAGE : null;
+
 const sameInstant = (a: string | null, b: string | null) => (a && b ? ms(a) === ms(b) : a === b);
 
 export const sameSchedule = (a: Schedule, b: Schedule) =>
@@ -78,10 +88,10 @@ export const sameSchedule = (a: Schedule, b: Schedule) =>
 /**
  * What to save when the chip closes: the edited schedule, or null when
  * nothing changed, or when its end is before its start (closing then keeps
- * what was saved; Done stays open to show the error).
+ * what was saved; Done stays open to show the error), or when a note's start is ahead of now.
  */
-export const scheduleToSave = (edited: Schedule, saved: Schedule) =>
-  endError(edited) || sameSchedule(edited, saved) ? null : edited;
+export const scheduleToSave = (edited: Schedule, saved: Schedule, kind: "note" | "event" = "event") =>
+  endError(edited) || startError(kind, edited) || sameSchedule(edited, saved) ? null : edited;
 
 type Where = { locale?: string; timeZone?: string };
 

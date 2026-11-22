@@ -32,9 +32,9 @@ import {
 // upload as a PATCH. Past events can be cancelled too. The server records
 // who cancelled.
 
-/** Cancel an event now, with an optional reason. */
+/** Cancel an event now, with an optional reason. A series visit is cancelled on its own (detached). */
 export const cancelEvent = (db: SyncDb, id: string, reason?: string | null): Promise<ActionResult> =>
-  updateEntry(db, id, cancelPatch(reason));
+  updateEntry(db, id, cancelPatch(reason), { detach: true });
 
 /** Undo a cancel: the event is back, without its reason or "rescheduled to". */
 export const uncancelEvent = (db: SyncDb, id: string): Promise<ActionResult> =>
@@ -63,6 +63,10 @@ const refuse = (error: string): RescheduleResult => ({ ok: false, error, issues:
  * then the old event cancelled (now, unless it already was, keeping its
  * reason) with `rescheduled_to` the new one. The old document is left as it
  * was. Writers only, events only, and not one already rescheduled.
+ *
+ * A series visit rescheduled this way is "Only this visit": it's detached,
+ * and a new event made for it is a one-off (its series day stays the old
+ * one's).
  */
 export const rescheduleEvent = async (
   db: SyncDb,
@@ -85,7 +89,7 @@ export const rescheduleEvent = async (
     endsAt: schedule.allDay ? null : schedule.endsAt,
   };
   if (!keepOldAsCancelled) {
-    const res = await updateEntry(db, id, timing);
+    const res = await updateEntry(db, id, timing, { detach: true });
     return res.ok ? { ok: true, id } : res;
   }
   if (old.rescheduledTo) return refuse("This event was already rescheduled");
@@ -115,6 +119,10 @@ export const rescheduleEvent = async (
     cancelledAt: old.cancelledAt ?? new Date().toISOString(),
     cancelReason: old.cancelReason,
     rescheduledTo: newId,
+    seriesId: old.seriesId,
+    seriesDay: old.seriesDay,
+    // A series visit moved on its own: the cancelled one stays, detached, and the new one is a one-off.
+    seriesDetached: old.seriesDetached || !!old.seriesId,
   });
   if (!cancelled.success) return invalid(cancelled.error) as RescheduleResult;
 

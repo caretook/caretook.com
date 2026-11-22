@@ -35,8 +35,9 @@ const ONLINE = {
   "me.contact": () => null,
 };
 
-const open = (role: GroupRole, api?: Record<string, (input: unknown) => unknown>) =>
+const open = (role: GroupRole, api?: Record<string, (input: unknown) => unknown>, width?: number) =>
   renderWithDevice({
+    width,
     route: ROUTES,
     url: MEMBERS,
     role,
@@ -45,9 +46,9 @@ const open = (role: GroupRole, api?: Record<string, (input: unknown) => unknown>
   });
 
 const ready = () => expect.poll(() => document.querySelectorAll("main li[data-member]").length).toBe(3);
-const samSwitch = () => page.getByRole("checkbox", { name: "Simple mode for Sam Okafor" });
+const samSwitch = () => page.getByRole("switch", { name: "Simple mode for Sam Okafor" });
 const switches = () => [...document.querySelectorAll<HTMLInputElement>("[data-simple-mode-switch]")];
-const samLock = () => page.getByRole("checkbox", { name: "Lock Sam Okafor in simple mode" });
+const samLock = () => page.getByRole("switch", { name: "Lock Sam Okafor in simple mode" });
 const locks = () => [...document.querySelectorAll<HTMLInputElement>("[data-simple-lock-switch]")];
 
 describe("the Simple mode switch on Members", () => {
@@ -82,7 +83,7 @@ describe("the Simple mode switch on Members", () => {
     await open("admin", {});
     await ready();
     expect(switches()).toHaveLength(2);
-    expect(page.getByRole("checkbox", { name: "Simple mode for Olga Moreno" }).elements()).toHaveLength(0);
+    expect(page.getByRole("switch", { name: "Simple mode for Olga Moreno" }).elements()).toHaveLength(0);
   });
 
   test("caretakers, and anyone offline, see a badge where it's on, and no switch", async () => {
@@ -173,5 +174,19 @@ describe("the Locked switch on Members", () => {
     await expect
       .poll(() => document.querySelector("[data-simple-mode-badge]")?.textContent)
       .toBe("Simple mode, locked");
+  });
+});
+
+describe("the switches' layout on Members", () => {
+  test("at 320px no row overflows, and the two switches are stacked", async () => {
+    await open("owner", {}, 320);
+    await ready();
+    for (const row of document.querySelectorAll<HTMLElement>("main li[data-member]")) {
+      expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth);
+    }
+    const sam = document.querySelector(`li[data-member="${SAM_ID}"]`)!;
+    const first = sam.querySelector("[data-simple-mode-switch]")!.parentElement!.getBoundingClientRect();
+    const second = sam.querySelector("[data-simple-lock-switch]")!.parentElement!.getBoundingClientRect();
+    expect(second.top).toBeGreaterThanOrEqual(first.bottom);
   });
 });

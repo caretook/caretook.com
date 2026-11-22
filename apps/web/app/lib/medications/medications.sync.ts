@@ -1,5 +1,6 @@
 import type {
   DoseDetails,
+  DoseInput,
   MedicationChangeDetails,
   MedicationContent,
   MedicationContentInput,
@@ -21,11 +22,13 @@ import {
   MEDICATION_FORMS,
   MEDICATION_STATUSES,
   MEDICATION_STOP_REASONS,
+  MEDICATION_TYPES,
   medicationChange,
   medicationChangeDetailsZSchema,
   medicationChangeId,
   medicationContentOf,
   medicationContentZSchema,
+  medicationFormContentZSchema,
   medicationUpdateZSchema,
   parseMedicationSchedule,
   schedulePassIds,
@@ -83,6 +86,7 @@ export type MedicationRow = {
   quantity: string | null;
   refills_left: number | null;
   rx_number: string | null;
+  type: string | null;
   deleted_at: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -134,6 +138,7 @@ export const toMedication = (row: MedicationRow): LocalMedication | null => {
     quantity: row.quantity,
     refillsLeft: row.refills_left,
     rxNumber: row.rx_number,
+    type: oneOf(MEDICATION_TYPES, row.type),
     deletedAt: row.deleted_at ? fromLocalTimestamp(row.deleted_at) : null,
     createdAt: row.created_at ? fromLocalTimestamp(row.created_at) : "",
     updatedAt: row.updated_at ? fromLocalTimestamp(row.updated_at) : "",
@@ -461,6 +466,7 @@ const contentColumns = (content: MedicationContent) => ({
   quantity: content.quantity,
   refillsLeft: content.refillsLeft,
   rxNumber: content.rxNumber,
+  type: content.type,
 });
 
 /**
@@ -469,7 +475,7 @@ const contentColumns = (content: MedicationContent) => ({
  * `updated_at`: the entry's time, and with the medication's id, its id.
  */
 const changeEntryRow = (
-  db: SyncDb,
+  userId: string,
   medication: { id: string; groupId: string; recipientId: string },
   before: MedicationContent | null,
   after: MedicationContent,
@@ -491,9 +497,46 @@ const changeEntryRow = (
     deletedAt: null,
     createdAt: now,
     updatedAt: now,
-    createdBy: db.userId,
-    updatedBy: db.userId,
+    createdBy: userId,
+    updatedBy: userId,
   };
+};
+
+/**
+ * How a write validates. `requireType`: the save comes from a form that asks
+ * for the type (the medication form), so a missing one is refused on its
+ * field; other writes accept none (it stays as it was, or null).
+ */
+export type MedicationWriteOptions = { requireType?: boolean };
+
+const contentSchema = ({ requireType }: MedicationWriteOptions) =>
+  requireType ? medicationFormContentZSchema : medicationContentZSchema;
+
+/** Who writes a new medication, when, and its id and recipient: what its rows need besides the content. */
+export type NewMedicationContext = {
+  id: string;
+  /** Its `created_at` and `updated_at`, and its "started" entry's time (as `nowTimestamp` gives it). */
+  now: string;
+  groupId: string;
+  recipient: { id: string; timeZone: string };
+  userId: string;
+};
+
+/** A new medication's row and its "started" entry, from validated content. Pure. */
+const medicationRows = (content: MedicationContent, ctx: NewMedicationContext) => {
+  const medication = {
+    id: ctx.id,
+    groupId: ctx.groupId,
+    recipientId: ctx.recipient.id,
+    ...contentColumns(content),
+    deletedAt: null,
+    createdAt: ctx.now,
+    updatedAt: ctx.now,
+    createdBy: ctx.userId,
+    updatedBy: ctx.userId,
+  };
+  const entry = changeEntryRow(ctx.userId, medication, null, content, ctx.now, ctx.recipient.timeZone);
+  return { medication, entry };
 };
 
 /** A medication's row and its "started" entry, validated: what `createMedication` writes. */
@@ -502,33 +545,25 @@ export const newMedicationRows = async (
   groupId: string,
   input: MedicationContentInput,
   added: ReadonlySet<string> = new Set(),
+  opts: MedicationWriteOptions = {},
 ) => {
   if (!(await canWrite(db, groupId))) return forbidden as Refusal;
   const recipient = await recipientOf(db, groupId);
   if (!recipient) return refuse("This care group has no care recipient yet");
-  const parsed = medicationContentZSchema.safeParse(input);
+  const parsed = contentSchema(opts).safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
   const badProviders = await checkProviders(db, groupId, parsed.data, added);
   if (badProviders) return badProviders;
   const schedule = await checkPasses(db, groupId, parsed.data.schedule);
   if ("ok" in schedule) return schedule;
   const content = { ...parsed.data, schedule };
-
-  const id = crypto.randomUUID();
-  const now = nowTimestamp();
-  const medication = {
-    id,
+  return medicationRows(content, {
+    id: crypto.randomUUID(),
+    now: nowTimestamp(),
     groupId,
-    recipientId: recipient.id,
-    ...contentColumns(content),
-    deletedAt: null,
-    createdAt: now,
-    updatedAt: now,
-    createdBy: db.userId,
-    updatedBy: db.userId,
-  };
-  const entry = changeEntryRow(db, medication, null, content, now, recipient.time_zone ?? "UTC");
-  return { medication, entry };
+    recipient: { id: recipient.id, timeZone: recipient.time_zone ?? "UTC" },
+    userId: db.userId,
+  });
 };
 
 /**
@@ -542,11 +577,12 @@ export const createMedication = async (
   groupId: string,
   input: MedicationContentInput,
   newProviders: NewMedicationProviders = {},
+  opts: MedicationWriteOptions = {},
 ): Promise<MedicationWriteResult> => {
   if (!(await canWrite(db, groupId))) return forbidden as Refusal;
   const added = await newProviderRows(db, groupId, newProviders);
   if ("ok" in added) return added;
-  const rows = await newMedicationRows(db, groupId, { ...input, ...added.ids }, added.added);
+  const rows = await newMedicationRows(db, groupId, { ...input, ...added.ids }, added.added, opts);
   if ("ok" in rows) return rows;
   await db.drizzle.transaction(async (tx) => {
     for (const provider of added.rows) await tx.insert(providers).values(provider);
@@ -568,6 +604,7 @@ export const updateMedication = async (
   id: string,
   patch: MedicationUpdateInput,
   newProviders: NewMedicationProviders = {},
+  opts: MedicationWriteOptions = {},
 ): Promise<MedicationWriteResult> => {
   const existing = await liveMedication(db, id);
   if (!existing) return medicationMissing;
@@ -581,7 +618,7 @@ export const updateMedication = async (
     Object.entries({ ...shape.data, ...added.ids }).filter(([, v]) => v !== undefined),
   );
   const before = medicationContentOf(existing);
-  const merged = medicationContentZSchema.safeParse({ ...before, ...defined });
+  const merged = contentSchema(opts).safeParse({ ...before, ...defined });
   if (!merged.success) return invalid(merged.error);
   const badProviders = await checkProviders(
     db,
@@ -599,7 +636,7 @@ export const updateMedication = async (
 
   const recipient = await recipientOf(db, existing.groupId);
   const now = nowTimestamp();
-  const entry = changeEntryRow(db, existing, before, after, now, recipient?.time_zone ?? "UTC");
+  const entry = changeEntryRow(db.userId, existing, before, after, now, recipient?.time_zone ?? "UTC");
   await db.drizzle.transaction(async (tx) => {
     for (const provider of added.rows) await tx.insert(providers).values(provider);
     await tx
@@ -693,13 +730,7 @@ export const createMedicationDocument = async (db: SyncDb, medicationId: string)
 // Doses
 // ---------------------------------------------------------------------------
 
-export type DoseInput = Omit<DoseDetails, "medicationId"> & {
-  medicationId: string;
-  /** When it was given, skipped or refused (ISO 8601). Now, when left out. */
-  occurredAt?: string;
-  /** The device's IANA zone, when left out. */
-  timeZone?: string;
-};
+export type { DoseInput } from "@caretook/data/schema";
 
 const deviceTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -713,6 +744,31 @@ const liveMedicationEntry = async (db: SyncDb, id: string) => {
   });
   return row ? toMedicationEntry(row) : null;
 };
+
+type ParsedDoseTime = { occurredAt: string; timeZone: string };
+type ParsedDose = ParsedDoseTime & { details?: unknown };
+
+/** A dose's timeline row, from its validated content (`doseContent`). Pure. */
+const doseRow = (
+  dose: ParsedDose,
+  medication: { recipientId: string },
+  ctx: { id: string; now: string; groupId: string; userId: string },
+): typeof timelineEntries.$inferInsert & { id: string } => ({
+  id: ctx.id,
+  groupId: ctx.groupId,
+  recipientId: medication.recipientId,
+  kind: "dose",
+  occurredAt: toLocalTimestamp(dose.occurredAt),
+  timeZone: dose.timeZone,
+  title: null,
+  body: null,
+  details: JSON.stringify(dose.details),
+  deletedAt: null,
+  createdAt: ctx.now,
+  updatedAt: ctx.now,
+  createdBy: ctx.userId,
+  updatedBy: ctx.userId,
+});
 
 /**
  * Log a dose (given, skipped or refused) of one of the group's medications,
@@ -735,24 +791,14 @@ export const logDose = async (
   );
   if (!parsed.success) return invalid(parsed.error, "The dose is invalid");
 
-  const id = crypto.randomUUID();
-  const now = nowTimestamp();
-  await db.drizzle.insert(timelineEntries).values({
-    id,
+  const row = doseRow(parsed.data, medication, {
+    id: crypto.randomUUID(),
+    now: nowTimestamp(),
     groupId,
-    recipientId: medication.recipientId,
-    kind: "dose",
-    occurredAt: toLocalTimestamp(parsed.data.occurredAt),
-    timeZone: parsed.data.timeZone,
-    title: null,
-    body: null,
-    details: JSON.stringify(parsed.data.details),
-    deletedAt: null,
-    createdAt: now,
-    updatedAt: now,
-    createdBy: db.userId,
-    updatedBy: db.userId,
+    userId: db.userId,
   });
+  await db.drizzle.insert(timelineEntries).values(row);
+  const { id } = row;
   return { ok: true, id };
 };
 
@@ -776,22 +822,7 @@ export const doseRows = async (
       { occurredAt: occurredAt ?? new Date().toISOString(), timeZone: timeZone ?? deviceTimeZone() },
     );
     if (!parsed.success) return invalid(parsed.error, "The dose is invalid");
-    rows.push({
-      id: crypto.randomUUID(),
-      groupId,
-      recipientId: medication.recipientId,
-      kind: "dose",
-      occurredAt: toLocalTimestamp(parsed.data.occurredAt),
-      timeZone: parsed.data.timeZone,
-      title: null,
-      body: null,
-      details: JSON.stringify(parsed.data.details),
-      deletedAt: null,
-      createdAt: now,
-      updatedAt: now,
-      createdBy: db.userId,
-      updatedBy: db.userId,
-    });
+    rows.push(doseRow(parsed.data, medication, { id: crypto.randomUUID(), now, groupId, userId: db.userId }));
   }
   return { ok: true, rows };
 };
@@ -816,6 +847,91 @@ export const logDoses = async (
       for (const row of rows) await tx.insert(timelineEntries).values(row);
     });
   return { ok: true, ids: rows.map((r) => r.id) };
+};
+
+// ---------------------------------------------------------------------------
+// A new medication with its first dose (the Dose sheet's "+ New medication")
+// ---------------------------------------------------------------------------
+
+/** What the Dose sheet's quick add asks for: the name, the dose and the type (as posted). */
+export type QuickAddMedication = { name: string; dose: string | null; type: string | null };
+
+/** A dose of a medication not written yet: everything but its medication. */
+export type NewMedicationDose = Omit<DoseInput, "medicationId">;
+
+/** The quick-added medication: what was typed, as needed with no maximum, and current. */
+export const quickAddContent = ({ name, dose, type }: QuickAddMedication): MedicationContentInput => ({
+  name,
+  dose,
+  // An unknown one is refused by the schema, on its field.
+  type: type as MedicationContentInput["type"],
+  schedule: { type: "asNeeded" },
+  status: "current",
+});
+
+/**
+ * The quick add's rows, pure: the medication's row and its "started" entry
+ * (the rows `createMedication` writes, so its id is `medicationChangeId(id,
+ * now)`), and the dose's row, for that medication. The type is required, as
+ * on the medication form. A refusal names every field at fault, the
+ * medication's (`name`, `type`, `dose`) and the dose's (`details.amount`, `occurredAt`).
+ */
+export const quickAddRows = (
+  { medication, dose }: { medication: QuickAddMedication; dose: NewMedicationDose & ParsedDoseTime },
+  ctx: NewMedicationContext & { doseId: string },
+) => {
+  const content = medicationFormContentZSchema.safeParse(quickAddContent(medication));
+  const { occurredAt, timeZone, ...details } = dose;
+  const parsedDose = doseContent({ medicationId: ctx.id, ...details }, { occurredAt, timeZone });
+  if (!content.success || !parsedDose.success)
+    return invalid(
+      { issues: [...(content.error?.issues ?? []), ...(parsedDose.error?.issues ?? [])] },
+      content.success ? "The dose is invalid" : "The medication is invalid",
+    );
+  const rows = medicationRows(content.data, ctx);
+  const doseCtx = { id: ctx.doseId, now: ctx.now, groupId: ctx.groupId, userId: ctx.userId };
+  return { ok: true as const, ...rows, dose: doseRow(parsedDose.data, rows.medication, doseCtx) };
+};
+
+/**
+ * Add a medication and log a dose of it (the Dose sheet's "+ New
+ * medication"), in one local transaction: the medication, its "started"
+ * entry, then the dose, so they upload in that order and neither is ever
+ * written without the other. Returns the medication's id.
+ */
+export const logDoseOfNewMedication = async (
+  db: SyncDb,
+  groupId: string,
+  { medication, dose }: { medication: QuickAddMedication; dose: NewMedicationDose },
+): Promise<MedicationWriteResult> => {
+  if (!(await canWrite(db, groupId))) return forbidden as Refusal;
+  const recipient = await recipientOf(db, groupId);
+  if (!recipient) return refuse("This care group has no care recipient yet");
+  const planned = quickAddRows(
+    {
+      medication,
+      dose: {
+        ...dose,
+        occurredAt: dose.occurredAt ?? new Date().toISOString(),
+        timeZone: dose.timeZone ?? deviceTimeZone(),
+      },
+    },
+    {
+      id: crypto.randomUUID(),
+      doseId: crypto.randomUUID(),
+      now: nowTimestamp(),
+      groupId,
+      recipient: { id: recipient.id, timeZone: recipient.time_zone ?? "UTC" },
+      userId: db.userId,
+    },
+  );
+  if (!planned.ok) return planned;
+  await db.drizzle.transaction(async (tx) => {
+    await tx.insert(medications).values(planned.medication);
+    if (planned.entry) await tx.insert(timelineEntries).values(planned.entry);
+    await tx.insert(timelineEntries).values(planned.dose);
+  });
+  return { ok: true, id: planned.medication.id };
 };
 
 /**

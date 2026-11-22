@@ -1,3 +1,4 @@
+import { Page, PageHeader } from "~/components/ui";
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 
@@ -16,7 +17,7 @@ import { SearchResults } from "./SearchResults";
 import { useSearchPage } from "./useSearchPage";
 
 // Shared by web + native. Search one care group's entries, providers,
-// medications and tasks on the device (`lib/search/search.sync.ts`), offline too. The text
+// medications and todos on the device (`lib/search/search.sync.ts`), offline too. The text
 // (`?q=`) and the section shown in full (`?all=`) live in the URL, so Back
 // from a result comes back to the same results. A search that's used
 // (the field left with it, or one of its results opened) joins this
@@ -57,8 +58,8 @@ export default function SearchPage({ loaderData, params }: Route.ComponentProps)
   const periods = useSearchPeriods(params.groupId, loaderData.periodRows, group.recipient?.timeZone ?? "UTC");
   const currentPeriod = findPeriodChoice(periods, period);
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-search-page>
-      <h1 className="sr-only">Search {group.displayName}</h1>
+    <Page data-search-page>
+      <PageHeader title="Search" />
       <SearchField
         groupId={params.groupId}
         urlQuery={q}
@@ -92,6 +93,6 @@ export default function SearchPage({ loaderData, params }: Route.ComponentProps)
         />
       </div>
       {!q.trim() && <RecentSearches groupId={params.groupId} userId={group.userId} />}
-    </main>
+    </Page>
   );
 }

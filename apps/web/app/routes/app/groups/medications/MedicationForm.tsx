@@ -1,17 +1,21 @@
+import type { MedicationType } from "@caretook/data/schema";
 import type { ActionResult, FieldIssue } from "~/lib/core/api";
 import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
 import type { LocalMedication, MedicationNameRow } from "~/lib/medications/medications.sync";
+import type { LocalCondition } from "~/lib/profiles/conditions.sync";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
-import { MEDICATION_FORMS, MEDICATION_LIMITS } from "@caretook/data/schema";
-import { Field } from "~/components/ui";
+import { MEDICATION_FORMS, MEDICATION_LIMITS, MEDICATION_TYPES } from "@caretook/data/schema";
+import { NameField } from "~/components/medications";
+import { ChoiceGroup, Field } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
-import { FORM_LABELS } from "~/lib/medications/medicationDisplay";
+import { FORM_LABELS, MEDICATION_TYPE_LABELS } from "~/lib/medications/medicationDisplay";
+import { CONDITION_IDS_PATH } from "~/lib/profiles/medicationConditions.sync";
+import { ConditionsField } from "./ConditionsField";
 import { FIELD, isFieldIssue } from "./medicationFormData";
-import { NameField } from "./NameField";
 import { ProviderPickerField } from "./ProviderPickerField";
 import { ScheduleFields } from "./ScheduleFields";
 
@@ -53,6 +57,21 @@ function TextField({
   );
 }
 
+const TYPE_OPTIONS = MEDICATION_TYPES.map((type) => ({ value: type, label: MEDICATION_TYPE_LABELS[type] }));
+
+/** The fields that fold into "Prescription details" for a type other than Prescription. */
+const PRESCRIPTION_FIELDS = [FIELD.prescriberId, FIELD.newPrescriber, FIELD.refillsLeft, FIELD.rxNumber];
+
+/** Whether any prescription-only field in the form has a value (so its section stays open). */
+const hasPrescriptionDetails = (form: HTMLFormElement | null) => {
+  if (!form) return false;
+  const data = new FormData(form);
+  return PRESCRIPTION_FIELDS.some((name) => {
+    const value = data.get(name);
+    return typeof value === "string" && value.trim() !== "";
+  });
+};
+
 /** A calendar day, posting `name` ("YYYY-MM-DD", or empty for none). */
 function DayField({
   label,
@@ -92,6 +111,8 @@ export function MedicationForm({
   providers,
   passes,
   names,
+  conditions = [],
+  conditionIds = [],
   zoneNote,
   onDone,
   onCancel,
@@ -102,6 +123,10 @@ export function MedicationForm({
   /** The group's passes, deleted ones too (`useSchedulePasses`). */
   passes: readonly LocalPass[];
   names: readonly MedicationNameRow[];
+  /** The recipient's live conditions, for the For field (conditions slice 4). */
+  conditions?: readonly LocalCondition[];
+  /** What the medication is for as the form opens. */
+  conditionIds?: readonly string[];
   zoneNote: string | null;
   onDone: () => void;
   onCancel: () => void;
@@ -114,6 +139,20 @@ export function MedicationForm({
   const { id: groupId } = useGroup();
   // The usual dose as typed: the schedule's amounts show it as their placeholder.
   const [dose, setDose] = useState(medication?.dose ?? "");
+  // A new medication starts on Prescription; an old one with no type starts on none (required on save).
+  const [type, setType] = useState<MedicationType | null>(medication ? medication.type : "prescription");
+  // For a type other than Prescription, the prescription-only fields fold away
+  // unless one has a value. Their values are kept and saved whatever the type.
+  const folds = type !== null && type !== "prescription";
+  const [detailsOpen, setDetailsOpen] = useState(
+    () =>
+      !!medication &&
+      (medication.prescriberId !== null || medication.refillsLeft !== null || !!medication.rxNumber),
+  );
+  const chooseType = (next: MedicationType) => {
+    setType(next);
+    if (next !== "prescription") setDetailsOpen(hasPrescriptionDetails(formRef.current));
+  };
 
   // A save closes the sheet; a refusal moves focus to the first field it's about.
   const handled = useRef<ActionResult | undefined>(undefined);
@@ -132,8 +171,11 @@ export function MedicationForm({
         ? invalid.querySelector<HTMLElement>("input, button")
         : (invalid ??
           form?.querySelector<HTMLElement>(
-            '[data-provider-picker]:has([data-picker-error]) input:not([type="hidden"])',
+            '[data-provider-picker]:has([data-picker-error]) input:not([type="hidden"]), [data-conditions-picker]:has([data-picker-error]) input:not([type="hidden"])',
           ));
+    // A field folded into "Prescription details" opens its section first.
+    const section = target?.closest("details");
+    if (section && !section.open) section.open = true;
     target?.focus();
   }, [fetcher.state, fetcher.data, onDone]);
 
@@ -148,6 +190,15 @@ export function MedicationForm({
       <input type="hidden" name="intent" value={medication ? "update" : "create"} />
 
       <NameField defaultValue={medication?.name ?? ""} names={names} error={issueFor(issues, "name")} />
+
+      <ChoiceGroup
+        name={FIELD.type}
+        label="Type"
+        options={TYPE_OPTIONS}
+        value={type}
+        onChange={chooseType}
+        error={issueFor(issues, "type")}
+      />
 
       <div className="grid gap-x-3 sm:grid-cols-2">
         <TextField
@@ -210,6 +261,12 @@ export function MedicationForm({
         )}
       </Field>
 
+      <ConditionsField
+        conditions={conditions}
+        initialIds={conditionIds}
+        error={issueFor(issues, CONDITION_IDS_PATH)}
+      />
+
       <TextField
         label="Why it's taken (optional)"
         name={FIELD.reason}
@@ -226,12 +283,47 @@ export function MedicationForm({
         issues={issues}
       />
 
-      <ProviderPickerField
-        kind="prescriber"
-        providers={providers}
-        initialId={medication?.prescriberId ?? null}
-        error={issueFor(issues, "prescriberId")}
-      />
+      {/* One element for every type, so the fields keep what's typed when the type changes. */}
+      <details
+        open={!folds || detailsOpen}
+        onToggle={(e) => folds && setDetailsOpen(e.currentTarget.open)}
+        className={folds ? "rounded-box border-base-300 my-2 border px-3 py-1" : ""}
+        data-prescription-details
+      >
+        <summary className={folds ? "cursor-pointer py-1.5 font-medium" : "hidden"}>
+          Prescription details
+        </summary>
+        <ProviderPickerField
+          kind="prescriber"
+          providers={providers}
+          initialId={medication?.prescriberId ?? null}
+          error={issueFor(issues, "prescriberId")}
+        />
+        <div className="grid gap-x-3 sm:grid-cols-2">
+          <Field label="Refills left (optional)" error={issueFor(issues, "refillsLeft")}>
+            {(control) => (
+              <input
+                {...control}
+                type="number"
+                inputMode="numeric"
+                name={FIELD.refillsLeft}
+                min={0}
+                max={MEDICATION_LIMITS.refillsMax}
+                step={1}
+                className="input w-full"
+                defaultValue={medication?.refillsLeft ?? ""}
+              />
+            )}
+          </Field>
+          <TextField
+            label="Rx number (optional)"
+            name={FIELD.rxNumber}
+            defaultValue={medication?.rxNumber}
+            max={MEDICATION_LIMITS.rxNumber}
+            issues={issues}
+          />
+        </div>
+      </details>
       <ProviderPickerField
         kind="pharmacy"
         providers={providers}
@@ -255,28 +347,6 @@ export function MedicationForm({
             max={MEDICATION_LIMITS.quantity}
             issues={issues}
             placeholder="e.g. 30 tablets"
-          />
-          <Field label="Refills left" error={issueFor(issues, "refillsLeft")}>
-            {(control) => (
-              <input
-                {...control}
-                type="number"
-                inputMode="numeric"
-                name={FIELD.refillsLeft}
-                min={0}
-                max={MEDICATION_LIMITS.refillsMax}
-                step={1}
-                className="input w-full"
-                defaultValue={medication?.refillsLeft ?? ""}
-              />
-            )}
-          </Field>
-          <TextField
-            label="Rx number"
-            name={FIELD.rxNumber}
-            defaultValue={medication?.rxNumber}
-            max={MEDICATION_LIMITS.rxNumber}
-            issues={issues}
           />
         </div>
       </fieldset>

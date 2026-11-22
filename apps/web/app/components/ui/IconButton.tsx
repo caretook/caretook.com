@@ -3,6 +3,7 @@ import type { Ref } from "react";
 import type { To } from "react-router";
 
 import { Link } from "react-router";
+import { buttonClass } from "./buttonClass";
 
 /**
  * A small square button that shows only an icon. `label` is required: it's
@@ -56,19 +57,17 @@ export function IconButton({
       ref?: never;
     }
 )) {
-  const box = size === "md" ? "btn-square" : "btn-sm btn-square";
+  const ghost = buttonClass({ variant: "ghost", size, shape: "square" });
   const iconSize = size === "md" ? "size-6" : "size-4";
-  const tone =
-    pressed === undefined ? "btn-ghost" : pressed ? "btn-neutral" : "btn-ghost border-base-300 bg-base-100";
+  const look =
+    pressed === undefined
+      ? ghost
+      : pressed
+        ? `${buttonClass({ size, shape: "square" })} btn-neutral`
+        : `${ghost} border-base-300 bg-base-100`;
   if (to !== undefined)
     return (
-      <Link
-        to={to}
-        prefetch="render"
-        aria-label={label}
-        title={label}
-        className={`btn ${box} btn-ghost ${className}`}
-      >
+      <Link to={to} prefetch="render" aria-label={label} title={label} className={`${ghost} ${className}`}>
         <Icon className={iconSize} aria-hidden="true" />
       </Link>
     );
@@ -83,7 +82,7 @@ export function IconButton({
       aria-controls={controls}
       title={label}
       onClick={onPress}
-      className={`btn ${box} ${tone} ${className}`}
+      className={`${look} ${className}`}
     >
       <Icon className={iconSize} aria-hidden="true" />
     </button>

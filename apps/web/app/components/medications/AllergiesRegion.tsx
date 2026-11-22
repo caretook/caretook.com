@@ -3,6 +3,7 @@ import type { AllergyState } from "~/lib/medications/allergies";
 import { ShieldAlert } from "lucide-react";
 import { Link } from "react-router";
 import { allergyText, NO_KNOWN_ALLERGIES, ALLERGIES_NOT_RECORDED } from "~/lib/medications/allergies";
+import { Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { MEDICATION_SHEET_STATE } from "~/lib/medications/medicationSheets";
 
@@ -12,26 +13,28 @@ import { MEDICATION_SHEET_STATE } from "~/lib/medications/medicationSheets";
  * known allergies", or "Allergies not recorded". Writers get "Add allergies"
  * (nothing recorded yet) or "Edit", which opens the allergies sheet; closing
  * it comes back here. Viewers get the text only.
+ *
+ * `band`: on a banded page (a medication's) it is a `Section` of its own,
+ * holding the same box; without it (the list) it looks as it always has.
  */
 export function AllergiesRegion({
   groupId,
   state,
   canWrite,
+  band = false,
 }: {
   groupId: string;
   state: AllergyState;
   canWrite: boolean;
+  band?: boolean;
 }) {
   const recorded = state.kind === "recorded";
   const severe = recorded && state.allergies.some((a) => a.severity === "severe");
-  return (
-    <section
-      aria-label="Allergies"
-      className={`rounded-box flex items-start gap-2.5 border px-3 py-2 ${
-        recorded ? "border-warning bg-warning/10" : "border-base-300"
-      }`}
-      data-allergies={state.kind}
-    >
+  const box = `rounded-box flex items-start gap-2.5 border px-3 py-2 ${
+    recorded ? "border-warning bg-warning/10" : "border-base-300"
+  }`;
+  const content = (
+    <>
       <ShieldAlert
         className={`mt-0.5 size-5 shrink-0 ${severe ? "text-error" : recorded ? "text-warning" : "text-base-content/60"}`}
         aria-hidden="true"
@@ -55,7 +58,7 @@ export function AllergiesRegion({
       </p>
       {canWrite && (
         <Link
-          to={appUrls.medicationAllergies(groupId)}
+          to={appUrls.medicationAllergies(groupId, "list")}
           // Closing the sheet comes back here.
           state={MEDICATION_SHEET_STATE}
           // Loaded ahead, so the sheet opens offline too.
@@ -68,6 +71,18 @@ export function AllergiesRegion({
           {state.kind !== "notRecorded" && <span className="sr-only"> allergies</span>}
         </Link>
       )}
+    </>
+  );
+  if (band) {
+    return (
+      <Section aria-label="Allergies" id="allergies" data-allergies={state.kind}>
+        <div className={box}>{content}</div>
+      </Section>
+    );
+  }
+  return (
+    <section aria-label="Allergies" className={box} data-allergies={state.kind}>
+      {content}
     </section>
   );
 }

@@ -4,18 +4,23 @@
 // member: add, edit, delete (the sheets' validation, When's date picker and
 // their screens are component tests: timelineSheets.browser.test.tsx), an entry
 // written offline (through a switchable proxy, because Playwright's offline
-// doesn't cut PowerSync's stream), a read-only viewer, a reschedule's one
+// doesn't cut PowerSync's stream), a weekly series made offline and its "this
+// and later" split reaching the other member, a read-only viewer, a reschedule's one
 // transaction uploading and reaching the other member, the sync matrix (every
 // synced table's row on both devices: sync-matrix.mjs), an upload refused by
-// permissions (a member demoted while offline), a viewer's task ticked
-// offline and their refused title change, and sign-out wiping the
+// permissions (a member demoted while offline), a viewer's todo ticked
+// offline and their refused title change, a repeating todo ticked offline
+// bringing one next todo everywhere, and sign-out wiping the
 // device. Every row it writes has this run's tag, so it passes run after run
 // without a reset.
 //
 // One test, in the old script's order (each step names the old PASS line it
 // carries): the devices and their rows are the state each step builds on.
+import { execSync } from "node:child_process";
 import {
+  BASE,
   DEV_FAMILY,
+  PASSWORD,
   addButton,
   addToTimeline,
   expect,
@@ -170,14 +175,14 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
   const memberId = userId("member@example.com");
   const caretakerId = userId("caretaker@example.com");
   const viewerId = userId("viewer@example.com");
-  // The viewer's seeded open task (seeds/tasks.ts): ticked offline in 6d, reopened after.
-  const viewerTask = psql(
-    `SELECT id FROM task WHERE group_id = '${DEV_FAMILY}' AND title = 'Pick up groceries' AND assignee_id = '${viewerId}' AND deleted_at IS NULL`,
+  // The viewer's seeded open todo (seeds/todos.ts): ticked offline in 6d, reopened after.
+  const viewerTodo = psql(
+    `SELECT id FROM todo WHERE group_id = '${DEV_FAMILY}' AND title = 'Pick up groceries' AND assignee_id = '${viewerId}' AND deleted_at IS NULL`,
   );
-  const VIEWER_TASK_TITLE = "Pick up groceries";
-  const reopenViewerTaskSql = `UPDATE task SET done_at = NULL, done_by = NULL, title = '${VIEWER_TASK_TITLE}' WHERE id = '${viewerTask}' AND (done_at IS NOT NULL OR title <> '${VIEWER_TASK_TITLE}')`;
+  const VIEWER_TODO_TITLE = "Pick up groceries";
+  const reopenViewerTodoSql = `UPDATE todo SET done_at = NULL, done_by = NULL, title = '${VIEWER_TODO_TITLE}' WHERE id = '${viewerTodo}' AND (done_at IS NOT NULL OR title <> '${VIEWER_TODO_TITLE}')`;
   // A run that died mid-step left it done: open again before anyone loads.
-  if (viewerTask) psql(reopenViewerTaskSql);
+  if (viewerTodo) psql(reopenViewerTodoSql);
   const tag = `RT-${Date.now().toString(36)}`;
   const matrix = matrixContext({
     tag,
@@ -242,6 +247,47 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       )) === "true",
     );
 
+    // 3b. A connector's write through /mcp reaches this device with its "via" tag.
+    // The token comes from mintToken.ts (the OAuth dance in process, test-only);
+    // the write is the assistant's own HTTP call.
+    const viaName = `Claude ${tag}`;
+    const viaTitle = `${tag} via note`;
+    const token = execSync(
+      `pnpm --filter @caretook/data exec tsx ../api/src/connectors/mintToken.ts member@example.com ${DEV_FAMILY} "${viaName}"`,
+      {
+        env: { ...process.env, NODE_ENV: "development", SEED_USER_PASSWORD: PASSWORD },
+        stdio: ["ignore", "pipe", "inherit"],
+      },
+    )
+      .toString()
+      .trim();
+    const mcp = await fetch(`${BASE}/mcp`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: "add_note", arguments: { title: viaTitle, text: "Written by an assistant." } },
+      }),
+    });
+    const mcpBody = await mcp.json();
+    await check(
+      "connector: add_note through /mcp is accepted",
+      mcp.status === 200 && !mcpBody.result?.isError,
+      `${mcp.status} ${JSON.stringify(mcpBody).slice(0, 200)}`,
+    );
+    const viaMs = await timeUntil(A, `${rowWith(viaTitle)}?.querySelector("[data-via]")`);
+    await check(
+      "connector: device A shows the note with its via tag",
+      (await A.evaluate(`${rowWith(viaTitle)}.querySelector("[data-via]").dataset.via`)) === viaName,
+      `${viaMs} ms`,
+    );
+
     // 5. Offline on A.
     const offName = `${tag} offline dizziness`;
     dA.offline(true);
@@ -252,10 +298,43 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     await addSymptom(A, offName);
     await wf(A, rowWith(offName));
     await check("offline: the entry shows on this device", true);
+    // 5a. A weekly series made offline (appointments-2): the device writes it
+    // and its 90 days of visits in one transaction (series.sync.ts). Its
+    // sheet and RepeatField are component tests (upcoming/upcomingSeries…).
+    const seriesTitle = `${tag} series PT`;
+    // The time the series steps add to the run (logged, for the lean budget).
+    let seriesMs = 0;
+    let tSeries = Date.now();
+    const made = await A.evaluate(`(async () => {
+      const { series } = await window.caretookModules();
+      const tz = "America/Los_Angeles";
+      const startsOn = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" })
+        .format(new Date(Date.now() + 86400000));
+      const byDay = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"][new Date(startsOn + "T12:00:00Z").getUTCDay()];
+      return series.createSeries(window.caretookSync, { groupId: ${JSON.stringify(DEV_FAMILY)}, kind: "event",
+        rule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=" + byDay, startsOn, startTime: "10:00", allDay: false, timeZone: tz,
+        title: ${JSON.stringify(seriesTitle)}, durationMinutes: 60, place: null, providerIds: [] });
+    })()`);
+    const visitIds = made.ok
+      ? (
+          await localRows(A, "SELECT id FROM timeline_entry WHERE series_id = ? ORDER BY series_day", [
+            made.seriesId,
+          ])
+        ).map((r) => r.id)
+      : [];
+    seriesMs += Date.now() - tSeries;
     await sleep(3000);
     await check(
       "offline: not on the server yet",
       psql(`SELECT count(*) FROM timeline_entry WHERE details->>'name' = '${offName}'`) === "0",
+    );
+    await check(
+      "series: made offline (a weekly series and its visits), not on the server yet",
+      made.ok &&
+        visitIds.length === made.visits &&
+        made.visits >= 12 &&
+        psql(`SELECT count(*) FROM appointment_series WHERE id = '${made.seriesId}'`) === "0",
+      JSON.stringify(made),
     );
     await check(
       "offline: the other member doesn't have it yet",
@@ -285,6 +364,57 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
           `!document.querySelector('main ol button[aria-label^="Actions"]:not([aria-label^="Actions for note"]):not([aria-label^="Actions for event"])') && !document.querySelector('main ol [aria-label^="Edit "]')`,
         )),
     );
+
+    // 6-series. The series 5a made offline, checked once the viewer is in
+    // (it uploads meanwhile): the server holds it and every visit, and the
+    // other member's Planner shows the visits with the repeat mark
+    // (client-side, through the tab bar).
+    tSeries = Date.now();
+    const idList = visitIds.map((id) => `'${id}'`).join(", ") || "NULL";
+    const seriesServer = await waitForSql(
+      `SELECT (SELECT count(*) FROM appointment_series WHERE id = '${made.seriesId}') || '|' ||
+        (SELECT count(*) FROM timeline_entry WHERE series_id = '${made.seriesId}' AND id IN (${idList}) AND deleted_at IS NULL)`,
+      (r) => r === `1|${visitIds.length}`,
+      30_000,
+    );
+    await check(
+      "series: on reconnect the server holds the series and its visits (the device's ids)",
+      seriesServer === `1|${visitIds.length}`,
+      seriesServer,
+    );
+    const visitsOn = async (page, seriesId) =>
+      (
+        await localRows(
+          page,
+          `SELECT id FROM timeline_entry WHERE series_id = ? AND deleted_at IS NULL ORDER BY series_day`,
+          [seriesId],
+        )
+      ).map((r) => r.id);
+    const onB = await until(async () => (await visitsOn(B, made.seriesId)).length === visitIds.length);
+    const upcomingTab = `document.querySelector('nav[data-tab-bar] a[href="/app/groups/${DEV_FAMILY}/planner"]')`;
+    const upcomingRow = (id) => `document.querySelector('main [data-upcoming-item="${id}"]')`;
+    await press(B, upcomingTab);
+    const marked = `${JSON.stringify(visitIds)}.filter((id) => document.querySelector('main [data-upcoming-item="' + id + '"] [data-repeat-mark]')).length`;
+    // The Planner is 90 days ahead, the visits through today + 90: all but possibly the last.
+    const shownOnB = await waits(B, `${marked} >= ${visitIds.length - 1}`, 20_000);
+    await check(
+      "series: the other member's Planner shows the visits with the repeat mark",
+      !!onB && shownOnB,
+      `${await B.evaluate(marked)}/${visitIds.length} marked rows`,
+    );
+
+    // Then "this and later" from the third visit (two weeks ahead), a new
+    // time and length: the old series ends before it, and its later visits
+    // move onto a new series, keeping their ids. One local transaction on A;
+    // it uploads during 6a, and the step after 6a checks it on B and the server.
+    const splitId = visitIds[2];
+    const split = await A.evaluate(`(async () => {
+      const { series } = await window.caretookModules();
+      return series.applySeriesEdit(window.caretookSync, { visitId: ${JSON.stringify(splitId)}, scope: "later",
+        change: { action: "edit", startTime: "14:30", durationMinutes: 45 } });
+    })()`);
+    const tSplit = Date.now();
+    seriesMs += tSplit - tSeries;
 
     // 6a. A reschedule is one local transaction: a new event with the old
     // one's provider link, document and notes, then the old one cancelled and
@@ -356,6 +486,51 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
         : `${JSON.stringify(resched)}; B ${JSON.stringify(await reschedOn(B))}; server ${reschedServer}`,
     );
 
+    // 6a-series. The split reaches the other member and the server: the old series
+    // ended (UNTIL), the first two visits still on it, the later ones moved
+    // onto the new series at 14:30 with their ids, and B's Upcoming row retimed.
+    tSeries = Date.now();
+    const kept = visitIds.slice(0, 2);
+    const moved = visitIds.slice(2);
+    const splitState = (rows) => {
+      const by = Object.fromEntries(rows.map((r) => [r.id, r]));
+      return {
+        ended: /UNTIL=/.test(by.old?.rule ?? ""),
+        fresh: by.fresh?.start_time === "14:30",
+        kept: kept.filter((id) => by[id]?.series_id === made.seriesId).length,
+        moved: moved.filter((id) => by[id]?.series_id === split.seriesId).length,
+      };
+    };
+    const splitDone = (s) => s.ended && s.fresh && s.kept === kept.length && s.moved === moved.length;
+    const splitSql = `SELECT 'old' AS id, rule, NULL AS start_time, NULL AS series_id FROM appointment_series WHERE id = ?
+      UNION ALL SELECT 'fresh', rule, start_time, NULL FROM appointment_series WHERE id = ?
+      UNION ALL SELECT id, NULL, NULL, series_id FROM timeline_entry WHERE deleted_at IS NULL AND id IN (${visitIds.map(() => "?").join(", ")})`;
+    const splitOn = async (page) =>
+      splitState(await localRows(page, splitSql, [made.seriesId, split.seriesId, ...visitIds]));
+    const splitB = await until(async () => {
+      const s = await splitOn(B);
+      return splitDone(s) ? s : null;
+    }, 30_000);
+    const retimed = await waits(
+      B,
+      `${upcomingRow(splitId)}?.querySelector("[data-when]")?.textContent.includes("2:30")`,
+    );
+    const serverRows = psql(
+      `SELECT json_agg(r) FROM (SELECT 'old' AS id, rule, NULL AS start_time, NULL::uuid AS series_id FROM appointment_series WHERE id = '${made.seriesId}'
+        UNION ALL SELECT 'fresh', rule, start_time, NULL FROM appointment_series WHERE id = '${split.seriesId}'
+        UNION ALL SELECT id::text, NULL, NULL, series_id FROM timeline_entry WHERE deleted_at IS NULL AND id IN (${idList})) r`,
+    );
+    const splitServer = splitState(JSON.parse(serverRows || "[]"));
+    await check(
+      `series: "this and later" reaches the other member as the split (old series ended, ${moved.length} later visits moved, ids kept)`,
+      !!split.ok && !!splitB && retimed && splitDone(splitServer),
+      splitB
+        ? `${Date.now() - tSplit} ms after the edit`
+        : `${JSON.stringify(split)}; B ${JSON.stringify(await splitOn(B))}; server ${JSON.stringify(splitServer)}; retimed ${retimed}`,
+    );
+    seriesMs += Date.now() - tSeries;
+    console.log(`  series: its steps added ${seriesMs} ms to the run`);
+
     // 6b. The sync matrix: every synced table's row reaches the other device.
     // care_recipient first (its one uploadable column), before the matrix's
     // allergy clears "No known allergies" on the server.
@@ -425,27 +600,41 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       )[0]?.role;
     const titleOn = async (page) =>
       (await localRows(page, "SELECT title FROM timeline_entry WHERE id = ?", [matrix.ids.entry]))[0]?.title;
-    // 6d. A viewer's task: viewer@ ticks their own task offline (a tick is
+    // 6d. A viewer's todo: viewer@ ticks their own todo offline (a tick is
     // all a viewer may do) and forces a title change through the device; on
     // reconnect the tick uploads and member@'s list shows it done by them,
     // while the title change is refused and the next sync puts the server's
-    // title back. Client-side navigation through the tab bar: no new page
-    // loads or sign-ins.
-    const tasksTab = `document.querySelector('nav.dock a[href="/app/groups/${DEV_FAMILY}/tasks"]')`;
-    const taskRow = `document.querySelector('main [data-task="${viewerTask}"]')`;
-    const doneLine = `${taskRow}?.querySelector("[data-task-due]")?.textContent.trim()`;
-    const everyone = `[...document.querySelectorAll("main a")].find((a) => a.textContent.trim() === "Everyone")`;
-    const taskOn = async (page) =>
-      (await localRows(page, "SELECT title, done_at, done_by FROM task WHERE id = ?", [viewerTask]))[0];
-    const refusedTask = `${tag} groceries, refused`;
-    // Both task lists while online: the viewer's (Mine), and member@'s on
-    // Everyone (the viewer's task isn't Mine).
-    await press(C, tasksTab);
-    await press(A, tasksTab);
-    await wf(C, `${taskRow}?.querySelector("[data-task-tick]")`, 20_000);
-    await wf(A, everyone, 20_000);
-    await press(A, everyone);
-    await wf(A, `location.search.includes("who=everyone") && ${taskRow}`, 20_000);
+    // title back. Client-side navigation through the tab bar's Planner and
+    // its Todos tab: no new page loads or sign-ins.
+    const plannerTab = `document.querySelector('nav[data-tab-bar] a[href="/app/groups/${DEV_FAMILY}/planner"]')`;
+    const todosTab = `document.querySelector('main nav[aria-label="Planner or todos"] a[href="/app/groups/${DEV_FAMILY}/todos"]')`;
+    const openTodos = async (page) => {
+      await press(page, plannerTab);
+      await wf(page, todosTab, 20_000);
+      await press(page, todosTab);
+    };
+    const todoRow = `document.querySelector('main [data-todo="${viewerTodo}"]')`;
+    const doneLine = `${todoRow}?.querySelector("[data-todo-due]")?.textContent.trim()`;
+    const todoOn = async (page) =>
+      (await localRows(page, "SELECT title, done_at, done_by FROM todo WHERE id = ?", [viewerTodo]))[0];
+    const refusedTodo = `${tag} groceries, refused`;
+    // This run's weekly todo for the viewer, due today in the recipient's zone (6e).
+    const repeatTodo = psql(
+      `INSERT INTO todo (id, group_id, recipient_id, title, assignee_id, due_on, repeat_rule, repeat_starts_on, repeat_id, created_by, updated_by)
+       SELECT n.id, r.group_id, r.id, '${tag} bins', '${viewerId}', d.day,
+              'FREQ=WEEKLY;INTERVAL=1;BYDAY=' || upper(left(to_char(d.day, 'Dy'), 2)), d.day, n.id,
+              '${memberId}', '${memberId}'
+       FROM care_recipient r, (SELECT gen_random_uuid() AS id) n,
+            LATERAL (SELECT (now() AT TIME ZONE r.time_zone)::date AS day) d
+       WHERE r.id = '${matrix.recipientId}'
+       RETURNING id`,
+    );
+    // Both todo lists while online, each on its default, Everyone (B-255):
+    // the viewer's, and member@'s (where the viewer's todo isn't Mine).
+    await openTodos(C);
+    await openTodos(A);
+    await wf(C, `${todoRow}?.querySelector("[data-todo-tick]")`, 20_000);
+    await wf(A, todoRow, 20_000);
 
     dB.offline(true);
     dC.offline(true);
@@ -468,20 +657,20 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       demoted === 200 && before.role === "caretaker" && before.title === refusedTitle && before.queued === 1,
       `changeRole ${demoted}, local role ${before.role}, ${before.queued} queued`,
     );
-    await press(C, `${taskRow}.querySelector("[data-task-tick]")`);
-    await wf(C, `${taskRow}?.querySelector("[data-task-tick]")?.checked`);
+    await press(C, `${todoRow}.querySelector("[data-todo-tick]")`);
+    await wf(C, `${todoRow}?.querySelector("[data-todo-tick]")?.checked`);
     await localWrite(C, [
       {
-        sql: "UPDATE task SET title = ?, updated_at = ?, updated_by = ? WHERE id = ?",
-        params: [refusedTask, localTimestamp(), viewerId, viewerTask],
+        sql: "UPDATE todo SET title = ?, updated_at = ?, updated_by = ? WHERE id = ?",
+        params: [refusedTodo, localTimestamp(), viewerId, viewerTodo],
       },
     ]);
-    const ticked = { local: await taskOn(C), queued: await queued(C) };
-    const serverDone = psql(`SELECT count(*) FROM task WHERE id = '${viewerTask}' AND done_at IS NOT NULL`);
+    const ticked = { local: await todoOn(C), queued: await queued(C) };
+    const serverDone = psql(`SELECT count(*) FROM todo WHERE id = '${viewerTodo}' AND done_at IS NOT NULL`);
     await check(
-      "task: offline, the viewer ticks their own task and forces a title change; both queued",
+      "todo: offline, the viewer ticks their own todo and forces a title change; both queued",
       !!ticked.local?.done_at &&
-        ticked.local?.title === refusedTask &&
+        ticked.local?.title === refusedTodo &&
         ticked.queued === 2 &&
         serverDone === "0",
       `${ticked.queued} queued, done on the server: ${serverDone}`,
@@ -521,28 +710,85 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     );
 
     const doneBy = await waitForSql(
-      `SELECT coalesce(done_by::text, '') FROM task WHERE id = '${viewerTask}'`,
+      `SELECT coalesce(done_by::text, '') FROM todo WHERE id = '${viewerTodo}'`,
       (r) => r !== "",
       60_000,
     );
-    await check("task: on reconnect the tick uploads, done by the viewer", doneBy === viewerId, doneBy);
+    await check("todo: on reconnect the tick uploads, done by the viewer", doneBy === viewerId, doneBy);
     const shown = await waits(A, `${doneLine}?.startsWith("Done by Dev Viewer")`, 20_000);
     await check(
-      "task: the member's list shows it done, with the done-by line",
-      shown && (await A.evaluate(`${taskRow}?.dataset.taskState`)) === "done",
+      "todo: the member's list shows it done, with the done-by line",
+      shown && (await A.evaluate(`${todoRow}?.dataset.todoState`)) === "done",
       `${await A.evaluate(doneLine)}, ${Date.now() - t2} ms after reconnecting`,
     );
     const titleBack = await until(async () => {
-      const row = await taskOn(C);
-      return row?.title === VIEWER_TASK_TITLE && (await queued(C)) === 0 ? row : null;
+      const row = await todoOn(C);
+      return row?.title === VIEWER_TODO_TITLE && (await queued(C)) === 0 ? row : null;
     }, 30_000);
-    const serverTaskTitle = psql(`SELECT title FROM task WHERE id = '${viewerTask}'`);
+    const serverTodoTitle = psql(`SELECT title FROM todo WHERE id = '${viewerTodo}'`);
     await check(
-      "task: the viewer's title change is refused, and the next sync restores the title (still done)",
-      !!titleBack && serverTaskTitle === VIEWER_TASK_TITLE && !!titleBack.done_at,
+      "todo: the viewer's title change is refused, and the next sync restores the title (still done)",
+      !!titleBack && serverTodoTitle === VIEWER_TODO_TITLE && !!titleBack.done_at,
       titleBack
         ? `${Date.now() - t2} ms after reconnecting`
-        : `device ${(await taskOn(C))?.title}, server ${serverTaskTitle}`,
+        : `device ${(await todoOn(C))?.title}, server ${serverTodoTitle}`,
+    );
+
+    // 6e. A repeating todo (planner-2): viewer@ ticks this run's weekly todo
+    // offline; the device shows it done and its next one at once (the twin,
+    // two uploads). On reconnect the server has it done and exactly one next,
+    // with the device's id, and member@'s list shows both.
+    const repeatRow = `document.querySelector('main [data-todo="${repeatTodo}"]')`;
+    const chainOn = async (page) =>
+      localRows(
+        page,
+        "SELECT id, done_at IS NOT NULL AS done FROM todo WHERE repeat_id = ? AND deleted_at IS NULL ORDER BY due_on",
+        [repeatTodo],
+      );
+    await wf(C, `${repeatRow}?.querySelector("[data-todo-tick]")`, 20_000);
+    await wf(A, repeatRow, 20_000);
+    dC.offline(true);
+    await wf(C, `!window.caretookSync.powersync.currentStatus.connected`, 20_000);
+    await press(C, `${repeatRow}.querySelector("[data-todo-tick]")`);
+    await wf(C, `${repeatRow}?.querySelector("[data-todo-tick]")?.checked`);
+    const offChain = await until(async () => {
+      const rows = await chainOn(C);
+      return rows.length === 2 ? rows : null;
+    }, 10_000);
+    const nextId = offChain?.find((r) => !r.done)?.id;
+    const repeatQueued = await queued(C);
+    await check(
+      "repeat: offline, ticking a repeating todo shows it done and its next one; both queued",
+      !!nextId &&
+        offChain?.[0]?.id === repeatTodo &&
+        !!offChain[0].done &&
+        (await waits(C, `!!document.querySelector('main [data-todo="${nextId}"]')`, 10_000)) &&
+        repeatQueued === 2,
+      `${JSON.stringify(offChain)}, ${repeatQueued} queued`,
+    );
+    dC.offline(false);
+    const t3 = Date.now();
+    const serverChain = await waitForSql(
+      `SELECT string_agg(id::text || ':' || (done_at IS NOT NULL)::text, ',' ORDER BY due_on)
+       FROM todo WHERE repeat_id = '${repeatTodo}' AND deleted_at IS NULL`,
+      (r) => r === `${repeatTodo}:true,${nextId}:false`,
+      60_000,
+    );
+    await check(
+      "repeat: on reconnect the server has it done and exactly one next, the device's",
+      serverChain === `${repeatTodo}:true,${nextId}:false`,
+      serverChain,
+    );
+    const memberSees = await waits(
+      A,
+      `${repeatRow}?.dataset.todoState === "done" && !!document.querySelector('main [data-todo="${nextId}"]')`,
+      20_000,
+    );
+    const viewerSettled = await until(async () => (await queued(C)) === 0 && (await chainOn(C)).length === 2);
+    await check(
+      "repeat: the member's list shows it done and the one next; the viewer's queue empties",
+      memberSees && !!viewerSettled,
+      `${Date.now() - t3} ms after reconnecting; viewer chain ${JSON.stringify(await chainOn(C))}`,
     );
 
     // 7. Tidy up, then sign-out wipes the device.
@@ -569,14 +815,24 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     );
   } finally {
     try {
-      if (viewerTask) psql(reopenViewerTaskSql);
+      if (viewerTodo) psql(reopenViewerTodoSql);
       psql(
         `UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' LIKE '${tag}%' AND deleted_at IS NULL`,
       );
+      psql(
+        `UPDATE timeline_entry SET deleted_at = now() WHERE title LIKE '${tag} via%' AND deleted_at IS NULL`,
+      );
+      psql(`DELETE FROM oauth_client WHERE name = 'Claude ${tag}'`);
       psql(cleanupSql(matrix, recordedAt));
       psql(
         `UPDATE timeline_entry SET deleted_at = now() WHERE title LIKE '${tag} resched%' AND deleted_at IS NULL`,
       );
+      // The series and its visits (both halves of the split).
+      psql(
+        `UPDATE timeline_entry SET deleted_at = now() WHERE title LIKE '${tag} series%' AND deleted_at IS NULL;
+         UPDATE appointment_series SET deleted_at = now() WHERE title LIKE '${tag} series%' AND deleted_at IS NULL`,
+      );
+      psql(`UPDATE todo SET deleted_at = now() WHERE title LIKE '${tag}%' AND deleted_at IS NULL`);
       psql(
         `UPDATE care_group_member SET role = 'caretaker' WHERE group_id = '${DEV_FAMILY}' AND user_id = '${caretakerId}' AND role <> 'caretaker'`,
       );

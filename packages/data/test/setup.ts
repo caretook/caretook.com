@@ -1,8 +1,8 @@
 import { afterAll } from "vitest";
 import { endClient } from "../src/db/client";
-import { loadTestEnv } from "./env";
+import { loadWorkerEnv } from "./env";
 
-loadTestEnv();
+loadWorkerEnv();
 
 afterAll(async () => {
   await endClient();

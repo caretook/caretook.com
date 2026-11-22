@@ -1,7 +1,10 @@
 import { ADMIN_ERRORS } from "./admin";
+import { APPOINTMENTS_ERRORS } from "./appointments";
 import { AUTH_ERRORS } from "./auth";
+import { CALENDARS_ERRORS } from "./calendars";
 import { CARE_GROUPS_ERRORS } from "./care-groups";
 import { CARE_PERIODS_ERRORS } from "./care-periods";
+import { CONNECTORS_ERRORS } from "./connectors";
 import { CORE_ERRORS } from "./core";
 import { LIVE_NOTES_ERRORS } from "./live-notes";
 import { MARKETING_ERRORS } from "./marketing";
@@ -10,7 +13,7 @@ import { NOTIFICATION_SERVICE_ERRORS } from "./notifications";
 import { PROFILES_ERRORS } from "./profiles";
 import { PROVIDERS_ERRORS } from "./providers";
 import { SEARCH_ERRORS } from "./search";
-import { TASKS_ERRORS } from "./tasks";
+import { TODOS_ERRORS } from "./todos";
 import { TIMELINE_ERRORS } from "./timeline";
 
 export const DB_ERRORS = {
@@ -40,6 +43,15 @@ export const DB_ERRORS = {
   },
   "db:seed:appEnv": {
     message: 'Refusing to seed: APP_ENV must be "staging" or unset',
+  },
+  "db:reset": {
+    message: "Failed to reset staging",
+  },
+  "db:reset:notStaging": {
+    message: "Refusing to reset: only staging (APP_ENV=staging) can be wiped and reseeded",
+  },
+  "db:reset:cycle": {
+    message: "Refusing to reset: tables reference each other in a cycle, so there is no safe delete order",
   },
   "db:clear": {
     message: "Failed to clear the database",
@@ -194,8 +206,14 @@ export const MODEL_ERRORS = {
   "carePeriodModel:remove": {
     message: "Failed to delete the care period",
   },
-  "taskModel:remove": {
-    message: "Failed to delete the task",
+  "appointmentSeriesModel:remove": {
+    message: "Failed to delete the repeating series",
+  },
+  "todoModel:remove": {
+    message: "Failed to delete the todo",
+  },
+  "todoModel:restore": {
+    message: "Failed to restore the todo",
   },
   "adminAuditLogModel:insert": {
     message: "Failed to record the audit entry",
@@ -236,9 +254,12 @@ export const MODEL_ERRORS = {
 // area's part. Codes must be unique across parts (errors.test.ts).
 export const SERVICE_ERRORS = {
   ...ADMIN_ERRORS,
+  ...APPOINTMENTS_ERRORS,
   ...AUTH_ERRORS,
+  ...CALENDARS_ERRORS,
   ...CARE_GROUPS_ERRORS,
   ...CARE_PERIODS_ERRORS,
+  ...CONNECTORS_ERRORS,
   ...CORE_ERRORS,
   ...LIVE_NOTES_ERRORS,
   ...MARKETING_ERRORS,
@@ -247,7 +268,7 @@ export const SERVICE_ERRORS = {
   ...PROFILES_ERRORS,
   ...PROVIDERS_ERRORS,
   ...SEARCH_ERRORS,
-  ...TASKS_ERRORS,
+  ...TODOS_ERRORS,
   ...TIMELINE_ERRORS,
 } as const;
 

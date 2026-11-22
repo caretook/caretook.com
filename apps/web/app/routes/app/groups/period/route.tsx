@@ -8,7 +8,7 @@ import { neighbours } from "@caretook/data/schema";
 import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
-import { BackLink } from "~/components/ui";
+import { BackLink, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { periodTitle } from "~/lib/care-periods/periodDisplay";
@@ -17,6 +17,7 @@ import { getSync, useLiveQuery } from "~/lib/sync";
 import { carePeriodsQuery, removeCarePeriod, toPeriodSpans } from "~/lib/care-periods/carePeriods.sync";
 import { useNow } from "~/lib/live-notes/editors.sync";
 import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
+import { useMentionProviders } from "~/lib/providers/mentionProviders.sync";
 import { loadPeriod } from "./loadPeriod";
 import { DELETE_INTENT, PeriodActions } from "./PeriodActions";
 import { PeriodDates } from "./PeriodDates";
@@ -97,57 +98,61 @@ function PeriodPage({ loaderData, params }: Route.ComponentProps) {
     period.placeProviderId && placeRows[0]?.id === period.placeProviderId ? toProvider(placeRows[0]) : null;
 
   const { ensureSaved, saveError } = useCarePeriodNotes(periodId, loaderData.hasDocument);
+  // The group's providers, for mentions in the notes (chips only: nothing links here).
+  const mentionProviders = useMentionProviders(groupId);
   const title = periodTitle(period);
   const navigate = useNavigate();
   // Deleted from here: back to the list (the page would only say it's gone).
   const onDeleted = useCallback(() => void navigate(listUrl, { replace: true }), [navigate, listUrl]);
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-period-page={period.id}>
-      <BackLink to={listUrl} label="Care periods" />
+    <Page bands data-period-page={period.id}>
+      <Section>
+        <BackLink to={listUrl} label="Care periods" />
 
-      <PeriodHeader
-        period={period}
-        current={!!span && span.endsAt === null}
-        editors={!deleted && <EditorAvatars documentId={periodId} groupId={groupId} viewerId={db.userId} />}
-        actions={
-          canWrite &&
-          !deleted && (
-            <PeriodActions
-              groupId={groupId}
-              periodId={periodId}
-              title={title}
-              deleteMessage={deleteConfirmText({ previous, next }, timeZone, now)}
-              onDeleted={onDeleted}
-            />
-          )
-        }
-      />
+        <PeriodHeader
+          period={period}
+          current={!!span && span.endsAt === null}
+          editors={!deleted && <EditorAvatars documentId={periodId} groupId={groupId} viewerId={db.userId} />}
+          actions={
+            canWrite &&
+            !deleted && (
+              <PeriodActions
+                groupId={groupId}
+                periodId={periodId}
+                title={title}
+                deleteMessage={deleteConfirmText({ previous, next }, timeZone, now)}
+                onDeleted={onDeleted}
+              />
+            )
+          }
+        />
+      </Section>
 
       {deleted ? (
-        <div role="alert" className="alert" data-period-deleted>
-          <span>This care period was deleted.</span>
-          <Link to={listUrl} className="btn btn-sm">
-            Back to care periods
-          </Link>
-        </div>
+        <Section>
+          <div role="alert" className="alert" data-period-deleted>
+            <span>This care period was deleted.</span>
+            <Link to={listUrl} className="btn btn-sm">
+              Back to care periods
+            </Link>
+          </div>
+        </Section>
       ) : (
         <>
           <PeriodDates span={span} next={next} timeZone={timeZone} now={now} />
 
           <PeriodPlace groupId={groupId} place={place} detail={period.placeDetail} />
 
-          <section aria-labelledby="period-notes-heading" className="space-y-2">
-            <div>
-              <h2 id="period-notes-heading" className="font-semibold">
-                Notes
-              </h2>
-              <p className="text-base-content/70 text-sm">
-                {canWrite
-                  ? "Shared with the care group: discharge instructions, visiting hours, the unit's phone."
-                  : "Shared with the care group. You can view these notes."}
-              </p>
-            </div>
+          <Section
+            title="Notes"
+            id="notes"
+            description={
+              canWrite
+                ? "Shared with the care group: discharge instructions, visiting hours, the unit's phone."
+                : "Shared with the care group. You can view these notes."
+            }
+          >
             {saveError && (
               <p role="alert" className="text-error text-sm">
                 {saveError}
@@ -162,12 +167,13 @@ function PeriodPage({ loaderData, params }: Route.ComponentProps) {
               canWrite={canWrite}
               initial={loaderData.initial}
               ensureSaved={ensureSaved}
+              providers={mentionProviders}
             />
-          </section>
+          </Section>
 
           <PeriodNeighbours groupId={groupId} previous={previous} next={next} timeZone={timeZone} now={now} />
         </>
       )}
-    </main>
+    </Page>
   );
 }

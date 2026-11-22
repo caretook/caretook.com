@@ -10,7 +10,7 @@ import { MedicationStatusActions } from "~/components/medications";
 import { Sheet } from "~/components/ui";
 import { getGroup } from "~/lib/app-shell/group";
 import { medicationTitle, scheduleZoneNote } from "~/lib/medications/medicationDisplay";
-import { editMedicationGuard } from "~/lib/medications/medicationSheets";
+import { editMedicationGuard, sheetTab } from "~/lib/medications/medicationSheets";
 import { statusRequestFromForm } from "~/lib/medications/medicationStatusForm";
 import { sessionContext } from "~/lib/auth/session";
 import { useLiveQuery } from "~/lib/sync";
@@ -22,43 +22,54 @@ import {
   toMedication,
   updateMedication,
 } from "~/lib/medications/medications.sync";
+import {
+  checkMedicationConditions,
+  loadMedicationConditions,
+  setMedicationConditions,
+} from "~/lib/profiles/medicationConditions.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
 import { MedicationForm } from "../MedicationForm";
 import { issuesForSlotRows, medicationFromForm } from "../medicationFormData";
 import { loadFormSources, useCloseMedicationSheet, useMedicationFormSources } from "../medicationSheet";
 
-// Shared by web + native. `medications/:medicationId/edit`: the edit sheet,
-// over the list (opened from the list or from the medication's page, which
-// it goes back to), with the status actions (Mark completed, Discontinue,
-// Restart) and Delete. A viewer, and a medication that's missing, deleted or
-// in another group, land on the list.
+// Shared by web + native. `medications/<tab>/:medicationId/edit`: the edit
+// sheet, over Schedule or the list (opened from a tab or from the
+// medication's page, over the list, which it goes back to), with the status
+// actions (Mark completed, Discontinue, Restart) and Delete. A viewer, and a
+// medication that's missing, deleted or in another group, land on the tab.
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
   const medicationRows = await readRows<MedicationRow>(db, medicationQuery(params.medicationId));
+  const url = new URL(request.url);
   const decision = editMedicationGuard({
     groupId: group.id,
-    search: new URL(request.url).search,
+    tab: sheetTab(group.id, url.pathname),
+    search: url.search,
     canWrite: group.canWrite,
     medication: medicationRows[0] ? toMedication(medicationRows[0]) : null,
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
-  const [sources, [recipient]] = await Promise.all([
+  const [sources, [recipient], linked] = await Promise.all([
     loadFormSources(db, group.id),
     readRows<RecipientRow>(db, recipientQuery(group.id)),
+    loadMedicationConditions(db, params.medicationId),
   ]);
   return {
     medication: decision.sheet,
     medicationRows,
     ...sources,
+    // What it's for as the sheet opens (the For field's chips).
+    conditionIds: linked.map((c) => c.id),
     recipientTimeZone: recipient?.time_zone ?? null,
   };
 }
 
 /**
  * Local writes: the edit (with its change entry, when a tracked field
- * changed), a status action, or Delete. The list's live query shows them,
+ * changed) and the conditions it's for (checked first, so a refusal saves
+ * nothing), a status action, or Delete. The list's live query shows them,
  * and PowerSync uploads them.
  */
 export async function clientAction({
@@ -66,16 +77,20 @@ export async function clientAction({
   params,
   context,
 }: Route.ClientActionArgs): Promise<ActionResult> {
-  getGroup(context);
+  const group = getGroup(context);
   const { db } = context.get(sessionContext);
   const form = await request.formData();
   const status = statusRequestFromForm(form);
   if (status?.intent === "remove") return removeMedication(db, params.medicationId);
   if (status) return changeMedicationStatus(db, params.medicationId, status.change);
-  const { input, newProviders, slotRows } = medicationFromForm(form);
-  const result = await updateMedication(db, params.medicationId, input, newProviders);
+  const { input, newProviders, slotRows, conditionIds } = medicationFromForm(form);
+  const badConditions = await checkMedicationConditions(db, group.id, conditionIds);
+  if (badConditions) return badConditions;
+  const result = await updateMedication(db, params.medicationId, input, newProviders, {
+    requireType: true,
+  });
   if (!result.ok) return { ...result, issues: issuesForSlotRows(result.issues, slotRows) };
-  return { ok: true };
+  return setMedicationConditions(db, params.medicationId, conditionIds);
 }
 
 /**
@@ -89,7 +104,7 @@ export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: Should
 
 export default function EditMedicationSheet({ loaderData, params }: Route.ComponentProps) {
   const close = useCloseMedicationSheet();
-  const { providers, names, passes } = useMedicationFormSources(params.groupId, loaderData);
+  const { providers, names, passes, conditions } = useMedicationFormSources(params.groupId, loaderData);
 
   // Live, so the status shown follows a change made here or on another device.
   const query = medicationQuery(params.medicationId);
@@ -98,7 +113,7 @@ export default function EditMedicationSheet({ loaderData, params }: Route.Compon
   const gone = !live || !!live.deletedAt;
   const medication = live && !gone ? live : loaderData.medication;
 
-  // Deleted (here or elsewhere): the page it may have come from is gone too, so the list.
+  // Deleted (here or elsewhere): the page it may have come from is gone too, so the tab underneath.
   useEffect(() => {
     if (gone) close(true);
   }, [gone, close]);
@@ -123,6 +138,8 @@ export default function EditMedicationSheet({ loaderData, params }: Route.Compon
         providers={providers}
         passes={passes}
         names={names}
+        conditions={conditions}
+        conditionIds={loaderData.conditionIds}
         zoneNote={zoneNote}
         onDone={() => close()}
         onCancel={() => close()}

@@ -6,7 +6,16 @@ import { visibleSharedFields } from "@caretook/data/schema";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { ContactLines } from "~/components/contact";
-import { ConfirmDialog, UserAvatar } from "~/components/ui";
+import {
+  Badge,
+  Button,
+  ConfirmDialog,
+  List,
+  ListRow,
+  Message,
+  ToggleField,
+  UserAvatar,
+} from "~/components/ui";
 import { emergencyBadges } from "~/lib/profiles/emergencyList";
 import { useLiveQuery } from "~/lib/sync";
 import {
@@ -70,7 +79,7 @@ export function Members({
 
   return (
     <>
-      <ul className="divide-base-200 divide-y">
+      <List>
         {members.map((member) => {
           const isSelf = member.user_id === userId;
           const mine = target?.userId === member.user_id;
@@ -90,7 +99,7 @@ export function Members({
             />
           );
         })}
-      </ul>
+      </List>
       {/* Offline there's nothing to confirm: no controls at all. */}
       {online && (
         <ConfirmDialog
@@ -155,7 +164,7 @@ function MemberItem({
 
   const error = (result && !result.ok ? result.error : undefined) ?? simple.error ?? removeError;
   return (
-    <li data-member={member.user_id} className="space-y-1 py-3 first:pt-0 last:pb-0">
+    <ListRow data-member={member.user_id} className="space-y-1">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <UserAvatar name={member.name} image={member.image} size="lg" />
         <div className="min-w-0 flex-1">
@@ -166,13 +175,13 @@ function MemberItem({
           {badges.length > 0 && (
             <p className="flex flex-wrap gap-1 py-0.5" data-member-badges="">
               {badges.map((badge) => (
-                <span
+                <Badge
                   key={badge}
-                  className={`badge badge-sm ${badge === "Primary contact" ? "badge-primary" : "badge-outline"}`}
+                  tone={badge === "Primary contact" ? "primary" : "neutral"}
                   data-badge={badge === "Primary contact" ? "primary" : "emergency"}
                 >
                   {badge}
-                </span>
+                </Badge>
               ))}
             </p>
           )}
@@ -210,62 +219,55 @@ function MemberItem({
             {roleLabel(member.role)}
           </span>
         )}
-        {access?.simpleMode ? (
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="toggle toggle-sm"
+        {(access?.remove || access?.leave) && (
+          <Button
+            size="sm"
+            busy={removing}
+            busyLabel={access.leave ? "Leaving…" : "Removing…"}
+            disabled={busy}
+            aria-label={access.leave ? "Leave this care group" : `Remove ${name}`}
+            onClick={onRemove}
+          >
+            {access.leave ? "Leave" : "Remove"}
+          </Button>
+        )}
+      </div>
+      {(access?.simpleMode || !!member.simple_mode) && (
+        <div className="flex min-w-0 flex-col gap-2 pl-12" data-member-switches="">
+          {access?.simpleMode ? (
+            <ToggleField
+              label="Simple mode"
               aria-label={`Simple mode for ${name}`}
               checked={simple.on}
               disabled={simple.busy || removing}
               onChange={(event) => simple.set(event.target.checked)}
               data-simple-mode-switch=""
             />
-            <span aria-hidden="true">Simple mode</span>
-          </label>
-        ) : (
-          !!member.simple_mode && (
-            <span className="badge badge-sm badge-ghost" data-simple-mode-badge="">
-              {member.simple_mode_locked ? "Simple mode, locked" : "Simple mode"}
-            </span>
-          )
-        )}
-        {access?.lock && (
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="toggle toggle-sm"
+          ) : (
+            !!member.simple_mode && (
+              <Badge data-simple-mode-badge="" className="self-start">
+                {member.simple_mode_locked ? "Simple mode, locked" : "Simple mode"}
+              </Badge>
+            )
+          )}
+          {access?.lock && (
+            <ToggleField
+              label="Locked"
               aria-label={`Lock ${name} in simple mode`}
               checked={simple.locked}
               disabled={simple.busy || removing}
               onChange={(event) => simple.lock(event.target.checked)}
               data-simple-lock-switch=""
             />
-            <span aria-hidden="true">Locked</span>
-          </label>
-        )}
-        {access?.simpleMode && !access.lock && !!member.simple_mode_locked && (
-          <span className="badge badge-sm badge-ghost" data-simple-mode-badge="">
-            Locked
-          </span>
-        )}
-        {(access?.remove || access?.leave) && (
-          <button
-            type="button"
-            className="btn btn-sm"
-            disabled={busy || removing}
-            aria-label={access.leave ? "Leave this care group" : `Remove ${name}`}
-            onClick={onRemove}
-          >
-            {access.leave ? (removing ? "Leaving…" : "Leave") : removing ? "Removing…" : "Remove"}
-          </button>
-        )}
-      </div>
-      {error && (
-        <p role="alert" className="text-error text-sm">
-          {error}
-        </p>
+          )}
+          {access?.simpleMode && !access.lock && !!member.simple_mode_locked && (
+            <Badge data-simple-mode-badge="" className="self-start">
+              Locked
+            </Badge>
+          )}
+        </div>
       )}
+      {error && <Message tone="error">{error}</Message>}
       {contactLines.length > 0 && (
         <div className="pl-12">
           <ContactLines lines={contactLines} data-member-contact="" />
@@ -284,7 +286,7 @@ function MemberItem({
             {sharedSummary(visibleSharedFields(share))}
           </p>
         ))}
-    </li>
+    </ListRow>
   );
 }
 

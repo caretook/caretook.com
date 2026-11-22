@@ -6,7 +6,7 @@ import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
 import { canAddPass } from "@caretook/data/schema";
 import { Plus } from "lucide-react";
 import { useState } from "react";
-import { BackLink, Sheet } from "~/components/ui";
+import { BackLink, Page, PageHeader, Sheet } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
@@ -72,29 +72,32 @@ export default function MedicationPasses({ loaderData, params }: Route.Component
   const close = () => setEditing(null);
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-passes-page>
-      <BackLink to={appUrls.medications(params.groupId)} label="Medications" />
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold">Passes</h1>
-          <p className="text-base-content/70 text-sm">
+    <Page data-passes-page>
+      <BackLink to={appUrls.medicationSchedule(params.groupId)} label="Medications" />
+      <PageHeader
+        title="Passes"
+        description={
+          <>
             The rounds medications are given in, each day.
             {zoneNote && ` ${zoneNote}.`}
             {!group.canWrite && " You can view the passes."}
-          </p>
-        </div>
-        {group.canWrite && canAddPass(passes.map((p) => p.pass)) && (
-          <button
-            type="button"
-            className="btn btn-primary btn-sm shrink-0"
-            onClick={() => setEditing("new")}
-            data-add-pass
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Add pass
-          </button>
-        )}
-      </header>
+          </>
+        }
+        actions={
+          group.canWrite &&
+          canAddPass(passes.map((p) => p.pass)) && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm shrink-0"
+              onClick={() => setEditing("new")}
+              data-add-pass
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              Add pass
+            </button>
+          )
+        }
+      />
 
       <PassList groupId={params.groupId} passes={passes} canWrite={group.canWrite} onEdit={setEditing} />
 
@@ -112,6 +115,6 @@ export default function MedicationPasses({ loaderData, params }: Route.Component
           />
         </Sheet>
       )}
-    </main>
+    </Page>
   );
 }

@@ -24,8 +24,19 @@ export const POWERSYNC_HEALTH_PATH = "/probes/liveness";
 /** The headers the home page must carry (docs/domain/security-headers.md). */
 export const SECURITY_HEADERS = ["strict-transport-security", "content-security-policy", "x-frame-options"];
 
+/** The cron routes (`vercel.json` `crons`), each locked behind `CRON_SECRET`. */
+export const CRON_PATHS = ["/api/cron/outbox", "/api/cron/calendar"];
+
 /** The check names, in the order they're reported. */
-export const SMOKE_CHECKS = ["home", "jwks", "rpc-unauthenticated", "cron-locked", "powersync", "noindex"];
+export const SMOKE_CHECKS = [
+  "home",
+  "jwks",
+  "rpc-unauthenticated",
+  "cron-locked",
+  "mcp-unauthenticated",
+  "powersync",
+  "noindex",
+];
 
 const join = (base, path) => `${base.replace(/\/+$/, "")}${path}`;
 
@@ -96,9 +107,29 @@ export async function smoke({ appUrl, powersyncUrl, fetch, staging = false, time
       return pass("401 UNAUTHORIZED");
     },
     "cron-locked": async (signal) => {
-      const res = await get(join(appUrl, "/api/cron/outbox"), {}, signal);
-      if (res.status !== 401) return fail(`status ${res.status}, expected 401`);
+      // Each cron route (the outbox sweep, the calendar cron) refuses a call without a bearer.
+      for (const path of CRON_PATHS) {
+        const res = await get(join(appUrl, path), {}, signal);
+        if (res.status !== 401) return fail(`${path}: status ${res.status}, expected 401`);
+      }
       return pass("401 without a bearer");
+    },
+    // The connectors' MCP endpoint refuses a call without a token and points
+    // the client at its OAuth metadata (docs/domain/connectors.md).
+    "mcp-unauthenticated": async (signal) => {
+      const res = await get(
+        join(appUrl, "/mcp"),
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }),
+        },
+        signal,
+      );
+      if (res.status !== 401) return fail(`status ${res.status}, expected 401`);
+      if (!/resource_metadata=/.test(res.headers.get("www-authenticate") ?? ""))
+        return fail("401 without WWW-Authenticate resource_metadata");
+      return pass("401 with resource_metadata");
     },
     powersync: async (signal) => {
       const res = await get(join(powersyncUrl, POWERSYNC_HEALTH_PATH), {}, signal);

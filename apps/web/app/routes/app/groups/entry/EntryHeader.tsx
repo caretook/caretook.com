@@ -12,13 +12,16 @@ import { Field } from "~/components/ui";
  * own:
  *
  *   [icon] [title ............] [editors] [actions]
- *          [time]
+ *          [time] [via]
+ *          [repeat .........]
  *          [with ...........]
  *          [suggestion .....]
  *          [place ..........]
  *
  * - `title`: `EntryTitle` (editable for writers) or plain text.
  * - `time`: when it happened (`EntryTimeChip` for writers, `EntryTime` otherwise).
+ * - `via`: the member's AI assistant it was added through (`ViaTag`), after the time.
+ * - `repeat`: how it repeats (`EntryRepeat`: a series visit's rule, a new entry's Repeat button).
  * - `editors`: who is typing now (avatars).
  * - `actions`: Share, the ⋯ menu.
  * - `with`: the providers it was with (notes and events).
@@ -36,15 +39,20 @@ export function EntryHeader({
   with: withRegion,
   suggestion,
   place,
+  via,
+  repeat,
 }: {
   kind: TimelineEntryKind;
   title: ReactNode;
   time: ReactNode;
+  via?: ReactNode;
   editors?: ReactNode;
   actions?: ReactNode;
   with?: ReactNode;
   suggestion?: ReactNode;
   place?: ReactNode;
+  /** How it repeats (a series visit's rule, or a new entry's Repeat button). */
+  repeat?: ReactNode;
 }) {
   return (
     <header className="flex items-start gap-3">
@@ -53,7 +61,17 @@ export function EntryHeader({
         <div data-region="title">{title}</div>
         <div data-region="time" className="text-base-content/70 text-sm">
           {time}
+          {via && (
+            <span data-region="via" className="ml-2">
+              {via}
+            </span>
+          )}
         </div>
+        {repeat && (
+          <div data-region="repeat" className="pt-0.5 empty:hidden">
+            {repeat}
+          </div>
+        )}
         {withRegion && (
           <div data-region="with" className="pt-1.5 empty:hidden">
             {withRegion}

@@ -29,7 +29,9 @@ streams:
       my_groups: SELECT group_id FROM care_group_member WHERE user_id = auth.user_id()
     queries:
       # `simple_tiles`: how simple mode picks its four tiles (assistant).
-      - SELECT id, name, simple_tiles, created_at, updated_at, created_by, updated_by FROM care_group WHERE id IN my_groups
+      # `connectors_enabled`: the owners' Assistants switch (connectors).
+      # `details_outside_allowed`: the owners' "Details outside Caretook" switch (appointments-2).
+      - SELECT id, name, simple_tiles, created_at, updated_at, created_by, updated_by, connectors_enabled, details_outside_allowed FROM care_group WHERE id IN my_groups
       # `invited_by` and `created_at`: who invited each member and when they joined (the Members page).
       # `relationship` and `shared_fields`: the member's own sharing choices;
       # `emergency_rank` and `is_primary_contact`: the emergency list's badges;
@@ -44,27 +46,31 @@ streams:
       # `date_of_birth`: the printable medication sheet works offline.
       # The medical basics and `notes` (the note for helpers): every member sees them.
       # `no_known_allergies_at`: "No known allergies" was recorded (medications-2).
+      # `no_known_conditions_at`: "No known conditions" was recorded (conditions).
       - >-
         SELECT id, group_id, name, preferred_name, time_zone, date_of_birth,
         code_status, blood_type, primary_language, pronouns, notes, no_known_allergies_at,
-        created_at, updated_at, created_by, updated_by
+        created_at, updated_at, created_by, updated_by, no_known_conditions_at
         FROM care_recipient WHERE group_id IN my_groups
       # `ends_at`, `all_day`, `place`, the cancel fields and `rescheduled_to`:
       # appointments and reminders (future events and notes).
+      # `via`: written through a member's AI assistant ("via Claude"; connectors).
+      # `series_id`, `series_day`, `series_detached`: a repeating series' visit (appointments-2).
       - >-
         SELECT id, group_id, recipient_id, kind, occurred_at, time_zone, title, body, details,
         deleted_at, created_at, updated_at, created_by, updated_by,
-        ends_at, all_day, place, cancelled_at, cancelled_by, cancel_reason, rescheduled_to
+        ends_at, all_day, place, cancelled_at, cancelled_by, cancel_reason, rescheduled_to, via,
+        series_id, series_day, series_detached
         FROM timeline_entry WHERE group_id IN my_groups
       # Live documents: the compacted snapshot and every pending Yjs update,
       # so any document opens and edits offline. Viewers get them too (read-only).
       # `editors` (who edited, and when) carries "who's typing" past compaction.
       # `subject` says whose document it is: an entry's (`entry_id`), a provider's
       # (`provider_id`), a medication's (`medication_id`), a care period's
-      # (`care_period_id`) or a task's (`task_id`).
+      # (`care_period_id`) or a todo's (`todo_id`).
       - >-
         SELECT id, group_id, snapshot, text, editors, created_at, updated_at, created_by, updated_by,
-        subject, entry_id, provider_id, medication_id, care_period_id, task_id
+        subject, entry_id, provider_id, medication_id, care_period_id, todo_id
         FROM note_document WHERE group_id IN my_groups
       - >-
         SELECT id, group_id, document_id, data, created_at, created_by, updated_at, updated_by
@@ -85,7 +91,8 @@ streams:
         SELECT id, group_id, recipient_id, name, strength, form, dose, directions, reason, schedule,
         status, started_on, stopped_on, stop_reason, stop_note, prescriber_id, pharmacy_id,
         last_filled_on, quantity, refills_left, rx_number,
-        deleted_at, created_at, updated_at, created_by, updated_by
+        deleted_at, created_at, updated_at, created_by, updated_by,
+        type
         FROM medication WHERE group_id IN my_groups
       # What each member shares with the group: only the values they chose
       # (a projection the services keep in step). Never user_contact itself.
@@ -109,12 +116,34 @@ streams:
         SELECT id, group_id, recipient_id, substance, reaction, severity,
         deleted_at, created_at, updated_at, created_by, updated_by
         FROM recipient_allergy WHERE group_id IN my_groups
-      # The group's tasks, soft-deleted ones included (so deletes reach devices).
+      # The group's todos, soft-deleted ones included (so deletes reach devices).
+      # `via`: added through a member's AI assistant (connectors). `repeat_*`:
+      # a repeating todo's rule, anchor and chain (planner-2).
       - >-
         SELECT id, group_id, recipient_id, title, assignee_id, assignee_name, due_on, due_time,
         done_at, done_by, provider_id, medication_id, event_id,
+        deleted_at, created_at, updated_at, created_by, updated_by, via,
+        repeat_rule, repeat_starts_on, repeat_id
+        FROM todo WHERE group_id IN my_groups
+      # The recipient's conditions, soft-deleted ones included (so deletes reach devices).
+      - >-
+        SELECT id, group_id, recipient_id, name, status, since_year, since_month, note, diagnosed_by_id,
         deleted_at, created_at, updated_at, created_by, updated_by
-        FROM task WHERE group_id IN my_groups
+        FROM recipient_condition WHERE group_id IN my_groups
+      # What each medication is for: medication ↔ condition links (hard deletes).
+      - >-
+        SELECT id, group_id, medication_id, condition_id, created_at, updated_at, created_by, updated_by
+        FROM medication_condition WHERE group_id IN my_groups
+      # Who manages each condition: condition ↔ provider links (hard deletes).
+      - >-
+        SELECT id, group_id, condition_id, provider_id, created_at, updated_at, created_by, updated_by
+        FROM condition_manager WHERE group_id IN my_groups
+      # Repeating appointments and reminders (appointments-2), soft-deleted ones included.
+      - >-
+        SELECT id, group_id, recipient_id, kind, rule, starts_on, start_time, all_day, time_zone,
+        title, duration_minutes, place, provider_ids, topped_up_through,
+        deleted_at, created_at, updated_at, created_by, updated_by
+        FROM appointment_series WHERE group_id IN my_groups
 
   # The recipient's sensitive details (phones, email, address, insurance,
   # outside contacts) for owners, admins and caretakers only: viewers' devices

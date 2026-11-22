@@ -1,7 +1,8 @@
 import type { EntryViewProps } from "./TimelineEntryRow";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
-import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink } from "~/components/entry";
+import { AuthorFilterLink, EntryActions, EntryBody, KindFilterLink, RepeatMark } from "~/components/entry";
+import { ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatTime, formatTimeInZone } from "~/lib/core/format";
 import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
@@ -20,6 +21,7 @@ export function TimelineEntryCard({
   onEdit,
   onDelete,
   cancel,
+  onRemind,
   liveLabel,
   providers,
   search,
@@ -28,7 +30,7 @@ export function TimelineEntryCard({
   const cancelled = cancelledLabel(entry);
   return (
     <li
-      className={`rounded-box border-base-300 bg-base-100 relative isolate flex items-start gap-3 border p-3 ${removing ? "opacity-50" : ""}`}
+      className={`rounded-box border-base-300 bg-base-100 relative isolate flex items-start gap-3 border p-3 shadow-sm ${removing ? "opacity-50" : ""}`}
       data-cancelled={cancelled ? "" : undefined}
     >
       {open && <EntryOpenTarget open={open} entry={entry} />}
@@ -45,6 +47,7 @@ export function TimelineEntryCard({
             <time dateTime={entry.occurredAt} className="text-base-content/70 text-sm tabular-nums">
               {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
             </time>
+            <RepeatMark seriesId={entry.seriesId} className="text-base-content/70" />
           </>
         }
         footer={
@@ -52,6 +55,7 @@ export function TimelineEntryCard({
             {cancelled && <CancelledBadge label={cancelled} />}
             <p className="text-base-content/60 inline-block w-full text-xs">
               <AuthorFilterLink userId={entry.createdBy} name={authorName} />
+              <ViaTag via={entry.via} className="ml-1.5" />
               {elsewhere && ` · ${elsewhere}`}
             </p>
           </>
@@ -63,6 +67,7 @@ export function TimelineEntryCard({
           label={actionsLabel(entry)}
           onEdit={onEdit}
           cancel={cancel}
+          onRemind={onRemind}
           printHref={
             canHaveNoteDocument(entry.kind) ? appUrls.printEntry(entry.groupId, entry.id) : undefined
           }

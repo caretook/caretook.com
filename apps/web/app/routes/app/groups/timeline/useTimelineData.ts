@@ -1,6 +1,7 @@
 import type { EntryProviderLinkRow, LinkedProviderName } from "~/lib/providers/entryProviders";
 import type { LiveDocument } from "~/lib/live-notes/liveNow";
 import type { LatestVital, TimelineEntry } from "~/lib/core/rpc";
+import type { EntryMedicationRow } from "~/lib/medications/medicationTimeline.sync";
 import type { NoteDocRow } from "~/lib/live-notes/notes.sync";
 import type { EntryFilters, EntryRow, MemberRow, ReadingRow } from "~/lib/timeline/timeline.sync";
 import type { TimelineRows } from "./timelineRows";
@@ -9,7 +10,8 @@ import type { PeriodMarker } from "~/lib/care-periods/periodMarkers";
 import type { LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 import type { TimelinePeriods } from "./timelinePeriods";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router";
 import { isEntryKind, KIND_META } from "~/lib/timeline/entryDisplay";
 import { groupLinksByEntry } from "~/lib/providers/entryProviders";
 import { localTimeZone } from "~/lib/core/format";
@@ -41,6 +43,7 @@ import { aheadQueries } from "./aheadQueries";
 import { useTimelinePeriods } from "./timelinePeriods";
 import { useHistoryCutoff } from "./useHistoryCutoff";
 import { daySummaryQuery, summariesOff, summarySince } from "./daySummaryRows";
+import { keepPaging, startPaging } from "./timelinePaging";
 
 // The timeline's data, live: the loader reads the first screenful
 // (`loadTimelineRows`), and live queries here take over from there, so other
@@ -79,6 +82,8 @@ export type TimelineData = {
   markers: PeriodMarker<LocalCarePeriod>[];
   /** The day summaries' entries: the loaded days, whole, and the 7 days before them; null while a filter or search is on. */
   summaryEntries: TimelineEntry[] | null;
+  /** This mount started from a kept window, rows and all (Back to it: `timelinePaging.ts`). */
+  restored: boolean;
 };
 
 /** A live document's title: its entry's, else its kind ("Note"). */
@@ -90,7 +95,10 @@ const liveTitle = (row: { kind: string; title: string | null }) =>
  * calls `loadOlder`, which grows the local query's limit by a page (it asks
  * for one extra row to know there's more), and a change to any filter (the
  * search included) starts over from one page. While a larger window loads, the previous one
- * stays on screen, entries and "with …" lines alike (`pageWindow`).
+ * stays on screen, entries and "with …" lines alike (`pageWindow`). Back to
+ * the timeline from a page outside it (an entry's) starts from the window it
+ * left, rows and all, so the scroll position has somewhere to come back to
+ * (`timelinePaging.ts`).
  */
 export function useTimelineData({
   groupId,
@@ -110,14 +118,30 @@ export function useTimelineData({
     filters.match ?? null,
     filters.vital ?? null,
   ]);
-  const [paging, setPaging] = useState({ filterKey, limit: PAGE_SIZE });
+  // Back to this history entry starts from the window kept for it; anything else from one page.
+  const { key: locationKey } = useLocation();
+  const [start] = useState(() => ({
+    initial,
+    ...startPaging<EntryRow, EntryProviderLinkRow, EntryRow, EntryMedicationRow>(userId, groupId, {
+      locationKey,
+      filterKey,
+    }),
+  }));
+  // The kept rows are the restored window's: they stand in for the loader's (one page) until the
+  // watches answer, so the first render is as tall as the one left. New loader data replaces them.
+  const restored = start.initial === initial ? start.rows : undefined;
+  const [paging, setPaging] = useState({ filterKey, limit: start.limit });
   const requested = paging.filterKey === filterKey ? paging.limit : PAGE_SIZE;
 
   // The history ends at a cutoff that moves on once a minute, so items cross
   // from the Today card's appointment into it without new rows.
   const cutoff = useHistoryCutoff(initial.cutoff);
   const entriesSql = historyQuery(groupId, filters, requested, cutoff);
-  const entries = useLiveRows<EntryRow>(entriesSql.sql, entriesSql.params, initial.entryRows);
+  const entries = useLiveRows<EntryRow>(
+    entriesSql.sql,
+    entriesSql.params,
+    restored?.entryRows ?? initial.entryRows,
+  );
   const membersSql = membersQuery(groupId);
   const memberRows = useLiveQuery<MemberRow>(membersSql.sql, membersSql.params, initial.memberRows);
   const readingsSql = readingsQuery(groupId);
@@ -128,7 +152,11 @@ export function useTimelineData({
   const previews = useMemo(() => toPreviews(documentRows), [documentRows]);
   // One query for every loaded entry's links (the same window as the entries), never one per row.
   const linksSql = timelineLinksQuery(groupId, filters, requested, cutoff);
-  const links = useLiveRows<EntryProviderLinkRow>(linksSql.sql, linksSql.params, initial.linkRows);
+  const links = useLiveRows<EntryProviderLinkRow>(
+    linksSql.sql,
+    linksSql.params,
+    restored?.linkRows ?? initial.linkRows,
+  );
   const linkRows = links.rows;
   // What's ahead of the history: the Today card's appointment.
   const ahead = aheadQueries(groupId, filters, cutoff);
@@ -137,12 +165,14 @@ export function useTimelineData({
   // The new page shows once both windows are in, so no "with …" line flickers.
   const fresh = entries.fresh && links.fresh;
   // The window the rows on screen were fetched for: the cutoff's minute turn
-  // refetches the same window, so it doesn't shrink the list while it does.
-  const [settled, setSettled] = useState(requested);
+  // refetches the same window, so it doesn't shrink the list while it does. A restored window
+  // without its rows (past the cap) loads like any page, from the loader's one.
+  const [settled, setSettled] = useState(restored ? requested : PAGE_SIZE);
   if (fresh && settled !== requested) setSettled(requested);
   const page = pageWindow({ rowCount: entries.rows.length, requested, fresh, settled });
   // Doses and medication changes are named by their medication: one query over the same window.
-  const medicationOf = useTimelineMedications(groupId, filters, requested, cutoff);
+  const medications = useTimelineMedications(groupId, filters, requested, cutoff, restored?.medicationRows);
+  const medicationOf = medications.medicationOf;
   // A schedule change names the passes it touched.
   const passes = useSchedulePasses(groupId);
 
@@ -180,7 +210,34 @@ export function useTimelineData({
     cutoff,
     summariesHidden,
   );
-  const summaryRows = useLiveQuery<EntryRow>(summarySql.sql, summarySql.params, initial.summaryRows);
+  const summaryRows = useLiveQuery<EntryRow>(
+    summarySql.sql,
+    summarySql.params,
+    restored?.summaryRows ?? initial.summaryRows,
+  );
+
+  // Keep the settled window for this history entry, for Back to it after a remount.
+  const settledWindow = fresh && settled === requested;
+  useEffect(() => {
+    if (!settledWindow) return;
+    keepPaging(userId, groupId, {
+      locationKey,
+      filterKey,
+      limit: requested,
+      rows: { entryRows: entries.rows, linkRows: links.rows, summaryRows, medicationRows: medications.rows },
+    });
+  }, [
+    settledWindow,
+    userId,
+    groupId,
+    locationKey,
+    filterKey,
+    requested,
+    entries.rows,
+    links.rows,
+    summaryRows,
+    medications.rows,
+  ]);
 
   return {
     days: groupByDay(shown, zone, new Date()),
@@ -202,5 +259,6 @@ export function useTimelineData({
     periods,
     markers,
     summaryEntries: summariesHidden ? null : toTimelineEntries(summaryRows),
+    restored: !!start.rows,
   };
 }

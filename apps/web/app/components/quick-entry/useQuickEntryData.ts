@@ -14,7 +14,7 @@ const NO_ROWS: never[] = [];
 /**
  * What quick entry matches names against, live from the device: the group's
  * current medications, its providers (not deleted) and its members (a
- * task's "for Sam"). Works offline.
+ * todo's "for Sam"). Works offline.
  */
 export function useQuickEntryData(groupId: string) {
   const meds = medicationsQuery(groupId, { status: "current" });

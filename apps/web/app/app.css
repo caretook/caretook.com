@@ -7,6 +7,37 @@
     dark --prefersdark;
 }
 
+/* Surfaces, tuned so sections read apart (stock daisyUI puts dark's three
+   bases within 4% lightness, borders darker than the cards they edge).
+   The app's convention: base-200 is the page (`body`), base-100 a card on
+   it, base-300 a card's border and divider and a quiet fill. Only the bases
+   change; every other token stays daisyUI's. */
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  --color-base-100: oklch(100% 0 0);
+  --color-base-200: oklch(96.5% 0.007 255);
+  --color-base-300: oklch(89.5% 0.012 255);
+}
+@plugin "daisyui/theme" {
+  name: "dark";
+  prefersdark: true;
+  --color-base-100: oklch(27% 0.018 255);
+  --color-base-200: oklch(19.5% 0.014 255);
+  --color-base-300: oklch(37% 0.02 255);
+}
+
+/* A day's sticky heading band (DayHeader): the page's own colour, opaque,
+   so rows scroll under it unseen. Borderless and window-wide: the shadow
+   paints the colour out to both edges and the clip keeps it to the band's
+   height (no layout change, no sideways scroll), so the heading stays
+   aligned with the rows. */
+@utility day-band {
+  background-color: var(--color-base-200);
+  box-shadow: 0 0 0 100vmax var(--color-base-200);
+  clip-path: inset(0 -100vmax);
+}
+
 /* React Aria marks state with data attributes; Tailwind v4 styles them as
    data-[focused]:…, data-[selected]:… without a plugin. */
 
@@ -16,11 +47,19 @@
   outline-offset: 2px;
 }
 
-/* The phone tab bar's height (TabBar, under the /app outlet on group routes).
-   Its spacer reserves this much at the end of the page; anything else fixed
-   to the bottom of a group screen can offset itself by it. */
+/* The phone tab bar (TabBar, under the /app outlet on group routes): a
+   3.5rem bar floating --tab-bar-gap above the bottom safe area. Its height
+   is the bar plus that gap below and above it plus the safe area: its spacer
+   reserves this much at the end of the page, and anything else fixed to the
+   bottom of a group screen (Toast) offsets itself by it. Its surface is
+   near-black `neutral` in light; dark's `neutral` is within 1.1:1 of the
+   dark page, so there it is `base-300` (`light-dark` follows the theme's
+   color-scheme). */
 :root {
-  --tab-bar-height: calc(4rem + env(safe-area-inset-bottom));
+  --tab-bar-gap: 0.75rem;
+  --tab-bar-height: calc(3.5rem + 2 * var(--tab-bar-gap) + env(safe-area-inset-bottom));
+  --tab-bar-surface: light-dark(var(--color-neutral), var(--color-base-300));
+  --tab-bar-content: light-dark(var(--color-neutral-content), var(--color-base-content));
 }
 
 /* Sheet (components/ui): fades in the backdrop, slides the sheet up (only when motion is OK). */
@@ -114,4 +153,14 @@
   h2 {
     break-after: avoid;
   }
+}
+
+/* Secondary text (ui-kit): two tones of the content colour. `text-muted` is
+   for supporting copy, `text-faint` for the quietest (timestamps, hints). Both
+   keep 4.5:1 on base-200 and base-100 in both themes (a component test). */
+@utility text-muted {
+  color: color-mix(in oklab, var(--color-base-content) 70%, transparent);
+}
+@utility text-faint {
+  color: color-mix(in oklab, var(--color-base-content) 62%, transparent);
 }

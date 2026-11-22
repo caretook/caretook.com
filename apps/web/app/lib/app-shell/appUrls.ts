@@ -1,4 +1,5 @@
 import { appointmentUrls } from "../appointments/urls";
+import { calendarUrls } from "../calendars/urls";
 import { carePeriodUrls } from "../care-periods/urls";
 import { careGroupUrls } from "../care-groups/urls";
 import { groupHome } from "../core/urls";
@@ -7,7 +8,7 @@ import { medicationUrls } from "../medications/urls";
 import { profileUrls } from "../profiles/urls";
 import { providerUrls } from "../providers/urls";
 import { searchUrls } from "../search/urls";
-import { taskUrls } from "../tasks/urls";
+import { todoUrls } from "../todos/urls";
 import { timelineUrls } from "../timeline/urls";
 import { appShellUrls } from "./urls";
 
@@ -37,5 +38,6 @@ export const appUrls = {
   ...profileUrls,
   ...searchUrls,
   ...carePeriodUrls,
-  ...taskUrls,
+  ...todoUrls,
+  ...calendarUrls,
 } as const;

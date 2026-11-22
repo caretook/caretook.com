@@ -7,7 +7,11 @@ import {
   canSaveCards,
   cardActions,
   cardsAnnouncement,
+  draftCardOf,
+  draftSummary,
   editTarget,
+  isDraftReading,
+  markDraft,
   openAfterSave,
   partKey,
   savedText,
@@ -20,7 +24,7 @@ const MED = "11111111-1111-4111-8111-111111111111";
 const note = (text: string): QuickEntryReading => ({
   kind: "note",
   label: "Note",
-  actions: [{ type: "addNote", text, occurredAt: at }],
+  actions: [{ type: "addNote", text, occurredAt: at, providerIds: [] }],
   confidence: 0.4,
   warnings: [],
 });
@@ -56,15 +60,48 @@ describe("buildCards", () => {
     },
   ];
 
-  test("each part shows its best reading, with the others as chips (named by what they say when a kind repeats)", () => {
+  test("each part shows its best reading, other kinds as 'Make it' buttons, and same-kind readings named by what they say", () => {
     const cards = buildCards(parts, none, titleOf);
-    expect(cards.map((c) => [c.key, c.reading.kind, c.alternatives.map((a) => a.label)])).toEqual([
-      ["0:hr 999", "vital", ["Note instead"]],
-      ["1:gave met", "dose", ["Medication 22 instead", "Note instead"]],
+    expect(
+      cards.map((c) => [
+        c.key,
+        c.reading.kind,
+        c.kindChoices.map((a) => a.label),
+        c.alternatives.map((a) => a.label),
+      ]),
+    ).toEqual([
+      ["0:hr 999", "vital", ["Make it a note"], []],
+      ["1:gave met", "dose", ["Make it a note"], ["Medication 22 instead"]],
     ]);
     expect(cards[0]!.blocking).toEqual(["Heart rate: enter a whole number from 20 to 300 bpm."]);
     expect(cards[0]!.notices).toEqual(["Something to check"]);
     expect(canSaveCards(cards)).toBe(false);
+  });
+
+  test("a part read as symptom, event and note offers the two other kinds", () => {
+    const symptom: QuickEntryReading = {
+      kind: "symptom",
+      label: "Symptom",
+      actions: [{ type: "logSymptom", name: "Fall", occurredAt: at }],
+      confidence: 0.9,
+      warnings: [],
+    };
+    const event: QuickEntryReading = {
+      kind: "event",
+      label: "Event",
+      actions: [{ type: "addEvent", title: "Fell", occurredAt: at, allDay: false }] as never,
+      confidence: 0.6,
+      warnings: [],
+    };
+    const part: QuickEntryPart = { text: "fell", readings: [symptom, event, note("fell")] };
+    const [first] = buildCards([part], none, titleOf);
+    expect(first!.kindChoices.map((c) => [c.index, c.label])).toEqual([
+      [1, "Make it an event"],
+      [2, "Make it a note"],
+    ]);
+    expect(first!.alternatives).toEqual([]);
+    const [second] = buildCards([part], { ...none, chosen: new Map([[partKey(0, part), 2]]) }, titleOf);
+    expect(second!.kindChoices.map((c) => c.label)).toEqual(["Make it a symptom", "Make it an event"]);
   });
 
   test("a chosen reading, and removed parts", () => {
@@ -74,7 +111,8 @@ describe("buildCards", () => {
       titleOf,
     );
     expect(cards.map((c) => c.reading.kind)).toEqual(["note"]);
-    expect(cards[0]!.alternatives.map((a) => a.index)).toEqual([0, 1]);
+    expect(cards[0]!.kindChoices.map((a) => [a.index, a.label])).toEqual([[0, "Make it a dose"]]);
+    expect(cards[0]!.alternatives).toEqual([]);
     expect(canSaveCards(cards)).toBe(true);
     expect(cardActions(cards)).toEqual([{ action: note("gave met").actions[0], key: "1:gave met" }]);
   });
@@ -92,9 +130,9 @@ describe("buildCards", () => {
 test("savedText and cardsAnnouncement", () => {
   expect(savedText(1)).toBe("Saved 1 entry");
   expect(savedText(3)).toBe("Saved 3 entries");
-  expect(savedText(1, 1)).toBe("Saved 1 task");
-  expect(savedText(3, 1)).toBe("Saved 2 entries and 1 task");
-  expect(savedText(3, 2)).toBe("Saved 1 entry and 2 tasks");
+  expect(savedText(1, 1)).toBe("Saved 1 todo");
+  expect(savedText(3, 1)).toBe("Saved 2 entries and 1 todo");
+  expect(savedText(3, 2)).toBe("Saved 1 entry and 2 todos");
   const cards = buildCards([{ text: "hr 999", readings: [blocked] }], none, titleOf);
   expect(cardsAnnouncement(cards, titleOf)).toBe("1 card: Vital, Vital, can't be saved yet");
   expect(cardsAnnouncement([], titleOf)).toBe("");
@@ -147,21 +185,23 @@ describe("editTarget", () => {
     });
   });
 
-  test("a task opens the add-task sheet filled in, coming back on close", () => {
+  test("a todo opens the add-todo sheet filled in, coming back on close", () => {
     const SAM = "88888888-8888-4888-8888-888888888888";
     const target = editTarget(
-      { type: "addTask", title: "Call pharmacy", assigneeId: SAM, dueOn: "2026-11-20", dueTime: null },
+      { type: "addTodo", title: "Call pharmacy", assigneeId: SAM, dueOn: "2026-11-20", dueTime: null },
       GROUP,
       "?kind=vital",
     );
     expect(target).toEqual({
-      to: `/app/groups/${GROUP}/tasks/new?dueOn=2026-11-20&title=Call+pharmacy&assigneeId=${SAM}`,
-      state: { taskSheet: true },
+      to: `/app/groups/${GROUP}/todos/new?dueOn=2026-11-20&title=Call+pharmacy&assigneeId=${SAM}`,
+      state: { todoSheet: true },
     });
   });
 
   test("notes and events are saved and opened on their page", () => {
-    expect(editTarget({ type: "addNote", text: "Hi", occurredAt: at }, GROUP)).toBe("saveAndOpen");
+    expect(editTarget({ type: "addNote", text: "Hi", occurredAt: at, providerIds: [] }, GROUP)).toBe(
+      "saveAndOpen",
+    );
   });
 });
 
@@ -191,9 +231,82 @@ describe("openAfterSave", () => {
       ]),
     ).toBeNull();
   });
-  test("a lone dose, vital or task stays, and so does nothing saved", () => {
+  test("a lone dose, vital or todo stays, and so does nothing saved", () => {
     expect(openAfterSave([{ type: "logDose", ids: ["d1"] }])).toBeNull();
-    expect(openAfterSave([{ type: "addTask", ids: ["t1"] }])).toBeNull();
+    expect(openAfterSave([{ type: "addTodo", ids: ["t1"] }])).toBeNull();
     expect(openAfterSave([])).toBeNull();
+  });
+});
+
+describe("the event draft (quick-entry slice 3)", () => {
+  const ALV = "33333333-3333-4333-8333-333333333333";
+  const LEE = "44444444-4444-4444-8444-444444444444";
+  const event = (title: string, providerIds: string[]): QuickEntryReading => ({
+    kind: "event",
+    label: "Event",
+    actions: [
+      { type: "addEvent", title, occurredAt: at, allDay: true, providerIds, timeZone: "America/Los_Angeles" },
+    ],
+    confidence: 0.8,
+    warnings: [],
+  });
+  const vital: QuickEntryReading = {
+    kind: "vital",
+    label: "Vital",
+    actions: [
+      {
+        type: "logVital",
+        readings: [{ type: "bloodPressure", systolic: 130, diastolic: 85 }],
+        occurredAt: at,
+      },
+    ],
+    confidence: 0.95,
+    warnings: [],
+  };
+  const cardsOf = (parts: QuickEntryPart[], chosen = new Map<string, number>()) =>
+    markDraft(buildCards(parts, { chosen, removed: new Set() }, titleOf));
+
+  test("the first event with a provider opens as the draft; the rest are written", () => {
+    const parts: QuickEntryPart[] = [
+      { text: "bp 130/85", readings: [vital, note("bp 130/85")] },
+      { text: "Dr. Lee friday 2pm", readings: [event("Dr. Lee", [LEE]), note("Dr. Lee friday 2pm")] },
+    ];
+    const cards = cardsOf(parts);
+    expect(cards.map((c) => c.opensDraft)).toEqual([false, true]);
+    const { draft, rest } = draftCardOf(cards);
+    expect(draft?.text).toBe("Dr. Lee friday 2pm");
+    expect(rest.map((c) => c.text)).toEqual(["bp 130/85"]);
+  });
+
+  test("a second provider event in the line is written directly", () => {
+    const parts: QuickEntryPart[] = [
+      { text: "Alvarez on the 25th", readings: [event("Dr. Elena Alvarez", [ALV])] },
+      { text: "Dr. Lee friday", readings: [event("Dr. Lee", [LEE])] },
+    ];
+    const { draft, rest } = draftCardOf(cardsOf(parts));
+    expect(draft?.text).toBe("Alvarez on the 25th");
+    expect(rest.map((c) => c.text)).toEqual(["Dr. Lee friday"]);
+  });
+
+  test("none: an event without a provider, a note, or the provider event switched to a note", () => {
+    const parts: QuickEntryPart[] = [
+      { text: "party saturday", readings: [event("Party", [])] },
+      { text: "Dr. Lee friday", readings: [event("Dr. Lee", [LEE]), note("Dr. Lee friday")] },
+    ];
+    const switched = cardsOf(parts, new Map([[partKey(1, parts[1]!), 1]]));
+    expect(switched.some((c) => c.opensDraft)).toBe(false);
+    expect(draftCardOf(switched)).toEqual({ draft: null, rest: switched });
+    expect(draftCardOf(cardsOf([parts[0]!])).draft).toBeNull();
+    expect(draftCardOf([]).draft).toBeNull();
+  });
+
+  test("buildCards alone marks nothing; the draft card's line", () => {
+    const parts: QuickEntryPart[] = [{ text: "Dr. Lee", readings: [event("Dr. Lee", [LEE])] }];
+    expect(buildCards(parts, none, titleOf)[0]!.opensDraft).toBe(false);
+    expect(isDraftReading(parts[0]!.readings[0]!)).toBe(true);
+    expect(draftSummary(["Dr. Elena Alvarez"], "Wed, Nov 25")).toBe(
+      "Opens to finish · Dr. Elena Alvarez · Wed, Nov 25",
+    );
+    expect(draftSummary([], "Fri")).toBe("Opens to finish · Fri");
   });
 });

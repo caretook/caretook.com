@@ -12,10 +12,17 @@ const now = new Date("2026-11-18T18:00:00.000Z");
 const plus = (ms: number) => new Date(now.getTime() + ms).toISOString();
 
 describe("the future-date rule", () => {
-  it("lets only notes and events be dated in the future", () => {
-    expect(FUTURE_KINDS).toEqual(["note", "event"]);
-    expect(isTooFarAhead("note", plus(30 * 86_400_000), now, DEVICE_FUTURE_SKEW_MS)).toBe(false);
+  it("lets only events be dated in the future", () => {
+    expect(FUTURE_KINDS).toEqual(["event"]);
     expect(isTooFarAhead("event", plus(30 * 86_400_000), now, DEVICE_FUTURE_SKEW_MS)).toBe(false);
+  });
+
+  it("refuses a note ahead past the device and the server skew", () => {
+    expect(isTooFarAhead("note", plus(DEVICE_FUTURE_SKEW_MS + 1), now, DEVICE_FUTURE_SKEW_MS)).toBe(true);
+    expect(isTooFarAhead("note", plus(DEVICE_FUTURE_SKEW_MS), now, DEVICE_FUTURE_SKEW_MS)).toBe(false);
+    expect(isTooFarAhead("note", plus(61 * 60_000), now, SERVER_FUTURE_SKEW_MS)).toBe(true);
+    expect(isTooFarAhead("note", plus(30 * 60_000), now, SERVER_FUTURE_SKEW_MS)).toBe(false);
+    expect(isTooFarAhead("event", plus(61 * 60_000), now, SERVER_FUTURE_SKEW_MS)).toBe(false);
   });
 
   it("refuses symptoms, vitals, doses and medication changes past the skew", () => {

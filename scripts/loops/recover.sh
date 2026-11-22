@@ -5,19 +5,24 @@
 #   recover.sh                    run the inventory's actions, in order:
 #                                 1. start Docker Desktop (open -a Docker) and
 #                                    wait for `docker info`
-#                                 2. clear stale locks (never a live one)
+#                                 2. clear stale locks (never a live one; the
+#                                    dispatcher's when its pid is gone)
 #                                 3. the shared test Postgres (test-db.sh up)
 #                                 4. stacks, one at a time: compose up, wait for
 #                                    its Postgres, migrate (retried once)
 #                                 5. dev servers (serve.sh)
-#                                 6. print the gc offers; delete the down
+#                                 6. the dispatcher, in a background iTerm2 tab
+#                                    (the opener), when it was running: the
+#                                    down record says so, or its lock was stale
+#                                 7. print the gc offers; delete the down
 #                                    record once used
-#                                 7. open the recovery agent in this terminal
+#                                 8. open the recovery agent in this terminal
 #                                    (claude --remote-control recover, in the
 #                                    main checkout; prompt.sh recover): it tells
 #                                    live orchestrators and planners to carry on
-#                                    and reopens dead ones (pnpm prd open)
-#   recover.sh --no-agent         steps 1-6 only: print the sessions instead
+#                                    and reopens dead ones (pnpm prd open),
+#                                    leaving managed ones to the dispatcher
+#   recover.sh --no-agent         steps 1-7 only: print the sessions instead
 #   recover.sh --at HH:MM         sleep until then (tomorrow's when it has
 #                                 passed), then recover: after a usage limit
 #   recover.sh --wait             probe with `claude -p` every
@@ -119,7 +124,7 @@ start_docker() {
 # clear_lock PATH → remove a stale lock the inventory named (only lock paths).
 clear_lock() {
   case $1 in
-    "$loops"/.slots/* | "$loops"/.queue/* | "$loops"/.prd-start.lock | */caretook-backlog.lock) ;;
+    "$loops"/.slots/* | "$loops"/.dispatch.lock | */caretook-backlog.lock) ;;
     *) echo "  not a lock path, left alone: $1" >&2; return 1 ;;
   esac
   rm -rf "$1"
@@ -131,7 +136,7 @@ wait_for_pg() {
   local c deadline limit=${CARETOOK_RECOVER_PG_SECS:-60}
   c=$(env_get "$1/.env.loop" PG_CONTAINER); c=${c:-$2-postgres-1}
   deadline=$(($(now_secs) + limit))
-  until docker exec "$c" pg_isready -q -U caretook -d caretook >/dev/null 2>&1; do
+  until docker exec "$c" pg_isready -q -h 127.0.0.1 -U caretook -d caretook >/dev/null 2>&1; do
     (($(now_secs) < deadline)) || { echo "  $c didn't accept connections within ${limit}s" >&2; return 1; }
     sleep 1
   done
@@ -208,6 +213,11 @@ run_actions() {
       serve)
         echo "• dev server $target"
         "$bin/serve.sh" "$target" </dev/null 2>&1 | sed 's/^/  /' || failed+=("server $target")
+        ;;
+      dispatch)
+        echo "• the dispatcher (it was running)"
+        "$bin/open-session.sh" --command "cd $(printf %q "$main") && scripts/loops/prd.sh dispatch" --title dispatch --background \
+          </dev/null 2>&1 | sed 's/^/  /' || failed+=("dispatcher")
         ;;
       offer-gc) gc+=("$target") ;;
       open-session) sessions+=("$target") ;;

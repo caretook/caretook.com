@@ -1,15 +1,23 @@
 import { useEffect, useRef } from "react";
 import {
   ComboBox as AriaComboBox,
+  Header,
   Input,
   ListBox,
   ListBoxItem,
+  ListBoxSection,
   Popover as AriaPopover,
 } from "react-aria-components";
 import { SURFACE } from "./styles";
 
 /** One choice in a combo box: `description` is a second, dimmer line. */
 export type ComboBoxOption = { id: string; label: string; description?: string };
+
+/** A titled run of choices after the plain ones (ids unique across the whole list). */
+export type ComboBoxSection = { id: string; heading: string; options: readonly ComboBoxOption[] };
+
+/** Every choice is shown as given: the caller filters. */
+const SHOW_ALL = () => true;
 
 const CREATE = "\u0000create";
 const ITEM =
@@ -20,7 +28,9 @@ const ITEM =
  * on focus, arrow keys move, Enter or a tap picks, Escape closes the list and
  * then the field). The caller owns the text and filters `options` itself;
  * the combo box shows them as given. With `onCreate`, typed text that isn't
- * empty adds a last choice, `createLabel(text)`, that calls it.
+ * empty adds a last choice, `createLabel(text)`, that calls it. `sections`
+ * come between the plain options and that last choice, each under its
+ * heading (a named group); picking one of theirs calls `onSelect` too.
  *
  * `onClose` is called when the field loses focus or Escape is pressed with
  * the list closed, so a caller showing it in place of a button can go back.
@@ -29,6 +39,7 @@ export function ComboBox({
   label,
   placeholder,
   options,
+  sections = [],
   inputValue,
   onInputChange,
   onSelect,
@@ -42,6 +53,8 @@ export function ComboBox({
   label: string;
   placeholder?: string;
   options: readonly ComboBoxOption[];
+  /** Titled runs of choices after `options`. */
+  sections?: readonly ComboBoxSection[];
   inputValue: string;
   onInputChange: (text: string) => void;
   onSelect: (id: string) => void;
@@ -60,15 +73,12 @@ export function ComboBox({
     if (focusOnMount) input.current?.focus();
   }, [focusOnMount]);
   const typed = inputValue.trim();
-  const items: ComboBoxOption[] =
-    onCreate && typed
-      ? [...options, { id: CREATE, label: createLabel ? createLabel(typed) : typed }]
-      : [...options];
+  const create = onCreate && typed ? { id: CREATE, label: createLabel ? createLabel(typed) : typed } : null;
 
   return (
     <AriaComboBox
       aria-label={label}
-      items={items}
+      defaultFilter={SHOW_ALL}
       inputValue={inputValue}
       onInputChange={onInputChange}
       selectedKey={null}
@@ -101,22 +111,35 @@ export function ComboBox({
       >
         <ListBox
           className="outline-none"
-          renderEmptyState={() => <p className="text-base-content/70 px-3 py-2 text-sm">{emptyText}</p>}
+          renderEmptyState={() => <p className="text-muted px-3 py-2 text-sm">{emptyText}</p>}
         >
-          {(item: ComboBoxOption) => (
-            <ListBoxItem
-              id={item.id}
-              textValue={item.label}
-              className={`${ITEM} ${item.id === CREATE ? "text-primary font-medium" : ""}`}
-            >
-              <span className="truncate">{item.label}</span>
-              {item.description && (
-                <span className="text-base-content/70 truncate text-sm">{item.description}</span>
-              )}
-            </ListBoxItem>
-          )}
+          {options.map((item) => (
+            <Option key={item.id} item={item} />
+          ))}
+          {sections.map((section) => (
+            <ListBoxSection key={section.id} id={section.id} className="border-base-300 mt-1 border-t pt-1">
+              <Header className="text-muted px-3 pt-1 pb-0.5 text-xs font-semibold">{section.heading}</Header>
+              {section.options.map((item) => (
+                <Option key={item.id} item={item} />
+              ))}
+            </ListBoxSection>
+          ))}
+          {create && <Option item={create} />}
         </ListBox>
       </AriaPopover>
     </AriaComboBox>
+  );
+}
+
+function Option({ item }: { item: ComboBoxOption }) {
+  return (
+    <ListBoxItem
+      id={item.id}
+      textValue={item.label}
+      className={`${ITEM} ${item.id === CREATE ? "text-primary font-medium" : ""}`}
+    >
+      <span className="truncate">{item.label}</span>
+      {item.description && <span className="text-muted truncate text-sm">{item.description}</span>}
+    </ListBoxItem>
   );
 }

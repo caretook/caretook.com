@@ -2,10 +2,10 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { LiveNotesEditorHandle } from "~/components/notes";
 
-import { useRef, useState } from "react";
-import { Link } from "react-router";
+import { useMemo, useRef, useState } from "react";
+import { Link, useLocation } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
-import { LinkedTasks } from "~/components/tasks";
+import { LinkedTodos } from "~/components/todos";
 import { BackLink } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { START_AT_PARAM } from "~/lib/timeline/urls";
@@ -15,12 +15,14 @@ import { getGroup } from "~/lib/app-shell/group";
 import { NEW_ENTRY } from "~/lib/live-notes/liveEntry";
 import { sessionContext } from "~/lib/auth/session";
 import { getSync } from "~/lib/sync";
+import { eventDraftFrom } from "~/lib/assistant/quickEntryDraft";
 import { EntryCancelledBanner } from "./EntryCancelledBanner";
 import { EntryPageHeader } from "./EntryPageHeader";
 import { EntryPrintView } from "./EntryPrintView";
 import { EntryVisitPrep } from "./EntryVisitPrep";
-import { entryHeading, titleState } from "./entryPage";
+import { entryHeading, titleState, withEventDraft } from "./entryPage";
 import { loadEntry } from "./loadEntry";
+import { useEntryMentions } from "./useEntryMentions";
 import { useEntryPrint, usePrintOnOpen } from "./useEntryPrint";
 import { useLiveEntry } from "./useLiveEntry";
 
@@ -70,8 +72,12 @@ export default function Entry(props: Route.ComponentProps) {
   return <EntryPage key={props.loaderData.entry.id} {...props} />;
 }
 
-function EntryPage({ loaderData, params }: Route.ComponentProps) {
+function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
   const { groupId } = params;
+  // A new event opened from quick entry starts from its draft (history state, read once).
+  const location = useLocation();
+  const [eventDraft] = useState(() => eventDraftFrom(location.state as unknown));
+  const loaderData = useMemo(() => withEventDraft(loaded, eventDraft), [loaded, eventDraft]);
   const live = useLiveEntry(loaderData, groupId);
   const { entry, canWrite, deleted, saveError } = live;
   // Read once: after sign-out closes the database, this page may render once more before it goes.
@@ -80,6 +86,8 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
   const timelineUrl = appUrls.timeline(groupId);
   const printed = useEntryPrint(entry.id, loaderData.initial);
   usePrintOnOpen();
+  // A mention in the text links the provider, as the With row does.
+  const mentions = useEntryMentions({ groupId, entryId: entry.id, ensureStored: live.ensureStored });
 
   const label = KIND_META[entry.kind].label;
   const heading = entryHeading(label, entry.title, live.isNew && !live.stored);
@@ -114,9 +122,9 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
           />
         )}
         <EntryVisitPrep live={live} groupId={groupId} />
-        {saveError && (
+        {(saveError || mentions.error) && (
           <p role="alert" className="text-error text-sm">
-            {saveError}
+            {saveError || mentions.error}
           </p>
         )}
 
@@ -146,8 +154,12 @@ function EntryPage({ loaderData, params }: Route.ComponentProps) {
               initial={loaderData.initial}
               autofocus={live.isNew && !loaderData.pickDay}
               ensureSaved={live.ensureSaved}
+              providers={mentions.providers}
+              onMention={mentions.onMention}
+              onAdd={mentions.onAdd}
+              onImport={mentions.onImport}
             />
-            {entry.kind === "event" && live.stored && <LinkedTasks link={{ eventId: entry.id }} />}
+            {entry.kind === "event" && live.stored && <LinkedTodos link={{ eventId: entry.id }} />}
           </>
         )}
       </div>

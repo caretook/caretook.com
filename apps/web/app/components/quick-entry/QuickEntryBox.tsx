@@ -1,12 +1,15 @@
 import type { UnitChoices } from "@caretook/data/schema";
+import type { RefObject } from "react";
 
-import { useId, useRef, useState } from "react";
+import { useId, useRef } from "react";
 import { PassUndoStatus } from "~/components/medications";
 import { Field } from "~/components/ui";
 import { QuickEntryCard } from "./QuickEntryCard";
-import { QuickEntrySuggestions } from "./QuickEntrySuggestions";
+import { QuickEntryCompletions, useCompletionsOverlay } from "./QuickEntryCompletions";
+import { QuickEntrySuggestButton, SUGGEST_ROOM } from "./QuickEntrySuggestButton";
 import { QUICK_ENTRY_UNDO, useQuickEntry } from "./useQuickEntry";
-import { QUICK_ENTRY_RULES, useRotatingPlaceholder } from "./useRotatingPlaceholder";
+import { useQuickEntrySuggestions } from "./useQuickEntrySuggestions";
+import { QUICK_ENTRY_PLACEHOLDER, QUICK_ENTRY_RULES } from "./quickEntryCopy";
 
 /** Simple mode's hint under its large box: talking is the easy way in. */
 export const DICTATION_HINT = "Tap the microphone on your keyboard to say it instead of typing.";
@@ -23,28 +26,41 @@ const BUTTON_SIZE: Record<QuickEntrySize, string> = { md: "", lg: "btn-lg" };
  * One box to say what happened: type (or dictate with the keyboard's mic)
  * a line, see a card per part, fix any with its chips, Edit or Remove, then
  * Save writes them all at once, on this device (offline too), and offers
- * Undo for the whole line for about 10 s. Nothing is saved before Save,
- * except a due pass's chip, which is Given all in one tap (with the same
- * Undo). Writers only: the timeline leaves it out for viewers.
+ * Undo for the whole line for about 10 s. An empty box offers suggestions
+ * behind the Sparkles button inside it; while typing, matching names float
+ * under the field. Nothing is saved before Save, except a due pass's chip,
+ * which is Given all in one tap (with the same Undo). Writers only: the
+ * timeline leaves it out for viewers.
  */
 export function QuickEntryBox({
   groupId,
   units,
   size = "md",
   passChips = size === "md",
+  fieldRef,
 }: {
   groupId: string;
   units: UnitChoices;
   size?: QuickEntrySize;
   /** Offer the due passes as one-tap chips ("Give evening meds"). Simple mode turns them off: its Upcoming block has Given all. */
   passChips?: boolean;
+  /** The field itself, for a caller that brings it into view and focuses it (the empty Today's "Add an entry"). */
+  fieldRef?: RefObject<HTMLTextAreaElement | null>;
 }) {
   const q = useQuickEntry({ groupId, units });
   const count = q.cards.length;
-  const field = useRef<HTMLTextAreaElement>(null);
-  const [focused, setFocused] = useState(false);
-  const placeholder = useRotatingPlaceholder(!focused && q.text === "");
+  const ownField = useRef<HTMLTextAreaElement>(null);
+  const field = fieldRef ?? ownField;
   const rulesId = useId();
+  const { usual, recent, completions } = useQuickEntrySuggestions({
+    groupId,
+    text: q.text,
+    passes: q.passes,
+  });
+  const names = useCompletionsOverlay(q.text, field);
+  const empty = !q.text.trim();
+  const due = passChips ? q.dueNow : [];
+  const suggest = empty && (due.length > 0 || usual.length > 0 || recent.length > 0);
   /** A suggestion fills the box and waits there, the cursor at the end (it never saves). */
   const fill = (value: string) => {
     q.setText(value);
@@ -74,43 +90,48 @@ export function QuickEntryBox({
           className={size === "lg" ? "[&>label]:text-xl [&>label]:font-semibold [&>p]:text-base" : ""}
         >
           {(control) => (
-            <textarea
-              {...control}
-              aria-describedby={[control["aria-describedby"], rulesId].filter(Boolean).join(" ")}
-              ref={field}
-              name="quickEntry"
-              rows={1}
-              className={`textarea field-sizing-content max-h-48 w-full resize-none ${TEXTAREA_CLASS[size]}`}
-              placeholder={placeholder}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
-              autoComplete="off"
-              enterKeyHint="done"
-              value={q.text}
-              onChange={(e) => q.setText(e.target.value)}
-              onKeyDown={(e) => {
-                // Enter saves; Shift+Enter is a new line.
-                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                  e.preventDefault();
-                  void q.save();
-                }
-              }}
-            />
+            <div className="relative" {...names.area}>
+              <textarea
+                {...control}
+                aria-describedby={[control["aria-describedby"], rulesId].filter(Boolean).join(" ")}
+                ref={field}
+                name="quickEntry"
+                rows={1}
+                className={`textarea field-sizing-content max-h-48 w-full resize-none ${TEXTAREA_CLASS[size]} ${suggest ? SUGGEST_ROOM[size] : ""}`}
+                placeholder={QUICK_ENTRY_PLACEHOLDER}
+                autoComplete="off"
+                enterKeyHint="done"
+                value={q.text}
+                onChange={(e) => q.setText(e.target.value)}
+                onKeyDown={(e) => {
+                  names.onKeyDown(e);
+                  // Enter saves; Shift+Enter is a new line.
+                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                    e.preventDefault();
+                    void q.save();
+                  }
+                }}
+              />
+              {suggest && (
+                <QuickEntrySuggestButton
+                  size={size}
+                  usual={usual}
+                  recent={recent}
+                  duePasses={due}
+                  onFill={fill}
+                  onGivePass={passChips ? q.givePass : undefined}
+                  passBusy={q.passBusy}
+                />
+              )}
+              {!empty && completions.length > 0 && names.open && (
+                <QuickEntryCompletions completions={completions} onFill={fill} onKeyDown={names.onKeyDown} />
+              )}
+            </div>
           )}
         </Field>
         <p id={rulesId} className="sr-only">
           {QUICK_ENTRY_RULES}
         </p>
-        <QuickEntrySuggestions
-          groupId={groupId}
-          text={q.text}
-          onFill={fill}
-          passes={q.passes}
-          duePasses={q.dueNow}
-          onGivePass={passChips ? q.givePass : undefined}
-          passBusy={q.passBusy}
-        />
-
         {count > 0 && (
           <>
             <ul aria-label="To save" className="space-y-2" data-quick-cards>
@@ -119,6 +140,7 @@ export function QuickEntryBox({
                   key={card.key}
                   card={card}
                   preview={q.preview(card.reading)}
+                  draftLine={q.draftLine(card)}
                   error={q.errors.get(card.key)}
                   onChoose={(index) => q.choose(card, index)}
                   onEdit={() => void q.edit(card)}

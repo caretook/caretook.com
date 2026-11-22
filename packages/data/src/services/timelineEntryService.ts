@@ -25,8 +25,10 @@ import {
   timelineEntryUpdateZSchema,
   timelineEntryUpsertZSchema,
 } from "../db/schema";
+import { isPastVisit } from "../db/schema/appointments/seriesEdit";
 import { isError, newError } from "../errors";
 import {
+  appointmentSeriesModel,
   careGroupModel,
   careRecipientModel,
   medicationModel,
@@ -34,7 +36,8 @@ import {
   timelineEntryModel,
 } from "../models";
 import { isSystemUser, rejectError } from "../permissions";
-import { releaseEvent } from "./taskService";
+import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
+import { releaseEvent } from "./todoService";
 export const serviceName = "timelineEntry";
 export const schemaName = timelineEntryModel.schemaName;
 
@@ -90,7 +93,7 @@ const toIso = (value: string) => new Date(value).toISOString();
 const toIsoOrNull = (value: string | null | undefined) => (value ? toIso(value) : null);
 
 /**
- * Only notes and events may be dated in the future. The server allows an
+ * Only events may be dated in the future. The server allows an
  * hour of clock skew (a device allows five minutes): a refused upload is
  * dropped, so a device whose clock runs fast must not lose a real vital.
  */
@@ -123,6 +126,49 @@ const checkRescheduledTo = async (
 };
 
 /**
+ * A visit's series: one of the entry's kind in the same group, as the actor
+ * sees it (a deleted one still counts, so a replayed upload lands), with no
+ * other live visit on the same day.
+ */
+const checkSeries = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  {
+    id,
+    groupId,
+    kind,
+    seriesId,
+    seriesDay,
+  }: { id?: string; groupId: string; kind: string; seriesId?: string | null; seriesDay?: string | null },
+) => {
+  if (!seriesId) return null;
+  const series = await appointmentSeriesModel.getById(seriesId, { ...ctx, tx, includeDeleted: true });
+  if (isError(series)) return series;
+  if (series?.groupId !== groupId || series.kind !== kind)
+    return newError({
+      code: "timelineEntryService:seriesNotInGroup",
+      meta: { issues: [{ path: "seriesId", message: "Choose a series in this care group" }] },
+    });
+  if (!seriesDay) return null;
+  const taken = await timelineEntryModel.get({
+    authUser: SYSTEM_USER,
+    tx,
+    filter: {
+      seriesId: { type: "eq", value: seriesId },
+      seriesDay: { type: "eq", value: seriesDay },
+      ...(id ? { id: { type: "ne", value: id } } : {}),
+    },
+  });
+  if (isError(taken)) return taken;
+  return taken
+    ? newError({
+        code: "timelineEntryService:seriesDayTaken",
+        meta: { issues: [{ path: "seriesDay", message: "This series already has a visit that day" }] },
+      })
+    : null;
+};
+
+/**
  * Who cancelled an event is the server's to say, like the audit columns: the
  * actor who set `cancelledAt`, kept while it stays cancelled, cleared on undo.
  */
@@ -144,6 +190,9 @@ const schedulingColumns = (content: {
   cancelledAt?: string | null;
   cancelReason?: string | null;
   rescheduledTo?: string | null;
+  seriesId?: string | null;
+  seriesDay?: string | null;
+  seriesDetached?: boolean;
 }) => ({
   allDay: content.allDay ?? false,
   endsAt: content.endsAt ?? null,
@@ -151,6 +200,9 @@ const schedulingColumns = (content: {
   cancelledAt: content.cancelledAt ?? null,
   cancelReason: content.cancelReason ?? null,
   rescheduledTo: content.rescheduledTo ?? null,
+  seriesId: content.seriesId ?? null,
+  seriesDay: content.seriesDay ?? null,
+  seriesDetached: content.seriesDetached ?? false,
 });
 
 /**
@@ -228,6 +280,8 @@ export type TimelineListOptions = IncludeDeleted & {
   from?: string;
   /** Exclusive upper bound on occurredAt (ISO 8601). */
   to?: string;
+  /** Only entries this member wrote (`created_by`). */
+  authorId?: string;
   cursor?: string | null;
   limit?: number;
 };
@@ -239,7 +293,7 @@ export type TimelineListOptions = IncludeDeleted & {
  */
 export const list = async (
   ctx: ServiceContext,
-  { groupId, kinds, from, to, ...opts }: TimelineListOptions,
+  { groupId, kinds, from, to, authorId, ...opts }: TimelineListOptions,
 ) => {
   const range = [
     ...(from ? [{ type: "gte" as const, value: from }] : []),
@@ -248,6 +302,7 @@ export const list = async (
   const filter: Filter<K> = {
     groupId: { type: "eq", value: groupId },
     ...(kinds?.length ? { kind: { type: "inArray", value: kinds } } : {}),
+    ...(authorId ? { createdBy: { type: "eq", value: authorId } } : {}),
     ...(range.length ? { occurredAt: { type: "and", value: range } } : {}),
   };
   const page = await timelineEntryModel.listPage({ ...ctx, ...opts, filter });
@@ -264,8 +319,15 @@ export const latestVitals = (ctx: ServiceContext, { groupId }: { groupId: string
 // Writes
 // ---------------------------------------------------------------------------
 
+/**
+ * Server-only write options, never from a device: `via` is the assistant an
+ * entry was written through ("Claude"; connectors PRD), set only by
+ * `assistantActionService.run`.
+ */
+export type EntryWriteOptions = { via?: string | null };
+
 /** Add an entry. Content is validated per kind; `id` may come from an offline client. */
-export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput) =>
+export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput, opts: EntryWriteOptions = {}) =>
   withTransaction(async (tx) => {
     const parsed = timelineEntryCreateZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
@@ -286,7 +348,10 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput) =>
     const moved = await checkRescheduledTo(ctx, tx, data);
     if (moved) return moved;
 
-    return timelineEntryModel.create({
+    const series = await checkSeries(ctx, tx, data);
+    if (series) return series;
+
+    const created = await timelineEntryModel.create({
       ...ctx,
       tx,
       data: {
@@ -295,15 +360,25 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput) =>
         cancelledBy: cancelledByFor(ctx, null, data.cancelledAt),
         recipientId: resolved,
         details: details ?? null,
+        ...(opts.via ? { via: opts.via } : {}),
       },
     });
+    if (isError(created) || !created) return created;
+    // Appointments and reminders reach members' Google calendars (appointments-2).
+    const queued = await enqueueCalendarPush(tx, { entryId: created.id }, "entry");
+    return queued ?? created;
   }, ctx);
 
 /**
  * Edit an entry's content. Group, recipient and kind are fixed. The merged
  * entry must still be valid for its kind (a note can't lose its body).
  */
-export const update = (ctx: ServiceContext, id: string, input: TimelineEntryUpdateInput) =>
+export const update = (
+  ctx: ServiceContext,
+  id: string,
+  input: TimelineEntryUpdateInput,
+  opts: { now?: Date } = {},
+) =>
   withTransaction(async (tx) => {
     const parsed = timelineEntryUpdateZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
@@ -329,6 +404,9 @@ export const update = (ctx: ServiceContext, id: string, input: TimelineEntryUpda
       cancelledAt: toIsoOrNull(existing.cancelledAt),
       cancelReason: existing.cancelReason,
       rescheduledTo: existing.rescheduledTo,
+      seriesId: existing.seriesId,
+      seriesDay: existing.seriesDay,
+      seriesDetached: existing.seriesDetached,
       ...patch,
     });
     if (!merged.success) return invalid(merged.error);
@@ -349,6 +427,36 @@ export const update = (ctx: ServiceContext, id: string, input: TimelineEntryUpda
       if (moved) return moved;
     }
 
+    if (
+      (content.seriesId ?? null) !== existing.seriesId ||
+      (content.seriesDay ?? null) !== existing.seriesDay
+    ) {
+      const series = await checkSeries(ctx, tx, {
+        ...content,
+        id,
+        kind: existing.kind,
+        groupId: existing.groupId,
+      });
+      if (series) return series;
+    }
+
+    // A series edit ("This and later") moves visits onto the new series; it
+    // never rewrites one that has already started.
+    if (
+      existing.seriesId &&
+      content.seriesId &&
+      content.seriesId !== existing.seriesId &&
+      isPastVisit(
+        { occurredAt: toIso(existing.occurredAt), allDay: existing.allDay },
+        existing.timeZone,
+        opts.now ?? new Date(),
+      )
+    )
+      return newError({
+        code: "timelineEntryService:pastVisit",
+        meta: { issues: [{ path: "seriesId", message: "A past visit stays as it was" }] },
+      });
+
     const updated = await timelineEntryModel.update({
       ...ctx,
       tx,
@@ -361,7 +469,8 @@ export const update = (ctx: ServiceContext, id: string, input: TimelineEntryUpda
       },
     });
     if (isError(updated)) return updated;
-    return updated[0] ?? null;
+    const queued = await enqueueCalendarPush(tx, { entryId: id }, "entry");
+    return queued ?? updated[0] ?? null;
   }, ctx);
 
 /**
@@ -386,7 +495,19 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
     const { id, groupId, recipientId, kind, title, body, occurredAt, timeZone, details } = parsed.data;
     // Appointment fields a device sent; ones it left out keep their value.
     const scheduling = Object.fromEntries(
-      (["allDay", "endsAt", "place", "cancelledAt", "cancelReason", "rescheduledTo"] as const)
+      (
+        [
+          "allDay",
+          "endsAt",
+          "place",
+          "cancelledAt",
+          "cancelReason",
+          "rescheduledTo",
+          "seriesId",
+          "seriesDay",
+          "seriesDetached",
+        ] as const
+      )
         .filter((key) => key in parsed.data)
         .map((key) => [key, (parsed.data as Record<string, unknown>)[key]]),
     );
@@ -433,8 +554,8 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
 
 /**
  * Soft delete. The entry disappears from the timeline but syncs as deleted.
- * Tasks linked to a deleted event lose the link in the same transaction
- * (tasks PRD), as the task table's FK does on a hard delete.
+ * Todos linked to a deleted event lose the link in the same transaction
+ * (todos PRD), as the todo table's FK does on a hard delete.
  */
 export const remove = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
@@ -443,5 +564,6 @@ export const remove = (ctx: ServiceContext, id: string) =>
     if (isError(res)) return res;
     const released = await releaseEvent(tx, id);
     if (isError(released)) return released;
-    return res;
+    const queued = await enqueueCalendarPush(tx, { entryId: id }, "entry");
+    return queued ?? res;
   }, ctx);

@@ -3,6 +3,8 @@ import type { QuickEntryContext, QuickEntryReading } from "./quickEntry";
 import { describe, expect, test } from "vitest";
 import { assistantActionZSchema } from "./assistantActions";
 import { editDistance, parseQuickEntry, splitQuickEntry } from "./quickEntry";
+import { findTime } from "./quickEntryTime";
+import { QUICK_ENTRY_VOCABULARY } from "./quickEntryVocabulary";
 
 // The quick-entry parser, table-driven (in the style of search.test.ts):
 // each row is a line and what its parts should read as. The clock is fixed in
@@ -16,6 +18,8 @@ const LEE = "55555555-5555-4555-8555-555555555555";
 const RIVER = "66666666-6666-4666-8666-666666666666";
 const SAM = "77777777-7777-4777-8777-777777777777";
 const JO = "88888888-8888-4888-8888-888888888888";
+const ALV = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const ALV_ADDRESS = "1200 Westside Ave, Springfield";
 
 /** Thursday, Nov 19, 2026, 8:00 in Los Angeles (16:00 UTC). */
 const NOW = new Date("2026-11-19T16:00:00Z");
@@ -39,6 +43,7 @@ const context = (over: Partial<QuickEntryContext> = {}): QuickEntryContext => ({
   providers: [
     { id: LEE, name: "Dr. Sandra Lee", type: "clinician" },
     { id: RIVER, name: "Riverside Dialysis", type: "practice", address: "12 River Rd" },
+    { id: ALV, name: "Dr. Elena Alvarez", type: "clinician", address: ALV_ADDRESS },
   ],
   members: [
     { id: SAM, name: "Sam Rivera" },
@@ -50,7 +55,7 @@ const context = (over: Partial<QuickEntryContext> = {}): QuickEntryContext => ({
 const parse = (line: string, over?: Partial<QuickEntryContext>) => parseQuickEntry(line, context(over)).parts;
 const top = (line: string, over?: Partial<QuickEntryContext>) => parse(line, over)[0]!.readings[0]!;
 const action = (r: QuickEntryReading) => r.actions[0]!;
-/** When an action is dated (a task has a due day instead). */
+/** When an action is dated (a todo has a due day instead). */
 const when = (r: QuickEntryReading) => {
   const a = action(r);
   return "occurredAt" in a ? a.occurredAt : undefined;
@@ -444,20 +449,329 @@ describe("events", () => {
     });
   });
 
-  test("an appointment with no time is now, with a warning", () => {
-    const r = top("appointment with dr lee");
-    expect(action(r)).toMatchObject({ occurredAt: NOW.toISOString(), providerIds: [LEE] });
+  test("an appointment with no time is now, with a warning; with a provider it's all day today", () => {
+    const r = top("appointment");
+    expect(action(r)).toMatchObject({ occurredAt: NOW.toISOString(), allDay: false, providerIds: [] });
     expect(warnings(r)).toEqual(["No time given, so it's set to now. Edit it to choose when."]);
+    expect(blocking(r)).toEqual([]);
+    // Changed (quick-entry): a provider's event with no time is all day today, like "Dr. Elena Alvarez".
+    const withLee = top("appointment with dr lee");
+    expect(action(withLee)).toMatchObject({
+      occurredAt: at("2026-11-19T08:00:00Z"),
+      allDay: true,
+      providerIds: [LEE],
+    });
+    expect(warnings(withLee)).toEqual([]);
+  });
+
+  test("a fall is a symptom now (it was an event), with a note and an event as alternatives", () => {
+    const readings = parse("fell in bathroom last night")[0]!.readings;
+    expect(readings.map((r) => r.kind)).toEqual(["symptom", "note", "event"]);
+    expect(action(readings[0]!)).toMatchObject({
+      type: "logSymptom",
+      name: "Fall",
+      severity: null,
+      note: "in bathroom",
+      occurredAt: at("2026-11-19T06:00:00Z"), // 22:00 the evening before
+    });
+  });
+});
+
+describe("the user's lines (B-220)", () => {
+  type Shape = {
+    kind: string;
+    title?: string;
+    name?: string;
+    occurredAt?: string;
+    allDay?: boolean;
+    place?: string | null;
+    providerIds?: string[];
+    dueOn?: string | null;
+    dueTime?: string | null;
+  };
+  const shape = (r: QuickEntryReading): Shape => {
+    const a = action(r);
+    if (a.type === "addTodo")
+      return { kind: r.kind, title: a.title, dueOn: a.dueOn ?? null, dueTime: a.dueTime ?? null };
+    if (a.type === "addEvent")
+      return {
+        kind: r.kind,
+        title: a.title,
+        occurredAt: a.occurredAt,
+        allDay: a.allDay,
+        place: a.place ?? null,
+        providerIds: a.providerIds,
+      };
+    if (a.type === "logSymptom") return { kind: r.kind, name: a.name, occurredAt: a.occurredAt };
+    return { kind: r.kind, occurredAt: when(r)! };
+  };
+  const todo = (title: string, dueOn: string, dueTime: string | null = null) => ({
+    kind: "todo",
+    title,
+    dueOn,
+    dueTime,
+  });
+  const event = (
+    title: string,
+    iso: string,
+    allDay: boolean,
+    place: string | null,
+    providerIds: string[],
+  ) => ({
+    kind: "event",
+    title,
+    occurredAt: at(iso),
+    allDay,
+    place,
+    providerIds,
+  });
+
+  test.each<[string, Shape]>([
+    // A provider and a day: an event linked to it, the day read ahead, all day without a time.
+    [
+      "Dr. Elena Alvarez on the 25th",
+      event("Dr. Elena Alvarez", "2026-11-25T08:00:00Z", true, ALV_ADDRESS, [ALV]),
+    ],
+    // What picking a name from Matching names leaves: all day today.
+    ["Dr. Elena Alvarez", event("Dr. Elena Alvarez", "2026-11-19T08:00:00Z", true, ALV_ADDRESS, [ALV])],
+    // A bare weekday is the coming one for an event.
+    ["see Dr. Alvarez friday", event("Dr. Elena Alvarez", "2026-11-20T08:00:00Z", true, ALV_ADDRESS, [ALV])],
+    // The title is never the raw line.
+    ["Alvarez tomorrow 3pm", event("Dr. Elena Alvarez", "2026-11-20T23:00:00Z", false, ALV_ADDRESS, [ALV])],
+    [
+      "Riverside Dialysis monday 9am",
+      event("Riverside Dialysis", "2026-11-23T17:00:00Z", false, "12 River Rd", [RIVER]),
+    ],
+    ["PT at Riverside friday", event("PT", "2026-11-20T08:00:00Z", true, "12 River Rd", [RIVER])],
+    // A visit verb looks back.
+    ["saw Dr. Lee today", event("Dr. Sandra Lee", "2026-11-19T08:00:00Z", true, null, [LEE])],
+    ["saw dr lee monday", event("Dr. Sandra Lee", "2026-11-16T08:00:00Z", true, null, [LEE])],
+    [
+      "had dialysis at Riverside this morning",
+      event("Dialysis", "2026-11-19T16:00:00Z", false, "12 River Rd", [RIVER]),
+    ],
+    // Word order doesn't matter.
+    ["Dr. Lee tomorrow 3pm", event("Dr. Sandra Lee", "2026-11-20T23:00:00Z", false, null, [LEE])],
+    ["tomorrow 3pm Dr. Lee", event("Dr. Sandra Lee", "2026-11-20T23:00:00Z", false, null, [LEE])],
+    // "next" and "last" say which way.
+    ["Dr. Lee next friday", event("Dr. Sandra Lee", "2026-11-20T08:00:00Z", true, null, [LEE])],
+    ["Dr. Lee last friday", event("Dr. Sandra Lee", "2026-11-13T08:00:00Z", true, null, [LEE])],
+    // Incidents are symptoms with no severity.
+    ["fell", { kind: "symptom", name: "Fall", occurredAt: NOW.toISOString() }],
+    ["fell in the bathroom", { kind: "symptom", name: "Fall", occurredAt: NOW.toISOString() }],
+    // Calls and emergencies are notes.
+    ["called dr lee about refill", { kind: "note", occurredAt: NOW.toISOString() }],
+    ["911 call", { kind: "note", occurredAt: NOW.toISOString() }],
+    ["went to the ER at Riverside", { kind: "note", occurredAt: NOW.toISOString() }],
+    ["urgent care", { kind: "note", occurredAt: NOW.toISOString() }],
+    // A past-only kind reads a bare weekday back.
+    ["dizzy monday", { kind: "symptom", name: "Dizzy", occurredAt: at("2026-11-16T16:00:00Z") }],
+    ["dizzy last friday", { kind: "symptom", name: "Dizzy", occurredAt: at("2026-11-13T16:00:00Z") }],
+    // A note is past-only (planner-2): a time ahead makes it a todo, due that day (and time).
+    ["call the pharmacy tomorrow", todo("Call the pharmacy", "2026-11-20")],
+    ["call the pharmacy tomorrow 3pm", todo("Call the pharmacy", "2026-11-20", "15:00")],
+    ["next friday pick up walker", todo("Pick up walker", "2026-11-20")],
+    ["pick up the walker next tue", todo("Pick up the walker", "2026-11-24")],
+    ["call the pharmacy tonight", todo("Call the pharmacy", "2026-11-19", "22:00")],
+    ["call back in 2 hours", todo("Call back", "2026-11-19", "10:00")],
+    ["dinner with Ann tomorrow 6pm", todo("Dinner with Ann", "2026-11-20", "18:00")],
+    // A note with no time ahead stays a note, now or read back like the other past-only kinds.
+    ["called the pharmacy", { kind: "note", occurredAt: NOW.toISOString() }],
+    ["called the pharmacy monday", { kind: "note", occurredAt: at("2026-11-16T16:00:00Z") }],
+    ["called the pharmacy on the 25th", { kind: "note", occurredAt: at("2026-10-25T15:00:00Z") }],
+    ["called the pharmacy at 5pm", { kind: "note", occurredAt: at("2026-11-19T01:00:00Z") }],
+    ["walked in 3 min", { kind: "note", occurredAt: at("2026-11-19T16:03:00Z") }],
+  ])("%s", (line, expected) => {
+    const r = top(line);
+    expect(shape(r)).toEqual(expected);
+    expect(blocking(r)).toEqual([]);
+    expect(assistantActionZSchema.safeParse(action(r)).success).toBe(true);
+  });
+
+  test("an incident has no severity, and the words after it are its note", () => {
+    expect(action(top("fell in the bathroom"))).toMatchObject({ severity: null, note: "in the bathroom" });
+    expect(action(top("fell"))).toMatchObject({ severity: null, note: null });
+    expect(action(top("had a fall"))).toMatchObject({ name: "Fall", note: null });
+  });
+
+  test("an incident offers the other kinds; a fall asleep isn't one", () => {
+    expect(parse("fell")[0]!.readings.map((r) => r.kind)).toEqual(["symptom", "note", "event"]);
+    expect(top("fell asleep at 9").kind).not.toBe("symptom");
+  });
+
+  test("a contact verb with a provider is a note, with the provider's event as the alternative", () => {
+    const readings = parse("called dr lee about refill")[0]!.readings;
+    expect(readings.map((r) => r.kind)).toEqual(["note", "event"]);
+    // The note mentions Dr. Lee where the line names her, and links her.
+    expect(action(readings[0]!)).toMatchObject({
+      type: "addNote",
+      text: "called @Dr. Sandra Lee about refill",
+      providerIds: [LEE],
+    });
+    expect(action(readings[1]!)).toMatchObject({ title: "Refill", providerIds: [LEE] });
+  });
+
+  test.each([
+    ["called dr lee about refill", "called @Dr. Sandra Lee about refill", [LEE]],
+    ["Talked to Dr. Lee about her rest", "Talked to @Dr. Sandra Lee about her rest", [LEE]],
+    ["went to the ER at Riverside", "went to the ER at @Riverside Dialysis", [RIVER]],
+    ["emailed Dr. Alvarez about the bill", "emailed @Dr. Elena Alvarez about the bill", [ALV]],
+    ["n: Dr. Lee is great", "@Dr. Sandra Lee is great", [LEE]],
+    // No provider named, or only a first name: a plain note.
+    ["urgent care", "urgent care", []],
+    ["911 call", "911 call", []],
+    ["Sandra said she's fine", "Sandra said she's fine", []],
+  ])("the note for %s mentions its providers", (line, text, providerIds) => {
+    const note = parse(line)
+      .flatMap((p) => p.readings)
+      .find((r) => r.kind === "note")!;
+    expect(action(note)).toMatchObject({ type: "addNote", text, providerIds });
+    expect(assistantActionZSchema.safeParse(action(note)).success).toBe(true);
+  });
+
+  test("an emergency at a named provider is a note, with the visit as the alternative", () => {
+    const readings = parse("went to the ER at Riverside")[0]!.readings;
+    expect(readings[0]!.kind).toBe("note");
+    expect(action(readings.find((r) => r.kind === "event")!)).toMatchObject({
+      title: "ER",
+      place: "12 River Rd",
+      providerIds: [RIVER],
+    });
+    // No provider named: nothing is linked.
+    for (const r of parse("urgent care")[0]!.readings)
+      if (r.kind === "event") expect(action(r)).toMatchObject({ providerIds: [] });
+  });
+
+  test("a place typed after 'at' wins over the provider's address", () => {
+    expect(action(top("Dr. Alvarez friday at the Elm St office"))).toMatchObject({
+      place: "the Elm St office",
+      providerIds: [ALV],
+    });
+  });
+
+  test("a first name alone doesn't make an event", () => {
+    expect(top("Sandra said she's fine").kind).toBe("note");
+    expect(top("Elena said she's fine").kind).toBe("note");
+  });
+
+  test("a mixed line: the BP, then the provider's event", () => {
+    const parts = parse("bp 130/85, Dr. Lee friday 2pm");
+    expect(parts.map((p) => p.readings[0]!.kind)).toEqual(["vital", "event"]);
+    expect(action(parts[1]!.readings[0]!)).toMatchObject({
+      title: "Dr. Sandra Lee",
+      occurredAt: at("2026-11-20T22:00:00Z"),
+      providerIds: [LEE],
+    });
+    // A dose that names its prescriber is still a dose.
+    expect(top("gave metformin per dr lee").kind).toBe("dose");
+  });
+
+  test("a symptom beside a visit to a provider is the alternative", () => {
+    expect(top("saw dr lee after the fall").kind).toBe("event");
+  });
+});
+
+describe("the vocabulary", () => {
+  const KIND_OF = {
+    symptomIncident: "symptom",
+    noteIncident: "note",
+    visitVerb: "event",
+    contactVerb: "note",
+    appointmentWord: "event",
+  } as const;
+  const verbs = new Set(["visitVerb", "contactVerb"]);
+
+  test.each(QUICK_ENTRY_VOCABULARY.map((entry) => [entry.phrase, entry.role, entry] as const))(
+    "%s (%s)",
+    (phrase, role, entry) => {
+      if (verbs.has(role)) {
+        // A verb alone picks nothing; with a provider it picks its role's kind.
+        expect(top(phrase).kind).toBe("note");
+        const r = top(`${phrase} dr lee`);
+        expect(r.kind).toBe(KIND_OF[role]);
+        const event = parse(`${phrase} dr lee friday`)[0]!.readings.find((x) => x.kind === "event")!;
+        expect(action(event)).toMatchObject({ providerIds: [LEE] });
+        // A visit looks back; a contact's event alternative looks ahead.
+        expect(when(event)).toBe(at(role === "visitVerb" ? "2026-11-13T08:00:00Z" : "2026-11-20T08:00:00Z"));
+        return;
+      }
+      const r = top(phrase);
+      expect(r.kind).toBe(KIND_OF[role]);
+      if (role === "symptomIncident") expect(action(r)).toMatchObject({ name: entry.name, severity: null });
+    },
+  );
+
+  test("every symptom incident has its canonical name; no phrase is listed twice", () => {
+    for (const e of QUICK_ENTRY_VOCABULARY) if (e.role === "symptomIncident") expect(e.name).toBeTruthy();
+    const phrases = QUICK_ENTRY_VOCABULARY.map((e) => e.phrase);
+    expect(new Set(phrases).size).toBe(phrases.length);
+  });
+});
+
+describe("dates", () => {
+  const eventAt = (line: string, over?: Partial<QuickEntryContext>) => {
+    const r = top(line, over);
+    expect(r.kind).toBe("event");
+    const a = action(r);
+    return a.type === "addEvent" ? [a.occurredAt, a.allDay] : [];
+  };
+
+  test.each([
+    // Ordinals and month-day forms, read ahead for an event.
+    ["Dr. Lee 25th", "2026-11-25T08:00:00Z", true],
+    ["Dr. Lee the 25th", "2026-11-25T08:00:00Z", true],
+    ["Dr. Lee on the 25th", "2026-11-25T08:00:00Z", true],
+    ["Dr. Lee on the 25th at 2pm", "2026-11-25T22:00:00Z", false],
+    ["Dr. Lee Nov 25", "2026-11-25T08:00:00Z", true],
+    ["Dr. Lee November 25th", "2026-11-25T08:00:00Z", true],
+    ["Dr. Lee 25th nov", "2026-11-25T08:00:00Z", true],
+    // A day of the month that has passed is next month's.
+    ["Dr. Lee on the 10th", "2026-12-10T08:00:00Z", true],
+    // Today's, with its time already gone, is next month's too.
+    ["Dr. Lee the 19th at 7am", "2026-12-19T15:00:00Z", false],
+    ["Dr. Lee the 19th at 3pm", "2026-11-19T23:00:00Z", false],
+    // A month without the day moves on to one that has it.
+    ["Dr. Lee the 31st", "2026-12-31T08:00:00Z", true],
+    // "next" and "last" on an event.
+    ["Dr. Lee next friday 2pm", "2026-11-20T22:00:00Z", false],
+    ["Dr. Lee last friday 2pm", "2026-11-13T22:00:00Z", false],
+  ])("%s → %s", (line, iso, allDay) => {
+    expect(eventAt(line)).toEqual([at(iso), allDay]);
+  });
+
+  test.each([
+    // Back for a past-only kind: this month's once passed, else last month's.
+    ["dizzy on the 10th", "2026-11-10T16:00:00Z"],
+    ["dizzy the 25th", "2026-10-25T15:00:00Z"], // 08:00 PDT
+    ["dizzy nov 10", "2026-11-10T16:00:00Z"],
+    ["dizzy last friday", "2026-11-13T16:00:00Z"],
+    ["pain 4 last friday 2pm", "2026-11-13T22:00:00Z"],
+  ])("%s → %s (a symptom)", (line, iso) => {
+    const r = top(line);
+    expect(r.kind).toBe("symptom");
+    expect(when(r)).toBe(at(iso));
     expect(blocking(r)).toEqual([]);
   });
 
-  test("something that happened is an event, with a note as the alternative", () => {
-    const readings = parse("fell in bathroom last night")[0]!.readings;
-    expect(readings.map((r) => r.kind)).toEqual(["event", "note"]);
-    expect(action(readings[0]!)).toMatchObject({
-      title: "Fell in bathroom",
-      occurredAt: at("2026-11-19T06:00:00Z"), // 22:00 the evening before
-    });
+  test("'next friday' on a symptom is in the future, so it blocks", () => {
+    const r = parse("dizzy next friday")[0]!.readings.find((x) => x.kind === "symptom")!;
+    expect(blocking(r)).toEqual(["Can't be in the future"]);
+  });
+
+  test("an ordinal that counts isn't a day", () => {
+    expect(findTime(["the", "2nd", "dose"])).toBeNull();
+    expect(findTime(["3rd", "floor"])).toBeNull();
+    expect(findTime(["on", "the", "2nd"])?.spec).toEqual({ day: { date: 2 } });
+  });
+
+  test("across the fall DST change (Nov 1, 2026)", () => {
+    const now = new Date("2026-10-29T16:00:00Z"); // Thu 09:00 PDT
+    expect(eventAt("Dr. Lee monday 9am", { now })).toEqual([at("2026-11-02T17:00:00Z"), false]); // PST
+    expect(eventAt("Dr. Lee the 2nd", { now })).toEqual([at("2026-11-02T08:00:00Z"), true]);
+    expect(eventAt("Dr. Lee the 28th", { now })).toEqual([at("2026-11-28T08:00:00Z"), true]);
+    const back = new Date("2026-11-03T18:00:00Z"); // Tue 10:00 PST
+    expect(when(top("dizzy last friday", { now: back }))).toBe(at("2026-10-30T17:00:00Z")); // 10:00 PDT
+    expect(eventAt("saw dr lee on the 30th", { now: back })).toEqual([at("2026-10-30T07:00:00Z"), true]);
   });
 });
 
@@ -477,12 +791,70 @@ describe("notes", () => {
       expect(parse(line)[0]!.readings.some((r) => r.kind === "note")).toBe(true);
   });
 
-  test("a note dated ahead is a reminder, all day", () => {
-    expect(action(top("call the pharmacy tomorrow", { providers: [] }))).toMatchObject({
-      type: "addEvent", // a future time phrase leans to an event…
+  test("a note line that says a time ahead is a todo, with the note (now, the whole line) next", () => {
+    // Changed (planner-2): it was a reminder, a note dated ahead.
+    const readings = parse("call the pharmacy tomorrow 3pm")[0]!.readings;
+    expect(readings.map((r) => r.label)).toEqual(["Todo", "Note", "Event"]);
+    expect(action(readings[0]!)).toEqual({
+      type: "addTodo",
+      title: "Call the pharmacy",
+      assigneeId: null,
+      dueOn: "2026-11-20",
+      dueTime: "15:00",
+      providerId: null,
+      medicationId: null,
+      eventId: null,
     });
-    const note = parse("call the pharmacy tomorrow")[0]!.readings.find((r) => r.kind === "note")!;
-    expect(action(note)).toMatchObject({ occurredAt: at("2026-11-20T08:00:00Z") });
+    expect(action(readings[1]!)).toEqual({
+      type: "addNote",
+      title: null,
+      text: "call the pharmacy tomorrow 3pm",
+      occurredAt: NOW.toISOString(),
+      providerIds: [],
+    });
+    for (const r of readings) {
+      expect(blocking(r)).toEqual([]);
+      expect(assistantActionZSchema.safeParse(action(r)).success).toBe(true);
+    }
+  });
+
+  test("a note line ahead can name its todo's assignee", () => {
+    expect(action(top("pick up groceries tomorrow for Sam"))).toMatchObject({
+      type: "addTodo",
+      title: "Pick up groceries",
+      assigneeId: SAM,
+      dueOn: "2026-11-20",
+    });
+  });
+
+  test("a provider or an appointment word still makes an event, with the todo as an alternative", () => {
+    for (const line of ["Dr. Lee tomorrow 3pm", "appt tomorrow 2pm", "dialysis tomorrow 9:30 at Riverside"]) {
+      const kinds = parse(line)[0]!.readings.map((r) => r.kind);
+      expect(kinds[0], line).toBe("event");
+      expect(kinds, line).toContain("todo");
+    }
+  });
+
+  test("a note asked for with a time ahead is blocked, with the todo one tap away", () => {
+    const readings = parse("n: call the pharmacy tomorrow")[0]!.readings;
+    expect(readings.map((r) => r.kind)).toEqual(["note", "todo", "event"]);
+    expect(blocking(readings[0]!)).toEqual(["Can't be in the future"]);
+    expect(action(readings[1]!)).toMatchObject({ title: "Call the pharmacy", dueOn: "2026-11-20" });
+    expect(blocking(readings[1]!)).toEqual([]);
+  });
+
+  test("a note's alternatives never date it ahead", () => {
+    const lines = [
+      "bp 120/80 tomorrow",
+      "pain 5 next tuesday",
+      "gave metformin in 2 hours",
+      "appt friday 3pm",
+    ];
+    for (const line of [...lines, "todo: call pharmacy friday", "call the pharmacy tomorrow"]) {
+      const note = parse(line)[0]!.readings.find((r) => r.kind === "note")!;
+      expect(when(note), line).toBe(NOW.toISOString());
+      expect(blocking(note), line).toEqual([]);
+    }
   });
 
   test("a very long line is cut to the limits, never refused", () => {
@@ -516,14 +888,14 @@ describe("prefixes", () => {
   });
 });
 
-describe("tasks", () => {
-  type Task = { title: string; assigneeId: string | null; dueOn: string | null; dueTime: string | null };
-  const task = (line: string, over?: Partial<QuickEntryContext>) => {
+describe("todos", () => {
+  type Todo = { title: string; assigneeId: string | null; dueOn: string | null; dueTime: string | null };
+  const todo = (line: string, over?: Partial<QuickEntryContext>) => {
     const r = top(line, over);
-    expect(r.kind).toBe("task");
-    expect(r.label).toBe("Task");
+    expect(r.kind).toBe("todo");
+    expect(r.label).toBe("Todo");
     const a = action(r);
-    if (a.type !== "addTask") throw new Error(`not a task: ${a.type}`);
+    if (a.type !== "addTodo") throw new Error(`not a todo: ${a.type}`);
     return {
       title: a.title,
       assigneeId: a.assigneeId ?? null,
@@ -531,7 +903,7 @@ describe("tasks", () => {
       dueTime: a.dueTime ?? null,
     };
   };
-  const plain = (title: string, more: Partial<Task> = {}): Task => ({
+  const plain = (title: string, more: Partial<Todo> = {}): Todo => ({
     title,
     assigneeId: null,
     dueOn: null,
@@ -539,7 +911,7 @@ describe("tasks", () => {
     ...more,
   });
 
-  test.each<[string, Task]>([
+  test.each<[string, Todo]>([
     // Each prefix; the time phrase is the due day (read ahead), and the time when it says one.
     ["todo: call pharmacy friday", plain("Call pharmacy", { dueOn: "2026-11-20" })],
     ["TODO call pharmacy", plain("Call pharmacy")],
@@ -573,13 +945,13 @@ describe("tasks", () => {
       plain("Pick up a prescription for mom", { assigneeId: SAM }),
     ],
   ])("%s", (line, expected) => {
-    expect(task(line)).toEqual(expected);
+    expect(todo(line)).toEqual(expected);
     expect(blocking(top(line))).toEqual([]);
     expect(assistantActionZSchema.safeParse(action(top(line))).success).toBe(true);
   });
 
   test("with no members known, a name stays in the title", () => {
-    expect(task("todo: call pharmacy for Sam", { members: [] })).toEqual(plain("Call pharmacy for Sam"));
+    expect(todo("todo: call pharmacy for Sam", { members: [] })).toEqual(plain("Call pharmacy for Sam"));
   });
 
   test("two members with the name: nobody is assigned, and the card says so", () => {
@@ -587,51 +959,56 @@ describe("tasks", () => {
       { id: SAM, name: "Sam Rivera" },
       { id: JO, name: "Sam Okafor" },
     ];
-    expect(task("todo: call pharmacy for Sam", { members })).toEqual(plain("Call pharmacy"));
+    expect(todo("todo: call pharmacy for Sam", { members })).toEqual(plain("Call pharmacy"));
     expect(warnings(top("todo: call pharmacy for Sam", { members }))).toEqual([
       "More than one member is called Sam, so nobody is assigned. Edit it to choose.",
     ]);
     // The full name settles it.
-    expect(task("todo: call pharmacy for sam okafor", { members })).toEqual(
+    expect(todo("todo: call pharmacy for sam okafor", { members })).toEqual(
       plain("Call pharmacy", { assigneeId: JO }),
     );
   });
 
   test("a due day already past is allowed, and the card says it's overdue", () => {
     const r = top("todo: send the form yesterday");
-    expect(task("todo: send the form yesterday")).toEqual(plain("Send the form", { dueOn: "2026-11-18" }));
+    expect(todo("todo: send the form yesterday")).toEqual(plain("Send the form", { dueOn: "2026-11-18" }));
     expect(warnings(r)).toEqual(["That's already past, so it's overdue."]);
     expect(blocking(r)).toEqual([]);
   });
 
-  test("a task needs words besides its due day", () => {
+  test("a todo needs words besides its due day", () => {
     const r = top("todo: friday");
-    expect(r.kind).toBe("task");
-    expect(blocking(r)).toEqual(["Say what the task is."]);
+    expect(r.kind).toBe("todo");
+    expect(blocking(r)).toEqual(["Say what the todo is."]);
   });
 
   test("the alternative is a note of the same words", () => {
     const readings = parse("todo: call pharmacy friday")[0]!.readings;
-    expect(readings.map((r) => r.label)).toEqual(["Task", "Note"]);
-    expect(action(readings[1]!)).toMatchObject({ type: "addNote", text: "call pharmacy friday" });
+    expect(readings.map((r) => r.label)).toEqual(["Todo", "Note"]);
+    // A note now, with the whole line (notes are past-only).
+    expect(action(readings[1]!)).toMatchObject({
+      type: "addNote",
+      text: "call pharmacy friday",
+      occurredAt: NOW.toISOString(),
+    });
   });
 
-  test("without a prefix there's no task", () => {
-    expect(parse("call pharmacy friday")[0]!.readings.map((r) => r.kind)).not.toContain("task");
+  test("without a prefix there's no todo", () => {
+    expect(parse("call pharmacy friday")[0]!.readings.map((r) => r.kind)).not.toContain("todo");
   });
 
   test("in another zone, the due day and time are the recipient's", () => {
     // 16:00 UTC is 11:00 in New York, so "at 5" is 17:00 there.
-    expect(task("todo: call the office at 5", { timeZone: "America/New_York" })).toEqual(
+    expect(todo("todo: call the office at 5", { timeZone: "America/New_York" })).toEqual(
       plain("Call the office", { dueOn: "2026-11-19", dueTime: "17:00" }),
     );
   });
 
-  test("a task beside other parts in one line", () => {
+  test("a todo beside other parts in one line", () => {
     const parts = parse("bp 130/85, todo: call pharmacy friday for Sam, gave metformin");
-    expect(parts.map((p) => p.readings[0]!.kind)).toEqual(["vital", "task", "dose"]);
+    expect(parts.map((p) => p.readings[0]!.kind)).toEqual(["vital", "todo", "dose"]);
     expect(action(parts[1]!.readings[0]!)).toMatchObject({
-      type: "addTask",
+      type: "addTodo",
       title: "Call pharmacy",
       assigneeId: SAM,
       dueOn: "2026-11-20",

@@ -4,7 +4,7 @@ import type { DeviceRow } from "./devices";
 import { LogOut, Monitor, Smartphone } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import { ConfirmDialog } from "~/components/ui";
+import { Badge, Button, ConfirmDialog, EmptyState, List, ListRow, Message } from "~/components/ui";
 import { formatAgo } from "~/lib/core/format";
 
 const MOBILE = /\b(iPhone|iPad|Android)\b/;
@@ -35,67 +35,63 @@ export function DeviceList({ devices }: { devices: DeviceRow[] }) {
 
   return (
     <>
-      <ul data-devices="" className="divide-base-300 divide-y">
+      <List data-devices="">
         {devices.map((d) => {
           const Icon = MOBILE.test(d.label) ? Smartphone : Monitor;
           return (
-            <li
+            <ListRow
               key={d.id}
               data-device={d.id}
               data-current={d.current ? "" : undefined}
-              className="flex items-center gap-3 py-3"
+              trailing={
+                !d.current && (
+                  <Button
+                    size="sm"
+                    disabled={busy}
+                    aria-label={`Sign out ${d.label}, last active ${formatAgo(d.lastActive)}`}
+                    onClick={() => setPending({ kind: "one", device: d })}
+                  >
+                    Sign out
+                  </Button>
+                )
+              }
             >
-              <Icon aria-hidden="true" className="text-base-content/70 size-5 shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium" data-device-label="">
-                  {d.label}
-                </p>
-                <p className="text-base-content/70 text-sm">
-                  {d.current ? (
-                    <span className="badge badge-sm badge-primary">This device</span>
-                  ) : (
-                    <>Last active {formatAgo(d.lastActive)}</>
-                  )}
-                </p>
+              <div className="flex items-center gap-3">
+                <Icon aria-hidden="true" className="text-muted size-5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium" data-device-label="">
+                    {d.label}
+                  </p>
+                  <p className="text-muted text-sm">
+                    {d.current ? (
+                      <Badge tone="primary">This device</Badge>
+                    ) : (
+                      <>Last active {formatAgo(d.lastActive)}</>
+                    )}
+                  </p>
+                </div>
               </div>
-              {!d.current && (
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  disabled={busy}
-                  aria-label={`Sign out ${d.label}, last active ${formatAgo(d.lastActive)}`}
-                  onClick={() => setPending({ kind: "one", device: d })}
-                >
-                  Sign out
-                </button>
-              )}
-            </li>
+            </ListRow>
           );
         })}
-      </ul>
+      </List>
       {others.length > 0 ? (
         <div className="pt-2">
-          <button
-            type="button"
+          <Button
+            icon={LogOut}
             data-sign-out-others=""
-            className="btn gap-2"
             disabled={busy}
             onClick={() => setPending({ kind: "others" })}
           >
-            <LogOut aria-hidden="true" className="size-4" />
             Sign out everywhere else
-          </button>
+          </Button>
         </div>
       ) : (
-        <p className="text-base-content/70 text-sm">You&apos;re not signed in anywhere else.</p>
+        <EmptyState>You&apos;re not signed in anywhere else.</EmptyState>
       )}
-      <p role="status" className="text-sm empty:hidden">
-        {busy ? "Signing out…" : fetcher.data?.ok ? (asked ?? "") : ""}
-      </p>
+      <Message>{busy ? "Signing out…" : fetcher.data?.ok ? (asked ?? "") : ""}</Message>
       {fetcher.state === "idle" && fetcher.data && !fetcher.data.ok && (
-        <p role="alert" className="text-error text-sm">
-          {fetcher.data.error}
-        </p>
+        <Message tone="error">{fetcher.data.error}</Message>
       )}
       <ConfirmDialog
         open={!!pending}

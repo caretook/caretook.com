@@ -21,6 +21,14 @@ const healthy = {
   [`${APP}/rpc/me/get`]: () =>
     Response.json({ json: { defined: false, code: "UNAUTHORIZED", status: 401 } }, { status: 401 }),
   [`${APP}/api/cron/outbox`]: () => new Response("Unauthorized", { status: 401 }),
+  [`${APP}/api/cron/calendar`]: () => new Response("Unauthorized", { status: 401 }),
+  [`${APP}/mcp`]: () =>
+    new Response("", {
+      status: 401,
+      headers: {
+        "www-authenticate": `Bearer resource_metadata="${APP}/.well-known/oauth-protected-resource/mcp"`,
+      },
+    }),
   [`${POWERSYNC}${POWERSYNC_HEALTH_PATH}`]: () => Response.json({ ready: true }),
 };
 
@@ -80,6 +88,9 @@ describe("smoke", () => {
     ["cron-locked", `${APP}/api/cron/outbox`, () => Response.json({ delivered: 0 })],
     // CRON_SECRET unset: the route answers 503, which isn't locked.
     ["cron-locked", `${APP}/api/cron/outbox`, () => new Response("", { status: 503 })],
+    ["cron-locked", `${APP}/api/cron/calendar`, () => Response.json({ steps: [] })],
+    ["mcp-unauthenticated", `${APP}/mcp`, () => new Response("", { status: 404 })],
+    ["mcp-unauthenticated", `${APP}/mcp`, () => new Response("", { status: 401 })],
     ["powersync", `${POWERSYNC}${POWERSYNC_HEALTH_PATH}`, () => new Response("", { status: 503 })],
   ])("fails %s alone when it's wrong", async (name, url, answer) => {
     const results = await run({ [url]: answer });

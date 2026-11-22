@@ -21,7 +21,7 @@ How staging and production are set up, deployed, rotated and recovered. Written 
 
 - `APP_ENV` (`staging` | `production`) names the target; both run with `NODE_ENV=production`. The deploy derives it from the branch.
 - **The deploy** (`.github/workflows/deploy.yml`, on a push to `staging` or `main`): env check (`pnpm deploy:env`) → migrate (`pnpm datastore:migrate`, as the migrations role) → roles (`pnpm db:roles`) → sync config (PowerSync CLI) → `vercel pull`, `vercel build`, `vercel deploy --prebuilt --prod` → smoke check (`pnpm deploy:smoke`). A failed step stops the run and the previous deploy stays live. One deploy per environment at a time; a newer push waits.
-- **Manual Actions** (GitHub → Actions → Run workflow): `Grant staff` (`admin-grant.yml`), `Seed staging` (`seed-staging.yml`), `Database access` (`db-access.yml`), `Rotate JWT keys` (`rotate-jwks.yml`).
+- **Manual Actions** (GitHub → Actions → Run workflow): `Grant staff` (`admin-grant.yml`), `Seed staging` (`seed-staging.yml`), `Reset staging` (`reset-staging.yml`), `Database access` (`db-access.yml`), `Rotate JWT keys` (`rotate-jwks.yml`).
 - Vercel's own Git deploys are off (`apps/web/vercel.json`: `git.deploymentEnabled: false`). The Action is the only way code goes live. There are no per-PR previews.
 - Tool versions: the Vercel and PowerSync CLIs are pinned in `.github/cli-versions.env` and run through `pnpm dlx`. Node comes from `.nvmrc`, pnpm from `package.json`'s `packageManager`.
 
@@ -43,8 +43,11 @@ Every secret the workflows and `checkDeployEnv` (`apps/web/app/.server/deployEnv
 | `RESEND_API_KEY`          | Resend → API keys: a sending-only key restricted to this environment's domain                                           | yes            |
 | `MAIL_FROM`               | e.g. `Caretook <no-reply@mail.caretook.com>`; the domain must start with `mail.`                                        | yes            |
 | `SUPPORT_EMAIL`           | the team's real support inbox (not `@example.com`)                                                                      | yes            |
-| `CRON_SECRET`             | `openssl rand -base64 32`; Vercel sends it as the outbox cron's bearer                                                  | yes            |
+| `CRON_SECRET`             | `openssl rand -base64 32`; Vercel sends it as the crons' bearer                                                         | yes            |
 | `INVITE_LINK_KEY`         | `openssl rand -base64 32`                                                                                               | yes            |
+| `GOOGLE_CLIENT_ID`        | optional until Google Calendar launches: Google Cloud → APIs & Services → Credentials → the OAuth client (step 5a)      | yes            |
+| `GOOGLE_CLIENT_SECRET`    | the same OAuth client's secret                                                                                          | yes            |
+| `GOOGLE_TOKEN_KEY`        | `openssl rand -base64 32`; seals Google refresh tokens. Connect is refused in production without it                     | yes            |
 | `RESEND_WEBHOOK_SECRET`   | Resend → Webhooks → this environment's endpoint → signing secret (`whsec_…`)                                            | yes            |
 | `CLIENT_IP_HEADER`        | `x-vercel-forwarded-for`                                                                                                | yes            |
 | `NATIVE_APP_ORIGINS`      | **leave unset** until the native app ships; then `1`. Anything else fails the check.                                    | same           |
@@ -82,32 +85,50 @@ Staging only:
 
 ### 1. GitHub
 
-1. Make the repository visible to `gh` (`gh auth login`, `gh repo view` works).
+0. **The plan:** environments, environment secrets and rulesets need a **public** repository on GitHub Free, or GitHub Team for a private one. `caretook/caretook.com` is **public** (org on Free). So nothing secret is ever committed, and no workflow may run on `pull_request` or `pull_request_target` (forks could then reach the Actions); every workflow is `push` to `staging`/`main` or `workflow_dispatch`.
+1. Make the repository visible to `gh` (`gh auth login`, `gh repo view` works). If it says "not found", the token lacks the org: `gh auth refresh -h github.com -s repo,admin:org`.
 2. **Environments** (Settings → Environments): `staging` and `production`.
    - Deployment branches: `staging` only for `staging`, `main` only for `production`. This also limits the manual Actions to those branches' code.
-   - Optional for `production`: a required reviewer. It gates every production deploy and every manual Action there too.
+   - `production` has the dev keeper as **required reviewer** (self-review allowed). Each workflow has one job in the environment, so it's one Approve per production deploy and per manual Action there. `staging` has none.
 3. Every secret and variable in the tables above, in each environment.
-4. **Rulesets** (Settings → Rules) on `main` and `staging`: require a pull request, block force pushes, block deletion. `staging` takes PRs from `dev`, `main` from `staging`. The local hooks (`.githooks/`) stay as a second guard.
-5. Actions settings: default workflow permissions read-only; keep run logs short (Settings → Actions → artifact and log retention, e.g. 7 days).
+4. **Ruleset** (Settings → Rules) `main and staging: PR only`, on `main` and `staging`: require a pull request (0 approvals: one maintainer can't approve their own PR), block force pushes, block deletion, no bypass. `staging` takes PRs from `dev`, `main` from `staging`; the ruleset doesn't check the source branch, so that and the local hooks (`.githooks/`) are the guard.
+   4b. **Ruleset** `dev: no force push`, on `dev`: block force pushes and deletion, no bypass, **no** PR requirement (backlog commits are pushed straight to `dev`). The user's manual step.
+   4c. **Codex** (ChatGPT's GitHub connector, bot `chatgpt-codex-connector`) auto-reviews every PR into `dev` and each push to it; `pnpm prd review` reads its verdict, and AGENTS.md's _Review guidelines_ steer it.
+5. Actions settings: default workflow permissions read-only; artifact and log retention 7 days; fork PR workflows need approval for all outside contributors.
+   - **Run logs are public** (public repo) for those 7 days. Secrets are masked, but a manual Action's inputs print: never put health details or anyone else's address in one, and delete a run that shows a staff email (`gh run delete <id>`) until B-183 masks the inputs.
+6. Org security: **require two-factor** for members (Settings → Authentication security; the web UI only, the API ignores it).
 
 ### 2. Neon (Postgres)
 
-1. A project per environment in **AWS us-east-2**, Postgres at the same major version as local development (18; **to confirm** Neon offers it, else 17). Plan: the one that gives the restore window and compliance features below (**to confirm**).
+0. **A Neon-managed org, not a Vercel-managed one.** An org made through Vercel's Neon integration can only create projects from Vercel, which connects them to Vercel projects and injects the owner's `DATABASE_URL`, `POSTGRES_URL`, `PG*` vars there, and puts the contract through Vercel. Caretook's Neon org is a direct Neon account (console.neon.tech, billed by Neon); never connect Neon to the Vercel projects through the integration.
+1. A project per environment in **AWS us-east-2**, Postgres at the same major version as local development (18, which Neon offers). Plan: the one that gives the restore window and compliance features below (**to confirm**).
 2. **Logical replication on** (Project settings → Logical replication). It restarts the compute and can't be turned off.
 3. **The migrations role**: create `caretook_migrations` in Neon's console (console-made roles get Neon's `neon_superuser` membership, which gives `CREATEROLE` and the right to make `REPLICATION` roles; **to confirm** on the plan). Create the database (e.g. `caretook`) **owned by `caretook_migrations`**, so it owns the tables it creates and the default privileges for the app role apply.
+   - On Neon's create-project screen keep the default database name (it belongs to `neondb_owner`) and leave every other service off (object storage, functions, AI gateway, realtime, Neon's Better Auth): only Postgres. Create `caretook` afterwards, owned by `caretook_migrations`.
    - Don't create `caretook_app` or `caretook_replication` in the console: `pnpm db:roles` creates them with SQL, without `neon_superuser` and without passwords.
 4. **The other two roles (bootstrap, once):** the deploy runs `db:roles` after every migration, but the first deploy needs the roles to exist with passwords first. From a laptop, once per environment, with the migrations role's **direct** URL:
 
    ```sh
-   APP_ENV=<staging|production> MIGRATIONS_DATABASE_URL='<direct URL, caretook_migrations>' pnpm datastore:migrate
-   APP_ENV=<staging|production> MIGRATIONS_DATABASE_URL='<direct URL, caretook_migrations>' pnpm db:roles
-   psql '<direct URL, caretook_migrations>'
-   \password caretook_app
-   \password caretook_replication
+   cd <repo or worktree> && nvm use
+   read -rs 'MIGRATIONS_DATABASE_URL?Direct URL: ' && export MIGRATIONS_DATABASE_URL   # zsh; bash: read -rsp
+   export APP_ENV=<staging|production>
+   pnpm datastore:migrate
+   pnpm db:roles
+
+   read -rs 'APP_PW?caretook_app password: ' && echo && export APP_PW
+   read -rs 'REPL_PW?caretook_replication password: ' && echo && export REPL_PW
+   psql "$MIGRATIONS_DATABASE_URL&sslrootcert=system" <<'SQL'
+   \getenv app_pw APP_PW
+   \getenv repl_pw REPL_PW
+   ALTER ROLE caretook_app PASSWORD :'app_pw';
+   ALTER ROLE caretook_replication PASSWORD :'repl_pw';
+   SQL
+   unset APP_PW REPL_PW MIGRATIONS_DATABASE_URL
    ```
 
-   - `\password` sends a SCRAM verifier, so the password never sits in the server's logs or Neon's SQL editor history. Store both in the password manager.
-   - Then **reset `caretook_migrations`' password** in Neon's console, put the new direct URL in `MIGRATIONS_DATABASE_URL`, and clear the shell history. From now on only the Action holds it.
+   - The direct URL with `?sslmode=verify-full` (nothing else after `?`); `psql` also needs `sslrootcert=system` to trust the system CAs.
+   - **Neon rejects `\password`** ("Neon only supports being given plaintext passwords"): it checks strength (about 60 bits; 32 random characters), so it takes the plaintext over TLS. `read -s` and `\getenv` keep it out of shell history, `~/.psql_history`, the process list and Neon's SQL editor. Store both in the password manager.
+   - Then **reset `caretook_migrations`' password** in Neon's console and put the new direct URL in `MIGRATIONS_DATABASE_URL` (GitHub). From now on only the Action holds it.
 
 5. **URLs:** the pooled one (`-pooler` host) as `caretook_app` → `DATABASE_URL`; the direct one as `caretook_migrations` → `MIGRATIONS_DATABASE_URL`; the direct one as `caretook_replication` → PowerSync (step 3). All with `sslmode=verify-full`.
 6. **Restore window** (Neon's history retention, which is PITR): production at least 7 days (**to confirm** the plan's limit); staging the plan minimum. Record the value in `data-copies.md`.
@@ -126,13 +147,13 @@ Staging only:
    - Database connection: the **direct** Neon host, the database, `caretook_replication` and its password, SSL mode **verify-full**. The publication is `powersync`, kept by `db:roles`.
    - Client auth: JWKS URI `<APP_URL>/api/auth/jwks`; audience = the instance's own URL (the value of `POWERSYNC_URL`). Development tokens off. PowerSync fetches the keys on its first request, so this can be set before the app is up.
    - A first sync config: paste `powersync/sync-config.yaml` (the Action replaces it on every deploy).
-3. `POWERSYNC_INSTANCE_ID` (variable) and the personal access token `POWERSYNC_ADMIN_TOKEN` (secret) into the GitHub environment. **To confirm:** whether the CLI also needs the project or org id.
+3. `POWERSYNC_INSTANCE_ID` (variable) and the personal access token `POWERSYNC_ADMIN_TOKEN` (secret) into the GitHub environment. The CLI needs only the instance id (`deploy sync-config --dry-run --instance-id <id>` with `PS_ADMIN_TOKEN` set checks the token without deploying).
 4. Dashboard access: only the named people, with two-factor sign-in. The dashboard can show synced data.
 
 ### 4. Vercel (Pro)
 
 1. **A project per environment** (e.g. `caretook-staging`, `caretook-production`) on the team, linked to the repository.
-   - Root Directory `apps/web`; framework React Router; Node 24. **To confirm:** that `vercel build` run from the repo root (as the Action does) follows the Root Directory, and that the build log shows pnpm 12.21.0.
+   - Root Directory `apps/web`; framework React Router; Node 24. Confirmed on staging: `vercel build` from the repo root follows the Root Directory, and installs with the workflow's pnpm 12.21.0 (its "Using pnpm@10.x based on project creation date" line is only detection; the install runs on the `pnpm` on `PATH`).
    - Functions run in `cle1` (`vercel.json` `regions`, Pro).
    - Auto-deploy is off through `vercel.json`; also leave "Ignored build step" alone, since the Action builds itself.
 2. **Env vars** in each project's Production environment: the "Also in Vercel" rows above, plus `APP_ENV`.
@@ -140,8 +161,8 @@ Staging only:
    - production: `caretook.com`, and `www.caretook.com` redirecting (308) to it;
    - staging: `staging.caretook.com`. Its noindex comes from `APP_ENV=staging` (robots.txt and the page meta) and `vercel.json`'s `X-Robots-Tag` on that host.
 4. **Off:** Web Analytics, Speed Insights and log drains (no analytics that can see health data). Don't buy longer log retention (Observability Plus). Record the runtime log retention in `data-copies.md` (**to confirm**).
-5. **Cron:** `vercel.json` runs `/api/cron/outbox` every minute; Vercel sends `CRON_SECRET` as the bearer. Crons run on production deployments only, which is what both projects deploy.
-6. **Headers:** **to confirm** whether Vercel merges `vercel.json`'s headers with the functions' own or replaces them: `curl -I` a function route (`/app`) and a static file (`/favicon.ico`) and compare with `docs/domain/security-headers.md`.
+5. **Cron:** `vercel.json` runs `/api/cron/outbox` (email) and `/api/cron/calendar` (the calendar steps in order: reminders, Google push, Google pull, series top-up) every minute; Vercel sends `CRON_SECRET` as the bearer. Crons run on production deployments only, which is what both projects deploy.
+6. **Headers:** confirmed on staging: on a function's response the function's own header wins (one `Content-Security-Policy`, the full nonce policy; `/app`, `/sign-in`); prerendered and static files (`/`, `/features/`) get `vercel.json`'s short policy plus the page's `<meta>` CSP. Both match `docs/domain/security-headers.md`.
 7. `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` and `VERCEL_TOKEN` into the GitHub environment.
 
 ### 5. Resend
@@ -154,9 +175,24 @@ Staging only:
 6. **API key:** sending access, restricted to the environment's domain → `RESEND_API_KEY`.
 7. Record Resend's message retention in `data-copies.md` (**to confirm**).
 
+### 5a. Google Calendar (the user's setup)
+
+Members connect their own Google account per care group; Caretook makes a "Caretook: <recipient>" calendar there and pushes to it. Until the three `GOOGLE_*` values are set, the Google card says it isn't set up.
+
+1. **A Google Cloud project** per environment (or one with a client per environment). Enable the **Google Calendar API**.
+2. **OAuth consent screen:** external; app name Caretook, support email, the privacy policy and home page; the only scope `https://www.googleapis.com/auth/calendar.app.created` (make secondary calendars and manage their events; it covers `calendars.insert` and `events.insert`, `update`, `delete` and `list` with a sync token, checked 2026-11-20). Until Google verifies the app, add the testers as **test users** (fine for staging).
+3. **Credentials:** an OAuth client ID, type Web application, authorised redirect URI `<APP_URL>/api/google/callback` (e.g. `https://staging.caretook.com/api/google/callback`). Its id and secret → `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
+4. `GOOGLE_TOKEN_KEY`: `openssl rand -base64 32`. Rotating it makes every member reconnect (their sealed tokens no longer open; the card says "Reconnect Google").
+5. Pushes run right after a save and every minute from `/api/cron/calendar` (`googlePush`); pulls (members' changes in Google: moves, deletes, new events) run from the same cron (`googlePull`), each connection at most every 5 minutes. Nothing else to schedule.
+6. **Smoke check before launch** (`pnpm calendar:google-smoke`, manual, never in `pnpm check`; `--help` lists its flags). It connects a member, adds two made-up appointments and pushes the group, then, through Google's API, moves one, deletes the other and makes a new event, pulls, checks Caretook took each change (the move, a cancel, a new appointment tagged as ours), and removes what it made. Run it from a checkout against a local stack, with the staging OAuth client:
+   1. In Google Cloud, add `http://localhost:5173/api/google/callback` to the staging client's authorised redirect URIs, and the Google account you'll use as a test user.
+   2. `pnpm datastore:reset`, then put `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (staging's) in `packages/data/.env`; dev seals tokens with its fixed key, so `GOOGLE_TOKEN_KEY` can stay unset. The dev server needn't run.
+   3. `pnpm calendar:google-smoke --email caretaker@example.com` (a writer in Dev Family only). Open the URL it prints, allow access, and paste back the address Google sends you to (the page itself may not load). Every line should be ✓; `--keep` leaves the appointments to look at in Google, `--disconnect` disconnects at the end.
+   4. Then on staging itself, as a test member: Connect on Calendar & reminders, move an event in "Caretook: <recipient>" in Google, and within about 6 minutes see the new time in Caretook; remove the localhost redirect URI when done.
+
 ### 6. DNS
 
-At the registrar or DNS host for `caretook.com`:
+`caretook.com`'s DNS is on **Cloudflare**. Every record below is **DNS only** (grey cloud), never proxied: a proxied record puts Cloudflare in front of Vercel, which breaks Vercel's certificate issuance and lets Cloudflare cache or rewrite responses (headers included).
 
 | Record                             | Type       | Value                                                                                      |
 | ---------------------------------- | ---------- | ------------------------------------------------------------------------------------------ |
@@ -172,10 +208,14 @@ At the registrar or DNS host for `caretook.com`:
 
 ### 7. First deploy, staff, seed
 
-1. **Deploy:** staging gets code by a PR from `dev` into `staging` on GitHub; merging it runs the deploy. Watch the run; the smoke check's table is in its last step.
+1. **Deploy:** staging gets code by a PR from `dev` into `staging` on GitHub; merging it runs the deploy. Watch the run; the smoke check's table is in its last step. `origin/dev` must hold the deploy tooling (push `dev` first if the local one is ahead): a push without `.github/workflows/deploy.yml` runs nothing.
+   - **Manual Actions need the workflows on `main`** (GitHub runs `workflow_dispatch` only for workflows on the default branch). Before production exists, merge `staging` into `main` by PR once and **cancel** the production Deploy run it starts (it waits for the required reviewer). Then run each manual Action with the branch of its environment (`gh workflow run seed-staging.yml --ref staging`). `gh run list --workflow …` also 404s until then.
 2. **Staff:** sign up the first staff account through an invite or access code (it must exist), then run **Grant staff** (`admin-grant.yml`): environment, the account's email, role `admin`. It's recorded in the audit log with the system as actor. `/admin` then opens for that account.
 3. **Staging only: Seed staging** (`seed-staging.yml`). The fictional seed, idempotent; seeded accounts use `SEED_USER_PASSWORD`. The seed refuses production.
+   - **To start staging over: Reset staging** (`reset-staging.yml`; type `staging` to confirm). It deletes every row except real sign-ins (accounts that aren't `@example.com` keep their user, staff role, password and sessions; staff settings, bounced addresses and the signing keys stay too), then seeds again. Groups people made by hand, connector and Google links all go, so reconnect those afterwards. Nothing is dropped, so devices empty and refill through sync on their own.
+   - On staging both Actions make every real account an **owner of each seeded group**, so a new tester sees the fictional data after the next seed without an invite.
 4. **Hand checks on staging:** sign in on two devices as seeded users and see an edit sync; send an invite to an allowlisted address and check it arrives in the inbox with SPF, DKIM and DMARC passing and no tracking; `robots.txt` disallows everything.
+   - **Connectors** ([connectors](../docs/domain/connectors.md)): as Dev Family's owner (its switch is seeded on), add `https://<staging host>/mcp` as a custom connector in Claude (Settings → Connectors) and in ChatGPT (developer mode). Each should register, send you to `/connect`, and come back connected. Ask it to read today's timeline, then to log a vital: the client asks before the write, and the entry shows "via <client>". Then disconnect in Settings → Devices, and the next call fails.
 5. Production: the same, by a PR from `staging` into `main`, then Grant staff for the dev keeper's account. No seed.
 
 ## Rotation
@@ -186,11 +226,13 @@ Rotate on a schedule you choose, when someone with access leaves, and at once on
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `BETTER_AUTH_SECRET`                    | the versioned list, below                                                                                                                       | **everyone is signed out** (session cookies and bearer tokens are checked against the current secret alone), and unused email-verification links stop working; sync carries on (below)                                                                                                                                                                   |
 | `INVITE_LINK_KEY`                       | new value, both places, redeploy                                                                                                                | links already shared still work (they're checked by hash), but owners can't **copy an active link again** (`linkKeyMissing`); they make a new link instead                                                                                                                                                                                               |
+| `GOOGLE_TOKEN_KEY`                      | new value, both places, redeploy                                                                                                                | every Google connection stops (its sealed token no longer opens) and shows "Reconnect Google"; members connect again and keep their calendar                                                                                                                                                                                                             |
+| `GOOGLE_CLIENT_SECRET`                  | Google Cloud → the OAuth client → add a secret, both places, redeploy, then delete the old secret                                               | nothing if done in that order                                                                                                                                                                                                                                                                                                                            |
 | `CRON_SECRET`                           | new value, both places, redeploy                                                                                                                | nothing (Vercel sends the new one); the outbox sweep pauses until the deploy is live                                                                                                                                                                                                                                                                     |
 | `RESEND_WEBHOOK_SECRET`                 | Resend → the endpoint → roll the secret; both places; redeploy                                                                                  | webhooks between the roll and the deploy get 401 and Resend retries them                                                                                                                                                                                                                                                                                 |
 | `RESEND_API_KEY`                        | create a new key, both places, redeploy, then delete the old key                                                                                | nothing if done in that order                                                                                                                                                                                                                                                                                                                            |
-| `caretook_app` password                 | `\password caretook_app` (psql as the migrations role), new `DATABASE_URL` both places, redeploy                                                | the live deploy can't connect between the two steps: do it right before the redeploy                                                                                                                                                                                                                                                                     |
-| `caretook_replication` password         | `\password caretook_replication`, then update the PowerSync dashboard's connection                                                              | sync pauses until PowerSync reconnects                                                                                                                                                                                                                                                                                                                   |
+| `caretook_app` password                 | `ALTER ROLE caretook_app` as in Neon step 4 (psql as the migrations role), new `DATABASE_URL` both places, redeploy                             | the live deploy can't connect between the two steps: do it right before the redeploy                                                                                                                                                                                                                                                                     |
+| `caretook_replication` password         | `ALTER ROLE caretook_replication` as in Neon step 4, then update the PowerSync dashboard's connection                                           | sync pauses until PowerSync reconnects                                                                                                                                                                                                                                                                                                                   |
 | `caretook_migrations` password          | Neon console → reset, new `MIGRATIONS_DATABASE_URL` in GitHub                                                                                   | nothing at runtime                                                                                                                                                                                                                                                                                                                                       |
 | `VERCEL_TOKEN`, `POWERSYNC_ADMIN_TOKEN` | make a new one, update GitHub, revoke the old                                                                                                   | nothing at runtime                                                                                                                                                                                                                                                                                                                                       |
 | `SEED_USER_PASSWORD` (staging)          | new value in GitHub, then run **Seed staging**                                                                                                  | nothing: the seed moves every seeded (`@example.com`) password account to the current value (`accounts.rotateStagingPasswords`) and changes nothing else                                                                                                                                                                                                 |
@@ -213,20 +255,21 @@ Better Auth (1.7.25) encrypts the JWT signing key's private half (`jwks.private_
 - **Vercel instant rollback** (the project → Deployments → a previous one → Instant Rollback). Seconds, no rebuild.
 - It's safe because **migrations are additive**: expand in one deploy (new tables, nullable columns), contract (drop, rename, make required) in a later one, once no live or rollback-able code uses the old shape. A migration that drops or renames something waits a deploy.
 - Rolling back doesn't roll back the database or the sync config. The previous code must work with the newer schema and streams, which the additive rule guarantees.
+- **The one exception:** `0032_todos` renamed `task` to `todo` in one step, so its migration and the sync config change (`FROM todo`) must deploy together (one `deploy.yml` run does both). A device offline across that deploy loses its queued `task` uploads, which the server refuses as an unknown table (accepted: production isn't live). Rolling back past it is not supported.
 - After a rollback, fix forward with a new push; the next deploy replaces the rolled-back one.
 
 ## A failed deploy
 
 The previous deploy is still live. GitHub emails the pusher. Look at the run's failed step:
 
-| Step      | Usual causes                                                                                                                                                                                   |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| env check | a missing or malformed secret: the log names the variable (never the value)                                                                                                                    |
-| migrate   | a migration error, or `MIGRATIONS_DATABASE_URL` wrong. Migrations run in a transaction each; fix the migration and push.                                                                       |
-| roles     | a stream column the schema doesn't have, a `*` in `sync-config.yaml`, or a synced table the replication role can't `SELECT *` (add its columns to the stream or to `REPLICATION_WHOLE_TABLES`) |
-| powersync | the instance id or token, or the instance not set up yet (it must be deployed once in the dashboard), or a sync config PowerSync rejects                                                       |
-| vercel    | the token or project ids, or a build error (reproduce with `pnpm build`)                                                                                                                       |
-| smoke     | the check's table names what failed: `home` (status or security headers), `jwks`, `rpc-unauthenticated`, `cron-locked`, `powersync`, `noindex` (staging)                                       |
+| Step      | Usual causes                                                                                                                                                                                                                                                           |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| env check | a missing or malformed secret: the log names the variable (never the value)                                                                                                                                                                                            |
+| migrate   | a migration error, or `MIGRATIONS_DATABASE_URL` wrong. Migrations run in a transaction each; fix the migration and push.                                                                                                                                               |
+| roles     | a stream column the schema doesn't have, a `*` in `sync-config.yaml`, or a synced table the replication role can't `SELECT *` (add its columns to the stream or to `REPLICATION_WHOLE_TABLES`)                                                                         |
+| powersync | the instance id or token, or the instance not set up yet (it must be deployed once in the dashboard), or a sync config PowerSync rejects                                                                                                                               |
+| vercel    | the token or project ids, or a build error (reproduce with `pnpm build`)                                                                                                                                                                                               |
+| smoke     | the check's table names what failed: `home` (status or security headers), `jwks`, `rpc-unauthenticated`, `cron-locked` (both cron routes answer 401), `mcp-unauthenticated` (`/mcp` without a token is 401 with `resource_metadata`), `powersync`, `noindex` (staging) |
 
 - **Smoke fails after the Vercel deploy:** the new code **is** live. Roll back in Vercel first, then investigate.
 - **A 503 "configuration is incomplete":** the server's own env check; Vercel's function log names the variables. Fix them in Vercel and redeploy.

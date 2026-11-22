@@ -6,7 +6,9 @@ import {
   dosePatchFromForm,
   doseSheetOptions,
   DOSE_STATUS_OPTIONS,
+  NEW_MEDICATION_OPTION,
   parseDoseOption,
+  quickAddFromForm,
 } from "./doseFormData";
 
 const M = "11111111-2222-4333-8444-555555555555";
@@ -92,7 +94,7 @@ describe("doseSheetOptions", () => {
   const slot = (id: string, time: string, state: "due" | "overdue" | "upcoming" | "given") =>
     ({ medication: { id }, time, state }) as unknown as DoseSlot;
 
-  it("lists due slots first, then every medication", () => {
+  it("lists due slots first, then every medication, then + New medication", () => {
     const { options, initial } = doseSheetOptions(
       choices,
       { slots: [slot(A, "08:00", "overdue"), slot(B, "08:00", "given"), slot(A, "20:00", "due")] },
@@ -103,6 +105,7 @@ describe("doseSheetOptions", () => {
       [`${A}@20:00`, "Metformin 500 mg · 20:00 dose", "2 tablets"],
       [B, "Lisinopril 10 mg", "1 tablet"],
       [A, "Metformin 500 mg", "2 tablets"],
+      [NEW_MEDICATION_OPTION, "+ New medication", null],
     ]);
     expect(initial).toBe(`${A}@08:00`);
     expect(parseDoseOption(`${A}@08:00`)).toEqual({ medicationId: A, slot: "08:00" });
@@ -130,7 +133,57 @@ describe("doseSheetOptions", () => {
     );
     expect(
       doseSheetOptions(choices, due, { medicationId: B, slot: "08:00" }, shown).options.map((o) => o.value),
-    ).toEqual([`${B}@08:00`, `${A}@09:00`, B, A]);
+    ).toEqual([`${B}@08:00`, `${A}@09:00`, B, A, NEW_MEDICATION_OPTION]);
+  });
+
+  it("with no current medications, + New medication is the only choice, and the one to start on", () => {
+    expect(doseSheetOptions([], { slots: [] }, { medicationId: null, slot: null })).toMatchObject({
+      options: [{ value: NEW_MEDICATION_OPTION, label: "+ New medication" }],
+      initial: NEW_MEDICATION_OPTION,
+    });
+  });
+});
+
+describe("quickAddFromForm", () => {
+  it("reads the new medication's name, dose and type, and its dose without a medication", () => {
+    expect(
+      quickAddFromForm(
+        form({
+          medicationId: NEW_MEDICATION_OPTION,
+          name: " Ibuprofen ",
+          dose: " 2 tablets ",
+          type: "otc",
+          status: "given",
+          amount: "2 tablets",
+          note: "",
+          occurredAt: "2026-11-17T08:05:00-08:00[America/Los_Angeles]",
+        }),
+      ),
+    ).toEqual({
+      medication: { name: " Ibuprofen ", dose: "2 tablets", type: "otc" },
+      dose: {
+        status: "given",
+        amount: "2 tablets",
+        scheduledFor: null,
+        passId: null,
+        note: null,
+        occurredAt: "2026-11-17T16:05:00.000Z",
+      },
+    });
+  });
+
+  it("leaves a blank dose and type null, for the write to refuse the type", () => {
+    expect(
+      quickAddFromForm(form({ medicationId: NEW_MEDICATION_OPTION, status: "given" }))?.medication,
+    ).toEqual({
+      name: "",
+      dose: null,
+      type: null,
+    });
+  });
+
+  it("is null for a medication on the list", () => {
+    expect(quickAddFromForm(form({ medicationId: M, status: "given", name: "Stray" }))).toBeNull();
   });
 });
 

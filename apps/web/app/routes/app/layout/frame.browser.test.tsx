@@ -2,18 +2,24 @@ import type { DeviceRoute } from "../../../../test/device";
 
 import { afterEach, describe, expect, test } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { render } from "vitest-browser-react";
+import { Toast } from "~/components/ui";
 import { THEME_KEY } from "~/lib/app-shell/theme";
 import * as entry from "~/routes/app/groups/entry/route";
 import * as groupSettingsIndex from "~/routes/app/groups/settings/index/route";
 import * as groupSettingsLayout from "~/routes/app/groups/settings/layout/route";
 import * as timeline from "~/routes/app/groups/timeline/route";
 import * as newSheet from "~/routes/app/groups/timeline/new/route";
+import * as planner from "~/routes/app/groups/planner/route";
+import * as todoPage from "~/routes/app/groups/todo/route";
+import * as todos from "~/routes/app/groups/todos/route";
 import * as home from "~/routes/app/home/route";
 import * as settingsIndex from "~/routes/app/settings/index/route";
 import * as settingsLayout from "~/routes/app/settings/layout/route";
 import * as units from "~/routes/app/settings/units/route";
+import { rgba, surfaceContrast, textContrast } from "../../../../test/contrast";
 import { renderWithDevice } from "../../../../test/device";
-import { fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../../test/fixtures";
+import { fx, hoursAgo, TEST_GROUP, TEST_USER, todo } from "../../../../test/fixtures";
 
 // The /app frame (app-shell.mjs's screen steps): the header's regions, the
 // user menu, the theme, the group menu and the last group, the tab bar and
@@ -33,6 +39,9 @@ const ROUTES: DeviceRoute[] = [
     children: [{ path: `${TIMELINE_PATH}/new/:kind`, module: newSheet }],
   },
   { path: "/app/groups/:groupId/entries/:entryId", module: entry },
+  { path: "/app/groups/:groupId/planner", module: planner },
+  { path: "/app/groups/:groupId/todos", module: todos },
+  { path: "/app/groups/:groupId/todos/:todoId", module: todoPage },
   {
     path: "/app/settings",
     module: settingsLayout,
@@ -73,7 +82,9 @@ const active = () => document.activeElement;
 const header = () => document.querySelector("body header")!;
 const userButton = () => page.getByRole("button", { name: `Account menu for ${TEST_USER.name}` });
 const groupButton = () => page.getByRole("button", { name: /switch care group$/ });
-const TAB_BAR = 'nav.dock[aria-label="Group sections"]';
+const TAB_BAR = 'nav[data-tab-bar][aria-label="Group sections"]';
+/** A section link's accessible name: the bar's icons carry it in `aria-label`, the header's in their text. */
+const nameOf = (a: Element) => a.getAttribute("aria-label") ?? a.textContent?.trim();
 const HEADER_NAV = '[data-region="sections"] nav[aria-label="Group sections"]';
 const shown = (el: Element | null) =>
   !!el && getComputedStyle(el).display !== "none" && el.getBoundingClientRect().height > 0;
@@ -286,7 +297,7 @@ describe("the group menu and the last group", () => {
     await expect.element(groupButton()).toHaveTextContent("Grandpa Lou");
   });
 
-  test("ends with a separator, the recipient's profile, Group settings, Care periods and New care group; Group settings opens the group's settings", async () => {
+  test("has New care group after the groups, then a separator, the recipient's profile, Care periods and Group settings last; Group settings opens the group's settings", async () => {
     const device = await open();
     await userEvent.click(groupButton());
     await expect.element(page.getByRole("menu")).toBeVisible();
@@ -295,11 +306,11 @@ describe("the group menu and the last group", () => {
       .slice(-5)
       .map((el) => `${el.getAttribute("role")}:${el.textContent?.trim()}`);
     expect(tail).toEqual([
+      "menuitem:New care group",
       "separator:",
       "menuitem:Grandma June's profile",
-      "menuitem:Group settings",
       "menuitem:Care periods",
-      "menuitem:New care group",
+      "menuitem:Group settings",
     ]);
     await userEvent.click(page.getByRole("menuitem", { name: "Group settings" }));
     await expect.poll(device.location).toBe(`/app/groups/${TEST_GROUP.id}/settings`);
@@ -322,18 +333,11 @@ describe("the sections", () => {
     await expect.element(page.getByText("Note 11")).toBeInTheDocument();
     const bar = document.querySelector(TAB_BAR)!;
     const links = [...bar.querySelectorAll("a")];
-    expect(links.map((a) => a.textContent?.trim())).toEqual([
-      "Timeline",
-      "Providers",
-      "Medications",
-      "Upcoming",
-      "Tasks",
-    ]);
-    expect(
-      links.filter((a) => a.getAttribute("aria-current") === "page").map((a) => a.textContent?.trim()),
-    ).toEqual(["Timeline"]);
+    expect(links.map(nameOf)).toEqual(["Timeline", "Providers", "Medications", "Planner"]);
+    expect(links.filter((a) => a.getAttribute("aria-current") === "page").map(nameOf)).toEqual(["Timeline"]);
     expect(links[0]?.getAttribute("href")).toBe(timelineUrl());
-    expect(Math.abs(bar.getBoundingClientRect().bottom - innerHeight)).toBeLessThan(2);
+    // It floats: clear of the window's bottom edge.
+    expect(innerHeight - bar.getBoundingClientRect().bottom).toBeGreaterThanOrEqual(8);
     expect(shown(document.querySelector(HEADER_NAV))).toBe(false);
 
     const quick = page.getByRole("button", { name: "Add to Today" }).element().getBoundingClientRect();
@@ -394,11 +398,109 @@ describe("the sections", () => {
       "Timeline",
       "Providers",
       "Medications",
-      "Upcoming",
-      "Tasks",
+      "Planner",
     ]);
     expect(
       links.filter((a) => a.getAttribute("aria-current") === "page").map((a) => a.textContent?.trim()),
     ).toEqual(["Timeline"]);
   });
+
+  test("Planner is current on the Planner tab (its page), and inside it on the Todos tab and a todo's page, in the tab bar and the header", async () => {
+    const errand = todo({ title: "Call the pharmacy" });
+    const current = (nav: string) =>
+      [...document.querySelectorAll(`${nav} a`)]
+        .filter((a) => a.hasAttribute("aria-current"))
+        .map((a) => [nameOf(a), a.getAttribute("aria-current")]);
+    const base = `/app/groups/${TEST_GROUP.id}`;
+    for (const [url, value, ready] of [
+      [`${base}/planner`, "page", "Planner"],
+      [`${base}/todos?who=everyone`, "true", "Planner"],
+      [`${base}/todos/${errand.id}`, "true", "Call the pharmacy"],
+    ] as const) {
+      for (const width of [420, 1280]) {
+        const device = await open({ url, width, fixtures: [errand] });
+        await expect.element(page.getByRole("heading", { level: 1, name: ready })).toBeVisible();
+        const nav = width === 420 ? TAB_BAR : HEADER_NAV;
+        expect(current(nav), `${url} at ${width}`).toEqual([["Planner", value]]);
+        expect(document.querySelector(`${nav} a[aria-current]`)?.getAttribute("href")).toBe(
+          `${base}/planner`,
+        );
+        await device.screen.unmount();
+      }
+    }
+  });
+});
+
+describe("the floating tab bar", () => {
+  const bar = () => document.querySelector<HTMLElement>(TAB_BAR)!;
+  const barLinks = () => [...bar().querySelectorAll<HTMLAnchorElement>("a")];
+
+  test("at 420: icon links named by their sections (with the same title), each at least 44 px, the bar clear of the window's edges", async () => {
+    await open();
+    await expect.element(page.getByText("Slept well")).toBeVisible();
+    const links = barLinks();
+    expect(links.map((a) => a.getAttribute("aria-label"))).toEqual([
+      "Timeline",
+      "Providers",
+      "Medications",
+      "Planner",
+    ]);
+    for (const a of links) {
+      expect(a.getAttribute("title")).toBe(a.getAttribute("aria-label"));
+      expect(a.textContent?.trim()).toBe("");
+      await expect
+        .element(page.getByRole("link", { name: a.getAttribute("aria-label")! }).first())
+        .toBeVisible();
+      const r = a.getBoundingClientRect();
+      expect(r.width).toBeGreaterThanOrEqual(44);
+      expect(r.height).toBeGreaterThanOrEqual(44);
+    }
+    const b = bar().getBoundingClientRect();
+    expect(b.left).toBeGreaterThanOrEqual(16);
+    expect(innerWidth - b.right).toBeGreaterThanOrEqual(16);
+    expect(innerHeight - b.bottom).toBeGreaterThanOrEqual(8);
+    // The spacer reserves the bar, its gap below and some room above it.
+    const spacer = document.querySelector("[data-tab-bar-spacer]")!.getBoundingClientRect();
+    expect(spacer.height).toBeGreaterThanOrEqual(innerHeight - b.top);
+  });
+
+  test("at 420: a toast sits above the bar", async () => {
+    await open();
+    await expect.element(page.getByText("Slept well")).toBeVisible();
+    const toast = await render(
+      <Toast message="A new version is ready" actionLabel="Reload" onAction={() => {}} />,
+    );
+    const status = toast
+      .getByText("A new version is ready")
+      .element()
+      .closest("[role=status]")!
+      .getBoundingClientRect();
+    expect(status.bottom).toBeLessThanOrEqual(bar().getBoundingClientRect().top);
+    await toast.unmount();
+  });
+
+  test.each(["light", "dark"] as const)(
+    "in %s: the bar's surface stands off the page and from a card; resting and current icons clear 3:1; the current one has a fill of its own",
+    async (theme) => {
+      await open({ theme });
+      await expect.element(page.getByText("Slept well")).toBeVisible();
+      const probe = document.createElement("div");
+      probe.className = "bg-base-100";
+      document.body.append(probe);
+      const onPage = surfaceContrast(bar(), document.body);
+      const fromCard = surfaceContrast(bar(), probe);
+      probe.remove();
+      const links = barLinks();
+      const current = links.find((a) => a.getAttribute("aria-current") === "page")!;
+      const resting = links.find((a) => !a.hasAttribute("aria-current"))!;
+      const icon = (a: Element) => textContrast(a.querySelector("svg")!);
+      const fill = (a: Element) => rgba(getComputedStyle(a).backgroundColor)[3];
+      expect(onPage).toBeGreaterThanOrEqual(1.4);
+      expect(fromCard).toBeGreaterThan(1.2);
+      expect(icon(resting)).toBeGreaterThanOrEqual(3);
+      expect(icon(current)).toBeGreaterThanOrEqual(3);
+      expect(fill(current)).toBe(1);
+      expect(fill(resting)).toBe(0);
+    },
+  );
 });

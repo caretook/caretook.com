@@ -16,7 +16,7 @@ export const content = {
       "How Caretook collects, uses and protects your information and your family's health information, and the choices you have.",
   },
   heading: "Privacy policy",
-  lastUpdated: "2026-11-18",
+  lastUpdated: "2026-11-20",
   draft: true,
   intro: [
     "Caretook helps a family keep track of someone's care. That means you trust us with health information about a person you love. This policy explains what we collect, why, who can see it, and what you can do about it.",
@@ -98,6 +98,8 @@ export const content = {
       formal: [
         { subheading: "Your care group" },
         "Care records are shared with the members of the care group they belong to, according to each member's role (owner, admin, caretaker or viewer). Co-members can see your name and profile picture. Care groups are invitation-only, and an invitation is how information in a group is shared with a new person. Please see [Consent before sharing](#consent).",
+        { subheading: "An AI assistant you connect" },
+        "If you choose to connect your own AI assistant, the information you can see in that group is sent to the AI vendor you chose. See [Connecting your own AI assistant](#own-assistant).",
         { subheading: "Service providers" },
         "We use service providers to host the Service, store and sync data, and send email. They process information only on our instructions, under written contracts that require them to protect it and not use it for their own purposes. Our current service providers are: [list of service providers and what each does].",
         { subheading: "Legal reasons" },
@@ -128,9 +130,31 @@ export const content = {
       id: "ai",
       heading: "AI features",
       summary:
-        "Caretook doesn't use AI on your information today. If we add AI features, we'll only use AI providers that don't keep your data or train on it, and we'll update this policy first.",
+        "Caretook itself doesn't use AI on your information today (connecting your own assistant is your choice: see the next section). If we add AI features of our own, we'll only use AI providers that don't keep your data or train on it, and we'll update this policy first.",
       formal: [
         "The Service does not currently send care records to artificial intelligence (AI) providers. If we offer AI features in the future (for example, summarizing a timeline), we will use only AI providers that are contractually prohibited from retaining the information we send beyond what is needed to process the request and from using it to train or improve their models. We will update this policy, and ask for your consent where the law requires it, before any such feature processes your information.",
+      ],
+    },
+    {
+      id: "own-assistant",
+      heading: "Connecting your own AI assistant",
+      summary:
+        "If you choose to connect Claude, ChatGPT or another AI assistant you already use, what that group's members can see goes to the vendor you picked, under that vendor's terms. It's off for every group until an owner turns it on. You can disconnect any time in Settings, Devices.",
+      formal: [
+        "A member can connect an AI assistant they already use (for example Claude or ChatGPT) to one care group. This is optional and separate from anything Caretook does itself. It is off for every care group until an owner of the group turns it on, and the owner can turn it off again at any time.",
+        { subheading: "What is sent, and to whom" },
+        "When the assistant asks, we send it the care group's information that the connecting member can see: the timeline, notes and events, vitals, medications and what is due, appointments, todos, providers (including the phone numbers, addresses and websites of clinicians, practices and pharmacies, but never a provider's email), the names and roles of members, and the care recipient's name, age, allergies and medical conditions (with the names of the providers who diagnosed or manage them). We do not send personal contact details: members' email addresses, phone numbers and addresses, the care recipient's, emergency contacts', or those of providers listed as “other” (such as a neighbor or a private aide). The information goes to the AI vendor the member chose. Caretook is not that vendor's processor and does not control it: the vendor's own terms and privacy settings apply to what it receives, including whether it keeps the conversation or uses it to train its models. Check those settings before you connect.",
+        "Before connecting, the member must tick a statement agreeing that the group's information goes to their chosen vendor. If the member allows it, the assistant can also add entries and todos for them, such as a dose, a note or an appointment. Each is recorded as the member's own entry and marked as made through the assistant.",
+        { subheading: "What we keep" },
+        {
+          list: [
+            "The member's consent: which statement they agreed to, and when.",
+            "The connection: the assistant's name, the group, whether it may read or also write, when it was connected, and when it was last used.",
+          ],
+        },
+        "We do not keep a record of what the assistant asked for or read.",
+        { subheading: "How to stop" },
+        "A member can disconnect any of their assistants in Settings, Devices. A group's owners and admins can see the group's connected assistants and disconnect any of them, and an owner can turn the group's switch off, which disconnects every member's assistant at once. Turning the switch back on does not reconnect anyone. A member who leaves the group, or is removed from it, is disconnected from it too. Disconnecting stops further access, but cannot recall what the vendor has already received: to have that removed, use the vendor's own controls. See also [Consent before sharing](#consent).",
       ],
     },
     {

@@ -1,0 +1,85 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//caretook.com//caretook//EN
+NAME:Caretook: Pat
+X-WR-CALNAME:Caretook: Pat
+REFRESH-INTERVAL;VALUE=DURATION:PT1H
+X-PUBLISHED-TTL:PT1H
+BEGIN:VEVENT
+UID:entry:a1@app.caretook.test
+SEQUENCE:0
+DTSTAMP:20261118T180000Z
+DTSTART:20261119T170000Z
+DTEND:20261119T180000Z
+SUMMARY:Appointment for Pat: Kidney check with Dr. Lee
+LOCATION:Mercy Clinic\, 4 Elm St
+DESCRIPTION:Thu 19 Nov · 9:00–10:00\nWith Dr. Lee\nOpen in Caretook: ht
+ tps://app.caretook.test/app/groups/g1/entry/a1
+URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/a1
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:entry:a2@app.caretook.test
+SEQUENCE:0
+DTSTAMP:20261118T180000Z
+DTSTART:20261120T180000Z
+DTEND:20261120T190000Z
+SUMMARY:Cancelled: Appointment for Pat: Physical therapy
+DESCRIPTION:Fri 20 Nov · 10:00–11:00\nOpen in Caretook: https://app.car
+ etook.test/app/groups/g1/entry/a2
+URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/a2
+STATUS:CANCELLED
+END:VEVENT
+BEGIN:VEVENT
+UID:todo:t2@app.caretook.test
+SEQUENCE:0
+DTSTAMP:20261118T180000Z
+DTSTART;VALUE=DATE:20261121
+DTEND;VALUE=DATE:20261122
+X-MICROSOFT-CDO-ALLDAYEVENT:TRUE
+X-MICROSOFT-MSNCALENDAR-ALLDAYEVENT:TRUE
+SUMMARY:Todo for Pat: Order refills
+DESCRIPTION:Sat 21 Nov · All day\nOpen in Caretook: https://app.caretook.
+ test/app/groups/g1/entry/t2
+URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/t2
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:todo:t1@app.caretook.test
+SEQUENCE:0
+DTSTAMP:20261118T180000Z
+DTSTART:20261123T163000Z
+DTEND:20261123T170000Z
+SUMMARY:Todo for Pat: Pick up the walker
+DESCRIPTION:Mon 23 Nov · 8:30\nOpen in Caretook: https://app.caretook.tes
+ t/app/groups/g1/todos
+URL;VALUE=URI:https://app.caretook.test/app/groups/g1/todos
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:entry:s1@app.caretook.test
+SEQUENCE:0
+DTSTAMP:20261118T180000Z
+DTSTART:20261124T140000Z
+DTEND:20261124T180000Z
+SUMMARY:Appointment for Pat: Dialysis
+LOCATION:Dialysis center
+DESCRIPTION:Tue 24 Nov · 6:00–10:00\nOpen in Caretook: https://app.care
+ took.test/app/groups/g1/entry/s1
+URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/s1
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:entry:s2@app.caretook.test
+SEQUENCE:0
+DTSTAMP:20261118T180000Z
+DTSTART:20261126T140000Z
+DTEND:20261126T180000Z
+SUMMARY:Appointment for Pat: Dialysis
+LOCATION:Dialysis center
+DESCRIPTION:Thu 26 Nov · 6:00–10:00\nOpen in Caretook: https://app.care
+ took.test/app/groups/g1/entry/s2
+URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/s2
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR

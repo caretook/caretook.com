@@ -1,0 +1,53 @@
+# Reset staging (B-449): empty staging, then run the fictional seed again.
+# Destructive, so it only runs when the confirm input is exactly "staging".
+# It deletes rows as the app role (nothing is dropped, so PowerSync replicates
+# the deletes and devices empty themselves) and keeps real sign-ins: accounts
+# that aren't @example.com stay, with their staff role and sessions, and the
+# seed makes each an owner of every seeded group. Everything else goes,
+# connector and Google links included. The reset refuses anything but
+# APP_ENV=staging, and staging without a secret SEED_USER_PASSWORD. For a
+# seed that removes nothing, run Seed staging.
+#
+# Secrets (the `staging` environment's):
+#   DATABASE_URL, SEED_USER_PASSWORD
+name: Reset staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type staging to delete staging's data and reseed it
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: seed-staging
+  cancel-in-progress: false
+
+jobs:
+  reset:
+    if: ${{ inputs.confirm == 'staging' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+
+      - id: reset
+        name: Wipe and reseed
+        env:
+          APP_ENV: staging
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SEED_USER_PASSWORD: ${{ secrets.SEED_USER_PASSWORD }}
+        run: pnpm datastore:reset:staging

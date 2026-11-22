@@ -5,12 +5,16 @@ import { SIMPLE_TILE_COUNT } from "@caretook/data/schema";
 import { UserRound } from "lucide-react";
 import { Link } from "react-router";
 import { Detail, Details, SettingsCard, SettingsPage } from "~/components/settings";
+import { EmptyState } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formString } from "~/lib/core/form";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { rpc } from "~/lib/core/rpc";
+import { sessionContext } from "~/lib/auth/session";
+import { loadDetailsAllowed, useDetailsAllowed } from "~/lib/calendars/detailsAllowed.sync";
 import { failedSave, loadRecipientProfile } from "../api";
 import { GroupNameForm, RecipientTimeZoneForm } from "./DetailsForms";
+import { DetailsOutsideCard } from "./DetailsOutsideCard";
 import { SimpleTilesCard } from "./SimpleTilesCard";
 import {
   groupSettingsAccess,
@@ -27,7 +31,8 @@ import {
 // offline and follow other members' changes); saving goes through the API:
 // online only. The rest of the recipient is edited on their profile
 // (`appUrls.profile`), linked from here. Simple mode's tiles card is the
-// group's too (`careGroup.update`'s `simpleTiles`).
+// group's too (`careGroup.update`'s `simpleTiles`). Owners also get the
+// "Details outside Caretook" switch (calendars), read from the device.
 
 export const meta = () => [{ title: "Details · Group settings · Caretook" }];
 
@@ -35,9 +40,11 @@ export { shouldRevalidate } from "../api";
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   getGroup(context);
+  const { db } = context.get(sessionContext);
+  const allowedRows = await loadDetailsAllowed(db, params.groupId);
   // Only whether the API answers: the page is read-only without a connection.
   const { online } = await loadRecipientProfile(request, params.groupId);
-  return { online };
+  return { online, allowedRows };
 }
 
 export async function clientAction({ request, params }: Route.ClientActionArgs): Promise<ActionResult> {
@@ -66,6 +73,12 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
       await rpc.careGroup.update({ groupId, ...parsed.data });
       return { ok: true };
     }
+    if (intent === "detailsOutside") {
+      const allowed = formString(form, "allowed");
+      if (allowed !== "on" && allowed !== "off") return { ok: false, error: "Unknown action.", issues: [] };
+      await rpc.calendars.group.setDetailsAllowed({ groupId, allowed: allowed === "on" });
+      return { ok: true };
+    }
     return { ok: false, error: "Unknown action.", issues: [] };
   } catch (e) {
     return failedSave(e);
@@ -73,11 +86,12 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
 }
 
 export default function GroupDetails({ loaderData }: Route.ComponentProps) {
-  const { online } = loaderData;
+  const { online, allowedRows } = loaderData;
 
   // Live from the device: a rename or a changed role shows without a reload.
   const group = useGroup();
   const access = groupSettingsAccess(group.id, group.role);
+  const detailsAllowed = useDetailsAllowed(group.id, allowedRows);
 
   return (
     <SettingsPage title="Details" offlineNotice={online ? undefined : NEEDS_CONNECTION}>
@@ -94,7 +108,7 @@ export default function GroupDetails({ loaderData }: Route.ComponentProps) {
 
       <SettingsCard id="care-recipient" title="Care recipient">
         {!group.recipient ? (
-          <p className="text-base-content/70 text-sm">This care group has no care recipient yet.</p>
+          <EmptyState>This care group has no care recipient yet.</EmptyState>
         ) : (
           <>
             {online && access.editRecipient ? (
@@ -127,6 +141,8 @@ export default function GroupDetails({ loaderData }: Route.ComponentProps) {
         displayName={group.recipient?.displayName ?? group.displayName}
         editable={online && access.renameGroup}
       />
+
+      {group.role === "owner" && <DetailsOutsideCard allowed={detailsAllowed ?? true} editable={online} />}
     </SettingsPage>
   );
 }

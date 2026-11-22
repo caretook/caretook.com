@@ -3,6 +3,7 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/core/api";
 import type { TimelineOutlet } from "./sheet";
 
+import { useRef } from "react";
 import { Outlet, PrefetchPageLinks } from "react-router";
 import { QuickEntryBox } from "~/components/quick-entry";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -13,12 +14,14 @@ import { sessionContext } from "~/lib/auth/session";
 import { loadSearchPeriods, searchPeriodRange } from "~/lib/care-periods/periodSearch.sync";
 import { removeEntry } from "~/lib/timeline/timeline.sync";
 import { parseFilters } from "~/lib/timeline/timelineFilters";
+import { AddedMedicationToast } from "./AddedMedicationToast";
 import { InviteSomeoneCard } from "./InviteSomeoneCard";
 import { LiveNowBanner } from "./LiveNowBanner";
 import { onlySheetChanged } from "./sheetGuard";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
 import { FilterChips } from "./TimelineFilters";
 import { TimelineHeader } from "./TimelineHeader";
+import { TimelineViewMenu } from "./TimelineViewMenu";
 import { loadTimelineRows } from "./timelineRows";
 import { timelineSearch } from "./timelineSearch";
 import { TodayCard } from "./TodayCard";
@@ -28,9 +31,7 @@ import { useTimelineData } from "./useTimelineData";
 import { useTimelineView } from "./useTimelineView";
 import { useDaySummaryMode } from "./useDaySummaryMode";
 import { useSimpleMode } from "~/lib/assistant/useSimpleMode";
-import { SimpleModeToggle } from "./SimpleModeToggle";
 import { SimpleTimeline } from "./SimpleTimeline";
-import { useSimpleModeUrl } from "./useSimpleModeUrl";
 
 // Shared by web + native. Reads and writes go to the device's local copy
 // (PowerSync), so the timeline works offline and other members' changes
@@ -122,41 +123,76 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const group = useGroup();
   const { canWrite } = group;
   const mode = useSimpleMode(userId, groupId, group, settings.simpleMode);
-  useSimpleModeUrl(groupId, mode.simple, loaderData);
   const period = usePeriodSearch(groupId, loaderData.period, loaderData.searchPeriods);
   const search = timelineSearch(groupId, q, useSearchIndexStatus(), period.range);
   const filters = { kind, author, vital, match: search.match };
   const data = useTimelineData({ groupId, userId, filters, initial: loaderData });
   const [view, setView] = useTimelineView(userId, settings.timelineView);
   const [summaryMode, setSummaryMode] = useDaySummaryMode(userId, settings.daySummary);
+  // The empty Today's "Add an entry": the quick-entry field, in view and focused (a phone's keyboard comes up).
+  const quickField = useRef<HTMLTextAreaElement>(null);
+  const addEntry = () => {
+    const el = quickField.current;
+    el?.scrollIntoView({ block: "center" });
+    el?.focus({ preventScroll: true });
+  };
 
   const sheets = (
     <>
       {/* The sheets (`new/:kind`, `:entryId/edit`), over the timeline. */}
       <Outlet context={{ units, simple: mode.simple } satisfies TimelineOutlet} />
+      {/* "Added Ibuprofen · Add details", once the Dose sheet's quick add closes it. */}
+      <AddedMedicationToast groupId={groupId} />
       {/* The edit sheet's route module, fetched now so a row opens it offline (one link for every row). */}
       {canWrite && <PrefetchPageLinks page={appUrls.editSheet(groupId, "prefetch")} />}
       {/* The pass sheet's too, so a pass log opens it offline. */}
       {canWrite && <PrefetchPageLinks page={appUrls.passSheet(groupId, "prefetch")} />}
     </>
   );
+  // The search, Filter button and chips: the same in both views (View options at the end in the full one).
+  const chips = (
+    <div className={COLUMN_CAP}>
+      <FilterChips
+        kind={kind}
+        author={author ? { name: data.nameOf(author), image: data.imageOf(author) } : null}
+        q={q}
+        vital={vital}
+        vitalTypes={data.latestVitals.map((v) => v.reading.type)}
+        period={period}
+        trailing={
+          !mode.simple && (
+            <TimelineViewMenu
+              view={view}
+              onViewChange={setView}
+              summaryMode={summaryMode}
+              onSummaryModeChange={setSummaryMode}
+              simpleMode={mode}
+            />
+          )
+        }
+      />
+    </div>
+  );
   if (mode.simple)
     return (
-      <SimpleTimeline data={data} units={units} mode={mode} summaryMode={summaryMode}>
+      <SimpleTimeline
+        data={data}
+        units={units}
+        mode={mode}
+        summaryMode={summaryMode}
+        chips={chips}
+        filters={{ kind, author, vital, search: { q, state: search.state } }}
+      >
         {sheets}
       </SimpleTimeline>
     );
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5 lg:max-w-none">
-      <TimelineHeader
-        view={view}
-        onViewChange={setView}
-        summaryMode={summaryMode}
-        onSummaryModeChange={setSummaryMode}
-        simpleToggle={<SimpleModeToggle mode={mode} />}
-      />
-      <InviteSomeoneCard />
+      <div className={COLUMN_CAP}>
+        <TimelineHeader />
+      </div>
+      <InviteSomeoneCard className={COLUMN_CAP} />
       <TodayCard
         groupId={groupId}
         canWrite={canWrite}
@@ -168,19 +204,10 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       <LiveNowBanner documents={data.liveDocuments} groupId={groupId} nameOf={data.nameOf} />
       {canWrite && (
         <div className={COLUMN_CAP}>
-          <QuickEntryBox groupId={groupId} units={units} />
+          <QuickEntryBox groupId={groupId} units={units} fieldRef={quickField} />
         </div>
       )}
-      <div className={COLUMN_CAP}>
-        <FilterChips
-          kind={kind}
-          author={author ? { name: data.nameOf(author), image: data.imageOf(author) } : null}
-          q={q}
-          vital={vital}
-          vitalTypes={data.latestVitals.map((v) => v.reading.type)}
-          period={period}
-        />
-      </div>
+      {chips}
       <TimelineEntryList
         data={data}
         view={view}
@@ -192,6 +219,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         author={author}
         vital={vital}
         search={{ q, state: search.state }}
+        onAddEntry={addEntry}
       />
       {sheets}
     </main>

@@ -192,8 +192,8 @@ describe("results", () => {
     await searchFor("lisinopril");
     expect(sections()).toEqual(["medication", "entry"]);
     expect(resultIds("medication")).toEqual([lisinopril.id]);
-    expect(statusLine()!.getAttribute("role")).toBe("status");
-    expect(statusLine()!.textContent).toMatch(/medication/);
+    await expect.poll(() => statusLine()?.getAttribute("role")).toBe("status");
+    await expect.poll(() => statusLine()?.textContent).toMatch(/medication/);
     expect(device.location()).toBe(searchUrl("?q=lisinopril"));
     const before = resultIds("entry");
 
@@ -259,7 +259,7 @@ describe("results", () => {
 
     await searchFor("zzqx");
     expect(sections()).toEqual([]);
-    expect(statusLine()!.textContent).toMatch(/^No matches for/);
+    await expect.poll(() => statusLine()?.textContent).toMatch(/^No matches for/);
   });
 
   test("another group finds none of this group's medications or doses, but its own", async () => {
@@ -391,5 +391,13 @@ describe("within a care period", () => {
     await expect.poll(() => sorted(resultIds("entry"))).toBe(sorted([tagged.edge.id, tagged.now.id]));
     await userEvent.selectOptions(select(), "");
     await expect.poll(() => resultIds("entry").length).toBe(5);
+  });
+});
+
+describe("the page title", () => {
+  test("is one h1, Search", async () => {
+    await open();
+    await expect.poll(() => document.querySelector("main h1")?.textContent).toBe("Search");
+    expect(document.querySelectorAll("h1")).toHaveLength(1);
   });
 });

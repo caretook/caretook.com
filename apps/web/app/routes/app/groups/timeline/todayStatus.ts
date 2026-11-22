@@ -1,12 +1,14 @@
+import type { TodoRuleFields } from "@caretook/data/schema";
 import type { TimedEntry } from "../../../../lib/appointments/upcoming";
+import type { DoseSlot } from "../../../../lib/medications/dueDoses";
 
-import { localDate } from "@caretook/data/schema";
+import { localDate, localTime, todoState } from "@caretook/data/schema";
 import { entryTiming } from "../../../../lib/appointments/upcoming";
 import { OVERDUE_AFTER_MINUTES } from "../../../../lib/medications/dueDoses";
 
 // The Today card's rules (timeline-ux, B-169): how urgent each row is
-// (`todayStatus`) and the collapsed card's one line (`todaySummary`). Pure;
-// web:unit tests them.
+// (`todayStatus`), what's overdue and due soon (`attentionCounts`) and the
+// collapsed card's one line (`todaySummary`). Pure; web:unit tests them.
 
 /** A row's urgency: red, amber, blue, or none (daisyUI's `error`, `warning`, `info`). */
 export type TodayStatus = "error" | "warning" | "info" | "neutral";
@@ -15,12 +17,12 @@ export type TodayStatus = "error" | "warning" | "info" | "neutral";
 export type TodayRow =
   /** The newest of the latest vitals' readings. */
   | { kind: "vitals"; latestAt: string }
-  /** The next appointment or reminder. */
+  /** The next appointment. */
   | { kind: "appointment"; entry: TimedEntry }
   /** The pass the row shows: its moment today, or null when it's tomorrow's (nothing left today). */
   | { kind: "medications"; dueAt: string | null }
-  /** The task the row names, and whether it's overdue (else it's due today). */
-  | { kind: "tasks"; overdue: boolean };
+  /** Whether the todo the row names is overdue (else it's due today). */
+  | { kind: "todos"; overdue: boolean };
 
 const HOUR = 3_600_000;
 const MINUTE = 60_000;
@@ -34,7 +36,7 @@ export const APPOINTMENT_SOON_MS = 2 * HOUR;
  * "today"):
  *
  * - `error`: a dose overdue (`OVERDUE_AFTER_MINUTES` past its time, as the
- *   medication rules say) or an overdue task;
+ *   medication rules say) or an overdue todo;
  * - `warning`: a dose due now (from its time until it's overdue), or vitals
  *   whose newest reading is more than a day old;
  * - `info`: an appointment in progress, starting within 2 hours, or today;
@@ -55,7 +57,7 @@ export function todayStatus(
       if (late < 0) return "neutral";
       return late >= OVERDUE_AFTER_MINUTES * MINUTE ? "error" : "warning";
     }
-    case "tasks":
+    case "todos":
       return row.overdue ? "error" : "neutral";
     case "appointment": {
       const { entry } = row;
@@ -72,38 +74,118 @@ export function todayStatus(
   }
 }
 
+/** "Due soon": due now, or due within this long (doses, todos and appointments alike). */
+export const SOON_MS = HOUR;
+
+/** A todo due today without a time counts as due at this wall-clock time, in the recipient's zone. */
+export const UNTIMED_TODO_TIME = "19:00";
+
+/** What the collapsed card leads with, by kind: how many are overdue and how many due soon. */
+export type AttentionCounts = {
+  doses: { overdue: number; soon: number };
+  todos: { overdue: number; soon: number };
+  /** The next appointment, in progress or starting within `SOON_MS` (0 or 1). */
+  appointments: { soon: number };
+};
+
+const minutesOf = (hhmm: string) => {
+  const [h = 0, m = 0] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+};
+
+/**
+ * How many things are overdue and due soon at `now`, for the collapsed
+ * card's red and orange counts:
+ *
+ * - doses: today's slots overdue (red); due, or upcoming within `SOON_MS` (orange);
+ * - todos (overdue or due today): overdue (red); due today within
+ *   `SOON_MS`, or already past its time (orange). One without a time is due
+ *   at `UNTIMED_TODO_TIME`, in the recipient's zone (`timeZone`);
+ * - the next appointment: in progress, or starting within `SOON_MS`
+ *   (orange); an all-day item has no start, so it never counts.
+ */
+export function attentionCounts({
+  doses,
+  todos,
+  appointment,
+  now,
+  timeZone,
+}: {
+  doses: readonly Pick<DoseSlot, "state" | "at">[];
+  todos: readonly Pick<TodoRuleFields, "doneAt" | "dueOn" | "dueTime">[];
+  appointment: TimedEntry | null;
+  now: Date | number;
+  timeZone: string;
+}): AttentionCounts {
+  const at = typeof now === "number" ? now : now.getTime();
+  const counts: AttentionCounts = {
+    doses: { overdue: 0, soon: 0 },
+    todos: { overdue: 0, soon: 0 },
+    appointments: { soon: 0 },
+  };
+  for (const slot of doses) {
+    if (slot.state === "overdue") counts.doses.overdue++;
+    else if (slot.state === "due") counts.doses.soon++;
+    else if (slot.state === "upcoming" && new Date(slot.at).getTime() - at <= SOON_MS) counts.doses.soon++;
+  }
+  const clock = minutesOf(localTime(at, timeZone));
+  for (const todo of todos) {
+    const state = todoState(todo, at, timeZone);
+    if (state === "overdue") counts.todos.overdue++;
+    else if (state === "today" && minutesOf(todo.dueTime ?? UNTIMED_TODO_TIME) - clock <= SOON_MS / MINUTE)
+      counts.todos.soon++;
+  }
+  if (appointment) {
+    const timing = entryTiming(appointment, new Date(at));
+    if (
+      timing === "now" ||
+      (timing === "upcoming" &&
+        !appointment.allDay &&
+        new Date(appointment.occurredAt).getTime() - at <= SOON_MS)
+    )
+      counts.appointments.soon = 1;
+  }
+  return counts;
+}
+
 /** What the collapsed card sums up, from the rows it would show (a missing part is a hidden row). */
 export type TodaySummaryParts = {
+  /** What's overdue and due soon (`attentionCounts`): it leads the line, and isn't repeated after. */
+  counts: AttentionCounts;
   /** The newest reading, as the row words it ("BP 130/85 mmHg"). */
   vital?: string | null;
-  /** How many appointments and reminders are ahead (the next one and the rest). */
+  /** How many appointments are ahead (the next one and the rest). */
   appointments?: number;
-  /** The medications row: the pass's state and how many medications it still wants. */
-  medications?: { state: "next" | "due" | "overdue"; count: number; time: string } | null;
-  /** The tasks row: how many are overdue, and how many in all (overdue and due today). */
-  tasks?: { overdue: number; total: number } | null;
+  /** The next pass's time ("20:00"), while nothing is overdue or due soon. */
+  medications?: string | null;
+  /** How many todos the row counts (overdue and due today). */
+  todos?: number;
 };
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /**
- * The collapsed card's line: "BP 130/85 mmHg · 1 appt · 2 meds due · 1 task
- * overdue". Each row it would show adds its part, in the card's order; empty
- * with nothing to show.
+ * The collapsed card's line, in three parts: `overdue` ("3 overdue", red)
+ * and `soon` ("2 due soon", orange) lead so they're never cut off, then
+ * `rest` ("BP 130/85 mmHg · 1 appt · Meds 20:00 · 1 todo today"), in the
+ * card's order, without what the counts already hold. A part with nothing
+ * to say is null (`rest` is "").
  */
-export function todaySummary({ vital, appointments, medications, tasks }: TodaySummaryParts): string {
-  const parts: string[] = [];
-  if (vital) parts.push(vital);
-  if (appointments) parts.push(plural(appointments, "appt"));
-  if (medications)
-    parts.push(
-      medications.state === "next"
-        ? `Meds ${medications.time}`
-        : `${plural(medications.count, "med")} ${medications.state}`,
-    );
-  if (tasks?.total)
-    parts.push(
-      tasks.overdue ? `${plural(tasks.overdue, "task")} overdue` : `${plural(tasks.total, "task")} today`,
-    );
-  return parts.join(" · ");
+export function todaySummary({ counts, vital, appointments = 0, medications, todos = 0 }: TodaySummaryParts) {
+  const overdue = counts.doses.overdue + counts.todos.overdue;
+  const soon = counts.doses.soon + counts.todos.soon + counts.appointments.soon;
+  const rest: string[] = [];
+  if (vital) rest.push(vital);
+  const appts = appointments - counts.appointments.soon;
+  if (appts > 0) rest.push(plural(appts, "appt"));
+  if (medications && !counts.doses.overdue && !counts.doses.soon) rest.push(`Meds ${medications}`);
+  const today = todos - counts.todos.overdue - counts.todos.soon;
+  if (today > 0) rest.push(`${plural(today, "todo")} today`);
+  return {
+    overdue: overdue ? `${overdue} overdue` : null,
+    soon: soon ? `${soon} due soon` : null,
+    rest: rest.join(" · "),
+  };
 }
+
+export type TodaySummary = ReturnType<typeof todaySummary>;

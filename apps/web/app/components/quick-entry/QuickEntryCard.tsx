@@ -8,11 +8,12 @@ import { KIND_META } from "~/lib/timeline/entryDisplay";
 /**
  * One part of the line, as it will be saved: its kind, what it says and
  * when, its warnings (red ones stop Save), the other ways to read it as
- * chips, Edit (the usual sheet, filled in) and Remove.
+ * buttons ("Make it a note"), Edit (the usual sheet, filled in) and Remove.
  */
 export function QuickEntryCard({
   card,
   preview,
+  draftLine,
   error,
   onChoose,
   onEdit,
@@ -20,15 +21,17 @@ export function QuickEntryCard({
 }: {
   card: Card;
   preview: ActionPreview;
+  /** A card that opens as the draft says so: "Opens to finish · Dr. Elena Alvarez · Wed, Nov 25". */
+  draftLine?: string | null;
   error?: string;
   onChoose: (index: number) => void;
   onEdit: () => void;
   onRemove: () => void;
 }) {
   const { kind, label } = card.reading;
-  // A task isn't a timeline entry, so it has no KIND_META: the Tasks section's icon.
+  // A todo isn't a timeline entry, so it has no KIND_META: the Todos section's icon.
   const { Icon, iconClass } =
-    kind === "task" ? { Icon: ListTodo, iconClass: "bg-accent text-accent-content" } : KIND_META[kind];
+    kind === "todo" ? { Icon: ListTodo, iconClass: "bg-accent text-accent-content" } : KIND_META[kind];
   const blocked = card.blocking.length > 0 || !!error;
   const headingId = `quick-card-${card.key.replace(/[^\w-]/g, "_")}`;
   return (
@@ -46,7 +49,9 @@ export function QuickEntryCard({
         </span>
         <div className="min-w-0 flex-1">
           <p id={headingId} className="text-sm">
-            <span className="font-semibold">{label}</span>
+            <span className="badge badge-neutral badge-sm font-semibold" data-quick-kind>
+              {label}
+            </span>
             <span className="text-base-content/70"> · {preview.when}</span>
           </p>
           <p className="font-medium break-words" data-quick-title>
@@ -55,6 +60,11 @@ export function QuickEntryCard({
           {preview.detail && (
             <p className="text-base-content/80 text-sm break-words" data-quick-detail>
               {preview.detail}
+            </p>
+          )}
+          {draftLine && (
+            <p className="text-base-content/70 text-sm break-words" data-quick-opens-draft>
+              {draftLine}
             </p>
           )}
         </div>
@@ -77,10 +87,10 @@ export function QuickEntryCard({
       )}
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        {card.alternatives.length > 0 && (
+        {(card.kindChoices.length > 0 || card.alternatives.length > 0) && (
           <ChipGroup
             label={`Other ways to save "${card.text}"`}
-            actions={card.alternatives.map((a) => ({
+            actions={[...card.kindChoices, ...card.alternatives].map((a) => ({
               id: String(a.index),
               label: a.label,
               onPress: () => onChoose(a.index),

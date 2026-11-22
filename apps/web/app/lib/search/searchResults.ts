@@ -18,7 +18,7 @@ export type RankedHit = {
   rank: number;
   /** Every searched word matched in a title-like field (title, name, symptom, medication, provider). */
   titleMatch: boolean;
-  /** An entry's time (ISO 8601 or the local timestamp form); null for providers, medications and tasks. */
+  /** An entry's time (ISO 8601 or the local timestamp form); null for providers, medications and todos. */
   occurredAt: string | null;
 };
 
@@ -28,8 +28,14 @@ export type HitSection = { hits: readonly RankedHit[]; total: number };
 /** What the page's URL asks for: the text (as typed), the section shown in full, and the care period it's narrowed to. */
 export type SearchPageQuery = { q: string; all: SearchItemType | null; period: string | null };
 
-/** Sections in page order: the things you'd look up by name first, then tasks, then the timeline's entries. */
-export const SECTION_ORDER: readonly SearchItemType[] = ["provider", "medication", "task", "entry"];
+/** Sections in page order: the things you'd look up by name first, then todos, then the timeline's entries. */
+export const SECTION_ORDER: readonly SearchItemType[] = [
+  "provider",
+  "medication",
+  "condition",
+  "todo",
+  "entry",
+];
 
 /** How many results a section shows before "Show all N". */
 export const SECTION_SIZE = 5;
@@ -40,15 +46,17 @@ export const FULL_SECTION_SIZE = 100;
 export const SECTION_LABELS: Record<SearchItemType, string> = {
   provider: "Providers",
   medication: "Medications",
-  task: "Tasks",
+  todo: "Todos",
   entry: "Timeline entries",
+  condition: "Conditions",
 };
 
 const NOUNS: Record<SearchItemType, [one: string, many: string]> = {
   provider: ["provider", "providers"],
   medication: ["medication", "medications"],
-  task: ["task", "tasks"],
+  todo: ["todo", "todos"],
   entry: ["entry", "entries"],
+  condition: ["condition", "conditions"],
 };
 
 /**
@@ -73,8 +81,9 @@ export const parseSearchPage = (search: string): SearchPageQuery => {
 export const sectionLimits = (all: SearchItemType | null): Record<SearchItemType, number> => ({
   provider: all === "provider" ? FULL_SECTION_SIZE : SECTION_SIZE,
   medication: all === "medication" ? FULL_SECTION_SIZE : SECTION_SIZE,
-  task: all === "task" ? FULL_SECTION_SIZE : SECTION_SIZE,
+  todo: all === "todo" ? FULL_SECTION_SIZE : SECTION_SIZE,
   entry: all === "entry" ? FULL_SECTION_SIZE : SECTION_SIZE,
+  condition: all === "condition" ? FULL_SECTION_SIZE : SECTION_SIZE,
 });
 
 /** Milliseconds since the epoch, from ISO 8601, the device's form or Postgres's ("… 10:00:00+00"). */

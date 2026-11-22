@@ -1,5 +1,4 @@
-// The Playwright Test harness for the browser checks (`*.spec.mjs`), in place
-// of cdp.mjs and proxy.mjs. Specs import `test` and `expect` from here, never
+// The Playwright Test harness for the browser checks (`*.spec.mjs`). Specs import `test` and `expect` from here, never
 // from @playwright/test, so every page gets the same setup:
 //
 // - `device(label, opts)`: a new browser context, one per device, each with its
@@ -17,9 +16,8 @@
 //   page and workers alike, the way losing Wi-Fi would. Playwright's
 //   `context.setOffline` is not enough: it leaves PowerSync's sync stream (in
 //   its shared worker) connected, as CDP's network emulation did (measured:
-//   still connected 80 s later). `navigator.onLine` stays true, as with
-//   proxy.mjs; call `d.context.setOffline` as well for a test that needs it false.
-// - `signIn`, `openDevFamily` and `signOut` as cdp.mjs had them, `waitFor`
+//   still connected 80 s later). `navigator.onLine` stays true; call `d.context.setOffline` as well for a test that needs it false.
+// - `signIn`, `openDevFamily` and `signOut` `waitFor`
 //   (polls an in-page function and awaits what it returns, so a promise counts
 //   by what it resolves to: B-172), and `psql` against the worktree's `PG_CONTAINER`.
 // - Smoke mode (`SMOKE=1`, `pnpm prd browser --smoke`): a test without the
@@ -159,9 +157,15 @@ export async function signOut(page) {
  */
 export const addButton = (page) => page.locator('main [data-day-header] button[aria-label="Add to Today"]');
 
-/** Add to the timeline through Today's + menu: open it, then choose `item` ("Note", "Symptom"…). */
-export async function addToTimeline(page, item) {
-  const choice = page.locator('[role="menu"] [role="menuitem"]', { hasText: new RegExp(`^${item}$`) });
+/**
+ * Add to the timeline through Today's + menu: open it, then choose `item`
+ * ("Note", "Symptom"…); a vital type ("Temperature") with `{ group: "Vitals" }`,
+ * which expands that group first.
+ */
+export async function addToTimeline(page, item, { group } = {}) {
+  const menuItem = (text) =>
+    page.locator('[role="menu"] [role="menuitem"]', { hasText: new RegExp(`^${text}$`) });
+  const choice = menuItem(group ?? item);
   await addButton(page).click();
   // A tap that lands while a menu is still closing doesn't open it: once more.
   if (
@@ -173,6 +177,7 @@ export async function addToTimeline(page, item) {
     await addButton(page).click();
   }
   await choice.click();
+  if (group) await menuItem(item).click();
 }
 
 /**
@@ -201,8 +206,7 @@ export async function assetsSettled(page, quietMs = 1000) {
 }
 
 /**
- * A forward proxy that can be switched off, on a free port (proxy.mjs's, for
- * specs). Chrome sends WebSockets through a proxy as CONNECT tunnels, so it
+ * A forward proxy that can be switched off, on a free port (for specs). Chrome sends WebSockets through a proxy as CONNECT tunnels, so it
  * tunnels CONNECT too. Vite's own sockets (protocols `vite-hmr`, `vite-ping`;
  * `--dev` only) are dev tooling, not the app's network: going offline leaves
  * them open, so Vite doesn't reload the page when they reconnect.
@@ -323,7 +327,7 @@ export const localCopyHolds = (page, text) =>
     return hits ? "holds it" : "clean";
   }, text);
 
-/** What a page reported, as cdp.mjs collected it. */
+/** What a page reported. */
 function watchPage(page, label, sink) {
   page.on("console", (msg) => {
     const type = msg.type();
@@ -331,7 +335,7 @@ function watchPage(page, label, sink) {
     const text = msg.text();
     if (POWERSYNC_TEARDOWN.test(text)) return;
     // A failed load (a 4xx the page expects, say) is a diagnosis, not a console
-    // error: cdp.mjs had it only in `uncaught`, from the Log domain.
+    // error.
     if (/^Failed to load resource/.test(text)) {
       sink.uncaught.push(
         `failed load: ${text}${msg.location()?.url ? ` (${msg.location().url.replace(BASE, "")})` : ""}`,

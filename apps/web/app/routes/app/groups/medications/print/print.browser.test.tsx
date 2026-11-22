@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import { found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
-import { allergy } from "../../../../../../test/fixtures";
-import { $, $$, LIST, MEDICATION_ROUTES, SEEDED_CURRENT, waitUntil, world } from "../medicationWorld";
+import { allergy, condition, fx } from "../../../../../../test/fixtures";
+import { $, $$, LIST, MEDICATION_ROUTES, MEDS, SCHEDULE, waitUntil, world } from "../medicationWorld";
 
 // The printable sheets (medications.mjs's print, weekly and their offline
 // steps): the list's Print menu with both sheets; the medication list's
@@ -21,16 +21,21 @@ import { $, $$, LIST, MEDICATION_ROUTES, SEEDED_CURRENT, waitUntil, world } from
 // the sheets' rules.
 
 const PENICILLIN = allergy({ substance: "Penicillin", reaction: "hives", severity: "severe" });
+const DIABETES = condition({ name: "Type 2 diabetes", sinceYear: 2015 });
+const PAST = condition({ name: "Hip fracture", status: "resolved", sinceYear: 2019 });
 const open = (url: string, options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
   renderWithDevice({
     route: MEDICATION_ROUTES,
     url,
-    fixtures: [world(), PENICILLIN],
+    fixtures: [world(), PENICILLIN, DIABETES, PAST],
     frame: true,
     ...options,
   });
 
-const PRINT_MENU = () => $$<HTMLButtonElement>("main button").find((b) => b.textContent?.trim() === "Print");
+const PRINT_MENU = () =>
+  $$<HTMLButtonElement>("main button").find(
+    (b) => (b.getAttribute("aria-label") ?? b.textContent?.trim()) === "Print",
+  );
 /** A Print menu item, by the start of its text (its description follows). */
 const printItem = (label: string) =>
   $$("[role=menuitem]").find((m) => m.textContent?.trim().startsWith(label));
@@ -73,7 +78,7 @@ const printLayout = (sheet: string, cell: string) => {
   const tables = $$(`main ${sheet} table`);
   return {
     header: shown($("header.navbar")),
-    tabBar: shown($('nav.dock[aria-label="Group sections"]')),
+    tabBar: shown($('nav[data-tab-bar][aria-label="Group sections"]')),
     controls: $$("button, a.btn, input, [role=button]")
       .filter(shown)
       .map((el) => el.textContent?.trim() || el.tagName),
@@ -96,8 +101,14 @@ afterEach(async () => {
   await commands.media(null);
 });
 
+/** The page's Back link ("← Medications"). */
+const backHref = () =>
+  $$("main a")
+    .find((a) => a.textContent?.trim() === "Medications")
+    ?.getAttribute("href") ?? null;
+
 describe("the medication list sheet", () => {
-  test("the Print menu offers both sheets; the list opens with the recipient, date of birth, group and day printed", async () => {
+  test("the Print menu offers both sheets; the list opens with the recipient, date of birth, group and day printed, Back going to the list", async () => {
     const device = await open(LIST);
     await waitUntil(() => !!PRINT_MENU(), 4000, "the Print menu");
     await userEvent.click(await found(PRINT_MENU));
@@ -108,20 +119,52 @@ describe("the medication list sheet", () => {
     ]);
     await userEvent.keyboard("{Escape}");
     await choosePrint("Medication list");
-    await expect.poll(device.location).toBe(`${LIST}/print`);
+    await expect.poll(device.location).toBe(`${MEDS}/print`);
     await waitUntil(() => $$("main [data-print-medication]").length >= 4, 4000, "the sheet");
     const sheet = sheetState();
     expect(sheet.name).toContain("Grandma June");
     expect(sheet.dob).toBe("Mar 14, 1941");
     expect(sheet.group).toBe("Moreno Family");
     expect(sheet.printed).toMatch(/^\w{3} \d{1,2}, \d{4}$/);
+    expect(backHref()).toBe(LIST);
+  });
+
+  test("current medications are grouped under headings by type, each by name, with Type not set last and stopped ones in one list", async () => {
+    await open(`${MEDS}/print`, {
+      fixtures: [
+        world(),
+        fx.medication({ name: "Vitamin D3", strength: "1000 IU", type: "supplement" }),
+        fx.medication({ name: "Aloe gel", strength: null, type: "other" }),
+        fx.medication({ name: "Old tablet", strength: null, type: null }),
+      ],
+    });
+    await waitUntil(() => $$("main [data-print-medication]").length >= 7, 4000, "the sheet");
+    const groups = $$("main [data-print-group]").map((g) => [
+      g.querySelector("h3")?.textContent,
+      [...g.querySelectorAll("tr[data-print-medication]")].map(titleOf),
+    ]);
+    expect(groups).toEqual([
+      ["Prescriptions", ["Latanoprost 0.005%", "Lisinopril 10 mg", "Metformin 500 mg"]],
+      ["Over the counter", ["Acetaminophen 500 mg"]],
+      ["Supplements", ["Vitamin D3 1000 IU"]],
+      ["Other", ["Aloe gel"]],
+      ["Type not set", ["Old tablet"]],
+    ]);
+    expect($$("main tr[data-print-stopped]")).toHaveLength(2);
+    expect($$("main #print-stopped h3")).toHaveLength(0);
   });
 
   test("current medications by name with their prescriber; the completed and discontinued ones, most recently stopped first, with why; the prescriber's and pharmacy's first phones, once each", async () => {
-    await open(`${LIST}/print`);
+    await open(`${MEDS}/print`);
     await waitUntil(() => $$("main [data-print-medication]").length >= 4, 4000, "the sheet");
     const sheet = sheetState();
-    expect(sheet.current).toEqual(SEEDED_CURRENT);
+    // Grouped by type: the prescriptions, then the over-the-counter one.
+    expect(sheet.current).toEqual([
+      "Latanoprost 0.005%",
+      "Lisinopril 10 mg",
+      "Metformin 500 mg",
+      "Acetaminophen 500 mg",
+    ]);
     expect(sheet.prescribers["Lisinopril 10 mg"]).toBe("Dr. Mira Lark");
     expect(sheet.prescribers["Latanoprost 0.005%"]).toBe("");
     expect(sheet.stopped).toHaveLength(2);
@@ -136,9 +179,23 @@ describe("the medication list sheet", () => {
     ]);
   });
 
+  test("the active conditions follow the allergies, past ones left out", async () => {
+    await open(`${MEDS}/print`);
+    await waitUntil(() => !!$("main [data-print-conditions]"), 4000, "the conditions block");
+    const conditions = $("main [data-print-conditions]")!;
+    expect($$("main [data-print-condition]").map((c) => c.textContent?.trim())).toEqual([
+      "Type 2 diabetes (since 2015)",
+    ]);
+    expect(conditions.textContent).not.toContain("Hip fracture");
+    expect(
+      $("main [data-print-allergies]")!.compareDocumentPosition(conditions) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   test("Print calls window.print()", async () => {
     const print = vi.spyOn(window, "print").mockImplementation(() => undefined);
-    await open(`${LIST}/print`);
+    await open(`${MEDS}/print`);
     await waitUntil(() => !!PRINT_MENU(), 4000, "the Print button");
     await userEvent.click(await found(PRINT_MENU));
     expect(print).toHaveBeenCalledTimes(1);
@@ -151,7 +208,7 @@ describe("the medication list sheet", () => {
   ] as const)(
     "printed at %i (%s theme): no header, tab bar or buttons, the tables within the page, black on white",
     async (width, theme) => {
-      await open(`${LIST}/print`, { width, theme });
+      await open(`${MEDS}/print`, { width, theme });
       await waitUntil(() => $$("main [data-print-medication]").length >= 4, 4000, "the sheet");
       await commands.media("print");
       const layout = printLayout("[data-print-sheet]", "td");
@@ -159,7 +216,7 @@ describe("the medication list sheet", () => {
         header: false,
         tabBar: false,
         controls: [],
-        tables: 3,
+        tables: 4, // a table for each type group (Prescriptions, Over the counter), the stopped ones and the contacts
         fits: true,
         pageFits: true,
         ...BLACK_ON_WHITE,
@@ -205,11 +262,12 @@ describe("the weekly chart", () => {
   const firstDay = () => $("main th[data-week-day]")?.dataset.weekDay;
   const onWeek = () => !!$("main [data-week-sheet]") && $$("main tr[data-week-row]").length >= 4;
 
-  test("from the Print menu: this week, Monday to Sunday; the scheduled medications under their passes with amounts, then times of their own, then as-needed lines, a box a day; the allergies first", async () => {
-    const device = await open(LIST);
+  test("from Schedule's Print menu: this week, Monday to Sunday; the scheduled medications under their passes with amounts, then times of their own, then as-needed lines, a box a day; the allergies first; Back goes to Schedule", async () => {
+    const device = await open(SCHEDULE);
     await choosePrint("Weekly chart");
     await waitUntil(onWeek, 4000, "the weekly chart");
-    expect(device.location()).toBe(`${LIST}/print/week`);
+    expect(device.location()).toBe(`${MEDS}/print/week`);
+    expect(backHref()).toBe(SCHEDULE);
     const sheet = weekState();
     expect(sheet.days).toEqual(weekOf(monday()));
     expect([sheet.weekdays[0], sheet.weekdays[6]]).toEqual(["Mon", "Sun"]);
@@ -233,10 +291,13 @@ describe("the weekly chart", () => {
       allergies.compareDocumentPosition($("main [data-week-table]")!) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(printField("name")).toContain("Grandma June");
+    const conditions = $("main [data-print-conditions]")!;
+    expect(conditions.textContent).toContain("Type 2 diabetes (since 2015)");
+    expect(allergies.compareDocumentPosition(conditions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   test("Next, Previous and This week move it by a week; a start day of its own shows that week, seven days across the clock change", async () => {
-    const device = await open(`${LIST}/print/week`);
+    const device = await open(`${MEDS}/print/week`);
     await waitUntil(onWeek, 4000, "the weekly chart");
     const start = monday();
     await userEvent.click($("main [data-week-next]")!);
@@ -250,7 +311,7 @@ describe("the weekly chart", () => {
 
     await userEvent.fill($<HTMLInputElement>("main input[data-week-start]")!, "2026-10-26");
     await expect.poll(firstDay).toBe("2026-10-26");
-    expect(device.location()).toBe(`${LIST}/print/week?start=2026-10-26`);
+    expect(device.location()).toBe(`${MEDS}/print/week?start=2026-10-26`);
     const dst = weekState();
     expect(dst.days).toEqual(weekOf("2026-10-26"));
     expect([dst.days[6], dst.weekdays[6]]).toEqual(["2026-11-01", "Sun"]);
@@ -263,7 +324,7 @@ describe("the weekly chart", () => {
   ] as const)(
     "printed at %i (%s theme): no frame or controls, within the page, black on white, on a landscape page",
     async (width, theme) => {
-      await open(`${LIST}/print/week`, { width, theme });
+      await open(`${MEDS}/print/week`, { width, theme });
       await waitUntil(onWeek, 4000, "the weekly chart");
       await commands.media("print");
       const layout = printLayout("[data-week-sheet]", "th[data-week-day]");

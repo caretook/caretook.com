@@ -62,8 +62,51 @@ These rules apply to every new slice (39 on). They follow docs/loops.md, _Browse
 | 44    | B-135             | merged | df9e3df (22bffaa)                                     |
 | 45    | B-134             | merged | ee62ed9 (f068feb)                                     |
 | 46    | B-157             | merged | 03dfa05 (bec9a23)                                     |
+| 47    | B-188             | merged | c505b681 (48e55b9e)                                   |
+| 48    | B-189, B-190      | merged | 68a3cc50 (7c465bd1)                                   |
+| 49    | B-184             | merged | 14aa977f (7b4942e4)                                   |
+| 50    | B-185, B-186      | merged | 0cace532 (6d3c06cc)                                   |
+| 51    | B-187             | merged | 7bc05133 (e9be4770)                                   |
+| 52    | B-192             | landed | fa9ad005 (wave 14)                                    |
+| 53    | B-198             | landed | fa9ad005 (wave 14)                                    |
+| 54    | B-201             | landed | fa9ad005 (wave 14)                                    |
+| 55    | B-191             | landed | fa9ad005 (wave 14)                                    |
+| 56    | B-174             | landed | fa9ad005 (wave 14)                                    |
+| 57    | B-175             | landed | fa9ad005 (wave 14)                                    |
+| 58    | B-205, B-206      | landed | fa9ad005 (wave 14)                                    |
+| 59    | B-180             | merged | 2825fcf0 (abaf3d5d) sonnet                            |
+| 60    | B-182             | merged | 5a8cc2f9 (054babe5) sonnet                            |
+| 61    | B-225             | merged | 8fe8a768 (31ff8c1d) sonnet                            |
+| 62    | B-211             | merged | 33adfc0a (6eb5d949) sonnet                            |
+
+| 63 | B-228 | merged | 5255bf50 (349ba323) sonnet; last 4 sites 76ad3e78 |
+| 64 | B-230 | merged | d5701923 (2769bd66) sonnet |
+| 65 | B-232 | merged | 9f47380b (4bd81a3a) sonnet |
+| 66 | B-233 | merged | c29f863a (ff152d83) sonnet; check unconfirmed (load 60–110) |
+| 67 | B-234 | merged | f4c84585 (4162852b) sonnet |
+| 68 | B-235 | merged | 300f1500 (72c77543) opus; landing runs roundtrip, live-notes, first-sync |
+| 69 | B-237 | merged | 7f84efb1 (fe44fe0c) opus; landing runs live-notes |
+| 70 | B-238 | merged | 8fd57267 (9ce13af9) sonnet |
+| 71 | B-229, B-231 | merged | b6dd71d3 (b14ea52e) sonnet |
 
 **Landing mode: run everything through** (the user queued `pnpm prd queue quick-fixes`, 2026-11-19): start every ready slice, land each green wave without asking, clean up; ask only real questions.
+
+**Wave 16 landed in `dev` through PR #20 as 5a47c18 (2026-11-21)** on a full check (5600 tests), a clean Codex re-review and `--changed --base dev` (roundtrip, live-notes, first-sync: pass); worktree removed, then recreated for wave 17.
+
+**Wave 17 (2026-11-21, run-through mode, the user: "just pick up 229 and 231"):** worktree recreated from `dev` (slot 2). Slice 71 written (B-229, B-231), items claimed, stackless worktree made and its loop spawned (sonnet). Lands through a PR into `dev` with Codex review. Slice 71 handed off (`pnpm check` green, 5602 tests; no browser check, no stack), merged as b6dd71d3, items done, worktree removed; timeline.md folded. **Next:** sync, quick check, `--changed --base dev` (roundtrip), PR, Codex, land.
+
+**Wave 16 (2026-11-21, run-through mode, a new orchestrator):** `prd/quick-fixes` was level with `dev`. Backlog ingested (nothing new). The user picked the test flakes (B-228, B-230) and the Codex follow-ups (B-232–B-235, B-237, B-238); B-229, B-231 (timeline layout, after quick-entry lands) and B-246, B-247 (Planner) stay triaged for a later wave. Slices 63–70 written, synced with `dev`, items claimed, stackless worktrees made and all eight loops spawned (10:27; models in the table). Loops wait for load < 16 before `pnpm check` and only list `prd browser --changed`. Lands through a PR into `dev` with Codex review. **All eight merged** (63 5255bf50 + 76ad3e78 and 08633433 for four sites and a todos read it left; 64 d5701923; 65 9f47380b; 66 c29f863a; 67 f4c84585; 68 300f1500; 69 7f84efb1; 70 8fd57267), items done, worktrees removed. Synced with `dev` twice (quick-entry c2ec744, list-filters wave 1 f48c0f5; no shared files, no migration). Docs folded (8945487b): sync, calendars, appointments, live-notes. A fresh worktree needs `pnpm -C apps/web exec react-router typegen` before `pnpm check` (lint first). **Full check passed on a075bf22** (5518 tests, build budget under every ceiling). Browser checks: `--changed --base dev` names roundtrip, live-notes, first-sync (no `--suite`, the user's standing rule). Synced for B-250, full check passed on b8e3e85b, **PR #20** opened (https://github.com/caretook/caretook.com/pull/20). Codex round 1: two P2 findings, both real, fixed by a sonnet fix agent: 9b991617 (`sweep()`'s daily push skips disabled members too; thread PRRT_kwDOVx-WLM66ahOq) and 59c778a7 (`monthlyLabels(startsOn, kept?)` names the kept ordinal; thread PRRT_kwDOVx-WLM66ahOt). Synced with list-filters wave 2 (ef5574f6; conflict in `todos.browser.test.tsx`, took dev's rewrite) and planner-2 wave 1 (b799cb8a; migration 0033, seeds, sync-config; `datastore:reset` done). **Full check passed on b799cb8a** (5576 tests). **Next:** `pnpm prd pr quick-fixes` (push), `pnpm prd review quick-fixes --resolve <threadId>` for both threads, `review --again --wait`, then land (run-through mode); don't commit Status between `pr` and `land`. **Resumed 15:10 (a new orchestrator after an interruption):** no slice worktrees or agents; synced with planner-2 wave 2 as 7c669a26 (conflicts only in `appointments.md`, `calendars.md`: took dev's text, kept our three facts), `datastore:reset` done, full check running on 7c669a26 (seeds changed). B-393: `choiceOfRule` keeps `keptWeekday` and todos' `initialRepeat` uses it, so slice 67 likely closes it (noted on B-393). Then push, resolve both threads, `review --again --wait`, land. **Before the push (done above):** `dev` gained planner-2 wave 2 (5a5c2fd, PR #23: seeds appended, no new migration; Planner TabNav and Filter menu, no due-dose rows, no reminder kind in calendars, repeating todos, roundtrip step 6e), so `pnpm prd sync`, `pnpm datastore:reset`, the full check (seeds changed), then push. planner-2 notes B-393 (todos' "last Friday" → "4th Friday") shares `choiceOfRule`/`choiceRule` with B-234: check after the sync whether slice 67's `keptWeekday` closes it, and say so on B-393. **Planner items moved:** B-246, B-247, B-251 and B-284 went to planner-2's wave 2 (the user, via the backlog session); no Planner wave here, and nobody waits on quick-fixes for B-247. quick-entry (B-220) landed in `dev` as c2ec744 (PR #15; no migration, seed, sync-config or dependency change; touches `components/quick-entry/`, the entry page's `withProviders`, `addNote.providerIds`, `noteDocFromText(text, mentions?)`): `pnpm prd sync` before landing, and watch slice 69's mention change against it.
+
+**Wave 15 landed in `dev` as 2152bbed (2026-11-21)** on a full check (fifth run; the first four each failed one unrelated test that passed alone under 1500–2900 s runs) and `--changed --base dev` (none needed). Every planned slice is in `dev`; the PRD worktree was removed. Triaged for a later wave, pending the user's review (no slices yet): B-228 (about 40 more synchronous reads in component tests), B-229 (the timeline header and Today match the column width on large screens; from the inbox), B-230 (`reminders.int.test.ts` times out under load).
+
+**Wave 15 (2026-11-21, run-through mode, queued again):** `prd/quick-fixes` level with `dev` (43fe7b0b); wave 14 was fully in `dev` (the table's "started" rows were stale). Backlog ingested (nothing new); slices 59–62 written from the four items triaged to quick-fixes (B-180, B-182, B-225, B-211), claimed, stackless worktrees made and loops spawned, all sonnet. 03:52: load 46–68 (five-minute), so loops wait for < 16 before `pnpm check`; slice 59 is edited (29 test files, typecheck clean) and waiting to check and commit. timeline-ux-2 wave 1 landed in `dev` (f1fc883e: timeline header, quick-entry, `ui/Menu`, `fixtures.mjs`); sync before landing, and expect conflicts in timeline tests. B-227 (a dropped duplicate of B-225) adds timelineSummaries to slice 61, which has been told. Slice 61 handed off (31ff8c1d, check green): `test/setup.ts` fakes only `Date` at today 12:00 for every component test (`VITE_TEST_CLOCK=HH:MM` to vary it), plus offsets kept on today from 00:30. Slice 60 found the cause (the Clinicians chip builds its link from the URL before the debounced `?q=` lands, so a quick tap drops the search) and was sent back to fix the screen too. Slice 62 handed off (6eb5d949): `TimeZoneLine` on the basics sheet, linked for `editRecipient`; its check had one red test, entryPrint at 04:00, which is B-225 (fixed by slice 61). Slice 60 final (054babe5): `TypeFilter` builds its links from the box's live text; its new tap-right-after-typing test passes on the old code too (`userEvent.type` lets the URL land), so it documents rather than guards. **All four merged** (2825fcf0, 5a8cc2f9, 8fe8a768, 33adfc0a; no conflicts), items done, worktrees removed. Synced with `dev` as a68bd17b (timeline-ux-2 wave 1; one conflict in `providers.browser.test.tsx`, where dev's `pageHeader()` assertions were kept and polled), so the gate needs the **full** check. **Full check (04:38) failed 1/5307:** timelineConditions "a condition written on this device…" `UNIQUE constraint failed: ps_data__timeline_entry.id` (passes alone 3/3). Cause: slice 61's `shouldAdvanceTime` fake Date steps in 20 ms, so two quick saves share `updated_at` and so `conditionChangeId`. Slice 61's worktree was recreated and its agent resumed to replace the fake timers with an offset `Date` shim. Fixed in b2a75905 (a `Proxy` over `Date` adding a fixed offset; no fake timers), merged as 5106fbca, worktree removed. Second full check (05:07) failed 1/5307: tasks "two ticks each keep their own Undo" read the today/done lists synchronously after undoing (passes alone 3/3; untouched by this wave). Fixed here as 71dfbde4 (polls; the B-228 class). Synced with `dev` again as 01975973 (timeline-ux-2 wave 2, f34eeeec; no conflicts). Third full check (05:18, 1523 s under contention) failed 2/5316 in `reminders.int.test.ts` (a 5 s timeout plus a knock-on; 6/6 alone 3x; nothing under `packages/` changed here): filed as B-230, triaged to quick-fixes. Fourth full check (07:10, 2876 s) failed: inScreens and timelineStrips could not import `test/setup.ts` (Vite fetch), and timelineScroll Cards infinite scroll stopped at 60 rows; all three pass alone 3/3. **Fifth full check passed on 3672652e** (load < 12, caffeinate; build budget under every ceiling). `pnpm prd browser --changed --base dev --list`: no browser checks needed. Docs folded at landing: components (the noon test clock, `stopsMoving()`), providers (chips link from the live search), profiles (the basics sheet's time zone line), each trimmed to at most its size on `dev`. Then: `--changed --base dev`, land. Its follow-up (about 40 other synchronous attribute/value reads) is filed as B-228, triaged to quick-fixes for a later wave. Lands on a quick check if the slices pass `pnpm check` with no code conflicts; test-only slices 59–61 plus one small screen change (62), so the landing runs `pnpm prd browser --changed --base dev`.
+
+**Wave 14 landed in `dev` as fa9ad005 (2026-11-20)** on a quick check (the user: no full check unless really required) and `--changed --base dev` (phase2: pass); conditions and appointments-2 told. Every planned slice is in `dev`; the PRD worktree was removed. Triaged for a later wave (no slices yet): B-180, B-182, B-207.
+
+**Wave 14 (2026-11-20, run-through mode, a new orchestrator after an interruption):** wave 13 landed in `dev`; `prd/quick-fixes` level with `dev` (bfdca14a). Backlog ingested, nothing new for quick-fixes; B-174, B-175, B-191, B-192, B-198, B-201 claimed. Worktrees 52–57 were made (stackless, clean, no commits) but the earlier orchestrator stopped before or as it spawned their loops: all six respawned with `--continue` prompts. Models: 52 opus, 53 sonnet, 54 sonnet, 55 opus, 56 opus, 57 sonnet. Load was 36 at spawn: loops told to wait for load < 16 before `pnpm check`. Slice 57 merged ahead (no shared files; sonnet): `useTimelinePeriods` takes `{ periodRows }`, returns `{ spans }`; its `pnpm check` had one load flake, `scripts/loops/browser.test.mjs` "kills a spec at its cap…" (passed alone); `--changed` named no checks. Slice 53 merged (sonnet): `quickEntryCopy.ts` (`QUICK_ENTRY_PLACEHOLDER`, examples as `{line, makes}`), `QuickEntryHelp.tsx` (`ui/Popover` ?), rotation deleted; its `pnpm check` failed only `timelineDoses.browser.test.tsx` (load flake, 2/2 alone) and `mcpWrites.int.test.ts` (B-205, time of day; fails on any branch in the evening). At landing: assistant.md's placeholder line. Slice 54 handed off (d331cf21, sonnet): period line in simple mode, `text-base`, no Change link; at landing timeline.md's simple-mode bullet. B-205 taken into quick-fixes as slice 58 (conditions asked; message conditions-b6 when it lands in dev), opus. `dev` gained hotfix/design's b7061f02 (timeline dark mode, simple-mode cards): sync before merging 54 and 55. Synced with `dev` (a550ef23, clean: hotfix/design's View options menu). Slice 54 merged after it: one conflict in `timelineSimple.browser.test.tsx` (imports; the hidden-items comment, keeping dev's View options and dropping "the period line"); that file, timelineCarePeriods, timelineSimpleNow and timelineHeader pass. Code conflict resolved, so the landing check is the full one. Slice 52 merged (opus; clean): `taskUndo.ts` holds a list newest first (`taskUndoFor` returns an array, `clearTaskUndo(key)`, `pruneTaskUndo`), `TaskUndoStatus` a `<ul>` in one polite region (`aria-atomic=false`, `aria-relevant=additions`), each "Undo <title>"; tests click "Undo <title>". Its `pnpm check` failed only B-205 and `mcp.int.test.ts`'s 60-a-minute limit (5 s timeout under load, passed alone). At landing: tasks.md's Undo line. Slice 55 merged (opus; it merged prd/quick-fixes itself, clean): `SimpleNext.tsx` (disclosure, up to 5, See all) and `useSimpleUpcoming.ts` (Upcoming's window and ordering, capped by `SIMPLE_UPCOMING_CAP`; no route-to-route import); its own call: **dose slots are left out** of the list (the due passes sit above as Given all), and viewers get the Next button too. At landing: timeline.md's simple-mode Upcoming bullet. Its check also found `timelineSimpleTiles.browser.test.tsx` "one row at phone width" failing on dev since hotfix/design (tiles 2x2 below sm; the session had ended): the orchestrator updated the test to two by two on prd/quick-fixes (5d1c76b0). Slice 56 merged (opus; merged prd/quick-fixes itself, clean): `timelinePaging.ts` keeps the settled window (limit, filter key, `location.key`, the rows) in the memory tile cache (`remembered.ts`), `RESTORE_CAP` 5 pages; `TimelineEntryList` draws every row for two frames on a restored mount; **shared edit**: `useTimelineMedications` takes `initial` and returns `{ medicationOf, rows }`. Real app: before 90→30 rows and scrollY clamped; after 90 rows, scrollY exact. `--changed` phase2 pass. At landing: timeline.md (paging survives Back). It found `pnpm prd stack up`'s Postgres healthcheck racing the init server: filed for a later wave. B-206 (appointments-2) duplicates B-205: claimed, done with slice 58. Slice 58 merged (opus): cause confirmed, a dose with no `scheduledFor` answers the nearest slot within 120 min, so between 21:00 and 01:00 EST the test's Metformin dose took Evening's slot; the test now logs an as-needed Ibuprofen dose; passed under a faked clock at 14 times across the day; its `pnpm check` green (4501). All seven merged. Synced with `dev` again (clean: dev's Today-card hotfix, connectors-2 and providers-2 plans). Docs folded (1b915cd8): assistant.md (static placeholder, the ?), tasks.md (Undo list), timeline.md (simple period line and Upcoming, paging on Back; trimmed to 10240 B). Full `pnpm prd check` running (a code conflict was resolved); then `pnpm prd serve --restart`, `pnpm prd browser --changed --base dev` (no `--suite`, the user's standing rule), land, and tell conditions and appointments-2 that B-205 and the tiles test are in `dev`.
+
+**Wave 13 running (2026-11-20, run-through mode, this orchestrator):** backlog ingested (B-191, B-192 filed and proposed for quick-fixes as triaged: a later wave, the user reviews); B-184–B-190 claimed. Worktrees made for 47 (stack, slot 4) and 48–51 (stackless); all five loops spawned. Models: 47 opus, 48 sonnet, 49 sonnet, 50 opus, 51 opus. Loops were told to wait for load < 16 before `pnpm check`. Slice 48 handed off and merged ahead of 47 (no shared files): `list_timeline` text uses `changeText`/`passMovedText`/`doseText` from `@caretook/data` (so "Changed dose 1 tablet → 2 tablets", the app's wording, not the plan's "Dose: …"), no `TEXT_PREVIEW`, dose lines now carry the note; other tools had no cut; `upcoming` still leaves an event's body out of its text line. `--changed` named no checks. Slice 49 merged: the switches (and read-only badges) in a `data-member-switches` block under the row; test in `simpleModeMembers.browser.test.tsx`; its `pnpm check` had one load flake in `timelineSimpleNow.browser.test.tsx` (passed 2/2 alone, load > 20): watch it at landing; `--changed` ran app-shell: pass. Slice 50 merged: `attentionKey`/`needsAttention(rows, now)` (no time zone: every rule is a distance from now) and `DOSE_SOON_MS` in `todayStatus.ts`; `useTodayCardCollapsed` stores `{collapsed, key}` (old `"1"` read as no choice), a choice holds while the key matches, server render open, skeletons keep the last choice; `TodayRow` `expandable` (Show all / Show less, `data-show-all`, `data-today-line`); vitals' See all link gone. It also edited `timelineHeader.browser.test.tsx` (opens the collapsed card first). At landing, timeline.md's Today card bullet (line 30): vitals' Show all in place; collapsed by default unless something needs attention, a tap holds until the key changes. Open: `marketing-screenshots.mjs:148` waits for the vitals row (unrun, B-40). `pnpm check` green; `--changed` named no checks. Slice 47 merged: **not reproduced** (claude.ai's shape 302s to `/connect` signed in and out, locally and on staging; unknown client and bad redirect go to `/api/auth/error` → `/?error=`; the only navigation JSON is the plugin's authorize limit, 30/60 s per IP, 429, the leading candidate). Built `packages/auth/src/connectorAuthorize.ts` `withConnectorAuthorizePage` around the web `/api/auth/*` route: a navigation's dead end (plugin error redirect, a 4xx) gets the "link isn't valid" HTML page, a 429 a "too many tries" page; JSON stays for non-browser requests; check-areas rule `connectors` → sign-in. Its `pnpm check` failed only `check-areas.test.mjs` (new file untracked), 20/20 after `git add`; `--changed` (sign-in, first-sync, signout-wipe, invites) passed. The user retries on staging once deployed and sends the JSON body if it recurs. At landing: connectors.md's OAuth section (the wrapper). Open: a member with an existing `oauth_consent` gets a code straight from authorize, skipping `/connect`. It left three test client registrations on staging. Slice 51 merged (7bc05133; one conflict in `todayCard.browser.test.tsx`, kept 50's side: the vitals See all is gone): `FilterSheet.tsx` (`ui/Sheet` "Filter entries": Kind, Vital type under vital, Period while searching, "Also on"; Clear keeps `q`; Done), a `button[data-filter-button]` "Filter · N", removable chips in `nav[aria-label="Filters on"]`; `VitalTypeChips` and the "Within a period" menu gone; `phase2.spec.mjs`'s offline kind filter goes through the sheet; `timelineWorld.tsx` helpers `openFilters`/`activeChips`. **Vital types stay single-choice** (`?vital=` holds one; multi would touch filters, `timeline.sync.ts`, `TimelineEntryList`): a follow-up if wanted. At landing, timeline.md's filters bullets. Its `pnpm check` green; `--changed` phase2 passed. All five merged. Synced with `dev` (428a4f94: docs and backlog only; the plan's wave-13 note conflicted, kept both). Full `pnpm prd check` green on 428a4f94 (4500 tests). Docs folded: timeline.md (Filter sheet, Today card), care-periods.md (the period is in the Filter sheet), connectors.md (authorize page, whole `list_timeline` text). Browser checks on the merged branch (`--changed --base dev`; no `--suite`, the user's standing rule): phase2, app-shell, sign-in, first-sync, signout-wipe, invites, 6/6 pass. Synced again (55e809b5: dev's B-202 `package.json` check order), full `pnpm prd check` green (4500 tests). Landing wave 13. Next wave: B-191, B-192, B-198, B-199, B-201 (triaged to quick-fixes, no slices yet); follow-up if wanted: multi-choice vital types.
+**Wave 13 (slices 47–51), written 2026-11-20** in the backlog session from B-184 to B-190. All but 47 are stackless. 47 first: it breaks connecting from claude.ai on staging. Only staging is deployed (fictional seed data); production is not live yet. The user's answers: B-185's "upcoming" is due within about 2 hours; B-187 is a Filter button and `ui/Sheet`, with removable chips for the active filters; B-188 came from claude.ai only (the desktop app worked), on the authorize URL itself. 50 and 51 share the timeline folder but no files.
 
 **Wave 12 (slices 44–46), 2026-11-20:** wave 11 landed in `dev` as 8728000; `prd/quick-fixes` level with `dev`. Queued again, same run-through mode. Slices 44–46 written from B-135, B-134 and B-157 (tasks has landed, so none waits). All three stackless; worktrees made and loops spawned (2026-11-20). Slice 45 handed off (f068feb): the clamp is in `ui/date/DateTimeField.tsx` (React Aria's month/year cycle doesn't clamp the day), tests in `primitives.browser.test.tsx` and visit prep's test on a fixed clock; `pnpm check` green; its `--changed` set (roundtrip, ui, medications) was **not run** (its stack-up clashed on slot 6 with 44): run it at landing. Slice 46 handed off (bec9a23): `QuickEntrySuggestions` `showTips` (off for the `lg` box), the tiles hint is only the "Choose the tiles" link for those who can choose; `pnpm check` green, `--changed` needed no checks. At landing: timeline.md's Tiles bullet and assistant.md's Suggestions bullet. Slice 44 handed off (22bffaa): `QuickAddMenu` on each `DayHeader` ("Add to <day>"), `dayStartAt` in `timelineDays.ts`, `?at=` (`START_AT_PARAM`, `startAtFrom`) on `newSheet`/`newDose`/`newEntry`, dropped by `withoutSheetParams`; its own call: a writer's list always opens with a Today heading (empty if nothing today) so Today's + exists; `cdp.mjs` `ADD_BUTTON` is "Add to Today"; its `--changed` (sign-in, roundtrip, medications, upcoming, profiles) passed. All three merged 2026-11-20, items done, worktrees removed. Docs folded (timeline, assistant, components; 8a476e0). Synced with `dev` (bde2512: conflicts with the day-summaries menu in `TimelineHeader`, `TimelineEntryList` and timeline.md, resolved by keeping both). `pnpm prd check` green on bde2512 (3634 tests). Browser checks: 44's `--changed` (sign-in, roundtrip, medications, upcoming, profiles) on its branch; on the merged branch ui, roundtrip and medications (45's set, never run against its date-field change): all pass. No `--suite` (the user's standing rule). Synced again for hosting's landing (40bb626: clean, a migration and new deps: `pnpm install`, `datastore:reset`), full `pnpm prd check` green (3837 tests). Landing. From the next wave: the new check gate (`pnpm prd check --quick` where it fits) and per-slice models (docs/loops.md, _The check gate_, _Models_); note each slice's model here. Slice 45's rule (a month step onto a shorter month clamps to its last day) is the orchestrator's default, not a user answer.
 
@@ -1123,3 +1166,464 @@ Stack: no · Reads: docs/domain/timeline.md, docs/domain/assistant.md · Tests: 
 - [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
 
 **Blocks:** none. **Blocked by:** none. Slices 44 and 46 both touch the timeline folder but not the same files (44: `DayHeader`, `TimelineHeader`, `QuickAddMenu`; 46: `SimpleTiles`, quick entry). Merge in order.
+
+## Slice 47: Connecting from claude.ai shows JSON at authorize (B-188)
+
+Stack: yes · Reads: docs/domain/connectors.md, docs/domain/auth.md · Tests: integration
+
+**Problem.** Adding the connector from claude.ai (staging, 2026-11-20) left the browser on `https://staging.caretook.com/api/auth/oauth2/authorize?response_type=…` showing JSON, not the `/connect` accept page. The Claude desktop app's flow worked. The browser navigated to authorize itself, so this is not the plugin's `{redirect, url}` answer to a fetch (`handleRedirect` returns that only for `sec-fetch-mode: cors` or `Accept: application/json`). It is most likely an OAuth error body: a `client_id` claude.ai registered earlier and still caches (staging was reseeded), a `redirect_uri` that differs from the registered one, a scope or `resource` the server refuses, or PKCE.
+
+**Build.**
+
+- Reproduce first, on the stack: register a client the way claude.ai does (dynamic registration with `https://claude.ai/api/mcp/auth_callback`), then navigate to authorize as a browser does (`Accept: text/html`, `sec-fetch-mode: navigate`), signed in and signed out, with: an unknown `client_id`, a mismatched `redirect_uri`, an unadvertised scope, a `resource` param, and no PKCE. Record which one gives JSON, and its body. If none does, compare the discovery documents with what claude.ai's MCP client expects (`/.well-known/oauth-protected-resource` for `/mcp`, `oauth-authorization-server`, `registration_endpoint`) and say in the hand-off what is still unknown. Don't guess a fix.
+- Fix the cause you find (for example, accept the parameter claude.ai sends).
+- Whatever the cause, a **browser navigation** to authorize that ends in an error the plugin can't redirect (an unknown client, a bad redirect URI) renders a plain HTML page instead of JSON: "This connection link isn't valid any more. Remove Caretook from your assistant's connectors and add it again." Keep the JSON for non-browser requests. Put it in a web-only route or `hooks.after`, with no new dependency.
+
+**Acceptance criteria.**
+
+- [ ] Integration test: the request shape claude.ai sends (as reproduced) goes to `/connect` (302), signed in and signed out.
+- [ ] Integration test: an authorize navigation with an unknown `client_id` gets HTML with the message; the same request with `Accept: application/json` still gets the JSON error.
+- [ ] Hand-off: what claude.ai sent and why it failed, so the user can retry on staging.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 48: Connector timeline text: medication changes in full, notes not cut (B-189, B-190)
+
+Stack: no · Reads: docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+**Problem.** Assistants read the tool's text content. `packages/api/src/connectors/tools/listTimeline.ts` builds each entry's text line from the kind, title or text and author only, and cuts the text at `TEXT_PREVIEW = 280` with "…". So a medication change says neither what changed (started, changed, stopped, resumed; a pass moved) nor the before and after values, and long notes and dose notes come out truncated. The structured `details` and `text` are complete, but the assistants don't use them.
+
+**Build.**
+
+- `listTimeline.ts`: drop `TEXT_PREVIEW`, so the text line carries the full text (the page cap of 50 entries still bounds the size).
+- A medication change's line names the change and the medication. For `changed`, each tracked field as `before → after`, from `fields`, `before` and `after` ("Dose: 5 mg → 10 mg"). For `stopped`, `stopStatus`, `stopReason` and `stopNote`. A `passMoved` line gives the pass name and `beforeTime → afterTime`. Reuse the medications area's own labels and summaries if they exist (`lib/medications`, `packages/data` schema helpers) rather than writing new wording.
+- Check the other tools' text lines (`search`, `upcoming`, the medication reads) for the same cut, and make the same fix where you find it. List them in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] Integration test: `list_timeline` text for a started, a changed (dose and schedule), a stopped (with reason and note) and a pass-moved entry shows the change and the before and after values.
+- [ ] Integration test: a note and a dose note longer than 280 characters come back whole in the text.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 49: Member rows overflow with the simple-mode and locked switches (B-184)
+
+Stack: no · Reads: docs/domain/components.md, docs/domain/care-groups.md · Tests: component
+
+**Problem.** On the group's Members settings, an owner sees each member's role select, Simple mode and Locked switches, and Remove in one wrapping row (`routes/app/groups/settings/members/MembersList.tsx`, `MemberItem`). At phone width the row is wider than its container.
+
+**Build.**
+
+- In `MemberItem`, put the two switches in their own block under the name and role, stacked one above the other (`flex flex-col gap-2`), each label `min-w-0` with text that wraps. Keep the `data-simple-mode-switch` and `data-simple-lock-switch` hooks. Nothing overflows the list at 320px, and desktop keeps its row with the switches stacked.
+
+**Acceptance criteria.**
+
+- [ ] Component test (beside `MembersList`): at a 320px container, no member row's `scrollWidth` exceeds its `clientWidth` with both switches shown, and the switches are stacked (the second's top is below the first's bottom).
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 50: The Today card opens only for what needs attention; vitals expand in place (B-185, B-186)
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/components.md · Tests: unit, component
+
+**Problem.** The Today card (`routes/app/groups/timeline/TodayCard.tsx`) opens by default. Its collapse is a stored choice (`useTodayCardCollapsed.ts`, localStorage `caretook:todayCard:collapsed`). The user wants it collapsed unless something is overdue or upcoming (B-185). The vitals row is one truncated line whose "See all" goes to the timeline filtered to `?kind=vital`. It should open the row in place to show every vital, and show only when the vitals don't fit (B-186).
+
+**Build.**
+
+- `todayStatus.ts`: add a pure `needsAttention(rows, now, timeZone)` (unit tested). True when a dose is due or overdue, or due within 2 hours (the user's answer: "due in the next few hours", the same 2 h as `APPOINTMENT_SOON_MS`), or a task is overdue, or an appointment is in progress or starts within 2 hours. False for stale vitals, a task only due today, and an appointment later today.
+- `useTodayCardCollapsed`: with no stored choice, the card is collapsed unless `needsAttention`. A tap stores the choice with what needed attention at that moment (a key such as the overdue and soon items' ids). When that changes (a new overdue dose, a new appointment within 2 h), the default applies again, so a collapsed card opens for the new item. The server render stays open (as now), so nothing jumps for screen readers.
+- `TodayRow`: an optional `expandable` replaces `seeAll` for the vitals row. A ResizeObserver compares the line's `scrollWidth` with its `clientWidth`. When the vitals overflow, a "Show all" button (`aria-expanded`, controls the line) lifts `truncate` so the readings wrap, and it reads "Show less" when open. When they fit, there is no button. The other rows keep their See all links.
+
+**Acceptance criteria.**
+
+- [ ] Unit tests (`todayStatus.test.ts`): `needsAttention` at each boundary (a dose 2 h out and 2 h 1 min out, an overdue task, an appointment now, later today, in 90 min, stale vitals).
+- [ ] Component tests (the Today card's test): no attention means collapsed on first render; an overdue dose means open; collapsed by the user, a new item within 2 h opens it again.
+- [ ] Component test: vitals that overflow show "Show all", which expands the row in place (no navigation, `aria-expanded` true) with every reading visible; vitals that fit show no button.
+- [ ] The orchestrator updates docs/domain/timeline.md's Today card bullet at landing. List the lines in the hand-off.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none. It shares the timeline folder with 51 but no files.
+
+## Slice 51: Timeline filters behind one Filter button (B-187)
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/components.md · Tests: component
+
+**Problem.** `routes/app/groups/timeline/TimelineFilters.tsx` shows the kind chips (All, note, symptom, event, vital, dose, medicationChange), the author, "Matching" and "During" chips, a second row of vital-type chips under `kind=vital`, and the "Within a period" menu while searching. On a phone it's overwhelming, the chips hide behind the search field, and on desktop the vitals sub-row is confusing.
+
+**Build** (the user's choice: a button and a sheet).
+
+- Keep the search control. Next to it, one **Filter** button showing the count of active filters ("Filter · 2"), opening `ui/Sheet` (full screen on a phone, a dialog from `sm`). Inside: Kind as a single-choice group (All or one kind), Vitals types as a multi-choice group shown only when Kind is Vitals, then Period, then the author and "Matching" filters where they apply. Clear and Done buttons.
+- Filters apply as they change (the URL params stay as now: `kind`, `vital`, `period` and the rest, so links and back still work). Done closes the sheet, and Clear removes every filter but search.
+- Under the button, the active filters as removable chips ("Vitals ×", "Blood pressure ×", "During <period> ×"). Removing one updates the URL. No chips with no filters.
+- The old chip rows and `VitalTypeChips` go. Reuse `ChipGroup` and `ui` primitives. No new dependency.
+- The quick filters a check or a test selects by (`data-…` hooks, cdp.mjs labels) keep working or are updated in this slice. List them in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] Component tests (the timeline filters' test): the button shows the count; choosing Vitals then Blood pressure in the sheet sets `?kind=vital&vital=…` and shows both chips; removing a chip updates the URL and the count; Clear keeps the search; the sheet's focus returns to the button.
+- [ ] Component test: at phone width, no filter chip row renders until a filter is set.
+- [ ] The orchestrator updates docs/domain/timeline.md's filters bullets at landing. List them in the hand-off.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Wave 14 (planned 2026-11-20 in the backlog session)
+
+Slices 52–57: one wave, none blocked by another. 56 and 57 share the timeline route folder but no files. **Running alongside:** `appointments-2` (its slice 1 adds a repeat mark to the row components and `DayHeader`) and `conditions` (`TimelineFilters.tsx`, `KIND_META`). Slices 54 and 55 touch `DayHeader` and the simple timeline, so merge `dev` into `prd/quick-fixes` before merging them if either PRD has landed since the wave started. B-199 (add a medication from log a dose) moved to `medications-3`, since it needs B-200's type field.
+
+## Slice 52: Undo names every task checked off, each with its own Undo (B-192)
+
+Stack: no · Reads: docs/domain/tasks.md, docs/domain/components.md · Tests: unit, component
+
+**Problem.** `lib/tasks/taskUndo.ts` holds one module-level slot (`current`). `offerTaskUndo` replaces it, so when you check off several tasks in a row, `TaskUndoStatus` ("Done: X · Undo") offers only the last one. The ones before it can no longer be undone from there.
+
+**Build** (the user's choice: each one undoes alone).
+
+- `taskUndo.ts`: hold a list of offers, newest first, each with its own expiry (`TASK_UNDO_MS`, 10 s from its own tick). `offerTaskUndo` adds to the list (ticking the same task again replaces its entry). `taskUndoFor(groupId, now)` returns the group's live offers. Undoing one removes only that one. Keep the subscribe API that `TaskUndoStatus` uses.
+- `TaskUndoStatus`: one polite `role="status"` region. One offer reads as now. With several, a short list: each line is "Done: <title>" with its own **Undo** button, labelled with the title (`aria-label="Undo <title>"`). The region announces only the newest addition, not the whole list again. Every mount point keeps working: the tasks page, the task page's completion, simple tasks, Upcoming, `LinkedTasks`.
+- `undoTaskTick` reopens just that task, as now.
+
+**Acceptance criteria.**
+
+- [ ] Unit tests (`taskUndo.test.ts`): three offers are held newest first, each expiring 10 s after its own tick; undoing the middle one leaves the other two; ticking the same task twice keeps one entry; the list is filtered by group.
+- [ ] Component test (`tasks.browser.test.tsx`): check off two tasks, and both show with their own Undo; undoing the first reopens only it and the second stays done and listed.
+- [ ] Component test (`timelineSimpleTasks.browser.test.tsx`): the same with two simple-mode ticks.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 53: A static quick-entry placeholder, with a ? that explains the format (B-198)
+
+Stack: no · Reads: docs/domain/assistant.md, docs/domain/components.md · Tests: component
+
+**Problem.** The quick-entry box rotates its placeholder every 4 s through `QUICK_ENTRY_EXAMPLES` (`components/quick-entry/useRotatingPlaceholder.ts`, used in `QuickEntryBox.tsx`). The user finds it distracting and confusing. They want a static prompt, and a **?** that explains the format and what quick entry can do.
+
+**Build.**
+
+- Replace the rotation with a static placeholder that prompts for input, for example "Type what happened…" (one string, beside the box's other copy). Delete `useRotatingPlaceholder.ts` and its timer. `QUICK_ENTRY_RULES` stays as the box's `aria-describedby`.
+- Next to the box, a small **?** icon button (`aria-label="How quick entry works"`) opening `ui/Popover`. Use Popover, not `ui/tooltip/Tooltip`, because a tooltip opens only on hover and focus, never on a tap, and this has to work on phones. Inside: one line on what it does (it turns a typed line into entries you confirm), then the examples from `QUICK_ENTRY_EXAMPLES` as a short list with what each makes (vitals, a dose, a symptom, an appointment, a note with `n:`). Esc closes it, and focus returns to the button.
+- Simple mode's box gets the same button. Don't change the box's height or layout at 320px.
+
+**Acceptance criteria.**
+
+- [ ] Component test (beside `QuickEntryBox`): the placeholder is the static prompt and is unchanged after advancing timers by 10 s; the ? button opens a popover listing every example; Esc closes it and returns focus to the button.
+- [ ] Component test: at a 320px container, the box and the ? don't overflow.
+- [ ] The orchestrator updates docs/domain/assistant.md (the placeholder line) at landing. List it in the hand-off.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 54: The simple timeline's day header shows the care period (B-201)
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/care-periods.md, docs/domain/components.md · Tests: component
+
+**Problem.** `routes/app/groups/timeline/DayHeader.tsx` renders the care period line (`TodayPeriod` for today, `DayPeriod` at the day's `newestAt` for other days; `currentLineText`) only in full mode. With `simple` it renders `null` there (around line 58), so simple mode's date headers never say which period a day was in.
+
+**Build.**
+
+- Show the same period line in simple mode: today through `TodayPeriod`, other days through `DayPeriod`, the same text and link to the period. Use simple mode's type scale. The + menu stays hidden in simple mode, as now.
+- A day outside any period shows no line, as in full mode.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`timelineSimple.browser.test.tsx`): replace the assertion at about line 159 (no period in simple mode). Today in a period shows its line; an older day inside a past period shows that period; a day outside any period shows none.
+- [ ] `timelineCarePeriods.browser.test.tsx` still passes, with full mode unchanged.
+- [ ] The orchestrator updates docs/domain/timeline.md's simple-mode bullet at landing. List it in the hand-off.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none. `appointments-2` slice 1 adds a repeat mark to `DayHeader`'s rows; merge `dev` first if it has landed.
+
+## Slice 55: Simple mode's Upcoming next entry expands the section (B-191)
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/appointments.md, docs/domain/components.md · Tests: component
+
+**Problem.** In simple mode, `SimpleNow.tsx`'s `<section aria-label="Upcoming">` shows the due passes and then the next item. That next item (`NextText` in `SimpleTimeline.tsx`, about lines 122–137) is a `Link` straight to the entry page. The user wants a tap on it to expand the section, and then a tap on any item to open its page.
+
+**Build** (the user's choice: the next few, then See all).
+
+- `NextText` becomes a disclosure button (`aria-expanded`, `aria-controls`) with the same text. A tap opens a list under it of the **next 5 upcoming items**, the same items and order as the Upcoming page (reuse its device query, capped at 5). Each item is a `Link` to its page (`appUrls.entry`, or the task page for a task, as Upcoming links them). Under the list, a **See all** link goes to the Upcoming page. Another tap on the button collapses it.
+- Collapsed by default on each visit (no stored state). The due passes' "Given all" buttons don't change.
+- With only one upcoming item, the expanded list shows that item and See all.
+
+**Acceptance criteria.**
+
+- [ ] Component test (`timelineSimpleNow.browser.test.tsx`): tapping the next entry doesn't navigate; it sets `aria-expanded` true and shows up to 5 items in Upcoming's order; tapping an item opens its page; See all goes to Upcoming; a second tap collapses.
+- [ ] Component test: with seven upcoming items, only 5 are listed.
+- [ ] The orchestrator updates docs/domain/timeline.md's simple-mode Upcoming bullet at landing. List it in the hand-off.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none. `appointments-2` changes Upcoming rows (the repeat mark); merge `dev` first if it has landed.
+
+## Slice 56: Back from an entry page keeps the timeline's loaded pages (B-174)
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/sync.md, docs/domain/components.md · Tests: unit, component
+
+**Problem.** `useTimelineData.ts` (about line 113) keeps paging in `useState({ filterKey, limit: PAGE_SIZE })`. Sheets are child routes of the timeline, so they keep it mounted, but the entry page (`routes/app/groups/entry/`) is outside the timeline subtree. Going back from it remounts the timeline with one page. `ScrollRestoration` (in `root.tsx` only) then has nothing to scroll to below the first 30 rows. timeline-ux slice 6 found this in the component-test router.
+
+**Build.**
+
+- First, check it in the real app (`pnpm prd stack up`, then open three pages, open an entry, go back) and record what happens in the hand-off.
+- Keep the paging limit across the remount: a small module-level cache keyed by group, `filterKey` and the history entry (`location.key`), read as the initial `useState`. A new navigation to the timeline (not a back) starts at one page. A filter change resets the limit, as now. Cap the restored limit, so a stale key can't load hundreds of rows.
+- The restored rows must render before `ScrollRestoration` runs (the device query resolves synchronously from the cache when it can). Check that the scroll position comes back, not just the rows.
+
+**Acceptance criteria.**
+
+- [ ] Unit test for the cache: same key restores, a new key starts at `PAGE_SIZE`, a filter change resets, and the cap holds.
+- [ ] Component test (beside `timelineScroll.browser.test.tsx`, which covers only sheets): three pages down, open an entry page, go back, and all three pages' rows are there.
+- [ ] Hand-off: what the real-app check showed, before and after.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none. It shares the timeline folder with 57, but not `useTimelineData.ts`.
+
+## Slice 57: Remove the timeline's unused care-period place query (B-175)
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/care-periods.md · Tests: component
+
+**Problem.** timeline-ux slice 6 dropped place names from the timeline, but the query stayed: `placeNamesQuery` (`timelinePeriods.ts`, about lines 15–21, a `provider` select), the loader's `placeRows` (`timelineRows.ts`, about lines 48 and 66), and `useTimelinePeriods`'s live query, `names` map and `placeName` (`timelinePeriods.ts`, about lines 27–41). Nothing reads `periods.placeName`, so every timeline load and live update does this work for nothing.
+
+**Build.**
+
+- Delete `placeNamesQuery`, `PlaceNameRow`, `placeRows` from the loader and its return, and the live query, `names` and `placeName` from `useTimelinePeriods`. Update the types and test fixtures that pass `placeRows`.
+- Don't touch the place names in `periodDisplay.ts` or `periodSearch.sync.ts`; they don't use this query.
+
+**Acceptance criteria.**
+
+- [ ] `grep -rn "placeNamesQuery\|placeRows\|placeName\b" apps/web/app/routes/app/groups/timeline` finds nothing.
+- [ ] The existing timeline care-period component tests (`timelineCarePeriods.browser.test.tsx`) pass unchanged.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 58: `mcpWrites.int.test.ts` passes at every time of day (B-205)
+
+Stack: no · Reads: docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+Added to wave 14 by its orchestrator (2026-11-20): it fails every full check in the evening, so no PRD can land then. `conditions` filed it and asked quick-fixes to take it.
+
+**Problem.** "log vitals, a symptom, a dose and a pass's Given all" fails around 21:20 EST, alone too: `give_pass` on `w.evening` returns `isError` (about line 160). Likely cause: the Metformin dose logged at `minutesAgo(1)` just before falls in the Evening pass's window, so the pass has nothing left to give. Confirm the cause first (run the test under a faked clock or a shifted `occurredAt`), and record it in the hand-off.
+
+**Build.** Make the test independent of the wall clock: for example, log the single dose at a time outside both passes' windows, or pin the clock. Fix the test, not the service, unless the service is wrong (if `give_pass` errors when a pass is already given, the test should expect that and the fix stays in the test; say so). Check the file's other tests for the same pattern.
+
+**Acceptance criteria.**
+
+- [ ] The test passes with the clock set to several times across the day, including 21:20 EST (record how it was run).
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Wave 15 (written 2026-11-21 by the orchestrator, from the items triaged to quick-fixes)
+
+The user moved B-180 and B-182 here for "the next quick-fixes wave" (2026-11-20); B-211 and B-225 were triaged here since. All four are stackless and run together. Files are split so the three test slices don't overlap: slice 60 owns `providers.browser.test.tsx`, slice 61 owns `entryPrint`, `timelineCarePeriods` and `timelineSimple*` tests; slice 59 sweeps every other component test.
+
+## Slice 59: Component tests stop reading synchronously right after render (B-180)
+
+Stack: no · Reads: docs/domain/components.md · Tests: component
+
+**Problem.** Component tests still read the DOM synchronously right after a render or an action: `expect(X()!.textContent…)`, `expect(X()!.querySelector…)`, and `X()!.focus()` / `.blur()` (named on B-180: entry, today, entryWithRow, visitPrep, providerSheets; `grep -rlE 'expect\([A-Za-z]+\(\)!\.(textContent|querySelector)|\(\)!\.(focus|blur)\('` finds about 20 files). Under load these are the next likeliest races. B-176's sweep already did the click/fill/hover/type/clear sites.
+
+**Build.** Convert each site to `await expect.poll(...)` or `found()` (or `expect.element`), keeping what each assertion reads. Two `timelineLayout` tests inline the same "wait until the element stops moving" loop: move it into a shared helper beside `found()` and use it in both. **Leave out** `providers.browser.test.tsx` (slice 60) and `entryPrint`, `timelineCarePeriods`, `timelineSimple*` (slice 61). Change test code only.
+
+**Acceptance criteria.**
+
+- [ ] The grep above finds no synchronous read-after-render site outside the files left out (list any kept on purpose, with why).
+- [ ] The stop-moving loop is one shared helper.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 60: providers' "a practice's name finds its clinicians too" stops flaking (B-182)
+
+Stack: no · Reads: docs/domain/components.md, docs/domain/providers.md · Tests: component
+
+**Problem.** In `routes/app/groups/providers/providers.browser.test.tsx`, "a practice's name finds its clinicians too; the Clinicians chip keeps the search…" flakes under load (seen in connectors slices 1, 2, 5 and a landing check, load ~14): after tapping Clinicians, `expect.poll(listNames('Current providers')).toEqual(['Dr. Elena Alvarez'])` (about line 73) times out with Dr. Samuel Patel still listed. Line 70 also reads `listNames` synchronously. Passes alone.
+
+**Build.** Find why the list lags (a debounced search racing the chip, a read before the tap's state settles, a too-short poll), and fix the test's waits; if the screen is wrong (the chip drops or reorders the search), fix the screen and say so. Convert the file's synchronous reads after render too. Reproduce under load (e.g. run the file several times in parallel, or with CPU throttled) before and after, and record how.
+
+**Acceptance criteria.**
+
+- [ ] The cause is in the hand-off; the test passes repeatedly under the load you reproduced it with.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 61: Component tests pass between midnight and 5 a.m. (B-225)
+
+Stack: no · Reads: docs/domain/components.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** Component tests put entries a few hours before now, which lands on yesterday after midnight: `entryPrint` "an event's: title, time…" gets "Yesterday, 10:18 PM" for `/^Event · Today/`; `timelineCarePeriods` "a period at a place…" gets "day 2"; `timelineSimple` "a day header names the care period…" times out (connectors-2's landing check, 3:18 a.m. 2026-11-21; reproduced alone).
+
+**Build.** Make these tests independent of the wall clock: a fixed clock (`vi.setSystemTime`, if the browser runner and sync allow it) or times anchored to the start of today. Then look for the same pattern across component tests (times from `Date.now()` minus hours, `minutesAgo`, "Today" assertions) and fix what you find, **except** in `providers.browser.test.tsx` (slice 60); slice 59 is converting synchronous reads in other files, so keep edits there to the time setup. Also convert synchronous read-after-render sites in the three named files.
+
+**Acceptance criteria.**
+
+- [ ] The three named tests pass with the clock at 00:30, 03:00, 12:00 and 23:30 (record how it was run).
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 62: The profile's basics sheet links to the group's time zone setting (B-211)
+
+Stack: no · Reads: docs/domain/profiles.md, docs/domain/care-groups.md, docs/domain/components.md · Tests: component
+
+**Problem.** The care recipient's time zone lives in group settings → Details (slice 27), but someone editing the recipient's profile looks for it there and finds nothing.
+
+**Build.** On the profile's basics edit sheet (`routes/app/groups/profile/basics`, `BasicsForm.tsx`), add one short line with a link to `careGroupUrls.groupSettings(groupId, "details")`, e.g. "Time zone: <current zone> · Change in group settings". Show it only to members who can edit group details (use the existing permission check; others see the zone without the link, or nothing). Native link, no new primitive.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the basics sheet shows the link to group settings' Details for an owner, and no link for a member who can't edit details.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Wave 16 (written 2026-11-21 by the orchestrator, from the items triaged to quick-fixes)
+
+The user picked the test flakes (B-228, B-230) and the Codex follow-ups from the dev → staging PRs (B-232–B-235, B-237, B-238) for this wave; B-229, B-231 (timeline layout, after quick-entry lands) and B-246, B-247 (Planner) wait. All eight are stackless and run together. Slice 63 sweeps component tests but leaves out the test files slices 68–70 edit (`useMentionPopup`/mention tests, `DoseForm`/log-dose tests, timeline paging/restore tests); those slices convert synchronous reads in the files they touch. Slices 68 and 70 are in the timeline route folder, which quick-entry (running) also touches: keep edits to the files named.
+
+## Slice 63: Component tests stop reading attributes and values synchronously right after render (B-228)
+
+Stack: no · Reads: docs/domain/components.md · Tests: component
+
+**Problem.** Slice 59 (B-180) converted `textContent`/`querySelector`/`focus`/`blur` reads; about 40 sites still read attributes and values synchronously right after a render or an action: `expect(X()!.getAttribute|value|dataset|checked|placeholder|innerText…)` (`git grep -lE 'expect\([A-Za-z]+\(\)!\.(getAttribute|value|dataset|checked|placeholder|innerText)' -- '*.test.tsx'` finds about 15 files: staff, entry, provider, timelineSheetUrls…). Under load these race.
+
+**Build.** Convert each site to `await expect.poll(...)`, `found()` or `expect.element`, keeping what each assertion reads (the B-180 pattern, components.md _Component tests_). Leave out the test files slices 68–70 edit (above). Change test code only.
+
+**Acceptance criteria.**
+
+- [ ] The grep above finds no synchronous read-after-render site outside the files left out (list any kept on purpose, with why).
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 64: `reminders.int.test.ts` passes under load (B-230)
+
+Stack: no · Reads: docs/domain/notifications.md, docs/agents/loop.md · Tests: integration
+
+**Problem.** In `packages/notifications/src/reminders.int.test.ts`, "reminds a task's assignee, and skips a suppressed address" times out at 5000 ms in a full check under load (1523 s run), then "turns reminders off from the email's unsubscribe link" gets `Invalid URL` (a knock-on: it reads state the first test left). Passes alone.
+
+**Build.** Find where the time goes (per-test setup, a wait, the outbox read) and make the tests cheaper and independent: per-test fixtures that don't depend on another test's result, setup shared where safe, and a longer timeout only if the work is genuinely slow (say why). Reproduce under load before and after (e.g. several runs in parallel) and record how.
+
+**Acceptance criteria.**
+
+- [ ] The second test no longer depends on the first; the cause is in the hand-off.
+- [ ] The file passes repeatedly under the load you reproduced it with.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 65: Google Calendar stops pushing to a disabled account (B-232)
+
+Stack: no · Reads: docs/domain/calendars.md, docs/domain/admin.md, docs/domain/data-layer.md · Tests: integration
+
+**Problem.** `calendarSyncService`'s `connectionsFor` (`packages/data/src/services/calendarSyncService.ts`) never checks `user.disabledAt`, so after `accountAdminService.disable` new appointments and todos still reach a disabled member's Google Calendar. The feed (`calendarFeedService.resolve`) and pull (`calendarPullService.memberContext`) paths already refuse disabled users. Codex P1 on PR 9.
+
+**Build.** Join `user` in `connectionsFor` and skip connections whose user has `disabledAt` set (in SQL, like the other paths). Keep the connection itself (re-enabling resumes pushes). Integration test: a disabled member's connection gets no push; re-enabled, it does.
+
+**Acceptance criteria.**
+
+- [ ] Integration test: no push for a disabled member; pushes resume after re-enable.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 66: Today's repeating all-day visit can move to a new series (B-233)
+
+Stack: no · Reads: docs/domain/appointments.md, docs/domain/calendars.md · Tests: integration
+
+**Problem.** `timelineEntryService` update's "a series edit never rewrites a started visit" check uses `occurredAt < now`, but the UI and `planSeriesEdit` use `isPastVisit` (`packages/data/src/db/schema/appointments/seriesEdit.ts`: an all-day visit counts until its day ends in the group's time zone). So the upload rejects today's all-day visit and leaves it on the old series. Codex P2 on PR 9.
+
+**Build.** Call the shared `isPastVisit` with the group's time zone in that check, so server and device agree. Integration test: today's all-day visit moves to the new series; a timed visit that started earlier today still doesn't.
+
+**Acceptance criteria.**
+
+- [ ] Integration test: the all-day case moves, the started timed case is refused.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 67: A "last Friday" monthly series stays last Friday when edited (B-234)
+
+Stack: no · Reads: docs/domain/appointments.md · Tests: unit
+
+**Problem.** In `apps/web/app/lib/appointments/repeatChoice.ts`, `choiceOfRule` keeps `monthly.by` but drops the ordinal, and `choiceRule` rebuilds it from the visit's date, so `BYDAY=-1FR` opened from a month with four Fridays (2027-02-26) becomes `4FR`. Codex P2 on PR 9.
+
+**Build.** Keep the stored ordinal and weekday through `choiceOfRule` → `choiceRule` unless the user changes the repeat. Unit tests in `repeatChoice.test.ts`: `-1FR` round-trips from 2027-02-26; a positive ordinal round-trips; changing the repeat still builds from the date.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: `BYDAY=-1FR` round-trips unchanged from a four-Friday month.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 68: Medication names stay after Back restores the timeline and the filter is picked again (B-235)
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/sync.md, docs/domain/components.md · Tests: component
+
+**Problem.** After Back restores the timeline (slice 56's `timelinePaging.ts`), picking the current filter again in the same minute blanks medication names (doses show "Medication"): `restored` goes undefined, `useTimelineData` passes `restored?.medicationRows` with no loader fallback, so `useTimelineMedications`' `initial` becomes `NO_ROWS`, and `useLiveQuery` resets its rows without restarting the watch. Links fall back to `initial.linkRows`, and `useLiveRows` keeps rows on a same-key initial change. Codex P2 on PR 9.
+
+**Build.** Give medications the same stable fallback links have, or make the live query keep its rows when its key is unchanged (pick one and say why; the second fixes the class). Edit only the timeline data hooks and the live-query helper. Component test reproducing it: restore, re-pick the filter, dose rows keep their medication name.
+
+**Acceptance criteria.**
+
+- [ ] Component test: after a restore and re-picking the filter, doses still show their medication's name.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 69: An @-mention that adds a provider doesn't overwrite other note text (B-237)
+
+Stack: no · Reads: docs/domain/live-notes.md, docs/domain/providers.md, docs/domain/components.md · Tests: component
+
+**Problem.** In `apps/web/app/components/notes/useMentionPopup.ts` `pick()`, when an add or import of a provider finishes, it inserts into `(live.current.open ?? current)`: whatever popup is open now (a different @ query), else the captured range, which isn't mapped through edits made since. So a slow add can overwrite text. Codex P2 on PR 11.
+
+**Build.** Tie the insert to the suggestion that started it: map its range through the transactions since (Tiptap/ProseMirror mapping), and drop the insert (leaving the provider created) if that @ text is gone. Component test with a slow add: type elsewhere and open a second @ meanwhile; the mention lands at the first @ and nothing else changes.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a slow add with edits and a second popup in between inserts only at the original @.
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Slice 70: Log a dose's "+ New medication" doesn't refill a discarded amount (B-238)
+
+Stack: no · Reads: docs/domain/medications.md, docs/domain/timeline.md, docs/domain/components.md · Tests: component
+
+**Problem.** In `routes/app/groups/timeline/DoseForm.tsx`, switching from "+ New medication" to an existing medication and back remounts `QuickAddFields` (its fields reset) but keeps the parent's `newDose`, so `choose()` refills Amount with the old dose: the medication is saved with no usual dose and logged as the discarded "2 tablets". Codex P2 on PR 11.
+
+**Build.** Make the draft consistent: either keep the quick-add draft across switches (fields and dose together) or reset `newDose` with the fields. Pick the one that matches the sheet's other drafts and say why. Keep edits to `DoseForm.tsx` and its quick-add pieces (medications-4 will reshape it later). Component test for the switch-and-back.
+
+**Acceptance criteria.**
+
+- [ ] Component test: after switching away and back, Amount and the saved medication agree (both kept or both cleared).
+- [ ] `pnpm check` passes.
+
+**Blocks:** none. **Blocked by:** none.
+
+## Wave 17 (written 2026-11-21 by the orchestrator, on the user's word: "just pick up 229 and 231")
+
+One small slice for both timeline layout items (same route folder, one component test file); quick-entry has landed, so nothing waits.
+
+## Slice 71: The timeline's header and Today match the entries' column; an empty Today reads as a card (B-229, B-231)
+
+Stack: no · Reads: docs/domain/timeline.md, docs/domain/components.md · Tests: component
+
+**Problem.** On large screens (`lg` and up) the timeline's header boxes are wider than the rest: `TodayCard` and `LiveNowBanner` use `STRIP_CAP` (`lg:max-w-6xl`, 1152 px) from `routes/app/groups/timeline/layout.ts`, while the entries, quick-entry box and chips use `COLUMN_CAP` (`max-w-5xl`). The user wants the header (`TimelineHeader`) and the Today section in the same column width as the rest of the timeline (B-229; this reverses slice 26's deliberate 64 px framing). Separately, the empty Today's "Nothing logged today yet." (`EmptyToday` in `TimelineEntryList.tsx`) is a bare muted line; it should sit in a bordered box like a timeline entry row so it matches the page (B-231).
+
+**Build.**
+
+- Put `TimelineHeader`, `TodayCard` and `LiveNowBanner` in the entries' column from `lg` (use `COLUMN_CAP`, or make `STRIP_CAP` equal it and drop it if nothing else needs it; update `layout.ts`'s comments). Below `lg` nothing changes (`max-w-2xl` page).
+- `EmptyToday`: the line and its "Add an entry" button inside the same box classes an entry row uses (reuse that row's class constant if there is one; don't copy a long class string). Keep `data-empty-today` and `EMPTY_TODAY_TEXT`.
+- Full view only; simple mode (`SimpleTimeline`) is unchanged. Keep edits to those files and their tests.
+
+**Acceptance criteria.**
+
+- [ ] Component test (at a `lg` width such as 1440 px): the header, the Today card and Live now have the same left and right edges as the entries' column.
+- [ ] Component test: the empty Today box has an entry row's border and rounding, and still offers "Add an entry" to a writer.
+- [ ] `pnpm check` passes; `pnpm prd browser --changed` once, its ■ lines in the hand-off.
+
+**Blocks:** none. **Blocked by:** none.

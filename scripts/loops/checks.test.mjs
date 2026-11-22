@@ -17,11 +17,11 @@ describe("the manifest", () => {
     expect([...names].sort()).toEqual(areas);
   });
 
-  it("names each check once, and each has its file: a spec or a plain check, not both", () => {
+  it("names each check once, and each has its spec", () => {
     expect(new Set(names).size).toBe(names.length);
     for (const name of names) {
       const has = (file) => existsSync(new URL(`../browser-checks/${file}`, import.meta.url));
-      expect([has(`${name}.spec.mjs`), has(`${name}.mjs`)].filter(Boolean), name).toHaveLength(1);
+      expect(has(`${name}.spec.mjs`), `${name}.spec.mjs`).toBe(true);
     }
   });
 

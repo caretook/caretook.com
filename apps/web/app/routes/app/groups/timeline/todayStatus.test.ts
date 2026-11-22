@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { todayStatus, todaySummary } from "./todayStatus";
+import { attentionCounts, todayStatus, todaySummary } from "./todayStatus";
 
 const LA = "America/Los_Angeles";
 const MIN = 60_000;
@@ -30,10 +30,10 @@ describe("todayStatus", () => {
     });
   });
 
-  describe("tasks", () => {
+  describe("todos", () => {
     it("error when overdue, neutral when due today", () => {
-      expect(todayStatus({ kind: "tasks", overdue: true }, NOW, LA)).toBe("error");
-      expect(todayStatus({ kind: "tasks", overdue: false }, NOW, LA)).toBe("neutral");
+      expect(todayStatus({ kind: "todos", overdue: true }, NOW, LA)).toBe("error");
+      expect(todayStatus({ kind: "todos", overdue: false }, NOW, LA)).toBe("neutral");
     });
   });
 
@@ -67,26 +67,82 @@ describe("todayStatus", () => {
   });
 });
 
-describe("todaySummary", () => {
-  it("one part per row, in the card's order", () => {
-    expect(
-      todaySummary({
-        vital: "BP 130/85 mmHg",
-        appointments: 1,
-        medications: { state: "due", count: 2, time: "8:00" },
-        tasks: { overdue: 1, total: 2 },
-      }),
-    ).toBe("BP 130/85 mmHg · 1 appt · 2 meds due · 1 task overdue");
+describe("attentionCounts", () => {
+  const slot = (state: "upcoming" | "due" | "overdue" | "given" | "skipped", at: string) => ({ state, at });
+  const todo = (dueOn: string, dueTime: string | null = null, doneAt: string | null = null) => ({
+    dueOn,
+    dueTime,
+    doneAt,
   });
-  it("plurals, the next pass's time, today's tasks, and nothing for hidden rows", () => {
+  const counts = (over: Partial<Parameters<typeof attentionCounts>[0]> = {}, now: Date = NOW) =>
+    attentionCounts({ doses: [], todos: [], appointment: null, now, timeZone: LA, ...over });
+
+  it("nothing at all", () => {
+    expect(counts()).toEqual({
+      doses: { overdue: 0, soon: 0 },
+      todos: { overdue: 0, soon: 0 },
+      appointments: { soon: 0 },
+    });
+  });
+  it("doses: overdue is red; due, or upcoming within the hour, is soon; later or answered, neither", () => {
+    const doses = [
+      slot("overdue", plus(-2 * HOUR)),
+      slot("due", plus(-5 * MIN)),
+      slot("upcoming", plus(HOUR)),
+      slot("upcoming", plus(HOUR + MIN)),
+      slot("given", plus(-3 * HOUR)),
+      slot("skipped", plus(10 * MIN)),
+    ];
+    expect(counts({ doses }).doses).toEqual({ overdue: 1, soon: 2 });
+  });
+  it("todos: overdue (an earlier day, or past its time) is red; due within the hour is soon", () => {
+    const todos = [
+      todo("2026-11-17"),
+      todo("2026-11-19", "09:30"),
+      todo("2026-11-19", "11:00"),
+      todo("2026-11-19", "11:01"),
+      todo("2026-11-20", "10:30"),
+      todo("2026-11-18", null, plus(-HOUR)),
+    ];
+    expect(counts({ todos }).todos).toEqual({ overdue: 2, soon: 1 });
+  });
+  it("a todo without a time is due at 19:00 in the recipient's zone: soon from 18:00 until the day ends", () => {
+    const todos = [todo("2026-11-19")];
+    expect(counts({ todos }).todos.soon).toBe(0); // 10:00
+    expect(counts({ todos }, new Date("2026-11-20T01:59:00.000Z")).todos.soon).toBe(0); // 17:59
+    expect(counts({ todos }, new Date("2026-11-20T02:00:00.000Z")).todos.soon).toBe(1); // 18:00
+    expect(counts({ todos }, new Date("2026-11-20T07:30:00.000Z")).todos).toEqual({ overdue: 0, soon: 1 }); // 23:30
+  });
+  it("the next appointment: in progress or within the hour is soon; later, past or all-day isn't", () => {
+    const soon = (a: ReturnType<typeof appointment>) => counts({ appointment: a.entry }).appointments.soon;
+    expect(soon(appointment(plus(-10 * MIN), { endsAt: plus(20 * MIN) }))).toBe(1);
+    expect(soon(appointment(plus(HOUR)))).toBe(1);
+    expect(soon(appointment(plus(HOUR + MIN)))).toBe(0);
+    expect(soon(appointment(plus(-MIN)))).toBe(0);
+    expect(soon(appointment("2026-11-19T08:00:00.000Z", { allDay: true }))).toBe(0);
+  });
+});
+
+describe("todaySummary", () => {
+  const none = { doses: { overdue: 0, soon: 0 }, todos: { overdue: 0, soon: 0 }, appointments: { soon: 0 } };
+
+  it("overdue and due soon lead, summed across kinds; the rest follows without what they counted", () => {
     expect(
       todaySummary({
-        appointments: 3,
-        medications: { state: "next", count: 4, time: "20:00" },
-        tasks: { overdue: 0, total: 2 },
+        counts: { doses: { overdue: 2, soon: 1 }, todos: { overdue: 1, soon: 1 }, appointments: { soon: 1 } },
+        vital: "BP 130/85 mmHg",
+        appointments: 2,
+        medications: "20:00",
+        todos: 3,
       }),
-    ).toBe("3 appts · Meds 20:00 · 2 tasks today");
-    expect(todaySummary({ medications: { state: "overdue", count: 1, time: "8:00" } })).toBe("1 med overdue");
-    expect(todaySummary({ vital: null, appointments: 0, medications: null, tasks: null })).toBe("");
+    ).toEqual({ overdue: "3 overdue", soon: "3 due soon", rest: "BP 130/85 mmHg · 1 appt · 1 todo today" });
+  });
+  it("nothing overdue or soon: the rest alone, with plurals and the next pass's time", () => {
+    expect(todaySummary({ counts: none, appointments: 3, medications: "20:00", todos: 2 })).toEqual({
+      overdue: null,
+      soon: null,
+      rest: "3 appts · Meds 20:00 · 2 todos today",
+    });
+    expect(todaySummary({ counts: none })).toEqual({ overdue: null, soon: null, rest: "" });
   });
 });

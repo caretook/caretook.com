@@ -6,5 +6,9 @@ export const groupSettingsRoutes: RouteConfigEntry[] = [
     index("routes/app/groups/settings/index/route.tsx"),
     route("details", "routes/app/groups/settings/details/route.tsx"),
     route("members", "routes/app/groups/settings/members/route.tsx"),
+    // Members' own AI assistants (connectors): the owners' switch and the group's connections.
+    route("assistants", "routes/app/groups/settings/assistants/route.tsx"),
+    // Calendar & reminders (calendars, appointments-2): each member's own reminders, feed, Google and details.
+    route("calendar", "routes/app/groups/settings/calendar/route.tsx"),
   ]),
 ];

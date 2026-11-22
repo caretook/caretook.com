@@ -45,7 +45,7 @@ export const SEARCH_MAX_LIMIT = 50;
 export type SearchOptions = {
   groupId: string;
   q: string;
-  /** What to search (default: all three; tasks are searched on the device only). */
+  /** What to search (default: all three; todos are searched on the device only). */
   scopes?: ServerSearchItemType[];
   /** Entries only: these kinds. */
   kinds?: TimelineEntryKind[];
@@ -97,6 +97,7 @@ const KIND_TITLES: Record<string, string> = {
   vital: "Vitals",
   dose: "Dose",
   medicationChange: "Medication change",
+  conditionChange: "Condition change",
 };
 
 /** A vital reading type → its label ("bloodPressure" → "Blood pressure"), as the device indexes it. */
@@ -229,6 +230,10 @@ const searchEntries = async (
             || coalesce(author.v, ''::tsvector)
             || CASE WHEN ${t.kind} = 'vital'
                  THEN setweight(to_tsvector('english', coalesce(${vitalNames}, '')), 'A')
+                 ELSE ''::tsvector END
+            || CASE WHEN ${t.kind} = 'conditionChange'
+                 THEN setweight(to_tsvector('english', immutable_unaccent(concat_ws(E'\n',
+                   ${details}->>'conditionName', ${details}->'before'->>'name'))), 'A')
                  ELSE ''::tsvector END AS doc) v
           WHERE ${where ?? sql`true`} AND v.doc @@ q.query
         ),
@@ -240,6 +245,7 @@ const searchEntries = async (
         shown AS (
           SELECT page.*,
             CASE WHEN page.kind = 'symptom' THEN page.details->>'name' END AS symptom,
+            CASE WHEN page.kind = 'conditionChange' THEN page.details->>'conditionName' END AS condition,
             (SELECT string_agg(${VITAL_LABELS}::jsonb ->> (r.value->>'type'), ', ')
               FROM jsonb_array_elements(CASE WHEN jsonb_typeof(page.details->'readings') = 'array'
                 THEN page.details->'readings' END) AS r(value)) AS vitals,
@@ -248,12 +254,13 @@ const searchEntries = async (
           FROM page
         )
         SELECT shown.id, shown.kind,
-          coalesce(nullif(btrim(shown.title), ''), shown.symptom, shown.vitals, shown.medication) AS title,
+          coalesce(nullif(btrim(shown.title), ''), shown.symptom, shown.vitals, shown.medication, shown.condition)
+            AS title,
           shown.occurred_at::text AS "occurredAt", NULL::text AS status,
           shown.rank::float8 AS rank, shown.rank::text AS "rankText",
           ts_headline('english',
             CASE WHEN btrim(shown.text) <> '' THEN shown.text
-              ELSE concat_ws(E'\n', shown.title, shown.symptom, shown.vitals, shown.medication) END,
+              ELSE concat_ws(E'\n', shown.title, shown.symptom, shown.vitals, shown.medication, shown.condition) END,
             q.query, ${HEADLINE_OPTIONS}) AS snippet
         FROM shown CROSS JOIN q
         ORDER BY shown.rank DESC, shown.occurred_at DESC, shown.id DESC`),

@@ -36,6 +36,7 @@ describe("the deploy workflows", () => {
       ".github/workflows/admin-grant.yml",
       ".github/workflows/db-access.yml",
       ".github/workflows/deploy.yml",
+      ".github/workflows/reset-staging.yml",
       ".github/workflows/rotate-jwks.yml",
       ".github/workflows/seed-staging.yml",
     ]);
@@ -53,10 +54,17 @@ describe("the deploy workflows", () => {
 
   it("deploys on pushes to staging and main, one at a time per environment", () => {
     const deploy = parseYaml(read(".github/workflows/deploy.yml"));
+    // Only those two branches ever deploy: no previews for dev, prd/ or PRs (B-243).
+    expect(Object.keys(deploy.on)).toEqual(["push"]);
+    expect(Object.keys(deploy.on.push)).toEqual(["branches"]);
     expect(deploy.on.push.branches).toEqual(["staging", "main"]);
     expect(deploy.concurrency.group).toMatch(/production.*staging/);
     expect(deploy.concurrency["cancel-in-progress"]).toBe("false");
     expect(deploy.jobs.deploy.environment).toMatch(/main.*production.*staging/);
+  });
+
+  it.each(WORKFLOWS.filter((p) => !p.endsWith("/deploy.yml")))("%s runs only by hand", (path) => {
+    expect(Object.keys(parseYaml(read(path)).on)).toEqual(["workflow_dispatch"]);
   });
 
   it("runs the deploy's steps in order", () => {
@@ -136,6 +144,13 @@ describe("the deploy workflows", () => {
 
   it("seeds staging only, and grants run in the chosen environment", () => {
     expect(parseYaml(read(".github/workflows/seed-staging.yml")).jobs.seed.environment).toBe("staging");
+    // The reset is staging's alone too, behind a typed confirmation, and never beside a seed run.
+    const reset = parseYaml(read(".github/workflows/reset-staging.yml"));
+    expect(reset.jobs.reset.environment).toBe("staging");
+    expect(reset.jobs.reset.if).toContain("inputs.confirm == 'staging'");
+    expect(reset.on.workflow_dispatch.inputs.confirm.required).toBe("true");
+    expect(reset.concurrency.group).toBe("seed-staging");
+    expect(reset.jobs.reset.steps.at(-1).env.APP_ENV).toBe("staging");
     for (const path of [
       ".github/workflows/admin-grant.yml",
       ".github/workflows/db-access.yml",
@@ -180,7 +195,10 @@ describe("vercel.json", () => {
 
   it("keeps the region, the outbox cron and the headers", () => {
     expect(config.regions).toEqual(["cle1"]);
-    expect(config.crons).toEqual([{ path: "/api/cron/outbox", schedule: "* * * * *" }]);
+    expect(config.crons).toEqual([
+      { path: "/api/cron/outbox", schedule: "* * * * *" },
+      { path: "/api/cron/calendar", schedule: "* * * * *" },
+    ]);
     expect(config.headers.length).toBeGreaterThanOrEqual(2);
   });
 });

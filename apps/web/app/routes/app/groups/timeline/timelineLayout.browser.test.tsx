@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { found, stopsMoving } from "../../../../../test/found";
 import { at, fx } from "../../../../../test/fixtures";
 import {
   authorOf,
@@ -115,18 +115,7 @@ describe("row taps", () => {
     expect(device.location()).toBe(TIMELINE_URL);
     expect(rowOf("Symptom")!.querySelector('button[aria-label^="Actions"]')).toBeNull();
     // After Go back the quick-entry chips land late and push the rows down: click ⋯ once it stops moving.
-    let top = -1;
-    let still = 0;
-    await waitUntil(
-      () => {
-        const now = actionsOf(rowOf("Note")!).getBoundingClientRect().top;
-        still = now === top ? still + 1 : 0;
-        top = now;
-        return still >= 20;
-      },
-      4000,
-      "the layout to settle",
-    );
+    await stopsMoving(() => actionsOf(rowOf("Note")!));
     await userEvent.click(actionsOf(rowOf("Note")!));
     await waitUntil(() => menuItems().length > 0, 4000, "the menu");
     expect(menuItems()).toEqual(["Print"]);
@@ -433,7 +422,7 @@ describe("the wide layout", () => {
     expect(centred(open.firstElementChild ?? open)).toEqual(ok);
   });
 
-  test("1280: the Live now banner is capped like the strips (1152 px, centred) in one line, Join at its end", async () => {
+  test("1280: the Live now banner is in the entries' column (1024 px, centred) in one line, Join at its end", async () => {
     // Sam is writing in a note: its document's editors say so, as a sync from Sam's device would.
     const note = fx.note({ createdBy: SAM.id, title: "Morning" });
     await openTimeline({
@@ -449,7 +438,7 @@ describe("the wide layout", () => {
     const r = banner.getBoundingClientRect();
     const j = banner.querySelector("a")!.getBoundingClientRect();
     const page = document.documentElement.clientWidth;
-    expect(Math.abs(r.width - 1152)).toBeLessThan(1);
+    expect(Math.abs(r.width - 1024)).toBeLessThan(1);
     expect(Math.abs(r.left + r.right - page)).toBeLessThan(2);
     expect(r.height).toBeLessThan(60);
     expect(r.right - j.right).toBeGreaterThan(0);
@@ -501,18 +490,7 @@ describe("the author tooltip", () => {
     // A pointer press first: after keys (an earlier test's), React Aria shows tooltips on hover only once the pointer is used again.
     await userEvent.click(await found(() => document.querySelector("section h3")));
     // The quick-entry suggestions (their chips depend on the time of day) land after the rows and push the list down: hover once the link has stopped moving.
-    let top = -1;
-    let still = 0;
-    await waitUntil(
-      () => {
-        const now = link.getBoundingClientRect().top;
-        still = now === top ? still + 1 : 0;
-        top = now;
-        return still >= 20;
-      },
-      4000,
-      "the layout to settle",
-    );
+    await stopsMoving(() => link);
     // The initials sit under the ⋯ menu: scroll the day just under its stuck header, so the tooltip opens over it.
     const day = link.closest("section")!;
     window.scrollTo(0, day.getBoundingClientRect().top + scrollY + 25);

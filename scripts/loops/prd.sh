@@ -6,6 +6,8 @@ set -euo pipefail
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
 bin=$(dirname "$0")
+# The model plan, backlog and hotfix sessions run on unless --model names another.
+agent_model=fable
 # Every command runs on .nvmrc's Node, whatever shell called it.
 use_node || true
 
@@ -14,21 +16,28 @@ usage() {
 pnpm prd <command>
 
   See what's going on
-    status                    every worktree: branch, changes, dev server link; lease holders; the load
+    status                    every worktree: branch, changes, dev server link; sessions (managed or by hand);
+                              the dispatcher (running, paused and why, stopped; its last line); lease holders; the load
     status-watch [seconds]    status, redrawn every few seconds (default 5) until Ctrl-C
     ready [topic]             the ready-to-land report: link, what it addresses, blockers
 
   Start and stop work
     start <topic>             create (or resume) a PRD's worktree and stack; prints how to open its orchestrator
-    queue <topic> [--manual]  wait for a free PRD slot (in queue order), then create the worktree and open a
-                              fully autonomous orchestrator in this terminal (--manual: it asks how to land)
+    dispatch [--every <s>]    the dispatcher, left in a tab of its own: every minute it plans, starts and
+                              reopens PRDs by itself, one action a tick, in the registry's row order
+    dispatch --once|--dry-run one tick; --dry-run only shows the next action and every reason
+    dispatch --pause [<why>]|--resume|--stop   the brakes, from any shell (the hold flag is the row's)
+    queue <topic>             put the topic first in the PRD registry and return: the dispatcher takes it next
+                              (or, with none running, says to start one or pnpm prd start <topic>)
     plan <topic> [--open] [B-n …]   a docs-only worktree for writing a PRD and plan; --open starts its
-                              planning session here (it interviews you, writes both, lands them)
+                              planning session here (it decides, writes both, lands them; few questions)
     plan                      no topic: a backlog and inbox planning session in the main checkout, here
+                              (either form runs on fable; --model <m> runs that one session on model m)
                               (it reads the backlog and helps you decide what's next)
     slice <topic> <n>         a slice's worktree (orchestrators run this); a stack only for Stack: yes
-    hotfix <name> [--open] ["<the fix>"]   a stackless worktree on hotfix/<name> from dev, for a fix
+    hotfix <name> [--open] [--model <m>] ["<the fix>"]   a stackless worktree on hotfix/<name> from dev, for a fix
                               outside any PRD (reused if it exists); --open starts its session here
+                              (on fable; --model <m> for another model)
                               (prompt hotfix <name> ["<the fix>"] is that session's first prompt)
                               (pnpm prd check there, then pnpm prd land hotfix/<name> on your word)
     stack up|down [name]      add or remove a worktree's dev stack (slot, env files, Compose, seed)
@@ -36,22 +45,52 @@ pnpm prd <command>
     gc [--list|--yes]         merged slice worktrees and stacks stopped over a day: list, ask, remove
     reclaim [--list|--yes]    disk: merged worktrees, dangling Docker volumes and images, check builds and
                               Vite caches, with sizes; frees them after a yes
+    tidy [--yes] [--json]     leftovers sorted into safe (merged slice and landed plan worktrees, dead tickets,
+                              orphan test databases, stale remote refs, dangling caretook volumes, old hang
+                              logs, ended records) and ask (finished-looking live sessions, branches without a
+                              worktree, items to archive, registry rows that look done); --yes removes the safe
+                              ones and files the ask list as one report (prompt tidy: the haiku brief)
     test-db status|up|down|list|use   the shared test Postgres (a database per worktree, :5436)
     recover [--at HH:MM] [--wait] [--no-agent]   after a restart, crash or usage limit: Docker, stale locks,
-                              the test Postgres, stacks one at a time, servers; then the recovery agent here
+                              the test Postgres, stacks one at a time, servers, the dispatcher in a background
+                              tab when it was running (its lock cleared when its pid is gone); then the recovery agent here
                               (claude --remote-control recover) tells live orchestrators and planners to carry
-                              on and reopens dead ones (--no-agent: stop before it); --at waits until then,
+                              on and reopens dead ones, leaving managed ones to a running dispatcher
+                              (--no-agent: stop before it); --at waits until then,
                               --wait probes claude every 10 min; recover --dry-run [--json] only shows what it would do
-    down                      before a planned restart: record what's up, stop servers, stacks, the test Postgres
+    down                      before a planned restart: record what's up (the dispatcher too), stop the
+                              dispatcher, servers, stacks, the test Postgres
     open <name> [--print]     reopen a PRD's or planner's session in a new iTerm2 tab: claude --continue when the
                               worktree has a saved conversation, else a fresh one with the resume prompt
+                              (--background: iTerm2 stays where it is and the selected tab stays selected)
+    end [<name>]              end a recorded session, or with no name the calling shell's own (a finished
+                              orchestrator or planner, after pnpm prd rm); its tab closes
+    rotate [<topic>] [--mid-wave] [--reason <text>]   replace an orchestrator's session with a fresh one
+                              (resume prompt, same name) from a background tab; refuses an uncommitted plan or
+                              slice worktrees (--mid-wave: on the user's word); prints the command without iTerm2
+
+  Asks (questions and reports for the dev keeper, in the main checkout's .loops/.asks)
+    ask --topic <t> --question <text> [--option <a>]… [--recommend <a|n>]   file a question; prints its id
+                              and the PushNotification line to send; a macOS notification, and
+                              \$CARETOOK_ASK_NOTIFY <id> <kind> <topic> <text> when set (failures ignored)
+    ask --topic <t> --report <text>   file a report (a landed wave, what to try); the same notifications
+    ask --wait <id> [--timeout <s>]   print the answer once there is one (exit 0; 75 at the timeout)
+    asks [--json]             the open asks: topic, age, options numbered, the recommended one marked
+    asks --done <id>          dismiss one (a read report, a question no longer needed)
+    answer <id> <n|text>      answer a question by its option's number or in words (wakes its --wait)
 
   Inside a worktree (name or topic defaults to the one you're in)
     serve [name] [--restart|--stop|--built|--dev]   its server in the background (--built: a check build)
-    check [--quick "<why>"]   pnpm check (at most three at once machine-wide), and record that
+    check [--quick "<why>"]   pnpm check (at most two at once machine-wide; CARETOOK_CHECK_SLOTS), timed in
+                              .loops/.check-times.log, and record that
                               this commit passed; --quick: typecheck, lint, format and only the tests
-                              related to the diff since the last full pass, recorded with its reason
+                              related to the diff since the last full pass (plus the tests that read files by
+                              path), recorded with its reason; a diff touching a migration, seeds, the sync
+                              config, a lockfile, a package.json or the Vitest config makes it a full check;
+                              the tooling tests join when the diff touches the tooling
                               (docs and tooling-only changes need neither: docs/agents/orchestrator.md, _The check gate_)
+    check --times [--since <date>]   the check log's summary (runs, median and total minutes, failures,
+                              by mode and by PRD); runs no check, works from any checkout
     sync                      merge dev into this PRD branch
     browser <check>           one browser check; at most four run at once machine-wide
     browser --changed         the checks this worktree's changes need (--base REF, --list)
@@ -59,10 +98,28 @@ pnpm prd <command>
     browser --suite           the lean end-to-end set, with a table (--timeout S; one retry on contention)
 
   Land
-    land <topic> [-m subject] merge prd/<topic> into dev (only when the dev keeper says so)
+    land <topic> [-m subject] [--recheck "<why>"] [--no-review] [--local]
+                              merge prd/<topic> into dev (only when the dev keeper says so) through its
+                              PR: merged on GitHub once its head is the local tip and Codex's verdict is
+                              clean, then dev-sync (--recheck: when the last check is stale, run it on the
+                              tip in the branch's worktree and land on a pass; --no-review: skip the
+                              verdict, on the user's word only; --local: a local merge, the fallback, on
+                              their word)
+    land hotfix/<name> --pr|--local [-m subject]   a hotfix: ask the user "PR or local?" each time
+    land plan/<topic>         a plan branch: always a local merge
+    review <topic|branch> [--json] [--wait [min]] [--again] [--resolve <threadId>]
+                              Codex's verdict on the branch's open PR into dev (clean, findings, waiting,
+                              stale) and its findings; --again asks Codex again, --resolve closes a declined
+                              thread, --wait polls until Codex answers on the head (exit 0/1/2, 75 timed out)
+    pr <topic|hotfix/name> [-m subject]   push dev (fast-forward only) and the branch, then open its PR into
+                              dev, or update the open one (title: the landing subject; body: backlog items,
+                              the check pass); plan/ branches are refused
+    dev-sync [branch]         bring the main checkout's dev up to origin/dev after a GitHub merge (land runs
+                              it): fast-forward, rebase backlog-only commits, or merge
 
   prompt orchestrator|plan|slice <topic> [n|--auto]   the first prompt for a session (prompt backlog: no topic)
                      recover: the recovery agent (pnpm prd recover opens it)
+                     tidy: the cleanup brief for a cheap session (haiku), repeated with /loop
                      orchestrator <topic> --resume [--auto]: take over after an interruption
                      slice <topic> <n> --continue: pick up an interrupted slice
 USAGE
@@ -92,16 +149,36 @@ case $cmd in
   stack) exec "$bin/stack.sh" "$@" ;;
   gc) exec "$bin/gc.sh" "$@" ;;
   reclaim) exec "$bin/reclaim.sh" "$@" ;;
+  tidy) exec node "$bin/tidy-cli.mjs" "$@" ;;
   test-db | testdb) exec "$bin/test-db.sh" "$@" ;;
   prompt) exec "$bin/prompt.sh" "$@" ;;
-  queue) exec "$bin/queue.sh" "$@" ;;
+  queue) exec node "$bin/queue.mjs" "$@" ;;
+  dispatch) exec node "$bin/dispatch.mjs" "$@" ;;
   recover) exec "$bin/recover.sh" "$@" ;;
   down) exec "$bin/down.sh" "$@" ;;
   open) exec "$bin/open-session.sh" "$@" ;;
+  end) exec "$bin/end-session.sh" "$@" ;;
+  rotate) exec "$bin/rotate.sh" "$@" ;;
+  review) exec "$bin/review.sh" "$@" ;;
+  pr) exec "$bin/pr.sh" "$@" ;;
+  dev-sync) (($# <= 1)) || die "dev-sync: at most one branch name"; dev_sync "${1:-}" ;;
   plan)
+    # --model <m> (or --model=<m>), anywhere: this one session's model, passed to claude --model
+    # (default: $agent_model, fable).
+    model=$agent_model rest=()
+    while (($#)); do
+      case $1 in
+        --model) [[ -n ${2:-} && ${2:-} != -* ]] || die "plan: --model needs a model name (e.g. opus)"; model=$2; shift ;;
+        --model=*) model=${1#--model=}; [[ -n $model ]] || die "plan: --model needs a model name (e.g. opus)" ;;
+        *) rest+=("$1") ;;
+      esac
+      shift
+    done
+    set -- ${rest[@]+"${rest[@]}"}
+    model_args=(--model "$model")
     if [[ ${1:-} == "" || ${1:-} == --open ]]; then
       (($# <= 1)) || die "plan: give a topic before other arguments"
-      cd "$main" && exec claude --remote-control backlog "$("$bin/prompt.sh" backlog)"
+      cd "$main" && exec claude ${model_args[@]+"${model_args[@]}"} --remote-control backlog "$("$bin/prompt.sh" backlog)"
     fi
     topic=$1; shift; open=0 items=()
     for a in "$@"; do
@@ -109,9 +186,10 @@ case $cmd in
     done
     dir=$loops/plan-$topic
     [[ -d $dir ]] || "$bin/new.sh" plan "$topic"
-    cmd_line="cd $dir && claude --remote-control plan-$topic \"\$(scripts/loops/prompt.sh plan $topic ${items[*]:-})\""
+    cmd_line="cd $dir && scripts/loops/session.sh plan-$topic -- --model $(printf %q "$model") --remote-control plan-$topic \"\$(scripts/loops/prompt.sh plan $topic ${items[*]:-})\""
     if ((open)); then
-      cd "$dir" && exec claude --remote-control "plan-$topic" "$("$bin/prompt.sh" plan "$topic" ${items[@]+"${items[@]}"})"
+      cd "$dir" && exec "$bin/session.sh" "plan-$topic" --kind plan --topic "$topic" -- \
+        ${model_args[@]+"${model_args[@]}"} --remote-control "plan-$topic" "$("$bin/prompt.sh" plan "$topic" ${items[@]+"${items[@]}"})"
     fi
     echo
     echo "Start its planning session in a new terminal (or rerun with --open):"
@@ -119,22 +197,25 @@ case $cmd in
     ;;
   slice) exec "$bin/new.sh" slice "$@" ;;
   hotfix)
-    name=${1:?"usage: pnpm prd hotfix <name> [--open] [\"<the fix>\"]"}; shift; open=0 fix=""
-    for a in "$@"; do
-      case $a in
+    name=${1:?"usage: pnpm prd hotfix <name> [--open] [--model <m>] [\"<the fix>\"]"}; shift; open=0 fix="" model=$agent_model
+    while (($#)); do
+      case $1 in
         --open) open=1 ;;
-        -*) die "hotfix: unknown option $a (--open)" ;;
-        *) [[ -z $fix ]] || die "hotfix: give the fix as one quoted argument"; fix=$a ;;
+        --model) [[ -n ${2:-} && ${2:-} != -* ]] || die "hotfix: --model needs a model name (e.g. opus)"; model=$2; shift ;;
+        --model=*) model=${1#--model=}; [[ -n $model ]] || die "hotfix: --model needs a model name (e.g. opus)" ;;
+        -*) die "hotfix: unknown option $1 (--open, --model <m>)" ;;
+        *) [[ -z $fix ]] || die "hotfix: give the fix as one quoted argument"; fix=$1 ;;
       esac
+      shift
     done
     dir=$loops/hotfix-$name
     if [[ -d $dir ]]; then echo "Worktree hotfix-$name already exists at $dir."; else "$bin/new.sh" hotfix "$name"; fi
     if ((open)); then
-      cd "$dir" && exec claude --remote-control "hotfix-$name" "$("$bin/prompt.sh" hotfix "$name" ${fix:+"$fix"})"
+      cd "$dir" && exec claude --model "$model" --remote-control "hotfix-$name" "$("$bin/prompt.sh" hotfix "$name" ${fix:+"$fix"})"
     fi
     echo
     echo "Start its session in a new terminal (or rerun with --open; or carry on in the one that asked for it):"
-    echo "  cd $dir && claude --remote-control hotfix-$name \"\$(scripts/loops/prompt.sh hotfix $name $(printf %q "${fix:-<the fix>}"))\""
+    echo "  cd $dir && claude --model $(printf %q "$model") --remote-control hotfix-$name \"\$(scripts/loops/prompt.sh hotfix $name $(printf %q "${fix:-<the fix>}"))\""
     ;;
   start)
     topic=${1:?topic}
@@ -142,18 +223,30 @@ case $cmd in
       echo "Worktree $topic already exists at $loops/$topic."
       echo
       echo "Open its orchestrator in a new terminal:"
-      echo "  cd $loops/$topic && claude --remote-control prd-$topic \"\$(scripts/loops/prompt.sh orchestrator $topic)\""
+      echo "  cd $loops/$topic && scripts/loops/session.sh prd-$topic -- --remote-control prd-$topic \"\$(scripts/loops/prompt.sh orchestrator $topic)\""
     else
       exec "$bin/new.sh" prd "$@"
     fi
     ;;
   check)
+    if [[ " $* " == *" --times "* ]]; then  # the summary runs no check, from any checkout
+      since=""
+      while (($#)); do
+        case $1 in
+          --times) ;;
+          --since) since=${2:-}; [[ -n $since ]] || die "check --since needs a date"; shift ;;
+          *) die "check --times takes only --since <date>" ;;
+        esac
+        shift
+      done
+      exec node "$bin/check-times.mjs" --log "${CARETOOK_CHECK_LOG:-$loops/.check-times.log}" ${since:+--since "$since"}
+    fi
     name=$(here_name); [[ -n $name ]] || die "run pnpm prd check inside a .loops worktree"
     dir=$loops/$name; quick=0 why=""
     while (($#)); do
       case $1 in
         --quick) quick=1; why=${2:-}; [[ -n $why && $why != -* ]] || die "check --quick needs a reason: --quick \"<why>\""; shift ;;
-        *) die "check: unknown argument $1 (--quick \"<why>\")" ;;
+        *) die "check: unknown argument $1 (--quick \"<why>\"; --times [--since <date>])" ;;
       esac
       shift
     done
@@ -167,17 +260,29 @@ case $cmd in
       if [[ -n ${prev:-} ]] && git -C "$dir" merge-base --is-ancestor "$prev" HEAD 2>/dev/null; then base=$prev
       else base=$(git -C "$dir" merge-base "$trunk" HEAD); fi
     fi
+    # The mode comes from the plan (check-plan.mjs): a quick check on a diff that
+    # touches a migration, seeds, the sync config, a lockfile, a package.json or
+    # the Vitest config is a full one, and the tooling tests join when it touches
+    # the tooling.
+    [[ -n ${base:-} ]] || base=$(git -C "$dir" merge-base "$trunk" HEAD)
+    { read -r pmode; read -r preason; read -r ptooling; read -r palways; } < <(
+      git -C "$dir" diff --name-only "$base" HEAD | node "$bin/check-plan.mjs" --mode "$( ((quick)) && echo quick || echo full)")
     rm -f "$record"
-    # A check lease (lease.sh; CARETOOK_CHECK_SLOTS, default 3) around it, so a
+    # A check lease (lease.sh; CARETOOK_CHECK_SLOTS, default 2) around it, so a
     # wave of loops finishing together doesn't run every pnpm check at once.
-    if ((quick)); then
+    if [[ $pmode == quick ]]; then
       echo "Quick check against ${base:0:7}: typecheck, lint, format, and the tests related to the diff ($why)"
-      (cd "$dir" && use_node && "$bin/lease.sh" run check --label "pnpm check --quick" -- \
-        sh -c 'pnpm typecheck && pnpm lint && pnpm format:check && pnpm exec vitest run --changed "$1" --passWithNoTests' _ "$base")
+    elif ((quick)); then
+      echo "$preason"; why=""
+    fi
+    [[ $ptooling == 1 ]] && echo "The diff touches the tooling: the tooling tests (pnpm test:tooling) join."
+    # shellcheck disable=SC2086
+    (cd "$dir" && use_node && "$bin/lease.sh" run check --label "pnpm check${pmode:+ ($pmode)}" -- \
+      "$bin/check-run.sh" "$pmode" "${why:-$preason}" -- "$bin/check-body.sh" "$pmode" "$base" "$ptooling" $palways)
+    if [[ $pmode == quick ]]; then
       echo "$(git -C "$dir" rev-parse HEAD) quick $base $why" > "$record"
       echo "quick check passed on $(git -C "$dir" rev-parse --short HEAD) ($(git -C "$dir" branch --show-current)): $why"
     else
-      (cd "$dir" && use_node && "$bin/lease.sh" run check --label "pnpm check" -- sh -c 'pnpm check && pnpm build:budget')
       echo "$(git -C "$dir" rev-parse HEAD) full" > "$record"
       echo "pnpm check passed on $(git -C "$dir" rev-parse --short HEAD) ($(git -C "$dir" branch --show-current))"
     fi
@@ -192,6 +297,16 @@ case $cmd in
       git -C "$dir" merge --no-ff -m "chore(${branch#*/}): merge $trunk into $branch" "$trunk"
       echo "Merged $trunk into $branch. If seeds or migrations changed: pnpm datastore:reset. Then: pnpm prd check"
     fi
+    ;;
+  ask | asks | answer)
+    # The asking session and topic default to the worktree's: plan-<t> → plan-<t>, else prd-<topic>.
+    export CARETOOK_ASKS_DIR=${CARETOOK_ASKS_DIR:-$loops/.asks}
+    here=$(here_name) here_args=()
+    if [[ $cmd == ask && -n $here ]]; then
+      if [[ $here == plan-* ]]; then here_args=(--here-topic "${here#plan-}" --here-session "$here")
+      else here_topic=$(topic_of "$here"); here_args=(--here-topic "$here_topic" --here-session "prd-$here_topic"); fi
+    fi
+    exec node "$bin/ask.mjs" "$cmd" "$@" ${here_args[@]+"${here_args[@]}"}
     ;;
   help | -h | --help) usage ;;
   *) usage >&2; exit 1 ;;

@@ -10,11 +10,13 @@ import { profileRoutes } from "./routes/app/groups/profile/routes";
 import { providerRoutes } from "./routes/app/groups/providers/routes";
 import { searchRoutes } from "./routes/app/groups/search/routes";
 import { groupSettingsRoutes } from "./routes/app/groups/settings/routes";
-import { taskRoutes } from "./routes/app/groups/tasks/routes";
+import { todoRoutes } from "./routes/app/groups/todos/routes";
 import { timelineRoutes } from "./routes/app/groups/timeline/routes";
-import { upcomingRoutes } from "./routes/app/groups/upcoming/routes";
+import { plannerRoutes } from "./routes/app/groups/planner/routes";
+import { googleCalendarRoutes } from "./routes/api/google/routes";
 import { accountSettingsRoutes } from "./routes/app/settings/routes";
-import { notificationRoutes } from "./routes/dev/routes";
+import { connectorRoutes } from "./routes/connectors/routes";
+import { devUiRoutes, notificationRoutes } from "./routes/dev/routes";
 import { marketingRoutes } from "./routes/marketing/routes";
 
 // The frame: the `/app` layout, the group layout, the account pages and the
@@ -38,11 +40,11 @@ const appRoutes = [
         ...groupSettingsRoutes,
         ...providerRoutes,
         ...medicationRoutes,
-        ...upcomingRoutes,
+        ...plannerRoutes,
         ...profileRoutes,
         ...searchRoutes,
         ...periodRoutes,
-        ...taskRoutes,
+        ...todoRoutes,
       ]),
       ...newGroupRoutes,
     ]),
@@ -65,6 +67,9 @@ const webRoutes = [
   route("rpc/*", "routes/rpc.ts"),
   ...notificationRoutes,
   ...adminRoutes,
+  ...connectorRoutes,
+  ...googleCalendarRoutes,
+  ...devUiRoutes,
 ];
 
 // Native-only: the bundled app has no marketing site, so "/" goes straight to /app.

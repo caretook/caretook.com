@@ -7,10 +7,13 @@
 // the shared column helpers.
 export * from "./admin";
 export * from "./app-shell";
+export * from "./appointments";
 export * from "./assistant";
 export * from "./auth";
+export * from "./calendars";
 export * from "./care-groups";
 export * from "./care-periods";
+export * from "./connectors";
 export * from "./core";
 export * from "./live-notes";
 export * from "./marketing";
@@ -19,5 +22,5 @@ export * from "./notifications";
 export * from "./profiles";
 export * from "./providers";
 export * from "./search";
-export * from "./tasks";
+export * from "./todos";
 export * from "./timeline";

@@ -10,12 +10,15 @@ import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
 import * as weekSheet from "./print/week/route";
 import * as printSheet from "./print/route";
+import * as listTab from "./list/route";
 import * as medications from "./route";
+import * as scheduleTab from "./schedule/route";
 
 // The medications' component tests share one fictional world, like the
 // seeds' (medications.mjs used them): Grandma June's six medications on the
 // group's Morning and Evening passes (four current, a completed antibiotic, a
-// discontinued one with its reason and note), a prescriber and a pharmacy
+// discontinued one with its reason and note; prescriptions but for an
+// over-the-counter painkiller and the discontinued one, whose type isn't set), a prescriber and a pharmacy
 // with phones, Metformin's notes, and a history of doses and change entries.
 // Times are in the recipient's zone (America/Los_Angeles, the test
 // browser's too). Only `*.browser.test.tsx` files import it.
@@ -95,6 +98,7 @@ export const ACETAMINOPHEN = fx.medication({
   directions: "For knee pain. At least 6 hours between doses.",
   reason: "Knee pain",
   schedule: { type: "asNeeded", maxPerDay: 4 },
+  type: "otc",
   startedOn: dayAgo(90),
   ...since(90),
 });
@@ -136,6 +140,8 @@ export const OXYBUTYNIN = fx.medication({
   status: "discontinued",
   stopReason: "sideEffects",
   stopNote: "Dry mouth and some confusion at night.",
+  // Added before medications had types.
+  type: null,
   startedOn: dayAgo(60),
   stoppedOn: dayAgo(30),
   ...since(60),
@@ -207,18 +213,32 @@ export const world = () => [
   METFORMIN_NOTES,
 ];
 
-export const LIST = `/app/groups/${GROUP}/medications`;
-export const medicationUrl = (id: string) => `${LIST}/${id}`;
+/** The group's medications paths: a medication's page, print and passes sit below it. */
+export const MEDS = `/app/groups/${GROUP}/medications`;
+/** The Schedule tab (Today), where the section opens. */
+export const SCHEDULE = `${MEDS}/schedule`;
+/** The list tab (allergies, search, chips and the list). */
+export const LIST = `${MEDS}/list`;
+export const medicationUrl = (id: string) => `${MEDS}/${id}`;
 
-/** The list with its sheets, a medication's page and the print sheets (as routes.ts nests them). */
+const sheetsOver = (tab: "schedule" | "list"): DeviceRoute[] => [
+  { path: `/app/groups/:groupId/medications/${tab}/new`, module: newSheet },
+  { path: `/app/groups/:groupId/medications/${tab}/:medicationId/edit`, module: editSheet },
+  { path: `/app/groups/:groupId/medications/${tab}/allergies`, module: allergiesSheet },
+];
+
+/** The page with its two tabs and their sheets, a medication's page and the print sheets (as routes.ts nests them). */
 export const MEDICATION_ROUTES: DeviceRoute[] = [
   {
     path: "/app/groups/:groupId/medications",
     module: medications,
     children: [
-      { path: "/app/groups/:groupId/medications/new", module: newSheet },
-      { path: "/app/groups/:groupId/medications/:medicationId/edit", module: editSheet },
-      { path: "/app/groups/:groupId/medications/allergies", module: allergiesSheet },
+      {
+        path: "/app/groups/:groupId/medications/schedule",
+        module: scheduleTab,
+        children: sheetsOver("schedule"),
+      },
+      { path: "/app/groups/:groupId/medications/list", module: listTab, children: sheetsOver("list") },
     ],
   },
   { path: "/app/groups/:groupId/medications/:medicationId", module: medicationPage },

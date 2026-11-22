@@ -23,14 +23,20 @@ export type EntryDraft = {
   title: string | null;
   occurredAt: string;
   timeZone: string;
+  /** An event draft's all day and place (quick entry's, `withEventDraft`); a stored entry's are live. */
+  allDay: boolean;
+  place: string | null;
 };
 
 export type EntryPageData = {
   isNew: boolean;
   /** A draft opened as `?when=pick` (Add appointment, Add reminder): the time chip opens first. */
   pickDay: boolean;
-  /** A new appointment's provider (`?provider=`, from their page), linked once it's saved; null for none. */
-  withProvider: string | null;
+  /**
+   * A new appointment's providers, linked once it's saved: `?provider=` (from
+   * their page), and a quick entry draft's (`withEventDraft`). Empty for none.
+   */
+  withProviders: string[];
   entry: EntryDraft;
   heading: string;
   hasDocument: boolean;
@@ -80,14 +86,17 @@ export async function loadEntry(
         : [];
     return {
       isNew: true,
-      pickDay: when === WHEN_PICK,
-      withProvider: provider?.id ?? null,
+      // Only events are dated ahead, so only they open the picker.
+      pickDay: when === WHEN_PICK && kind === "event",
+      withProviders: provider ? [provider.id] : [],
       entry: {
         id: crypto.randomUUID(),
         kind,
         title: null,
         occurredAt: startAtFrom(at ? { at } : undefined) ?? new Date().toISOString(),
         timeZone: localTimeZone(),
+        allDay: false,
+        place: null,
       },
       heading: entryHeading(KIND_META[kind].label, null, true),
       hasDocument: false,
@@ -115,8 +124,16 @@ export async function loadEntry(
   return {
     isNew: false,
     pickDay: false,
-    withProvider: null,
-    entry: { id, kind: entry.kind, title, occurredAt, timeZone },
+    withProviders: [],
+    entry: {
+      id,
+      kind: entry.kind,
+      title,
+      occurredAt,
+      timeZone,
+      allDay: !!entry.allDay,
+      place: entry.place ?? null,
+    },
     heading: entryHeading(KIND_META[entry.kind].label, title, false),
     hasDocument: !!doc,
     initial: { snapshot: doc?.snapshot ?? null, updates },

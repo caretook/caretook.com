@@ -9,6 +9,7 @@ import { usePassLog } from "~/components/medications";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { offerUndo } from "~/lib/medications/passUndo";
+import { eventDraftFor, QUICK_ENTRY_DRAFT } from "~/lib/assistant/quickEntryDraft";
 import { actionPreview } from "~/lib/assistant/quickEntryPreview";
 import { recentLineFor, recordLine } from "~/lib/assistant/recentLines";
 import { getSync } from "~/lib/sync";
@@ -18,7 +19,11 @@ import {
   canSaveCards,
   cardActions,
   cardsAnnouncement,
+  draftCardOf,
+  draftSummary,
   editTarget,
+  isDraftReading,
+  markDraft,
   openAfterSave,
   savedText,
 } from "./quickEntryCards";
@@ -80,7 +85,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   const titleOf = useCallback((r: QuickEntryReading) => preview(r).title, [preview]);
 
   const cards = useMemo(
-    () => buildCards(parts, { chosen, removed }, titleOf),
+    () => markDraft(buildCards(parts, { chosen, removed }, titleOf)),
     [parts, chosen, removed, titleOf],
   );
 
@@ -121,7 +126,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
 
   const remove = (card: QuickEntryCard) => setRemoved((s) => new Set(s).add(card.key));
 
-  /** Write these cards together: what they wrote (and how many are tasks), or null when refused. */
+  /** Write these cards together: what they wrote (and how many are todos), or null when refused. */
   const write = async (which: readonly QuickEntryCard[]) => {
     const planned = cardActions(which);
     const result = await runActions(
@@ -130,12 +135,12 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
       planned.map((p) => p.action),
     );
     if (result.ok) {
-      const tasks = planned.reduce(
-        (n, p, i) => n + (p.action.type === "addTask" ? (result.byAction[i]?.length ?? 0) : 0),
+      const todos = planned.reduce(
+        (n, p, i) => n + (p.action.type === "addTodo" ? (result.byAction[i]?.length ?? 0) : 0),
         0,
       );
       const typed = planned.map((p, i) => ({ type: p.action.type, ids: result.byAction[i] ?? [] }));
-      return { ids: result.ids, tasks, typed };
+      return { ids: result.ids, todos, typed };
     }
     const key = result.index !== null ? planned[result.index]?.key : undefined;
     const message = result.issues[0]?.message ?? result.error;
@@ -144,11 +149,30 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     return null;
   };
 
+  /** What a card that opens as the draft says: "Opens to finish · Dr. Elena Alvarez · Wed, Nov 25". */
+  const draftLine = (card: QuickEntryCard) => {
+    const action = card.reading.actions[0];
+    if (!card.opensDraft || action?.type !== "addEvent") return null;
+    const names = action.providerIds.flatMap((id) => providers.find((p) => p.id === id)?.name ?? []);
+    return draftSummary(names, preview(card.reading).when);
+  };
+
+  /** Open a provider event on the new-event page, filled in: nothing is written until it saves there. */
+  const openDraft = (card: QuickEntryCard) => {
+    const action = card.reading.actions[0];
+    if (action?.type !== "addEvent") return;
+    return navigate(appUrls.newEntry(groupId, "event"), {
+      state: { [QUICK_ENTRY_DRAFT]: eventDraftFor(action) },
+    });
+  };
+
   const save = async () => {
     if (busy || !canSaveCards(cards)) return;
     setBusy(true);
     try {
-      const saved = await write(cards);
+      // The first provider event opens as a draft; everything else is written first, as one batch.
+      const { draft, rest } = draftCardOf(cards);
+      const saved = rest.length ? await write(rest) : { ids: [], todos: 0, typed: [] };
       if (saved) {
         recordLine(
           group.userId,
@@ -158,18 +182,20 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
             cards.map((c) => ({ text: c.text, readings: [c.reading] })),
           ),
         );
-        const open = openAfterSave(saved.typed);
+        const open = draft ? null : openAfterSave(saved.typed);
         reset();
-        // "Saved 3 entries · Undo": Undo removes the whole line (its tasks too).
-        offerUndo({
-          groupId,
-          label: savedText(saved.ids.length, saved.tasks),
-          doseIds: [],
-          entryIds: saved.ids,
-          place: QUICK_ENTRY_UNDO,
-        });
-        // A lone note or event opens on its page (a push: Back returns here).
-        if (open) await navigate(appUrls.entry(groupId, open));
+        // "Saved 3 entries · Undo": Undo removes the whole line (its todos too). A lone draft wrote nothing.
+        if (saved.ids.length)
+          offerUndo({
+            groupId,
+            label: savedText(saved.ids.length, saved.todos),
+            doseIds: [],
+            entryIds: saved.ids,
+            place: QUICK_ENTRY_UNDO,
+          });
+        // The draft opens on the new-event page; else a lone note or event opens on its page (a push: Back returns here).
+        if (draft) await openDraft(draft);
+        else if (open) await navigate(appUrls.entry(groupId, open));
       }
     } finally {
       setBusy(false);
@@ -178,6 +204,13 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
 
   const edit = async (card: QuickEntryCard) => {
     const action = card.reading.actions[0]!;
+    // A provider event is finished on the new-event page: Edit opens it there, writing nothing.
+    if (isDraftReading(card.reading)) {
+      if (card.blocking.length) return;
+      remove(card);
+      await openDraft(card);
+      return;
+    }
     const target = editTarget(action, groupId, search);
     if (target === "saveAndOpen") {
       // A note or event is written on its page: save this card and open it there.
@@ -197,6 +230,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     setText,
     cards,
     preview,
+    draftLine,
     errors,
     status,
     busy,

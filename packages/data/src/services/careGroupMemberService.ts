@@ -7,7 +7,10 @@ import { isError, newError } from "../errors";
 import { careGroupMemberModel } from "../models";
 import { isSystemUser } from "../permissions";
 import { getService } from "./baseService";
-import { releaseAssignee } from "./taskService";
+import { removeForMember as removeCalendarSettings } from "./calendarSettingService";
+import { revokeForMember } from "./connectorGrantService";
+import { disconnectForMember as disconnectGoogle } from "./googleConnectionService";
+import { releaseAssignee } from "./todoService";
 
 export const serviceName = "careGroupMember";
 export const schemaName = careGroupMemberModel.schemaName;
@@ -17,7 +20,9 @@ export const schemaName = careGroupMemberModel.schemaName;
 //   - only owners add, promote to, demote from, or remove owners
 //   - a group always keeps at least one owner
 //   - nobody locks or unlocks simple mode for themselves
-//   - a member who goes keeps their open tasks as a typed-in name
+//   - a member who goes keeps their open todos as a typed-in name
+//   - a member who goes loses their assistants' connections to the group
+//   - a member who goes loses their calendar settings, feed and reminder overrides there
 export const { get, getById, list } = getService(careGroupMemberModel);
 
 /** Whether the actor may touch owner memberships in `groupId`. */
@@ -150,9 +155,18 @@ export const remove = (ctx: ServiceContext, id: string) =>
       filter: { id: { type: "eq", value: id } },
     });
     if (isError(removed)) return removed;
-    // Their open tasks keep their name as a typed-in assignee (tasks PRD).
+    // Their open todos keep their name as a typed-in assignee (todos PRD).
     const released = await releaseAssignee(tx, target.groupId, target.userId);
     if (isError(released)) return released;
+    // Their AI assistants' access to the group ends with the membership (connectors PRD).
+    const disconnected = await revokeForMember(tx, target.groupId, target.userId);
+    if (disconnected) return disconnected;
+    // Their reminders, feed and details consent end with it too (appointments-2).
+    const forgotten = await removeCalendarSettings(tx, target.groupId, target.userId);
+    if (forgotten) return forgotten;
+    // And their Google calendar stops updating (revoked after commit; the calendar stays in Google).
+    const unsynced = await disconnectGoogle(tx, target.groupId, target.userId);
+    if (unsynced) return unsynced;
     return removed;
   }, ctx);
 

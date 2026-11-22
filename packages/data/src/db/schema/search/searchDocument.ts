@@ -1,3 +1,5 @@
+import type { MedicationType } from "../medications/medication";
+import { medicationTypeLabel } from "../medications/medicationTypeDisplay";
 import { VITALS } from "../timeline/vitals";
 
 // What each searchable thing's text is: one pure builder, used by the
@@ -8,10 +10,10 @@ import { VITALS } from "../timeline/vitals";
 // ranks above `body` (what's written about it: text, notes, place, author).
 // Soft-deleted rows have no document, so they never match.
 
-export const SEARCH_ITEM_TYPES = ["entry", "provider", "medication", "task"] as const;
+export const SEARCH_ITEM_TYPES = ["entry", "provider", "medication", "todo", "condition"] as const;
 export type SearchItemType = (typeof SEARCH_ITEM_TYPES)[number];
 
-/** What server search (`searchService`) covers: tasks are searched on the device only. */
+/** What server search (`searchService`) covers: todos and conditions are searched on the device only. */
 export const SERVER_SEARCH_ITEM_TYPES = [
   "entry",
   "provider",
@@ -63,17 +65,27 @@ export type MedicationSearchSource = {
   groupId: string;
   name?: Text;
   strength?: Text;
+  /** The stored type; its label is searchable. Anything unknown or unset adds nothing. */
+  type?: Text;
   reason?: Text;
   directions?: Text;
   documentText?: Text;
   deletedAt?: Text;
 };
 
-export type TaskSearchSource = {
+export type ConditionSearchSource = {
+  id: string;
+  groupId: string;
+  name?: Text;
+  note?: Text;
+  deletedAt?: Text;
+};
+
+export type TodoSearchSource = {
   id: string;
   groupId: string;
   title?: Text;
-  /** The task's live notes text, including edits not compacted yet. */
+  /** The todo's live notes text, including edits not compacted yet. */
   documentText?: Text;
   deletedAt?: Text;
 };
@@ -86,6 +98,16 @@ const join = (parts: Text[]) =>
     .join("\n");
 
 const str = (value: unknown): Text => (typeof value === "string" ? value : null);
+
+/** A condition change's names: the condition's, and a renamed one's old and new. */
+const conditionNames = (details: EntrySearchSource["details"]): Text[] => {
+  const d = details as {
+    conditionName?: unknown;
+    before?: { name?: unknown } | null;
+    after?: { name?: unknown } | null;
+  } | null;
+  return d ? [...new Set([str(d.conditionName), str(d.before?.name), str(d.after?.name)])] : [];
+};
 
 /** A vital's reading type names, as shown: "Blood pressure", "Sleep". Unknown types are skipped. */
 const vitalNames = (details: EntrySearchSource["details"]) => {
@@ -112,6 +134,7 @@ export const entrySearchDocument = (entry: EntrySearchSource): SearchDocument | 
       entry.kind === "symptom" ? str(details?.name) : null,
       ...vitalNames(details),
       medication,
+      ...(entry.kind === "conditionChange" ? conditionNames(details) : []),
       ...(entry.providerNames ?? []),
     ]),
     body: join([
@@ -144,18 +167,36 @@ export const medicationSearchDocument = (medication: MedicationSearchSource): Se
     type: "medication",
     groupId: medication.groupId,
     title: join([medication.name, medication.strength]),
-    body: join([medication.reason, medication.directions, medication.documentText]),
+    body: join([
+      // The type reads as its label ("Over the counter"); a medication with no type says nothing.
+      medication.type ? medicationTypeLabel(medication.type as MedicationType) : null,
+      medication.reason,
+      medication.directions,
+      medication.documentText,
+    ]),
   };
 };
 
-/** A task: its title weighted, its notes as body. Done tasks are found too (the page marks them). */
-export const taskSearchDocument = (task: TaskSearchSource): SearchDocument | null => {
-  if (task.deletedAt) return null;
+/** A todo: its title weighted, its notes as body. Done todos are found too (the page marks them). */
+export const todoSearchDocument = (todo: TodoSearchSource): SearchDocument | null => {
+  if (todo.deletedAt) return null;
   return {
-    id: task.id,
-    type: "task",
-    groupId: task.groupId,
-    title: join([task.title]),
-    body: join([task.documentText]),
+    id: todo.id,
+    type: "todo",
+    groupId: todo.groupId,
+    title: join([todo.title]),
+    body: join([todo.documentText]),
+  };
+};
+
+/** One of the recipient's conditions: its name weighted, its note as body. Resolved ones are found too. */
+export const conditionSearchDocument = (condition: ConditionSearchSource): SearchDocument | null => {
+  if (condition.deletedAt) return null;
+  return {
+    id: condition.id,
+    type: "condition",
+    groupId: condition.groupId,
+    title: join([condition.name]),
+    body: join([condition.note]),
   };
 };

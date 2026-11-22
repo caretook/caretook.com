@@ -9,7 +9,8 @@ import type { SearchIndexStatus } from "~/lib/search/search.sync";
 import type { EntryMedicationRow } from "~/lib/medications/medicationTimeline.sync";
 import type { LocalMedication, MedicationRow } from "~/lib/medications/medications.sync";
 import type { LocalProvider, ProviderRow } from "~/lib/providers/providers.sync";
-import type { LocalTask, TaskRow } from "~/lib/tasks/tasks.sync";
+import type { LocalTodo, TodoRow } from "~/lib/todos/todos.sync";
+import type { ConditionRow, LocalCondition } from "~/lib/profiles/conditions.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
 import type { EntryProviderLinkRow } from "~/lib/providers/entryProviders";
 
@@ -23,7 +24,8 @@ import { toEntryMedication } from "~/lib/medications/medicationTimeline.sync";
 import { toMedication } from "~/lib/medications/medications.sync";
 import { previewText } from "~/lib/live-notes/notes.sync";
 import { toProvider, windowLinksQuery } from "~/lib/providers/providers.sync";
-import { toTask } from "~/lib/tasks/tasks.sync";
+import { toTodo } from "~/lib/todos/todos.sync";
+import { toConditions } from "~/lib/profiles/conditions.sync";
 import { rangeUntilNow } from "~/lib/care-periods/periodSearch";
 import { loadSearchPeriods, searchPeriodRange } from "~/lib/care-periods/periodSearch.sync";
 import { parseSearch, searchGroup, searchIndexStatus } from "~/lib/search/search.sync";
@@ -49,8 +51,9 @@ export type SearchPageData = SearchPageQuery & {
   entries: Record<string, EntryResult>;
   providers: Record<string, ProviderResult>;
   medications: Record<string, LocalMedication>;
-  tasks: Record<string, LocalTask>;
-  /** The notes' text of the providers, medications and tasks shown (by their id), for snippets. */
+  todos: Record<string, LocalTodo>;
+  conditions: Record<string, LocalCondition>;
+  /** The notes' text of the providers, medications and todos shown (by their id), for snippets. */
   notes: Record<string, string>;
 };
 
@@ -140,12 +143,20 @@ const readMedications = async (db: SyncDb, groupId: string, ids: string) => {
   return byId(rows.flatMap((row) => toMedication(row) ?? []));
 };
 
-const readTasks = async (db: SyncDb, groupId: string, ids: string) => {
-  const rows = await db.powersync.getAll<TaskRow>(
-    `SELECT * FROM task WHERE group_id = ? AND deleted_at IS NULL AND ${inIds("id")}`,
+const readTodos = async (db: SyncDb, groupId: string, ids: string) => {
+  const rows = await db.powersync.getAll<TodoRow>(
+    `SELECT * FROM todo WHERE group_id = ? AND deleted_at IS NULL AND ${inIds("id")}`,
     [groupId, ids],
   );
-  return byId(rows.flatMap((row) => toTask(row) ?? []));
+  return byId(rows.flatMap((row) => toTodo(row) ?? []));
+};
+
+const readConditions = async (db: SyncDb, groupId: string, ids: string) => {
+  const rows = await db.powersync.getAll<ConditionRow>(
+    `SELECT * FROM recipient_condition WHERE group_id = ? AND deleted_at IS NULL AND ${inIds("id")}`,
+    [groupId, ids],
+  );
+  return byId(toConditions(rows));
 };
 
 /**
@@ -180,7 +191,8 @@ export const loadSearch = async (
     entries: {},
     providers: {},
     medications: {},
-    tasks: {},
+    todos: {},
+    conditions: {},
     notes: {},
   };
   if (none.empty || status === "unavailable") return none;
@@ -196,22 +208,30 @@ export const loadSearch = async (
   const ownerIds = JSON.stringify(
     sections.filter((s) => s.type !== "entry").flatMap((s) => s.hits.map((h) => h.id)),
   );
-  const [entries, providers, medications, tasks, notes] = await Promise.all([
+  const [entries, providers, medications, todos, conditions, notes] = await Promise.all([
     readEntries(db, groupId, idsOf(sections, "entry")),
     readProviders(db, groupId, idsOf(sections, "provider")),
     readMedications(db, groupId, idsOf(sections, "medication")),
-    readTasks(db, groupId, idsOf(sections, "task")),
+    readTodos(db, groupId, idsOf(sections, "todo")),
+    readConditions(db, groupId, idsOf(sections, "condition")),
     readNotes(db, groupId, ownerIds),
   ]);
   // An item deleted since it was indexed drops out (the index catches up in a moment).
-  const shown = { entry: entries, provider: providers, medication: medications, task: tasks };
+  const shown = {
+    entry: entries,
+    provider: providers,
+    medication: medications,
+    todo: todos,
+    condition: conditions,
+  };
   return {
     ...none,
     sections: sections.map((s) => ({ ...s, hits: s.hits.filter((h) => h.id in shown[s.type]) })),
     entries,
     providers,
     medications,
-    tasks,
+    todos,
+    conditions,
     notes: Object.fromEntries(notes),
   };
 };

@@ -6,7 +6,18 @@ import { found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
 import { fx } from "../../../../../../test/fixtures";
 import * as medications from "../route";
-import { $, $$, dialogButton, EVENING, LIST, menuItem, MORNING, OPEN_DIALOG } from "../medicationWorld";
+import * as scheduleTab from "../schedule/route";
+import {
+  $,
+  $$,
+  dialogButton,
+  EVENING,
+  MEDS,
+  menuItem,
+  MORNING,
+  OPEN_DIALOG,
+  SCHEDULE,
+} from "../medicationWorld";
 import * as passesScreen from "./route";
 
 // The Passes screen (medications.mjs's passes steps): the group's passes in
@@ -20,9 +31,13 @@ import * as passesScreen from "./route";
 // medicationPass.test.ts's; the service's retime and delete are
 // medicationPass.int.test.ts's and syncPasses.int.test.ts's.
 
-const PASSES = `${LIST}/passes`;
+const PASSES = `${MEDS}/passes`;
 const ROUTES: DeviceRoute[] = [
-  { path: "/app/groups/:groupId/medications", module: medications },
+  {
+    path: "/app/groups/:groupId/medications",
+    module: medications,
+    children: [{ path: "/app/groups/:groupId/medications/schedule", module: scheduleTab }],
+  },
   { path: "/app/groups/:groupId/medications/passes", module: passesScreen },
 ];
 
@@ -88,14 +103,16 @@ const addNoon = async (device: Awaited<ReturnType<typeof open>>) => {
 };
 
 describe("the screen", () => {
-  test("the list's Passes link opens the group's passes, Morning 08:00 then Evening 20:00, each with its medications", async () => {
-    const device = await open({ url: LIST });
+  test("Schedule's Passes link opens the group's passes, Morning 08:00 then Evening 20:00, each with its medications; Back goes to Schedule", async () => {
+    const device = await open({ url: SCHEDULE });
     await expect.poll(() => $("main [data-passes-link]"), { timeout: 3000 }).toBeTruthy();
     await userEvent.click($("main [data-passes-link]")!);
     await expect.poll(() => device.location()).toBe(PASSES);
     await expect.poll(passList).toEqual(["Morning 08:00", "Evening 20:00"]);
     expect(medsIn("Morning")).toEqual(["Lisinopril 10 mg", "Metformin 500 mg"]);
     expect(medsIn("Evening")).toEqual(["Metformin 500 mg"]);
+    const back = $$("main a").find((a) => a.textContent?.trim() === "Medications");
+    expect(back?.getAttribute("href")).toBe(SCHEDULE);
   });
 
   test("a viewer reads the passes and their medications, told so, with no controls", async () => {

@@ -9,6 +9,7 @@ import type {
 
 import { describe, expect, it } from "vitest";
 import { allergyState } from "../../../../../lib/medications/allergies";
+import { conditionState } from "../../../../../lib/profiles/conditions";
 import { EMERGENCY_SECTION_ORDER, emergencySheet } from "./emergencyPrintSheet";
 
 const ZONE = "America/Los_Angeles";
@@ -160,6 +161,28 @@ const full = () =>
       ],
       null,
     ),
+    conditions: conditionState(
+      [
+        { id: "c1", name: "Asthma", status: "active", sinceYear: null, sinceMonth: null, note: null },
+        {
+          id: "c2",
+          name: "Hip fracture",
+          status: "resolved",
+          sinceYear: 2019,
+          sinceMonth: 3,
+          note: null,
+        },
+        {
+          id: "c3",
+          name: "Type 2 diabetes",
+          status: "active",
+          sinceYear: 2015,
+          sinceMonth: null,
+          note: "diet-controlled",
+        },
+      ],
+      null,
+    ),
     now: NOW,
     locale: "en-US",
   });
@@ -185,6 +208,7 @@ describe("emergencySheet", () => {
       "emergency",
       "medications",
       "allergies",
+      "conditions",
       "careTeam",
     ]);
   });
@@ -294,6 +318,35 @@ describe("emergencySheet", () => {
     expect(section(sheet, "medications")?.medications.map((m) => m.howTaken)).toEqual([
       "1 tablet · Morning (2 tablets) and Evening",
     ]);
+  });
+
+  it("lists the active conditions, most recent first, after the allergies; past ones stay off", () => {
+    expect(section(full(), "conditions")).toEqual({
+      id: "conditions",
+      title: "Conditions",
+      conditions: [
+        { id: "c3", text: "Type 2 diabetes (since 2015; diet-controlled)" },
+        { id: "c1", text: "Asthma" },
+      ],
+      empty: null,
+    });
+  });
+
+  it("says No known conditions when recorded, and leaves the section out when not recorded, absent or all past", () => {
+    const sheet = (conditions?: ReturnType<typeof conditionState> | null) =>
+      emergencySheet({ recipient, details, members, medications, providers, conditions, now: NOW });
+    expect(section(sheet(conditionState([], "2026-11-01 10:00:00")), "conditions")).toMatchObject({
+      conditions: [],
+      empty: "No known conditions",
+    });
+    expect(section(sheet(conditionState([], null)), "conditions")).toBeUndefined();
+    expect(section(sheet(), "conditions")).toBeUndefined();
+    expect(section(sheet(null), "conditions")).toBeUndefined();
+    const past = conditionState(
+      [{ id: "c2", name: "Hip fracture", status: "resolved", sinceYear: 2019, sinceMonth: 3, note: null }],
+      null,
+    );
+    expect(section(sheet(past), "conditions")).toBeUndefined();
   });
 
   it("lists the allergies on file most severe first, says when there are none, and leaves them out without a recipient", () => {

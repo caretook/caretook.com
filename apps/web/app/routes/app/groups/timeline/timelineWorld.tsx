@@ -130,15 +130,33 @@ export const rowOf = (label: string) =>
 export const rowWith = (text: string) => rows().find((li) => li.textContent?.includes(text));
 export const rowKinds = () =>
   [...new Set(rows().map((li) => li.querySelector(".sr-only")?.textContent))].join(",");
+/** The kind chips: in the Filter sheet (`openFilters()` first). */
 export const chips = () => [
   ...document.querySelectorAll<HTMLAnchorElement>('nav[aria-label="Show entries"] a'),
 ];
 export const chip = (label: string) => chips().find((a) => a.textContent?.trim() === label)!;
+/** The removable chips under the Filter button, one per filter on. */
+export const activeChips = () => [
+  ...document.querySelectorAll<HTMLAnchorElement>('nav[aria-label="Filters on"] a'),
+];
+/** The filters on, by their chips' names ("Symptoms: clear this filter,By …"); "" with none. */
 export const currentChips = () =>
-  chips()
-    .filter((a) => a.getAttribute("aria-current") === "true")
+  activeChips()
     .map((a) => a.getAttribute("aria-label") ?? a.textContent?.trim())
     .join(",");
+export const filterButton = () => document.querySelector<HTMLButtonElement>("button[data-filter-button]")!;
+const filterSheet = () => document.querySelector('[role="dialog"]');
+/** Open the Filter sheet with its button, once the screen is up. */
+export const openFilters = async () => {
+  await waitUntil(() => !!filterButton(), 4000, "the Filter button");
+  await userEvent.click(filterButton());
+  await waitUntil(() => chips().length > 0, 4000, "the Filter sheet");
+};
+/** Done: close the Filter sheet. */
+export const closeFilters = async () => {
+  await userEvent.click(button("Done")!);
+  await waitUntil(() => !filterSheet(), 4000, "the Filter sheet to close");
+};
 export const iconOf = (li: Element) =>
   li.querySelector<HTMLAnchorElement>('a[aria-label^="Show only"]:not([data-author])')!;
 export const authorOf = (li: Element) => li.querySelector<HTMLAnchorElement>("a[data-author]")!;
@@ -148,9 +166,26 @@ export const button = (text: string) =>
   [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === text);
 export const view = () => document.querySelector("ol")?.dataset.view;
 
-/** Switch rows/cards with the header's toggle, and wait for the list. */
+/** Open the header's View options menu (layout, day summaries, simple view). */
+export const openViewOptions = async () => {
+  await userEvent.click(document.querySelector<HTMLElement>('button[aria-label="View options"]')!);
+  await waitUntil(() => !!document.querySelector('[role="menu"]'), 4000, "the View options menu");
+};
+
+/** Choose an item of the View options menu by its name ("Cards", "Simple view"). */
+export const chooseViewOption = async (name: string) => {
+  await openViewOptions();
+  const item = [...document.querySelectorAll<HTMLElement>('[role="menu"] [role^="menuitem"]')].find((el) =>
+    el.textContent?.trim().startsWith(name),
+  );
+  if (!item) throw new Error(`no "${name}" in View options`);
+  await userEvent.click(item);
+};
+
+/** Switch rows/cards in the header's View options menu, and wait for the list. */
 export const setView = async (to: "Rows" | "Cards") => {
-  await userEvent.click(document.querySelector(`[aria-label="${to}"]`)!);
+  if (view() === to.toLowerCase()) return;
+  await chooseViewOption(to);
   await waitUntil(() => view() === to.toLowerCase());
 };
 

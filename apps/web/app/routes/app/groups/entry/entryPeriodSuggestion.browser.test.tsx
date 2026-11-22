@@ -69,8 +69,8 @@ describe("the period suggestion", () => {
     await waitUntil(onEntry, 4000, "the entry page");
     await waitUntil(() => !!chip(), 4000, "the chip");
     expect(chips()).toHaveLength(1);
-    expect(chip()!.dataset.periodSuggestion).toBe("hospital");
-    expect(chip()!.textContent?.trim()).toBe("Start a hospital period?");
+    await expect.poll(() => chip()?.dataset.periodSuggestion).toBe("hospital");
+    await expect.poll(() => chip()?.textContent?.trim()).toBe("Start a hospital period?");
 
     await userEvent.click(chip()!);
     await waitUntil(() => !!FORM(), 4000, "the prefilled sheet");
@@ -106,7 +106,7 @@ describe("the period suggestion", () => {
   test('"Moved to rehab" offers Rehab', async () => {
     await open(REHAB.id);
     await waitUntil(() => chip()?.dataset.periodSuggestion === "rehab", 4000, "the rehab chip");
-    expect(chip()!.textContent?.trim()).toBe("Start a rehab period?");
+    await expect.poll(() => chip()?.textContent?.trim()).toBe("Start a rehab period?");
   });
 
   test("a viewer gets no chip", async () => {
@@ -122,7 +122,7 @@ describe("the period suggestion", () => {
     await userEvent.fill(await found(TITLE), "Hospice intake");
     await userEvent.tab();
     await waitUntil(() => chip()?.dataset.periodSuggestion === "hospiceHome", 4000, "the hospice chip");
-    expect(chip()!.textContent?.trim()).toBe("Start a hospice at home period?");
+    await expect.poll(() => chip()?.textContent?.trim()).toBe("Start a hospice at home period?");
 
     await userEvent.click(chip()!);
     await waitUntil(() => !!FORM(), 4000, "the sheet");

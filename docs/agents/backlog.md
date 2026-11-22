@@ -6,14 +6,14 @@ For anyone who reads or writes the backlog: the user, orchestrators, planning an
 
 - **`plans/inbox.md` is the user's.** Plain bullets under `##` headings (Bugs, Changes, Features, Big plans, Questions; the heading sets the type), with indented lines for details. No ids or fields.
 - **`plans/backlog.md` is the tracker** that agents keep and the user reviews: one item per bullet, with id `B-<n>`, type, status, `prd` (its topic), `owner` (the branch that claimed it), `commit` and notes, and a summary table at the top.
-- **The PRD table** at its top (topics, dependencies, hot files) says which PRDs can run at once. Change it when you add, reorder or finish a PRD.
+- **The PRD table** at its top is the registry: `PRD`, `Flags` (`hold`: waits on the user; `done`; `standing`: never finishes; `alone`: nothing beside it; or `—`; `standing` and `hold` are separate: a standing topic is dispatchable while it has waiting items, and is on hold only when it carries `hold`, the user's brake), `After` (topics), `Hot files` (path prefixes) and `Doc and notes`. **Row order is the priority.** Edit it only with `pnpm backlog prd add|set|move` (one backlog commit each; `migrate` converted the old prose table once). `pnpm backlog prd list [--json]` gives each topic's state, worked out, never stored: `done` or `hold` from the flag, `running` when a `prd/<topic>` worktree exists, a `standing` topic `planned` with triaged items and `idle` without, else `planned` when its plan is on `dev` and `to-write` when not. `doctor` reports an unknown `After` topic, a cycle, waiting items with no row or a done row, an unknown flag.
 - `pnpm backlog archive` moves landed, staging, live and dropped items to `plans/backlog-archive.md`; `show` and `list --all` read it, and ids are never reused.
 
 ## Ingest and triage
 
 - **Ingest links them.** `pnpm backlog ingest` files every untagged inbox bullet as an item (status `inbox`) and appends its id to the bullet: `- Login link can be clicked twice (B-1)`. That's the only change agents make to the inbox. Editing or deleting a filed bullet doesn't change its item: say so in a new bullet, or change the tracker. `pnpm backlog inbox` shows bullets not filed yet.
 - **When:** orchestrators at every wave boundary (with `doctor`, then rereading the list); the user whenever they like. Nothing ingests on its own, so a half-typed bullet is never filed.
-- **Agents propose, the user reviews.** An orchestrator or planning agent sets a new item's PRD (`set B-<n> prd=<topic> status=triaged`) with a `note` saying why; the user checks the summary table.
+- **Agents propose, the user reviews.** An orchestrator or planning agent sets a new item's PRD (`set B-<n> prd=<topic> status=triaged`) with a `note` saying why; the user checks the summary table. A small fix goes to `prd=fixes-<cat>` by the category rule in [`plans/fixes-rules.md`](../../plans/fixes-rules.md), never `quick-fixes`.
 
 ## Statuses
 
@@ -37,7 +37,7 @@ inbox → triaged (has a PRD) → in-progress (claimed) → ready → landed →
 
 ## Deciding what's next
 
-The backlog session (`pnpm prd plan` with no topic, in the main checkout) ingests, lists, checks `pnpm prd status`, and proposes which PRDs to write or start, given the PRD table's dependencies and hot files and the cap of three running at once. Standing priorities:
+The backlog session (`pnpm prd plan` with no topic, in the main checkout) ingests, lists, checks `pnpm prd status` (the dispatcher too) and triages new items. While the dispatcher runs, deciding what runs next is moving and holding rows (`pnpm backlog prd move`, `hold`), and it prints no start commands. It always prints an overview first, from what those commands returned: the backlog, the orchestrators (running, planning, queued) and what it triaged or left for review. Then its first question is one multi-select poll of what the session is for: write a PRD from the backlog, decide what to run next, or triage a new issue or idea. Later questions follow only from the picks; it never asks about a task the user didn't pick, and does routine chores without polling. Its proposals weigh the PRD table's dependencies and hot files and the cap of three running at once. To plan a topic it asks first: a planner in a new terminal (the user runs `pnpm prd plan <topic> --open`; an agent never runs `--open` from its own shell, where the planner would run inside the command) or planning inline in this session (`pnpm prd plan <topic>`, in its worktree). It never starts a PRD run from its own shell (`pnpm prd start`, `pnpm prd queue`): it prints the commands as options for the user to run. Standing priorities:
 
 1. Write the PRDs the table marks "to write" (`pnpm prd plan <topic>`), then run them.
 2. Tests: cover every role against every table.

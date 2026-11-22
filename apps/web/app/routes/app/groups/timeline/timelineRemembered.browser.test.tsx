@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
-import { at, fx, medicationPass, task, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
+import { at, fx, medicationPass, todo, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { clockAt, fixClock } from "../medications/medicationWorld";
 import * as timeline from "./route";
 import { TIMELINE_URL, waitUntil } from "./timelineWorld";
@@ -17,7 +17,7 @@ import { TIMELINE_URL, waitUntil } from "./timelineWorld";
 // card row paints what it showed before at once, dimmed with `data-stale`,
 // and the live answer replaces it, whatever it says. A first mount shows a
 // skeleton of the row's own height, so what's below doesn't move; an empty
-// answer collapses it. The same for simple mode's tasks and tiles. The store's
+// answer collapses it. The same for simple mode's todos and tiles. The store's
 // keys and clearing are remembered.test.ts's and index.test.ts's.
 
 /** Stands in for any other page: a link back to the timeline. */
@@ -32,7 +32,7 @@ function Elsewhere() {
 
 const ROUTES: DeviceRoute[] = [
   { path: "/app/groups/:groupId/timeline", module: timeline },
-  { path: "/app/groups/:groupId/tasks", module: { default: Elsewhere } },
+  { path: "/app/groups/:groupId/todos", module: { default: Elsewhere } },
 ];
 
 const LATE = medicationPass({ name: "Late", time: clockAt(-65), sortOrder: 0 });
@@ -75,9 +75,9 @@ const watchPage = <T,>(read: () => T) => {
   };
 };
 
-const TASKS = '[data-today-row="tasks"]';
+const TODOS = '[data-today-row="todos"]';
 const MEDS = '[data-today-row="medications"]';
-const taskStrip = () => seen(TASKS, "tasks", "[data-task]");
+const todoStrip = () => seen(TODOS, "todos", "[data-todo]");
 // What sits right below the card (the quick-entry box, then the list): its
 // top is where the card ends. The list itself moves later for quick entry's
 // own reason (its "gave Late" chip under the box), which isn't a tile.
@@ -98,23 +98,25 @@ describe("the header tiles remember", () => {
     const device = await renderWithDevice({
       route: ROUTES,
       url: TIMELINE_URL,
-      fixtures: [fx.note({ text: "A day" }), task({ title: "Call the pharmacy", dueOn: day(-2) })],
+      fixtures: [fx.note({ text: "A day" }), todo({ title: "Call the pharmacy", dueOn: day(-2) })],
     });
-    await waitUntil(() => typeof taskStrip() === "object", 4000, "the task strip");
-    expect(taskStrip()).toEqual({ stale: false, text: "Overdue: Call the pharmacy" });
+    await waitUntil(() => typeof todoStrip() === "object", 4000, "the todo strip");
+    expect(todoStrip()).toEqual({ stale: false, text: "Overdue: Call the pharmacy" });
 
-    // Away to another page, where the answer changes (another device's task arrives).
+    // Away to another page, where the answer changes (another device's todo arrives).
+    // The card starts collapsed: open it to reach See all.
+    await userEvent.click(await found(() => document.querySelector<HTMLElement>("main [data-today-toggle]")));
     await userEvent.click(
-      await found(() => document.querySelector<HTMLElement>('[data-today-row="tasks"] a[data-see-all]')),
+      await found(() => document.querySelector<HTMLElement>('[data-today-row="todos"] a[data-see-all]')),
     );
     await waitUntil(() => !!document.querySelector("h1")?.textContent?.includes("Elsewhere"));
-    await device.sync([task({ title: "Refill the pill box", dueOn: day(-3) })]);
+    await device.sync([todo({ title: "Refill the pill box", dueOn: day(-3) })]);
 
-    const page = watchPage(taskStrip);
+    const page = watchPage(todoStrip);
     await userEvent.click(await found(() => document.querySelector<HTMLElement>("main a")));
     await waitUntil(
       () => {
-        const s = taskStrip();
+        const s = todoStrip();
         return typeof s === "object" && !s.stale && s.text.includes("Refill");
       },
       4000,
@@ -130,15 +132,15 @@ describe("the header tiles remember", () => {
   });
 
   test("a first mount holds each row's height with a skeleton, so what's below them doesn't move when they answer", async () => {
-    const page = watchPage(() => ({ meds: seen(MEDS, "medications"), tasks: taskStrip(), top: listTop() }));
+    const page = watchPage(() => ({ meds: seen(MEDS, "medications"), todos: todoStrip(), top: listTop() }));
     await renderWithDevice({
       route: ROUTES,
       url: TIMELINE_URL,
       role: "caretaker",
-      fixtures: [fx.note({ text: "A day" }), LATE, SA, task({ title: "Call the pharmacy", dueOn: day(-2) })],
+      fixtures: [fx.note({ text: "A day" }), LATE, SA, todo({ title: "Call the pharmacy", dueOn: day(-2) })],
     });
     await waitUntil(
-      () => typeof seen(MEDS, "medications") === "object" && typeof taskStrip() === "object",
+      () => typeof seen(MEDS, "medications") === "object" && typeof todoStrip() === "object",
       4000,
       "both strips",
     );
@@ -146,29 +148,29 @@ describe("the header tiles remember", () => {
 
     const withList = page.states.filter((s) => s.top !== null);
     // The list's first paint had both skeletons above it.
-    expect(withList[0]).toMatchObject({ meds: "skeleton", tasks: "skeleton" });
-    expect(withList.at(-1)).toMatchObject({ meds: { stale: false }, tasks: { stale: false } });
+    expect(withList[0]).toMatchObject({ meds: "skeleton", todos: "skeleton" });
+    expect(withList.at(-1)).toMatchObject({ meds: { stale: false }, todos: { stale: false } });
     // And its top never moved.
     expect(new Set(withList.map((s) => s.top)).size).toBe(1);
   });
 
   test("an empty answer collapses the row's skeleton (and the card, with nothing else in it)", async () => {
-    const page = watchPage(() => ({ meds: seen(MEDS, "medications"), tasks: taskStrip(), top: listTop() }));
+    const page = watchPage(() => ({ meds: seen(MEDS, "medications"), todos: todoStrip(), top: listTop() }));
     await renderWithDevice({
       route: ROUTES,
       url: TIMELINE_URL,
-      fixtures: [fx.note({ text: "A day" }), task({ title: "Fax the form", dueOn: day(3) })],
+      fixtures: [fx.note({ text: "A day" }), todo({ title: "Fax the form", dueOn: day(3) })],
     });
     await waitUntil(
-      () => listTop() !== null && seen(MEDS, "medications") === "none" && taskStrip() === "none",
+      () => listTop() !== null && seen(MEDS, "medications") === "none" && todoStrip() === "none",
       4000,
       "the skeletons to go",
     );
     page.stop();
     const withList = page.states.filter((s) => s.top !== null);
-    expect(withList[0]).toMatchObject({ meds: "skeleton", tasks: "skeleton" });
+    expect(withList[0]).toMatchObject({ meds: "skeleton", todos: "skeleton" });
     // Collapsed once, never a strip.
-    expect(page.states.some((s) => typeof s.meds === "object" || typeof s.tasks === "object")).toBe(false);
+    expect(page.states.some((s) => typeof s.meds === "object" || typeof s.todos === "object")).toBe(false);
   });
 });
 
@@ -176,32 +178,32 @@ describe("simple mode's tiles remember", () => {
   const SIMPLE: Fixture[] = [
     fx.member({ userId: TEST_USER.id, role: "owner", simpleMode: 1 }),
     fx.note({ occurredAt: at(new Date(Date.now() - 10 * 60_000)), text: "Slept well after lunch" }),
-    task({ title: "Water the plants", dueOn: day(-1), assigneeId: TEST_USER.id }),
+    todo({ title: "Water the plants", dueOn: day(-1), assigneeId: TEST_USER.id }),
   ];
-  const tasks = () => seen("[data-simple-tasks]", "tasks");
+  const todos = () => seen("[data-simple-todos]", "todos");
   const tiles = () => seen("[data-simple-tiles]", "tiles");
 
-  test("skeletons on a first mount; mounted again, the tasks card and tiles paint dimmed, then fresh", async () => {
-    const first = watchPage(() => ({ tasks: tasks(), tiles: tiles() }));
+  test("skeletons on a first mount; mounted again, the todos card and tiles paint dimmed, then fresh", async () => {
+    const first = watchPage(() => ({ todos: todos(), tiles: tiles() }));
     const device = await renderWithDevice({ route: ROUTES, url: TIMELINE_URL, role: null, fixtures: SIMPLE });
     await waitUntil(
-      () => typeof tasks() === "object" && typeof tiles() === "object",
+      () => typeof todos() === "object" && typeof tiles() === "object",
       4000,
-      "the tasks card and tiles",
+      "the todos card and tiles",
     );
     first.stop();
-    expect(first.states.find((s) => s.tasks !== "none")).toMatchObject({ tasks: "skeleton" });
+    expect(first.states.find((s) => s.todos !== "none")).toMatchObject({ todos: "skeleton" });
     expect(first.states.find((s) => s.tiles !== "none")).toMatchObject({ tiles: "skeleton" });
-    expect(tasks()).toMatchObject({ stale: false });
+    expect(todos()).toMatchObject({ stale: false });
     expect(tiles()).toMatchObject({ stale: false });
 
-    await userEvent.click(await found(() => document.querySelector<HTMLElement>("[data-simple-tasks-all]")));
+    await userEvent.click(await found(() => document.querySelector<HTMLElement>("[data-simple-todos-all]")));
     await waitUntil(() => !!document.querySelector("h1")?.textContent?.includes("Elsewhere"));
-    const again = watchPage(() => ({ tasks: tasks(), tiles: tiles() }));
+    const again = watchPage(() => ({ todos: todos(), tiles: tiles() }));
     await userEvent.click(await found(() => document.querySelector<HTMLElement>("main a")));
     await waitUntil(
       () => {
-        const [t, l] = [tasks(), tiles()];
+        const [t, l] = [todos(), tiles()];
         return typeof t === "object" && !t.stale && typeof l === "object" && !l.stale;
       },
       4000,
@@ -210,9 +212,9 @@ describe("simple mode's tiles remember", () => {
     await device.settle();
     again.stop();
 
-    const shown = again.states.filter((s) => s.tasks !== "none");
-    expect(shown.some((s) => s.tasks === "skeleton" || s.tiles === "skeleton")).toBe(false);
-    expect(shown[0]).toMatchObject({ tasks: { stale: true }, tiles: { stale: true } });
-    expect(shown.at(-1)).toMatchObject({ tasks: { stale: false }, tiles: { stale: false } });
+    const shown = again.states.filter((s) => s.todos !== "none");
+    expect(shown.some((s) => s.todos === "skeleton" || s.tiles === "skeleton")).toBe(false);
+    expect(shown[0]).toMatchObject({ todos: { stale: true }, tiles: { stale: true } });
+    expect(shown.at(-1)).toMatchObject({ todos: { stale: false }, tiles: { stale: false } });
   });
 });
