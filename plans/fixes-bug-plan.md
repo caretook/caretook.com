@@ -8,7 +8,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Hand-off (2026-11-22, after the wave 2 landing; no slices in flight).** Wave 1 landed as 7a205be1 (PR #46). **Wave 2 (slices 13–17, all on opus) landed in dev through PR #52** (dev 4f94740): full check passed on 99023ba (557/557, quiet machine, after 7 earlier runs failed on load flakes only; flakes filed B-489–B-502), Codex clean on 608a759, tooling 47/47, browser `--changed` 8/8; lean `--suite` was skipped (said in the report). Report: ask a39; to-test `to-test/2026-11-22-0812-fixes-bug.md`. Docs folded (todos, search, app-shell, care-groups; all at ~10.2 KB, trim when adding). B-450 stopgap (roles test 60 s timeouts) landed with it; the query fix stays on B-450.
 
-**Next session: wave 3.** `pnpm backlog ingest`, `list`; candidate: B-510 (removeUndoneNext reports 'applied' for a viewer's Undo delete before checking the role; todoService.ts:450). Check `pnpm backlog prd list` hot files, append slices under _Wave 3_, set hot files, claim. Full checks: run on a quiet machine only (no other check lease, 5-min load < 12; coordinate with ui-kit-2/test-health), under `caffeinate -i`; `pnpm prd check` takes no reason (only `--quick` does). `land --no-review` is classifier-blocked: re-wait for Codex instead.
+**Wave 3 (this session): slice 18 (B-510, opus).** Written; starting. Full checks: run on a quiet machine only (no other check lease, 5-min load < 12; coordinate with ui-kit-2/test-health), under `caffeinate -i`; `pnpm prd check` takes no reason (only `--quick` does). `land --no-review` is classifier-blocked: re-wait for Codex instead.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -31,6 +31,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 15    | B-469 | landed (search.md at landing)              | 681f425b |
 | 16    | B-470 | landed                                     | 7e65e0ab |
 | 17    | B-472 | landed (+B-482; layout-offline at landing) | 3114a864 |
+| 18    | B-510 | wave 3: written, not started (opus)        | —        |
 
 ## Wave 1
 
@@ -192,3 +193,16 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md · Tests: uni
 
 - `readPending` maps a legacy `simpleMode` to `easyMode` (the same value conversion the rename used, e.g. `simple`→`easy`; drop values with no equivalent) and drops the old key before anything is sent or merged; the rewritten pending is stored back.
 - Unit test: a pending payload with `simpleMode` plus another field sends the mapped `easyMode` and the other field, and is cleared after a successful send.
+
+## Wave 3
+
+As before: the item's backlog note (`pnpm backlog show B-<n>`) carries the file references, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code.
+
+### Slice 18: a viewer's Undo delete is refused, not reported as applied (B-510)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/todos.md, docs/domain/care-groups.md · Tests: unit, integration
+
+`packages/data/src/services/todoService.ts` `removeUndoneNext` (the flagged Undo delete of a repeating todo's successor, from wave 2's B-382) returns `'applied'` on its `!before?.repeatRule` early return before it checks `canCompleteTodo`, so a viewer's flagged delete reads as applied although nothing changes.
+
+- Check the role first: a role that can't complete todos gets the same refusal as any other refused todo write, whatever the row's state; the untouched-successor logic is unchanged for roles that may.
+- Test (integration where the service runs against the test database): a viewer's flagged Undo delete is refused, on a repeating and a non-repeating todo; a member's still applies as before.
