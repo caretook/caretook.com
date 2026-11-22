@@ -4,18 +4,23 @@
 
 ## Status
 
-**Landing mode: run everything through** (queued with `pnpm prd queue`; start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`). Landing is `pnpm prd land orchestration-3 -m …` through the PR (never `--force`).
+**Landing mode: run everything through** (queued with `pnpm prd queue`; start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`). Land with `pnpm prd land orchestration-3 -m …` through the PR; when only the check is stale, `--recheck "<why>"`; never `--force`.
 
-2026-11-21: registry rows `orchestration-2` and `check-speed` flagged `done` (both in `dev`, no worktrees). B-392, B-426, B-427, B-428, B-439 claimed. Wave 1 (slices 1–3) plus slice 4 merged; landing them as one PR while slice 5 runs. Wave 1 started: worktrees `orchestration-3-1`, `-2`, `-3` made, one background agent each, all on **opus**.
+- **Wave 1 (slices 1–3) and slice 4 landed** in `dev` through PR #37 (dev `e015a74`, 2026-11-21; check: none needed, tooling only; Codex: one P2 on rotating records, tracked on B-392 and fixed in slice 5; then clean). Registry rows `orchestration-2` and `check-speed` flagged `done` before wave 1. to-test: `to-test/2026-11-21-1946-orchestration-3.md`.
+- **Slice 5 merged** into `prd/orchestration-3` (`813bff39`) after that landing (draining); not landed yet. B-426, B-428, B-439 marked ready.
+- **Next session (wave 2's landing, then wave 3):** `pnpm backlog ingest`/`list`; `pnpm prd sync`; `pnpm test:tooling` + prettier on changed files; `pnpm prd pr` and `review --wait`; land. Then the plan's _Trying it_: `pnpm prd dispatch --dry-run` against the live registry, output in the report. Then slice 6 (ready: slice 5 is merged), land it, then _Trying it_ after wave 3 (one `dispatch --once` and one dispatcher ask: those need the user's word, ask through `pnpm prd ask`), the docs pass, `pnpm prd rm`, `pnpm prd end`.
+- **For slice 6** (from slice 5): `dispatch.mjs` exports `pathsOf`, `readState`, `updateState`, `lockHolder`, `takeLock`, `mainCheckout` for status and recover; its log is `.loops/.dispatch.log`; the queue machinery is untouched. Slice 5 also made the pick skip reopening a `hold` row.
+- **Docs pass at the last landing** (plan's _How to run this plan_), plus: machinery gets the load gate's settings (`CARETOOK_LOAD_BUSY/_GATE/_WAIT/_POLL/_FILE`, the check-times 12th field = seconds waited, the status gate line; a waiting check holds a check lease), `managed`, the dispatcher (files, `--pause/--resume/--stop`, the helper push, the 30-minute reopen-count reset); `docs/agents/hotfix.md` still says `--force`.
+- **Seen on the real machine** (slice 5's dry run): the load sits above 20 on 10 cores, and stale hand-opened worktrees (fixes-nit, ui-kit, simple-mode) fill the slots ("4 of 3 running"), so the dispatcher would start nothing yet.
 
-| Slice | Wave | State                                                                                                                                                                               | Merge into `prd/orchestration-3` |
-| ----- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| 1     | 1    | merged (opus); pick contract in its hand-off: rows/worktrees/sessions shapes, own reopen ask filed with `session: "dispatch"`, a rotating record needs `rotatingAt`                 | 947da00d                         |
-| 2     | 1    | merged (opus); slice 5 builds its own planner command: `session.sh plan-<t> --auto --managed -- … "$(prompt.sh plan <t> --auto)"` (no `prd plan --open --auto`)                     | c31e2ebc                         |
-| 3     | 1    | merged (opus); fold into machinery.md: `CARETOOK_LOAD_BUSY/_GATE/_WAIT/_POLL/_FILE`, check-times 12th field (seconds waited), status gate line; a waiting check holds a check lease | 04a45f7f                         |
-| 4     | 2    | merged (opus), B-427 ready; docs pass: hotfix.md still says `--force`                                                                                                               | 77bc95c5                         |
-| 5     | 2    | agent running (opus)                                                                                                                                                                |                                  |
-| 6     | 3    | not started                                                                                                                                                                         |                                  |
+| Slice | Wave | State                                                | Merge into `prd/orchestration-3` |
+| ----- | ---- | ---------------------------------------------------- | -------------------------------- |
+| 1     | 1    | landed (opus)                                        | 947da00d                         |
+| 2     | 1    | landed (opus)                                        | c31e2ebc                         |
+| 3     | 1    | landed (opus)                                        | 04a45f7f                         |
+| 4     | 2    | landed with wave 1 (opus)                            | 77bc95c5                         |
+| 5     | 2    | merged, not landed (opus); fixes Codex's rotating P2 | 813bff39                         |
+| 6     | 3    | not started (ready)                                  |                                  |
 
 **Backlog:** B-427 closes with slice 4; B-426, B-428 and B-439 with slice 5 (slices 1, 2 and 3 build their first halves, the dispatcher the rest); B-392 with slice 6.
 
