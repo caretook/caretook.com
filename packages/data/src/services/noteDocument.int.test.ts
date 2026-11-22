@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import { createGroup, createUser, ok, system, typeParagraph } from "../../test/fixtures";
+import { createWorld, ok, system, typeParagraph } from "../../test/fixtures";
 import { getDb } from "../db";
 import {
   buildNoteDoc,
@@ -27,19 +27,7 @@ const WRITERS = ["owner", "admin", "caretaker"] as const;
 const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
 
 const setup = async () => {
-  const u = {
-    owner: await createUser("owner"),
-    admin: await createUser("admin"),
-    caretaker: await createUser("caretaker"),
-    viewer: await createUser("viewer"),
-    outsider: await createUser("outsider"),
-    staff: await createUser("staff", "admin"),
-  };
-  const { group } = await createGroup(u.owner, [
-    { user: u.admin.user, role: "admin" },
-    { user: u.caretaker.user, role: "caretaker" },
-    { user: u.viewer.user, role: "viewer" },
-  ]);
+  const { u, group } = await createWorld({ extras: ["outsider", "staff"] });
   const addEntry = async (overrides: Partial<TimelineEntryCreateInput> = {}) => {
     const entry = ok(
       await timelineEntryService.create(u.caretaker.ctx, {

@@ -1,7 +1,7 @@
 import type { TodoCreateInput } from "../db";
 
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok } from "../../test/fixtures";
+import { createWorld, ok } from "../../test/fixtures";
 import { SYSTEM_USER } from "../constants";
 import { addDays, localDate } from "../db/schema";
 import { nextTodoId } from "../db/schema/appointments/series";
@@ -23,17 +23,7 @@ const MONDAY_NOON = "2026-11-16T20:00:00.000Z";
 const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
 
 const setup = async () => {
-  const u = {
-    owner: await createUser("owner"),
-    admin: await createUser("admin"),
-    caretaker: await createUser("caretaker"),
-    viewer: await createUser("viewer"),
-  };
-  const { group, recipient } = await createGroup(u.owner, [
-    { user: u.admin.user, role: "admin" },
-    { user: u.caretaker.user, role: "caretaker" },
-    { user: u.viewer.user, role: "viewer" },
-  ]);
+  const { u, group, recipient } = await createWorld();
   const addTodo = async (overrides: Partial<TodoCreateInput> = {}) => {
     const todo = ok(
       await todoService.create(u.caretaker.ctx, {

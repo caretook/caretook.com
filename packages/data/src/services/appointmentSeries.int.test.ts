@@ -2,7 +2,7 @@ import type { AppointmentSeriesCreateInput } from "../db";
 
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok, system } from "../../test/fixtures";
+import { createGroup, createWorld, ok, system } from "../../test/fixtures";
 import { entryProviderId, seriesVisitId } from "../db/schema";
 import { isError } from "../errors";
 import { appointmentSeriesModel, timelineEntryModel } from "../models";
@@ -23,19 +23,7 @@ const WRITERS = ["owner", "admin", "caretaker"] as const;
 const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
 
 const setup = async () => {
-  const u = {
-    owner: await createUser("owner"),
-    admin: await createUser("admin"),
-    caretaker: await createUser("caretaker"),
-    viewer: await createUser("viewer"),
-    outsider: await createUser("outsider"),
-    staff: await createUser("staff", "admin"),
-  };
-  const { group, recipient } = await createGroup(u.owner, [
-    { user: u.admin.user, role: "admin" },
-    { user: u.caretaker.user, role: "caretaker" },
-    { user: u.viewer.user, role: "viewer" },
-  ]);
+  const { u, group, recipient } = await createWorld({ extras: ["outsider", "staff"] });
   const input = (overrides: Partial<AppointmentSeriesCreateInput> = {}): AppointmentSeriesCreateInput => ({
     groupId: group.id,
     kind: "event",

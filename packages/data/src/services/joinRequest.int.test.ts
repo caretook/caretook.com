@@ -3,7 +3,7 @@ import type { JoinMailer, JoinNotice } from "./joinRequestService";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok, system } from "../../test/fixtures";
+import { createUser, createWorld, ok, system } from "../../test/fixtures";
 import { getDb } from "../db";
 import { careGroupInviteSchema, CONSENT_VERSION } from "../db/schema";
 import { isError } from "../errors";
@@ -15,15 +15,17 @@ import { careGroupInviteService, joinRequestService, timelineEntryService } from
 const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
 
 const setup = async () => {
-  const owner = await createUser("link-owner");
-  const admin = await createUser("link-admin");
-  const caretaker = await createUser("link-caretaker");
-  const outsider = await createUser("link-outsider");
-  const { group } = await createGroup(owner, [
-    { user: admin.user, role: "admin" },
-    { user: caretaker.user, role: "caretaker" },
-  ]);
-  return { owner, admin, caretaker, outsider, groupId: group.id };
+  const { u, groupId } = await createWorld({
+    members: ["admin", "caretaker"],
+    extras: ["outsider"],
+    names: {
+      owner: "link-owner",
+      admin: "link-admin",
+      caretaker: "link-caretaker",
+      outsider: "link-outsider",
+    },
+  });
+  return { ...u, groupId };
 };
 
 const recordingMailer = () => {
