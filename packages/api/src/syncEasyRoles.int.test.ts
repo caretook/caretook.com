@@ -222,10 +222,11 @@ describe("sync.upload as an Easy helper", () => {
       "timelineEntryService:loggerOnly",
       "applied",
     ]);
-    expect(ok(await timelineEntryService.getById(owner.ctx, mine.id))).toMatchObject({
+    const after = ok(await timelineEntryService.getById(owner.ctx, mine.id))!;
+    expect(new Date(String(after.cancelledAt)).toISOString()).toBe(cancelledAt);
+    expect(after).toMatchObject({
       title: "Physio visit",
       place: "Room 2",
-      cancelledAt: new Date(cancelledAt),
       cancelReason: "Therapist away",
       rescheduledTo: later.id,
     });

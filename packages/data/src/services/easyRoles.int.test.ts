@@ -407,10 +407,11 @@ describe("an Easy helper's own entries", () => {
         place: "Main St clinic",
       }),
     );
-    expect(ok(await timelineEntryService.getById(helper, event.id))).toMatchObject({
+    const after = ok(await timelineEntryService.getById(helper, event.id))!;
+    expect(new Date(String(after.cancelledAt)).toISOString()).toBe(AT);
+    expect(after).toMatchObject({
       title: "Dentist visit",
       place: "Main St clinic",
-      cancelledAt: new Date(AT),
       cancelReason: "Office closed",
       rescheduledTo: later.id,
     });
