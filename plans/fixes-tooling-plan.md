@@ -8,7 +8,9 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **Hand-off (2026-11-22, after the wave 1 landing; no slices in flight).** Wave 1 (slices 1–8, all opus) landed in dev through PR #61 (dev b0b9a31): full check passed on 80aa5175 (5709/5709, tooling 791/791; the first run failed only resetStaging B-466, passed alone 3/3), quick passed on 3b19210e after a conflict-free dev sync, browser `--changed` none needed. Codex reviewed fb529c4 clean; the docs fold and dev merge after it landed `--no-review` (said in the report). Report: ask a49; to-test `to-test/2026-11-22-1127-fixes-tooling.md`. Docs folded: backlog.md (`--archived`), machinery.md (tidy ownership and lsof, session `--if-pid`). B-458's archived-item fixes (B-205/B-206/B-208/B-88/B-222) are applied. B-460 done with slice 5; B-461 noted as likely the same cause (confirm under load). Follow-ups filed: B-527 (fixes-bug, Undo/Done writes uncaught), B-534 (tooling tests and the load gate).
 
-**Wave 2 (started 2026-11-22, slices 9–16, all opus):** dev synced into prd/fixes-tooling first (backlog-only, conflict-free). Chosen clear of ui-kit-3's and sync-safety's hot files; agent-autonomy and test-health aren't running, so `scripts/loops/` is free. Remaining waiting items (the app-test load flakes B-479, B-480, B-485–B-502; B-239–B-244 codex-review; dispatcher B-452–B-454, B-462–B-465; B-418, B-431, B-432, B-442, B-443, B-446, B-447, B-459, B-461, B-468, B-477, B-525, B-526, B-370, B-375, B-539) wait for wave 3. B-489–B-491 touch ui-kit-3's `components/ui/`: not before it ends.
+**Held for test-gates after wave 2 (backlog session, 2026-11-22; row flagged standing,hold).** Finish and land wave 2 as usual, start nothing more, then write the hand-off here, `pnpm prd rm fixes-tooling` (frees the slot and the `scripts/loops/`, `scripts/backlog/` hot files) and `pnpm prd end` from the main checkout, **without rotating**. The row is released after test-gates lands.
+
+**Wave 2 (started 2026-11-22, slices 9–16, all opus):** all eight worktrees made and agents spawned (opus). dev synced into prd/fixes-tooling first (backlog-only, conflict-free). Chosen clear of ui-kit-3's and sync-safety's hot files; agent-autonomy and test-health aren't running, so `scripts/loops/` is free. Remaining waiting items (the app-test load flakes B-479, B-480, B-485–B-502; B-239–B-244 codex-review; dispatcher B-452–B-454, B-462–B-465; B-418, B-431, B-432, B-442, B-443, B-446, B-447, B-459, B-461, B-468, B-477, B-525, B-526, B-370, B-375, B-539) wait for wave 3. B-489–B-491 touch ui-kit-3's `components/ui/`: not before it ends.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
@@ -22,14 +24,14 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 6     | B-458 | merged (tooling)                                                                              | a8ab24cc |
 | 7     | B-475 | merged (test race, not a timer; Undo catch: B-527 fixes-bug)                                  | cd8cc1f5 |
 | 8     | B-484 | merged (quick passed on slice)                                                                | af134b65 |
-| 9     | B-451 | ready (opus)                                                                                  | —        |
-| 10    | B-445 | ready (opus)                                                                                  | —        |
-| 11    | B-534 | ready (opus)                                                                                  | —        |
-| 12    | B-444 | ready (opus)                                                                                  | —        |
-| 13    | B-405 | ready (opus)                                                                                  | —        |
-| 14    | B-388 | ready (opus)                                                                                  | —        |
-| 15    | B-450 | ready (opus)                                                                                  | —        |
-| 16    | B-466 | ready (opus)                                                                                  | —        |
+| 9     | B-451 | started (opus agent spawned)                                                                  | —        |
+| 10    | B-445 | started (opus agent spawned)                                                                  | —        |
+| 11    | B-534 | started (opus agent spawned)                                                                  | —        |
+| 12    | B-444 | started (opus agent spawned)                                                                  | —        |
+| 13    | B-405 | started (opus agent spawned)                                                                  | —        |
+| 14    | B-388 | started (opus agent spawned)                                                                  | —        |
+| 15    | B-450 | started (opus agent spawned)                                                                  | —        |
+| 16    | B-466 | started (opus agent spawned)                                                                  | —        |
 
 ## Wave 1
 
