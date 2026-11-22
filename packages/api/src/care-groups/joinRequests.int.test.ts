@@ -1,16 +1,13 @@
-import type { AuthUser } from "@caretook/data";
-
 import { userModel, isError, SYSTEM_USER } from "@caretook/data";
 import { setBackgroundRunner, sharedMemorySender } from "@caretook/notifications";
-import { createRouterClient, ORPCError } from "@orpc/server";
+import { ORPCError } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createGroup, createUser } from "../../../data/test/fixtures";
-import { router } from "..";
+import { clientFor, codesOf } from "../testing";
 
 // Invite links and join requests (invites slice 4) through the router, with the memory sender.
 
-const clientFor = (authUser: AuthUser | null) => createRouterClient(router, { context: { authUser } });
 const anonymous = clientFor(null);
 
 const pending: Promise<unknown>[] = [];
@@ -20,17 +17,6 @@ afterAll(() => setBackgroundRunner(null));
 const mailTo = async (to: string) => {
   while (pending.length) await Promise.allSettled(pending.splice(0));
   return sharedMemorySender().sent.filter((m) => m.to === to);
-};
-
-const codeOf = async (call: Promise<unknown>) => {
-  try {
-    await call;
-    return "ok";
-  } catch (e) {
-    if (e instanceof ORPCError)
-      return `${e.code}:${String((e.data as { code?: string } | undefined)?.code ?? "")}`;
-    throw e;
-  }
 };
 
 /** Refused, or answered with nothing: either way, no group data. */
@@ -79,13 +65,13 @@ describe("invite links", () => {
 
     for (const role of ["owner", "admin"]) {
       expect(
-        await codeOf(s.owner.api.invite.createLink({ groupId: s.groupId, role: role as "viewer" })),
+        await codesOf(s.owner.api.invite.createLink({ groupId: s.groupId, role: role as "viewer" })),
       ).toMatch(/^BAD_REQUEST/);
     }
     expect(
-      await codeOf(s.owner.api.invite.createLink({ groupId: s.groupId, role: "viewer", expiresInDays: 91 })),
+      await codesOf(s.owner.api.invite.createLink({ groupId: s.groupId, role: "viewer", expiresInDays: 91 })),
     ).toMatch(/^BAD_REQUEST/);
-    expect(await codeOf(s.viewer.api.invite.createLink({ groupId: s.groupId, role: "viewer" }))).toBe(
+    expect(await codesOf(s.viewer.api.invite.createLink({ groupId: s.groupId, role: "viewer" }))).toBe(
       "FORBIDDEN:",
     );
 
@@ -102,9 +88,9 @@ describe("invite links", () => {
     const s = await setup();
     const made = await s.owner.api.invite.createLink({ groupId: s.groupId, role: "viewer" });
     expect((await s.admin.api.invite.copyLink({ id: made.invite.id })).token).toBe(made.token);
-    expect(await codeOf(s.viewer.api.invite.copyLink({ id: made.invite.id }))).toMatch(/^NOT_FOUND/);
+    expect(await codesOf(s.viewer.api.invite.copyLink({ id: made.invite.id }))).toMatch(/^NOT_FOUND/);
     await s.admin.api.invite.revoke({ id: made.invite.id });
-    expect(await codeOf(s.owner.api.invite.copyLink({ id: made.invite.id }))).toBe(
+    expect(await codesOf(s.owner.api.invite.copyLink({ id: made.invite.id }))).toBe(
       "CONFLICT:careGroupInviteService:linkInactive",
     );
     expect(await s.owner.api.invite.listLinks({ groupId: s.groupId })).toEqual([]);
@@ -184,14 +170,14 @@ describe("join requests", () => {
     expect(mine).toMatchObject([{ groupId: s.groupId, status: "pending", groupName: "Pat Example" }]);
     const list = await s.admin.api.joinRequest.list({ groupId: s.groupId });
     expect(list).toMatchObject([{ name: "jr-joiner", email: s.joiner.user.email, role: "viewer" }]);
-    expect(await codeOf(s.viewer.api.joinRequest.list({ groupId: s.groupId }))).toBe("FORBIDDEN:");
+    expect(await codesOf(s.viewer.api.joinRequest.list({ groupId: s.groupId }))).toBe("FORBIDDEN:");
   });
 
   it("approving makes them a member and emails them; declining emails them", async () => {
     const s = await asked();
     const [request] = await s.owner.api.joinRequest.list({ groupId: s.groupId });
     if (!request) throw new Error("no request");
-    expect(await codeOf(s.viewer.api.joinRequest.approve({ id: request.id }))).toBe(
+    expect(await codesOf(s.viewer.api.joinRequest.approve({ id: request.id }))).toBe(
       "FORBIDDEN:joinRequestService:notAllowed",
     );
     expect(await s.admin.api.joinRequest.approve({ id: request.id })).toEqual({

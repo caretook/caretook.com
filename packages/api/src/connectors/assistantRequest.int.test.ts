@@ -9,17 +9,14 @@ import {
   timelineEntryService,
 } from "@caretook/data";
 import { setBackgroundRunner, sharedMemorySender } from "@caretook/notifications";
-import { createRouterClient, ORPCError } from "@orpc/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
-import { router } from "..";
+import { clientFor, codesOf } from "../testing";
 
 // Asking the owners to turn assistants on (connectors-2, B-194), through the
 // router with the memory sender: who may ask, the switch, the 7-day window,
 // one email per owner with no health details, and the outbox key. All data
 // is fictional.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 
 const pending: Promise<unknown>[] = [];
 beforeAll(() => setBackgroundRunner((work) => void pending.push(work)));
@@ -43,17 +40,6 @@ const queuedFor = (groupId: string) =>
         like(t.text, `%/app/groups/${groupId}/settings/assistants%`),
       ),
   });
-
-const codeOf = async (call: Promise<unknown>) => {
-  try {
-    await call;
-    return "ok";
-  } catch (e) {
-    if (e instanceof ORPCError)
-      return `${e.code}:${String((e.data as { code?: string } | undefined)?.code ?? "")}`;
-    throw e;
-  }
-};
 
 const SENTINEL = "SENTINEL-HEALTH-7710";
 
@@ -141,7 +127,7 @@ describe("asking the owners to turn assistants on", () => {
 
   it("refuses an owner, who can flip the switch", async () => {
     const w = await world();
-    expect(await codeOf(w.api.owner.connector.requestEnable({ groupId: w.groupId }))).toBe(
+    expect(await codesOf(w.api.owner.connector.requestEnable({ groupId: w.groupId }))).toBe(
       "FORBIDDEN:assistantRequestService:owner",
     );
     expect(await queuedFor(w.groupId)).toEqual([]);
@@ -155,7 +141,7 @@ describe("asking the owners to turn assistants on", () => {
         data: { connectorsEnabled: true },
       }),
     );
-    expect(await codeOf(w.api.caretaker.connector.requestEnable({ groupId: w.groupId }))).toBe(
+    expect(await codesOf(w.api.caretaker.connector.requestEnable({ groupId: w.groupId }))).toBe(
       "CONFLICT:assistantRequestService:alreadyOn",
     );
     expect(await queuedFor(w.groupId)).toEqual([]);
@@ -188,10 +174,10 @@ describe("asking the owners to turn assistants on", () => {
 
   it("gives a non-member notFound, and myRequest null before any request", async () => {
     const w = await world();
-    expect(await codeOf(w.api.outsider.connector.requestEnable({ groupId: w.groupId }))).toBe(
+    expect(await codesOf(w.api.outsider.connector.requestEnable({ groupId: w.groupId }))).toBe(
       "NOT_FOUND:assistantRequestService:notMember",
     );
-    expect(await codeOf(w.api.outsider.connector.myRequest({ groupId: w.groupId }))).toBe(
+    expect(await codesOf(w.api.outsider.connector.myRequest({ groupId: w.groupId }))).toBe(
       "NOT_FOUND:assistantRequestService:notMember",
     );
     expect(await w.api.caretaker.connector.myRequest({ groupId: w.groupId })).toBeNull();

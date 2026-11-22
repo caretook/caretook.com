@@ -1,6 +1,3 @@
-import type { AuthUser } from "@caretook/data";
-
-import { createRouterClient, ORPCError } from "@orpc/server";
 import {
   calendarReminderService,
   calendarSettingService,
@@ -12,22 +9,11 @@ import { dayInZone, zonedInstant } from "@caretook/data/schema";
 import { createMemorySender, deliverDue, sweepReminders } from "@caretook/notifications";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
-import { router } from "..";
+import { clientFor, rejection } from "../testing";
 
 // "Remind me" over the API (appointments-2 slice 8): each member's own
 // choice for one appointment, whatever their role; an entry in another group
 // is refused; and the reminder sweep honours a mute and an extra. Made-up people.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
-
-const rejection = async (call: Promise<unknown>) => {
-  const error = await call.then(
-    () => undefined,
-    (e: unknown) => e,
-  );
-  if (!(error instanceof ORPCError)) throw new Error(`Expected an ORPCError, got ${String(error)}`);
-  return error as ORPCError<string, { code?: string }>;
-};
 
 const LA = "America/Los_Angeles";
 const MINUTE = 60_000;

@@ -1,27 +1,13 @@
-import type { AuthUser } from "@caretook/data";
-
 import { adminAuditLogModel, getDb, isError, SYSTEM_USER } from "@caretook/data";
-import { createRouterClient, ORPCError } from "@orpc/server";
+import { ORPCError } from "@orpc/server";
 import { describe, expect, it } from "vitest";
 import { createUser } from "../../../data/test/fixtures";
-import { router } from "..";
+import { clientFor, codeOf } from "../testing";
 
 // admin.users.disable, enable and setRole (admin slice 3): admins only, a
 // reason each, and the staff rules' refusals with their messages. What a
 // disabled account can't do is in packages/auth's disabled.int.test.ts,
 // and the guards in packages/data's accountAdmin.int.test.ts.
-
-const clientFor = (authUser: AuthUser | null) => createRouterClient(router, { context: { authUser } });
-
-const codeOf = async (promise: Promise<unknown>) => {
-  try {
-    await promise;
-    return "ok";
-  } catch (e) {
-    if (e instanceof ORPCError) return String(e.code);
-    throw e;
-  }
-};
 
 const query = async <T extends object>(text: string, values: unknown[] = []) =>
   (await getDb().$client.query<T>(text, values)).rows;

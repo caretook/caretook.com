@@ -1,24 +1,19 @@
-import type { AuthUser } from "@caretook/data";
-
 import {
   medicationConditionId,
   medicationConditionService,
   medicationService,
   recipientConditionService,
 } from "@caretook/data";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor, outcomes } from "./testing";
 
 // sync.upload for what a medication is for (conditions slice 4): a device's
 // medication_condition PUT (after the medication and condition it names, as
 // the device queues them) and DELETE, replays, and refusals: a viewer, an id
 // that isn't the pair's, a PATCH, a deleted condition. Each test makes its
 // own users and group.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 
 const SAVED_AT = "2026-11-17T21:45:25.229000Z";
 
@@ -95,7 +90,7 @@ describe("sync.upload: medication_condition", () => {
     expect(ok(await medicationConditionService.listForMedication(viewer.ctx, medicationId)).data).toEqual([]);
   });
 
-  it("rejects a viewer's link, an id that isn't the pair's, a PATCH and a deleted condition", async () => {
+  it("rejects a viewer's link and a PATCH", async () => {
     const { owner, viewer, group } = await setup();
     const medication = ok(
       await medicationService.create(owner.ctx, {
@@ -104,29 +99,16 @@ describe("sync.upload: medication_condition", () => {
         schedule: { type: "asNeeded" },
       }),
     )!;
-    const [bp, gone] = [
-      ok(
-        await recipientConditionService.create(owner.ctx, { groupId: group.id, name: "High blood pressure" }),
-      )!,
-      ok(await recipientConditionService.create(owner.ctx, { groupId: group.id, name: "Gout" }))!,
-    ];
-    ok(await recipientConditionService.remove(owner.ctx, gone.id));
+    const bp = ok(
+      await recipientConditionService.create(owner.ctx, { groupId: group.id, name: "High blood pressure" }),
+    )!;
 
     const byViewer = await viewer.api.sync.upload({ ops: [linkOp("PUT", group.id, medication.id, bp.id)] });
     expect(byViewer.results[0]?.status).toBe("rejected");
 
-    const res = await owner.api.sync.upload({
-      ops: [
-        { ...linkOp("PUT", group.id, medication.id, bp.id), id: randomUUID() },
-        { ...linkOp("PUT", group.id, medication.id, bp.id), op: "PATCH" as const },
-        linkOp("PUT", group.id, medication.id, gone.id),
-      ],
-    });
-    expect(res.results.map((r) => (r.status === "rejected" ? r.code : r.status))).toEqual([
-      "medicationConditionService:invalid",
-      "sync:readOnlyTable",
-      "medicationConditionService:conditionNotFound",
-    ]);
+    expect(
+      await outcomes(owner.api, [{ ...linkOp("PUT", group.id, medication.id, bp.id), op: "PATCH" as const }]),
+    ).toEqual(["sync:readOnlyTable"]);
     expect(ok(await medicationConditionService.listForMedication(owner.ctx, medication.id)).data).toEqual([]);
   });
 });

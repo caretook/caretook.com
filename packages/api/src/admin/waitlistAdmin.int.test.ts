@@ -1,26 +1,11 @@
-import type { AuthUser } from "@caretook/data";
-
 import { getDb, isError, waitlistEntryModel } from "@caretook/data";
-import { createRouterClient, ORPCError } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import { createGroup, createUser } from "../../../data/test/fixtures";
-import { router } from "..";
+import { clientFor, codeOf } from "../testing";
 
 // admin.waitlist.* (marketing slice 5): staff only, filtered, newest first,
 // and the export holds exactly the filtered rows.
-
-const clientFor = (authUser: AuthUser | null) => createRouterClient(router, { context: { authUser } });
-
-const codeOf = async (call: Promise<unknown>) => {
-  try {
-    await call;
-    return "ok";
-  } catch (e) {
-    if (e instanceof ORPCError) return String(e.code);
-    throw e;
-  }
-};
 
 const tag = `wl${randomUUID().slice(0, 8)}`;
 

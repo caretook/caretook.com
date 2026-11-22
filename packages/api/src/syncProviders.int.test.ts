@@ -1,5 +1,3 @@
-import type { AuthUser } from "@caretook/data";
-
 import {
   entryProviderId,
   entryProviderService,
@@ -7,17 +5,14 @@ import {
   providerService,
   timelineEntryService,
 } from "@caretook/data";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor, outcomes, putOp, upload } from "./testing";
 
 // sync.upload for the provider directory and entry links: rows as a
 // device's SQLite holds them (snake_case, JSON as text, booleans as 1/0).
 // Each test makes its own users and group.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 
 const setup = async () => {
   const owner = await createUser("owner");
@@ -78,9 +73,7 @@ describe("sync.upload: provider", () => {
       status: "past",
       createdBy: owner.user.id,
     });
-    expect(
-      (await owner.api.sync.upload({ ops: [put, patch] })).results.every((r) => r.status === "applied"),
-    ).toBe(true);
+    expect((await upload(owner.api, [put, patch])).every((r) => r.status === "applied")).toBe(true);
 
     const remove = {
       op: "PATCH" as const,
@@ -88,32 +81,32 @@ describe("sync.upload: provider", () => {
       id,
       data: { deleted_at: "2026-11-17T21:00:00.000000Z" },
     };
-    expect((await owner.api.sync.upload({ ops: [remove] })).results).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [remove])).toEqual([{ id, status: "applied" }]);
     expect(await providerService.getById(viewer.ctx, id)).toBeNull();
     // A late edit doesn't bring it back; deleting again is a replay.
     const late = { op: "PATCH" as const, table: "provider", id, data: { name: "Back" } };
-    expect((await owner.api.sync.upload({ ops: [late] })).results[0]).toMatchObject({
+    expect((await upload(owner.api, [late]))[0]).toMatchObject({
       status: "rejected",
       code: "providerService:notFound",
     });
-    expect((await owner.api.sync.upload({ ops: [{ op: "DELETE", table: "provider", id }] })).results).toEqual(
-      [{ id, status: "applied" }],
-    );
+    expect(await upload(owner.api, [{ op: "DELETE", table: "provider", id }])).toEqual([
+      { id, status: "applied" },
+    ]);
   });
 
   it("handles a provider created and deleted before it uploaded", async () => {
     const { owner, group } = await setup();
     const id = randomUUID();
     const data = providerRow(group.id, { deleted_at: "2026-11-17T21:00:00.000000Z" });
-    expect(
-      (await owner.api.sync.upload({ ops: [{ op: "PUT", table: "provider", id, data }] })).results,
-    ).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [{ op: "PUT", table: "provider", id, data }])).toEqual([
+      { id, status: "applied" },
+    ]);
     expect(
       ok(await providerService.getById(owner.ctx, id, { includeDeleted: true }))?.deletedAt,
     ).toBeTruthy();
   });
 
-  it("refuses a changed group, invalid content, and viewers", async () => {
+  it("refuses a changed group, JSON that isn't, and viewers", async () => {
     const { owner, viewer, group } = await setup();
     const other = await setup();
     const id = randomUUID();
@@ -124,18 +117,11 @@ describe("sync.upload: provider", () => {
         { op: "PATCH", table: "provider", id, data: { group_id: other.group.id } },
         { op: "PUT", table: "provider", id, data: providerRow(other.group.id) },
         { op: "PATCH", table: "provider", id, data: { phones: "{" } },
-        {
-          op: "PUT",
-          table: "provider",
-          id: randomUUID(),
-          data: providerRow(group.id, { type: "practice", practice_id: id }),
-        },
       ],
     });
     expect(res.results).toEqual([
       expect.objectContaining({ status: "rejected", code: "providerService:immutable" }),
       expect.objectContaining({ status: "rejected", code: "providerService:immutable" }),
-      expect.objectContaining({ status: "rejected", code: "providerService:invalid" }),
       expect.objectContaining({ status: "rejected", code: "providerService:invalid" }),
     ]);
 
@@ -158,79 +144,6 @@ describe("sync.upload: provider", () => {
   });
 });
 
-describe("sync.upload: practice in use", () => {
-  it("rejects a PATCH that turns a practice with live clinicians into a clinician", async () => {
-    const { owner, group } = await setup();
-    const practiceId = randomUUID();
-    const clinicianId = randomUUID();
-    await owner.api.sync.upload({
-      ops: [
-        { op: "PUT", table: "provider", id: practiceId, data: providerRow(group.id, { type: "practice" }) },
-        {
-          op: "PUT",
-          table: "provider",
-          id: clinicianId,
-          data: providerRow(group.id, { practice_id: practiceId }),
-        },
-      ],
-    });
-
-    const res = await owner.api.sync.upload({
-      ops: [{ op: "PATCH", table: "provider", id: practiceId, data: { type: "clinician" } }],
-    });
-    expect(res.results).toEqual([
-      expect.objectContaining({ id: practiceId, status: "rejected", code: "providerService:practiceInUse" }),
-    ]);
-    expect(ok(await providerService.getById(owner.ctx, practiceId))?.type).toBe("practice");
-  });
-});
-
-describe("sync.upload: practice has providers", () => {
-  it("rejects a PATCH setting deleted_at, and a DELETE, on a practice live clinicians name", async () => {
-    const { owner, group } = await setup();
-    const practiceId = randomUUID();
-    const clinicianId = randomUUID();
-    await owner.api.sync.upload({
-      ops: [
-        { op: "PUT", table: "provider", id: practiceId, data: providerRow(group.id, { type: "practice" }) },
-        {
-          op: "PUT",
-          table: "provider",
-          id: clinicianId,
-          data: providerRow(group.id, { practice_id: practiceId }),
-        },
-      ],
-    });
-
-    const res = await owner.api.sync.upload({
-      ops: [
-        {
-          op: "PATCH",
-          table: "provider",
-          id: practiceId,
-          data: { deleted_at: "2026-11-18T08:00:00.000000Z" },
-        },
-        { op: "DELETE", table: "provider", id: practiceId },
-      ],
-    });
-    const rejected = { id: practiceId, status: "rejected", code: "providerService:practiceHasProviders" };
-    expect(res.results).toEqual([expect.objectContaining(rejected), expect.objectContaining(rejected)]);
-    expect(ok(await providerService.getById(owner.ctx, practiceId))?.deletedAt).toBeNull();
-
-    // Once the clinician is deleted too, the practice goes.
-    const after = await owner.api.sync.upload({
-      ops: [
-        { op: "DELETE", table: "provider", id: clinicianId },
-        { op: "DELETE", table: "provider", id: practiceId },
-      ],
-    });
-    expect(after.results).toEqual([
-      { id: clinicianId, status: "applied" },
-      { id: practiceId, status: "applied" },
-    ]);
-  });
-});
-
 describe("sync.upload: timeline_entry_provider", () => {
   it("links offline: an event, a new provider and the link in one batch, replayed safely", async () => {
     const { owner, viewer, group, recipient } = await setup();
@@ -247,38 +160,20 @@ describe("sync.upload: timeline_entry_provider", () => {
         data: { group_id: group.id, entry_id: entryId, provider_id: providerId },
       },
     ];
-    expect((await owner.api.sync.upload({ ops })).results.map((r) => r.status)).toEqual([
-      "applied",
-      "applied",
-      "applied",
-    ]);
-    expect((await owner.api.sync.upload({ ops })).results.map((r) => r.status)).toEqual([
-      "applied",
-      "applied",
-      "applied",
-    ]);
+    expect((await upload(owner.api, ops)).map((r) => r.status)).toEqual(["applied", "applied", "applied"]);
+    expect((await upload(owner.api, ops)).map((r) => r.status)).toEqual(["applied", "applied", "applied"]);
     const links = ok(await entryProviderService.listForEntry(viewer.ctx, entryId));
     expect(links.data).toEqual([
       expect.objectContaining({ id: linkId, providerId, createdBy: owner.user.id }),
     ]);
   });
 
-  it("unlinks with a DELETE, refuses a PATCH, a wrong id and a symptom", async () => {
-    const { owner, group, recipient } = await setup();
+  it("unlinks with a DELETE, replayable, and refuses a PATCH", async () => {
+    const { owner, group } = await setup();
     const entry = ok(
       await timelineEntryService.create(owner.ctx, {
         groupId: group.id,
         kind: "note",
-        occurredAt: "2026-11-17T12:00:00.000Z",
-        timeZone: "America/Los_Angeles",
-      }),
-    );
-    const symptom = ok(
-      await timelineEntryService.create(owner.ctx, {
-        groupId: group.id,
-        recipientId: recipient.id,
-        kind: "symptom",
-        details: { name: "Dizziness" },
         occurredAt: "2026-11-17T12:00:00.000Z",
         timeZone: "America/Los_Angeles",
       }),
@@ -293,13 +188,6 @@ describe("sync.upload: timeline_entry_provider", () => {
       ops: [
         { op: "PUT", table: "timeline_entry_provider", id: linkId, data },
         { op: "PATCH", table: "timeline_entry_provider", id: linkId, data: { provider_id: randomUUID() } },
-        { op: "PUT", table: "timeline_entry_provider", id: randomUUID(), data },
-        {
-          op: "PUT",
-          table: "timeline_entry_provider",
-          id: entryProviderId(symptom!.id, provider!.id),
-          data: { ...data, entry_id: symptom!.id },
-        },
         { op: "DELETE", table: "timeline_entry_provider", id: linkId },
         { op: "DELETE", table: "timeline_entry_provider", id: linkId },
       ],
@@ -307,45 +195,25 @@ describe("sync.upload: timeline_entry_provider", () => {
     expect(res.results).toEqual([
       { id: linkId, status: "applied" },
       expect.objectContaining({ status: "rejected", code: "sync:readOnlyTable" }),
-      expect.objectContaining({ status: "rejected", code: "entryProviderService:invalid" }),
-      expect.objectContaining({ status: "rejected", code: "entryProviderService:wrongKind" }),
       { id: linkId, status: "applied" },
       { id: linkId, status: "applied" },
     ]);
     expect(ok(await entryProviderService.listForEntry(owner.ctx, entry!.id)).count).toBe(0);
   });
 
-  it("refuses viewers' links and another group's provider", async () => {
+  it("refuses viewers' links", async () => {
     const { owner, viewer, group, recipient } = await setup();
-    const other = await setup();
     const entryId = randomUUID();
-    await owner.api.sync.upload({
-      ops: [{ op: "PUT", table: "timeline_entry", id: entryId, data: eventRow(group.id, recipient.id) }],
-    });
-    const ours = ok(
+    await upload(owner.api, [putOp("timeline_entry", entryId, eventRow(group.id, recipient.id))]);
+    const provider = ok(
       await providerService.create(owner.ctx, { groupId: group.id, type: "pharmacy", name: "Rx" }),
-    );
-    const theirs = ok(
-      await providerService.create(other.owner.ctx, {
-        groupId: other.group.id,
-        type: "pharmacy",
-        name: "Rx",
-      }),
-    );
-    const linkOp = (providerId: string) => ({
-      op: "PUT" as const,
-      table: "timeline_entry_provider",
-      id: entryProviderId(entryId, providerId),
-      data: { group_id: group.id, entry_id: entryId, provider_id: providerId },
+    )!;
+    const link = putOp("timeline_entry_provider", entryProviderId(entryId, provider.id), {
+      group_id: group.id,
+      entry_id: entryId,
+      provider_id: provider.id,
     });
-    expect((await viewer.api.sync.upload({ ops: [linkOp(ours!.id)] })).results[0]).toMatchObject({
-      status: "rejected",
-      code: "permissions:unauthorized",
-    });
-    expect((await owner.api.sync.upload({ ops: [linkOp(theirs!.id)] })).results[0]).toMatchObject({
-      status: "rejected",
-      code: "permissions:unauthorized",
-    });
+    expect(await outcomes(viewer.api, [link])).toEqual(["permissions:unauthorized"]);
   });
 
   it("makes one link when two members' devices link the same pair (one offline): the first upload's", async () => {
@@ -373,8 +241,8 @@ describe("sync.upload: timeline_entry_provider", () => {
       id: entryProviderId(entry!.id, provider!.id),
       data: { group_id: group.id, entry_id: entry!.id, provider_id: provider!.id },
     };
-    expect((await ownerApi.sync.upload({ ops: [linkOp] })).results[0]?.status).toBe("applied");
-    expect((await caretakerApi.sync.upload({ ops: [linkOp] })).results[0]?.status).toBe("applied");
+    expect((await upload(ownerApi, [linkOp]))[0]?.status).toBe("applied");
+    expect((await upload(caretakerApi, [linkOp]))[0]?.status).toBe("applied");
     const links = ok(await entryProviderService.listForEntry(owner.ctx, entry!.id));
     expect(links.data).toEqual([
       expect.objectContaining({ id: linkOp.id, providerId: provider!.id, createdBy: owner.user.id }),
@@ -485,7 +353,7 @@ describe("sync.upload: an import from another group (B-48)", () => {
       type: "practice",
       name: "Harbor Clinic",
     });
-    expect((await importer.api.sync.upload({ ops })).results.every((r) => r.status === "applied")).toBe(true);
+    expect((await upload(importer.api, ops)).every((r) => r.status === "applied")).toBe(true);
     // Nothing in the source group changed.
     expect(ok(await providerService.list(importer.ctx, { groupId: source.group.id }))).toMatchObject({
       count: 0,

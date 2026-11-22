@@ -1,5 +1,3 @@
-import type { AuthUser } from "@caretook/data";
-
 import {
   accessCodeModel,
   accessCodeRedemptionModel,
@@ -14,11 +12,10 @@ import {
   userModel,
 } from "@caretook/data";
 import { setBackgroundRunner, sharedMemorySender } from "@caretook/notifications";
-import { createRouterClient, ORPCError } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createGroup, createUser } from "../../../data/test/fixtures";
-import { router } from "..";
+import { clientFor, codesOf } from "../testing";
 
 // Starting care groups (invites slice 5) through the router: careGroup.create,
 // access codes (sign-up and its group in one transaction) and the staff-only
@@ -27,7 +24,6 @@ import { router } from "..";
 const PASSWORD = "a long enough passphrase";
 const system = { authUser: SYSTEM_USER };
 
-const clientFor = (authUser: AuthUser | null) => createRouterClient(router, { context: { authUser } });
 const anonymous = clientFor(null);
 
 const pending: Promise<unknown>[] = [];
@@ -40,17 +36,6 @@ const mailTo = async (to: string) => {
 };
 
 const newAddress = (label: string) => `${label}-${randomUUID().slice(0, 8)}@example.com`;
-
-const codeOf = async (call: Promise<unknown>) => {
-  try {
-    await call;
-    return "ok";
-  } catch (e) {
-    if (e instanceof ORPCError)
-      return `${e.code}:${String((e.data as { code?: string } | undefined)?.code ?? "")}`;
-    throw e;
-  }
-};
 
 const userByEmail = async (email: string) => {
   const user = await userModel.get({ ...system, filter: { email: { type: "eq", value: email } } });
@@ -106,10 +91,10 @@ describe("careGroup.create", () => {
 
   it("refuses an empty recipient name, and anyone signed out", async () => {
     const me = await createUser("creator-bad");
-    expect(await codeOf(clientFor(me.ctx.authUser).careGroup.create({ recipientName: "  " }))).toMatch(
+    expect(await codesOf(clientFor(me.ctx.authUser).careGroup.create({ recipientName: "  " }))).toMatch(
       /^BAD_REQUEST/,
     );
-    expect(await codeOf(anonymous.careGroup.create({ recipientName: "Pat" }))).toBe("UNAUTHORIZED:");
+    expect(await codesOf(anonymous.careGroup.create({ recipientName: "Pat" }))).toBe("UNAUTHORIZED:");
   });
 });
 
@@ -180,7 +165,7 @@ describe("access codes", () => {
     ] as const) {
       expect(await anonymous.accessCode.preview({ code })).toEqual({ state });
       const email = newAddress(`refused-${state}`);
-      expect(await codeOf(signUp(code, email))).toBe("CONFLICT:accessCodeService:unusable");
+      expect(await codesOf(signUp(code, email))).toBe("CONFLICT:accessCodeService:unusable");
       expect(await userByEmail(email)).toBeNull();
     }
     expect(await anonymous.accessCode.preview({ code: "CARE-NOPE-NOPE" })).toEqual({ state: "notFound" });
@@ -245,14 +230,14 @@ describe("access codes", () => {
     const revoked = await api.admin.accessCode.create({ label: "Revoked", expiresInDays: 1 });
     await api.admin.accessCode.revoke({ id: revoked.id });
     const existing = await createUser("taken-revoked");
-    expect(await codeOf(signUp(revoked.code, existing.user.email))).toBe(
+    expect(await codesOf(signUp(revoked.code, existing.user.email))).toBe(
       "CONFLICT:accessCodeService:unusable",
     );
-    expect(await codeOf(signUp(revoked.code, newAddress("revoked-new")))).toBe(
+    expect(await codesOf(signUp(revoked.code, newAddress("revoked-new")))).toBe(
       "CONFLICT:accessCodeService:unusable",
     );
-    expect(await codeOf(signUp("CARE-ZZZZ-ZZZZ", existing.user.email))).toBe(
-      await codeOf(signUp("CARE-ZZZZ-ZZZZ", newAddress("unknown-new"))),
+    expect(await codesOf(signUp("CARE-ZZZZ-ZZZZ", existing.user.email))).toBe(
+      await codesOf(signUp("CARE-ZZZZ-ZZZZ", newAddress("unknown-new"))),
     );
     expect((await mailTo(existing.user.email)).filter((m) => m.name === "accessCodeExistingAccount")).toEqual(
       [],
@@ -264,7 +249,7 @@ describe("access codes", () => {
     const code = await api.admin.accessCode.create({ label: "Weak", expiresInDays: 1 });
     const email = newAddress("weak");
     expect(
-      await codeOf(
+      await codesOf(
         anonymous.accessCode.signUp({
           code: code.code,
           name: "W",
@@ -285,10 +270,10 @@ describe("admin.*", () => {
     const member = await createUser("not-staff");
     for (const who of [owner, member]) {
       const api = clientFor(who.ctx.authUser);
-      expect(await codeOf(api.admin.accessCode.list())).toBe("FORBIDDEN:");
-      expect(await codeOf(api.admin.accessCode.create({ label: "x", expiresInDays: 1 }))).toBe("FORBIDDEN:");
+      expect(await codesOf(api.admin.accessCode.list())).toBe("FORBIDDEN:");
+      expect(await codesOf(api.admin.accessCode.create({ label: "x", expiresInDays: 1 }))).toBe("FORBIDDEN:");
       expect(
-        await codeOf(
+        await codesOf(
           api.admin.careGroup.createWithOwnerInvite({
             groupName: "G",
             recipientName: "R",
@@ -298,7 +283,7 @@ describe("admin.*", () => {
         ),
       ).toBe("FORBIDDEN:");
     }
-    expect(await codeOf(anonymous.admin.accessCode.list())).toBe("UNAUTHORIZED:");
+    expect(await codesOf(anonymous.admin.accessCode.list())).toBe("UNAUTHORIZED:");
   });
 
   it("lists codes with their uses, newest first", async () => {
