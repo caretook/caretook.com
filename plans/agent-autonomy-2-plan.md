@@ -4,21 +4,23 @@
 
 ## Status
 
-| Slice | Wave | State                                                                   | Merge into `prd/agent-autonomy-2` (slice commits) |
-| ----- | ---- | ----------------------------------------------------------------------- | ------------------------------------------------- |
-| 1     | 1    | started (opus), agent running                                           | —                                                 |
-| 2     | 2    | —                                                                       | —                                                 |
-| 3     | 1    | handed off (opus), slice check passed on 41a67e83; merges after slice 1 | —                                                 |
-| 4     | 2    | —                                                                       | —                                                 |
-| 5     | 2    | —                                                                       | —                                                 |
-| 6     | 3    | —                                                                       | —                                                 |
-| 7     | 3    | —                                                                       | —                                                 |
+| Slice | Wave | State                                                            | Merge into `prd/agent-autonomy-2` (slice commits) |
+| ----- | ---- | ---------------------------------------------------------------- | ------------------------------------------------- |
+| 1     | 1    | merged (opus)                                                    | e2e4a366 (9bfc245b, 81689593)                     |
+| 2     | 2    | —                                                                | —                                                 |
+| 3     | 1    | merged (opus); conflicts resolved in session.sh and status-extra | 5162f553 (9da26376, 41a67e83)                     |
+| 4     | 2    | —                                                                | —                                                 |
+| 5     | 2    | —                                                                | —                                                 |
+| 6     | 3    | —                                                                | —                                                 |
+| 7     | 3    | —                                                                | —                                                 |
 
 **Landing mode:** run everything through (started by the dispatcher): land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Now (2026-11-22):** wave 1 running. B-507, B-508, B-509 and B-437 claimed. Worktrees `.loops/agent-autonomy-2-1` and `-3`.
+**Now (2026-11-22):** wave 1 merged, synced with dev and its docs folded; slice worktrees removed. B-507, B-509 and B-437 done; B-508 stays claimed until slice 2. Gate: tooling and Markdown only, `pnpm test:tooling` (855 passed) and `eslint scripts` passed on the merge. Next: PR, Codex review, land, rotate.
 
 **Open issues:**
+
+- The hook has only run against a stub `claude`. `claude` 2.1.330 takes `--settings`, but the docs don't say that hooks passed this way merge with the others, or which transcript a subagent's PostToolUse names. First live test: this orchestrator's first session after the wave 1 landing should get a size in `pnpm prd context`. Slice 2 can time the nudge from `firstOverAt` (`remindedAt` moves on each repeat), setting `nudgeAt` through `updateRecord`.
 
 - `test-gates` runs beside this topic and also changes rotation and the dispatcher; whichever lands second resolves those merges. If this topic is unlanded once `test-gates` lands, add `scripts/loops/dispatch`, `scripts/loops/status-extra` and `scripts/loops/prd.sh` back to this topic's hot list (narrowed in 784def6a).
 - For slice 5 (from slice 3's hand-off): `tidy --yes` deletes an ended backlog record, so the keep-alive must not rely on one surviving. A second by-hand backlog session takes over the `backlog` record and the first runs unrecorded, so the `--remote-control backlog` process check still matters.

@@ -10,6 +10,7 @@ For a slice agent (a loop): one background agent working one slice of a PRD in `
 - Run the dev server with `pnpm prd serve` (background; `WEB_PORT` pins the port; `--restart` after merges). After editing `powersync/sync-config.yaml`, `docker compose restart powersync`.
 - Edits to shared files stay small and are listed in the hand-off. Don't edit AGENTS.md or `docs/` (the orchestrator folds at landing), and change the backlog only through `pnpm backlog note`.
 - No new dependencies. All data stays fictional.
+- **Past 160k context** a hook reminds you ([the watch](machinery.md#the-context-watch)): commit, write the hand-off so far and tell your orchestrator to continue the slice with a fresh `--continue` agent.
 - **Commit on your branch**, then check (`pnpm prd check` refuses a dirty tree; fix in more commits): Conventional Commits scoped to the topic, with the attribution line. Don't merge, rebase or push any other branch; never set `CARETOOK_ALLOW_PROTECTED`. Delete scratch scripts first.
 
 ## Hand-off

@@ -16,18 +16,26 @@ The scripts behind `pnpm prd` (`scripts/loops/`) that every session leans on: wo
 
 ## Recorded sessions
 
-- **`session.sh <name> [--kind prd|plan] [--topic <t>] [--auto] [--managed] -- <claude args>`** runs `claude` (`CARETOOK_CLAUDE_BIN` in tests) in the foreground and keeps a record in the main checkout's `.loops/.sessions/<name>.json`: `pid` (claude's own), `kind`, `topic`, `started`, `command`, `auto`, `managed` (the dispatcher started it), `rotating`, and `ended` and `exit` once it exits (only while the record's `pid` is still its own: `sessions.mjs set --if-pid`). Names are `prd-<topic>` and `plan-<topic>`. Records outlive the session; `rm.sh` deletes the worktree's. Nothing is written inside a worktree.
-- `pnpm prd start`'s printed command, the dispatcher, `prd plan --open` and the opener all start through it; `pnpm prd status` marks each session managed or by hand.
+- **`session.sh <name> [--kind prd|plan|backlog|hotfix|recovery] [--topic <t>] [--auto] [--managed] -- <claude args>`** runs `claude` (`CARETOOK_CLAUDE_BIN` in tests) in the foreground and keeps a record in the main checkout's `.loops/.sessions/<name>.json`: `pid` (claude's own), `kind`, `topic`, `started`, `command`, `auto`, `managed` (the dispatcher started it), `model`, `rotating`, and `ended` and `exit` once it exits (only while the record's `pid` is still its own: `sessions.mjs set --if-pid`). Names are `prd-<topic>`, `plan-<topic>`, `backlog`, `backlog-<name>`, `hotfix-<name>` and `recover`. Records outlive the session; `rm.sh` deletes the worktree's, and `tidy` an ended backlog or recovery one. Nothing is written inside a worktree.
+- `pnpm prd start`'s printed command, the dispatcher, `prd plan` (with or without a topic), `prd hotfix`, `recover.sh` and the opener all start through it; `pnpm prd status` shows each session's kind and marks it managed or by hand. A hotfix worked inside the session the user asked in stays unrecorded.
 - **Live** means no `ended`, the pid exists and that process started within a minute of `started` (a reused pid isn't). `node scripts/loops/sessions.mjs self` prints the calling shell's session pid: its worktree's live record, else its ancestor `claude` process (a session started before the wrapper).
 - **`pnpm prd end [<name>]`** ends a session (TERM, KILL after `CARETOOK_END_WAIT`, 10 s): the named record, or with no name the caller's own, so it works after `pnpm prd rm`. With neither a record nor an ancestor it refuses.
-- **The opener** (`open-session.sh`) writes `cd <dir> && exec …` to the tab it made, so the tab closes with the session. It carries a record's `auto` and `managed` over (an `auto` planner reopens with `--auto`) and opens fresh, never `--continue`, after a `rotating` record. `--background` doesn't bring iTerm2 forward and reselects the earlier tab; `--command <line> --title <t>` opens any line.
+- **The opener** (`open-session.sh`) writes `cd <dir> && exec …` to the tab it made, so the tab closes with the session. It carries a record's `auto` and `managed` over (an `auto` planner reopens with `--auto`) and opens fresh, never `--continue`, after a `rotating` record. Backlog and recovery sessions always reopen fresh in the main checkout on their recorded model (`--continue` there would resume another conversation); a hotfix reopens with `--continue` in its worktree; a live one of these three is refused. `--background` doesn't bring iTerm2 forward and reselects the earlier tab; `--command <line> --title <t>` opens any line.
 
 ## Rotation
 
 - **`pnpm prd rotate [<topic>] [--mid-wave] [--reason <text>]`** (`rotate.sh`) finds the session to end (the live `prd-<topic>` record, else the calling shell's ancestor `claude` from that worktree) and opens `rotate-into.sh` in a background tab, then returns. It refuses with uncommitted plan changes, with slice worktrees left (unless `--mid-wave`), or with no session found. Without iTerm2 it prints the command and ends nothing.
 - `rotate-into.sh <name> <pid>` sets `rotating`, ends the pid (TERM, KILL after `CARETOOK_ROTATE_WAIT`, 20 s), waits for its wrapper to record the end, then execs `session.sh` with `prompt.sh orchestrator <topic> --resume` (`--auto` from the record or _Status_): fresh, the same name.
 - `rm.sh`, removing a merged `prd/` worktree whose _Status_ has no slice left, sets the registry's `done` flag (dropping `hold`), except for a `standing` topic.
-- `pnpm prd status` adds the recorded sessions (live, rotating or ended, age, run-through; ended over a day ago left out) and the open asks (count, the oldest).
+- `pnpm prd status` adds the recorded sessions (kind, live, rotating or ended, age, run-through, context size; ended over a day ago left out) and the open asks (count, the oldest).
+
+## The context watch
+
+- **The hook** (`context.mjs`, from `context-settings.json`): `session.sh` passes `claude --settings` for `prd` sessions only, so the user's own sessions and planners never run it. After each tool call it reads the size (the transcript's last assistant usage: input, cache read and cache creation), writes the record and stays silent under `CARETOOK_CONTEXT_LIMIT` (160,000). Over it, it adds a reminder at the first crossing and every `CARETOOK_CONTEXT_REMIND_MIN` (10). It never blocks a tool call and always exits 0.
+- **A subagent's call** is sized from that agent's own transcript and gets the loop's words; if the transcript can't be read it stays silent.
+- **The size record:** `.loops/.context/<name>.json` in the main checkout (subagents under `.agents/<name>/`). A record whose pid isn't the live session's is ignored.
+- **`pnpm prd context`** prints the caller's size and the limit; `--all [--json]` lists live sessions; `--keep "<why>"` silences the watch for `CARETOOK_CONTEXT_KEEP_MIN` (30), for a step that can't resume from _Status_. It's refused on a `slice/` branch, whose shell carries its orchestrator's session.
+- A session gets the hook when next started through the wrapper; until then status says "no size yet".
 
 ## The dispatcher
 
