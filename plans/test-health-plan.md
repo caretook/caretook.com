@@ -30,7 +30,7 @@ Notes for later slices: B-475 flake (fixes-tooling, timelineSimpleTodos undo tim
 | 12    | 3    | landed (opus)  | 856602af (b72a59e7, f0d7f192)                |
 | 13    | 4    | landed (opus)  | 1ac187ef                                     |
 | 14    | 5    | landed (opus)  | (PR #56, dev 72d5d28)                        |
-| 15    | 6    | started (opus) |                                              |
+| 15    | 6    | handed off     | (5f55b382; quick passed)                     |
 | 16    | 6    | handed off     | (36ccaa2d; quick passed; waits for 15)       |
 | 17    | 6    | handed off     | (1b64ff59; quick passed; waits for 15)       |
 | 18    | 6    | handed off     | (a61552e9; quick passed; waits for 15-17)    |
