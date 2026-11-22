@@ -1,0 +1,76 @@
+# PRD: Recover by itself and land safely (self-recovery)
+
+Backlog items B-407 (recover by itself, drain, step markers), B-433's usage-limit signal, and B-462 and B-463 (recover's two dispatcher bugs, moved here because an unattended recover makes them worse). B-433's cost record and B-438 (headless sessions) are the follow-on topic `self-recovery-2`.
+
+## Decisions
+
+| Decision                                                                                                                                                                                                                                                      | Why                                                                                                                                   | Source                | Cost to change later                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------- | -------------------------------------------- |
+| Unattended runs stop at the plan's 5-hour or weekly limit and never spend extra usage: at 98% (`CARETOOK_USAGE_STOP`), or when a reading shows overage in use, the dispatcher ends managed sessions that aren't in a landing, and they resume after the reset | Money: draining alone leaves running sessions spending, and Claude Code moves into overage without stopping                           | asked: as recommended | high: real spend                             |
+| The launchd job is installed only by the user's own `pnpm prd autostart install`; nothing installs it                                                                                                                                                         | It changes the user's machine and starts sessions at login                                                                            | assumed               | low: one command                             |
+| The job acts only on evidence of a crash or a reboot: a session record with no end and a dead pid, a stale dispatcher lock, or a down record older than the last boot. A clean stop, a pause or `pnpm prd down --stay` is left alone                          | A deliberate stop, like test profiling or a night off, must survive                                                                   | assumed               | low                                          |
+| The early signal is the `rate_limits` block Claude Code hands a status line (5-hour, weekly, spend limit: percent used and reset time), captured by the settings file the session wrapper already passes, with a refresh interval                             | The only signal that sees a limit before it hits. Confirmed present in Claude Code 2.1.330                                            | assumed               | medium: a change upstream means a new reader |
+| Each session keeps its own reading; the highest percent per window and reset time wins                                                                                                                                                                        | A session's reading is only as new as its last API response                                                                           | assumed               | low                                          |
+| With live sessions, a missing or stale reading (over 15 minutes) files one report and doesn't drain                                                                                                                                                           | A broken signal must not stop all work, and must not pass silently                                                                    | assumed               | low                                          |
+| Draining starts at 85% of the 5-hour or weekly limit (`CARETOOK_USAGE_DRAIN`)                                                                                                                                                                                 | Leaves room for running slices to finish                                                                                              | assumed               | low: a setting                               |
+| After a limit, a session marked stalled is ended and reopened with `--continue` and a carry-on prompt, one per tick, never during a `pnpm prd` command or a landing, and not counted as a death                                                               | `rotate --mid-wave` refuses an uncommitted _Status_; a bare `--continue` would sit idle at its prompt                                 | assumed               | medium                                       |
+| An interrupted landing is judged from git and GitHub; the marker only says which landing to look at. An unmerged one is undone, a merged one is finished. `backlog done` and `rm` stay the orchestrator's and are judged from git and the registry on resume  | Git wins, as in orchestrator recovery                                                                                                 | assumed               | low                                          |
+| A cut-off migration needs only a marker and a rerun                                                                                                                                                                                                           | Drizzle applies all pending migrations in one transaction, so a cut-off run applies none                                              | assumed               | low                                          |
+| B-462 and B-463 move here from `fixes-tooling`                                                                                                                                                                                                                | Both are in the path an unattended recover runs                                                                                       | assumed               | low: one backlog edit                        |
+| The cost record and B-438 are cut to `self-recovery-2`                                                                                                                                                                                                        | Keeps this at six slices (preference). Per-slice cost needs a subagent hook and its own dedupe; a headless session has no status line | preference            | low                                          |
+| Comes after `test-gates`, `agent-autonomy` and `agent-autonomy-2`                                                                                                                                                                                             | It uses agent-autonomy-2's settings file and session kinds, and the journal must fit `land`'s final steps                             | assumed               | low: one registry row                        |
+
+**The skeptic pass** (Fable) changed: a real stop for paid spend; per-session readings and a refresh interval; a carry-on prompt and a per-session stall mark; crash evidence and boot time in the watchdog; the launchd process group, full path and limit at login; the wait for the dispatcher's lock before the recovery agent opens; the migrate marker moved to slice 2; drain and resume split; the cost record moved to `self-recovery-2`; `After` and hot files widened. Declined: extending the journal to `backlog done` and `rm`, which git and the registry already answer.
+
+## Problem
+
+A crash, restart or usage limit stops the automation until the user notices and runs `pnpm prd recover`. Nothing sees a limit coming, so sessions stop mid-work. A landing cut off between its merge and its dev sync leaves no record of how far it got.
+
+## Solution
+
+The machine brings itself back after a reboot or crash. The dispatcher sees a limit coming and starts nothing new, stops its sessions at the plan limit so nothing spends extra usage, then resumes them when the limit resets. A cut-off landing leaves a marker, so the resumed session finishes or undoes it.
+
+## User stories
+
+1. As the user, I want recovery to run by itself after a reboot, so that a restart doesn't wait for me. (B-407)
+2. As the user, I want it to run when work is recorded as running but its session crashed, so that a crash is repaired. (B-407)
+3. As the user, I want a deliberate stop to stay stopped, so that automation never restarts over my profiling or maintenance. (B-407)
+4. As the user, I want only one recover and one dispatcher at a time, so that the job can't double-start anything. (B-407)
+5. As the user, I want recover to leave the dispatcher down when infrastructure failed, and keep its intent to restart, so that sessions don't reopen on a broken machine. (B-462, B-463)
+6. As the dispatcher, I want a current reading of the usage limits, so that I can act before one hits. (B-433)
+7. As the user, I want `pnpm prd status` to show usage and when it resets, so that I can see why work is waiting. (B-433)
+8. As the user, I want no new slice or planner started near a limit, and managed sessions stopped at it, so that work winds down and unattended runs never spend extra usage. (B-407)
+9. As the user, I want stalled sessions resumed after the reset, so that a limit costs only the wait. (B-407)
+10. As an orchestrator, I want a cut-off landing to tell me how far it got and to finish or undo it with one command, so that dev is never left half-landed. (B-407)
+11. As the user, I want a migration cut off by a crash rerun and reported, so that a stack doesn't come back half-known. (B-407)
+
+## Implementation decisions
+
+- **The landing journal:** one small record per landing in the main checkout's `.loops/`, written before each step (merge, push, GitHub merge, to-test file, notice, dev sync) and removed at the end. A pure function takes the record plus the facts (PR state, whether dev has the merge, `MERGE_HEAD`) and returns `finish`, `undo`, `done` or `ask`. `pnpm prd land --resume <branch>` acts on it. Undo aborts a local merge only when `MERGE_HEAD` is the recorded tip; anything else is `ask`. It never reruns a merge: a landing that was undone goes through `land` and all its gates again.
+- **The migrate marker:** recover's stack step records a migrate in progress and clears it on success; the inventory reports one left behind and the stack step reruns it.
+- **The inventory** gains unfinished landings and migrations. The recovery agent and a resumed orchestrator are told to run `land --resume` first.
+- **Unattended recover:** `recover --unattended` takes a single-instance lock, never needs a terminal, and files one report on failure. The dispatcher action is gated on every earlier step. Its intent is persisted before the stale lock is cleared and dropped only once the new dispatcher holds its lock, and the recovery agent opens, in a background tab, only after that.
+- **The watchdog** is a pure decision over the facts (last boot, down record and its time, stay-down mark, session records, dispatcher lock and pause, recover lock, the usage state, last attempt): `recover` or `nothing`, with a reason. It returns `nothing` while the reading says limited. Failed attempts back off to 30 minutes, with one report per incident.
+- **`pnpm prd autostart install|remove|status`** manages one per-user LaunchAgent: at login and every five minutes it runs the watchdog from the main checkout. The job keeps its child processes alive after it exits (dev servers), and its path has Node 24 first plus `docker`, `gh`, `git`, `claude` and `osascript`. `status` checks each resolves. `install` runs the job once, so a macOS Automation prompt for iTerm2 appears while the user is there.
+- **The usage reader:** a status-line command in the wrapper's settings, with a refresh interval, writes one reading per session atomically to `.loops/`. A `StopFailure` hook marks that session stalled on a rate limit, taking the reset from the last reading when its input has none. One pure function parses the input, tolerates missing fields and merges the readings. It never fails or prints anything a session depends on. `pnpm prd usage` prints the result, and `pnpm prd status` adds a line.
+- **The drain decision** is one more pure decision in the dispatcher's tick: `normal`, `draining` or `limited`, with the reset time. Draining means no start, plan or reopen; a new slice worktree is refused with the reason. `pnpm prd dispatch --resume` doesn't override it; `CARETOOK_USAGE_WATCH=off` does.
+- **Past the plan limit:** at the stop line, or on a reading that shows overage in use, the state is `limited` and the tick ends each managed session (its slice agents go with it), marking it stalled, except one running a landing, which finishes first. Commits and worktrees stay, and the resume reconciles from them. Hand-opened sessions are never ended: one report names them, since they can still spend. While limited, nothing probes with `claude -p` (a probe would spend on extra usage and would succeed, so it can't show the plan limit has reset): resuming and the watchdog go by the reading's reset time. If the reading shows a spend limit is configured, `pnpm prd usage` and `autostart status` say that turning extra usage off in the account is the only full guarantee.
+- **Resume after a limit:** once the reset has passed, the tick replaces each session marked stalled as in _Decisions_, passing the carry-on prompt. These resumes don't count toward the reopen limit. Hand-opened sessions are only reported.
+
+## Testing decisions
+
+Unit tests for every pure decision (landing resume, watchdog, usage parser and merge, drain, resume), with fictional fixtures. Script-level tests with stubs, following `recover.test.mjs` and `land.test.mjs`: a landing killed at each step, recover's failure gating, and a stubbed `launchctl`. No test touches the real LaunchAgents folder, session records, asks or transcripts. No app code changes, so no component or browser checks.
+
+## Out of scope
+
+- The cost record (B-433's second half) and headless sessions (B-438): `self-recovery-2`.
+- A phone alert independent of Claude, pushing `prd/` and `slice/` branches as they go, a recovery drill (B-407's note: not picked).
+- Deploy migrations, which `deploy.yml` owns.
+- Stuck but live workers (`worker-watch`).
+
+## Notes
+
+- The `rate_limits` input is read from the installed Claude Code; slice 3 confirms its live shape, and `StopFailure`'s, before relying on them.
+- A per-model weekly limit isn't in the status-line input, so it's seen only when hit.
+- `worker-watch`'s stuck-orchestrator question must skip a session this topic marks stalled. Whichever of the two lands second wires that in.
+- `agent-autonomy` and `agent-autonomy-3` add steps to `land`. The journal wraps the steps as they stand when slice 1 starts, and a later topic adds its own.
