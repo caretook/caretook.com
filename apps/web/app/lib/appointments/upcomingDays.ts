@@ -1,8 +1,7 @@
 import type { TimedEntry } from "./upcoming";
 
-import { localDate } from "@caretook/data/schema";
 import { dayLabel } from "../core/format";
-import { entryTiming, upcomingOrder } from "./upcoming";
+import { entryTiming, listedDay, upcomingOrderIn } from "./upcoming";
 
 // Upcoming's and the Past tab's sections, and the timeline's Upcoming block. Pure, so web:unit tests it.
 
@@ -13,18 +12,10 @@ export type UpcomingSection<T> = { key: string; label: string; items: T[] };
 export const NOW_KEY = "now";
 
 /**
- * The day an item is listed under: an all-day item's own day (in its own
- * zone, where its day was chosen); a timed one's day where the viewer is.
- */
-const dayOf = (item: TimedEntry, viewerZone: string) => {
-  const zone = item.allDay ? item.timeZone : viewerZone;
-  return { key: localDate(item.occurredAt, zone), zone };
-};
-
-/**
  * Upcoming, in sections: items in progress first ("Now"), then a section per
  * day, soonest first ("Today", "Tomorrow", "Friday, Nov 27"), all-day items
- * first in their day (`upcomingOrder`). Past items are left out, so as `now`
+ * first in their day, in time order (`upcomingOrderIn`, by the
+ * `listedDay` they're grouped by). Past items are left out, so as `now`
  * moves on, they leave without new rows. A cancelled item is never "Now": it
  * stays in its day, struck through, until it's past.
  */
@@ -41,13 +32,14 @@ export const upcomingSections = <T extends TimedEntry>(
     if (timing === "now" && !item.cancelledAt) inProgress.push(item);
     else if (timing !== "past") ahead.push(item);
   }
+  const order = upcomingOrderIn(viewerZone);
   const sections: UpcomingSection<T>[] = [];
   if (inProgress.length > 0) {
-    sections.push({ key: NOW_KEY, label: "Now", items: inProgress.sort(upcomingOrder) });
+    sections.push({ key: NOW_KEY, label: "Now", items: inProgress.sort(order) });
   }
   const byDay = new Map<string, UpcomingSection<T>>();
-  for (const item of ahead.sort(upcomingOrder)) {
-    const { key, zone } = dayOf(item, viewerZone);
+  for (const item of ahead.sort(order)) {
+    const { key, zone } = listedDay(item, viewerZone);
     const section = byDay.get(key);
     if (section) section.items.push(item);
     else {
@@ -74,7 +66,7 @@ export const pastSections = <T extends TimedEntry>(
   const byDay = new Map<string, UpcomingSection<T>>();
   for (const item of items) {
     if (entryTiming(item, now) !== "past") continue;
-    const { key, zone } = dayOf(item, viewerZone);
+    const { key, zone } = listedDay(item, viewerZone);
     const section = byDay.get(key);
     if (section) section.items.push(item);
     else {

@@ -87,6 +87,33 @@ describe("upcomingSections", () => {
     expect(section?.key).toBe("2026-11-18");
     expect(section?.label).toBe("Today");
   });
+
+  it("lists entries from other zones in true time order under the viewer's day", () => {
+    // Viewer in Los Angeles. 9 AM Friday in Tokyo is 4 PM Thursday here; noon
+    // Thursday in Los Angeles is earlier. Each entry's own day (Friday, Thursday)
+    // disagrees with its instant, so the Thursday section is still in time order.
+    const tokyo = at("tokyo", "2026-11-20T00:00:00.000Z", { timeZone: "Asia/Tokyo" });
+    const noon = at("noon", "2026-11-19T20:00:00.000Z");
+    // 11 PM Wednesday in Honolulu is 1 AM Thursday here: before both.
+    const honolulu = at("honolulu", "2026-11-19T09:00:00.000Z", { timeZone: "Pacific/Honolulu" });
+    // All day Thursday here still comes first in its day.
+    const allDay = at("all-day", "2026-11-19T08:00:00.000Z", { allDay: true });
+    expect(shape(upcomingSections([tokyo, noon, allDay, honolulu], NOW, LA, "en-US"))).toEqual([
+      ["Tomorrow", ["all-day", "honolulu", "noon", "tokyo"]],
+    ]);
+  });
+
+  it("orders sections by the viewer's day, not the entry's", () => {
+    // 11 PM Wednesday in Honolulu is 1 AM Thursday here (Tomorrow); 9 AM
+    // Thursday in Tokyo is 4 PM Wednesday here (Today). By their own days the
+    // Honolulu entry comes first; where the viewer is, Today does.
+    const honolulu = at("honolulu", "2026-11-19T09:00:00.000Z", { timeZone: "Pacific/Honolulu" });
+    const tokyo = at("tokyo", "2026-11-19T00:00:00.000Z", { timeZone: "Asia/Tokyo" });
+    expect(shape(upcomingSections([honolulu, tokyo], NOW, LA, "en-US"))).toEqual([
+      ["Today", ["tokyo"]],
+      ["Tomorrow", ["honolulu"]],
+    ]);
+  });
 });
 
 describe("pastSections", () => {
