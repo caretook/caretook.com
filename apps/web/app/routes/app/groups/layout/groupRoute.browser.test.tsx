@@ -4,6 +4,7 @@ import { describe, expect, test } from "vitest";
 import { page } from "vitest/browser";
 import * as entry from "~/routes/app/groups/entry/route";
 import * as groupIndex from "~/routes/app/groups/index/route";
+import * as home from "~/routes/app/home/route";
 import * as settingsIndex from "~/routes/app/groups/settings/index/route";
 import * as settingsLayout from "~/routes/app/groups/settings/layout/route";
 import * as members from "~/routes/app/groups/settings/members/route";
@@ -13,8 +14,8 @@ import { fx, TEST_GROUP, TEST_RECIPIENT, TEST_USER } from "../../../../../test/f
 
 // The group route (routing.mjs's group-route steps): `/app/groups/<id>` on
 // its own opens the timeline, the group context is live (a recipient renamed
-// or a role changed on another device shows without a reload), and a group
-// that isn't yours is the /app 404 for every screen under it, naming nothing.
+// or a role changed on another device shows without a reload; removed, the
+// screen goes to /app saying so), and a group that isn't yours is the /app 404 for every screen under it, naming nothing.
 // Opening an entry or group settings under the group route is entry's and
 // groupSettings' tests; a role change reaching a second device for real is
 // app-shell.mjs's.
@@ -22,6 +23,7 @@ import { fx, TEST_GROUP, TEST_RECIPIENT, TEST_USER } from "../../../../../test/f
 const G = `/app/groups/${TEST_GROUP.id}`;
 const SETTINGS = "/app/groups/:groupId/settings";
 const ROUTES: DeviceRoute[] = [
+  { path: "/app", id: "home", module: home },
   { path: "/app/groups/:groupId", id: "group-index", module: groupIndex },
   { path: "/app/groups/:groupId/timeline", module: timeline },
   { path: "/app/groups/:groupId/entries/:entryId", module: entry },
@@ -101,6 +103,39 @@ describe("the group route", () => {
     await expect.poll(() => EDITOR()?.getAttribute("contenteditable")).toBe("true");
     expect(main?.isConnected).toBe(true);
     expect(device.location()).toBe(`${G}/entries/${NOTE.id}`);
+  });
+  test("a role lowered then the membership removed never brings the first role's controls back, and lands on /app saying so", async () => {
+    const device = await renderWithDevice({
+      route: ROUTES,
+      url: `${G}/entries/${NOTE.id}`,
+      role: "caretaker",
+      fixtures: [SAM, NOTE],
+    });
+    await expect.poll(() => EDITOR()?.getAttribute("contenteditable"), { timeout: 10_000 }).toBe("true");
+    const id = await myMembership(device);
+
+    await device.sync(fx.member({ id, userId: TEST_USER.id, role: "viewer" }));
+    await device.settle();
+    await expect.poll(() => EDITOR()?.getAttribute("contenteditable")).toBe("false");
+    expect(TITLE()).toBeNull();
+
+    // From here on, the caretaker's title field never shows again (B-315).
+    let controlsBack = false;
+    const watch = new MutationObserver(() => {
+      if (TITLE() || EDITOR()?.getAttribute("contenteditable") === "true") controlsBack = true;
+    });
+    watch.observe(document.body, { childList: true, subtree: true, attributes: true });
+
+    await device.unsync([{ table: "care_group_member", id }]);
+    await device.settle();
+    await expect.poll(device.location).toBe("/app?groups=1");
+    watch.disconnect();
+    expect(controlsBack).toBe(false);
+    await expect
+      .element(page.getByRole("status").filter({ hasText: "You no longer have access to that care group." }))
+      .toBeVisible();
+    await expect.element(page.getByRole("heading", { level: 1, name: "Your care groups" })).toBeVisible();
+    expect(leaks()).toBe(false);
   });
 });
 
