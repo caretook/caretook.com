@@ -6,11 +6,11 @@ Small nits: small tidies that users won't notice. There is no PRD: this plan is 
 
 Landing mode: **run everything through** (the user, 2026-11-21: "Run everything through", "Every ready slice", "run in auto mode"). Land each green wave, clean up, ask only real questions (through `pnpm prd ask`). B-379: **track only** (the user: file backlog items for each contract step, no migration now).
 
-Wave 1: slices 1–3 (written 2026-11-21). All three started 2026-11-21 (worktrees made, sonnet agents spawned). Slices 2 and 3 write only through `pnpm backlog` (commits on dev), so their branches may stay empty: nothing to merge, just mark done and `prd rm`.
+Wave 1: slices 1–3, all done 2026-11-21; next: sync, check, PR (Codex review: the diff has .env.example and sync-config.yaml comments, not Markdown only), land.
 
 | Slice | Item  | Model  | State   | Merge |
 | ----- | ----- | ------ | ------- | ----- |
-| 1     | B-326 | sonnet | started |       |
+| 1     | B-326 | sonnet | merged | 72298bc8 |
 | 2     | B-379 | sonnet | done (B-455–B-457 filed, topic contract-migrations; no PRD row yet: for the backlog session) | none (empty branch) |
 | 3     | B-380 | sonnet | done (verified; archived items refuse edits, so moved to B-458, B-459 in fixes-tooling) | none (empty branch) |
 
