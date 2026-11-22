@@ -8,7 +8,10 @@ powersync/                service.yaml, sync-config.yaml (Sync Streams)
 docs/                     orchestration.md: the human guide to branches, the inbox and running PRDs (README.md links it)
                           agents/ (the agents' role handbooks; loops.md is a stub), layout.md (this file), domain/<area>.md (AGENTS.md's area index)
 plans/                    inbox.md (the user's list) and backlog.md (the tracker), both only on dev; PRDs and slice plans
-scripts/browser-checks/   headless Chrome checks
+scripts/browser-checks/   Playwright Test specs (<check>.spec.mjs), run by pnpm prd browser
+scripts/build/            build budget, check build and service worker scripts
+scripts/deploy/           deploy env check and smoke checks (pnpm deploy:env, deploy:smoke)
+ops/                      runbook.md (deploys, secrets), break-glass.md, data-copies.md
 scripts/loops/            check-areas.d/<area> + check-areas.mjs: which browser checks a changed file needs
                           pnpm prd (prd.sh) → new/ls/rm/prompt/queue/serve/ready/land/browser (+ lib.sh): worktrees in .loops/, slot and browser leases, a Docker stack each
                           slice-fields.mjs: a slice's Stack, Reads and Tests from its plan
@@ -33,9 +36,12 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           providerSheet, providerFormData, new/, edit/),
                           groups/provider/ (loadProvider, useProviderNotes, ProviderHeader, ContactList),
                           groups/settings/ (layout, index, details/ + DetailsForms, members/ + MembersList; api, groupSettings)
+                          groups/planner/ (the Planner: Upcoming list, past/), groups/medications/, groups/medication/ (a medication's page),
+                          groups/profile/ (the care recipient's profile: basics, conditions, emergency, contact), groups/search/,
                           groups/todos/ (the Planner's Todos tab: TodoChips, TodoSections, DoneTodos, TodoForm, AssigneeField, link pickers,
                           new/, edit/), groups/todo/ (the todo page: loadTodo, useTodoPage, TodoHeader, TodoLinks, notes)
   app/routes/admin/       web only (staff: users, user, groups, group, access codes, print, new group, waitlist, audit, settings)
+  app/routes/connectors/  web only (connect/, mcp/, well-known/: the connector pages, /mcp and OAuth discovery)
   app/routes/marketing/   web only; routes/api/auth.ts, routes/rpc.ts (web only); native-index.tsx
   app/routes/sign-in.tsx, sign-out.tsx; app/routes/account/ (reset-password, verify-email, invite/, AuthCard)
   app/routes/dev/mail/, dev/ui/ (the UI gallery), app/routes/api/cron/outbox.ts, cron/calendar.ts   web only (the dev mailbox; the outbox sweep; the calendar cron)
@@ -49,7 +55,7 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           settings/ (SettingsFrame, SettingsPage parts), shell/ (FirstSyncPending),
                           todos/ (TodoTick, TodoUndoStatus, LinkedTodos)
   app/lib/<area>/         every lib module, in a folder named after its docs/domain/ area (admin, app-shell, appointments, assistant,
-                          auth, care-groups, care-periods, live-notes, marketing, medications, profiles, providers, search,
+                          auth, calendars, care-groups, connectors, care-periods, live-notes, marketing, medications, profiles, providers, search,
                           security-headers, timeline, todos) or core/ (api, rpc, form, contactForm, format, initials, paging,
                           redirect, zonedDay, urls); tests beside their modules; no index files: import the file
                           <name>.sync.ts: an area's device queries (its tests .sync.test.ts, .sync.browser.test.tsx)
@@ -60,7 +66,7 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
 packages/auth/            @caretook/auth (emails.ts: auth emails through notify)
 packages/notifications/   @caretook/notifications: registry, templates (react-email), notify + outbox, senders, cron, dev mail
 packages/api/             @caretook/api: router, procedures, errors, dto, sync upload, HTTP handler
-  src/<area>/             procedures by area (admin, app-shell, calendars, care-groups, marketing, profiles, search, timeline), int tests beside;
+  src/<area>/             procedures by area (admin, app-shell, calendars, care-groups, connectors (MCP, OAuth, tools), marketing, profiles, search, timeline), int tests beside;
                           router.ts composes them (paths frozen in routerPaths.test.ts); the shared helpers and sync.ts stay at the top
 packages/data/            @caretook/data
   scripts/                migrate, seed, clear runners; googleSmoke.ts (`pnpm calendar:google-smoke`, manual)
