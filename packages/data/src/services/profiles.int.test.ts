@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok, system } from "../../test/fixtures";
+import { createGroup, createWorld, ok, system } from "../../test/fixtures";
 import { isError } from "../errors";
 import {
   careGroupMemberModel,
@@ -25,16 +25,10 @@ const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
 const PHONE = { label: "Mobile", number: "(555) 010-1001" };
 
 const setup = async () => {
-  const owner = await createUser("owner");
-  const admin = await createUser("admin");
-  const caretaker = await createUser("caretaker");
-  const viewer = await createUser("viewer");
-  const outsider = await createUser("outsider");
-  const { group } = await createGroup(owner, [
-    { user: admin.user, role: "admin" },
-    { user: caretaker.user, role: "caretaker" },
-    { user: viewer.user, role: "viewer" },
-  ]);
+  const {
+    u: { owner, admin, caretaker, viewer, outsider },
+    group,
+  } = await createWorld({ extras: ["outsider"] });
   const groupId = group.id;
   const membership = async (userId: string) => {
     const m = ok(

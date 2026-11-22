@@ -3,7 +3,7 @@ import type { InviteEmail, InviteMailer } from "./careGroupInviteService";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok, system } from "../../test/fixtures";
+import { createUser, createWorld, ok, system } from "../../test/fixtures";
 import { getDb } from "../db";
 import { appSettingSchema, careGroupInviteSchema, CONSENT_VERSION, userSchema } from "../db/schema";
 import { isError, newError } from "../errors";
@@ -23,16 +23,10 @@ import {
 const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
 
 const setup = async () => {
-  const owner = await createUser("inv-owner");
-  const admin = await createUser("inv-admin");
-  const caretaker = await createUser("inv-caretaker");
-  const viewer = await createUser("inv-viewer");
-  const { group } = await createGroup(owner, [
-    { user: admin.user, role: "admin" },
-    { user: caretaker.user, role: "caretaker" },
-    { user: viewer.user, role: "viewer" },
-  ]);
-  return { owner, admin, caretaker, viewer, groupId: group.id };
+  const { u, groupId } = await createWorld({
+    names: { owner: "inv-owner", admin: "inv-admin", caretaker: "inv-caretaker", viewer: "inv-viewer" },
+  });
+  return { ...u, groupId };
 };
 
 /** A mailer that records what it was asked to send. */

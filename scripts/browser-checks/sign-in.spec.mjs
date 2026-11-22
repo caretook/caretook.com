@@ -1,7 +1,7 @@
 // Sign-in can't be submitted twice (B-1): the button stays disabled, showing
-// "Signing in…", from submit until /app renders, and a wrong password
-// re-enables it. Then the security headers on a document, /rpc, /api/auth and
-// a prerendered marketing page.
+// "Signing in…", from submit until /app renders. Then the security headers on
+// a document, /rpc, /api/auth and a prerendered marketing page. A wrong
+// password re-enabling the button is a component test (routes/sign-in.browser.test.tsx).
 //
 // The redirect to /app is held on its session check: every /api/auth/get-session
 // request after the submit waits until the spec releases it, so /app's
@@ -71,7 +71,8 @@ test(
     await test.step("the button is still disabled after a second click and an Enter", async () => {
       await button.click({ force: true });
       await page.locator('input[name="password"]').press("Enter");
-      await page.waitForTimeout(300);
+      // A disabled submit button blocks both, so there's nothing to wait for:
+      // "exactly one sign-in/email request" below is the proof.
       await expect(button).toBeDisabled();
       expect(new URL(page.url()).pathname).toBe("/sign-in");
     });
@@ -82,8 +83,8 @@ test(
       await expect(page.locator('input[name="email"]')).toHaveCount(0, { timeout: 20_000 });
     });
 
-    await test.step("exactly one sign-in/email request", async () => {
-      await page.waitForTimeout(500);
+    // A second request would have gone at the click or the Enter, long before /app rendered.
+    await test.step("exactly one sign-in/email request", () => {
       expect(signInRequests).toHaveLength(1);
     });
     await test.step("no console errors (success case)", () => {
@@ -91,20 +92,6 @@ test(
     });
   },
 );
-
-test("a wrong password re-enables the button with the error", async ({ device }) => {
-  const { page, errors } = await device("wrong");
-  await fillSignIn(page, "not-the-password-1234");
-  const button = submitButton(page);
-  await button.click();
-  const alert = page.getByRole("alert");
-  await expect(alert).toHaveText("That email and password don't match an account.");
-  await expect(button).toBeEnabled({ timeout: 5000 });
-  await expect(button).toHaveText("Sign in");
-  expect(new URL(page.url()).pathname).toBe("/sign-in");
-  // Browsers log failed fetches (the 401) as console errors; ignore those.
-  expect(errors.filter((e) => !/401|Failed to load resource/.test(e))).toEqual([]);
-});
 
 // Security headers: a document, /rpc, /api/auth and a prerendered marketing
 // page (served as a file, with the host's set).

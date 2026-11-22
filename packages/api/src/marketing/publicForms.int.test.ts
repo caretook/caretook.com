@@ -8,19 +8,18 @@ import {
   waitlistService,
 } from "@caretook/data";
 import { DEV_SUPPORT_EMAIL, setBackgroundRunner, sharedMemorySender } from "@caretook/notifications";
-import { createRouterClient, ORPCError } from "@orpc/server";
+import { ORPCError } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createUser } from "../../../data/test/fixtures";
-import { router } from "..";
 import { PUBLIC_FORM_LIMIT, resetPublicFormLimits } from "./publicForms";
 import { createRateLimiter } from "../rateLimit";
+import { clientFor, codeOf } from "../testing";
 
 // The marketing site's public forms (marketing slice 4) through the router,
 // as an anonymous visitor, with the memory sender.
 
-const visitor = (clientIp = `203.0.113.${Math.floor(Math.random() * 250) + 1}`) =>
-  createRouterClient(router, { context: { authUser: null, clientIp } });
+const visitor = (clientIp = `203.0.113.${Math.floor(Math.random() * 250) + 1}`) => clientFor(null, clientIp);
 
 const pending: Promise<unknown>[] = [];
 beforeAll(() => setBackgroundRunner((work) => void pending.push(work)));
@@ -51,16 +50,6 @@ const outboxWith = ({ key, text }: { key?: string; text?: string }) =>
   getDb().query.notificationOutboxSchema.findMany({
     where: (t, { eq, like }) => (key ? eq(t.idempotencyKey, key) : like(t.text, `%${text}%`)),
   });
-
-const codeOf = async (call: Promise<unknown>) => {
-  try {
-    await call;
-    return "ok";
-  } catch (e) {
-    if (e instanceof ORPCError) return String(e.code);
-    throw e;
-  }
-};
 
 describe("public.waitlist.join", () => {
   it("stores one entry with the email normalized, and thanks the visitor", async () => {

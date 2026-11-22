@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { buildNoteDoc } from "../db/schema";
-import { createGroup, createUser, ok, typeParagraph } from "../../test/fixtures";
+import { createGroup, createUser, createWorld, ok, typeParagraph } from "../../test/fixtures";
 import { getDb } from "../db";
 import {
   FUTURE_DATE_MESSAGE,
@@ -19,6 +19,7 @@ import {
   medicationService,
   noteDocumentService,
   providerService,
+  recipientConditionService,
   todoService,
   timelineEntryService,
 } from ".";
@@ -33,18 +34,7 @@ const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).
 const inHours = (hours: number) => new Date(Date.now() + hours * 60 * 60_000).toISOString();
 
 const setup = async () => {
-  const u = {
-    owner: await createUser("owner"),
-    admin: await createUser("admin"),
-    caretaker: await createUser("caretaker"),
-    viewer: await createUser("viewer"),
-    outsider: await createUser("outsider"),
-  };
-  const { group, recipient } = await createGroup(u.owner, [
-    { user: u.admin.user, role: "admin" },
-    { user: u.caretaker.user, role: "caretaker" },
-    { user: u.viewer.user, role: "viewer" },
-  ]);
+  const { u, group, recipient } = await createWorld({ extras: ["outsider"] });
   const [morning, evening] = ok(await medicationPassService.list(u.owner.ctx, { groupId: group.id })).data;
   if (!morning || !evening) throw new Error("no default passes");
   const addMedication = async (name: string) =>
@@ -291,6 +281,51 @@ describe("assistantActionService.run", () => {
         await run("caretaker", [good, { type: "givePass", passId: evening.id, occurredAt: minutesAgo(0) }]),
       ),
     ).toMatchObject({ code: "assistantActionService:nothingLeft", index: 1 });
+  });
+
+  it("refuses a deleted condition, another group's and an unknown one, writing nothing", async () => {
+    const { u, group, run, entriesOf } = await setup();
+    const condition = async (ctx: typeof u.owner.ctx, groupId: string, name: string) =>
+      ok(await recipientConditionService.create(ctx, { groupId, name }))!;
+    const live = await condition(u.owner.ctx, group.id, "Asthma");
+    const deleted = await condition(u.owner.ctx, group.id, "Old");
+    ok(await recipientConditionService.remove(u.owner.ctx, deleted.id));
+    const elsewhere = await createUser("elsewhere");
+    const { group: other } = await createGroup(elsewhere);
+    const foreign = await condition(elsewhere.ctx, other.id, "Foreign");
+    const before = await entriesOf();
+    const good = { type: "resolveCondition", conditionId: live.id };
+
+    const cases: [unknown, string][] = [
+      [
+        { type: "updateCondition", conditionId: deleted.id, name: "Back" },
+        "assistantActionService:conditionDeleted",
+      ],
+      [{ type: "resolveCondition", conditionId: deleted.id }, "assistantActionService:conditionDeleted"],
+      [
+        { type: "updateCondition", conditionId: foreign.id, name: "Mine" },
+        "assistantActionService:conditionNotFound",
+      ],
+      [{ type: "resolveCondition", conditionId: foreign.id }, "assistantActionService:conditionNotFound"],
+      [{ type: "resolveCondition", conditionId: randomUUID() }, "assistantActionService:conditionNotFound"],
+    ];
+    for (const [bad, code] of cases) {
+      expect(refusal(await run("caretaker", [good, bad])), JSON.stringify(bad)).toMatchObject({
+        code,
+        index: 1,
+      });
+    }
+
+    // Nothing written: every condition as it was, no change entries.
+    expect(ok(await recipientConditionService.getById(u.owner.ctx, live.id))).toMatchObject({
+      status: "active",
+    });
+    expect(ok(await recipientConditionService.getById(u.owner.ctx, deleted.id))).toBeNull();
+    expect(ok(await recipientConditionService.getById(elsewhere.ctx, foreign.id))).toMatchObject({
+      name: "Foreign",
+      status: "active",
+    });
+    expect(await entriesOf()).toEqual(before);
   });
 
   it("lets owners, admins and caretakers run a batch, and refuses viewers and outsiders", async () => {

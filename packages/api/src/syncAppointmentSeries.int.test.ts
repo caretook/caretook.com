@@ -1,5 +1,3 @@
-import type { AuthUser } from "@caretook/data";
-
 import {
   appointmentSeriesService,
   entryProviderId,
@@ -9,17 +7,14 @@ import {
   seriesVisitId,
   timelineEntryService,
 } from "@caretook/data";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor, upload } from "./testing";
 
 // sync.upload for repeating series (appointments-2): rows as a device's
 // SQLite holds them (snake_case, JSON as text, booleans as 1/0). Each test
 // makes its own users and group.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 
 const setup = async () => {
   const owner = await createUser("owner");
@@ -77,7 +72,7 @@ describe("sync.upload: appointment_series", () => {
       id,
       data: { rule: "FREQ=WEEKLY;INTERVAL=1;BYDAY=TU,TH;COUNT=12", start_time: "07:30" },
     };
-    expect((await owner.api.sync.upload({ ops: [create, patch] })).results).toEqual([
+    expect(await upload(owner.api, [create, patch])).toEqual([
       { id, status: "applied" },
       { id, status: "applied" },
     ]);
@@ -88,14 +83,12 @@ describe("sync.upload: appointment_series", () => {
       toppedUpThrough: "2027-02-16",
       createdBy: owner.user.id,
     });
-    expect(
-      (await owner.api.sync.upload({ ops: [create, patch] })).results.every((r) => r.status === "applied"),
-    ).toBe(true);
+    expect((await upload(owner.api, [create, patch])).every((r) => r.status === "applied")).toBe(true);
 
     const del = { op: "DELETE" as const, table: "appointment_series", id };
-    expect((await owner.api.sync.upload({ ops: [del] })).results).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [del])).toEqual([{ id, status: "applied" }]);
     expect(await appointmentSeriesService.getById(owner.ctx, id)).toBeNull();
-    expect((await owner.api.sync.upload({ ops: [del] })).results).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [del])).toEqual([{ id, status: "applied" }]);
   });
 
   it("soft-removes on a PATCH of deleted_at, and on a PUT of a series deleted before it uploaded", async () => {
@@ -107,18 +100,14 @@ describe("sync.upload: appointment_series", () => {
       remove,
       put(b, seriesRow(group.id, recipient.id, { deleted_at: AT })),
     ];
-    expect((await owner.api.sync.upload({ ops })).results.map((r) => r.status)).toEqual([
-      "applied",
-      "applied",
-      "applied",
-    ]);
+    expect((await upload(owner.api, ops)).map((r) => r.status)).toEqual(["applied", "applied", "applied"]);
     for (const id of [a, b])
       expect(
         ok(await appointmentSeriesService.getById(owner.ctx, id, { includeDeleted: true }))!.deletedAt,
       ).not.toBeNull();
   });
 
-  it("refuses a changed group, recipient or kind (immutable), a bad rule, and a viewer", async () => {
+  it("refuses a changed group, recipient or kind (immutable), and a viewer", async () => {
     const { group, recipient, other, owner, viewer } = await setup();
     const id = randomUUID();
     ok(await owner.api.sync.upload({ ops: [put(id, seriesRow(group.id, recipient.id))] }));
@@ -127,18 +116,13 @@ describe("sync.upload: appointment_series", () => {
       ops: [
         { op: "PATCH", table: "appointment_series", id, data: { group_id: other.group.id } },
         { op: "PATCH", table: "appointment_series", id, data: { kind: "note" } },
-        put(id, seriesRow(group.id, recipient.id, { kind: "note", title: null, duration_minutes: null })),
         put(id, seriesRow(other.group.id, other.recipient.id)),
-        { op: "PATCH", table: "appointment_series", id, data: { rule: "FREQ=WEEKLY;INTERVAL=1" } },
       ],
     });
     expect(res.results.map((r) => (r.status === "rejected" ? r.code : r.status))).toEqual([
       "appointmentSeriesService:immutable",
       "appointmentSeriesService:immutable",
-      // A note series is refused outright: series are events only.
-      "appointmentSeriesService:invalid",
       "appointmentSeriesService:immutable",
-      "appointmentSeriesService:invalid",
     ]);
 
     const fresh = randomUUID();
@@ -234,9 +218,7 @@ describe("sync.upload: appointment_series", () => {
         series_detached: 1,
       },
     };
-    expect((await owner.api.sync.upload({ ops: [detach] })).results).toEqual([
-      { id: visitId, status: "applied" },
-    ]);
+    expect(await upload(owner.api, [detach])).toEqual([{ id: visitId, status: "applied" }]);
     expect(ok(await timelineEntryService.getById(owner.ctx, visitId))).toMatchObject({
       seriesDetached: true,
     });

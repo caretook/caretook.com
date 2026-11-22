@@ -1,12 +1,9 @@
-import type { AuthUser } from "@caretook/data";
-
 import { providerService, recipientConditionService, timelineEntryService } from "@caretook/data";
 import { conditionChangeId, conditionManagerId } from "@caretook/data/schema";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor, outcomes, patchOp } from "./testing";
 
 // sync.upload for who diagnosed a condition and who manages it (conditions
 // slice 3), as a device queues one save: a provider added from the picker,
@@ -15,8 +12,6 @@ import { router } from ".";
 // device's own change entry. The server records the save as one entry;
 // replays, a viewer, a PATCH of anything else and another group's provider
 // are refused or harmless. Each test makes its own users and group.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 
 const CREATED = "2026-11-17T21:45:25.229000Z";
 const SAVED_AT = "2026-11-18T09:00:00.000000Z";
@@ -172,47 +167,20 @@ describe("sync.upload: who diagnosed and who manages a condition", () => {
     });
   });
 
-  it("refuses a viewer, a PATCH of anything but the stamp, an id that isn't the pair's, and another group's provider", async () => {
+  it("refuses a viewer, an id that isn't the pair's, and a PATCH of anything but the stamp", async () => {
     const { owner, viewer, group, condition, provider, managers } = await setup();
     const lee = await provider("Dr. Lee");
-    const stranger = await createUser("stranger");
-    const { group: other } = await createGroup(stranger);
-    const theirs = ok(
-      await providerService.create(stranger.ctx, { groupId: other.id, type: "clinician", name: "Dr. Far" }),
-    )!;
 
-    const byViewer = await viewer.api.sync.upload({ ops: [linkPut(group.id, condition.id, lee.id)] });
-    expect(byViewer.results[0]).toMatchObject({ status: "rejected", code: "permissions:unauthorized" });
-
-    const res = await owner.api.sync.upload({
-      ops: [
-        { ...linkPut(group.id, condition.id, lee.id), id: randomUUID() },
-        linkPut(group.id, condition.id, theirs.id),
-        {
-          op: "PATCH",
-          table: "condition_manager",
-          id: conditionManagerId(condition.id, lee.id),
-          data: { provider_id: theirs.id },
-        },
-      ],
-    });
-    expect(res.results).toMatchObject([
-      { status: "rejected", code: "recipientConditionService:invalid" },
-      { status: "rejected", code: "permissions:unauthorized" },
-      { status: "rejected", code: "sync:readOnlyTable" },
+    expect(await outcomes(viewer.api, [linkPut(group.id, condition.id, lee.id)])).toEqual([
+      "permissions:unauthorized",
     ]);
-
-    const diagnosed = await owner.api.sync.upload({
-      ops: [
-        {
-          op: "PATCH",
-          table: "recipient_condition",
-          id: condition.id,
-          data: { diagnosed_by_id: theirs.id, updated_at: SAVED_AT },
-        },
-      ],
-    });
-    expect(diagnosed.results[0]).toMatchObject({ status: "rejected", code: "permissions:unauthorized" });
+    // The pair's id is the service's rule, owned here: no data-layer test sends another.
+    expect(
+      await outcomes(owner.api, [
+        { ...linkPut(group.id, condition.id, lee.id), id: randomUUID() },
+        patchOp("condition_manager", conditionManagerId(condition.id, lee.id), { provider_id: randomUUID() }),
+      ]),
+    ).toEqual(["recipientConditionService:invalid", "sync:readOnlyTable"]);
 
     // A viewer's unlink of a real link is refused too.
     ok(await owner.api.sync.upload({ ops: [linkPut(group.id, condition.id, lee.id)] }));

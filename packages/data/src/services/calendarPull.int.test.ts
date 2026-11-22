@@ -3,7 +3,7 @@ import type { FakeGoogleCalendar, GoogleEvent } from "../google";
 
 import { and, eq, notInArray } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { createGroup, createUser, ok, system } from "../../test/fixtures";
+import { createWorld, ok, system } from "../../test/fixtures";
 import { getDb } from "../db";
 import {
   googleCalendarConnectionSchema,
@@ -72,13 +72,10 @@ const plusHours = (iso: string, hours: number) =>
 const timed = (iso: string) => ({ dateTime: iso, timeZone: LA });
 
 const setup = async () => {
-  const owner = await createUser("owner");
-  const caretaker = await createUser("caretaker");
-  const viewer = await createUser("viewer");
-  const { group } = await createGroup(owner, [
-    { user: caretaker.user, role: "caretaker" },
-    { user: viewer.user, role: "viewer" },
-  ]);
+  const {
+    u: { owner, caretaker, viewer },
+    group,
+  } = await createWorld({ members: ["caretaker", "viewer"] });
   const appointment = ok(
     await timelineEntryService.create(owner.ctx, {
       groupId: group.id,

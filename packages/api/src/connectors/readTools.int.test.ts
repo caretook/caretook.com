@@ -1,6 +1,5 @@
 import type { AuthUser } from "@caretook/data";
 
-import { validateConnectorToken } from "@caretook/auth";
 import {
   careGroupInviteService,
   careGroupService,
@@ -25,10 +24,7 @@ import {
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../../data/test/fixtures";
-import { createRateLimiter } from "../rateLimit";
-import { resourceMetadataUrl } from "./discovery";
-import { createMcpHandler } from "./http";
-import { connectAssistant, enablePasswordSignIn, TEST_ORIGIN } from "./testing";
+import { callTool, connectAssistant, enablePasswordSignIn, mcpHandler } from "./testing";
 import { CONNECTOR_TOOLS } from "./tools";
 
 // The read tools beyond group_overview and list_timeline, through /mcp with
@@ -36,46 +32,7 @@ import { CONNECTOR_TOOLS } from "./tools";
 // capped, in the recipient's offset. A sweep over every read tool checks that
 // nothing private leaves. All data is fictional.
 
-const handlerAt = (now?: Date) =>
-  createMcpHandler({
-    resourceMetadataUrl: resourceMetadataUrl(TEST_ORIGIN),
-    validate: validateConnectorToken(),
-    limiter: createRateLimiter({ limit: 10_000, windowMs: 60_000 }),
-    tools: CONNECTOR_TOOLS,
-    ...(now ? { now: () => now } : {}),
-  });
-
-let nextId = 1;
-type CallResult = {
-  content: { type: string; text: string }[];
-  structuredContent: Record<string, unknown>;
-  isError?: boolean;
-};
-const callTool = async (
-  handler: ReturnType<typeof handlerAt>,
-  token: string,
-  name: string,
-  args: Record<string, unknown> = {},
-) => {
-  const res = await handler(
-    new Request(`${TEST_ORIGIN}/mcp`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json, text/event-stream",
-        authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: nextId++,
-        method: "tools/call",
-        params: { name, arguments: args },
-      }),
-    }),
-  );
-  expect(res.status).toBe(200);
-  return ((await res.json()) as { result: CallResult }).result;
-};
+const handlerAt = (now?: Date) => mcpHandler(now ? { now: () => now } : {});
 
 type Who = Awaited<ReturnType<typeof createUser>>;
 

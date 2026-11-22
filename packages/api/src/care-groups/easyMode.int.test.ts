@@ -1,23 +1,9 @@
-import type { AuthUser } from "@caretook/data";
-
-import { createRouterClient, ORPCError } from "@orpc/server";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser } from "../../../data/test/fixtures";
-import { router } from "..";
+import { clientFor, rejection } from "../testing";
 
 // Easy mode over the API: `easyTiles` on `careGroup.update`, and the own
 // setting in preferences (the managers' `setMemberMode` went with the lock).
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
-
-const rejection = async (call: Promise<unknown>) => {
-  const error = await call.then(
-    () => undefined,
-    (e: unknown) => e,
-  );
-  if (!(error instanceof ORPCError)) throw new Error(`Expected an ORPCError, got ${String(error)}`);
-  return error as ORPCError<string, { code?: string }>;
-};
 
 const setup = async () => {
   const people = {
