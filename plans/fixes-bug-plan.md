@@ -8,20 +8,20 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 Wave 1 (slices 1–12) written 2026-11-21. Held back: B-318 (header ignores simple-mode change from another device) until simple-mode lands (it reworks that code); B-324 (health data in page titles and `?q=`) waits on the user's decision (ask `a10`, waiting in the background).
 
-| Slice | Item  | Model | State                                                    | Merge |
-| ----- | ----- | ----- | -------------------------------------------------------- | ----- |
-| 1     | B-310 | opus  | started (worktree, agent)                                |       |
-| 2     | B-312 | opus  | handed off (84c67da7, quick ok)                          |       |
-| 3     | B-314 | opus  | started (worktree, agent)                                |       |
-| 4     | B-315 | opus  | handed off (25569a1d, quick ok; first-sync at landing)   |       |
-| 5     | B-317 | opus  | started (worktree, agent)                                |       |
-| 6     | B-320 | opus  | handed off (f803441d, quick ok)                          |       |
-| 7     | B-321 | opus  | started (worktree, agent)                                |       |
-| 8     | B-322 | opus  | handed off (311268a9, quick ok)                          |       |
-| 9     | B-323 | opus  | started (worktree, agent)                                |       |
-| 10    | B-385 | opus  | started (worktree, agent)                                |       |
-| 11    | B-386 | opus  | written (blocked by 10)                                  |       |
-| 12    | B-393 | opus  | handed off (fd55c5f3, test only: already fixed by B-234) |       |
+| Slice | Item  | Model | State                                                    | Merge    |
+| ----- | ----- | ----- | -------------------------------------------------------- | -------- |
+| 1     | B-310 | opus  | merged                                                   | 6afc3f58 |
+| 2     | B-312 | opus  | merged                                                   | 233dd07d |
+| 3     | B-314 | opus  | merged                                                   | 8fa65e6f |
+| 4     | B-315 | opus  | merged (first-sync at landing)                           | 3dc2f3cd |
+| 5     | B-317 | opus  | started (worktree, agent)                                |          |
+| 6     | B-320 | opus  | handed off (f803441d, quick ok)                          |          |
+| 7     | B-321 | opus  | started (worktree, agent)                                |          |
+| 8     | B-322 | opus  | handed off (311268a9, quick ok)                          |          |
+| 9     | B-323 | opus  | started (worktree, agent)                                |          |
+| 10    | B-385 | opus  | started (worktree, agent)                                |          |
+| 11    | B-386 | opus  | written (blocked by 10)                                  |          |
+| 12    | B-393 | opus  | handed off (fd55c5f3, test only: already fixed by B-234) |          |
 
 ## Wave 1
 
