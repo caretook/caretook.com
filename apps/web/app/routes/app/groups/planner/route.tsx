@@ -1,9 +1,9 @@
-import { Page } from "~/components/ui";
+import { Page, PageHeader } from "~/components/ui";
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 
 import { TodoUndoStatus } from "~/components/todos";
-import { getGroup } from "~/lib/app-shell/group";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { loadUpcoming } from "./loadUpcoming";
 import { PlannerFilterRow, PlannerHeader } from "./PlannerHeader";
@@ -17,13 +17,16 @@ import { useUpcomingData } from "./useUpcomingData";
 // copy (live, so it works offline and follows other members' changes). What
 // counts as upcoming is worked out from the clock (`lib/appointments/upcoming`), never
 // stored. `?kind=event` (events only), `?show=todos` (todos only) and `?author=` filter it.
+// For the easy roles it's the list alone, read-only: no Add, tabs, filters
+// or row menus (they tick only their own todos).
 
 export const meta = () => [{ title: "Planner · Caretook" }];
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
-  getGroup(context);
+  const group = getGroup(context);
   const { db } = context.get(sessionContext);
-  const filters = parseUpcomingFilters(new URL(request.url).search);
+  // The easy roles have no filters: a typed one is ignored.
+  const filters = parseUpcomingFilters(group.easyRole ? "" : new URL(request.url).search);
   return { ...filters, ...(await loadUpcoming(db, params.groupId, filters)) };
 }
 
@@ -36,17 +39,24 @@ export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: Should
 export default function Planner({ loaderData, params }: Route.ComponentProps) {
   const { kind, author, show, todosOnly } = loaderData;
   const { groupId } = params;
+  const { easyRole } = useGroup();
   const data = useUpcomingData({ groupId, filters: { kind, author }, todosOnly, initial: loaderData });
   const authorName = author ? data.nameOf(author) : null;
 
   return (
     <Page data-planner>
-      <PlannerHeader />
-      <PlannerFilterRow
-        view="upcoming"
-        show={show}
-        author={author && authorName ? { name: authorName, image: data.imageOf(author) } : null}
-      />
+      {easyRole ? (
+        <PageHeader title="Planner" />
+      ) : (
+        <>
+          <PlannerHeader />
+          <PlannerFilterRow
+            view="upcoming"
+            show={show}
+            author={author && authorName ? { name: authorName, image: data.imageOf(author) } : null}
+          />
+        </>
+      )}
       {/* Undo after ticking a todo in the list. */}
       <TodoUndoStatus groupId={groupId} />
       <UpcomingList
@@ -54,6 +64,7 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
         groupId={groupId}
         label="Upcoming"
         empty={emptyUpcomingText(show, authorName)}
+        readOnly={easyRole}
       />
     </Page>
   );

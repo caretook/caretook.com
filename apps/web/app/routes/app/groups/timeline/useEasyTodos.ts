@@ -8,7 +8,7 @@ import { useRememberedQuery } from "~/lib/sync/useRememberedQuery";
 import { todosQuery, toTodos } from "~/lib/todos/todos.sync";
 import { subscribeTodoUndo, type TodoUndo, todoUndoFor, todoUndoSnapshot } from "~/lib/todos/todoUndo";
 
-/** How many todos easy mode's card shows; "See all" opens the rest. */
+/** How many todos easy mode's card shows; "See all" opens the rest (the easy roles get them all). */
 export const EASY_TODOS_CAP = 5;
 
 const NO_ROWS: TodoRow[] = [];
@@ -18,7 +18,8 @@ const noOffers = () => NO_OFFERS;
 /**
  * Easy mode's "My todos": my open todos in list order (`todoOrder`:
  * overdue, then today, then later days, then undated), the first five, and
- * how many there are. `shown` is whether the card is up: when I have open
+ * how many there are (every one for the easy roles, who have no Todos
+ * list). `shown` is whether the card is up: when I have open
  * todos, or while Undo is offered for a tick here (so ticking my last one
  * still offers it). Local data, so it works offline. Read through the tile
  * cache: `ready` once my todos are known (remembered from earlier this
@@ -36,7 +37,7 @@ export function useEasyTodos(groupId: string) {
   const undoing = offers.length > 0 && todoUndoFor(groupId).length > 0;
 
   return {
-    todos: mine.slice(0, EASY_TODOS_CAP),
+    todos: group.easyRole ? mine : mine.slice(0, EASY_TODOS_CAP),
     total: mine.length,
     shown: mine.length > 0 || undoing,
     ready: value !== undefined,
