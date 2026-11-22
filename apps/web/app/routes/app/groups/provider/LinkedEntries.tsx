@@ -2,6 +2,7 @@ import type { EntryRow } from "~/lib/timeline/timeline.sync";
 
 import { Link } from "react-router";
 import { KindIcon } from "~/components/entry";
+import { Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { formatDay, formatTime } from "~/lib/core/format";
@@ -21,10 +22,7 @@ export function LinkedEntries({ groupId, providerId }: { groupId: string; provid
   const entries = toTimelineEntries(rows);
 
   return (
-    <section aria-labelledby="linked-entries-heading" className="space-y-2" data-linked-entries>
-      <h2 id="linked-entries-heading" className="font-semibold">
-        Linked entries
-      </h2>
+    <Section title="Linked entries" id="linked-entries" data-linked-entries="">
       {entries.length === 0 ? (
         <p className="text-base-content/70 text-sm">
           No notes or events yet. Link this provider from a note or event's With row.
@@ -53,6 +51,6 @@ export function LinkedEntries({ groupId, providerId }: { groupId: string; provid
           ))}
         </ul>
       )}
-    </section>
+    </Section>
   );
 }

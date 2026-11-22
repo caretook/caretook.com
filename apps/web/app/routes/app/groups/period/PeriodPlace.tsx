@@ -2,6 +2,7 @@ import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { Link } from "react-router";
 import { ContactActions, ProviderTypeIcon } from "~/components/providers";
+import { Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { allActions } from "~/lib/providers/contactActions";
 
@@ -23,10 +24,7 @@ export function PeriodPlace({
   if (!place && !detail) return null;
   const removed = !!place?.deletedAt;
   return (
-    <section aria-labelledby="period-place-heading" className="space-y-2">
-      <h2 id="period-place-heading" className="font-semibold">
-        Place
-      </h2>
+    <Section title="Place" id="place">
       <div className="rounded-box border-base-300 bg-base-100 flex items-center gap-3 border px-3 py-2.5">
         {place && <ProviderTypeIcon type={place.type} past={removed} />}
         <p className="min-w-0 flex-1 wrap-break-word" data-period-place>
@@ -45,6 +43,6 @@ export function PeriodPlace({
         </p>
         {place && !removed && <ContactActions actions={allActions(place)} />}
       </div>
-    </section>
+    </Section>
   );
 }

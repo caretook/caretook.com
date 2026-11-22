@@ -1,5 +1,6 @@
 import { Check, RotateCcw } from "lucide-react";
 import { TodoUndoStatus } from "~/components/todos";
+import { Section } from "~/components/ui";
 
 /**
  * The complete or reopen button, for whoever may complete the todo
@@ -24,7 +25,7 @@ export function TodoCompletion({
   onReopen: () => void;
 }) {
   return (
-    <div className="space-y-2">
+    <Section title="Status" id="completion">
       {done ? (
         <button
           type="button"
@@ -56,6 +57,6 @@ export function TodoCompletion({
           {error}
         </p>
       )}
-    </div>
+    </Section>
   );
 }

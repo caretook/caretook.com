@@ -5,6 +5,7 @@ Shared by the five fix topics (`fixes-ui`, `fixes-tooling`, `fixes-perf`, `fixes
 ## Shape
 
 - **One slice and one backlog item per fix.** The orchestrator appends a slice per waiting item at a wave boundary (the next number in its plan's _Status_ table), and claims the item before it runs.
+- **Hot files.** A fix that would touch a running topic's hot files (`pnpm backlog prd list`) waits for a later wave. Once a wave's slices are written, the orchestrator sets its row's hot files to the path prefixes they will touch (`pnpm backlog prd set fixes-<cat> hot=<prefixes>`); removing the topic's worktree clears them.
 - **Fields line** under each slice heading (AGENTS.md, _Slice fields_): `Stack: yes|no · Reads: <docs> · Tests: <unit | integration | component | e2e:<check>>`. `Stack: yes` only when the slice needs a dev server, database or an end-to-end check; component and integration tests run without one. `Reads` names this file and the docs the fix touches.
 
 ## Tests
