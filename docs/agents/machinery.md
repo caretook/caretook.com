@@ -45,7 +45,7 @@ The scripts behind `pnpm prd` (`scripts/loops/`) that every session leans on: wo
 - **The context follow-up** (`dispatch-context.mjs`; `CARETOOK_CONTEXT_WATCH=off`): a live managed orchestrator or backlog session over the limit, unkept, is nudged `CARETOOK_CONTEXT_NUDGE_MIN` (15) after its first reminder and asked the same wait after delivery ("rotate it now", the default, or "leave it"). It rotates once no `pnpm prd` or `pnpm backlog` command runs under it: an orchestrator mid-wave; a backlog session through `rotate-into.sh`, with a brief newer than the delivery, else `--no-brief`.
 - **The keep-alive** (`keep-alive.mjs`; `CARETOOK_KEEP_SESSIONS=off`, or pause): opens a managed `backlog` session when none is live (a record, one `rotating`, or a `--remote-control backlog` process), outside the PRD slots. Three quick deaths ask "open again" or "stop keeping it alive".
 - **Session requests** (`session-requests.mjs`, `.loops/.requests/`): one per tick, after the keep-alive, opens `backlog-<name>` (Remote Control `backlog - <name>`), managed, not kept alive, or refuses a live name or past `CARETOOK_MAX_BACKLOG_SESSIONS` (4). A notice says which.
-- **Files** in the main checkout's `.loops/`: `.dispatch.lock` (pid; a dead one is taken over), `.dispatch.json`, `.dispatch.log`. On an idle tick every six hours it runs `pnpm prd tidy --yes`. No usage-limit handling: pause and resume.
+- **Files** in the main checkout's `.loops/`: `.dispatch.lock` (pid; a dead one is taken over), `.dispatch.json`, `.dispatch.log`. On an idle tick every six hours it runs `pnpm prd tidy --yes`.
 
 ## The load gate
 
