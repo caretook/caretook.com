@@ -4,7 +4,10 @@
 // pinned-versions file, and inputs never reach a shell unquoted. Parsed with
 // the sync config's YAML reader (no YAML dependency), which refuses what it
 // doesn't know, so the workflows stay plain.
-import { readdirSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -34,6 +37,7 @@ describe("the deploy workflows", () => {
   it("are all here", () => {
     expect(WORKFLOWS.sort()).toEqual([
       ".github/workflows/admin-grant.yml",
+      ".github/workflows/ci.yml",
       ".github/workflows/db-access.yml",
       ".github/workflows/deploy.yml",
       ".github/workflows/reset-staging.yml",
@@ -63,8 +67,73 @@ describe("the deploy workflows", () => {
     expect(deploy.jobs.deploy.environment).toMatch(/main.*production.*staging/);
   });
 
-  it.each(WORKFLOWS.filter((p) => !p.endsWith("/deploy.yml")))("%s runs only by hand", (path) => {
+  it.each(WORKFLOWS.filter((p) => !/\/(deploy|ci)\.yml$/.test(p)))("%s runs only by hand", (path) => {
     expect(Object.keys(parseYaml(read(path)).on)).toEqual(["workflow_dispatch"]);
+  });
+
+  it("runs CI only on a push to a ci/ ref, reading no secret", () => {
+    const text = read(".github/workflows/ci.yml");
+    const ci = parseYaml(text);
+    expect(Object.keys(ci.on)).toEqual(["push"]);
+    expect(ci.on.push).toEqual({ branches: ["ci/**"] });
+    expect(secretsIn(text)).toEqual([]);
+    expect(text).not.toMatch(/\bsecrets\b(?!: none)/);
+    expect(ci.permissions).toEqual({ contents: "read" });
+    expect(ci.concurrency["cancel-in-progress"]).toBe("true");
+  });
+
+  it("checks CI out by the pushed SHA and keeps the job's token out of the checkout", () => {
+    const ci = parseYaml(read(".github/workflows/ci.yml"));
+    for (const job of Object.values(ci.jobs)) {
+      const checkout = job.steps.find((s) => s.id === "checkout");
+      expect(checkout.with.ref).toBe("${{ github.sha }}");
+      expect(checkout.with["persist-credentials"]).toBe("false");
+    }
+  });
+
+  it("runs the browser tooling test in CI's integration job, not its unit job", () => {
+    const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
+    // Runs the job's real selection: a flag that Vitest ignores fails here.
+    const dir = mkdtempSync(join(tmpdir(), "ci-unit-files-"));
+    try {
+      const list = join(dir, "files.txt");
+      const select = jobs.unit.steps.find((s) => s.id === "select").run;
+      const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("VITEST")));
+      execFileSync("bash", ["-eo", "pipefail", "-c", select], {
+        cwd: root,
+        env: { ...env, NODE_ENV: "", CI_UNIT_FILES: list },
+        stdio: ["ignore", "ignore", "inherit"],
+      });
+      const files = readFileSync(list, "utf8").split("\n").filter(Boolean);
+      expect(files).not.toContain("scripts/loops/browser.test.mjs");
+      for (const kept of [
+        "scripts/loops/lease.test.mjs",
+        "scripts/deploy/workflows.test.mjs",
+        "apps/web/app/.server/devUi.test.ts",
+      ])
+        expect(files).toContain(kept);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+    expect(jobs.unit.steps.find((s) => s.id === "test").run).toContain('"${files[@]}"');
+    const step = jobs.integration.steps.find((s) => s.id === "browser-tooling");
+    expect(step.run).toContain("--project tooling:unit scripts/loops/browser.test.mjs");
+    expect(step.if).toBe("${{ !cancelled() }}");
+    const report = jobs.integration.steps.find((s) => s.id === "report").run;
+    expect(report).toContain("ci-results/browser-tooling.json");
+  }, 60_000);
+
+  it("gates CI's jobs on the tier and always writes a verdict unless cancelled", () => {
+    const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
+    expect(Object.keys(jobs)).toEqual(["plan", "static", "unit", "integration", "verdict"]);
+    for (const name of ["static", "unit", "integration"])
+      expect(jobs[name].if).toBe(`\${{ needs.plan.outputs.${name} == 'true' }}`);
+    expect(jobs.verdict.if).toBe("${{ !cancelled() }}");
+    expect(jobs.verdict.needs).toEqual(["plan", "static", "unit", "integration"]);
+    const upload = jobs.verdict.steps.at(-1);
+    expect(upload.uses).toMatch(/^actions\/upload-artifact@[0-9a-f]{40}$/);
+    expect(upload.with).toMatchObject({ name: "verdict", "retention-days": "7" });
+    expect(jobs.integration.services.postgres.ports).toEqual(["5435:5432"]);
   });
 
   it("runs the deploy's steps in order", () => {
