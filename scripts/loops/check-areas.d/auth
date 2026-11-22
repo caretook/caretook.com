@@ -6,6 +6,8 @@ apps/web/app/routes/api/*                sign-in first-sync
 apps/web/app/lib/auth/session.ts         sign-in first-sync signout-wipe session-end
 apps/web/app/lib/auth/sessionRules.ts    sign-in session-end
 apps/web/app/lib/auth/sessionEpoch.ts    sign-in session-end
+# The forget list, run at sign-out and when a different user opens the local database (B-317).
+apps/web/app/lib/auth/forgetUserData.ts  signout-wipe sign-in
 apps/web/app/lib/core/redirect.ts        sign-in session-end
 apps/web/app/lib/auth/auth-client.ts     sign-in signout-wipe
 # Trusted origins and the client IP (hosting slice 8): Better Auth's sign-in
