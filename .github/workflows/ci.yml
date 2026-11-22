@@ -41,7 +41,7 @@ jobs:
       unit: ${{ steps.tier.outputs.unit }}
       integration: ${{ steps.tier.outputs.integration }}
       components: ${{ steps.tier.outputs.components }}
-      build: ${{ steps.tier.outputs.build }}
+      full: ${{ steps.tier.outputs.full }}
       pg_password: ${{ steps.password.outputs.pg_password }}
     steps:
       - id: checkout
@@ -205,12 +205,14 @@ jobs:
           node scripts/ci/verdict.mjs summarize ci-results/integration.json
           ci-results/browser-tooling.json >> "$GITHUB_OUTPUT"
 
-  components:
+  # Two shards: one job took 13 minutes, past the 10-minute limit. Two plain jobs,
+  # not a matrix, because a matrix's jobs share one set of outputs.
+  components-1:
     needs:
       - plan
     if: ${{ needs.plan.outputs.components == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     outputs:
       failures: ${{ steps.report.outputs.failures }}
     steps:
@@ -228,19 +230,51 @@ jobs:
         name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
       - id: test
-        name: Component tests
+        name: Component tests (shard 1 of 2)
         run: >-
-          pnpm exec vitest run --project web:components --reporter=default
-          --reporter=json --outputFile.json=ci-results/components.json
+          pnpm exec vitest run --project web:components --shard=1/2 --reporter=default
+          --reporter=json --outputFile.json=ci-results/components-1.json
       - id: report
         name: Report the failures
         if: ${{ !cancelled() }}
-        run: node scripts/ci/verdict.mjs summarize ci-results/components.json >> "$GITHUB_OUTPUT"
+        run: node scripts/ci/verdict.mjs summarize ci-results/components-1.json >> "$GITHUB_OUTPUT"
+
+  components-2:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.components == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      failures: ${{ steps.report.outputs.failures }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: setup
+        uses: ./.github/actions/setup
+      - id: env
+        name: Fictional env
+        run: node scripts/ci/env.mjs >> "$GITHUB_ENV"
+      - id: chromium
+        name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - id: test
+        name: Component tests (shard 2 of 2)
+        run: >-
+          pnpm exec vitest run --project web:components --shard=2/2 --reporter=default
+          --reporter=json --outputFile.json=ci-results/components-2.json
+      - id: report
+        name: Report the failures
+        if: ${{ !cancelled() }}
+        run: node scripts/ci/verdict.mjs summarize ci-results/components-2.json >> "$GITHUB_OUTPUT"
 
   build:
     needs:
       - plan
-    if: ${{ needs.plan.outputs.build == 'true' }}
+    if: ${{ needs.plan.outputs.full == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -280,7 +314,8 @@ jobs:
       - static
       - unit
       - integration
-      - components
+      - components-1
+      - components-2
       - build
     # Not on a cancelled run: no artifact reads as unknown on the Mac.
     if: ${{ !cancelled() }}
