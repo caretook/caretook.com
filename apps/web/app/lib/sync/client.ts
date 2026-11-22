@@ -8,6 +8,7 @@ import { rpc } from "../core/rpc";
 import { releaseSyncLocksWhenCached } from "./pageCache";
 import { dropSearchTables } from "../search/searchTables.sync";
 import { drizzleSchema, powerSyncSchema } from "./schema";
+import { uploadQueued } from "./uploader";
 
 // The PowerSync database and its connection. Browser only: load it through
 // `openSync()` in ./index.ts, never import it statically (it starts workers).
@@ -18,17 +19,14 @@ const AppSchema = new DrizzleAppSchema(powerSyncSchema);
 // next page's never opens (see ./pageCache). Before PowerSync takes any lock.
 if (navigator.locks) releaseSyncLocksWhenCached(navigator.locks, window);
 
-/** Ops per upload request. Matches SYNC_BATCH_LIMIT in packages/api/src/sync.ts. */
-const UPLOAD_BATCH = 100;
-
 const powersyncUrl = () => import.meta.env.VITE_POWERSYNC_URL as string | undefined;
 
 /**
  * How PowerSync reaches our backend:
  * - fetchCredentials: a 15-minute Better Auth JWT (EdDSA, `aud` = POWERSYNC_URL).
  * - uploadData: the device's queued writes, through `sync.upload`, which runs
- *   them through the services. Refused ops come back as `rejected` and are
- *   acknowledged; the next sync then restores the server's copy.
+ *   them through the services (./uploader: refused ops are recorded as not
+ *   saved, then acknowledged; the next sync restores the server's copy).
  */
 const connector: PowerSyncBackendConnector = {
   async fetchCredentials() {
@@ -42,23 +40,7 @@ const connector: PowerSyncBackendConnector = {
     return { endpoint, token: data.token };
   },
 
-  async uploadData(database) {
-    const batch = await database.getCrudBatch(UPLOAD_BATCH);
-    if (!batch) return;
-    const { results } = await rpc.sync.upload({
-      ops: batch.crud.map((entry) => ({
-        op: entry.op,
-        table: entry.table,
-        id: entry.id,
-        data: entry.opData ?? null,
-        ...(entry.metadata ? { metadata: entry.metadata } : {}),
-      })),
-    });
-    for (const result of results) {
-      if (result.status === "rejected") console.warn("Sync: the server refused a change", result);
-    }
-    await batch.complete();
-  },
+  uploadData: (database) => uploadQueued(database, (input) => rpc.sync.upload(input)),
 };
 
 const DB_FILENAME = "caretook.sqlite";
