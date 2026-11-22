@@ -34,6 +34,8 @@ import { CardSection } from "./sections/CardSection";
 import { ListSection } from "./sections/ListSection";
 import { CheckFieldSection } from "./sections/CheckFieldSection";
 import { ToggleFieldSection } from "./sections/ToggleFieldSection";
+import { DetailHeaderSection } from "./sections/DetailHeaderSection";
+import { SectionBandsSection } from "./sections/SectionBandsSection";
 
 /** One gallery section: a primitive's variants, with fictional data. */
 export type GallerySection = { id: string; title: string; Section: ComponentType };
@@ -77,4 +79,6 @@ export const GALLERY: readonly GallerySection[] = [
   { id: "list", title: "List and ListRow", Section: ListSection },
   { id: "check-field", title: "CheckField", Section: CheckFieldSection },
   { id: "toggle-field", title: "ToggleField", Section: ToggleFieldSection },
+  { id: "detail-header", title: "DetailHeader", Section: DetailHeaderSection },
+  { id: "section", title: "Section (a banded Page)", Section: SectionBandsSection },
 ];

@@ -58,3 +58,6 @@ export { List, ListRow } from "./List";
 export { CheckField } from "./CheckField";
 export type { CheckFieldProps } from "./CheckField";
 export { ToggleField } from "./ToggleField";
+export { DetailHeader } from "./DetailHeader";
+export type { DetailTone } from "./DetailHeader";
+export { Section } from "./Section";

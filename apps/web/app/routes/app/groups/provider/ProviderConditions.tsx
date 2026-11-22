@@ -1,5 +1,6 @@
 import { HeartPulse } from "lucide-react";
 import { Link } from "react-router";
+import { Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useProviderConditions } from "~/lib/profiles/conditionProviders.sync";
 import { sinceText } from "~/lib/profiles/conditions";
@@ -16,10 +17,7 @@ export function ProviderConditions({ groupId, providerId }: { groupId: string; p
   if (conditions.length === 0) return null;
 
   return (
-    <section aria-labelledby="provider-conditions-heading" className="space-y-2" data-provider-conditions>
-      <h2 id="provider-conditions-heading" className="font-semibold">
-        Conditions
-      </h2>
+    <Section title="Conditions" id="conditions" data-provider-conditions="">
       <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border">
         {conditions.map((c) => {
           const roles = [c.diagnosed && "Diagnosed", c.manages && "Manages"].filter(Boolean).join(" and ");
@@ -53,6 +51,6 @@ export function ProviderConditions({ groupId, providerId }: { groupId: string; p
           );
         })}
       </ul>
-    </section>
+    </Section>
   );
 }

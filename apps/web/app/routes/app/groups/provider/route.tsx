@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { LinkedTodos } from "~/components/todos";
-import { BackLink, Page } from "~/components/ui";
+import { BackLink, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { PROVIDER_SHEET_STATE } from "~/lib/providers/providerSheetLink";
@@ -73,44 +73,50 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
   const mentionProviders = useMentionProviders(groupId);
 
   return (
-    <Page>
-      <BackLink to={directoryUrl} label="Providers" />
+    <Page bands>
+      <Section>
+        <BackLink to={directoryUrl} label="Providers" />
 
-      <ProviderHeader
-        provider={provider}
-        editors={!deleted && <EditorAvatars documentId={providerId} groupId={groupId} viewerId={db.userId} />}
-        actions={
-          canWrite &&
-          !deleted && (
-            <>
-              <CopyToGroup provider={provider} groupName={displayName} onResult={setCopyStatus} />
-              <Link
-                to={appUrls.editProvider(groupId, providerId)}
-                // Closing the sheet goes back here.
-                state={PROVIDER_SHEET_STATE}
-                prefetch="render"
-                className="btn btn-ghost btn-sm gap-1"
-                data-edit-provider
-              >
-                <Pencil className="size-4" aria-hidden="true" />
-                Edit
-              </Link>
-            </>
-          )
-        }
-      />
+        <ProviderHeader
+          provider={provider}
+          editors={
+            !deleted && <EditorAvatars documentId={providerId} groupId={groupId} viewerId={db.userId} />
+          }
+          actions={
+            canWrite &&
+            !deleted && (
+              <>
+                <CopyToGroup provider={provider} groupName={displayName} onResult={setCopyStatus} />
+                <Link
+                  to={appUrls.editProvider(groupId, providerId)}
+                  // Closing the sheet goes back here.
+                  state={PROVIDER_SHEET_STATE}
+                  prefetch="render"
+                  className="btn btn-ghost btn-sm gap-1"
+                  data-edit-provider
+                >
+                  <Pencil className="size-4" aria-hidden="true" />
+                  Edit
+                </Link>
+              </>
+            )
+          }
+        />
 
-      <p role="status" className="text-sm empty:hidden" data-copy-status>
-        {copyStatus}
-      </p>
+        <p role="status" className="text-sm empty:hidden" data-copy-status>
+          {copyStatus}
+        </p>
+      </Section>
 
       {deleted ? (
-        <div role="alert" className="alert">
-          <span>This provider was deleted.</span>
-          <Link to={directoryUrl} className="btn btn-sm">
-            Back to providers
-          </Link>
-        </div>
+        <Section>
+          <div role="alert" className="alert">
+            <span>This provider was deleted.</span>
+            <Link to={directoryUrl} className="btn btn-sm">
+              Back to providers
+            </Link>
+          </div>
+        </Section>
       ) : (
         <>
           <ContactList provider={provider} />
@@ -119,19 +125,17 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
             <ProviderVisitPrep groupId={groupId} providerId={providerId} providerName={provider.name} />
           )}
 
-          <LinkedTodos link={{ providerId }} />
+          <LinkedTodos link={{ providerId }} band />
 
-          <section aria-labelledby="provider-notes-heading" className="space-y-2">
-            <div>
-              <h2 id="provider-notes-heading" className="font-semibold">
-                Notes
-              </h2>
-              <p className="text-base-content/70 text-sm">
-                {canWrite
-                  ? "Shared with the care group: parking, who to ask for, anything worth knowing."
-                  : "Shared with the care group. You can view these notes."}
-              </p>
-            </div>
+          <Section
+            title="Notes"
+            id="notes"
+            description={
+              canWrite
+                ? "Shared with the care group: parking, who to ask for, anything worth knowing."
+                : "Shared with the care group. You can view these notes."
+            }
+          >
             {saveError && (
               <p role="alert" className="text-error text-sm">
                 {saveError}
@@ -148,7 +152,7 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
               ensureSaved={ensureSaved}
               providers={mentionProviders}
             />
-          </section>
+          </Section>
 
           <LinkedEntries groupId={groupId} providerId={providerId} />
 

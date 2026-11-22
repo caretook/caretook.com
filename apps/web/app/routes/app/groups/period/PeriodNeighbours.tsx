@@ -3,6 +3,7 @@ import type { LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router";
+import { Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { periodTitle } from "~/lib/care-periods/periodDisplay";
 import { neighbourLabel, spanDatesText } from "./periodPage";
@@ -58,17 +59,19 @@ export function PeriodNeighbours({
 }) {
   if (!previous && !next) return null;
   return (
-    <nav aria-label="Other care periods" className="flex gap-2" data-period-neighbours>
-      {previous ? (
-        <NeighbourLink groupId={groupId} which="previous" span={previous} timeZone={timeZone} now={now} />
-      ) : (
-        <span className="flex-1" />
-      )}
-      {next ? (
-        <NeighbourLink groupId={groupId} which="next" span={next} timeZone={timeZone} now={now} />
-      ) : (
-        <span className="flex-1" />
-      )}
-    </nav>
+    <Section title="Other care periods" id="neighbours">
+      <nav aria-label="Other care periods" className="flex gap-2" data-period-neighbours>
+        {previous ? (
+          <NeighbourLink groupId={groupId} which="previous" span={previous} timeZone={timeZone} now={now} />
+        ) : (
+          <span className="flex-1" />
+        )}
+        {next ? (
+          <NeighbourLink groupId={groupId} which="next" span={next} timeZone={timeZone} now={now} />
+        ) : (
+          <span className="flex-1" />
+        )}
+      </nav>
+    </Section>
   );
 }
