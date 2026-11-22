@@ -22,7 +22,7 @@
 
 **Rotated for context (161k) before landing wave 2. Nothing of wave 2 is in dev yet. The next session:**
 
-1. Trim `docs/agents/machinery.md`: after the sync with `test-gates` it is 15,576 B against a 15,360 B budget, and `land` refuses a doc that grows past its budget. Cut at least 216 B, keeping this wave's bullets (`rotate --self`, the context follow-up, the keep-alive).
+1. Done: `docs/agents/machinery.md` trimmed under its 15,360 B budget, this wave's bullets kept. Reconciled with git on resume: no slice in flight; wave boundary found nothing new for this topic.
 2. `pnpm prd sync` (dev moved again), then the gate on the tip: the file list above (in zsh, `${=files}`) and `pnpm exec eslint scripts`. The last pass, on ead6e8c9 after syncing `test-gates` wave 1: 52 files, 971 tests, eslint clean; the diff against dev is tooling and Markdown only.
 3. `pnpm prd pr agent-autonomy-2`, `pnpm prd review agent-autonomy-2 --again` if it says stale, `--wait` in the background, then `pnpm prd land agent-autonomy-2 -m "feat(agent-autonomy-2): dispatcher context follow-up, phone hand-off and always-on backlog session (B-508, B-514, B-515)"`. Don't commit _Status_ between `pr` and `land`.
 4. File the landing report with `pnpm prd ask --report`: what landed, the to-test file, that slices 2, 4 and 5 ran only against stubs, that `browser.test.mjs` and `pnpm prd check` were skipped on the user's word, and that once the dispatcher restarts on this code it opens a backlog session whenever none is live (`CARETOOK_KEEP_SESSIONS=off` or `pnpm prd dispatch --pause` stops that).
