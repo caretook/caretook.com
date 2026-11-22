@@ -1,3 +1,5 @@
+import type { MedicationSchedule } from "@caretook/data/schema";
+
 import { describe, expect, test } from "vitest";
 import { renderWithDevice } from "../../../test/device";
 import { TEST_NOW } from "../../../test/found";
@@ -12,7 +14,7 @@ import { updateEntry } from "../timeline/timeline.sync";
 // rewrote one unchanged in JSON.stringify's form would show here as a PATCH
 // carrying it, and on the server overwrite a co-member's newer value.
 
-const SCHEDULE = { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] } as const;
+const SCHEDULE: MedicationSchedule = { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] };
 const PHONES = [
   { label: "Office", number: "(555) 010-3300" },
   { label: "Fax", number: "(555) 010-3301" },
@@ -50,7 +52,7 @@ describe("a medication edit", () => {
   test("a schedule change sends the schedule (with its change entry)", async () => {
     const med = medication();
     const d = await device(med);
-    const schedule = { type: "scheduled", slots: [{ time: "09:00" }, { time: "20:00" }] } as const;
+    const schedule: MedicationSchedule = { type: "scheduled", slots: [{ time: "09:00" }, { time: "20:00" }] };
     expect((await updateMedication(d.db, med.id, { schedule })).ok).toBe(true);
     const data = await onlyWrite(d, "medication");
     expect(JSON.parse(data.schedule as string)).toEqual(schedule);
