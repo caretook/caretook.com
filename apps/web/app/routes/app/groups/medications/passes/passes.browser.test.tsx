@@ -1,45 +1,35 @@
-import type { DeviceRoute } from "../../../../../../test/device";
-
 import { describe, expect, test } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
-import { fx } from "../../../../../../test/fixtures";
-import * as medications from "../route";
-import * as scheduleTab from "../schedule/route";
+import { fx, medicationPass } from "../../../../../../test/fixtures";
 import {
   $,
   $$,
   dialogButton,
   EVENING,
-  MEDS,
+  MEDICATION_ROUTES,
   menuItem,
   MORNING,
   OPEN_DIALOG,
-  SCHEDULE,
+  PASSES,
 } from "../medicationWorld";
-import * as passesScreen from "./route";
 
-// The Passes screen (medications.mjs's passes steps): the group's passes in
-// order with the medications in each, from the list's Passes link; a writer
-// adds one (a taken name refused, any case), retimes it (every medication
-// moves with it, and one passMoved entry says so), moves it up, renames it
-// and deletes it (a confirm saying the medications keep the time, which they
-// do, with no change entries); a retime from another device shows without a
-// reload; a viewer reads it with no controls. The device never connects, so
-// every write here is the offline one too. The pass rules are
+// The Passes tab (B-424; medications.mjs's passes steps): the group's passes
+// in order with the medications in each, under the Medications header; a
+// writer adds one through the header's `+` (Pass, the add-pass sheet; a
+// taken name refused, any case), retimes it (every medication moves with it,
+// and one passMoved entry says so), moves it up, renames it and deletes it (a
+// confirm saying the medications keep the time, which they do, with no
+// change entries); a retime from another device shows without a reload; a
+// viewer reads it with no controls, and the add-pass sheet's URL sends a
+// viewer or a full group to the tab. The device never connects, so every
+// write here is the offline one too. The pass rules are
 // medicationPass.test.ts's; the service's retime and delete are
-// medicationPass.int.test.ts's and syncPasses.int.test.ts's.
+// medicationPass.int.test.ts's and syncPasses.int.test.ts's. The tabs and
+// the `+` menu from each tab are tabs.browser.test.tsx's.
 
-const PASSES = `${MEDS}/passes`;
-const ROUTES: DeviceRoute[] = [
-  {
-    path: "/app/groups/:groupId/medications",
-    module: medications,
-    children: [{ path: "/app/groups/:groupId/medications/schedule", module: scheduleTab }],
-  },
-  { path: "/app/groups/:groupId/medications/passes", module: passesScreen },
-];
+const NEW_PASS = `${PASSES}/new`;
 
 const LISINOPRIL = fx.medication({
   name: "Lisinopril",
@@ -54,11 +44,16 @@ const METFORMIN = fx.medication({
 
 const open = (options: { role?: "caretaker" | "viewer"; url?: string; extra?: unknown[] } = {}) =>
   renderWithDevice({
-    route: ROUTES,
+    route: MEDICATION_ROUTES,
     url: options.url ?? PASSES,
     role: options.role ?? "caretaker",
     fixtures: [MORNING, EVENING, LISINOPRIL, METFORMIN, ...((options.extra ?? []) as [])],
   });
+
+/** Six more passes: with Morning and Evening, the group's 8. */
+const SIX_MORE = ["Noon", "Afternoon", "Supper", "Bedtime", "Night", "Late"].map((name, i) =>
+  medicationPass({ name, time: `${String(9 + i).padStart(2, "0")}:30`, sortOrder: 2 + i }),
+);
 
 const rows = () => $$("main [data-passes] > li");
 /** The screen's passes as "Name HH:MM", in order. */
@@ -72,6 +67,7 @@ const medsIn = (name: string) =>
   [...(row(name)?.querySelectorAll("[data-pass-medication]") ?? [])].map((a) => a.textContent);
 const FORM = () => $<HTMLFormElement>("[role=dialog] [data-pass-form]");
 const input = (name: string) => FORM()!.querySelector<HTMLInputElement>(`[name="${name}"]`)!;
+const description = () => $("main [data-passes-description]")?.textContent ?? null;
 
 const fillForm = async ({ name, time }: { name?: string; time?: string }) => {
   await expect.poll(FORM).toBeTruthy();
@@ -79,10 +75,16 @@ const fillForm = async ({ name, time }: { name?: string; time?: string }) => {
   if (time !== undefined) await userEvent.fill(input("time"), time);
   await userEvent.click(await found(() => FORM()?.querySelector('button[type="submit"]')));
 };
+/** The header's `+`, then Pass: the add-pass sheet. */
+const addPass = async () => {
+  await userEvent.click(page.getByRole("button", { name: "Add", exact: true }));
+  await userEvent.click(await found(() => menuItem("Pass")));
+};
 const action = async (name: string, item: string) => {
-  await userEvent.click(row(name)!.querySelector(`button[aria-label="Actions for ${name}"]`)!);
-  await expect.poll(() => menuItem(item)).toBeTruthy();
-  await userEvent.click(menuItem(item)!);
+  await userEvent.click(
+    await found(() => row(name)?.querySelector(`button[aria-label="Actions for ${name}"]`)),
+  );
+  await userEvent.click(await found(() => menuItem(item)));
 };
 const stored = async (device: { query: <T>(sql: string, p?: unknown[]) => Promise<T[]> }, id: string) =>
   (
@@ -94,7 +96,7 @@ const stored = async (device: { query: <T>(sql: string, p?: unknown[]) => Promis
 
 /** Add "Noon" at 12:00 with a medication in it; returns its id. */
 const addNoon = async (device: Awaited<ReturnType<typeof open>>) => {
-  await userEvent.click($("main [data-add-pass]")!);
+  await addPass();
   await fillForm({ name: "Noon", time: "12:00" });
   await expect.poll(() => row("Noon")).toBeTruthy();
   await expect.poll(FORM).toBeNull();
@@ -102,25 +104,22 @@ const addNoon = async (device: Awaited<ReturnType<typeof open>>) => {
   return noon!.id;
 };
 
-describe("the screen", () => {
-  test("Schedule's Passes link opens the group's passes, Morning 08:00 then Evening 20:00, each with its medications; Back goes to Schedule", async () => {
-    const device = await open({ url: SCHEDULE });
-    await expect.poll(() => $("main [data-passes-link]"), { timeout: 3000 }).toBeTruthy();
-    await userEvent.click($("main [data-passes-link]")!);
-    await expect.poll(() => device.location()).toBe(PASSES);
+describe("the tab", () => {
+  test("lists the group's passes, Morning 08:00 then Evening 20:00, each with its medications, under its one line", async () => {
+    await open();
     await expect.poll(passList).toEqual(["Morning 08:00", "Evening 20:00"]);
     expect(medsIn("Morning")).toEqual(["Lisinopril 10 mg", "Metformin 500 mg"]);
     expect(medsIn("Evening")).toEqual(["Metformin 500 mg"]);
-    const back = $$("main a").find((a) => a.textContent?.trim() === "Medications");
-    expect(back?.getAttribute("href")).toBe(SCHEDULE);
+    expect(description()).toContain("The rounds medications are given in, each day.");
+    expect(description()).not.toContain("You can view");
   });
 
   test("a viewer reads the passes and their medications, told so, with no controls", async () => {
     await open({ role: "viewer" });
     await expect.poll(passList).toEqual(["Morning 08:00", "Evening 20:00"]);
-    expect($("main [data-add-pass]")).toBeNull();
+    expect($("main header [data-add-medication]")).toBeNull();
     expect($$("main [data-passes] button")).toHaveLength(0);
-    expect($("main header p")?.textContent).toContain("You can view the passes");
+    expect(description()).toContain("You can view the passes");
   });
 
   test("a retime from another device shows without a reload", async () => {
@@ -131,19 +130,44 @@ describe("the screen", () => {
   });
 });
 
+describe("the add-pass sheet's URL", () => {
+  test.each([
+    ["a viewer", { role: "viewer" as const }],
+    ["a writer in a group with 8 passes", { extra: SIX_MORE }],
+  ])("sends %s to the Passes tab, with no sheet", async (_, options) => {
+    const device = await open({ ...options, url: NEW_PASS });
+    await expect.poll(() => device.location()).toBe(PASSES);
+    await expect.poll(() => rows().length).toBeGreaterThan(0);
+    expect($("[role=dialog]")).toBeNull();
+  });
+
+  test("opened directly by a writer, it shows over the tab and Cancel replaces it with the tab", async () => {
+    const device = await open({ url: NEW_PASS });
+    await expect.poll(FORM).toBeTruthy();
+    expect(passList()).toEqual(["Morning 08:00", "Evening 20:00"]);
+    const cancel = [...FORM()!.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Cancel");
+    await userEvent.click(await found(() => cancel));
+    await expect.poll(() => !FORM() && device.location()).toBe(PASSES);
+  });
+});
+
 describe("a writer", () => {
-  test("adds a pass, last in the list; a taken name (any case) is refused on its field", async () => {
+  test("adds a pass, last in the list, and the sheet closes back to the tab; a taken name (any case) is refused on its field", async () => {
     const device = await open();
-    await userEvent.click($("main [data-add-pass]")!);
+    await addPass();
+    await expect.poll(() => device.location()).toBe(NEW_PASS);
     await fillForm({ name: "morning", time: "07:00" });
     await expect.poll(() => input("name").getAttribute("aria-invalid")).toBe("true");
     const describedBy = input("name").getAttribute("aria-describedby")!.split(" ").pop()!;
-    expect(document.getElementById(describedBy)?.textContent).toBe("Another pass already has that name");
+    await expect
+      .poll(() => document.getElementById(describedBy)?.textContent)
+      .toBe("Another pass already has that name");
     await fillForm({ name: "Noon", time: "12:00" });
     await expect.poll(passList).toEqual(["Morning 08:00", "Evening 20:00", "Noon 12:00"]);
-    expect(row("Noon")!.querySelector("[data-pass-medications-none]")?.textContent).toBe(
-      "No medications yet",
-    );
+    await expect.poll(() => !FORM() && device.location()).toBe(PASSES);
+    await expect
+      .poll(() => row("Noon")?.querySelector("[data-pass-medications-none]")?.textContent)
+      .toBe("No medications yet");
     const [noon] = await device.query<{ time: string; deleted_at: string | null }>(
       "SELECT time, deleted_at FROM medication_pass WHERE name = 'Noon'",
     );
@@ -205,7 +229,7 @@ describe("a writer", () => {
     await device.settle();
     await action("Noon", "Delete");
     await expect.poll(() => OPEN_DIALOG()?.textContent ?? "").toContain("keep 12:00");
-    await userEvent.click(dialogButton("Delete")!);
+    await userEvent.click(await found(() => dialogButton("Delete")));
     await expect.poll(() => row("Noon")).toBeUndefined();
     expect((await stored(device, noon))?.deleted_at).not.toBeNull();
     const [med] = await device.query<{ schedule: string }>("SELECT schedule FROM medication WHERE id = ?", [

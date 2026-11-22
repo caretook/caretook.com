@@ -5,10 +5,10 @@ import type { GroupRow } from "~/lib/timeline/timeline.sync";
 
 import type { ProvidersOutlet } from "./providerSheet";
 
-import { Import, Plus } from "lucide-react";
+import { Import } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Link, Outlet, useLocation } from "react-router";
-import { Page, PageHeader } from "~/components/ui";
+import { Outlet, useLocation } from "react-router";
+import { Button, Page, PageHeader } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { directoryList, parseDirectoryFilters } from "~/lib/providers/providerDirectory";
@@ -90,35 +90,29 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
       <PageHeader
         title="Providers"
         actions={
-          group.canWrite && (
-            <div className="flex shrink-0 flex-wrap justify-end gap-2">
-              {canImport && (
-                <Link
-                  to={appUrls.importProviders(groupId, search)}
-                  state={PROVIDER_SHEET_STATE}
-                  prefetch="render"
-                  preventScrollReset
-                  className="btn btn-ghost btn-sm"
-                  data-import-providers
-                >
-                  <Import className="size-4" aria-hidden="true" />
-                  {IMPORT_ACTION}
-                </Link>
-              )}
-              <Link
-                to={appUrls.newProvider(groupId, { search })}
-                state={PROVIDER_SHEET_STATE}
-                // Loaded ahead, so the sheet opens offline too.
-                prefetch="render"
-                preventScrollReset
-                className="btn btn-primary btn-sm"
-                data-add-provider
-              >
-                <Plus className="size-4" aria-hidden="true" />
-                Add provider
-              </Link>
-            </div>
+          canImport && (
+            <Button
+              size="sm"
+              icon={Import}
+              label={IMPORT_ACTION}
+              to={appUrls.importProviders(groupId, search)}
+              state={PROVIDER_SHEET_STATE}
+              prefetch="render"
+              preventScrollReset
+              data-import-providers=""
+            />
           )
+        }
+        add={
+          group.canWrite && {
+            label: "Add provider",
+            to: appUrls.newProvider(groupId, { search }),
+            state: PROVIDER_SHEET_STATE,
+            // Loaded ahead, so the sheet opens offline too.
+            prefetch: "render",
+            preventScrollReset: true,
+            "data-add-provider": "",
+          }
         }
       />
 

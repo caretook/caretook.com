@@ -2,18 +2,10 @@ import type { MenuEntry } from "~/components/ui";
 import type { FilterMenuProps } from "~/components/ui";
 import type { UpcomingShow } from "./upcomingFilters";
 
-import { CalendarPlus, ListTodo, Plus } from "lucide-react";
+import { CalendarPlus, ListTodo } from "lucide-react";
 import { useMemo } from "react";
 import { useLocation } from "react-router";
-import {
-  ChipGroup,
-  FilterMenu,
-  FilterMenuChips,
-  Menu,
-  PageHeader,
-  TabNav,
-  UserAvatar,
-} from "~/components/ui";
+import { ChipGroup, FilterMenu, FilterMenuChips, PageHeader, TabNav, UserAvatar } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { clearAuthor } from "~/lib/timeline/timelineFilters";
@@ -22,7 +14,7 @@ import { setShow, tabSearch, UPCOMING_SHOW_LABELS, UPCOMING_SHOWS } from "./upco
 
 /**
  * The Planner section's header, the same on its tabs: the "Planner"
- * heading; for writers one "Add" menu (Appointment, a draft
+ * heading; for writers the header's `+`, a menu named "Add" (Appointment, a draft
  * that picks the time first, `?when=pick`; Todo, the add sheet, which closes
  * back to the tab it was opened from); then the two tabs, Planner and Todos
  * (`TabNav`; Planner stays current on Past), links that carry the filters
@@ -54,17 +46,7 @@ export function PlannerHeader() {
 
   return (
     <div className="space-y-3">
-      <PageHeader
-        title="Planner"
-        actions={
-          canWrite && (
-            <Menu label="Add" items={add} className="btn btn-primary btn-sm" width="sm">
-              <Plus className="size-4" aria-hidden="true" />
-              Add
-            </Menu>
-          )
-        }
-      />
+      <PageHeader title="Planner" add={canWrite && { label: "Add", items: add }} />
       <TabNav label="Planner or todos" tabs={tabs} />
     </div>
   );
