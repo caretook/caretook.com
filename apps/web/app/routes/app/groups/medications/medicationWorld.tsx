@@ -3,7 +3,7 @@ import type { DeviceRoute } from "../../../../../test/device";
 
 import { userEvent } from "vitest/browser";
 import { at, fx, medicationPass, TEST_GROUP } from "../../../../../test/fixtures";
-import { fixClock as fixTestClock, found } from "../../../../../test/found";
+import { found } from "../../../../../test/found";
 import { getByCss } from "../../../../../test/locators";
 import * as medicationPage from "../medication/route";
 import * as allergiesSheet from "./allergies/route";
@@ -370,12 +370,6 @@ export const CHANGES_SQL =
 
 /** Wednesday Jun 9 2027, 10:00 in Los Angeles (the test browser's zone and the recipient's): the test clock's day (`TEST_NOW`), which the module-level fixtures are relative to. */
 export const CLOCK = new Date(2027, 5, 9, 10, 0);
-/**
- * The test clock at `CLOCK`: this area's tests call `test/found.ts`'s `fixClock(CLOCK)`. Kept only for
- * the timeline's and the layout's tests that import it from here (test-health slices 15 and 18 move them
- * to the shared one; slice 19 deletes this).
- */
-export const fixClock = (now: Date | number = CLOCK) => fixTestClock(now);
 /** `HH:MM` on the fixed clock's day, `minutes` from 10:00 (negative is earlier). */
 export const clockAt = (minutes: number) => {
   const m = 10 * 60 + minutes;

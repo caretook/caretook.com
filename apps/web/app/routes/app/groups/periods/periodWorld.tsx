@@ -2,7 +2,7 @@ import type { DeviceRoute } from "../../../../../test/device";
 
 import { userEvent } from "vitest/browser";
 import { at, fx, TEST_GROUP } from "../../../../../test/fixtures";
-import { found, waitUntil as waitFor } from "../../../../../test/found";
+import { found } from "../../../../../test/found";
 import { getByCss } from "../../../../../test/locators";
 import * as period from "../period/route";
 import * as editSheet from "./edit/route";
@@ -117,14 +117,3 @@ export const pickPlace = async (text: string, optionText: string) => {
 /** The device's live periods, in track order. */
 export const TRACK_SQL =
   "SELECT id, type, label, place_provider_id, place_detail, started_at, date_only, deleted_at FROM care_period WHERE group_id = ? AND deleted_at IS NULL ORDER BY started_at, created_at, id";
-
-// --- Kept for other areas' tests ----------------------------------------------
-
-/**
- * @deprecated test/found.ts's `waitUntil(read, message)`. The old signature, on the harness's one
- * timeout, for the entry and layout tests that import it from here (test-health slices 15 and 18);
- * slice 19 deletes it.
- */
-export const waitUntil = async (test: () => boolean, _ms?: number, what?: string) => {
-  await waitFor(test, what);
-};
