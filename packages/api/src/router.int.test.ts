@@ -70,7 +70,7 @@ describe("auth", () => {
       preferences: {},
       units: DEFAULT_UNITS,
       timelineView: DEFAULT_TIMELINE_VIEW,
-      easyMode: "group",
+      easyMode: "full",
       daySummary: "highlights",
     });
   });
@@ -83,7 +83,7 @@ describe("me.updatePreferences", () => {
       preferences: { units: { temperature: "c" } },
       units: { ...DEFAULT_UNITS, temperature: "c" },
       timelineView: DEFAULT_TIMELINE_VIEW,
-      easyMode: "group",
+      easyMode: "full",
       daySummary: "highlights",
     });
     await owner.api.me.updatePreferences({ units: { weight: "kg" } });
