@@ -115,6 +115,31 @@ describe("the ways to sign in", () => {
     await expect.element(nav.getByRole("link", { name: "Password" })).toHaveAttribute("aria-current", "page");
   });
 
+  // The server's 401 for a wrong password (sign-in.mjs's old second test).
+  test("a wrong password says so, re-enables the button and stays on sign-in", async () => {
+    window.fetch = (input, init) => {
+      const { pathname } = new URL(new Request(input, init).url);
+      if (pathname === "/api/auth/get-session") return Promise.resolve(Response.json(null));
+      if (pathname === "/api/auth/sign-in/email")
+        return Promise.resolve(
+          Response.json(
+            { code: "INVALID_EMAIL_OR_PASSWORD", message: "Invalid email or password" },
+            { status: 401 },
+          ),
+        );
+      return realFetch(input, init);
+    };
+    const { container } = await open("/sign-in");
+    await userEvent.fill(page.getByRole("textbox", { name: "Email" }), "pat@example.test");
+    await userEvent.fill(page.getByLabelText("Password"), "not-the-password-1234");
+    await userEvent.click(page.getByRole("button", { name: "Sign in" }));
+    await expect
+      .element(page.getByRole("alert"))
+      .toHaveTextContent("That email and password don't match an account.");
+    await expect.element(page.getByRole("button", { name: "Sign in" })).toBeEnabled();
+    expect(container.textContent).not.toContain("The app");
+  });
+
   test("the password form links to Forgot password?", async () => {
     sessionAnswers(() => Response.json(null));
     await open("/sign-in");

@@ -18,30 +18,23 @@ import {
   SEEDED_CURRENT,
   SEEDED_STOPPED,
   world,
+  openAddMedication,
 } from "./medicationWorld";
 
 // The medication list (medications.mjs's list, search, status, tab, viewer
-// and offline steps): the Medications section current in the tab bar (420)
-// and the header (1280), current medications first by name and then the
+// and offline steps): current medications first by name and then the
 // completed and discontinued ones with how and when they stopped, search and
 // the Filter menu's status and type in the URL (kept when the page loads
 // again), the filter chips and Clear filters, a viewer's
 // list, and a medication stopped on another device moving down. The device
 // is offline throughout, so every screen here is the offline one too. The
-// tabs' order is frame.browser.test.tsx's; the list's order and matching
+// section current in the tab bar and the header is frame.browser.test.tsx's;
+// the list's order and matching
 // rules are medicationList.test.ts's.
 
 const open = (options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
   renderWithDevice({ route: MEDICATION_ROUTES, url: LIST, fixtures: world(), ...options });
 
-const TAB_BAR = 'nav[data-tab-bar][aria-label="Group sections"]';
-/** A section link's accessible name (the bar's are icons, named by `aria-label`). */
-const nameOf = (a: Element) => a.getAttribute("aria-label") ?? a.textContent?.trim();
-const HEADER_NAV = 'header [data-region="sections"] nav[aria-label="Group sections"]';
-const current = (nav: string) =>
-  $$(`${nav} a`)
-    .filter((a) => a.hasAttribute("aria-current"))
-    .map(nameOf);
 const CURRENT = "Current medications";
 const STOPPED = "Completed and discontinued medications";
 const SEARCH = () => $<HTMLInputElement>('main input[type="search"]')!;
@@ -61,20 +54,6 @@ const choose = async (option: string) => {
 };
 
 describe("the list", () => {
-  test("on the list tab, at 420 the tab bar has Medications current, and its link is Schedule; at 1280 the header's link is current", async () => {
-    const device = await open({ frame: true });
-    await expect.element(page.getByRole("heading", { name: "Medications", level: 1 })).toBeVisible();
-    expect(current(TAB_BAR)).toEqual(["Medications"]);
-    const tab = $$<HTMLAnchorElement>(`${TAB_BAR} a`).find((a) => nameOf(a) === "Medications")!;
-    expect(tab.getAttribute("href")).toBe(SCHEDULE);
-    await device.screen.unmount();
-
-    await open({ frame: true, width: 1280 });
-    await expect.element(page.getByRole("heading", { name: "Medications", level: 1 })).toBeVisible();
-    expect(getComputedStyle($(HEADER_NAV)!).display).not.toBe("none");
-    expect(current(HEADER_NAV)).toEqual(["Medications"]);
-  });
-
   test("current medications first by name, then the completed and discontinued ones; each row's form, dose, schedule and reason, and how a stopped one ended", async () => {
     await open();
     await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
@@ -242,22 +221,20 @@ describe("the list", () => {
     expect($("main [data-add-medication]")).toBeNull();
   });
 
-  test("on Schedule the header's actions run + Add medication, labeled Passes, then a printer-only Print; Add opens the sheet and Print its menu", async () => {
+  test("on Schedule the header's actions run a printer-only Print, then the + (Add); the + opens its menu and Print its", async () => {
     const device = await open({ url: SCHEDULE });
     await expect.poll(() => $("main [data-today]")).toBeTruthy();
     expect(pageHeader()).toEqual({ h1: "Medications", namesRecipient: false, viewerNote: false });
     const actions = $$("main header a, main header button");
     expect(actions.map((a) => a.getAttribute("aria-label") ?? a.textContent?.trim())).toEqual([
-      "Add medication",
-      "Passes",
       "Print",
+      "Add",
     ]);
-    expect(actions[0]?.textContent?.trim()).toBe("");
-    expect(actions[2]?.textContent?.trim()).toBe("");
+    expect(actions.map((a) => a.textContent?.trim())).toEqual(["", ""]);
     await userEvent.click(page.getByRole("button", { name: "Print" }));
     await expect.element(page.getByRole("menuitem", { name: /Weekly chart/ })).toBeVisible();
     await userEvent.keyboard("{Escape}");
-    await userEvent.click(actions[0]!);
+    await openAddMedication();
     await expect.poll(device.location).toContain("/medications/schedule/new");
   });
 

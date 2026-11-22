@@ -218,10 +218,11 @@ describe("mentions on the entry page", () => {
       fixtures: [directory(), SEEN, withMention(SEEN.id, WESTSIDE, "Westside Clinic")],
     });
     await waitUntil(() => mentionChips().length === 1, 4000, "the chip");
-    // Typed as "Westside Clinic": the chip shows the provider's name now.
-    expect(mentionChips()).toEqual([
-      { id: WESTSIDE.id, text: "Westside Family Medicine", href: providerUrl(WESTSIDE.id) },
-    ]);
+    // Typed as "Westside Clinic": the chip shows the provider's name now
+    // (once the directory has answered, so poll rather than read once).
+    await expect
+      .poll(mentionChips)
+      .toEqual([{ id: WESTSIDE.id, text: "Westside Family Medicine", href: providerUrl(WESTSIDE.id) }]);
     await expect.poll(() => NOTES()?.getAttribute("contenteditable")).toBe("false");
     await userEvent.click(NOTES()!);
     await userEvent.keyboard("@");

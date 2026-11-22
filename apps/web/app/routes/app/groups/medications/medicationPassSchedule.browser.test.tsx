@@ -21,6 +21,7 @@ import {
   submit,
   times,
   waitUntil,
+  openAddMedication,
 } from "./medicationWorld";
 
 // Passes in a medication's schedule (medications.mjs's pass schedule steps):
@@ -71,9 +72,7 @@ const BY_PASS = "Morning (50 mg), Evening and 14:00 (12.5 mg)";
 
 /** Add "Atenolol" by passes from the list; returns its id. */
 const addByPasses = async (device: Awaited<ReturnType<typeof open>>) => {
-  await waitUntil(() => !!$("main [data-add-medication]"), 4000, "Add medication");
-  await userEvent.click($("main [data-add-medication]")!);
-  await waitUntil(() => !!FORM(), 4000, "the add sheet");
+  await openAddMedication();
   await userEvent.fill(field("name")!, "Atenolol");
   await userEvent.fill(field("dose")!, "25 mg");
   await userEvent.click(passBox(MORNING.id));

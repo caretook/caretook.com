@@ -29,7 +29,7 @@ export function HelpAction({
   /** Extra fields to post (the role being given). */
   values?: Record<string, string>;
   disabled?: boolean;
-  /** The button's accessible name, when its text needs more ("Sign out Chrome on Mac"). */
+  /** The button's accessible name, when its text needs more ("Sign out Chrome on macOS"). */
   label?: string;
   className?: string;
 }) {

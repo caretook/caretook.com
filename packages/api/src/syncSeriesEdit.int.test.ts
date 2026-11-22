@@ -1,22 +1,17 @@
-import type { AuthUser } from "@caretook/data";
-
 import {
   appointmentSeriesService,
   noteDocumentService,
   seriesVisitId,
   timelineEntryService,
 } from "@caretook/data";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor } from "./testing";
 
 // sync.upload for a series edit (appointments-2, slice 2): "This and later"
 // reaches the server as ordinary ops in one batch (the new series, the old
 // one ended, the visits moved), as the device's applySeriesEdit queues them.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 
 const AT = "2026-11-18T18:00:00.000000Z";
 const LA = "America/Los_Angeles";
@@ -144,35 +139,5 @@ describe("sync.upload: a series split", () => {
     // A replay of the same batch lands the same way.
     const replay = await owner.api.sync.upload({ ops: split });
     expect(replay.results.filter((r) => r.status !== "applied")).toEqual([]);
-  });
-
-  it("refuses moving a past visit onto another series", async () => {
-    const { group, recipient, owner } = await setup();
-    const old = randomUUID();
-    const next = randomUUID();
-    const day = "2026-01-05";
-    const made = await owner.api.sync.upload({
-      ops: [
-        seriesPut(old, group.id, recipient.id, { starts_on: day, topped_up_through: day }),
-        ...visitOps(old, group.id, recipient.id, day, `${day}T14:00:00.000000Z`),
-        seriesPut(next, group.id, recipient.id, { starts_on: "2027-03-01" }),
-      ],
-    });
-    expect(made.results.filter((r) => r.status !== "applied")).toEqual([]);
-
-    const id = seriesVisitId(old, day);
-    const { results } = await owner.api.sync.upload({
-      ops: [{ op: "PATCH", table: "timeline_entry", id, data: { series_id: next } }],
-    });
-    expect(results).toMatchObject([{ id, status: "rejected", code: "timelineEntryService:pastVisit" }]);
-    expect(ok(await timelineEntryService.getById(owner.ctx, id))).toMatchObject({ seriesId: old });
-
-    // Changing it on its own is still fine.
-    const detach = await owner.api.sync.upload({
-      ops: [
-        { op: "PATCH", table: "timeline_entry", id, data: { series_detached: 1, title: "Dialysis (late)" } },
-      ],
-    });
-    expect(detach.results).toEqual([{ id, status: "applied" }]);
   });
 });

@@ -2,19 +2,27 @@ import { useEffect, useState } from "react";
 import { Form, useActionData, useLoaderData, useLocation } from "react-router";
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
-import { useGroup } from "~/lib/app-shell/group";
 import { parseSearch } from "@caretook/data/schema";
 import { searchEntryIds, searchIndexStatus } from "~/lib/search/search.sync";
 import { createEntry, removeEntry } from "~/lib/timeline/timeline.sync";
-import * as timeline from "~/routes/app/groups/timeline/route";
 import { renderWithDevice } from "./device";
 import { found } from "./found";
+import { getByCss } from "./locators";
 import { fx, TEST_GROUP } from "./fixtures";
+import { PROBE } from "./probe";
 
-// The test device's own tests: what every component test leans on.
+// The test device's own tests: what every component test leans on, on the
+// probe route (test/probe.tsx), never a real screen.
 
-const TIMELINE = { path: "/app/groups/:groupId/timeline", module: timeline };
-const timelineUrl = `/app/groups/${TEST_GROUP.id}/timeline`;
+const url = `/app/groups/${TEST_GROUP.id}/probe`;
+const open = (options: Parameters<typeof renderWithDevice>[0] = {}) =>
+  renderWithDevice({ route: PROBE, url, ...options });
+const SORE_KNEE = {
+  kind: "symptom" as const,
+  occurredAt: new Date().toISOString(),
+  timeZone: "America/Los_Angeles",
+  details: { name: "Sore knee", severity: 2 },
+};
 
 /** A screen that never settles: it changes on every frame. */
 function Ticker() {
@@ -26,128 +34,72 @@ function Ticker() {
   return <p>Frame {n}</p>;
 }
 
-function GroupLine() {
-  const group = useGroup();
-  return (
-    <p>
-      {group.displayName} · {group.role} · {group.canWrite ? "writer" : "reader"}
-    </p>
-  );
-}
-
 describe("the test device", () => {
-  test("fixtures render on a real route: entries of several kinds, a document's text, a co-member", async () => {
+  test("fixtures reach a route's live query: a document's text, a symptom, a co-member's entry", async () => {
     const sam = fx.person({ name: "Sam Okafor", role: "caretaker" });
-    const lisinopril = fx.medication();
-    const device = await renderWithDevice({
-      route: TIMELINE,
-      url: timelineUrl,
+    const { screen } = await open({
       fixtures: [
         sam,
-        lisinopril,
         fx.note({ text: "Slept through the night", createdBy: sam.id }),
         fx.symptom({ name: "Dizzy when standing", severity: 4 }),
-        fx.vital({ readings: [{ type: "heartRate", value: 64 }] }),
-        fx.dose({ medicationId: lisinopril.id }),
       ],
     });
-    const { screen } = device;
-    await expect.element(screen.getByText("Slept through the night")).toBeVisible();
-    await expect.element(screen.getByText(/Dizzy when standing · 4/)).toBeVisible();
+    await expect.element(screen.getByText("Dizzy when standing")).toBeVisible();
+    // A data- hook through getByCss, retried until it's there.
     await expect
-      .element(screen.getByRole("listitem").filter({ hasText: "Lisinopril 10 mg" }).first())
-      .toBeVisible();
-    await expect
-      .element(screen.getByRole("link", { name: "Show only Sam Okafor's entries" }))
-      .toBeInTheDocument();
+      .element(getByCss('li[data-kind="note"]'))
+      .toHaveTextContent("Slept through the night · by Sam Okafor");
   });
 
-  test("a local write updates a live query on screen, and queues an upload", async () => {
+  test("a local write updates the screen and queues an upload; rows synced down appear without a reload", async () => {
     const note = fx.note({ text: "Walked to the mailbox" });
-    const device = await renderWithDevice({ route: TIMELINE, url: timelineUrl, fixtures: [note] });
+    const device = await open({ fixtures: [note] });
     await expect.element(device.screen.getByText("Walked to the mailbox")).toBeVisible();
-
-    const created = await createEntry(device.db, TEST_GROUP.id, {
-      kind: "symptom",
-      occurredAt: new Date().toISOString(),
-      timeZone: "America/Los_Angeles",
-      details: { name: "Sore knee", severity: 2 },
-    });
-    expect(created.ok).toBe(true);
-    // The row, and the day's summary line once it answers: either shows the live query updated.
-    await expect.element(device.screen.getByText(/Sore knee/).first()).toBeVisible();
-
+    expect((await createEntry(device.db, TEST_GROUP.id, SORE_KNEE)).ok).toBe(true);
+    await expect.element(device.screen.getByText("Sore knee")).toBeVisible();
     await removeEntry(device.db, note.id);
     await expect.element(device.screen.getByText("Walked to the mailbox")).not.toBeInTheDocument();
-
-    const queued = await device.queued();
-    expect(queued.map((w) => [w.op, w.type])).toEqual([
+    expect((await device.queued()).map((w) => [w.op, w.type])).toEqual([
       ["PUT", "timeline_entry"],
       ["PATCH", "timeline_entry"],
     ]);
-  });
 
-  test("rows syncing down from another device appear without a reload", async () => {
-    const device = await renderWithDevice({ route: TIMELINE, url: timelineUrl });
     await device.sync(fx.note({ text: "Pharmacy called back" }));
     await expect.element(device.screen.getByText("Pharmacy called back")).toBeVisible();
   });
 
-  test("a viewer and a writer see different controls", async () => {
-    const owner = await renderWithDevice({ route: TIMELINE, url: timelineUrl, role: "owner" });
-    await expect.element(owner.screen.getByRole("button", { name: "Add to Today" })).toBeVisible();
-    await owner.screen.unmount();
-
-    const viewer = await renderWithDevice({ route: TIMELINE, url: timelineUrl, role: "viewer" });
-    await expect.element(viewer.screen.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect.element(viewer.screen.getByRole("button", { name: /^Add to / })).not.toBeInTheDocument();
-  });
-
-  test("the role and group reach useGroup()", async () => {
-    const device = await renderWithDevice({ element: <GroupLine />, role: "viewer" });
-    await expect.element(device.screen.getByText("Grandma June · viewer · reader")).toBeVisible();
-  });
+  test.each([
+    ["owner", "Grandma June · owner · writer", true],
+    ["viewer", "Grandma June · viewer · reader", false],
+  ] as const)(
+    "as %s: the role reaches useGroup(), and the screen's writer controls follow",
+    async (role, line, add) => {
+      const { screen } = await open({ role });
+      await expect.element(screen.getByText(line)).toBeVisible();
+      expect(screen.getByRole("button", { name: "Add" }).query() !== null).toBe(add);
+    },
+  );
 
   test("a group the user isn't in is the 404", async () => {
-    const device = await renderWithDevice({ route: TIMELINE, url: timelineUrl, role: null });
-    await expect.element(device.screen.getByRole("heading", { name: "Not found" })).toBeVisible();
+    const { screen } = await open({ role: null });
+    await expect.element(screen.getByRole("heading", { name: "Not found" })).toBeVisible();
   });
 
   test("search: the device's search index is built over the fixtures", async () => {
     const note = fx.note({ text: "Walked to the mailbox" });
-    const device = await renderWithDevice({
-      element: <GroupLine />,
-      fixtures: [note, fx.note({ text: "Ate lunch" })],
-      search: true,
-    });
+    const device = await open({ fixtures: [note, fx.note({ text: "Ate lunch" })], search: true });
     await expect.poll(searchIndexStatus).toBe("ready");
     await expect
       .poll(() => searchEntryIds(device.db, TEST_GROUP.id, parseSearch("mailbox")))
       .toEqual([note.id]);
   });
 
-  test("frame: the real /app header and tab bar around the screen", async () => {
-    const device = await renderWithDevice({ route: TIMELINE, url: timelineUrl, frame: true });
-    await expect
-      .element(device.screen.getByRole("button", { name: /Account menu for Alex Moreno/ }))
-      .toBeVisible();
-    await expect.element(device.screen.getByRole("button", { name: /switch care group/ })).toBeVisible();
-    await expect
-      .element(
-        device.screen
-          .getByRole("navigation", { name: "Group sections" })
-          .getByRole("link", { name: "Timeline" }),
-      )
-      .toHaveAttribute("aria-current", "page");
-  });
-
   test("width and theme apply", async () => {
-    const light = await renderWithDevice({ element: <GroupLine />, width: 1280, theme: "light" });
+    const light = await open({ width: 1280, theme: "light" });
     expect(document.documentElement.clientWidth).toBe(1280);
     const lightBg = getComputedStyle(document.body).backgroundColor;
     await light.screen.unmount();
-
-    await renderWithDevice({ element: <GroupLine />, width: 420, theme: "dark" });
+    await open({ width: 420, theme: "dark" });
     expect(document.documentElement.clientWidth).toBe(420);
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(getComputedStyle(document.body).backgroundColor).not.toBe(lightBg);
@@ -184,33 +136,27 @@ const serverRoute = {
 };
 
 describe("server-loaded routes", () => {
-  test("a route with a server loader renders from loaderData, outside /app; an action gets actionResult, then it reloads", async () => {
+  test("a server loader renders from loaderData, outside /app; an action gets actionResult, then it reloads", async () => {
     const notes = ["Called the pharmacy"];
-    const posted: string[] = [];
     const device = await renderWithDevice({
       route: {
         path: "/admin/notes",
         module: serverRoute,
         loaderData: () => ({ notes: [...notes] }),
         actionResult: (form: FormData) => {
-          const note = form.get("note") as string;
-          posted.push(note);
-          notes.push(note);
-          return { message: `Added ${note}.` };
+          notes.push(form.get("note") as string);
+          return { message: `Added ${form.get("note") as string}.` };
         },
       },
       url: "/admin/notes",
     });
     await expect.element(device.screen.getByText("Called the pharmacy")).toBeVisible();
-    await expect.element(device.screen.getByText("/admin/notes")).toBeVisible();
     expect(device.location()).toBe("/admin/notes");
-
     await userEvent.fill(device.screen.getByRole("textbox", { name: "Note" }), "Booked a ride");
     await userEvent.click(device.screen.getByRole("button", { name: "Add" }));
     await expect.element(device.screen.getByRole("status")).toHaveTextContent("Added Booked a ride.");
     // The action's revalidation asked loaderData again.
     await expect.element(device.screen.getByText("Booked a ride")).toBeVisible();
-    expect(posted).toEqual(["Booked a ride"]);
   });
 
   test("without loaderData, a server loader is an error naming what to give", async () => {
@@ -230,42 +176,24 @@ describe("server-loaded routes", () => {
 });
 
 describe("settle", () => {
-  test("a stored write, then a read of the screen: missing straight after the write, there once settled", async () => {
-    const device = await renderWithDevice({
-      route: TIMELINE,
-      url: timelineUrl,
-      fixtures: [fx.note({ text: "Ate lunch" })],
-    });
+  test("a stored write: missing from the screen straight after it, there once settled", async () => {
+    const device = await open({ fixtures: [fx.note({ text: "Ate lunch" })] });
     await expect.element(device.screen.getByText("Ate lunch")).toBeVisible();
     await device.settle();
-
-    await createEntry(device.db, TEST_GROUP.id, {
-      kind: "symptom",
-      occurredAt: new Date().toISOString(),
-      timeZone: "America/Los_Angeles",
-      details: { name: "Sore knee", severity: 2 },
-    });
+    await createEntry(device.db, TEST_GROUP.id, SORE_KNEE);
     // The race B-131 saw: the live query hasn't rerun yet (it's throttled).
-    // The timeline shows a symptom in more than one place (the row, the day summary), so count them.
-    expect(device.screen.getByText(/Sore knee/).elements()).toHaveLength(0);
+    expect(device.screen.getByText("Sore knee").query()).toBeNull();
     await device.settle();
-    expect(device.screen.getByText(/Sore knee/).elements().length).toBeGreaterThan(0);
+    expect(device.screen.getByText("Sore knee").query()).not.toBeNull();
   });
 
-  test("after sync() and unsync(): every live query on the screen has caught up, not just the first", async () => {
-    const sam = fx.person({ name: "Sam Okafor", role: "caretaker" });
-    const note = fx.note({ text: "Pharmacy called back", createdBy: sam.id });
-    const device = await renderWithDevice({ route: TIMELINE, url: timelineUrl });
-    await device.settle();
-
-    await device.sync([sam, note]);
+  test("after sync() and unsync(): the screen has caught up", async () => {
+    const note = fx.note({ text: "Pharmacy called back" });
+    const device = await open();
+    await device.sync(note);
     expect(device.screen.getByText("Pharmacy called back").query()).toBeNull();
     await device.settle();
     expect(device.screen.getByText("Pharmacy called back").query()).not.toBeNull();
-    expect(
-      device.screen.getByRole("link", { name: "Show only Sam Okafor's entries" }).query(),
-    ).not.toBeNull();
-
     await device.unsync([note]);
     await device.settle();
     expect(device.screen.getByText("Pharmacy called back").query()).toBeNull();
@@ -281,27 +209,21 @@ describe("settle", () => {
 });
 
 describe("found", () => {
-  test("waits for an element that appears late, and returns it", async () => {
+  test("waits for an element that appears late, treating a throwing read as not there yet", async () => {
     const host = document.createElement("div");
     document.body.append(host);
     setTimeout(() => host.append(Object.assign(document.createElement("button"), { id: "late" })), 150);
-    expect(host.querySelector("#late")).toBeNull();
-    const button = await found(() => host.querySelector("#late"));
+    const button = await found(() => {
+      if (!host.querySelector("#late")) throw new TypeError("not rendered");
+      return host.querySelector("#late");
+    });
     expect(button.id).toBe("late");
     host.remove();
   });
 
-  test("treats a throwing read as not there yet", async () => {
-    let tries = 0;
-    const el = await found(() => {
-      if (++tries < 3) throw new TypeError("not rendered");
-      return document.body;
-    });
-    expect(el).toBe(document.body);
-  });
-
   test("times out, saying what it waited for", async () => {
     await expect(
+      // eslint-disable-next-line caretook/no-call-timeout -- the timeout itself is what's tested
       found(() => document.querySelector("#never"), { timeout: 100, message: "the never button" }),
     ).rejects.toThrow(/found: no element within 100 ms: the never button \(.*#never.*\)\./);
   });

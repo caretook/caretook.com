@@ -1,27 +1,15 @@
 import type { AuthUser, GroupRoleName } from "@caretook/data";
 
 import { careGroupService, connectorGrantService } from "@caretook/data";
-import { createRouterClient, ORPCError } from "@orpc/server";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
-import { router } from "..";
 import { connectAssistant, enablePasswordSignIn } from "./testing";
+import { clientFor, rejection } from "../testing";
 
 // Managing connections over the API (connectors slice 5): `connector.*` and
 // the owners' switch on `careGroup.update`. Connections come from the real
 // OAuth dance (testing.ts), so there are real tokens to keep out of every
 // answer. All data is fictional.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
-
-const rejection = async (call: Promise<unknown>) => {
-  const error = await call.then(
-    () => undefined,
-    (e: unknown) => e,
-  );
-  if (!(error instanceof ORPCError)) throw new Error(`Expected an ORPCError, got ${String(error)}`);
-  return error as ORPCError<string, { code?: string }>;
-};
 
 const WHO = ["owner", "admin", "caretaker", "caretaker2", "viewer", "outsider"] as const;
 type Who = (typeof WHO)[number];

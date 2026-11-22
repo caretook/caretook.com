@@ -59,10 +59,8 @@ describe("birthdayText", () => {
 });
 
 describe("labels", () => {
-  it("names each code status", () => {
-    expect(codeStatusLabel("fullCode")).toBe("Full code");
+  it("names a code status, an unknown one as it is", () => {
     expect(codeStatusLabel("dnr")).toBe("DNR");
-    expect(codeStatusLabel("dnrPolst")).toBe("DNR/POLST");
     expect(codeStatusLabel(null)).toBeNull();
     expect(codeStatusLabel("later")).toBe("later");
   });

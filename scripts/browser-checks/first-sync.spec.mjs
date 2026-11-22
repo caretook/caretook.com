@@ -3,8 +3,9 @@
 //
 // 1. Normal sign-in (fast first sync): straight to the timeline, no syncing state.
 // 2. Reload a synced timeline: no syncing state. Then a sheet's URL loaded as a
-//    page (a deep link after a full load) opens the sheet. Then a new care
-//    group (careGroup.create) syncs in and its empty timeline opens.
+//    page (a deep link after a full load) opens the sheet (closing it, filters
+//    kept, is timelineSheetUrls.browser.test.tsx's). Then a new care group
+//    (careGroup.create) syncs in and its empty timeline opens.
 // 3. Slow first sync (the device's proxy holds PowerSync's traffic for HOLD_MS):
 //    home shows "Getting your care groups…" (never "not in a care group"), then
 //    goes straight to the timeline once the group arrives.
@@ -85,7 +86,7 @@ async function signInTimed(page, { redirectTo, hold, proxy, ready = READY.timeli
     console.log(((await page.locator("body").innerText()) ?? "").slice(0, 300));
     throw e;
   }
-  await page.waitForTimeout(300);
+  // The milestones up to the first row are what's measured: nothing to wait for after it.
   return milestones(page);
 }
 
@@ -111,25 +112,17 @@ test("a normal sign-in, a reload, a sheet's URL and a new group", { tag: "@smoke
     await expect
       .poll(async () => (await milestones(page).catch(() => ({}))).firstRow != null, { timeout: 20_000 })
       .toBe(true);
-    await page.waitForTimeout(500);
+    // The recorder ran from the first paint to the first row: a syncing state would have been seen.
     const r = await milestones(page);
     console.log("synced reload:", JSON.stringify(r));
     expect(r.seenPending).toBe(false);
   });
 
-  // A sheet's URL loaded as a page opens the sheet over the timeline, and
-  // closing it replaces it with the timeline, filters kept.
+  // A sheet's URL loaded as a page opens the sheet over the timeline.
   const dialog = page.locator("[role=dialog]");
   await test.step("a sheet's URL loaded as a page opens the sheet with its vital type", async () => {
     await page.goto(`${path}/new/vital?kind=vital&type=heartRate`);
     await expect(dialog.locator('input[name="vital.0.type"]')).toHaveValue("heartRate", { timeout: 20_000 });
-  });
-  await test.step("…and closing it lands on the timeline, filters kept", async () => {
-    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
-    await expect(dialog).toHaveCount(0, { timeout: 10_000 });
-    await expect
-      .poll(() => new URL(page.url()).pathname + new URL(page.url()).search)
-      .toBe(`${path}?kind=vital`);
   });
 
   // A new care group: careGroup.create on the server, then the group syncs

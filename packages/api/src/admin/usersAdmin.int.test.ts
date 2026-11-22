@@ -1,5 +1,3 @@
-import type { AuthUser } from "@caretook/data";
-
 import { getAuth } from "@caretook/auth";
 import {
   adminAuditLogModel,
@@ -10,27 +8,14 @@ import {
   SYSTEM_USER,
 } from "@caretook/data";
 import { setBackgroundRunner, sharedMemorySender } from "@caretook/notifications";
-import { createRouterClient, ORPCError } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createGroup, createUser } from "../../../data/test/fixtures";
-import { router } from "..";
+import { clientFor, codeOf } from "../testing";
 
 // Staff account help (admin slice 2): search, an account's page, and the
 // help actions (resend verification, send a reset, sign sessions out), each
 // with a reason and one audit entry in its own transaction.
-
-const clientFor = (authUser: AuthUser | null) => createRouterClient(router, { context: { authUser } });
-
-const codeOf = async (promise: Promise<unknown>) => {
-  try {
-    await promise;
-    return "ok";
-  } catch (e) {
-    if (e instanceof ORPCError) return String(e.code);
-    throw e;
-  }
-};
 
 // Emails are delivered in the background: collect that work so tests can wait for it.
 const pending: Promise<unknown>[] = [];

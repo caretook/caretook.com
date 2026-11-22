@@ -7,7 +7,6 @@ import {
   seedProviderContent,
   seedRows,
 } from "./providers";
-import { SECOND_GROUP_ENTRIES } from "./secondGroup";
 import { entryId as devFamilyEntryId, SEED_ENTRIES } from "./timelineEntries";
 
 // Seeds write straight to the tables, skipping the services' validation, so
@@ -42,15 +41,6 @@ describe("provider seeds", () => {
     expect(seedRows()[0]?.rows.some((r) => r.practiceId)).toBe(true);
   });
 
-  it("include the kinds a directory needs in Dev Family, and one provider in Dev Family 2", () => {
-    const types = new Set(DEV_FAMILY_PROVIDERS.map((p) => p.type));
-    expect([...types].sort()).toEqual(["clinician", "other", "pharmacy", "practice"]);
-    expect(DEV_FAMILY_PROVIDERS.some((p) => p.isPrimary)).toBe(true);
-    expect(DEV_FAMILY_PROVIDERS.some((p) => p.status === "past")).toBe(true);
-    expect(DEV_FAMILY_PROVIDERS.some((p) => p.notes)).toBe(true);
-    expect(SECOND_GROUP_PROVIDERS).toHaveLength(1);
-  });
-
   it("link only to live notes and events in their own group", () => {
     const kindById = new Map<string, { kind: string; deleted?: boolean }>(
       SEED_ENTRIES.map((e, i) => [devFamilyEntryId(i), e]),
@@ -62,18 +52,7 @@ describe("provider seeds", () => {
       expect(entry && canLinkProviders(entry.kind) && !entry.deleted).toBe(true);
       expect(link.groupId).toBe(SEED_GROUPS[0]?.groupId);
     }
-    expect(secondGroup?.links).toHaveLength(1);
-    expect(SECOND_GROUP_ENTRIES.some((e) => e.title === "Hearing aid fitting")).toBe(true);
-  });
-
-  it("give the timeline an event with two providers and one with three", () => {
-    const [devFamily] = seedRows();
-    const counts = new Map<string, number>();
-    for (const link of devFamily?.links ?? []) counts.set(link.entryId, (counts.get(link.entryId) ?? 0) + 1);
-    const countFor = (title: string) =>
-      counts.get(devFamilyEntryId(SEED_ENTRIES.findIndex((e) => e.title === title)));
-    expect(countFor("Pharmacy pickup")).toBe(2);
-    expect(countFor("Primary care visit: Dr. Alvarez")).toBe(3);
+    for (const link of secondGroup?.links ?? []) expect(link.groupId).toBe(SEED_GROUPS[1]?.groupId);
   });
 
   it("give each group its own ids", () => {

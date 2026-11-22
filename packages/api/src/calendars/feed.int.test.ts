@@ -1,7 +1,4 @@
-import type { AuthUser } from "@caretook/data";
-
 import { createHash } from "node:crypto";
-import { createRouterClient, ORPCError } from "@orpc/server";
 import {
   calendarFeedService,
   entryProviderService,
@@ -14,9 +11,9 @@ import {
 } from "@caretook/data";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok, system } from "../../../data/test/fixtures";
-import { router } from "..";
 import { createRateLimiter, memoryStore } from "../rateLimit";
 import { createFeedHandler, FEED_MAX_AGE } from "./feed";
+import { clientFor, rejection } from "../testing";
 
 // The calendar feed (appointments-2 slice 5): the service's tokens (stored
 // as a hash, shown once, rotated, revoked, a former member's dead), the
@@ -28,17 +25,6 @@ const NOW = new Date("2026-11-18T18:00:00Z");
 const DAY = 86_400_000;
 const APP_URL = "https://app.caretook.test";
 const daysFrom = (n: number) => new Date(NOW.getTime() + n * DAY).toISOString();
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
-
-const rejection = async (call: Promise<unknown>) => {
-  const error = await call.then(
-    () => undefined,
-    (e: unknown) => e,
-  );
-  if (!(error instanceof ORPCError)) throw new Error(`Expected an ORPCError, got ${String(error)}`);
-  return error as ORPCError<string, { code?: string }>;
-};
 
 const setup = async () => {
   const people = {

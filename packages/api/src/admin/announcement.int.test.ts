@@ -1,14 +1,13 @@
 import { appSettingSchema, appSettingService, getDb } from "@caretook/data";
-import { createRouterClient } from "@orpc/server";
 import { afterEach, describe, expect, it } from "vitest";
 import { createUser } from "../../../data/test/fixtures";
-import { router } from "..";
+import { clientFor } from "../testing";
 
 // public.announcement (admin slice 6): the /app banner, open to anyone, null
 // until staff post one and again once it ends; its id follows its tone and
 // text, not its end time.
 
-const anonymous = createRouterClient(router, { context: { authUser: null } });
+const anonymous = clientFor(null);
 
 afterEach(async () => {
   await getDb().delete(appSettingSchema);
@@ -17,7 +16,7 @@ afterEach(async () => {
 
 const post = async (value: unknown) => {
   const admin = await createUser("ann-admin", "admin");
-  const api = createRouterClient(router, { context: { authUser: admin.ctx.authUser } });
+  const api = clientFor(admin.ctx.authUser);
   await api.admin.settings.set({ key: "announcement", value, reason: "Testing the banner" });
 };
 

@@ -4,8 +4,11 @@ import {
   MEDICATION_SHEET_STATE,
   medicationTabOf,
   newMedicationGuard,
+  newPassGuard,
   onlyMedicationSheetChanged,
   openedFromApp,
+  openedFromPasses,
+  PASS_SHEET_STATE,
   sheetTab,
 } from "./medicationSheets";
 
@@ -13,6 +16,7 @@ const G = "g1";
 const MEDS = `/app/groups/${G}/medications`;
 const LIST = `${MEDS}/list`;
 const SCHEDULE = `${MEDS}/schedule`;
+const PASSES = `${MEDS}/passes`;
 const url = (path: string) => new URL(`http://x${path}`);
 
 describe("newMedicationGuard", () => {
@@ -68,6 +72,22 @@ describe("medicationTabOf and sheetTab", () => {
     expect(sheetTab(G, `${SCHEDULE}/allergies`)).toBe("schedule");
     expect(sheetTab(G, `${MEDS}/m1`)).toBe("list");
   });
+  it("is passes on the Passes tab and its add-pass sheet; a medication sheet from there opens over the list", () => {
+    expect(medicationTabOf(G, PASSES)).toBe("passes");
+    expect(medicationTabOf(G, `${PASSES}/new`)).toBe("passes");
+    expect(medicationTabOf(G, `${MEDS}/passesx`)).toBeNull();
+    expect(sheetTab(G, PASSES)).toBe("list");
+  });
+});
+
+describe("newPassGuard", () => {
+  it("opens the add-pass sheet for a writer with room for a pass", () => {
+    expect(newPassGuard({ groupId: G, canWrite: true, canAdd: true })).toEqual({ sheet: true });
+  });
+  it("sends a viewer, and a writer in a full group, to the Passes tab", () => {
+    expect(newPassGuard({ groupId: G, canWrite: false, canAdd: true })).toEqual({ redirect: PASSES });
+    expect(newPassGuard({ groupId: G, canWrite: true, canAdd: false })).toEqual({ redirect: PASSES });
+  });
 });
 
 describe("onlyMedicationSheetChanged", () => {
@@ -80,6 +100,12 @@ describe("onlyMedicationSheetChanged", () => {
       expect(onlyMedicationSheetChanged(G, url(`${sheet}?q=a`), url(`${tab}?q=a`))).toBe(true);
     }
     expect(onlyMedicationSheetChanged(G, url(`${tab}/new`), url(`${tab}/m1/edit`))).toBe(true);
+  });
+  it("is true between Passes and its add-pass sheet, and only that sheet", () => {
+    expect(onlyMedicationSheetChanged(G, url(PASSES), url(`${PASSES}/new`))).toBe(true);
+    expect(onlyMedicationSheetChanged(G, url(`${PASSES}/new`), url(PASSES))).toBe(true);
+    expect(onlyMedicationSheetChanged(G, url(PASSES), url(`${PASSES}/allergies`))).toBe(false);
+    expect(onlyMedicationSheetChanged(G, url(PASSES), url(`${LIST}/new`))).toBe(false);
   });
   it("is false between the tabs, for a medication's page, print, another group or the same path", () => {
     expect(onlyMedicationSheetChanged(G, url(LIST), url(SCHEDULE))).toBe(false);
@@ -97,5 +123,10 @@ describe("openedFromApp", () => {
     expect(openedFromApp(MEDICATION_SHEET_STATE)).toBe(true);
     expect(openedFromApp(null)).toBe(false);
     expect(openedFromApp({ other: true })).toBe(false);
+  });
+  it("tells the Passes tab's add-pass links apart from the medication sheets'", () => {
+    expect(openedFromPasses(PASS_SHEET_STATE)).toBe(true);
+    expect(openedFromPasses(MEDICATION_SHEET_STATE)).toBe(false);
+    expect(openedFromPasses(undefined)).toBe(false);
   });
 });

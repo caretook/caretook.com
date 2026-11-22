@@ -1,23 +1,9 @@
-import type { AuthUser } from "@caretook/data";
-
-import { createRouterClient, ORPCError } from "@orpc/server";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser } from "../../../data/test/fixtures";
-import { router } from "..";
+import { clientFor, rejection } from "../testing";
 
 // Profiles slice 1 through the API: status codes, and what each procedure
 // returns. Each test makes its own users and group.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
-
-const rejection = async (call: Promise<unknown>) => {
-  const error = await call.then(
-    () => undefined,
-    (e: unknown) => e,
-  );
-  if (!(error instanceof ORPCError)) throw new Error(`Expected an ORPCError, got ${String(error)}`);
-  return error as ORPCError<string, { code?: string; issues?: { path: string; message: string }[] }>;
-};
 
 const setup = async () => {
   const owner = await createUser("owner");

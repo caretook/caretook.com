@@ -30,6 +30,7 @@ import {
   times,
   waitUntil,
   world,
+  openAddMedication,
 } from "./medicationWorld";
 
 // Adding, editing, stopping, restarting and deleting a medication
@@ -89,12 +90,8 @@ const changes = async (device: Awaited<ReturnType<typeof open>>, id: string) =>
     change: r.change,
     ...(JSON.parse(r.details) as { before?: object; after?: object }),
   }));
-/** The list's Add medication, once the list is up (the first render can come before the loader's data). */
-const openAddSheet = async () => {
-  await waitUntil(() => !!$("main [data-add-medication]"), 4000, "Add medication");
-  await userEvent.click($("main [data-add-medication]")!);
-  await waitUntil(() => !!FORM(), 4000, "the add sheet");
-};
+/** The header's `+`, Medication, once the list is up (the first render can come before the loader's data). */
+const openAddSheet = openAddMedication;
 const badge = () => $('main header [data-region="title"] .badge')?.textContent ?? null;
 
 describe("adding", () => {

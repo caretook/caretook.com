@@ -2,9 +2,9 @@ import type { DeviceAnnouncement } from "~/lib/admin/announcement";
 
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import * as timeline from "~/routes/app/groups/timeline/route";
 import { renderWithDevice } from "../../../../test/device";
 import { TEST_GROUP, TEST_USER } from "../../../../test/fixtures";
+import { PROBE } from "../../../../test/probe";
 
 // Staff in the /app frame (admin.mjs steps 1, 4, 10 and 11's screen parts):
 // the account menu's Admin item by global role, and the announcement banner
@@ -12,7 +12,6 @@ import { TEST_GROUP, TEST_USER } from "../../../../test/fixtures";
 // access, the audit log and a posted banner reaching /app through the server
 // are app-shell.mjs's.
 
-const TIMELINE = { path: "/app/groups/:groupId/timeline", module: timeline };
 const url = `/app/groups/${TEST_GROUP.id}/timeline`;
 
 const open = ({
@@ -24,7 +23,7 @@ const open = ({
   announcement?: () => DeviceAnnouncement | null;
 } = {}) =>
   renderWithDevice({
-    route: TIMELINE,
+    route: PROBE,
     url,
     frame: true,
     user: { ...TEST_USER, role },

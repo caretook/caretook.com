@@ -12,7 +12,7 @@ import { intWorkers } from "./packages/data/src/db/testDatabase.ts";
 //   server:unit  packages/auth and packages/api's pure parts (*.test.ts): origins,
 //                the client IP, /rpc's CORS answer; no database
 //   scripts:unit the tooling tests `pnpm test` keeps (sync-matrix, check-areas,
-//                checks, check-times, check-plan, deploy, build)
+//                checks, check-times, check-plan, deploy, build, the lint rules)
 //   tooling:unit the other tooling tests (scripts/loops, backlog, hooks), against
 //                throwaway git repos in the OS temp dir; `pnpm test:tooling`
 //   integration  real Postgres, every package (*.int.test.ts): the test
@@ -86,7 +86,7 @@ export default defineConfig({
       },
       {
         // The tooling tests the default run keeps: the ones that guard the
-        // check manifest and areas, the deploy and the build.
+        // check manifest and areas, the deploy, the build and the local lint rules.
         test: {
           name: "scripts:unit",
           root: "./scripts",
@@ -98,6 +98,7 @@ export default defineConfig({
             "loops/check-plan.test.mjs",
             "deploy/**/*.test.mjs",
             "build/**/*.test.mjs",
+            "eslint/**/*.test.mjs",
           ],
           testTimeout: 20_000,
         },

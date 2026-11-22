@@ -17,7 +17,7 @@ vi.mock("@powersync/drizzle-driver", () => ({
   DrizzleAppSchema: class {},
   wrapPowerSyncWithDrizzle: () => ({}),
 }));
-vi.mock("./schema", () => ({ drizzleSchema: {} }));
+vi.mock("./schema", () => ({ drizzleSchema: {}, powerSyncSchema: {} }));
 vi.mock("./pageCache", () => ({ releaseSyncLocksWhenCached: () => undefined }));
 vi.mock("../search/searchTables.sync", () => ({ dropSearchTables: () => Promise.resolve() }));
 vi.mock("../auth/auth-client", () => ({ authClient: {} }));

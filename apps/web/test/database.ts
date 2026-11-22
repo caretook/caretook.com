@@ -3,14 +3,14 @@ import type { Fixture } from "./fixtures";
 
 import { DrizzleAppSchema, wrapPowerSyncWithDrizzle } from "@powersync/drizzle-driver";
 import { PowerSyncDatabase } from "@powersync/web";
-import { drizzleSchema } from "~/lib/sync/schema";
+import { drizzleSchema, powerSyncSchema } from "~/lib/sync/schema";
 
 // The test device's database: a real PowerSync database with the device
 // schema, in this Chromium tab, that never connects (no connector, so
 // nothing downloads and nothing uploads). Local writes still go through
 // PowerSync's views and queue in `ps_crud`, as on a phone that's offline.
 
-const AppSchema = new DrizzleAppSchema(drizzleSchema);
+const AppSchema = new DrizzleAppSchema(powerSyncSchema);
 
 /** A fresh, empty local-only database for `userId`. Close it with `db.powersync.close()`. */
 export const openTestDatabase = async (userId: string): Promise<SyncDb> => {

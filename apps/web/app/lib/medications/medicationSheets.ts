@@ -1,10 +1,10 @@
-import type { MedicationTab } from "./urls";
+import type { MedicationsPageTab, MedicationTab } from "./urls";
 
 import { appUrls } from "../app-shell/appUrls";
 
 // The sheet routes over the Medications tabs (`medications/<tab>/new`,
 // `medications/<tab>/:medicationId/edit`, `medications/<tab>/allergies`, for
-// the Schedule and list tabs): which tab a URL is on, which sheet it opens or
+// the Schedule and list tabs; `medications/passes/new` over Passes): which tab a URL is on, which sheet it opens or
 // where it goes instead, and the history state that lets a sheet go back to
 // where it was opened from (a tab, or a medication's page). Pure, so web:unit tests
 // it; the routes apply it. Like the directory's `providerSheetGuard`. It lives
@@ -20,23 +20,29 @@ export const openedFromApp = (state: unknown) =>
 /** What a sheet URL shows: its sheet, or a redirect (the tab underneath, with its search kept). */
 export type MedicationSheetDecision<Sheet> = { sheet: Sheet } | { redirect: string };
 
-const TABS: readonly MedicationTab[] = ["schedule", "list"];
+const TABS: readonly MedicationsPageTab[] = ["schedule", "list", "passes"];
+
+/** A tab's own path. */
+const tabBase = (groupId: string, tab: MedicationsPageTab) =>
+  tab === "passes" ? appUrls.medicationPasses(groupId) : appUrls.medicationTab(groupId, tab);
 
 /**
- * The tab a pathname is on, or under (a sheet over it): `medications/schedule…`
- * or `medications/list…`. Null elsewhere (a medication's page, print, passes).
+ * The tab a pathname is on, or under (a sheet over it): `medications/schedule…`,
+ * `medications/list…` or `medications/passes…`. Null elsewhere (a medication's page, print).
  */
-export const medicationTabOf = (groupId: string, pathname: string): MedicationTab | null => {
+export const medicationTabOf = (groupId: string, pathname: string): MedicationsPageTab | null => {
   for (const tab of TABS) {
-    const base = appUrls.medicationTab(groupId, tab);
+    const base = tabBase(groupId, tab);
     if (pathname === base || pathname.startsWith(`${base}/`)) return tab;
   }
   return null;
 };
 
-/** The tab a sheet's URL opens over: its own tab, else the list. */
-export const sheetTab = (groupId: string, pathname: string): MedicationTab =>
-  medicationTabOf(groupId, pathname) ?? "list";
+/** The tab a medication sheet's URL opens over: its own tab, else (Passes, elsewhere) the list. */
+export const sheetTab = (groupId: string, pathname: string): MedicationTab => {
+  const tab = medicationTabOf(groupId, pathname);
+  return tab === "schedule" || tab === "list" ? tab : "list";
+};
 
 /** `medications/<tab>/new`: the add sheet, for writers; a viewer gets the tab. */
 export const newMedicationGuard = ({
@@ -78,13 +84,17 @@ export const editMedicationGuard = <M extends { groupId: string; deletedAt: stri
   return { sheet: medication };
 };
 
-/** The tab whose page, or one of whose sheets (`new`, `allergies`, `<id>/edit`), `pathname` is; else null. */
-const tabOrSheet = (groupId: string, pathname: string): MedicationTab | null => {
+/**
+ * The tab whose page, or one of whose sheets (`new`, `allergies`, `<id>/edit`;
+ * Passes: `new`), `pathname` is; else null.
+ */
+const tabOrSheet = (groupId: string, pathname: string): MedicationsPageTab | null => {
   const tab = medicationTabOf(groupId, pathname);
   if (!tab) return null;
-  const base = appUrls.medicationTab(groupId, tab);
+  const base = tabBase(groupId, tab);
   if (pathname === base) return tab;
   const rest = pathname.slice(base.length + 1).split("/");
+  if (tab === "passes") return rest.length === 1 && rest[0] === "new" ? tab : null;
   if (rest.length === 1 && (rest[0] === "new" || rest[0] === "allergies")) return tab;
   return rest.length === 2 && rest[0] !== "" && rest[1] === "edit" ? tab : null;
 };
@@ -100,3 +110,25 @@ export const onlyMedicationSheetChanged = (groupId: string, current: URL, next: 
   const tab = tabOrSheet(groupId, current.pathname);
   return tab !== null && tab === tabOrSheet(groupId, next.pathname);
 };
+
+/** History state on the Passes tab's own links to the add-pass sheet (so closing it goes back there). */
+export const PASS_SHEET_STATE = { passSheet: true } as const;
+
+/** Whether the add-pass sheet was opened from the Passes tab (closing goes back; else it replaces with the tab). */
+export const openedFromPasses = (state: unknown) =>
+  typeof state === "object" && state !== null && "passSheet" in state;
+
+/**
+ * `medications/passes/new`: the add-pass sheet, for a writer while the group
+ * has room for another pass; a viewer, or a full group, gets the Passes tab.
+ */
+export const newPassGuard = ({
+  groupId,
+  canWrite,
+  canAdd,
+}: {
+  groupId: string;
+  canWrite: boolean;
+  canAdd: boolean;
+}): MedicationSheetDecision<true> =>
+  canWrite && canAdd ? { sheet: true } : { redirect: appUrls.medicationPasses(groupId) };

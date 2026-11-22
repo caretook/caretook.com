@@ -5,7 +5,7 @@ import type { TimelineEntryCreateInput } from "../db";
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../test/fixtures";
+import { createGroup, createWorld, newYDoc, ok, typeParagraph } from "../../test/fixtures";
 import { getDb } from "../db";
 import { noteDocumentSchema, timelineEntrySchema } from "../db/schema";
 import { isError } from "../errors";
@@ -29,14 +29,15 @@ type EntryInput = { kind: TimelineEntryCreateInput["kind"] } & Record<string, un
 const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
 
 const setup = async () => {
-  const caretaker = await createUser("Robin Quill");
-  const owner = await createUser("owner");
-  const viewer = await createUser("viewer");
-  const outsider = await createUser("outsider");
-  const { group, recipient } = await createGroup(owner, [
-    { user: caretaker.user, role: "caretaker" },
-    { user: viewer.user, role: "viewer" },
-  ]);
+  const {
+    u: { owner, caretaker, viewer, outsider },
+    group,
+    recipient,
+  } = await createWorld({
+    members: ["caretaker", "viewer"],
+    extras: ["outsider"],
+    names: { caretaker: "Robin Quill" },
+  });
   const { group: otherGroup } = await createGroup(outsider);
 
   const search = async (ctx: Ctx, q: string, options: Partial<SearchOptions> = {}) =>

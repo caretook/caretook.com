@@ -9,15 +9,18 @@ import * as settingsLayout from "./layout/route";
 import * as timelineLayout from "./timeline/route";
 import * as units from "./units/route";
 import { renderWithDevice } from "../../../../test/device";
+import { found } from "../../../../test/found";
 import { TEST_USER } from "../../../../test/fixtures";
 import { setView, TIMELINE_ROUTES, TIMELINE_URL, view, world } from "../groups/timeline/timelineWorld";
 
-// Account settings (ui.mjs's settings steps): the frame by width, Units and
-// Timeline layout as named radiogroups that the arrow keys move, and Account.
+// Account settings (ui.mjs's settings steps): Units and Timeline layout as
+// named radiogroups that the arrow keys move, and Account (the frame by width
+// is settingsFrame.browser.test.tsx's).
 // Then the layout choice in Settings and the timeline's toggle as one
 // preference (settings-layout.mjs's steps), against a stand-in for the
-// account's server copy. Saving offline, and a real load reading the
-// server's copy, are layout-offline.mjs's.
+// account's server copy. Offline, a change kept pending on the device and
+// applying at once is at the end; it reaching the server, and a real load
+// reading the server's copy, are layout-offline.mjs's.
 
 const ROUTES: DeviceRoute[] = [
   {
@@ -34,23 +37,6 @@ const ROUTES: DeviceRoute[] = [
 
 const open = (url: string, width?: number) => renderWithDevice({ route: ROUTES, url, width });
 
-/** The frame: at 420 a back link and no side nav; from 768 the side nav with this page current. */
-const frameAt = (width: number, page: string) => {
-  const nav = document.querySelector<HTMLElement>("nav[data-settings-nav]");
-  const current = nav?.querySelector('a[aria-current="page"]')?.getAttribute("href");
-  const back = [...document.querySelectorAll<HTMLAnchorElement>("main a")].some(
-    (a) => a.getAttribute("href") === "/app/settings" && a.offsetParent,
-  );
-  expect(current).toBe(`/app/settings/${page}`);
-  if (width < 768) {
-    expect(back).toBe(true);
-    expect(nav?.offsetParent ?? null).toBeNull();
-  } else {
-    expect(back).toBe(false);
-    expect(nav?.offsetParent).not.toBeNull();
-  }
-};
-
 describe.each([420, 1280])("at %i", (width) => {
   test("Units: four named choices, one unit chosen in each; an arrow key moves the choice", async () => {
     await open("/app/settings/units", width);
@@ -61,7 +47,6 @@ describe.each([420, 1280])("at %i", (width) => {
       expect(
         page.getByRole("radiogroup", { name }).getByRole("radio", { checked: true }).elements(),
       ).toHaveLength(1);
-    frameAt(width, "units");
 
     const temperature = page.getByRole("radiogroup", { name: "Temperature" }).getByRole("radio");
     const radios = temperature.elements() as HTMLInputElement[];
@@ -91,24 +76,19 @@ describe.each([420, 1280])("at %i", (width) => {
         .elements()
         .map((r) => r.getAttribute("aria-label")),
     ).toEqual(["Always", "Never"]);
-    frameAt(width, "timeline");
   });
 
-  test("Account: the email, read-only, and Sign out (a POST to /sign-out)", async () => {
+  test("Account: the name and email, read-only, and Sign out (a POST to /sign-out)", async () => {
     await open("/app/settings/account", width);
     await expect.element(page.getByText(TEST_USER.email)).toBeVisible();
+    expect(document.querySelector('main [data-field="name"]')?.textContent?.trim()).toBe(TEST_USER.name);
     expect(document.querySelector('main [data-field="email"]')?.textContent?.trim()).toBe(TEST_USER.email);
+    expect(document.querySelectorAll("main input")).toHaveLength(0);
     const signOut = page.getByRole("button", { name: "Sign out" }).element();
     const form = signOut.closest("form")!;
     expect(form.getAttribute("action")).toBe("/sign-out");
     expect(form.getAttribute("method")).toBe("post");
-    frameAt(width, "account");
   });
-});
-
-test("at 1280, /app/settings opens the first subpage (Units)", async () => {
-  const device = await open("/app/settings", 1280);
-  await expect.poll(device.location).toBe("/app/settings/units");
 });
 
 describe("the timeline layout: Settings and the timeline's toggle change one preference", () => {
@@ -235,5 +215,60 @@ describe("the timeline layout: Settings and the timeline's toggle change one pre
     await expect.poll(view).toBe("rows");
     await openSettings(again);
     expect(chosen()).toBe("Rows");
+  });
+});
+
+// Offline (the test device has no server: every call fails as a lost
+// connection does), a settings change is kept pending on the device and
+// applies at once (layout-offline.mjs's one-device steps). The pending
+// change reaching the server on the next online load is that check's.
+describe("offline: a change is pending on the device and applies at once", () => {
+  const PENDING_KEY = `caretook:settings-pending:${TEST_USER.id}`;
+  const pending = () =>
+    JSON.parse(localStorage.getItem(PENDING_KEY) ?? "null") as Record<string, unknown> | null;
+
+  test("Units: °C is saved on this device, pending, with no error; the vitals sheet then shows °C", async () => {
+    const settings = await open("/app/settings/units");
+    const celsius = await found(() =>
+      document.querySelector<HTMLInputElement>('input[name="temperature"][value="c"]'),
+    );
+    expect(document.querySelector<HTMLInputElement>('input[name="temperature"][value="f"]')?.checked).toBe(
+      true,
+    );
+    await userEvent.click(celsius);
+    await userEvent.click(page.getByRole("button", { name: "Save", exact: true }));
+    await expect
+      .element(page.getByRole("status"))
+      .toHaveTextContent("Saved on this device. It'll sync when you're back online.");
+    expect(page.getByRole("alert").elements()).toHaveLength(0);
+    expect(pending()).toMatchObject({ units: { temperature: "c" } });
+    await settings.screen.unmount();
+
+    await renderWithDevice({
+      route: TIMELINE_ROUTES,
+      url: `${TIMELINE_URL}/new/vital?type=temperature`,
+      fixtures: world(),
+    });
+    const dialog = await found(() => document.querySelector('[role="dialog"]'));
+    await expect
+      .poll(
+        () => document.querySelector<HTMLInputElement>('[role="dialog"] input[name="vital.0.type"]')?.value,
+      )
+      .toBe("temperature");
+    const labels = [...dialog.querySelectorAll(".label")].map((l) => l.textContent?.trim()).join(",");
+    expect(labels).toContain("°C");
+    expect(labels).not.toContain("°F");
+  });
+
+  test("the timeline's Cards is pending, and still shown when the timeline opens again", async () => {
+    const first = await renderWithDevice({ route: TIMELINE_ROUTES, url: TIMELINE_URL, fixtures: world() });
+    await expect.poll(view).toBe("rows");
+    await setView("Cards");
+    await expect.poll(() => pending()?.timelineView).toBe("cards");
+    await first.screen.unmount();
+
+    await renderWithDevice({ route: TIMELINE_ROUTES, url: TIMELINE_URL, fixtures: world() });
+    await expect.poll(view).toBe("cards");
+    expect(pending()?.timelineView).toBe("cards");
   });
 });

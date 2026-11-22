@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import type { NavigateOptions } from "react-router";
+import type { ButtonLook } from "./buttonClass";
 import type { MenuEntry, MenuItem, NormalizedGroup, NormalizedSection } from "./menuModel";
 
-import { Check, ChevronRight } from "lucide-react";
+import { Check } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   Button,
@@ -16,6 +17,8 @@ import {
   Separator,
 } from "react-aria-components";
 import { useHref, useNavigate } from "react-router";
+import { buttonClass } from "./buttonClass";
+import { Chevron } from "./Chevron";
 import { chosenKey, linkOptions, normalizeMenu, sectionName } from "./menuModel";
 import { SURFACE } from "./styles";
 
@@ -41,6 +44,11 @@ const ITEM =
  * keeping the menu open; all closed again each time it opens) and
  * `SEPARATOR`s; see `menuModel.ts`.
  *
+ * The trigger takes a button's look (`variant`, `size`, `shape`, through
+ * `buttonClass`), so it matches the buttons beside it; `className` then adds
+ * outer classes. Without a look, `className` is the trigger's whole class
+ * string (until the remaining menus move to a look).
+ *
  * The menu is named by the button (its `label`, else its text) unless
  * `menuLabel` is given. Link items navigate through React Router, with their
  * `state` as history state.
@@ -50,6 +58,9 @@ export function Menu({
   menuLabel,
   children,
   className,
+  variant,
+  size,
+  shape,
   isDisabled,
   items,
   placement = "bottom end",
@@ -64,8 +75,12 @@ export function Menu({
   menuLabel?: string;
   /** The button's content (an icon, a name, an avatar). */
   children: ReactNode;
-  /** Classes for the button (the outer element). */
+  /** With a look, outer classes for the button; without one, its whole class string. */
   className?: string;
+  /** The trigger's look, as a `Button`'s. */
+  variant?: ButtonLook["variant"];
+  size?: ButtonLook["size"];
+  shape?: ButtonLook["shape"];
   isDisabled?: boolean;
   items: readonly MenuEntry[];
   placement?: "bottom start" | "bottom end";
@@ -78,6 +93,10 @@ export function Menu({
   [data: `data-${string}`]: string | boolean | undefined;
 }) {
   const navigate = useNavigate();
+  const hasLook = variant !== undefined || size !== undefined || shape !== undefined;
+  const triggerClass = hasLook
+    ? `${buttonClass({ variant, size, shape })} ${className ?? ""}`.trim()
+    : className;
   const entries = useMemo(() => normalizeMenu(items), [items]);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
   const toggle = (id: string) =>
@@ -92,7 +111,7 @@ export function Menu({
       <MenuTrigger onOpenChange={(isOpen) => isOpen && setExpanded(new Set())}>
         <Button
           aria-label={label}
-          className={className}
+          className={triggerClass}
           isDisabled={isDisabled}
           // React Aria drops `title` (it keeps `data-*`): add it to the element it renders.
           render={title ? (props) => <button {...props} title={title} /> : undefined}
@@ -178,10 +197,7 @@ function groupEntries(group: NormalizedGroup, isExpanded: boolean, onToggle: () 
     >
       {Icon && <Icon aria-hidden="true" className="size-4 shrink-0" />}
       <span className="min-w-0 flex-1 truncate">{group.label}</span>
-      <ChevronRight
-        aria-hidden="true"
-        className={`size-4 shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`}
-      />
+      <Chevron open={isExpanded} />
     </AriaMenuItem>
   );
   if (!isExpanded) return [toggle];

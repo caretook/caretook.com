@@ -134,7 +134,18 @@ export async function signIn(page, email, password = PASSWORD, { home = false } 
     if (tokenRefused) {
       console.log(`/api/auth/token answered 401 after signing in as ${email}; retrying once`);
       tokenRefused = false;
-      await page.waitForTimeout(1000);
+      // Reload once the token endpoint answers this session (not after a fixed pause).
+      await expect
+        .poll(
+          () =>
+            page.evaluate(() => fetch("/api/auth/token", { credentials: "include" }).then((r) => r.status)),
+          {
+            timeout: 10_000,
+            message: "/api/auth/token answers the new session",
+          },
+        )
+        .toBe(200)
+        .catch(() => console.log(`/api/auth/token still refuses ${email}; reloading anyway`));
       await page.reload();
       if (new URL(page.url()).pathname === "/sign-in") await submit();
       else await page.waitForURL((url) => url.pathname.startsWith("/app"), { timeout: 45_000 });

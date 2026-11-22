@@ -93,6 +93,7 @@ describe("orchestrator", () => {
       expect(out).toContain("`review --again` until clean");
       expect(out).toContain("After about three rounds, ask the user");
       expect(out).toContain("`--no-review` only when they say so");
+      expect(out).toContain('or when Codex is out of credits: `review` exits 4 with "codex: out of credits"');
       expect(out).toContain(
         "When the wave's diff is docs only (Markdown files, nothing else), don't run or wait for `pnpm prd review`: open the PR with `pnpm prd pr T` and land.",
       );
@@ -349,9 +350,13 @@ describe("plan and backlog", () => {
     expect(text).toContain("what waits on the user");
   });
 
-  it("backlog asks one multi-select question first: a PRD, what to run, or a new issue", () => {
+  it("backlog asks one multi-select question first, then collects only for the picks", () => {
     const text = ok("backlog");
-    expect(text).toMatch(/ask \*\*one\*\* AskUserQuestion, multi-select, and nothing else/);
+    expect(text).toContain("**First, and nothing else:** run `pnpm prd asks`");
+    expect(text).toMatch(/ask \*\*one\*\* AskUserQuestion, multi-select/);
+    expect(text).toContain("**Then collect for the picks only**");
+    expect(text.indexOf("AskUserQuestion, multi-select")).toBeLessThan(text.indexOf("`pnpm backlog ingest`"));
+    expect(text).toContain("**Catch up**");
     expect(text).toContain("**Write a PRD**");
     expect(text).toContain("**Decide what to run next**");
     expect(text).toContain("**Triage a new issue or idea**");

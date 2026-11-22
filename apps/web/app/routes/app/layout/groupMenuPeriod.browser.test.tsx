@@ -4,6 +4,7 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { found } from "../../../../test/found";
 import { renderWithDevice } from "../../../../test/device";
+import { PROBE } from "../../../../test/probe";
 import { at, fx, TEST_GROUP, TEST_USER } from "../../../../test/fixtures";
 import { HOSPITAL, PERIOD_ROUTES, PERIODS_URL, track, waitUntil } from "../groups/periods/periodWorld";
 
@@ -13,22 +14,10 @@ import { HOSPITAL, PERIOD_ROUTES, PERIODS_URL, track, waitUntil } from "../group
 // hover hint; the open menu's order (no "Now" line); and
 // switching to a group without periods, a period arriving there, and back.
 // The real /app frame (`frame: true`) around the periods pages and a
-// stand-in timeline. The rest of the menu is frame.browser.test.tsx's.
+// probe route (test/probe.tsx) at the timeline's path. The rest of the menu is frame.browser.test.tsx's.
 
 const timelineUrl = (groupId: string) => `/app/groups/${groupId}/timeline`;
-const ROUTES: DeviceRoute[] = [
-  ...PERIOD_ROUTES,
-  {
-    path: "/app/groups/:groupId/timeline",
-    module: {
-      default: () => (
-        <main>
-          <h1>Timeline</h1>
-        </main>
-      ),
-    },
-  },
-];
+const ROUTES: DeviceRoute[] = [...PERIOD_ROUTES, PROBE];
 
 /** A second group the user owns, with no periods: Grandpa Lou's. */
 const LOU = { id: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f1b02", recipient: "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f1c02" };

@@ -64,8 +64,10 @@ export function readListing(clientDir) {
 
 /**
  * The service worker's precache list (scripts/build/service-worker.mjs): the
- * shell first, then every JS and CSS file in Vite's client manifest, and the
- * route manifest (React Router writes it outside Vite's). WASM stays out: the
+ * shell first, then every JS, CSS and font (woff2) file in Vite's client
+ * manifest, and the route manifest (React Router writes it outside Vite's).
+ * The fonts (app/fonts/, B-415) are in so the offline shell keeps its
+ * typeface, and their hashes version the worker. WASM stays out: the
  * four SQLite builds are 7 MB and a device loads one, which PowerSync's
  * workers fetch and the browser's HTTP cache keeps (immutable assets), as it
  * does the workers' own files, which Vite's manifest doesn't list.
@@ -76,7 +78,7 @@ export function precacheList({ viteManifest, routeManifestFile, shell = "/app" }
     for (const f of [chunk.file, ...(chunk.css ?? []), ...(chunk.assets ?? [])]) files.add(f);
   }
   files.add(routeManifestFile);
-  const assets = [...files].filter((f) => /\.(js|css)$/.test(f)).map((f) => `/${file(f)}`);
+  const assets = [...files].filter((f) => /\.(js|css|woff2)$/.test(f)).map((f) => `/${file(f)}`);
   return [shell, ...assets.sort()];
 }
 

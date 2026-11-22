@@ -9,28 +9,17 @@ import {
   SYSTEM_USER,
   withTransaction,
 } from "@caretook/data";
-import { call, createRouterClient, ORPCError } from "@orpc/server";
+import { call } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createUser } from "../../../data/test/fixtures";
 import { router } from "..";
 import { staffProcedure } from "../procedures";
+import { clientFor, codeOf } from "../testing";
 
 // Staff roles (admin slice 1): staffProcedure and the capability table, the
 // admin router for admin, support and members, and the audit log written in
 // each staff write's own transaction.
-
-const clientFor = (authUser: AuthUser | null) => createRouterClient(router, { context: { authUser } });
-
-const codeOf = async (promise: Promise<unknown>) => {
-  try {
-    await promise;
-    return "ok";
-  } catch (e) {
-    if (e instanceof ORPCError) return String(e.code);
-    throw e;
-  }
-};
 
 /** Every procedure path under `router.admin`, e.g. ["accessCode", "create"]. */
 const procedurePaths = (node: object, prefix: string[] = []): string[][] =>

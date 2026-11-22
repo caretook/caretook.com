@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { and, asc, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import { createGroup, createUser, ok, system, typeParagraph } from "../../test/fixtures";
+import { createWorld, ok, system, typeParagraph } from "../../test/fixtures";
 import { getDb, withTransaction } from "../db";
 import { medicationChangeId, medicationSchema, timelineEntrySchema } from "../db/schema";
 import { isError, newError } from "../errors";
@@ -23,19 +23,7 @@ const issuesOf = (res: unknown) =>
     : [];
 
 const setup = async () => {
-  const u = {
-    owner: await createUser("owner"),
-    admin: await createUser("admin"),
-    caretaker: await createUser("caretaker"),
-    viewer: await createUser("viewer"),
-    outsider: await createUser("outsider"),
-    staff: await createUser("staff", "admin"),
-  };
-  const { group, recipient } = await createGroup(u.owner, [
-    { user: u.admin.user, role: "admin" },
-    { user: u.caretaker.user, role: "caretaker" },
-    { user: u.viewer.user, role: "viewer" },
-  ]);
+  const { u, group, recipient } = await createWorld({ extras: ["outsider", "staff"] });
   const input = (overrides: Partial<MedicationCreateInput> = {}): MedicationCreateInput => ({
     groupId: group.id,
     name: "Lisinopril",

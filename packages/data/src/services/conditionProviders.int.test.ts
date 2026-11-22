@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok } from "../../test/fixtures";
+import { createGroup, createUser, createWorld, ok } from "../../test/fixtures";
 import { conditionChangeId, conditionManagerId } from "../db/schema";
 import { isError } from "../errors";
 import { providerService, recipientConditionService, timelineEntryService } from ".";
@@ -14,13 +14,10 @@ const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
 const at = (minute: number) => `2026-11-17T11:${String(minute).padStart(2, "0")}:00.000Z`;
 
 const setup = async () => {
-  const owner = await createUser("owner");
-  const caretaker = await createUser("caretaker");
-  const viewer = await createUser("viewer");
-  const { group } = await createGroup(owner, [
-    { user: caretaker.user, role: "caretaker" },
-    { user: viewer.user, role: "viewer" },
-  ]);
+  const {
+    u: { owner, caretaker, viewer },
+    group,
+  } = await createWorld({ members: ["caretaker", "viewer"] });
   const provider = async (name: string, groupId = group.id, ctx = owner.ctx) =>
     ok(await providerService.create(ctx, { groupId, type: "clinician", name }))!;
   const [lee, moss, park] = [

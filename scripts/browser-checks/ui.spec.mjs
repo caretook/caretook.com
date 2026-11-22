@@ -1,18 +1,18 @@
-// The UI primitives on a real check build: the production CSS (Tailwind and
-// daisyUI as built), React Aria's styles under the CSP, and real mouse clicks
-// and keys. One pass at a phone's width in dark and one at a desktop's in
-// light: the user menu (a click opens it named, on a dark or light surface;
-// Escape closes it and focus returns), the add sheet (full screen at 420,
-// centred at 1280; Escape returns focus to the + button) and the calendar
-// inside it (Escape closes only the calendar).
+// The UI primitives on a real check build: only what the production CSS
+// (Tailwind and daisyUI as built) and the CSP decide. One pass at a phone's
+// width in dark and one at a desktop's in light: the user menu opens on a dark
+// or light surface, the add sheet is full screen at 420 and centred at 1280 on
+// the theme's surface, and nothing (React Aria's styles included) breaks the
+// CSP or throws.
 //
-// Everything else is in component tests, which run the same screens in
-// Chromium against the test device: every menu, sheet, popover, confirm, chip
-// group, field, tooltip and the date field's fit
-// (components/ui/inScreens.browser.test.tsx, components/ui/primitives.browser.test.tsx),
-// and account and group settings (routes/app/settings/settings.browser.test.tsx,
+// Behaviour is in component tests, which run the same screens in Chromium
+// against the test device: every menu, sheet, popover, confirm, chip group,
+// field, tooltip and the date field's fit, by tap and by keyboard, with
+// Escape and focus (components/ui/inScreens.browser.test.tsx,
+// components/ui/primitives.browser.test.tsx), and account and group settings
+// (routes/app/settings/settings.browser.test.tsx,
 // routes/app/groups/settings/groupSettings.browser.test.tsx).
-import { DEV_FAMILY_TIMELINE, addButton, addToTimeline, expect, signIn, test, waitFor } from "./fixtures.mjs";
+import { DEV_FAMILY_TIMELINE, addButton, addToTimeline, expect, signIn, test } from "./fixtures.mjs";
 
 /** Lightness (0–1) of the first opaque background at or above `el`: oklch from daisyUI 5, or rgb. */
 const lightness = (el) => {
@@ -44,25 +44,23 @@ for (const [width, scheme, tag] of [
     await expect(add).toBeVisible();
 
     const menu = page.getByRole("menu");
-    await test.step(`user menu: a click opens it, named, on a ${scheme} surface`, async () => {
+    await test.step(`user menu: a click opens it on a ${scheme} surface`, async () => {
       await user.click();
-      await expect(menu).toHaveAttribute("aria-label", "Account");
+      await expect(menu).toBeVisible();
       expect.soft(themed(await menu.evaluate(lightness), scheme), "the menu's surface").toBe(true);
     });
-    await test.step("user menu: Escape closes it, and focus returns", async () => {
-      // Escape goes to the focused element: wait until the open menu has it.
-      await waitFor(page, () => document.activeElement?.closest('[role="menu"]'), { timeout: 5000 });
-      await page.keyboard.press("Escape");
-      await expect(menu).toHaveCount(0);
-      await expect(user).toBeFocused();
-    });
+    // Closed with Escape once the open menu has focus (its keyboard is a component test).
+    await expect
+      .poll(() => page.evaluate(() => !!document.activeElement?.closest('[role="menu"]')))
+      .toBe(true);
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
 
     const dialogs = page.locator('[role="dialog"], dialog[open]');
-    const pick = page.locator('[role="dialog"] [aria-label="Pick a date"]');
     await test.step(`add sheet: ${width < 640 ? "the full screen" : "a centred dialog"}, on a ${scheme} surface`, async () => {
       await addToTimeline(page, "Symptom");
       await expect(dialogs).toHaveCount(1, { timeout: 15_000 });
-      await expect(pick).toBeVisible();
+      await expect(dialogs.locator("form")).toBeVisible();
       const g = await dialogs.first().evaluate(async (start) => {
         let el = start;
         while (el && getComputedStyle(el).backgroundColor === "rgba(0, 0, 0, 0)") el = el.parentElement;
@@ -88,22 +86,9 @@ for (const [width, scheme, tag] of [
         expect.soft(Math.abs(g.left * 2 + g.width - g.vw), JSON.stringify(g)).toBeLessThanOrEqual(2);
       }
     });
-    await test.step("sheet calendar: opens, and Escape closes only it", async () => {
-      await pick.click();
-      const grid = page.getByRole("grid");
-      await expect(grid).toBeVisible({ timeout: 5000 });
-      await waitFor(page, () => document.activeElement?.closest('[role="dialog"]'), { timeout: 5000 });
-      await page.keyboard.press("Escape");
-      await expect(grid).toHaveCount(0);
-      await expect(dialogs).toHaveCount(1);
+    // A CSP violation fails the test by itself (fixtures.mjs).
+    await test.step("no exception", () => {
+      expect(errors.filter((e) => e.includes("exception]"))).toEqual([]);
     });
-    await test.step("add sheet: Escape closes it, and focus returns to the + button", async () => {
-      await waitFor(page, () => document.activeElement?.closest('[role="dialog"]'), { timeout: 5000 });
-      await page.keyboard.press("Escape");
-      await expect(dialogs).toHaveCount(0);
-      await expect(add).toBeFocused();
-    });
-
-    expect(errors.filter((e) => e.includes("exception]"))).toEqual([]);
   });
 }
