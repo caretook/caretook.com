@@ -81,7 +81,7 @@ const open = async (role: "caretaker" | "viewer" = "caretaker", url = DOSE_URL) 
 };
 /** Tap the row's text (the expanded list's medication links sit above the open target), and wait for the sheet. */
 const openSheet = async (device: Awaited<ReturnType<typeof open>>) => {
-  await userEvent.click(row()!.querySelector("[data-pass-log-text]")!, { force: true });
+  await userEvent.click(await found(() => row()?.querySelector("[data-pass-log-text]")), { force: true });
   await expect.poll(() => device.location()).toBe(`${SHEET_URL}?kind=dose`);
   await expect.poll(fieldsets).toBeGreaterThanOrEqual(3);
 };
@@ -93,7 +93,7 @@ describe("a pass log", () => {
       ["Qa", "Qb", "Qc"].some((n) => li.textContent?.includes(n)),
     );
     expect(named).toHaveLength(1);
-    await userEvent.click(row()!.querySelector("[data-pass-log-toggle]")!);
+    await userEvent.click(await found(() => row()?.querySelector("[data-pass-log-toggle]")));
     await expect.poll(() => row()!.querySelector<HTMLElement>("[data-pass-log-doses]")!.hidden).toBe(false);
     const lines = [...row()!.querySelectorAll("[data-pass-log-doses] li")].map((li) => li.textContent);
     expect(lines).toHaveLength(3);
@@ -104,7 +104,9 @@ describe("a pass log", () => {
     const device = await open();
     await openSheet(device);
     await userEvent.click(
-      FORM()!.querySelector<HTMLInputElement>(`input[name="status:${DB.id}"][value="skipped"]`)!,
+      await found(() =>
+        FORM()?.querySelector<HTMLInputElement>(`input[name="status:${DB.id}"][value="skipped"]`),
+      ),
     );
     await userEvent.fill(
       await found(() => FORM()?.querySelector<HTMLInputElement>(`[name="amount:${DA.id}"]`)),
@@ -140,7 +142,7 @@ describe("a pass log", () => {
     await userEvent.click(await found(() => SHEET()?.querySelector<HTMLElement>("[data-pass-log-delete]")));
     await expect.poll(() => document.querySelector("dialog[open]")).toBeTruthy();
     await expect.poll(() => button("Delete", document.querySelector("dialog[open]")!)?.disabled).toBe(false);
-    await userEvent.click(button("Delete", document.querySelector("dialog[open]")!));
+    await userEvent.click(await found(() => button("Delete", document.querySelector("dialog[open]")!)));
     await expect.poll(() => device.location()).toBe(DOSE_URL);
     await expect.poll(row).toBeNull();
     const gone = await logRows(device);

@@ -10,7 +10,8 @@ import { QUICK_ENTRY_PLACEHOLDER } from "~/components/quick-entry/quickEntryCopy
 import { forgetRecentLines, recentLines, recordLine } from "~/lib/assistant/recentLines";
 import { addDays, dayInZone, timeInZone, zonedInstant } from "~/lib/core/zonedDay";
 import * as timeline from "./route";
-import { rowWith, TIMELINE_URL, waitUntil } from "./timelineWorld";
+import { rowWith, TIMELINE_URL } from "./timelineWorld";
+import { waitUntil } from "../../../../../test/found";
 
 // Quick entry's suggestions on the timeline, on the test device (offline
 // throughout, so they all work offline): name autocomplete floating under
@@ -137,7 +138,7 @@ describe("the suggestions button", () => {
 
     await userEvent.click(suggestButton());
     await expect.element(suggestions()).toBeVisible();
-    await waitUntil(() => chipLabels(usual()).includes("bp"), 4000, "the usual chips");
+    await waitUntil(() => chipLabels(usual()).includes("bp"), "the usual chips");
     expect(chipLabels(recent())).toEqual(["pain 4 left knee"]);
     const rows = [...suggestions().element().querySelectorAll("[data-quick-row]")];
     expect(rows.map((r) => r.getAttribute("data-quick-row"))).toEqual(["usual", "recent"]);
@@ -145,7 +146,7 @@ describe("the suggestions button", () => {
     await userEvent.click(recent().getByRole("button", { name: "pain 4 left knee" }));
     await expect.element(box()).toHaveValue("pain 4 left knee");
     await expect.element(suggestions()).not.toBeInTheDocument();
-    await waitUntil(() => document.activeElement === field(), 2000, "focus in the box");
+    await waitUntil(() => document.activeElement === field(), "focus in the box");
   });
 
   test("no button with nothing to suggest, or while the box has text, and no help ?", async () => {
@@ -160,7 +161,7 @@ describe("the suggestions button", () => {
     await open();
     await expect.element(suggestButton()).toBeVisible();
     await userEvent.fill(box(), "bp");
-    await waitUntil(() => !suggestButton().query(), 2000, "the button to go");
+    await waitUntil(() => !suggestButton().query(), "the button to go");
     await userEvent.fill(box(), "");
     await expect.element(suggestButton()).toBeVisible();
   });
@@ -171,15 +172,15 @@ describe("name autocomplete", () => {
     const device = await open();
     // Names load a moment after mount (live queries).
     await userEvent.fill(box(), "bp 120/80, gave met");
-    await waitUntil(() => chipLabels(names()).length === 2, 4000, "the medication names");
+    await waitUntil(() => chipLabels(names()).length === 2, "the medication names");
     expect(chipLabels(names())).toEqual(["Metformin", "Metoprolol"]);
 
     await userEvent.click(names().getByRole("button", { name: "Metformin" }));
     await expect.element(box()).toHaveValue("bp 120/80, gave Metformin ");
-    await waitUntil(() => document.activeElement === field(), 2000, "focus back in the box");
+    await waitUntil(() => document.activeElement === field(), "focus back in the box");
     expect(field().selectionStart).toBe(field().value.length);
     expect(names().query()).toBeNull();
-    await waitUntil(() => cardKinds().join() === "vital,dose", 4000, "the cards");
+    await waitUntil(() => cardKinds().join() === "vital,dose", "the cards");
     // Picking never saves.
     expect(await device.query("SELECT id FROM timeline_entry WHERE kind = 'dose'")).toHaveLength(0);
   });
@@ -187,7 +188,7 @@ describe("name autocomplete", () => {
   test("a partial provider name, with the title typed before it, completes to the full name", async () => {
     await open();
     await userEvent.fill(box(), "appt dr le");
-    await waitUntil(() => chipLabels(names()).includes("Dr. Sandra Lee"), 4000, "the provider name");
+    await waitUntil(() => chipLabels(names()).includes("Dr. Sandra Lee"), "the provider name");
     await userEvent.click(names().getByRole("button", { name: "Dr. Sandra Lee" }));
     await expect.element(box()).toHaveValue("appt Dr. Sandra Lee ");
   });
@@ -195,8 +196,8 @@ describe("name autocomplete", () => {
   test("the names float under the field: the cards don't move, Escape hides them, and a name still completes", async () => {
     await open();
     await userEvent.fill(box(), "gave met");
-    await waitUntil(() => cardKinds().length > 0, 4000, "the cards");
-    await waitUntil(() => chipLabels(names()).length === 2, 4000, "the medication names");
+    await waitUntil(() => cardKinds().length > 0, "the cards");
+    await waitUntil(() => chipLabels(names()).length === 2, "the medication names");
     const shown = cardsTop();
     // Over the cards, not above them in the flow.
     const overlay = document.querySelector("[data-quick-completions]")!.getBoundingClientRect();
@@ -204,35 +205,35 @@ describe("name autocomplete", () => {
     expect(overlay.bottom).toBeGreaterThan(shown!);
 
     await userEvent.keyboard("{Escape}");
-    await waitUntil(() => !names().query(), 2000, "the names to hide");
+    await waitUntil(() => !names().query(), "the names to hide");
     expect(cardsTop()).toBe(shown);
     expect(document.activeElement).toBe(field());
 
     // Back once the text changes.
     await userEvent.keyboard("f");
-    await waitUntil(() => chipLabels(names()).join() === "Metformin", 4000, "Metformin");
+    await waitUntil(() => chipLabels(names()).join() === "Metformin", "Metformin");
     expect(cardsTop()).toBe(shown);
     await userEvent.click(names().getByRole("button", { name: "Metformin" }));
     await expect.element(box()).toHaveValue("gave Metformin ");
-    await waitUntil(() => document.activeElement === field(), 2000, "focus back in the box");
+    await waitUntil(() => document.activeElement === field(), "focus back in the box");
   });
 
   test("leaving the field hides the names", async () => {
     await open();
     await userEvent.fill(box(), "gave met");
-    await waitUntil(() => chipLabels(names()).length === 2, 4000, "the medication names");
+    await waitUntil(() => chipLabels(names()).length === 2, "the medication names");
     field().blur();
-    await waitUntil(() => !names().query(), 2000, "the names to hide");
+    await waitUntil(() => !names().query(), "the names to hide");
     field().focus();
-    await waitUntil(() => chipLabels(names()).length === 2, 2000, "the names again");
+    await waitUntil(() => chipLabels(names()).length === 2, "the names again");
   });
 
   test("nothing for a word that matches no name, or a name typed in full", async () => {
     await open();
     await userEvent.fill(box(), "gave met");
-    await waitUntil(() => chipLabels(names()).length > 0, 4000, "the names");
+    await waitUntil(() => chipLabels(names()).length > 0, "the names");
     await userEvent.fill(box(), "gave metformin");
-    await waitUntil(() => !names().query(), 4000, "no names");
+    await waitUntil(() => !names().query(), "no names");
     await userEvent.fill(box(), "pain 4 left knee");
     await waitUntil(() => cardKinds().length > 0);
     expect(names().query()).toBeNull();
@@ -244,7 +245,7 @@ describe("recent lines", () => {
     await open();
     expect(recent().query()).toBeNull();
     await userEvent.fill(box(), "pain 4 left knee");
-    await waitUntil(() => cardKinds().join() === "symptom", 4000, "the card");
+    await waitUntil(() => cardKinds().join() === "symptom", "the card");
     // Typing alone records nothing.
     expect(recentLines(TEST_USER.id, TEST_GROUP.id)).toEqual([]);
     await userEvent.keyboard("{Enter}");
@@ -263,14 +264,14 @@ describe("recent lines", () => {
     await openSuggestions();
     await expect.element(recent()).toBeVisible();
     // Lines are read against the group's medications, which load a moment after the box.
-    await waitUntil(() => chipLabels(recent()).length === 2, 4000, "both chips");
+    await waitUntil(() => chipLabels(recent()).length === 2, "both chips");
     expect(chipLabels(recent())).toEqual(["pain 4 left knee", "gave metformin"]);
     const before = await entryCount(device);
 
     await userEvent.click(recent().getByRole("button", { name: "gave metformin" }));
     await expect.element(box()).toHaveValue("gave metformin");
-    await waitUntil(() => document.activeElement === field(), 2000, "focus in the box");
-    await waitUntil(() => cardKinds().length > 0, 4000, "the cards");
+    await waitUntil(() => document.activeElement === field(), "focus in the box");
+    await waitUntil(() => cardKinds().length > 0, "the cards");
     expect(suggestions().query()).toBeNull();
     expect(recent().query()).toBeNull();
     expect(status()).toBe("");
@@ -280,13 +281,13 @@ describe("recent lines", () => {
   test("a saved vital is remembered by its keys; a chip fills them with the cursor after, and notes never appear", async () => {
     await open();
     await userEvent.fill(box(), "bp 130/85 hr 72");
-    await waitUntil(() => cardKinds().join() === "vital", 4000, "the card");
+    await waitUntil(() => cardKinds().join() === "vital", "the card");
     await userEvent.keyboard("{Enter}");
     await expect.poll(status).toBe("Saved 1 entry");
     expect(recentLines(TEST_USER.id, TEST_GROUP.id)).toEqual(["bp hr "]);
 
     await userEvent.fill(box(), "bp 120/80, n: slept well");
-    await waitUntil(() => cardKinds().join() === "vital,note", 4000, "the cards");
+    await waitUntil(() => cardKinds().join() === "vital,note", "the cards");
     await userEvent.keyboard("{Enter}");
     await expect.poll(status).toBe("Saved 2 entries");
     expect(recentLines(TEST_USER.id, TEST_GROUP.id)).toEqual(["bp ", "bp hr "]);
@@ -294,7 +295,7 @@ describe("recent lines", () => {
     await openSuggestions();
     await userEvent.click(recent().getByRole("button", { name: "bp" }));
     await expect.element(box()).toHaveValue("bp ");
-    await waitUntil(() => document.activeElement === field(), 2000, "focus in the box");
+    await waitUntil(() => document.activeElement === field(), "focus in the box");
     expect(field().selectionStart).toBe(3);
   });
 
@@ -313,7 +314,7 @@ describe("recent lines", () => {
     await open();
     await expect.element(suggestButton()).toBeVisible();
     forgetRecentLines();
-    await waitUntil(() => !suggestButton().query(), 2000, "the button to go");
+    await waitUntil(() => !suggestButton().query(), "the button to go");
   });
 });
 
@@ -321,23 +322,23 @@ describe("usual around now", () => {
   test("blood pressures around this time on 3 recent days give a bp chip that fills the box and waits for numbers", async () => {
     const device = await open([bpDaysAgo(1, -20), bpDaysAgo(2, 15), bpDaysAgo(4, 40)]);
     await openSuggestions();
-    await waitUntil(() => chipLabels(usual()).includes("bp"), 4000, "the bp chip");
+    await waitUntil(() => chipLabels(usual()).includes("bp"), "the bp chip");
     expect(chipLabels(usual())).toEqual(["bp"]);
     const before = await entryCount(device);
 
     await userEvent.click(usual().getByRole("button", { name: "bp" }));
     await expect.element(box()).toHaveValue("bp ");
-    await waitUntil(() => document.activeElement === field(), 2000, "focus in the box");
+    await waitUntil(() => document.activeElement === field(), "focus in the box");
     expect(status()).toBe("");
     expect(await entryCount(device)).toBe(before);
 
     await userEvent.keyboard("120/80");
     await expect.element(box()).toHaveValue("bp 120/80");
-    await waitUntil(() => cardKinds().join() === "vital", 4000, "the vital card");
+    await waitUntil(() => cardKinds().join() === "vital", "the vital card");
     expect(await entryCount(device)).toBe(before);
     await userEvent.keyboard("{Enter}");
     await expect.poll(status).toBe("Saved 1 entry");
-    await waitUntil(() => !!rowWith("BP 120/80"), 4000, "the row");
+    await waitUntil(() => !!rowWith("BP 120/80"), "the row");
   });
 
   test("two days, or readings far from this hour, give no chip (notes on three days do)", async () => {
@@ -346,7 +347,7 @@ describe("usual around now", () => {
     );
     await open([bpDaysAgo(1), bpDaysAgo(2), bpDaysAgo(3, 180), bpDaysAgo(5, -150), ...notes]);
     await openSuggestions();
-    await waitUntil(() => chipLabels(usual()).length > 0, 4000, "the usual chips");
+    await waitUntil(() => chipLabels(usual()).length > 0, "the usual chips");
     expect(chipLabels(usual())).toEqual(["note"]);
     await userEvent.click(usual().getByRole("button", { name: "note" }));
     await expect.element(box()).toHaveValue("n: ");

@@ -17,7 +17,7 @@ import {
   daysAgo,
   DOSES_SQL,
   EVENING,
-  fixClock,
+  CLOCK,
   LISINOPRIL,
   MEDICATION_ROUTES,
   METFORMIN,
@@ -42,6 +42,7 @@ import {
   tapAt,
   TIMELINE_URL,
 } from "./timelineWorld";
+import { fixClock, found } from "../../../../../test/found";
 
 // Doses and medication changes on the timeline, and the Dose sheet
 // (medications.mjs's timeline steps, its Dose sheet warnings and pass, and
@@ -114,9 +115,11 @@ const menuItem = (text: string) =>
 const confirmDelete = async () => {
   await expect.poll(() => document.querySelector("dialog[open]")).toBeTruthy();
   await userEvent.click(
-    [...document.querySelectorAll<HTMLButtonElement>("dialog[open] button")].find(
-      (b) => b.textContent?.trim() === "Delete",
-    )!,
+    await found(() =>
+      [...document.querySelectorAll<HTMLButtonElement>("dialog[open] button")].find(
+        (b) => b.textContent?.trim() === "Delete",
+      ),
+    ),
   );
 };
 const dayOf = (text: string) => rowWith(text)?.closest("section")?.querySelector("h3")?.textContent?.trim();
@@ -155,7 +158,7 @@ describe("on the timeline", () => {
         "Metformin 500 mg: Refused",
         "Lisinopril 10 mg: Given 1 tablet",
       ]);
-    expect(rows()[1]!.querySelector("[data-medication]")?.getAttribute("href")).toBe(
+    expect(rows()[1]?.querySelector("[data-medication]")?.getAttribute("href")).toBe(
       `/app/groups/${TEST_GROUP.id}/medications/${LISINOPRIL.id}`,
     );
     await openFilters();
@@ -203,16 +206,16 @@ describe("on the timeline", () => {
     await expect
       .poll(() => row()?.querySelector('a[aria-label^="Edit "], a[aria-label^="Open "]'))
       .toBeNull();
-    await userEvent.click(row()!.querySelector('button[aria-label^="Actions for"]')!);
+    await userEvent.click(await found(() => row()?.querySelector('button[aria-label^="Actions for"]')));
     await expect.poll(menuItems).toEqual(["Delete"]);
-    await userEvent.click(menuItem("Delete")!);
+    await userEvent.click(await found(() => menuItem("Delete")));
     await confirmDelete();
     await expect.poll(row).toBeUndefined();
     const [med] = await device.query<{ deleted_at: string | null }>(
       "SELECT deleted_at FROM medication WHERE id = ?",
       [LISINOPRIL.id],
     );
-    expect(med!.deleted_at).toBeNull();
+    expect(med?.deleted_at).toBeNull();
     await device.screen.unmount();
 
     const [started] = await device.query<{ id: string }>(
@@ -289,13 +292,13 @@ describe("the Dose sheet", () => {
     expect(options.some((o) => /Oxybutynin|Amoxicillin/.test(o))).toBe(false);
     const first = AMOUNT().value;
     expect(first).not.toBe("");
-    await userEvent.click(radio("medicationId", LABEL)!);
+    await userEvent.click(await found(() => radio("medicationId", LABEL)));
     await expect.poll(() => AMOUNT().value).toBe("2 tablets");
     await userEvent.fill(NOTE(), "With lunch");
     await userEvent.click(SUBMIT());
     await expect.poll(SHEET).toBeNull();
     await expect.poll(() => rowWith(`${LABEL}: Given 2 tablets`)).toBeTruthy();
-    expect(rowWith(LABEL)!.querySelector("[data-medication-note]")?.textContent).toBe("With lunch");
+    expect(rowWith(LABEL)?.querySelector("[data-medication-note]")?.textContent).toBe("With lunch");
     const logged = (await doses(device)).filter((d) => d.medicationId === IBUPROFEN.id);
     expect(logged).toMatchObject([{ status: "given", amount: "2 tablets", note: "With lunch" }]);
     expect((await device.queued()).some((w) => w.type === "timeline_entry" && w.id === logged[0]!.id)).toBe(
@@ -310,7 +313,7 @@ describe("the Dose sheet", () => {
       occurredAt: at(new Date(Date.now() - 600_000)),
     });
     const device = await open({ query: "?kind=dose", fixtures: [withIbuprofen(), dose] });
-    await tapAt(rowWith(LABEL)!.querySelector('a[aria-label^="Edit "]')!);
+    await tapAt(() => rowWith(LABEL)?.querySelector('a[aria-label^="Edit "]'));
     await expect
       .poll(() => SHEET()?.querySelector("[data-dose-medication]")?.textContent?.trim())
       .toBe(LABEL);
@@ -320,9 +323,11 @@ describe("the Dose sheet", () => {
     await expect.poll(SHEET).toBeNull();
     await expect.poll(() => rowWith(`${LABEL}: Skipped`)).toBeTruthy();
 
-    await userEvent.click(rowWith(LABEL)!.querySelector('button[aria-label^="Actions for"]')!);
+    await userEvent.click(
+      await found(() => rowWith(LABEL)?.querySelector('button[aria-label^="Actions for"]')),
+    );
     await expect.poll(menuItems).toEqual(["Edit", "Delete"]);
-    await userEvent.click(menuItem("Delete")!);
+    await userEvent.click(await found(() => menuItem("Delete")));
     await confirmDelete();
     await expect.poll(() => rowWith(LABEL)).toBeUndefined();
     expect((await doses(device)).some((d) => d.id === dose.id)).toBe(false);
@@ -331,7 +336,7 @@ describe("the Dose sheet", () => {
   test("a dose logged for yesterday (the calendar, one day back) is under Yesterday", async () => {
     await open({ query: "?kind=dose", fixtures: withIbuprofen() });
     await openDoseSheet();
-    await userEvent.click(radio("medicationId", LABEL)!);
+    await userEvent.click(await found(() => radio("medicationId", LABEL)));
     SHEET()!.querySelector<HTMLElement>('[aria-label="Pick a date"]')!.focus();
     await userEvent.keyboard("{Enter}");
     await expect.poll(() => document.activeElement?.closest("[role=grid]")).toBeTruthy();
@@ -360,7 +365,7 @@ describe("the Dose sheet on a fixed clock", () => {
   });
 
   test("a second dose for a slot already given warns before saving, and saves on Log anyway", async () => {
-    fixClock();
+    fixClock(CLOCK);
     const given = fx.dose({ medicationId: DONEPEZIL.id, scheduledFor: T1, occurredAt: clockMoment(-5) });
     const device = await open({
       url: `${TIMELINE_URL}/new/dose?medication=${DONEPEZIL.id}&slot=${T1}`,
@@ -374,12 +379,12 @@ describe("the Dose sheet on a fixed clock", () => {
     expect(await doses(device)).toHaveLength(1);
     expect(SUBMIT().textContent?.trim()).toBe("Log anyway");
     await userEvent.click(SUBMIT());
-    await expect.poll(SHEET, { timeout: 5000 }).toBeNull();
+    await expect.poll(SHEET).toBeNull();
     expect((await doses(device)).filter((d) => d.medicationId === DONEPEZIL.id)).toHaveLength(2);
   });
 
   test("?pass= puts that pass first with Given all, its slots not repeated below; Given all logs it", async () => {
-    fixClock();
+    fixClock(CLOCK);
     const device = await open({
       url: `${TIMELINE_URL}/new/dose?pass=${ROUND_2.id}`,
       empty: true,
@@ -393,7 +398,7 @@ describe("the Dose sheet on a fixed clock", () => {
       .toBeNull();
     // Through the sheet: Today's card behind it has a Given all with the same name.
     await userEvent.click(page.getByRole("dialog").getByRole("button", { name: /^Given all/ }));
-    await expect.poll(() => card()?.dataset.passState, { timeout: 5000 }).toBe("done");
+    await expect.poll(() => card()?.dataset.passState).toBe("done");
     expect(await doses(device)).toMatchObject([{ medicationId: WD.id, status: "given" }]);
   });
 });
@@ -420,7 +425,7 @@ describe("the Dose sheet's + New medication", () => {
     );
   const pickNew = async () => {
     await openDoseSheet();
-    await userEvent.click(radio("medicationId", "+ New medication")!);
+    await userEvent.click(await found(() => radio("medicationId", "+ New medication")));
     await expect.poll(NAME).toBeTruthy();
   };
 
@@ -430,30 +435,30 @@ describe("the Dose sheet's + New medication", () => {
     const choices = [...SHEET()!.querySelectorAll('input[name="medicationId"]')];
     expect(choices.at(-1)?.getAttribute("aria-label")).toBe("+ New medication");
     expect(NAME()).toBeNull();
-    await userEvent.click(radio("medicationId", "+ New medication")!);
+    await userEvent.click(await found(() => radio("medicationId", "+ New medication")));
     await expect.poll(NAME).toBeTruthy();
     await expect.poll(() => NAME()?.value).toBe("");
     expect(typeChecked()).toBe("Prescription");
     // The amount starts empty (nothing typed for the new one), then follows its dose.
     await expect.poll(() => AMOUNT().value).toBe("");
-    await userEvent.fill(NEW_DOSE()!, "2 tablets");
+    await userEvent.fill(await found(NEW_DOSE), "2 tablets");
     await expect.poll(() => AMOUNT().value).toBe("2 tablets");
     await userEvent.fill(AMOUNT(), "1 tablet");
-    await userEvent.fill(NEW_DOSE()!, "3 tablets");
+    await userEvent.fill(await found(NEW_DOSE), "3 tablets");
     expect(AMOUNT().value).toBe("1 tablet");
     // Back to a medication on the list: its fields go.
-    await userEvent.click(radio("medicationId", "Lisinopril 10 mg")!);
+    await userEvent.click(await found(() => radio("medicationId", "Lisinopril 10 mg")));
     await expect.poll(NAME).toBeNull();
   });
 
   test("switching to a medication and back leaves the amount empty, with the dose field, not the discarded dose", async () => {
     await open({ query: "?kind=dose" });
     await pickNew();
-    await userEvent.fill(NEW_DOSE()!, "2 tablets");
+    await userEvent.fill(await found(NEW_DOSE), "2 tablets");
     await expect.poll(() => AMOUNT().value).toBe("2 tablets");
-    await userEvent.click(radio("medicationId", "Lisinopril 10 mg")!);
+    await userEvent.click(await found(() => radio("medicationId", "Lisinopril 10 mg")));
     await expect.poll(NAME).toBeNull();
-    await userEvent.click(radio("medicationId", "+ New medication")!);
+    await userEvent.click(await found(() => radio("medicationId", "+ New medication")));
     await expect.poll(NAME).toBeTruthy();
     await expect.poll(() => NEW_DOSE()!.value).toBe("");
     await expect.poll(() => AMOUNT().value).toBe("");
@@ -465,7 +470,7 @@ describe("the Dose sheet's + New medication", () => {
       fixtures: [doseWorld(), allergy({ substance: "Ibuprofen", severity: "severe" })],
     });
     await pickNew();
-    await userEvent.fill(NAME()!, "Ibuprofen");
+    await userEvent.fill(await found(NAME), "Ibuprofen");
     await expect.poll(() => SHEET()!.textContent).toContain("Matches an allergy on file: Ibuprofen (severe)");
     await expect.poll(() => NAME()?.getAttribute("aria-invalid")).not.toBe("true");
   });
@@ -487,9 +492,9 @@ describe("the Dose sheet's + New medication", () => {
   test("Log dose adds the medication (as needed, current) with its Started entry and the dose, in that order, queued; no dose warning asks first", async () => {
     const device = await open({ query: "?kind=dose" });
     await pickNew();
-    await userEvent.fill(NAME()!, "Ibuprofen");
-    await userEvent.fill(NEW_DOSE()!, "2 tablets");
-    await userEvent.click(radio("type", "Over the counter")!);
+    await userEvent.fill(await found(NAME), "Ibuprofen");
+    await userEvent.fill(await found(NEW_DOSE), "2 tablets");
+    await userEvent.click(await found(() => radio("type", "Over the counter")));
     await userEvent.fill(NOTE(), "For a headache");
     await userEvent.click(SUBMIT());
     await expect.poll(SHEET).toBeNull();
@@ -501,7 +506,7 @@ describe("the Dose sheet's + New medication", () => {
       type: "otc",
       status: "current",
     });
-    expect(JSON.parse(medication!.schedule)).toEqual({ type: "asNeeded" });
+    expect(JSON.parse(medication?.schedule ?? "null")).toEqual({ type: "asNeeded" });
     const logged = (await doses(device)).filter((d) => d.medicationId === medication!.id);
     expect(logged).toMatchObject([{ status: "given", amount: "2 tablets", note: "For a headache" }]);
     const changeId = medicationChangeId(medication!.id, medication!.createdAt);
@@ -514,13 +519,13 @@ describe("the Dose sheet's + New medication", () => {
   test("the notice reads Added <name> once the sheet closes; Add details opens its edit sheet, over the list it's now on", async () => {
     const device = await open({ query: "?kind=medicationChange", route: [...ROUTES, ...MEDICATION_ROUTES] });
     await pickNew();
-    await userEvent.fill(NAME()!, " Ibuprofen ");
+    await userEvent.fill(await found(NAME), " Ibuprofen ");
     await userEvent.click(SUBMIT());
     await expect.poll(SHEET).toBeNull();
     await expect.poll(() => TOAST()?.textContent).toContain("Added Ibuprofen");
     await expect.poll(() => rowWith("Ibuprofen: Started")).toBeTruthy();
     const [medication] = await added(device);
-    expect(medication!.type).toBe("prescription");
+    expect(medication?.type).toBe("prescription");
 
     await userEvent.click(page.getByRole("button", { name: "Add details" }));
     await expect
@@ -553,7 +558,7 @@ describe("the Dose sheet's + New medication", () => {
     await expect
       .poll(() => SHEET()?.querySelector("[data-no-medications]")?.textContent)
       .toContain("no current medications");
-    await userEvent.fill(NAME()!, "Ibuprofen");
+    await userEvent.fill(await found(NAME), "Ibuprofen");
     await userEvent.click(SUBMIT());
     await expect.poll(SHEET).toBeNull();
     const [medication] = await added(device);
