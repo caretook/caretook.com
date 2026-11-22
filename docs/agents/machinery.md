@@ -51,6 +51,13 @@ The scripts behind `pnpm prd` (`scripts/loops/`) that every session leans on: wo
 
 - `load-gate.mjs`: busy when the 5-minute load is above `CARETOOK_LOAD_BUSY` (twice the cores); `CARETOOK_LOAD_GATE=off` and an unreadable load are never busy; `CARETOOK_LOAD_FILE` stands in for the reading in tests; the `tooling:unit` project sets the gate off (its own tests set it back). A check (inside its check lease, which it holds while waiting) and a slice worktree's creation wait while busy, polling every `CARETOOK_LOAD_POLL` (15 s), at most `CARETOOK_LOAD_WAIT` (600 s), then proceed and say so; the check-times line's 12th field is the seconds waited. `pnpm prd start` only warns, the dispatcher starts and plans nothing, `pnpm prd status` prints the gate line.
 
+## The check runner
+
+- **The log:** `.check-times.log` lines have 15 fields; the last three are the failed step, the failed test files and the flaky ones. Older lines still parse.
+- **The limit:** 20 minutes for a slice or quick check, 40 for a full one (`CARETOOK_CHECK_LIMIT`). Past it, TERM to the process tree, KILL after `CARETOOK_CHECK_KILL_GRACE` (10 s), exit 124, and the step is logged.
+- **The rerun:** a failed test step reruns only its failed files, once, one at a time; a pass there passes the check and logs them as flaky. No rerun after an unhandled error, or past `CARETOOK_CHECK_RERUN_MAX` (20) failed files.
+- **Static steps:** one typegen, then tsc, ESLint and Prettier side by side.
+
 ## The asks queue
 
 - One place for the user to answer: `.loops/.asks/<id>.json` in the main checkout (`CARETOOK_ASKS_DIR`), ids `a1`, `a2`…, created exclusively. A question awaits an answer until answered, dismissed or defaulted; a report is listed until dismissed.
