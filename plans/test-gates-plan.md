@@ -303,6 +303,10 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md · Tests: unit
 - One shared mtime helper that tries GNU `stat -c %Y` first, used at every `stat -f %m` site: `browser.sh`, `stack-lib.sh`, `lease.sh` and `lib.sh` (`with_backlog_lock`, B-242). On Linux, `stat -f %m` prints a `File:` block to stdout before failing, so the existing `||` fallbacks capture junk.
 - `load_avg` in `lib.sh` prints a stray blank line on Linux, which breaks `browser.test.mjs`'s `cap 30s` line match. It prints one clean line on both systems.
 - Trace the lease failures rather than assuming `stat` explains them, and fix what the tooling gets wrong on Linux.
+- **`browser.test.mjs` gets its own Vitest project and script** (the user's decision, 2026-11-22; something like `pnpm test:browser-harness`), removed from `tooling:unit`, because it launches Playwright and waits on deliberately hanging specs. This replaces slice 2's interim exclusion from the CI unit job.
+  - CI: it always runs in the `integration` tier's job.
+  - Locally: `pnpm test:tooling` runs it only when the change touches `scripts/loops/browser.sh`, `scripts/loops/lib.sh`, `scripts/loops/lease.sh`, `scripts/browser-checks/` or the test file. Check that list against what `browser.sh` actually sources, and name any addition in the hand-off.
+  - The hand-off lists any AGENTS.md or `docs/agents/loop.md` wording about what `test:tooling` covers; the orchestrator folds it.
 - Watch `check-run`'s empty branch name on a detached HEAD: it failed in one CI run and passed in the next. If it recurs, fix it; if not, say so in the hand-off.
 
 **Acceptance criteria:**
@@ -310,6 +314,8 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md · Tests: unit
 - A unit test of the helper: a numeric mtime when the first `stat` form prints junk, and on the system it runs on.
 - No `stat -f %m` is left outside the helper.
 - The 11 failures from slice 2's CI unit run (browser 6, lease 2, stack, disk, load-gate) are green on the Linux runner, in a requested run of the slice's branch linked in the hand-off.
+- A test of the selection: `pnpm test:tooling` picks the browser project for a change to each listed path and skips it for any other tooling change.
+- A requested `integration` run includes the browser project, and a `unit` run does not.
 - `pnpm test:tooling` passes on the Mac.
 
 **Blocked by:** 2. **Blocks:** 4.
