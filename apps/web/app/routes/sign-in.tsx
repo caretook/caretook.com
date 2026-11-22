@@ -12,6 +12,7 @@ import {
   isUnverified,
   normalizeCode,
   requestFailure,
+  unreached,
 } from "~/lib/auth/authMessages";
 import { formString } from "~/lib/core/form";
 import { safeRedirect } from "~/lib/core/redirect";
@@ -58,11 +59,13 @@ export async function clientAction({ request }: Route.ClientActionArgs): Promise
 
   if (intent === "send-email") {
     // One request, one email: the server adds the code to the link's email.
-    const { error } = await authClient.signIn.magicLink({
-      email,
-      callbackURL: redirectTo,
-      errorCallbackURL: accountUrls.magicLinkError(),
-    });
+    const { error } = await authClient.signIn
+      .magicLink({
+        email,
+        callbackURL: redirectTo,
+        errorCallbackURL: accountUrls.magicLinkError(),
+      })
+      .catch(unreached);
     const failure = requestFailure(error);
     return failure ? { intent: "email", error: failure } : { intent: "email", sentTo: email };
   }
@@ -71,18 +74,20 @@ export async function clientAction({ request }: Route.ClientActionArgs): Promise
     const code = normalizeCode(formString(form, "code"));
     const failed = (error: string) => ({ intent: "email" as const, sentTo: email, error });
     if (!isCodeShaped(code)) return failed(authMessages.wrongCode);
-    const { error } = await authClient.signIn.emailOtp({ email, otp: code });
+    const { error } = await authClient.signIn.emailOtp({ email, otp: code }).catch(unreached);
     if (error) return failed(requestFailure(error) ?? authMessages.wrongCode);
     sessionChanged();
     throw redirect(redirectTo);
   }
 
-  const { error } = await authClient.signIn.email({
-    email,
-    // No callbackURL: with one, Better Auth's client reloads the page itself,
-    // which would undo the busy button (B-1). The router redirects instead.
-    password: formString(form, "password"),
-  });
+  const { error } = await authClient.signIn
+    .email({
+      email,
+      // No callbackURL: with one, Better Auth's client reloads the page itself,
+      // which would undo the busy button (B-1). The router redirects instead.
+      password: formString(form, "password"),
+    })
+    .catch(unreached);
   // The right password for an account that isn't verified yet: Better Auth
   // has just emailed a new link. Nobody gets here without the password.
   if (isUnverified(error)) throw redirect(accountUrls.verifyEmail(email, redirectTo));

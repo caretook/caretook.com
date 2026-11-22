@@ -430,6 +430,40 @@ describe("appointmentSeriesService.topUp", () => {
     expect(await days(series.id)).toEqual(got);
   });
 
+  it("keeps topping up after one of the series' providers is deleted, linking only the live ones (B-310)", async () => {
+    const { u, group, input } = await setup();
+    const clinic = ok(
+      await providerService.create(u.owner.ctx, { groupId: group.id, type: "practice", name: "Clinic" }),
+    )!;
+    const nephrologist = ok(
+      await providerService.create(u.owner.ctx, {
+        groupId: group.id,
+        type: "clinician",
+        name: "Dr. Example",
+      }),
+    )!;
+    const series = ok(
+      await appointmentSeriesService.create(
+        u.owner.ctx,
+        input({ toppedUpThrough: "2026-11-20", providerIds: [clinic.id, nephrologist.id] }),
+      ),
+    );
+    ok(await providerService.remove(u.owner.ctx, nephrologist.id));
+
+    const res = await topUpAll();
+    expect(res).toMatchObject({ toppedUp: 1, failed: 0 });
+    const rows = (await visitsOf(series.id)).filter((v) => v.seriesDay! > "2026-11-20");
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of [rows[0]!, rows.at(-1)!]) {
+      expect(
+        ok(await entryProviderService.listForEntry(u.owner.ctx, row.id)).data.map((l) => l.providerId),
+      ).toEqual([clinic.id]);
+    }
+    expect(ok(await appointmentSeriesService.getById(u.owner.ctx, series.id))).toMatchObject({
+      toppedUpThrough: TARGET,
+    });
+  });
+
   it("skips days that already have a live or deleted visit, and converges with a device's ids", async () => {
     const { u, group, recipient, input } = await setup();
     const series = ok(

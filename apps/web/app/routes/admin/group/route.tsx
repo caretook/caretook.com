@@ -1,4 +1,5 @@
 import type { Route } from "./+types/route";
+import type { StaffSettableGroupRole } from "@caretook/data/schema";
 import type { AdminActionResult } from "../adminForms";
 
 import { ORPCError } from "@orpc/client";
@@ -58,7 +59,7 @@ export async function action({ request, params }: Route.ActionArgs): Promise<Adm
         await api.admin.groups.promoteOwner({ groupId, userId: field("userId"), reason });
         return { ok: true, message: `${who} is now an owner.` };
       case "changeRole": {
-        const role = field("role") as "admin" | "caretaker" | "viewer";
+        const role = field("role") as StaffSettableGroupRole;
         await api.admin.groups.changeRole({ groupId, userId: field("userId"), role, reason });
         return { ok: true, message: `${who} is now ${groupRoleLabel(role).toLowerCase()}.` };
       }

@@ -5,6 +5,8 @@
 // runbook's connector check (by hand, before launch) has one place to fix
 // when a menu moves.
 
+import { isEasyRole, isWriterRole } from "@caretook/data/permissions";
+
 /**
  * The MCP server's address: the API's origin (`VITE_API_ORIGIN`, the web
  * origin in the native app) or else this page's, plus `/mcp`.
@@ -61,6 +63,8 @@ export type GuidePlace = "group" | "account";
 export type GuideGroup = { role: string | null; enabled: boolean };
 
 export type GuideView =
+  /** Every one of the member's groups gives them an easy role: no guide at all (they can't connect). */
+  | { show: "none" }
   /** No group allows assistants: the off note instead of the address and steps. */
   | { show: "off"; note: string }
   /** The address and steps, with the viewer note when it applies. */
@@ -89,13 +93,16 @@ export const VIEWER_NOTE = {
  * above). On Devices, `groups` is every group the member is in.
  */
 export const guideView = (place: GuidePlace, groups: readonly GuideGroup[], canToggle = false): GuideView => {
-  const on = groups.filter((g) => g.enabled && g.role);
+  // The easy roles never connect an assistant: their groups don't count.
+  const connectable = groups.filter((g) => !isEasyRole(g.role));
+  if (groups.length && !connectable.length) return { show: "none" };
+  const on = connectable.filter((g) => g.enabled && g.role);
   if (on.length === 0)
     return {
       show: "off",
       note: place === "account" ? OFF_NOTE.account : canToggle ? OFF_NOTE.owner : OFF_NOTE.member,
     };
-  const viewers = on.filter((g) => g.role === "viewer").length;
+  const viewers = on.filter((g) => !isWriterRole(g.role)).length;
   const viewerNote =
     viewers === 0
       ? null

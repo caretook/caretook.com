@@ -15,7 +15,7 @@ import * as timeline from "./route";
 import { TIMELINE_URL } from "./timelineWorld";
 
 // The Today card (timeline-ux slice 5, B-169) on a fixed clock: 10:00 on
-// Wed Nov 18 2026 in Los Angeles. Its rows (vitals, the next appointment,
+// Wed Jun 9 2027 in Los Angeles. Its rows (vitals, the next appointment,
 // the medications due and the todos) each show only with something to say,
 // tinted and iconned by `todayStatus` (whose edges are todayStatus.test.ts's),
 // each ending in "See all ›" to its full view (vitals: Show all in place,
@@ -52,7 +52,7 @@ const ROUTES: DeviceRoute[] = [
   { path: "/app/groups/:groupId/todos", module: { default: Probe } },
 ];
 
-const TODAY = "2026-11-18";
+const TODAY = "2027-06-09";
 const LATE = medicationPass({ name: "Late", time: clockAt(-65), sortOrder: 0 });
 const NOW = medicationPass({ name: "Now", time: clockAt(-3), sortOrder: 1 });
 const LATER = medicationPass({ name: "Later", time: clockAt(30), sortOrder: 2 });
@@ -110,7 +110,7 @@ afterEach(() => {
 
 describe("the Today card's rows", () => {
   test("only rows with something to say; none at all hides the card; a row arrives with its data", async () => {
-    const device = await open([DAY_NOTE, todo({ title: "Fax the form", dueOn: "2026-11-21" })]);
+    const device = await open([DAY_NOTE, todo({ title: "Fax the form", dueOn: "2027-06-12" })]);
     await expect.element(page.getByText("A day")).toBeInTheDocument();
     // Once the medications and todos have answered (skeletons until then), nothing is left.
     await expect.poll(CARD).toBeNull();
@@ -334,13 +334,13 @@ describe("the todos row", () => {
     const mine: TodoValues = {
       id: id(),
       title: "Refill the pill box",
-      dueOn: "2026-11-17",
+      dueOn: "2027-06-08",
       assigneeId: TEST_USER.id,
     };
     const sams: TodoValues = {
       id: id(),
       title: "Call the pharmacy",
-      dueOn: "2026-11-16",
+      dueOn: "2027-06-07",
       assigneeId: SAM.id,
     };
     const device = await open([SAM, DAY_NOTE, todo(walker), todo(sams), todo(mine)]);

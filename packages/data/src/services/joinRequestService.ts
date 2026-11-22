@@ -1,4 +1,5 @@
 import type { Tx } from "../db";
+import type { LinkRole } from "../db/schema";
 import type { AppError } from "../errors";
 import type { CareGroupInviteModel, CareGroupJoinRequestModel } from "../models";
 import type { ServiceContext, ServiceSelectArgs } from "./types";
@@ -143,7 +144,7 @@ export const requestWithLink = async (
   if (opts.existingOnly) return null;
 
   if (!linkRoleAllowed(invite.role)) return newError({ code: "careGroupInviteService:linkRole" });
-  const role = invite.role as "caretaker" | "viewer";
+  const role = invite.role as LinkRole;
 
   const request = await careGroupJoinRequestModel.create({
     ...system(tx),

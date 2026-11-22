@@ -7,6 +7,7 @@ import {
   ASSIGNEE_NOT_MEMBER_ISSUE,
   BAD_TODO_LINK_ISSUES,
   canCompleteTodo,
+  isTodoCompleter,
   isTodoWriter,
   repeatColumnsFor,
   todoContentOf,
@@ -187,7 +188,8 @@ const invalid = (error: { issues: { path: PropertyKey[]; message: string }[] }):
   );
 
 const todoMissing = refuse("That todo is gone. It may have been deleted.");
-const viewerOnly = refuse("Viewers can only complete or reopen todos assigned to them");
+/** A completer's refusal (a viewer or an easy role), the server's `todoService:completionOnly` twin. */
+const completionOnly = refuse("You can only complete or reopen todos assigned to you");
 
 const liveTodo = async (db: SyncDb, id: string) => {
   const [row] = await readRows<TodoRow>(db, todoQuery(id));
@@ -338,7 +340,7 @@ export const updateTodo = async (
   const existing = await liveTodo(db, id);
   if (!existing) return todoMissing;
   const group = await groupFor(db, existing.groupId);
-  if (group?.role === "viewer") return viewerOnly;
+  if (isTodoCompleter(group?.role)) return completionOnly;
   if (!isTodoWriter(group?.role)) return forbidden as Refusal;
 
   const shape = todoUpdateZSchema.safeParse(patch);
@@ -390,15 +392,24 @@ type Tx = Parameters<Parameters<SyncDb["drizzle"]["transaction"]>[0]>[0];
 
 /**
  * Write the occurrence after `todo` (ticked or skipped today) in `tx`,
- * unless a live row with its id exists; a soft-deleted one (an Undo took it
- * away) comes back as new. As `todoService`'s `insertNext`.
+ * unless a live open row with its id exists; a live done one, like `todo`
+ * itself, is passed over for the rule's following day (B-386), and a
+ * soft-deleted one (an Undo took it away) comes back as new. As
+ * `todoService`'s `insertNext`, so both write the same row.
  */
 const planNext = async (db: SyncDb, todo: LocalTodo) => {
   if (!todo.repeatRule) return null;
   const { nextOccurrence } = await import("@caretook/data/series");
-  const next = nextOccurrence(todo, await recipientToday(db, todo.recipientId));
+  const today = await recipientToday(db, todo.recipientId);
+  const passOver = new Set<string>();
+  let next = nextOccurrence(todo, today, passOver);
+  let [row] = next ? await readRows<TodoRow>(db, todoQuery(next.id)) : [];
+  while (next && row && !row.deleted_at && row.done_at) {
+    passOver.add(next.id);
+    next = nextOccurrence(todo, today, passOver);
+    [row] = next ? await readRows<TodoRow>(db, todoQuery(next.id)) : [];
+  }
   if (!next) return null;
-  const [row] = await readRows<TodoRow>(db, todoQuery(next.id));
   if (row && !row.deleted_at) return null;
   const now = nowTimestamp();
   // The group and recipient never change (a PATCH of them is refused).
@@ -424,11 +435,11 @@ const planNext = async (db: SyncDb, todo: LocalTodo) => {
 const doneRefusal = async (db: SyncDb, existing: LocalTodo) => {
   const group = await groupFor(db, existing.groupId);
   if (canCompleteTodo({ role: group?.role, userId: db.userId, todo: existing })) return null;
-  return group?.role === "viewer" ? viewerOnly : (forbidden as Refusal);
+  return isTodoCompleter(group?.role) ? completionOnly : (forbidden as Refusal);
 };
 
 /**
- * Tick a todo done (writers, or a viewer on their own todo). Ticking a done
+ * Tick a todo done (writers, or a viewer or an easy role on their own todo). Ticking a done
  * one is fine. A repeating todo's next occurrence is written in the same
  * local transaction.
  */

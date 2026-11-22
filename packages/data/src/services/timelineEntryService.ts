@@ -11,13 +11,16 @@ import type { Filter } from "../models";
 import type { IncludeDeleted } from "../models/timelineEntry";
 import type { ServiceContext } from "./types";
 
-import { SYSTEM_USER } from "../constants";
+import { SYSTEM_USER, isOwnRowLogger } from "../constants";
 import { withTransaction } from "../db";
 import {
+  buildNoteDoc,
   canHaveNoteDocument,
+  canLogEntry,
   FUTURE_DATE_MESSAGE,
   isDoseDetails,
   isTooFarAhead,
+  noteText,
   SERVER_FUTURE_SKEW_MS,
   isSystemWrittenKind,
   timelineEntryContentZSchema,
@@ -29,10 +32,12 @@ import { isPastVisit } from "../db/schema/appointments/seriesEdit";
 import { isError, newError } from "../errors";
 import {
   appointmentSeriesModel,
+  careGroupMemberModel,
   careGroupModel,
   careRecipientModel,
   medicationModel,
   noteDocumentModel,
+  noteUpdateModel,
   timelineEntryModel,
 } from "../models";
 import { isSystemUser, rejectError } from "../permissions";
@@ -59,6 +64,26 @@ const refuseSystemWritten = (ctx: ServiceContext, kind: string) =>
   isSystemWrittenKind(kind) && !isSystemUser(ctx.authUser)
     ? newError({ code: "timelineEntryService:systemWrittenKind" })
     : null;
+
+/**
+ * An Easy helper logs care and nothing else (`canLogEntry`): the logged
+ * kinds, never an appointment's series, reschedule or cancellation. (Which
+ * rows they may edit or delete is the permission map's `groupOwn`, in SQL.)
+ * Writers and the system pass; other roles are refused by the model.
+ */
+const refuseLoggerOnly = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  groupId: string,
+  kind: string,
+  data: Parameters<typeof canLogEntry>[2],
+) => {
+  if (!ctx.authUser || isSystemUser(ctx.authUser)) return null;
+  const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id, { tx });
+  if (isError(role)) return role;
+  if (!isOwnRowLogger(role)) return null;
+  return canLogEntry(role, kind, data) ? null : newError({ code: "timelineEntryService:loggerOnly" });
+};
 
 /**
  * A dose's medication must be in the entry's group, as the actor sees it. A
@@ -238,14 +263,16 @@ const resolveRecipient = async (ctx: ServiceContext, tx: Tx, groupId: string, re
 
 /**
  * A note's or event's text is its live document, so its stored `body` is
- * null. Reads fill `body` from the document's compacted text, so API, AI
- * and worker callers keep one text field. Pending (uncompacted) updates
- * aren't included; `noteDocumentService.currentText` has those.
+ * null. Reads fill `body` from the document's current text, so API, AI
+ * and worker callers keep one text field. That includes updates not yet
+ * compacted (B-312): compaction runs only inside an upload that adds an
+ * update, so a short session's last updates can wait indefinitely. Merging
+ * them here is read-only; the upload path still decides when to compact.
  *
  * - No document yet (its upload is still pending), or an empty one: the
  *   stored body (null for notes).
  * - A soft-deleted entry never gets its document's text.
- * - Documents are read in the actor's scope, like the entries.
+ * - Documents and their updates are read in the actor's scope, like the entries.
  */
 export const withDocumentText = async <T extends TimelineEntry>(ctx: ServiceContext, entries: T[]) => {
   const ids = new Set(entries.filter((e) => canHaveNoteDocument(e.kind) && !e.deletedAt).map((e) => e.id));
@@ -253,7 +280,25 @@ export const withDocumentText = async <T extends TimelineEntry>(ctx: ServiceCont
 
   const docs = await noteDocumentModel.list({ ...ctx, filter: { id: { type: "inArray", value: [...ids] } } });
   if (isError(docs)) return docs;
-  const text = new Map(docs.data.map((d) => [d.id, d.text]));
+  if (!docs.data.length) return entries;
+  const updates = await noteUpdateModel.list({
+    ...ctx,
+    filter: { documentId: { type: "inArray", value: docs.data.map((d) => d.id) } },
+  });
+  if (isError(updates)) return updates;
+  const pending = new Map<string, string[]>();
+  for (const u of updates.data) pending.set(u.documentId, [...(pending.get(u.documentId) ?? []), u.data]);
+
+  const text = new Map(
+    docs.data.map((d) => {
+      const waiting = pending.get(d.id);
+      if (!waiting) return [d.id, d.text];
+      const ydoc = buildNoteDoc(d.snapshot, waiting);
+      const current = noteText(ydoc);
+      ydoc.destroy();
+      return [d.id, current];
+    }),
+  );
 
   return entries.map((entry) => {
     const docText = ids.has(entry.id) ? text.get(entry.id) : undefined;
@@ -336,6 +381,9 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput, opt
     const refused = refuseSystemWritten(ctx, data.kind);
     if (refused) return refused;
 
+    const loggerOnly = await refuseLoggerOnly(ctx, tx, data.groupId, data.kind, data);
+    if (loggerOnly) return loggerOnly;
+
     const resolved = await resolveRecipient(ctx, tx, data.groupId, recipientId);
     if (isError(resolved)) return resolved;
 
@@ -390,6 +438,14 @@ export const update = (
 
     const refused = refuseSystemWritten(ctx, existing.kind);
     if (refused) return refused;
+
+    const loggerOnly = await refuseLoggerOnly(ctx, tx, existing.groupId, existing.kind, patch);
+    if (loggerOnly) return loggerOnly;
+    // Seen but not theirs to change (a viewer; an Easy helper on another
+    // member's entry): refused cleanly, before any write.
+    const mayUpdate = await timelineEntryModel.mayChange(id, "update", { ...ctx, tx });
+    if (isError(mayUpdate)) return mayUpdate;
+    if (!mayUpdate) return rejectError(ctx.authUser);
 
     const merged = timelineEntryContentZSchema.safeParse({
       kind: existing.kind,
@@ -559,6 +615,13 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
  */
 export const remove = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
+    const visible = await timelineEntryModel.getById(id, { ...ctx, tx });
+    if (isError(visible)) return visible;
+    if (visible) {
+      const mayDelete = await timelineEntryModel.mayChange(id, "delete", { ...ctx, tx });
+      if (isError(mayDelete)) return mayDelete;
+      if (!mayDelete) return rejectError(ctx.authUser);
+    }
     const res = await timelineEntryModel.remove({ ...ctx, tx, filter: { id: { type: "eq", value: id } } });
     if (isError(res) && res.code === "baseModel:remove:nothingRemoved") return notFound();
     if (isError(res)) return res;

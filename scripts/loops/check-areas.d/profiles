@@ -5,8 +5,7 @@
 # print CSS's layout is in the last. app-shell's step 4 keeps the details
 # stream's own rule: a member demoted to viewer loses the writers-only details
 # row. The rows reaching a second device are roundtrip's sync matrix (6b).
-apps/web/app/routes/app/groups/profile/* -
-apps/web/app/lib/profiles/*.sync.ts      -
+apps/web/app/routes/app/groups/profile/  -
 apps/web/app/lib/profiles/recipientDetails.sync.ts app-shell
 packages/data/src/db/schema/profiles/careRecipientDetails.ts roundtrip app-shell
 packages/data/src/db/schema/profiles/careRecipient.ts roundtrip
@@ -15,24 +14,24 @@ packages/data/src/db/schema/profiles/profileVisibility.ts app-shell
 # (profiles slice 4) are component tests (settings/contact/contact and
 # settings/members/memberSharing .browser.test.tsx); app-shell's step 4 keeps
 # the member-share stream (a removed member's share leaves the owner's device).
-apps/web/app/routes/app/settings/contact/* -
+apps/web/app/routes/app/settings/contact/  -
 apps/web/app/routes/app/groups/settings/members/MembersList.tsx app-shell
 apps/web/app/routes/app/groups/settings/members/SharingForm.tsx -
-apps/web/app/components/contact/*        -
+apps/web/app/components/contact/         -
 # The recipient's conditions (conditions slice 1): the card and its sheets are
 # component tests (profile/conditions.browser.test.tsx); the suggestion list
 # is data, unit-tested with conditionSuggestions. A condition reaching a
 # second device is roundtrip's sync matrix (6b).
-apps/web/app/lib/profiles/conditionNames.ts -
 packages/data/src/db/schema/profiles/recipientCondition.ts roundtrip
 # What a medication is for (conditions slice 4): the For field, the page's
 # For row and a condition's medications are component tests
 # (medications/medicationConditions.browser.test.tsx); a link reaching a
 # second device is roundtrip's sync matrix (6b).
 packages/data/src/db/schema/profiles/medicationCondition.ts roundtrip
-apps/web/app/lib/profiles/profileSheetLink.ts -
 # Who diagnosed and who manages a condition (conditions slice 3): the sheets'
 # pickers and lines are component tests (profile/conditionProviders and
 # provider/providerConditions .browser.test.tsx); a link reaching a second
 # device is roundtrip's sync matrix (6b).
 packages/data/src/db/schema/profiles/conditionManager.ts roundtrip
+# Directory defaults: a new file here needs no rule.
+apps/web/app/lib/profiles/               -

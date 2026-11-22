@@ -1,20 +1,22 @@
 # check-areas: docs, tooling, config, build, deploys, email and the browser
 # checks themselves. How rules resolve (most specific wins, the built-ins, the
 # lint): scripts/loops/check-areas.mjs. Test files need no rule: a built-in
-# maps every *.test.ts(x)/.mjs to none.
+# maps every *.test.ts(x)/.mjs to none. A path ending in / is a directory
+# default: it answers for a file under it that no rule matches (the deepest
+# default wins), so a new file in an area's directory needs no rule.
 
 # Docs, plans and tooling: no browser checks.
 *.md                                     -
-plans/*                                  -
-docs/*                                   -
-.githooks/*                              -
-.claude/*                                -
-scripts/loops/*                          -
-scripts/backlog/*                        -
-scripts/build/*                          -
+plans/                                   -
+docs/                                    -
+.githooks/                               -
+.claude/                                 -
+scripts/loops/                           -
+scripts/backlog/                         -
+scripts/build/                           -
 packages/*/test/*                        -
 # The test device and component-test worlds (web:components runs them in pnpm check).
-apps/web/test/*                          -
+apps/web/test/                           -
 .nvmrc                                   -
 .gitignore                               -
 *.env.example                            -
@@ -33,7 +35,7 @@ scripts/browser-checks/fixtures.mjs      sign-in ui phase2 roundtrip live-notes
 scripts/browser-checks/playwright.config.mjs sign-in
 scripts/browser-checks/reporter.mjs      sign-in
 scripts/browser-checks/sync-matrix.mjs   roundtrip
-scripts/browser-checks/*                 @self
+scripts/browser-checks/                  @self
 
 # Build, config, dependencies, sync rules and migrations touch every screen.
 pnpm-lock.yaml                           @suite
@@ -52,9 +54,9 @@ apps/web/build-target.ts                 @suite
 apps/web/app/root.tsx                    @suite
 # The production PowerSync settings, for the runbook (hosting slice 2): nothing loads it.
 powersync/service.production.example.yaml -
-powersync/*                              @suite
+powersync/                               @suite
 docker-compose*.yml                      @suite
-packages/data/src/db/migrations/*        @suite
+packages/data/src/db/migrations/         @suite
 packages/data/src/db/client.ts           @suite
 packages/data/package.json               @suite
 packages/api/package.json                @suite
@@ -63,19 +65,19 @@ packages/notifications/package.json      @suite
 
 # Email: the notifications package, the outbox sweep and the dev mailbox are
 # server only (no screen of the app); their unit and integration tests cover them.
-packages/notifications/src/*             -
-apps/web/app/routes/api/cron/*           -
-apps/web/app/routes/dev/*                -
+packages/notifications/src/              -
+apps/web/app/routes/api/cron/            -
+apps/web/app/routes/dev/                 -
 apps/web/app/.server/notifications.ts    -
 # Resend's webhook (hosting slice 4): integration tests (packages/notifications).
-apps/web/app/routes/api/webhooks/*       -
+apps/web/app/routes/api/webhooks/        -
 
 # Hosting (hosting slice 1): the deploy scripts have their own tests; the deploy
 # env check is unit tests (checks run with APP_ENV unset); env.d.ts is types only.
-scripts/deploy/*                         -
+scripts/deploy/                          -
 apps/web/app/.server/deployEnv.ts        -
 apps/web/app/env.d.ts                    -
 # Deploy Actions (hosting slice 5): the workflows, their setup action and the
 # pinned CLI versions are unit-tested (scripts/deploy/workflows.test.mjs);
 # they run only on GitHub.
-.github/*                                -
+.github/                                 -

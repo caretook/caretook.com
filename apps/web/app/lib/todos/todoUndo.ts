@@ -1,6 +1,6 @@
 // The todos ticked done on this page, for their Undo: "Done: Call the
 // pharmacy · Undo" for about 10 s after each tick, wherever a
-// `TodoUndoStatus` is mounted (the list, the todo page, Upcoming, the simple
+// `TodoUndoStatus` is mounted (the list, the todo page, Upcoming, the easy
 // card, `LinkedTodos`). Several at once, newest first, each with its own
 // expiry; undoing one removes only it, and ticking the same todo again
 // replaces its entry. Plain module state (no React), like passUndo.ts. Pure

@@ -9,7 +9,7 @@ import type {
 import type { TimelineEntry } from "~/lib/core/rpc";
 import type { TimelineSearchState } from "./timelineSearch";
 
-import { parseSearch } from "@caretook/data/schema";
+import { canChangeEntry, parseSearch } from "@caretook/data/schema";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
@@ -54,8 +54,8 @@ const NO_SEARCH = { q: "", state: "none" } as const;
 /** The empty Today's line (a writer's unfiltered full view with nothing logged today). */
 export const EMPTY_TODAY_TEXT = "Nothing logged today yet.";
 
-/** Simple mode's larger list: everything in it, text, icons and taps alike, a quarter bigger. */
-/** Simple mode shows no care period markers. */
+/** Easy mode's larger list: everything in it, text, icons and taps alike, a quarter bigger. */
+/** Easy mode shows no care period markers. */
 const NO_MARKERS: never[] = [];
 /** No day skips its rows (a restored window's first frames). */
 const NO_SETTLED = new Set<string>();
@@ -80,13 +80,13 @@ export type TimelineEntryListFilters = {
  * with the care periods' boundary markers at their moments (filters on or
  * off; a day with only a marker gets its own section), each day's summary
  * line in its sticky header while no filter or search is on, then `OlderEntries`,
- * which loads older pages as the end comes near. Writers get each entry's ⋯ menu, with one delete
- * confirm for the whole list, and each day heading's + menu; a writer's list
+ * which loads older pages as the end comes near. Writers get each entry's ⋯ menu (an Easy
+ * helper, those of the entries they made), with one delete confirm for the whole list, and each day heading's + menu; a writer's list
  * always has a Today heading, so today's + is always there. With no filter or
  * search on and nothing logged today, that heading says so and offers "Add an
  * entry" (`onAddEntry`), in place of the empty timeline's line.
  *
- * `simple` is simple mode's list: rows only, at the full timeline's type
+ * `easy` is easy mode's list: rows only, at the full timeline's type
  * scale (no zoom), with no filter links, no + menus and no care periods (markers or the day headers'
  * Change); the ⋯ menus, sheets and delete confirm are the full timeline's.
  */
@@ -100,7 +100,7 @@ export function TimelineEntryList({
   author,
   vital = null,
   search: searching = NO_SEARCH,
-  simple = false,
+  easy = false,
   summaryMode = "highlights",
   onAddEntry,
 }: {
@@ -131,8 +131,8 @@ export function TimelineEntryList({
   vital?: VitalType | null;
   /** The search (`?q=`) and what it's doing (`timelineSearch`). */
   search?: { q: string; state: TimelineSearchState };
-  /** Simple mode's list (above). */
-  simple?: boolean;
+  /** Easy mode's list (above). */
+  easy?: boolean;
   /** The day summaries' setting: none, highlights (the default) or everything. */
   summaryMode?: DaySummaryMode;
   /** The empty Today's "Add an entry" (the full view brings the quick-entry field up). */
@@ -166,13 +166,17 @@ export function TimelineEntryList({
           })
       : undefined;
   const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
+  const group = useGroup();
+  // Edit and Delete: writers on every row, an Easy helper on the rows they made (`canChangeEntry`).
+  const mayChange = (createdBy: string | null) =>
+    canWrite || canChangeEntry({ role: group.role, userId: group.userId, entry: { createdBy } });
   // The markers, placed among the entries by moment in the viewer's days; their times are the recipient's.
-  const recipientZone = useGroup().recipient?.timeZone ?? "UTC";
+  const recipientZone = group.recipient?.timeZone ?? "UTC";
   const now = new Date();
   const timeZone = localTimeZone();
-  const days = withMarkers(data.days, simple ? NO_MARKERS : data.markers, timeZone, now);
+  const days = withMarkers(data.days, easy ? NO_MARKERS : data.markers, timeZone, now);
   const todayKey = dayKeyIn(now.toISOString(), timeZone);
-  const adding = canWrite && !simple;
+  const adding = canWrite && !easy;
   // Nothing logged today, with no filter or search on: the Today heading says so (`EmptyToday`).
   const emptyToday = adding && !kind && !author && !vital && !searching.q && data.days[0]?.key !== todayKey;
   const sections =
@@ -228,7 +232,7 @@ export function TimelineEntryList({
   // Matches are marked in the history's rows and cards (the Upcoming block stays as it is).
   const parsed = useMemo(() => (searching.q ? parseSearch(searching.q) : undefined), [searching.q]);
   const item = (entry: TimelineEntry, marked = false) => {
-    const open = entryOpen({ groupId, entry, canWrite, search });
+    const open = entryOpen({ groupId, entry, canWrite: mayChange(entry.createdBy), search });
     return (
       <Entry
         key={entry.id}
@@ -244,7 +248,7 @@ export function TimelineEntryList({
             : editSeriesOf(entry)
         }
         onDelete={
-          canWrite
+          mayChange(entry.createdBy)
             ? () =>
                 scope.ask(entry, "delete", {
                   only: () => removal.ask(entry),
@@ -261,7 +265,7 @@ export function TimelineEntryList({
         liveLabel={data.liveLabelOf(entry.id)}
         providers={data.providersOf(entry.id)}
         search={marked ? parsed : undefined}
-        simple={simple}
+        easy={easy}
       />
     );
   };
@@ -272,14 +276,14 @@ export function TimelineEntryList({
         ref={list}
         aria-labelledby="timeline-heading"
         className={`space-y-4 ${COLUMN_CAP}`}
-        data-simple-list={simple ? "" : undefined}
+        data-easy-list={easy ? "" : undefined}
       >
         <h2 id="timeline-heading" className="sr-only">
           Timeline
         </h2>
-        {(cancelling.error || scope.error) && (
+        {(removal.error || cancelling.error || scope.error) && (
           <p role="alert" className="text-error text-sm">
-            {cancelling.error ?? scope.error}
+            {removal.error ?? cancelling.error ?? scope.error}
           </p>
         )}
         {/* Always there, so a search's first result is announced too. */}
@@ -294,7 +298,7 @@ export function TimelineEntryList({
               newestAt={day.entries[0]?.occurredAt}
               groupId={groupId}
               periods={data.periods}
-              simple={simple}
+              easy={easy}
               summary={summaries && <DaySummaryLine summary={summaries.get(day.key)} mode={summaryMode} />}
             />
             {day.entries.length > 0 && (
@@ -324,7 +328,11 @@ export function TimelineEntryList({
                       occurredAt={it.occurredAt}
                       authorName={data.nameOf(it.entries[0]!.createdBy)}
                       authorImage={data.imageOf(it.entries[0]!.createdBy)}
-                      sheetTo={canWrite ? appUrls.passSheet(groupId, it.id, { search }) : undefined}
+                      sheetTo={
+                        it.entries.every((e) => mayChange(e.createdBy))
+                          ? appUrls.passSheet(groupId, it.id, { search })
+                          : undefined
+                      }
                     />
                   ),
                 )}

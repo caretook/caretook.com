@@ -14,7 +14,7 @@ export function TodoTick({
   done: boolean;
   disabled?: boolean;
   onChange: (done: boolean) => void;
-  /** Simple mode's size: a much bigger box and hit area. */
+  /** Easy mode's size: a much bigger box and hit area. */
   large?: boolean;
 }) {
   return (

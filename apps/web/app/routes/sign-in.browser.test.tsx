@@ -123,3 +123,54 @@ describe("the ways to sign in", () => {
       .toHaveAttribute("href", "/reset-password");
   });
 });
+
+// B-314: offline, Better Auth's fetch rejects with a TypeError. Each request
+// says it couldn't reach Caretook in place, never the error page.
+describe("offline", () => {
+  const OFFLINE = "Couldn't reach Caretook. Check your connection and try again.";
+
+  /** Rejects every auth request but those `answers` names. */
+  const offline = (answers: Record<string, () => Response> = {}) => {
+    window.fetch = (input, init) => {
+      const { pathname } = new URL(new Request(input, init).url);
+      if (!pathname.startsWith("/api/auth/")) return realFetch(input, init);
+      const answer = answers[pathname];
+      return answer ? Promise.resolve(answer()) : Promise.reject(new TypeError("Failed to fetch"));
+    };
+  };
+
+  const saysOffline = async () => {
+    await expect.element(page.getByText(OFFLINE)).toBeVisible();
+    expect(document.body.textContent).not.toContain("Unexpected Application Error");
+  };
+
+  test("a password sign-in says so and keeps the form", async () => {
+    offline();
+    await open("/sign-in");
+    await userEvent.fill(page.getByRole("textbox", { name: "Email" }), "pat@example.test");
+    await userEvent.fill(page.getByLabelText("Password"), "a fictional password");
+    await userEvent.click(page.getByRole("button", { name: "Sign in" }));
+    await saysOffline();
+    await expect.element(page.getByRole("button", { name: "Sign in" })).toBeEnabled();
+  });
+
+  test("sending a sign-in email says so and keeps the form", async () => {
+    offline();
+    await open("/sign-in?with=email");
+    await userEvent.fill(page.getByRole("textbox", { name: "Email" }), "pat@example.test");
+    await userEvent.click(page.getByRole("button", { name: "Send email" }));
+    await saysOffline();
+    await expect.element(page.getByRole("button", { name: "Send email" })).toBeEnabled();
+  });
+
+  test("a code sign-in says so and keeps the code form", async () => {
+    offline({ "/api/auth/sign-in/magic-link": () => Response.json({ status: true }) });
+    await open("/sign-in?with=email");
+    await userEvent.fill(page.getByRole("textbox", { name: "Email" }), "pat@example.test");
+    await userEvent.click(page.getByRole("button", { name: "Send email" }));
+    await userEvent.fill(page.getByRole("textbox", { name: "Code" }), "123456");
+    await userEvent.click(page.getByRole("button", { name: "Sign in" }));
+    await saysOffline();
+    await expect.element(page.getByRole("textbox", { name: "Code" })).toBeVisible();
+  });
+});

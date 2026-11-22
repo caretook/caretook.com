@@ -140,7 +140,7 @@ describe("todoService: repeat columns", () => {
 
     const viewers = await addTodo({ assigneeId: u.viewer.user.id });
     expect(codeOf(await todoService.update(u.viewer.ctx, viewers.id, { repeatRule: null }))).toBe(
-      "todoService:viewerCompletionOnly",
+      "todoService:completionOnly",
     );
   });
 });
@@ -213,6 +213,38 @@ describe("todoService: tick", () => {
     });
     expect(await openIn(todo.id)).toMatchObject([
       { id: nextTodoId(todo.id, "2026-11-23"), assigneeId: u.viewer.user.id, dueOn: "2026-11-23" },
+    ]);
+  });
+
+  it("a successor moved back onto its source's day and ticked gets a new open successor (B-386)", async () => {
+    const { u, addTodo, openIn } = await setup();
+    const todo = await addTodo();
+    ok(await todoService.complete(u.caretaker.ctx, todo.id, { doneAt: MONDAY_NOON }));
+    // Made for Mon 23rd (that day's id), moved back to Mon 16th and ticked
+    // then: the 23rd's id is its own, so the next is the 30th.
+    const second = nextTodoId(todo.id, "2026-11-23");
+    ok(await todoService.update(u.caretaker.ctx, second, { dueOn: "2026-11-16" }));
+    ok(await todoService.complete(u.caretaker.ctx, second, { doneAt: MONDAY_NOON }));
+    expect((await openIn(todo.id)).map((t) => [t.id, t.dueOn])).toEqual([
+      [nextTodoId(todo.id, "2026-11-30"), "2026-11-30"],
+    ]);
+  });
+
+  it("a day whose id a done occurrence holds is passed over for the following one (B-386)", async () => {
+    const { u, addTodo, openIn } = await setup();
+    const todo = await addTodo();
+    ok(await todoService.complete(u.caretaker.ctx, todo.id, { doneAt: MONDAY_NOON }));
+    // The 23rd's occurrence, moved on to the 30th and ticked: done, with the 23rd's id.
+    const second = nextTodoId(todo.id, "2026-11-23");
+    ok(await todoService.update(u.caretaker.ctx, second, { dueOn: "2026-11-30" }));
+    ok(await todoService.complete(u.caretaker.ctx, second, { doneAt: MONDAY_NOON }));
+    const third = nextTodoId(todo.id, "2026-12-07");
+    expect((await openIn(todo.id)).map((t) => t.id)).toEqual([third]);
+    // The next, moved back to the 16th and ticked: the 23rd is taken, so the 30th.
+    ok(await todoService.update(u.caretaker.ctx, third, { dueOn: "2026-11-16" }));
+    ok(await todoService.complete(u.caretaker.ctx, third, { doneAt: MONDAY_NOON }));
+    expect((await openIn(todo.id)).map((t) => [t.id, t.dueOn])).toEqual([
+      [nextTodoId(todo.id, "2026-11-30"), "2026-11-30"],
     ]);
   });
 

@@ -32,7 +32,7 @@ const latestTime = (stored?: string) => {
  * around the kind's own fields: a symptom's name and severity, or vitals'
  * readings in the user's `units`. Posts to the sheet route's clientAction.
  *
- * `simple` is simple mode's variant (a tile's sheet): no kind picker or
+ * `easy` is easy mode's variant (a tile's sheet): no kind picker or
  * notes, a symptom is the 0–10 feelings scale (`FeelingFields`), and vitals
  * are the fields for the one type it opened with.
  */
@@ -43,7 +43,7 @@ export function EntryForm({
   initialVitalType,
   initialAt,
   draft,
-  simple,
+  easy,
   onDone,
   onCancel,
 }: {
@@ -57,8 +57,8 @@ export function EntryForm({
   initialAt?: string | null;
   /** For a new entry: what to fill it in with (quick entry's Edit). */
   draft?: EntryDraft | null;
-  /** Simple mode's variant, with the feelings scale's question ("How she feels"). */
-  simple?: { feelLabel: string } | null;
+  /** Easy mode's variant, with the feelings scale's question ("How she feels"). */
+  easy?: { feelLabel: string } | null;
   onDone?: () => void;
   onCancel?: () => void;
 }) {
@@ -82,7 +82,7 @@ export function EntryForm({
       <input type="hidden" name="units" value={JSON.stringify(units)} />
       {entry && <input type="hidden" name="id" value={entry.id} />}
 
-      {entry || simple ? (
+      {entry || easy ? (
         <input type="hidden" name="kind" value={entry?.kind ?? kind} />
       ) : (
         <EntryKindPicker
@@ -103,27 +103,27 @@ export function EntryForm({
           initial={storedReadings}
           units={units}
           issues={issues}
-          fixed={!!simple}
+          fixed={!!easy}
         />
       )}
 
-      {kind === "symptom" && simple && (
+      {kind === "symptom" && easy && (
         <FeelingFields
-          label={simple.feelLabel}
+          label={easy.feelLabel}
           stored={isSymptomDetails(filled?.details) ? filled.details : undefined}
           nameError={issueFor(issues, "details.name", "details")}
           severityError={issueFor(issues, "details.severity")}
         />
       )}
 
-      {kind === "symptom" && !simple && (
+      {kind === "symptom" && !easy && (
         <SymptomFields
           stored={isSymptomDetails(filled?.details) ? filled.details : undefined}
           nameError={issueFor(issues, "details.name", "details")}
         />
       )}
 
-      {!simple && (
+      {!easy && (
         <Field label="Notes (optional)" error={issueFor(issues, "body")}>
           {(control) => (
             <textarea
@@ -153,11 +153,11 @@ export function EntryForm({
       )}
 
       <div className="flex gap-2 pt-2">
-        <button type="submit" className={`btn btn-primary ${simple ? "btn-lg" : ""}`} disabled={busy}>
+        <button type="submit" className={`btn btn-primary ${easy ? "btn-lg" : ""}`} disabled={busy}>
           {busy ? "Saving…" : entry ? "Save changes" : "Add to timeline"}
         </button>
         {onCancel && (
-          <button type="button" className={`btn btn-ghost ${simple ? "btn-lg" : ""}`} onClick={onCancel}>
+          <button type="button" className={`btn btn-ghost ${easy ? "btn-lg" : ""}`} onClick={onCancel}>
             Cancel
           </button>
         )}

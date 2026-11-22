@@ -3,6 +3,7 @@ import type { AbstractPowerSyncDatabase, PowerSyncBackendConnector } from "@powe
 import { DrizzleAppSchema, wrapPowerSyncWithDrizzle } from "@powersync/drizzle-driver";
 import { PowerSyncDatabase } from "@powersync/web";
 import { authClient } from "../auth/auth-client";
+import { forgetUserData } from "../auth/forgetUserData";
 import { rpc } from "../core/rpc";
 import { releaseSyncLocksWhenCached } from "./pageCache";
 import { dropSearchTables } from "../search/searchTables.sync";
@@ -95,13 +96,16 @@ const writeOwner = (userId: string | null) => {
 
 /**
  * Open the local database for `userId` and start syncing. If the file holds
- * someone else's data (or we can't tell whose), it's wiped first: a shared
- * device never shows one person another's care data.
+ * someone else's data (or we can't tell whose), it's wiped first, with the
+ * previous user's localStorage keys (`forgetUserData`): a shared device never
+ * shows one person another's care data.
  */
 export const open = async (userId: string): Promise<SyncDb> => {
   const powersync = createDatabase();
   await powersync.init();
   if (readOwner() !== userId) {
+    // The previous user's settings, recent searches and lines go too (B-317).
+    forgetUserData();
     // The search index holds the same text, outside PowerSync's tables.
     await dropSearchTables(powersync);
     await powersync.disconnectAndClear();

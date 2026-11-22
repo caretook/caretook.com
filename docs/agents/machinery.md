@@ -42,7 +42,7 @@ The scripts behind `pnpm prd` (`scripts/loops/`) that every session leans on: wo
 ## The asks queue
 
 - One place for the user to answer: `.loops/.asks/<id>.json` in the main checkout (`CARETOOK_ASKS_DIR`), ids `a1`, `a2`…, created exclusively. A question stays open until answered or dismissed; a report until dismissed.
-- `pnpm prd ask --topic <t> --question <text> --option <a>… --recommend <a>` or `--report <text>` (the topic and session default to the worktree's) prints the id and a "Now send a PushNotification" line; it shows a macOS notification and runs `$CARETOOK_ASK_NOTIFY <id> <kind> <topic> <text>` when set (failures and hangs ignored, `CARETOOK_ASK_NOTIFY_TIMEOUT`).
+- `pnpm prd ask --topic <t> --question <text> --option <a>… --recommend <a>` or `--report <text>` (the topic and session default to the worktree's) prints the id and, for a question only, a "Now send a PushNotification" line (a report is never pushed); it shows a macOS notification and runs `$CARETOOK_ASK_NOTIFY <id> <kind> <topic> <text>` when set (failures and hangs ignored, `CARETOOK_ASK_NOTIFY_TIMEOUT`).
 - `pnpm prd ask --wait <id> [--timeout <s>]` prints the answer (exit 0; 75 at the timeout, 1 if dismissed). `pnpm prd asks [--json]` lists the open ones oldest first; `pnpm prd answer <id> <n|text>`; `pnpm prd asks --done <id>` dismisses.
 
 ## Landing reports

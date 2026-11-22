@@ -14,10 +14,10 @@ import { openedOverTimeline } from "~/lib/timeline/timelineSheet";
 
 /**
  * What the timeline gives the sheet routes rendered in its `Outlet`: the
- * user's units, and whether the timeline is in simple mode (the add sheet
- * then opens its simple variant).
+ * user's units, and whether the timeline is in easy mode (the add sheet
+ * then opens its easy variant).
  */
-export type TimelineOutlet = { units: UnitChoices; simple?: boolean };
+export type TimelineOutlet = { units: UnitChoices; easy?: boolean };
 
 export const useTimelineOutlet = () => useOutletContext<TimelineOutlet>();
 

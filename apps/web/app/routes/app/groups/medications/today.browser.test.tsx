@@ -21,7 +21,7 @@ import {
 } from "./medicationWorld";
 
 // Today on the Schedule tab (medications.mjs's Today, pass
-// slot and Given all steps), on a fixed clock: 10:00 on Wednesday Nov 18 in
+// slot and Given all steps), on a fixed clock: 10:00 on Wednesday Jun 9 2027 in
 // Los Angeles, the recipient's zone and the test browser's. Times of their
 // own and passes a few minutes back are due; one tap logs Given, the ⋯ marks
 // Skipped or Refused with a note, an as-needed medication past its maximum

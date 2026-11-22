@@ -17,6 +17,8 @@ const MEMBERS: { email: string; role: GroupRoleName }[] = [
   { email: "member@example.com", role: "owner" },
   { email: "caretaker@example.com", role: "caretaker" },
   { email: "viewer@example.com", role: "viewer" },
+  { email: "easyhelper@example.com", role: "easy_helper" },
+  { email: "easyviewer@example.com", role: "easy_viewer" },
 ];
 
 export const seed = async () => {

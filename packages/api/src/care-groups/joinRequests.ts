@@ -1,3 +1,4 @@
+import type { LinkRole } from "@caretook/data/schema";
 import type { AuthUser, JoinMailer } from "@caretook/data";
 
 import {
@@ -105,7 +106,7 @@ type RequestRow = {
   id: string;
   groupId: string;
   userId: string;
-  role: "caretaker" | "viewer";
+  role: LinkRole;
   status: string;
   createdAt: string;
   decidedAt: string | null;

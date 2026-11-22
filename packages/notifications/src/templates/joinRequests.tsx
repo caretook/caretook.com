@@ -8,7 +8,12 @@ import { ButtonLink, EmailLayout, Muted, Paragraph } from "./layout";
 // when it's approved or declined. They name the group (as its members see
 // it), the requester and the role, and nothing else: no health details.
 
-const ROLE_LABELS = { caretaker: "a caretaker", viewer: "a viewer" } as const;
+const ROLE_LABELS = {
+  caretaker: "a caretaker",
+  viewer: "a viewer",
+  easy_helper: "an Easy helper",
+  easy_viewer: "an Easy viewer",
+} as const;
 const groupNameZ = z.string().trim().min(1).max(200);
 const groupIdZ = z.uuid();
 
@@ -19,7 +24,7 @@ export const joinRequested = defineNotification({
     groupName: groupNameZ,
     requesterName: z.string().trim().max(100).optional(),
     requesterEmail: z.email().max(254),
-    role: z.enum(["caretaker", "viewer"]),
+    role: z.enum(["caretaker", "viewer", "easy_helper", "easy_viewer"]),
   }),
   email: (data, { link }) => {
     const who = data.requesterName?.trim() || data.requesterEmail;
@@ -51,7 +56,7 @@ export const joinApproved = defineNotification({
     name: z.string().trim().max(100).optional(),
     groupId: groupIdZ,
     groupName: groupNameZ,
-    role: z.enum(["caretaker", "viewer"]),
+    role: z.enum(["caretaker", "viewer", "easy_helper", "easy_viewer"]),
   }),
   email: (data, { link }) => ({
     subject: `You're in ${data.groupName}'s care group`,

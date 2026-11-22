@@ -11,8 +11,8 @@ import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 export const careGroups = sqliteTable("care_group", {
   id: text("id").primaryKey(),
   name: text("name"),
-  // How simple mode picks its tiles (JSON text: `SimpleTiles`; null: learned).
-  simpleTiles: text("simple_tiles"),
+  // How easy mode picks its tiles (JSON text: `EasyTiles`; null: learned).
+  easyTiles: text("easy_tiles"),
   // The owners' Assistants switch (connectors; 1 or 0): whether members may connect their own AI assistant.
   connectorsEnabled: integer("connectors_enabled"),
   // The owners' "Details outside Caretook" switch (appointments-2; 1 or 0): whether members may opt in to details.
@@ -37,9 +37,6 @@ export const careGroupMembers = sqliteTable(
     isPrimaryContact: integer("is_primary_contact"),
     // When they fell off the list by no longer sharing a phone (the managers' note).
     emergencyDroppedAt: text("emergency_dropped_at"),
-    // Simple mode: the managers' default for this member and their lock (1 or 0).
-    simpleMode: integer("simple_mode"),
-    simpleModeLocked: integer("simple_mode_locked"),
   },
   (t) => [index("care_group_member_group").on(t.groupId), index("care_group_member_user").on(t.userId)],
 );

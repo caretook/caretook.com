@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import {
   resolveDaySummaryMode,
-  resolveSimpleModeSetting,
+  resolveEasyModeSetting,
   resolveTimelineView,
   resolveUnits,
   userPreferencesZSchema,
@@ -27,7 +27,7 @@ export const me = {
       /** Display units with defaults filled in: what screens should use. */
       units: resolveUnits(user.preferences),
       timelineView: resolveTimelineView(user.preferences),
-      simpleMode: resolveSimpleModeSetting(user.preferences),
+      easyMode: resolveEasyModeSetting(user.preferences),
       daySummary: resolveDaySummaryMode(user.preferences),
     };
   }),
@@ -47,7 +47,7 @@ export const me = {
       preferences,
       units: resolveUnits(preferences),
       timelineView: resolveTimelineView(preferences),
-      simpleMode: resolveSimpleModeSetting(preferences),
+      easyMode: resolveEasyModeSetting(preferences),
       daySummary: resolveDaySummaryMode(preferences),
     };
   }),

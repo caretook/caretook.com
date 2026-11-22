@@ -2,10 +2,10 @@ import type { TimelineEntryCreateInput } from "../db";
 
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok, system } from "../../test/fixtures";
+import { createGroup, createUser, newYDoc, ok, system, typeParagraph } from "../../test/fixtures";
 import { isError } from "../errors";
-import { timelineEntryModel } from "../models";
-import { careGroupService, careRecipientService, timelineEntryService } from ".";
+import { noteUpdateModel, timelineEntryModel } from "../models";
+import { careGroupService, careRecipientService, noteDocumentService, timelineEntryService } from ".";
 
 // Every test builds its own group and users, so tests never depend on each other.
 
@@ -59,6 +59,42 @@ describe("reading", () => {
       expect(await timelineEntryService.getById(u[role].ctx, entry.id)).toBeNull();
       expect(ok(await timelineEntryService.list(u[role].ctx, { groupId: group.id })).data).toEqual([]);
     }
+  });
+
+  it("reads a note's whole text while its last updates wait for compaction (B-312)", async () => {
+    const { u, group, addNote } = await setup();
+    const entry = await addNote({ title: null });
+    ok(await noteDocumentService.create(u.caretaker.ctx, { id: entry.id, groupId: group.id }));
+    const ydoc = newYDoc();
+    const append = async (line: string) =>
+      ok(
+        await noteDocumentService.appendUpdate(u.caretaker.ctx, {
+          id: randomUUID(),
+          groupId: group.id,
+          documentId: entry.id,
+          data: typeParagraph(ydoc, line),
+        }),
+      );
+    // One line compacted, then a few typed in a short session that never reached a compaction.
+    await append("Ate lunch");
+    ok(await noteDocumentService.compact(entry.id));
+    for (const line of ["Napped after", "Walked to the park"]) await append(line);
+    const pending = ok(
+      await noteUpdateModel.list({ ...system, filter: { documentId: { type: "eq", value: entry.id } } }),
+    );
+    expect(pending.data).toHaveLength(2);
+
+    const text = "Ate lunch\nNapped after\nWalked to the park";
+    for (const role of ROLES) {
+      const page = ok(await timelineEntryService.list(u[role].ctx, { groupId: group.id }));
+      expect(page.data.map((e) => e.body)).toEqual([text]);
+      expect(await timelineEntryService.getById(u[role].ctx, entry.id)).toMatchObject({ body: text });
+    }
+    // Reading changes nothing: the updates still wait for the upload path's compaction.
+    const after = ok(
+      await noteUpdateModel.list({ ...system, filter: { documentId: { type: "eq", value: entry.id } } }),
+    );
+    expect(after.data).toHaveLength(2);
   });
 
   it("rejects unauthenticated callers", async () => {
@@ -169,7 +205,7 @@ describe("updating", () => {
       expect(updated).toMatchObject({ title: `Edited by ${role}`, updatedBy: u[role].user.id });
     }
     expect(codeOf(await timelineEntryService.update(u.viewer.ctx, entry.id, { title: "x" }))).toBe(
-      "baseModel:update:nothingUpdated",
+      "permissions:unauthorized",
     );
     expect(codeOf(await timelineEntryService.update(u.outsider.ctx, entry.id, { title: "x" }))).toBe(
       "timelineEntryService:notFound",
@@ -352,7 +388,11 @@ describe("deleting", () => {
   it("won't delete for viewers or outsiders, or delete twice", async () => {
     const { u, addNote } = await setup();
     const entry = await addNote();
-    for (const role of ["viewer", "outsider", "staff"] as const) {
+    // A viewer sees it, so is refused; outsiders learn nothing.
+    expect(codeOf(await timelineEntryService.remove(u.viewer.ctx, entry.id))).toBe(
+      "permissions:unauthorized",
+    );
+    for (const role of ["outsider", "staff"] as const) {
       expect(codeOf(await timelineEntryService.remove(u[role].ctx, entry.id))).toBe(
         "timelineEntryService:notFound",
       );

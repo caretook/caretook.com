@@ -1,16 +1,15 @@
 # check-areas: the timeline, its rows, filters, vitals and sheets. The screen
 # is component tests (timeline/timeline*.browser.test.tsx): its care periods,
 # doses and the medication strip, the Next strip and Upcoming block, search,
-# quick entry, simple mode and todos. phase2.mjs keeps sync arriving, server
+# quick entry, easy mode and todos. phase2.mjs keeps sync arriving, server
 # links and offline, through the device queries.
-apps/web/app/routes/app/groups/timeline/* -
+apps/web/app/routes/app/groups/timeline/  -
 apps/web/app/lib/timeline/*.sync.ts     phase2 roundtrip
-apps/web/app/lib/timeline/entryDisplay.ts -
 apps/web/app/lib/core/form.ts            roundtrip
-apps/web/app/components/entry/*          roundtrip
+apps/web/app/components/entry/           roundtrip
 # The add and edit sheets: roundtrip.mjs (not yet component tests).
-apps/web/app/routes/app/groups/timeline/new/* roundtrip
-apps/web/app/routes/app/groups/timeline/edit/* roundtrip
+apps/web/app/routes/app/groups/timeline/new/  roundtrip
+apps/web/app/routes/app/groups/timeline/edit/  roundtrip
 apps/web/app/routes/app/groups/timeline/EntryForm.tsx roundtrip
 apps/web/app/routes/app/groups/timeline/EntryKindPicker.tsx roundtrip
 apps/web/app/routes/app/groups/timeline/SymptomFields.tsx roundtrip
@@ -30,3 +29,5 @@ packages/data/src/db/seeds/timelineEntries.ts phase2 roundtrip live-notes
 # Re-exports of the pure day helpers that moved to @caretook/data/schema (unit-tested there).
 apps/web/app/lib/core/format.ts -
 apps/web/app/lib/core/zonedDay.ts -
+# Directory defaults: a new file here needs no rule.
+apps/web/app/lib/timeline/               -

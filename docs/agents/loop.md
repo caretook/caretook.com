@@ -57,14 +57,14 @@ Your final message:
 
 - A line is a bash-style glob (`*` also matches `/`), then checks as words, or `-` (none), `@suite` (the lean set) or `@self` (the check file itself; `- (deleted)` when deleted). `#` comments. The file a rule sits in, and its order, never matter: put it in the area that owns the path.
 - **The most specific rule wins** across all files: the longest literal prefix before the first wildcard, then fewer wildcards, then the longer glob; a remaining tie is an error.
+- **Directory defaults:** a path ending in `/`, no wildcards (`apps/web/app/lib/todos/  -`), answers for any file under it that no rule matches; it ranks below every rule and the unit-tested fallback, and the deepest default wins. `lib/core/` has none on purpose, so a new shared module needs a rule.
 - **Built-ins:** every `*.test.ts`, `*.test.tsx` and `*.test.mjs` needs none; after the rules, a lib module with a sibling `.test.ts` needs none (`- (unit-tested)`) unless it's a `*.sync.ts` or under `lib/sync/`. Anything unmapped runs `sign-in`, `phase2` and `roundtrip` with a warning.
-- **Usual shapes:** an area's device queries share `apps/web/app/lib/<area>/*.sync.ts <checks>`; screens with component tests map to none or to the flows they reach; docs, plans, tests and tooling to none; build config, dependencies, sync rules and migrations to the lean set. Each `routes.ts` part has its rule in `check-areas.d/app-shell`.
-- **The lint** (`check-areas.mjs lint`, in `pnpm check`) fails when a tracked file maps to nothing, a rule matches nothing, a glob is in two files, or a tie remains. **A slice that adds, moves or deletes a screen, check or shared module changes the rules in the same commit.**
+- **Usual shapes:** an area's directories have defaults; its device queries share `apps/web/app/lib/<area>/*.sync.ts <checks>`; screens with component tests map to none or to the flows they reach; docs, plans, tests and tooling to none; build config, dependencies, sync rules and migrations to the lean set. Each `routes.ts` part has its rule in `check-areas.d/app-shell`.
+- **The lint** (`check-areas.mjs lint`, in `pnpm check`) fails when a tracked file maps to nothing, a rule or default matches nothing, a glob is in two files, or a tie remains. **A slice that adds, moves or deletes a screen, check or shared module changes the rules in the same commit.**
 
 ### The manifest and the lean set
 
-- `scripts/loops/checks` lists every check in suite order: usual seconds, cap, never-exits, and `e2e yes` (in the lean set, which is `--suite`). `checks.test.mjs` keeps it and `check-areas.d/` in step, so a new check adds a line to both.
-- **The ceiling:** the manifest's `lean-ceiling` caps the sum of the lean set's usual seconds (`checks.test.mjs` fails above it), and may never exceed 300 s (`LEAN_LIMIT`). Usual seconds are the median of recent suite runs, never one run under load. A slice that changes a lean check updates its seconds and lowers the ceiling if the total dropped; only the user raises it.
+- `scripts/loops/checks` lists every check in suite order: cap, never-exits, and `e2e yes` (in the lean set, which is `--suite`). `checks.test.mjs` keeps it and `check-areas.d/` in step, so a new check adds a line to both.
 - **The sync matrix** (`roundtrip` 6b, `sync-matrix.mjs`): a row per device-schema table, written on one device and seen on the other; `sync-matrix.test.mjs` fails when a synced table has none, so a new synced table adds one. Area checks don't assert "a second device sees X".
 - **Moving a check's screen steps to component tests:** write the tests, delete each covered step (the hand-off maps step → test), keep only the flows; set it `e2e yes` if a flow is left, else delete it and its `check-areas.d/` rules.
 

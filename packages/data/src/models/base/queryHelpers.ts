@@ -201,12 +201,18 @@ const actorGroupIds = (userId: string, roles: readonly string[]) =>
  * The condition one rule puts on `operand`: a column of the scoped table, or
  * a bound value when checking data about to be written.
  */
-export const scopeRuleToSql = (operand: SQL, rule: ScopeRule): SQL => {
+export const scopeRuleToSql = (operand: SQL, rule: ScopeRule, owner?: SQL): SQL => {
   switch (rule.type) {
     case "owned":
       return eq(operand, rule.userId);
     case "group":
       return inArray(operand, actorGroupIds(rule.userId, rule.groupRoles));
+    case "groupOwn": {
+      const inGroup = inArray(operand, actorGroupIds(rule.userId, rule.groupRoles));
+      // Without the creator (data about to be inserted, which the actor
+      // creates), only the group is checked.
+      return owner ? (and(inGroup, eq(owner, rule.userId)) ?? sql`false`) : inGroup;
+    }
     case "groupUser":
       return inArray(
         operand,
@@ -218,6 +224,14 @@ export const scopeRuleToSql = (operand: SQL, rule: ScopeRule): SQL => {
   }
 };
 
+/** A `groupOwn` rule's creator column (it must exist: a misconfigured one never widens access). */
+const ownerColumn = (schemaName: DbSchemaName, rule: ScopeRule): SQL | undefined => {
+  if (rule.type !== "groupOwn") return undefined;
+  const column = getColumns(schemaName)[rule.ownerField];
+  if (!column) throw new Error(`Permission field "${rule.ownerField}" not found on ${schemaName}`);
+  return sql`${column}`;
+};
+
 /** The WHERE clause a permission scope requires (`undefined` = unrestricted). */
 export const scopeToSql = (schemaName: DbSchemaName, scope: PermissionScope): SQL | undefined => {
   if (scope.type === "all") return undefined;
@@ -226,7 +240,7 @@ export const scopeToSql = (schemaName: DbSchemaName, scope: PermissionScope): SQ
     const column = columns[rule.field];
     // A misconfigured field must never widen access.
     if (!column) throw new Error(`Permission field "${rule.field}" not found on ${schemaName}`);
-    return scopeRuleToSql(sql`${column}`, rule);
+    return scopeRuleToSql(sql`${column}`, rule, ownerColumn(schemaName, rule));
   });
   // An empty rule list grants nothing (getPermissionScope never returns one).
   return or(...parts) ?? sql`false`;
@@ -242,7 +256,7 @@ export type FieldLimits = { whole: SQL; visible: ReadonlySet<string> };
 
 export const fieldLimits = (schemaName: DbSchemaName, scope: PermissionScope): FieldLimits | undefined => {
   if (scope.type === "all") return undefined;
-  const limited = scope.rules.filter((rule) => rule.type !== "owned" && rule.fields);
+  const limited = scope.rules.filter((rule) => "fields" in rule && rule.fields);
   if (!limited.length) return undefined;
   const columns = getColumns(schemaName);
   const wholeRules = scope.rules.filter((rule) => !limited.includes(rule));
@@ -251,10 +265,10 @@ export const fieldLimits = (schemaName: DbSchemaName, scope: PermissionScope): F
       ...wholeRules.map((rule) => {
         const column = columns[rule.field];
         if (!column) throw new Error(`Permission field "${rule.field}" not found on ${schemaName}`);
-        return scopeRuleToSql(sql`${column}`, rule);
+        return scopeRuleToSql(sql`${column}`, rule, ownerColumn(schemaName, rule));
       }),
     ) ?? sql`false`;
-  const visible = new Set(limited.flatMap((rule) => (rule.type === "owned" ? [] : (rule.fields ?? []))));
+  const visible = new Set(limited.flatMap((rule) => ("fields" in rule ? (rule.fields ?? []) : [])));
   return { whole, visible };
 };
 

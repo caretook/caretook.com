@@ -12,15 +12,17 @@ const G = "g1";
 
 describe("passSheetGuard", () => {
   it("opens a writer's log that still has a dose", () => {
-    expect(passSheetGuard({ groupId: G, passLogId: "L", liveDoses: 2, search: "", canWrite: true })).toEqual({
-      sheet: { passLogId: "L" },
-    });
+    expect(passSheetGuard({ groupId: G, passLogId: "L", liveDoses: 2, search: "", canChange: true })).toEqual(
+      {
+        sheet: { passLogId: "L" },
+      },
+    );
   });
 
   it("sends viewers and missing or fully deleted logs to the timeline, filters kept", () => {
     const timeline = { redirect: `/app/groups/${G}/timeline?kind=dose` };
     expect(
-      passSheetGuard({ groupId: G, passLogId: "L", liveDoses: 2, search: "?kind=dose", canWrite: false }),
+      passSheetGuard({ groupId: G, passLogId: "L", liveDoses: 2, search: "?kind=dose", canChange: false }),
     ).toEqual(timeline);
     expect(
       passSheetGuard({
@@ -28,7 +30,7 @@ describe("passSheetGuard", () => {
         passLogId: "L",
         liveDoses: 0,
         search: "?kind=dose&type=spo2",
-        canWrite: true,
+        canChange: true,
       }),
     ).toEqual(timeline);
   });

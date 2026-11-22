@@ -108,6 +108,19 @@ export const visitOn = (series: SeriesTiming, day: string): SeriesVisit => {
 export const seriesVisits = (series: SeriesTiming, from: string, to: string): SeriesVisit[] =>
   seriesDays(series, from, to).map((day) => visitOn(series, day));
 
+/**
+ * The first day ("YYYY-MM-DD") the rule falls on on or after `from`, however
+ * far ahead (bounded only by its own COUNT or UNTIL, and rrule's year 9999);
+ * null once it has ended or when the rule can't be read.
+ */
+export const firstDayFrom = (series: Pick<SeriesTiming, "rule" | "startsOn">, from: string) => {
+  const parsed = parseRule(series.rule);
+  if (!parsed.ok) return null;
+  const start = from < series.startsOn ? series.startsOn : from;
+  const date = new RRule(rruleOptions(parsed.rule, series.startsOn)).after(floating(start), true);
+  return date ? dayOf(date) : null;
+};
+
 /** The first `n` visits on or after `from` (the repeat field's preview). Looks at most about 5 years ahead. */
 export const nextVisits = (series: SeriesTiming, from: string, n: number): SeriesVisit[] => {
   const parsed = parseRule(series.rule);

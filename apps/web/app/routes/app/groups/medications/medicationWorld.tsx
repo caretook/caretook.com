@@ -353,8 +353,8 @@ export const CHANGES_SQL =
 
 // --- A fixed clock (Today, the Dose sheet, the strip, Upcoming's passes) ------
 
-/** Wednesday Nov 18 2026, 10:00 in Los Angeles (the test browser's zone and the recipient's). */
-export const CLOCK = new Date(2026, 10, 18, 10, 0);
+/** Wednesday Jun 9 2027, 10:00 in Los Angeles (the test browser's zone and the recipient's): the test clock's day (`TEST_NOW`), which the module-level fixtures are relative to. */
+export const CLOCK = new Date(2027, 5, 9, 10, 0);
 /** Fake `Date` and timers at `now`, still advancing (restore with `vi.useRealTimers()`). */
 export const fixClock = (now = CLOCK) =>
   vi.useFakeTimers({

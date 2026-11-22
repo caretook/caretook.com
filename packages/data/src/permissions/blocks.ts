@@ -2,7 +2,14 @@ import type { GroupRoleName } from "../constants/roles";
 import type { DbSchemaName } from "../db/types";
 import type { PermissionEntry, PermissionRoleName } from "./types";
 
-import { GROUP_MANAGER_ROLES, GROUP_ROLE_NAMES } from "../constants/roles";
+import {
+  EASY_ROLE_NAMES,
+  GROUP_MANAGER_ROLES,
+  GROUP_ROLE_NAMES,
+  LOGGER_ROLES,
+  OWNER_ROLES,
+  WRITER_ROLES,
+} from "../constants/roles";
 
 // ---------------------------------------------------------------------------
 // Building blocks
@@ -64,15 +71,35 @@ export const SIGNED_IN_PERMISSION_ENTRY = {
 export const groupEntry = (roles: readonly GroupRoleName[]) =>
   ({ ...NO_ACCESS, system: ["all"], group: roles }) as const satisfies PermissionEntry<DbSchemaName>;
 
+/**
+ * `groupEntry(roles)`, plus `ownRoles` on the rows they created only
+ * (`groupOwn`: the row's `created_by` is the actor).
+ */
+export const groupOwnEntry = (roles: readonly GroupRoleName[], ownRoles: readonly GroupRoleName[]) =>
+  ({
+    ...NO_ACCESS,
+    system: ["all"],
+    group: roles,
+    groupOwn: ownRoles,
+  }) as const satisfies PermissionEntry<DbSchemaName>;
+
 /** Admins and the system: support may not change roles or emails. */
 export const STAFF_ONLY: readonly PermissionRoleName[] = ["admin", "system"];
 /** Set by services running as SYSTEM_USER, or not at all. */
 export const SYSTEM_ONLY: readonly PermissionRoleName[] = ["system"];
 
-export const ANY_GROUP_ROLE = GROUP_ROLE_NAMES;
-export const MANAGERS = GROUP_MANAGER_ROLES;
-export const OWNERS: readonly GroupRoleName[] = ["owner"];
-export const WRITERS: readonly GroupRoleName[] = ["owner", "admin", "caretaker"];
+// The role sets, from constants/roles.ts (the one source; see there).
+export const ANY_GROUP_ROLE: readonly GroupRoleName[] = GROUP_ROLE_NAMES;
+export const MANAGERS: readonly GroupRoleName[] = GROUP_MANAGER_ROLES;
+export const OWNERS: readonly GroupRoleName[] = OWNER_ROLES;
+/** May change setup and anyone's data. */
+export const WRITERS: readonly GroupRoleName[] = WRITER_ROLES;
+/** May log care: the writers, and an Easy helper (on their own entries: `groupOwn`). */
+export const LOGGERS: readonly GroupRoleName[] = LOGGER_ROLES;
+/** The roles that always get the easy view. */
+export const EASY_ROLES: readonly GroupRoleName[] = EASY_ROLE_NAMES;
+/** Loggers who aren't writers (an Easy helper): they change only the rows they created. */
+export const OWN_ROW_LOGGERS: readonly GroupRoleName[] = LOGGERS.filter((role) => !WRITERS.includes(role));
 
 /** What a co-member may read of another member's `user` row. */
 export const PUBLIC_PROFILE_FIELDS = ["id", "name", "image"] as const;

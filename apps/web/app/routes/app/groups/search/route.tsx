@@ -76,11 +76,11 @@ export default function SearchPage({ loaderData, params }: Route.ComponentProps)
           current={currentPeriod}
         />
       )}
-      {/* Opening a result (any link in them) uses the search they're for. */}
+      {/* Opening a result (any link in them, or an easy role's sheet) uses the search they're for. */}
       <div
         className="space-y-4"
         onClickCapture={(e) => {
-          if ((e.target as Element).closest("a")) recordSearch(group.userId, data.q);
+          if ((e.target as Element).closest("a, [data-opens-sheet]")) recordSearch(group.userId, data.q);
         }}
       >
         <SearchResults

@@ -21,7 +21,7 @@ export type PassUndo = {
   entryIds?: readonly string[];
   /**
    * Where it's shown: a `PassUndoStatus` with this `place` (quick entry's box,
-   * simple mode's Now block). Left out, the medication screens' lines show it.
+   * easy mode's Now block). Left out, the medication screens' lines show it.
    */
   place?: string | null;
   /** Epoch ms after which Undo is no longer offered. */

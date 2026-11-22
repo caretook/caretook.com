@@ -25,8 +25,9 @@ export type SheetDecision<Sheet> = { sheet: Sheet } | { redirect: string };
 export type NewSheet = { kind: SheetKind; vitalType: VitalType | null };
 
 /**
- * `timeline/new/:kind`: a symptom or a vital for a writer. Anything else
- * (a note or event, an unknown kind, a viewer) is the timeline, with the
+ * `timeline/new/:kind`: a symptom or a vital for someone who logs care
+ * (writers and an Easy helper). Anything else (a note or event, an unknown
+ * kind, a viewer or Easy viewer) is the timeline, with the
  * sheet's own parameters dropped. An unknown `?type=` opens the vital sheet
  * with no type chosen.
  */
@@ -34,14 +35,15 @@ export const newSheetGuard = ({
   groupId,
   kind,
   search,
-  canWrite,
+  canLog,
 }: {
   groupId: string;
   kind: string | undefined;
   search: string;
-  canWrite: boolean;
+  /** The group context's `canLog`. */
+  canLog: boolean;
 }): SheetDecision<NewSheet> => {
-  if (!canWrite || !isSheetKind(kind))
+  if (!canLog || !isSheetKind(kind))
     return { redirect: appUrls.timeline(groupId, withoutSheetParams(search)) };
   const type = new URLSearchParams(search).get(VITAL_TYPE_PARAM);
   return { sheet: { kind, vitalType: kind === "vital" && isVitalType(type) ? type : null } };
@@ -56,26 +58,28 @@ export type EditSheetEntry = {
 };
 
 /**
- * `timeline/:entryId/edit`: a writer's symptom, vital or dose in this group.
- * A note or event has its own page (for viewers too); a medication change is
- * never edited; a missing, deleted or other group's entry, or a viewer, is
- * the timeline. Redirects keep the timeline's filters.
+ * `timeline/:entryId/edit`: a symptom, vital or dose in this group, for
+ * someone who may change it (`canChangeEntry`: writers any, an Easy helper
+ * their own). A note or event has its own page (for viewers too); a
+ * medication change is never edited; a missing, deleted or other group's
+ * entry, or anyone else, is the timeline. Redirects keep the timeline's filters.
  */
 export const editSheetGuard = <Entry extends EditSheetEntry>({
   groupId,
   entry,
   search,
-  canWrite,
+  canChange,
 }: {
   groupId: string;
   entry: Entry | null;
   search: string;
-  canWrite: boolean;
+  /** Whether you may change this entry (`canChangeEntry`). */
+  canChange: boolean;
 }): SheetDecision<{ entry: Entry }> => {
   const timeline = { redirect: appUrls.timeline(groupId, withoutSheetParams(search)) };
   if (!entry || entry.groupId !== groupId || entry.deletedAt) return timeline;
   if (canHaveNoteDocument(entry.kind)) return { redirect: appUrls.entry(groupId, entry.id) };
-  if (!canWrite || isSystemWrittenKind(entry.kind)) return timeline;
+  if (!canChange || isSystemWrittenKind(entry.kind)) return timeline;
   return { sheet: { entry } };
 };
 
@@ -88,7 +92,8 @@ const PASS_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export type NewDoseSheet = { medicationId: string | null; slot: string | null; passId: string | null };
 
 /**
- * `timeline/new/dose`: a writer logging a dose. A viewer is the timeline
+ * `timeline/new/dose`: someone who logs care (writers and an Easy helper)
+ * logging a dose. Anyone else is the timeline
  * (filters kept, the sheet's own parameters dropped). `?medication=` that
  * isn't one of the sheet's choices (`choiceIds`) and a `?slot=` that isn't a
  * time are dropped.
@@ -96,15 +101,16 @@ export type NewDoseSheet = { medicationId: string | null; slot: string | null; p
 export const newDoseGuard = ({
   groupId,
   search,
-  canWrite,
+  canLog,
   choiceIds,
 }: {
   groupId: string;
   search: string;
-  canWrite: boolean;
+  /** The group context's `canLog`. */
+  canLog: boolean;
   choiceIds: readonly string[];
 }): SheetDecision<NewDoseSheet> => {
-  if (!canWrite) return { redirect: appUrls.timeline(groupId, withoutSheetParams(search)) };
+  if (!canLog) return { redirect: appUrls.timeline(groupId, withoutSheetParams(search)) };
   const params = new URLSearchParams(search);
   const medicationId = params.get(DOSE_MEDICATION_PARAM);
   const slot = params.get(DOSE_SLOT_PARAM);

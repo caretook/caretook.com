@@ -1,14 +1,16 @@
 import type { SearchPageData } from "./loadSearch";
 import type { UnitChoices } from "@caretook/data/schema";
 import type { ResultSection } from "~/lib/search/searchResults";
+import type { EasyOpened } from "./EasyResultSheet";
 
 import { parseSearch } from "@caretook/data/schema";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { resultCountText } from "~/lib/search/searchResults";
 import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
+import { EasyResultSheet } from "./EasyResultSheet";
 import {
   ConditionResultItem,
   EntryResultItem,
@@ -20,7 +22,10 @@ import {
 /**
  * Everything under the field: one polite status line (the count, "No
  * matches…", or "Preparing search…"), then a section per type with matches,
- * each a list of its best few and a way to see the rest.
+ * each a list of its best few and a way to see the rest. For the easy roles
+ * a provider, medication or condition opens a read-only sheet here
+ * (`EasyResultSheet`) rather than its section, and entries have no "See all
+ * in timeline" (the easy view has no search to show it).
  */
 export function SearchResults({
   data,
@@ -43,8 +48,12 @@ export function SearchResults({
   const search = useMemo(() => parseSearch(data.q), [data.q]);
   // Medications' schedules read by pass name.
   const passes = useSchedulePasses(groupId);
+  const group = useGroup();
   // Todos' due days are the recipient's.
-  const timeZone = useGroup().recipient?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timeZone = group.recipient?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // The easy roles' read-only sheet, when one is open.
+  const [opened, setOpened] = useState<EasyOpened | null>(null);
+  const open = (item: EasyOpened) => (group.easyRole ? () => setOpened(item) : undefined);
   const status = unavailable
     ? "Search isn't available on this device right now."
     : preparing && !data.sections.length
@@ -93,6 +102,7 @@ export function SearchResults({
                       provider={provider}
                       notes={data.notes[hit.id]}
                       search={search}
+                      onOpen={open({ type: "provider", provider })}
                     />
                   )
                 );
@@ -100,7 +110,14 @@ export function SearchResults({
               if (section.type === "condition") {
                 const condition = data.conditions[hit.id];
                 return (
-                  condition && <ConditionResultItem key={hit.id} condition={condition} search={search} />
+                  condition && (
+                    <ConditionResultItem
+                      key={hit.id}
+                      condition={condition}
+                      search={search}
+                      onOpen={open({ type: "condition", condition })}
+                    />
+                  )
                 );
               }
               if (section.type === "todo") {
@@ -127,14 +144,22 @@ export function SearchResults({
                     passes={passes}
                     notes={data.notes[hit.id]}
                     search={search}
+                    onOpen={open({ type: "medication", medication })}
                   />
                 )
               );
             })}
           </ul>
-          <SectionLinks section={section} groupId={groupId} q={data.q} period={data.period} />
+          <SectionLinks
+            section={section}
+            groupId={groupId}
+            q={data.q}
+            period={data.period}
+            timeline={!group.easyRole}
+          />
         </section>
       ))}
+      {opened && <EasyResultSheet opened={opened} passes={passes} onClose={() => setOpened(null)} />}
     </>
   );
 }
@@ -148,18 +173,21 @@ function SectionLinks({
   groupId,
   q,
   period,
+  timeline: seeTimeline,
 }: {
   section: ResultSection;
   groupId: string;
   q: string;
   period: string | null;
+  /** Whether entries offer "See all N in timeline". */
+  timeline: boolean;
 }) {
   const toggle = section.full
     ? { label: "Show fewer", to: appUrls.search(groupId, q, { period }) }
     : section.hidden > 0
       ? { label: `Show all ${section.total}`, to: appUrls.search(groupId, q, { all: section.type, period }) }
       : null;
-  const timeline = section.type === "entry";
+  const timeline = seeTimeline && section.type === "entry";
   if (!toggle && !timeline) return null;
   return (
     <p className="mt-1 flex flex-wrap justify-end gap-x-4 px-1 text-sm">

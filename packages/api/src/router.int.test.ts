@@ -70,7 +70,7 @@ describe("auth", () => {
       preferences: {},
       units: DEFAULT_UNITS,
       timelineView: DEFAULT_TIMELINE_VIEW,
-      simpleMode: "group",
+      easyMode: "full",
       daySummary: "highlights",
     });
   });
@@ -83,7 +83,7 @@ describe("me.updatePreferences", () => {
       preferences: { units: { temperature: "c" } },
       units: { ...DEFAULT_UNITS, temperature: "c" },
       timelineView: DEFAULT_TIMELINE_VIEW,
-      simpleMode: "group",
+      easyMode: "full",
       daySummary: "highlights",
     });
     await owner.api.me.updatePreferences({ units: { weight: "kg" } });
@@ -115,7 +115,7 @@ describe("me.updatePreferences", () => {
       { units: { temperature: "k" } },
       { theme: "dark" },
       { timelineView: "grid" },
-      { simpleMode: "sometimes" },
+      { easyMode: "sometimes" },
       { daySummary: "some" },
     ] as never[];
     for (const input of bad) {
@@ -208,7 +208,7 @@ describe("careGroup: group settings", () => {
       expect(await s[role].careGroup.update({ groupId: s.group.id, name: "  Example Family  " })).toEqual({
         id: s.group.id,
         name: "Example Family",
-        simpleTiles: null,
+        easyTiles: null,
       });
       expect((await s.viewer.careGroup.listMine())[0]?.name).toBe("Example Family");
     });
@@ -691,16 +691,16 @@ describe("timeline: a note's or event's text is its document", () => {
     expect(renamed).toMatchObject({ title: "Dr. Lee follow-up", body: "BP looked fine" });
   });
 
-  it("returns a null body, without an error, for a note whose document hasn't arrived or compacted", async () => {
+  it("returns a null body for a note whose document hasn't arrived, and pending updates' text otherwise", async () => {
     const { owner, viewer, group } = await setup();
     const waiting = await owner.api.timeline.create({ ...note(group.id), occurredAt: at(8) });
     const pending = await owner.api.timeline.create({ ...note(group.id), occurredAt: at(9) });
-    // Only compacted text is read: pending updates (still being typed) aren't.
+    // Updates not yet compacted (a short typing session) are read too (B-312).
     await writeDocument(owner.ctx, group.id, pending.id, ["Still typing"], { pending: true });
 
     const { data } = await viewer.api.timeline.list({ groupId: group.id });
     expect(data.map((e) => [e.id, e.body])).toEqual([
-      [pending.id, null],
+      [pending.id, "Still typing"],
       [waiting.id, null],
     ]);
     expect(await noteDocumentService.currentText(owner.ctx, pending.id)).toBe("Still typing");
@@ -912,7 +912,13 @@ describe("sync.upload", () => {
       expect(res.results.map((r) => r.status)).toEqual(["applied", "applied", "applied"]);
 
       const [stored] = (await viewer.api.timeline.list({ groupId: group.id })).data;
-      expect(stored).toMatchObject({ id: entryId, kind: "note", body: null, createdBy: owner.user.id });
+      // Not compacted yet, but the list reads the pending update's text (B-312).
+      expect(stored).toMatchObject({
+        id: entryId,
+        kind: "note",
+        body: "Ate lunch",
+        createdBy: owner.user.id,
+      });
       expect(await noteDocumentService.currentText(owner.ctx, entryId)).toBe("Ate lunch");
     });
 
