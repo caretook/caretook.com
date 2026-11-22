@@ -111,6 +111,7 @@ describe("resetStaging", () => {
       .where(eq(careGroupMemberSchema.userId, real!.id));
     expect(memberships.map((m) => m.groupId).sort()).toEqual([...groupIds].sort());
     expect(new Set(memberships.map((m) => m.role))).toEqual(new Set(["owner"]));
-    // A whole seed hashes a password per account, so the default 5 s is too tight on a busy machine.
+    // A whole seed (one scrypt hash and one verify, B-466): ~1.6 s alone, so the default 5 s is too tight
+    // on a busy machine.
   }, 30_000);
 });
