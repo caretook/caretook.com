@@ -39,11 +39,11 @@ const textOf = (rows: Row[]) => {
   return text;
 };
 
-/** Each row's clock range for the one typing client: `[from, to)`. */
+/** Each row's clock range for the one typing client (`from` inclusive, `to` exclusive). */
 const ranges = (rows: Row[], client: number) =>
   rows.map((r) => {
     const meta = Y.parseUpdateMeta(fromBase64(r.data));
-    return [meta.from.get(client), meta.to.get(client)];
+    return { from: meta.from.get(client), to: meta.to.get(client) };
   });
 
 describe("bindNoteDoc", () => {
@@ -69,8 +69,9 @@ describe("bindNoteDoc", () => {
     expect(rows).toHaveLength(2);
     expect(textOf(rows)).toBe("Hello, world!");
     // No overlap: the retried row starts where the first one ended.
-    const [[, firstEnd], [secondStart]] = ranges(rows, doc.clientID);
-    expect(secondStart).toBe(firstEnd);
+    const [first, second] = ranges(rows, doc.clientID);
+    expect(second?.from).toBe(first?.to);
+    expect(second?.from).toBeGreaterThan(0);
 
     await flush();
     expect(rows).toHaveLength(2);
