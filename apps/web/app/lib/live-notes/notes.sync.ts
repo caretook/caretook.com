@@ -157,7 +157,8 @@ export const bindNoteDoc = (
     idleTimer = maxTimer = undefined;
     if (!pending.length) return;
     if (!(await trySave()) || !pending.length) return;
-    const update = Y.mergeUpdates(pending);
+    // Take this burst; typing during the insert starts the next one.
+    const batch = pending;
     pending = [];
     const id = crypto.randomUUID();
     seen.add(id);
@@ -167,12 +168,18 @@ export const bindNoteDoc = (
         id,
         groupId,
         documentId,
-        data: toBase64(update),
+        data: toBase64(Y.mergeUpdates(batch)),
         createdAt: toLocalTimestamp(new Date()),
         createdBy: db.userId,
       })
       .then(() => undefined)
-      .catch((e: unknown) => console.error("Couldn't save live notes", e));
+      .catch((e: unknown) => {
+        // Nothing went in: put the burst back, ahead of newer typing, so the
+        // next flush writes it (a failed insert must not lose the session's text).
+        seen.delete(id);
+        pending = [...batch, ...pending];
+        console.error("Couldn't save live notes", e);
+      });
   };
 
   const onUpdate = (update: Uint8Array, origin: unknown) => {
