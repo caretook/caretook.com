@@ -28,8 +28,8 @@ const EMPTY = { phones: [], contactEmail: null, address: null };
 const PHONE = "(555) 010-1942";
 const ADDRESS = "7 Check Lane";
 
-const open = (api?: Record<string, (input: unknown) => unknown>, width?: number) =>
-  renderWithDevice({ route: ROUTES, url: URL, api, width });
+const open = (api?: Record<string, (input: unknown) => unknown>) =>
+  renderWithDevice({ route: ROUTES, url: URL, api });
 
 const phoneNumber = () => page.getByRole("textbox", { name: "Phone 1 number" });
 const phoneLabel = () => page.getByRole("textbox", { name: "Phone 1 label" });
@@ -37,19 +37,15 @@ const emailBox = () => page.getByRole("textbox", { name: "Contact email" });
 const addressBox = () => page.getByRole("textbox", { name: "Address" });
 const save = () => page.getByRole("button", { name: "Save" });
 
-describe.each([420, 1280])("at %i", (width) => {
-  test("its own subpage in the settings frame, saying the sign-in email stays private", async () => {
-    await open({ "me.contact": () => EMPTY }, width);
-    await expect.element(page.getByRole("heading", { name: "Contact details", level: 1 })).toBeVisible();
-    const nav = document.querySelector<HTMLElement>("nav[data-settings-nav]");
-    expect(nav?.querySelector('a[aria-current="page"]')?.getAttribute("href")).toBe(URL);
-    await expect
-      .element(
-        page.getByText(`Your sign-in email (${TEST_USER.email}) stays private unless you enter it here.`),
-      )
-      .toBeVisible();
-    expect((emailBox().element() as HTMLInputElement).getAttribute("aria-describedby")).toBeTruthy();
-  });
+test("its own subpage, saying the sign-in email stays private (the frame is settingsFrame.browser.test.tsx's)", async () => {
+  await open({ "me.contact": () => EMPTY });
+  await expect.element(page.getByRole("heading", { name: "Contact details", level: 1 })).toBeVisible();
+  await expect
+    .element(
+      page.getByText(`Your sign-in email (${TEST_USER.email}) stays private unless you enter it here.`),
+    )
+    .toBeVisible();
+  expect((emailBox().element() as HTMLInputElement).getAttribute("aria-describedby")).toBeTruthy();
 });
 
 describe("saving", () => {

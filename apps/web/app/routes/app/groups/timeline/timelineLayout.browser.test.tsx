@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { found, stopsMoving } from "../../../../../test/found";
-import { at, fx } from "../../../../../test/fixtures";
 import {
   authorOf,
   button,
@@ -10,7 +9,6 @@ import {
   openTimeline,
   rowOf,
   rows,
-  SAM,
   setView,
   tapAt,
   TIMELINE_URL,
@@ -21,9 +19,12 @@ import {
 
 // The timeline's layout and taps on the test device (from phase2.mjs: the
 // first screen, row taps by role, More and Less, the ⋯ menu, day headings,
-// the wide layout and the author tooltip). Measured in real Chromium with
-// the app's stylesheet, at the widths phase2 used. What a row opens per kind
-// and role is entryOpen.test.ts's; the ⋯ items entryActionItems.test.ts's.
+// the wide layout and the author tooltip), in real Chromium with the app's
+// stylesheet, at the widths phase2 used: behaviour, not pixels or classes.
+// What a row opens per kind and role is entryOpen.test.ts's; the ⋯ items
+// entryActionItems.test.ts's; sheets' and confirms' size by width the
+// probe's (ui/inScreens.browser.test.tsx); the Live now banner
+// timelineStrips.browser.test.tsx's.
 
 const width = async (w: number) => {
   await page.viewport(w, 900);
@@ -36,14 +37,10 @@ const menuItems = () => [...document.querySelectorAll("[role=menuitem]")].map((m
 const actionsOf = (li: Element) => li.querySelector<HTMLButtonElement>('button[aria-label^="Actions"]')!;
 
 describe("the first screen", () => {
-  test("the first entry is above the fold, rows are dense, no sideways scroll, and one page of 30", async () => {
+  test("the first entry is above the fold, no sideways scroll, and one page of 30", async () => {
     await openTimeline();
     await ready();
     expect(rows()[0]!.getBoundingClientRect().top).toBeLessThan(900);
-    const heights = rows()
-      .map((li) => li.getBoundingClientRect().height)
-      .sort((a, b) => a - b);
-    expect(heights[Math.floor(heights.length / 2)]).toBeLessThanOrEqual(72);
     expect(noHorizontalScroll()).toBe(true);
     expect(rows().length).toBe(30);
     expect(/live notes/i.test(document.body.innerText)).toBe(false);
@@ -143,18 +140,6 @@ describe("row taps", () => {
 });
 
 describe("day headings", () => {
-  const headingStyle = () => {
-    const s = getComputedStyle(document.querySelector("section h3")!);
-    return {
-      size: s.fontSize,
-      weight: s.fontWeight,
-      transform: s.textTransform,
-      full: s.color === getComputedStyle(document.body).color,
-      // The sticky row is the heading's (with the day's care period beside it).
-      position: getComputedStyle(document.querySelector("section [data-day-header]")!).position,
-    };
-  };
-
   test('the newest day reads "Today" (or "Yesterday" before today has entries), in the browser\'s zone', async () => {
     await openTimeline();
     await ready();
@@ -168,30 +153,6 @@ describe("day headings", () => {
     expect(day === key(0) ? newest.textContent : day === key(1) ? newest.textContent : "?").toBe(
       day === key(0) ? "Today" : "Yesterday",
     );
-  });
-
-  test("18 px (text-lg, to balance its + button), semibold, normal case, full contrast and sticky in both themes; the colour follows the theme; 20 px (lg:text-xl) at 1280", async () => {
-    const colors: string[] = [];
-    for (const theme of ["light", "dark"] as const) {
-      const device = await openTimeline({ theme });
-      await ready();
-      expect(headingStyle()).toEqual({
-        size: "18px",
-        weight: "600",
-        transform: "none",
-        full: true,
-        position: "sticky",
-      });
-      colors.push(getComputedStyle(document.querySelector("section h3")!).color);
-      expect([...document.querySelector("section h3")!.classList]).toEqual(
-        expect.arrayContaining(["text-lg", "lg:text-xl", "font-semibold"]),
-      );
-      await device.screen.unmount();
-    }
-    expect(colors[0]).not.toBe(colors[1]);
-    await openTimeline({ width: 1280 });
-    await ready();
-    expect(headingStyle().size).toBe("20px");
   });
 
   test.each(["Rows", "Cards"] as const)(
@@ -240,141 +201,27 @@ describe("day headings", () => {
 });
 
 describe("the wide layout", () => {
-  const measure = () => {
-    const box = (el: Element) => {
-      const r = el.getBoundingClientRect();
-      return { left: r.left, right: r.right, top: Math.round(r.top), width: r.width, height: r.height };
-    };
-    const days = [...document.querySelectorAll("section > ol")].map((ol) => ({
-      list: box(ol),
-      heading: box(ol.parentElement!.querySelector("[data-day-header]")!),
-      cards: [...ol.children].map(box),
-    }));
-    const lis = rows();
-    const texts = lis
-      .flatMap((li) => [...li.querySelectorAll("p.break-words")])
-      .map((el) => {
-        const s = getComputedStyle(el);
-        return {
-          width: el.getBoundingClientRect().width,
-          cap: parseFloat(s.maxWidth),
-          em: parseFloat(s.maxWidth) / parseFloat(s.fontSize),
-        };
-      });
-    const ends = lis.map((li) => {
-      const r = li.getBoundingClientRect();
-      const time = li.querySelector("time")?.getBoundingClientRect();
-      const last = (
-        li.querySelector('button[aria-label^="Actions"]') ?? li.lastElementChild!
-      ).getBoundingClientRect();
-      return { start: time ? time.left - r.left : null, end: r.right - last.right };
-    });
-    const column = document.querySelector('[aria-labelledby="timeline-heading"]')!;
-    return {
-      main: box(document.querySelector("main")!),
-      inner: document.documentElement.clientWidth,
-      cap: parseFloat(getComputedStyle(column).maxWidth),
-      days,
-      texts,
-      ends,
-    };
-  };
-  type M = ReturnType<typeof measure>;
-  const spans = (m: M) =>
-    Math.abs(m.main.left) < 1 &&
-    Math.abs(m.main.width - m.inner) < 1 &&
-    Math.abs(m.cap - 1024) < 1 &&
-    m.days.every(
-      (d) =>
-        Math.abs(d.list.left - (m.inner - d.list.width) / 2) < 1 &&
-        Math.abs(d.list.width - Math.min(m.inner - 32, m.cap)) < 1,
-    );
-  const oneColumn = (m: M) =>
-    m.days.every((d) =>
-      d.cards.every(
-        (c, i) =>
-          Math.abs(c.width - d.list.width) < 1 &&
-          Math.abs(c.left - d.list.left) < 1 &&
-          (i === 0 || c.top >= d.cards[i - 1]!.top + d.cards[i - 1]!.height - 1),
-      ),
-    );
-  const capped = (m: M) => m.texts.every((t) => t.width <= t.cap + 0.5 && t.em > 28 && t.em < 50);
-
-  test("1280, rows: the page spans the window, the entries stop at 1024 px, text at about 75ch, time and ⋯ at the ends", async () => {
+  test("rows and cards at 1024, 1280 and 1536, and back at 420: nothing scrolls sideways", async () => {
     await openTimeline({ width: 1280 });
     await ready();
-    const m = measure();
-    expect(spans(m)).toBe(true);
-    const widest = Math.max(...m.texts.map((t) => t.width));
-    const cap = Math.max(...m.texts.map((t) => t.cap));
-    expect(capped(m)).toBe(true);
-    expect(widest).toBeGreaterThanOrEqual(cap - 1);
-    expect(widest).toBeLessThan(m.days[0]!.list.width - 200);
-    expect(m.ends.every((e) => e.start !== null && e.start < 70 && e.end >= 0 && e.end <= 16)).toBe(true);
-    expect(noHorizontalScroll()).toBe(true);
-    // More and Less still work at this width.
-    await waitUntil(() => !!button("More"), 4000, "More");
-    await userEvent.click(button("More")!);
-    await waitUntil(() => !!button("Less"));
-    await userEvent.click(button("Less")!);
-    await waitUntil(() => !button("Less"));
-  });
-
-  test("cards: one to a row in the 1024 px column at 1024, 1280 and 1536, text capped; at 420 the same boxes as before", async () => {
-    await openTimeline({ width: 1280 });
-    await ready();
-    await setView("Cards");
-    for (const w of [1280, 1536, 1024]) {
-      await width(w);
-      const m = measure();
-      expect({
-        w,
-        spans: spans(m),
-        one: oneColumn(m),
-        capped: capped(m),
-        scroll: noHorizontalScroll(),
-      }).toEqual({
-        w,
-        spans: true,
-        one: true,
-        capped: true,
-        scroll: true,
-      });
-      expect(m.days.some((d) => d.cards.length > 1)).toBe(true);
+    for (const to of ["Rows", "Cards"] as const) {
+      if (to === "Cards") await setView("Cards");
+      for (const w of [1024, 1280, 1536, 420]) {
+        await width(w);
+        expect({ to, w, scroll: noHorizontalScroll() }).toEqual({ to, w, scroll: true });
+      }
     }
-    await width(420);
-    const phone = measure();
-    expect(
-      phone.days.every((d) =>
-        d.cards.every(
-          (c, i) =>
-            Math.abs(c.left - 16) < 0.5 &&
-            Math.abs(c.width - 388) < 0.5 &&
-            (i === 0 || Math.abs(c.top - (d.cards[i - 1]!.top + d.cards[i - 1]!.height + 8)) <= 1),
-        ),
-      ),
-    ).toBe(true);
-    expect(noHorizontalScroll()).toBe(true);
-    await setView("Rows");
-    const phoneRows = measure();
-    expect(
-      phoneRows.days.every((d) =>
-        d.cards.every(
-          (c, i) =>
-            Math.abs(c.left - 17) < 0.5 &&
-            Math.abs(c.width - 386) < 0.5 &&
-            (i === 0 || Math.abs(c.top - (d.cards[i - 1]!.top + d.cards[i - 1]!.height)) <= 1),
-        ),
-      ),
-    ).toBe(true);
   });
 
   test.each(["Rows", "Cards"] as const)("1280, %s: the day heading spans the list and sticks", async (to) => {
     await openTimeline({ width: 1280, fixtures: world(60) });
     await ready();
     if (to === "Cards") await setView("Cards");
-    const m = measure();
-    expect(m.days.every((d) => d.heading.left <= d.list.left && d.heading.right >= d.list.right)).toBe(true);
+    const box = (el: Element) => el.getBoundingClientRect();
+    for (const ol of document.querySelectorAll("section > ol")) {
+      const [h, list] = [box(ol.parentElement!.querySelector("[data-day-header]")!), box(ol)];
+      expect(h.left <= list.left && h.right >= list.right).toBe(true);
+    }
     const max = document.documentElement.scrollHeight - window.innerHeight;
     const day = [...document.querySelectorAll("section > ol")]
       .map((ol) => ol.parentElement!)
@@ -389,66 +236,11 @@ describe("the wide layout", () => {
     expect(Math.abs(h.top)).toBeLessThan(1);
     expect(h.top - day.getBoundingClientRect().top).toBeGreaterThan(20);
   });
-
-  test("1280: the edit sheet and the delete confirm are centred modals, not stretched", async () => {
-    await openTimeline({ width: 1280 });
-    await ready();
-    const centred = (el: Element | null) => {
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      const page = document.documentElement.clientWidth;
-      return {
-        centred: Math.abs(r.left + r.width / 2 - page / 2) <= 10,
-        inside: r.left >= 0 && r.right <= page && r.top >= 0 && r.bottom <= window.innerHeight,
-        narrow: r.width < 800,
-      };
-    };
-    const ok = { centred: true, inside: true, narrow: true };
-    await tapAt(rowOf("Symptom")!.querySelector("p")!);
-    await waitUntil(() => !!dialog()?.textContent?.includes("Edit symptom"), 4000, "the sheet");
-    await new Promise((r) => setTimeout(r, 400));
-    expect(centred(dialog())).toEqual(ok);
-    await userEvent.keyboard("{Escape}");
-    await waitUntil(() => !dialog());
-
-    await userEvent.click(actionsOf(rowOf("Note")!));
-    await waitUntil(() => menuItems().length > 0);
-    await userEvent.click(
-      [...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent?.trim() === "Delete")!,
-    );
-    await waitUntil(() => !!document.querySelector("dialog[open]"));
-    await new Promise((r) => setTimeout(r, 400));
-    const open = document.querySelector("dialog[open]")!;
-    expect(centred(open.firstElementChild ?? open)).toEqual(ok);
-  });
-
-  test("1280: the Live now banner is in the entries' column (1024 px, centred) in one line, Join at its end", async () => {
-    // Sam is writing in a note: its document's editors say so, as a sync from Sam's device would.
-    const note = fx.note({ createdBy: SAM.id, title: "Morning" });
-    await openTimeline({
-      width: 1280,
-      fixtures: [
-        world(),
-        note,
-        fx.document({ ownerId: note.id, text: "Ate well", editedBy: SAM.id, editedAt: at() }),
-      ],
-    });
-    await waitUntil(() => !!document.querySelector("[data-live-banner]"), 4000, "the banner");
-    const banner = document.querySelector("[data-live-banner]")!;
-    const r = banner.getBoundingClientRect();
-    const j = banner.querySelector("a")!.getBoundingClientRect();
-    const page = document.documentElement.clientWidth;
-    expect(Math.abs(r.width - 1024)).toBeLessThan(1);
-    expect(Math.abs(r.left + r.right - page)).toBeLessThan(2);
-    expect(r.height).toBeLessThan(60);
-    expect(r.right - j.right).toBeGreaterThan(0);
-    expect(r.right - j.right).toBeLessThan(20);
-  });
 });
 
 describe("the author chip", () => {
   test.each(["caretaker", "viewer"] as const)(
-    "%s: in the right-hand column under the ⋯ menu, so the text runs to it",
+    "%s: in the row's last column, after the ⋯ menu, and still the author filter",
     async (role) => {
       await openTimeline({ role });
       await ready();
@@ -457,18 +249,8 @@ describe("the author chip", () => {
       const menu = aside.querySelector<HTMLElement>('button[aria-label^="Actions"]')!;
       const chip = aside.querySelector<HTMLElement>("a[data-author]")!;
       expect(menu.compareDocumentPosition(chip)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-      // The column is the row's last thing, and the chip is under the ⋯, not beside it.
+      // The column is the row's last thing.
       expect(li.lastElementChild).toBe(aside);
-      const [m, c, row] = [
-        menu.getBoundingClientRect(),
-        chip.getBoundingClientRect(),
-        li.getBoundingClientRect(),
-      ];
-      expect(c.top).toBeGreaterThanOrEqual(m.bottom - 4);
-      expect(Math.abs(c.left + c.width / 2 - (m.left + m.width / 2))).toBeLessThan(1);
-      // The text reaches the column: one 32 px column, its gap and the row's padding (it was 88 px with both beside it).
-      const body = li.querySelector<HTMLElement>(":scope > div.flex-1")!.getBoundingClientRect();
-      expect(row.right - body.right).toBeLessThanOrEqual(32 + 10 + 12 + 1);
       // Still the filter, with its name.
       expect(chip.getAttribute("aria-label")).toMatch(/^Show only .+'s entries$/);
     },

@@ -13,19 +13,24 @@ import * as newSheet from "~/routes/app/groups/timeline/new/route";
 import * as timeline from "~/routes/app/groups/timeline/route";
 import { renderWithDevice } from "../../../test/device";
 import { found } from "../../../test/found";
-import { fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../test/fixtures";
+import { fx, hoursAgo, TEST_GROUP } from "../../../test/fixtures";
+import { PROBE } from "../../../test/probe";
 
-// The ui/ primitives where the screens use them (ui.mjs's steps): every menu,
-// sheet, popover and confirm on the timeline, the entry page and the
-// providers directory, by tap and by keyboard, named, focus in on open and
-// back on the opener after Escape, on the theme's surface; sheets full screen
-// on phones and centred from `sm`; the chip groups, the field's error, the
-// tooltip on a row's initials, and the date field on narrow phones. The
-// primitives' own contracts are primitives.browser.test.tsx's.
+// The ui/ primitives where the screens use them (ui.mjs's steps). First in
+// the /app frame on the probe route (test/probe.tsx), about no one screen: a
+// menu, a sheet and a confirm on the theme's surface, sheets full screen on
+// phones and centred from `sm`, a page header's action on the right. Then
+// each screen's own: every menu, sheet, popover and confirm on the timeline,
+// the entry page and the providers directory, by tap and by keyboard, named,
+// focus in on open and back on the opener after Escape; the chip groups, the
+// field's error, and the date field on narrow phones (a row's tooltip is
+// timelineLayout.browser.test.tsx's). The primitives' own contracts are
+// primitives.browser.test.tsx's; the frame's menus are frame.browser.test.tsx's.
 
 const T = "/app/groups/:groupId/timeline";
 const P = "/app/groups/:groupId/providers";
 const ROUTES: DeviceRoute[] = [
+  PROBE,
   {
     path: T,
     module: timeline,
@@ -152,12 +157,11 @@ async function menu(
 
 /**
  * A sheet, popover or dialog opened from `trigger`, by tap then by keyboard
- * (focus, Enter): named, focus inside, on the theme's surface; a sheet fills
- * the screen below `sm` (scrolling inside, above the tab bar) and is a
- * centred dialog from `sm`, with a Close button. Escape closes only it, and
- * focus returns to the opener.
+ * (focus, Enter): named, focus inside, on the theme's surface. Escape closes
+ * only it, and focus returns to the opener. (A sheet's size by width is the
+ * probe's test above.)
  */
-async function overlay(trigger: () => HTMLElement, want: { name: string | RegExp; sheet?: boolean }) {
+async function overlay(trigger: () => HTMLElement, want: { name: string | RegExp }) {
   for (const how of ["tap", "keyboard"] as const) {
     const before = overlays().length;
     if (how === "tap") await userEvent.click(trigger());
@@ -170,32 +174,7 @@ async function overlay(trigger: () => HTMLElement, want: { name: string | RegExp
     if (typeof want.name === "string") await expect.poll(() => nameOf(top())).toBe(want.name);
     else await expect.poll(() => nameOf(top())).toMatch(want.name);
     await expect.poll(() => box.contains(active())).toBe(true);
-    if (how === "tap") {
-      const panel = surface(box)!;
-      expect(getComputedStyle(panel).backgroundColor).toBe(base100());
-      if (want.sheet) {
-        await Promise.all(panel.getAnimations().map((a) => a.finished.catch(() => undefined)));
-        const r = panel.getBoundingClientRect();
-        const vw = document.documentElement.clientWidth;
-        const onTop = panel.contains(
-          document.elementFromPoint(r.left + r.width / 2, Math.min(r.bottom, innerHeight) - 4),
-        );
-        if (vw < 640) {
-          expect([Math.round(r.top), Math.round(r.left), Math.round(r.width), Math.round(r.height)]).toEqual([
-            0,
-            0,
-            vw,
-            innerHeight,
-          ]);
-          expect(getComputedStyle(panel).overflowY).toBe("auto");
-        } else {
-          expect(r.bottom).toBeLessThan(innerHeight);
-          expect(Math.abs(r.left * 2 + r.width - vw)).toBeLessThanOrEqual(2);
-        }
-        expect(onTop).toBe(true);
-        expect(box.querySelector('button[aria-label="Close"]')).not.toBeNull();
-      }
-    }
+    if (how === "tap") expect(getComputedStyle(surface(box)!).backgroundColor).toBe(base100());
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => overlays().length).toBe(before);
     await expect.poll(active).toBe(trigger());
@@ -221,22 +200,93 @@ const PICK = () =>
   [...document.querySelectorAll<HTMLElement>('[role="dialog"] [aria-label="Pick a date"]')].at(-1)!;
 const rows = () => document.querySelectorAll("main ol > li:not([data-marker])").length;
 
+// ---- In the frame, on the probe ---------------------------------------------
+
+describe.each([
+  { width: 420, theme: "light" },
+  { width: 1280, theme: "dark" },
+] as const)("on the probe at $width, $theme", (layout) => {
+  const PROBE_URL = `/app/groups/${TEST_GROUP.id}/probe`;
+  const actions = () => page.getByRole("button", { name: "Probe actions" }).element() as HTMLElement;
+  const chooseAction = async (label: string) => {
+    await userEvent.click(actions());
+    await expect.poll(() => q(MENU)).not.toBeNull();
+    await userEvent.click(page.getByRole("menuitem", { name: label }));
+  };
+
+  test("a menu, then the sheet it opens: named, focus in and back, on the surface; the sheet full screen on a phone, centred from sm", async () => {
+    await open(PROBE_URL, layout);
+    await menu(actions, { name: "Probe actions", items: "Open the sheet,Delete" });
+    // The sheet opens from a menu item: by tap only (`overlay` reopens it from its trigger).
+    await chooseAction("Open the sheet");
+    await expect.poll(() => nameOf(top())).toBe("Probe sheet");
+    await expect.poll(() => top()?.contains(active()) ?? false).toBe(true);
+    const panel = surface(top())!;
+    expect(getComputedStyle(panel).backgroundColor).toBe(base100());
+    await Promise.all(panel.getAnimations().map((a) => a.finished.catch(() => undefined)));
+    const r = panel.getBoundingClientRect();
+    const vw = document.documentElement.clientWidth;
+    if (vw < 640) {
+      expect([Math.round(r.top), Math.round(r.left), Math.round(r.width), Math.round(r.height)]).toEqual([
+        0,
+        0,
+        vw,
+        innerHeight,
+      ]);
+      expect(getComputedStyle(panel).overflowY).toBe("auto");
+    } else {
+      expect(r.bottom).toBeLessThan(innerHeight);
+      expect(Math.abs(r.left * 2 + r.width - vw)).toBeLessThanOrEqual(2);
+    }
+    expect(
+      panel.contains(document.elementFromPoint(r.left + r.width / 2, Math.min(r.bottom, innerHeight) - 4)),
+    ).toBe(true);
+    expect(top()!.querySelector('button[aria-label="Close"]')).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => overlays().length).toBe(0);
+    await expect.poll(active).toBe(actions());
+  });
+
+  test("a confirm from a menu: named, focus inside, on the surface, centred in the window; Escape returns focus to the menu's button", async () => {
+    await open(PROBE_URL, layout);
+    await chooseAction("Delete");
+    await expect.poll(() => q("dialog[open]")).not.toBeNull();
+    const dialog = must("dialog[open]");
+    await expect.poll(() => nameOf(dialog)).toBe("Delete the probe?");
+    await expect.poll(() => dialog.contains(active())).toBe(true);
+    const box = dialog.querySelector(".modal-box")!;
+    expect(getComputedStyle(surface(box)!).backgroundColor).toBe(base100());
+    await Promise.all(box.getAnimations().map((a) => a.finished.catch(() => undefined)));
+    const r = box.getBoundingClientRect();
+    expect(Math.abs(r.left + r.width / 2 - document.documentElement.clientWidth / 2)).toBeLessThanOrEqual(10);
+    expect(r.top >= 0 && r.bottom <= innerHeight).toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => q("dialog[open]")).toBeNull();
+    await expect.poll(active).toBe(actions());
+  });
+
+  test("the page header: the title is the h1, its actions beside it on the right", async () => {
+    await open(PROBE_URL, layout);
+    const header = await found(() => q("main header"));
+    const h1 = header.querySelector("h1")!;
+    expect(h1.textContent).toBe("Probe");
+    const [a, b] = [h1.getBoundingClientRect(), actions().getBoundingClientRect()];
+    // On the same row, the last action at the right.
+    expect(b.left).toBeGreaterThan(a.right);
+    expect(b.top).toBeLessThan(a.bottom);
+    expect(Math.round(header.getBoundingClientRect().right - b.right)).toBeLessThanOrEqual(1);
+  });
+});
+
 // ---- The screens, at a phone's width in light and a desktop's in dark ------
 
 describe.each([
   { width: 420, theme: "light" },
   { width: 1280, theme: "dark" },
 ] as const)("at $width, $theme", (layout) => {
-  test("the timeline's menus: the user and group menus, each row's ⋯, and the + menu (which stays on the timeline)", async () => {
+  test("the timeline's menus: each row's ⋯, and the + menu (which stays on the timeline)", async () => {
     const device = await open(TIMELINE, layout);
     await expect.poll(rows).toBe(4);
-    await menu(() => page.getByRole("button", { name: /^Account menu for/ }).element() as HTMLElement, {
-      name: "Account",
-      items: "Settings,System,Light,Dark,Sign out",
-    });
-    await menu(() => page.getByRole("button", { name: /switch care group$/ }).element() as HTMLElement, {
-      name: "Care groups",
-    });
     await menu(rowActions("note"), { name: /^Actions for note at /, items: "Print,Delete" });
     await menu(rowActions("symptom"), { name: /^Actions for symptom at /, items: "Edit,Delete" });
     await menu(addButton, { name: "Add to Today", count: 5 });
@@ -290,10 +340,7 @@ describe.each([
   test("the add and edit sheets; the field's error; the calendar inside a sheet (Escape closes only it); the kind picker's and Add a reading's menus", async () => {
     await open(TIMELINE, layout);
     await expect.poll(rows).toBe(4);
-    await overlay(() => must('main ol > li a[aria-label^="Edit symptom"]'), {
-      name: "Edit symptom",
-      sheet: true,
-    });
+    await overlay(() => must('main ol > li a[aria-label^="Edit symptom"]'), { name: "Edit symptom" });
 
     // A symptom with no name: labelled, invalid, described by its error.
     await quickAdd("Symptom");
@@ -407,7 +454,7 @@ describe.each([
     await userEvent.click(page.getByRole("button", { name: /^Filter(, \d+ on)?$/ }));
     await expect.element(page.getByRole("menuitemradio", { name: "All", exact: true })).toBeChecked();
     await userEvent.keyboard("{Escape}");
-    await overlay(() => must("main a[data-add-provider]"), { name: "Add a provider", sheet: true });
+    await overlay(() => must("main a[data-add-provider]"), { name: "Add a provider" });
   });
 
   test("the provider edit sheet's Delete confirm: named, Escape closes only it, focus back on Delete provider", async () => {
@@ -425,41 +472,6 @@ describe.each([
     await expect.poll(() => q("dialog[open]")).toBeNull();
     expect(q('[role="dialog"]')).not.toBeNull();
     await expect.poll(active).toBe(del());
-  });
-
-  // Hover is the primitive's (primitives.browser.test.tsx's Tooltip test, the
-  // same Tooltip around a link): on the timeline a test's hover lands on the
-  // link (it matches :hover) but React Aria doesn't always see it begin, so it
-  // can't be asserted reliably here.
-  test("the tooltip on a row's initials: keyboard focus shows it as the link's description (never its name), on the surface, inside the window; Escape hides it, focus stays", async () => {
-    await open(TIMELINE, layout);
-    await expect.poll(rows).toBe(4);
-    const initials = () =>
-      page
-        .getByRole("link", { name: `Show only ${TEST_USER.name}'s entries` })
-        .first()
-        .element() as HTMLElement;
-    const tooltip = () => q('[role="tooltip"]');
-    // Tab from the row's kind icon reaches the initials.
-    initials()
-      .closest("li")!
-      .querySelector<HTMLElement>('a[aria-label^="Show only"]:not([data-author])')!
-      .focus();
-    for (let i = 0; i < 3 && active() !== initials(); i++) await userEvent.keyboard("{Tab}");
-    expect(active()).toBe(initials());
-    await expect.poll(tooltip).not.toBeNull();
-    const t = tooltip()!;
-    expect(initials().getAttribute("aria-label")).toBe(`Show only ${TEST_USER.name}'s entries`);
-    expect((initials().getAttribute("aria-describedby") ?? "").split(" ")).toContain(t.id);
-    expect(initials().hasAttribute("title")).toBe(false);
-    expect(t.textContent?.trim().endsWith(TEST_USER.name)).toBe(true);
-    const r = t.getBoundingClientRect();
-    expect(r.left).toBeGreaterThanOrEqual(0);
-    expect(r.right).toBeLessThanOrEqual(innerWidth);
-    expect(getComputedStyle(surface(t)!).backgroundColor).toBe(base100());
-    await userEvent.keyboard("{Escape}");
-    await expect.poll(tooltip).toBeNull();
-    expect(active()).toBe(initials());
   });
 });
 
@@ -529,37 +541,5 @@ describe.each([360, 390, 420, 1280])("the date field at %i", (width) => {
     await userEvent.click(TIME_CHIP());
     await expect.poll(() => q('[role="dialog"] [aria-label="Pick a date"]')).not.toBeNull();
     await dateFieldFits();
-  });
-});
-
-describe.each([420, 1280])("the page header at %i", (width) => {
-  test.each([{ url: PROVIDERS, title: "Providers", action: "Add provider" }])(
-    "$title: the title is the h1, its action beside it on the right",
-    async ({ url, title, action }) => {
-      await renderWithDevice({ route: ROUTES, url, fixtures: FIXTURES, width });
-      const header = await found(() => q("main header"));
-      const h1 = header.querySelector("h1")!;
-      expect(h1.textContent).toBe(title);
-      const control = [...header.querySelectorAll<HTMLElement>("a, button")].find(
-        (el) => (el.getAttribute("aria-label") ?? el.textContent?.trim()) === action,
-      )!;
-      expect(control).toBeDefined();
-      const [a, b] = [h1.getBoundingClientRect(), control.getBoundingClientRect()];
-      // On the same row, the action at the right.
-      expect(b.left).toBeGreaterThan(a.right);
-      expect(b.top).toBeLessThan(a.bottom);
-      expect(Math.round(header.getBoundingClientRect().right - b.right)).toBeLessThanOrEqual(1);
-    },
-  );
-
-  test("Timeline: the title is the h1, whose one action is Easy mode (View options is in the filter row)", async () => {
-    await renderWithDevice({ route: ROUTES, url: TIMELINE, fixtures: FIXTURES, width });
-    const header = await found(() => q("main header"));
-    expect(header.querySelector("h1")!.textContent).toBe("Timeline");
-    const controls = [...header.querySelectorAll("a, button")];
-    expect(controls).toHaveLength(1);
-    expect(controls[0]!.getAttribute("data-easy-toggle")).toBe("easy");
-    expect(controls[0]!.textContent).toContain("Easy mode");
-    await found(() => q('[data-timeline-filters] button[aria-label="View options"]'));
   });
 });

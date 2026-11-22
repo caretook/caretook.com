@@ -13,8 +13,9 @@ import { found } from "../../../../test/found";
 import { TEST_USER } from "../../../../test/fixtures";
 import { setView, TIMELINE_ROUTES, TIMELINE_URL, view, world } from "../groups/timeline/timelineWorld";
 
-// Account settings (ui.mjs's settings steps): the frame by width, Units and
-// Timeline layout as named radiogroups that the arrow keys move, and Account.
+// Account settings (ui.mjs's settings steps): Units and Timeline layout as
+// named radiogroups that the arrow keys move, and Account (the frame by width
+// is settingsFrame.browser.test.tsx's).
 // Then the layout choice in Settings and the timeline's toggle as one
 // preference (settings-layout.mjs's steps), against a stand-in for the
 // account's server copy. Offline, a change kept pending on the device and
@@ -36,23 +37,6 @@ const ROUTES: DeviceRoute[] = [
 
 const open = (url: string, width?: number) => renderWithDevice({ route: ROUTES, url, width });
 
-/** The frame: at 420 a back link and no side nav; from 768 the side nav with this page current. */
-const frameAt = (width: number, page: string) => {
-  const nav = document.querySelector<HTMLElement>("nav[data-settings-nav]");
-  const current = nav?.querySelector('a[aria-current="page"]')?.getAttribute("href");
-  const back = [...document.querySelectorAll<HTMLAnchorElement>("main a")].some(
-    (a) => a.getAttribute("href") === "/app/settings" && a.offsetParent,
-  );
-  expect(current).toBe(`/app/settings/${page}`);
-  if (width < 768) {
-    expect(back).toBe(true);
-    expect(nav?.offsetParent ?? null).toBeNull();
-  } else {
-    expect(back).toBe(false);
-    expect(nav?.offsetParent).not.toBeNull();
-  }
-};
-
 describe.each([420, 1280])("at %i", (width) => {
   test("Units: four named choices, one unit chosen in each; an arrow key moves the choice", async () => {
     await open("/app/settings/units", width);
@@ -63,7 +47,6 @@ describe.each([420, 1280])("at %i", (width) => {
       expect(
         page.getByRole("radiogroup", { name }).getByRole("radio", { checked: true }).elements(),
       ).toHaveLength(1);
-    frameAt(width, "units");
 
     const temperature = page.getByRole("radiogroup", { name: "Temperature" }).getByRole("radio");
     const radios = temperature.elements() as HTMLInputElement[];
@@ -93,24 +76,19 @@ describe.each([420, 1280])("at %i", (width) => {
         .elements()
         .map((r) => r.getAttribute("aria-label")),
     ).toEqual(["Always", "Never"]);
-    frameAt(width, "timeline");
   });
 
-  test("Account: the email, read-only, and Sign out (a POST to /sign-out)", async () => {
+  test("Account: the name and email, read-only, and Sign out (a POST to /sign-out)", async () => {
     await open("/app/settings/account", width);
     await expect.element(page.getByText(TEST_USER.email)).toBeVisible();
+    expect(document.querySelector('main [data-field="name"]')?.textContent?.trim()).toBe(TEST_USER.name);
     expect(document.querySelector('main [data-field="email"]')?.textContent?.trim()).toBe(TEST_USER.email);
+    expect(document.querySelectorAll("main input")).toHaveLength(0);
     const signOut = page.getByRole("button", { name: "Sign out" }).element();
     const form = signOut.closest("form")!;
     expect(form.getAttribute("action")).toBe("/sign-out");
     expect(form.getAttribute("method")).toBe("post");
-    frameAt(width, "account");
   });
-});
-
-test("at 1280, /app/settings opens the first subpage (Units)", async () => {
-  const device = await open("/app/settings", 1280);
-  await expect.poll(device.location).toBe("/app/settings/units");
 });
 
 describe("the timeline layout: Settings and the timeline's toggle change one preference", () => {

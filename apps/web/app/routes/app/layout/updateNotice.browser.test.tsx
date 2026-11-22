@@ -1,18 +1,16 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { waitingWorker, type WaitingWorker } from "~/lib/app-shell/serviceWorkerRegister";
-import * as timeline from "~/routes/app/groups/timeline/route";
 import { renderWithDevice } from "../../../../test/device";
 import { fx, TEST_GROUP } from "../../../../test/fixtures";
+import { PROBE } from "../../../../test/probe";
 
 // The update notice (the frame's `update` region): a new service worker has
 // installed and waits; Reload asks it to take over (lib/app-shell/serviceWorker.ts).
 
-const ROUTES = [{ path: "/app/groups/:groupId/timeline", module: timeline }];
-
 const show = () =>
   renderWithDevice({
-    route: ROUTES,
+    route: PROBE,
     url: `/app/groups/${TEST_GROUP.id}/timeline`,
     frame: true,
     fixtures: [fx.note({ text: "Slept well" })],

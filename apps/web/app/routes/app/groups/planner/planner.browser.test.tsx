@@ -31,8 +31,8 @@ import * as todosRoute from "../todos/route";
 import * as pastRoute from "./past/route";
 import * as plannerRoute from "./route";
 
-// The Planner on the test device (from upcoming.mjs): the section in the
-// tab bar and the header, the shared header on its two tabs (the heading,
+// The Planner on the test device (from upcoming.mjs; the section current in
+// the tab bar and the header is frame.browser.test.tsx's): the shared header on its two tabs (the heading,
 // the tabs, the Add menu), Upcoming | Past, the Filter menu, the Planner tab's list (order, days, Now, all
 // day, ranges, cancelled and rescheduled, call and map),
 // the kind and author filters in the URL, the Past tab (newest first,
@@ -43,14 +43,6 @@ import * as plannerRoute from "./route";
 // tests; this is what's on the screen.
 
 const MINUTE = 60_000;
-const TAB_BAR = 'nav[data-tab-bar][aria-label="Group sections"]';
-const HEADER_NAV = '[data-region="sections"] nav[aria-label="Group sections"]';
-const sectionLinks = (nav: string) =>
-  [...document.querySelectorAll<HTMLAnchorElement>(`${nav} a`)].map((a) => [
-    // The bar's links are icons, named by `aria-label`; the header's by their text.
-    a.getAttribute("aria-label") ?? a.textContent?.trim(),
-    a.getAttribute("aria-current"),
-  ]);
 /** The Filter button, by its exact name: the menu ("Filter the Planner") and the chips ("Filters on") are named alike. */
 const filterButton = () => page.getByRole("button", { name: /^Filter(, \d+ on)?$/ });
 /** The labels of the "Filters on" chips. */
@@ -88,31 +80,6 @@ const addButton = () => page.getByRole("button", { name: "Add", exact: true });
 beforeEach(() => fixClock());
 afterEach(() => {
   vi.useRealTimers();
-});
-
-describe("the section", () => {
-  const plannerLink = (nav: string) => sectionLinks(nav).find(([name]) => name === "Planner");
-  test("at 420 the tab bar lists Planner after Medications, current on its page; at 1280 the header's link is current; on Past and Todos the section is still Planner", async () => {
-    await openPlanner({ frame: true });
-    await expect
-      .poll(() => sectionLinks(TAB_BAR))
-      .toEqual([
-        ["Timeline", null],
-        ["Providers", null],
-        ["Medications", null],
-        ["Planner", "page"],
-      ]);
-    await page.viewport(1280, 900);
-    await expect.poll(() => plannerLink(HEADER_NAV)).toEqual(["Planner", "page"]);
-    await page.viewport(420, 900);
-
-    await userEvent.click(view("Past"));
-    await expect.element(page.getByText("Hearing test")).toBeInTheDocument();
-    expect(plannerLink(TAB_BAR)).toEqual(["Planner", "true"]);
-    await userEvent.click(tab("Todos"));
-    await expect.poll(() => tab("Todos").getAttribute("aria-current")).toBe("page");
-    expect(plannerLink(TAB_BAR)).toEqual(["Planner", "true"]);
-  });
 });
 
 describe("the header", () => {
