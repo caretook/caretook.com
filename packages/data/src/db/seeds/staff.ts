@@ -1,7 +1,7 @@
-import { hashPassword } from "better-auth/crypto";
 import { SYSTEM_USER } from "../../constants";
 import { getDb } from "../client";
 import { accountSchema, userSchema } from "../schema";
+import { seedPasswordHash } from "./accounts";
 
 // Caretook support staff for /admin (admin PRD): support@example.com, with
 // the `support` role and in no care group, beside admin@example.com. Own id
@@ -35,7 +35,7 @@ export const seed = async () => {
       userId: SUPPORT_USER_ID,
       providerId: "credential",
       accountId: SUPPORT_USER_ID,
-      password: await hashPassword(password),
+      password: await seedPasswordHash(password),
     })
     .onConflictDoNothing({ target: [accountSchema.providerId, accountSchema.accountId] });
 };
