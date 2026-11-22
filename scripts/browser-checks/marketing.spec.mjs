@@ -1,17 +1,22 @@
-// The marketing site: home at 420 and 1280 in light and dark, one h1,
-// landmarks, the skip link, the phone menu (opens, closes with Escape), meta
-// tags and JSON-LD, sitemap.xml and robots.txt, no third-party requests, no
-// /app or sync chunk, the calls to action, and Sign in reaching /sign-in.
-// Each marketing page loads with one h1. Features, FAQ and About at 420 and
-// 1280: one h1, screenshots with alt text and responsive, lazy sources, and
-// the FAQ's JSON-LD matching its visible questions. The legal pages. No
-// sign-in. The waitlist and contact forms: joining stores one entry (checked
-// with psql) and a repeat in another case updates it with the same thanks;
-// field errors are linked to their fields; the honeypot and a too-fast submit
-// store nothing but thank all the same; the 11th call a minute from one
-// address is refused; contact stores the message and its mail reaches the dev
-// mailbox for SUPPORT_EMAIL, flagged for a privacy topic. Its rows are tagged
+// The marketing site on the built site, with production CSS and real headers:
+// home at 420 and 1280 in light and dark (no sideways scroll, the theme follows
+// the device), a stored theme before first paint, the head's tags as rendered,
+// no third-party requests and no /app or sync chunk, the header's call to
+// action scrolling to the waitlist band, every page loading with one h1 and
+// its screenshots served as SVG, sitemap.xml and robots.txt as files, and a
+// legal page's in-page links landing below the sticky header. No sign-in. The
+// forms through the server: joining stores the entry with its page and UTM
+// source (checked with psql), the 11th call a minute from one address is
+// refused, and contact stores the message and mails SUPPORT_EMAIL through the
+// dev mailbox, flagged for a privacy topic. Its rows are tagged
 // `+mkt<run>@example.com` and deleted at the end.
+//
+// One device's screens are component tests beside the marketing code
+// (layout/layout, home/waitlist, contact/contact, sections/pages and
+// sections/LegalPage `.browser.test.tsx`); the builders are unit tests
+// (site/meta, site/seo, sections/forms, sections/legal, the content tests);
+// what the server does with a form is packages/api/src/marketing/publicForms.int.test.ts's.
+// The minimum time on a form is passed with Playwright's page clock, not a sleep.
 //
 // Every test fails on a console error or warning from its page.
 import { BASE, expect, psql, test as checks, waitFor } from "./fixtures.mjs";
@@ -47,7 +52,7 @@ const background = (page) =>
   page.evaluate(() => getComputedStyle(document.querySelector("main").parentElement).backgroundColor);
 
 test(
-  "home at 420 and 1280, light and dark; the theme follows the device",
+  "home at 420 and 1280, light and dark: no sideways scroll, and the theme follows the device",
   { tag: "@smoke" },
   async ({ site: { page } }) => {
     const backgrounds = {};
@@ -57,29 +62,12 @@ test(
           await page.setViewportSize({ width, height: 900 });
           await page.emulateMedia({ colorScheme: theme });
           await openHome(page);
-          const state = await page.evaluate(() => ({
-            h1: document.querySelectorAll("h1").length,
-            banner: !!document.querySelector("header"),
-            main: document.querySelectorAll("main").length,
-            footer: !!document.querySelector("footer"),
-            overflow: document.documentElement.scrollWidth > innerWidth,
-            menuButton:
-              getComputedStyle(document.querySelector("header button[aria-controls]")).display !== "none",
-            headerNav: getComputedStyle(document.querySelector("header nav")).display !== "none",
-          }));
-          expect.soft(state.h1, "one h1").toBe(1);
           expect
-            .soft(state.banner && state.main === 1 && state.footer, "header, main, footer landmarks")
-            .toBe(true);
-          expect.soft(state.overflow, "no horizontal scroll").toBe(false);
-          if (width < 768)
-            expect
-              .soft([state.menuButton, state.headerNav], "menu button, no header links")
-              .toEqual([true, false]);
-          else
-            expect
-              .soft([state.menuButton, state.headerNav], "header links, no menu button")
-              .toEqual([false, true]);
+            .soft(
+              await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
+              "no horizontal scroll",
+            )
+            .toBe(false);
           backgrounds[theme] = await background(page);
         });
       }
@@ -99,43 +87,25 @@ test("a stored theme (dark) applies on a light device", async ({ site: { page } 
   expect(await background(page)).toBe(dark);
 });
 
-test("meta tags and JSON-LD", async ({ site: { page } }) => {
+// The tags' values are site/meta.test.ts's and home's own layout/layout.browser.test.tsx's:
+// here, that the built page's head carries them.
+test("the head carries the canonical URL, the icon and manifest links, and the JSON-LD", async ({
+  site: { page },
+}) => {
   await openHome(page);
-  const meta = await page.evaluate(() => {
-    const m = (sel) => document.querySelector(sel)?.getAttribute("content") ?? null;
-    return {
-      title: document.title,
-      description: m('meta[name="description"]'),
-      canonical: document.querySelector('link[rel="canonical"]')?.href ?? null,
-      ogTitle: m('meta[property="og:title"]'),
-      ogImage: m('meta[property="og:image"]'),
-      ogUrl: m('meta[property="og:url"]'),
-      twitter: m('meta[name="twitter:card"]'),
-      icon: !!document.querySelector('link[rel="icon"][href="/favicon.svg"]'),
-      manifest: !!document.querySelector('link[rel="manifest"]'),
-      ld: [...document.querySelectorAll('script[type="application/ld+json"]')].map((s) =>
-        JSON.parse(s.textContent),
-      ),
-    };
-  });
-  await test.step("title and description", () => {
-    expect(meta.title).toContain("Caretook");
-    expect(meta.description).toBeTruthy();
-  });
-  await test.step("canonical and og:url", () => {
-    expect(meta.canonical).toBeTruthy();
-    expect(meta.ogUrl).toBe(meta.canonical);
-    expect(new URL(meta.canonical).pathname).toBe("/");
-  });
-  await test.step("Open Graph title and image", () => {
-    expect(meta.ogTitle).toBeTruthy();
-    expect(meta.ogImage ?? "").toMatch(/\/og-default\.png$/);
-  });
-  await test.step("Twitter card", () => expect(meta.twitter).toBe("summary_large_image"));
-  await test.step("favicon and manifest links", () =>
-    expect([meta.icon, meta.manifest]).toEqual([true, true]));
-  await test.step("Organization JSON-LD", () =>
-    expect(meta.ld.some((d) => d["@type"] === "Organization" && d.name === "Caretook")).toBe(true));
+  const head = await page.evaluate(() => ({
+    canonical: document.querySelector('link[rel="canonical"]')?.href ?? null,
+    ogUrl: document.querySelector('meta[property="og:url"]')?.getAttribute("content") ?? null,
+    icon: !!document.querySelector('link[rel="icon"][href="/favicon.svg"]'),
+    manifest: !!document.querySelector('link[rel="manifest"]'),
+    ld: [...document.querySelectorAll('script[type="application/ld+json"]')].map(
+      (s) => JSON.parse(s.textContent)["@type"],
+    ),
+  }));
+  expect(new URL(head.canonical ?? "about:blank").pathname).toBe("/");
+  expect(head.ogUrl).toBe(head.canonical);
+  expect([head.icon, head.manifest], "favicon and manifest links").toEqual([true, true]);
+  expect(head.ld).toContain("Organization");
 });
 
 test("home makes no third-party request and loads no /app or sync chunk", async ({ site }) => {
@@ -152,120 +122,39 @@ test("home makes no third-party request and loads no /app or sync chunk", async 
   ).toEqual([]);
 });
 
-test("the skip link is first, visible on focus, and moves focus to main", async ({ site: { page } }) => {
+test("the header's Join the waitlist scrolls the waitlist band into view", async ({ site: { page } }) => {
   await openHome(page);
-  await page.keyboard.press("Tab");
-  const skip = await page.evaluate(() => {
-    const a = document.activeElement;
-    const r = a.getBoundingClientRect();
-    return {
-      text: a.textContent.trim(),
-      href: a.getAttribute("href"),
-      w: r.width,
-      h: r.height,
-      outline: getComputedStyle(a).outlineStyle,
-    };
-  });
-  expect(skip).toMatchObject({ text: "Skip to content", href: "#main" });
-  expect(skip.w).toBeGreaterThan(20);
-  expect(skip.h).toBeGreaterThan(10);
-  expect(skip.outline, "focus is visible").not.toBe("none");
-  await page.keyboard.press("Enter");
-  await expect(page.locator("#main")).toBeFocused();
-});
-
-test("the phone menu opens with Enter, traps nothing, and Escape closes it", async ({ site: { page } }) => {
-  await openHome(page);
-  const button = page.locator("header button[aria-controls]");
-  const menu = page.locator(`#${await button.getAttribute("aria-controls")}`);
-  await button.focus();
-  await page.keyboard.press("Enter");
-  await expect(button).toHaveAttribute("aria-expanded", "true", { timeout: 3000 });
-  await expect(menu).not.toHaveAttribute("hidden");
-  const links = await menu.locator("a").allTextContents();
-  expect(links.map((l) => l.trim())).toEqual(expect.arrayContaining(["Features", "FAQ", "About", "Sign in"]));
-  await page.keyboard.press("Tab");
-  await test.step("Tab moves on (no trap)", async () => {
-    expect(
-      await page.evaluate(
-        (id) =>
-          document.getElementById(id).contains(document.activeElement) ||
-          document.activeElement !== document.querySelector("header button[aria-controls]"),
-        await button.getAttribute("aria-controls"),
-      ),
-    ).toBe(true);
-  });
-  await page.keyboard.press("Escape");
-  await expect(button).toHaveAttribute("aria-expanded", "false", { timeout: 3000 });
-  await expect(menu).toHaveAttribute("hidden");
-  await expect(button).toBeFocused();
-});
-
-test("the calls to action: the waitlist band and the access code", async ({ site: { page } }) => {
-  await openHome(page);
-  const join = page.locator("header a.btn-primary");
-  await expect(join, "header: Join the waitlist links to the band").toHaveAttribute("href", "/#waitlist");
-  await expect(
-    page.locator("main a", { hasText: /^Have an access code\?$/ }).first(),
-    "hero: Have an access code? links to /join",
-  ).toHaveAttribute("href", "/join");
-  await join.click();
+  await page.locator("header a.btn-primary").click();
   await page.waitForURL(/#waitlist$/, { timeout: 3000 });
-  await page.waitForTimeout(500);
-  const band = await page.evaluate(() => ({
-    top: document.getElementById("waitlist").getBoundingClientRect().top,
-    form: !!document.querySelector('#waitlist form input[name="email"]'),
-  }));
-  expect(band.form).toBe(true);
-  expect(band.top, "the waitlist band scrolls into view").toBeGreaterThanOrEqual(0);
-  expect(band.top).toBeLessThan(200);
+  await expect(page.locator('#waitlist form input[name="email"]')).toBeAttached();
+  const bandTop = () => page.evaluate(() => document.getElementById("waitlist").getBoundingClientRect().top);
+  await expect
+    .poll(
+      async () => {
+        const top = await bandTop();
+        return top >= 0 && top < 200;
+      },
+      { message: "the waitlist band scrolls into view, near the top", timeout: 3000 },
+    )
+    .toBe(true);
 });
 
-test("every marketing page loads with one h1, and no /app or sync chunk", async ({ site }) => {
+test("every marketing page loads with one h1 and no /app or sync chunk; its screenshots serve as SVG", async ({
+  site,
+}) => {
+  const imageUrls = new Set();
   for (const path of PAGES) {
     await test.step(`${path}: one h1`, async () => {
       await site.page.goto(path);
       await expect(site.page.locator("h1")).toHaveCount(1, { timeout: 15_000 });
+      for (const src of await site.page.locator("main img").evaluateAll((imgs) => imgs.map((i) => i.src)))
+        imageUrls.add(src);
     });
   }
   expect(site.requested.filter((u) => APP_CHUNK.test(u))).toEqual([]);
-});
-
-test("features, FAQ and About at both widths: one h1, alt text, lazy images served as SVG", async ({
-  site: { page },
-}) => {
-  const imageUrls = new Set();
-  for (const path of ["/features", "/faq", "/about"]) {
-    for (const width of [420, 1280]) {
-      await test.step(`${path} ${width}`, async () => {
-        await page.setViewportSize({ width, height: 900 });
-        await page.goto(path);
-        await expect(page.locator("h1").first()).toBeVisible({ timeout: 15_000 });
-        const s = await page.evaluate(() => ({
-          h1: document.querySelectorAll("h1").length,
-          overflow: document.documentElement.scrollWidth > innerWidth,
-          imgs: [...document.querySelectorAll("main img")].map((i) => ({
-            alt: i.getAttribute("alt") ?? "",
-            src: i.getAttribute("src") ?? "",
-            loading: i.loading,
-          })),
-        }));
-        expect.soft(s.h1, "one h1").toBe(1);
-        expect.soft(s.overflow, "no horizontal scroll").toBe(false);
-        expect
-          .soft(
-            s.imgs.filter((i) => i.alt.trim().length <= 20 || !i.src),
-            "images without alt text",
-          )
-          .toEqual([]);
-        expect.soft(s.imgs.filter((i) => i.loading !== "lazy").length, "eager images").toBeLessThanOrEqual(1);
-        for (const i of s.imgs) imageUrls.add(i.src);
-      });
-    }
-  }
   const missing = [];
   for (const u of [...imageUrls].filter(Boolean)) {
-    const res = await fetch(`${BASE}${u}`);
+    const res = await fetch(u);
     if (!res.ok || !res.headers.get("content-type")?.startsWith("image/svg+xml"))
       missing.push(`${u} ${res.status}`);
   }
@@ -273,94 +162,67 @@ test("features, FAQ and About at both widths: one h1, alt text, lazy images serv
   expect(missing, "every screenshot placeholder serves as SVG").toEqual([]);
 });
 
-test("the FAQ's JSON-LD matches its visible questions and answers", async ({ site: { page } }) => {
-  await page.goto("/faq");
-  await expect(page.locator("[data-faq-item]").first()).toBeAttached({ timeout: 15_000 });
-  const faq = await page.evaluate(() => {
-    const ld = [...document.querySelectorAll('script[type="application/ld+json"]')]
-      .map((s) => JSON.parse(s.textContent))
-      .find((d) => d["@type"] === "FAQPage");
-    const visible = [...document.querySelectorAll("[data-faq-item]")].map((el) => ({
-      q: el.querySelector("h3").textContent.trim(),
-      a: [...el.querySelectorAll("p")].map((p) => p.textContent.trim()).join("\n\n"),
-    }));
-    return { ld: (ld?.mainEntity ?? []).map((q) => ({ q: q.name, a: q.acceptedAnswer.text })), visible };
-  });
-  expect(faq.visible.length).toBeGreaterThanOrEqual(8);
-  expect(faq.ld).toEqual(faq.visible);
-});
-
-test("sitemap.xml lists the marketing pages; robots.txt disallows the private paths", async () => {
-  const sitemap = await (await fetch(`${BASE}/sitemap.xml`)).text();
-  const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
+// What each lists is site/seo.test.ts's: here, that the build serves them.
+test("sitemap.xml lists the marketing pages and robots.txt points at it, both served as files", async () => {
+  const sitemap = await fetch(`${BASE}/sitemap.xml`);
+  expect(sitemap.headers.get("content-type")).toMatch(/xml/);
+  const locs = [...(await sitemap.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map(
+    (m) => new URL(m[1]).pathname,
+  );
   expect(locs).toEqual(PAGES);
-  const robots = await (await fetch(`${BASE}/robots.txt`)).text();
-  for (const d of ["/app", "/admin", "/invite", "/join", "/api", "/rpc", "/dev"])
-    expect(robots).toContain(`Disallow: ${d}\n`);
-  expect(robots).toMatch(/Sitemap: .+\/sitemap\.xml/);
+  const robots = await fetch(`${BASE}/robots.txt`);
+  expect(robots.headers.get("content-type")).toMatch(/text\/plain/);
+  const txt = await robots.text();
+  expect(txt).toContain("Disallow: /app\n");
+  expect(txt).toMatch(/Sitemap: .+\/sitemap\.xml/);
 });
 
-test("Sign in (the header link at 1280) reaches /sign-in", async ({ site: { page } }) => {
+// A legal page's in-page links at 1280, once hydrated: a contents link and a
+// heading's anchor each land on their section, below the sticky header. The
+// three pages share sections/LegalPage.tsx, so one page stands for them; their
+// structure at both widths is sections/LegalPage.browser.test.tsx's. Hydration
+// restores the scroll (undoing a jump taken before it), so a click that didn't
+// land is tried again.
+test("a legal page's contents link and heading anchor land below the header", async ({ site: { page } }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await openHome(page);
-  await page
-    .locator("header nav a", { hasText: /^Sign in$/ })
-    .first()
-    .click();
-  await page.waitForURL(/\/sign-in$/, { timeout: 15_000 });
-  await expect(page.locator('input[name="email"]')).toBeVisible();
+  await page.goto("/privacy");
+  await expect(page.locator("[data-anchor]").first()).toBeAttached({ timeout: 15_000 });
+  await routeLoaded(page, "routes/marketing/privacy/route");
+  const lands = async (link, what) => {
+    await test.step(`${what} goes to its section, below the header`, async () => {
+      const id = await link.evaluate((a) => a.hash.slice(1));
+      const place = () =>
+        page.evaluate(
+          (i) => ({
+            top: document.getElementById(i).getBoundingClientRect().top,
+            header: document.querySelector("header").getBoundingClientRect().bottom,
+            hash: location.hash,
+          }),
+          id,
+        );
+      await expect(async () => {
+        await link.click();
+        await expect
+          .poll(
+            async () => {
+              const { top, header, hash } = await place();
+              return hash === `#${id}` && top >= header - 1 && top < 250;
+            },
+            { message: `#${id} below the header`, timeout: 1000 },
+          )
+          .toBe(true);
+      }).toPass({ timeout: 10_000 });
+    });
+  };
+  await lands(page.locator('nav[aria-labelledby="toc-heading"] a').nth(3), "a contents link");
+  await page.evaluate(() => scrollTo(0, 0));
+  await lands(page.locator("[data-anchor]").nth(2), "a heading's anchor");
 });
 
-// The legal pages: each loads at 420 and 1280 with one h1, the DRAFT banner and
-// a last-updated date; a table-of-contents link and a heading's anchor link
-// move to their section, below the sticky header.
-for (const path of ["/privacy", "/terms", "/health-data-privacy"]) {
-  test(`legal page ${path}`, async ({ site: { page } }) => {
-    for (const width of [420, 1280]) {
-      await test.step(`${path} ${width}: one h1, DRAFT, a date, contents, no sideways scroll`, async () => {
-        await page.setViewportSize({ width, height: 900 });
-        await page.goto(path);
-        await expect(page.locator("[data-anchor]").first()).toBeAttached({ timeout: 15_000 });
-        const state = await page.evaluate(() => ({
-          h1: document.querySelectorAll("h1").length,
-          draft: document.querySelector("[data-draft]")?.textContent ?? "",
-          date: document.querySelector("[data-last-updated] time")?.getAttribute("datetime") ?? "",
-          toc: document.querySelectorAll('nav[aria-labelledby="toc-heading"] a').length,
-          sections: document.querySelectorAll("[data-anchor]").length,
-          overflow: document.documentElement.scrollWidth > innerWidth,
-        }));
-        expect.soft(state.h1, "one h1").toBe(1);
-        expect.soft(state.draft, "DRAFT banner").toMatch(/DRAFT/);
-        expect.soft(state.date, "last-updated date").toMatch(/^\d{4}-\d{2}-\d{2}$/);
-        expect.soft(state.toc, "a contents entry per section").toBe(state.sections);
-        expect.soft(state.sections).toBeGreaterThanOrEqual(4);
-        expect.soft(state.overflow, "no horizontal scroll").toBe(false);
-      });
-    }
-    // At 1280, once hydrated (hydration restores the scroll, undoing an earlier jump).
-    await routeLoaded(page, `routes/marketing${path}/route`);
-    await page.waitForTimeout(1000);
-    const lands = async (link, what) => {
-      await test.step(`${what} goes to its section, below the header`, async () => {
-        const id = await link.evaluate((a) => a.hash.slice(1));
-        await link.click();
-        await page.waitForURL(new RegExp(`#${id}$`), { timeout: 3000 });
-        await page.waitForTimeout(300);
-        const top = await page.evaluate((i) => document.getElementById(i).getBoundingClientRect().top, id);
-        const header = await page.evaluate(
-          () => document.querySelector("header").getBoundingClientRect().bottom,
-        );
-        expect(top, `#${id}`).toBeGreaterThanOrEqual(header - 1);
-        expect(top, `#${id}`).toBeLessThan(250);
-      });
-    };
-    await lands(page.locator('nav[aria-labelledby="toc-heading"] a').nth(3), "a contents link");
-    await page.evaluate(() => scrollTo(0, 0));
-    await lands(page.locator("[data-anchor]").nth(2), "a heading's anchor");
-  });
-}
-
-// The waitlist and contact forms. Rows are tagged with RUN and removed at the end.
+// The forms through the server. Rows are tagged with RUN and removed at the
+// end. A form counts its time from hydration, and the server stores nothing
+// sent sooner than MIN_FORM_MS: the page's clock is moved past it, so no test
+// sleeps for it.
 test.describe("the forms", () => {
   test.afterAll(() => {
     psql(`DELETE FROM waitlist_entry WHERE email LIKE '%+${RUN}@example.com';
@@ -369,8 +231,7 @@ test.describe("the forms", () => {
       DELETE FROM notification_outbox WHERE text LIKE '%+${RUN}@example.com%';`);
   });
 
-  // Fields are set through the native value setter, as a user's typing would
-  // (the honeypot is out of sight, so Playwright's fill wouldn't reach it).
+  // Fields are set through the native value setter, as a user's typing would.
   const fill = (page, fields) =>
     page.evaluate((f) => {
       for (const [name, value] of Object.entries(f)) {
@@ -386,20 +247,18 @@ test.describe("the forms", () => {
       }
     }, fields);
   const submit = (page) => page.locator('main form button[type="submit"]').click();
+  /** Open `path` on a page clock, wait for its form to hydrate, then move past the minimum time. */
+  const openForm = async (page, path, route, form) => {
+    await page.clock.install();
+    await page.goto(path);
+    await expect(page.locator(form)).toBeAttached({ timeout: 15_000 });
+    await routeLoaded(page, route);
+    await page.clock.fastForward(MIN_FORM_MS + 300);
+  };
   const thanks = async (page, scope) => {
     const s = page.locator(`${scope} [data-form-thanks]`);
     await expect(s).not.toBeEmpty({ timeout: 10_000 });
-    return {
-      text: (await s.textContent()).trim(),
-      role: await s.getAttribute("role"),
-      live: await s.getAttribute("aria-live"),
-      form: (await page.locator(`${scope} form`).count()) > 0,
-    };
-  };
-  const waitlistForm = async (page, path = "/") => {
-    await page.goto(path);
-    await expect(page.locator("#waitlist form")).toBeAttached({ timeout: 15_000 });
-    await routeLoaded(page, "routes/marketing/home/route");
+    return { text: (await s.textContent()).trim(), form: (await page.locator(`${scope} form`).count()) > 0 };
   };
   const entries = (email) =>
     psql(`SELECT coalesce(first_name,'') || '|' || coalesce(caring_for,'') || '|' || coalesce(heard_from,'') || '|' || coalesce(source->>'page','') || '|' || coalesce(source->>'utmSource','')
@@ -407,79 +266,28 @@ test.describe("the forms", () => {
       .split("\n")
       .filter(Boolean);
 
-  test("joining stores one entry; joining again in another case updates it, with the same thanks", async ({
+  test("joining stores one entry, lowercased, with the page and UTM source, and thanks the visitor", async ({
     site: { page },
   }) => {
     const joiner = tagged("join");
-    let first;
-    await test.step("joining thanks the visitor (polite status) and stores one entry, lowercased, with the page and UTM source", async () => {
-      await waitlistForm(page, "/?utm_source=check&utm_campaign=slice4");
-      await page.waitForTimeout(MIN_FORM_MS + 300);
-      await fill(page, {
-        email: joiner.toUpperCase(),
-        firstName: "Robin",
-        caringFor: "parent",
-        heardFrom: "A friend",
-      });
-      await submit(page);
-      first = await thanks(page, "#waitlist");
-      expect(first.text).toMatch(/on the list/i);
-      expect(first).toMatchObject({ role: "status", live: "polite", form: false });
-      expect(entries(joiner)).toEqual(["Robin|parent|A friend|/|check"]);
+    await openForm(
+      page,
+      "/?utm_source=check&utm_campaign=slice4",
+      "routes/marketing/home/route",
+      "#waitlist form",
+    );
+    await fill(page, {
+      email: joiner.toUpperCase(),
+      firstName: "Robin",
+      caringFor: "parent",
+      heardFrom: "A friend",
     });
-    await test.step("joining again (another case) shows the same thanks and updates the one entry", async () => {
-      await waitlistForm(page);
-      await page.waitForTimeout(MIN_FORM_MS + 300);
-      await fill(page, { email: `  ${joiner.replace("join", "JOIN")} `, heardFrom: "Search" });
-      await submit(page);
-      expect((await thanks(page, "#waitlist")).text).toBe(first.text);
-      expect(entries(joiner), "left-out fields kept").toEqual(["Robin|parent|Search|/|"]);
-    });
-  });
-
-  test("a field error is linked to its labelled field, which gets focus", async ({ site: { page } }) => {
-    await waitlistForm(page);
-    await page.waitForTimeout(MIN_FORM_MS + 300);
-    await fill(page, { email: "not-an-email" });
     await submit(page);
-    await expect(page.locator("#waitlist [data-field-error]")).toBeAttached({ timeout: 10_000 });
-    const invalid = await page.evaluate(() => {
-      const input = document.querySelector('#waitlist input[name="email"]');
-      const ids = (input.getAttribute("aria-describedby") ?? "").split(" ");
-      const error = document.querySelector("#waitlist [data-field-error]");
-      return {
-        invalid: input.getAttribute("aria-invalid"),
-        linked: ids.includes(error.id),
-        focused: document.activeElement === input,
-        labelled: !!input.labels?.[0]?.textContent.trim(),
-        alert: document.querySelector("#waitlist [data-form-error]")?.getAttribute("role"),
-      };
-    });
-    expect(invalid).toEqual({ invalid: "true", linked: true, focused: true, labelled: true, alert: "alert" });
+    expect((await thanks(page, "#waitlist")).form, "the thanks replaces the form").toBe(false);
+    expect(entries(joiner)).toEqual(["Robin|parent|A friend|/|check"]);
   });
 
-  test("a filled honeypot, and a submit faster than the minimum, are thanked and store nothing", async ({
-    site: { page },
-  }) => {
-    await test.step("a filled honeypot is thanked and stores nothing", async () => {
-      const trapped = tagged("trap");
-      await waitlistForm(page);
-      await page.waitForTimeout(MIN_FORM_MS + 300);
-      await fill(page, { email: trapped, website: "https://spam.example" });
-      await submit(page);
-      expect((await thanks(page, "#waitlist")).text).toMatch(/on the list/i);
-      expect(entries(trapped)).toEqual([]);
-    });
-    await test.step("a submit faster than the minimum is thanked and stores nothing", async () => {
-      const hasty = tagged("fast");
-      await waitlistForm(page);
-      await fill(page, { email: hasty });
-      await submit(page);
-      expect((await thanks(page, "#waitlist")).text).toMatch(/on the list/i);
-      expect(entries(hasty)).toEqual([]);
-    });
-  });
-
+  // Through the real `x-forwarded-for` header (routes/rpc.ts's clientIpOf), so no browser.
   test("the rate limit refuses the 11th call in a minute from one address", async () => {
     const ip = `10.250.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`;
     const statuses = [];
@@ -500,10 +308,7 @@ test.describe("the forms", () => {
   }) => {
     const writer = tagged("contact");
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.goto("/contact");
-    await expect(page.locator("main form")).toBeAttached({ timeout: 15_000 });
-    await routeLoaded(page, "routes/marketing/contact/route");
-    await page.waitForTimeout(MIN_FORM_MS + 300);
+    await openForm(page, "/contact", "routes/marketing/contact/route", "main form");
     await fill(page, {
       name: "Robin Example",
       email: writer,
@@ -511,10 +316,8 @@ test.describe("the forms", () => {
       message: `Please delete my data (${RUN}).`,
     });
     await submit(page);
-    await test.step("the contact form thanks the visitor (polite status)", async () => {
-      const sent = await thanks(page, "main");
-      expect(sent.text).toMatch(/on its way/i);
-      expect(sent).toMatchObject({ role: "status", live: "polite", form: false });
+    await test.step("the contact form thanks the visitor in place of the form", async () => {
+      expect((await thanks(page, "main")).form).toBe(false);
     });
     await test.step("contact stores the message", () => {
       expect(psql(`SELECT topic || '|' || message FROM contact_message WHERE email = '${writer}'`)).toBe(
@@ -539,19 +342,5 @@ test.describe("the forms", () => {
       expect(res.ok).toBe(true);
       expect(JSON.stringify(await res.json())).toContain(subject);
     });
-  });
-
-  test("every contact field has a label (the honeypot is out of the tab order)", async ({
-    site: { page },
-  }) => {
-    await page.goto("/contact");
-    await expect(page.locator("main form")).toBeAttached({ timeout: 15_000 });
-    const labels = await page.evaluate(() =>
-      [...document.querySelectorAll('main form :is(input, select, textarea):not([tabindex="-1"])')].map(
-        (el) => el.labels?.[0]?.textContent.trim() ?? "",
-      ),
-    );
-    expect(labels).toHaveLength(4);
-    expect(labels.filter((l) => !l)).toEqual([]);
   });
 });
