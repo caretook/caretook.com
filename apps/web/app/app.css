@@ -39,12 +39,12 @@
    daisyUI's `base-200` and faded text, with a `base-300` edge so it still
    reads as a box on the page. Placeholders (daisyUI's are half the text
    colour, under 4.5:1) take `text-faint`'s tone. White in print. Quick
-   entry's box keeps its own surface (`data-own-surface`); the notes editor
-   is no `textarea`, so it keeps its own too. */
+   entry's box is a `textarea` like any other; the notes editor is none, so
+   its frame and toolbar take `--color-field` by hand (LiveNotesEditor). */
 :root {
   --color-field: light-dark(oklch(94% 0.01 255), oklch(18% 0.018 270));
 }
-:is(.input, .select, .textarea):not([data-own-surface]) {
+:is(.input, .select, .textarea) {
   --color-base-100: var(--color-field);
 }
 :is(.input, .select, .textarea):is(:disabled, [disabled]),

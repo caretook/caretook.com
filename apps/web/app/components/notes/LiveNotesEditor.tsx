@@ -159,7 +159,7 @@ export function LiveNotesEditor({
   }, [editor, popupId, shown, active]);
 
   return (
-    <div className="rounded-box border-base-300 bg-base-100 border">
+    <div className="rounded-box border-base-300 border bg-(--color-field)">
       {canWrite && editor && <Toolbar editor={editor} />}
       <MentionTargets value={targets}>
         <EditorContent editor={editor} />
@@ -229,7 +229,7 @@ function Toolbar({ editor }: { editor: Editor }) {
     <div
       role="toolbar"
       aria-label="Formatting"
-      className="border-base-300 bg-base-100/95 sticky top-0 z-10 flex gap-1 rounded-t-box border-b p-1 backdrop-blur"
+      className="border-base-300 bg-(--color-field)/95 sticky top-0 z-10 flex gap-1 rounded-t-box border-b p-1 backdrop-blur"
     >
       {buttons.map(({ key, label, Icon, run }) => (
         <button
