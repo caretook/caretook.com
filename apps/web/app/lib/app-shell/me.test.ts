@@ -124,6 +124,44 @@ describe("loadSettings", () => {
     expect(pending()).toBeNull();
   });
 
+  it("upgrades a change queued before the easy rename, sends it and clears it (B-472)", async () => {
+    store.set(
+      `caretook:settings-pending:${USER}`,
+      JSON.stringify({ simpleMode: "simple", timelineView: "cards" }),
+    );
+    store.set(`caretook:settings:${USER}`, JSON.stringify(serverSettings("rows")));
+    api.updatePreferences.mockResolvedValue({});
+    api.get.mockResolvedValue({ ...serverSettings("cards"), easyMode: "easy" });
+    const settings = await loadSettings(request, USER);
+    expect(settings).toMatchObject({ easyMode: "easy", timelineView: "cards" });
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalled());
+    expect(api.updatePreferences).toHaveBeenCalledWith({ timelineView: "cards", easyMode: "easy" });
+    await vi.waitFor(() => expect(pending()).toBeNull());
+  });
+
+  it("keeps an old full setting, drops an unknown one, and lets a newer easyMode win", async () => {
+    const key = `caretook:settings-pending:${USER}`;
+    api.updatePreferences.mockRejectedValue(offline());
+    api.get.mockRejectedValue(offline());
+    store.set(`caretook:settings:${USER}`, JSON.stringify(serverSettings("rows")));
+
+    store.set(key, JSON.stringify({ simpleMode: "full" }));
+    await loadSettings(request, USER);
+    expect(pending()).toEqual({ easyMode: "full" });
+
+    store.set(key, JSON.stringify({ simpleMode: "tiny", timelineView: "cards" }));
+    await loadSettings(request, USER);
+    expect(pending()).toEqual({ timelineView: "cards" });
+
+    store.set(key, JSON.stringify({ simpleMode: "simple", easyMode: "full" }));
+    await loadSettings(request, USER);
+    expect(pending()).toEqual({ easyMode: "full" });
+
+    store.set(key, JSON.stringify({ simpleMode: "tiny" }));
+    await loadSettings(request, USER);
+    expect(pending()).toBeNull();
+  });
+
   it("propagates a non-network error", async () => {
     api.get.mockRejectedValue(new ORPCError("INTERNAL_SERVER_ERROR"));
     await expect(loadSettings(request, USER)).rejects.toBeInstanceOf(ORPCError);
