@@ -13,7 +13,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** waves 1 (adce90ee, PR #71) and 2 (5b724350, PR #74) are in dev. Wave 2 landed with `--force --no-review` on the user's word on 2026-11-22: its full check failed once on a harness flake (B-573) and the rerun was stopped; Codex was clean on d9bda4e, and only Markdown changed after it. No browser checks (no app code). Docs folded. **Wave 3 is slices 4 and 10 side by side, then slice 9 (all opus).** Synced with dev on 2026-11-22 (nothing new). Slice 9 was added for B-566, B-567 and B-568, which the user moved here (notice n19). Slice 10 was added for B-572, moved back from test-gates-2 on the user's word (its note); dev 42cba6b8 drops it from that plan, and the next `pnpm prd sync` brings the revert in. Slice 4: first agent stopped at its context limit with the build committed (be81f850), unchecked and with no CI proof; a `--continue` agent (opus) is finishing it in `.loops/test-gates-4`. Slice 10: agent running in `.loops/test-gates-10`. Slice 9 starts when slice 4 is merged.
+**Now:** waves 1 (adce90ee, PR #71) and 2 (5b724350, PR #74) are in dev. Wave 2 landed with `--force --no-review` on the user's word on 2026-11-22: its full check failed once on a harness flake (B-573) and the rerun was stopped; Codex was clean on d9bda4e, and only Markdown changed after it. No browser checks (no app code). Docs folded. **Wave 3 is slices 4 and 10 side by side, then slice 9 (all opus).** Synced with dev on 2026-11-22 (nothing new). Slice 9 was added for B-566, B-567 and B-568, which the user moved here (notice n19). Slice 10 was added for B-572, moved back from test-gates-2 on the user's word (its note); dev 42cba6b8 drops it from that plan, and the next `pnpm prd sync` brings the revert in. Slice 4: first agent stopped at its context limit with the build committed (be81f850), unchecked and with no CI proof; a `--continue` agent (opus) is finishing it in `.loops/test-gates-4`. Slice 10: handed off on b5c9c6c6 (slice check passed, diff reviewed), waiting to merge after slice 4 in plan order; the two overlap only in `prd.sh`. Slice 9 starts when slice 4 is merged. **To fold at this wave's landing:** `orchestrator.md` _The check gate_ ("a `package.json` (beyond its `scripts`)"), the same old wording at `scripts/loops/prompt.sh` line 154, and `loop.md` _Which checks a file needs_ (the `- (scripts only)` answer).
 
 **Open issues:**
 
@@ -26,18 +26,18 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 - Slice 1's before and after time on a quiet machine is partial: static steps 127 s in series, 79.5 s side by side, at load 8 to 11.
 - B-554 stays in progress until slice 6 merges.
 
-| Slice | Wave | State          | Merge into `prd/test-gates` (slice commits) |
-| ----- | ---- | -------------- | ------------------------------------------- |
-| 1     | 1    | merged (opus)  | 98a36dd4 (5eb596a9)                         |
-| 2     | 1    | merged (opus)  | 34b157fb (80a35650)                         |
-| 3     | 2    | merged (opus)  | 39f87cf0 (f0645753)                         |
-| 4     | 3    | started (opus) | —                                           |
-| 5     | 4    | —              | —                                           |
-| 6     | 5    | —              | —                                           |
-| 7     | 5    | —              | —                                           |
-| 8     | 2    | merged (opus)  | ff6ac3c3 (7bd82c6f)                         |
-| 9     | 3    | —              | —                                           |
-| 10    | 3    | started (opus) | —                                           |
+| Slice | Wave | State             | Merge into `prd/test-gates` (slice commits) |
+| ----- | ---- | ----------------- | ------------------------------------------- |
+| 1     | 1    | merged (opus)     | 98a36dd4 (5eb596a9)                         |
+| 2     | 1    | merged (opus)     | 34b157fb (80a35650)                         |
+| 3     | 2    | merged (opus)     | 39f87cf0 (f0645753)                         |
+| 4     | 3    | started (opus)    | —                                           |
+| 5     | 4    | —                 | —                                           |
+| 6     | 5    | —                 | —                                           |
+| 7     | 5    | —                 | —                                           |
+| 8     | 2    | merged (opus)     | ff6ac3c3 (7bd82c6f)                         |
+| 9     | 3    | —                 | —                                           |
+| 10    | 3    | handed off (opus) | —                                           |
 
 **Backlog:**
 
@@ -344,7 +344,7 @@ Stack: no · Reads: docs/agents/loop.md, docs/domain/components.md · Tests: com
 
 **Build:**
 
-- B-566: the access-code QR test no longer depends on `BarcodeDetector`, which CI's Chromium lacks. It still proves the QR code carries the right value.
+- B-566 (the user's decision, 2026-11-22): in `apps/web/app/routes/admin/access-codes/accessCodes.browser.test.tsx`, drop the image, canvas and `BarcodeDetector` steps and the `BarcodeDetectorCtor` type. The test only checks that a QR code is created (an svg renders in `[data-access-code-qr]`). No new dependency and no comparison with an expected code.
 - B-567: the inScreens first probe test waits for the first render instead of reading the Probe actions button once.
 - B-568: each test named in the item that still fails intermittently goes into the quarantine with B-568 as its item, unless it is on the brake list. A brake-list test is reported in the hand-off and not quarantined. Don't fix these flakes here.
 
