@@ -13,11 +13,13 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242. B-53
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** wave 1 (slices 1 and 2) landed in dev as adce90ee through PR #71 on 2026-11-22: full check on 0c91997, Codex clean, docs folded, slice worktrees removed. **Wave 2 is running:** slice 3 started on opus (worktree `.loops/test-gates-3`, from 47e453ef, level with dev). Slice 8 starts on opus once slice 3 is merged (both edit `ci.yml` and `vitest.config.ts`).
+**Now:** wave 1 (slices 1 and 2) landed in dev as adce90ee through PR #71 on 2026-11-22: full check on 0c91997, Codex clean, docs folded, slice worktrees removed. **Wave 2 is running:** slice 3 merged as 39f87cf0 (quick check passed on f0645753; final runs 45077490098 `full` and 45077489750 `components` both end `file`, on the failures below). Slice 8 started on opus (worktree `.loops/test-gates-8`, from 39f87cf0). Still to fold at landing, from slice 3: `ops/runbook.md` (what `components` and `full` run, the two shards, `node scripts/ci/env.mjs build`) and `docs/domain/components.md` (two CI shards, no `BarcodeDetector` in Linux Chromium).
 
 **Open issues:**
 
 - CI is not green on Linux: every requested run ends `file` on 11 tooling failures (latest: run 45073332408). They are B-559 and B-242, slice 8's, so slice 3 lists them in its hand-off and does not file them again.
+- Component failures on Linux, filed under fixes-bug by slice 3 and outside slice 8: B-566 (access-code QR test, no `BarcodeDetector`), B-567 (inScreens first probe reads before the first render; the shard split exposes it, so `components-2` stays red until it is fixed), B-568 (six tests that failed intermittently). B-569 was a duplicate of B-566 and is dropped.
+- For slices 4 to 6: job names are now `components-1`, `components-2` and `build`; a verdict from before slice 3 can say `tier: full` with `ranTier: integration`, so the gate compares `ranTier`.
 - "The check lease makes runs beyond the limit of two wait" fails only in some runs, and its cause is unconfirmed. Slice 8 rechecks it.
 - The `ci/` ref deletion in `pnpm prd tidy` has not run against a real old ref; only its sorter is tested.
 - Slice 1's before and after time on a quiet machine is partial: static steps 127 s in series, 79.5 s side by side, at load 8 to 11.
@@ -31,12 +33,12 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242. B-53
 | ----- | ---- | ------------- | ------------------------------------------- |
 | 1     | 1    | merged (opus) | 98a36dd4 (5eb596a9)                         |
 | 2     | 1    | merged (opus) | 34b157fb (80a35650)                         |
-| 3     | 2    | started opus  | —                                           |
+| 3     | 2    | merged (opus) | 39f87cf0 (f0645753)                         |
 | 4     | 3    | —             | —                                           |
 | 5     | 4    | —             | —                                           |
 | 6     | 5    | —             | —                                           |
 | 7     | 5    | —             | —                                           |
-| 8     | 2    | —             | —                                           |
+| 8     | 2    | started opus  | —                                           |
 
 **Backlog:**
 
