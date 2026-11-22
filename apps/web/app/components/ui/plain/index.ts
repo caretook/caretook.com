@@ -33,3 +33,6 @@ export { ToggleField } from "../ToggleField";
 export { DetailHeader } from "../DetailHeader";
 export type { DetailTone } from "../DetailHeader";
 export { Section } from "../Section";
+// ui-kit-2 (slice 1): the button shapes and the props of the one Button.
+export type { ButtonShape } from "../buttonClass";
+export type { ButtonProps } from "../Button";
