@@ -347,6 +347,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-479 | bug | triaged | fixes-tooling |  | calendarCron.int.test.ts 'runs the reminders first, then Google push and pull, and the series top-up last by default' times out at 5 s under load (passes alone) |
 | B-480 | bug | triaged | fixes-tooling |  | timelineQuickEntry.browser.test.tsx 'the user's units are used, and an explicit unit wins' misses 'Saved 1 entry' under load (passes alone) |
 | B-481 | change | triaged | fixes-ui |  | Text entry boxes and the default page background are the same color, which is confusing: pick a different color for one or the other (no preference which) |
+| B-482 | bug | triaged | fixes-bug |  | Offline settings change queued under the old simpleMode key is retried forever after the easy-mode rename, and blocks later offline settings changes |
+| B-483 | bug | dropped | fixes-bug |  | Easy helper can undo a writer's cancellation of their own event by sending cancelledAt and cancelReason as null |
 
 ## Items
 
@@ -2777,6 +2779,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (prd/simple-mode): Codex P2 on PR #44 (simple-mode), verified: timelineEntryService.update's refuseLoggerOnly calls canLogEntry (entryRules.ts), which only checks ENTRY_SETUP_FIELDS are null, so { cancelledAt: null, cancelReason: null, rescheduledTo: null } passes and the ownership check passes on their own event. Fix: on update, an Easy helper may not change any setup field from its existing value (clearing included); integration test via the service and an upload.
+- 2026-11-22 (Robert Bo Davis): Codex flagged this again on PR #48 (dev→staging, P2, entryRules.ts:39); B-483 was filed as its duplicate and dropped.
 
 ### B-471 · feature · Overlay motion: menus, popovers, dialogs and toasts fade in and out, and a sheet closes with the reverse of its opening
 
@@ -2877,3 +2880,22 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Filed from the backlog session on the user's word, 2026-11-21. Triage: fixes-ui (look; a small theme token change). Likely touches apps/web/app/app.css or the ui/ input primitives, which ui-kit-2 lists as hot files: whichever runs second syncs first. The user has no preference for which color changes; the fixer proposes one and checks both themes.
+
+### B-482 · bug · Offline settings change queued under the old simpleMode key is retried forever after the easy-mode rename, and blocks later offline settings changes
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): Codex P2 on PR #48 (dev→staging), verified: staging's me.ts queues 'simpleMode' under caretook:settings-pending:<user>; dev's strict userPreferencesZSchema rejects it and clearPending no longer removes it, so every refresh resends it and later offline units/layout changes merged in are refused and discarded. Fix: map the pending simpleMode to easyMode (value conversion) or drop it before sending. fixes-bug: wrong behaviour/data. Affects devices upgrading from staging only (nothing live).
+
+### B-483 · bug · Easy helper can undo a writer's cancellation of their own event by sending cancelledAt and cancelReason as null
+
+- status: dropped
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): Codex P2 on PR #48 (dev→staging), verified: canLogEntry treats explicit nulls in ENTRY_SETUP_FIELDS as omitted (fields[f] == null), timelineEntryService.update passes the patch, and the own-row SQL permission allows it. Fix: on update, refuse a setup field present in the patch that changes the existing value (null included); keep null defaults on create. RBAC in the service layer, so fixes-bug, not fixes-ui.
+- 2026-11-22 (Robert Bo Davis): Duplicate of B-470 (same Codex finding on PR #48); dropped.
