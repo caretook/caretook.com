@@ -6,8 +6,8 @@
 
 | Slice | Wave | State         | Merge into `prd/agent-autonomy` (slice commits) |
 | ----- | ---- | ------------- | ----------------------------------------------- |
-| 1     | 1    | merged (opus) | 55275f08 (d759b24e)                             |
-| 2     | 1    | merged (opus) | b3877be1 (142fa3d7)                             |
+| 1     | 1    | landed (opus) | 55275f08 (d759b24e)                             |
+| 2     | 1    | landed (opus) | b3877be1 (142fa3d7)                             |
 | 3     | 2    | —             | —                                               |
 | 4     | 3    | —             | —                                               |
 | 5     | 3    | —             | —                                               |
@@ -21,7 +21,7 @@
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-22): start every ready slice, land each green wave, clean up; ask only real questions via `pnpm prd ask`. test-health runs beside this PRD: waves 3 to 6 land only between its waves (see _Other topics_).
 
-**Now:** wave 1 on PR #58: Codex round 1 triaged (P1 fixed in 7ac8b5b1; P2s B-525, B-526 filed; all three replied and resolved), synced, pushed; Codex round 2 pending. `pnpm test:tooling` clean but the known flaky tidy test (B-461) at load 63, passed alone. Next: land on a clean verdict, report, rm, end.
+**Now:** wave 1 landed in dev as 0e38a6e7 through PR #58 (2026-11-22; Codex clean on d9ee61f after one round: the P1 fixed in 7ac8b5b1, P2s filed as B-525 and B-526; docs folded). Held: worktree removed with `pnpm prd rm`; slices 3-10 not started. A resumed orchestrator starts from wave 2 once the user rescopes it after the CI test-gates plan.
 
 **Backlog:** claim B-503 when slice 1 starts and `done` it when slice 1 merges; B-506 with slice 2; B-504 when slice 3 starts, `done` when slice 4 merges; B-505 when slice 5 starts, `done` when slice 6 merges; B-517 when slice 7 starts, `done` when slice 8 merges; B-518 with slice 9; B-516 with slice 10.
 
