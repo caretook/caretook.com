@@ -7,10 +7,10 @@
 | Slice | Wave | State                                                            | Merge into `prd/agent-autonomy-2` (slice commits) |
 | ----- | ---- | ---------------------------------------------------------------- | ------------------------------------------------- |
 | 1     | 1    | merged (opus)                                                    | e2e4a366 (9bfc245b, 81689593)                     |
-| 2     | 2    | —                                                                | —                                                 |
+| 2     | 2    | started (opus), worktree agent-autonomy-2-2                      | —                                                 |
 | 3     | 1    | merged (opus); conflicts resolved in session.sh and status-extra | 5162f553 (9da26376, 41a67e83)                     |
-| 4     | 2    | —                                                                | —                                                 |
-| 5     | 2    | —                                                                | —                                                 |
+| 4     | 2    | started (opus), worktree agent-autonomy-2-4                      | —                                                 |
+| 5     | 2    | started (opus), worktree agent-autonomy-2-5                      | —                                                 |
 | 6     | 3    | —                                                                | —                                                 |
 | 7     | 3    | —                                                                | —                                                 |
 
@@ -18,7 +18,9 @@
 
 **Now (2026-11-22):** wave 1 **landed** in dev as 2b3a27d5 through PR #69 (Codex clean on dcd939f; report a60; to-test `2026-11-22-1632-agent-autonomy-2.md`). Docs folded; slice worktrees removed. B-507, B-509 and B-437 done; B-508 stays claimed until slice 2. Gate: `pnpm test:tooling` (855 passed) and `eslint scripts`.
 
-**Next (the fresh session):** first run `pnpm prd context` and record whether the hook gave this session a size (see _Open issues_). Then the wave boundary (`pnpm backlog ingest`, `doctor`, `list`, `pnpm prd sync`) and start wave 2: slices 2, 4 and 5, all ready, on opus. Claim B-514 and B-515 (B-508 is already claimed). `test-gates` had not landed at this rotation.
+**Wave 2 (started 2026-11-22):** the wave boundary is done (nothing new for this topic; synced with dev). B-514 and B-515 claimed. Slices 2, 4 and 5 are running on opus as background agents; on a takeover, respawn with `--continue`. Merge in plan order (2, 4, 5). `test-gates` had not landed when wave 2 started.
+
+**Hook live test:** passed for the session's own size: this orchestrator read 53k from `pnpm prd context` after a wrapper start. Whether a subagent's PostToolUse names its own transcript is still unproven.
 
 **Open issues:**
 
