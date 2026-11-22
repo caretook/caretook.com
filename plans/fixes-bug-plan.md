@@ -6,32 +6,26 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions via `pnpm prd ask`).
 
-**Hand-off (2026-11-21, rotated for context size; no slices in flight).** Wave 1 (slices 1–12, all on opus) is merged, its items done, slice worktrees removed. Held back earlier: B-318 (header ignores a simple-mode change from another device), now unblocked because simple-mode landed; B-324 dropped (user: leave as is).
+**Hand-off (2026-11-22, after the wave 1 landing; no slices in flight).** Wave 1 (slices 1–12, all on opus) **landed** in dev as 7a205be1 through PR #46 with `--no-review` on the user's word (Codex out of credits); full check passed on 505d9eee; browser suite 12/12; docs folded (live-notes, auth, app-shell, appointments). Report filed as ask a29; to-test file `to-test/2026-11-22-0004-fixes-bug.md`. Load flakes filed: B-466, B-479, B-480.
 
-Wave 1 landing, where it stands:
+**Next session: wave 2.** `pnpm backlog ingest`, `list`; candidates (triaged, prd=fixes-bug): B-318 (header ignores a simple-mode change from another device), B-382 (an offline Undo deletes an edited successor), B-469 (Easy search sheets go stale), B-470 (an Easy helper can undo a writer's cancel or reschedule), B-472 (an old queued simpleMode setting retries forever); check `pnpm backlog prd list` hot files first, append the slices under _Wave 2_, set hot files, claim. Codex may still be out of credits: if `review --wait` stalls or times out (75), ask the user before `--no-review`.
 
-- Tip `prd/fixes-bug` is synced with dev (tooling-only B-476/B-478, sync b8ae128d, 2026-11-21 session 3); before that through test-health (PR #47), sync merge 004c4310 (check-areas.d/auth conflict resolved: kept dev's directory defaults, kept the `forgetUserData.ts` rule). Earlier syncs: simple-mode (bd13f73: `forgetUserData` imports `easyModeToggle`, test key `caretook:easyMode:`), docs-only plans.
-- Docs already folded (fa3e2d42, plus the app-shell trim in the sync merges): live-notes, auth, app-shell, appointments. All within budget.
-- Browser suite ran once for this landing: 12/12 pass (phase2, roundtrip, live-notes, app-shell, layout-offline, sign-in, first-sync, signout-wipe, session-end, invites, ui, marketing), covering every check the diff names. **Don't rerun it.**
-- Full check: passed on 927bb767 (before test-health). On the test-health tip it failed only on two load timeouts (1-min load 28), both 3/3 alone: B-479 (calendarCron test), B-480 (quick-entry units test). Also filed B-466 (resetStaging timeout). **Session 3: full `pnpm prd check` running on the b8ae128d tip.**
-- PR #46 (https://github.com/caretook/caretook.com/pull/46): Codex clean on dec124f and on 665e885; the tip has moved since. **Next:** `pnpm prd pr fixes-bug`, `pnpm prd review fixes-bug --again`, `--wait` in the background, then `pnpm prd land fixes-bug -m "feat(fixes-bug): wave 1 bug fixes (B-310, B-312, B-314, B-315, B-317, B-320, B-321, B-322, B-323, B-385, B-386, B-393)"` right away (dev moves often with plan docs; land refuses an unsynced tip or a tip that isn't the PR head; a docs-only sync still needs a re-wait, not `--no-review`). Then the run-through report (`pnpm prd ask --topic fixes-bug --report …` naming the to-test file, plus PushNotification).
-- After landing: rotate. Wave 2 candidates (triaged, prd=fixes-bug): B-318, B-382, B-469, B-470, B-472; check hot files first.
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
 | Slice | Item  | State                              | Merge    |
 | ----- | ----- | ---------------------------------- | -------- |
-| 1     | B-310 | merged                             | 6afc3f58 |
-| 2     | B-312 | merged                             | 233dd07d |
-| 3     | B-314 | merged                             | 8fa65e6f |
-| 4     | B-315 | merged (first-sync at landing)     | 3dc2f3cd |
-| 5     | B-317 | merged                             | 7fb498ee |
-| 6     | B-320 | merged                             | a40b9713 |
-| 7     | B-321 | merged                             | c2605057 |
-| 8     | B-322 | merged                             | 59763904 |
-| 9     | B-323 | merged (live-notes at landing)     | e7cb1d5e |
-| 10    | B-385 | merged (resetStaging flake: B-466) | 9736353b |
-| 11    | B-386 | merged                             | 1327d9bd |
-| 12    | B-393 | merged (test only)                 | f9fb803b |
+| 1     | B-310 | landed                             | 6afc3f58 |
+| 2     | B-312 | landed                             | 233dd07d |
+| 3     | B-314 | landed                             | 8fa65e6f |
+| 4     | B-315 | landed (first-sync at landing)     | 3dc2f3cd |
+| 5     | B-317 | landed                             | 7fb498ee |
+| 6     | B-320 | landed                             | a40b9713 |
+| 7     | B-321 | landed                             | c2605057 |
+| 8     | B-322 | landed                             | 59763904 |
+| 9     | B-323 | landed (live-notes at landing)     | e7cb1d5e |
+| 10    | B-385 | landed (resetStaging flake: B-466) | 9736353b |
+| 11    | B-386 | landed                             | 1327d9bd |
+| 12    | B-393 | landed (test only)                 | f9fb803b |
 
 ## Wave 1
 
