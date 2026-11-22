@@ -1,0 +1,14 @@
+Atkinson Hyperlegible Next, version 2.001 (variable, wght 200-800; Latin and Latin Extended)
+by the Braille Institute, under the SIL Open Font License 1.1 (OFL.txt, beside this file).
+
+Taken unmodified from the family's official repository, the source Google Fonts builds from:
+  https://github.com/googlefonts/atkinson-hyperlegible-next
+  commit 7925f50f649b3813257faf2f4c0b381011f434f1 (the commit google/fonts' METADATA.pb names)
+  fonts/webfonts/AtkinsonHyperlegibleNext[wght].woff2         -> AtkinsonHyperlegibleNext-Variable.woff2
+  fonts/webfonts/AtkinsonHyperlegibleNext-Italic[wght].woff2  -> AtkinsonHyperlegibleNext-Italic-Variable.woff2
+  OFL.txt                                                     -> OFL.txt
+(renamed only: brackets in file names don't survive URLs well).
+
+app.css's @font-face rules reference them, so the build gives them hashed names;
+root.tsx preloads the upright one. To change the family, swap these files and
+the @font-face rules and edit the one --font-sans line in app.css's @theme.

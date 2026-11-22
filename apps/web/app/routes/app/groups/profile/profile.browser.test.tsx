@@ -284,7 +284,7 @@ describe("the Basics sheet", () => {
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     await expect.poll(() => errorOf(field("name"))).toBe("Enter a name.");
     expect(field("name")!.getAttribute("aria-invalid")).toBe("true");
-    expect(document.activeElement).toBe(field("name"));
+    await expect.poll(() => document.activeElement).toBe(field("name"));
     expect(device.calls.of("careGroup.updateRecipient")).toEqual([]);
   });
 
@@ -359,7 +359,7 @@ describe("the Contact sheet", () => {
     await userEvent.fill(numbers()[1]!, "call her");
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     await expect.poll(() => errorOf(numbers()[1]!)).toMatch(/^Use digits/);
-    expect(document.activeElement).toBe(numbers()[1]);
+    await expect.poll(() => document.activeElement).toBe(numbers()[1]);
     expect(device.calls.of("careGroup.updateRecipientDetails")).toEqual([]);
   });
 
@@ -443,7 +443,7 @@ describe("the Insurance sheet", () => {
     await userEvent.fill(inRow(1, "phone"), "(555) 010-7399");
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     await expect.poll(() => errorOf(inRow(1, "memberId"))).toBe("Enter the member ID");
-    expect(document.activeElement).toBe(inRow(1, "memberId"));
+    await expect.poll(() => document.activeElement).toBe(inRow(1, "memberId"));
     expect(device.calls.of("careGroup.updateRecipientDetails")).toEqual([]);
 
     await userEvent.fill(inRow(1, "memberId"), "LHP-0042");

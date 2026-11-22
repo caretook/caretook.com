@@ -1,7 +1,7 @@
 import type { Device } from "../../../../../test/device";
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { found } from "../../../../../test/found";
 import { fx, series } from "../../../../../test/fixtures";
 import {
@@ -123,6 +123,38 @@ describe("the scope dialog in Upcoming", () => {
     await pick("Delete", "Cancel");
     expect((await entry(device, FRI_20.id)).deleted_at).toBeNull();
     expect(await device.queued()).toEqual([]);
+  });
+
+  test("the question is a ChoiceDialog: a delete shows the danger tones, an edit the plain ones", async () => {
+    /** A theme colour read off a probe with this class. */
+    const token = (cls: string, prop: "backgroundColor" | "color") => {
+      const probe = document.createElement("div");
+      probe.className = cls;
+      document.body.append(probe);
+      const value = getComputedStyle(probe)[prop];
+      probe.remove();
+      return value;
+    };
+    const look = (text: string) => {
+      const style = getComputedStyle(dialogButton(text)!);
+      return { background: style.backgroundColor, color: style.color };
+    };
+    await openPlanner({ extra: SERIES });
+    await rowMenu(FRI_20.id);
+    await userEvent.click(menuItem("Delete")!);
+    const dialog = page.getByRole("dialog", { name: "Delete a repeating appointment" });
+    await expect.element(dialog).toBeVisible();
+    await expect.element(dialog).toHaveAccessibleDescription(/Delete only this visit/);
+    await expect.poll(() => look("Only this visit").background).toBe(token("bg-error", "backgroundColor"));
+    expect(look("This and later visits").color).toBe(token("text-error", "color"));
+    await userEvent.click(dialogButton("Cancel")!);
+    await expect.poll(SCOPE).toBeNull();
+
+    await rowMenu(FRI_20.id);
+    await userEvent.click(menuItem("Edit")!);
+    await expect.element(page.getByRole("dialog", { name: "Change a repeating appointment" })).toBeVisible();
+    await expect.poll(() => look("Only this visit").background).toBe(token("bg-primary", "backgroundColor"));
+    expect(look("This and later visits").color).not.toBe(token("text-error", "color"));
   });
 
   test("Delete, only this visit: that visit goes at once (the dialog was the confirm), the rest stay", async () => {
