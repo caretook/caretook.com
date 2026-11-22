@@ -13,21 +13,18 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242. B-53
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** wave 1 (slices 1 and 2) landed in dev as adce90ee through PR #71 on 2026-11-22: full check on 0c91997, Codex clean, docs folded, slice worktrees removed. **Wave 2 is running:** slice 3 merged as 39f87cf0 (quick check passed on f0645753; final runs 45077490098 `full` and 45077489750 `components` both end `file`, on the failures below). Slice 8 merged as ff6ac3c3 and dev synced (0500a57e). Its proof on 7bd82c6f: `unit` green (45081669282), `integration` green (45082124113) after one rerun; the first (45081669105) timed out on the staging reset test, filed as B-571. **The wave gate** (`pnpm prd check --quick`, which runs full because the diff touches `package.json` and the Vitest config) failed once on 6e805ecd, only on the browser harness "one spec" test (three output lines, not two); it passed 3/3 alone, and is filed in fixes-tooling. **The user said to force-land rather than wait for another full run**, so the rerun was stopped and wave 2 lands with `--force` (no passing full check on the tip). Docs are folded. **Next: PR, Codex, `pnpm prd land test-gates --force`, report, rotate.** No browser checks: the wave touches no app code, and `--changed` names the whole lean set only because of the config files. Still to fold at landing, from slice 3: `ops/runbook.md` (what `components` and `full` run, the two shards, `node scripts/ci/env.mjs build`) and `docs/domain/components.md` (two CI shards, no `BarcodeDetector` in Linux Chromium). From slice 8: `docs/agents/loop.md` _Tests_ (`tooling:browser`, `pnpm test:browser-harness`, `test:tooling` runs the harness only for its paths) and remove the interim rule about leaving `browser.test.mjs` out. Slice 8's known gap: a change only under `scripts/browser-checks/` triggers the harness in `pnpm test:tooling` and CI but not in `pnpm prd check`.
+**Now:** waves 1 (adce90ee, PR #71) and 2 (5b724350, PR #74) are in dev. Wave 2 landed with `--force --no-review` on the user's word on 2026-11-22: its full check failed once on a harness flake (B-573) and the rerun was stopped; Codex was clean on d9bda4e, and only Markdown changed after it. No browser checks (no app code). Docs folded. **Next: wave 3, slice 4, on opus.** Start with `pnpm prd sync`.
 
 **Open issues:**
 
-- CI is not green on Linux: every requested run ends `file` on 11 tooling failures (latest: run 45073332408). They are B-559 and B-242, slice 8's, so slice 3 lists them in its hand-off and does not file them again.
+- CI: `unit` and `integration` are green on 7bd82c6f (runs 45081669282, 45082124113). `components` and `full` were last run on slice 3 and stay red on the failures below until they are fixed; slice 8's fixes have not been through a `full` run.
 - Component failures on Linux, filed under fixes-bug by slice 3 and outside slice 8: B-566 (access-code QR test, no `BarcodeDetector`), B-567 (inScreens first probe reads before the first render; the shard split exposes it, so `components-2` stays red until it is fixed), B-568 (six tests that failed intermittently). B-569 was a duplicate of B-566 and is dropped.
 - For slices 4 to 6: job names are now `components-1`, `components-2` and `build`; a verdict from before slice 3 can say `tier: full` with `ranTier: integration`, so the gate compares `ranTier`.
-- "The check lease makes runs beyond the limit of two wait" fails only in some runs, and its cause is unconfirmed. Slice 8 rechecks it.
+- "The check lease makes runs beyond the limit of two wait": slice 8 traced it to `stat` junk in `lease_alive` (from the code, race not reproduced); green in every CI run since.
+- Flakes filed in fixes-tooling: B-571 (staging reset test times out) and B-573 (harness "one spec" test; the check's rerun also skips it as an unhandled error). A change only under `scripts/browser-checks/` triggers the harness in `test:tooling` and CI but not in `pnpm prd check`.
 - The `ci/` ref deletion in `pnpm prd tidy` has not run against a real old ref; only its sorter is tested.
 - Slice 1's before and after time on a quiet machine is partial: static steps 127 s in series, 79.5 s side by side, at load 8 to 11.
-- B-341 stays in progress until slice 3 merges, and B-554 until slice 6 merges.
-
-**Until slice 8 lands (the user's permission):** a slice's manual tooling runs may leave out `scripts/loops/browser.test.mjs`, unless it changes `browser.sh`, `lib.sh`, `lease.sh`, `scripts/loops/checks` or `scripts/browser-checks/`, and says so in its hand-off. `pnpm prd check` still runs the file, and nobody bypasses it. Slice 2's `--exclude` bug is fixed (an explicit file list, pinned by the workflows test).
-
-**Wave 1 gate:** full check passed on 0c91997f (5,857 app tests, 915 tooling tests; no browser checks needed). Slice worktrees removed. Docs folded (machinery _The check runner_, runbook, `prd help`). Next: PR, Codex review, land, then rotate; wave 2 is slice 3, then slice 8.
+- B-554 stays in progress until slice 6 merges.
 
 | Slice | Wave | State         | Merge into `prd/test-gates` (slice commits) |
 | ----- | ---- | ------------- | ------------------------------------------- |
