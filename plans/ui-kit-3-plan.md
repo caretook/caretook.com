@@ -4,20 +4,20 @@
 
 ## Status
 
-| Slice | Wave | State         | Merge into `prd/ui-kit-3` (slice commits)         |
-| ----- | ---- | ------------- | ------------------------------------------------- |
-| 1     | 1    | merged (opus) | de6dd339 (126b3ddd, f1fd42ec, 8be9986a, 9057dae3) |
-| 2     | 2    | —             | —                                                 |
-| 3     | 3    | —             | —                                                 |
-| 4     | 3    | —             | —                                                 |
-| 5     | 1    | merged (opus) | e079afc0 (93cae190)                               |
-| 6     | 2    | —             | —                                                 |
+| Slice | Wave | State          | Merge into `prd/ui-kit-3` (slice commits)         |
+| ----- | ---- | -------------- | ------------------------------------------------- |
+| 1     | 1    | merged (opus)  | de6dd339 (126b3ddd, f1fd42ec, 8be9986a, 9057dae3) |
+| 2     | 2    | started (opus) | —                                                 |
+| 3     | 3    | —              | —                                                 |
+| 4     | 3    | —              | —                                                 |
+| 5     | 1    | merged (opus)  | e079afc0 (93cae190)                               |
+| 6     | 2    | started (opus) | —                                                 |
 
 **Landing mode: run everything through** (started run-through, 2026-11-22): start every ready slice, land each green wave unasked, clean up; questions only through `pnpm prd ask`.
 
-**Held for test profiling after wave 1** (2026-11-22, the dev keeper's notice n6): the user is holding all PRDs after their current wave; the dispatcher is paused and ui-kit-3 is first in the registry to restart. Wave 1 (slices 1, 5) landing now; then `pnpm prd rm ui-kit-3` and `pnpm prd end`, no rotation.
+**The test-profiling hold is over for this topic:** the dispatcher restarted ui-kit-3 at 2026-11-22T22:51Z. Notice n6 was still listed then, but it predates wave 1's landing.
 
-**Resume here:** wave 2 is next: slices 2 and 6, both ready (1 and 5 are in `dev`). Claim B-521, B-522 for slice 2; B-471 (still claimed, in progress) finishes with slice 6. Models: opus for both. Slice 6 should fade the `Sheet` with a transition, not keyframes: slice 5 found React Aria sometimes never finishes a keyframe entry (a menu stranded open, Escape dead). Wave 1 docs to fold at landing are done (see the area docs) unless noted below.
+**Resume here:** wave 2 is running: slices 2 (worktree `.loops/ui-kit-3-2`, no stack) and 6 (`.loops/ui-kit-3-6`, slot 3), agents spawned on opus. B-521, B-522 claimed for slice 2; B-471 finishes with slice 6. Slice agents run only their own tests; the orchestrator runs `roundtrip` and `ui` at the wave gate. Wave 1 docs are folded.
 
 **Wave 1 notes:** synced `dev` twice. Gate: three full checks failed on, in turn, test-health's new `no-non-null-in-expect` lint in the tokens test, the timeline layout test reading the fading View options menu (`setView` now waits it out), and the calendarCron load flake (B-479; the user: assume load). A quick gate passed on 58da43d3; after the second sync (dev's seeds) the user said land without the full check. Browser: `ui` passed (only check `--changed` named). Follow-ups filed: B-536 (danger text and DateTimeField placeholder contrast, fixes-ui); B-540 dropped as a duplicate of B-479.
 
