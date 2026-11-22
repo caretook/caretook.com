@@ -4,20 +4,20 @@
 
 ## Status
 
-| Slice | Wave | State          | Merge into `prd/ui-kit-3` (slice commits)         |
-| ----- | ---- | -------------- | ------------------------------------------------- |
-| 1     | 1    | merged (opus)  | de6dd339 (126b3ddd, f1fd42ec, 8be9986a, 9057dae3) |
-| 2     | 2    | merged (opus)  | 49d983dd (04c5b973, 2545fbe7)                     |
-| 3     | 3    | —              | —                                                 |
-| 4     | 3    | —              | —                                                 |
-| 5     | 1    | merged (opus)  | e079afc0 (93cae190)                               |
-| 6     | 2    | started (opus) | —                                                 |
+| Slice | Wave | State         | Merge into `prd/ui-kit-3` (slice commits)         |
+| ----- | ---- | ------------- | ------------------------------------------------- |
+| 1     | 1    | merged (opus) | de6dd339 (126b3ddd, f1fd42ec, 8be9986a, 9057dae3) |
+| 2     | 2    | merged (opus) | 49d983dd (04c5b973, 2545fbe7)                     |
+| 3     | 3    | —             | —                                                 |
+| 4     | 3    | —             | —                                                 |
+| 5     | 1    | merged (opus) | e079afc0 (93cae190)                               |
+| 6     | 2    | merged (opus) | 6711b506 (124b5817, 3f1b7ea7)                     |
 
 **Landing mode: run everything through** (started run-through, 2026-11-22): start every ready slice, land each green wave unasked, clean up; questions only through `pnpm prd ask`.
 
 **The test-profiling hold is over for this topic:** the dispatcher restarted ui-kit-3 at 2026-11-22T22:51Z. Notice n6 was still listed then, but it predates wave 1's landing.
 
-**Resume here:** wave 2: slice 2 is merged (B-521, B-522 done, worktree removed); slice 6 (`.loops/ui-kit-3-6`, slot 3, opus) is still running, and B-471 finishes with it. Merge it, then run the wave gate. Slice 2's notes: its slice check passed on 2545fbe7; an accidental full component run passed 1464 of 1465, the one failure being the print menu test that B-552 (flaky Print menu test) tracks, unconfirmed; Timeline and Care periods share the `History` icon, which slice 3 should weigh when it puts chips in headers. Fold at landing: `IconChip`, the accents and `--color-hue-*` (ui-kit); the entry colours, replacing the line saying vitals are pink (timeline); the section map and Easy rule (app-shell). Slice agents run only their own tests; the orchestrator runs `roundtrip` and `ui` at the wave gate. Wave 1 docs are folded. Slice 6's first agent stopped at its context limit (work in 124b5817, its slice check failed on 4 lint errors in `sheetExit.browser.test.tsx`); a second opus agent is fixing those and adding the two missing Back tests. Slice 6 closes at once, with no exit, for `groups/new` (its action redirects) and for a caller that unmounts the sheet directly (`RepeatSheet`'s Done). Fold into ui-kit _Contracts_: `Sheet`'s exit, what holds a navigation, and that a save plays the exit only when the caller navigates afterwards.
+**Resume here:** wave 2: slices 2 and 6 are merged (B-521, B-522, B-471 ready, worktrees removed; `app.css` conflict resolved keeping both blocks). Next: `pnpm prd sync`, the full `pnpm prd check` (a conflict was resolved in code), `pnpm prd serve --restart`, browser `roundtrip`, `ui` and `--changed --base dev` (no `--suite` without asking), then PR, review, land, fold docs, rotate. Slice 6's notes: it also changed `ui/Menu.tsx` (`data-menu-trigger`, `data-menu-of`) so a sheet opened from a menu item returns focus to the menu's button, which affects every such sheet; `stacked sheets` failed once, then passed 26 runs, cause unconfirmed; fold that focus rule into ui-kit _Contracts_ too. Slice 2's notes: its slice check passed on 2545fbe7; an accidental full component run passed 1464 of 1465, the one failure being the print menu test that B-552 (flaky Print menu test) tracks, unconfirmed; Timeline and Care periods share the `History` icon, which slice 3 should weigh when it puts chips in headers. Fold at landing: `IconChip`, the accents and `--color-hue-*` (ui-kit); the entry colours, replacing the line saying vitals are pink (timeline); the section map and Easy rule (app-shell). Slice agents run only their own tests; the orchestrator runs `roundtrip` and `ui` at the wave gate. Wave 1 docs are folded. Slice 6 closes at once, with no exit, for `groups/new` (its action redirects) and for a caller that unmounts the sheet directly (`RepeatSheet`'s Done). Fold into ui-kit _Contracts_: `Sheet`'s exit, what holds a navigation, and that a save plays the exit only when the caller navigates afterwards.
 
 **Browser test skip (the user's word via the temp queue session, notice n14; ends when test-gates slice 8 is in `dev`):** slices may leave `scripts/loops/browser.test.mjs` out of their tooling runs, unless they change `scripts/loops/browser.sh`, `lib.sh`, `lease.sh`, `scripts/loops/checks` or `scripts/browser-checks/`. Wave gates may skip it only for tool-only changes, so this topic's app changes take the normal gate. A hand-off says when it was skipped. `pnpm prd check` still runs it when a diff touches tooling; don't edit `check-body.sh` or bypass the gate. Instead of `pnpm test:tooling`: `node scripts/loops/tooling-lint.mjs`, then `files=$(pnpm exec vitest list --filesOnly --project tooling:unit --project scripts:unit | awk '/\.test\.[a-z]+$/ {print $NF}' | sort -u | grep -v 'loops/browser\.test\.mjs$')`, then `pnpm exec vitest run --project tooling:unit --project scripts:unit $files` (`${=files}` in zsh).
 
