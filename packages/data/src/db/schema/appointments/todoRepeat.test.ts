@@ -71,6 +71,34 @@ describe("nextDueDay", () => {
     expect(nextDueDay(until, "2026-11-16", "2026-11-23", "2026-12-01")).toBeNull();
   });
 
+  it("a long interval keeps going past any search horizon (B-385)", () => {
+    // Every 99 months: the next one is 8¼ years on.
+    const months = "FREQ=MONTHLY;INTERVAL=99;BYMONTHDAY=16";
+    expect(nextDueDay(months, "2026-11-16", "2026-11-16", "2026-11-16")).toBe("2035-02-16");
+    // Ticked late: still the anchor's next rule day, not a day counted from today.
+    expect(nextDueDay(months, "2026-11-16", "2026-11-16", "2027-03-01")).toBe("2035-02-16");
+    expect(nextDueDay(months, "2026-11-16", "2035-02-16", "2035-02-16")).toBe("2043-05-16");
+    const fridays = "FREQ=MONTHLY;INTERVAL=99;BYDAY=-1FR";
+    expect(nextDueDay(fridays, "2026-11-27", "2026-11-27", "2026-11-27")).toBe("2035-02-23");
+    expect(nextDueDay("FREQ=WEEKLY;INTERVAL=99;BYDAY=MO", "2026-11-16", "2026-11-16", "2026-11-16")).toBe(
+      "2028-10-09",
+    );
+    expect(nextDueDay("FREQ=DAILY;INTERVAL=99", "2026-11-16", "2026-11-16", "2026-11-16")).toBe("2027-02-23");
+  });
+
+  it("a long interval still ends on its COUNT or UNTIL", () => {
+    const twice = "FREQ=MONTHLY;INTERVAL=99;BYMONTHDAY=16;COUNT=2";
+    expect(nextDueDay(twice, "2026-11-16", "2026-11-16", "2026-11-16")).toBe("2035-02-16");
+    expect(nextDueDay(twice, "2026-11-16", "2035-02-16", "2035-02-16")).toBeNull();
+    const until = "FREQ=MONTHLY;INTERVAL=99;BYMONTHDAY=16;UNTIL=20400101";
+    expect(nextDueDay(until, "2026-11-16", "2026-11-16", "2026-11-16")).toBe("2035-02-16");
+    expect(nextDueDay(until, "2026-11-16", "2035-02-16", "2035-02-16")).toBeNull();
+  });
+
+  it("yearly isn't a rule Caretook writes: none (B-385)", () => {
+    expect(nextDueDay("FREQ=YEARLY;INTERVAL=99", "2026-11-16", "2026-11-16", "2026-11-16")).toBeNull();
+  });
+
   it("an unreadable rule has none", () => {
     expect(nextDueDay("FREQ=HOURLY", "2026-11-16", "2026-11-16", "2026-11-16")).toBeNull();
   });
@@ -127,6 +155,36 @@ describe("nextOccurrence", () => {
     ).toBeNull();
     expect(nextOccurrence(todo({ dueOn: null }), "2026-11-16")).toBeNull();
     expect(nextOccurrence(todo({ repeatRule: `${WEEKLY_MO};COUNT=1` }), "2026-11-16")).toBeNull();
+  });
+
+  it("a successor moved back onto its source's day passes over its own id for the following day (B-386)", () => {
+    // Made for Mon 23rd (so its id is that day's), moved back to Mon 16th
+    // (the anchor moves with it) and ticked that day.
+    const movedBack = { ...todo({ dueOn: "2026-11-16" }), id: nextTodoId(CHAIN, "2026-11-23") };
+    expect(nextOccurrence(movedBack, "2026-11-16")).toMatchObject({
+      id: nextTodoId(CHAIN, "2026-11-30"),
+      dueOn: "2026-11-30",
+    });
+    // Not moved: the very next day, as ever.
+    const kept = { ...todo({ dueOn: "2026-11-23" }), id: nextTodoId(CHAIN, "2026-11-23") };
+    expect(nextOccurrence(kept, "2026-11-23")?.dueOn).toBe("2026-11-30");
+  });
+
+  it("passes over the ids it's given (done rows) to the first day whose id is free (B-386)", () => {
+    const passOver = new Set([nextTodoId(CHAIN, "2026-11-23"), nextTodoId(CHAIN, "2026-11-30")]);
+    expect(nextOccurrence(todo(), "2026-11-16", passOver)).toMatchObject({
+      id: nextTodoId(CHAIN, "2026-12-07"),
+      dueOn: "2026-12-07",
+    });
+    // Ids that aren't on the way change nothing.
+    expect(nextOccurrence(todo(), "2026-11-16", new Set([nextTodoId(CHAIN, "2026-12-07")]))?.dueOn).toBe(
+      "2026-11-23",
+    );
+  });
+
+  it("passing over runs into the rule's end: none", () => {
+    const twice = todo({ repeatRule: `${WEEKLY_MO};COUNT=2` });
+    expect(nextOccurrence(twice, "2026-11-16", new Set([nextTodoId(CHAIN, "2026-11-23")]))).toBeNull();
   });
 });
 

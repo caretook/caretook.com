@@ -1,7 +1,15 @@
 import type { TimedEntry } from "./upcoming";
 
 import { describe, expect, it } from "vitest";
-import { entryTiming, historyCutoff, nextUp, upcomingItems, upcomingOrder } from "./upcoming";
+import {
+  entryTiming,
+  historyCutoff,
+  listedDay,
+  nextUp,
+  upcomingItems,
+  upcomingOrder,
+  upcomingOrderIn,
+} from "./upcoming";
 
 const LA = "America/Los_Angeles";
 const at = (iso: string) => new Date(iso);
@@ -66,6 +74,46 @@ describe("upcomingOrder", () => {
     const late = entry("2026-11-20T07:00:00.000Z");
     const allDay = entry("2026-11-20T08:00:00.000Z", { allDay: true });
     expect([allDay, late].sort(upcomingOrder)).toEqual([late, allDay]);
+  });
+});
+
+describe("upcomingOrderIn", () => {
+  // Viewer in Los Angeles. 9 AM Friday Nov 20 in Tokyo is 4 PM Thursday here;
+  // 11 PM Wednesday in Honolulu is 1 AM Thursday here; noon Thursday here is
+  // between them; all day Thursday here comes first.
+  const tokyo = entry("2026-11-20T00:00:00.000Z", { timeZone: "Asia/Tokyo" });
+  const honolulu = entry("2026-11-19T09:00:00.000Z", { timeZone: "Pacific/Honolulu" });
+  const noon = entry("2026-11-19T20:00:00.000Z");
+  const allDay = entry("2026-11-19T08:00:00.000Z", { allDay: true });
+
+  it("sorts by the viewer's day, so a day's entries are in instant order", () => {
+    expect([tokyo, noon, allDay, honolulu].sort(upcomingOrderIn(LA))).toEqual([
+      allDay,
+      honolulu,
+      noon,
+      tokyo,
+    ]);
+  });
+
+  it("differs from each entry's own day where the zones disagree", () => {
+    // 9 AM Thursday in Tokyo is 4 PM Wednesday here, before 8 PM Wednesday here.
+    const tokyoEarly = entry("2026-11-19T00:00:00.000Z", { timeZone: "Asia/Tokyo" });
+    const evening = entry("2026-11-19T04:00:00.000Z");
+    expect([evening, tokyoEarly].sort(upcomingOrderIn(LA))).toEqual([tokyoEarly, evening]);
+    expect([tokyoEarly, evening].sort(upcomingOrder)).toEqual([evening, tokyoEarly]);
+  });
+
+  it("uses the same day a list groups by (listedDay)", () => {
+    expect([tokyo, honolulu, noon, allDay].map((e) => listedDay(e, LA).key)).toEqual([
+      "2026-11-19",
+      "2026-11-19",
+      "2026-11-19",
+      "2026-11-19",
+    ]);
+    // An all-day entry keeps its own day wherever the viewer is.
+    expect(listedDay(allDay, "Asia/Tokyo")).toEqual({ key: "2026-11-19", zone: LA });
+    expect(listedDay(tokyo, "Asia/Tokyo")).toEqual({ key: "2026-11-20", zone: "Asia/Tokyo" });
+    expect(listedDay(tokyo)).toEqual({ key: "2026-11-20", zone: "Asia/Tokyo" });
   });
 });
 

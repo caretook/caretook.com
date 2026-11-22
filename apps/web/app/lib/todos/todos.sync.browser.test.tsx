@@ -4,7 +4,7 @@ import { addDays, localDate } from "@caretook/data/schema";
 import { nextTodoId } from "@caretook/data/series";
 import { describe, expect, test } from "vitest";
 import { renderWithDevice } from "../../../test/device";
-import { fx, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../test/fixtures";
+import { fx, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../test/fixtures";
 import { readRows } from "../timeline/timeline.sync";
 import { completeTodo, createTodo, reopenTodo, skipTodo, todoQuery, toTodo, updateTodo } from "./todos.sync";
 
@@ -113,6 +113,35 @@ describe("tick", () => {
     ok(await completeTodo(db, BINS_ID));
     expect(await read(db, NEXT_ID)).toBeNull();
     expect((await queued(db)).map((o) => o.op)).toEqual(["PATCH"]);
+  });
+});
+
+describe("tick: an id already taken (B-386)", () => {
+  const dayAfter = addDays(tomorrow, 1);
+  const LATER_ID = nextTodoId(BINS_ID, dayAfter);
+
+  test("a successor moved back onto its source's day passes over its own id, as the server does", async () => {
+    // Made for tomorrow (so it has tomorrow's id), moved back to today.
+    const { db } = await device([bins({ id: NEXT_ID })]);
+    ok(await completeTodo(db, NEXT_ID));
+    expect(await read(db, NEXT_ID)).toMatchObject({ dueOn: today, doneBy: TEST_USER.id });
+    expect(await read(db, LATER_ID)).toMatchObject({ dueOn: dayAfter, doneAt: null, repeatId: BINS_ID });
+    expect((await queued(db)).map((o) => `${o.op} ${o.id}`)).toEqual([`PATCH ${NEXT_ID}`, `PUT ${LATER_ID}`]);
+  });
+
+  test("a done occurrence holding the next day's id is passed over for the following day", async () => {
+    // Tomorrow's occurrence, moved to yesterday and ticked: done, with tomorrow's id.
+    const moved = bins({
+      id: NEXT_ID,
+      dueOn: addDays(today, -1),
+      doneAt: hoursAgo(20),
+      doneBy: TEST_USER.id,
+    });
+    const { db } = await device([bins(), moved]);
+    ok(await completeTodo(db, BINS_ID));
+    expect(await read(db, LATER_ID)).toMatchObject({ dueOn: dayAfter, doneAt: null, deletedAt: null });
+    expect(await read(db, NEXT_ID)).toMatchObject({ dueOn: addDays(today, -1), doneBy: TEST_USER.id });
+    expect((await queued(db)).map((o) => `${o.op} ${o.id}`)).toEqual([`PATCH ${BINS_ID}`, `PUT ${LATER_ID}`]);
   });
 });
 

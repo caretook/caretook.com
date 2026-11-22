@@ -52,3 +52,13 @@ export const pendingUpdates = async (id: string, tx?: Tx) => {
   if (isError(rows)) return rows;
   return { count: rows[0]?.count ?? 0, oldestAgeSeconds: rows[0]?.oldestAgeSeconds ?? null };
 };
+
+/** The group's documents with updates waiting to be compacted (any owner: entry, provider, medication, …). */
+export const pendingDocumentIds = async (groupId: string, tx?: Tx) => {
+  const u = noteUpdateSchema;
+  const rows = await dbMayFail(
+    () => txOrDb(tx).selectDistinct({ id: u.documentId }).from(u).where(eq(u.groupId, groupId)),
+    "noteDocumentModel:pending",
+  );
+  return isError(rows) ? rows : rows.map((r) => r.id);
+};

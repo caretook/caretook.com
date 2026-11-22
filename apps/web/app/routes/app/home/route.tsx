@@ -1,11 +1,12 @@
-import { Page, PageHeader } from "~/components/ui";
+import { Notice, Page, PageHeader } from "~/components/ui";
 import type { Route } from "./+types/route";
 
 import type { GroupRow } from "~/lib/timeline/timeline.sync";
 
-import { Link, redirect } from "react-router";
+import { Link, redirect, useLocation } from "react-router";
 import { FirstSyncPending } from "~/components/shell";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { cameFromLostGroup } from "~/lib/app-shell/group";
 import { GROUP_LIST_PARAM } from "~/lib/app-shell/urls";
 import { rememberedGroup, resolveHomeGroup } from "~/lib/app-shell/lastGroup";
 import { sessionContext } from "~/lib/auth/session";
@@ -48,10 +49,16 @@ export async function clientAction({ request }: Route.ClientActionArgs) {
 export default function AppHome({ loaderData }: Route.ComponentProps) {
   const query = myGroupsQuery(loaderData.userId);
   const groups = useLiveQuery<GroupRow>(query.sql, query.params, loaderData.rows).map(toMyGroup);
+  const lostGroup = cameFromLostGroup(useLocation().state);
   if (!loaderData.synced) return <FirstSyncPending />;
   return (
     <Page>
       <PageHeader title="Your care groups" />
+      {lostGroup && (
+        <Notice tone="warning" data-lost-group="">
+          You no longer have access to that care group.
+        </Notice>
+      )}
       <PendingRequests requests={loaderData.requests} groupIds={groups.map((g) => g.id)} />
       {groups.length === 0 ? (
         <p className="text-base-content/70">

@@ -16,6 +16,7 @@ import {
   fromNow,
   HEARING,
   itemEl,
+  ME,
   laTime,
   menuItem,
   menuItems,
@@ -401,5 +402,39 @@ describe("reschedule", () => {
     expect(await count()).toEqual(before);
     const old = await stored(db, NEURO.id);
     expect([old!.cancelled_at, old!.rescheduled_to]).toEqual([null, null]);
+  });
+});
+
+describe("a refused delete", () => {
+  const ALERT = () => document.querySelector("main [role=alert]")?.textContent ?? null;
+  /** Between the confirm opening and Delete: this device's member loses write access (a role change synced in). */
+  const demote = (db: SyncDb) =>
+    db.powersync.execute("UPDATE care_group_member SET role = 'viewer' WHERE user_id = ?", [ME]);
+
+  test("from Upcoming's ⋯: the refusal is shown and the entry stays listed", async () => {
+    const device = await openPlanner();
+    await openMenu(itemEl(CARDIOLOGY.id)!.querySelector(ACTIONS));
+    await userEvent.click(menuItem("Delete")!);
+    await expect.poll(() => dialogButton("Delete")).toBeTruthy();
+    await demote(device.db);
+    await userEvent.click(dialogButton("Delete")!);
+    await expect.poll(ALERT).toBe("You don't have permission to do that.");
+    await device.settle();
+    expect(itemEl(CARDIOLOGY.id)).not.toBeNull();
+    expect((await stored(device.db, CARDIOLOGY.id))!.deleted_at).toBeNull();
+  });
+
+  test("from a timeline row's ⋯ (useEntryRemoval): the refusal is shown and the entry stays listed", async () => {
+    const device = await openPlanner({ url: TIMELINE_URL });
+    await expect.poll(() => !!timelineRow(BLOOD_DRAW.id)).toBe(true);
+    await openMenu(timelineRow(BLOOD_DRAW.id)!.querySelector(ACTIONS));
+    await userEvent.click(menuItem("Delete")!);
+    await expect.poll(() => dialogButton("Delete")).toBeTruthy();
+    await demote(device.db);
+    await userEvent.click(dialogButton("Delete")!);
+    await expect.poll(ALERT).toBe("You don't have permission to do that.");
+    await device.settle();
+    expect(timelineRow(BLOOD_DRAW.id)).toBeTruthy();
+    expect((await stored(device.db, BLOOD_DRAW.id))!.deleted_at).toBeNull();
   });
 });

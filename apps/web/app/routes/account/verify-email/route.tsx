@@ -5,7 +5,7 @@ import { Form, Link, useNavigation } from "react-router";
 import { Button } from "~/components/ui/plain";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { authClient } from "~/lib/auth/auth-client";
-import { authMessages, requestFailure } from "~/lib/auth/authMessages";
+import { authMessages, requestFailure, unreached } from "~/lib/auth/authMessages";
 import { formString } from "~/lib/core/form";
 import { safeRedirect } from "~/lib/core/redirect";
 import { AuthCard, useSubmitOnce, EmailField, ErrorMessage, StatusMessage } from "../AuthCard";
@@ -28,8 +28,11 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
   const next = safeRedirect(params.get("next"));
   const token = params.get("token");
   if (token) {
-    const { error } = await authClient.verifyEmail({ query: { token } });
-    if (error) return { state: "expired" as const, next, email: "", failure: requestFailure(error) };
+    const { error } = await authClient.verifyEmail({ query: { token } }).catch(unreached);
+    // Offline or rate-limited, the link wasn't checked: say that, not that it expired.
+    const failure = requestFailure(error);
+    if (failure) return { state: "unchecked" as const, next, email: "", failure };
+    if (error) return { state: "expired" as const, next, email: "", failure: null };
     return { state: "verified" as const, next, email: "", failure: null };
   }
   return { state: "pending" as const, next, email: params.get("email")?.trim() ?? "", failure: null };
@@ -43,10 +46,12 @@ export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: Should
 export async function clientAction({ request }: Route.ClientActionArgs) {
   const form = await request.formData();
   const email = formString(form, "email").trim();
-  const { error } = await authClient.sendVerificationEmail({
-    email,
-    callbackURL: safeRedirect(formString(form, "next")),
-  });
+  const { error } = await authClient
+    .sendVerificationEmail({
+      email,
+      callbackURL: safeRedirect(formString(form, "next")),
+    })
+    .catch(unreached);
   const failure = requestFailure(error);
   return failure ? { error: failure } : { sentTo: email };
 }
@@ -74,7 +79,7 @@ export default function VerifyEmail({ loaderData, actionData }: Route.ComponentP
     <AuthCard title="Confirm your email">
       {state === "expired" ? (
         <ErrorMessage>{authMessages.verifyExpired}</ErrorMessage>
-      ) : (
+      ) : state === "unchecked" ? null : (
         <p className="text-sm">
           Before you can use Caretook, confirm your email address. We've sent a link to{" "}
           {email ? <strong>{email}</strong> : "your email"}: open it on this device.
