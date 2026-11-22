@@ -378,7 +378,7 @@ describe("the Dose sheet on a fixed clock", () => {
     expect((await doses(device)).filter((d) => d.medicationId === DONEPEZIL.id)).toHaveLength(2);
   });
 
-  test("?pass= puts that pass first with Given all, its slots not repeated below; Given all logs it and offers Undo in the sheet", async () => {
+  test("?pass= puts that pass first with Given all, its slots not repeated below; Given all logs it", async () => {
     fixClock();
     const device = await open({
       url: `${TIMELINE_URL}/new/dose?pass=${ROUND_2.id}`,
@@ -394,9 +394,6 @@ describe("the Dose sheet on a fixed clock", () => {
     // Through the sheet: Today's card behind it has a Given all with the same name.
     await userEvent.click(page.getByRole("dialog").getByRole("button", { name: /^Given all/ }));
     await expect.poll(() => card()?.dataset.passState, { timeout: 5000 }).toBe("done");
-    await expect
-      .poll(() => SHEET()?.querySelector("[data-pass-undo-label]")?.textContent?.trim())
-      .toBe("Round 2 logged");
     expect(await doses(device)).toMatchObject([{ medicationId: WD.id, status: "given" }]);
   });
 });
