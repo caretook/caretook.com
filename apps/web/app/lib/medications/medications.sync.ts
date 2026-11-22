@@ -36,6 +36,7 @@ import {
   withoutPass,
 } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
+import { changedColumns } from "../core/changedColumns";
 import { dayInZone } from "../core/zonedDay";
 import { newProviderRow } from "../providers/providers.sync";
 import { medications, noteDocuments, providers, timelineEntries } from "../sync/schema";
@@ -599,7 +600,8 @@ export const createMedication = async (
  * group and recipient are fixed; the merged medication must be valid. A stop,
  * a restart or an edit to a tracked field writes its change entry in the
  * same transaction, and a prescriber or pharmacy added with the edit goes in
- * it first.
+ * it first. Only the columns that changed are written (the schedule compared
+ * as JSON), so an edit that changes nothing queues nothing.
  */
 export const updateMedication = async (
   db: SyncDb,
@@ -636,6 +638,11 @@ export const updateMedication = async (
   if ("ok" in schedule) return schedule;
   const after = { ...merged.data, schedule };
 
+  // Only what changed: the schedule rewritten unchanged would be re-sent and
+  // overwrite a co-member's newer one on the server.
+  const changed = changedColumns(contentColumns(before), contentColumns(after), ["schedule"]);
+  if (!Object.keys(changed).length && !added.rows.length) return { ok: true, id };
+
   const recipient = await recipientOf(db, existing.groupId);
   const now = nowTimestamp();
   const entry = changeEntryRow(db.userId, existing, before, after, now, recipient?.time_zone ?? "UTC");
@@ -643,7 +650,7 @@ export const updateMedication = async (
     for (const provider of added.rows) await tx.insert(providers).values(provider);
     await tx
       .update(medications)
-      .set({ ...contentColumns(after), updatedAt: now, updatedBy: db.userId })
+      .set({ ...changed, updatedAt: now, updatedBy: db.userId })
       .where(eq(medications.id, id));
     if (entry) await tx.insert(timelineEntries).values(entry);
   });
@@ -978,14 +985,16 @@ export const updateDose = async (
   );
   if (!parsed.success) return invalid(parsed.error, "The dose is invalid");
 
+  // Only what changed (the details as JSON values, as the server compares them).
+  const changed = changedColumns(
+    { occurredAt: toLocalTimestamp(entry.occurredAt), details: JSON.stringify(entry.details) },
+    { occurredAt: toLocalTimestamp(parsed.data.occurredAt), details: JSON.stringify(parsed.data.details) },
+    ["details"],
+  );
+  if (!Object.keys(changed).length) return { ok: true, id };
   await db.drizzle
     .update(timelineEntries)
-    .set({
-      occurredAt: toLocalTimestamp(parsed.data.occurredAt),
-      details: JSON.stringify(parsed.data.details),
-      updatedAt: nowTimestamp(),
-      updatedBy: db.userId,
-    })
+    .set({ ...changed, updatedAt: nowTimestamp(), updatedBy: db.userId })
     .where(eq(timelineEntries.id, id));
   return { ok: true, id };
 };
