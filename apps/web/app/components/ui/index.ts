@@ -61,3 +61,6 @@ export { ToggleField } from "./ToggleField";
 export { DetailHeader } from "./DetailHeader";
 export type { DetailTone } from "./DetailHeader";
 export { Section } from "./Section";
+// ui-kit-2 slice 6: the choice dialog.
+export { ChoiceDialog } from "./ChoiceDialog";
+export type { ChoiceTone, DialogChoice } from "./ChoiceDialog";
