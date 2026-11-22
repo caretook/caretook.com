@@ -18,7 +18,15 @@
 
 **Now (2026-11-22):** wave 1 **landed** in dev as 2b3a27d5 through PR #69 (Codex clean on dcd939f; report a60; to-test `2026-11-22-1632-agent-autonomy-2.md`). Docs folded; slice worktrees removed. B-507, B-509 and B-437 done; B-508 stays claimed until slice 2. Gate: `pnpm test:tooling` (855 passed) and `eslint scripts`.
 
-**Wave 2 (started 2026-11-22):** the wave boundary is done (nothing new for this topic; synced with dev). B-514 and B-515 claimed. Slices 2, 4 and 5 (opus) are merged in plan order and their worktrees removed; B-508 and B-514 are done, B-515 stays open for the inbox session. Wave gate on the merged tip: 50 tooling test files, 911 tests passed (`browser.test.mjs` skipped, no browser tooling changed), `eslint scripts` clean, no `pnpm prd check` (tooling only, the user's word). Docs folded. PR #70 is open; next: Codex review, then land. `test-gates` had not landed when wave 2 started.
+**Wave 2 (started 2026-11-22):** the wave boundary is done (nothing new for this topic; synced with dev). B-514 and B-515 claimed. Slices 2, 4 and 5 (opus) are merged in plan order and their worktrees removed; B-508 and B-514 are done, B-515 stays open for the inbox session. Wave gate on the merged tip: 50 tooling test files, 911 tests passed (`browser.test.mjs` skipped, no browser tooling changed), `eslint scripts` clean, no `pnpm prd check` (tooling only, the user's word). Docs folded. PR #70 is open; Codex was clean on 22ae4f9.
+
+**Rotated for context (161k) before landing wave 2. Nothing of wave 2 is in dev yet. The next session:**
+
+1. Trim `docs/agents/machinery.md`: after the sync with `test-gates` it is 15,576 B against a 15,360 B budget, and `land` refuses a doc that grows past its budget. Cut at least 216 B, keeping this wave's bullets (`rotate --self`, the context follow-up, the keep-alive).
+2. `pnpm prd sync` (dev moved again), then the gate on the tip: the file list above (in zsh, `${=files}`) and `pnpm exec eslint scripts`. The last pass, on ead6e8c9 after syncing `test-gates` wave 1: 52 files, 971 tests, eslint clean; the diff against dev is tooling and Markdown only.
+3. `pnpm prd pr agent-autonomy-2`, `pnpm prd review agent-autonomy-2 --again` if it says stale, `--wait` in the background, then `pnpm prd land agent-autonomy-2 -m "feat(agent-autonomy-2): dispatcher context follow-up, phone hand-off and always-on backlog session (B-508, B-514, B-515)"`. Don't commit _Status_ between `pr` and `land`.
+4. File the landing report with `pnpm prd ask --report`: what landed, the to-test file, that slices 2, 4 and 5 ran only against stubs, that `browser.test.mjs` and `pnpm prd check` were skipped on the user's word, and that once the dispatcher restarts on this code it opens a backlog session whenever none is live (`CARETOOK_KEEP_SESSIONS=off` or `pnpm prd dispatch --pause` stops that).
+5. Then drain and rotate; wave 3 is slices 6 and 7. `test-gates` had not landed when wave 2 started.
 
 **Hook live test:** passed for the session's own size: this orchestrator read 53k from `pnpm prd context` after a wrapper start. Whether a subagent's PostToolUse names its own transcript is still unproven.
 
