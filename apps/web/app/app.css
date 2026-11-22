@@ -277,3 +277,61 @@
     overflow: visible;
   }
 }
+
+/* Overlay motion (ui-kit-3): menus and popovers fade in and out
+   (`motion-overlay`, `--motion-fast`), toasts (`Toast`, `[data-toast]`) and every native modal
+   dialog with its dimming (`.modal`, daisyUI's own 0.3s fade and grow
+   re-timed) fade on `--motion`, with no scale. Under "reduce motion"
+   nothing animates and each closes at once. Tooltips and `Sheet` are not
+   here. */
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+.modal-box {
+  scale: 1;
+}
+/* A transition, not keyframes: React Aria ends the entry at once and the
+   fade runs as `data-entering` goes (an entry animation it waits on can
+   strand a menu in its entering state, unfocused); it waits for the exit's
+   fade before unmounting. */
+@utility motion-overlay {
+  @media (prefers-reduced-motion: no-preference) {
+    transition: opacity var(--motion-fast) var(--motion-ease);
+    &[data-entering],
+    &[data-exiting] {
+      opacity: 0;
+    }
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-toast] {
+    animation: fade-in var(--motion) var(--motion-ease);
+  }
+  [data-toast][data-exiting] {
+    animation: fade-out var(--motion) var(--motion-ease) forwards;
+  }
+  .modal {
+    transition:
+      overlay var(--motion) allow-discrete,
+      visibility var(--motion) allow-discrete,
+      background-color var(--motion) var(--motion-ease),
+      opacity var(--motion) var(--motion-ease);
+  }
+  .modal[open] {
+    transition:
+      visibility 0s allow-discrete,
+      background-color var(--motion) var(--motion-ease),
+      opacity var(--motion) var(--motion-ease);
+  }
+  .modal-box {
+    transition: opacity var(--motion) var(--motion-ease);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal,
+  .modal-box {
+    transition: none;
+  }
+}

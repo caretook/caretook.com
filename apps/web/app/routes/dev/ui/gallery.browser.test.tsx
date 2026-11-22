@@ -45,4 +45,21 @@ describe("the UI gallery", () => {
     await screen.unmount();
     expect(document.documentElement.dataset.theme).toBeUndefined();
   });
+
+  test("the Motion section shows a menu, a popover, a dialog and a toast", async () => {
+    const { screen } = await open();
+    const motion = screen.getByRole("region", { name: "Motion", exact: true });
+    await userEvent.click(motion.getByRole("button", { name: "Note actions" }));
+    await expect.element(screen.getByRole("menuitem", { name: "Delete…" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.element(screen.getByRole("menu")).not.toBeInTheDocument();
+    await userEvent.click(motion.getByRole("button", { name: "About doses" }));
+    await expect.element(screen.getByRole("dialog", { name: "About doses" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(motion.getByRole("button", { name: "Dialog" }));
+    await expect.element(screen.getByRole("dialog", { name: "Delete this note?" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(motion.getByRole("button", { name: "Toast" }));
+    await expect.element(screen.getByRole("status").filter({ hasText: "Added Ibuprofen" })).toBeVisible();
+  });
 });

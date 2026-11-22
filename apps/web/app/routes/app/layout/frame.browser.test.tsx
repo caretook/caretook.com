@@ -432,7 +432,7 @@ describe("the floating tab bar", () => {
     await open();
     await expect.element(page.getByText("Slept well")).toBeVisible();
     const toast = await render(
-      <Toast message="A new version is ready" actionLabel="Reload" onAction={() => {}} />,
+      <Toast open message="A new version is ready" actionLabel="Reload" onAction={() => {}} />,
     );
     const status = toast
       .getByText("A new version is ready")
