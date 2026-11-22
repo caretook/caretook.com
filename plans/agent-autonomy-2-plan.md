@@ -11,8 +11,8 @@
 | 3     | 1    | merged (opus); conflicts resolved in session.sh and status-extra | 5162f553 (9da26376, 41a67e83)                     |
 | 4     | 2    | merged (opus)                                                    | 93b16067 (8104cb2e)                               |
 | 5     | 2    | merged (opus); conflicts resolved in dispatch.mjs and its test   | db78a219 (ba12c013)                               |
-| 6     | 3    | —                                                                | —                                                 |
-| 7     | 3    | —                                                                | —                                                 |
+| 6     | 3    | merged (opus)                                                    | 0b028f59 (6c43892f)                               |
+| 7     | 3    | merged (opus, two agents); conflict resolved in dispatch.mjs     | 9a78216f (000d5483, 4563409b)                     |
 
 **Landing mode:** run everything through (started by the dispatcher): land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
@@ -20,13 +20,13 @@
 
 **Wave 2 (started 2026-11-22):** the wave boundary is done (nothing new for this topic; synced with dev). B-514 and B-515 claimed. Slices 2, 4 and 5 (opus) are merged in plan order and their worktrees removed; B-508 and B-514 are done, B-515 stays open for the inbox session. Wave gate on the merged tip: 50 tooling test files, 911 tests passed (`browser.test.mjs` skipped, no browser tooling changed), `eslint scripts` clean, no `pnpm prd check` (tooling only, the user's word). Docs folded. PR #70 is open; Codex was clean on 22ae4f9.
 
-**Rotated for context (161k) before landing wave 2. Nothing of wave 2 is in dev yet. The next session:**
+**Wave 2 landed** in dev as a7313664 through PR #70 (Codex clean on 04b2d4d; to-test `2026-11-22-1717-agent-autonomy-2.md`; landing report filed). Gate on the tip: 52 tooling test files, 971 tests, `eslint scripts` clean; `browser.test.mjs` and `pnpm prd check` skipped on the user's word. Docs folded, `machinery.md` trimmed to 15,320 B.
 
-1. Done: `docs/agents/machinery.md` trimmed under its 15,360 B budget, this wave's bullets kept. Reconciled with git on resume: no slice in flight; wave boundary found nothing new for this topic.
-2. `pnpm prd sync` (dev moved again), then the gate on the tip: the file list above (in zsh, `${=files}`) and `pnpm exec eslint scripts`. The last pass, on ead6e8c9 after syncing `test-gates` wave 1: 52 files, 971 tests, eslint clean; the diff against dev is tooling and Markdown only.
-3. `pnpm prd pr agent-autonomy-2`, `pnpm prd review agent-autonomy-2 --again` if it says stale, `--wait` in the background, then `pnpm prd land agent-autonomy-2 -m "feat(agent-autonomy-2): dispatcher context follow-up, phone hand-off and always-on backlog session (B-508, B-514, B-515)"`. Don't commit _Status_ between `pr` and `land`.
-4. File the landing report with `pnpm prd ask --report`: what landed, the to-test file, that slices 2, 4 and 5 ran only against stubs, that `browser.test.mjs` and `pnpm prd check` were skipped on the user's word, and that once the dispatcher restarts on this code it opens a backlog session whenever none is live (`CARETOOK_KEEP_SESSIONS=off` or `pnpm prd dispatch --pause` stops that).
-5. Then drain and rotate; wave 3 is slices 6 and 7. `test-gates` had not landed when wave 2 started.
+**Wave 3 (started 2026-11-22):** the wave boundary is done (nothing new for this topic; synced with dev at a47a5963). B-541 claimed, B-515 still claimed. Worktrees `agent-autonomy-2-6` and `agent-autonomy-2-7` made and one opus agent spawned for each. `test-gates` wave 1 is in dev (adce90ee) but that topic is still running: once it is done, restore this topic's hot entries (see _Open issues_). Both wave 3 slices touch the dispatcher's tick in separate steps; merge 6, then 7.
+
+**Slice 6 merged** as 0b028f59; its worktree is removed and slice 7 is still running. Its gate: 52 tooling test files, 990 tests, `eslint scripts` clean, `browser.test.mjs` skipped; stubs only, no real session. The tick opens `rotate-into.sh <name> <pid> --reason context` itself, with `--brief <file>` or the new `--no-brief`. A backlog session's subagents get no reminder and no record. The command guard is one regex, so a running `pnpm backlog` now also holds an orchestrator's rotation. **Fold at landing:** machinery still says the hook is for `prd` sessions only; add backlog sessions, `--no-brief` and the wider guard. B-515 stays open until `inbox` is in the kept-alive kinds.
+
+**Slice 7 merged** as 9a78216f (imports conflict in `dispatch.mjs`, both sides kept); B-541 done, worktree removed. **Wave gate on the merged tip:** 53 tooling test files, 1,020 tests, tooling-lint, `eslint scripts` and prettier clean; `browser.test.mjs` and `pnpm prd check` skipped on the user's word (tooling only). Stubs only: no real session or iTerm2 tab has run wave 3. Docs folded into machinery and backlog. PR #72 is open, waiting on Codex. Next: land, then `pnpm prd rm` and `pnpm prd end` (last wave). Follow-up to weigh: a requested session still asks "what is this session for?" even with a brief, and the brief's heading says "from the session before".
 
 **Hook live test:** passed for the session's own size: this orchestrator read 53k from `pnpm prd context` after a wrapper start. Whether a subagent's PostToolUse names its own transcript is still unproven.
 

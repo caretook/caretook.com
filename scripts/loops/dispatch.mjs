@@ -22,6 +22,9 @@
 //   - keep-alive (keep-alive.mjs), beside the pick and outside the PRD slots:
 //     a fresh managed backlog session through the opener when none is live, or
 //     its own question after three quick deaths. CARETOOK_KEEP_SESSIONS=off;
+//   - session requests (session-requests.mjs), after the keep-alive and before
+//     starts: the oldest pending one opens backlog-<name>, or is refused, with a
+//     notice either way. CARETOOK_MAX_BACKLOG_SESSIONS (4);
 //   - ask: a reopen question filed with `pnpm prd ask` (session "dispatch"),
 //     then a one-shot helper session (haiku, Remote Control, in a background
 //     tab) whose prompt is "send this PushNotification, then pnpm prd end"; a
@@ -31,9 +34,9 @@
 // The session record (managed, auto) is written before a new session's tab
 // opens, so a tab that never starts is reopened like a dead session.
 //
-// Each tick also follows up on managed orchestrators that stay over the context
-// limit (dispatch-context.mjs): a nudge, a defaulting question, the mid-wave
-// rotation. CARETOOK_CONTEXT_NUDGE_MIN (15); CARETOOK_CONTEXT_WATCH=off stops it.
+// Each tick also follows up on managed orchestrators and backlog sessions that
+// stay over the context limit (dispatch-context.mjs): a nudge, a defaulting
+// question, the rotation. CARETOOK_CONTEXT_NUDGE_MIN (15); CARETOOK_CONTEXT_WATCH=off stops it.
 //
 // Every TIDY_EVERY_MS (six hours), on a tick that does nothing else (and isn't
 // paused), it runs `pnpm prd tidy --yes`. A usage limit isn't detected: the
@@ -70,8 +73,18 @@ import { dismissAsk, getAsk, listAsks, settleDue } from "./asks.mjs";
 import { contextDirOf, limitOf, sizeRecord, updateRecord } from "./context.mjs";
 import { CONTEXT_OPTIONS, CONTEXT_SESSION, commandUnder, contextDecision } from "./dispatch-context.mjs";
 import { DISPATCH_SESSION, KEEP_SESSION, REOPEN_OPTIONS, formatPick, pick } from "./dispatch-pick.mjs";
-import { clearKeepStops, keepAliveDecision, keepAnswerAction } from "./keep-alive.mjs";
+import { briefProblem } from "./rotate.mjs";
+import { START_GRACE_MS, clearKeepStops, keepAliveDecision, keepAnswerAction } from "./keep-alive.mjs";
 import { readLoadGate } from "./load-gate.mjs";
+import { createNotice } from "./notices.mjs";
+import {
+  DEFAULT_MAX_BACKLOG_SESSIONS,
+  readRequests,
+  requestDecision,
+  requestLine,
+  requestNotice,
+  settleRequest,
+} from "./session-requests.mjs";
 import { isLive, processOf, processTable, readRecord, readRecords, writeRecord } from "./sessions.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -149,6 +162,8 @@ export function pathsOf(/** @type {string} */ main, env = process.env) {
     log: join(loops, ".dispatch.log"),
     sessions: env.CARETOOK_SESSIONS_DIR || join(loops, ".sessions"),
     asks: env.CARETOOK_ASKS_DIR || join(loops, ".asks"),
+    requests: env.CARETOOK_REQUESTS_DIR || join(loops, ".requests"),
+    notices: env.CARETOOK_NOTICES_DIR || join(loops, ".notices"),
   };
 }
 
@@ -352,12 +367,22 @@ function contextStep(
     }
     for (const s of sessions) if (s.live && (!table || commandUnder(s.pid, table))) running.add(s.name);
   }
+  // A backlog session's brief, when it could be used: a bad one is no brief, never a failed rotation.
+  const briefFile = (/** @type {string} */ name) => join(dirname(p.sessions), ".briefs", `${name}.md`);
+  /** @type {Record<string, number>} */
+  const briefs = {};
+  for (const s of sessions) {
+    if (!s.live || s.kind !== "backlog" || !entries[s.name]?.askId) continue;
+    const file = briefFile(s.name);
+    if (!briefProblem(file)) briefs[s.name] = statSync(file).mtimeMs;
+  }
   const actions = contextDecision({
     sessions,
     sizes,
     entries,
     asks,
     running,
+    briefs,
     paused: g.facts.paused,
     limit,
     waitMs,
@@ -382,7 +407,7 @@ function contextStep(
   let acted = false;
   for (const a of actions) {
     if (a.type === "hold") {
-      out(`context: ${a.session} waits to rotate: a pnpm prd command is running under it`);
+      out(`context: ${a.session} waits to rotate: a pnpm prd or pnpm backlog command is running under it`);
       continue;
     }
     if (dryRun) {
@@ -443,10 +468,27 @@ function contextStep(
         { cwd: p.main },
       );
       if (!helper.ok) out(`  ${HELPER_SESSION} didn't start (ignored): ${lastLine(helper)}`);
-    } else if (a.type === "rotate") {
-      const r = run("bash", [join(HERE, "rotate.sh"), a.topic, "--mid-wave", "--reason", "context"], {
-        cwd: p.main,
-      });
+    } else if (a.type === "rotate" || a.type === "rotate-backlog") {
+      // A backlog session: `rotate --self` finds its caller by ancestry, so the tick opens its line.
+      const r =
+        a.type === "rotate"
+          ? run("bash", [join(HERE, "rotate.sh"), a.topic, "--mid-wave", "--reason", "context"], {
+              cwd: p.main,
+            })
+          : run(
+              "bash",
+              [
+                join(HERE, "open-session.sh"),
+                "--command",
+                `cd ${sh(p.main)} && ${sh(join(HERE, "rotate-into.sh"))} ${sh(a.session)} ${a.pid} --reason context ${
+                  a.brief ? `--brief ${sh(briefFile(a.session))}` : "--no-brief"
+                }`,
+                "--title",
+                a.session,
+                "--background",
+              ],
+              { cwd: p.main },
+            );
       const reported = entries[a.session]?.reported === true;
       setEntry(a.session, { triedAt: now, ...(r.ok ? {} : { reported: true }) });
       if (r.ok) out(`context: ${a.session} rotating`);
@@ -504,6 +546,79 @@ function settleKeepAnswers(
           : `ask ${id} ${a?.answeredAt ? `answered "${a.answer}" (unclear)` : a ? "dismissed" : "is gone"}: asking again`,
     );
   }
+}
+
+/** The oldest pending session request: opened or refused, with a notice either way. Returns whether it acted. */
+function requestStep(
+  /** @type {ReturnType<typeof pathsOf>} */ p,
+  /** @type {ReturnType<typeof gather>} */ g,
+  /** @type {{ dryRun: boolean, env: NodeJS.ProcessEnv, out: (l: string) => void, starting: string[] }} */ {
+    dryRun,
+    env,
+    out,
+    starting,
+  },
+) {
+  const now = g.facts.now;
+  const state = readState(p.state);
+  // A kept session opened moments ago counts until it is up.
+  const opening = Object.entries(state.keepAlive ?? {})
+    .filter(([, e]) => typeof e.openedAt === "number" && now - e.openedAt < START_GRACE_MS)
+    .map(([kind]) => kind);
+  const d = requestDecision({
+    requests: readRequests(p.requests),
+    sessions: g.records.map((r) => ({
+      name: r.name,
+      kind: r.record.kind,
+      live: r.live,
+      rotating: r.record.rotating === true,
+      rotatingAt: r.rotatingAt,
+    })),
+    processes: processLines(env),
+    starting: [...starting, ...opening],
+    paused: Boolean(state.paused),
+    max: positive(env.CARETOOK_MAX_BACKLOG_SESSIONS, DEFAULT_MAX_BACKLOG_SESSIONS),
+    now,
+    claude: basename(env.CARETOOK_CLAUDE_BIN || "claude"),
+  });
+  if (d.action === "none") {
+    if (dryRun && d.why !== "no pending request") out(`session request: waits (${d.why})`);
+    return false;
+  }
+  const { request } = d;
+  if (dryRun) {
+    out(`session request ${request.id}: would ${d.action} ${request.session} (${d.why})`);
+    return false;
+  }
+  let opened = false;
+  let why = d.why;
+  if (d.action === "open") {
+    const line = requestLine({ request, main: p.main, wrapper: join(HERE, "session.sh"), sh });
+    const r = run(
+      "bash",
+      [join(HERE, "open-session.sh"), "--command", line, "--title", request.session, "--background"],
+      { cwd: p.main },
+    );
+    opened = r.ok;
+    if (!r.ok) why = `its tab didn't open (${(r.err || r.out).split("\n").pop()})`;
+  }
+  settleRequest(p.requests, request.id, {
+    state: opened ? "opened" : "refused",
+    ...(opened ? {} : { why }),
+    now,
+  });
+  out(`session request ${request.id}: ${opened ? `opened ${request.session}` : `refused (${why})`}`);
+  try {
+    createNotice(p.notices, {
+      text: requestNotice(request, { opened, why }),
+      session: DISPATCH_SESSION,
+      minutes: 360,
+      now,
+    });
+  } catch (e) {
+    out(`  its notice failed (ignored): ${e instanceof Error ? e.message : String(e)}`);
+  }
+  return true;
 }
 
 // ---- one tick --------------------------------------------------------------------
@@ -618,7 +733,19 @@ export function tick(
     if (dryRun || d.action !== "none")
       out(`keep-alive ${d.kind}: ${d.action === "none" ? d.why : `${d.action} (${d.why})`}`);
 
+  // Session requests: after the keep-alive (a kept session it opens counts), before starts.
+  const requested = (/** @type {boolean} */ dry) => {
+    try {
+      const starting = keepDecisions.filter((d) => d.action === "open").map((d) => d.kind);
+      return requestStep(p, g, { dryRun: dry, env, out, starting });
+    } catch (e) {
+      out(`session request: ${e instanceof Error ? e.message : String(e)}`);
+      return false;
+    }
+  };
+
   if (dryRun) {
+    requested(true);
     out("(dry run: nothing written, nothing opened)");
     for (const l of lines) say(l);
     return { lines, action: choice.action, acted: false };
@@ -702,6 +829,8 @@ export function tick(
       if (!helper.ok) out(`  ${HELPER_SESSION} didn't start (ignored): ${result(helper)}`);
     }
   }
+
+  if (requested(false)) keptActed = true;
 
   switch (choice.action) {
     case "start":
