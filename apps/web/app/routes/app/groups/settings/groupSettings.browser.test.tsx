@@ -309,6 +309,28 @@ describe("Members", () => {
     expect(device.location()).toBe(MEMBERS);
   });
 
+  test("leaving: the membership goes from the device, then /app, without the removed-member notice", async () => {
+    let leave = () => {};
+    const device = await open({
+      url: MEMBERS,
+      role: "caretaker",
+      api: { "careGroup.removeMember": () => leave() },
+    });
+    const [mine] = await device.query<{ id: string }>("SELECT id FROM care_group_member WHERE user_id = ?", [
+      TEST_USER.id,
+    ]);
+    // The server's answer, then the row syncing away a moment later.
+    leave = () => {
+      setTimeout(() => void device.unsync([{ table: "care_group_member", id: mine!.id }]), 200);
+    };
+    await ready();
+    await userEvent.click(page.getByRole("button", { name: "Leave this care group" }));
+    await userEvent.click(page.getByRole("button", { name: "Leave", exact: true }));
+    await expect.poll(device.location, { timeout: 10_000 }).toBe("/app");
+    await expect.element(page.getByRole("heading", { level: 1, name: "Your care groups" })).toBeVisible();
+    expect(document.querySelector("[data-lost-group]")).toBeNull();
+  });
+
   test("a caretaker: everyone and their roles, no role menus, Leave on their own row only", async () => {
     await open({ url: MEMBERS, role: "caretaker" });
     await ready();
