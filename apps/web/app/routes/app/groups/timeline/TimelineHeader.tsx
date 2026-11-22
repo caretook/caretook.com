@@ -1,11 +1,15 @@
+import type { EasyModeState } from "~/lib/assistant/useEasyMode";
+
 import { PageHeader } from "~/components/ui";
+import { EasyModeToggle } from "./EasyModeToggle";
 
 /**
  * The full timeline's "Timeline" heading, like the other sections (no
- * recipient card: the profile is in the group menu). View options sits in
- * the filter row (`FilterChips`' trailing control), and the + menu is on each
- * day's heading (`DayHeader`).
+ * recipient card: the profile is in the group menu), with the "Easy mode"
+ * button on its right at every width (`EasyModeToggle`; nothing when the
+ * member can't toggle). View options sits in the filter row (`FilterChips`'
+ * trailing control), and the + menu is on each day's heading (`DayHeader`).
  */
-export function TimelineHeader() {
-  return <PageHeader title="Timeline" />;
+export function TimelineHeader({ easyMode }: { easyMode: EasyModeState }) {
+  return <PageHeader title="Timeline" actions={<EasyModeToggle mode={easyMode} />} />;
 }

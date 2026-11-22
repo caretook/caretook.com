@@ -166,7 +166,6 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
               onViewChange={setView}
               summaryMode={summaryMode}
               onSummaryModeChange={setSummaryMode}
-              easyMode={mode}
             />
           )
         }
@@ -190,7 +189,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   return (
     <main className="mx-auto max-w-2xl space-y-4 px-4 py-5 lg:max-w-none">
       <div className={COLUMN_CAP}>
-        <TimelineHeader />
+        <TimelineHeader easyMode={mode} />
       </div>
       <InviteSomeoneCard className={COLUMN_CAP} />
       <TodayCard

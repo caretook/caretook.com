@@ -15,7 +15,7 @@ import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
 import * as timeline from "./route";
 import { daysAgo } from "../periods/periodWorld";
-import { chooseViewOption, waitUntil } from "./timelineWorld";
+import { pressEasyMode, waitUntil } from "./timelineWorld";
 
 // Easy mode on the timeline, in the real /app frame on the test device: the
 // easy view (large type, the box, the full timeline's search, filters, row
@@ -253,7 +253,7 @@ describe("who gets it", () => {
     await expect.element(page.getByRole("button", { name: "Add to Today" })).toBeVisible();
     expect(isEasy()).toBe(false);
 
-    await chooseViewOption("Easy view");
+    await pressEasyMode();
     await waitUntil(isEasy, 4000, "the easy view");
     expect(localStorage.getItem(TOGGLE_KEY)).toBe("easy");
 
@@ -264,7 +264,7 @@ describe("who gets it", () => {
     // The full header is back.
     await expect.element(page.getByRole("button", { name: /switch care group$/ })).toBeVisible();
 
-    await chooseViewOption("Easy view");
+    await pressEasyMode();
     await waitUntil(isEasy, 4000, "the easy view again");
     await userEvent.click(page.getByRole("button", { name: "Full app" }));
     await waitUntil(() => !isEasy(), 4000, "the full timeline again");
@@ -290,7 +290,7 @@ describe("who gets it", () => {
     await open();
     await expect.element(page.getByRole("button", { name: "View options" })).toBeVisible();
     expect(isEasy()).toBe(false);
-    await chooseViewOption("Easy view");
+    await pressEasyMode();
     await waitUntil(isEasy, 4000, "the easy view");
   });
 
