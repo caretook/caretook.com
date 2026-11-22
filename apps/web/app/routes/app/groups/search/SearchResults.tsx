@@ -1,7 +1,7 @@
 import type { SearchPageData } from "./loadSearch";
 import type { UnitChoices } from "@caretook/data/schema";
 import type { ResultSection } from "~/lib/search/searchResults";
-import type { EasyOpened } from "./EasyResultSheet";
+import type { EasyOpenedRef } from "./useEasyOpened";
 
 import { parseSearch } from "@caretook/data/schema";
 import { useMemo, useState } from "react";
@@ -52,8 +52,9 @@ export function SearchResults({
   // Todos' due days are the recipient's.
   const timeZone = group.recipient?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   // The easy roles' read-only sheet, when one is open.
-  const [opened, setOpened] = useState<EasyOpened | null>(null);
-  const open = (item: EasyOpened) => (group.easyRole ? () => setOpened(item) : undefined);
+  // Only which one: the sheet reads the row as it is now, so synced edits and deletes show (B-469).
+  const [opened, setOpened] = useState<EasyOpenedRef | null>(null);
+  const open = (item: EasyOpenedRef) => (group.easyRole ? () => setOpened(item) : undefined);
   const status = unavailable
     ? "Search isn't available on this device right now."
     : preparing && !data.sections.length
@@ -102,7 +103,7 @@ export function SearchResults({
                       provider={provider}
                       notes={data.notes[hit.id]}
                       search={search}
-                      onOpen={open({ type: "provider", provider })}
+                      onOpen={open({ type: "provider", id: provider.id })}
                     />
                   )
                 );
@@ -115,7 +116,7 @@ export function SearchResults({
                       key={hit.id}
                       condition={condition}
                       search={search}
-                      onOpen={open({ type: "condition", condition })}
+                      onOpen={open({ type: "condition", id: condition.id })}
                     />
                   )
                 );
@@ -144,7 +145,7 @@ export function SearchResults({
                     passes={passes}
                     notes={data.notes[hit.id]}
                     search={search}
-                    onOpen={open({ type: "medication", medication })}
+                    onOpen={open({ type: "medication", id: medication.id })}
                   />
                 )
               );
@@ -159,7 +160,15 @@ export function SearchResults({
           />
         </section>
       ))}
-      {opened && <EasyResultSheet opened={opened} passes={passes} onClose={() => setOpened(null)} />}
+      {opened && (
+        <EasyResultSheet
+          openedRef={opened}
+          groupId={groupId}
+          data={data}
+          passes={passes}
+          onClose={() => setOpened(null)}
+        />
+      )}
     </>
   );
 }
