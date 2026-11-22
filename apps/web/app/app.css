@@ -358,6 +358,12 @@ fieldset:disabled :is(.input, .select, .textarea) {
     &[data-exiting] {
       opacity: 0;
     }
+    /* React Aria's inline hiding until the panel is placed: no fade to it. It
+       cancels such a fade on reveal, and a close waiting on that one would
+       never unmount, leaving an invisible panel that takes taps (B-547). */
+    &[style*="clip-path"] {
+      transition: none;
+    }
   }
 }
 @media (prefers-reduced-motion: no-preference) {
