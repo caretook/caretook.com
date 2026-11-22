@@ -1,5 +1,7 @@
 # PRD: The context watch and long-lived sessions (agent autonomy, part 2)
 
+**Done 2026-11-22** (last landing 783d596d, PR #72). Its decisions are in [machinery](../docs/agents/machinery.md) and [backlog](../docs/agents/backlog.md). The inbox half of B-515 moved to `inbox-agent`.
+
 Backlog items B-507 (a context hook), B-508 (context size in status, and the dispatcher's nudge), B-509 (the rule: rotate past 160k); added 2026-11-22: B-437 (record backlog, hotfix and recovery sessions), B-514 (hand off from the phone), B-515 (always-on backlog and inbox sessions), B-541 (named backlog sessions on request). Topic `agent-autonomy-2`, cut from [`agent-autonomy`](agent-autonomy-prd.md) by its planner: the items were filed into that topic while it was planned, and share no code with its check and asks work. Tooling only.
 
 ## Decisions
