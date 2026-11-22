@@ -37,7 +37,7 @@ export const seed = async () => {
 };
 
 /** Every seeded account's address is here (the seeds are fictional). */
-const SEEDED_DOMAIN = "@example.com";
+export const SEEDED_DOMAIN = "@example.com";
 
 /**
  * Staging only (`APP_ENV=staging`; hosting slice 9, B-160): every seeded
