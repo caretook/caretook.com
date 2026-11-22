@@ -1,32 +1,34 @@
 import type { Route } from "./+types/route";
 
-import { Clock, Plus } from "lucide-react";
 import { useMemo } from "react";
-import { Link, Outlet, useLocation } from "react-router";
+import { Outlet, PrefetchPageLinks, useLocation } from "react-router";
 import { Page, PageHeader, TabNav } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
-import { MEDICATION_SHEET_STATE, medicationTabOf } from "~/lib/medications/medicationSheets";
+import { medicationTabOf } from "~/lib/medications/medicationSheets";
 import { PrintMenu } from "./PrintMenu";
+import { useAddMenu } from "./useAddMenu";
 
 // Shared by web + native. The Medications page's frame: one header (the
-// title, Add for writers, Passes on Schedule, Print) over two tabs, each its
-// own route with its own loader and live queries: Schedule (`schedule/`,
-// today's doses) and the list (`list/`, the allergies, search, filters and
-// every medication). The add, edit and allergies sheets open over either tab
-// (their children). Plain `medications` has no tab of its own: every link
-// goes to one.
+// title, Print, and for writers the `+` menu: Medication, Pass) over three
+// tabs, each its own route with its own loader and live queries: Schedule
+// (`schedule/`, today's doses), the list (`list/`, the allergies, search,
+// filters and every medication) and Passes (`passes/`, the group's rounds).
+// The add, edit and allergies sheets open over Schedule or the list (their
+// children), the add-pass sheet over Passes. Plain `medications` has no tab
+// of its own: every link goes to one.
 
 export const meta = () => [{ title: "Medications · Caretook" }];
 
 export default function Medications({ params }: Route.ComponentProps) {
   const group = useGroup();
   const { pathname, search } = useLocation();
-  const tab = medicationTabOf(params.groupId, pathname);
+  const add = useAddMenu(params.groupId, medicationTabOf(params.groupId, pathname), search);
   const tabs = useMemo(
     () => [
       { label: "Schedule", to: appUrls.medicationSchedule(params.groupId) },
       { label: "Medications", to: appUrls.medicationList(params.groupId) },
+      { label: "Passes", to: appUrls.medicationPasses(params.groupId) },
     ],
     [params.groupId],
   );
@@ -35,39 +37,13 @@ export default function Medications({ params }: Route.ComponentProps) {
     <Page>
       <PageHeader
         title="Medications"
-        actions={
-          <>
-            {group.canWrite && (
-              <Link
-                // Over the tab you're on, which it closes back to (the list's search kept).
-                to={appUrls.newMedication(params.groupId, tab ?? "list", search)}
-                state={MEDICATION_SHEET_STATE}
-                // Loaded ahead, so the sheet opens offline too.
-                prefetch="render"
-                preventScrollReset
-                aria-label="Add medication"
-                title="Add medication"
-                className="btn btn-primary btn-sm btn-square"
-                data-add-medication
-              >
-                <Plus className="size-4" aria-hidden="true" />
-              </Link>
-            )}
-            {tab === "schedule" && (
-              <Link
-                to={appUrls.medicationPasses(params.groupId)}
-                prefetch="render"
-                className="btn btn-ghost btn-sm gap-1.5"
-                data-passes-link
-              >
-                <Clock className="size-4" aria-hidden="true" />
-                Passes
-              </Link>
-            )}
-            <PrintMenu groupId={params.groupId} />
-          </>
+        actions={<PrintMenu groupId={params.groupId} />}
+        add={
+          group.canWrite && { label: "Add", menuLabel: "Add", items: add.items, "data-add-medication": "" }
         }
       />
+      {/* The sheets' modules, loaded ahead, so they open offline too. */}
+      {group.canWrite && add.prefetch.map((page) => <PrefetchPageLinks key={page} page={page} />)}
 
       <TabNav label="Medications tabs" tabs={tabs} />
 

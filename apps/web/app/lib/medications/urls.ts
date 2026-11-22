@@ -2,8 +2,10 @@ import type { Search } from "../core/urls";
 
 import { groupHome, searchString, segment } from "../core/urls";
 
-/** The Medications page's tabs: Schedule (today's doses) and the list. A sheet opens over one of them. */
+/** The tabs a medication sheet opens over: Schedule (today's doses) and the list. */
 export type MedicationTab = "schedule" | "list";
+/** The Medications page's three tabs: the two above, and Passes (the group's rounds). */
+export type MedicationsPageTab = MedicationTab | "passes";
 
 const medicationsBase = (groupId: string) => `${groupHome(groupId)}/medications`;
 
@@ -27,8 +29,10 @@ export const medicationUrls = {
   /** The edit sheet for one medication, over a tab, carrying the tab's search. */
   editMedication: (groupId: string, medicationId: string, tab: MedicationTab, search?: Search) =>
     `${medicationsBase(groupId)}/${tab}/${segment(medicationId)}/edit${searchString(search)}`,
-  /** The group's medication passes (Morning, Evening…), with the medications in each. */
+  /** The Passes tab: the group's medication passes (Morning, Evening…), with the medications in each. */
   medicationPasses: (groupId: string) => `${medicationsBase(groupId)}/passes`,
+  /** The add-pass sheet, over the Passes tab (writers, while the group has room for one). */
+  newPass: (groupId: string) => `${medicationsBase(groupId)}/passes/new`,
   /** The allergies sheet over a tab (writers), carrying the tab's search. */
   medicationAllergies: (groupId: string, tab: MedicationTab, search?: Search) =>
     `${medicationsBase(groupId)}/${tab}/allergies${searchString(search)}`,
