@@ -308,6 +308,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-448 | chore | triaged | ui-kit-2 |  | Rename the profile's *Card components and files (ProfileCards.tsx, ConditionsCard, DetailsCards, EmergencyCard, VitalAveragesCard) now that they render bands, not cards |
 | B-449 | chore | in-progress | fixes-tooling | hotfix/reseed-staging | Reseed staging from scratch: a manual Action that wipes staging's data and runs the fictional seed again |
 | B-450 | bug | triaged | fixes-tooling |  | Flaky under load: roles.int.test.ts beforeAll (applyRoles) times out at the 10s hookTimeout in a full check at load ~130; passes alone 3x |
+| B-451 | bug | triaged | fixes-tooling |  | Tooling-only landings run no eslint: the check gate's 'none needed' (Markdown, scripts/loops, scripts/backlog, .githooks) lets a lint error into dev, and every synced branch's full check then fails |
 
 ## Items
 
@@ -2474,3 +2475,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (prd/ui-kit): Seen in ui-kit's wave 4 full check, 2026-11-21. Give the hook a longer timeout or share the generated roles.
+
+### B-451 · bug · Tooling-only landings run no eslint: the check gate's 'none needed' (Markdown, scripts/loops, scripts/backlog, .githooks) lets a lint error into dev, and every synced branch's full check then fails
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (prd/orchestration-3): Seen 2026-11-21: orchestration-3 wave 1 (e015a74) brought a no-useless-assignment in scripts/loops/sessions.test.mjs:248 into dev; fixed in PR #39 (12628b9e). Fix idea: 'none needed' still runs eslint + prettier on the changed tooling files (pnpm test:tooling's step, or the gate requires it).
