@@ -327,6 +327,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-536 | bug | triaged | fixes-ui |  | Danger text fails 4.5:1 in light: Menu's danger item and buttonClass's dangerQuiet use text-error (about 2.9:1); DateTimeField's placeholder segments at 60% opacity are a little under 4.5:1 on the light field fill |
 | B-537 | change | triaged | fixes-ui |  | One word in the app: Event, never Appointment; 'Upcoming event' / 'Past event' only where the two mix and timing isn't clear (an event's page heading, the Today card's next line, the todo form's event picker) |
 | B-538 | change | triaged | fixes-ui |  | Planner tabs become Upcoming \| Past \| Todos: Upcoming and Past move out of the chip row into the main pill tabs (the Planner heading names the section), the filter button sits beside the tabs on Upcoming, and switching to Todos and back keeps Past |
+| B-539 | change | triaged | fixes-tooling |  | Seed: Grandpa Lou becomes a normal-activity group (Grandma Pat stays heavy use): a quieter timeline with a long history and more gaps of days; providers set up; medications and passes fully set up; profile mostly filled in; a few upcoming events in the Planner with only one recurring; todos mostly unscheduled, one or two scheduled |
 
 ## Items
 
@@ -2564,3 +2565,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): Triage: fixes-ui (layout and flow, one header: PlannerHeader.tsx). Chosen over a sub-tab row or a segmented control from mockups https://claude.ai/artifact/PFMCEFbW3e7C7k4nH5C2tV. The old chips read as filters, and the Planner tab always linked back to Upcoming. Routes stay /planner and /planner/past, so each tab keeps its own view. Touches B-537 (Event wording) and B-416 (owner pill) in the same area.
+
+### B-539 · change · Seed: Grandpa Lou becomes a normal-activity group (Grandma Pat stays heavy use): a quieter timeline with a long history and more gaps of days; providers set up; medications and passes fully set up; profile mostly filled in; a few upcoming events in the Planner with only one recurring; todos mostly unscheduled, one or two scheduled
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): Seed data only (packages/data/src/db/seeds/, mainly secondGroup.ts), no app code. fixes-tooling: dev and test data, not user-visible behaviour. Tests and browser checks that read Lou's seeded rows need checking (B-529 treats seed tests as brakes). Grandma Pat's seed is unchanged.
