@@ -9,6 +9,7 @@ import * as settingsLayout from "./layout/route";
 import * as timelineLayout from "./timeline/route";
 import * as units from "./units/route";
 import { renderWithDevice } from "../../../../test/device";
+import { found } from "../../../../test/found";
 import { TEST_USER } from "../../../../test/fixtures";
 import { setView, TIMELINE_ROUTES, TIMELINE_URL, view, world } from "../groups/timeline/timelineWorld";
 
@@ -16,8 +17,9 @@ import { setView, TIMELINE_ROUTES, TIMELINE_URL, view, world } from "../groups/t
 // Timeline layout as named radiogroups that the arrow keys move, and Account.
 // Then the layout choice in Settings and the timeline's toggle as one
 // preference (settings-layout.mjs's steps), against a stand-in for the
-// account's server copy. Saving offline, and a real load reading the
-// server's copy, are layout-offline.mjs's.
+// account's server copy. Offline, a change kept pending on the device and
+// applying at once is at the end; it reaching the server, and a real load
+// reading the server's copy, are layout-offline.mjs's.
 
 const ROUTES: DeviceRoute[] = [
   {
@@ -235,5 +237,60 @@ describe("the timeline layout: Settings and the timeline's toggle change one pre
     await expect.poll(view).toBe("rows");
     await openSettings(again);
     expect(chosen()).toBe("Rows");
+  });
+});
+
+// Offline (the test device has no server: every call fails as a lost
+// connection does), a settings change is kept pending on the device and
+// applies at once (layout-offline.mjs's one-device steps). The pending
+// change reaching the server on the next online load is that check's.
+describe("offline: a change is pending on the device and applies at once", () => {
+  const PENDING_KEY = `caretook:settings-pending:${TEST_USER.id}`;
+  const pending = () =>
+    JSON.parse(localStorage.getItem(PENDING_KEY) ?? "null") as Record<string, unknown> | null;
+
+  test("Units: °C is saved on this device, pending, with no error; the vitals sheet then shows °C", async () => {
+    const settings = await open("/app/settings/units");
+    const celsius = await found(() =>
+      document.querySelector<HTMLInputElement>('input[name="temperature"][value="c"]'),
+    );
+    expect(document.querySelector<HTMLInputElement>('input[name="temperature"][value="f"]')?.checked).toBe(
+      true,
+    );
+    await userEvent.click(celsius);
+    await userEvent.click(page.getByRole("button", { name: "Save", exact: true }));
+    await expect
+      .element(page.getByRole("status"))
+      .toHaveTextContent("Saved on this device. It'll sync when you're back online.");
+    expect(page.getByRole("alert").elements()).toHaveLength(0);
+    expect(pending()).toMatchObject({ units: { temperature: "c" } });
+    await settings.screen.unmount();
+
+    await renderWithDevice({
+      route: TIMELINE_ROUTES,
+      url: `${TIMELINE_URL}/new/vital?type=temperature`,
+      fixtures: world(),
+    });
+    const dialog = await found(() => document.querySelector('[role="dialog"]'));
+    await expect
+      .poll(
+        () => document.querySelector<HTMLInputElement>('[role="dialog"] input[name="vital.0.type"]')?.value,
+      )
+      .toBe("temperature");
+    const labels = [...dialog.querySelectorAll(".label")].map((l) => l.textContent?.trim()).join(",");
+    expect(labels).toContain("°C");
+    expect(labels).not.toContain("°F");
+  });
+
+  test("the timeline's Cards is pending, and still shown when the timeline opens again", async () => {
+    const first = await renderWithDevice({ route: TIMELINE_ROUTES, url: TIMELINE_URL, fixtures: world() });
+    await expect.poll(view).toBe("rows");
+    await setView("Cards");
+    await expect.poll(() => pending()?.timelineView).toBe("cards");
+    await first.screen.unmount();
+
+    await renderWithDevice({ route: TIMELINE_ROUTES, url: TIMELINE_URL, fixtures: world() });
+    await expect.poll(view).toBe("cards");
+    expect(pending()?.timelineView).toBe("cards");
   });
 });

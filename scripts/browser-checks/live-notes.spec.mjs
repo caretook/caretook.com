@@ -110,6 +110,9 @@ const dayOfRow = (id) => `(${rowOf(id)}?.closest("section")?.querySelector("h3")
 const localRows = (sql, params = []) =>
   `window.caretookSync.powersync.getAll(${JSON.stringify(sql)}, ${JSON.stringify(params)})`;
 const entryPath = (id) => `/app/groups/${GROUP}/entries/${id}`;
+/** How many writes the device has queued for upload (PowerSync's ps_crud). */
+const QUEUED = `${localRows("SELECT count(*) AS n FROM ps_crud")}.then((r) => r[0].n)`;
+const NOTHING_QUEUED = `${QUEUED}.then((n) => n === 0)`;
 const idFromPath = (path) => path.split("/").at(-1);
 
 // ---- Input -------------------------------------------------------------------
@@ -219,7 +222,8 @@ async function settle(page, ready) {
   // A check build has no Vite client, so nothing to reload the page.
   if (!(await page.evaluate(`!!document.querySelector('script[src*="/@vite/client"]')`))) return;
   await page.evaluate("window.__settled = true");
-  await sleep(1500);
+  // A re-optimise reload follows the first visit's dependency requests: wait for them to finish.
+  await page.waitForLoadState("networkidle").catch(() => undefined);
   if (!(await page.evaluate("window.__settled === true").catch(() => false))) await wf(page, ready, 30_000);
 }
 
@@ -236,15 +240,23 @@ const editsOlderThan = (ids, ms) =>
   )}.then((rows) => rows.length === ${ids.length} && rows.every((r) =>
     Object.values(JSON.parse(r.editors || "{}")).every((t) => Date.now() - Date.parse(t) > ${ms}) &&
     (!r.u || Date.now() - Date.parse(r.u) > ${ms})))`;
-/** Make these documents idle (last edit an hour ago) on the server and on every observer. */
-async function quiet(ids, observers) {
-  await sleep(1500); // let the last typing burst flush and upload
+/** True in Postgres once every edit of these documents is older than `seconds`. */
+const serverEditsOlderThan = (ids, seconds) =>
+  psql(`SELECT NOT EXISTS (SELECT 1 FROM note_update WHERE document_id IN (${inList(ids)}) AND created_at > now() - interval '${seconds} seconds')
+    AND NOT EXISTS (SELECT 1 FROM note_document d, jsonb_each_text(d.editors) e WHERE d.id IN (${inList(ids)}) AND e.value::timestamptz > now() - interval '${seconds} seconds')`) ===
+  "t";
+/**
+ * Make these documents idle (last edit an hour ago) on the server and on every
+ * observer. The writers' typing must already have reached another device (its
+ * bursts are written); their upload queues emptying means it's all on the server.
+ */
+async function quiet(ids, writers, observers) {
+  await Promise.all(writers.map((page) => wf(page, NOTHING_QUEUED, 15_000)));
   for (let attempt = 0; attempt < 3; attempt++) {
     backdate(ids, 3600);
     await Promise.all(observers.map((page) => wf(page, editsOlderThan(ids, 3_000_000), 15_000)));
-    await sleep(1000);
-    const still = await Promise.all(observers.map((page) => page.evaluate(editsOlderThan(ids, 3_000_000))));
-    if (still.every(Boolean)) return;
+    // A late upload would have made an edit new again: the server says whether one did.
+    if (serverEditsOlderThan(ids, 3000)) return;
   }
   throw new Error("couldn't quiet the check's documents");
 }
@@ -404,7 +416,7 @@ test(
 
         // -----------------------------------------------------------------------
         section("Live now from another device: the banner, the dot and Join");
-        await quiet([N1, E1], [B, C]);
+        await quiet([N1, E1], [A], [B, C]);
         for (const page of [B, C]) {
           await visit(page, TIMELINE);
           await wf(page, `${rowOf(N1)} && ${rowOf(E1)}`, 20_000);
@@ -465,11 +477,11 @@ test(
           (await A.evaluate(`${AVATARS}.length`)) === 0,
         );
         // The member's edits upload first (their device is behind a proxy, B-110), so the caretaker's are the most recent.
-        // The editor writes a burst 250 ms after the last keystroke (at most 1 s), so wait that out first: an
-        // earlier edit's avatar (within its 2 minutes) can satisfy the wait above at once, and an empty queue
-        // then only means the burst isn't written yet.
-        await sleep(1200);
-        await wf(A, `${localRows("SELECT count(*) AS n FROM ps_crud")}.then((r) => r[0].n === 0)`, 15_000);
+        // An earlier edit's avatar (within its 2 minutes) can satisfy the wait above at once, and an empty queue
+        // can just mean the burst isn't written yet: the typed word on another device means it was written and
+        // uploaded; then the member's queue empties.
+        await wf(B, editorHas(`${tag}-e1`), 15_000);
+        await wf(A, NOTHING_QUEUED, 15_000);
         await typeInEditor(B, ` ${tag}-b`);
         await wf(A, hasAvatar(CARETAKER), 15_000);
         await wf(C, hasAvatar(CARETAKER), 15_000);
@@ -518,13 +530,22 @@ test(
         for (const page of [A, B, C]) {
           await wf(page, `${editorHas(`${tag} from A`)} && ${editorHas(`${tag} from B`)}`, 15_000);
         }
-        await sleep(1500);
-        const texts = await Promise.all([A, B, C].map((page) => page.evaluate(`${EDITOR}.textContent`)));
-        await check(
-          "merge: concurrent edits converge on every device",
-          texts.every((t) => t === texts[0]),
-          texts[0].slice(-60),
-        );
+        // Converged is every device's text the same: wait for that, not a fixed time.
+        let texts = [];
+        const converged = await expect
+          .poll(
+            async () => {
+              texts = await Promise.all([A, B, C].map((page) => page.evaluate(`${EDITOR}.textContent`)));
+              return texts.every((t) => t === texts[0]);
+            },
+            { timeout: 15_000 },
+          )
+          .toBe(true)
+          .then(
+            () => true,
+            () => false,
+          );
+        await check("merge: concurrent edits converge on every device", converged, texts[0]?.slice(-60));
         // Burst until the server compacts (pending updates folded into the snapshot and deleted).
         const snapshotBefore = psql(
           `SELECT md5(coalesce(snapshot, '')) FROM note_document WHERE id = '${N1}'`,
@@ -534,9 +555,11 @@ test(
        AND editors ? '${MEMBER}' AND editors ? '${CARETAKER}' AND NOT editors ? '${VIEWER}'
      FROM note_document WHERE id = '${N1}'`;
         let compacted = psql(compactedSql);
+        // One burst per word: each word reaching another device means it was written and uploaded.
         for (let i = 0; i < 40 && compacted !== "t"; i++) {
-          await typeInEditor(A, ` w${i}`);
-          await sleep(600);
+          const word = `${tag}-w${i}.`;
+          await typeInEditor(A, ` ${word}`);
+          await wf(B, editorHas(word), 15_000);
           compacted = psql(compactedSql);
         }
         await check(
@@ -577,9 +600,11 @@ test(
         dA.offline(true);
         await waits(A, `document.body.textContent.includes("Offline")`, 20_000);
         const offWord = `${tag}-offline`;
+        const queuedBefore = await A.evaluate(QUEUED);
         await newParagraph(A);
         await typeInEditor(A, offWord);
-        await sleep(2500);
+        // The burst is written (queued, and offline it stays queued).
+        await wf(A, `${QUEUED}.then((n) => n > ${queuedBefore})`, 5000);
         await check("offline: the edit shows locally", await A.evaluate(editorHas(offWord)));
         await check("offline: the others don't have it yet", !(await B.evaluate(editorHas(offWord))));
         const offNote = `${tag}-offline-note`;
@@ -588,11 +613,21 @@ test(
         await wf(A, ON_ENTRY, 5000);
         const NOFF = idFromPath(await A.evaluate("location.pathname"));
         made.push(NOFF);
-        await sleep(500);
+        // Its text is written to the device (a burst) before leaving the page.
+        await wf(
+          A,
+          `${localRows("SELECT count(*) AS n FROM note_update WHERE document_id = ?", [NOFF])}.then((r) => r[0].n > 0)`,
+          5000,
+        );
         await toTimeline(A);
         await wf(A, `${rowOf(NOFF)}?.textContent.includes(${JSON.stringify(offNote)})`, 10_000);
         await check("offline: the new note's row shows its unsynced text", true);
-        await sleep(1500);
+        // Still queued on the device, so it can't be on the server.
+        await wf(
+          A,
+          `${localRows("SELECT count(*) AS n FROM ps_crud WHERE data LIKE ?", [`%${NOFF}%`])}.then((r) => r[0].n > 0)`,
+          5000,
+        );
         await check(
           "offline: not on the server yet",
           psql(`SELECT count(*) FROM timeline_entry WHERE id = '${NOFF}'`) === "0",
@@ -707,14 +742,25 @@ test(
         await tap(A, `${CHIP_DIALOG}.querySelector('input[type=checkbox]')`);
         await press(A, button("Done"));
         await wf(A, `!${CHIP_DIALOG}`, 5000);
-        await sleep(1500);
+        // Both written to the device's copy, and queued (offline, they stay queued).
+        await wf(
+          A,
+          `${localRows("SELECT count(*) AS n FROM timeline_entry WHERE id = ? AND place = ? AND all_day = 1", [E1, offPlace])}.then((r) => r[0].n === 1)`,
+          5000,
+        );
+        // …and the page shows them once its live query has the row.
+        const shown = await waits(
+          A,
+          `${PLACE}.value === ${JSON.stringify(offPlace)} && /All day/.test(${HEADER_TEXT})`,
+          5000,
+        );
+        const server = psql(
+          `SELECT (place IS NULL AND NOT all_day)::text FROM timeline_entry WHERE id = '${E1}'`,
+        );
         await check(
           "offline: the place and all day show locally, not on the server yet",
-          (await A.evaluate(
-            `${PLACE}.value === ${JSON.stringify(offPlace)} && /All day/.test(${HEADER_TEXT})`,
-          )) &&
-            psql(`SELECT (place IS NULL AND NOT all_day)::text FROM timeline_entry WHERE id = '${E1}'`) ===
-              "true",
+          shown && server === "true",
+          `shown ${shown}, ${await A.evaluate(HEADER_TEXT)}; server ${server}`,
         );
         dA.offline(false);
         const reached = await waitForSql(

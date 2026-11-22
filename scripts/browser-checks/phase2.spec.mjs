@@ -3,13 +3,14 @@
 // arrives by sync; a provider linked on the server (as another device's
 // upload would be) shows on its row without a reload and goes when it's
 // unlinked; and offline (a cut proxy: Playwright's `setOffline` doesn't cut
-// PowerSync's stream) the timeline still filters, then on reconnecting an
-// entry written elsewhere meanwhile arrives.
+// PowerSync's stream) an entry written elsewhere doesn't arrive until the
+// device reconnects, then shows without a reload.
 //
 // Everything else the timeline does (filters by kind, author and vital type,
 // row taps by role, More and Less, the ⋯ menu, day headings, the wide layout,
 // the author tooltip, the strips, pass logs, infinite scroll, Live now and the
-// live dot) is component tests on the test device, beside the route:
+// live dot) is component tests on the test device, which has no server, so
+// they all run offline too, beside the route:
 // apps/web/app/routes/app/groups/timeline/timeline*.browser.test.tsx.
 //
 // Order-independent: it tags what it writes and deletes it at the end. The
@@ -125,9 +126,9 @@ test(
   },
 );
 
-// Offline, then reconnect: with the proxy cut, a kind filter still works
-// (in-app, from the device); an entry written on the server meanwhile doesn't
-// arrive until the connection is back, then shows without a reload.
+// Offline, then reconnect: with the proxy cut, an entry written on the server
+// meanwhile doesn't arrive until the connection is back, then shows without a
+// reload. (Filtering offline is timelineFilters.browser.test.tsx's.)
 test("offline, then reconnect", async ({ device }) => {
   const d = await device("member", { offlineable: true });
   const { page } = d;
@@ -142,27 +143,25 @@ test("offline, then reconnect", async ({ device }) => {
   d.offline(true);
   let id = "";
   try {
-    await waits(page, `!window.caretookSync.powersync.currentStatus.connected`, 20_000);
+    await test.step("offline: PowerSync's stream is cut", async () => {
+      expect(await waits(page, `!window.caretookSync.powersync.currentStatus.connected`, 20_000)).toBe(true);
+    });
     const caretaker = psql(`SELECT id FROM "user" WHERE email = 'caretaker@example.com'`);
     id = psql(
       `INSERT INTO timeline_entry (group_id, recipient_id, kind, occurred_at, time_zone, details, created_by, updated_by)
        SELECT group_id, id, 'symptom', now(), '${TZ}', '{"name": "${tag}", "severity": 2}'::jsonb, '${caretaker}', '${caretaker}'
        FROM care_recipient WHERE group_id = '${DEV_FAMILY}' RETURNING id`,
     );
-    // The kind chips are in the Filter button's sheet.
-    await page.locator("button[data-filter-button]").click();
-    await page.locator('nav[aria-label="Show entries"] a', { hasText: /^Symptoms$/ }).click();
-    await page.waitForURL(/\?kind=symptom$/);
-    await page.getByRole("button", { name: "Done" }).click();
-
-    await test.step("offline: the kind filter works from the device, and the entry written elsewhere hasn't arrived", async () => {
-      const filtered = await waits(
-        page,
-        `location.search === "?kind=symptom" && ${rows} > 0 && [...new Set([...document.querySelectorAll("ol > li:not([data-marker])")].map((li) => li.querySelector(".sr-only")?.textContent))].join() === "Symptom: "`,
-        10_000,
+    // Disconnected, nothing can arrive: no pause to "give it a chance" is needed.
+    await test.step("offline: the entry written elsewhere hasn't arrived", async () => {
+      const local = await page.evaluate(
+        (entry) =>
+          window.caretookSync.powersync
+            .getAll("SELECT count(*) AS n FROM timeline_entry WHERE id = ?", [entry])
+            .then((r) => r[0].n),
+        id,
       );
-      await page.waitForTimeout(2000);
-      expect(filtered, await page.evaluate("location.search")).toBe(true);
+      expect(local).toBe(0);
       expect(await page.evaluate(mainHas(tag))).toBe(false);
     });
 

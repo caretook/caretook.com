@@ -12,6 +12,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
+| `agent-autonomy` | — | — | `scripts/loops/` | Agents decide and coordinate on their own: default answers, quiet-machine landing checks, a flake rule, a notice board. To write. |
 | `orchestration` | done | — | — | [PRD](orchestration-prd.md), [plan](orchestration-plan.md): **done** (`94e6b80`) |
 | `live-notes-ux` | done | — | — | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): **done** |
 | `quick-fixes` | done | — | — | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–46 in `dev` (44–46: B-135, B-134, B-157 in `2d57e70`); wave 13 (slices 47–51: B-184 to B-190) in `dev` (`bf0891df`); wave 14 (slices 52–57: B-192, B-198, B-201, B-191, B-174, B-175) in `dev`; wave 15 (B-180, B-182, B-225, B-211) in `dev` (`2152bbed`; B-207 landed as hotfix `fc373a34`); wave 16 (B-228, B-230, B-232 to B-235, B-237, B-238) in `dev` (`5a47c18f`, PR #20); the next wave is **running**; new fixes append as the next slice · Hot files: varies by slice; none now |
@@ -125,8 +126,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-275 | chore | in-progress | test-health | prd/test-health | Component tests: one waitUntil in test/found.ts with one central timeout; no per-call milliseconds (lint rule) |
 | B-276 | chore | in-progress | test-health | prd/test-health | Component tests: a retrying getByCss locator and world helpers that return locators, with lint rules against non-null reads in expect and userEvent calls and against fixed sleeps |
 | B-281 | chore | triaged | test-health |  | Component tests: cut duplicates and brittle layout assertions; frame, harness and primitive tests use a probe route, not the timeline |
-| B-282 | chore | ready | test-health | prd/test-health | Playwright specs: move one-device and no-browser steps out (marketing first), remove fixed sleeps, merge signout-wipe into session-end |
-| B-283 | chore | in-progress | test-health | prd/test-health | Server tests: shared fixtures (createWorld, a sync and MCP test helper) and trim rules re-tested through sync upload and the connector; first move the member matrix and condition refusals down to the data layer |
+| B-282 | chore | landed | test-health | prd/test-health | Playwright specs: move one-device and no-browser steps out (marketing first), remove fixed sleeps, merge signout-wipe into session-end |
+| B-283 | chore | ready | test-health | prd/test-health | Server tests: shared fixtures (createWorld, a sync and MCP test helper) and trim rules re-tested through sync upload and the connector; first move the member matrix and condition refusals down to the data layer |
 | B-285 | bug | triaged | sync-safety |  | Server-refused sync changes vanish with only a console.warn: keep refused ops in a local table and show them with the server's reason |
 | B-286 | bug | triaged | sync-safety |  | A repeatable 5xx from sync.upload blocks a device's upload queue forever: no retry cap, and the sync indicator never shows uploadError or the queue length |
 | B-287 | bug | triaged | sync-safety |  | Offline medication and provider edits re-send unchanged JSON columns (schedule, phones), reverting a co-member's newer change |
@@ -235,7 +236,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-421 | bug | triaged | fixes-ui |  | type pill on medication list items should float right. |
 | B-422 | feature | triaged | fixes-ui |  | In providers list page, contact links in rows make it too hard to know what to click. Make those… |
 | B-423 | feature | landed | ui-kit-2 | prd/ui-kit-2 | Standardize on single Button design component. Can have options like primary, secondary, danger,… |
-| B-424 | feature | triaged | ui-kit-2 |  | medications page should have passes as a tab, not in header. + button should be a dropdown with add… |
+| B-424 | feature | in-progress | ui-kit-2 | prd/ui-kit-2 | medications page should have passes as a tab, not in header. + button should be a dropdown with add… |
 | B-425 | feature | triaged | inbox-agent |  | An inbox agent: a session that helps the user add, categorize and prioritize inbox items, and writes them by pushing straight to origin/dev instead of committing in the local dev checkout, so it never steps on the user's working copy |
 | B-429 | change | triaged | asks-relay |  | Asks queue hygiene: reports that go stale are re-checked or expire, answered asks are archived, and an ask whose session has died still reaches the user |
 | B-430 | feature | triaged | staging-ship |  | Codex findings on a PRD pull request become backlog items by tool: verified against the code, duplicates noted on the existing item, as B-404 does for the staging PR |
@@ -304,6 +305,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-500 | bug | triaged | fixes-tooling |  | Flaky under load: appointmentSeries.int.test.ts 'writes visits through today + 90 for a series without them' fails in full checks (2 of 7 runs); passes alone |
 | B-501 | bug | triaged | fixes-tooling |  | Flaky under load: recipientCondition.int.test.ts 'refuses viewers, outsiders and staff, and another group's recipient' fails in a full check; passes alone |
 | B-502 | bug | triaged | fixes-tooling |  | Flaky under load: search.int.test.ts 'searches a group of 10,000 entries in under 200 ms' reads 210 ms in a full check; passes alone |
+| B-503 | feature | triaged | agent-autonomy |  | Default on silence: a question filed with a recommended option takes it by itself after a set wait (about 30 min) unless the user answers; the ask records it was defaulted; never for money, data loss, a live deploy or a destructive step |
+| B-504 | feature | triaged | agent-autonomy |  | Quiet-machine landing check: a landing's full check can claim the machine; the dispatcher and other orchestrators hold new slice starts and checks until it ends or a time limit passes; waiting landings take turns |
+| B-505 | feature | triaged | agent-autonomy |  | Flake rule replaces asking: when every failing test in a full check passes alone 3/3, rerun only the failed files on a quiet machine; if they pass, land and file each flaky test as a fixes-tooling item, with no question to the user |
+| B-506 | feature | triaged | agent-autonomy |  | Shared notice board: a short list in .loops/ every orchestrator reads at each step and writes heads-ups to (landing now, hold full checks until a time; touching a hot file, sync first); entries expire |
+| B-507 | feature | triaged | agent-autonomy |  | Context hook: a Claude Code hook on orchestrator and loop sessions reads the transcript's latest context size after each tool call and, over 160k, tells the agent to finish its step, commit Status and pnpm prd rotate |
+| B-508 | feature | triaged | agent-autonomy |  | pnpm prd status shows each live session's context size; the dispatcher nudges a session still over the limit after its reminder, then files an ask |
+| B-509 | change | triaged | agent-autonomy |  | Orchestrator rule: over 160k context, rotate at the next safe point, mid-wave included, without asking; continue only for a step that can't resume from Status (a landing under way), saying why in Status |
 
 ## Items
 
@@ -621,7 +629,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-282 · chore · Playwright specs: move one-device and no-browser steps out (marketing first), remove fixed sleeps, merge signout-wipe into session-end
 
-- status: ready
+- status: landed
 - prd: test-health
 - owner: prd/test-health
 - commit: 856602af
@@ -633,10 +641,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-283 · chore · Server tests: shared fixtures (createWorld, a sync and MCP test helper) and trim rules re-tested through sync upload and the connector; first move the member matrix and condition refusals down to the data layer
 
-- status: in-progress
+- status: ready
 - prd: test-health
 - owner: prd/test-health
-- commit:
+- commit: 1ac187ef
 
 - 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). About 700 lines plus about 450 from fixtures (world rebuilt in 13 data files, clientFor copied in 34). Keep every entry-point branch: PATCH immutable, readOnlyTable, done_at mapping, mcp:invalidArguments. Move first: member role matrix (router.int 381-567 is its only owner) and conditionDeleted/conditionNotFound (only via mcpWrites 554-690). syncTodos 99-126 stays.
 - 2026-11-21 (plan/test-health): Planned in plans/test-health-plan.md (19 slices, 7 waves; the plan's Backlog table maps items to slices). Waves 1 to 4 start now; the component cuts and harness migrations (slices 14 to 19) wait for list-filters, planner-2 and ui-kit.
@@ -1714,9 +1722,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-424 · feature · medications page should have passes as a tab, not in header. + button should be a dropdown with add…
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit-2
-- owner:
+- owner: prd/ui-kit-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: medications page should have passes as a tab, not in header. + button should be a dropdown with add selection like other pages. Should probably wait on button component and standardized header add button.
@@ -2364,3 +2372,66 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
+
+### B-503 · feature · Default on silence: a question filed with a recommended option takes it by itself after a set wait (about 30 min) unless the user answers; the ask records it was defaulted; never for money, data loss, a live deploy or a destructive step
+
+- status: triaged
+- prd: agent-autonomy
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): 2026-11-22, the user, after a31 and a33 held test-health and fixes-bug for hours overnight: agents should make their own best choices and coordinate. Overnight a31 (land on passes vs --suite) waited ~6h for the answer it recommended.
+
+### B-504 · feature · Quiet-machine landing check: a landing's full check can claim the machine; the dispatcher and other orchestrators hold new slice starts and checks until it ends or a time limit passes; waiting landings take turns
+
+- status: triaged
+- prd: agent-autonomy
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): 2026-11-22, the user, after a31 and a33 held test-health and fixes-bug for hours overnight: agents should make their own best choices and coordinate. fixes-bug and ui-kit-2 full checks failed each other on load flakes through the night (load 20+ on 10 cores).
+
+### B-505 · feature · Flake rule replaces asking: when every failing test in a full check passes alone 3/3, rerun only the failed files on a quiet machine; if they pass, land and file each flaky test as a fixes-tooling item, with no question to the user
+
+- status: triaged
+- prd: agent-autonomy
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): 2026-11-22, the user, after a31 and a33 held test-health and fixes-bug for hours overnight: agents should make their own best choices and coordinate. fixes-bug wave 2 failed 7 full checks on different load flakes, then asked (a33); the user chose land --force, flakes filed. Changes the orchestrator rule 'never --force unless the user says so' for this case only.
+
+### B-506 · feature · Shared notice board: a short list in .loops/ every orchestrator reads at each step and writes heads-ups to (landing now, hold full checks until a time; touching a hot file, sync first); entries expire
+
+- status: triaged
+- prd: agent-autonomy
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): 2026-11-22, the user, after a31 and a33 held test-health and fixes-bug for hours overnight: agents should make their own best choices and coordinate. For coordination the leases and load gate can't express; no waiting on replies.
+
+### B-507 · feature · Context hook: a Claude Code hook on orchestrator and loop sessions reads the transcript's latest context size after each tool call and, over 160k, tells the agent to finish its step, commit Status and pnpm prd rotate
+
+- status: triaged
+- prd: agent-autonomy
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: watch agent context and hand off past 160k unless there is a very good reason; fixes-bug's orchestrator was at 208k. Context size is readable from the session transcript (last assistant usage: input + cache read + cache creation).
+
+### B-508 · feature · pnpm prd status shows each live session's context size; the dispatcher nudges a session still over the limit after its reminder, then files an ask
+
+- status: triaged
+- prd: agent-autonomy
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: watch agent context and hand off past 160k unless there is a very good reason; fixes-bug's orchestrator was at 208k. Context size is readable from the session transcript (last assistant usage: input + cache read + cache creation).
+
+### B-509 · change · Orchestrator rule: over 160k context, rotate at the next safe point, mid-wave included, without asking; continue only for a step that can't resume from Status (a landing under way), saying why in Status
+
+- status: triaged
+- prd: agent-autonomy
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: watch agent context and hand off past 160k unless there is a very good reason; fixes-bug's orchestrator was at 208k. Context size is readable from the session transcript (last assistant usage: input + cache read + cache creation). The doc line went onto dev the same day; this item folds it into the hook's wording and tests.

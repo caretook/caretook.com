@@ -7,8 +7,8 @@
 apps/web/app/routes/app/groups/settings/calendar/  -
 # Its modules, the device's copy of the owners' switch (detailsAllowed.sync.ts) included: component tests.
 apps/web/app/lib/calendars/              -
-# Settings are forgotten at sign-out (lib/auth/session.ts names signout-wipe).
-apps/web/app/lib/calendars/calendarSettings.ts signout-wipe
+# Settings are forgotten at sign-out (lib/auth/session.ts names session-end).
+apps/web/app/lib/calendars/calendarSettings.ts session-end
 # The feed (slice 5) is server only: its route and door have no screen; the
 # service, handler and procedures are integration tests (packages/api/src/calendars/).
 apps/web/app/routes/api/calendar/        -

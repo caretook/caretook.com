@@ -2,7 +2,7 @@ import type { TimelineEntryCreateInput, TimelineEntryUpsertInput } from "../db";
 
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok } from "../../test/fixtures";
+import { createGroup, createWorld, ok } from "../../test/fixtures";
 import { getDb } from "../db";
 import { timelineEntrySchema } from "../db/schema";
 import { isError } from "../errors";
@@ -25,18 +25,7 @@ const HOUR = 3_600_000;
 const fromNow = (ms: number) => new Date(Date.now() + ms).toISOString();
 
 const setup = async () => {
-  const u = {
-    owner: await createUser("owner"),
-    admin: await createUser("admin"),
-    caretaker: await createUser("caretaker"),
-    viewer: await createUser("viewer"),
-    outsider: await createUser("outsider"),
-  };
-  const { group } = await createGroup(u.owner, [
-    { user: u.admin.user, role: "admin" },
-    { user: u.caretaker.user, role: "caretaker" },
-    { user: u.viewer.user, role: "viewer" },
-  ]);
+  const { u, group } = await createWorld({ extras: ["outsider"] });
   const input = (overrides: Record<string, unknown> = {}) =>
     ({
       groupId: group.id,
