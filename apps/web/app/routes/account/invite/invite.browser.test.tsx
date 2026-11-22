@@ -5,6 +5,7 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { apiCalls, refusal } from "../../../../test/api";
 import { renderWithDevice } from "../../../../test/device";
+import { found } from "../../../../test/found";
 import * as invite from "./route";
 
 // `/invite/:token` (invites.mjs's screen steps 5 to 8, 10 and 11, on the test
@@ -238,8 +239,9 @@ describe("the consent form", () => {
   test("a link: it says a request waits for approval, and the button asks", async () => {
     await open({ "invite.preview": () => linkInvite, ...signedIn("anyone@example.com") });
     await expect.element(page.getByRole("button", { name: "Ask to join" })).toBeVisible();
-    expect(form("accept")!.textContent).toContain("approves each request");
-    expect(form("accept")!.textContent).not.toContain(ATTESTATION_TEXT);
+    const accept = await found(() => form("accept"));
+    expect(accept.textContent).toContain("approves each request");
+    expect(accept.textContent).not.toContain(ATTESTATION_TEXT);
     expect(form("decline")).toBeNull();
   });
 

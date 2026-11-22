@@ -67,14 +67,12 @@ const open = async (state: EventDraft) => {
   await expect.poll(() => device.location()).toBe(NEW_EVENT);
   return device;
 };
-
-const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector<T>(sel);
 const buttonNamed = (name: string) =>
   [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent?.trim() === name);
-const TITLE = () => $<HTMLInputElement>("main header input");
-const HEADER_TIME = () => $<HTMLTimeElement>("main header time");
-const PLACE = () => $<HTMLInputElement>('main [data-region="place"] input');
-const EDITOR = () => $(".ProseMirror");
+const TITLE = () => document.querySelector<HTMLInputElement>("main header input");
+const HEADER_TIME = () => document.querySelector<HTMLTimeElement>("main header time");
+const PLACE = () => document.querySelector<HTMLInputElement>('main [data-region="place"] input');
+const EDITOR = () => document.querySelector<HTMLElement>(".ProseMirror");
 const chipNames = () =>
   [...document.querySelectorAll('main header [data-region="with"] li[data-chip]')].map((li) =>
     li.textContent.trim(),
@@ -113,7 +111,7 @@ describe("the new-event page with a quick entry draft", () => {
     await expect.poll(() => device.location()).toMatch(ON_ENTRY);
     const [event] = await events(device);
     expect(event).toMatchObject({ title: "Dr. Elena Alvarez", all_day: 1, place: ADDRESS });
-    expect(event!.occurred_at).toMatch(/^\d{4}-\d{2}-25T0[78]:00:00/);
+    expect(event?.occurred_at).toMatch(/^\d{4}-\d{2}-25T0[78]:00:00/);
     await expect.poll(() => links(device, event!.id)).toEqual([ALVAREZ.id, LEE.id]);
     await expect.poll(chipNames).toEqual(["Dr. Elena Alvarez", "Dr. Sandra Lee"]);
   });
@@ -121,7 +119,11 @@ describe("the new-event page with a quick entry draft", () => {
   test("a provider removed from the draft isn't linked", async () => {
     const device = await open(draft({ providerIds: [ALVAREZ.id, LEE.id] }));
     await expect.poll(chipNames).toEqual(["Dr. Elena Alvarez", "Dr. Sandra Lee"]);
-    await userEvent.click(await found(() => $('main header button[aria-label="Remove Dr. Sandra Lee"]')));
+    await userEvent.click(
+      await found(() =>
+        document.querySelector<HTMLElement>('main header button[aria-label="Remove Dr. Sandra Lee"]'),
+      ),
+    );
     await expect.poll(chipNames).toEqual(["Dr. Elena Alvarez"]);
     expect(await events(device)).toEqual([]);
     await userEvent.click(await found(EDITOR));
@@ -148,7 +150,7 @@ describe("the new-event page with a quick entry draft", () => {
     await userEvent.keyboard("Checkup");
     await expect.poll(() => device.location()).toMatch(ON_ENTRY);
     const [event] = await events(device);
-    expect(event!.title).toBe("Event");
+    expect(event?.title).toBe("Event");
     await expect.poll(() => links(device, event!.id)).toEqual([LEE.id]);
   });
 });

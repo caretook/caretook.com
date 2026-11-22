@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "vitest";
 import { at, fx, TEST_USER } from "../../../../../test/fixtures";
-import { openTimeline, rowWith, rows, view, waitUntil, world } from "./timelineWorld";
+import { openTimeline, rowWith, rows, view, world } from "./timelineWorld";
+import { waitUntil } from "../../../../../test/found";
 
 // Settings come from the device's cache at once (lib/app-shell/me.ts,
 // B-156); the server's copy arrives in the background, and the open
@@ -28,8 +29,8 @@ describe("settings from the cache, refreshed in the background", () => {
       // The server is slow: the timeline doesn't wait for it.
       api: { "me.get": () => server },
     });
-    await waitUntil(() => rows().length > 0, 4000, "rows");
-    await waitUntil(() => !!rowWith("°F"), 4000, "the temperature in °F");
+    await waitUntil(() => rows().length > 0, "rows");
+    await waitUntil(() => !!rowWith("°F"), "the temperature in °F");
     expect(rowWith("°C")).toBeUndefined();
     expect(view()).toBe("rows");
 
@@ -39,9 +40,11 @@ describe("settings from the cache, refreshed in the background", () => {
       easyMode: "group",
       daySummary: "highlights",
     });
-    await waitUntil(() => !!rowWith("°C"), 4000, "the temperature in °C");
+    await waitUntil(() => !!rowWith("°C"), "the temperature in °C");
     expect(rowWith("°F")).toBeUndefined();
-    await waitUntil(() => view() === "cards", 4000, "the server's layout");
-    expect(JSON.parse(localStorage.getItem(SETTINGS_KEY)!)).toMatchObject({ units: { temperature: "c" } });
+    await waitUntil(() => view() === "cards", "the server's layout");
+    expect(JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "null")).toMatchObject({
+      units: { temperature: "c" },
+    });
   });
 });

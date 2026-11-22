@@ -5,6 +5,7 @@ import { describe, expect, test } from "vitest";
 import { formString } from "~/lib/core/form";
 import { page, userEvent } from "vitest/browser";
 import { adminFx } from "../../../../test/adminFixtures";
+import { found } from "../../../../test/found";
 import { openAdmin, postedForms } from "../adminWorld";
 import * as group from "../group/route";
 import { parseGroupSearch } from "./groupFilters";
@@ -46,7 +47,7 @@ describe("/admin/groups", () => {
     await expect.element(device.screen.getByRole("status")).toHaveTextContent("2 groups.");
     const row = (id: string) => document.querySelector(`[data-group="${id}"]`)!;
     expect(row(ownerless.id).textContent).toContain("For Min Park · 1 member");
-    expect(row(ownerless.id).querySelector("[data-owners]")!.textContent).toBe("No owner");
+    expect(row(ownerless.id).querySelector("[data-owners]")?.textContent).toBe("No owner");
     expect(row(owned.id).textContent).toContain("For June Lindqvist (Grandma June) · 2 members");
     expect(row(owned.id).textContent).toContain("Owner: Pat Lindqvist (pat.lindqvist@example.com)");
 
@@ -118,10 +119,10 @@ describe("a group's staff page", () => {
   test("says it has no owner, shows counts (not content) and links each member to their account", async () => {
     const { device } = await openGroup();
     await expect.element(device.screen.getByRole("heading", { name: "Park Family", level: 1 })).toBeVisible();
-    expect(document.querySelector("[data-no-owner]")!.textContent).toContain(
+    expect((await found(() => document.querySelector("[data-no-owner]"))).textContent).toContain(
       "Make a member an owner, or invite one.",
     );
-    expect(document.querySelector("[data-counts]")!.textContent).toBe("0 entries, 1 provider, 2 medications");
+    expect(document.querySelector("[data-counts]")?.textContent).toBe("0 entries, 1 provider, 2 medications");
     await expect
       .element(device.screen.getByRole("link", { name: "Lee Park (lee.park@example.com)" }))
       .toHaveAttribute("href", `/admin/users/${viewer.userId}`);
@@ -194,6 +195,8 @@ describe("a group's staff page", () => {
     await expect.element(device.screen.getByRole("heading", { name: "Park Family", level: 1 })).toBeVisible();
     expect(document.querySelectorAll("[data-admin-members] button")).toHaveLength(0);
     expect(document.querySelector('[data-admin-form="inviteOwner"]')).toBeNull();
-    expect(document.querySelector("[data-no-owner]")!.textContent).not.toContain("invite one");
+    expect((await found(() => document.querySelector("[data-no-owner]"))).textContent).not.toContain(
+      "invite one",
+    );
   });
 });

@@ -8,6 +8,7 @@ import * as settingsLayout from "../layout/route";
 import * as devices from "./route";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx } from "../../../../../test/fixtures";
+import { found } from "../../../../../test/found";
 import { COPIED, mcpUrl, OFF_NOTE, VIEWER_NOTE } from "../../../../lib/connectors/connectGuide";
 import { OFFLINE_DEVICES } from "./devices";
 
@@ -149,12 +150,12 @@ describe("the Devices page", () => {
 
     const [first, phone, old] = rows();
     expect(first).toMatchObject({ id: "this", current: true, label: "Chrome on macOS", button: null });
-    expect(first!.text).toContain("This device");
+    expect(first?.text).toContain("This device");
     expect(phone).toMatchObject({ id: "phone", current: false, label: "Safari on iPhone" });
-    expect(phone!.text).toMatch(/Last active/);
-    expect(phone!.button).toMatch(/^Sign out Safari on iPhone, last active /);
+    expect(phone?.text).toMatch(/Last active/);
+    expect(phone?.button).toMatch(/^Sign out Safari on iPhone, last active /);
     expect(old).toMatchObject({ id: "old", current: false, label: "Edge on Windows" });
-    expect(old!.button).toMatch(/^Sign out Edge on Windows, last active /);
+    expect(old?.button).toMatch(/^Sign out Edge on Windows, last active /);
     await expect.element(page.getByRole("button", { name: "Sign out everywhere else" })).toBeVisible();
 
     // No session token reaches the page.
@@ -355,8 +356,9 @@ describe("the Devices page's connect guide", () => {
     await open(authServer([THIS], THIS.id, [CLAUDE]), { assistantsOn: true });
     await expect.poll(() => guideUrl()?.value).toBe(MCP_URL);
     const card = assistants().element();
-    expect(card.compareDocumentPosition(guide()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect([...guide()!.querySelectorAll("[data-guide-client] h3")].map((h) => h.textContent)).toEqual([
+    const guideCard = await found(guide);
+    expect(card.compareDocumentPosition(guideCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect([...guideCard.querySelectorAll("[data-guide-client] h3")].map((h) => h.textContent)).toEqual([
       "Claude",
       "ChatGPT",
     ]);

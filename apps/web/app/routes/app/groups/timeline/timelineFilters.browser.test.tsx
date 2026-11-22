@@ -19,8 +19,8 @@ import {
   setView,
   tapAt,
   TIMELINE_URL,
-  waitUntil,
 } from "./timelineWorld";
+import { found, waitUntil } from "../../../../../test/found";
 
 // The timeline's filters on the test device (from phase2.mjs: kindIconFilters,
 // authorFilters and vitalTypeFilters): the kind icon and the author control
@@ -55,12 +55,12 @@ describe("the kind icon", () => {
       const names = rows().map((li) => iconOf(li)?.getAttribute("aria-label") ?? "none");
       expect(names.every((n) => KNOWN.includes(n))).toBe(true);
 
-      await userEvent.click(iconOf(rowOf("Symptom")!));
+      await userEvent.click(await found(() => iconOf(rowOf("Symptom")!)));
       await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=symptom`);
       await expect.poll(rowKinds).toBe("Symptom: ");
       expect(currentChips()).toBe(SYMPTOMS);
 
-      await userEvent.click(kindChip()!);
+      await userEvent.click(await found(kindChip));
       await expect.poll(() => device.location()).toBe(TIMELINE_URL);
       await expect.poll(() => rowKinds().split(",").length).toBeGreaterThan(1);
       expect(currentChips()).toBe("");
@@ -81,7 +81,7 @@ describe("the kind icon", () => {
     await closeFilters();
 
     // A tap elsewhere on the row (its text), not on a link.
-    await tapAt(rowOf("Event")!.querySelector("p")!);
+    await tapAt(() => rowOf("Event")?.querySelector("p"));
     await expect.poll(() => device.location()).toMatch(/\/entries\/[0-9a-f-]{36}$/);
     await userEvent.click(device.screen.getByRole("button", { name: "Go back" }));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=event`);
@@ -106,7 +106,7 @@ describe("the kind icon", () => {
     const device = await openTimeline();
     await waitUntil(() => rows().length > 0);
     await setView("Cards");
-    await userEvent.click(iconOf(rowOf("Symptom")!));
+    await userEvent.click(await found(() => iconOf(rowOf("Symptom")!)));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=symptom`);
     await expect.poll(rowKinds).toBe("Symptom: ");
     expect(currentChips()).toBe(SYMPTOMS);
@@ -130,7 +130,7 @@ describe("the author filter", () => {
       await userEvent.click(samLink());
       await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?author=${SAM.id}`);
       await expect.poll(() => new Set(rows().map((li) => authorOf(li).dataset.author)).size).toBe(1);
-      expect(authorOf(rows()[0]!).dataset.author).toBe(SAM.id);
+      expect(authorOf(await found(() => rows()[0])).dataset.author).toBe(SAM.id);
       expect(currentChips()).toBe(BY_SAM);
       expect(authorChip()?.querySelector("[aria-hidden]")?.textContent?.trim()).toBe("SO");
     },
@@ -144,12 +144,12 @@ describe("the author filter", () => {
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?author=${SAM.id}`);
     expect(vitalsLine()).toBe(vitals); // The Today card's vitals ignore the author filter.
 
-    await userEvent.click(iconOf(rowOf("Symptom")!));
+    await userEvent.click(await found(() => iconOf(rowOf("Symptom")!)));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=symptom&author=${SAM.id}`);
     await expect.poll(rowKinds).toBe("Symptom: ");
     expect(currentChips()).toBe(`${SYMPTOMS},${BY_SAM}`);
 
-    await userEvent.click(authorChip()!);
+    await userEvent.click(await found(authorChip));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=symptom`);
     expect(currentChips()).toBe(SYMPTOMS);
     expect(authorChip()).toBeNull();
@@ -158,14 +158,14 @@ describe("the author filter", () => {
     // Wait for the author to apply: under load, the kind chip's link was read before it did and dropped the author too.
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=symptom&author=${SAM.id}`);
     await device.settle();
-    await userEvent.click(kindChip()!);
+    await userEvent.click(await found(kindChip));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?author=${SAM.id}`);
     expect(currentChips()).toBe(BY_SAM);
     await expect.poll(() => rowKinds().split(",").length).toBeGreaterThan(1);
 
     const count = rows().length;
     await userEvent.click(samLink());
-    await new Promise((r) => setTimeout(r, 300));
+    await device.settle();
     expect(device.location()).toBe(`${TIMELINE_URL}?author=${SAM.id}`);
     expect(rows().length).toBe(count);
   });
@@ -225,7 +225,7 @@ describe("the Filter button and its sheet", () => {
     expect(chipRow()).toBeNull();
     expect(document.querySelector('nav[aria-label="Show entries"]')).toBeNull();
 
-    await userEvent.click(iconOf(rowOf("Note")!));
+    await userEvent.click(await found(() => iconOf(rowOf("Note")!)));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=note`);
     await expect.poll(buttonName).toBe("Filter, 1 on");
     expect(chipRow()?.checkVisibility()).toBe(true);
@@ -248,7 +248,7 @@ describe("the Filter button and its sheet", () => {
     await userEvent.click(typeChip("Blood pressure"));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=vital&vital=bloodPressure`);
     await expect.poll(() => rows().length).toBe(1);
-    expect(rows()[0]!.textContent).toMatch(/BP \d+\/\d+ mmHg/);
+    expect(rows()[0]?.textContent).toMatch(/BP \d+\/\d+ mmHg/);
     expect(typeChip("Blood pressure").getAttribute("aria-current")).toBe("true");
 
     await closeFilters();
@@ -263,7 +263,9 @@ describe("the Filter button and its sheet", () => {
     await waitUntil(() => activeChips().length === 3);
     expect(buttonName()).toBe("Filter, 3 on");
 
-    await userEvent.click(activeChips().find((a) => a.textContent?.trim() === "Blood pressure")!);
+    await userEvent.click(
+      await found(() => activeChips().find((a) => a.textContent?.trim() === "Blood pressure")),
+    );
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=vital&author=${SAM.id}`);
     await expect.poll(buttonName).toBe("Filter, 2 on");
     expect(currentChips()).toBe(`Vitals: clear this filter,${BY_SAM}`);
@@ -296,7 +298,7 @@ describe("the Filter button and its sheet", () => {
     expect(types()).toEqual([]);
 
     await userEvent.keyboard("{Escape}");
-    await waitUntil(() => !document.querySelector('[role="dialog"]'), 4000, "the sheet to close");
+    await waitUntil(() => !document.querySelector('[role="dialog"]'), "the sheet to close");
     await expect.poll(() => document.activeElement).toBe(filterButton());
     expect(buttonName()).toBe("Filter");
     expect(currentChips()).toBe("Matching “reading”: clear the search");
@@ -312,8 +314,8 @@ describe("the Filter button and its sheet", () => {
     expect(filterButton().textContent?.trim()).toBe("");
     expect(badge()).toBeNull();
     const magnifier = document.querySelector<HTMLElement>('button[aria-label="Search entries"]')!;
-    const [m, f] = [magnifier, filterButton()].map((el) => el.getBoundingClientRect());
-    expect([f!.width, f!.height]).toEqual([m!.width, m!.height]);
+    const [m, f] = [magnifier, filterButton()].map((el) => el.getBoundingClientRect()) as [DOMRect, DOMRect];
+    expect([f.width, f.height]).toEqual([m.width, m.height]);
     expect(getComputedStyle(filterButton()).borderRadius).toBe(getComputedStyle(magnifier).borderRadius);
 
     await device.screen.unmount();

@@ -100,7 +100,7 @@ describe("the announcement banner", () => {
     // The server can't be reached: this device's copy.
     await open();
     await expect.poll(bannerText).toBe(SLOW.text);
-    await expect.poll(banner, { timeout: 5_000 }).toBeNull();
+    await expect.poll(banner).toBeNull();
     expect(Date.now()).toBeGreaterThanOrEqual(Date.parse(endsAt));
   });
 

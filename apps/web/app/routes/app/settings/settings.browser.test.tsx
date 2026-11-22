@@ -11,6 +11,7 @@ import * as units from "./units/route";
 import { renderWithDevice } from "../../../../test/device";
 import { found } from "../../../../test/found";
 import { TEST_USER } from "../../../../test/fixtures";
+import { getByCss } from "../../../../test/locators";
 import { setView, TIMELINE_ROUTES, TIMELINE_URL, view, world } from "../groups/timeline/timelineWorld";
 
 // Account settings (ui.mjs's settings steps): Units and Timeline layout as
@@ -141,9 +142,7 @@ describe("the timeline layout: Settings and the timeline's toggle change one pre
   };
   /** The timeline through the header's Caretook link (one group, so /app opens it). */
   const openTimelineFromHeader = async (device: Awaited<ReturnType<typeof openOn>>) => {
-    await userEvent.click(
-      document.querySelector<HTMLAnchorElement>('header [data-region="group"] a[href="/app"]')!,
-    );
+    await userEvent.click(getByCss('header [data-region="group"] a[href="/app"]'));
     await expect.poll(device.location).toBe(TIMELINE_URL);
     await expect.poll(view).toBeDefined();
   };
@@ -180,7 +179,7 @@ describe("the timeline layout: Settings and the timeline's toggle change one pre
     await setView("Rows");
     // Settings opens while the toggle's save is still on its way.
     const opening = openSettings(device);
-    await new Promise((r) => setTimeout(r, 200));
+    await expect.poll(device.location).toBe("/app/settings/timeline");
     expect(server.prefs.timelineView).toBe("cards");
     server.release();
     await opening;

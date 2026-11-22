@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "react-router";
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
 import { found } from "../../../../../test/found";
+import { getByCss } from "../../../../../test/locators";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, newId, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { TIMELINE_ROUTES } from "../timeline/timelineWorld";
@@ -124,6 +125,9 @@ const total = (type: string) =>
   Number(document.querySelector(`section[data-section="${type}"] h2 span:last-child`)?.textContent);
 const result = (type: string, id: string) =>
   document.querySelector<HTMLElement>(`[data-result="${type}"][data-result-id="${id}"]`);
+/** A result's first link: the one its row opens. */
+const resultLink = (type: string, id: string) =>
+  getByCss(`[data-result="${type}"][data-result-id="${id}"] a`).first();
 const recent = () =>
   [...document.querySelectorAll<HTMLElement>("[data-recent-search]")].map((a) => a.dataset.recentSearch);
 const tips = () => !!document.querySelector("[data-search-tips]");
@@ -172,7 +176,7 @@ describe("the header's magnifier", () => {
         const link = device.screen.getByRole("link", { name: "Search this care group" });
         await expect.element(link, { message: path }).toBeVisible();
         expect(link.element().getAttribute("href")).toBe(searchUrl());
-        expect(document.querySelector("header")!.getBoundingClientRect().height).toBeLessThanOrEqual(64);
+        expect(document.querySelector("header")?.getBoundingClientRect().height).toBeLessThanOrEqual(64);
         await device.screen.unmount();
       }
       const device = await renderWithDevice({
@@ -197,7 +201,7 @@ describe("results", () => {
     expect(device.location()).toBe(searchUrl("?q=lisinopril"));
     const before = resultIds("entry");
 
-    await userEvent.click(result("medication", lisinopril.id)!.querySelector("a")!);
+    await userEvent.click(resultLink("medication", lisinopril.id));
     await expect.poll(() => device.location()).toBe(`/app/groups/${G}/medications/${lisinopril.id}`);
     await userEvent.click(device.screen.getByRole("button", { name: "Go back" }));
     await showing("lisinopril");
@@ -217,7 +221,7 @@ describe("results", () => {
     const past = result("provider", pastProvider.id)!;
     expect(past.hasAttribute("data-past")).toBe(true);
     expect(past.querySelector("[data-marker]")?.textContent).toBe("Past");
-    await userEvent.click(past.querySelector("a")!);
+    await userEvent.click(resultLink("provider", pastProvider.id));
     await expect.poll(() => device.location()).toBe(`/app/groups/${G}/providers/${pastProvider.id}`);
     await userEvent.click(device.screen.getByRole("button", { name: "Go back" }));
     await showing('"ivo brandt"');
@@ -233,7 +237,7 @@ describe("results", () => {
     await searchFor("knee");
     const row = result("entry", knee.id)!;
     expect(row.dataset.opens).toBe("sheet");
-    await userEvent.click(row.querySelector("a")!);
+    await userEvent.click(resultLink("entry", knee.id));
     await expect.poll(() => device.location()).toMatch(new RegExp(`/timeline/${knee.id}/edit`));
     await expect.element(device.screen.getByRole("dialog")).toBeVisible();
     await userEvent.keyboard("{Escape}");
@@ -244,7 +248,7 @@ describe("results", () => {
     await searchFor("cardiology");
     const event = result("entry", visit.id)!;
     expect(event.dataset.opens).toBe("page");
-    await userEvent.click(event.querySelector("a")!);
+    await userEvent.click(resultLink("entry", visit.id));
     await expect.poll(() => device.location()).toBe(`/app/groups/${G}/entries/${visit.id}`);
   });
 
@@ -274,7 +278,7 @@ describe("results", () => {
     await open("?q=knee", { role: "viewer" });
     await showing("knee");
     expect(result("entry", knee.id)?.dataset.opens).toBe("none");
-    expect(result("entry", knee.id)!.querySelector("a")).toBeNull();
+    await expect.element(resultLink("entry", knee.id)).not.toBeInTheDocument();
     await searchFor("lisinopril");
     expect(resultIds("medication")).toEqual([lisinopril.id]);
   });
@@ -320,7 +324,7 @@ describe("recent searches", () => {
     // Opening a result saves its search too (the field may not have been left).
     field().focus();
     await searchFor("metformin");
-    await userEvent.click(result("medication", metformin.id)!.querySelector("a")!);
+    await userEvent.click(resultLink("medication", metformin.id));
     await expect.poll(() => device.location()).toBe(`/app/groups/${G}/medications/${metformin.id}`);
     await userEvent.click(device.screen.getByRole("button", { name: "Go back" }));
     await showing("metformin");
@@ -371,15 +375,15 @@ describe("within a care period", () => {
     expect(resultIds("entry").length).toBe(5);
     const options = [...select().options].map((o) => [o.value, o.textContent]);
     expect(options[0]).toEqual(["", "Any time"]);
-    expect(options[1]![0]).toBe(home.id);
-    expect(options.find(([v]) => v === rehab.id)![1]).toMatch(
+    expect(options[1]?.[0]).toBe(home.id);
+    expect(options.find(([v]) => v === rehab.id)?.[1]).toMatch(
       /^Rehab at Oak Hills Rehab · \w{3} \d+ – \w{3} \d+$/,
     );
 
     await userEvent.selectOptions(select(), rehab.id);
     await expect.poll(() => sorted(resultIds("entry"))).toBe(tagged.inrehab.id);
     expect(device.location()).toBe(searchUrl(`?q=ankle&period=${rehab.id}`));
-    expect(document.querySelector("[data-see-timeline]")!.getAttribute("href")).toContain(
+    expect(document.querySelector("[data-see-timeline]")?.getAttribute("href")).toContain(
       `period=${rehab.id}`,
     );
     await device.screen.unmount();

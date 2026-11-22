@@ -2,7 +2,8 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, condition, fx, TEST_GROUP } from "../../../../../test/fixtures";
-import { waitUntil } from "../timeline/timelineWorld";
+import { waitUntil } from "../../../../../test/found";
+import { getByCss } from "../../../../../test/locators";
 import * as search from "./route";
 
 // The easy roles' read-only sheet over search (EasyResultSheet) reads the
@@ -30,15 +31,8 @@ const open = () =>
 const sheet = () => document.querySelector<HTMLElement>("[role=dialog] [data-easy-sheet]");
 const dialogText = () => document.querySelector<HTMLElement>("[role=dialog]")?.textContent ?? "";
 const openSheet = async (type: string) => {
-  await waitUntil(
-    () => !!document.querySelector(`[data-result="${type}"] button[data-opens-sheet]`),
-    4000,
-    `the ${type} result`,
-  );
-  await userEvent.click(
-    document.querySelector<HTMLButtonElement>(`[data-result="${type}"] button[data-opens-sheet]`)!,
-  );
-  await waitUntil(() => sheet()?.dataset.easySheet === type, 4000, `the ${type}'s sheet`);
+  await userEvent.click(getByCss(`[data-result="${type}"] button[data-opens-sheet]`));
+  await waitUntil(() => sheet()?.dataset.easySheet === type, `the ${type}'s sheet`);
 };
 const fact = (line: string) => sheet()?.querySelector(`[data-easy-fact="${line}"]`)?.textContent ?? "";
 
@@ -55,7 +49,7 @@ describe("an open easy sheet", () => {
     await device.settle();
     await expect.poll(dialogText).toContain("555-0199");
     expect(dialogText()).toContain("Dr. Mira Wren");
-    expect(sheet()!.hasAttribute("data-gone")).toBe(false);
+    expect(sheet()?.hasAttribute("data-gone")).toBe(false);
 
     await device.sync([fx.provider({ ...LARK_VALUES, id: LARK.id, deletedAt: at() })]);
     await device.settle();
@@ -63,7 +57,7 @@ describe("an open easy sheet", () => {
     expect(dialogText()).toContain("Provider removed");
     expect(dialogText()).not.toContain("555-0100");
     await userEvent.click(page.getByRole("button", { name: "Done" }));
-    await waitUntil(() => !sheet(), 4000, "the sheet closing");
+    await waitUntil(() => !sheet(), "the sheet closing");
   });
 
   test("shows a medication's synced dose change, then gone when it leaves the device", async () => {

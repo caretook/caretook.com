@@ -3,21 +3,21 @@ import type { DoseRow } from "./medicationWorld";
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { fixClock, found } from "../../../../../test/found";
+import { getByCss } from "../../../../../test/locators";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, medicationPass } from "../../../../../test/fixtures";
 import { clearUndo } from "~/lib/medications/passUndo";
 import {
-  $,
   clockAt,
   clockMoment,
   DOSES_SQL,
-  fixClock,
   SCHEDULE,
   MEDICATION_ROUTES,
   menuItem,
   OPEN_DIALOG,
   dialogButton,
+  CLOCK,
 } from "./medicationWorld";
 
 // Today on the Schedule tab (medications.mjs's Today, pass
@@ -66,14 +66,14 @@ const YB = inPass("Yb", ROUNDS.id);
 const ZC = inPass("Zc", ROUNDS.id);
 const WD = inPass("Wd", ROUND_2.id);
 
-const TODAY = () => $("main [data-today]");
+const TODAY = () => document.querySelector<HTMLElement>("main [data-today]");
 const slot = (medicationId: string, time: string, root = TODAY()) =>
   root?.querySelector<HTMLElement>(`[data-slot="${medicationId}@${time}"]`) ?? null;
 const slotState = (medicationId: string, time: string, root = TODAY()) =>
   slot(medicationId, time, root)?.querySelector<HTMLElement>("[data-slot-state]")?.dataset.slotState ?? null;
 const card = (passId: string) => TODAY()?.querySelector<HTMLElement>(`[data-pass="pass:${passId}"]`) ?? null;
 const cardState = (passId: string) => card(passId)?.dataset.passState ?? null;
-const UNDO = () => $("[data-pass-undo-label]")?.textContent?.trim() ?? null;
+const UNDO = () => document.querySelector<HTMLElement>("[data-pass-undo-label]")?.textContent?.trim() ?? null;
 
 /** The list with Today on it (`useDueDoses` answers a moment after the first paint). */
 const open = async (fixtures: Fixture[], role: "owner" | "caretaker" | "viewer" = "caretaker") => {
@@ -91,12 +91,14 @@ const doses = async (device: { query: <T>(sql: string) => Promise<T[]> }) => dev
 
 /** Open a slot's ⋯, choose Skipped… or Refused…, type a note and confirm. */
 const mark = async (row: HTMLElement, item: "Skipped…" | "Refused…", note: string) => {
-  await userEvent.click(row.querySelector('[aria-label^="More for"]')!);
+  await userEvent.click(await found(() => row.querySelector('[aria-label^="More for"]')));
   await expect.poll(() => menuItem(item)).toBeTruthy();
-  await userEvent.click(menuItem(item)!);
+  await userEvent.click(await found(() => menuItem(item)));
   await expect.poll(() => OPEN_DIALOG()?.querySelector("textarea")).toBeTruthy();
   await userEvent.type(await found(() => OPEN_DIALOG()?.querySelector("textarea")), note);
-  await userEvent.click(dialogButton(item === "Skipped…" ? "Mark skipped" : "Mark refused")!);
+  await userEvent.click(
+    await found(() => dialogButton(item === "Skipped…" ? "Mark skipped" : "Mark refused")),
+  );
 };
 
 const expand = async (passId: string) => {
@@ -106,7 +108,7 @@ const expand = async (passId: string) => {
 };
 
 beforeEach(() => {
-  fixClock();
+  fixClock(CLOCK);
 });
 afterEach(() => {
   clearUndo();
@@ -119,8 +121,8 @@ describe("times of their own", () => {
     expect(slotState(DONEPEZIL.id, T1)).toBe("due");
     expect(slotState(DONEPEZIL.id, T2)).toBe("due");
     await expect.poll(() => TODAY()?.textContent).not.toContain("Times are");
-    await userEvent.click(slot(DONEPEZIL.id, T1)!.querySelector("[data-give]")!);
-    await expect.poll(() => slotState(DONEPEZIL.id, T1), { timeout: 5000 }).toBe("given");
+    await userEvent.click(await found(() => slot(DONEPEZIL.id, T1)?.querySelector("[data-give]")));
+    await expect.poll(() => slotState(DONEPEZIL.id, T1)).toBe("given");
     expect(slotState(DONEPEZIL.id, T2)).toBe("due");
     expect(await doses(device)).toMatchObject([
       { medicationId: DONEPEZIL.id, status: "given", amount: "1 tablet", scheduledFor: T1 },
@@ -132,7 +134,7 @@ describe("times of their own", () => {
   test("Skipped… asks for a note, then marks the slot skipped with it", async () => {
     const device = await open([DONEPEZIL]);
     await mark(slot(DONEPEZIL.id, T2)!, "Skipped…", "Asleep");
-    await expect.poll(() => slotState(DONEPEZIL.id, T2), { timeout: 5000 }).toBe("skipped");
+    await expect.poll(() => slotState(DONEPEZIL.id, T2)).toBe("skipped");
     await expect.poll(() => OPEN_DIALOG()).toBeNull();
     expect(await doses(device)).toMatchObject([
       { medicationId: DONEPEZIL.id, status: "skipped", scheduledFor: T2, note: "Asleep", amount: null },
@@ -167,13 +169,13 @@ describe("as needed", () => {
     const device = await open([ONDANSETRON]);
     const row = () => TODAY()!.querySelector<HTMLElement>(`[data-as-needed="${ONDANSETRON.id}"]`)!;
     expect(row().textContent).toContain("0 of 1 today");
-    await userEvent.click(row().querySelector("[data-log-as-needed]")!);
-    await expect.poll(() => row().textContent, { timeout: 5000 }).toContain("1 of 1 today");
-    await userEvent.click(row().querySelector("[data-log-as-needed]")!);
+    await userEvent.click(await found(() => row().querySelector("[data-log-as-needed]")));
+    await expect.poll(() => row().textContent).toContain("1 of 1 today");
+    await userEvent.click(await found(() => row().querySelector("[data-log-as-needed]")));
     await expect.poll(() => OPEN_DIALOG()?.textContent ?? "").toContain("1 of 1 already given today");
     expect(await doses(device)).toHaveLength(1);
-    await userEvent.click(dialogButton("Log anyway")!);
-    await expect.poll(() => row().textContent, { timeout: 5000 }).toContain("2 of 1 today");
+    await userEvent.click(await found(() => dialogButton("Log anyway")));
+    await expect.poll(() => row().textContent).toContain("2 of 1 today");
     expect(await doses(device)).toMatchObject([
       { medicationId: ONDANSETRON.id, status: "given", amount: "1 tablet" },
       { medicationId: ONDANSETRON.id, status: "given", amount: "1 tablet" },
@@ -187,19 +189,19 @@ describe("passes", () => {
   test("Today groups by pass: its name, Due and Given all for writers; a slot in it shows the pass's amount", async () => {
     await open(passWorld);
     expect(cardState(ROUNDS.id)).toBe("due");
-    expect(card(ROUNDS.id)!.querySelector("[data-pass-name]")?.textContent).toBe("Rounds");
-    expect(card(ROUNDS.id)!.querySelector("[data-pass-badge]")?.textContent).toBe("Due");
-    expect(card(ROUNDS.id)!.querySelector("[data-given-all]")).toBeTruthy();
+    expect(card(ROUNDS.id)?.querySelector("[data-pass-name]")?.textContent).toBe("Rounds");
+    expect(card(ROUNDS.id)?.querySelector("[data-pass-badge]")?.textContent).toBe("Due");
+    expect(card(ROUNDS.id)?.querySelector("[data-given-all]")).toBeTruthy();
     await expand(ROUNDS.id);
-    expect(slot(XA.id, R1, card(ROUNDS.id))!.textContent).toContain("2 tablets");
-    expect(slot(YB.id, R1, card(ROUNDS.id))!.textContent).not.toContain("2 tablets");
+    expect(slot(XA.id, R1, card(ROUNDS.id))?.textContent).toContain("2 tablets");
+    expect(slot(YB.id, R1, card(ROUNDS.id))?.textContent).not.toContain("2 tablets");
   });
 
   test("a pass slot's Given logs the dose with its pass and amount; once the pass moves, that dose still answers its slot", async () => {
     const device = await open([ROUNDS, XA]);
     await expand(ROUNDS.id);
-    await userEvent.click(slot(XA.id, R1)!.querySelector("[data-give]")!);
-    await expect.poll(() => slotState(XA.id, R1), { timeout: 5000 }).toBe("given");
+    await userEvent.click(await found(() => slot(XA.id, R1)?.querySelector("[data-give]")));
+    await expect.poll(() => slotState(XA.id, R1)).toBe("given");
     expect(await doses(device)).toMatchObject([
       { medicationId: XA.id, passId: ROUNDS.id, amount: "2 tablets", scheduledFor: R1 },
     ]);
@@ -214,38 +216,38 @@ describe("passes", () => {
 
   test("Given all logs every open medication in one round with each slot's amount, offers Undo; Undo removes exactly those doses", async () => {
     const device = await open(passWorld);
-    await userEvent.click(card(ROUNDS.id)!.querySelector("[data-given-all]")!);
-    await expect.poll(() => cardState(ROUNDS.id), { timeout: 5000 }).toBe("done");
+    await userEvent.click(await found(() => card(ROUNDS.id)?.querySelector("[data-given-all]")));
+    await expect.poll(() => cardState(ROUNDS.id)).toBe("done");
     await expect.poll(UNDO).toBe("Rounds logged");
     const logged = await doses(device);
     expect(logged.map((d) => d.medicationId).sort()).toEqual([XA.id, YB.id, ZC.id].sort());
     expect(new Set(logged.map((d) => d.passLogId)).size).toBe(1);
-    expect(logged[0]!.passLogId).toBeTruthy();
+    expect(logged[0]?.passLogId).toBeTruthy();
     expect(logged.find((d) => d.medicationId === XA.id)?.amount).toBe("2 tablets");
     expect(logged.every((d) => d.passId === ROUNDS.id && d.status === "given")).toBe(true);
     // The other pass is untouched.
     expect(cardState(ROUND_2.id)).toBe("due");
 
-    await userEvent.click($("[data-pass-undo-button]")!);
-    await expect.poll(() => cardState(ROUNDS.id), { timeout: 5000 }).toBe("due");
+    await userEvent.click(getByCss("[data-pass-undo-button]"));
+    await expect.poll(() => cardState(ROUNDS.id)).toBe("due");
     await expect.poll(UNDO).toBeNull();
-    expect(card(ROUNDS.id)!.hasAttribute("data-pass-partly")).toBe(false);
+    expect(card(ROUNDS.id)?.hasAttribute("data-pass-partly")).toBe(false);
     expect(await doses(device)).toHaveLength(0);
     // Soft deletes: the three rows stay, deleted.
     const all = await device.query<{ n: number }>(
       "SELECT count(*) AS n FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NOT NULL",
     );
-    expect(all[0]!.n).toBe(3);
+    expect(all[0]?.n).toBe(3);
   });
 
   test("Refused… in a pass, and a dose from another device with who logged it; Given all then logs only what's open, in the same round", async () => {
     const device = await open(passWorld);
     await expand(ROUNDS.id);
     await mark(slot(YB.id, R1)!, "Refused…", "Spat it out");
-    await expect.poll(() => slotState(YB.id, R1), { timeout: 5000 }).toBe("refused");
+    await expect.poll(() => slotState(YB.id, R1)).toBe("refused");
     const [refused] = await doses(device);
     expect(refused).toMatchObject({ status: "refused", note: "Spat it out", passId: ROUNDS.id });
-    expect(refused!.passLogId).toBeTruthy();
+    expect(refused?.passLogId).toBeTruthy();
 
     // Sam gives Xa on his phone, in the same round.
     await device.sync(
@@ -265,14 +267,14 @@ describe("passes", () => {
     );
     await device.settle();
     expect(slotState(XA.id, R1)).toBe("given");
-    expect(slot(XA.id, R1)!.querySelector("[data-logged-by]")?.textContent).toBe("by Sam Okafor");
+    expect(slot(XA.id, R1)?.querySelector("[data-logged-by]")?.textContent).toBe("by Sam Okafor");
     const summary = card(ROUNDS.id)!.querySelector("[data-pass-summary]")!.textContent;
     expect(summary).toContain("Sam Okafor");
     expect(summary).toContain("logged 2 of 3");
-    expect(card(ROUNDS.id)!.querySelector("[data-pass-badge]")?.textContent).toBe("Due · 1 left");
+    expect(card(ROUNDS.id)?.querySelector("[data-pass-badge]")?.textContent).toBe("Due · 1 left");
 
-    await userEvent.click(card(ROUNDS.id)!.querySelector("[data-given-all]")!);
-    await expect.poll(() => cardState(ROUNDS.id), { timeout: 5000 }).toBe("done");
+    await userEvent.click(await found(() => card(ROUNDS.id)?.querySelector("[data-given-all]")));
+    await expect.poll(() => cardState(ROUNDS.id)).toBe("done");
     const after = await doses(device);
     expect(after.map((d) => [d.medicationId, d.status])).toEqual(
       expect.arrayContaining([
@@ -293,8 +295,8 @@ describe("passes", () => {
     expect(cardState(ROUND_2.id)).toBe("due");
     for (const id of [ROUNDS.id, ROUND_2.id])
       expect(
-        card(id)!.querySelectorAll("[data-given-all], [data-give], [aria-label^='More for']"),
+        card(id)?.querySelectorAll("[data-given-all], [data-give], [aria-label^='More for']"),
       ).toHaveLength(0);
-    expect($("[data-pass-undo]")).toBeNull();
+    expect(document.querySelector<HTMLElement>("[data-pass-undo]")).toBeNull();
   });
 });

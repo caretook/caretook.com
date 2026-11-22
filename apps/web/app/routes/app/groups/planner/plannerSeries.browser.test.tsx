@@ -1,18 +1,22 @@
 import type { Device } from "../../../../../test/device";
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import type { Locator } from "vitest/browser";
+
 import { page, userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { fixClock, found } from "../../../../../test/found";
+import { getByCss } from "../../../../../test/locators";
 import { fx, series } from "../../../../../test/fixtures";
 import {
   dialogButton,
   entryUrl,
-  fixClock,
   itemEl,
   laTime,
   menuItem,
   menuItems,
+  NOW,
   openPlanner,
+  rowActions,
   TIMELINE_URL,
 } from "./plannerWorld";
 
@@ -24,7 +28,6 @@ import {
 // seriesEdit.test.ts's; the upload of a split is syncSeriesEdit.int.test.ts's.
 // The clock is Upcoming's: Wed 2026-11-18, 10:00 AM in Los Angeles.
 
-const ACTIONS = 'button[aria-label^="Actions for"]';
 const ENTRY_MENU = 'main header [data-region="actions"] button[aria-label^="Actions for"]';
 const SCOPE = () => document.querySelector<HTMLDialogElement>("dialog[open][data-series-scope]");
 const SHEET = () => document.querySelector<HTMLFormElement>("[data-series-edit]");
@@ -72,17 +75,17 @@ const ruleOf = async (device: Device, id: string) =>
 const seriesCount = async (device: Device) =>
   (await device.query<{ n: number }>("SELECT COUNT(*) AS n FROM appointment_series"))[0]!.n;
 
-const openMenu = async (button: Element | null | undefined) => {
-  await userEvent.click(button!);
+const openMenu = async (button: Locator) => {
+  await userEvent.click(button);
   await expect.poll(() => menuItems().length).toBeGreaterThan(0);
   return menuItems();
 };
-const rowMenu = async (id: string) => openMenu(await found(() => itemEl(id)?.querySelector(ACTIONS) ?? null));
+const rowMenu = (id: string) => openMenu(rowActions(id));
 /** Pick a menu item, then a choice in the scope dialog. */
 const pick = async (item: string, choice: "Only this visit" | "This and later visits" | "Cancel") => {
-  await userEvent.click(menuItem(item)!);
+  await userEvent.click(menuItem(item));
   await found(SCOPE);
-  await userEvent.click(dialogButton(choice)!);
+  await userEvent.click(dialogButton(choice));
   await expect.poll(SCOPE).toBeNull();
 };
 const confirmReason = async (reason: string) => {
@@ -90,11 +93,11 @@ const confirmReason = async (reason: string) => {
     document.querySelector<HTMLInputElement>("dialog[open] [data-cancel-reason]"),
   );
   await userEvent.fill(input, reason);
-  await userEvent.click(dialogButton("Cancel event")!);
+  await userEvent.click(dialogButton("Cancel event"));
   await expect.poll(() => document.querySelector("dialog[open]")).toBeNull();
 };
 
-beforeEach(() => fixClock());
+beforeEach(() => fixClock(NOW));
 afterEach(() => vi.useRealTimers());
 
 describe("the scope dialog in Upcoming", () => {
@@ -136,22 +139,22 @@ describe("the scope dialog in Upcoming", () => {
       return value;
     };
     const look = (text: string) => {
-      const style = getComputedStyle(dialogButton(text)!);
+      const style = getComputedStyle(dialogButton(text).element());
       return { background: style.backgroundColor, color: style.color };
     };
     await openPlanner({ extra: SERIES });
     await rowMenu(FRI_20.id);
-    await userEvent.click(menuItem("Delete")!);
+    await userEvent.click(menuItem("Delete"));
     const dialog = page.getByRole("dialog", { name: "Delete a repeating appointment" });
     await expect.element(dialog).toBeVisible();
     await expect.element(dialog).toHaveAccessibleDescription(/Delete only this visit/);
     await expect.poll(() => look("Only this visit").background).toBe(token("bg-error", "backgroundColor"));
     expect(look("This and later visits").color).toBe(token("text-error", "color"));
-    await userEvent.click(dialogButton("Cancel")!);
+    await userEvent.click(dialogButton("Cancel"));
     await expect.poll(SCOPE).toBeNull();
 
     await rowMenu(FRI_20.id);
-    await userEvent.click(menuItem("Edit")!);
+    await userEvent.click(menuItem("Edit"));
     await expect.element(page.getByRole("dialog", { name: "Change a repeating appointment" })).toBeVisible();
     await expect.poll(() => look("Only this visit").background).toBe(token("bg-primary", "backgroundColor"));
     expect(look("This and later visits").color).not.toBe(token("text-error", "color"));
@@ -217,9 +220,7 @@ describe("the scope dialog in Upcoming", () => {
     await openPlanner({ extra: SERIES });
     await rowMenu(FRI_20.id);
     await pick("Reschedule", "Only this visit");
-    await expect
-      .poll(() => document.querySelector("[data-reschedule-sheet]"), { timeout: 5000 })
-      .not.toBeNull();
+    await expect.element(getByCss("[data-reschedule-sheet]")).toBeInTheDocument();
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.querySelector("[data-reschedule-sheet]")).toBeNull();
 
@@ -232,15 +233,13 @@ describe("the scope dialog in Upcoming", () => {
     const device = await openPlanner({ extra: SERIES });
     await rowMenu(FRI_20.id);
     await pick("Reschedule", "Only this visit");
-    const sheet = await found(() => document.querySelector<HTMLFormElement>("[data-reschedule-sheet]"), {
-      timeout: 5000,
-    });
-    sheet.querySelector<HTMLElement>('[data-type="day"]')!.focus();
+    const sheet = await found(() => document.querySelector<HTMLFormElement>("[data-reschedule-sheet]"));
+    (await found(() => sheet.querySelector<HTMLElement>('[data-type="day"]'))).focus();
     await userEvent.keyboard("{ArrowUp}");
-    const keep = sheet.querySelector<HTMLInputElement>("[data-keep-old]")!;
+    const keep = await found(() => sheet.querySelector<HTMLInputElement>("[data-keep-old]"));
     if (keep.checked) await userEvent.click(keep);
-    await userEvent.click(sheet.querySelector<HTMLButtonElement>('button[type="submit"]')!);
-    await expect.poll(() => document.querySelector("[data-reschedule-sheet]"), { timeout: 5000 }).toBeNull();
+    await userEvent.click(getByCss('[data-reschedule-sheet] button[type="submit"]'));
+    await expect.poll(() => document.querySelector("[data-reschedule-sheet]")).toBeNull();
     await device.settle();
     const moved = await entry(device, FRI_20.id);
     expect(moved).toMatchObject({ series_id: DIALYSIS.id, series_day: "2026-11-20", series_detached: 1 });
@@ -257,13 +256,13 @@ describe("the scope dialog in Upcoming", () => {
     expect(field("title").value).toBe("Dialysis");
     expect(field("startTime").value).toBe("06:00");
     expect(field("endTime").value).toBe("10:00");
-    expect(sheet.querySelector<HTMLSelectElement>('select[name="repeat"]')!.value).toBe("weekly");
+    expect(sheet.querySelector<HTMLSelectElement>('select[name="repeat"]')?.value).toBe("weekly");
     expect(sheet.querySelector("[data-repeat-text]")?.textContent).toBe("Every Mon, Wed, Fri at 6:00");
 
     await userEvent.fill(field("startTime"), "07:00");
     await userEvent.fill(field("endTime"), "11:00");
-    await userEvent.click([...sheet.querySelectorAll("button")].find((b) => b.textContent === "Save")!);
-    await expect.poll(SHEET, { timeout: 5000 }).toBeNull();
+    await userEvent.click(getByCss("[data-series-edit] button").filter({ hasText: /^Save$/ }));
+    await expect.poll(SHEET).toBeNull();
     await device.settle();
 
     expect(await seriesCount(device)).toBe(2);
@@ -288,13 +287,11 @@ describe("the scope dialog in Upcoming", () => {
 describe("on the timeline", () => {
   test("an upcoming visit's ⋯ asks; one that has started doesn't (the plain confirm)", async () => {
     await openPlanner({ url: TIMELINE_URL, extra: SERIES });
-    const rowOf = (id: string) =>
-      [...document.querySelectorAll<HTMLElement>("main li")].find((li) =>
-        li.querySelector(`a[href$="/entries/${id}"]`),
-      ) ?? null;
-    await openMenu(await found(() => rowOf(WED_18.id)?.querySelector(ACTIONS) ?? null));
+    const rowActions = (id: string) =>
+      getByCss(`main li:has(a[href$="/entries/${id}"]) button[aria-label^="Actions for"]`);
+    await openMenu(rowActions(WED_18.id));
     expect(menuItems()).not.toContain("Edit");
-    await userEvent.click(menuItem("Delete")!);
+    await userEvent.click(menuItem("Delete"));
     await expect
       .poll(() => document.querySelector("dialog[open]")?.textContent ?? "")
       .toContain("Delete this entry?");
@@ -310,14 +307,14 @@ describe("on a visit's page", () => {
     await userEvent.keyboard("{Enter}");
     await found(SCOPE);
     await expect.poll(() => SCOPE()?.textContent).toContain("Change a repeating appointment");
-    await userEvent.click(dialogButton("Cancel")!);
+    await userEvent.click(dialogButton("Cancel"));
     await expect.poll(() => TITLE()?.value).toBe("Dialysis");
     expect(await device.queued()).toEqual([]);
 
-    await userEvent.fill(TITLE()!, "Dialysis, chair 4");
+    await userEvent.fill(await found(TITLE), "Dialysis, chair 4");
     await userEvent.keyboard("{Enter}");
     await found(SCOPE);
-    await userEvent.click(dialogButton("Only this visit")!);
+    await userEvent.click(dialogButton("Only this visit"));
     await device.settle();
     await expect
       .poll(async () => entry(device, FRI_20.id))
@@ -325,7 +322,7 @@ describe("on a visit's page", () => {
     expect((await entry(device, MON_23.id)).title).toBe("Dialysis");
 
     // Detached, its own edits don't ask again.
-    await userEvent.fill(TITLE()!, "Dialysis, chair 5");
+    await userEvent.fill(await found(TITLE), "Dialysis, chair 5");
     await userEvent.keyboard("{Enter}");
     await expect.poll(async () => (await entry(device, FRI_20.id)).title).toBe("Dialysis, chair 5");
     expect(SCOPE()).toBeNull();
@@ -336,7 +333,7 @@ describe("on a visit's page", () => {
     await userEvent.fill(await found(TITLE), "Dialysis, chair 4");
     await userEvent.keyboard("{Enter}");
     await found(SCOPE);
-    await userEvent.click(dialogButton("This and later visits")!);
+    await userEvent.click(dialogButton("This and later visits"));
     await device.settle();
     await expect.poll(async () => (await entry(device, FRI_27.id)).title).toBe("Dialysis, chair 4");
     expect(await entry(device, MON_23.id)).toMatchObject({ title: "Dialysis, chair 4", series_detached: 0 });
@@ -358,9 +355,9 @@ describe("on a visit's page", () => {
 
   test("the page's ⋯: Delete, this and later ends the series and goes back to the timeline", async () => {
     const device = await openPlanner({ url: entryUrl(WED_25.id), extra: SERIES });
-    await openMenu(await found(() => document.querySelector(ENTRY_MENU)));
+    await openMenu(getByCss(ENTRY_MENU));
     await pick("Delete", "This and later visits");
-    await expect.poll(() => device.location(), { timeout: 5000 }).toBe(TIMELINE_URL);
+    await expect.poll(() => device.location()).toBe(TIMELINE_URL);
     expect((await ruleOf(device, DIALYSIS.id)).rule).toBe(
       "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,FR;UNTIL=20261124",
     );
@@ -369,9 +366,6 @@ describe("on a visit's page", () => {
 
   test("a viewer's page asks nothing and offers no Edit", async () => {
     await openPlanner({ url: entryUrl(FRI_20.id), extra: SERIES, role: "viewer" });
-    expect(await openMenu(await found(() => document.querySelector(ENTRY_MENU)))).toEqual([
-      "Remind me",
-      "Print",
-    ]);
+    expect(await openMenu(getByCss(ENTRY_MENU))).toEqual(["Remind me", "Print"]);
   });
 });

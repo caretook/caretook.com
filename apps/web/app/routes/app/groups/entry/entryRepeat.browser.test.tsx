@@ -2,9 +2,9 @@ import type { Device } from "../../../../../test/device";
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { fixClock, found } from "../../../../../test/found";
 import { fx, series, TEST_GROUP } from "../../../../../test/fixtures";
-import { fixClock, laTime, PLANNER_ROUTES } from "../planner/plannerWorld";
+import { laTime, NOW, PLANNER_ROUTES } from "../planner/plannerWorld";
 import { renderWithDevice } from "../../../../../test/device";
 
 // Repeating appointments on the test device (appointments-2,
@@ -23,15 +23,14 @@ const PLANNER = `/app/groups/${GROUP}/planner`;
 const TIMELINE = `/app/groups/${GROUP}/timeline`;
 const entryPath = (id: string) => `/app/groups/${GROUP}/entries/${id}`;
 const ON_ENTRY = /\/entries\/([0-9a-f-]{36})$/;
-
-const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector<T>(sel);
-const REPEAT_BUTTON = () => $<HTMLButtonElement>("main [data-repeat-button]");
-const FIELD = () => $("[data-repeat-field]");
-const PRESET = () => $<HTMLSelectElement>('[data-repeat-field] select[name="repeat"]');
-const PREVIEW_TEXT = () => $("[data-repeat-preview] [data-repeat-text]")?.textContent ?? null;
+const REPEAT_BUTTON = () => document.querySelector<HTMLButtonElement>("main [data-repeat-button]");
+const FIELD = () => document.querySelector<HTMLElement>("[data-repeat-field]");
+const PRESET = () => document.querySelector<HTMLSelectElement>('[data-repeat-field] select[name="repeat"]');
+const PREVIEW_TEXT = () =>
+  document.querySelector<HTMLElement>("[data-repeat-preview] [data-repeat-text]")?.textContent ?? null;
 const PREVIEW_NEXT = () =>
   [...document.querySelectorAll("[data-repeat-next] li")].map((li) => li.textContent);
-const PROBLEM = () => $("[data-repeat-problem]")?.textContent ?? null;
+const PROBLEM = () => document.querySelector<HTMLElement>("[data-repeat-problem]")?.textContent ?? null;
 const sheetButton = (text: string) =>
   [...document.querySelectorAll<HTMLButtonElement>("[role=dialog] button")].find(
     (b) => b.textContent?.trim() === text,
@@ -45,9 +44,10 @@ const pressedDays = () =>
     (b) => b.textContent,
   );
 const radio = (label: string) =>
-  $<HTMLInputElement>(`[data-repeat-field] input[type=radio][aria-label="${label}"]`);
-const TITLE = () => $<HTMLInputElement>("main header input");
-const ENTRY_REPEAT_TEXT = () => $("main header [data-repeat-text]")?.textContent ?? null;
+  document.querySelector<HTMLInputElement>(`[data-repeat-field] input[type=radio][aria-label="${label}"]`);
+const TITLE = () => document.querySelector<HTMLInputElement>("main header input");
+const ENTRY_REPEAT_TEXT = () =>
+  document.querySelector<HTMLElement>("main header [data-repeat-text]")?.textContent ?? null;
 
 const open = (url: string, options: Parameters<typeof renderWithDevice>[0] = {}) =>
   renderWithDevice({ route: PLANNER_ROUTES, url, ...options });
@@ -72,16 +72,16 @@ const visitRows = (device: Device, seriesId: string) =>
     [seriesId],
   );
 
-beforeEach(() => fixClock());
+beforeEach(() => fixClock(NOW));
 afterEach(() => vi.useRealTimers());
 
 describe("the repeat field", () => {
   test("previews each choice in words with the next three visits, and refuses a week with no days", async () => {
     const device = await open(NEW_EVENT);
-    expect(REPEAT_BUTTON()!.getAttribute("aria-label")).toBe("Repeat: Doesn't repeat");
+    expect(REPEAT_BUTTON()?.getAttribute("aria-label")).toBe("Repeat: Doesn't repeat");
     await openRepeat();
     await expect.poll(() => PRESET()?.value).toBe("none");
-    expect($("[data-repeat-preview]")).toBeNull();
+    expect(document.querySelector<HTMLElement>("[data-repeat-preview]")).toBeNull();
 
     await choose("weekly");
     expect(pressedDays()).toEqual(["Wed"]);
@@ -92,8 +92,8 @@ describe("the repeat field", () => {
       "Wed, Dec 2, 10:00 AM",
     ]);
 
-    await userEvent.click(dayChip("Mon")!);
-    await userEvent.click(dayChip("Fri")!);
+    await userEvent.click(await found(() => dayChip("Mon")));
+    await userEvent.click(await found(() => dayChip("Fri")));
     expect(PREVIEW_TEXT()).toBe("Every Mon, Wed, Fri at 10:00");
     expect(PREVIEW_NEXT()).toEqual([
       "Wed, Nov 18, 10:00 AM",
@@ -101,13 +101,13 @@ describe("the repeat field", () => {
       "Mon, Nov 23, 10:00 AM",
     ]);
 
-    for (const day of ["Mon", "Wed", "Fri"]) await userEvent.click(dayChip(day)!);
+    for (const day of ["Mon", "Wed", "Fri"]) await userEvent.click(await found(() => dayChip(day)));
     expect(PROBLEM()).toBe("Choose at least one day");
-    expect(sheetButton("Done")!.getAttribute("aria-disabled")).toBe("true");
+    expect(sheetButton("Done")?.getAttribute("aria-disabled")).toBe("true");
 
     await choose("monthly");
-    expect(radio("On the 18th")!.checked).toBe(true);
-    await userEvent.click(radio("On the 3rd Wednesday")!);
+    expect(radio("On the 18th")?.checked).toBe(true);
+    await userEvent.click(await found(() => radio("On the 3rd Wednesday")));
     expect(PREVIEW_TEXT()).toBe("Monthly on the 3rd Wednesday at 10:00");
     expect(PREVIEW_NEXT()).toEqual([
       "Wed, Nov 18, 10:00 AM",
@@ -116,10 +116,21 @@ describe("the repeat field", () => {
     ]);
 
     await choose("custom");
-    await userEvent.selectOptions($<HTMLSelectElement>('[data-repeat-field] select[name="unit"]')!, "daily");
-    await userEvent.fill($<HTMLInputElement>('[data-repeat-field] input[name="interval"]')!, "3");
-    await userEvent.click(radio("After a number of visits")!);
-    await userEvent.fill($<HTMLInputElement>('[data-repeat-field] input[name="count"]')!, "12");
+    await userEvent.selectOptions(
+      await found(() => document.querySelector<HTMLSelectElement>('[data-repeat-field] select[name="unit"]')),
+      "daily",
+    );
+    await userEvent.fill(
+      await found(() =>
+        document.querySelector<HTMLInputElement>('[data-repeat-field] input[name="interval"]'),
+      ),
+      "3",
+    );
+    await userEvent.click(await found(() => radio("After a number of visits")));
+    await userEvent.fill(
+      await found(() => document.querySelector<HTMLInputElement>('[data-repeat-field] input[name="count"]')),
+      "12",
+    );
     expect(PREVIEW_TEXT()).toBe("Every 3 days at 10:00 · 12 visits");
     expect(PREVIEW_NEXT()).toEqual([
       "Wed, Nov 18, 10:00 AM",
@@ -127,14 +138,17 @@ describe("the repeat field", () => {
       "Tue, Nov 24, 10:00 AM",
     ]);
 
-    await userEvent.click(radio("On a date")!);
-    await userEvent.fill($<HTMLInputElement>('[data-repeat-field] input[name="until"]')!, "2026-11-30");
+    await userEvent.click(await found(() => radio("On a date")));
+    await userEvent.fill(
+      await found(() => document.querySelector<HTMLInputElement>('[data-repeat-field] input[name="until"]')),
+      "2026-11-30",
+    );
     expect(PREVIEW_TEXT()).toBe("Every 3 days at 10:00 · until 30 Nov");
 
     // Cancel keeps the draft as it was: nothing chosen, nothing written.
-    await userEvent.click(sheetButton("Cancel")!);
+    await userEvent.click(await found(() => sheetButton("Cancel")));
     await expect.poll(() => FIELD()).toBeNull();
-    expect(REPEAT_BUTTON()!.getAttribute("aria-label")).toBe("Repeat: Doesn't repeat");
+    expect(REPEAT_BUTTON()?.getAttribute("aria-label")).toBe("Repeat: Doesn't repeat");
     expect(await device.queued()).toEqual([]);
   });
 });
@@ -144,9 +158,9 @@ describe("saving a series", () => {
     const device = await open(NEW_EVENT);
     await openRepeat();
     await choose("weekly");
-    await userEvent.click(dayChip("Mon")!);
-    await userEvent.click(dayChip("Fri")!);
-    await userEvent.click(sheetButton("Done")!);
+    await userEvent.click(await found(() => dayChip("Mon")));
+    await userEvent.click(await found(() => dayChip("Fri")));
+    await userEvent.click(await found(() => sheetButton("Done")));
     await expect
       .poll(() => REPEAT_BUTTON()?.getAttribute("aria-label"))
       .toBe("Repeat: Every Mon, Wed, Fri at 10:00");
@@ -155,10 +169,10 @@ describe("saving a series", () => {
 
     (await found(TITLE)).focus();
     await userEvent.keyboard("Dialysis{Enter}");
-    await expect.poll(() => device.location(), { timeout: 5000 }).toMatch(ON_ENTRY);
+    await expect.poll(() => device.location()).toMatch(ON_ENTRY);
     const entryId = ON_ENTRY.exec(device.location())![1]!;
 
-    await expect.poll(async () => (await seriesRows(device)).length, { timeout: 5000 }).toBe(1);
+    await expect.poll(async () => (await seriesRows(device)).length).toBe(1);
     const [stored] = (await seriesRows(device)) as Record<string, unknown>[];
     expect(stored).toMatchObject({
       kind: "event",
@@ -174,12 +188,12 @@ describe("saving a series", () => {
     expect(visits).toHaveLength(39);
     expect(visits[0]).toMatchObject({ id: entryId, series_day: "2026-11-18", title: "Dialysis" });
     expect(visits.map((v) => v.series_day).slice(1, 4)).toEqual(["2026-11-20", "2026-11-23", "2026-11-25"]);
-    expect(visits.at(-1)!.series_day).toBe("2027-02-15");
+    expect(visits.at(-1)?.series_day).toBe("2027-02-15");
     const docs = await device.query<{ n: number }>(
       "SELECT COUNT(*) AS n FROM note_document WHERE id IN (SELECT id FROM timeline_entry WHERE series_id = ?)",
       [stored!.id],
     );
-    expect(docs[0]!.n).toBe(39);
+    expect(docs[0]?.n).toBe(39);
 
     // The upload queue has the series before its visits.
     const queued = await device.queued();
@@ -197,25 +211,29 @@ describe("saving a series", () => {
     const link = (href: string) => shown(`main a[href="${href}"]`);
     await userEvent.click(await found(link(TIMELINE)));
     // The card starts collapsed on every load: open it to reach its rows.
-    await userEvent.click(await found(() => $('main [data-today-toggle][aria-expanded="false"]')));
+    await userEvent.click(
+      await found(() =>
+        document.querySelector<HTMLElement>('main [data-today-toggle][aria-expanded="false"]'),
+      ),
+    );
     const next = await found(shown("main [data-next]"));
-    expect(next.parentElement!.querySelector("[data-repeat-mark]")).not.toBeNull();
+    expect(next.parentElement?.querySelector("[data-repeat-mark]")).not.toBeNull();
     await userEvent.click(await found(link(PLANNER)));
     await expect.poll(() => device.location()).toBe(PLANNER);
     await expect
-      .poll(() => document.querySelectorAll("main [data-upcoming-item] [data-repeat-mark]").length, {
-        timeout: 5000,
-      })
+      .poll(() => document.querySelectorAll("main [data-upcoming-item] [data-repeat-mark]").length)
       .toBeGreaterThan(10);
-    const fridayRow = $(`main [data-upcoming-item="${visits[1]!.id}"]`)!;
+    const fridayRow = document.querySelector<HTMLElement>(`main [data-upcoming-item="${visits[1]!.id}"]`)!;
     expect(fridayRow.textContent).toContain("Dialysis");
     expect(fridayRow.querySelector("[data-repeat-mark]")).not.toBeNull();
   });
 
   test("a note has no Repeat (a reminder is a todo)", async () => {
-    await open(NEW_NOTE);
-    await found(() => $('main header button[aria-label="Change when it happened"]'));
-    await new Promise((r) => setTimeout(r, 300));
+    const device = await open(NEW_NOTE);
+    await found(() =>
+      document.querySelector<HTMLElement>('main header button[aria-label="Change when it happened"]'),
+    );
+    await device.settle();
     expect(REPEAT_BUTTON()).toBeNull();
   });
 });
@@ -258,12 +276,12 @@ describe("a series visit", () => {
 
   test("carries the mark in the Planner and the Today card; a one-off doesn't", async () => {
     await open(PLANNER, { fixtures: world() });
-    const row = (id: string) => $(`main [data-upcoming-item="${id}"]`);
+    const row = (id: string) => document.querySelector<HTMLElement>(`main [data-upcoming-item="${id}"]`);
     await found(() => row(FRIDAY.id));
-    expect(row(FRIDAY.id)!.querySelector("[data-repeat-mark]")).not.toBeNull();
-    expect(row(MONDAY.id)!.querySelector("[data-repeat-mark]")).not.toBeNull();
-    expect(row(ONE_OFF.id)!.querySelector("[data-repeat-mark]")).toBeNull();
-    expect(row(FRIDAY.id)!.querySelector("[data-repeat-mark]")!.textContent).toBe("Repeats");
+    expect(row(FRIDAY.id)?.querySelector("[data-repeat-mark]")).not.toBeNull();
+    expect(row(MONDAY.id)?.querySelector("[data-repeat-mark]")).not.toBeNull();
+    expect(row(ONE_OFF.id)?.querySelector("[data-repeat-mark]")).toBeNull();
+    expect(row(FRIDAY.id)?.querySelector("[data-repeat-mark]")?.textContent).toBe("Repeats");
   });
 
   test("carries the mark on a timeline row and in the Today card's next appointment", async () => {
@@ -284,7 +302,7 @@ describe("a series visit", () => {
         ) ?? null,
     );
     expect(timelineRow.querySelector("[data-repeat-mark]")).not.toBeNull();
-    const next = await found(() => $(`main [data-next="${FRIDAY.id}"]`));
-    expect(next.parentElement!.querySelector("[data-repeat-mark]")).not.toBeNull();
+    const next = await found(() => document.querySelector<HTMLElement>(`main [data-next="${FRIDAY.id}"]`));
+    expect(next.parentElement?.querySelector("[data-repeat-mark]")).not.toBeNull();
   });
 });

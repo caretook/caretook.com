@@ -2,8 +2,9 @@ import type { Fixture } from "../../../test/fixtures";
 
 import { buildNoteDoc, NOTE_FRAGMENT, toBase64 } from "@caretook/data/schema";
 import { describe, expect, test, vi } from "vitest";
-import { userEvent } from "vitest/browser";
-import { found } from "../../../test/found";
+import { page, userEvent } from "vitest/browser";
+import { found, waitUntil } from "../../../test/found";
+import { getByCss } from "../../../test/locators";
 import * as Y from "yjs";
 import { renderWithDevice } from "../../../test/device";
 import { at, fx, hoursAgo, newId, TEST_GROUP, TEST_USER } from "../../../test/fixtures";
@@ -76,53 +77,44 @@ const open = (url: string, options: Parameters<typeof renderWithDevice>[0] = {})
   renderWithDevice({ route: ROUTES, url, fixtures: world(), ...options });
 
 // --- DOM helpers ---------------------------------------------------------------
-const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector<T>(sel);
-const SHEET = () => $("[data-visit-prep-sheet]");
-const PREVIEW = () => $("[data-visit-prep-preview]")?.textContent ?? "";
-const EDITOR = () => $(".ProseMirror");
-const PREPARE = () => $<HTMLButtonElement>("[data-prepare-visit]");
-const button = (text: string) =>
-  [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent?.trim() === text);
-const menuItem = (text: string) =>
-  [...document.querySelectorAll<HTMLElement>("[role=menuitem]")].find((m) => m.textContent?.trim() === text);
-const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const waitUntil = async (test: () => boolean, ms = 8000, what = "condition") => {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    if (test()) return;
-    await pause(25);
-  }
-  throw new Error(`timed out waiting for ${what}`);
-};
-const waitFor = async <T,>(get: () => T | null) => {
-  await waitUntil(() => !!get(), 8000);
-  return get();
-};
-const GRID = () => $("[role=grid]");
+const SHEET = () => document.querySelector("[data-visit-prep-sheet]");
+const PREVIEW = () => document.querySelector("[data-visit-prep-preview]")?.textContent ?? "";
+const EDITOR = () => document.querySelector(".ProseMirror");
+const PREPARE = () => getByCss("[data-prepare-visit]");
+/** The first button (in an open dialog, with `within`) whose text is `text`. */
+const button = (text: string, within = "") =>
+  getByCss(`${within} button`.trim())
+    .filter({ hasText: new RegExp(`^${text}$`) })
+    .first();
+const menuItem = (text: string) => page.getByRole("menuitem", { name: text, exact: true });
+const actionsOf = (id: string) => getByCss(`[data-upcoming-item="${id}"] button[aria-label^="Actions for"]`);
+const GRID = () => document.querySelector("[role=grid]");
 /** In the open calendar, pick the day `days` from today (as entry.browser.test.tsx does). */
 const pickDayAhead = async (days: number) => {
   const d = new Date();
   d.setDate(d.getDate() + days);
   const heading = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  await waitUntil(() => !!GRID(), 4000, "the calendar");
-  const calHeading = () => GRID()!.closest("[role=dialog]")!.querySelector("h2")!.textContent.trim();
+  await waitUntil(() => GRID(), "the calendar");
+  const calHeading = () => GRID()?.closest("[role=dialog]")?.querySelector("h2")?.textContent.trim();
   if (calHeading() !== heading)
     await userEvent.click(
       await found(() => GRID()?.closest("[role=dialog]")?.querySelector('[aria-label="Next month"]')),
     );
   await waitUntil(() => calHeading() === heading);
-  const cell = [...document.querySelectorAll("[role=grid] [role=gridcell] > *")].find(
-    (c) => c.textContent?.trim() === String(d.getDate()) && !c.hasAttribute("data-outside-month"),
-  )!;
+  const cell = await found(() =>
+    [...document.querySelectorAll("[role=grid] [role=gridcell] > *")].find(
+      (c) => c.textContent?.trim() === String(d.getDate()) && !c.hasAttribute("data-outside-month"),
+    ),
+  );
   await userEvent.click(cell);
-  await waitUntil(() => !GRID(), 3000, "the calendar to close");
+  await waitUntil(() => !GRID(), "the calendar to close");
 };
-const previewReady = () => waitUntil(() => PREVIEW().includes("Since your last visit"), 8000, "the preview");
+const previewReady = () => waitUntil(() => PREVIEW().includes("Since your last visit"), "the preview");
 const editorLines = () =>
   [...(EDITOR()?.querySelectorAll("h2, h3, p") ?? [])].map((el) => el.textContent ?? "");
 const insert = async () => {
-  await userEvent.click(button("Insert into the notes")!);
-  await waitUntil(() => !SHEET(), 4000, "the sheet to close");
+  await userEvent.click(button("Insert into the notes"));
+  await waitUntil(() => !SHEET(), "the sheet to close");
 };
 
 /** Another device's typing in a document, as a note_update row arriving by sync (built on what it had). */
@@ -153,14 +145,16 @@ const typedElsewhere = (documentId: string, snapshotText: Y.Doc, words: string):
 describe("on the appointment's page", () => {
   test("Prepare opens the sheet from the last visit; the preview leaves out empty sections; Insert (offline) puts it on top and queues it", async () => {
     const device = await open(entryPath(APPT.id), { role: "caretaker" });
-    await waitUntil(() => !!EDITOR()?.textContent?.includes("Bring the pill box"));
-    await userEvent.click(await found(PREPARE));
-    await waitUntil(() => !!SHEET(), 4000, "the sheet");
+    await waitUntil(() => EDITOR()?.textContent?.includes("Bring the pill box"));
+    await userEvent.click(PREPARE());
+    await waitUntil(SHEET, "the sheet");
     expect(document.querySelector("[role=dialog] h2, [role=dialog] [slot=title]")?.textContent).toBe(
       "Prepare for Visit with Dr. Lark",
     );
     await previewReady();
-    expect($("[data-visit-window]")!.textContent).toMatch(/^From the last visit: Checkup with Dr\. Lark, /);
+    await expect
+      .element(getByCss("[data-visit-window]"))
+      .toMatchTextContent(/^From the last visit: Checkup with Dr\. Lark, /);
     const preview = PREVIEW();
     for (const text of [
       "Dizziness: once, worst 6/10, new",
@@ -177,11 +171,7 @@ describe("on the appointment's page", () => {
       expect(preview).not.toContain(text);
 
     await insert();
-    await waitUntil(
-      () => editorLines()[0]?.startsWith("Since your last visit · ") ?? false,
-      4000,
-      "the section",
-    );
+    await waitUntil(() => editorLines()[0]?.startsWith("Since your last visit · "), "the section");
     const lines = editorLines();
     expect(lines).toContain("Symptoms");
     expect(lines.at(-1)).toBe("Bring the pill box");
@@ -193,24 +183,24 @@ describe("on the appointment's page", () => {
 
   test("a rerun goes above, dated as updated; what anyone typed, here or on another device at the same time, is kept", async () => {
     const device = await open(entryPath(APPT.id), { role: "caretaker" });
-    await waitUntil(() => !!EDITOR()?.textContent?.includes("Bring the pill box"));
-    await userEvent.click(await found(PREPARE));
+    await waitUntil(() => EDITOR()?.textContent?.includes("Bring the pill box"));
+    await userEvent.click(PREPARE());
     await previewReady();
     await insert();
-    await waitUntil(() => editorLines()[0]?.startsWith("Since your last visit") ?? false);
+    await waitUntil(() => editorLines()[0]?.startsWith("Since your last visit"));
 
     // Sam's device typed into the notes as they were before the first insert.
     const stored = (
       await device.query<{ snapshot: string }>("SELECT snapshot FROM note_document WHERE id = ?", [APPT.id])
-    )[0]!;
-    const theirs = typedElsewhere(APPT.id, buildNoteDoc(stored.snapshot), "Ask about the dizziness");
+    )[0];
+    const theirs = typedElsewhere(APPT.id, buildNoteDoc(stored?.snapshot ?? ""), "Ask about the dizziness");
 
-    await userEvent.click(await found(PREPARE));
+    await userEvent.click(PREPARE());
     await previewReady();
     expect(PREVIEW()).toMatch(/Since your last visit · .* \(updated [A-Z][a-z]{2} \d+\)/);
     // It arrives while the sheet is open.
     await device.sync(theirs);
-    await waitUntil(() => editorLines().includes("Ask about the dizziness"), 4000, "their typing");
+    await waitUntil(() => editorLines().includes("Ask about the dizziness"), "their typing");
     await insert();
     await waitUntil(() => editorLines().filter((l) => l.startsWith("Since your last visit")).length === 2);
     const lines = editorLines();
@@ -241,78 +231,67 @@ describe("on the appointment's page", () => {
       });
       const fixtures = [LARK, last, fx.link(last.id, LARK.id), appt, fx.link(appt.id, LARK.id), cough];
       await renderWithDevice({ route: ROUTES, url: entryPath(appt.id), fixtures, role: "caretaker" });
-      await userEvent.click((await waitFor(PREPARE))!);
-      await waitUntil(() => PREVIEW().includes("Since your last visit"), 8000, "the preview");
+      await userEvent.click(PREPARE());
+      await previewReady();
       expect(PREVIEW()).not.toContain("Cough");
-      const segment = (type: string) => $<HTMLElement>(`[data-visit-prep-sheet] [data-type="${type}"]`)!;
-      expect([segment("month").textContent, segment("day").textContent]).toEqual(["10", "31"]);
-      segment("month").focus();
+      const segment = (type: string) => getByCss(`[data-visit-prep-sheet] [data-type="${type}"]`);
+      const startDay = () => [segment("month").element().textContent, segment("day").element().textContent];
+      expect(startDay()).toEqual(["10", "31"]);
+      (await segment("month").findElement()).focus();
       await userEvent.keyboard("{ArrowDown}");
-      await expect
-        .poll(() => [segment("month").textContent, segment("day").textContent])
-        .toEqual(["9", "30"]);
-      await waitUntil(() => PREVIEW().includes("Cough"), 8000, "the longer window");
+      await expect.poll(startDay).toEqual(["9", "30"]);
+      await waitUntil(() => PREVIEW().includes("Cough"), "the longer window");
     } finally {
       vi.useRealTimers();
     }
   });
 
   test("no Prepare for a viewer", async () => {
-    await open(entryPath(APPT.id), { role: "viewer" });
-    await waitUntil(() => !!EDITOR()?.textContent?.includes("Bring the pill box"));
-    await pause(200);
-    expect(PREPARE()).toBeNull();
+    const device = await open(entryPath(APPT.id), { role: "viewer" });
+    await waitUntil(() => EDITOR()?.textContent?.includes("Bring the pill box"));
+    await device.settle();
+    await expect.element(PREPARE()).not.toBeInTheDocument();
   });
 
   test("no Prepare on a past or cancelled event", async () => {
     const future = fx.event({ title: "Called off", occurredAt: ahead(DAY_H), cancelledAt: hoursAgo(1) });
     const device = await open(entryPath(LAST.id), { role: "caretaker", fixtures: [world(), future] });
-    await waitUntil(() => !!EDITOR());
-    await pause(200);
-    expect(PREPARE()).toBeNull();
+    await waitUntil(EDITOR);
+    await device.settle();
+    await expect.element(PREPARE()).not.toBeInTheDocument();
     await device.screen.unmount();
-    await open(entryPath(future.id), { role: "caretaker", fixtures: [world(), future] });
-    await waitUntil(() => !!EDITOR());
-    await pause(200);
-    expect(PREPARE()).toBeNull();
+    const again = await open(entryPath(future.id), { role: "caretaker", fixtures: [world(), future] });
+    await waitUntil(EDITOR);
+    await again.settle();
+    await expect.element(PREPARE()).not.toBeInTheDocument();
   });
 });
 
 describe("on a provider's page", () => {
   test("Prepare for a visit opens the sheet for their next appointment, then its page", async () => {
     const device = await open(`/app/groups/${GROUP}/providers/${LARK.id}`, { role: "caretaker" });
-    await waitUntil(() => !!$("[data-next-visit]"), 4000, "the next visit");
-    expect($("[data-next-visit]")!.textContent).toMatch(/^Next: Visit with Dr\. Lark, /);
-    await userEvent.click(await found(PREPARE));
+    await expect.element(getByCss("[data-next-visit]")).toMatchTextContent(/^Next: Visit with Dr\. Lark, /);
+    await userEvent.click(PREPARE());
     await previewReady();
     await insert();
     await expect.poll(() => device.location()).toBe(entryPath(APPT.id));
-    await waitUntil(
-      () => editorLines()[0]?.startsWith("Since your last visit") ?? false,
-      8000,
-      "the section",
-    );
+    await waitUntil(() => editorLines()[0]?.startsWith("Since your last visit"), "the section");
   });
 
   test("with nothing coming up, it offers to add an appointment with them, day first, linked once it's saved", async () => {
     const device = await open(`/app/groups/${GROUP}/providers/${ORTIZ.id}`, { role: "caretaker" });
-    await userEvent.click((await waitFor(PREPARE))!);
-    await waitUntil(() => !!document.querySelector("dialog[open]"), 4000, "the offer");
-    expect(document.querySelector("dialog[open]")!.textContent).toContain(
-      "No visit with Dr. Ben Ortiz coming up",
-    );
-    await userEvent.click(
-      [...document.querySelectorAll<HTMLButtonElement>("dialog[open] button")].find(
-        (b) => b.textContent?.trim() === "Add an appointment",
-      )!,
-    );
+    await userEvent.click(PREPARE());
+    await expect
+      .element(getByCss("dialog[open]"))
+      .toMatchTextContent(/No visit with Dr\. Ben Ortiz coming up/);
+    await userEvent.click(button("Add an appointment", "dialog[open]"));
     await expect
       .poll(() => device.location())
       .toBe(`/app/groups/${GROUP}/entries/new?kind=event&when=pick&provider=${ORTIZ.id}`);
     // The calendar is open first; picking a day (then Done) saves the appointment with Dr. Ortiz.
     await pickDayAhead(3);
-    await userEvent.click(button("Done")!);
-    await expect.poll(() => device.location(), { timeout: 4000 }).toMatch(/\/entries\/[0-9a-f-]{36}$/);
+    await userEvent.click(button("Done"));
+    await expect.poll(() => device.location()).toMatch(/\/entries\/[0-9a-f-]{36}$/);
     const id = device.location().split("/").at(-1)!;
     await expect
       .poll(async () =>
@@ -325,24 +304,22 @@ describe("on a provider's page", () => {
       )
       .toEqual([ORTIZ.id]);
     // Now it's an upcoming appointment with them: ready to prepare.
-    await waitUntil(() => !!PREPARE(), 4000, "Prepare on the new appointment");
+    await expect.element(PREPARE()).toBeInTheDocument();
   });
 
   test("a viewer gets no Prepare", async () => {
-    await open(`/app/groups/${GROUP}/providers/${LARK.id}`, { role: "viewer" });
-    await waitUntil(() => !!$("[data-provider-name]"));
-    await pause(200);
-    expect(PREPARE()).toBeNull();
+    const device = await open(`/app/groups/${GROUP}/providers/${LARK.id}`, { role: "viewer" });
+    await expect.element(getByCss("[data-provider-name]")).toBeInTheDocument();
+    await device.settle();
+    await expect.element(PREPARE()).not.toBeInTheDocument();
   });
 });
 
 describe("in the Planner", () => {
   test("an appointment's ⋯ has Prepare, which opens the sheet, then the appointment", async () => {
     const device = await open(`/app/groups/${GROUP}/planner`, { role: "caretaker" });
-    const actions = () =>
-      $<HTMLButtonElement>(`[data-upcoming-item="${APPT.id}"] button[aria-label^="Actions for"]`);
-    await userEvent.click((await waitFor(actions))!);
-    await waitUntil(() => !!menuItem("Prepare for this visit"), 4000, "the menu");
+    await userEvent.click(actionsOf(APPT.id));
+    await expect.element(menuItem("Prepare for this visit")).toBeInTheDocument();
     expect([...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim())).toEqual([
       "Prepare for this visit",
       "Reschedule",
@@ -351,7 +328,7 @@ describe("in the Planner", () => {
       "Print",
       "Delete",
     ]);
-    await userEvent.click(menuItem("Prepare for this visit")!);
+    await userEvent.click(menuItem("Prepare for this visit"));
     await previewReady();
     await insert();
     await expect.poll(() => device.location()).toBe(entryPath(APPT.id));
@@ -359,10 +336,8 @@ describe("in the Planner", () => {
 
   test("a viewer's ⋯ is Remind me and Print", async () => {
     await open(`/app/groups/${GROUP}/planner`, { role: "viewer" });
-    const actions = () =>
-      $<HTMLButtonElement>(`[data-upcoming-item="${APPT.id}"] button[aria-label^="Actions for"]`);
-    await userEvent.click((await waitFor(actions))!);
-    await waitUntil(() => !!menuItem("Print"), 4000, "the menu");
+    await userEvent.click(actionsOf(APPT.id));
+    await expect.element(menuItem("Print")).toBeInTheDocument();
     expect([...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim())).toEqual([
       "Remind me",
       "Print",

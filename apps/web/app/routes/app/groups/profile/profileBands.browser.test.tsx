@@ -2,7 +2,8 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { bandNames, bandsAlternate } from "../../../../../test/bands";
 import { fx, hoursAgo } from "../../../../../test/fixtures";
-import { $, openProfile } from "./profileWorld";
+import { getByCss } from "../../../../../test/locators";
+import { openProfile } from "./profileWorld";
 
 // The profile in bands (ui-kit slice 7): the header band, then each section
 // as a named band in today's order. A viewer sees the sections they saw
@@ -11,7 +12,7 @@ import { $, openProfile } from "./profileWorld";
 // band's Edit (or Add) still opens its sheet, and focus comes back to it.
 
 const PULSE = fx.vital({ occurredAt: hoursAgo(2), readings: [{ type: "heartRate", value: 72 }] });
-const onPage = () => !!$("main[data-bands] [data-profile-header] h1");
+const onPage = () => !!document.querySelector("main[data-bands] [data-profile-header] h1");
 
 describe("the profile's bands", () => {
   test("an owner's bands in order, with no cards", async () => {
@@ -37,9 +38,9 @@ describe("the profile's bands", () => {
       await openProfile({ role: "viewer", theme });
       await expect.poll(() => onPage() && bandNames().includes("Note for helpers")).toBe(true);
       expect(bandNames()).toEqual(["(header)", "Basics", "Conditions", "Note for helpers", "(band)"]);
-      expect($("main [data-band]:last-child [data-viewer-more]")?.textContent?.trim()).toBe(
-        "More details are visible to caretakers.",
-      );
+      await expect
+        .element(getByCss("main [data-band]:last-child [data-viewer-more]"))
+        .toHaveTextContent("More details are visible to caretakers.");
       expect(bandsAlternate()).toBe(true);
     },
   );
@@ -57,7 +58,7 @@ describe("the profile's bands", () => {
     await userEvent.click(link);
     await expect.element(page.getByRole("dialog", { name: sheet })).toBeVisible();
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => $("[role=dialog]")).toBeNull();
+    await expect.element(getByCss("[role=dialog]")).not.toBeInTheDocument();
     await expect.poll(() => document.activeElement).toBe(link.element());
   });
 });

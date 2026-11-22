@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { condition, fx, medicationPass } from "../../../../../../test/fixtures";
-import { $, juneAge, openProfile, PRINT_URL, SAM } from "../profileWorld";
+import { getByCss } from "../../../../../../test/locators";
+import { juneAge, openProfile, PRINT_URL, SAM } from "../profileWorld";
 
 // The emergency sheet as a page (profiles.mjs's slice 6 steps): the
 // profile's Print link, what the sheet shows from the device, the Print
@@ -47,7 +48,7 @@ const CONDITIONS = [
 ];
 const WORLD = [PHARMACY, DOCTOR, MORNING, EVENING, MEDICATIONS, CONDITIONS];
 
-const sheet = () => $("main [data-emergency-sheet]");
+const sheet = () => document.querySelector("main [data-emergency-sheet]");
 const names = (sel: string) =>
   [...(sheet()?.querySelectorAll(sel) ?? [])].map(
     (el) =>
@@ -65,8 +66,8 @@ const printLayout = () => {
     !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
   const s = sheet()!;
   return {
-    header: shown($("header.navbar")),
-    tabBar: shown($('nav[data-tab-bar][aria-label="Group sections"]')),
+    header: shown(document.querySelector("header.navbar")),
+    tabBar: shown(document.querySelector('nav[data-tab-bar][aria-label="Group sections"]')),
     controls: [...document.querySelectorAll("button, a.btn, input, [role=button]")]
       .filter(shown)
       .map((el) => el.textContent?.trim() || el.tagName),
@@ -111,12 +112,16 @@ describe("the emergency sheet", () => {
       .toBe("DNR");
     await expect.poll(() => sheet()?.querySelectorAll("[data-sheet-plan]")).toHaveLength(2);
     expect(names("[data-sheet-contact]")).toEqual(["Alex Moreno*", SAM.name, "Nora Example"]);
-    expect(
-      sheet()!.querySelector('[data-sheet-contact][data-primary] [data-sheet-badge="primary"]'),
-    ).not.toBeNull();
+    await expect
+      .element(
+        getByCss(
+          'main [data-emergency-sheet] [data-sheet-contact][data-primary] [data-sheet-badge="primary"]',
+        ),
+      )
+      .toBeInTheDocument();
     expect(names("[data-sheet-medication]")).toEqual(["Lisinopril 10 mg", "Metformin 500 mg"]);
     expect(
-      [...sheet()!.querySelectorAll("[data-sheet-medication]")].find((m) =>
+      [...(sheet()?.querySelectorAll("[data-sheet-medication]") ?? [])].find((m) =>
         m.textContent?.startsWith("Metformin"),
       )?.textContent,
     ).toMatch(/1 tablet · Morning and Evening/);
@@ -162,8 +167,9 @@ describe("the emergency sheet", () => {
     await openProfile({ url: PRINT_URL, fixtures: WORLD, frame: true, width: Math.floor(width) });
     await expect.poll(sheetSections).toEqual(SECTIONS);
     await commands.printMedia(true);
-    await expect.poll(() => $("main")!.getBoundingClientRect().height).toBeLessThanOrEqual(height);
+    const mainHeight = () => document.querySelector("main")?.getBoundingClientRect().height ?? 0;
+    await expect.poll(mainHeight).toBeLessThanOrEqual(height);
     // Laid out for print, not collapsed: most of the page is used.
-    expect($("main")!.getBoundingClientRect().height).toBeGreaterThan(height / 2);
+    expect(mainHeight()).toBeGreaterThan(height / 2);
   });
 });
