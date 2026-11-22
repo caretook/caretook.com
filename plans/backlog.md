@@ -141,9 +141,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-274 | chore | in-progress | test-health | prd/test-health | Component tests: one test clock on a fixed base date, reset per test, with harness deadlines on performance.now(); one shared fixClock |
 | B-275 | chore | in-progress | test-health | prd/test-health | Component tests: one waitUntil in test/found.ts with one central timeout; no per-call milliseconds (lint rule) |
 | B-276 | chore | triaged | test-health |  | Component tests: a retrying getByCss locator and world helpers that return locators, with lint rules against non-null reads in expect and userEvent calls and against fixed sleeps |
-| B-277 | chore | in-progress | test-health | prd/test-health | Browser-check bookkeeping: drop the usual seconds and lean-ceiling test (keep the caps), and give check-areas directory defaults so a new file needs no rule |
+| B-277 | chore | ready | test-health | prd/test-health | Browser-check bookkeeping: drop the usual seconds and lean-ceiling test (keep the caps), and give check-areas directory defaults so a new file needs no rule |
 | B-278 | chore | live | check-speed | prd/check-speed | Integration tests: a database per Vitest worker, so files run in parallel |
-| B-279 | chore | in-progress | test-health | prd/test-health | Unit tests: delete the frozen lists (schema exports, appUrls keys, procedure paths) and replace the frozen route list with native-build invariants |
+| B-279 | chore | ready | test-health | prd/test-health | Unit tests: delete the frozen lists (schema exports, appUrls keys, procedure paths) and replace the frozen route list with native-build invariants |
 | B-280 | chore | triaged | test-health |  | Unit tests: trim change detectors: URL tests that restate a template, marketing copy assertions, exact seed counts and names, label maps |
 | B-281 | chore | triaged | test-health |  | Component tests: cut duplicates and brittle layout assertions; frame, harness and primitive tests use a probe route, not the timeline |
 | B-282 | chore | triaged | test-health |  | Playwright specs: move one-device and no-browser steps out (marketing first), remove fixed sleeps, merge signout-wipe into session-end |
@@ -833,10 +833,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-277 · chore · Browser-check bookkeeping: drop the usual seconds and lean-ceiling test (keep the caps), and give check-areas directory defaults so a new file needs no rule
 
-- status: in-progress
+- status: ready
 - prd: test-health
 - owner: prd/test-health
-- commit:
+- commit: 09bc4bd5
 
 - 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). lean-ceiling edited 11 times in two days; browser.sh never reads usual (only columns 3 and 4). check-areas.d touched in 124 non-merge commits. Risk: suite growth (bounded by the suite cap) and a new file silently taking its area's checks.
 - 2026-11-21 (plan/test-health): Planned in plans/test-health-plan.md (19 slices, 7 waves; the plan's Backlog table maps items to slices). Waves 1 to 4 start now; the component cuts and harness migrations (slices 14 to 19) wait for list-filters, planner-2 and ui-kit.
@@ -854,10 +854,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-279 · chore · Unit tests: delete the frozen lists (schema exports, appUrls keys, procedure paths) and replace the frozen route list with native-build invariants
 
-- status: in-progress
+- status: ready
 - prd: test-health
 - owner: prd/test-health
-- commit:
+- commit: 09bc4bd5
 
 - 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). schema/index.test.ts (649 lines, 29 commits), appUrls KEYS (11), routerPaths (9): typecheck catches removals (rpc.ts:18 is a typed client); revisit a path guard when the native app ships. routes.test.ts (19 commits) is the only guard on native exclusion: keep uniqueness, add no /api, /rpc, /admin, /dev, connectors or marketing in native, every native route also in web.
 - 2026-11-21 (plan/test-health): Planned in plans/test-health-plan.md (19 slices, 7 waves; the plan's Backlog table maps items to slices). Waves 1 to 4 start now; the component cuts and harness migrations (slices 14 to 19) wait for list-filters, planner-2 and ui-kit.
