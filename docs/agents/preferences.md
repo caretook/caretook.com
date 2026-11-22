@@ -15,3 +15,4 @@ For planning agents: what the user has already decided, so nobody asks again. Re
 - **Small fixes land by category**, never mixed; the order between categories is the user's and isn't set yet. (orchestration-2, 2026-11-21)
 - **A question must reach the user's phone** (a PushNotification from the asking session); a desktop notification isn't enough. (orchestration-2, 2026-11-21)
 - **Unattended runs:** a dispatcher starts everything in the PRD table's row order, and a green wave lands in `dev` before the user tries it. (orchestration-2, 2026-11-21)
+- **No hold after planning:** a topic the dispatcher planned may start at once, before the user reads its assumed decisions; `hold` and row order are the brakes. (orchestration-3, 2026-11-21)
