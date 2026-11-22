@@ -243,7 +243,7 @@ describe("the due-pass chip", () => {
 
 describe("quick entry's box (ui-kit-3)", () => {
   test.each(["light", "dark"] as const)(
-    "in %s it keeps its own base-100 surface, not the text boxes' field fill",
+    "in %s it takes the text boxes' field fill, not a card's base-100",
     async (theme) => {
       await renderWithDevice({ route: ROUTES, url: TIMELINE_URL, fixtures: [NOON], theme });
       await expect.element(box()).toBeVisible();
@@ -258,7 +258,7 @@ describe("quick entry's box (ui-kit-3)", () => {
       const card = swatch((el) => (el.className = "bg-base-100"));
       const field = swatch((el) => (el.className = "textarea"));
       expect(field).not.toEqual(card);
-      expect(surfaceOf(box().element())).toEqual(card);
+      expect(surfaceOf(box().element())).toEqual(field);
     },
   );
 });
