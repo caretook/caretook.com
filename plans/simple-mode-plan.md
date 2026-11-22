@@ -4,13 +4,13 @@
 
 ## Status
 
-| Slice | Wave | State                                                                                    | Merge into `prd/simple-mode` (slice commits)                        |
-| ----- | ---- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| 1     | 1    | merged                                                                                   | cf858018 (f6723b7e, 8bd0f639); worktree removed                     |
-| 2     | 2    | merged b07a18e8 (slice commits 1191b873, a38ef708, 1e4caeed, 4d6f08e3); worktree removed |                                                                     |
-| 3     | 3    | merged                                                                                   | c790740e (55489df5, 5575d0f4, ec6dbe43, cc5c16d9); worktree removed |
-| 4     | 4    | to do                                                                                    |                                                                     |
-| 5     | 4    | to do                                                                                    |                                                                     |
+| Slice | Wave | State                                                                                                                | Merge into `prd/simple-mode` (slice commits)                        |
+| ----- | ---- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| 1     | 1    | merged                                                                                                               | cf858018 (f6723b7e, 8bd0f639); worktree removed                     |
+| 2     | 2    | merged b07a18e8 (slice commits 1191b873, a38ef708, 1e4caeed, 4d6f08e3); worktree removed                             |                                                                     |
+| 3     | 3    | merged                                                                                                               | c790740e (55489df5, 5575d0f4, ec6dbe43, cc5c16d9); worktree removed |
+| 4     | 4    | started (worktree simple-mode-4; agent opus)                                                                         |                                                                     |
+| 5     | 4    | handed off (6724a156, sonnet); quick check stopped at dev's lint error, fixed here in cd05931a; merges after slice 4 |                                                                     |
 
 **Landing mode: run everything through** (queued with `pnpm prd queue simple-mode`, 2026-11-21): start every ready slice, land each green wave, clean up; ask only real questions. Models: slice 1 sonnet (mechanical rename), slice 2 opus, slice 3 opus, slice 4 opus, slice 5 sonnet. Slice 3 notes: migration 0036 (locked → easy roles, `group` preference dropped); `care_group_member` in `REPLICATION_WHOLE_TABLES`; `timelineWorld.chooseEasyMode()` exists for slice 5. Slice 2 notes: migration 0035 (role checks); todo completion: the user chose (2026-11-21) one rule for viewer and both easy roles, own todos only, so the two errors became one, `todoService:completionOnly` (orchestrator fix on `prd/simple-mode`); viewers now get 403 on entry update/delete; screens still gate on `canWrite` (slice 3 uses `canLog`, `easyRole`, `canChangeEntry`); its quick check timed out under load (4 files, all passed alone). Slice 1 notes: migration 0034 (`care_group.easy_tiles`, `preferences.easyMode`); `care_group` added to `REPLICATION_WHOLE_TABLES`; stacks merging it need `pnpm datastore:reset`; its browser checks passed only on per-spec reruns after a mid-run reset.
 
