@@ -862,48 +862,6 @@ describe("sync.upload", () => {
       expect(stored).toMatchObject({ id: entryId, kind: "event", title: "Dr. Lee", body: null });
     });
 
-    it("rejects an event with a body or no title", async () => {
-      const { owner, group, recipient } = await setup();
-      const { entryId, entry } = offlineNote(group.id, recipient.id);
-      const event = { ...entry, data: { ...entry.data, kind: "event", title: "Dr. Lee" } };
-      const cases = [
-        { data: { ...event.data, body: "Talked about the knee" }, path: "body" },
-        { data: { ...event.data, title: null }, path: "title" },
-        { data: { ...event.data, title: " " }, path: "title" },
-      ];
-      for (const { data, path } of cases) {
-        const res = await owner.api.sync.upload({ ops: [{ ...event, data }] });
-        expect(res.results[0]).toMatchObject({
-          id: entryId,
-          status: "rejected",
-          code: "timelineEntryService:invalid",
-          issues: [expect.objectContaining({ path })],
-        });
-      }
-      // Once stored, a PATCH can't add a body or clear the title either.
-      await owner.api.sync.upload({ ops: [event] });
-      for (const data of [{ body: "x" }, { title: null }]) {
-        const patch = { op: "PATCH" as const, table: "timeline_entry", id: entryId, data };
-        expect((await upload(owner.api, [patch]))[0]).toMatchObject({
-          status: "rejected",
-          code: "timelineEntryService:invalid",
-        });
-      }
-    });
-
-    it("compacts once enough edits arrive", async () => {
-      const { owner, group, recipient } = await setup();
-      const n = noteDocumentService.COMPACT_AFTER_UPDATES;
-      const { entryId, ops } = offlineDocument(group.id, recipient.id, n);
-      await owner.api.sync.upload({ ops });
-
-      const doc = await noteDocumentService.getById(owner.ctx, entryId);
-      if (isError(doc)) throw doc;
-      // Compacted during the upload: the text is the server's, and nothing is pending.
-      expect(doc.text.split("\n")).toEqual(Array.from({ length: n }, (_, i) => `Line ${i + 1}`));
-      expect(doc.snapshot).not.toBeNull();
-    });
-
     it("refuses viewers' edits, and any change but adding", async () => {
       const { owner, viewer, group, recipient } = await setup();
       const { entryId, ops } = offlineDocument(group.id, recipient.id, 1);

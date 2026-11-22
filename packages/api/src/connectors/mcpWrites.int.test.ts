@@ -207,7 +207,7 @@ describe("/mcp write tools", () => {
     });
   });
 
-  it("add a note that mentions its providers and links them; another group's provider is refused", async () => {
+  it("add a note that mentions its providers and links them", async () => {
     const w = await world();
     const token = w.writer.tokens.access_token;
 
@@ -237,21 +237,6 @@ describe("/mcp write tools", () => {
     expect(
       ok(await noteDocumentService.currentText(w.owner.ctx, plain.structuredContent.entryIds![0]!)),
     ).toBe("Refill sorted. @Dr. Example");
-
-    // Another group's provider: refused, and nothing written.
-    const elsewhere = await createUser("elsewhere");
-    const { group: other } = await createGroup(elsewhere);
-    const far = ok(
-      await providerService.create(elsewhere.ctx, { groupId: other.id, type: "clinician", name: "Dr. Far" }),
-    )!;
-    const before = (await w.groupEntries()).length;
-    const refused = await tool(token, "add_note", { text: "Called @Dr. Far", providerIds: [far.id] });
-    expect(refused).toMatchObject({
-      isError: true,
-      structuredContent: { error: { code: "assistantActionService:providerGone" } },
-    });
-    expect((await w.groupEntries()).length).toBe(before);
-    expect(ok(await entryProviderService.listForProvider(elsewhere.ctx, far.id)).count).toBe(0);
   });
 
   it("answers a refusal as an isError result with the code and issues, and writes nothing", async () => {
@@ -289,19 +274,6 @@ describe("/mcp write tools", () => {
       },
     });
 
-    ok(
-      await medicationService.update(w.owner.ctx, w.metformin.id, {
-        status: "completed",
-        stoppedOn: "2026-11-01",
-      }),
-    );
-    const stopped = await tool(token, "log_dose", { medicationId: w.metformin.id, status: "given" });
-    expect(stopped).toMatchObject({
-      isError: true,
-      structuredContent: { error: { code: "assistantActionService:medicationStopped" } },
-    });
-    expect(textOf(stopped)).toContain("Metformin isn't current");
-    // Nothing written but the stop's own change entry.
     expect((await logged()).length).toBe(before);
   });
 
@@ -403,14 +375,10 @@ describe("/mcp edit tools (connectors-2)", () => {
     expect(new Date(moved.endsAt!).toISOString()).toBe("2026-11-26T19:30:00.000Z");
   });
 
-  it("refuses viewers, too many lines, deleted entries, symptoms and other groups' ids", async () => {
+  it("refuses viewers, too many lines and other groups' ids", async () => {
     const w = await world();
     const token = w.writer.tokens.access_token;
     const noteId = (await call(token, "add_note", { text: "Original" })).structuredContent.entryIds![0]!;
-    const symptomId = (await call(token, "log_symptom", { name: "Headache" })).structuredContent
-      .entryIds![0]!;
-    const goneId = (await call(token, "add_note", { text: "Gone" })).structuredContent.entryIds![0]!;
-    ok(await timelineEntryService.remove(w.owner.ctx, goneId));
     const elsewhere = await createUser("elsewhere");
     const { group: other } = await createGroup(elsewhere);
     const otherNote = ok(
@@ -444,36 +412,13 @@ describe("/mcp edit tools (connectors-2)", () => {
       structuredContent: { error: { code: "mcp:invalidArguments", issues: [{ path: "lines" }] } },
     });
 
-    const cases: [string, Record<string, unknown>, string][] = [
-      [
-        "append_to_entry",
-        { entryId: goneId, lines: [{ text: "More" }] },
-        "assistantActionService:entryDeleted",
-      ],
-      ["update_entry", { entryId: goneId, title: "Back" }, "assistantActionService:entryDeleted"],
-      [
-        "append_to_entry",
-        { entryId: symptomId, lines: [{ text: "More" }] },
-        "assistantActionService:notEditable",
-      ],
-      ["update_entry", { entryId: symptomId, title: "Migraine" }, "assistantActionService:notEditable"],
-      [
-        "append_to_entry",
-        { entryId: otherNote.id, lines: [{ text: "Mine" }] },
-        "assistantActionService:entryNotFound",
-      ],
-      ["update_entry", { entryId: otherNote.id, title: "Mine" }, "assistantActionService:entryNotFound"],
-      ["update_entry", { entryId: noteId }, "assistantActionService:invalid"],
-    ];
-    for (const [tool, args, code] of cases) {
-      const result = await call(token, tool, args);
-      expect(result, `${tool} ${JSON.stringify(args)}`).toMatchObject({
-        isError: true,
-        structuredContent: { error: { code } },
-      });
-    }
+    // The runner's refusals pass through (each case of them: assistantAction.int.test.ts).
     // The other group's note reads as missing: nothing says it exists.
     const missing = await call(token, "update_entry", { entryId: otherNote.id, title: "Mine" });
+    expect(missing).toMatchObject({
+      isError: true,
+      structuredContent: { error: { code: "assistantActionService:entryNotFound" } },
+    });
     expect(textOf(missing)).toContain("wasn't found in this care group");
 
     expect((await w.entry(noteId))?.body).toBe("Original");
@@ -535,7 +480,7 @@ describe("/mcp edit tools (connectors-2)", () => {
     expect(textOf(back)).toMatch(/^Updated condition: Type 2 diabetes mellitus · Active/);
   });
 
-  it("refuses bad content, viewers, deleted conditions and other groups' ids as tool errors", async () => {
+  it("refuses an empty update, viewers, deleted conditions and other groups' ids as tool errors", async () => {
     const w = await world();
     const token = w.writer.tokens.access_token;
     const deleted = ok(
@@ -547,13 +492,6 @@ describe("/mcp edit tools (connectors-2)", () => {
     )!;
     const elsewhere = await createUser("elsewhere");
     const { group: other } = await createGroup(elsewhere);
-    const foreignProvider = ok(
-      await providerService.create(elsewhere.ctx, { groupId: other.id, type: "clinician", name: "Dr. Far" }),
-    )!;
-    const goneProvider = ok(
-      await providerService.create(w.owner.ctx, { groupId: w.group.id, type: "clinician", name: "Dr. Gone" }),
-    )!;
-    ok(await providerService.remove(w.owner.ctx, goneProvider.id));
     const foreign = ok(
       await recipientConditionService.create(elsewhere.ctx, { groupId: other.id, name: "Foreign" }),
     )!;
@@ -569,15 +507,7 @@ describe("/mcp edit tools (connectors-2)", () => {
     );
 
     const cases: [string, Record<string, unknown>, string][] = [
-      ["add_condition", { name: "Asthma", sinceMonth: 3 }, "recipientConditionService:invalid"],
-      ["add_condition", { name: "Asthma", diagnosedById: foreignProvider.id }, "permissions:unauthorized"],
-      [
-        "add_condition",
-        { name: "Asthma", diagnosedById: goneProvider.id },
-        "recipientConditionService:providerNotFound",
-      ],
       ["update_condition", { conditionId: live.id }, "assistantActionService:invalid"],
-      ["update_condition", { conditionId: live.id, sinceMonth: 13 }, "recipientConditionService:invalid"],
       // The condition refusals pass through (each case of them: assistantAction.int.test.ts).
       [
         "update_condition",

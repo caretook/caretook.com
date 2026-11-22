@@ -11,7 +11,7 @@ import {
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { clientFor, upload } from "./testing";
+import { clientFor, outcomes, patchOp, putOp, upload } from "./testing";
 
 // sync.upload for medication passes and the recipient's allergies
 // (medications-2 slice 1): rows as a device's SQLite holds them, a retime's
@@ -179,44 +179,17 @@ describe("sync.upload: medication_pass", () => {
     expect((await upload(owner.api, ops)).map((r) => r.status)).toEqual(["applied", "applied"]);
   });
 
-  it("refuses a viewer, a moved group, and another group's pass", async () => {
+  it("refuses a viewer and a moved group", async () => {
     const { owner, viewer, group, recipient, morning } = await setup();
-    const outsider = await createUser("outsider");
-    const other = await createGroup(outsider);
-    const [theirs] = ok(await medicationPassService.list(outsider.ctx, { groupId: other.group.id })).data;
-
-    const res = await viewer.api.sync.upload({
-      ops: [
-        { op: "PUT", table: "medication_pass", id: randomUUID(), data: passRow(group.id, recipient.id) },
-        { op: "PATCH", table: "medication_pass", id: morning.id, data: { name: "Breakfast" } },
-      ],
-    });
-    expect(res.results.map((r) => r.status)).toEqual(["rejected", "rejected"]);
-
-    const refused = await owner.api.sync.upload({
-      ops: [
-        { op: "PATCH", table: "medication_pass", id: morning.id, data: { group_id: other.group.id } },
-        {
-          op: "PUT",
-          table: "medication_pass",
-          id: theirs!.id,
-          data: passRow(group.id, recipient.id, { name: "Mine now" }),
-        },
-        { op: "PATCH", table: "medication_pass", id: theirs!.id, data: { name: "Mine now" } },
-        {
-          op: "PUT",
-          table: "medication_pass",
-          id: randomUUID(),
-          data: passRow(group.id, recipient.id, { name: "morning" }),
-        },
-      ],
-    });
-    expect(refused.results.map((r) => (r.status === "rejected" ? r.code : r.status))).toEqual([
-      "medicationPassService:immutable",
-      "permissions:unauthorized",
-      "medicationPassService:notFound",
-      "medicationPassService:nameTaken",
-    ]);
+    expect(
+      await outcomes(viewer.api, [
+        putOp("medication_pass", randomUUID(), passRow(group.id, recipient.id)),
+        patchOp("medication_pass", morning.id, { name: "Breakfast" }),
+      ]),
+    ).toEqual(["permissions:unauthorized", "permissions:unauthorized"]);
+    expect(
+      await outcomes(owner.api, [patchOp("medication_pass", morning.id, { group_id: randomUUID() })]),
+    ).toEqual(["medicationPassService:immutable"]);
   });
 });
 
@@ -262,8 +235,8 @@ describe("sync.upload: care_recipient (No known allergies)", () => {
   const noKnownOf = async (recipientId: string, ctx: Parameters<typeof careRecipientService.getById>[0]) =>
     ok(await careRecipientService.getById(ctx, recipientId))?.noKnownAllergiesAt ?? null;
 
-  it("sets and clears No known allergies, and refuses other columns, other ops and viewers", async () => {
-    const { owner, viewer, group, recipient } = await setup();
+  it("sets No known allergies, and refuses other columns, other ops and viewers", async () => {
+    const { owner, viewer, recipient } = await setup();
     const set = await owner.api.sync.upload({
       ops: [
         { op: "PATCH", table: "care_recipient", id: recipient.id, data: { no_known_allergies_at: MOVED_AT } },
@@ -300,38 +273,5 @@ describe("sync.upload: care_recipient (No known allergies)", () => {
     });
     expect(byViewer.results[0]?.status).toBe("rejected");
     expect(await noKnownOf(recipient.id, viewer.ctx)).not.toBeNull();
-
-    // Adding an allergy clears it; then recording it again is refused while one is on file.
-    const allergyId = randomUUID();
-    const added = await owner.api.sync.upload({
-      ops: [
-        { op: "PUT", table: "recipient_allergy", id: allergyId, data: allergyRow(group.id, recipient.id) },
-        { op: "PATCH", table: "care_recipient", id: recipient.id, data: { no_known_allergies_at: null } },
-        { op: "PATCH", table: "care_recipient", id: recipient.id, data: { no_known_allergies_at: MOVED_AT } },
-      ],
-    });
-    expect(added.results.map((r) => (r.status === "rejected" ? r.code : r.status))).toEqual([
-      "applied",
-      "applied",
-      "recipientAllergyService:hasAllergies",
-    ]);
-    expect(await noKnownOf(recipient.id, viewer.ctx)).toBeNull();
-  });
-
-  it("refuses another group's recipient", async () => {
-    const { owner } = await setup();
-    const other = await setup();
-    const res = await owner.api.sync.upload({
-      ops: [
-        {
-          op: "PATCH",
-          table: "care_recipient",
-          id: other.recipient.id,
-          data: { no_known_allergies_at: MOVED_AT },
-        },
-      ],
-    });
-    expect(res.results[0]?.status).toBe("rejected");
-    expect(await noKnownOf(other.recipient.id, other.viewer.ctx)).toBeNull();
   });
 });

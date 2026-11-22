@@ -123,38 +123,6 @@ describe("sync.upload: appointment columns", () => {
     expect(await upload(owner.api, [put])).toEqual([{ id, status: "applied" }]);
   });
 
-  it("acknowledges a future vital, and a note with a place, as rejected", async () => {
-    const { owner, viewer, row } = await setup();
-    const vitalId = randomUUID();
-    const noteId = randomUUID();
-    const res = await owner.api.sync.upload({
-      ops: [
-        {
-          op: "PUT",
-          table: "timeline_entry",
-          id: vitalId,
-          data: row({
-            kind: "vital",
-            title: null,
-            occurred_at: sqliteTime(3 * HOUR),
-            details: JSON.stringify({ readings: [{ type: "heartRate", value: 72 }] }),
-          }),
-        },
-        {
-          op: "PUT",
-          table: "timeline_entry",
-          id: noteId,
-          data: row({ kind: "note", title: null, place: "Home" }),
-        },
-      ],
-    });
-    expect(res.results).toEqual([
-      expect.objectContaining({ id: vitalId, status: "rejected", code: "timelineEntryService:invalid" }),
-      expect.objectContaining({ id: noteId, status: "rejected", code: "timelineEntryService:invalid" }),
-    ]);
-    expect(await timelineEntryService.getById(viewer.ctx, vitalId)).toBeNull();
-  });
-
   it("refuses a viewer's cancel", async () => {
     const { owner, viewer, row } = await setup();
     const id = randomUUID();

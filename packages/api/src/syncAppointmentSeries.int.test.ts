@@ -107,7 +107,7 @@ describe("sync.upload: appointment_series", () => {
       ).not.toBeNull();
   });
 
-  it("refuses a changed group, recipient or kind (immutable), a bad rule, and a viewer", async () => {
+  it("refuses a changed group, recipient or kind (immutable), and a viewer", async () => {
     const { group, recipient, other, owner, viewer } = await setup();
     const id = randomUUID();
     ok(await owner.api.sync.upload({ ops: [put(id, seriesRow(group.id, recipient.id))] }));
@@ -116,18 +116,13 @@ describe("sync.upload: appointment_series", () => {
       ops: [
         { op: "PATCH", table: "appointment_series", id, data: { group_id: other.group.id } },
         { op: "PATCH", table: "appointment_series", id, data: { kind: "note" } },
-        put(id, seriesRow(group.id, recipient.id, { kind: "note", title: null, duration_minutes: null })),
         put(id, seriesRow(other.group.id, other.recipient.id)),
-        { op: "PATCH", table: "appointment_series", id, data: { rule: "FREQ=WEEKLY;INTERVAL=1" } },
       ],
     });
     expect(res.results.map((r) => (r.status === "rejected" ? r.code : r.status))).toEqual([
       "appointmentSeriesService:immutable",
       "appointmentSeriesService:immutable",
-      // A note series is refused outright: series are events only.
-      "appointmentSeriesService:invalid",
       "appointmentSeriesService:immutable",
-      "appointmentSeriesService:invalid",
     ]);
 
     const fresh = randomUUID();

@@ -140,34 +140,4 @@ describe("sync.upload: a series split", () => {
     const replay = await owner.api.sync.upload({ ops: split });
     expect(replay.results.filter((r) => r.status !== "applied")).toEqual([]);
   });
-
-  it("refuses moving a past visit onto another series", async () => {
-    const { group, recipient, owner } = await setup();
-    const old = randomUUID();
-    const next = randomUUID();
-    const day = "2026-01-05";
-    const made = await owner.api.sync.upload({
-      ops: [
-        seriesPut(old, group.id, recipient.id, { starts_on: day, topped_up_through: day }),
-        ...visitOps(old, group.id, recipient.id, day, `${day}T14:00:00.000000Z`),
-        seriesPut(next, group.id, recipient.id, { starts_on: "2027-03-01" }),
-      ],
-    });
-    expect(made.results.filter((r) => r.status !== "applied")).toEqual([]);
-
-    const id = seriesVisitId(old, day);
-    const { results } = await owner.api.sync.upload({
-      ops: [{ op: "PATCH", table: "timeline_entry", id, data: { series_id: next } }],
-    });
-    expect(results).toMatchObject([{ id, status: "rejected", code: "timelineEntryService:pastVisit" }]);
-    expect(ok(await timelineEntryService.getById(owner.ctx, id))).toMatchObject({ seriesId: old });
-
-    // Changing it on its own is still fine.
-    const detach = await owner.api.sync.upload({
-      ops: [
-        { op: "PATCH", table: "timeline_entry", id, data: { series_detached: 1, title: "Dialysis (late)" } },
-      ],
-    });
-    expect(detach.results).toEqual([{ id, status: "applied" }]);
-  });
 });

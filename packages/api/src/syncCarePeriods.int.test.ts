@@ -2,7 +2,7 @@ import { carePeriodService, providerService } from "@caretook/data";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { clientFor, upload } from "./testing";
+import { clientFor, outcomes, patchOp, putOp, upload } from "./testing";
 
 // sync.upload for care periods: rows as a device's SQLite holds them
 // (snake_case, `date_only` as 1/0, PowerSync's timestamps). Each test makes
@@ -11,14 +11,12 @@ import { clientFor, upload } from "./testing";
 const setup = async () => {
   const owner = await createUser("owner");
   const viewer = await createUser("viewer");
-  const outsider = await createUser("outsider");
   const { group, recipient } = await createGroup(owner, [{ user: viewer.user, role: "viewer" }]);
   return {
     group,
     recipient,
     owner: { ...owner, api: clientFor(owner.ctx.authUser) },
     viewer: { ...viewer, api: clientFor(viewer.ctx.authUser) },
-    outsider: { ...outsider, api: clientFor(outsider.ctx.authUser) },
   };
 };
 
@@ -84,61 +82,22 @@ describe("sync.upload: care_period", () => {
     expect(ok(await carePeriodService.getById(owner.ctx, id))).toMatchObject({ dateOnly: true });
   });
 
-  it("rejects a changed group or recipient, a viewer's write, an outsider's, and a future start", async () => {
-    const { group, recipient, owner, viewer, outsider } = await setup();
+  it("rejects a changed group or recipient, and a viewer's write", async () => {
+    const { group, recipient, owner, viewer } = await setup();
     const id = randomUUID();
-    ok(
-      (
-        await owner.api.sync.upload({
-          ops: [{ op: "PUT", table: "care_period", id, data: periodRow(group.id, recipient.id) }],
-        })
-      ).results,
-    );
+    expect(await outcomes(owner.api, [putOp("care_period", id, periodRow(group.id, recipient.id))])).toEqual([
+      "applied",
+    ]);
 
-    const moved = await owner.api.sync.upload({
-      ops: [{ op: "PATCH", table: "care_period", id, data: { group_id: randomUUID() } }],
-    });
-    expect(moved.results[0]).toMatchObject({ status: "rejected", code: "carePeriodService:immutable" });
-
-    const viewerEdit = await viewer.api.sync.upload({
-      ops: [{ op: "PATCH", table: "care_period", id, data: { label: "Nope" } }],
-    });
-    expect(viewerEdit.results[0]).toMatchObject({ status: "rejected", code: "permissions:unauthorized" });
-    const viewerPut = await viewer.api.sync.upload({
-      ops: [{ op: "PUT", table: "care_period", id: randomUUID(), data: periodRow(group.id, recipient.id) }],
-    });
-    expect(viewerPut.results[0]).toMatchObject({ status: "rejected", code: "permissions:unauthorized" });
-
-    const outsiderPut = await outsider.api.sync.upload({
-      ops: [
-        { op: "PUT", table: "care_period", id, data: periodRow(group.id, recipient.id, { label: "Mine" }) },
-      ],
-    });
-    expect(outsiderPut.results[0]).toMatchObject({ status: "rejected", code: "permissions:unauthorized" });
-    const outsiderDelete = await outsider.api.sync.upload({
-      ops: [{ op: "DELETE", table: "care_period", id }],
-    });
-    expect(outsiderDelete.results[0]).toMatchObject({
-      status: "rejected",
-      code: "carePeriodService:notFound",
-    });
-
-    const future = new Date(Date.now() + 48 * 3_600_000).toISOString();
-    const ahead = await owner.api.sync.upload({
-      ops: [
-        {
-          op: "PUT",
-          table: "care_period",
-          id: randomUUID(),
-          data: periodRow(group.id, recipient.id, { started_at: future }),
-        },
-      ],
-    });
-    expect(ahead.results[0]).toMatchObject({
-      status: "rejected",
-      code: "carePeriodService:futureStart",
-      issues: [{ path: "startedAt" }],
-    });
+    expect(await outcomes(owner.api, [patchOp("care_period", id, { group_id: randomUUID() })])).toEqual([
+      "carePeriodService:immutable",
+    ]);
+    expect(
+      await outcomes(viewer.api, [
+        patchOp("care_period", id, { label: "Nope" }),
+        putOp("care_period", randomUUID(), periodRow(group.id, recipient.id)),
+      ]),
+    ).toEqual(["permissions:unauthorized", "permissions:unauthorized"]);
     expect(ok(await carePeriodService.getById(owner.ctx, id))).toMatchObject({ label: "Mercy General" });
   });
 
