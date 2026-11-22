@@ -26,6 +26,8 @@
 
 **Slice 6 merged** as 0b028f59; its worktree is removed and slice 7 is still running. Its gate: 52 tooling test files, 990 tests, `eslint scripts` clean, `browser.test.mjs` skipped; stubs only, no real session. The tick opens `rotate-into.sh <name> <pid> --reason context` itself, with `--brief <file>` or the new `--no-brief`. A backlog session's subagents get no reminder and no record. The command guard is one regex, so a running `pnpm backlog` now also holds an orchestrator's rotation. **Fold at landing:** machinery still says the hook is for `prd` sessions only; add backlog sessions, `--no-brief` and the wider guard. B-515 stays open until `inbox` is in the kept-alive kinds.
 
+**Slice 7:** its first agent stopped at the context limit (168k) with the build committed (000d5483) and the gate not run; a fresh opus `--continue` agent is finishing it (two missing tests, then the gate). Follow-up to weigh: a requested session still asks "what is this session for?" even with a brief, and the brief's heading says "from the session before".
+
 **Hook live test:** passed for the session's own size: this orchestrator read 53k from `pnpm prd context` after a wrapper start. Whether a subagent's PostToolUse names its own transcript is still unproven.
 
 **Skipping the browser tooling test (until `test-gates` slice 8 lands):** the user's decision, relayed 2026-11-22 by the session `caretook-com-6a`. Slices may leave `scripts/loops/browser.test.mjs` out of their own tooling runs, because it is the slowest by far. They keep it if the slice changes `scripts/loops/browser.sh`, `lib.sh`, `lease.sh`, `scripts/loops/checks` or `scripts/browser-checks/`, and every hand-off says whether it was skipped. Vitest's `--exclude` doesn't drop it, so use the file list:
