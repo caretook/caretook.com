@@ -8,7 +8,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Hand-off (2026-11-22, after the wave 1 landing; no slices in flight).** Wave 1 (slices 1–12, all on opus) **landed** in dev as 7a205be1 through PR #46 with `--no-review` on the user's word (Codex out of credits); full check passed on 505d9eee; browser suite 12/12; docs folded (live-notes, auth, app-shell, appointments). Report filed as ask a29; to-test file `to-test/2026-11-22-0004-fixes-bug.md`. Load flakes filed: B-466, B-479, B-480.
 
-**Next session: wave 2.** `pnpm backlog ingest`, `list`; candidates (triaged, prd=fixes-bug): B-318 (header ignores a simple-mode change from another device), B-382 (an offline Undo deletes an edited successor), B-469 (Easy search sheets go stale), B-470 (an Easy helper can undo a writer's cancel or reschedule), B-472 (an old queued simpleMode setting retries forever); check `pnpm backlog prd list` hot files first, append the slices under _Wave 2_, set hot files, claim. Codex may still be out of credits: if `review --wait` stalls or times out (75), ask the user before `--no-review`.
+**Wave 2 (2026-11-22): slices 13–17 started, all on opus** (B-482 folded into slice 17 as B-472's duplicate). Codex may still be out of credits: if `review --wait` stalls or times out (75), ask the user before `--no-review`.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -26,6 +26,11 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 10    | B-385 | landed (resetStaging flake: B-466) | 9736353b |
 | 11    | B-386 | landed                             | 1327d9bd |
 | 12    | B-393 | landed (test only)                 | f9fb803b |
+| 13    | B-318 | started (opus)                     |          |
+| 14    | B-382 | started (opus)                     |          |
+| 15    | B-469 | started (opus)                     |          |
+| 16    | B-470 | started (opus)                     |          |
+| 17    | B-472 | started (opus)                     |          |
 
 ## Wave 1
 
@@ -138,3 +143,52 @@ Reopening Repeat on a "last Friday" monthly todo whose occurrence falls on a 4th
 
 - Confirm with a todo-side test through `todoFormData`; fix the path if it still drops the ordinal.
 - Unit test: `BYDAY=-1FR` on a 4th-Friday occurrence round-trips unchanged through `initialRepeat` and back to a rule.
+
+## Wave 2
+
+As in wave 1: the items' backlog notes (`pnpm backlog show B-<n>`) carry the file references from a reading, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code.
+
+### Slice 13: the header follows an easy-mode setting changed on another device (B-318)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/components.md · Tests: component
+
+`routes/app/layout/useEasyFrame.ts` passes `cachedSettings(userId).easyMode` to `useEasyMode` once per render with no subscription, so a setting changed on another device (and synced or refetched into the cache) leaves the header in the old mode until the next navigation. The timeline reads the same input: check whether it has the same gap and fix both through one shared subscription.
+
+- The header (and the timeline, if affected) re-renders when the cached settings change: subscribe to the settings cache (a `useSyncExternalStore` over the store `me.ts` already writes, or the existing change signal if there is one), not a poll.
+- Component test: with the header rendered, a settings cache update that flips `easyMode` changes the header without a navigation.
+
+### Slice 14: an offline Undo never deletes a successor another member changed (B-382)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/todos.md, docs/domain/sync.md · Tests: unit, integration
+
+Undoing a tick on a repeating todo offline queues a plain `removeTodo` for the next occurrence (`lib/todos/todos.sync.ts`, around the reopen/undo path), and the upload applies it unconditionally, deleting a successor another member edited or completed meanwhile, although `todoService.reopen` on the server keeps an edited successor.
+
+- An Undo's delete of the successor is told apart from an explicit delete (its own op or a flag on the upload), and the server applies it only when the successor is untouched (the same test `todoService.reopen` uses); an explicit delete is unchanged. Keep the upload switch edit additive (a shared registry).
+- Integration test: an offline Undo uploaded after another member edited (and, separately, completed) the successor leaves it in place; one uploaded on an untouched successor still removes it.
+
+### Slice 15: Easy search sheets show the row as it is now (B-469)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/search.md, docs/domain/components.md · Tests: component
+
+`routes/app/groups/search/SearchResults.tsx` keeps the whole tapped item in `useState` (`opened`), so `EasyResultSheet` shows the values from the tap and misses edits or deletes (provider, medication, condition) that sync in while it's open.
+
+- Keep only `{ type, id }` as the opened state and read the row from the refreshed search data (or a live query); when the row is gone, close the sheet or say it's gone.
+- Component test: a synced edit while the sheet is open shows the new value; a synced delete closes it or shows the gone state.
+
+### Slice 16: an Easy helper can't clear a writer's cancel or reschedule (B-470)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md, docs/domain/care-groups.md, docs/domain/data-layer.md · Tests: unit, integration
+
+`timelineEntryService.update`'s `refuseLoggerOnly` calls `canLogEntry` (`packages/data/src/db/schema/timeline/entryRules.ts`), which only checks that the setup fields are null, so an Easy helper sending `{ cancelledAt: null, cancelReason: null, rescheduledTo: null }` on their own event undoes a writer's cancellation or reschedule (update API and sync upload alike).
+
+- On update, a logger-only role may not change any setup field from its existing value (clearing included); setting them stays refused as now. Create is unchanged.
+- Unit test for the rule; integration test: the helper's update clearing a cancelled event's fields is refused through the service and through an upload, and an ordinary edit (title, body) still passes.
+
+### Slice 17: an old queued simpleMode settings change upgrades instead of retrying forever (B-472, B-482)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md · Tests: unit
+
+`lib/app-shell/me.ts` `readPending` returns the stored `caretook:settings-pending:<user>` payload as is; a change queued offline before the easy rename still has `simpleMode`, which `me.updatePreferences`' strict schema rejects and `clearPending` no longer removes, so it's resent forever and later queued changes merged into it (units, layout) are refused too.
+
+- `readPending` maps a legacy `simpleMode` to `easyMode` (the same value conversion the rename used, e.g. `simple`→`easy`; drop values with no equivalent) and drops the old key before anything is sent or merged; the rewritten pending is stored back.
+- Unit test: a pending payload with `simpleMode` plus another field sends the mapped `easyMode` and the other field, and is cleared after a successful send.
