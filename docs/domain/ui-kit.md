@@ -9,7 +9,7 @@ The `ui/` primitives and their contracts: part of the components area ([componen
 - **`ui/plain`**, the light entry: everything without React Aria (`Field`, `FieldControl`, `IconButton`, `ChoiceGroup`, `Button`, `FormFooter`, `TabNav`, `Message`, `Notice`, `EmptyState`, `Loading`, `Skeleton`, `Badge`, `Page`, `Card`, `List`, `CheckField`, `ToggleField`, `DetailHeader`, `Section`, `ChoiceDialog`, `Chevron`, `Collapse`). Light pages (sign-in, the account forms, `/connect`, marketing) import from it, never from `ui` (its chunk carries React Aria); `ui/plain/plain.test.ts` fails on any React Aria import it reaches.
 - **Append-only:** the `ui` and `ui/plain` indexes, `ui/styles.ts` and the gallery registry take new lines at the end only.
 - **The gallery** `/dev/ui` (`routes/dev/ui/`, web only, 404 in production): each primitive in both themes with fictional data, one `sections/` file each, listed in `registry.ts` (and Type). A new primitive adds its section. **Add a primitive only for a repeated pattern.**
-- **Contrast** is measured in component tests with `apps/web/test/contrast.ts` (translucent colours composited over what's behind them).
+- **Contrast** is measured in component tests with `apps/web/test/contrast.ts` (translucent colours composited).
 
 ## Which to use
 
