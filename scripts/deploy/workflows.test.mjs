@@ -36,6 +36,7 @@ describe("the deploy workflows", () => {
       ".github/workflows/admin-grant.yml",
       ".github/workflows/db-access.yml",
       ".github/workflows/deploy.yml",
+      ".github/workflows/reset-staging.yml",
       ".github/workflows/rotate-jwks.yml",
       ".github/workflows/seed-staging.yml",
     ]);
@@ -143,6 +144,13 @@ describe("the deploy workflows", () => {
 
   it("seeds staging only, and grants run in the chosen environment", () => {
     expect(parseYaml(read(".github/workflows/seed-staging.yml")).jobs.seed.environment).toBe("staging");
+    // The reset is staging's alone too, behind a typed confirmation, and never beside a seed run.
+    const reset = parseYaml(read(".github/workflows/reset-staging.yml"));
+    expect(reset.jobs.reset.environment).toBe("staging");
+    expect(reset.jobs.reset.if).toContain("inputs.confirm == 'staging'");
+    expect(reset.on.workflow_dispatch.inputs.confirm.required).toBe("true");
+    expect(reset.concurrency.group).toBe("seed-staging");
+    expect(reset.jobs.reset.steps.at(-1).env.APP_ENV).toBe("staging");
     for (const path of [
       ".github/workflows/admin-grant.yml",
       ".github/workflows/db-access.yml",
