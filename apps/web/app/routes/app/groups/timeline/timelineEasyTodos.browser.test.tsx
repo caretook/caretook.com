@@ -178,6 +178,10 @@ describe("My todos in easy mode", () => {
         .toBeInTheDocument();
       const patch = (await device.queued()).find((w) => w.op === "PATCH");
       expect(Object.keys(patch?.data ?? {}).sort()).toEqual(["done_at", "done_by"]);
+      // The card can still show the todo before its query catches up: wait for
+      // it to go, so the title coming back below is the Undo's write landing
+      // (and the test doesn't end, closing the database, mid-write: B-475).
+      await expect.poll(() => titles()).toEqual([]);
       await userEvent.click(page.getByRole("button", { name: "Undo Pick up groceries" }));
       await expect.poll(() => titles()).toEqual(["Pick up groceries"]);
       // The undo's write lands before the test ends (the title shows before it does).

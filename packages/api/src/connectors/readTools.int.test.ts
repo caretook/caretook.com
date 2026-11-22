@@ -846,6 +846,76 @@ describe("read tools", { timeout: 60_000 }, () => {
   });
 });
 
+// Private values in a tool's answer, field by field: every key and every
+// string or number value, with the ids in it masked first, so a random UUID
+// that happens to contain the birth year (`…072194195bed`) isn't a leak. A
+// secret that is itself a UUID leaks when it is one of the ids.
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+const IS_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const EMAIL = /[\w.+-]+@[\w-]+\.[\w.-]+/;
+const BIRTHDAY_FIELD = /dateOfBirth|birthday|^dob$/i;
+const leaks = (result: unknown, secrets: string[]) => {
+  const found: string[] = [];
+  const check = (where: string, value: string) => {
+    const ids = (value.match(UUID) ?? []).map((id) => id.toLowerCase());
+    const rest = value.replace(UUID, "<id>");
+    for (const secret of secrets)
+      if (IS_UUID.test(secret) ? ids.includes(secret.toLowerCase()) : rest.includes(secret))
+        found.push(`${where}: ${secret}`);
+    if (EMAIL.test(rest)) found.push(`${where}: an email address`);
+    if (rest.includes("1941")) found.push(`${where}: the birth year`);
+    if (BIRTHDAY_FIELD.test(rest)) found.push(`${where}: a birthday field`);
+  };
+  const walk = (node: unknown, where: string) => {
+    if (typeof node === "string" || typeof node === "number") check(where, String(node));
+    else if (Array.isArray(node)) node.forEach((item, i) => walk(item, `${where}[${i}]`));
+    else if (node && typeof node === "object")
+      for (const [key, value] of Object.entries(node)) {
+        check(`${where}.${key} (key)`, key);
+        walk(value, `${where}.${key}`);
+      }
+  };
+  walk(result, "result");
+  return found;
+};
+
+describe("read tools: the leak check", () => {
+  const secrets = ["1941-03-07", "555-0142", "6f1c2a9e-0d3b-4c1e-9a7f-2b8e4d6c1a05"];
+  it("passes a UUID that contains the birth year or a phone's digits", () => {
+    const result = {
+      content: [
+        {
+          type: "text",
+          text: "Entry 3f2a9c1e-5b7d-4e8a-9c0b-072194195bed by a2c4e6f8-1555-0142-8abc-def012345678",
+        },
+      ],
+      structuredContent: { entryIds: ["3f2a9c1e-5b7d-4e8a-9c0b-072194195bed"], born: "March 7" },
+    };
+    expect(leaks(result, secrets)).toEqual([]);
+  });
+  it("fails a leaked value in any field, a UUID secret among the ids, an email or a birthday field", () => {
+    expect(leaks({ content: [{ type: "text", text: "Born 1941-03-07" }] }, secrets)).toEqual([
+      "result.content[0].text: 1941-03-07",
+      "result.content[0].text: the birth year",
+    ]);
+    expect(leaks({ structuredContent: { phone: "Home 555-0142" } }, secrets)).toEqual([
+      "result.structuredContent.phone: 555-0142",
+    ]);
+    expect(leaks({ structuredContent: { year: 1941 } }, secrets)).toEqual([
+      "result.structuredContent.year: the birth year",
+    ]);
+    expect(leaks({ structuredContent: { token: "6F1C2A9E-0D3B-4C1E-9A7F-2B8E4D6C1A05" } }, secrets)).toEqual([
+      "result.structuredContent.token: 6f1c2a9e-0d3b-4c1e-9a7f-2b8e4d6c1a05",
+    ]);
+    expect(leaks({ content: [{ type: "text", text: "Write to kim@example.com" }] }, [])).toEqual([
+      "result.content[0].text: an email address",
+    ]);
+    expect(leaks({ structuredContent: { dateOfBirth: null } }, [])).toEqual([
+      "result.structuredContent.dateOfBirth (key): a birthday field",
+    ]);
+  });
+});
+
 describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
   it("no email, phone, address, invite data or full birthday in any read tool's answer", async () => {
     const now = new Date();
@@ -997,14 +1067,9 @@ describe("read tools: nothing private leaves", { timeout: 60_000 }, () => {
       for (const tool of reads) {
         const result = await callTool(handler, token, tool.name, inputs[tool.name] ?? {});
         expect(result.isError, tool.name).toBeFalsy();
-        const text = JSON.stringify(result);
         // Something came back, so a pass isn't an empty answer.
-        expect(text.length, tool.name).toBeGreaterThan(40);
-        for (const secret of secretValues)
-          expect(text, `${tool.name} leaked ${secret}`).not.toContain(secret);
-        expect(text, `${tool.name}: an email address`).not.toMatch(/[\w.+-]+@[\w-]+\.[\w.-]+/);
-        expect(text, `${tool.name}: the birth year`).not.toContain("1941");
-        expect(text, `${tool.name}: a birthday field`).not.toMatch(/dateOfBirth|birthday|"dob"/i);
+        expect(JSON.stringify(result).length, tool.name).toBeGreaterThan(40);
+        expect(leaks(result, secretValues), tool.name).toEqual([]);
       }
     }
   });
