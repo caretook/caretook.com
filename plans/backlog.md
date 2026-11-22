@@ -358,10 +358,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-559 | bug | in-progress | test-gates | prd/test-gates | Tooling scripts break on Linux: BSD 'stat -f %m' succeeds under GNU stat, so watchdog caps and silence limits never fire |
 | B-560 | feature | triaged | self-recovery-2 |  | A cost record: tokens by model per PRD and slice, from session and subagent transcripts, in pnpm prd cost |
 | B-561 | feature | triaged | demo-site |  | Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites |
-| B-562 | change | inbox |  |  | Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet |
-| B-563 | feature | inbox |  |  | Accessibility statement page |
-| B-564 | change | inbox |  |  | App-store prerequisites for the Capacitor apps |
-| B-565 | feature | inbox |  |  | Ownership transfer: a last owner can hand a care group to another member |
+| B-562 | change | triaged | data-rights |  | Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet |
+| B-563 | feature | triaged | marketing |  | Accessibility statement page |
+| B-564 | change | triaged | hosting |  | App-store prerequisites for the Capacitor apps |
+| B-565 | feature | triaged | data-rights |  | Ownership transfer: a last owner can hand a care group to another member |
 | B-566 | bug | triaged | fixes-bug |  | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
 | B-567 | bug | triaged | fixes-bug |  | inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2 |
 | B-568 | bug | triaged | fixes-bug |  | Component tests that failed once on CI's Linux runners: providers rows, provider empty links, emergency sheet, search speed, timeline Back, weekly print chart |
@@ -2865,39 +2865,43 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-562 · change · Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: data-rights
 - owner:
 - commit:
 
 - 2026-11-22 (plan/onboarding): From the onboarding skeptic (2026-11-22). onboarding records versions but builds no re-ask, by the user's answer on existing accounts; this needs a decision before the legal text changes materially.
+- 2026-11-22 (Robert Bo Davis): Triage: data-rights, beside B-358 (what the legal drafts may promise); it is a consent and notice duty to users. Needs a decision before the legal text changes materially.
 
 ### B-563 · feature · Accessibility statement page
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: marketing
 - owner:
 - commit:
 
 - 2026-11-22 (plan/onboarding): Split from B-360's review note (2026-11-22); out of scope for onboarding.
+- 2026-11-22 (Robert Bo Davis): Triage: marketing, a public page beside the privacy policy and terms (B-54).
 
 ### B-564 · change · App-store prerequisites for the Capacitor apps
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: hosting
 - owner:
 - commit:
 
 - 2026-11-22 (plan/onboarding): Split from B-360's review note (2026-11-22); out of scope for onboarding.
+- 2026-11-22 (Robert Bo Davis): Triage: hosting, the nearest launch topic. No Capacitor topic exists yet; move it there when one does.
 
 ### B-565 · feature · Ownership transfer: a last owner can hand a care group to another member
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: data-rights
 - owner:
 - commit:
 
 - 2026-11-22 (plan/onboarding): Split from B-360's review note (2026-11-22): careGroupMemberService says the last owner must hand over ownership first, and no flow does. Related to the open question on a last owner deleting their account.
+- 2026-11-22 (Robert Bo Davis): Triage: data-rights, because it decides what account deletion does for a last owner (the open question in AGENTS.md).
 
 ### B-566 · bug · Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector
 
