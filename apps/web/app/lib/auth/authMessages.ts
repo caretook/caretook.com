@@ -35,6 +35,21 @@ export const requestFailure = (error: AuthError) => {
   return null;
 };
 
+/**
+ * Catches a request that never reached the server: offline, Better Auth's
+ * fetch rejects with a TypeError instead of answering. It becomes an answer
+ * with no status, which `requestFailure` calls offline (B-314). Anything else
+ * still throws. Use as `authClient.….catch(unreached)`.
+ */
+export const unreached = (e: unknown) => {
+  if (!(e instanceof TypeError)) throw e;
+  const error: { status: number; statusText: string; code?: string; message?: string } = {
+    status: 0,
+    statusText: "",
+  };
+  return { data: null, error };
+};
+
 /** Better Auth's answer to a password sign-in for an unverified account. */
 export const isUnverified = (error: AuthError) => error?.code === "EMAIL_NOT_VERIFIED";
 
