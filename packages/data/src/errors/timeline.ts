@@ -27,6 +27,10 @@ export const TIMELINE_ERRORS = {
     message: "Medication changes are written with the medication, not by hand",
     statusCode: 403,
   },
+  "timelineEntryService:loggerOnly": {
+    message: "This role can only log notes, events, symptoms, vitals and doses",
+    statusCode: 403,
+  },
   "timelineEntryService:rescheduledToNotInGroup": {
     message: "A rescheduled event must point at another event in this care group",
     statusCode: 400,

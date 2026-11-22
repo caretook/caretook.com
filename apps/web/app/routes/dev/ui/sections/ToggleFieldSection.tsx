@@ -16,7 +16,7 @@ export function ToggleFieldSection() {
       </Example>
       <Example label="With an error, and disabled">
         <div className="w-full space-y-2">
-          <ToggleField label="Simple mode" error="Couldn't save that. Try again." />
+          <ToggleField label="Easy mode" error="Couldn't save that. Try again." />
           <ToggleField label="Let members include details" disabled defaultChecked />
         </div>
       </Example>

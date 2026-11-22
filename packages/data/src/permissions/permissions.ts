@@ -34,10 +34,31 @@ import { TIMELINE_PERMISSIONS } from "./timeline";
 
 export {
   ADMIN_ONLY_PERMISSION_ENTRY,
+  ANY_GROUP_ROLE,
+  EASY_ROLES,
+  LOGGERS,
+  MANAGERS,
+  OWNERS,
+  OWN_ROW_LOGGERS,
+  WRITERS,
   DEFAULT_PERMISSION_ENTRY,
   PUBLIC_PROFILE_FIELDS,
   STAFF_PERMISSION_ENTRY,
 } from "./blocks";
+
+// The group roles and their checks, for client code (client-safe).
+export {
+  GROUP_ROLES,
+  GROUP_ROLE_NAMES,
+  groupRoleLabel,
+  hasGroupRole,
+  isEasyRole,
+  isGroupRoleName,
+  isLoggerRole,
+  isManagerRole,
+  isWriterRole,
+} from "../constants/roles";
+export type { GroupRoleGroup, GroupRoleName } from "../constants/roles";
 
 // ---------------------------------------------------------------------------
 // The permission map. Every table must have an entry (enforced by the type).
@@ -144,8 +165,23 @@ export const getPermissionScope = (
     }
   }
 
+  const ownRoles = schemaEntry[permission].groupOwn;
+  if (ownRoles?.length && isSignedInUser(authUser)) {
+    if (!groupField) throw new Error(`${schemaName}.${permission} has groupOwn roles but no groupField`);
+    rules.push({
+      type: "groupOwn",
+      field: groupField,
+      ownerField: CREATED_BY_FIELD,
+      userId: authUser.id,
+      groupRoles: ownRoles,
+    });
+  }
+
   return rules.length ? { type: "rules", rules } : rejectError(authUser);
 };
+
+/** The column `groupOwn` rules match the actor against: who created the row (`audits`). */
+export const CREATED_BY_FIELD = "createdBy";
 
 /** Fields in `data` that `authUser` isn't allowed to set for this permission. */
 export const getUnauthorizedFields = ({
@@ -175,7 +211,10 @@ export type HasPermissionArgs = {
   authUser: AuthUser | null;
   schemaName: DbSchemaName;
   permission: SchemaPermission;
-  /** The row being acted on. Required to decide `owned` and `group` permissions. */
+  /**
+   * The row being acted on. Required to decide `owned` and `group`
+   * permissions; `groupOwn` also needs its `createdBy`.
+   */
   target?: Record<string, unknown>;
 };
 
@@ -200,6 +239,10 @@ export const hasPermission = ({ authUser, schemaName, permission, target }: HasP
       case "group": {
         const role = typeof value === "string" ? authUser?.groupRoles?.[value] : undefined;
         return !!role && rule.groupRoles.includes(role);
+      }
+      case "groupOwn": {
+        const role = typeof value === "string" ? authUser?.groupRoles?.[value] : undefined;
+        return !!role && rule.groupRoles.includes(role) && target[rule.ownerField] === rule.userId;
       }
       case "groupUser":
         return false;

@@ -10,7 +10,7 @@ import type {
 import type { IncludeDeleted } from "../models/appointmentSeries";
 import type { ServiceContext } from "./types";
 
-import { SYSTEM_USER } from "../constants";
+import { SYSTEM_USER, isWriterRole } from "../constants";
 import { withTransaction } from "../db";
 import {
   addDays,
@@ -240,7 +240,7 @@ export const create = (
 
     const role = await roleIn(ctx, tx, data.groupId);
     if (isError(role)) return role;
-    if (!role || role === "viewer") return rejectError(ctx.authUser);
+    if (!isWriterRole(role)) return rejectError(ctx.authUser);
 
     const providers = await checkProviders(ctx, tx, data.groupId, data.providerIds);
     if (providers) return providers;

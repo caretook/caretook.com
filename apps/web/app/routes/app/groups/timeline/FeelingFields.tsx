@@ -5,7 +5,7 @@ import { Angry, Annoyed, Frown, Laugh, Meh, Smile } from "lucide-react";
 import { useId } from "react";
 import { TIMELINE_LIMITS } from "@caretook/data/schema";
 import { Field } from "~/components/ui";
-import { FEELING_SYMPTOM_NAME } from "~/lib/assistant/simpleTiles";
+import { FEELING_SYMPTOM_NAME } from "~/lib/assistant/easyTiles";
 
 /** The scale's words at each end and the middle, read with the number. */
 export const feelingWords = (n: number) =>
@@ -22,7 +22,7 @@ export const feelingWords = (n: number) =>
 const FACES: LucideIcon[] = [Laugh, Smile, Smile, Smile, Meh, Meh, Meh, Frown, Frown, Annoyed, Angry];
 
 /**
- * Simple mode's symptom (the "How she feels" tile): a 0–10 face scale, big
+ * Easy mode's symptom (the "How she feels" tile): a 0–10 face scale, big
  * enough to tap without glasses, and what's wrong if they want to say. The
  * symptom is named "Feeling" when nothing is typed. A one-off scale of
  * eleven, so native radios here rather than a `ChoiceGroup` (a few joined

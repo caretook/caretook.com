@@ -1,18 +1,28 @@
 import type { PartialPermissions } from "./types";
 
-import { ANY_GROUP_ROLE, SYSTEM_ONLY, WRITERS, groupEntry } from "./blocks";
+import {
+  ANY_GROUP_ROLE,
+  LOGGERS,
+  OWN_ROW_LOGGERS,
+  SYSTEM_ONLY,
+  WRITERS,
+  groupEntry,
+  groupOwnEntry,
+} from "./blocks";
 
 export const TIMELINE_PERMISSIONS = {
-  // Any writer may edit or delete any entry (not just their own). Deletes
+  // Loggers add entries (an Easy helper too: timelineEntryService limits
+  // them to hand-written kinds and doses). Any writer may edit or delete any
+  // entry; an Easy helper only the ones they created (`groupOwn`). Deletes
   // are soft (timelineEntryModel.remove sets deletedAt under this delete
   // permission); hard deletes are system-only (purge).
   timelineEntrySchema: {
     groupField: "groupId",
     read: groupEntry(ANY_GROUP_ROLE),
     list: groupEntry(ANY_GROUP_ROLE),
-    create: { ...groupEntry(WRITERS), fields: { deletedAt: SYSTEM_ONLY } },
+    create: { ...groupEntry(LOGGERS), fields: { deletedAt: SYSTEM_ONLY } },
     update: {
-      ...groupEntry(WRITERS),
+      ...groupOwnEntry(WRITERS, OWN_ROW_LOGGERS),
       fields: {
         groupId: SYSTEM_ONLY,
         recipientId: SYSTEM_ONLY,
@@ -21,6 +31,6 @@ export const TIMELINE_PERMISSIONS = {
         via: SYSTEM_ONLY,
       },
     },
-    delete: groupEntry(WRITERS),
+    delete: groupOwnEntry(WRITERS, OWN_ROW_LOGGERS),
   },
 } as const satisfies PartialPermissions;

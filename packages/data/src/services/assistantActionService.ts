@@ -37,7 +37,7 @@ import {
   timelineEntryContentZSchema,
   toBase64,
 } from "../db/schema";
-import { SYSTEM_USER } from "../constants";
+import { SYSTEM_USER, isWriterRole } from "../constants";
 import { isError, newError } from "../errors";
 import {
   careGroupMemberModel,
@@ -80,8 +80,6 @@ import * as timelineEntryService from "./timelineEntryService";
 // Another group's condition id reads as not found.
 
 export const serviceName = "assistantAction";
-
-const WRITER_ROLES = ["owner", "admin", "caretaker"] as const;
 
 export type RunOptions = {
   /** The assistant the batch came through ("Claude"): stored on every entry and todo. */
@@ -541,8 +539,7 @@ export const run = (
     if (!ctx.authUser) return at(rejectError(ctx.authUser), null);
     const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id, { tx });
     if (isError(role)) return role;
-    if (!role || !(WRITER_ROLES as readonly string[]).includes(role))
-      return at(rejectError(ctx.authUser), null);
+    if (!isWriterRole(role)) return at(rejectError(ctx.authUser), null);
     const recipient = await careRecipientModel.get({
       ...inTx,
       filter: { groupId: { type: "eq", value: groupId } },

@@ -14,7 +14,7 @@ import { dayKeyIn, dayStartAt } from "./timelineDays";
 
 /**
  * A day heading's + button ("Add to Today", "Add to Monday, Nov 16"; writers
- * only: `DayHeader` leaves it out for viewers and in simple mode), opening
+ * only: `DayHeader` leaves it out for viewers and in easy mode), opening
  * one menu of what can be added: Note, Event, Dose, Symptom, then "Vitals",
  * a group that expands in place to each vital type. Notes and events open their page; doses, symptoms and
  * vitals their add sheet over the timeline (which keeps the scroll position

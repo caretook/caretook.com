@@ -95,7 +95,7 @@ export const TEST_RECIPIENT = {
   preferredName: "Grandma June",
 } as const;
 
-export type GroupRole = "owner" | "admin" | "caretaker" | "viewer";
+export type GroupRole = "owner" | "admin" | "caretaker" | "viewer" | "easy_helper" | "easy_viewer";
 
 const groupId = TEST_GROUP.id;
 const recipientId = TEST_RECIPIENT.id;

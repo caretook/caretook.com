@@ -70,18 +70,24 @@ const ROLE_ARTICLES: Record<string, string> = {
   admin: "an admin",
   caretaker: "a caretaker",
   viewer: "a viewer",
+  easy_helper: "an Easy helper",
+  easy_viewer: "an Easy viewer",
 };
 
 /** "a caretaker"; a role this build doesn't know shows as it is. */
 export const roleWithArticle = (role: string) => ROLE_ARTICLES[role] ?? role;
 
-/** What a role lets the new member do, in a line. */
-export const roleMeaning = (role: string) =>
-  role === "viewer"
-    ? "You'll be able to read everything the group shares, but not add to it."
-    : role === "caretaker"
-      ? "You'll be able to read and add to everything the group shares."
-      : "You'll be able to read and add to everything the group shares, and manage its members.";
+const ROLE_MEANINGS: Record<string, string> = {
+  owner: "You'll be able to read and add to everything the group shares, and manage its members.",
+  admin: "You'll be able to read and add to everything the group shares, and manage its members.",
+  caretaker: "You'll be able to read and add to everything the group shares.",
+  viewer: "You'll be able to read everything the group shares, but not add to it.",
+  easy_helper: "You'll see the group in a simpler view, where you can log care and tick your own todos.",
+  easy_viewer: "You'll see the group in a simpler view, where you can read along and tick your own todos.",
+};
+
+/** What a role lets the new member do, in a line (a role this build doesn't know reads as an admin's). */
+export const roleMeaning = (role: string) => ROLE_MEANINGS[role] ?? ROLE_MEANINGS.admin;
 
 /** The page's heading for a usable invite. */
 export const inviteTitle = (invite: UsablePreview) =>

@@ -14,10 +14,10 @@ const TICK_MS = 60_000;
  * section goes at the top of these notes.
  */
 export function EntryVisitPrep({ live, groupId }: { live: LiveEntry; groupId: string }) {
-  const { entry, canWrite, stored, deleted } = live;
+  const { entry, canSetUp, stored, deleted } = live;
   const now = useNow(TICK_MS);
   const show =
-    canWrite &&
+    canSetUp &&
     stored &&
     !deleted &&
     entry.kind === "event" &&

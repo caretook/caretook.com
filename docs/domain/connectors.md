@@ -19,8 +19,8 @@ PRDs: [`connectors-prd.md`](../../plans/connectors-prd.md) (B-104), [`connectors
 
 - One grant binds a token to one group (`client_name` ≤ 40, `redirect_host`, `scope` `read|readWrite`, `consent_version`, `last_used_at`, `revoked_at`). One live grant per user and client; a new one ends the old one's tokens.
 - `PERMISSIONS.connector_grant`: read and delete for the member and the group's owners and admins; create and update for `system`.
-- **`verify(token)` is the only way into `/mcp`.** Each call rechecks the account, membership, current role (viewers read only) and the switch; token scopes narrow it (`effectiveScope`). It returns the member with `roleNames: ["member"]` (no staff powers) and stamps `last_used_at` at most once a minute. `groupId` comes from the grant, never tool input.
-- `revoke` ends the tokens and the `oauth_consent` row. `revokeForMember` runs in `careGroupMemberService.remove` (and `leave`); account deletion cascades.
+- **`verify(token)` is the only way into `/mcp`.** Each call rechecks the account, membership, current role (viewers read only; easy roles none: `scopesForRole`, so a role change cuts a grant off) and the switch; token scopes narrow it (`effectiveScope`). It returns the member with `roleNames: ["member"]` (no staff powers) and stamps `last_used_at` once a minute at most. `groupId` comes from the grant, never tool input.
+- `revoke` ends the tokens and the `oauth_consent` row. `revokeForMember` runs in `careGroupMemberService.remove` (and `leave`).
 - **The switch** `care_group.connectors_enabled` (default off; Dev Family seeded on): owners only, through `careGroupService.update`. Off revokes every grant in the same transaction; on restores nothing.
 
 ## Asking owners (`assistant_request`, `assistantRequestService`)
@@ -56,7 +56,7 @@ PRDs: [`connectors-prd.md`](../../plans/connectors-prd.md) (B-104), [`connectors
 - oRPC (`connectors/connector.ts`): `connector.listMine`, `listForGroup` (owners and admins; 404 non-members), `revoke`; `careGroup.update` takes `connectorsEnabled`. Nothing returns a token.
 - **Group settings → Assistants**: owners get the switch; owners and admins the group's connections with Disconnect; others the status from local data. Online only.
 - **Settings → Devices:** "Connected assistants" after the sessions, Disconnect behind a `ConfirmDialog`.
-- **The connect guide** (`components/connectors/ConnectGuide`; wording in `lib/connectors/connectGuide.ts`): the `/mcp` URL with Copy, steps and help links for Claude and ChatGPT; on Assistants and Devices. Off: the off note instead; viewers: the viewer note.
+- **The connect guide** (`components/connectors/ConnectGuide`; wording in `lib/connectors/connectGuide.ts`): the `/mcp` URL with Copy, steps and help links for Claude and ChatGPT; on Assistants and Devices. Off: the off note instead; viewers: the viewer note; none when every group gives the member an easy role.
 
 ## Tests
 

@@ -27,10 +27,12 @@ import {
   noteDocumentModel,
   noteUpdateModel,
   providerModel,
+  careGroupMemberModel,
   todoModel,
   timelineEntryModel,
 } from "../models";
-import { rejectError } from "../permissions";
+import { isWriterRole } from "../constants";
+import { isSystemUser, rejectError } from "../permissions";
 
 // Live documents (collaborative notes) on note and event entries, on
 // providers, medications, care periods and todos. Write documents and updates through here, not the models: this
@@ -95,6 +97,27 @@ const liveOwner = async (ctx: ServiceContext, tx: Tx, subject: NoteDocumentSubje
   return entry
     ? { groupId: entry.groupId, kind: entry.kind }
     : newError({ code: "noteDocumentService:entryNotFound" });
+};
+
+/**
+ * Whether the actor may write the document of this owner: a writer on any
+ * owner; anyone else (an Easy helper, the one other role the tables let
+ * write) only on an entry they may update, in SQL (`groupOwn`: one they
+ * created), never on a provider's, medication's, care period's or todo's.
+ */
+const mayWriteOwner = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  subject: NoteDocumentSubject,
+  id: string,
+  groupId: string,
+) => {
+  if (!ctx.authUser || isSystemUser(ctx.authUser)) return true;
+  const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id, { tx });
+  if (isError(role)) return role;
+  if (isWriterRole(role)) return true;
+  if (subject !== "entry") return false;
+  return timelineEntryModel.mayChange(id, "update", { ...ctx, tx });
 };
 
 /** The document, if the actor can see it and its owner isn't deleted. */
@@ -175,8 +198,9 @@ export const currentDoc = (ctx: ServiceContext, id: string) =>
 /**
  * Add a live document to an entry, a provider, a medication or a care
  * period (`id` is the owner's id; `subject` defaults to an entry). Only
- * writers, only on a live note or event, or a provider, medication or care
- * period that isn't deleted, in the owner's own group.
+ * loggers who may write the owner (`mayWriteOwner`), only on a live note or
+ * event, or a provider, medication or care period that isn't deleted, in
+ * the owner's own group.
  *
  * Idempotent: if the entry already has one, that one is returned. That's
  * also PowerSync's replay, and two offline devices adding one at once.
@@ -198,12 +222,17 @@ export const create = (ctx: ServiceContext, input: NoteDocumentCreateInput) =>
     if (isError(existing)) return existing;
     if (existing) return existing.subject === subject ? existing : immutable();
 
+    const may = await mayWriteOwner(ctx, tx, subject, id, groupId);
+    if (isError(may)) return may;
+    if (!may) return rejectError(ctx.authUser);
+
     return noteDocumentModel.create({ ...ctx, tx, data: { id, groupId, ...ownerColumns(subject, id) } });
   }, ctx);
 
 /**
- * Append one Yjs update to a document. Writers only (the model's create
- * scope), on a visible document in the same group.
+ * Append one Yjs update to a document: loggers (the model's create scope)
+ * who may write its owner (`mayWriteOwner`), on a visible document in the
+ * same group.
  *
  * Idempotent on `id`: a replay of an update already stored (or already
  * compacted away) changes nothing. Applying an update twice is harmless in
@@ -228,6 +257,10 @@ export const appendUpdate = (ctx: ServiceContext, input: NoteUpdateCreateInput) 
       if (existing.documentId !== documentId) return rejectError(ctx.authUser);
       return { id, documentId, replay: true as const };
     }
+
+    const may = await mayWriteOwner(ctx, tx, doc.subject, documentId, doc.groupId);
+    if (isError(may)) return may;
+    if (!may) return rejectError(ctx.authUser);
 
     const created = await noteUpdateModel.create({ ...ctx, tx, data: { id, groupId, documentId, data } });
     if (isError(created)) return created;

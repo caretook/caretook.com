@@ -80,7 +80,14 @@ describe("the Invite by email sheet", () => {
     await expect.element(page.getByRole("button", { name: "Send invitation" })).toBeVisible();
     await expect.element(page.getByLabelText("Email", { exact: true })).toHaveValue("");
     const roles = [...sheet()!.querySelectorAll<HTMLOptionElement>('select[name="role"] option')];
-    expect(roles.map((o) => o.value)).toEqual(["owner", "admin", "caretaker", "viewer"]);
+    expect(roles.map((o) => o.value)).toEqual([
+      "owner",
+      "admin",
+      "caretaker",
+      "viewer",
+      "easy_helper",
+      "easy_viewer",
+    ]);
     await expect
       .poll(() => sheet()?.querySelector<HTMLSelectElement>('select[name="role"]')?.value)
       .toBe("caretaker");
@@ -91,7 +98,32 @@ describe("the Invite by email sheet", () => {
     await open({ role: "admin" });
     await userEvent.click(inviteButton());
     const roles = [...sheet()!.querySelectorAll<HTMLOptionElement>('select[name="role"] option')];
-    expect(roles.map((o) => o.value)).toEqual(["admin", "caretaker", "viewer"]);
+    expect(roles.map((o) => o.value)).toEqual(["admin", "caretaker", "viewer", "easy_helper", "easy_viewer"]);
+  });
+
+  test("groups the roles, the easy ones under Easier to use, and describes the one chosen", async () => {
+    await open();
+    await userEvent.click(inviteButton());
+    const groups = [...sheet()!.querySelectorAll<HTMLOptGroupElement>('select[name="role"] optgroup')];
+    expect(groups.map((g) => [g.label, [...g.querySelectorAll("option")].map((o) => o.textContent)])).toEqual(
+      [
+        ["Regular roles", ["Owner", "Admin", "Caretaker", "Viewer"]],
+        ["Easier to use", ["Easy helper", "Easy viewer"]],
+      ],
+    );
+    await expect.element(page.getByText("Reads and writes care data.")).toBeVisible();
+    await userEvent.selectOptions(page.getByLabelText("Role"), "easy_helper");
+    await expect
+      .element(
+        page.getByText(
+          /^For someone who isn't comfortable with apps .* can log care and tick their own todos/,
+        ),
+      )
+      .toBeVisible();
+    await userEvent.selectOptions(page.getByLabelText("Role"), "easy_viewer");
+    await expect
+      .element(page.getByText(/^For someone who isn't comfortable with apps .* can read and tick/))
+      .toBeVisible();
   });
 
   test("Send invitation calls invite.createEmail with the role and the attestation, closes, and says to whom", async () => {
@@ -162,6 +194,7 @@ describe("who sees the invite controls", () => {
     }
   });
 
+  // The easy roles never reach Members: the group route sends them to the timeline (timelineEasyLock.browser.test.tsx).
   test("caretakers and viewers see no invite or link controls, no Pending, no links and no requests, and make no invite calls", async () => {
     for (const role of ["caretaker", "viewer"] as const) {
       const calls = apiCalls();

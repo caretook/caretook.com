@@ -18,7 +18,7 @@ import { dayKeyIn } from "./timelineDays";
  * day), and beside them the care period that covers the day (`DayPeriod`).
  * The heading names the section (`day-<key>`); the period isn't part of it.
  * Under them, `summary` (the day's `DaySummaryLine`), so it stays pinned with
- * its date while the day scrolls by. Simple mode shows the period too, in
+ * its date while the day scrolls by. Easy mode shows the period too, in
  * larger type and without Change.
  */
 export function DayHeader({
@@ -27,7 +27,7 @@ export function DayHeader({
   newestAt,
   groupId,
   periods,
-  simple = false,
+  easy = false,
   summary,
 }: {
   /** The day's key ("2026-11-17", the viewer's zone). */
@@ -37,7 +37,7 @@ export function DayHeader({
   newestAt: string | undefined;
   groupId: string;
   periods: TimelinePeriods;
-  simple?: boolean;
+  easy?: boolean;
   /** The day's summary line, under the heading (inside the sticky header). */
   summary?: ReactNode;
 }) {
@@ -51,12 +51,12 @@ export function DayHeader({
           <h3 id={`day-${dayKey}`} className="text-lg font-semibold lg:text-xl">
             {label}
           </h3>
-          {canWrite && !simple && <QuickAddMenu groupId={groupId} dayKey={dayKey} label={label} />}
+          {canWrite && !easy && <QuickAddMenu groupId={groupId} dayKey={dayKey} label={label} />}
         </div>
         {today ? (
-          <TodayPeriod groupId={groupId} periods={periods} simple={simple} />
+          <TodayPeriod groupId={groupId} periods={periods} easy={easy} />
         ) : (
-          newestAt && <DayPeriod groupId={groupId} periods={periods} at={newestAt} simple={simple} />
+          newestAt && <DayPeriod groupId={groupId} periods={periods} at={newestAt} easy={easy} />
         )}
       </div>
       {summary}
@@ -68,14 +68,14 @@ export function DayHeader({
 function TodayPeriod({
   groupId,
   periods,
-  simple,
+  easy,
 }: {
   groupId: string;
   periods: TimelinePeriods;
-  simple: boolean;
+  easy: boolean;
 }) {
   const now = useNow(60_000);
-  return <DayPeriod groupId={groupId} periods={periods} at={now} change={!simple} simple={simple} />;
+  return <DayPeriod groupId={groupId} periods={periods} at={now} change={!easy} easy={easy} />;
 }
 
 /**
@@ -91,13 +91,13 @@ function DayPeriod({
   periods,
   at,
   change,
-  simple,
+  easy,
 }: {
   groupId: string;
   periods: TimelinePeriods;
   at: string | number;
   change?: boolean;
-  simple?: boolean;
+  easy?: boolean;
 }) {
   const group = useGroup();
   const span = periodAt(periods.spans, at);
@@ -108,10 +108,10 @@ function DayPeriod({
   const text = currentLineText(period, { day: periodDay(span.startsAt, at, timeZone) });
   return (
     <p
-      className={`text-base-content/70 flex min-w-0 items-center gap-1.5 font-normal ${simple ? "text-base" : "text-sm"}`}
+      className={`text-base-content/70 flex min-w-0 items-center gap-1.5 font-normal ${easy ? "text-base" : "text-sm"}`}
       data-period-line={period.id}
     >
-      <Icon className={simple ? "size-5 shrink-0" : "size-4 shrink-0"} aria-hidden="true" />
+      <Icon className={easy ? "size-5 shrink-0" : "size-4 shrink-0"} aria-hidden="true" />
       <Link
         to={appUrls.period(groupId, period.id)}
         className="link-hover min-w-0 break-words"

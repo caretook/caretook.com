@@ -11,11 +11,12 @@ import type { Filter } from "../models";
 import type { IncludeDeleted } from "../models/timelineEntry";
 import type { ServiceContext } from "./types";
 
-import { SYSTEM_USER } from "../constants";
+import { SYSTEM_USER, isOwnRowLogger } from "../constants";
 import { withTransaction } from "../db";
 import {
   buildNoteDoc,
   canHaveNoteDocument,
+  canLogEntry,
   FUTURE_DATE_MESSAGE,
   isDoseDetails,
   isTooFarAhead,
@@ -31,6 +32,7 @@ import { isPastVisit } from "../db/schema/appointments/seriesEdit";
 import { isError, newError } from "../errors";
 import {
   appointmentSeriesModel,
+  careGroupMemberModel,
   careGroupModel,
   careRecipientModel,
   medicationModel,
@@ -62,6 +64,26 @@ const refuseSystemWritten = (ctx: ServiceContext, kind: string) =>
   isSystemWrittenKind(kind) && !isSystemUser(ctx.authUser)
     ? newError({ code: "timelineEntryService:systemWrittenKind" })
     : null;
+
+/**
+ * An Easy helper logs care and nothing else (`canLogEntry`): the logged
+ * kinds, never an appointment's series, reschedule or cancellation. (Which
+ * rows they may edit or delete is the permission map's `groupOwn`, in SQL.)
+ * Writers and the system pass; other roles are refused by the model.
+ */
+const refuseLoggerOnly = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  groupId: string,
+  kind: string,
+  data: Parameters<typeof canLogEntry>[2],
+) => {
+  if (!ctx.authUser || isSystemUser(ctx.authUser)) return null;
+  const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id, { tx });
+  if (isError(role)) return role;
+  if (!isOwnRowLogger(role)) return null;
+  return canLogEntry(role, kind, data) ? null : newError({ code: "timelineEntryService:loggerOnly" });
+};
 
 /**
  * A dose's medication must be in the entry's group, as the actor sees it. A
@@ -359,6 +381,9 @@ export const create = (ctx: ServiceContext, input: TimelineEntryCreateInput, opt
     const refused = refuseSystemWritten(ctx, data.kind);
     if (refused) return refused;
 
+    const loggerOnly = await refuseLoggerOnly(ctx, tx, data.groupId, data.kind, data);
+    if (loggerOnly) return loggerOnly;
+
     const resolved = await resolveRecipient(ctx, tx, data.groupId, recipientId);
     if (isError(resolved)) return resolved;
 
@@ -413,6 +438,14 @@ export const update = (
 
     const refused = refuseSystemWritten(ctx, existing.kind);
     if (refused) return refused;
+
+    const loggerOnly = await refuseLoggerOnly(ctx, tx, existing.groupId, existing.kind, patch);
+    if (loggerOnly) return loggerOnly;
+    // Seen but not theirs to change (a viewer; an Easy helper on another
+    // member's entry): refused cleanly, before any write.
+    const mayUpdate = await timelineEntryModel.mayChange(id, "update", { ...ctx, tx });
+    if (isError(mayUpdate)) return mayUpdate;
+    if (!mayUpdate) return rejectError(ctx.authUser);
 
     const merged = timelineEntryContentZSchema.safeParse({
       kind: existing.kind,
@@ -582,6 +615,13 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
  */
 export const remove = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
+    const visible = await timelineEntryModel.getById(id, { ...ctx, tx });
+    if (isError(visible)) return visible;
+    if (visible) {
+      const mayDelete = await timelineEntryModel.mayChange(id, "delete", { ...ctx, tx });
+      if (isError(mayDelete)) return mayDelete;
+      if (!mayDelete) return rejectError(ctx.authUser);
+    }
     const res = await timelineEntryModel.remove({ ...ctx, tx, filter: { id: { type: "eq", value: id } } });
     if (isError(res) && res.code === "baseModel:remove:nothingRemoved") return notFound();
     if (isError(res)) return res;
