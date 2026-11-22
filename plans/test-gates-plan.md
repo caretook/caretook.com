@@ -7,13 +7,13 @@ The [PRD](test-gates-prd.md) covers:
 - a run's failures are sorted by kind, and flakes are quarantined;
 - a landing waits for the tier its orchestrator declared.
 
-Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-566, B-567, B-568. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
+Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-566, B-567, B-568, B-572. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
 
 ## Status
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** waves 1 (adce90ee, PR #71) and 2 (5b724350, PR #74) are in dev. Wave 2 landed with `--force --no-review` on the user's word on 2026-11-22: its full check failed once on a harness flake (B-573) and the rerun was stopped; Codex was clean on d9bda4e, and only Markdown changed after it. No browser checks (no app code). Docs folded. **Wave 3 is slice 4, then slice 9 (both opus).** Synced with dev on 2026-11-22 (nothing new). Slice 9 was added for B-566, B-567 and B-568, which the user moved here (notice n19). Slice 4: starting.
+**Now:** waves 1 (adce90ee, PR #71) and 2 (5b724350, PR #74) are in dev. Wave 2 landed with `--force --no-review` on the user's word on 2026-11-22: its full check failed once on a harness flake (B-573) and the rerun was stopped; Codex was clean on d9bda4e, and only Markdown changed after it. No browser checks (no app code). Docs folded. **Wave 3 is slices 4 and 10 side by side, then slice 9 (all opus).** Synced with dev on 2026-11-22 (nothing new). Slice 9 was added for B-566, B-567 and B-568, which the user moved here (notice n19). Slice 10 was added for B-572, moved back from test-gates-2 on the user's word (its note); that plan's slice 7 is the backlog session's to drop. Slice 4: agent running in `.loops/test-gates-4`. Slice 10: starting.
 
 **Open issues:**
 
@@ -26,35 +26,37 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 - Slice 1's before and after time on a quiet machine is partial: static steps 127 s in series, 79.5 s side by side, at load 8 to 11.
 - B-554 stays in progress until slice 6 merges.
 
-| Slice | Wave | State         | Merge into `prd/test-gates` (slice commits) |
-| ----- | ---- | ------------- | ------------------------------------------- |
-| 1     | 1    | merged (opus) | 98a36dd4 (5eb596a9)                         |
-| 2     | 1    | merged (opus) | 34b157fb (80a35650)                         |
-| 3     | 2    | merged (opus) | 39f87cf0 (f0645753)                         |
-| 4     | 3    | —             | —                                           |
-| 5     | 4    | —             | —                                           |
-| 6     | 5    | —             | —                                           |
-| 7     | 5    | —             | —                                           |
-| 8     | 2    | merged (opus) | ff6ac3c3 (7bd82c6f)                         |
-| 9     | 3    | —             | —                                           |
+| Slice | Wave | State          | Merge into `prd/test-gates` (slice commits) |
+| ----- | ---- | -------------- | ------------------------------------------- |
+| 1     | 1    | merged (opus)  | 98a36dd4 (5eb596a9)                         |
+| 2     | 1    | merged (opus)  | 34b157fb (80a35650)                         |
+| 3     | 2    | merged (opus)  | 39f87cf0 (f0645753)                         |
+| 4     | 3    | started (opus) | —                                           |
+| 5     | 4    | —              | —                                           |
+| 6     | 5    | —              | —                                           |
+| 7     | 5    | —              | —                                           |
+| 8     | 2    | merged (opus)  | ff6ac3c3 (7bd82c6f)                         |
+| 9     | 3    | —              | —                                           |
+| 10    | 3    | started (opus) | —                                           |
 
 **Backlog:**
 
-| Item  | Claim          | `done`         |
-| ----- | -------------- | -------------- |
-| B-555 | slice 1 starts | slice 1 merges |
-| B-556 | slice 1 starts | slice 1 merges |
-| B-341 | slice 2 starts | slice 3 merges |
-| B-554 | slice 2 starts | slice 6 merges |
-| B-529 | slice 4 starts | slice 5 merges |
-| B-530 | slice 4 starts | slice 5 merges |
-| B-528 | slice 6 starts | slice 6 merges |
-| B-553 | slice 7 starts | slice 7 merges |
-| B-559 | slice 8 starts | slice 8 merges |
-| B-242 | slice 8 starts | slice 8 merges |
-| B-566 | slice 9 starts | slice 9 merges |
-| B-567 | slice 9 starts | slice 9 merges |
-| B-568 | slice 9 starts | slice 9 merges |
+| Item  | Claim           | `done`          |
+| ----- | --------------- | --------------- |
+| B-555 | slice 1 starts  | slice 1 merges  |
+| B-556 | slice 1 starts  | slice 1 merges  |
+| B-341 | slice 2 starts  | slice 3 merges  |
+| B-554 | slice 2 starts  | slice 6 merges  |
+| B-529 | slice 4 starts  | slice 5 merges  |
+| B-530 | slice 4 starts  | slice 5 merges  |
+| B-528 | slice 6 starts  | slice 6 merges  |
+| B-553 | slice 7 starts  | slice 7 merges  |
+| B-559 | slice 8 starts  | slice 8 merges  |
+| B-242 | slice 8 starts  | slice 8 merges  |
+| B-566 | slice 9 starts  | slice 9 merges  |
+| B-567 | slice 9 starts  | slice 9 merges  |
+| B-568 | slice 9 starts  | slice 9 merges  |
+| B-572 | slice 10 starts | slice 10 merges |
 
 ## Architectural decisions
 
@@ -74,7 +76,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 - **Waves:**
   1. slices 1 and 2 (1 touches the local check runner; 2 adds the workflow and the request; they share only additive `prd.sh` cases)
   2. slice 3, then slice 8 on top of it (both edit `ci.yml` and `vitest.config.ts`)
-  3. slice 4, then slice 9 on top of it (9 needs the quarantine list)
+  3. slices 4 and 10 side by side, then slice 9 on top of 4 (9 needs the quarantine list)
   4. slice 5
   5. slice 6, then slice 7 on top of it, landed together
 - Waves 1 to 4 land under today's gate. **Wave 5 lands under its own new gate**, with a real `--tier full` run as the proof, and its landing notice tells the other orchestrators that the gate changed at their next sync.
@@ -247,7 +249,7 @@ Stack: no · Reads: docs/agents/orchestrator.md, docs/agents/loop.md, docs/agent
 
 **Build:**
 
-- The check plan proposes a minimum tier from the diff: docs and tooling only, none (the tooling tests, as today), except a diff touching the browser harness's trigger paths (slice 8), `integration`; app code, `components`; server code without app code, `integration`; a migration, seeds, the sync config, the lockfile, a `package.json`, the Vitest config, the workflow or `scripts/ci/`, `full`. It no longer turns a quick check into a full one.
+- The check plan proposes a minimum tier from the diff: docs and tooling only, none (the tooling tests, as today), except a diff touching the browser harness's trigger paths (slice 8), `integration`; app code, `components`; server code without app code, `integration`; a migration, seeds, the sync config, the lockfile, a `package.json` change beyond its `scripts` field (slice 10's rule), the Vitest config, the workflow or `scripts/ci/`, `full`. It no longer turns a quick check into a full one.
 - `pnpm prd pr` and `pnpm prd land` take `--tier <t>` and, for a tier below the proposal, `--why "<reason>"`; the PR body and the landing report name the tier, the proposal and the reason.
 - `land` needs a whole-tier verdict for that tier or higher on the tip, read from the verdict's `ranTier` (a `full` request before slice 3 records `ranTier: integration` and `notBuilt`), and requests the run itself when there is none:
   - green lands;
@@ -272,7 +274,7 @@ Stack: no · Reads: docs/agents/orchestrator.md, docs/agents/loop.md, docs/agent
   - a tip with docs-only commits since its verdict lands.
 - `pnpm test:tooling` passes.
 
-**Blocked by:** 1, 5. **Blocks:** 7, test-gates-2.
+**Blocked by:** 1, 5, 10. **Blocks:** 7, test-gates-2.
 
 ## Slice 7: The orchestrator sends failures back to the slice that caused them
 
@@ -353,3 +355,24 @@ Stack: no · Reads: docs/agents/loop.md, docs/domain/components.md · Tests: com
 - `pnpm test:tooling` passes.
 
 **Blocked by:** 4. **Blocks:** 5.
+
+## Slice 10: A scripts-only package.json change forces nothing
+
+Stack: no · Reads: docs/agents/loop.md, docs/agents/orchestrator.md · Tests: unit
+
+**User stories:** US 1. Added for B-572, the user's decision of 2026-11-22.
+
+**Build:**
+
+- Compare each changed `package.json` with its base, ignoring the `scripts` field. If only scripts differ (added, edited or removed, in any package, lifecycle hooks included), it does not force a full check or the browser `@suite`.
+- Any other field, or an added, deleted or unparseable `package.json`, still forces them. The lockfile rule stays. The user accepted that a script edit that breaks the build, typecheck or the check itself gets only a quick check.
+- Two places: `FORCED` in `scripts/loops/check-plan.mjs` (`planCheck` only gets paths today, so give it the base's contents or a prefilter, and keep it pure) and the `package.json` `@suite` rules in `scripts/loops/check-areas.d/_global`.
+- Update the rule's wording in `scripts/loops/prd.sh`. The hand-off lists the `docs/agents/orchestrator.md` wording for the orchestrator to fold.
+
+**Acceptance criteria:**
+
+- `check-plan.test.mjs`: a scripts-only change (added, edited, removed, a lifecycle hook, a nested package) stays quick; a change to another field, an added, a deleted and an unparseable `package.json` each force full; a scripts-only change beside a lockfile change still forces full.
+- A test that the browser selection leaves out `@suite` for a scripts-only change and keeps it for any other `package.json` change.
+- `pnpm test:tooling` passes.
+
+**Blocked by:** nothing. **Blocks:** 6.
