@@ -20,7 +20,7 @@
 | 3     | 1    | landed (opus)                                        | 04a45f7f                         |
 | 4     | 2    | landed with wave 1 (opus)                            | 77bc95c5                         |
 | 5     | 2    | merged, not landed (opus); fixes Codex's rotating P2 | 813bff39                         |
-| 6     | 3    | not started (ready)                                  |                                  |
+| 6     | 3    | started (opus), worktree orchestration-3-6           |                                  |
 
 **Backlog:** B-427 closes with slice 4; B-426, B-428 and B-439 with slice 5 (slices 1, 2 and 3 build their first halves, the dispatcher the rest); B-392 with slice 6.
 
