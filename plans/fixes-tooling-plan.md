@@ -10,16 +10,16 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item  | State                          | Merge    |
-| ----- | ----- | ------------------------------ | -------- |
-| 1     | B-381 | merged (quick passed on slice) | 3df76253 |
-| 2     | B-394 | started (opus agent)           |          |
-| 3     | B-411 | started (opus agent)           |          |
-| 4     | B-440 | started (opus agent)           |          |
-| 5     | B-441 | started (opus agent)           |          |
-| 6     | B-458 | started (opus agent)           |          |
-| 7     | B-475 | started (opus agent)           |          |
-| 8     | B-484 | started (opus agent)           |          |
+| Slice | Item  | State                                                                             | Merge    |
+| ----- | ----- | --------------------------------------------------------------------------------- | -------- |
+| 1     | B-381 | merged (quick passed on slice)                                                    | 3df76253 |
+| 2     | B-394 | started (opus agent)                                                              |          |
+| 3     | B-411 | handed off 07b0ca70 (tooling: rotate.test 20 s timeout at load 126, passes alone) |          |
+| 4     | B-440 | started (opus agent)                                                              |          |
+| 5     | B-441 | started (opus agent)                                                              |          |
+| 6     | B-458 | started (opus agent)                                                              |          |
+| 7     | B-475 | started (opus agent)                                                              |          |
+| 8     | B-484 | started (opus agent)                                                              |          |
 
 ## Wave 1
 
