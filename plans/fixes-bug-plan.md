@@ -6,22 +6,22 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions via `pnpm prd ask`).
 
-Wave 1 (slices 1–12) written 2026-11-21; every slice runs on opus. Held back: B-318 (header ignores simple-mode change from another device) until simple-mode lands (it reworks that code); B-324 (health data in page titles and `?q=`): the user chose leave as is (ask a10), dropped.
+Wave 1 (slices 1–12) written 2026-11-21; every slice ran on opus. All merged; docs folded (fa3e2d42). Next: sync, full check, browser suite, PR + Codex, land. Held back: B-318 (header ignores simple-mode change from another device) until simple-mode lands (it reworks that code); B-324 (health data in page titles and `?q=`): the user chose leave as is (ask a10), dropped.
 
-| Slice | Item  | State                                         | Merge    |
-| ----- | ----- | --------------------------------------------- | -------- |
-| 1     | B-310 | merged                                        | 6afc3f58 |
-| 2     | B-312 | merged                                        | 233dd07d |
-| 3     | B-314 | merged                                        | 8fa65e6f |
-| 4     | B-315 | merged (first-sync at landing)                | 3dc2f3cd |
-| 5     | B-317 | merged                                        | 7fb498ee |
-| 6     | B-320 | merged                                        | a40b9713 |
-| 7     | B-321 | merged                                        | c2605057 |
-| 8     | B-322 | merged                                        | 59763904 |
-| 9     | B-323 | merged (live-notes at landing)                | e7cb1d5e |
-| 10    | B-385 | merged (resetStaging flake: B-466)            | 9736353b |
-| 11    | B-386 | started (worktree, agent; on top of slice 10) |          |
-| 12    | B-393 | merged (test only)                            | f9fb803b |
+| Slice | Item  | State                              | Merge    |
+| ----- | ----- | ---------------------------------- | -------- |
+| 1     | B-310 | merged                             | 6afc3f58 |
+| 2     | B-312 | merged                             | 233dd07d |
+| 3     | B-314 | merged                             | 8fa65e6f |
+| 4     | B-315 | merged (first-sync at landing)     | 3dc2f3cd |
+| 5     | B-317 | merged                             | 7fb498ee |
+| 6     | B-320 | merged                             | a40b9713 |
+| 7     | B-321 | merged                             | c2605057 |
+| 8     | B-322 | merged                             | 59763904 |
+| 9     | B-323 | merged (live-notes at landing)     | e7cb1d5e |
+| 10    | B-385 | merged (resetStaging flake: B-466) | 9736353b |
+| 11    | B-386 | merged                             | 1327d9bd |
+| 12    | B-393 | merged (test only)                 | f9fb803b |
 
 ## Wave 1
 
