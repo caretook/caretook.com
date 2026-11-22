@@ -188,7 +188,7 @@ chore(app-shell): merge dev into prd/app-shell
 | `pnpm prd start <topic>`          | create or reopen a PRD's worktree; prints the orchestrator command                 |
 | `pnpm prd queue <topic>`          | wait for a free slot, then open a run-through orchestrator in this terminal        |
 | `pnpm prd plan <topic> --open`    | a docs-only worktree and a planning session that writes and lands the PRD and plan |
-| `pnpm prd plan`                   | a backlog and inbox session in the main checkout that helps you decide what's next |
+| `pnpm prd plan`                   | a backlog and inbox session in the main checkout; say "hand off" for a fresh one   |
 | `pnpm prd serve [name]`           | run a worktree's dev server (`--restart`, `--stop`)                                |
 | `pnpm prd ready [topic]`          | the ready-to-land report                                                           |
 | `pnpm prd land <topic>`           | merge the PRD's branch into `dev`                                                  |

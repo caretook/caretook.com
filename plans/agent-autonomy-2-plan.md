@@ -7,18 +7,44 @@
 | Slice | Wave | State                                                            | Merge into `prd/agent-autonomy-2` (slice commits) |
 | ----- | ---- | ---------------------------------------------------------------- | ------------------------------------------------- |
 | 1     | 1    | merged (opus)                                                    | e2e4a366 (9bfc245b, 81689593)                     |
-| 2     | 2    | —                                                                | —                                                 |
+| 2     | 2    | merged (opus)                                                    | f9f0394c (1384faa2)                               |
 | 3     | 1    | merged (opus); conflicts resolved in session.sh and status-extra | 5162f553 (9da26376, 41a67e83)                     |
-| 4     | 2    | —                                                                | —                                                 |
-| 5     | 2    | —                                                                | —                                                 |
+| 4     | 2    | merged (opus)                                                    | 93b16067 (8104cb2e)                               |
+| 5     | 2    | merged (opus); conflicts resolved in dispatch.mjs and its test   | db78a219 (ba12c013)                               |
 | 6     | 3    | —                                                                | —                                                 |
 | 7     | 3    | —                                                                | —                                                 |
 
 **Landing mode:** run everything through (started by the dispatcher): land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Now (2026-11-22):** wave 1 merged, synced with dev and its docs folded; slice worktrees removed. B-507, B-509 and B-437 done; B-508 stays claimed until slice 2. Gate: tooling and Markdown only, `pnpm test:tooling` (855 passed) and `eslint scripts` passed on the merge. Next: PR, Codex review, land, rotate.
+**Now (2026-11-22):** wave 1 **landed** in dev as 2b3a27d5 through PR #69 (Codex clean on dcd939f; report a60; to-test `2026-11-22-1632-agent-autonomy-2.md`). Docs folded; slice worktrees removed. B-507, B-509 and B-437 done; B-508 stays claimed until slice 2. Gate: `pnpm test:tooling` (855 passed) and `eslint scripts`.
+
+**Wave 2 (started 2026-11-22):** the wave boundary is done (nothing new for this topic; synced with dev). B-514 and B-515 claimed. Slices 2, 4 and 5 (opus) are merged in plan order and their worktrees removed; B-508 and B-514 are done, B-515 stays open for the inbox session. Wave gate on the merged tip: 50 tooling test files, 911 tests passed (`browser.test.mjs` skipped, no browser tooling changed), `eslint scripts` clean, no `pnpm prd check` (tooling only, the user's word). Docs folded. PR #70 is open; Codex was clean on 22ae4f9.
+
+**Rotated for context (161k) before landing wave 2. Nothing of wave 2 is in dev yet. The next session:**
+
+1. Done: `docs/agents/machinery.md` trimmed under its 15,360 B budget, this wave's bullets kept. Reconciled with git on resume: no slice in flight; wave boundary found nothing new for this topic.
+2. `pnpm prd sync` (dev moved again), then the gate on the tip: the file list above (in zsh, `${=files}`) and `pnpm exec eslint scripts`. The last pass, on ead6e8c9 after syncing `test-gates` wave 1: 52 files, 971 tests, eslint clean; the diff against dev is tooling and Markdown only.
+3. `pnpm prd pr agent-autonomy-2`, `pnpm prd review agent-autonomy-2 --again` if it says stale, `--wait` in the background, then `pnpm prd land agent-autonomy-2 -m "feat(agent-autonomy-2): dispatcher context follow-up, phone hand-off and always-on backlog session (B-508, B-514, B-515)"`. Don't commit _Status_ between `pr` and `land`.
+4. File the landing report with `pnpm prd ask --report`: what landed, the to-test file, that slices 2, 4 and 5 ran only against stubs, that `browser.test.mjs` and `pnpm prd check` were skipped on the user's word, and that once the dispatcher restarts on this code it opens a backlog session whenever none is live (`CARETOOK_KEEP_SESSIONS=off` or `pnpm prd dispatch --pause` stops that).
+5. Then drain and rotate; wave 3 is slices 6 and 7. `test-gates` had not landed when wave 2 started.
+
+**Hook live test:** passed for the session's own size: this orchestrator read 53k from `pnpm prd context` after a wrapper start. Whether a subagent's PostToolUse names its own transcript is still unproven.
+
+**Skipping the browser tooling test (until `test-gates` slice 8 lands):** the user's decision, relayed 2026-11-22 by the session `caretook-com-6a`. Slices may leave `scripts/loops/browser.test.mjs` out of their own tooling runs, because it is the slowest by far. They keep it if the slice changes `scripts/loops/browser.sh`, `lib.sh`, `lease.sh`, `scripts/loops/checks` or `scripts/browser-checks/`, and every hand-off says whether it was skipped. Vitest's `--exclude` doesn't drop it, so use the file list:
+
+```sh
+node scripts/loops/tooling-lint.mjs
+files=$(pnpm exec vitest list --filesOnly --project tooling:unit --project scripts:unit | awk '/\.test\.[a-z]+$/ {print $NF}' | sort -u | grep -v 'loops/browser\.test\.mjs$')
+pnpm exec vitest run --project tooling:unit --project scripts:unit $files # zsh: ${=files}
+```
+
+`pnpm prd check` still runs the file when a diff touches tooling (no skip switch yet): don't edit `check-body.sh` or bypass the gate. **The user, 2026-11-22:** when a diff touches only tool code, waves leave it out too. So while every changed file is Markdown, `scripts/loops/`, `scripts/backlog/` or `.githooks/` (the check gate's "none needed"), slices and wave gates run no `pnpm prd check`, only the list above and `pnpm exec eslint scripts`. The same browser-tooling exception applies.
 
 **Open issues:**
+
+- For slice 6 (from slice 4's hand-off): `rotate --self` finds the caller by process ancestry, so the dispatcher can't call it from its tick. It must open the `rotate-into.sh <name> <pid> [--brief <file>]` line itself, or add a way to name the session. Inbox still needs adding to `rotate.sh`, `rotate-into.sh` and `session.sh`.
+- For slice 7 (from slices 4 and 5): the brief path is `prompt.sh backlog --brief <file>`, read before `session.sh` deletes `.loops/.briefs/<name>.md`. A live `backlog-<name>` doesn't count as the kept `backlog` session, but counts toward the limit.
+- Slices 4 and 5 ran only against stubs: no real session or iTerm2 tab yet. Once wave 2 lands and the dispatcher restarts on it, it opens a backlog session whenever none is live (`CARETOOK_KEEP_SESSIONS=off` or `pnpm prd dispatch --pause` stops that). Say so in the landing report.
 
 - The hook has only run against a stub `claude`. `claude` 2.1.330 takes `--settings`, but the docs don't say that hooks passed this way merge with the others, or which transcript a subagent's PostToolUse names. First live test: this orchestrator's first session after the wave 1 landing should get a size in `pnpm prd context`. Slice 2 can time the nudge from `firstOverAt` (`remindedAt` moves on each repeat), setting `nudgeAt` through `updateRecord`.
 
