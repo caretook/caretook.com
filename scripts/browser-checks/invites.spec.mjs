@@ -32,8 +32,8 @@
 //      and expiry close a link; Decline emails them and home says so; the API
 //      refuses owner and admin links, and never gives back an email invite's token.
 //  12. A requester withdraws a waiting request from home (after a confirm):
-//      the row goes, it's withdrawn in Postgres and gone from Members;
-//      offline the button is disabled.
+//      the row goes, it's withdrawn in Postgres and gone from Members. (The
+//      button offline and the confirm are home/pendingRequests.browser.test.tsx's.)
 //  13. An access code's /join: one call makes the account, its group (as
 //      owner) and the redemption; the emailed confirmation opens the new
 //      group's timeline with the Invite someone card. A revoked code says so
@@ -995,7 +995,7 @@ test("12. a requester withdraws a waiting request", async ({ device }) => {
   const owner = await ownerOnMembers(device);
   const link = await apiLink(owner, { role: "viewer" });
   const withdrawer = createAccount("withdrawer");
-  const d = await device("inv-withdrawer", { offlineable: true });
+  const d = await device("inv-withdrawer");
   const p = d.page;
   await signIn(p, withdrawer, PASSWORD, { home: true });
   await askToJoin(p, link.path);
@@ -1006,23 +1006,7 @@ test("12. a requester withdraws a waiting request", async ({ device }) => {
   const withdraw = myRequest(p).locator("[data-withdraw-request]");
   await expect(withdraw).toBeEnabled({ timeout: 15_000 });
 
-  await test.step("offline, Withdraw is disabled and says it needs a connection", async () => {
-    // The page reads navigator.onLine (CDP's emulation set it false; the proxy alone doesn't).
-    d.offline(true);
-    await d.context.setOffline(true);
-    await expect(withdraw).toBeDisabled({ timeout: 10_000 });
-    expect(await myRequest(p).textContent()).toContain("Needs a connection");
-    await d.context.setOffline(false);
-    d.offline(false);
-    await expect(withdraw).toBeEnabled({ timeout: 10_000 });
-  });
-
-  await test.step("Withdraw asks first, naming the group", async () => {
-    await withdraw.click();
-    await expect(p.locator("dialog[open] h2")).toHaveText("Withdraw your request to join Grandma Pat?", {
-      timeout: 5000,
-    });
-  });
+  await withdraw.click();
   await test.step("after confirming, the row goes, and the request is withdrawn in Postgres", async () => {
     await confirmDialog(p, "Withdraw");
     await expect(myRequest(p)).toHaveCount(0, { timeout: 15_000 });
