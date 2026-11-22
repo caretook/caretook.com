@@ -69,7 +69,7 @@ const open = ({
 }) => renderWithDevice({ route: ROUTES, url: CALENDAR, role, fixtures: [fx.group()], api });
 
 const card = () => document.querySelector<HTMLElement>('main [data-section="reminders"]');
-const onSwitch = () => page.getByRole("checkbox", { name: "Email me reminders" });
+const onSwitch = () => page.getByRole("switch", { name: "Email me reminders" });
 const lead = (name: string) => page.getByRole("checkbox", { name, exact: true });
 const updates = (server: ReturnType<typeof calendarServer>) => server.calls.of("calendars.settings.update");
 

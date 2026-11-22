@@ -118,10 +118,21 @@ describe("orchestrator", () => {
     const out = ok("orchestrator", "T", "--auto");
     expect(out).toContain(EVERY_STEP);
     expect(out).toContain(RUN_THROUGH);
-    expect(out).toContain("`pnpm prd queue T`");
+    expect(out).toContain(
+      "You were started run-through (by the dispatcher, in the registry's order, or by hand)",
+    );
+    expect(out).not.toContain("pnpm prd queue");
     expect(out).not.toContain(ASK_FIRST);
     expect(out).not.toContain(RESUME);
     expect(out).toContain("record the landing mode in the plan's _Status_, then start the first ready wave.");
+  });
+
+  it("--auto: a stale check lands with --recheck, and --force is never named", () => {
+    for (const flags of [["--auto"], ["--resume", "--auto"]]) {
+      const out = ok("orchestrator", "T", ...flags);
+      expect(out).toContain('`pnpm prd land T --recheck "<why>" -m "<subject>"`');
+      expect(out).not.toContain("--force");
+    }
   });
 
   it("--auto: questions and reports go through pnpm prd ask with a push, never AskUserQuestion", () => {
@@ -233,10 +244,44 @@ describe("plan and backlog", () => {
     expect(ok("backlog")).toContain("You are the new backlog/inbox planning agent.");
   });
 
-  it("backlog reads the queue on startup", () => {
+  it("backlog without a dispatcher: as before, it prints start commands for the user", () => {
     const text = ok("backlog");
-    expect(text).toMatch(/and the queue: `ls \S+\/\.queue`/);
-    expect(text).toContain("never propose starting or queueing a topic that is already queued");
+    expect(text).not.toContain(".queue");
+    expect(text).toContain("the dispatcher: none is running, so nothing starts a topic unless the user does");
+    expect(text).toContain("What to run: start, queue or wait for each ready PRD.");
+    expect(text).toContain("- No dispatcher is running. To run a planned one, never run `pnpm prd start`");
+    expect(text).toContain("print the commands as options for the user to run themselves");
+    expect(text).toContain("(the user runs `! pnpm prd plan <topic> --open [B-n …]` themselves)");
+    expect(text).not.toContain("moving and holding rows");
+  });
+
+  it("backlog with the dispatcher running: deciding is moving and holding rows, and no start commands", () => {
+    const lock = join(loops, ".dispatch.lock");
+    mkdirSync(loops, { recursive: true });
+    writeFileSync(lock, `${process.pid}\n`);
+    try {
+      const text = ok("backlog");
+      expect(text).toContain(`the dispatcher: it is running (pid ${process.pid})`);
+      expect(text).toContain(
+        "**The dispatcher is running, so deciding what runs next is moving and holding rows**",
+      );
+      expect(text).toContain("`pnpm backlog prd move <topic> --first|--before <t>|--after <t>`");
+      expect(text).toContain("`pnpm backlog prd set <topic> flags=hold`");
+      expect(text).toContain("**Print no start commands**");
+      expect(text).toContain("What to run: move up, hold or leave each topic.");
+      expect(text).toContain("leave it to the dispatcher (move it first;");
+      expect(text).not.toContain("(the user runs `! pnpm prd plan <topic> --open");
+      expect(text).not.toContain("No dispatcher is running");
+    } finally {
+      rmSync(lock);
+    }
+    // A lock whose pid is gone is no running dispatcher.
+    writeFileSync(lock, "999999\n");
+    try {
+      expect(ok("backlog")).toContain("No dispatcher is running");
+    } finally {
+      rmSync(lock);
+    }
   });
 
   it("plan adds its registry row through pnpm backlog prd and ends with pnpm prd end", () => {
@@ -247,6 +292,51 @@ describe("plan and backlog", () => {
     // rm deleted the worktree: end runs from the main checkout
     expect(plan).toMatch(/`cd \S+ && pnpm prd end`/);
     expect(plan.trimEnd()).toMatch(/Start by summarising[^]*$/);
+  });
+
+  it("plain plan: one AskUserQuestion round, a plain landing, and the row set when it exists", () => {
+    const plan = ok("plan", "T", "B-1");
+    expect(plan).toContain("in one AskUserQuestion round of at most four questions");
+    expect(plan).not.toContain("pnpm prd ask");
+    expect(plan).not.toContain("--force");
+    expect(plan).toContain('`pnpm prd land plan/T -m "docs(T): PRD and plan for … (B-<n>, …)"`');
+    expect(plan).toMatch(
+      /when `pnpm backlog prd list` already has a row for T, set it with `pnpm backlog prd set T/,
+    );
+    expect(plan).toMatch(/when it has none, add it first with `pnpm backlog prd add T`/);
+    expect(plan).toContain("report the decisions you assumed");
+  });
+
+  it("plan --auto: questions and the report through pnpm prd ask with a push, never AskUserQuestion", () => {
+    for (const plan of [ok("plan", "T", "--auto", "B-1"), ok("plan", "T", "B-1", "--auto")]) {
+      expect(plan).toContain('You are the planning agent for "T".');
+      expect(plan).toContain("(B-1)");
+      expect(plan).not.toContain("AskUserQuestion");
+      expect(plan).not.toContain("--force");
+      expect(plan).toContain('`pnpm prd ask --topic T --question "<text>"');
+      expect(plan).toContain("PushNotification");
+      expect(plan).toContain("`pnpm prd ask --wait <id>` in the background, with no `--timeout`");
+      expect(plan).toContain("**Never put your own recommendation in place of an answer:**");
+      // After the landing: the report, then rm, then end.
+      const land = plan.indexOf("`pnpm prd land plan/T -m");
+      const report = plan.indexOf('`pnpm prd ask --topic T --report "<text>"`');
+      const rm = plan.indexOf("`pnpm prd rm plan-T`");
+      expect(land).toBeGreaterThan(0);
+      expect(report).toBeGreaterThan(land);
+      expect(rm).toBeGreaterThan(report);
+      expect(plan.indexOf("&& pnpm prd end`")).toBeGreaterThan(rm);
+      expect(plan).toContain("`pnpm backlog prd set T flags=hold`");
+    }
+    const r = prompt("plan", "T", "--resume");
+    expect(r.code).toBe(1);
+    expect(r.err).toContain("--auto");
+  });
+
+  it("a fixes orchestrator sets its row's hot files and leaves colliding fixes for later", () => {
+    const text = ok("orchestrator", "fixes-ui");
+    expect(text).toContain("`pnpm backlog prd set fixes-ui hot=<path prefixes>`");
+    expect(text).toContain("Leave for a later wave any fix that would touch a running topic's hot files");
+    expect(ok("orchestrator", "T")).not.toContain("hot=<path prefixes>");
   });
 
   it("backlog reads the open asks and the PRD registry, and leads with what waits on the user", () => {
@@ -283,6 +373,16 @@ describe("recover", () => {
     expect(text).not.toContain(RESUME);
   });
 
+  it("leaves managed sessions to a running dispatcher", () => {
+    const text = ok("recover");
+    expect(text).toContain("**Managed sessions belong to the dispatcher while it runs.**");
+    expect(text).toContain(
+      "When the inventory's `dispatcher.running` is true (recover reopened it, or it never stopped), leave every `open-session` marked `managed` to it: never open one",
+    );
+    expect(text).toContain("With no dispatcher running, treat managed sessions like the rest.");
+    expect(text).toContain("or left it to the dispatcher");
+  });
+
   it("takes no topic", () => {
     expect(ok("recover", "ignored")).toMatch(/^You are the recovery agent\./);
   });
@@ -296,6 +396,8 @@ describe("tidy", () => {
     expect(text).toContain("Run `pnpm prd tidy --yes`.");
     expect(text).toContain("SendMessage");
     expect(text).toContain("`/loop 3h`");
+    expect(text).toContain("The dispatcher runs `pnpm prd tidy --yes` every six hours by itself");
+    expect(text).toContain("dead lease and slot tickets");
     expect(text).toContain("**Never close or end a session**");
     expect(text).toContain("**Never delete unmerged work**");
     expect(text).toContain("send that PushNotification");

@@ -1,6 +1,6 @@
 import type { VitalAverageRow, WindowAverage } from "~/lib/profiles/vitalAverages";
 
-import { ProfileCard } from "./ProfileCards";
+import { Section } from "~/components/ui";
 
 // Recent vital averages (B-100), read-only, for every member: the core types'
 // averages and reading counts over the last 7 and 30 days, from
@@ -28,7 +28,7 @@ function WindowCell({ window, unit }: { window: WindowAverage; unit: string }) {
 export function VitalAveragesCard({ rows }: { rows: VitalAverageRow[] }) {
   const windows = rows[0]?.windows ?? [];
   return (
-    <ProfileCard id="vital-averages" title="Recent vital averages">
+    <Section id="vital-averages" title="Recent vital averages">
       <table className="table-sm table">
         <caption className="sr-only">Average readings over the last 7 and 30 days</caption>
         <thead>
@@ -54,6 +54,6 @@ export function VitalAveragesCard({ rows }: { rows: VitalAverageRow[] }) {
           ))}
         </tbody>
       </table>
-    </ProfileCard>
+    </Section>
   );
 }

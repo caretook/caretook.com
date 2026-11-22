@@ -92,9 +92,12 @@ describe("the pure part", () => {
   it("merges fields into a record and removes empty ones", () => {
     const dir = mkdtempSync(join(tmpdir(), "sessions-unit-"));
     try {
-      expect(parseFields(["pid=12", "auto=true", "rotating=", "topic=t", "command=a=b c"])).toEqual({
+      expect(
+        parseFields(["pid=12", "auto=true", "managed=true", "rotating=", "topic=t", "command=a=b c"]),
+      ).toEqual({
         pid: 12,
         auto: true,
+        managed: true,
         rotating: undefined,
         topic: "t",
         command: "a=b c",
@@ -173,15 +176,7 @@ beforeAll(() => {
   ])
     git(main, "config", k, v);
   mkdirSync(join(main, "scripts/loops"), { recursive: true });
-  for (const f of [
-    "prd.sh",
-    "lib.sh",
-    "session.sh",
-    "sessions.mjs",
-    "end-session.sh",
-    "queue.sh",
-    "prompt.sh",
-  ])
+  for (const f of ["prd.sh", "lib.sh", "session.sh", "sessions.mjs", "end-session.sh", "prompt.sh"])
     copyFileSync(join(HERE, f), scripts(f));
   writeFileSync(join(main, ".gitignore"), ".loops/\n");
   mkdirSync(join(main, "plans"));
@@ -232,9 +227,29 @@ describe("session.sh", () => {
     expect(Date.parse(after.ended)).toBeGreaterThanOrEqual(Date.parse(after.started));
   });
 
+  it("records --managed (the dispatcher's), and by hand without it", () => {
+    const r = run("session.sh", ["plan-m", "--auto", "--managed", "--", "x"], { STUB_NAME: "plan-m" });
+    expect(r.status).toBe(0);
+    expect(JSON.parse(readFileSync(join(state, "record-at-start"), "utf8"))).toMatchObject({
+      kind: "plan",
+      auto: true,
+      managed: true,
+    });
+    expect(readFileSync(join(state, "args"), "utf8")).toBe("x\n");
+    expect(record("plan-m")).toMatchObject({ managed: true, exit: 0 });
+    expect(run("session.sh", ["plan-m", "--", "x"], { STUB_NAME: "plan-m" }).status).toBe(0);
+    expect(record("plan-m")).toMatchObject({ managed: false, auto: false });
+  });
+
   it("takes the kind and topic from a planner's name, and refuses a name it can't type", () => {
     expect(run("session.sh", ["plan-u", "--", "x"], { STUB_NAME: "plan-u" }).status).toBe(0);
-    expect(record("plan-u")).toMatchObject({ kind: "plan", topic: "u", auto: false, exit: 0 });
+    expect(record("plan-u")).toMatchObject({
+      kind: "plan",
+      topic: "u",
+      auto: false,
+      managed: false,
+      exit: 0,
+    });
     const r = run("session.sh", ["backlog", "--", "x"]);
     expect(r.status).toBe(1);
     expect(r.stderr).toMatch(/--kind prd\|plan/);
@@ -333,16 +348,6 @@ describe("sessions start through the wrapper", () => {
     expect(r.stdout).toContain(
       `cd ${join(loops, "w")} && scripts/loops/session.sh prd-w -- --remote-control prd-w "$(scripts/loops/prompt.sh orchestrator w)"`,
     );
-  });
-
-  it("pnpm prd queue opens a recorded run-through session (or not, with --manual)", () => {
-    expect(run("queue.sh", ["w"], { STUB_NAME: "prd-w" }).status).toBe(0);
-    expect(record("prd-w")).toMatchObject({ pid: stubPid(), kind: "prd", topic: "w", auto: true, exit: 0 });
-    const args = readFileSync(join(state, "args"), "utf8").split("\n");
-    expect(args.slice(0, 2)).toEqual(["--remote-control", "prd-w"]);
-    expect(args.join("\n")).toMatch(/orchestrator/);
-    expect(run("queue.sh", ["w", "--manual"]).status).toBe(0);
-    expect(record("prd-w").auto).toBe(false);
   });
 
   it("pnpm prd plan --open records a planner; without --open it prints the wrapped command", () => {

@@ -3,6 +3,7 @@ import type { ProviderRow } from "~/lib/providers/providers.sync";
 import { useMemo } from "react";
 import { Link } from "react-router";
 import { ContactActions, ProviderTypeIcon } from "~/components/providers";
+import { Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { quickActions } from "~/lib/providers/contactActions";
 import { useLiveQuery } from "~/lib/sync";
@@ -82,10 +83,7 @@ export function MedicationProviders({
     [initialRows, prescriberId, pharmacyId],
   );
   return (
-    <section aria-labelledby="medication-providers-heading" className="space-y-2">
-      <h2 id="medication-providers-heading" className="font-semibold">
-        Prescriber and pharmacy
-      </h2>
+    <Section title="Prescriber and pharmacy" id="providers">
       {!prescriberId && !pharmacyId ? (
         <p className="text-base-content/70 text-sm">No prescriber or pharmacy yet.</p>
       ) : (
@@ -108,6 +106,6 @@ export function MedicationProviders({
           )}
         </ul>
       )}
-    </section>
+    </Section>
   );
 }

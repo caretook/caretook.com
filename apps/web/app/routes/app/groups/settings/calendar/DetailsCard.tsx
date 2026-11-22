@@ -1,8 +1,8 @@
 import type { CalendarCardProps } from "./calendarPage";
 
 import { DETAILS_CONSENT_TEXT } from "@caretook/data/schema";
-import { useId } from "react";
 import { SettingsCard } from "~/components/settings";
+import { ToggleField } from "~/components/ui";
 import { CalendarSaveLine } from "./CalendarSaveLine";
 import { detailsCardState, detailsExplained } from "./calendarPage";
 import { useCalendarSave } from "./useCalendarSave";
@@ -26,7 +26,6 @@ export function DetailsCard({
 }: CalendarCardProps & { allowed: boolean | null; recipient: string }) {
   const state = detailsCardState({ settings, allowed });
   const { status, save } = useCalendarSave(userId, groupId);
-  const consentId = useId();
 
   return (
     <SettingsCard id="details-outside" title="Details outside Caretook">
@@ -37,21 +36,14 @@ export function DetailsCard({
         </p>
       ) : (
         <>
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              className="toggle mt-0.5"
-              checked={state.on}
-              disabled={state.disabled}
-              aria-describedby={consentId}
-              data-details-consent=""
-              onChange={(event) => save({ detailsConsent: event.target.checked })}
-            />
-            <span>Include titles, places and providers</span>
-          </label>
-          <p id={consentId} className="text-base-content/70 text-sm">
-            {DETAILS_CONSENT_TEXT}
-          </p>
+          <ToggleField
+            label="Include titles, places and providers"
+            help={DETAILS_CONSENT_TEXT}
+            checked={state.on}
+            disabled={state.disabled}
+            data-details-consent=""
+            onChange={(event) => save({ detailsConsent: event.target.checked })}
+          />
           {state.note && (
             <p className="text-sm" data-details-forbidden="">
               {state.note}
