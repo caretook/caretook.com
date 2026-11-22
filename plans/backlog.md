@@ -253,7 +253,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-436 | feature | triaged | staging-ship |  | A to-test report for a staging ship, like the landing reports of B-410 |
 | B-437 | change | triaged | agent-autonomy-2 |  | Record backlog, hotfix and recovery sessions like orchestrator sessions, so pnpm prd status shows them and they can be reopened |
 | B-438 | plan | triaged | self-recovery |  | Headless orchestrator sessions: runs that need no terminal tab, so a helper cannot outlive or die with its window |
-| B-440 | bug | in-progress | fixes-tooling | prd/fixes-tooling | pnpm prd tidy --yes: a database for a topic ending -w1..-w16 reads as an orphan worker copy and is dropped |
+| B-440 | bug | ready | fixes-tooling | prd/fixes-tooling | pnpm prd tidy --yes: a database for a topic ending -w1..-w16 reads as an orphan worker copy and is dropped |
 | B-441 | bug | in-progress | fixes-tooling | prd/fixes-tooling | pnpm prd tidy: a missing or failing lsof reads as no process in any worktree, so --yes can remove an active one |
 | B-442 | bug | triaged | fixes-tooling |  | pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check |
 | B-443 | bug | triaged | fixes-tooling |  | land.sh to-test file lists no items after a local landing: items are already landed, not ready, once dev has the merge |
@@ -1878,10 +1878,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-440 · bug · pnpm prd tidy --yes: a database for a topic ending -w1..-w16 reads as an orphan worker copy and is dropped
 
-- status: in-progress
+- status: ready
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: 1a7ad440
 
 - 2026-11-21 (prd/orchestration-2): Codex P1 on PR #33 (tidy-cli.mjs:158), verified in code: the worker-copy label from test-db.sh list overrides the known owner. Match names against known worktree bases and their worker names first. No such topic exists today.
 
