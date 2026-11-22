@@ -8,30 +8,30 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Hand-off (2026-11-22, after the wave 2 landing; no slices in flight).** Wave 1 landed as 7a205be1 (PR #46). **Wave 2 (slices 13–17, all on opus) landed in dev through PR #52** (dev 4f94740): full check passed on 99023ba (557/557, quiet machine, after 7 earlier runs failed on load flakes only; flakes filed B-489–B-502), Codex clean on 608a759, tooling 47/47, browser `--changed` 8/8; lean `--suite` was skipped (said in the report). Report: ask a39; to-test `to-test/2026-11-22-0812-fixes-bug.md`. Docs folded (todos, search, app-shell, care-groups; all at ~10.2 KB, trim when adding). B-450 stopgap (roles test 60 s timeouts) landed with it; the query fix stays on B-450.
 
-**Wave 3 (this session): slice 18 (B-510, opus).** Worktree made, opus agent spawned; awaiting hand-off. Full checks: run on a quiet machine only (no other check lease, 5-min load < 12; coordinate with ui-kit-2/test-health), under `caffeinate -i`; `pnpm prd check` takes no reason (only `--quick` does). `land --no-review` is classifier-blocked: re-wait for Codex instead.
+**Wave 3 (this session): slice 18 (B-510, opus).** Merged 5d096ce3, worktree removed. Next: sync, full check on the tip (quiet machine), PR, Codex, land. Full checks: run on a quiet machine only (no other check lease, 5-min load < 12; coordinate with ui-kit-2/test-health), under `caffeinate -i`; `pnpm prd check` takes no reason (only `--quick` does). `land --no-review` is classifier-blocked: re-wait for Codex instead.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State                                       | Merge    |
-| ----- | ----- | ------------------------------------------- | -------- |
-| 1     | B-310 | landed                                      | 6afc3f58 |
-| 2     | B-312 | landed                                      | 233dd07d |
-| 3     | B-314 | landed                                      | 8fa65e6f |
-| 4     | B-315 | landed (first-sync at landing)              | 3dc2f3cd |
-| 5     | B-317 | landed                                      | 7fb498ee |
-| 6     | B-320 | landed                                      | a40b9713 |
-| 7     | B-321 | landed                                      | c2605057 |
-| 8     | B-322 | landed                                      | 59763904 |
-| 9     | B-323 | landed (live-notes at landing)              | e7cb1d5e |
-| 10    | B-385 | landed (resetStaging flake: B-466)          | 9736353b |
-| 11    | B-386 | landed                                      | 1327d9bd |
-| 12    | B-393 | landed (test only)                          | f9fb803b |
-| 13    | B-318 | landed                                      | 61d7355f |
-| 14    | B-382 | landed (todos.md at landing)                | 586cee75 |
-| 15    | B-469 | landed (search.md at landing)               | 681f425b |
-| 16    | B-470 | landed                                      | 7e65e0ab |
-| 17    | B-472 | landed (+B-482; layout-offline at landing)  | 3114a864 |
-| 18    | B-510 | started (opus agent, worktree fixes-bug-18) | —        |
+| Slice | Item  | State                                      | Merge    |
+| ----- | ----- | ------------------------------------------ | -------- |
+| 1     | B-310 | landed                                     | 6afc3f58 |
+| 2     | B-312 | landed                                     | 233dd07d |
+| 3     | B-314 | landed                                     | 8fa65e6f |
+| 4     | B-315 | landed (first-sync at landing)             | 3dc2f3cd |
+| 5     | B-317 | landed                                     | 7fb498ee |
+| 6     | B-320 | landed                                     | a40b9713 |
+| 7     | B-321 | landed                                     | c2605057 |
+| 8     | B-322 | landed                                     | 59763904 |
+| 9     | B-323 | landed (live-notes at landing)             | e7cb1d5e |
+| 10    | B-385 | landed (resetStaging flake: B-466)         | 9736353b |
+| 11    | B-386 | landed                                     | 1327d9bd |
+| 12    | B-393 | landed (test only)                         | f9fb803b |
+| 13    | B-318 | landed                                     | 61d7355f |
+| 14    | B-382 | landed (todos.md at landing)               | 586cee75 |
+| 15    | B-469 | landed (search.md at landing)              | 681f425b |
+| 16    | B-470 | landed                                     | 7e65e0ab |
+| 17    | B-472 | landed (+B-482; layout-offline at landing) | 3114a864 |
+| 18    | B-510 | merged (quick passed on slice)             | 5d096ce3 |
 
 ## Wave 1
 
