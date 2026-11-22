@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { renderWithDevice } from "../../../../test/device";
-import { found } from "../../../../test/found";
-import { openPlanner, fixClock as fixPlannerClock } from "../groups/planner/plannerWorld";
+import { fixClock, found } from "../../../../test/found";
+import { NOW, openPlanner } from "../groups/planner/plannerWorld";
 import {
   MEDICATION_ROUTES,
   SCHEDULE,
@@ -81,7 +81,7 @@ describe.each([320, 420])("at %i px nothing scrolls the page sideways", (width) 
   });
 
   test("the Planner: its tab bar and header", async () => {
-    fixPlannerClock();
+    fixClock(NOW);
     await openPlanner({ frame: true, width });
     await found(() => document.querySelector("main header h1"));
     await found(() => document.querySelector("main nav a[aria-current='page']"));

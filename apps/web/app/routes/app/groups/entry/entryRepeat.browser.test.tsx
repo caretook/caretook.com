@@ -2,9 +2,9 @@ import type { Device } from "../../../../../test/device";
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { fixClock, found } from "../../../../../test/found";
 import { fx, series, TEST_GROUP } from "../../../../../test/fixtures";
-import { fixClock, laTime, PLANNER_ROUTES } from "../planner/plannerWorld";
+import { laTime, NOW, PLANNER_ROUTES } from "../planner/plannerWorld";
 import { renderWithDevice } from "../../../../../test/device";
 
 // Repeating appointments on the test device (appointments-2,
@@ -72,7 +72,7 @@ const visitRows = (device: Device, seriesId: string) =>
     [seriesId],
   );
 
-beforeEach(() => fixClock());
+beforeEach(() => fixClock(NOW));
 afterEach(() => vi.useRealTimers());
 
 describe("the repeat field", () => {

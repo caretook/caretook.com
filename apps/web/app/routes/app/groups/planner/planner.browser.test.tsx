@@ -2,6 +2,8 @@ import { localDate } from "@caretook/data/schema";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { fx, medicationPass, TEST_GROUP, TEST_TIME_ZONE, todo } from "../../../../../test/fixtures";
+import { fixClock } from "../../../../../test/found";
+import { getByCss } from "../../../../../test/locators";
 import { pageHeader } from "../../../../../test/pageHeader";
 import {
   BLOOD_DRAW,
@@ -9,11 +11,11 @@ import {
   DENTIST,
   EYES_NEW,
   EYES_OLD,
-  fixClock,
   HEARING,
   HOSPICE,
   laTime,
   listed,
+  NOW,
   NURSE,
   openPlanner,
   PAST_NOTE,
@@ -77,7 +79,7 @@ const tabs = () =>
   ]);
 const addButton = () => page.getByRole("button", { name: "Add", exact: true });
 
-beforeEach(() => fixClock());
+beforeEach(() => fixClock(NOW));
 afterEach(() => {
   vi.useRealTimers();
 });
@@ -151,10 +153,10 @@ describe("the list", () => {
       "Monday, Nov 23",
       "Tuesday, Nov 24",
     ]);
-    expect(rowOf(NURSE.id)!.when).toBe("Now · until 10:45 AM");
-    expect(rowOf(THERAPY.id)!.when).toBe("2:00 PM");
-    expect(rowOf(CARDIOLOGY.id)!.when).toBe("10:30 AM–11:15 AM");
-    expect(rowOf(HOSPICE.id)!.when).toBe("All day");
+    expect(rowOf(NURSE.id)?.when).toBe("Now · until 10:45 AM");
+    expect(rowOf(THERAPY.id)?.when).toBe("2:00 PM");
+    expect(rowOf(CARDIOLOGY.id)?.when).toBe("10:30 AM–11:15 AM");
+    expect(rowOf(HOSPICE.id)?.when).toBe("All day");
   });
 
   test("cancelled items are struck through and labelled; a rescheduled one names its new day and links to it", async () => {
@@ -167,7 +169,7 @@ describe("the list", () => {
     const moved = document.querySelector(`[data-upcoming-item="${EYES_OLD.id}"] [data-rescheduled-to]`)!;
     expect(moved.textContent).toBe("Rescheduled to Tue, Nov 24");
     expect(moved.getAttribute("href")).toBe(`/app/groups/${TEST_GROUP.id}/entries/${EYES_NEW.id}`);
-    expect(rowOf(EYES_NEW.id)!.cancelled).toBe(false);
+    expect(rowOf(EYES_NEW.id)?.cancelled).toBe(false);
     expect(
       listed()
         .filter((r) => !r.cancelled)
@@ -177,33 +179,33 @@ describe("the list", () => {
 
   test("call and map on a row with a provider and a place; a call alone with only a phone; nothing on a row with neither", async () => {
     await openPlanner();
-    const cardiology = rowOf(CARDIOLOGY.id)!.actions;
+    const cardiology = rowOf(CARDIOLOGY.id)?.actions ?? [];
     expect(cardiology.map((a) => a.kind)).toEqual(["call", "map"]);
-    expect(cardiology[0]!.href).toBe("tel:5550103300");
-    expect(cardiology[0]!.label).toMatch(/^Call Dr\. Ana Tran/);
-    expect(cardiology[1]!.href).toMatch(
+    expect(cardiology[0]?.href).toBe("tel:5550103300");
+    expect(cardiology[0]?.label).toMatch(/^Call Dr\. Ana Tran/);
+    expect(cardiology[1]?.href).toMatch(
       /^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=48%20Harbor/,
     );
-    expect(rowOf(THERAPY.id)!.actions).toEqual([
+    expect(rowOf(THERAPY.id)?.actions).toEqual([
       expect.objectContaining({ kind: "call", href: "tel:+15550105500" }),
     ]);
-    expect(rowOf(RIDE.id)!.actions).toEqual([]);
+    expect(rowOf(RIDE.id)?.actions).toEqual([]);
   });
 
   test("an item leaves the Planner tab once its end (in progress) or its start passes, without a reload", async () => {
     const device = await openPlanner();
     const mounted = document.querySelector("main[data-planner]");
-    expect(rowOf(NURSE.id)!.heading).toBe("Now");
+    expect(rowOf(NURSE.id)?.heading).toBe("Now");
     // 10:46: the visit has ended.
     await vi.advanceTimersByTimeAsync(46 * MINUTE);
     await device.settle();
     await expect.poll(() => rowOf(NURSE.id)).toBeUndefined();
-    expect(rowOf(THERAPY.id)!.heading).toBe("Today");
+    expect(rowOf(THERAPY.id)?.heading).toBe("Today");
     // 2:01 PM: therapy has started (no end: it's past).
     await vi.advanceTimersByTimeAsync(4 * 60 * MINUTE - 45 * MINUTE);
     await device.settle();
     await expect.poll(() => rowOf(THERAPY.id)).toBeUndefined();
-    expect(listed()[0]!.id).toBe(CARDIOLOGY.id);
+    expect(listed()[0]?.id).toBe(CARDIOLOGY.id);
     expect(document.querySelector("main[data-planner]")).toBe(mounted);
   });
 });
@@ -329,9 +331,7 @@ describe("filters", () => {
 
   test("an author's initials show only their items, with a chip naming them that clears only the author and isn't counted; it shows on Past too", async () => {
     const device = await openPlanner();
-    await userEvent.click(
-      document.querySelector(`[data-upcoming-item="${THERAPY.id}"] [data-author="${SAM.id}"]`)!,
-    );
+    await userEvent.click(getByCss(`[data-upcoming-item="${THERAPY.id}"] [data-author="${SAM.id}"]`));
     await expect.poll(() => device.location()).toBe(`${PLANNER_URL}?author=${SAM.id}`);
     await expect.poll(() => listed().map((r) => r.id)).toEqual([THERAPY.id, HOSPICE.id, RIDE.id]);
     const by = page.getByRole("link", { name: "By Sam Okafor: clear this filter" });
@@ -372,7 +372,7 @@ describe("the Past tab", () => {
     const rows = listed();
     expect(rows.slice(0, 3).map((r) => r.id)).toEqual([BLOOD_DRAW.id, HEARING.id, PODIATRY.id]);
     expect(rowOf(HEARING.id)).toMatchObject({ cancelled: true, struck: true });
-    expect(rowOf(PODIATRY.id)!.cancelled).toBe(true);
+    expect(rowOf(PODIATRY.id)?.cancelled).toBe(true);
     expect(rows.find((r) => r.id === PAST_NOTE.id)).toBeUndefined();
     expect(new Set(rows.map((r) => r.kindLink))).toEqual(new Set(["Show only events"]));
     const days = [...new Set(rows.map((r) => r.day))];
@@ -383,12 +383,14 @@ describe("the Past tab", () => {
     await openPlanner({ url: PAST_URL });
     const first = listed().length;
     expect(first).toBeLessThan(33);
-    for (let i = 0; i < 20 && listed().length < 33; i++) {
-      document.querySelector("[data-older-entries]")?.scrollIntoView({ block: "end" });
-      await new Promise((r) => setTimeout(r, 100));
-    }
-    expect(listed()).toHaveLength(33);
-    expect(listed().at(-1)!.text).toContain("Older visit 29");
+    // Scrolled to the end on each read until the last page is in.
+    await expect
+      .poll(() => {
+        document.querySelector("[data-older-entries]")?.scrollIntoView({ block: "end" });
+        return listed().length;
+      })
+      .toBe(33);
+    expect(listed().at(-1)?.text).toContain("Older visit 29");
     await expect
       .poll(() => document.querySelector("[data-older-entries]")?.textContent)
       .toContain("That's the first event");

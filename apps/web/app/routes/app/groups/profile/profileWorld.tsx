@@ -295,8 +295,6 @@ export const openProfile = async ({
 
 // --- DOM helpers (profiles.mjs's selectors) ----------------------------------
 
-export const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector<T>(sel);
-
 /** The page's sections, in order. */
 export const sections = () =>
   [...document.querySelectorAll<HTMLElement>("main [data-section]")].map((s) => s.dataset.section);
