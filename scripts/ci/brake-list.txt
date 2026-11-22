@@ -1,0 +1,31 @@
+# The brake list: test files whose failure blocks a landing, read by the verdict
+# (scripts/ci/lists.mjs). Written by hand, in a reviewed change; no tool edits it.
+# A flake in one of these is filed and never quarantined.
+#
+# One repo-relative glob per line: `*` stays inside a directory, `**` crosses them.
+# scripts/ci/lists.test.mjs fails on a line that matches no test file.
+
+# Sync and offline
+apps/web/app/lib/sync/**
+apps/web/app/lib/**/*.sync.test.ts
+apps/web/app/lib/**/*.sync.browser.test.tsx
+packages/api/src/sync*.test.ts
+scripts/loops/sync-matrix.test.mjs
+
+# Role-by-action matrices and permissions
+packages/data/src/constants/roles.test.ts
+packages/data/src/db/roles/**
+packages/data/src/permissions/**
+packages/data/src/services/careGroupMember.int.test.ts
+packages/data/src/services/easyRoles.int.test.ts
+
+# Privacy and connector leaks
+packages/api/src/connectors/**
+packages/auth/src/connectorAuthorize.test.ts
+packages/data/src/db/schema/connectors/connectorRules.test.ts
+packages/data/src/services/connectorGrant.int.test.ts
+
+# Migrations and seeds
+packages/data/src/db/*Migration.int.test.ts
+packages/data/src/db/seeds/**
+packages/auth/src/seedPasswords.int.test.ts

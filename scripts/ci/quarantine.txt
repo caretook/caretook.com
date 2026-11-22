@@ -1,0 +1,6 @@
+# The quarantine: flaky tests, skipped everywhere except a CI run's quarantine step
+# (CARETOOK_QUARANTINE=run), which can't fail the run. `pnpm prd ci` writes it, as
+# a locked commit onto dev, and removes an entry once its item is done.
+#
+# One test per line, three tab-separated fields:
+# <repo-relative test file><TAB><full test name><TAB><backlog item>
