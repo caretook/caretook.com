@@ -24,13 +24,13 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 6     | B-458 | merged (tooling)                                                                                                                                    | a8ab24cc |
 | 7     | B-475 | merged (test race, not a timer; Undo catch: B-527 fixes-bug)                                                                                        | cd8cc1f5 |
 | 8     | B-484 | merged (quick passed on slice)                                                                                                                      | af134b65 |
-| 9     | B-451 | started (opus agent spawned)                                                                                                                        | —        |
+| 9     | B-451 | merged (full passed on slice: package.json; browser not run, no stack)                                                                              | 4adeb2da |
 | 10    | B-445 | started (opus agent spawned)                                                                                                                        | —        |
 | 11    | B-534 | handed off 4074a56e (full passed: vitest.config.ts; fold: machinery load gate; rm.sh reads prd list twice)                                          | —        |
 | 12    | B-444 | handed off 3baa63c0 (quick passed)                                                                                                                  | —        |
 | 13    | B-405 | handed off 70cc7d85 (quick passed; fold: vitest.config.ts:192 comment, data-layer.md, machinery.md)                                                 | —        |
 | 14    | B-388 | handed off ad35cd5b (quick: only resetStaging B-466 timed out, 3/3 alone; browser not run, client.ts maps to @suite; fold: runbook connect timeout) | —        |
-| 15    | B-450 | started (opus agent spawned)                                                                                                                        | —        |
+| 15    | B-450 | handed off 0dc5a9a2 (quick passed; summary 2.5 s→ms per role, stopgap removed)                                                                      | —        |
 | 16    | B-466 | handed off 14db2807 (full passed: seeds; app-shell FLAKY on first PowerSync start, known gotcha; fold: data-layer seeds hash once)                  | —        |
 
 ## Wave 1
