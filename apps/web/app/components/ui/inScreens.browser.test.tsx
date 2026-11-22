@@ -454,6 +454,8 @@ describe.each([
     await userEvent.click(page.getByRole("button", { name: /^Filter(, \d+ on)?$/ }));
     await expect.element(page.getByRole("menuitemradio", { name: "All", exact: true })).toBeChecked();
     await userEvent.keyboard("{Escape}");
+    // The menu fades out before it leaves the DOM.
+    await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
     await overlay(() => must("main a[data-add-provider]"), { name: "Add a provider" });
   });
 

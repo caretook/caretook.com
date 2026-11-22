@@ -1,12 +1,24 @@
 import { useId, useState } from "react";
-import { Button, Chevron, Collapse, List, ListRow } from "~/components/ui";
+import {
+  Button,
+  Chevron,
+  Collapse,
+  ConfirmDialog,
+  List,
+  ListRow,
+  Menu,
+  Popover,
+  Toast,
+} from "~/components/ui";
 import { Example } from "../Example";
 
-// Motion (ui-kit-2): what moves, with the kit's durations; under "reduce
-// motion" every one of these changes at once.
+// Motion (ui-kit-2, overlays ui-kit-3): what moves, with the kit's
+// durations; under "reduce motion" every one of these changes at once.
 export function MotionSection() {
   const [open, setOpen] = useState(false);
   const [turned, setTurned] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [toast, setToast] = useState(false);
   const id = useId();
   return (
     <>
@@ -49,6 +61,34 @@ export function MotionSection() {
             </ul>
           </Collapse>
         </div>
+      </Example>
+      <Example label="Overlays fade in and out (menu, popover: fast; dialog, toast: the default)">
+        <Menu
+          label="Note actions"
+          variant="secondary"
+          items={[{ id: "delete", label: "Delete…", tone: "danger", onAction: () => setConfirming(true) }]}
+        >
+          Menu
+        </Menu>
+        <Popover label="About doses" dialogLabel="About doses" trigger="Popover" className="btn">
+          <p className="text-sm">A dose counts as taken when anyone in the group logs it.</p>
+        </Popover>
+        <Button onClick={() => setConfirming(true)}>Dialog</Button>
+        <Button onClick={() => setToast((t) => !t)}>{toast ? "Hide the toast" : "Toast"}</Button>
+        <ConfirmDialog
+          open={confirming}
+          title="Delete this note?"
+          message="It goes for everyone in the group."
+          confirmLabel="Delete"
+          onConfirm={() => setConfirming(false)}
+          onClose={() => setConfirming(false)}
+        />
+        <Toast
+          open={toast}
+          message="Added Ibuprofen"
+          actionLabel="Add details"
+          onAction={() => setToast(false)}
+        />
       </Example>
     </>
   );
