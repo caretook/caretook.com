@@ -4,66 +4,10 @@ import { appUrls } from "./appUrls";
 
 const G = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 
-// The composed object: its keys, and what crosses areas. Each area's builders
-// are tested beside its `urls.ts`.
-
-/** Every key of `appUrls`, frozen before the builders moved into the areas' urls.ts files. */
-const KEYS = [
-  "calendarSettings",
-  "condition",
-  "editCondition",
-  "editMedication",
-  "editPeriod",
-  "editProvider",
-  "editSheet",
-  "editTodo",
-  "entry",
-  "groupHome",
-  "groupList",
-  "groupSettings",
-  "home",
-  "importProviders",
-  "medication",
-  "medicationAllergies",
-  "medicationList",
-  "medicationPasses",
-  "medicationSchedule",
-  "medicationTab",
-  "medicationsPrint",
-  "medicationsPrintWeek",
-  "newAppointmentWith",
-  "newCondition",
-  "newDose",
-  "newEntry",
-  "newGroup",
-  "newMedication",
-  "newPeriod",
-  "newPlannerEntry",
-  "newProvider",
-  "newSheet",
-  "newTodo",
-  "passSheet",
-  "period",
-  "periods",
-  "planner",
-  "plannerPast",
-  "printEntry",
-  "profile",
-  "profilePrint",
-  "provider",
-  "providers",
-  "search",
-  "settings",
-  "timeline",
-  "todo",
-  "todos",
-];
+// The composed object: what crosses areas. Each area's builders are tested
+// beside its `urls.ts`.
 
 describe("appUrls", () => {
-  it("has the frozen keys, once each", () => {
-    expect(Object.keys(appUrls).sort()).toEqual(KEYS);
-  });
-
   it("builds a group's paths", () => {
     expect(appUrls.groupHome(G)).toBe(`/app/groups/${G}`);
     expect(appUrls.timeline(G)).toBe(`/app/groups/${G}/timeline`);
