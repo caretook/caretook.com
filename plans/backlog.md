@@ -248,7 +248,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-434 | feature | triaged | worker-watch |  | Run metrics beyond check times: slice and landing durations, flake rate and how often Codex finds something, in one summary command |
 | B-435 | feature | triaged | inbox-agent |  | Filing checks for duplicates (similar open or archived titles shown before an item is added) and finished items are archived without a hand run |
 | B-436 | feature | triaged | staging-ship |  | A to-test report for a staging ship, like the landing reports of B-410 |
-| B-437 | change | triaged | self-recovery |  | Record backlog, hotfix and recovery sessions like orchestrator sessions, so pnpm prd status shows them and they can be reopened |
+| B-437 | change | triaged | agent-autonomy-2 |  | Record backlog, hotfix and recovery sessions like orchestrator sessions, so pnpm prd status shows them and they can be reopened |
 | B-438 | plan | triaged | self-recovery |  | Headless orchestrator sessions: runs that need no terminal tab, so a helper cannot outlive or die with its window |
 | B-440 | bug | triaged | fixes-tooling |  | pnpm prd tidy --yes: a database for a topic ending -w1..-w16 reads as an orphan worker copy and is dropped |
 | B-441 | bug | triaged | fixes-tooling |  | pnpm prd tidy: a missing or failing lsof reads as no process in any worktree, so --yes can remove an active one |
@@ -318,6 +318,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-511 | feature | triaged | agent-autonomy-3 |  | Skeptic before every ask: a session sends its question, options and evidence to a fresh Fable skeptic first; it decides (reversible, within the rules) or confirms the question is the user's; pnpm prd ask records the verdict |
 | B-512 | feature | triaged | agent-autonomy-3 |  | Skeptic before risky landings: a Fable skeptic reviews the evidence before land --force, landing on flaky tests (B-505) or declining a Codex finding, and the landing report says what it said |
 | B-513 | change | triaged | agent-autonomy-3 |  | Opus planners and backlog sessions with a Fable final check: the skeptic pass runs on Fable and may send a plan back; a registry flag (e.g. design) keeps a heavy design topic's planner on Fable |
+| B-514 | feature | triaged | agent-autonomy-2 |  | Hand off from the phone: in a backlog or inbox session, 'hand off' runs pnpm prd rotate --self: a fresh session of the same kind and name opens (Remote Control, so it shows on the phone) and the old one ends; two modes the user picks: with a short brief of the current session passed to the new one, or with nothing handed over |
+| B-515 | feature | triaged | agent-autonomy-2 |  | Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too |
 
 ## Items
 
@@ -1831,12 +1833,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-437 · change · Record backlog, hotfix and recovery sessions like orchestrator sessions, so pnpm prd status shows them and they can be reopened
 
 - status: triaged
-- prd: self-recovery
+- prd: agent-autonomy-2
 - owner:
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. Deferred in the orchestration-2 plan with no item.
 - 2026-11-21 (plan/orchestration-3): Moved out of orchestration-3 by its planner (2026-11-21) to keep that PRD at six slices: orchestration-3 is the dispatcher core (B-392, B-426, B-427, B-428, B-439). The grouping and the row order of the four follow-on topics are the planner's; plans/orchestration-3-prd.md, Follow-on topics.
+- 2026-11-22 (Robert Bo Davis): 2026-11-22: moved from self-recovery (held) to agent-autonomy-2: handing off backlog and inbox sessions needs them recorded like orchestrator sessions.
 
 ### B-438 · plan · Headless orchestrator sessions: runs that need no terminal tab, so a helper cannot outlive or die with its window
 
@@ -2489,3 +2492,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: build the Fable 5.2 skeptic into more of the workflow; Fable reviews in short passes, Opus does the long work. Last 36h: main-checkout Fable sessions read 428M tokens, Fable planners 148M. The default model moved to Opus on dev the same day; this item adds the flag and the send-back rule.
 - 2026-11-22 (plan/agent-autonomy): Moved to agent-autonomy-3 (to write) by agent-autonomy's planner (2026-11-22): filed after that plan landed with six slices; this builds on its defaulting asks (B-503) and flake rule (B-505).
+
+### B-514 · feature · Hand off from the phone: in a backlog or inbox session, 'hand off' runs pnpm prd rotate --self: a fresh session of the same kind and name opens (Remote Control, so it shows on the phone) and the old one ends; two modes the user picks: with a short brief of the current session passed to the new one, or with nothing handed over
+
+- status: triaged
+- prd: agent-autonomy-2
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: backlog and inbox sessions must hand off to a fresh agent of the same type from the phone, and stay running alongside the dispatcher. The user's words: 'The handoff for both needs two options: share information about current session and no information handoff needed.' No session updates are saved unless the user asks.
+
+### B-515 · feature · Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too
+
+- status: triaged
+- prd: agent-autonomy-2
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: backlog and inbox sessions must hand off to a fresh agent of the same type from the phone, and stay running alongside the dispatcher. Needs the inbox agent (B-425, inbox-agent) for the inbox half; until it lands, the backlog session only.
