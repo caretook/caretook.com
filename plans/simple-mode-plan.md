@@ -7,7 +7,7 @@
 | Slice | Wave | State                                                                                       | Merge into `prd/simple-mode` (slice commits)    |
 | ----- | ---- | ------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | 1     | 1    | merged                                                                                      | cf858018 (f6723b7e, 8bd0f639); worktree removed |
-| 2     | 2    | merged (this merge; slice commits 1191b873, a38ef708, 1e4caeed, 4d6f08e3); worktree removed |                                                 |
+| 2     | 2    | merged b07a18e8 (slice commits 1191b873, a38ef708, 1e4caeed, 4d6f08e3); worktree removed |                                                 |
 | 3     | 3    | started (worktree simple-mode-3; agent opus)                                                |                                                 |
 | 4     | 4    | to do                                                                                       |                                                 |
 | 5     | 4    | to do                                                                                       |                                                 |
