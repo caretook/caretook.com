@@ -18,6 +18,7 @@ import * as providers from "./providers";
 import * as realOwners from "./realOwners";
 import * as secondGroup from "./secondGroup";
 import * as staff from "./staff";
+import * as tedderFamily from "./tedderFamily";
 import * as todos from "./todos";
 import * as timelineEntries from "./timelineEntries";
 import * as users from "./users";
@@ -63,6 +64,7 @@ export const seed = async () => {
     await medicationConditions.seed();
     await conditionManagers.seed();
     await appointmentSeries.seed();
+    await tedderFamily.seed();
     // After every group exists.
     const { added } = await realOwners.seed();
     if (added) console.log(`Made real account(s) owners of seeded groups: ${added} membership(s) added`);
