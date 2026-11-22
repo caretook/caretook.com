@@ -129,15 +129,15 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-274 | chore | staging | test-health | prd/test-health | Component tests: one test clock on a fixed base date, reset per test, with harness deadlines on performance.now(); one shared fixClock |
 | B-275 | chore | staging | test-health | prd/test-health | Component tests: one waitUntil in test/found.ts with one central timeout; no per-call milliseconds (lint rule) |
 | B-276 | chore | staging | test-health | prd/test-health | Component tests: a retrying getByCss locator and world helpers that return locators, with lint rules against non-null reads in expect and userEvent calls and against fixed sleeps |
-| B-285 | bug | ready | sync-safety | prd/sync-safety | Server-refused sync changes vanish with only a console.warn: keep refused ops in a local table and show them with the server's reason |
+| B-285 | bug | landed | sync-safety | prd/sync-safety | Server-refused sync changes vanish with only a console.warn: keep refused ops in a local table and show them with the server's reason |
 | B-286 | bug | triaged | sync-safety |  | A repeatable 5xx from sync.upload blocks a device's upload queue forever: no retry cap, and the sync indicator never shows uploadError or the queue length |
-| B-287 | bug | ready | sync-safety | prd/sync-safety | Offline medication and provider edits re-send unchanged JSON columns (schedule, phones), reverting a co-member's newer change |
+| B-287 | bug | landed | sync-safety | prd/sync-safety | Offline medication and provider edits re-send unchanged JSON columns (schedule, phones), reverting a co-member's newer change |
 | B-288 | bug | triaged | sync-safety |  | A replayed PUT on an existing row is a full update with the insert-time values, reverting newer edits (and for medications writing no change entry) |
 | B-289 | bug | triaged | sync-safety |  | Client-chosen ids are global: a member of one group can squat ids in another (note_document by a victim's provider id; series visit ids), wedging a device's queue or making top-up skip days |
 | B-290 | bug | triaged | sync-safety |  | Sign-out and a lapsed session wipe the device without checking the upload queue: unsent changes are destroyed with no warning |
-| B-291 | bug | ready | sync-safety | prd/sync-safety | sync.upload looks tables up on a plain object: table 'constructor' is acknowledged as applied having done nothing, '__proto__' throws a 500 |
-| B-292 | chore | ready | sync-safety | prd/sync-safety | A test that the device schema, sync-config.yaml and the upload column maps in sync.ts agree, minus an explicit ignore list |
-| B-293 | change | ready | sync-safety | prd/sync-safety | One generic soft-delete table handler in sync.ts in place of nine copied ones (they have already drifted) |
+| B-291 | bug | landed | sync-safety | prd/sync-safety | sync.upload looks tables up on a plain object: table 'constructor' is acknowledged as applied having done nothing, '__proto__' throws a 500 |
+| B-292 | chore | landed | sync-safety | prd/sync-safety | A test that the device schema, sync-config.yaml and the upload column maps in sync.ts agree, minus an explicit ignore list |
+| B-293 | change | landed | sync-safety | prd/sync-safety | One generic soft-delete table handler in sync.ts in place of nine copied ones (they have already drifted) |
 | B-294 | bug | triaged | sync-safety-2 |  | Sync uploads apply each op in its own transaction, so a multi-row device write half-applies when one op is refused |
 | B-295 | bug | triaged | sync-safety-2 |  | System-written change entries take the device clock unchecked: a clock a day ahead dates 'Stopped …' tomorrow, at the top of the history, uneditable |
 | B-296 | bug | triaged | sync-safety-2 |  | A tab left open while another tab switches user keeps the old user id, and its next navigation clears the new user's local database |
@@ -275,7 +275,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-477 | change | triaged | fixes-tooling |  | PRD registry: a hold carries its reason |
 | B-479 | bug | triaged | fixes-tooling |  | calendarCron.int.test.ts 'runs the reminders first, then Google push and pull, and the series top-up last by default' times out at 5 s under load (passes alone) |
 | B-480 | bug | triaged | fixes-tooling |  | timelineQuickEntry.browser.test.tsx 'the user's units are used, and an explicit unit wins' misses 'Saved 1 entry' under load (passes alone) |
-| B-481 | change | landed | ui-kit-3 | prd/ui-kit-3 | Text entry boxes and the default page background are the same color, which is confusing: pick a different color for one or the other (no preference which) |
+| B-481 | change | staging | ui-kit-3 | prd/ui-kit-3 | Text entry boxes and the default page background are the same color, which is confusing: pick a different color for one or the other (no preference which) |
 | B-484 | bug | staging | fixes-tooling | prd/fixes-tooling | Flaky under load: staff.browser.test.tsx 'offline, the cached banner shows; it goes at its end time without a reload' sets endsAt to now + 2 s, so a render over 2 s (load ~20) sees the banner already gone |
 | B-485 | bug | triaged | fixes-tooling |  | Flaky under load: print.browser.test.tsx 'Next, Previous and This week move it by a week…' reads 2027-06-07 for 2027-05-31 (Matcher did not succeed in time) in a full check; passes alone |
 | B-486 | bug | triaged | fixes-tooling |  | Flaky under load: planner.browser.test.tsx 'an item leaves the Planner tab once its end or its start passes' times out at 15 s (it steps 4 h of fake timers); fails alone 3/3 at load ~18, passes 3/3 at ~8 |
@@ -308,7 +308,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-517 | feature | dropped | agent-autonomy |  | A check carries over a dev sync: a passed check stays valid after a merge of dev when every incoming commit landed through a full check, the merge was conflict-free, the sides share no file, and dev brought no migration, seeds, sync-config.yaml, lockfile, package.json or vitest config; the merged tip runs only typecheck, lint and the tests related to both sides' changes (check-plan.mjs); else today's quick |
 | B-518 | change | triaged | agent-autonomy |  | Land without re-syncing when dev's changes don't touch the branch: land.sh's drift refusal relaxes when dev's new commits share no file with the branch and bring none of the risky files; land still merges dev and typechecks the result, and the landing report says it landed on an unsynced tip |
 | B-519 | bug | triaged | fixes-ui |  | Easy mode button on the timeline sits lower than the Timeline page title: align it with the title's row (same vertical center and baseline) |
-| B-520 | change | landed | ui-kit-3 | prd/ui-kit-3 | Dark theme feels too dark: lift its surfaces (page about 23%, cards about 30%, hue toward the brand indigo, chroma at most about 0.025) and give text boxes their own fill in both themes |
+| B-520 | change | staging | ui-kit-3 | prd/ui-kit-3 | Dark theme feels too dark: lift its surfaces (page about 23%, cards about 30%, hue toward the brand indigo, chroma at most about 0.025) and give text boxes their own fill in both themes |
 | B-521 | change | triaged | ui-kit-3 |  | Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark |
 | B-522 | change | triaged | ui-kit-3 |  | Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary) |
 | B-523 | change | triaged | ui-kit-3 |  | Each section's accent color as an icon chip beside the page title and as the current tab's pill tint; Easy mode stays neutral |
@@ -334,7 +334,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-543 | question | triaged | orchestration-split |  | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
 | B-544 | chore | triaged | fixes-nit |  | vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405 |
 | B-545 | chore | triaged | fixes-tooling |  | rm.sh reads pnpm backlog prd list --json twice (lines ~57 and ~71); reuse $rows to save a node start per rm |
-| B-546 | change | landed | fixes-ui |  | Quick entry's box and the live notes editor take the text-box field fill in both themes (ui-kit-3 kept them on their own surfaces) |
+| B-546 | change | staging | fixes-ui |  | Quick entry's box and the live notes editor take the text-box field fill in both themes (ui-kit-3 kept them on their own surfaces) |
+| B-547 | bug | triaged | fixes-bug |  | Dev red: inScreens.browser.test.tsx 'the date field at 360 > in the symptom sheet' fails 3/3 (expected the calendar grid to be null, got the June 2027 grid) since sync-safety's landing 30f33275 |
 
 ## Items
 
@@ -632,7 +633,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-285 · bug · Server-refused sync changes vanish with only a console.warn: keep refused ops in a local table and show them with the server's reason
 
-- status: ready
+- status: landed
 - prd: sync-safety
 - owner: prd/sync-safety
 - commit: f4c6ad13
@@ -652,7 +653,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-287 · bug · Offline medication and provider edits re-send unchanged JSON columns (schedule, phones), reverting a co-member's newer change
 
-- status: ready
+- status: landed
 - prd: sync-safety
 - owner: prd/sync-safety
 - commit: f4c6ad13
@@ -693,7 +694,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-291 · bug · sync.upload looks tables up on a plain object: table 'constructor' is acknowledged as applied having done nothing, '__proto__' throws a 500
 
-- status: ready
+- status: landed
 - prd: sync-safety
 - owner: prd/sync-safety
 - commit: f4c6ad13
@@ -703,7 +704,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-292 · chore · A test that the device schema, sync-config.yaml and the upload column maps in sync.ts agree, minus an explicit ignore list
 
-- status: ready
+- status: landed
 - prd: sync-safety
 - owner: prd/sync-safety
 - commit: f4c6ad13
@@ -713,7 +714,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-293 · change · One generic soft-delete table handler in sync.ts in place of nine copied ones (they have already drifted)
 
-- status: ready
+- status: landed
 - prd: sync-safety
 - owner: prd/sync-safety
 - commit: f4c6ad13
@@ -2080,7 +2081,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-481 · change · Text entry boxes and the default page background are the same color, which is confusing: pick a different color for one or the other (no preference which)
 
-- status: landed
+- status: staging
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
 - commit: e079afc0
@@ -2408,7 +2409,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-520 · change · Dark theme feels too dark: lift its surfaces (page about 23%, cards about 30%, hue toward the brand indigo, chroma at most about 0.025) and give text boxes their own fill in both themes
 
-- status: landed
+- status: staging
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
 - commit: e079afc0
@@ -2659,7 +2660,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-546 · change · Quick entry's box and the live notes editor take the text-box field fill in both themes (ui-kit-3 kept them on their own surfaces)
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner:
 - commit: 21055757
@@ -2667,3 +2668,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-22 (Robert Bo Davis): User asked for it 2026-11-22 after ui-kit-3 wave 1: plans/ui-kit-3-prd.md excluded quick entry's box and the notes editor from the field fill (B-520, B-481). fixes-ui: look only. Keep white in print, as the other fields are.
 - 2026-11-22 (Robert Bo Davis): Dropped 2026-11-22: the user says it doesn't matter.
 - 2026-11-22 (Robert Bo Davis): Restored 2026-11-22: the user wanted it dropped only if something else already covered it; nothing does (B-398's ui-kit-4 sweep doesn't mention the field fill).
+
+### B-547 · bug · Dev red: inScreens.browser.test.tsx 'the date field at 360 > in the symptom sheet' fails 3/3 (expected the calendar grid to be null, got the June 2027 grid) since sync-safety's landing 30f33275
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-22 (prd/fixes-tooling): Found by fixes-tooling's wave 2 gate (2026-11-22): passes in the full check on 99ecc1c2 (dev with ui-kit-3 wave 1 and B-546), fails 3/3 alone at load 5 after merging dev at 30f33275 (sync-safety wave 1, which changed apps/web/test/fixtures.ts and lib/sync/). Reproduced with dev's code alone (fixes-tooling's packages changes reverted). Likely sync-safety's fixture or sync changes meeting ui-kit-3's overlay fades (93cae190).
