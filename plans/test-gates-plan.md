@@ -7,13 +7,13 @@ The [PRD](test-gates-prd.md) covers:
 - a run's failures are sorted by kind, and flakes are quarantined;
 - a landing waits for the tier its orchestrator declared.
 
-Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
+Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
 
 ## Status
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** wave 1 started 2026-11-22. Worktrees `test-gates-1` and `test-gates-2` made, B-555, B-556, B-341 and B-554 claimed. Both slices run on opus (real logic). Slice 1 merged; its worktree stays until the wave's full check passes, because that check is the first real run of the new check body (real Vitest rerun, full mode). Slice 1's quiet-machine before/after time is only partial: static 127 s in series against 79.5 s side by side, at load 8 to 11. Waiting on slice 2.
+**Now:** wave 1 started 2026-11-22. Worktrees `test-gates-1` and `test-gates-2` made, B-555, B-556, B-341 and B-554 claimed. Both slices run on opus (real logic). Slice 1 merged; its worktree stays until the wave's full check passes, because that check is the first real run of the new check body (real Vitest rerun, full mode). Slice 1's quiet-machine before/after time is only partial: static 127 s in series against 79.5 s side by side, at load 8 to 11. Waiting on slice 2. The user put the Linux `stat` fix in this topic (slice 8, wave 2; B-559, B-242), relayed by the backlog session.
 
 **Docs to fold at landing (slice 1):** the 15-field check log, the time limits (`CARETOOK_CHECK_LIMIT`, `CARETOOK_CHECK_KILL_GRACE`), the rerun and its guards (`CARETOOK_CHECK_RERUN_MAX`), side-by-side static steps (machinery, orchestrator, loop), and the `check --times` line in `pnpm prd help`.
 
@@ -26,6 +26,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556. B-531 (modes) is d
 | 5     | 4    | —              | —                                           |
 | 6     | 5    | —              | —                                           |
 | 7     | 5    | —              | —                                           |
+| 8     | 2    | —              | —                                           |
 
 **Backlog:**
 
@@ -39,6 +40,8 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556. B-531 (modes) is d
 | B-530 | slice 4 starts | slice 5 merges |
 | B-528 | slice 6 starts | slice 6 merges |
 | B-553 | slice 7 starts | slice 7 merges |
+| B-559 | slice 8 starts | slice 8 merges |
+| B-242 | slice 8 starts | slice 8 merges |
 
 ## Architectural decisions
 
@@ -57,7 +60,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556. B-531 (modes) is d
 
 - **Waves:**
   1. slices 1 and 2 (1 touches the local check runner; 2 adds the workflow and the request; they share only additive `prd.sh` cases)
-  2. slice 3
+  2. slices 3 and 8 (3 touches the workflow; 8 the shell scripts' Linux behaviour)
   3. slice 4
   4. slice 5
   5. slice 6, then slice 7 on top of it, landed together
@@ -66,7 +69,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556. B-531 (modes) is d
 - **Hot files:** `.github/workflows/`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `packages/data/src/db/roles/syncConfig.ts` (the YAML reader the workflow tests use), `vitest.config.ts`, `scripts/loops/land`, `scripts/loops/check-plan`, `scripts/loops/check-body`, `scripts/loops/check-run`, `scripts/loops/check-times`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/pr.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/rotate`. These overlap:
   - fixes-tooling's scripts items: held until this topic lands (its wave 2 is in dev);
   - agent-autonomy (B-518) waits for this topic.
-- Seven slices, one over the usual six: the skeptic pass split the workflow slice in two. Slice 1 stays here, not in fixes-tooling, because it shares the check plan and check body with slice 6 and fixes-tooling is held for this topic.
+- Eight slices: the skeptic pass split the workflow slice in two, and the user added slice 8 (the Linux fix) on 2026-11-22 so the CI tiers can go green before landing. Slice 1 stays here, not in fixes-tooling, because it shares the check plan and check body with slice 6 and fixes-tooling is held for this topic.
 
 ## Slice 1: A local check says why it failed, stops at a limit and reruns a flake
 
@@ -183,7 +186,7 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md · Tests: unit
 - A requested run with a test forced to fail once and then pass uploads `flake`. A narrowed run of two files starts only their jobs. The hand-off links both.
 - `pnpm test:tooling` passes.
 
-**Blocked by:** 2, 3. **Blocks:** 5.
+**Blocked by:** 2, 3, 8. **Blocks:** 5.
 
 ## Slice 5: Whose failure it is, and what gets filed
 
@@ -288,3 +291,25 @@ Stack: no · Reads: docs/agents/orchestrator.md, docs/agents/loop.md, docs/agent
 - `pnpm test:tooling` passes.
 
 **Blocked by:** 5, 6. **Blocks:** nothing.
+
+## Slice 8: The tooling scripts work on Linux
+
+Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md · Tests: unit
+
+**User stories:** US 3, 10. Added on the user's decision, 2026-11-22.
+
+**Build:**
+
+- One shared mtime helper that tries GNU `stat -c %Y` first, used at every `stat -f %m` site: `browser.sh`, `stack-lib.sh`, `lease.sh` and `lib.sh` (`with_backlog_lock`, B-242). On Linux, `stat -f %m` prints a `File:` block to stdout before failing, so the existing `||` fallbacks capture junk.
+- `load_avg` in `lib.sh` prints a stray blank line on Linux, which breaks `browser.test.mjs`'s `cap 30s` line match. It prints one clean line on both systems.
+- Trace the lease failures rather than assuming `stat` explains them, and fix what the tooling gets wrong on Linux.
+- Watch `check-run`'s empty branch name on a detached HEAD: it failed in one CI run and passed in the next. If it recurs, fix it; if not, say so in the hand-off.
+
+**Acceptance criteria:**
+
+- A unit test of the helper: a numeric mtime when the first `stat` form prints junk, and on the system it runs on.
+- No `stat -f %m` is left outside the helper.
+- The 11 failures from slice 2's CI unit run (browser 6, lease 2, stack, disk, load-gate) are green on the Linux runner, in a requested run of the slice's branch linked in the hand-off.
+- `pnpm test:tooling` passes on the Mac.
+
+**Blocked by:** 2. **Blocks:** 4.
