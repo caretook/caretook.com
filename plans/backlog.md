@@ -183,7 +183,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-323 | bug | triaged | fixes-bug |  | A failed local note_update insert loses the rest of the session's typing (pending is cleared before the insert; the catch only logs) |
 | B-324 | change | triaged | fixes-bug |  | Health data in page titles and URLs: entry, medication, provider and todo names in document.title and searches in ?q= persist in browser history after the sign-out wipe |
 | B-325 | change | triaged | fixes-ui |  | Native readiness: no top safe-area inset on the header or sticky day headers (viewport-fit=cover), and /app is a blank page on cold start for up to about 4 s (HydrateFallback returns null) |
-| B-326 | chore | triaged | fixes-nit |  | Docs drift: layout.md omits many folders and calls the Playwright specs 'headless Chrome checks'; five area docs name old *.mjs check files; AGENTS.md marks Playwright and print CSS as proposed; sync-config.yaml cites a pnpm powersync:restart that doesn't exist; .env.example lacks BETTER_AUTH_SECRETS; AGENTS.md omits the /series client-safe export |
+| B-326 | chore | in-progress | fixes-nit | prd/fixes-nit | Docs drift: layout.md omits many folders and calls the Playwright specs 'headless Chrome checks'; five area docs name old *.mjs check files; AGENTS.md marks Playwright and print CSS as proposed; sync-config.yaml cites a pnpm powersync:restart that doesn't exist; .env.example lacks BETTER_AUTH_SECRETS; AGENTS.md omits the /series client-safe export |
 | B-327 | bug | triaged | account-security |  | A removed or demoted manager's pending invites still work: a removed owner can accept their own owner invite within 7 days and be an owner again |
 | B-328 | bug | triaged | account-security |  | The emailed sign-in code has no per-address limit (per IP only): a distributed attacker gets unlimited guesses at any account's 6-digit code |
 | B-329 | bug | triaged | account-security |  | Ending sessions never ends a connected assistant: password reset, 'sign out everywhere' and staff 'sign out all' leave the grant and its 30-day rolling refresh token alive |
@@ -236,8 +236,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-376 | feature | dropped | assistant-2 |  | Assistant chat with voice and questions about the timeline (B-12 is marked done, but only device-side quick entry shipped; no AI SDK is installed) |
 | B-377 | feature | triaged | calendars-2 |  | Push notifications for appointment reminders (B-61 shipped email only) |
 | B-378 | chore | triaged | i18n |  | File the translations PRD's promised follow-ups: Spanish quick entry, language-aware search, a human review of the Spanish; and note 48 hard-coded 'en-US' formatters and English messages in schemas and the errors catalogue |
-| B-379 | chore | triaged | fixes-nit |  | Later contract migrations nobody tracks: dropping the old columns the simple-mode and planner-2 PRDs leave behind, and medications-2's default-passes backfill |
-| B-380 | chore | triaged | fixes-nit |  | Backlog hygiene: B-205 and B-206 are the same test failure; B-208 is tagged simple-mode but landed as a hotfix; B-88 is landed with no commit; B-222's title and inbox line disagree; about 150 items read 'live' from one release merge though production hasn't started |
+| B-379 | chore | ready | fixes-nit | prd/fixes-nit | Later contract migrations nobody tracks: dropping the old columns the simple-mode and planner-2 PRDs leave behind, and medications-2's default-passes backfill |
+| B-380 | chore | ready | fixes-nit | prd/fixes-nit | Backlog hygiene: B-205 and B-206 are the same test failure; B-208 is tagged simple-mode but landed as a hotfix; B-88 is landed with no commit; B-222's title and inbox line disagree; about 150 items read 'live' from one release merge though production hasn't started |
 | B-381 | bug | triaged | fixes-tooling |  | readTools.int.test.ts 'nothing private leaves' flakes when a random user UUID contains the birth year (e.g. …072194195bed matches '1941'): assert on fields, not a substring of the whole output |
 | B-382 | bug | triaged | sync-safety |  | Repeating todos: an offline Undo's delete of the next occurrence lands unconditionally (todoOp removeTodo), deleting a successor another member edited or completed even though todoService.reopen kept it; tell an Undo's delete from an explicit one and apply it only when the server finds the successor untouched (todos.sync.ts:499) |
 | B-383 | bug | triaged | sync-safety |  | Repeating todos: reopen finds the successor by dueOn > the reopened todo's due day (todoService laterInChain, and the device's), so a successor rescheduled to the same day or earlier is missed and both rows stay open and repeating |
@@ -249,7 +249,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-389 | change | staging | orchestration-2 | prd/orchestration-2 | A PRD registry: the PRD table gets a state, the topics it comes after and its hot files, kept through pnpm backlog prd; row order is the priority |
 | B-390 | change | staging | orchestration-2 | prd/orchestration-2 | One orchestrator session per wave: recorded sessions and pnpm prd rotate, so a fresh session opens from Status after each landing |
 | B-391 | feature | staging | orchestration-2 | prd/orchestration-2 | One asks queue: unattended sessions file questions and landed-wave reports with pnpm prd ask; the user answers in one place |
-| B-392 | feature | in-progress | orchestration-3 | prd/orchestration-3 | A dispatcher (pnpm prd dispatch) that plans and starts PRDs by registry order, dependencies, hot files and slots, and reopens dead sessions; pnpm prd queue just reorders |
+| B-392 | feature | ready | orchestration-3 | prd/orchestration-3 | A dispatcher (pnpm prd dispatch) that plans and starts PRDs by registry order, dependencies, hot files and slots, and reopens dead sessions; pnpm prd queue just reorders |
 | B-393 | bug | triaged | fixes-bug |  | Repeating todos: reopening Repeat on a 'last Friday' monthly todo whose occurrence falls on a 4th Friday and pressing Done turns BYDAY=-1FR into 4FR (todoFormData initialRepeat → choiceOfRule drops nth); the same shared choiceOfRule/choiceRule bug as B-234 for appointment series: one fix should cover both |
 | B-394 | bug | triaged | fixes-tooling |  | mcp.int.test.ts 'list_timeline: the group's entries in the recipient's zone, with note text, paged at 50' times out at Vitest's 5 s default under load (full check, 5-min load ~21); passes alone 3x |
 | B-395 | change | staging | orchestration-2 | prd/orchestration-2 | Split quick-fixes into categories that land separately: UI/UX, tooling, optimizations, bugfixes, nits (a plan or topic per category; the dispatcher treats each as a standing topic) |
@@ -283,9 +283,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-423 | feature | triaged | ui-kit-2 |  | Standardize on single Button design component. Can have options like primary, secondary, danger,… |
 | B-424 | feature | triaged | ui-kit-2 |  | medications page should have passes as a tab, not in header. + button should be a dropdown with add… |
 | B-425 | feature | triaged | inbox-agent |  | An inbox agent: a session that helps the user add, categorize and prioritize inbox items, and writes them by pushing straight to origin/dev instead of committing in the local dev checkout, so it never steps on the user's working copy |
-| B-426 | feature | ready | orchestration-3 | prd/orchestration-3 | A load gate: PRD, slice and check starts wait while machine load is high, and the dispatcher weighs load when it picks what to start |
+| B-426 | feature | landed | orchestration-3 | prd/orchestration-3 | A load gate: PRD, slice and check starts wait while machine load is high, and the dispatcher weighs load when it picks what to start |
 | B-427 | change | landed | orchestration-3 | prd/orchestration-3 | A landing agents can run when the last check is stale: pnpm prd land --force is blocked by the permission classifier, so give land a sanctioned path (a --quick recheck or a recorded reason) and document it |
-| B-428 | change | ready | orchestration-3 | prd/orchestration-3 | Rules for the five fixes topics in the dispatcher: hot files worked out from a wave's items, whether a fixes wave takes one of the three slots, and one answer on hold versus standing |
+| B-428 | change | landed | orchestration-3 | prd/orchestration-3 | Rules for the five fixes topics in the dispatcher: hot files worked out from a wave's items, whether a fixes wave takes one of the three slots, and one answer on hold versus standing |
 | B-429 | change | triaged | inbox-agent |  | Asks queue hygiene: reports that go stale are re-checked or expire, answered asks are archived, and an ask whose session has died still reaches the user |
 | B-430 | feature | triaged | staging-ship |  | Codex findings on a PRD pull request become backlog items by tool: verified against the code, duplicates noted on the existing item, as B-404 does for the staging PR |
 | B-431 | chore | triaged | fixes-tooling |  | A finished PRD gets its done flag without rm: set it at the last landing or in pnpm prd tidy (check-speed still reads planned with nothing waiting) |
@@ -296,7 +296,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-436 | feature | triaged | staging-ship |  | A to-test report for a staging ship, like the landing reports of B-410 |
 | B-437 | change | triaged | self-recovery |  | Record backlog, hotfix and recovery sessions like orchestrator sessions, so pnpm prd status shows them and they can be reopened |
 | B-438 | plan | triaged | self-recovery |  | Headless orchestrator sessions: runs that need no terminal tab, so a helper cannot outlive or die with its window |
-| B-439 | change | ready | orchestration-3 | prd/orchestration-3 | A hold between a planner landing and its topic starting: the dispatcher waits for the user to release a newly planned topic, or a stated rule says when it may start alone |
+| B-439 | change | landed | orchestration-3 | prd/orchestration-3 | A hold between a planner landing and its topic starting: the dispatcher waits for the user to release a newly planned topic, or a stated rule says when it may start alone |
 | B-440 | bug | triaged | fixes-tooling |  | pnpm prd tidy --yes: a database for a topic ending -w1..-w16 reads as an orphan worker copy and is dropped |
 | B-441 | bug | triaged | fixes-tooling |  | pnpm prd tidy: a missing or failing lsof reads as no process in any worktree, so --yes can remove an active one |
 | B-442 | bug | triaged | fixes-tooling |  | pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check |
@@ -309,6 +309,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-449 | chore | in-progress | fixes-tooling | hotfix/reseed-staging | Reseed staging from scratch: a manual Action that wipes staging's data and runs the fictional seed again |
 | B-450 | bug | triaged | fixes-tooling |  | Flaky under load: roles.int.test.ts beforeAll (applyRoles) times out at the 10s hookTimeout in a full check at load ~130; passes alone 3x |
 | B-451 | bug | triaged | fixes-tooling |  | Tooling-only landings run no eslint: the check gate's 'none needed' (Markdown, scripts/loops, scripts/backlog, .githooks) lets a lint error into dev, and every synced branch's full check then fails |
+| B-452 | bug | triaged | fixes-tooling |  | Dispatcher: a start or plan whose new.sh fails after making the worktree leaves it with no managed record, so later ticks treat it as opened by hand and it holds a slot for good |
+| B-453 | bug | triaged | fixes-tooling |  | Dispatcher: a 'hold the topic' answer is consumed and the reopen count cleared even when the backlog write fails, so the same tick reopens the session |
+| B-454 | bug | triaged | fixes-tooling |  | Dispatcher lock: two dispatchers starting together over a stale lock can both take it (the takeover unlinks the path from an earlier pid read) |
+| B-455 | chore | triaged | contract-migrations |  | Drop the old per-member simple mode columns (simple_mode, simple_mode_locked) once Easy roles replace them |
+| B-456 | chore | triaged | contract-migrations |  | Retire the leftover reminder data planner-2 left in place: the note kind on appointment_series and stored future notes and note series |
+| B-457 | chore | triaged | contract-migrations |  | Give groups that predate the default medication passes (Morning 08:00 and Evening 20:00) their two passes |
+| B-458 | chore | triaged | fixes-tooling |  | Backlog: let set and note change archived items (a fix to an archived item's topic, title, commit or note is refused, so the hygiene fixes for B-206, B-208, B-88, B-222 can't be made) |
+| B-459 | chore | triaged | fixes-tooling |  | Backlog: 151 items read 'live' because the dev-into-staging-into-main release merge (cc3e1d8b, B-33) put their commits on origin/main, though production hasn't launched; give live a real meaning (a production marker such as a tag or a recorded deploy) or show main as staging until launch |
 
 ## Items
 
@@ -1260,9 +1268,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-326 · chore · Docs drift: layout.md omits many folders and calls the Playwright specs 'headless Chrome checks'; five area docs name old *.mjs check files; AGENTS.md marks Playwright and print CSS as proposed; sync-config.yaml cites a pnpm powersync:restart that doesn't exist; .env.example lacks BETTER_AUTH_SECRETS; AGENTS.md omits the /series client-safe export
 
-- status: triaged
+- status: in-progress
 - prd: fixes-nit
-- owner:
+- owner: prd/fixes-nit
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. Markdown and comments only. docs/layout.md is missing scripts/build, scripts/deploy, ops/, routes/connectors, packages/api/src/connectors, lib/calendars, lib/connectors and the planner, medication, profile and search route folders.
@@ -1739,24 +1747,27 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-379 · chore · Later contract migrations nobody tracks: dropping the old columns the simple-mode and planner-2 PRDs leave behind, and medications-2's default-passes backfill
 
-- status: triaged
+- status: ready
 - prd: fixes-nit
-- owner:
-- commit:
+- owner: prd/fixes-nit
+- commit: 6c5cedb4
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. From the dropped-threads sweep.
 - 2026-11-21 (prd/orchestration-2): category: nit (orchestration-2 split)
 - 2026-11-21 (prd/orchestration-2): adds a migration: run it alone
+- 2026-11-21 (slice/fixes-nit/2): Contract steps filed under topic contract-migrations: B-455 (drop simple_mode and simple_mode_locked, after simple-mode slice 3), B-456 (planner-2 note series kind and stored future notes; all_day, series columns, reminder_override and member_calendar_setting are still live and stay), B-457 (default medication passes backfill for groups predating them).
 
 ### B-380 · chore · Backlog hygiene: B-205 and B-206 are the same test failure; B-208 is tagged simple-mode but landed as a hotfix; B-88 is landed with no commit; B-222's title and inbox line disagree; about 150 items read 'live' from one release merge though production hasn't started
 
-- status: triaged
+- status: ready
 - prd: fixes-nit
-- owner:
-- commit:
+- owner: prd/fixes-nit
+- commit: e6c17f72
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. B-247 (Planner Upcoming | Past toggle) is triaged and unowned yet gates list-filters slice 4 and planner-2 slice 3.
 - 2026-11-21 (prd/orchestration-2): category: nit (orchestration-2 split)
+- 2026-11-21 (slice/fixes-nit/3): Slice 3 done: none of the five claims could be fixed (archived items refuse set and note); filed B-458 (archived edits) and B-459 (live status). B-247 stale: landed in 5a5c2fd6.
+- 2026-11-21 (prd/fixes-nit): fixes-nit slice 3: all five fixes verified; the items are archived and the tool refuses changes, so the exact edits moved to B-458 (let set and note change archived items); the 'live' derivation to B-459. B-247 was stale (landed 5a5c2fd6).
 
 ### B-381 · bug · readTools.int.test.ts 'nothing private leaves' flakes when a random user UUID contains the birth year (e.g. …072194195bed matches '1941'): assert on fields, not a substring of the whole output
 
@@ -1884,10 +1895,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-392 · feature · A dispatcher (pnpm prd dispatch) that plans and starts PRDs by registry order, dependencies, hot files and slots, and reopens dead sessions; pnpm prd queue just reorders
 
-- status: in-progress
+- status: ready
 - prd: orchestration-3
 - owner: prd/orchestration-3
-- commit:
+- commit: 706cee98
 
 - 2026-11-21 (plan/orchestration-2): From the 2026-11-21 orchestration review; plan slices 4, 6 and 7
 - 2026-11-21 (Robert Bo Davis): HAND-OFF to a new planner (2026-11-21): the user wants this topic re-planned or carried on by a fresh planning session. Context: a review of the flow found 3,042 commits on dev in 5 days (1,065 backlog writes, 799 slice merges, 580 feat, ~350 on the orchestration tooling), load 37 on 10 cores with all browser leases held, ten topics waiting for a PRD, and the user accepting ~98% of planning recommendations. So the limits are the user and the machine, not planning quality. Done already on dev (f5965053): the planner decides then reports (What to ask, the Decisions table, the skeptic pass, docs/agents/preferences.md). The user's answers: the dispatcher starts EVERYTHING by PRD-table row order (the recommendation was a run list they order), and green waves land in dev before they try them. New rules from the user for the planner: (1) keep a PRD to a reasonable number of slices (about six is the planner's reading, not the user's number) so the next planner or the user can reprioritise; this plan has 8, so consider cutting it in two, e.g. registry + sessions + asks + rotation first, then the pick, unattended prompts and the dispatcher; (2) quick-fixes splits into categories that land separately (B-394); (3) questions must reach the user's phone. Unproven: that a helper started from a session's own shell outlives that session being ended (plan slice 4). The skeptic's findings and what was declined are in the PRD's Decisions section.
@@ -2235,10 +2246,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-426 · feature · A load gate: PRD, slice and check starts wait while machine load is high, and the dispatcher weighs load when it picks what to start
 
-- status: ready
+- status: landed
 - prd: orchestration-3
 - owner: prd/orchestration-3
-- commit: 813bff39
+- commit: bbb3a3c4
 
 - 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. Seen: load 46/37/33 on 10 cores with three PRDs running. Only browser.sh waits on load (CARETOOK_BROWSER_BUSY); lease.sh has no load logic though B-271 says the lease waits; orchestrator.md says No load gate; the orchestration-2 PRD deferred it; B-392 picks without load. Why orchestration-3: it changes what the dispatcher starts.
 - 2026-11-21 (plan/orchestration-3): Planned 2026-11-21 (plan/orchestration-3): plans/orchestration-3-prd.md and -plan.md, six slices. B-439 by slice 1 (the user chose no hold), B-428 by slice 2, B-426 by slice 3, B-427 by slice 4, B-392 by slices 5 and 6.
@@ -2257,10 +2268,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-428 · change · Rules for the five fixes topics in the dispatcher: hot files worked out from a wave's items, whether a fixes wave takes one of the three slots, and one answer on hold versus standing
 
-- status: ready
+- status: landed
 - prd: orchestration-3
 - owner: prd/orchestration-3
-- commit: 813bff39
+- commit: bbb3a3c4
 
 - 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. The registry has fixes-ui, -bug, -tooling, -perf, -nit as standing with no hot files, so nothing stops a wave colliding with a running PRD; the dispatcher notes and report a3 say they are on hold. Beside B-392.
 - 2026-11-21 (plan/orchestration-3): Planned 2026-11-21 (plan/orchestration-3): plans/orchestration-3-prd.md and -plan.md, six slices. B-439 by slice 1 (the user chose no hold), B-428 by slice 2, B-426 by slice 3, B-427 by slice 4, B-392 by slices 5 and 6.
@@ -2366,10 +2377,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-439 · change · A hold between a planner landing and its topic starting: the dispatcher waits for the user to release a newly planned topic, or a stated rule says when it may start alone
 
-- status: ready
+- status: landed
 - prd: orchestration-3
 - owner: prd/orchestration-3
-- commit: 813bff39
+- commit: bbb3a3c4
 
 - 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. An open question in the orchestration-3 notes with no item.
 - 2026-11-21 (plan/orchestration-3): Planned 2026-11-21 (plan/orchestration-3): plans/orchestration-3-prd.md and -plan.md, six slices. B-439 by slice 1 (the user chose no hold), B-428 by slice 2, B-426 by slice 3, B-427 by slice 4, B-392 by slices 5 and 6.
@@ -2484,3 +2495,78 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (prd/orchestration-3): Seen 2026-11-21: orchestration-3 wave 1 (e015a74) brought a no-useless-assignment in scripts/loops/sessions.test.mjs:248 into dev; fixed in PR #39 (12628b9e). Fix idea: 'none needed' still runs eslint + prettier on the changed tooling files (pnpm test:tooling's step, or the gate requires it).
+
+### B-452 · bug · Dispatcher: a start or plan whose new.sh fails after making the worktree leaves it with no managed record, so later ticks treat it as opened by hand and it holds a slot for good
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (prd/orchestration-3): Codex P2 on PR #39 (dispatch.mjs:408, r4655894803), verified: writeRecord comes after the new.sh break. Fix: write the managed record (setup state) before new.sh, or remove the partial worktree on failure.
+- 2026-11-21 (prd/orchestration-3): orchestration-3 ends with wave 3: this Codex follow-up on dispatch.mjs moves to fixes-tooling
+
+### B-453 · bug · Dispatcher: a 'hold the topic' answer is consumed and the reopen count cleared even when the backlog write fails, so the same tick reopens the session
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (prd/orchestration-3): Codex P2 on PR #39 (dispatch.mjs:353, r4655894808), verified: updateState deletes asked/reopens regardless of r.ok. Fix: only consume the answer and the count after the hold is written; otherwise skip the topic and retry.
+- 2026-11-21 (prd/orchestration-3): orchestration-3 ends with wave 3: this Codex follow-up on dispatch.mjs moves to fixes-tooling
+
+### B-454 · bug · Dispatcher lock: two dispatchers starting together over a stale lock can both take it (the takeover unlinks the path from an earlier pid read)
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (prd/orchestration-3): Codex P2 on PR #39 (dispatch.mjs:200, r4655894813), verified: takeLock unlinks unconditionally after reading a dead holder; Codex reproduced 6/30. Fix: atomic takeover (rename a temp lock over it and re-read, or a mkdir lock).
+- 2026-11-21 (prd/orchestration-3): orchestration-3 ends with wave 3: this Codex follow-up on dispatch.mjs moves to fixes-tooling
+
+### B-455 · chore · Drop the old per-member simple mode columns (simple_mode, simple_mode_locked) once Easy roles replace them
+
+- status: triaged
+- prd: contract-migrations
+- owner:
+- commit:
+
+- 2026-11-21 (slice/fixes-nit/2): Contract step for simple-mode (plans/simple-mode-plan.md line 121: slice 3 moves locked caretakers to easy_helper, locked viewers to easy_viewer and takes the two columns out of Drizzle reads and writes, sync, device schema and grants, leaving them for a later contract migration). Columns: care_group_member.simple_mode and simple_mode_locked (migration 0021_simple_mode.sql; schema packages/data/src/db/schema/care-groups/careGroupMember.ts:64-65). Today (2026-11-21) still read and written: packages/api/src/care-groups/careGroup.ts:194-223 (setMemberMode), packages/data/src/permissions/care-groups.ts:48-49, careGroupMemberService. Precondition: simple-mode slices 1-3 landed in dev and the conversion has run on staging and production; then a drop migration (expand/contract, adds a migration: run it alone). Also check care_group.simple_tiles stays (still used by group settings) and the user_preferences simpleMode key.
+
+### B-456 · chore · Retire the leftover reminder data planner-2 left in place: the note kind on appointment_series and stored future notes and note series
+
+- status: triaged
+- prd: contract-migrations
+- owner:
+- commit:
+
+- 2026-11-21 (slice/fixes-nit/2): Contract step for planner-2 (plans/planner-2-plan.md line 48: nothing dropped; no data migration; stored future notes and note series left, hidden from upcoming readers and never topped up). Still in schema: appointment_series.kind with check appointment_series_kind_check (packages/data/src/db/schema/appointments/appointmentSeries.ts:43-86; new series are events only via the z.literal at line 177) and note series rows; timeline_entry.all_day and series columns and reminder_override / member_calendar_setting are NOT dead: events and appointment reminders still use them (timelineEntry.ts:121-142, reminderOverrideService in packages/api/src/calendars/overrideProcedures.ts, calendarFeedService), so do not drop those. Decide: delete or convert the stored note series and future-dated notes (a data migration; staging only has test data), then drop the kind column and its check or narrow the check to event. Precondition: planner-2 landed (it is) and no reader of kind=note remains (grep sync.ts, seriesVisits, appointmentSeriesService); migration, run it alone.
+
+### B-457 · chore · Give groups that predate the default medication passes (Morning 08:00 and Evening 20:00) their two passes
+
+- status: triaged
+- prd: contract-migrations
+- owner:
+- commit:
+
+- 2026-11-21 (slice/fixes-nit/2): medications-2 (plans/medications-2-plan.md line 38) creates the default passes for every new group through one helper (careGroupService.create, accessCodeService, staffGroupService) and says: no backfill for existing rows (dev data only). Staging has been live since 2026-11-20, so any group created before that change has no passes and medications moved to passes have no pass. Check staging with a query on medication_pass per care_group; if groups lack them, add a data migration (or one-off script) that inserts the two defaults per group with none, idempotent, and moves medications without a pass onto them. Precondition: confirm count of groups without passes on staging; production has none yet, so only staging needs it.
+
+### B-458 · chore · Backlog: let set and note change archived items (a fix to an archived item's topic, title, commit or note is refused, so the hygiene fixes for B-206, B-208, B-88, B-222 can't be made)
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (slice/fixes-nit/3): From B-380 (fixes-nit slice 3), 2026-11-21: the wanted changes are B-206 status=dropped (duplicate of B-205, both fixed by 56b50a96); B-208 prd=quick-fixes owner=hotfix/simple-mode (landed as hotfix 4e5e0187); B-88 commit=59d382f9 (feat(orchestration): queue PRDs for a free slot, landing modes, planning sessions); B-222 title 'Tasks become todos, and Upcoming and Todos merge into the Planner (tabs Planner, Todos, Past)' (built in 2db975a7); plus notes on B-205, B-206, B-208, B-88, B-222. All five are archived, and set and note answer 'is archived; it can't be changed here'. Either an --archived flag on set and note, or an unarchive command. B-247 needs nothing: it landed in 5a5c2fd6 (planner-2 wave 2), so 'triaged and unowned' is stale.
+
+### B-459 · chore · Backlog: 151 items read 'live' because the dev-into-staging-into-main release merge (cc3e1d8b, B-33) put their commits on origin/main, though production hasn't launched; give live a real meaning (a production marker such as a tag or a recorded deploy) or show main as staging until launch
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (slice/fixes-nit/3): From B-380 (fixes-nit slice 3), 2026-11-21: status is derived (scripts/backlog/format.mjs derive: containing origin/main means live) and recomputed on every write, so a hand or bulk set of live items back to staging would be undone, and archived items can't be set at all. Not changed here. Option: derive live from a production tag or deploy record instead of origin/main; the status words in docs/agents/backlog.md follow.
