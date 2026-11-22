@@ -19,7 +19,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 5     | B-441 | started (opus agent)                                                                      |          |
 | 6     | B-458 | handed off 5418eb80 (tooling: tidy-cli/rotate/browser.test failed under load, pass alone) |          |
 | 7     | B-475 | handed off fd4f9f27 (test race, not a timer; Undo catch filed for fixes-bug)              |          |
-| 8     | B-484 | started (opus agent)                                                                      |          |
+| 8     | B-484 | handed off 0b3f7d92 (quick passed)                                                        |          |
 
 ## Wave 1
 
