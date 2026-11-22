@@ -87,6 +87,9 @@ jobs:
       - id: lint
         name: Lint
         if: ${{ !cancelled() }}
+        # Type-aware ESLint sits at Node's default heap limit (about 4 GB here).
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: pnpm lint
       - id: typecheck
         name: Typecheck
