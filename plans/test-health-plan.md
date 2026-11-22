@@ -36,7 +36,7 @@ Notes for later slices: B-475 flake (fixes-tooling, timelineSimpleTodos undo tim
 | 16    | 6    | landed (opus) | eea0d83e (36ccaa2d)                          |
 | 17    | 6    | landed (opus) | 89835ec2 (1b64ff59)                          |
 | 18    | 6    | landed (opus) | 86af6653 (a61552e9)                          |
-| 19    | 7    | merged (opus) | 484ad667 (e6a9fb97)                          |     |
+| 19    | 7    | merged (opus) | 484ad667 (e6a9fb97)                          |
 
 **Backlog:** which slices close each item (run `pnpm backlog done` on an item when its last slice merges).
 
