@@ -4,16 +4,18 @@
 
 ## Status
 
-Not started.
+**Landing mode: run everything through** (queued with `pnpm prd queue`; start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`). Landing is `pnpm prd land orchestration-3 -m …` through the PR (never `--force`).
 
-| Slice | Wave | State       | Merge into `prd/orchestration-3` |
-| ----- | ---- | ----------- | -------------------------------- |
-| 1     | 1    | not started |                                  |
-| 2     | 1    | not started |                                  |
-| 3     | 1    | not started |                                  |
-| 4     | 2    | not started |                                  |
-| 5     | 2    | not started |                                  |
-| 6     | 3    | not started |                                  |
+2026-11-21: registry rows `orchestration-2` and `check-speed` flagged `done` (both in `dev`, no worktrees). B-392, B-426, B-427, B-428, B-439 claimed. Wave 1 (slices 1–3) plus slice 4 merged; landing them as one PR while slice 5 runs. Wave 1 started: worktrees `orchestration-3-1`, `-2`, `-3` made, one background agent each, all on **opus**.
+
+| Slice | Wave | State                                                                                                                                                                               | Merge into `prd/orchestration-3` |
+| ----- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| 1     | 1    | merged (opus); pick contract in its hand-off: rows/worktrees/sessions shapes, own reopen ask filed with `session: "dispatch"`, a rotating record needs `rotatingAt`                 | 947da00d                         |
+| 2     | 1    | merged (opus); slice 5 builds its own planner command: `session.sh plan-<t> --auto --managed -- … "$(prompt.sh plan <t> --auto)"` (no `prd plan --open --auto`)                     | c31e2ebc                         |
+| 3     | 1    | merged (opus); fold into machinery.md: `CARETOOK_LOAD_BUSY/_GATE/_WAIT/_POLL/_FILE`, check-times 12th field (seconds waited), status gate line; a waiting check holds a check lease | 04a45f7f                         |
+| 4     | 2    | merged (opus), B-427 ready; docs pass: hotfix.md still says `--force`                                                                                                               | 77bc95c5                         |
+| 5     | 2    | agent running (opus)                                                                                                                                                                |                                  |
+| 6     | 3    | not started                                                                                                                                                                         |                                  |
 
 **Backlog:** B-427 closes with slice 4; B-426, B-428 and B-439 with slice 5 (slices 1, 2 and 3 build their first halves, the dispatcher the rest); B-392 with slice 6.
 
