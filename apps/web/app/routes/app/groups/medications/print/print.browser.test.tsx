@@ -2,14 +2,15 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import { found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
-import { allergy, condition, fx } from "../../../../../../test/fixtures";
+import { allergy, condition } from "../../../../../../test/fixtures";
 import { $, $$, LIST, MEDICATION_ROUTES, MEDS, SCHEDULE, waitUntil, world } from "../medicationWorld";
 
 // The printable sheets (medications.mjs's print, weekly and their offline
 // steps): the list's Print menu with both sheets; the medication list's
 // recipient, date of birth, group and day, current medications with their
 // prescribers, stopped ones with how and why, and the prescriber's and
-// pharmacy's first phones; Print calling window.print(); the weekly chart's
+// pharmacy's first phones (their order, groups and wording are
+// printSheet.test.ts's); Print calling window.print(); the weekly chart's
 // days in the recipient's zone, its passes with amounts, times of their own
 // and as-needed lines, the allergies first, and the week picker (across the
 // fall clock change); and in print media at 420 and 1280, no frame or
@@ -129,54 +130,16 @@ describe("the medication list sheet", () => {
     expect(backHref()).toBe(LIST);
   });
 
-  test("current medications are grouped under headings by type, each by name, with Type not set last and stopped ones in one list", async () => {
-    await open(`${MEDS}/print`, {
-      fixtures: [
-        world(),
-        fx.medication({ name: "Vitamin D3", strength: "1000 IU", type: "supplement" }),
-        fx.medication({ name: "Aloe gel", strength: null, type: "other" }),
-        fx.medication({ name: "Old tablet", strength: null, type: null }),
-      ],
-    });
-    await waitUntil(() => $$("main [data-print-medication]").length >= 7, 4000, "the sheet");
-    const groups = $$("main [data-print-group]").map((g) => [
-      g.querySelector("h3")?.textContent,
-      [...g.querySelectorAll("tr[data-print-medication]")].map(titleOf),
-    ]);
-    expect(groups).toEqual([
-      ["Prescriptions", ["Latanoprost 0.005%", "Lisinopril 10 mg", "Metformin 500 mg"]],
-      ["Over the counter", ["Acetaminophen 500 mg"]],
-      ["Supplements", ["Vitamin D3 1000 IU"]],
-      ["Other", ["Aloe gel"]],
-      ["Type not set", ["Old tablet"]],
-    ]);
-    expect($$("main tr[data-print-stopped]")).toHaveLength(2);
-    expect($$("main #print-stopped h3")).toHaveLength(0);
-  });
-
-  test("current medications by name with their prescriber; the completed and discontinued ones, most recently stopped first, with why; the prescriber's and pharmacy's first phones, once each", async () => {
+  test("the sheet shows each current medication with its prescriber, the stopped ones with why, and the contacts' phones", async () => {
     await open(`${MEDS}/print`);
     await waitUntil(() => $$("main [data-print-medication]").length >= 4, 4000, "the sheet");
     const sheet = sheetState();
-    // Grouped by type: the prescriptions, then the over-the-counter one.
-    expect(sheet.current).toEqual([
-      "Latanoprost 0.005%",
-      "Lisinopril 10 mg",
-      "Metformin 500 mg",
-      "Acetaminophen 500 mg",
-    ]);
+    // Their order, grouping and wording are printSheet.test.ts's.
+    expect(sheet.current).toHaveLength(4);
     expect(sheet.prescribers["Lisinopril 10 mg"]).toBe("Dr. Mira Lark");
-    expect(sheet.prescribers["Latanoprost 0.005%"]).toBe("");
     expect(sheet.stopped).toHaveLength(2);
-    expect(sheet.stopped[0]![0]).toBe("Amoxicillin 500 mg");
-    expect(sheet.stopped[0]![1]).toMatch(/^Completed \w{3} \d{1,2}, \d{4}$/);
-    expect(sheet.stopped[1]![0]).toMatch(/^Oxybutynin/);
-    expect(sheet.stopped[1]![1]).toMatch(/^Discontinued \w{3} \d{1,2}, \d{4}$/);
-    expect(sheet.stopped[1]![2]).toMatch(/^Side effects/);
-    expect(sheet.contacts).toEqual([
-      ["Dr. Mira Lark", "(555) 010-2200 x214"],
-      ["Elm Street Pharmacy", "(555) 010-4400"],
-    ]);
+    expect(sheet.stopped.some(([, , why]) => why?.startsWith("Side effects"))).toBe(true);
+    expect(sheet.contacts).toContainEqual(["Elm Street Pharmacy", "(555) 010-4400"]);
   });
 
   test("the active conditions follow the allergies, past ones left out", async () => {
@@ -296,7 +259,7 @@ describe("the weekly chart", () => {
     expect(allergies.compareDocumentPosition(conditions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  test("Next, Previous and This week move it by a week; a start day of its own shows that week, seven days across the clock change", async () => {
+  test("Next, Previous and This week move it by a week; a start day of its own shows that week (seven days across a clock change is weeklySheet.test.ts's)", async () => {
     const device = await open(`${MEDS}/print/week`);
     await waitUntil(onWeek, 4000, "the weekly chart");
     const start = monday();
@@ -312,9 +275,6 @@ describe("the weekly chart", () => {
     await userEvent.fill($<HTMLInputElement>("main input[data-week-start]")!, "2026-10-26");
     await expect.poll(firstDay).toBe("2026-10-26");
     expect(device.location()).toBe(`${MEDS}/print/week?start=2026-10-26`);
-    const dst = weekState();
-    expect(dst.days).toEqual(weekOf("2026-10-26"));
-    expect([dst.days[6], dst.weekdays[6]]).toEqual(["2026-11-01", "Sun"]);
   });
 
   test.each([

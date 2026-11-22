@@ -56,10 +56,10 @@ PRDs: [`connectors-prd.md`](../../plans/connectors-prd.md) (B-104), [`connectors
 - oRPC (`connectors/connector.ts`): `connector.listMine`, `listForGroup` (owners and admins; 404 non-members), `revoke`; `careGroup.update` takes `connectorsEnabled`. Nothing returns a token.
 - **Group settings → Assistants**: owners get the switch; owners and admins the group's connections with Disconnect; others the status from local data. Online only.
 - **Settings → Devices:** "Connected assistants" after the sessions, Disconnect behind a `ConfirmDialog`.
-- **The connect guide** (`components/connectors/ConnectGuide`; wording in `lib/connectors/connectGuide.ts`): the `/mcp` URL with Copy, steps and help links for Claude and ChatGPT; on Assistants and Devices. Off: the off note instead; viewers: the viewer note; none when every group gives the member an easy role.
+- **The connect guide** (`components/connectors/ConnectGuide`; wording in `lib/connectors/connectGuide.ts`): the `/mcp` URL with Copy, steps and help links for Claude and ChatGPT; on Assistants and Devices. Off, viewers: their notes; none when every group gives an easy role.
 
 ## Tests
 
-- `testing.ts`: `connectAssistant` and `registerClient` run the whole OAuth flow in process and return real tokens. Integration: `oauth`, `connectorGrant`, `mcp`, `readTools`, `mcpWrites`, `assistantAction`, `assistantRequest`, `connector`, `syncVia`.
+- `testing.ts`: `connectAssistant` runs the whole OAuth flow in process for real tokens; `/mcp` calls go through `mcpPost`, `callTool`, `toolResultOf`, `textOf`. Trim rules are re-tested through here and sync upload, not per router.
 - Browser checks mint a token with `mintToken.ts` (`mintToken.ts <email> <groupId> [clientName]`); `roundtrip` writes through `/mcp`.
 - By hand before launch: connect from Claude and ChatGPT, and check the guide's vendor steps and links ([runbook](../../ops/runbook.md)).
