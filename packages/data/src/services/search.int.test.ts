@@ -60,13 +60,14 @@ const setup = async () => {
     return entry;
   };
 
-  /** A live document with these lines, compacted, as the server stores it. */
+  /** A live document with these lines, compacted (unless `pending`), as the server stores it. */
   const writeDocument = async (
     subject: "entry" | "provider" | "medication",
     id: string,
     text: string,
     groupId = group.id,
     ctx: Ctx = caretaker.ctx,
+    { pending = false } = {},
   ) => {
     ok(await noteDocumentService.create(ctx, { id, groupId, subject }));
     const ydoc = newYDoc();
@@ -80,7 +81,7 @@ const setup = async () => {
         }),
       );
     }
-    ok(await noteDocumentService.compact(id));
+    if (!pending) ok(await noteDocumentService.compact(id));
   };
 
   const addNote = async (text: string, input: Omit<EntryInput, "kind"> = {}) => {
@@ -247,6 +248,45 @@ describe("searchService: what matches", () => {
     expect((await s.search(caretaker.ctx, "generic")).medications[0]!.snippet).toBe(
       "Restless legs Before bedtime Ask about a generic version",
     );
+  });
+
+  it("finds a note, provider or medication by text typed after its last compaction (B-312)", async () => {
+    const s = await setup();
+    const { caretaker, group } = s;
+    const note = await s.addEntry({ kind: "note" });
+    await s.writeDocument("entry", note.id, "Ate lunch");
+    // A short session: a few updates, under the compaction thresholds, so nothing folded them in yet.
+    await s.writeDocument("entry", note.id, "Napped after\nWatched the herons", group.id, caretaker.ctx, {
+      pending: true,
+    });
+    const provider = ok(
+      await providerService.create(caretaker.ctx, {
+        groupId: group.id,
+        type: "clinician",
+        name: "Dr. Larkspur",
+      }),
+    )!;
+    await s.writeDocument("provider", provider.id, "Ring the side bell", group.id, caretaker.ctx, {
+      pending: true,
+    });
+    const medication = ok(
+      await medicationService.create(caretaker.ctx, {
+        groupId: group.id,
+        name: "Brindolin",
+        startedOn: "2026-09-01",
+        schedule: { type: "asNeeded" },
+      }),
+    )!;
+    await s.writeDocument("medication", medication.id, "Keep it in the fridge", group.id, caretaker.ctx, {
+      pending: true,
+    });
+
+    expect(await s.entryIds("herons")).toEqual([note.id]);
+    expect(await s.entryIds("lunch")).toEqual([note.id]);
+    const [hit] = (await s.search(s.viewer.ctx, "herons")).entries;
+    expect(hit!.snippet).toContain("Watched the herons");
+    expect((await s.search(s.viewer.ctx, "bell")).providers.map((h) => h.id)).toEqual([provider.id]);
+    expect((await s.search(s.viewer.ctx, "fridge")).medications.map((h) => h.id)).toEqual([medication.id]);
   });
 
   it("ranks a title match above a body match", async () => {

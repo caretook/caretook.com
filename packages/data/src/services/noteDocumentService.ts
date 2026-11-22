@@ -288,3 +288,28 @@ export const compactIfDue = async (documentId: string) => {
     (pending.count > 0 && (pending.oldestAgeSeconds ?? 0) >= COMPACT_AFTER_SECONDS);
   return due ? compact(documentId) : { compacted: 0 };
 };
+
+/**
+ * Compact every document in the group with updates waiting, whatever their
+ * count or age. For readers that query the stored text in SQL (search's
+ * `search_vector`): compaction runs only inside an upload that adds an
+ * update, so a short session's last updates would otherwise never be
+ * searchable (B-312). Runs as the system, like `compact`; the caller has
+ * already checked the actor may read the group. `note_update` holds only
+ * pending rows, so the lookup stays small.
+ */
+export const compactPending = async (groupId: string, opts: { tx?: Tx } = {}) => {
+  const ids = await noteDocumentModel.pendingDocumentIds(groupId, opts.tx);
+  if (isError(ids)) return ids;
+  let compacted = 0;
+  for (const id of ids) {
+    const res = await compact(id, opts);
+    if (isError(res)) {
+      // Deleted meanwhile (its updates cascade away): nothing left to fold.
+      if (res.code === "noteDocumentService:notFound") continue;
+      return res;
+    }
+    compacted += res.compacted;
+  }
+  return { compacted };
+};

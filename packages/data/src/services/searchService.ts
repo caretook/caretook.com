@@ -17,6 +17,7 @@ import {
 import { isError, newError } from "../errors";
 import { careGroupModel } from "../models";
 import { generateQueryWhere } from "../models/base/queryHelpers";
+import { compactPending } from "./noteDocumentService";
 
 // Server search over one care group's entries, providers and medications,
 // for the API and the assistant (the app searches its device index).
@@ -380,6 +381,11 @@ export const search = async (ctx: ServiceContext, options: SearchOptions) => {
   // Null for an empty search: nothing to look for.
   const query = toTsQuery(parseSearch(options.q));
   if (!query) return { ...EMPTY };
+
+  // Documents' text is matched in SQL, so fold in updates still waiting for
+  // compaction first: a short typing session never reaches one (B-312).
+  const compacted = await compactPending(options.groupId, { tx: ctx.tx });
+  if (isError(compacted)) return compacted;
 
   const limit = Math.min(
     Math.max(Math.trunc(options.limit ?? SEARCH_DEFAULT_LIMIT) || 1, 1),
