@@ -369,6 +369,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-569 | bug | dropped | fixes-bug |  | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
 | B-570 | bug | triaged | fixes-tooling |  | Session request notices can exceed the notice board's 200 characters and get dropped |
 | B-571 | bug | triaged | fixes-tooling |  | Staging reset test still times out at 30 s now and then, in CI as well as under local load |
+| B-572 | bug | triaged | test-gates-2 |  | Check gate: a package.json change to scripts alone should not force a full check |
+| B-573 | bug | triaged | fixes-tooling |  | Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error |
 
 ## Items
 
@@ -2967,3 +2969,22 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (prd/test-gates): After B-466's fix: timed out in CI run 45081669105 on 7bd82c6f, passed on the rerun of the same commit (45082124113) and in four earlier runs. test-gates slice 8 does not touch it.
+
+### B-572 · bug · Check gate: a package.json change to scripts alone should not force a full check
+
+- status: triaged
+- prd: test-gates-2
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): User's decision 2026-11-22: compare each changed package.json with its base, ignoring the scripts field. If only scripts differ (added, edited or removed, in any package, lifecycle hooks included), it does not force a full check, the browser @suite or a higher CI tier. Any other field, or an added/deleted/unparseable package.json, still forces them; the lockfile rule stays. Three places: FORCED in scripts/loops/check-plan.mjs (planCheck only gets paths today, so it needs the base's contents or a prefilter), the package.json @suite rules in scripts/loops/check-areas.d/_global, and test-gates' minimum-tier rule (plans/test-gates-plan.md). The user accepted that a script edit that breaks build, typecheck or the check itself gets only a quick check. Update the rule's wording in docs/agents/orchestrator.md and prd.sh.
+- 2026-11-22 (Robert Bo Davis): Moved to test-gates-2 on the user's word (2026-11-22). Its PRD and plan were written before this item: add it to a slice when the topic starts.
+
+### B-573 · bug · Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (prd/test-gates): test-gates wave 2 gate on 6e805ecd (2026-11-22, load about 15): browser.test.mjs:182 got 3 lines, not 2; the check printed 'an unhandled error, so no rerun'. Passed 3/3 alone straight after at load 17. The extra line's content was not captured, so the cause is unknown.
