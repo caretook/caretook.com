@@ -5,9 +5,7 @@
 // the sync config's YAML reader (no YAML dependency), which refuses what it
 // doesn't know, so the workflows stay plain.
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -91,33 +89,27 @@ describe("the deploy workflows", () => {
     }
   });
 
-  it("runs the browser tooling test in CI's integration job, not its unit job", () => {
+  it("runs the browser tooling project in CI's integration job, not its unit job", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
-    // Runs the job's real selection: a flag that Vitest ignores fails here.
-    const dir = mkdtempSync(join(tmpdir(), "ci-unit-files-"));
-    try {
-      const list = join(dir, "files.txt");
-      const select = jobs.unit.steps.find((s) => s.id === "select").run;
-      const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("VITEST")));
-      execFileSync("bash", ["-eo", "pipefail", "-c", select], {
+    const unit = jobs.unit.steps.find((s) => s.id === "test").run;
+    expect(unit).toContain("--project tooling:unit");
+    expect(unit).not.toContain("tooling:browser");
+    // The real project split: a pattern Vitest ignores fails here.
+    const list = (project) =>
+      execFileSync("pnpm", ["exec", "vitest", "list", "--filesOnly", "--project", project], {
         cwd: root,
-        env: { ...env, NODE_ENV: "", CI_UNIT_FILES: list },
-        stdio: ["ignore", "ignore", "inherit"],
+        encoding: "utf8",
       });
-      const files = readFileSync(list, "utf8").split("\n").filter(Boolean);
-      expect(files).not.toContain("scripts/loops/browser.test.mjs");
-      for (const kept of [
-        "scripts/loops/lease.test.mjs",
-        "scripts/deploy/workflows.test.mjs",
-        "apps/web/app/.server/devUi.test.ts",
-      ])
-        expect(files).toContain(kept);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-    expect(jobs.unit.steps.find((s) => s.id === "test").run).toContain('"${files[@]}"');
+    expect(list("tooling:unit")).not.toContain("loops/browser.test.mjs");
+    expect(list("tooling:unit")).toContain("loops/lease.test.mjs");
+    expect(
+      list("tooling:browser")
+        .trim()
+        .split("\n")
+        .filter((l) => l.includes(".test.")),
+    ).toHaveLength(1);
     const step = jobs.integration.steps.find((s) => s.id === "browser-tooling");
-    expect(step.run).toContain("--project tooling:unit scripts/loops/browser.test.mjs");
+    expect(step.run).toContain("--project tooling:browser");
     expect(step.if).toBe("${{ !cancelled() }}");
     const report = jobs.integration.steps.find((s) => s.id === "report").run;
     expect(report).toContain("ci-results/browser-tooling.json");

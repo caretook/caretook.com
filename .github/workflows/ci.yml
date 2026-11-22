@@ -121,23 +121,15 @@ jobs:
           git config --global user.email "ci@example.com"
           git config --global init.defaultBranch main
           git switch --create ci-run
-      # An explicit list, because Vitest's --exclude doesn't drop this file from a
-      # project. The browser tooling test runs in the integration job.
-      - id: select
-        name: Choose the unit test files
-        env:
-          CI_UNIT_FILES: ci-unit-files.txt
-        run: |
-          pnpm exec vitest list --filesOnly --project data:unit --project web:unit --project notifications:unit --project server:unit --project scripts:unit --project tooling:unit | awk '/\.test\.[a-z]+$/ {print $NF}' | sort -u | grep -v 'loops/browser\.test\.mjs$' > "$CI_UNIT_FILES"
-          test -s "$CI_UNIT_FILES"
       - id: test
         name: Unit tests
         # The lease tests take real leases in their own temp directories.
         env:
           CARETOOK_LEASES: ""
-        run: |
-          read -r -d '' -a files < ci-unit-files.txt || true
-          pnpm exec vitest run --project data:unit --project web:unit --project notifications:unit --project server:unit --project scripts:unit --project tooling:unit --reporter=default --reporter=json --outputFile.json=ci-results/unit.json "${files[@]}"
+        run: >-
+          pnpm exec vitest run --project data:unit --project web:unit --project notifications:unit
+          --project server:unit --project scripts:unit --project tooling:unit --reporter=default
+          --reporter=json --outputFile.json=ci-results/unit.json
       - id: report
         name: Report the failures
         if: ${{ !cancelled() }}
@@ -196,7 +188,7 @@ jobs:
         env:
           CARETOOK_LEASES: ""
         run: >-
-          pnpm exec vitest run --project tooling:unit scripts/loops/browser.test.mjs
+          pnpm exec vitest run --project tooling:browser
           --reporter=default --reporter=json --outputFile.json=ci-results/browser-tooling.json
       - id: report
         name: Report the failures
