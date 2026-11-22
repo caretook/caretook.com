@@ -20,6 +20,11 @@
 // navigation: the session ended elsewhere is found by the background
 // recheck (due once the confirmation is a minute old), which wipes the
 // device and goes to sign-in from wherever the navigation had got to.
+//
+// The wipe takes what search keeps on the device too (the old signout-wipe
+// check): the user's recent searches (localStorage) and the search index,
+// whose tables live outside PowerSync's, so `dropSearchTables` must run
+// before the database is cleared.
 import {
   BASE,
   assetsSettled,
@@ -51,6 +56,8 @@ const setConfirmed = (ago) => {
 };
 const caretookKeys = (page) =>
   page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("caretook:")));
+const recentSearchKeys = () =>
+  Object.keys(localStorage).filter((k) => k.startsWith("caretook:recentSearches:"));
 const statusText = (page) =>
   page.evaluate(() => document.querySelector('[role="status"]')?.textContent ?? "");
 
@@ -129,6 +136,24 @@ test("the device copy ends with the session", { tag: "@smoke" }, async ({ device
     await expect.poll(async () => Date.now() - (await page.evaluate(readConfirmed)) < 60_000).toBe(true);
   });
 
+  // A search used on the search page (submitted) is saved, and the index is built.
+  await page.goto(timeline.replace(/\/timeline$/, "/search"));
+  const field = page.locator("[data-search-page] [data-search-field]");
+  await field.fill("Grandma");
+  await field.evaluate((el) => el.form.requestSubmit());
+  await test.step("search: a used search is saved for its user", async () => {
+    await expect.poll(() => page.evaluate(recentSearchKeys)).not.toEqual([]);
+  });
+  await test.step("search: the index is in the local copy while signed in", async () => {
+    await page.evaluate(async () => {
+      const { search } = await window.caretookModules();
+      await search.searchIndexSettled();
+    });
+    expect(await localCopyHolds(page, "search_fts")).toBe("holds it");
+  });
+  await page.goto(timeline);
+  await expect(page.locator("ol > li").first()).toBeVisible({ timeout: 30_000 });
+
   // Another device signs this one out, as the Devices page does: the next online check wipes it.
   const pId = await page.evaluate(() =>
     fetch("/api/auth/get-session", { credentials: "include" })
@@ -177,7 +202,7 @@ test("the device copy ends with the session", { tag: "@smoke" }, async ({ device
   await test.step("fresh session ended elsewhere: the background recheck goes to sign-in, back to where it was", () => {
     expect(new URL(page.url()).searchParams.get("redirectTo")).toContain("kind=symptom");
   });
-  await test.step("signed out: the cached user, owner, confirmation, last group and recent lines are gone", async () => {
+  await test.step("signed out: the cached user, owner, confirmation, last group, recent searches and recent lines are gone", async () => {
     await expect
       .poll(async () => (await caretookKeys(page)).join(","), { timeout: 10_000 })
       .not.toMatch(/session-user|sync-owner|session-confirmed|lastGroup|settings|recentSearches|recentLines/);
@@ -189,6 +214,13 @@ test("the device copy ends with the session", { tag: "@smoke" }, async ({ device
   await test.step("signed out: the database holds none of the care data", async () => {
     await expect
       .poll(async () => ["clean", "no file"].includes(await localCopyHolds(page, "Grandma Pat")), {
+        timeout: 10_000,
+      })
+      .toBe(true);
+  });
+  await test.step("signed out: the search index is dropped (no search table left in the file)", async () => {
+    await expect
+      .poll(async () => ["clean", "no file"].includes(await localCopyHolds(page, "search_fts")), {
         timeout: 10_000,
       })
       .toBe(true);
