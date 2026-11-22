@@ -4,18 +4,22 @@
 
 ## Status
 
-| Slice | Wave | State                                             | Merge into `prd/ui-kit-2` (slice commits) |
-| ----- | ---- | ------------------------------------------------- | ----------------------------------------- |
-| 1     | 1    | started 2026-11-22 (worktree, opus agent)         | —                                         |
-| 2     | 2    | —                                                 | —                                         |
-| 3     | 3    | —                                                 | —                                         |
-| 4     | 1    | started 2026-11-22 (worktree + stack, opus agent) | —                                         |
-| 5     | 2    | —                                                 | —                                         |
-| 6     | 1    | started 2026-11-22 (worktree + stack, opus agent) | —                                         |
+| Slice | Wave | State                                                     | Merge into `prd/ui-kit-2` (slice commits) |
+| ----- | ---- | --------------------------------------------------------- | ----------------------------------------- |
+| 1     | 1    | merged (opus; quick check passed on c13f688c)             | a4c2f3c5 (c13f688c)                       |
+| 2     | 2    | started 2026-11-22 (worktree, opus agent; slice 1 merged) | —                                         |
+| 3     | 3    | —                                                         | —                                         |
+| 4     | 1    | started 2026-11-22 (worktree + stack, opus agent)         | —                                         |
+| 5     | 2    | started 2026-11-22 (worktree, opus agent; slice 1 merged) | —                                         |
+| 6     | 1    | started 2026-11-22 (worktree + stack, opus agent)         | —                                         |
 
 **Landing mode:** run everything through (started run-through; land each green wave, PR + Codex; `--no-review` unasked only when Codex is out of credits).
 
-**Now:** wave 1 running (slices 1, 4, 6; B-423, B-415, B-268 claimed). Backlog at the wave-1 boundary: nothing new for ui-kit-2. `test-health` wave 2 landed in dev (43d53bf): sync at the wave-1 gate.
+**Now:** wave 1 slices 4, 6 running; slice 1 merged. Wave 2's slices 2 and 5 started early (ready once 1 merged); merge them only after wave 1 lands, so wave 1's PR holds 1, 4 and 6. Backlog at the wave-1 boundary: nothing new for ui-kit-2. `test-health` wave 2 landed in dev (43d53bf): sync at the wave-1 gate.
+
+**Docs to fold (from hand-offs):**
+
+- Slice 1 → ui-kit _Contracts_: `Button` `primary`, `secondary` (default; was `default`), `ghost`, `danger`, `dangerQuiet`; `lg|md|sm|xs`; `shape` `rounded` (default)|`pill`|`square`|`round` (old `circle` gone); `block`; `icon`. Icon only = `icon` + required `label` (name and tooltip), square unless `shape`. As a button: `pressed` (toggle look, replaces the variant), `expanded`/`controls`, `ref`; `buttonClass` takes `pressed`. _Which to use_: "`IconButton` is the icon-only `Button`". Menu trigger takes a look (`variant`, `size`, `shape`, no default shape) through `buttonClass`; `className` adds outer classes; a bare class string still works until ui-kit-3. Not a `Button`: the plan's list plus hamburger and ⋯ menu triggers (they get the look through `Menu`).
 
 **Start conditions:** `ui-kit` is in `dev` (done). Never beside `i18n`. Its hot files (the PRD table) overlap `fixes-bug` while a wave of it holds the Planner or timeline folders, and `ui-kit-3` must not start before this lands.
 
