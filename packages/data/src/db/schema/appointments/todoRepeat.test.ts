@@ -71,6 +71,34 @@ describe("nextDueDay", () => {
     expect(nextDueDay(until, "2026-11-16", "2026-11-23", "2026-12-01")).toBeNull();
   });
 
+  it("a long interval keeps going past any search horizon (B-385)", () => {
+    // Every 99 months: the next one is 8¼ years on.
+    const months = "FREQ=MONTHLY;INTERVAL=99;BYMONTHDAY=16";
+    expect(nextDueDay(months, "2026-11-16", "2026-11-16", "2026-11-16")).toBe("2035-02-16");
+    // Ticked late: still the anchor's next rule day, not a day counted from today.
+    expect(nextDueDay(months, "2026-11-16", "2026-11-16", "2027-03-01")).toBe("2035-02-16");
+    expect(nextDueDay(months, "2026-11-16", "2035-02-16", "2035-02-16")).toBe("2043-05-16");
+    const fridays = "FREQ=MONTHLY;INTERVAL=99;BYDAY=-1FR";
+    expect(nextDueDay(fridays, "2026-11-27", "2026-11-27", "2026-11-27")).toBe("2035-02-23");
+    expect(nextDueDay("FREQ=WEEKLY;INTERVAL=99;BYDAY=MO", "2026-11-16", "2026-11-16", "2026-11-16")).toBe(
+      "2028-10-09",
+    );
+    expect(nextDueDay("FREQ=DAILY;INTERVAL=99", "2026-11-16", "2026-11-16", "2026-11-16")).toBe("2027-02-23");
+  });
+
+  it("a long interval still ends on its COUNT or UNTIL", () => {
+    const twice = "FREQ=MONTHLY;INTERVAL=99;BYMONTHDAY=16;COUNT=2";
+    expect(nextDueDay(twice, "2026-11-16", "2026-11-16", "2026-11-16")).toBe("2035-02-16");
+    expect(nextDueDay(twice, "2026-11-16", "2035-02-16", "2035-02-16")).toBeNull();
+    const until = "FREQ=MONTHLY;INTERVAL=99;BYMONTHDAY=16;UNTIL=20400101";
+    expect(nextDueDay(until, "2026-11-16", "2026-11-16", "2026-11-16")).toBe("2035-02-16");
+    expect(nextDueDay(until, "2026-11-16", "2035-02-16", "2035-02-16")).toBeNull();
+  });
+
+  it("yearly isn't a rule Caretook writes: none (B-385)", () => {
+    expect(nextDueDay("FREQ=YEARLY;INTERVAL=99", "2026-11-16", "2026-11-16", "2026-11-16")).toBeNull();
+  });
+
   it("an unreadable rule has none", () => {
     expect(nextDueDay("FREQ=HOURLY", "2026-11-16", "2026-11-16", "2026-11-16")).toBeNull();
   });

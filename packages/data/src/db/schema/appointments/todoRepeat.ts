@@ -12,7 +12,7 @@
 
 import { addDays } from "../core/entryTiming";
 import { uuidV5 } from "../core/uuidV5";
-import { nextVisits } from "./seriesVisits";
+import { firstDayFrom } from "./seriesVisits";
 
 /** The namespace for later occurrences' ids (a fixed, random UUID; never change it). */
 export const TODO_REPEAT_NAMESPACE = "8d2f4c71-5b3e-4a96-b0d8-2e7a1c9f6b45";
@@ -20,16 +20,12 @@ export const TODO_REPEAT_NAMESPACE = "8d2f4c71-5b3e-4a96-b0d8-2e7a1c9f6b45";
 /**
  * The first day ("YYYY-MM-DD") the rule falls on after both `dueOn` and
  * `today`, counting from its anchor `startsOn`; null when the rule has ended
- * (COUNT or UNTIL), or can't be read. Looks at most about 5 years ahead.
+ * (COUNT or UNTIL), or can't be read. However far off: no search horizon, so
+ * a long interval ("every 99 months") keeps going.
  */
 export const nextDueDay = (rule: string, startsOn: string, dueOn: string, today: string) => {
   const after = dueOn > today ? dueOn : today;
-  const [visit] = nextVisits(
-    { rule, startsOn, startTime: null, allDay: true, timeZone: "UTC" },
-    addDays(after, 1),
-    1,
-  );
-  return visit?.day ?? null;
+  return firstDayFrom({ rule, startsOn }, addDays(after, 1));
 };
 
 /** A later occurrence's id: the version 5 UUID of its chain and its due day. */
