@@ -9,5 +9,6 @@ export const accountSettingsRoutes: RouteConfigEntry[] = [
     route("account", "routes/app/settings/account/route.tsx"),
     route("contact", "routes/app/settings/contact/route.tsx"),
     route("devices", "routes/app/settings/devices/route.tsx"),
+    route("not-saved", "routes/app/settings/not-saved/route.tsx"),
   ]),
 ];
