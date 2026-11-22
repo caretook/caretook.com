@@ -1,7 +1,8 @@
 // The fictional test env a CI run uses, generated fresh for each job. CI reads no
 // GitHub secret, and nothing here is a real credential or host: secrets are
 // random and start with `fictional-`, URLs are localhost, and the database is
-// the job's own throwaway Postgres (trust auth, so its password is never checked).
+// the job's own throwaway Postgres, whose password the workflow's plan job
+// generates per run and passes in as CI_PG_PASSWORD.
 //
 //   node scripts/ci/env.mjs >> "$GITHUB_ENV"
 import { randomBytes } from "node:crypto";
@@ -16,10 +17,15 @@ export const SECRET_NAMES = ["BETTER_AUTH_SECRET", "SEED_USER_PASSWORD"];
 
 /**
  * @param {(bytes: number) => string} [random] hex of that many random bytes
+ * @param {string} [dbPassword] the Postgres service's password, when the job has one
  * @returns {Record<string, string>}
  */
-export function ciEnv(random = (bytes) => randomBytes(bytes).toString("hex")) {
-  const password = `${FICTIONAL_PREFIX}${random(16)}`;
+export function ciEnv(
+  random = (bytes) => randomBytes(bytes).toString("hex"),
+  dbPassword = process.env.CI_PG_PASSWORD,
+) {
+  const password = dbPassword || `${FICTIONAL_PREFIX}${random(16)}`;
+  if (!password.startsWith(FICTIONAL_PREFIX)) throw new Error("CI_PG_PASSWORD must be marked fictional");
   return {
     NODE_ENV: "test",
     PG_TEST_PORT: CI_PG_PORT,

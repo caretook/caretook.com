@@ -41,6 +41,7 @@ jobs:
       unit: ${{ steps.tier.outputs.unit }}
       integration: ${{ steps.tier.outputs.integration }}
       not_built: ${{ steps.tier.outputs.not_built }}
+      pg_password: ${{ steps.password.outputs.pg_password }}
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -56,6 +57,11 @@ jobs:
         env:
           CI_REF: ${{ github.ref_name }}
         run: node scripts/ci/tiers.mjs "$CI_REF" | tee -a "$GITHUB_OUTPUT"
+      # The throwaway Postgres's password, generated per run and fictional. Real
+      # password auth: the integration tests assert that Postgres refuses a login.
+      - id: password
+        name: Generate the database password
+        run: echo "pg_password=fictional-$(openssl rand -hex 16)" >> "$GITHUB_OUTPUT"
 
   static:
     needs:
@@ -113,8 +119,12 @@ jobs:
           git config --global user.name "CI"
           git config --global user.email "ci@example.com"
           git config --global init.defaultBranch main
+          git switch --create ci-run
       - id: test
         name: Unit tests
+        # The lease tests take real leases in their own temp directories.
+        env:
+          CARETOOK_LEASES: ""
         run: >-
           pnpm exec vitest run --project data:unit --project web:unit
           --project notifications:unit --project server:unit --project scripts:unit
@@ -139,7 +149,7 @@ jobs:
         env:
           POSTGRES_USER: caretook
           POSTGRES_DB: caretook
-          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_PASSWORD: ${{ needs.plan.outputs.pg_password }}
         ports:
           - "5435:5432"
         options: >-
@@ -157,6 +167,8 @@ jobs:
         uses: ./.github/actions/setup
       - id: env
         name: Fictional env
+        env:
+          CI_PG_PASSWORD: ${{ needs.plan.outputs.pg_password }}
         run: node scripts/ci/env.mjs >> "$GITHUB_ENV"
       - id: test
         name: Integration tests

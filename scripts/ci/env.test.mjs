@@ -64,6 +64,12 @@ describe("the CI env", () => {
     for (const name of ["APP_URL", "BETTER_AUTH_URL"]) expect(new URL(env[name]).hostname).toBe("localhost");
   });
 
+  it("uses the run's generated database password, and refuses one not marked fictional", () => {
+    const password = `${FICTIONAL_PREFIX}fromplan`;
+    expect(new URL(ciEnv(undefined, password).DATABASE_URL).password).toBe(password);
+    expect(() => ciEnv(undefined, "hunter2")).toThrow(/marked fictional/);
+  });
+
   it("prints as NAME=value lines with no newline in a value", () => {
     for (const [name, value] of Object.entries(ciEnv())) {
       expect(name).toMatch(/^[A-Z][A-Z0-9_]*$/);
