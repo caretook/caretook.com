@@ -1,7 +1,15 @@
 import type { UsablePreview } from "./invitePage";
 
 import { describe, expect, it } from "vitest";
-import { invitedLine, inviteTitle, inviteView, isLink, joinLabel, roleWithArticle } from "./invitePage";
+import {
+  invitedLine,
+  inviteTitle,
+  inviteView,
+  isLink,
+  joinLabel,
+  roleMeaning,
+  roleWithArticle,
+} from "./invitePage";
 
 const usable: UsablePreview = {
   state: "usable",
@@ -59,6 +67,17 @@ describe("wording", () => {
       "Someone invited you to join as an admin.",
     );
     expect(roleWithArticle("mystery")).toBe("mystery");
+    expect(invitedLine({ ...usable, role: "easy_helper" })).toBe(
+      "Sam invited you to join as an Easy helper.",
+    );
+  });
+
+  it("says what each role lets the new member do, never who it's for", () => {
+    expect(roleMeaning("caretaker")).toBe("You'll be able to read and add to everything the group shares.");
+    expect(roleMeaning("easy_helper")).toMatch(/simpler view, where you can log care/);
+    expect(roleMeaning("easy_viewer")).toMatch(/simpler view, where you can read along/);
+    for (const role of ["easy_helper", "easy_viewer"])
+      expect(roleMeaning(role)).not.toMatch(/memory|thinking|apps/);
   });
 });
 

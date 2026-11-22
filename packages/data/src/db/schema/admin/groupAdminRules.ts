@@ -11,5 +11,7 @@ export const STAFF_SETTABLE_GROUP_ROLES = [
   "admin",
   "caretaker",
   "viewer",
+  "easy_helper",
+  "easy_viewer",
 ] as const satisfies readonly GroupRoleName[];
 export type StaffSettableGroupRole = (typeof STAFF_SETTABLE_GROUP_ROLES)[number];

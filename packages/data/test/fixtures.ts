@@ -1,3 +1,4 @@
+import type { GroupRoleName } from "../src/constants";
 import type { AuthUser } from "../src/permissions";
 
 import { randomUUID } from "node:crypto";
@@ -27,7 +28,7 @@ export const createUser = async (label: string, role: "admin" | "support" | "mem
 /** A group owned by `owner`, with the other users added under the given roles. */
 export const createGroup = async (
   owner: { ctx: { authUser: AuthUser } },
-  members: { user: { id: string }; role: "admin" | "caretaker" | "viewer" | "owner" }[] = [],
+  members: { user: { id: string }; role: GroupRoleName }[] = [],
 ) => {
   const { group, recipient } = ok(
     await careGroupService.create(owner.ctx, {

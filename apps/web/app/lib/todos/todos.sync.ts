@@ -7,6 +7,7 @@ import {
   ASSIGNEE_NOT_MEMBER_ISSUE,
   BAD_TODO_LINK_ISSUES,
   canCompleteTodo,
+  isTodoCompleter,
   isTodoWriter,
   repeatColumnsFor,
   todoContentOf,
@@ -14,6 +15,7 @@ import {
   todoCreateZSchema,
   todoUpdateZSchema,
 } from "@caretook/data/schema";
+import { isEasyRole } from "@caretook/data/permissions";
 import { eq } from "drizzle-orm";
 import { noteDocuments, todos } from "../sync/schema";
 import { forbidden, fromLocalTimestamp, groupFor, nowTimestamp, readRows } from "../timeline/timeline.sync";
@@ -188,6 +190,10 @@ const invalid = (error: { issues: { path: PropertyKey[]; message: string }[] }):
 
 const todoMissing = refuse("That todo is gone. It may have been deleted.");
 const viewerOnly = refuse("Viewers can only complete or reopen todos assigned to them");
+const easyOnly = refuse("You can only complete or reopen todos assigned to you");
+
+/** A completer's refusal (a viewer's, or the easy roles' own words), the server's twin. */
+const completionOnlyFor = (role: string | null | undefined) => (isEasyRole(role) ? easyOnly : viewerOnly);
 
 const liveTodo = async (db: SyncDb, id: string) => {
   const [row] = await readRows<TodoRow>(db, todoQuery(id));
@@ -338,7 +344,7 @@ export const updateTodo = async (
   const existing = await liveTodo(db, id);
   if (!existing) return todoMissing;
   const group = await groupFor(db, existing.groupId);
-  if (group?.role === "viewer") return viewerOnly;
+  if (isTodoCompleter(group?.role)) return completionOnlyFor(group?.role);
   if (!isTodoWriter(group?.role)) return forbidden as Refusal;
 
   const shape = todoUpdateZSchema.safeParse(patch);
@@ -424,11 +430,11 @@ const planNext = async (db: SyncDb, todo: LocalTodo) => {
 const doneRefusal = async (db: SyncDb, existing: LocalTodo) => {
   const group = await groupFor(db, existing.groupId);
   if (canCompleteTodo({ role: group?.role, userId: db.userId, todo: existing })) return null;
-  return group?.role === "viewer" ? viewerOnly : (forbidden as Refusal);
+  return isTodoCompleter(group?.role) ? completionOnlyFor(group?.role) : (forbidden as Refusal);
 };
 
 /**
- * Tick a todo done (writers, or a viewer on their own todo). Ticking a done
+ * Tick a todo done (writers, or a viewer or an easy role on their own todo). Ticking a done
  * one is fine. A repeating todo's next occurrence is written in the same
  * local transaction.
  */

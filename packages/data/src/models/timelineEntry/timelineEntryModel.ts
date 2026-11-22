@@ -129,6 +129,31 @@ export const latestReadings = async (args: Omit<QuerySelectArgs<K>, "orderBy" | 
   return res.rows;
 };
 
+/**
+ * Whether the actor may `permission` (update or delete) the live entry
+ * `id`: the permission's scope, in SQL (an Easy helper only on the entries
+ * they created: `groupOwn`). False for a missing or deleted entry.
+ */
+export const mayChange = async (
+  id: string,
+  permission: "update" | "delete",
+  args: Omit<QuerySelectArgs<K>, "filter" | "orderBy" | "paginate" | "with">,
+) => {
+  const where = generateQueryWhere(schemaName, permission, {
+    ...args,
+    filter: live({ id: { type: "eq", value: id } }),
+  });
+  if (isError(where)) return false;
+
+  const t = timelineEntrySchema;
+  const rows = await dbMayFail(
+    () => txOrDb(args.tx).select({ id: t.id }).from(t).where(where).limit(1),
+    "timelineEntryModel:mayChange",
+  );
+  if (isError(rows)) return rows;
+  return rows.length > 0;
+};
+
 // ---------------------------------------------------------------------------
 // Writes. Writes go through timelineEntryService, which validates content.
 // ---------------------------------------------------------------------------

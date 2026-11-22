@@ -1,7 +1,7 @@
 import type { AuthUser } from "@caretook/data/permissions";
 import type { ActionResult } from "~/lib/core/api";
 
-import { hasPermission } from "@caretook/data/permissions";
+import { GROUP_ROLES, GROUP_ROLE_NAMES, hasPermission } from "@caretook/data/permissions";
 import type { EasyTile, EasyTiles } from "@caretook/data/schema";
 
 import { careGroupInsertZSchema, careRecipientProfileZSchema, EASY_TILE_COUNT } from "@caretook/data/schema";
@@ -144,21 +144,42 @@ const supportedTimeZones = (): readonly string[] => {
 // ---------------------------------------------------------------------------
 
 /** Group roles, highest first: the order of the members list and of a role menu. */
-export const MEMBER_ROLES = ["owner", "admin", "caretaker", "viewer"] as const;
+export const MEMBER_ROLES = GROUP_ROLE_NAMES;
 export type MemberRole = (typeof MEMBER_ROLES)[number];
-
-const ROLE_LABELS: Record<MemberRole, string> = {
-  owner: "Owner",
-  admin: "Admin",
-  caretaker: "Caretaker",
-  viewer: "Viewer",
-};
 
 const isMemberRole = (role: string | null): role is MemberRole =>
   MEMBER_ROLES.some((known) => known === role);
 
+const roleInfo = (role: string | null) => GROUP_ROLES.find((known) => known.name === role);
+
 /** A role's name for people. A role this build doesn't know shows as it is. */
-export const roleLabel = (role: string | null) => (isMemberRole(role) ? ROLE_LABELS[role] : role || "Member");
+export const roleLabel = (role: string | null) => roleInfo(role)?.label ?? (role || "Member");
+
+/**
+ * Who a role is for and what it may do (`GROUP_ROLES`), for the managers
+ * who pick it; empty for a role this build doesn't know. Never shown about
+ * a member to anyone else.
+ */
+export const roleDescription = (role: string | null) => roleInfo(role)?.description ?? "";
+
+/** A role picker's groups, in order: the regular roles, then "Easier to use". */
+export const ROLE_GROUP_LABELS = { regular: "Regular roles", easier: "Easier to use" } as const;
+
+export type RoleGroup = { id: keyof typeof ROLE_GROUP_LABELS; label: string; roles: MemberRole[] };
+
+/**
+ * The roles a picker offers, grouped (`<optgroup>`s): the regular ones,
+ * then the easy roles under "Easier to use". Groups with none are left out;
+ * roles keep the order given.
+ */
+export const roleGroups = (roles: readonly string[]): RoleGroup[] =>
+  (Object.keys(ROLE_GROUP_LABELS) as RoleGroup["id"][])
+    .map((id) => ({
+      id,
+      label: ROLE_GROUP_LABELS[id],
+      roles: roles.filter((role): role is MemberRole => isMemberRole(role) && roleInfo(role)?.group === id),
+    }))
+    .filter((group) => group.roles.length > 0);
 
 /**
  * What the signed-in member may do to one member of the group, by the rules

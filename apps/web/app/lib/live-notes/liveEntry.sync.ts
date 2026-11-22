@@ -1,7 +1,8 @@
 import type { ActionResult } from "../core/api";
 import type { SyncDb } from "../sync/index";
 
-import { canHaveNoteDocument, timelineEntryContentZSchema } from "@caretook/data/schema";
+import { isLoggerRole } from "@caretook/data/permissions";
+import { canChangeEntry, canHaveNoteDocument, timelineEntryContentZSchema } from "@caretook/data/schema";
 import { noteDocuments, timelineEntries } from "../sync/schema";
 import {
   contentColumns,
@@ -11,7 +12,6 @@ import {
   missing,
   nowTimestamp,
   readRows,
-  WRITER_ROLES,
 } from "../timeline/timeline.sync";
 
 // Saving a live entry: a note (or event) and its live document, written
@@ -32,7 +32,13 @@ export type MaterializeInput = {
   place?: string | null;
 };
 
-type ExistingRow = { id: string; group_id: string | null; kind: string | null; deleted_at: string | null };
+type ExistingRow = {
+  id: string;
+  group_id: string | null;
+  kind: string | null;
+  deleted_at: string | null;
+  created_by: string | null;
+};
 
 /**
  * Write the entry and its document in one local transaction, so the upload
@@ -45,13 +51,19 @@ type ExistingRow = { id: string; group_id: string | null; kind: string | null; d
  */
 export const materializeLiveEntry = async (db: SyncDb, input: MaterializeInput): Promise<ActionResult> => {
   const group = await groupFor(db, input.groupId);
-  if (!group?.role || !WRITER_ROLES.includes(group.role)) return forbidden;
+  if (!group || !isLoggerRole(group.role)) return forbidden;
 
   const [existing] = await readRows<ExistingRow>(db, {
-    sql: "SELECT id, group_id, kind, deleted_at FROM timeline_entry WHERE id = ?",
+    sql: "SELECT id, group_id, kind, deleted_at, created_by FROM timeline_entry WHERE id = ?",
     params: [input.id],
   });
   if (existing && (existing.group_id !== input.groupId || existing.deleted_at)) return missing;
+  // An Easy helper writes only the documents of entries they made.
+  if (
+    existing &&
+    !canChangeEntry({ role: group.role, userId: db.userId, entry: { createdBy: existing.created_by } })
+  )
+    return forbidden;
   if (existing && !canHaveNoteDocument(existing.kind ?? "")) {
     return { ok: false, error: "Only notes and events have live documents", issues: [] };
   }

@@ -9,14 +9,15 @@ import {
   linkRoleAllowed,
 } from "./inviteRules";
 
-const ROLES = ["owner", "admin", "caretaker", "viewer"] as const;
+const ROLES = ["owner", "admin", "caretaker", "viewer", "easy_helper", "easy_viewer"] as const;
+const LINKABLE = ["caretaker", "viewer", "easy_helper", "easy_viewer"];
 const ACTORS = [...ROLES, null] as const;
 
 describe("canInvite", () => {
   // Expected answers for every actor × target × kind.
   const allowed = (actor: string | null, target: string, kind: "email" | "link") => {
     if (actor !== "owner" && actor !== "admin") return false;
-    if (kind === "link") return target === "caretaker" || target === "viewer";
+    if (kind === "link") return LINKABLE.includes(target);
     return target !== "owner" || actor === "owner";
   };
 
@@ -32,17 +33,31 @@ describe("canInvite", () => {
   });
 
   it("lists the roles each actor may offer, highest first", () => {
-    expect(invitableRoles("owner", "email")).toEqual(["owner", "admin", "caretaker", "viewer"]);
-    expect(invitableRoles("admin", "email")).toEqual(["admin", "caretaker", "viewer"]);
-    expect(invitableRoles("owner", "link")).toEqual(["caretaker", "viewer"]);
+    expect(invitableRoles("owner", "email")).toEqual([
+      "owner",
+      "admin",
+      "caretaker",
+      "viewer",
+      "easy_helper",
+      "easy_viewer",
+    ]);
+    expect(invitableRoles("admin", "email")).toEqual([
+      "admin",
+      "caretaker",
+      "viewer",
+      "easy_helper",
+      "easy_viewer",
+    ]);
+    expect(invitableRoles("owner", "link")).toEqual(["caretaker", "viewer", "easy_helper", "easy_viewer"]);
+    expect(invitableRoles("easy_helper", "email")).toEqual([]);
     expect(invitableRoles("caretaker", "email")).toEqual([]);
     expect(invitableRoles(null, "email")).toEqual([]);
   });
 });
 
 describe("linkRoleAllowed", () => {
-  it("caps links at caretaker and viewer", () => {
-    expect(ROLES.filter(linkRoleAllowed)).toEqual(["caretaker", "viewer"]);
+  it("caps links at caretaker, viewer and the easy roles", () => {
+    expect(ROLES.filter(linkRoleAllowed)).toEqual(LINKABLE);
   });
 });
 

@@ -4,15 +4,15 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/simple-mode` (slice commits) |
-| ----- | ---- | ----- | -------------------------------------------- |
-| 1     | 1    | merged | cf858018 (f6723b7e, 8bd0f639); worktree removed |
-| 2     | 2    | started (worktree simple-mode-2, slot 4; agent opus) |                                              |
-| 3     | 3    | to do |                                              |
-| 4     | 4    | to do |                                              |
-| 5     | 4    | to do |                                              |
+| Slice | Wave | State                                                                                       | Merge into `prd/simple-mode` (slice commits)    |
+| ----- | ---- | ------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| 1     | 1    | merged                                                                                      | cf858018 (f6723b7e, 8bd0f639); worktree removed |
+| 2     | 2    | merged (this merge; slice commits 1191b873, a38ef708, 1e4caeed, 4d6f08e3); worktree removed |                                                 |
+| 3     | 3    | started (worktree simple-mode-3; agent opus)                                                |                                                 |
+| 4     | 4    | to do                                                                                       |                                                 |
+| 5     | 4    | to do                                                                                       |                                                 |
 
-**Landing mode: run everything through** (queued with `pnpm prd queue simple-mode`, 2026-11-21): start every ready slice, land each green wave, clean up; ask only real questions. Models: slice 1 sonnet (mechanical rename), slice 2 opus. Slice 1 notes: migration 0034 (`care_group.easy_tiles`, `preferences.easyMode`); `care_group` added to `REPLICATION_WHOLE_TABLES`; stacks merging it need `pnpm datastore:reset`; its browser checks passed only on per-spec reruns after a mid-run reset.
+**Landing mode: run everything through** (queued with `pnpm prd queue simple-mode`, 2026-11-21): start every ready slice, land each green wave, clean up; ask only real questions. Models: slice 1 sonnet (mechanical rename), slice 2 opus, slice 3 opus. Slice 2 notes: migration 0035 (role checks); viewer todo rule kept as the code had it (a viewer ticks only todos assigned to them, despite the PRD's "any"; the plan says "as now"), easy roles get `todoService:easyCompletionOnly`; viewers now get 403 on entry update/delete; screens still gate on `canWrite` (slice 3 uses `canLog`, `easyRole`, `canChangeEntry`); its quick check timed out under load (4 files, all passed alone). Slice 1 notes: migration 0034 (`care_group.easy_tiles`, `preferences.easyMode`); `care_group` added to `REPLICATION_WHOLE_TABLES`; stacks merging it need `pnpm datastore:reset`; its browser checks passed only on per-spec reruns after a mid-run reset.
 
 **Start conditions (met 2026-11-21: list-filters, planner-2 and quick-fixes wave 17 in `dev`):** slice 1 renames files across the timeline, quick entry, todos and the app shell, which `list-filters` (the shared Filter dropdown, B-249), `planner-2` (remove reminders, repeating todos, B-248) and the current `quick-fixes` wave also touch. Start once those three are in `dev` (check `pnpm prd status`), and `pnpm prd sync` first. If the user starts it earlier, slice 1 syncs `dev` again right before its merge and redoes the rename over whatever arrived.
 

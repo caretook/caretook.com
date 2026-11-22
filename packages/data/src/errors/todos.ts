@@ -35,4 +35,8 @@ export const TODOS_ERRORS = {
     message: "Viewers can only complete or reopen todos assigned to them",
     statusCode: 403,
   },
+  "todoService:easyCompletionOnly": {
+    message: "This role can only complete or reopen todos assigned to them",
+    statusCode: 403,
+  },
 } as const;

@@ -669,7 +669,7 @@ describe("medicationService: change entries", () => {
     });
 
     expect(codeOf(await timelineEntryService.remove(u.viewer.ctx, started!.id))).toBe(
-      "timelineEntryService:notFound",
+      "permissions:unauthorized",
     );
     ok(await timelineEntryService.remove(u.caretaker.ctx, started!.id));
     expect((await changesOf(medication.id))[0]?.deletedAt).not.toBeNull();
