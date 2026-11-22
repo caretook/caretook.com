@@ -7,6 +7,7 @@ import * as entry from "~/routes/app/groups/entry/route";
 import * as settingsLayout from "~/routes/app/settings/layout/route";
 import * as timelineSettings from "~/routes/app/settings/timeline/route";
 import { DICTATION_HINT } from "~/components/quick-entry/QuickEntryBox";
+import { cacheSettings } from "~/lib/app-shell/me";
 import { apiCalls } from "../../../../../test/api";
 import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
@@ -20,7 +21,7 @@ import { pressEasyMode, waitUntil } from "./timelineWorld";
 // Easy mode on the timeline, in the real /app frame on the test device: the
 // easy view (large type, the box, the full timeline's search, filters, row
 // menus and edit sheets) and the reduced header, who gets it (an easy role
-// always; anyone else by their own setting or this device's toggle;
+// always; anyone else by their own setting, live, or this device's toggle;
 // `resolveEasyMode` has every combination), an easy role arriving from
 // another device, viewers, and the account setting. The easy roles' own
 // timelines are timelineEasyLock.browser.test.tsx's.
@@ -283,6 +284,47 @@ describe("who gets it", () => {
 
     await device.sync(membership("caretaker"));
     await waitUntil(() => !isEasy(), 4000, "the full timeline");
+  });
+
+  test("your own setting changed on another device switches the timeline and the header without a navigation, and back", async () => {
+    setOwnSetting("full");
+    await open();
+    await expect.element(page.getByRole("button", { name: /switch care group$/ })).toBeVisible();
+    expect(isEasy()).toBe(false);
+    const sections = () => header().querySelector('[data-region="sections"] nav');
+    expect(sections()).not.toBeNull();
+
+    // A background refresh bringing the other device's change into the cache.
+    cacheSettings(TEST_USER.id, { easyMode: "easy" });
+    await waitUntil(isEasy, 4000, "the easy view");
+    await waitUntil(() => !sections(), 4000, "the reduced header");
+    expect(page.getByRole("button", { name: /switch care group$/ }).elements()).toHaveLength(0);
+
+    cacheSettings(TEST_USER.id, { easyMode: "full" });
+    await waitUntil(() => !isEasy(), 4000, "the full timeline");
+    await waitUntil(() => !!sections(), 4000, "the full header");
+  });
+
+  test("the header alone follows that change too: no navigation and nothing else re-rendering it", async () => {
+    setOwnSetting("full");
+    // A still page at the timeline's URL, so only the header's own subscription can switch it.
+    await renderWithDevice({
+      element: <p>Still page</p>,
+      url: TIMELINE_URL,
+      role: null,
+      frame: true,
+      fixtures: [membership("caretaker")],
+    });
+    const sections = () => header().querySelector('[data-region="sections"] nav');
+    await expect.element(page.getByRole("button", { name: /switch care group$/ })).toBeVisible();
+    expect(sections()).not.toBeNull();
+
+    cacheSettings(TEST_USER.id, { easyMode: "easy" });
+    await waitUntil(() => !sections(), 4000, "the reduced header");
+    expect(page.getByRole("button", { name: /switch care group$/ }).elements()).toHaveLength(0);
+
+    cacheSettings(TEST_USER.id, { easyMode: "full" });
+    await waitUntil(() => !!sections(), 4000, "the full header");
   });
 
   test("this device's toggle wins over your own setting", async () => {

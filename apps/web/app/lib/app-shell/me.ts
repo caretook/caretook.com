@@ -237,17 +237,43 @@ export const loadSettings = async (request: Request, userId: string): Promise<My
 /**
  * The settings this device knows now, without asking the server: the cached
  * copy with pending changes on top (or defaults). For screens that can't
- * wait for a loader, such as the /app header; a loader's `loadSettings` has
- * already refreshed the cache by the time they render.
+ * wait for a loader; a loader's `loadSettings` has already refreshed the
+ * cache by the time they render. A screen that stays up while a refresh
+ * lands (the /app header) reads `useCachedSettings` instead.
  */
 export const cachedSettings = (userId: string): MySettings =>
   merge(readCache(userId) ?? DEFAULTS, readPending(userId) ?? {});
+
+/** The last `cachedSettings` each user's `useCachedSettings` read, so a snapshot stays one object until it changes. */
+const snapshots = new Map<string, { json: string; settings: MySettings }>();
+
+const cachedSnapshot = (userId: string): MySettings => {
+  const settings = cachedSettings(userId);
+  const json = JSON.stringify(settings);
+  const last = snapshots.get(userId);
+  if (last?.json === json) return last.settings;
+  snapshots.set(userId, { json, settings });
+  return settings;
+};
+
+/**
+ * `cachedSettings`, live: for screens with no loader of their own (the /app
+ * header), it re-renders when the settings store publishes a change (a
+ * background refresh bringing another device's change, a save here).
+ */
+export const useCachedSettings = (userId: string): MySettings =>
+  useSyncExternalStore(
+    subscribeSettings,
+    () => cachedSnapshot(userId),
+    () => cachedSnapshot(userId),
+  );
 
 /** Forget every cached copy of settings, and every pending change, on this device (sign-out). */
 export const forgetSettings = () => {
   forgotten++;
   refreshing.clear();
   published.clear();
+  snapshots.clear();
   try {
     for (const key of Object.keys(localStorage))
       if (key.startsWith(PREFIX) || key.startsWith(PENDING_PREFIX)) localStorage.removeItem(key);
