@@ -7,7 +7,7 @@ The **core**: rules every session needs, and pointers to role and area docs (_Ar
 - **Build only what the user asks for.** Planned work is in the backlog and PRDs; start one only when the user says so.
 - **No new dependencies without the user's approval.** Pin approved ones exactly.
 - **Commit only when the user explicitly asks** ("run before committing" isn't asking). Exceptions: loops on their `slice/` branch; `pnpm backlog`; an orchestrator's `pnpm prd land` on the user's word (or landing mode). Never commit on `staging`/`main`.
-- **Small changes go straight onto `dev`** in the main checkout (docs, tooling, config, a small fix). Work needing a stack, running alongside other work, touching a running PRD's hot file or adding a migration is a PRD or fixes slice; a small fix in its own worktree is a [hotfix](docs/agents/hotfix.md). **Unsure? Ask.**
+- **Small changes go straight onto `dev`** in the main checkout (docs, tooling, config, small fixes). Work needing a stack, running alongside other work, touching a running PRD's hot file or adding a migration is a PRD or fixes slice; a small fix in its own worktree is a [hotfix](docs/agents/hotfix.md). **Unsure? Ask.**
 - **Checks:** `pnpm check` before handing off. If every changed file is Markdown or tooling (`scripts/loops/`, `scripts/backlog/`, `.githooks/`), just `pnpm exec prettier --check <files>` and `pnpm test:tooling`. Any other file, even a comment: `pnpm check` (`pnpm prd check` in a worktree).
 - **Commit subjects are Conventional Commits**, merges included (the hook refuses others): `<type>(<scope>)!: <description>`. Types: `feat` (user-visible), `fix`, `docs` (plans, AGENTS.md, `docs/`), `test`, `refactor`, `perf`, `style`, `build`, `ci`, `chore` (tooling, syncs, backlog), `revert`. Scope: the PRD topic, else the area. Backlog ids in parentheses at the end; `!` and a `BREAKING CHANGE:` footer if breaking. A merge says what it brings: `feat(app-shell): theme choice (slice 2, B-8)`.
 - **All seed and test data is fictional.** No real health information, even anonymized.
@@ -30,12 +30,12 @@ Caretook: mobile-first tools for caretakers: a timeline (real-time **and** offli
 - ✅ **TypeScript 5.9**, types inferred end to end (no codegen). **pnpm 12.21.0** workspaces on **Node 24** (`nvm use`). pnpm settings only in `pnpm-workspace.yaml` (no `.npmrc`; unknown keys fail); keep `minimumReleaseAge` (wait a day for a new package); build scripts need `allowBuilds` (only `esbuild`).
 - ✅ **ESLint 10** (type-aware; `jsx-a11y` as is, not the `-x` fork without the user), **Prettier 3** (width 110), **Vitest 5** projects ([loop](docs/agents/loop.md#tests)).
 - ✅ **React Router 8.5.1** (framework mode), Vite 8, **Tailwind v4 + daisyUI 5**, **React Aria Components** only where HTML falls short and only in `ui/` (read [components](docs/domain/components.md) first), `lucide-react`; native elements first (`<dialog>` for confirms); **Drizzle 0.45**, Zod 4, **oRPC 1.16.2**, **Better Auth 1.7.25**, **PowerSync** web 2.7.0, **Yjs 13.6.33**, **Tiptap 3.34.0**, **rrule 2.8.1**, **ical-generator 11.1.4**, **@googleapis/calendar 20.2.0**, **google-auth-library 11.3.4** (the last three server only).
-- 🟡 Playwright, Capacitor (`webDir` `apps/web/build/native/client`), the Vercel AI SDK, print CSS.
+- ✅ Playwright, print CSS. 🟡 Capacitor (`webDir` `apps/web/build/native/client`), the Vercel AI SDK.
 
 ## Architecture
 
 - **Two targets** (`BUILD_TARGET`): **web** (SSR on Vercel) and **native** (a static Capacitor SPA). `/app/*`, `/sign-in`, `/sign-out` are shared; `/`, `/api/auth/*`, `/rpc/*` web only. **Shared routes never export a server `loader` or `action`** (`clientLoader`/`clientAction`, local database, oRPC); `HydrateFallback` only in `root.tsx`.
-- **Data** ([data-layer](docs/domain/data-layer.md)): `@caretook/data` is server only (`/schema`, `/errors`, `/permissions` are client-safe). Errors are returned; models enforce RBAC in SQL; **write through the services**; UUID keys, `timestamps`, `audits`.
+- **Data** ([data-layer](docs/domain/data-layer.md)): `@caretook/data` is server only (`/schema`, `/errors`, `/permissions`, `/series` are client-safe). Errors are returned; models enforce RBAC in SQL; **write through the services**; UUID keys, `timestamps`, `audits`.
 - **Sync** ([sync](docs/domain/sync.md)): Postgres is the truth; devices keep a PowerSync SQLite copy and upload through our API. Last write wins per row; live notes merge through Yjs. Device queries are `lib/<area>/*.sync.ts`. Screens read the local database; server work is oRPC ([api](docs/domain/api.md)).
 - **Hosting** ([ops](ops/runbook.md)): Vercel, Neon, PowerSync Cloud; staging and production, deployed only by `deploy.yml`. Migrations stay additive (expand, then contract later).
 
@@ -50,7 +50,7 @@ Caretook: mobile-first tools for caretakers: a timeline (real-time **and** offli
 
 ## Commands
 
-From the repo root, after `nvm use`: `pnpm dev`, `build`, `build:native`; `pnpm datastore:start` (migrate, seed), `reset`, `generate`, `start:test` (:5435); `pnpm lint`, `format`, `typecheck`, `test`, and `pnpm check` (all of them); `pnpm log` (no backlog commits unless `--grep`); `pnpm docs:budget`, `build:budget` (first-load chunks); `pnpm backlog`, `pnpm prd` (`pnpm prd help`); `pnpm deploy:env`, `db:roles`, `db:access` ([ops](ops/runbook.md)); `pnpm hooks:install` (once).
+From the repo root, after `nvm use`: `pnpm dev`, `build`, `build:native`; `pnpm datastore:start` (migrate, seed), `reset`, `generate`, `start:test`; `pnpm lint`, `format`, `typecheck`, `test`, and `pnpm check` (all of them); `pnpm log` (no backlog commits unless `--grep`); `pnpm docs:budget`, `build:budget`; `pnpm backlog`, `pnpm prd` (`pnpm prd help`); `pnpm deploy:env`, `db:roles`, `db:access` ([ops](ops/runbook.md)); `pnpm hooks:install` (once).
 
 ## Area index
 
