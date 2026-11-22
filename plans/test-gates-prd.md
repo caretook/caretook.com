@@ -121,7 +121,7 @@ There are two modes:
 ## Out of scope
 
 - The staging candidate, CI browser suites, the staging to main gate and required status checks: `test-gates-2` (B-532, B-533).
-- Rescoping agent-autonomy's waves 2 to 6: its next planning session, against this plan.
+- Rescoping agent-autonomy's waves 2 to 6: done 2026-11-22 (only B-518, the unsynced landing, is left; it runs after this topic).
 - Fixing the flakes themselves: fixes-tooling.
 
 ## Notes
