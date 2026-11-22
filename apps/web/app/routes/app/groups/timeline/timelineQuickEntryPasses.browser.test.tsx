@@ -2,6 +2,7 @@ import type { DeviceRoute } from "../../../../../test/device";
 
 import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { surfaceOf } from "../../../../../test/contrast";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, medicationPass, TEST_GROUP, TEST_TIME_ZONE } from "../../../../../test/fixtures";
 import { DEFAULT_UNITS } from "@caretook/data/schema";
@@ -238,4 +239,26 @@ describe("the due-pass chip", () => {
     // Nothing else to suggest, and the due pass isn't offered: no button.
     expect(button("plain")).toBeNull();
   });
+});
+
+describe("quick entry's box (ui-kit-3)", () => {
+  test.each(["light", "dark"] as const)(
+    "in %s it keeps its own base-100 surface, not the text boxes' field fill",
+    async (theme) => {
+      await renderWithDevice({ route: ROUTES, url: TIMELINE_URL, fixtures: [NOON], theme });
+      await expect.element(box()).toBeVisible();
+      const swatch = (build: (el: HTMLElement) => void) => {
+        const el = document.createElement("div");
+        build(el);
+        document.body.append(el);
+        const colour = surfaceOf(el);
+        el.remove();
+        return colour;
+      };
+      const card = swatch((el) => (el.className = "bg-base-100"));
+      const field = swatch((el) => (el.className = "textarea"));
+      expect(field).not.toEqual(card);
+      expect(surfaceOf(box().element())).toEqual(card);
+    },
+  );
 });

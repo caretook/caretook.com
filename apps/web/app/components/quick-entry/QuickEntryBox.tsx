@@ -96,6 +96,8 @@ export function QuickEntryBox({
                 aria-describedby={[control["aria-describedby"], rulesId].filter(Boolean).join(" ")}
                 ref={field}
                 name="quickEntry"
+                // Not a form's text box: it keeps its own surface, not the field fill (app.css).
+                data-own-surface=""
                 rows={1}
                 className={`textarea field-sizing-content max-h-48 w-full resize-none ${TEXTAREA_CLASS[size]} ${suggest ? SUGGEST_ROOM[size] : ""}`}
                 placeholder={QUICK_ENTRY_PLACEHOLDER}
