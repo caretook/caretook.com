@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 
 import { X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { IconButton } from "./IconButton";
+import { NavigationHold, useSheetExit } from "./useSheetExit";
 
 /**
  * The full screen on phones (below `sm`: the whole viewport, no gap above for
@@ -17,6 +18,10 @@ import { IconButton } from "./IconButton";
  * returns focus only when its own bookkeeping allows; as a backstop, if focus
  * is left on the page body, it goes back to whatever had it when the sheet
  * mounted.
+ *
+ * It closes the way it opened (`useSheetExit`): a dismissal plays the exit and
+ * then calls `onOpenChange(false)`; a navigation that changes the path is held
+ * for the exit. Under "reduce motion" nothing is held.
  */
 export function Sheet({
   isOpen,
@@ -43,14 +48,25 @@ export function Sheet({
     [opener],
   );
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  const { closing, dismiss, hold } = useSheetExit({ isOpen, onOpenChange, panelRef });
+
   return (
     <ModalOverlay
       isOpen={isOpen}
-      onOpenChange={onOpenChange}
+      onOpenChange={dismiss}
       isDismissable
-      className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/40 sm:items-center sm:p-4 data-[entering]:motion-safe:animate-[fade-in_150ms_ease-out]"
+      data-sheet="overlay"
+      data-closing={closing || undefined}
+      className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/40 sm:items-center sm:p-4"
     >
-      <Modal className="bg-base-100 sm:rounded-box h-dvh w-full overflow-y-auto overscroll-contain pt-[max(0.75rem,env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] shadow-xl sm:h-auto sm:max-h-[92dvh] sm:max-w-lg sm:p-6 data-[entering]:motion-safe:animate-[sheet-in_200ms_ease-out]">
+      {hold && <NavigationHold {...hold} />}
+      <Modal
+        ref={panelRef}
+        data-sheet="panel"
+        data-closing={closing || undefined}
+        className="bg-base-100 sm:rounded-box h-dvh w-full overflow-y-auto overscroll-contain pt-[max(0.75rem,env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] shadow-xl sm:h-auto sm:max-h-[92dvh] sm:max-w-lg sm:p-6"
+      >
         <Dialog className="outline-none">
           {({ close }) => (
             <>
