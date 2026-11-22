@@ -1,6 +1,6 @@
 # Plan: Test gates 2, the staging and main gates
 
-PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts after `test-gates`.
+PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533, B-572. Starts after `test-gates`.
 
 ## Status
 
@@ -12,6 +12,7 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 | 4. Promotion refuses what isn't passing        | 3    | not started |       |
 | 5. The release tier                            | 4    | not started |       |
 | 6. The required check on main and its override | 5    | not started |       |
+| 7. A scripts-only package.json change          | 1    | not started |       |
 
 ## Architectural decisions
 
@@ -20,16 +21,16 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 - **One tier list, one verdict format.** `candidate` and `release` extend both.
 - **A gate reads a whole-tier verdict on the exact commit.** A narrowed run, a verdict for another commit or an expired artifact never passes.
 - **Both gates pass on `green`, and on `flake` with nothing flaky on the brake list.**
-- **All commands and their help sit under `pnpm prd ci`**, in `scripts/ci/`. Don't edit `scripts/loops/prd.sh`, `land*` or `lib.sh`.
+- **All commands and their help sit under `pnpm prd ci`**, in `scripts/ci/`. Don't edit `land*` or `lib.sh`, and edit `scripts/loops/prd.sh` only for slice 7's rule wording.
 - **One zone setting** is read by the component tests, the Playwright config, the fixtures and the server. CI's primary jobs use America/Los_Angeles.
 - **No tool edits a GitHub ruleset.**
 - All test data and env are fictional, generated in the workflow.
 
 ## How to run this plan
 
-- **Waves:** 1: slice 1. 2: slice 2. 3: slice 3, then slice 4 on top of it. 4: slice 5. 5: slice 6.
+- **Waves:** 1: slices 1 and 7 (they share no files). 2: slice 2. 3: slice 3, then slice 4 on top of it. 4: slice 5. 5: slice 6.
 - Each wave is proven by a real requested run from the slice's branch.
-- **Hot files:** `.github/workflows/ci.yml`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `scripts/browser-checks/`, `scripts/loops/browser.sh`, `scripts/loops/serve.sh`, `vitest.config.ts`, `ops/runbook.md`.
+- **Hot files:** `.github/workflows/ci.yml`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `scripts/browser-checks/`, `scripts/loops/browser.sh`, `scripts/loops/serve.sh`, `scripts/loops/check-plan`, `scripts/loops/check-areas.d/`, `scripts/loops/prd.sh`, `vitest.config.ts`, `ops/runbook.md`.
 - **The user's step after slice 6:** add `release-gate` to the main ruleset, once a real green status exists, with "require branches to be up to date" off.
 
 ## Slice 1: The browser suite runs in CI
@@ -149,3 +150,23 @@ Stack: no · Reads: docs/agents/orchestrator.md, ops/runbook.md · Tests: unit
 - A real `release-gate` status is written on a test commit, linked in the hand-off. No ruleset is changed.
 
 **Blocked by:** 5.
+
+## Slice 7: A scripts-only package.json change
+
+Stack: no · Reads: docs/agents/orchestrator.md, docs/agents/loop.md · Tests: unit
+
+**User stories:** US 10.
+
+**Build:**
+
+- One pure comparison of a changed package.json with its base, ignoring the `scripts` field. Only `scripts` differing (added, edited or removed, in any package, lifecycle hooks included) is "scripts only". Any other field, or an added, deleted or unparseable file, is not.
+- All three rules use it: the forced list in the check plan (which gets only paths today, so it needs the comparison's result or a prefiltered list), the package.json `@suite` rules in the browser check selection, and test-gates' minimum CI tier.
+- The lockfile rule stays.
+- The hand-off lists the doc changes: the rule's wording in orchestrator.md. The slice updates the wording in `prd.sh`'s help and comment.
+
+**Acceptance criteria:**
+
+- Unit tests: scripts added, edited and removed; a lifecycle hook; another field changed; both changed; an added, deleted and unparseable package.json; a root and a package-level file.
+- A scripts-only diff gets a quick check, no `@suite` and no raised tier; a diff changing `dependencies` still forces all three.
+
+**Blocked by:** test-gates.
