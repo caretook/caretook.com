@@ -1,8 +1,7 @@
 import type { DaySummaryMode, TimelineView } from "@caretook/data/schema";
-import type { EasyModeState } from "~/lib/assistant/useEasyMode";
 
-import { Eye, LayoutList, List, Type } from "lucide-react";
-import { Menu, SEPARATOR, TOOL_CIRCLE } from "~/components/ui";
+import { Eye, LayoutList, List } from "lucide-react";
+import { Menu, TOOL_CIRCLE } from "~/components/ui";
 
 const VIEW_ITEMS: { id: TimelineView; label: string; icon: typeof List }[] = [
   { id: "rows", label: "Rows", icon: List },
@@ -20,22 +19,20 @@ const isMode = (id: string): id is DaySummaryMode => MODE_ITEMS.some((m) => m.id
 
 /**
  * The full timeline's "View options" (an eye icon), at the right end of the
- * filter row (`FilterChips`' `trailing`, the row's circle), at every width: Layout (Rows or Cards, one choice), Day summaries (Highlights,
- * Full or Off, the viewer's setting: `useDaySummaryMode`), then "Easy view"
- * (this device's toggle; left out while it can't toggle, e.g. locked).
+ * filter row (`FilterChips`' `trailing`, the row's circle), at every width: Layout (Rows or Cards, one choice) and Day summaries (Highlights,
+ * Full or Off, the viewer's setting: `useDaySummaryMode`). Easy mode's
+ * toggle is the page header's button (`EasyModeToggle`), not here.
  */
 export function TimelineViewMenu({
   view,
   onViewChange,
   summaryMode,
   onSummaryModeChange,
-  easyMode,
 }: {
   view: TimelineView;
   onViewChange: (view: TimelineView) => void;
   summaryMode: DaySummaryMode;
   onSummaryModeChange: (mode: DaySummaryMode) => void;
-  easyMode?: EasyModeState;
 }) {
   return (
     <Menu
@@ -56,13 +53,6 @@ export function TimelineViewMenu({
           title: "Day summaries",
           items: MODE_ITEMS,
           selection: { selected: summaryMode, onChange: (id) => isMode(id) && onSummaryModeChange(id) },
-        },
-        easyMode?.canToggle && SEPARATOR,
-        easyMode?.canToggle && {
-          id: "easy-view",
-          label: "Easy view",
-          icon: Type,
-          onAction: easyMode.toggle,
         },
       ]}
     >
