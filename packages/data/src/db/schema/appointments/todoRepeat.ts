@@ -12,7 +12,7 @@
 
 import { addDays } from "../core/entryTiming";
 import { uuidV5 } from "../core/uuidV5";
-import { nextVisits } from "./seriesVisits";
+import { firstDayFrom } from "./seriesVisits";
 
 /** The namespace for later occurrences' ids (a fixed, random UUID; never change it). */
 export const TODO_REPEAT_NAMESPACE = "8d2f4c71-5b3e-4a96-b0d8-2e7a1c9f6b45";
@@ -20,16 +20,12 @@ export const TODO_REPEAT_NAMESPACE = "8d2f4c71-5b3e-4a96-b0d8-2e7a1c9f6b45";
 /**
  * The first day ("YYYY-MM-DD") the rule falls on after both `dueOn` and
  * `today`, counting from its anchor `startsOn`; null when the rule has ended
- * (COUNT or UNTIL), or can't be read. Looks at most about 5 years ahead.
+ * (COUNT or UNTIL), or can't be read. However far off: no search horizon, so
+ * a long interval ("every 99 months") keeps going.
  */
 export const nextDueDay = (rule: string, startsOn: string, dueOn: string, today: string) => {
   const after = dueOn > today ? dueOn : today;
-  const [visit] = nextVisits(
-    { rule, startsOn, startTime: null, allDay: true, timeZone: "UTC" },
-    addDays(after, 1),
-    1,
-  );
-  return visit?.day ?? null;
+  return firstDayFrom({ rule, startsOn }, addDays(after, 1));
 };
 
 /** A later occurrence's id: the version 5 UUID of its chain and its due day. */
@@ -105,11 +101,28 @@ export const occurrenceOn = (todo: RepeatingTodoFields, day: string): TodoOccurr
  * The todo that follows `todo` when it's ticked or skipped `today` (the
  * recipient's day): on `nextDueDay`, or null when it doesn't repeat, has no
  * due day, or its rule has ended.
+ *
+ * A day whose id is `todo`'s own (a successor moved back onto its source's
+ * day keeps the id of the day it was made for) or one in `passOver` (the
+ * caller's done rows: a successor moved off its day and ticked) is passed
+ * over for the rule's following day (B-386), so the chain goes on and a
+ * device and the server, passing over the same rows, make the same one.
  */
-export const nextOccurrence = (todo: RepeatingTodoFields, today: string): TodoOccurrence | null => {
-  if (!todo.repeatRule || !todo.repeatStartsOn || !todo.repeatId || !todo.dueOn) return null;
-  const day = nextDueDay(todo.repeatRule, todo.repeatStartsOn, todo.dueOn, today);
-  return day ? occurrenceOn(todo, day) : null;
+export const nextOccurrence = (
+  todo: RepeatingTodoFields & { id?: string },
+  today: string,
+  passOver: ReadonlySet<string> = new Set(),
+): TodoOccurrence | null => {
+  const { repeatRule: rule, repeatStartsOn: startsOn, repeatId, dueOn } = todo;
+  if (!rule || !startsOn || !repeatId || !dueOn) return null;
+  let day = nextDueDay(rule, startsOn, dueOn, today);
+  // Each pass skips a distinct id (the days only go forward), so this ends.
+  for (let passes = 0; day && passes <= passOver.size + 1; passes++) {
+    const id = nextTodoId(repeatId, day);
+    if (id !== todo.id && !passOver.has(id)) return occurrenceOn(todo, day);
+    day = nextDueDay(rule, startsOn, day, day);
+  }
+  return null;
 };
 
 /** A later row of a chain, as `isUntouchedNext` compares it. */

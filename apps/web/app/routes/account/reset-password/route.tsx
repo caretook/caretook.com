@@ -10,6 +10,7 @@ import {
   MIN_PASSWORD_LENGTH,
   newPasswordProblem,
   requestFailure,
+  unreached,
 } from "~/lib/auth/authMessages";
 import { formString } from "~/lib/core/form";
 import { AuthCard, useSubmitOnce, EmailField, ErrorMessage, StatusMessage } from "../AuthCard";
@@ -39,14 +40,18 @@ export async function clientAction({ request }: Route.ClientActionArgs): Promise
     const newPassword = formString(form, "password");
     const problem = newPasswordProblem(newPassword, formString(form, "confirm"));
     if (problem) return { intent: "set", error: problem };
-    const { error } = await authClient.resetPassword({ newPassword, token: formString(form, "token") });
+    const { error } = await authClient
+      .resetPassword({ newPassword, token: formString(form, "token") })
+      .catch(unreached);
     if (!error) return { intent: "set", done: true };
     if (isBadToken(error)) return { intent: "set", expired: true };
     return { intent: "set", error: requestFailure(error) ?? error.message ?? authMessages.failed };
   }
 
   const email = formString(form, "email").trim();
-  const { error } = await authClient.requestPasswordReset({ email, redirectTo: accountUrls.resetPassword() });
+  const { error } = await authClient
+    .requestPasswordReset({ email, redirectTo: accountUrls.resetPassword() })
+    .catch(unreached);
   const failure = requestFailure(error);
   return failure ? { intent: "request", error: failure } : { intent: "request", sentTo: email };
 }
