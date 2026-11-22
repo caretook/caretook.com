@@ -257,7 +257,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-397 | change | ready | ui-kit | prd/ui-kit | Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages |
 | B-398 | change | triaged | ui-kit-2 |  | Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame |
 | B-399 | bug | staging | ui-kit | prd/ui-kit | Bottom menu on mobile need a better deign. I like floating menus. It needs to be a different bg… |
-| B-400 | change | triaged | simple-mode |  | Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the… |
+| B-400 | change | in-progress | simple-mode | prd/simple-mode | Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the… |
 | B-401 | bug | staging | check-speed | prd/check-speed | check-run.sh's load reading can carry a blank line on Linux (sysctl fails under pipefail before the uptime fallback), splitting a check-times.log record across lines; normalise it to one number |
 | B-402 | bug | staging | check-speed | prd/check-speed | pnpm test:tooling runs only tooling:unit, so a tooling-only change to checks.mjs, check-areas.mjs, sync-matrix or check-times.mjs passes the docs-and-tooling gate without its own tests (they live in scripts:unit) |
 | B-403 | feature | staging | orchestration-2 | prd/orchestration-2 | A cleanup agent every few hours (pnpm prd tidy): finds finished sessions still open, finished worktrees and branches, and other leftovers; removes the safe ones and reports the rest |
@@ -1974,9 +1974,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-400 · change · Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the…
 
-- status: triaged
+- status: in-progress
 - prd: simple-mode
-- owner:
+- owner: prd/simple-mode
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the header on the full app header to match simple mode.
