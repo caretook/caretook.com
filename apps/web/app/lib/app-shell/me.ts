@@ -6,6 +6,7 @@ import {
   DEFAULT_EASY_MODE_SETTING,
   DEFAULT_TIMELINE_VIEW,
   DEFAULT_UNITS,
+  EASY_MODE_SETTINGS,
 } from "@caretook/data/schema";
 import { useSyncExternalStore } from "react";
 import { NETWORK_ANSWER_MS, withTimeout } from "../auth/sessionRules";
@@ -74,7 +75,26 @@ const readCache = (userId: string): MySettings | null => {
   return cached ? merge(DEFAULTS, cached) : null;
 };
 
-const readPending = (userId: string): SettingsChange | null => readJson<SettingsChange>(pendingKey(userId));
+/**
+ * The pending change, upgraded: one queued before the easy rename names
+ * `simpleMode`, which the server now refuses and `clearPending` never
+ * removes, so it would be resent forever (B-472). It becomes `easyMode`
+ * (`simple` → `easy`, as migration 0034 did; a value with no equivalent is
+ * dropped, and an `easyMode` queued since wins), and the upgrade is stored.
+ */
+const readPending = (userId: string): SettingsChange | null => {
+  const pending = readJson<SettingsChange & { simpleMode?: unknown }>(pendingKey(userId));
+  if (!pending || !("simpleMode" in pending)) return pending;
+  const { simpleMode, ...upgraded } = pending;
+  const easyMode = simpleMode === "simple" ? "easy" : simpleMode;
+  if (!("easyMode" in upgraded)) {
+    const setting = EASY_MODE_SETTINGS.find((s) => s === easyMode);
+    if (setting) upgraded.easyMode = setting;
+  }
+  const left = Object.keys(upgraded).length ? upgraded : null;
+  writeJson(pendingKey(userId), left);
+  return left;
+};
 
 /** Forget the pending fields that were sent, unless they've changed again since. */
 const clearPending = (userId: string, sent: SettingsChange) => {
