@@ -44,6 +44,15 @@ export const DB_ERRORS = {
   "db:seed:appEnv": {
     message: 'Refusing to seed: APP_ENV must be "staging" or unset',
   },
+  "db:reset": {
+    message: "Failed to reset staging",
+  },
+  "db:reset:notStaging": {
+    message: "Refusing to reset: only staging (APP_ENV=staging) can be wiped and reseeded",
+  },
+  "db:reset:cycle": {
+    message: "Refusing to reset: tables reference each other in a cycle, so there is no safe delete order",
+  },
   "db:clear": {
     message: "Failed to clear the database",
   },
