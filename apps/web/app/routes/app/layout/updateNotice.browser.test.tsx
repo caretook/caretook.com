@@ -54,4 +54,13 @@ describe("the update notice", () => {
     await show();
     await expect.element(page.getByText("A new version is ready")).toBeVisible();
   });
+
+  test("goes when the waiting worker is gone", async () => {
+    waitingWorker.set(fakeWaiting());
+    await show();
+    const notice = page.getByRole("status").filter({ hasText: "A new version is ready" });
+    await expect.element(notice).toBeVisible();
+    waitingWorker.set(null);
+    await expect.element(notice).not.toBeInTheDocument();
+  });
 });
