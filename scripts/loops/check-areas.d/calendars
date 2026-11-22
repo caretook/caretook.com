@@ -4,17 +4,17 @@
 # integration tests (packages/api/src/calendars/). The Calendar & reminders
 # page and the owners' switch on group settings → Details are component
 # tests (settings/calendar.browser.test.tsx). No browser check owns a flow yet.
-apps/web/app/routes/app/groups/settings/calendar/* -
+apps/web/app/routes/app/groups/settings/calendar/  -
 # Its modules, the device's copy of the owners' switch (detailsAllowed.sync.ts) included: component tests.
-apps/web/app/lib/calendars/*             -
+apps/web/app/lib/calendars/              -
 # Settings are forgotten at sign-out (lib/auth/session.ts names signout-wipe).
 apps/web/app/lib/calendars/calendarSettings.ts signout-wipe
 # The feed (slice 5) is server only: its route and door have no screen; the
 # service, handler and procedures are integration tests (packages/api/src/calendars/).
-apps/web/app/routes/api/calendar/*       -
+apps/web/app/routes/api/calendar/        -
 apps/web/app/.server/calendarFeed.ts     -
 # Reminder emails' unsubscribe link (web only, slice 6): integration tests (packages/notifications).
-apps/web/app/routes/api/reminders/*      -
+apps/web/app/routes/api/reminders/       -
 # Google Calendar's Connect and OAuth callback (web-only redirects): integration
 # tests over their handlers (packages/api/src/calendars/googleRoutes.int.test.ts).
-apps/web/app/routes/api/google/*         -
+apps/web/app/routes/api/google/          -

@@ -5,10 +5,10 @@
 # and medication changes on the timeline, the Dose sheet, pass logs, the pass
 # sheet and the medication strip. The page's notes document is live-notes'.
 # The device modules' writes reaching another device are roundtrip's sync matrix.
-apps/web/app/routes/app/groups/medications/* -
-apps/web/app/routes/app/groups/medication/* -
+apps/web/app/routes/app/groups/medications/  -
+apps/web/app/routes/app/groups/medication/  -
 apps/web/app/routes/app/groups/medication/useMedicationNotes.ts live-notes
-apps/web/app/components/medications/*    -
+apps/web/app/components/medications/     -
 apps/web/app/components/entry/MedicationEntryText.tsx -
 apps/web/app/lib/medications/*.sync.ts   roundtrip
 apps/web/app/lib/medications/medicationTimeline.sync.ts phase2
@@ -18,7 +18,5 @@ packages/data/src/db/schema/medications/medicationPass.ts roundtrip
 packages/data/src/db/schema/profiles/recipientAllergy.ts roundtrip
 packages/data/src/db/seeds/medications.ts phase2
 packages/data/src/db/seeds/medicationPasses.ts -
-# Re-exports of the pure modules that moved to @caretook/data/schema (unit-tested there).
-apps/web/app/lib/medications/dueDoses.ts -
-apps/web/app/lib/medications/duePasses.ts -
-apps/web/app/lib/medications/medicationDisplay.ts -
+# Directory defaults: a new file here needs no rule.
+apps/web/app/lib/medications/            -
