@@ -21,6 +21,19 @@ describe("canLogEntry", () => {
     expect(canLogEntry("easy_helper", "event", { seriesId: null, cancelledAt: null })).toBe(true);
   });
 
+  it("refuses an Easy helper's update that clears a writer's cancellation or reschedule", () => {
+    const cancelled = { cancelledAt: "2026-11-21T10:00:00Z", cancelReason: "Sick", rescheduledTo: "e2" };
+    const clear = { cancelledAt: null, cancelReason: null, rescheduledTo: null };
+    expect(canLogEntry("easy_helper", "event", clear, cancelled)).toBe(false);
+    expect(canLogEntry("easy_helper", "event", { rescheduledTo: null }, cancelled)).toBe(false);
+    expect(canLogEntry("easy_helper", "event", { cancelReason: null }, cancelled)).toBe(false);
+    expect(canLogEntry("easy_helper", "event", { cancelledAt: "2026-11-22T10:00:00Z" }, {})).toBe(false);
+    // Left out, or already empty: unchanged, so an ordinary edit passes.
+    expect(canLogEntry("easy_helper", "event", {}, cancelled)).toBe(true);
+    expect(canLogEntry("easy_helper", "event", clear, { cancelledAt: null, seriesId: null })).toBe(true);
+    expect(canLogEntry("caretaker", "event", clear, cancelled)).toBe(true);
+  });
+
   it("refuses viewers, the Easy viewer and non-members", () => {
     for (const role of ["viewer", "easy_viewer", null]) expect(canLogEntry(role, "note")).toBe(false);
   });

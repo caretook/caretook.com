@@ -67,7 +67,8 @@ const refuseSystemWritten = (ctx: ServiceContext, kind: string) =>
 
 /**
  * An Easy helper logs care and nothing else (`canLogEntry`): the logged
- * kinds, never an appointment's series, reschedule or cancellation. (Which
+ * kinds, never an appointment's series, reschedule or cancellation, and on
+ * an update never clearing one a writer set (`existing`). (Which
  * rows they may edit or delete is the permission map's `groupOwn`, in SQL.)
  * Writers and the system pass; other roles are refused by the model.
  */
@@ -77,12 +78,15 @@ const refuseLoggerOnly = async (
   groupId: string,
   kind: string,
   data: Parameters<typeof canLogEntry>[2],
+  existing?: Parameters<typeof canLogEntry>[3],
 ) => {
   if (!ctx.authUser || isSystemUser(ctx.authUser)) return null;
   const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id, { tx });
   if (isError(role)) return role;
   if (!isOwnRowLogger(role)) return null;
-  return canLogEntry(role, kind, data) ? null : newError({ code: "timelineEntryService:loggerOnly" });
+  return canLogEntry(role, kind, data, existing)
+    ? null
+    : newError({ code: "timelineEntryService:loggerOnly" });
 };
 
 /**
@@ -439,7 +443,7 @@ export const update = (
     const refused = refuseSystemWritten(ctx, existing.kind);
     if (refused) return refused;
 
-    const loggerOnly = await refuseLoggerOnly(ctx, tx, existing.groupId, existing.kind, patch);
+    const loggerOnly = await refuseLoggerOnly(ctx, tx, existing.groupId, existing.kind, patch, existing);
     if (loggerOnly) return loggerOnly;
     // Seen but not theirs to change (a viewer; an Easy helper on another
     // member's entry): refused cleanly, before any write.
