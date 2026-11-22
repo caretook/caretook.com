@@ -651,23 +651,13 @@ describe("/mcp edit tools (connectors-2)", () => {
       ],
       ["update_condition", { conditionId: live.id }, "assistantActionService:invalid"],
       ["update_condition", { conditionId: live.id, sinceMonth: 13 }, "recipientConditionService:invalid"],
+      // The condition refusals pass through (each case of them: assistantAction.int.test.ts).
       [
         "update_condition",
         { conditionId: deleted.id, name: "Back" },
         "assistantActionService:conditionDeleted",
       ],
-      ["resolve_condition", { conditionId: deleted.id }, "assistantActionService:conditionDeleted"],
-      [
-        "update_condition",
-        { conditionId: foreign.id, name: "Mine" },
-        "assistantActionService:conditionNotFound",
-      ],
       ["resolve_condition", { conditionId: foreign.id }, "assistantActionService:conditionNotFound"],
-      [
-        "resolve_condition",
-        { conditionId: "6f1d3c2a-8b4e-4f7a-9c1d-2e3f4a5b6c7d" },
-        "assistantActionService:conditionNotFound",
-      ],
     ];
     for (const [tool, args, code] of cases) {
       const result = await resultOf(await call(token, tool, args));

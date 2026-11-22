@@ -2,7 +2,7 @@ import type { TimelineEntryCreateInput } from "../db";
 
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, newYDoc, ok, system, typeParagraph } from "../../test/fixtures";
+import { createUser, createWorld, newYDoc, ok, system, typeParagraph } from "../../test/fixtures";
 import { userService } from ".";
 import { isError } from "../errors";
 import { careGroupMemberModel, timelineEntryModel } from "../models";
@@ -35,19 +35,10 @@ const AT = "2026-11-17T12:00:00.000Z";
 const ZONE = "America/Los_Angeles";
 
 const setup = async () => {
-  const owner = await createUser("owner");
-  const others = {
-    admin: await createUser("admin"),
-    caretaker: await createUser("caretaker"),
-    viewer: await createUser("viewer"),
-    easy_helper: await createUser("easy-helper"),
-    easy_viewer: await createUser("easy-viewer"),
-  };
-  const { group, recipient } = await createGroup(
-    owner,
-    (Object.keys(others) as (keyof typeof others)[]).map((role) => ({ user: others[role].user, role })),
-  );
-  const u: Record<Role, typeof owner> = { owner, ...others };
+  const { u, group, recipient } = await createWorld({
+    members: ["admin", "caretaker", "viewer", "easy_helper", "easy_viewer"],
+    names: { easy_helper: "easy-helper", easy_viewer: "easy-viewer" },
+  });
   const note = (overrides: Partial<TimelineEntryCreateInput> = {}) =>
     ({
       groupId: group.id,
@@ -63,7 +54,7 @@ const setup = async () => {
     return entry;
   };
   const medication = ok(
-    await medicationService.create(owner.ctx, {
+    await medicationService.create(u.owner.ctx, {
       groupId: group.id,
       name: "Lisinopril",
       dose: "1 tablet",
