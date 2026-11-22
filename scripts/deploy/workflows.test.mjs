@@ -88,6 +88,18 @@ describe("the deploy workflows", () => {
     }
   });
 
+  it("runs the browser tooling test in CI's integration job, not its unit job", () => {
+    const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
+    const unit = jobs.unit.steps.find((s) => s.id === "test").run;
+    expect(unit).toContain("--project tooling:unit");
+    expect(unit).toContain('--exclude "**/loops/browser.test.mjs"');
+    const step = jobs.integration.steps.find((s) => s.id === "browser-tooling");
+    expect(step.run).toContain("--project tooling:unit scripts/loops/browser.test.mjs");
+    expect(step.if).toBe("${{ !cancelled() }}");
+    const report = jobs.integration.steps.find((s) => s.id === "report").run;
+    expect(report).toContain("ci-results/browser-tooling.json");
+  });
+
   it("gates CI's jobs on the tier and always writes a verdict unless cancelled", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
     expect(Object.keys(jobs)).toEqual(["plan", "static", "unit", "integration", "verdict"]);

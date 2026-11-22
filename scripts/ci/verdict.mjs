@@ -5,7 +5,7 @@
 // This slice writes two kinds: `green` (every job the tier ran passed) and
 // `file` (any other result). The other kinds come with the rerun and the lists.
 //
-//   node scripts/ci/verdict.mjs summarize <vitest.json>   prints `failures=<json>`
+//   node scripts/ci/verdict.mjs summarize <vitest.json>…   prints `failures=<json>`
 //     for $GITHUB_OUTPUT: the failed files and tests, capped to fit a job output
 //   node scripts/ci/verdict.mjs write <out.json>   from CI_NEEDS (toJSON(needs)),
 //     CI_TIER, CI_COMMIT and CI_RUN_ID
@@ -41,6 +41,21 @@ export function summarizeVitest(report, root) {
     files: files.slice(0, MAX_TESTS),
     tests: tests.slice(0, MAX_TESTS),
     truncated: files.length > MAX_TESTS || tests.length > MAX_TESTS,
+  };
+}
+
+/**
+ * One job's reports as one summary. A missing report leaves it unreported.
+ * @param {ReturnType<typeof summarizeVitest>[]} summaries
+ */
+export function mergeSummaries(summaries) {
+  const files = summaries.flatMap((s) => s.files);
+  const tests = summaries.flatMap((s) => s.tests);
+  return {
+    reported: summaries.every((s) => s.reported),
+    files: files.slice(0, MAX_TESTS),
+    tests: tests.slice(0, MAX_TESTS),
+    truncated: summaries.some((s) => s.truncated) || files.length > MAX_TESTS || tests.length > MAX_TESTS,
   };
 }
 
@@ -96,10 +111,12 @@ export function isVerdict(v) {
   );
 }
 
-function cli(/** @type {string[]} */ [command, path]) {
+function cli(/** @type {string[]} */ [command, path, ...more]) {
   if (command === "summarize" && path) {
-    const report = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : null;
-    console.log(`failures=${JSON.stringify(summarizeVitest(report, process.cwd()))}`);
+    const summaries = [path, ...more].map((p) =>
+      summarizeVitest(existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : null, process.cwd()),
+    );
+    console.log(`failures=${JSON.stringify(mergeSummaries(summaries))}`);
     return;
   }
   if (command === "write" && path) {
@@ -116,7 +133,7 @@ function cli(/** @type {string[]} */ [command, path]) {
     console.log(`verdict: ${verdict.kind} (${verdict.tier}, ran up to ${verdict.ranTier})`);
     return;
   }
-  throw new Error("usage: verdict.mjs summarize <vitest.json> | write <out.json>");
+  throw new Error("usage: verdict.mjs summarize <vitest.json>… | write <out.json>");
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

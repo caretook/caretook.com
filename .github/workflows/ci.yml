@@ -128,7 +128,8 @@ jobs:
         run: >-
           pnpm exec vitest run --project data:unit --project web:unit
           --project notifications:unit --project server:unit --project scripts:unit
-          --project tooling:unit --reporter=default --reporter=json
+          --project tooling:unit --exclude "**/loops/browser.test.mjs"
+          --reporter=default --reporter=json
           --outputFile.json=ci-results/unit.json
       - id: report
         name: Report the failures
@@ -166,19 +167,36 @@ jobs:
       - id: setup
         uses: ./.github/actions/setup
       - id: env
-        name: Fictional env
+        name: Fictional env and a git identity for the browser tooling test
         env:
           CI_PG_PASSWORD: ${{ needs.plan.outputs.pg_password }}
-        run: node scripts/ci/env.mjs >> "$GITHUB_ENV"
+        run: |
+          node scripts/ci/env.mjs >> "$GITHUB_ENV"
+          git config --global user.name "CI"
+          git config --global user.email "ci@example.com"
+          git config --global init.defaultBranch main
+          git switch --create ci-run
       - id: test
         name: Integration tests
         run: >-
           pnpm exec vitest run --project integration --reporter=default
           --reporter=json --outputFile.json=ci-results/integration.json
+      # Here, not in the unit job: it launches the real Playwright runner and
+      # shell scripts, and took most of that job's time.
+      - id: browser-tooling
+        name: Browser tooling test
+        if: ${{ !cancelled() }}
+        env:
+          CARETOOK_LEASES: ""
+        run: >-
+          pnpm exec vitest run --project tooling:unit scripts/loops/browser.test.mjs
+          --reporter=default --reporter=json --outputFile.json=ci-results/browser-tooling.json
       - id: report
         name: Report the failures
         if: ${{ !cancelled() }}
-        run: node scripts/ci/verdict.mjs summarize ci-results/integration.json >> "$GITHUB_OUTPUT"
+        run: >-
+          node scripts/ci/verdict.mjs summarize ci-results/integration.json
+          ci-results/browser-tooling.json >> "$GITHUB_OUTPUT"
 
   verdict:
     needs:
