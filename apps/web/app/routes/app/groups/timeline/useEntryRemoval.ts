@@ -1,3 +1,4 @@
+import type { ActionResult } from "~/lib/core/api";
 import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { useState } from "react";
@@ -8,11 +9,12 @@ import { useFetcher } from "react-router";
  * for an entry, `confirm` posts `remove` to the timeline's action (the local
  * database; live queries show it at once), and `isRemoving` fades the row
  * while that runs. `removeNow` deletes without the confirm (a series
- * visit's "Only this visit" was the confirm).
+ * visit's "Only this visit" was the confirm). `error` is the last delete's
+ * refusal (no permission), shown by the list.
  */
 export function useEntryRemoval() {
   const [deleting, setDeleting] = useState<TimelineEntry | null>(null);
-  const remover = useFetcher();
+  const remover = useFetcher<ActionResult>();
   const removingId = remover.state !== "idle" ? remover.formData?.get("id") : null;
   return {
     asking: !!deleting,
@@ -25,5 +27,6 @@ export function useEntryRemoval() {
     removeNow: (entry: TimelineEntry) =>
       void remover.submit({ intent: "remove", id: entry.id }, { method: "post" }),
     isRemoving: (entryId: string) => removingId === entryId,
+    error: remover.data?.ok === false ? remover.data.error : null,
   };
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { ActionResult } from "~/lib/core/api";
 import type { TimelineEntry } from "~/lib/core/rpc";
 import type { UpcomingListData } from "./useUpcomingData";
 
@@ -64,6 +65,12 @@ export function UpcomingList({
   const rescheduling = useEventReschedule(groupId, canWrite);
   const remind = useRemindMe(groupId);
   const [deleting, setDeleting] = useState<string | null>(null);
+  // The last delete's refusal (no permission): a local write, so the list says so itself.
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const remove = (entryId: string) =>
+    void removeEntry(getSync(), entryId).then((res: ActionResult) =>
+      setRemoveError(res.ok ? null : res.error),
+    );
   const scope = useSeriesScope(canWrite);
   const navigate = useNavigate();
   const prep = useVisitPrep(groupId, canWrite, { openAfter: true });
@@ -105,7 +112,7 @@ export function UpcomingList({
           ? () =>
               scope.ask(entry, "delete", {
                 only: () => setDeleting(entry.id),
-                onlyChosen: () => void removeEntry(getSync(), entry.id),
+                onlyChosen: () => remove(entry.id),
               })
           : undefined
       }
@@ -117,9 +124,9 @@ export function UpcomingList({
       <h2 id="upcoming-list-heading" className="sr-only">
         {label}
       </h2>
-      {(cancelling.error || scope.error) && (
+      {(removeError || cancelling.error || scope.error) && (
         <p role="alert" className="text-error text-sm">
-          {cancelling.error ?? scope.error}
+          {removeError ?? cancelling.error ?? scope.error}
         </p>
       )}
       {data.sections.length === 0 && (
@@ -175,7 +182,7 @@ export function UpcomingList({
         confirmLabel="Delete"
         onClose={() => setDeleting(null)}
         onConfirm={() => {
-          if (deleting) void removeEntry(getSync(), deleting);
+          if (deleting) remove(deleting);
           setDeleting(null);
         }}
       />

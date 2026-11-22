@@ -277,9 +277,9 @@ export function TimelineEntryList({
         <h2 id="timeline-heading" className="sr-only">
           Timeline
         </h2>
-        {(cancelling.error || scope.error) && (
+        {(removal.error || cancelling.error || scope.error) && (
           <p role="alert" className="text-error text-sm">
-            {cancelling.error ?? scope.error}
+            {removal.error ?? cancelling.error ?? scope.error}
           </p>
         )}
         {/* Always there, so a search's first result is announced too. */}
