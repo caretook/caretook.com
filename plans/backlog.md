@@ -58,13 +58,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-nit` | standing | — | — | plan: plans/fixes-nit-plan.md, rules: plans/fixes-rules.md |
 | `inbox-agent` | — | `orchestration-3` | `scripts/backlog/`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/prompt.sh`, `scripts/loops/dispatch`, `scripts/loops/tidy`, `scripts/loops/queue` | To write. Priority from a Next up list in the inbox, an inbox agent writing to origin/dev, duplicate checks and automatic archive, asks hygiene (B-406, B-425, B-435, B-429). Cut from orchestration-3 |
+| `ui-kit-3` | — | `ui-kit-2` | `eslint.config.js` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** to write (B-398, B-269, B-448 and overlay motion): every remaining area swept onto the kit, one area per slice; then the lint guard. Cut from ui-kit-2 to keep it at six slices; starts after ui-kit-2 so the sweeps copy its final Button, header and motion contracts; before test-health waves 5 to 7; never beside i18n. Hot files when planned: most route and component folders, one area per slice |
 | `asks-relay` | hold | `inbox-agent` | `scripts/loops/ask`, `scripts/loops/prompt.sh`, `scripts/loops/dispatch`, `scripts/loops/tidy`, `scripts/loops/session`, `scripts/loops/prd.sh` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** The backlog session as go-between for every agent's questions, and asks queue hygiene. Cut from inbox-agent by its planner (plans/inbox-agent-prd.md, Follow-on topic) |
 | `sync-safety` | — | — | `packages/api/src/sync`, `apps/web/app/lib/sync/`, `apps/web/app/lib/auth/session`, `apps/web/app/routes/sign-out.tsx`, `apps/web/app/routes/app/layout/SyncIndicator.tsx`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `packages/data/src/services/`, `apps/web/app/lib/medications/medications.sync.ts`, `apps/web/app/lib/providers/providers.sync.ts`, `scripts/browser-checks/roundtrip.spec.mjs`, `scripts/browser-checks/signout-wipe.spec.mjs`, `scripts/browser-checks/session-end.spec.mjs` | to write (B-285 to B-296, B-382 to B-384, B-387: repeating-todo upload bugs Codex found, moved from `planner-2`), from the 2026-11-21 code review (findings not re-verified): refused sync changes shown to the user, an upload queue that can't wedge, offline edits that don't revert a co-member's change, replayed PUTs, global client-chosen ids, the sign-out wipe and unsent writes, then the column-agreement test and one generic upload handler · Depends on: (none); `test-health` shares the upload tests (B-371, B-374) · Hot files: `packages/api/src/sync.ts`, `lib/sync/client.ts`, `SyncIndicator`, `session.ts`, `sign-out.tsx`, `medications.sync.ts`, `providers.sync.ts`, the services' `upsert`s |
 | `sync-safety-2` | hold | `sync-safety` | `packages/api/src/sync`, `apps/web/app/lib/sync/`, `packages/data/src/services/`, `apps/web/app/lib/todos/` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** to write (B-294 to B-296, B-382 to B-384, B-387): cut from sync-safety by its planner, 2026-11-21: device transactions applied atomically, device clocks on change entries, the stale tab, and the repeating-todo races |
 | `dose-accuracy` | — | — | `packages/data/src/db/schema/medications/dueDoses.ts`, `packages/data/src/db/schema/medications/duePasses.ts`, `apps/web/app/lib/medications/medications.sync.ts`, `apps/web/app/lib/medications/dueDoses.sync.ts`, `apps/web/app/lib/appointments/visitPrep`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/assistantActionService.ts`, `packages/api/src/connectors/tools/todaysDoses.ts` | to write (B-297 to B-299), from the 2026-11-21 code review: a dose answers only its own day's slot, deterministic dose ids, visit prep's missed doses per schedule epoch · Hot files: `db/schema/medications/dueDoses.ts`, `medications.sync.ts` (`logDoses`), `visitPrep.ts` |
 | `ui-kit` | done | — | `apps/web/app/components/ui/`, `apps/web/app/app.css`, `apps/web/app/components/settings/`, `apps/web/app/routes/sign-in.tsx`, `apps/web/app/routes/app/layout/SectionNav.tsx` | [PRD](ui-kit-prd.md), [plan](ui-kit-plan.md) (B-257 to B-267, B-270, B-396, B-397, B-399): 7 slices, waves 1 → (2, 3, 4) → (5, 6) → 7: a dev gallery at `/dev/ui`, Button and the form footer; the pill tab bar (medications, Planner, sign-in) and the phone's floating, icon-only bottom bar; messages, empty and loading states and Badge; text tokens, the page container and one heading scale; Card, lists, check and toggle fields; the detail header and full-width section bands on the medication, provider, care period and to-do pages, then the profile. Each primitive is adopted in settings, sign-in or the detail pages; the rest of the app is `ui-kit-2`. No migration, no deps; stackless but for slice 2 (two browser checks). **Ready to start** · Depends on: (none): `list-filters` and `planner-2` are in `dev`; never beside `i18n`; `quick-fixes` between waves · Hot files: `components/ui/` (its `index.ts`, `styles.ts`, `plain/`, `TabNav`, `PageHeader`, `Field`), `app.css`, `components/settings/`, the settings route folders, `routes/sign-in.tsx` and the account card, the dev routes part, the outer `main` and `h1` of `/app` pages outside the timeline and entry folders, the five detail-page folders, `LinkedTodos`, `AllergiesRegion`; `routes/app/layout/SectionNav.tsx` and the bar's locator in `app-shell.spec.mjs` (`test-health` slice 12 rewrites that spec) and `roundtrip.spec.mjs` |
 | `ui-kit-2` | done | `ui-kit` | `apps/web/app/components/ui/`, `apps/web/app/app.css`, `apps/web/app/root.tsx`, `apps/web/app/assets/fonts/`, `apps/web/app/routes/dev/ui/`, `scripts/build/manifest`, `scripts/build/service-worker`, `apps/web/app/routes/app/groups/medications/route.tsx`, `apps/web/app/routes/app/groups/medications/routes.ts`, `apps/web/app/routes/app/groups/medications/passes/`, `apps/web/app/lib/medications/urls.ts`, `apps/web/app/lib/medications/medicationSheets`, `apps/web/app/routes/app/groups/providers/route.tsx`, `apps/web/app/routes/app/groups/planner/PlannerHeader.tsx`, `apps/web/app/routes/app/groups/periods/route.tsx`, `apps/web/app/components/entry/SeriesScopeDialog.tsx`, `apps/web/app/routes/app/groups/todo/RepeatDeleteDialog.tsx`, `apps/web/app/routes/app/groups/timeline/DaySummaryLine.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/TodayCard.tsx` | [PRD](ui-kit-2-prd.md), [plan](ui-kit-2-plan.md) (B-423, B-420, B-419, B-424, B-415, B-414, B-268): 6 slices, waves (1, 4, 6) → (2, 5) → 3: one Button with tones, sizes and shapes; a + add button at the top right of every main page header (Providers with an icon-only Import, the Planner, Care periods); Medications with Passes as a third tab and an add menu; the Atkinson Hyperlegible Next typeface, self-hosted; quiet motion for buttons, rows, chevrons and expanding regions; a kit ChoiceDialog for the two three-way questions. No migration, no deps; slices 3, 4 and 6 have a stack. The sweeps, the guard and overlay motion are ui-kit-3 · Depends on: ui-kit in dev; never beside i18n |
-| `ui-kit-3` | hold | `ui-kit-2` | `eslint.config.js` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** to write (B-398, B-269, B-448 and overlay motion): every remaining area swept onto the kit, one area per slice; then the lint guard. Cut from ui-kit-2 to keep it at six slices; starts after ui-kit-2 so the sweeps copy its final Button, header and motion contracts; before test-health waves 5 to 7; never beside i18n. Hot files when planned: most route and component folders, one area per slice |
 | `orchestration-2` | done | `check-speed` | `scripts/loops/prompt.sh`, `scripts/loops/prd.sh`, `scripts/loops/queue.sh`, `scripts/loops/rm.sh`, `scripts/loops/open-session.`, `scripts/loops/session`, `scripts/backlog/` | [PRD](orchestration-2-prd.md), [plan](orchestration-2-plan.md) (B-389, B-390, B-391, B-395): 6 slices, waves (1, 2, 3) → 4 → 5 → 6: the PRD table as a registry (`pnpm backlog prd`, row order is the priority, states worked out), recorded sessions, an asks queue (`pnpm prd ask`, pushed to the phone by the asking session), drain-then-rotate after each landing (`pnpm prd rotate`), run-through prompts and status, then `quick-fixes` split into five standing topics (`fixes-ui`, `fixes-tooling`, `fixes-perf`, `fixes-bug`, `fixes-nit`, on hold until the user orders them). Tooling only. **Ready to start** once `check-speed` is in `dev` · Depends on: `check-speed` in `dev` (shared `prd.sh`, `prompt.sh`, `pnpm test:tooling`); before `test-health`, never beside it · Hot files: `scripts/loops/prompt.sh`, `prd.sh`, `queue.sh`, `rm.sh`, `open-session.*`, `scripts/backlog/`, this PRD table |
 | `orchestration-3` | done | `orchestration-2` | `scripts/loops/prompt.sh`, `scripts/loops/prd.sh`, `scripts/loops/queue.sh`, `scripts/loops/recover.sh`, `scripts/loops/land.sh`, `scripts/loops/lease`, `scripts/loops/new.sh`, `scripts/loops/session`, `scripts/loops/open-session.`, `scripts/loops/inventory`, `scripts/loops/tidy`, `scripts/loops/dispatch`, `scripts/loops/check-run`, `scripts/backlog/backlog.mjs` | to write (B-392, B-404: one command to ship `dev` to staging through the Codex review): the dispatcher (`pnpm prd dispatch`: the pick, unattended planners, `queue` as "move to the front", recovery and status). What is settled and what is open: [orchestration-2 PRD](orchestration-2-prd.md), _Follow-on_ · Depends on: `orchestration-2` in `dev` (last item B-395) · Hot files: `scripts/loops/prompt.sh`, `prd.sh`, `queue.sh`, `recover.sh`, the registry |
 | `staging-ship` | hold | — | `scripts/loops/review.sh`, `scripts/loops/codex-review`, `scripts/loops/prd.sh`, `scripts/loops/land.sh` | To write. Ship dev to staging in one command, Codex findings filed by tool, a staging to-test report (B-404, B-430, B-436). Cut from orchestration-3; doesn't need the dispatcher |
@@ -287,7 +287,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-477 | change | triaged | fixes-tooling |  | PRD registry: a hold carries its reason |
 | B-479 | bug | triaged | fixes-tooling |  | calendarCron.int.test.ts 'runs the reminders first, then Google push and pull, and the series top-up last by default' times out at 5 s under load (passes alone) |
 | B-480 | bug | triaged | fixes-tooling |  | timelineQuickEntry.browser.test.tsx 'the user's units are used, and an explicit unit wins' misses 'Saved 1 entry' under load (passes alone) |
-| B-481 | change | triaged | fixes-ui |  | Text entry boxes and the default page background are the same color, which is confusing: pick a different color for one or the other (no preference which) |
+| B-481 | change | triaged | ui-kit-3 |  | Text entry boxes and the default page background are the same color, which is confusing: pick a different color for one or the other (no preference which) |
 | B-482 | bug | staging | fixes-bug | prd/fixes-bug | Offline settings change queued under the old simpleMode key is retried forever after the easy-mode rename, and blocks later offline settings changes |
 | B-484 | bug | triaged | fixes-tooling |  | Flaky under load: staff.browser.test.tsx 'offline, the cached banner shows; it goes at its end time without a reload' sets endsAt to now + 2 s, so a render over 2 s (load ~20) sees the banner already gone |
 | B-485 | bug | triaged | fixes-tooling |  | Flaky under load: print.browser.test.tsx 'Next, Previous and This week move it by a week…' reads 2027-06-07 for 2027-05-31 (Matcher did not succeed in time) in a full check; passes alone |
@@ -324,6 +324,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-517 | feature | triaged | agent-autonomy |  | A check carries over a dev sync: a passed check stays valid after a merge of dev when every incoming commit landed through a full check, the merge was conflict-free, the sides share no file, and dev brought no migration, seeds, sync-config.yaml, lockfile, package.json or vitest config; the merged tip runs only typecheck, lint and the tests related to both sides' changes (check-plan.mjs); else today's quick |
 | B-518 | change | triaged | agent-autonomy |  | Land without re-syncing when dev's changes don't touch the branch: land.sh's drift refusal relaxes when dev's new commits share no file with the branch and bring none of the risky files; land still merges dev and typechecks the result, and the landing report says it landed on an unsynced tip |
 | B-519 | bug | triaged | fixes-ui |  | Easy mode button on the timeline sits lower than the Timeline page title: align it with the title's row (same vertical center and baseline) |
+| B-520 | change | triaged | ui-kit-3 |  | Dark theme feels too dark: lift its surfaces (page about 23%, cards about 30%, hue toward the brand indigo, chroma at most about 0.025) and give text boxes their own fill in both themes |
+| B-521 | change | triaged | ui-kit-3 |  | Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark |
+| B-522 | change | triaged | ui-kit-3 |  | Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary) |
+| B-523 | change | triaged | ui-kit-3 |  | Each section's accent color as an icon chip beside the page title and as the current tab's pill tint; Easy mode stays neutral |
+| B-524 | change | triaged | ui-kit-3 |  | Empty states show a colored icon circle in the section's accent color |
 
 ## Items
 
@@ -2208,11 +2213,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-481 · change · Text entry boxes and the default page background are the same color, which is confusing: pick a different color for one or the other (no preference which)
 
 - status: triaged
-- prd: fixes-ui
+- prd: ui-kit-3
 - owner:
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Filed from the backlog session on the user's word, 2026-11-21. Triage: fixes-ui (look; a small theme token change). Likely touches apps/web/app/app.css or the ui/ input primitives, which ui-kit-2 lists as hot files: whichever runs second syncs first. The user has no preference for which color changes; the fixer proposes one and checks both themes.
+- 2026-11-22 (Robert Bo Davis): Moved from fixes-ui to ui-kit-3: folded into the dark theme surfaces lift (text boxes get their own fill), so they land together.
 
 ### B-482 · bug · Offline settings change queued under the old simpleMode key is retried forever after the easy-mode rename, and blocks later offline settings changes
 
@@ -2557,3 +2563,48 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): Seen on staging (dark theme, phone width): the 'Easy mode' toggle (apps/web/app/routes/app/groups/timeline/EasyModeToggle.tsx) is offset below the 'Timeline' heading in the page header. fixes-ui: layout only.
+
+### B-520 · change · Dark theme feels too dark: lift its surfaces (page about 23%, cards about 30%, hue toward the brand indigo, chroma at most about 0.025) and give text boxes their own fill in both themes
+
+- status: triaged
+- prd: ui-kit-3
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): Color plan (backlog session, 2026-11-22), revised after a Fable skeptic pass: lift surfaces first, then accent tokens distinct from status colors (info/success/warning/error), then apply them. Cut: a tinted Today card (dilutes its urgency tints) and a standalone header wash (banding, sticky header). Absorbs B-481. Recheck text-muted/text-faint contrast, TabNav's --tab-bar-surface (base-300) and the day band (base-200). Light theme otherwise unchanged. Do first.
+
+### B-521 · change · Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark
+
+- status: triaged
+- prd: ui-kit-3
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): Color plan (backlog session, 2026-11-22), revised after a Fable skeptic pass: lift surfaces first, then accent tokens distinct from status colors (info/success/warning/error), then apply them. Cut: a tinted Today card (dilutes its urgency tints) and a standalone header wash (banding, sticky header). Avoid amber and red (they read as warning/error, used for urgency in TodayRow). Timeline indigo is primary, so pick hues that read on their own (e.g. Planner orange or lime, Care periods pink or plum, Medications teal, Providers sky only if it is not info). TabNav already notes dark primary on its 15% tint is under 3:1. Before the next two items.
+
+### B-522 · change · Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary)
+
+- status: triaged
+- prd: ui-kit-3
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): Color plan (backlog session, 2026-11-22), revised after a Fable skeptic pass: lift surfaces first, then accent tokens distinct from status colors (info/success/warning/error), then apply them. Cut: a tinted Today card (dilutes its urgency tints) and a standalone header wash (banding, sticky header). lib/timeline/entryDisplay.ts maps entry types to bg-warning/bg-info/bg-primary/bg-secondary today. Label and icon stay; color is never the only signal. Needs the accent tokens.
+
+### B-523 · change · Each section's accent color as an icon chip beside the page title and as the current tab's pill tint; Easy mode stays neutral
+
+- status: triaged
+- prd: ui-kit-3
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): Color plan (backlog session, 2026-11-22), revised after a Fable skeptic pass: lift surfaces first, then accent tokens distinct from status colors (info/success/warning/error), then apply them. Cut: a tinted Today card (dilutes its urgency tints) and a standalone header wash (banding, sticky header). PageHeader and TabNav in ui/. An optional faint header wash may be tried here, not as its own item. Needs the accent tokens.
+
+### B-524 · change · Empty states show a colored icon circle in the section's accent color
+
+- status: triaged
+- prd: ui-kit-3
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): Color plan (backlog session, 2026-11-22), revised after a Fable skeptic pass: lift surfaces first, then accent tokens distinct from status colors (info/success/warning/error), then apply them. Cut: a tinted Today card (dilutes its urgency tints) and a standalone header wash (banding, sticky header). The EmptyState primitive only; no colored section headings. Needs the accent tokens.
