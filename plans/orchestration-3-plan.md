@@ -8,20 +8,21 @@
 
 - **Wave 1 (slices 1–3) and slice 4 landed** in `dev` through PR #37 (dev `e015a74`, 2026-11-21; check: none needed, tooling only; Codex: one P2 on rotating records, tracked on B-392 and fixed in slice 5; then clean). Registry rows `orchestration-2` and `check-speed` flagged `done` before wave 1. to-test: `to-test/2026-11-21-1946-orchestration-3.md`.
 - **Wave 2 (slice 5, the dispatcher) landed** in `dev` through PR #39 (`8fe925d` merge, dev-synced to `367c63c`, 2026-11-21; check: none needed, tooling only; synced with ui-kit's last wave first). It also carried a load-gate fix (`64ad1c71`: no wait logged when never busy) and dev's lint fix (`12628b9e`, sessions.test.mjs:248). Codex: three P2s on `dispatch.mjs`, verified, tracked as B-452 (a failed `new.sh` leaves an unmanaged worktree), B-453 (a hold answer consumed when the backlog write fails), B-454 (stale-lock takeover race); then clean. B-426, B-428, B-439 done. B-451 (fixes-tooling): tooling-only landings run no eslint. to-test: `to-test/2026-11-21-2030-orchestration-3.md`. Report filed.
-- **Draining:** slice 6 was started before the landing (opus, worktree `orchestration-3-6`); merge it when it hands off, then commit _Status_ and `pnpm prd rotate`. The next session lands wave 3 (slice 6; B-452–B-454 are triaged for the user, not in it), runs _Trying it_ after wave 3 (`dispatch --once` and one dispatcher ask need the user's word: ask through `pnpm prd ask`), the docs pass, `pnpm prd rm`, `pnpm prd end`.
+- **Slice 6 merged** (`706cee98`, opus; quick check passed on its tip `4bb5048a` with the tooling tests, 46 files, 651 tests); B-392 marked ready; worktree removed. **Next session (wave 3's landing, the last):** `pnpm backlog ingest`/`doctor`/`list`; `pnpm prd sync`; `pnpm test:tooling` + `pnpm exec eslint scripts/` + prettier on changed files (B-451: the gate skips eslint); the docs pass below (it also closes slice 6's one unmet criterion); `pnpm prd pr`, `review --wait`, triage, land; then _Trying it_ after wave 3 (`dispatch --dry-run` in the report; `dispatch --once` and one dispatcher ask only on the user's word: ask through `pnpm prd ask`); `pnpm prd rm orchestration-3`; `cd` main; `pnpm prd end`.
+- **Slice 6's unmet criterion is docs only** (loops can't edit `docs/`): `docs/agents/backlog.md` (line ~40), `machinery.md` (lines ~11, ~19: `queue.sh`, queue tickets), `orchestrator.md` (line ~19, Queueing) and `recovery.md` (line ~7) still name the queue tickets, the start lock, `queue.sh` or `prd migrate`; fix them in the docs pass. From slice 6: recover reopens the dispatcher with `open-session.sh --command … --title dispatch --background`; the recovery agent reads `dispatcher.running` from `recover --dry-run --json`; `status-extra.mjs` honours `CARETOOK_DISPATCH_MAIN`; `lib.sh` gains `dispatch_pid`.
 - **Dry run after wave 2** (live registry): it would plan sync-safety (16 waiting, no plan); nothing starts: hand-opened worktrees fill the slots (4 of 3), fixes-nit and simple-mode opened by hand with no live orchestrator.
-- **For slice 6** (from slice 5): `dispatch.mjs` exports `pathsOf`, `readState`, `updateState`, `lockHolder`, `takeLock`, `mainCheckout` for status and recover; its log is `.loops/.dispatch.log`; the queue machinery is untouched. Slice 5 also made the pick skip reopening a `hold` row.
+- **From slice 5:** `dispatch.mjs` exports `pathsOf`, `readState`, `updateState`, `lockHolder`, `takeLock`, `mainCheckout` for status and recover; its log is `.loops/.dispatch.log`; the queue machinery is untouched. Slice 5 also made the pick skip reopening a `hold` row.
 - **Docs pass at the last landing** (plan's _How to run this plan_), plus: machinery gets the load gate's settings (`CARETOOK_LOAD_BUSY/_GATE/_WAIT/_POLL/_FILE`, the check-times 12th field = seconds waited, the status gate line; a waiting check holds a check lease), `managed`, the dispatcher (files, `--pause/--resume/--stop`, the helper push, the 30-minute reopen-count reset); `docs/agents/hotfix.md` still says `--force`.
 - **Seen on the real machine** (slice 5's dry run): the load sits above 20 on 10 cores, and stale hand-opened worktrees (fixes-nit, ui-kit, simple-mode) fill the slots ("4 of 3 running"), so the dispatcher would start nothing yet.
 
-| Slice | Wave | State                                      | Merge into `prd/orchestration-3` |
-| ----- | ---- | ------------------------------------------ | -------------------------------- |
-| 1     | 1    | landed (opus)                              | 947da00d                         |
-| 2     | 1    | landed (opus)                              | c31e2ebc                         |
-| 3     | 1    | landed (opus)                              | 04a45f7f                         |
-| 4     | 2    | landed with wave 1 (opus)                  | 77bc95c5                         |
-| 5     | 2    | landed (opus), PR #39                      | 813bff39                         |
-| 6     | 3    | started (opus), worktree orchestration-3-6 |                                  |
+| Slice | Wave | State                     | Merge into `prd/orchestration-3` |
+| ----- | ---- | ------------------------- | -------------------------------- |
+| 1     | 1    | landed (opus)             | 947da00d                         |
+| 2     | 1    | landed (opus)             | c31e2ebc                         |
+| 3     | 1    | landed (opus)             | 04a45f7f                         |
+| 4     | 2    | landed with wave 1 (opus) | 77bc95c5                         |
+| 5     | 2    | landed (opus), PR #39     | 813bff39                         |
+| 6     | 3    | merged, not landed (opus) | 706cee98                         |
 
 **Backlog:** B-427 closes with slice 4; B-426, B-428 and B-439 with slice 5 (slices 1, 2 and 3 build their first halves, the dispatcher the rest); B-392 with slice 6.
 
