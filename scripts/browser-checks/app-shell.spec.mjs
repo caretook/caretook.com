@@ -413,6 +413,10 @@ test("easy role: the owner's choice reaches the member's device", async ({ devic
       await expect
         .poll(mine, { timeout: 20_000, intervals: [500], message: "the entry on the server" })
         .toBe("1");
+      // A saved note opens its page (an entries/* page the role keeps); back to the timeline.
+      await S.waitForURL(`**/app/groups/${DEV_FAMILY}/entries/**`, { timeout: 20_000 });
+      await S.locator(`main a[href="${DEV_FAMILY_TIMELINE}"]`).first().click();
+      await S.waitForURL(`**${DEV_FAMILY_TIMELINE}`);
 
       await S.locator("[data-easy-next] button").click();
       await S.locator("[data-easy-upcoming-all]").click();
