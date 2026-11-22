@@ -13,11 +13,13 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556. B-531 (modes) is d
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** wave 1 started 2026-11-22. Worktrees `test-gates-1` and `test-gates-2` made, B-555, B-556, B-341 and B-554 claimed. Both slices run on opus (real logic). No open issues.
+**Now:** wave 1 started 2026-11-22. Worktrees `test-gates-1` and `test-gates-2` made, B-555, B-556, B-341 and B-554 claimed. Both slices run on opus (real logic). Slice 1 merged; its worktree stays until the wave's full check passes, because that check is the first real run of the new check body (real Vitest rerun, full mode). Slice 1's quiet-machine before/after time is only partial: static 127 s in series against 79.5 s side by side, at load 8 to 11. Waiting on slice 2.
+
+**Docs to fold at landing (slice 1):** the 15-field check log, the time limits (`CARETOOK_CHECK_LIMIT`, `CARETOOK_CHECK_KILL_GRACE`), the rerun and its guards (`CARETOOK_CHECK_RERUN_MAX`), side-by-side static steps (machinery, orchestrator, loop), and the `check --times` line in `pnpm prd help`.
 
 | Slice | Wave | State          | Merge into `prd/test-gates` (slice commits) |
 | ----- | ---- | -------------- | ------------------------------------------- |
-| 1     | 1    | started (opus) | —                                           |
+| 1     | 1    | merged (opus)  | 98a36dd4 (5eb596a9)                         |
 | 2     | 1    | started (opus) | —                                           |
 | 3     | 2    | —              | —                                           |
 | 4     | 3    | —              | —                                           |
