@@ -124,7 +124,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-239 | bug | triaged | fixes-tooling |  | pnpm prd review: --json mode prints progress lines (asked Codex…, waiting) on stdout, so its output isn't valid JSON |
 | B-240 | bug | triaged | fixes-tooling |  | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
 | B-241 | bug | triaged | fixes-tooling |  | codex-review: PR_QUERY reads only the first 100 review threads (and 50 comments each), so a PR with more could read as clean |
-| B-242 | bug | triaged | fixes-tooling |  | with_backlog_lock: on Linux, BSD 'stat -f %m' succeeds with non-numeric output before GNU stat is tried, breaking the lock-age arithmetic |
+| B-242 | bug | triaged | test-gates |  | with_backlog_lock: on Linux, BSD 'stat -f %m' succeeds with non-numeric output before GNU stat is tried, breaking the lock-age arithmetic |
 | B-244 | chore | triaged | fixes-tooling |  | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
 | B-245 | plan | triaged | planner-3 |  | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
@@ -245,7 +245,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-434 | feature | triaged | worker-watch |  | Run metrics beyond check times: slice and landing durations, flake rate and how often Codex finds something, in one summary command |
 | B-435 | feature | triaged | inbox-agent |  | Filing checks for duplicates (similar open or archived titles shown before an item is added) and finished items are archived without a hand run |
 | B-436 | feature | triaged | staging-ship |  | A to-test report for a staging ship, like the landing reports of B-410 |
-| B-437 | change | ready | agent-autonomy-2 | prd/agent-autonomy-2 | Record backlog, hotfix and recovery sessions like orchestrator sessions, so pnpm prd status shows them and they can be reopened |
+| B-437 | change | landed | agent-autonomy-2 | prd/agent-autonomy-2 | Record backlog, hotfix and recovery sessions like orchestrator sessions, so pnpm prd status shows them and they can be reopened |
 | B-438 | plan | triaged | self-recovery |  | Headless orchestrator sessions: runs that need no terminal tab, so a helper cannot outlive or die with its window |
 | B-440 | bug | staging | fixes-tooling | prd/fixes-tooling | pnpm prd tidy --yes: a database for a topic ending -w1..-w16 reads as an orphan worker copy and is dropped |
 | B-441 | bug | staging | fixes-tooling | prd/fixes-tooling | pnpm prd tidy: a missing or failing lsof reads as no process in any worktree, so --yes can remove an active one |
@@ -302,14 +302,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-502 | bug | triaged | fixes-tooling |  | Flaky under load: search.int.test.ts 'searches a group of 10,000 entries in under 200 ms' reads 210 ms in a full check; passes alone |
 | B-504 | feature | dropped | agent-autonomy |  | Quiet-machine landing check: a landing's full check can claim the machine; the dispatcher and other orchestrators hold new slice starts and checks until it ends or a time limit passes; waiting landings take turns |
 | B-505 | feature | dropped | agent-autonomy |  | Flake rule replaces asking: when every failing test in a full check passes alone 3/3, rerun only the failed files on a quiet machine; if they pass, land and file each flaky test as a fixes-tooling item, with no question to the user |
-| B-507 | feature | ready | agent-autonomy-2 | prd/agent-autonomy-2 | Context hook: a Claude Code hook on orchestrator and loop sessions reads the transcript's latest context size after each tool call and, over 160k, tells the agent to finish its step, commit Status and pnpm prd rotate |
+| B-507 | feature | landed | agent-autonomy-2 | prd/agent-autonomy-2 | Context hook: a Claude Code hook on orchestrator and loop sessions reads the transcript's latest context size after each tool call and, over 160k, tells the agent to finish its step, commit Status and pnpm prd rotate |
 | B-508 | feature | in-progress | agent-autonomy-2 | prd/agent-autonomy-2 | pnpm prd status shows each live session's context size; the dispatcher nudges a session still over the limit after its reminder, then files an ask |
-| B-509 | change | ready | agent-autonomy-2 | prd/agent-autonomy-2 | Orchestrator rule: over 160k context, rotate at the next safe point, mid-wave included, without asking; continue only for a step that can't resume from Status (a landing under way), saying why in Status |
+| B-509 | change | landed | agent-autonomy-2 | prd/agent-autonomy-2 | Orchestrator rule: over 160k context, rotate at the next safe point, mid-wave included, without asking; continue only for a step that can't resume from Status (a landing under way), saying why in Status |
 | B-511 | feature | triaged | agent-autonomy-3 |  | Skeptic before every ask: a session sends its question, options and evidence to a fresh Fable skeptic first; it decides (reversible, within the rules) or confirms the question is the user's; pnpm prd ask records the verdict |
 | B-512 | feature | triaged | agent-autonomy-3 |  | Skeptic before risky landings: a Fable skeptic reviews the evidence before land --force, landing on flaky tests (B-505) or declining a Codex finding, and the landing report says what it said |
 | B-513 | change | triaged | agent-autonomy-3 |  | Opus planners and backlog sessions with a Fable final check: the skeptic pass runs on Fable and may send a plan back; a registry flag (e.g. design) keeps a heavy design topic's planner on Fable |
-| B-514 | feature | triaged | agent-autonomy-2 |  | Hand off from the phone: in a backlog or inbox session, 'hand off' runs pnpm prd rotate --self: a fresh session of the same kind and name opens (Remote Control, so it shows on the phone) and the old one ends; two modes the user picks: with a short brief of the current session passed to the new one, or with nothing handed over |
-| B-515 | feature | triaged | agent-autonomy-2 |  | Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too |
+| B-514 | feature | in-progress | agent-autonomy-2 | prd/agent-autonomy-2 | Hand off from the phone: in a backlog or inbox session, 'hand off' runs pnpm prd rotate --self: a fresh session of the same kind and name opens (Remote Control, so it shows on the phone) and the old one ends; two modes the user picks: with a short brief of the current session passed to the new one, or with nothing handed over |
+| B-515 | feature | in-progress | agent-autonomy-2 | prd/agent-autonomy-2 | Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too |
 | B-516 | feature | landed | agent-autonomy |  | Landing notices before and after: a landing posts a notice when its full check starts (topic, about when, the areas and hot files it touches) and after it merges (the sha, what it touched); an orchestrator that sees a landing coming holds its own full check, syncs after it, and checks once |
 | B-517 | feature | dropped | agent-autonomy |  | A check carries over a dev sync: a passed check stays valid after a merge of dev when every incoming commit landed through a full check, the merge was conflict-free, the sides share no file, and dev brought no migration, seeds, sync-config.yaml, lockfile, package.json or vitest config; the merged tip runs only typecheck, lint and the tests related to both sides' changes (check-plan.mjs); else today's quick |
 | B-518 | change | triaged | agent-autonomy |  | Land without re-syncing when dev's changes don't touch the branch: land.sh's drift refusal relaxes when dev's new commits share no file with the branch and bring none of the risky files; land still merges dev and typechecks the result, and the landing report says it landed on an unsynced tip |
@@ -353,7 +353,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-556 | chore | ready | test-gates | prd/test-gates | Faster static steps in a check: typecheck, lint and format take 2.2 minutes run one after another on a quiet machine (lint 79 s, typecheck 38 s, format 15 s), most of the new slice check's 2.5 minutes |
 | B-557 | feature | triaged | timeline-jump |  | quick date jump on timeline via date picker AND quick entry |
 | B-558 | feature | triaged | assistant-access |  | Assistants settings needs to allow owner to enable read/write or stick to read only for group… |
-| B-559 | bug | triaged | fixes-tooling |  | Tooling scripts break on Linux: BSD 'stat -f %m' succeeds under GNU stat, so watchdog caps and silence limits never fire |
+| B-559 | bug | triaged | test-gates |  | Tooling scripts break on Linux: BSD 'stat -f %m' succeeds under GNU stat, so watchdog caps and silence limits never fire |
 
 ## Items
 
@@ -536,13 +536,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-242 · bug · with_backlog_lock: on Linux, BSD 'stat -f %m' succeeds with non-numeric output before GNU stat is tried, breaking the lock-age arithmetic
 
 - status: triaged
-- prd: fixes-tooling
+- prd: test-gates
 - owner:
 - commit:
 
 - 2026-11-21 (prd/github-review): Codex finding on PR #12 (lib.sh:328), verified. Macs are fine today; check the output is numeric before falling back.
 - 2026-11-21 (Robert Bo Davis): Codex raised this again on PR #16 (dev into staging, head 30206f75), P2; still present on dev. Already filed, no new item.
 - 2026-11-21 (Robert Bo Davis): Backlog session 2026-11-21: moved from github-review (done) to the standing tooling fixes topic; each is a small fix to the review tooling.
+- 2026-11-22 (prd/test-gates): Same root cause as B-559; fixed by the shared mtime helper in test-gates slice 8.
 
 ### B-244 · chore · codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false
 
@@ -1751,7 +1752,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-437 · change · Record backlog, hotfix and recovery sessions like orchestrator sessions, so pnpm prd status shows them and they can be reopened
 
-- status: ready
+- status: landed
 - prd: agent-autonomy-2
 - owner: prd/agent-autonomy-2
 - commit: 5162f553
@@ -2304,7 +2305,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-507 · feature · Context hook: a Claude Code hook on orchestrator and loop sessions reads the transcript's latest context size after each tool call and, over 160k, tells the agent to finish its step, commit Status and pnpm prd rotate
 
-- status: ready
+- status: landed
 - prd: agent-autonomy-2
 - owner: prd/agent-autonomy-2
 - commit: 5162f553
@@ -2324,7 +2325,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-509 · change · Orchestrator rule: over 160k context, rotate at the next safe point, mid-wave included, without asking; continue only for a step that can't resume from Status (a landing under way), saying why in Status
 
-- status: ready
+- status: landed
 - prd: agent-autonomy-2
 - owner: prd/agent-autonomy-2
 - commit: 5162f553
@@ -2368,9 +2369,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-514 · feature · Hand off from the phone: in a backlog or inbox session, 'hand off' runs pnpm prd rotate --self: a fresh session of the same kind and name opens (Remote Control, so it shows on the phone) and the old one ends; two modes the user picks: with a short brief of the current session passed to the new one, or with nothing handed over
 
-- status: triaged
+- status: in-progress
 - prd: agent-autonomy-2
-- owner:
+- owner: prd/agent-autonomy-2
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: backlog and inbox sessions must hand off to a fresh agent of the same type from the phone, and stay running alongside the dispatcher. The user's words: 'The handoff for both needs two options: share information about current session and no information handoff needed.' No session updates are saved unless the user asks.
@@ -2378,9 +2379,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-515 · feature · Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too
 
-- status: triaged
+- status: in-progress
 - prd: agent-autonomy-2
-- owner:
+- owner: prd/agent-autonomy-2
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: backlog and inbox sessions must hand off to a fresh agent of the same type from the phone, and stay running alongside the dispatcher. Needs the inbox agent (B-425, inbox-agent) for the inbox half; until it lands, the backlog session only.
@@ -2809,8 +2810,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-559 · bug · Tooling scripts break on Linux: BSD 'stat -f %m' succeeds under GNU stat, so watchdog caps and silence limits never fire
 
 - status: triaged
-- prd: fixes-tooling
+- prd: test-gates
 - owner:
 - commit:
 
 - 2026-11-22 (slice/test-gates/2): Found by the first CI runs (test-gates slice 2): https://github.com/caretook/caretook.com/actions/runs/45071425596. GNU stat -f prints filesystem text and exits 0, giving 'File: unbound variable'. Sites: browser.sh:369 (no GNU fallback), stack-lib.sh:167, lease.sh:134; lib.sh:386 is B-242. Fix: try stat -c %Y first, or a shared helper. 11 Linux-only tooling:unit failures: browser.test.mjs (6), lease.test.mjs (2), disk.test.mjs, load-gate.test.mjs, stack.test.mjs (1 each).
+- 2026-11-22 (prd/test-gates): Moved to test-gates slice 8 on the user's decision: the CI tiers need it green before landing.
