@@ -436,21 +436,25 @@ const openBeforeInChain = async (tx: Tx, next: Todo) => {
  * before it, has already decided; this removes the next only when it's
  * still untouched after the reopened todo (the same test as `reopen`), so
  * a next another member edited, completed or wrote notes on meanwhile
- * stays. The same people as `reopen`. Returns the row when it stays.
+ * stays. The same people as `reopen` (for this row and the reopened one),
+ * checked before anything else. Returns the row when it stays.
  */
 export const removeUndoneNext = (ctx: ServiceContext, id: string) =>
   withTransaction(async (tx) => {
     const next = await todoModel.getById(id, { ...ctx, tx, includeDeleted: true });
     if (isError(next)) return next;
     if (!next) return notFound();
+
+    // The role first, so a refused write reads as refused whatever the row's state (B-510).
+    const role = await roleIn(ctx, tx, next.groupId);
+    if (isError(role)) return role;
+    if (!canCompleteTodo({ role, userId: ctx.authUser?.id, todo: next }))
+      return isTodoCompleter(role) ? completionRefused() : rejectError(ctx.authUser);
     if (next.deletedAt) return next;
 
     const before = await openBeforeInChain(tx, next);
     if (isError(before)) return before;
     if (!before?.repeatRule) return next;
-
-    const role = await roleIn(ctx, tx, next.groupId);
-    if (isError(role)) return role;
     if (!canCompleteTodo({ role, userId: ctx.authUser?.id, todo: before }))
       return isTodoCompleter(role) ? completionRefused() : rejectError(ctx.authUser);
 
