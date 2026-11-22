@@ -13,6 +13,7 @@ import * as settingsLayout from "~/routes/app/settings/layout/route";
 import * as units from "~/routes/app/settings/units/route";
 import { rgba, surfaceContrast, textContrast } from "../../../../test/contrast";
 import { renderWithDevice } from "../../../../test/device";
+import { found } from "../../../../test/found";
 import { fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../../test/fixtures";
 import { PROBE } from "../../../../test/probe";
 
@@ -385,15 +386,12 @@ describe("the sections", () => {
     const submit = dialog.getByRole("button", { name: "Save" }).element();
     submit.scrollIntoView({ block: "end" });
     const s = submit.getBoundingClientRect();
-    const b = document.querySelector(TAB_BAR)!.getBoundingClientRect();
+    const bar = await found(() => document.querySelector(TAB_BAR));
+    const b = bar.getBoundingClientRect();
     expect(
       dialog.element().contains(document.elementFromPoint(s.left + s.width / 2, s.top + s.height / 2)),
     ).toBe(true);
-    expect(
-      document
-        .querySelector(TAB_BAR)!
-        .contains(document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)),
-    ).toBe(false);
+    expect(bar.contains(document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2))).toBe(false);
   });
 });
 

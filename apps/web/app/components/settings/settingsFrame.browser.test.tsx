@@ -14,6 +14,7 @@ import * as groupIndex from "~/routes/app/groups/settings/index/route";
 import * as groupLayout from "~/routes/app/groups/settings/layout/route";
 import * as groupMembers from "~/routes/app/groups/settings/members/route";
 import { renderWithDevice } from "../../../test/device";
+import { found } from "../../../test/found";
 import { fx, TEST_GROUP } from "../../../test/fixtures";
 
 // The settings frame's navigation, one table for the account's and a group's
@@ -132,13 +133,13 @@ describe.each(FRAMES)("$name", ({ routes, index, heading, items: subpages, first
     expect(shown(nav())).toBe(true);
     expect(shown(backLink(index, heading))).toBe(false);
 
-    await userEvent.click(nav().querySelector(`[data-settings-item="${second[0]}"]`)!);
+    await userEvent.click(await found(() => nav().querySelector(`[data-settings-item="${second[0]}"]`)));
     await expect.poll(device.location).toBe(`${index}/${second[0]}`);
     await expect.poll(headings).toEqual([second[1]]);
     expect(shown(nav())).toBe(false);
     expect(shown(backLink(index, heading))).toBe(true);
 
-    await userEvent.click(backLink(index, heading)!);
+    await userEvent.click(await found(() => backLink(index, heading)));
     await expect.poll(device.location).toBe(index);
     await expect.poll(() => shown(nav())).toBe(true);
   });
@@ -150,7 +151,7 @@ describe.each(FRAMES)("$name", ({ routes, index, heading, items: subpages, first
     expect(current()).toEqual([`${first[0]}=page`]);
     expect(shown(backLink(index, heading))).toBe(false);
 
-    await userEvent.click(nav().querySelector(`[data-settings-item="${second[0]}"]`)!);
+    await userEvent.click(await found(() => nav().querySelector(`[data-settings-item="${second[0]}"]`)));
     await expect.poll(device.location).toBe(`${index}/${second[0]}`);
     await expect.poll(headings).toEqual([second[1]]);
     expect(current()).toEqual([`${second[0]}=page`]);

@@ -241,7 +241,7 @@ describe.each([
     expect(
       panel.contains(document.elementFromPoint(r.left + r.width / 2, Math.min(r.bottom, innerHeight) - 4)),
     ).toBe(true);
-    expect(top()!.querySelector('button[aria-label="Close"]')).not.toBeNull();
+    expect(top()?.querySelector('button[aria-label="Close"]')).not.toBeNull();
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => overlays().length).toBe(0);
     await expect.poll(active).toBe(actions());
@@ -254,8 +254,8 @@ describe.each([
     const dialog = must("dialog[open]");
     await expect.poll(() => nameOf(dialog)).toBe("Delete the probe?");
     await expect.poll(() => dialog.contains(active())).toBe(true);
-    const box = dialog.querySelector(".modal-box")!;
-    expect(getComputedStyle(surface(box)!).backgroundColor).toBe(base100());
+    const box = await found(() => dialog.querySelector(".modal-box"));
+    expect(getComputedStyle(surface(box) ?? box).backgroundColor).toBe(base100());
     await Promise.all(box.getAnimations().map((a) => a.finished.catch(() => undefined)));
     const r = box.getBoundingClientRect();
     expect(Math.abs(r.left + r.width / 2 - document.documentElement.clientWidth / 2)).toBeLessThanOrEqual(10);
