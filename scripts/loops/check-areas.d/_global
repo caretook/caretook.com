@@ -54,6 +54,9 @@ scripts/build/service-worker.mjs         @suite
 scripts/build/manifest.mjs               @suite
 apps/web/build-target.ts                 @suite
 apps/web/app/root.tsx                    @suite
+# The typeface (B-415): app.css and root.tsx load it on every page; the
+# offline shell precaches it, and the public pages show it.
+apps/web/app/fonts/                      layout-offline marketing
 # The production PowerSync settings, for the runbook (hosting slice 2): nothing loads it.
 powersync/service.production.example.yaml -
 powersync/                               @suite

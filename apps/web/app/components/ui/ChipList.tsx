@@ -58,7 +58,7 @@ export function ChipList({
               aria-label={chip.removeLabel ?? `Remove ${chip.label}`}
               title={chip.removeLabel ?? `Remove ${chip.label}`}
               onClick={chip.onRemove}
-              className={`${buttonClass({ variant: "ghost", size: "xs", shape: "circle" })} mr-1`}
+              className={`${buttonClass({ variant: "ghost", size: "xs", shape: "round" })} mr-1`}
             >
               <X className="size-3.5" aria-hidden="true" />
             </button>

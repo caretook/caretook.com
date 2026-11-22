@@ -4,14 +4,24 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/ui-kit-2` (slice commits) |
-| ----- | ---- | ----- | ----------------------------------------- |
-| 1     | 1    | —     | —                                         |
-| 2     | 2    | —     | —                                         |
-| 3     | 3    | —     | —                                         |
-| 4     | 1    | —     | —                                         |
-| 5     | 2    | —     | —                                         |
-| 6     | 1    | —     | —                                         |
+| Slice | Wave | State                                                                                                                                                                                                                                                                   | Merge into `prd/ui-kit-2` (slice commits)                             |
+| ----- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 1     | 1    | merged (opus; quick check passed on c13f688c)                                                                                                                                                                                                                           | a4c2f3c5 (c13f688c)                                                   |
+| 2     | 2    | handed off (opus; quick check passed on 05248130); merge after wave 1 lands                                                                                                                                                                                             | —                                                                     |
+| 3     | 3    | —                                                                                                                                                                                                                                                                       | —                                                                     |
+| 4     | 1    | merged (opus; quick check on 1efa71ca exit 1 only on the B-484 banner flake, passes alone 3x; layout-offline, marketing pass)                                                                                                                                           | 7a3fff2f (1efa71ca)                                                   |
+| 5     | 2    | handed off (opus; quick check on 9c0d45f9 exit 1: 3 click timeouts under load (inScreens time chip, timelineEasy toggle, timelineQuickEntrySuggestions bp chip), pass alone 3x; suspect the new `.btn:active` 0.97 scale first if they recur); merge after wave 1 lands | —                                                                     |
+| 6     | 1    | merged (opus; quick check passed on 8d21b5d0; roundtrip, ui pass)                                                                                                                                                                                                       | 9d02ad16 (999c234b, 8d21b5d0); index and registry conflicts kept both |
+
+**Landing mode:** run everything through (started run-through; land each green wave, PR + Codex; `--no-review` unasked only when Codex is out of credits).
+
+**Now:** wave 1 (slices 1, 4, 6) merged and synced with dev (clean). Full check passed on 3839ce5d (fifth run, 2026-11-22; earlier runs overlapped fixes-bug's and failed on rotating load flakes: fixed two read-once races in tests (ae0e9ef6 profile focus, 3839ce5d mention chip), cherry-picked fixes-bug's roles.int stopgap (d8d19535, e659f7b8), filed B-484, B-485, B-488, noted B-450, B-466, B-486). fixes-bug and ui-kit-2 take turns on full checks. Next: serve --restart, lean `--suite`, PR, Codex, land. Slices 2 and 5 handed off, waiting to merge after wave 1 lands (then drain and rotate).
+
+**Docs to fold (from hand-offs):**
+
+- Slices 1, 4, 6: folded into ui-kit, app-shell, security-headers, appointments, todos (wave 1).
+- Slice 2 → ui-kit _Contracts_: `PageHeader` `add`: a `label` and a link (`to`, `state`, `prefetch`, `preventScrollReset`), `onPress`, or `items` (`menuLabel`); the primary `sm` icon-only square `+`, the header's last control, `actions` to its left; `data-*` (string values) on the control. `Button`'s `to` form takes `preventScrollReset`. components _Rules_: "A main page's add control is the header's `+` (`PageHeader` `add`, writers only); other actions sit to its left." providers: writers get the `+` ("Add provider"); Import is an icon-only `secondary` button just before it.
+- Slice 5 → ui-kit _What's in it_: `Chevron`, `Collapse` (also `ui/plain`). _Contracts_: motion is three durations (`--motion-fast` 120, `--motion` 180, `--motion-slow` 240) and one ease-out curve at the end of `app.css`; every animating rule under `prefers-reduced-motion: no-preference`, and reduce turns off `.btn`'s daisyUI transition; buttons fade on hover and press to 0.97, link rows fade their fill. `Chevron` (`open`, `closed` right|down; aria-hidden). `Collapse` (`open`, `id`, `axis` block|inline; closed is inert and hidden but stays mounted; the toggle keeps `aria-expanded`/`aria-controls`). _Which to use_: expanders use `Chevron` and `Collapse`. components (tests): emulate reduced motion from the test file via `cdp()` `Emulation.setEmulatedMedia`, reset after. Later (ui-kit-3): `EasyNext`, Today card rows, `TabNav`'s ungated `transition-colors`.
 
 **Start conditions:** `ui-kit` is in `dev` (done). Never beside `i18n`. Its hot files (the PRD table) overlap `fixes-bug` while a wave of it holds the Planner or timeline folders, and `ui-kit-3` must not start before this lands.
 
