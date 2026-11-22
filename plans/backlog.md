@@ -318,6 +318,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-458 | chore | triaged | fixes-tooling |  | Backlog: let set and note change archived items (a fix to an archived item's topic, title, commit or note is refused, so the hygiene fixes for B-206, B-208, B-88, B-222 can't be made) |
 | B-459 | chore | triaged | fixes-tooling |  | Backlog: 151 items read 'live' because the dev-into-staging-into-main release merge (cc3e1d8b, B-33) put their commits on origin/main, though production hasn't launched; give live a real meaning (a production marker such as a tag or a recorded deploy) or show main as staging until launch |
 | B-460 | bug | triaged | fixes-tooling |  | Flaky under load: tidy-cli.test.mjs beforeAll/hook times out at 10s in pnpm test:tooling at load ~20 (4 tests); passes alone 3x |
+| B-461 | bug | triaged | fixes-tooling |  | tidy-cli.test.mjs fails as a whole file under heavy load (load about 30) in pnpm test:tooling, passes alone 3x |
 
 ## Items
 
@@ -2580,3 +2581,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (prd/orchestration-3): seen on prd/orchestration-3 at wave 3's landing, 2026-11-21; load 19-21 on 10 cores
+
+### B-461 · bug · tidy-cli.test.mjs fails as a whole file under heavy load (load about 30) in pnpm test:tooling, passes alone 3x
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (hotfix/reseed-staging): Seen 2026-11-21 on hotfix/reseed-staging (a8c39d78), which does not touch scripts/loops/: 1 failed file of 45, 638 tests passed, the failure at file level (no test named), with the 1-minute load near 32. Alone it passed three times in 7 to 9 s. Same family as B-446 (browser.test.mjs under load).
