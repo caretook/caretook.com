@@ -50,8 +50,8 @@ export function clientLoader({ context }: Route.ClientLoaderArgs) {
  *
  * Screens outside a group (`/app`, `/app/settings`) get the header without a
  * group menu, sections or tab bar. So does a timeline in easy mode
- * (`useEasyFrame`), which keeps the search magnifier (but not for the easy
- * roles) and has a reduced user menu.
+ * (`useEasyFrame`), which keeps the search magnifier and has a reduced user
+ * menu.
  */
 export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const { user } = loaderData;
@@ -60,8 +60,6 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
   // Easy mode's timeline: only the mark, the sync status and a reduced user menu.
   const easy = useEasyFrame(user.id, groupId, pathname);
   const groupFrame = groupId && !easy ? groupId : undefined;
-  // Search stays in easy mode, but not for the easy roles (their allow-list keeps them off the search page).
-  const searchGroup = groupId && !easy?.easyRole ? groupId : undefined;
   const severalGroups = useSeveralGroups(user.id);
   return (
     <>
@@ -75,9 +73,9 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
         <div data-region="sections" className="hidden items-center sm:flex">
           {groupFrame && <SectionNav groupId={groupFrame} pathname={pathname} />}
         </div>
-        {searchGroup && (
+        {groupId && (
           <div data-region="search" className="flex items-center">
-            <IconButton to={appUrls.search(searchGroup)} icon={Search} label="Search this care group" />
+            <IconButton to={appUrls.search(groupId)} icon={Search} label="Search this care group" />
           </div>
         )}
         <div data-region="status" className="flex items-center">

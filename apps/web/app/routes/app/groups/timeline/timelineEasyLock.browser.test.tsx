@@ -14,8 +14,9 @@ import * as timeline from "./route";
 import { chooseEasyMode, TIMELINE_URL, waitUntil } from "./timelineWorld";
 
 // The easy roles, viewers and "Remove my last entry", in the real /app frame
-// on the test device: an Easy helper or Easy viewer is kept to the timeline
-// and their notes' and events' pages (by the group route, on navigation and
+// on the test device: an Easy helper or Easy viewer is kept to the timeline,
+// their notes' and events' pages and the few others in
+// layout/easyRolePages.browser.test.tsx (by the group route, on navigation and
 // when the role syncs in), reaches account settings, sign-out and their other
 // groups; an Easy helper logs and changes only their own rows; an Easy viewer
 // and a viewer get the next appointment as text and no inputs; and you can
@@ -96,9 +97,9 @@ describe("an easy role", () => {
     const device = await open({ url: `${base}/entries/${note.id}`, fixtures: [note] });
     await expect.element(page.getByRole("heading", { name: "Entry page" })).toBeVisible();
     expect(device.location()).toBe(`${base}/entries/${note.id}`);
-    // No group menu, sections, search or tab bar to wander off through.
+    // No group menu, sections or tab bar to wander off through; search stays (slice 4).
     expect(page.getByRole("button", { name: /switch care group$/ }).elements()).toHaveLength(0);
-    expect(document.querySelector('body header [data-region="search"]')).toBeNull();
+    expect(document.querySelector('body header [data-region="search"]')).not.toBeNull();
   });
 
   test("is sent to the timeline when the role syncs in while they're elsewhere", async () => {

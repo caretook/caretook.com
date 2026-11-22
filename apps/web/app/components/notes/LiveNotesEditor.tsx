@@ -43,6 +43,8 @@ export type LiveNotesEditorHandle = {
  * lists the user's other groups' matches under "From <group>"; a pick copies
  * the provider here and mentions the copy: through `onImport` when given
  * (the entry page imports and links), else `importProviders` (no link).
+ * `linkMentions={false}` shows the chips as names, not links (the easy
+ * roles, who can't open a provider's page).
  */
 export function LiveNotesEditor({
   label,
@@ -53,6 +55,7 @@ export function LiveNotesEditor({
   onMention,
   onAdd,
   onImport,
+  linkMentions = true,
   ...options
 }: BindNoteDocOptions & {
   label: string;
@@ -65,6 +68,8 @@ export function LiveNotesEditor({
   onAdd?: (name: string) => Promise<MentionAddResult>;
   /** Copies a "From <group>" pick here (and does any linking). Defaults to an import into this group. */
   onImport?: (choice: MentionFromGroup, source: readonly ImportSource[]) => Promise<MentionAddResult>;
+  /** Whether mention chips link to the provider's page (default true). */
+  linkMentions?: boolean;
   /** Put the cursor in the document on open (a writer starting a new entry). */
   autofocus?: boolean;
   ref?: Ref<LiveNotesEditorHandle>;
@@ -101,8 +106,12 @@ export function LiveNotesEditor({
     onImport: onImport ?? ((choice, source) => importInto(db, groupId, choice, source)),
   });
   const targets = useMemo(
-    () => ({ groupId, providers: new Map((providers ?? NO_PROVIDERS).map((p) => [p.id, p])) }),
-    [groupId, providers],
+    () => ({
+      groupId,
+      providers: new Map((providers ?? NO_PROVIDERS).map((p) => [p.id, p])),
+      links: linkMentions,
+    }),
+    [groupId, providers, linkMentions],
   );
 
   const editor = useEditor({

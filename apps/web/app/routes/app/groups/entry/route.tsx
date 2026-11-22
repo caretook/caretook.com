@@ -11,7 +11,7 @@ import { appUrls } from "~/lib/app-shell/appUrls";
 import { START_AT_PARAM } from "~/lib/timeline/urls";
 import { WHEN_PARAM, WITH_PROVIDER_PARAM } from "~/lib/live-notes/urls";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
-import { getGroup } from "~/lib/app-shell/group";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { NEW_ENTRY } from "~/lib/live-notes/liveEntry";
 import { sessionContext } from "~/lib/auth/session";
 import { getSync } from "~/lib/sync";
@@ -80,6 +80,7 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
   const loaderData = useMemo(() => withEventDraft(loaded, eventDraft), [loaded, eventDraft]);
   const live = useLiveEntry(loaderData, groupId);
   const { entry, canWrite, deleted, saveError } = live;
+  const { easyRole } = useGroup();
   // Read once: after sign-out closes the database, this page may render once more before it goes.
   const [db] = useState(getSync);
   const editor = useRef<LiveNotesEditorHandle>(null);
@@ -159,6 +160,8 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
               onMention={mentions.onMention}
               onAdd={mentions.onAdd}
               onImport={mentions.onImport}
+              // The easy roles can't open a provider's page.
+              linkMentions={!easyRole}
             />
             {entry.kind === "event" && live.stored && <LinkedTodos link={{ eventId: entry.id }} />}
           </>

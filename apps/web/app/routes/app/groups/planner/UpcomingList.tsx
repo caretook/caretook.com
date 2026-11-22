@@ -43,6 +43,7 @@ const LIST_CLASS = "rounded-box border-base-300 bg-base-100 divide-base-200 divi
  * for viewers, Print. A series visit's Edit, Reschedule, Cancel and Delete
  * ask Only this visit or This and later visits first (`useSeriesScope`).
  * The Planner tab's sections can also hold open dated todos (`PlannerTodoRow`).
+ * `readOnly` (the easy roles' Planner): no ⋯ menus and no filter links.
  */
 export function UpcomingList({
   data,
@@ -50,6 +51,7 @@ export function UpcomingList({
   label,
   empty,
   children,
+  readOnly = false,
 }: {
   data: UpcomingListData;
   groupId: string;
@@ -57,6 +59,8 @@ export function UpcomingList({
   label: string;
   empty: string;
   children?: ReactNode;
+  /** Only the rows: no menus or filter links (the easy roles). */
+  readOnly?: boolean;
 }) {
   const { canWrite, userId } = useGroup();
   const todoNameOf = (id: string) => (id === userId ? "you" : data.nameOf(id));
@@ -156,7 +160,8 @@ export function UpcomingList({
                   authorImage={data.imageOf(entry.createdBy)}
                   contacts={data.contactsOf(entry.id)}
                   rescheduledTo={data.rescheduledOf(entry)}
-                  menu={menuOf(entry)}
+                  menu={readOnly ? undefined : menuOf(entry)}
+                  readOnly={readOnly}
                 />
               ),
             )}

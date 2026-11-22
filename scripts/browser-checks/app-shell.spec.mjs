@@ -24,7 +24,10 @@
 //    from it with the membership when they're removed.
 // 4. An easy role across two devices: the owner makes caretaker@ an Easy
 //    helper from Members; caretaker@'s open timeline switches to the easy
-//    view without a reload, with no search. Put back in SQL.
+//    view without a reload, with search and no Full app. As an Easy helper
+//    they log an entry (it reaches the server), open Upcoming's "See all"
+//    (the Planner) and search (a provider's read-only sheet), and a typed
+//    Medications URL lands on the timeline. Put back in SQL.
 // 5. Staff (its screens are component tests under routes/admin/ and
 //    routes/app/layout/staff.browser.test.tsx): every /admin page is a 404 for
 //    member@ (a group's owner, not staff); admin@ posts an announcement through
@@ -362,7 +365,14 @@ test("members: changes reach another device", async ({ device }) => {
 
 // ── 4. An easy role: the owner's choice reaching the member's device ──────
 test("easy role: the owner's choice reaches the member's device", async ({ device }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(210_000);
+  const TAG = `ESY${Date.now().toString(36)}`;
+  const started = psql("SELECT now() - interval '1 minute'");
+  /** caretaker@'s live entries since the test started, as the server holds them. */
+  const mine = () =>
+    psql(
+      `SELECT count(*) FROM timeline_entry WHERE created_by = (SELECT id FROM "user" WHERE email = 'caretaker@example.com') AND created_at >= '${started}' AND deleted_at IS NULL`,
+    );
   const dM = await device("settings-owner");
   const dS = await device("easy-member");
   const M = dM.page;
@@ -389,13 +399,50 @@ test("easy role: the owner's choice reaches the member's device", async ({ devic
         );
       await expect.poll(serverRole, { timeout: 20_000, intervals: [500] }).toBe("easy_helper");
       await expect(S.locator("[data-easy-timeline]")).toBeVisible({ timeout: 30_000 });
-      // The easy roles have no search (their pages are the timeline and entries) and no Full app.
-      await expect(S.locator('header [data-region="search"]')).toHaveCount(0);
+      // The easy roles keep search, and have no Full app.
+      await expect(S.locator('header [data-region="search"]')).toHaveCount(1);
       await expect(S.getByRole("button", { name: "Full app" })).toHaveCount(0);
       expect(await stayed(S)).toBe(1);
     });
+
+    await test.step("as an Easy helper: logs an entry, opens See all and search, and is sent back from Medications", async () => {
+      const text = `Walked to the mailbox ${TAG}`;
+      await S.getByRole("textbox", { name: "What happened?" }).fill(text);
+      await expect(S.locator("[data-quick-card]")).toBeVisible({ timeout: 10_000 });
+      await S.getByRole("button", { name: "Save" }).click();
+      await expect
+        .poll(mine, { timeout: 20_000, intervals: [500], message: "the entry on the server" })
+        .toBe("1");
+      // A saved note opens its page (an entries/* page the role keeps); back to the timeline.
+      await S.waitForURL(`**/app/groups/${DEV_FAMILY}/entries/**`, { timeout: 20_000 });
+      await S.locator(`main a[href="${DEV_FAMILY_TIMELINE}"]`).first().click();
+      await S.waitForURL(`**${DEV_FAMILY_TIMELINE}`);
+
+      await S.locator("[data-easy-next] button").click();
+      await S.locator("[data-easy-upcoming-all]").click();
+      await S.waitForURL(`**/app/groups/${DEV_FAMILY}/planner`);
+      await expect(S.locator("main [data-upcoming-list] [data-upcoming-item]").first()).toBeVisible({
+        timeout: 20_000,
+      });
+      await expect(S.getByRole("navigation", { name: "Planner or todos" })).toHaveCount(0);
+
+      await S.locator('header [data-region="search"] a').click();
+      await S.waitForURL(`**/app/groups/${DEV_FAMILY}/search`);
+      await S.locator("input[data-search-field]").fill("Cornerstone");
+      await S.locator('[data-result="provider"] button[data-opens-sheet]').first().click();
+      await expect(S.locator("[role=dialog] [data-easy-sheet=provider]")).toBeVisible();
+      await S.getByRole("button", { name: "Done" }).click();
+      expect(new URL(S.url()).pathname).toBe(`/app/groups/${DEV_FAMILY}/search`);
+
+      await S.goto(`/app/groups/${DEV_FAMILY}/medications`);
+      await S.waitForURL(`**${DEV_FAMILY_TIMELINE}`, { timeout: 30_000 });
+      await expect(S.locator("[data-easy-timeline]")).toBeVisible({ timeout: 30_000 });
+    });
     await noErrors(dM, dS);
   } finally {
+    psql(
+      `UPDATE timeline_entry SET deleted_at = now() WHERE created_by = (SELECT id FROM "user" WHERE email = 'caretaker@example.com') AND created_at >= '${started}' AND deleted_at IS NULL`,
+    );
     restoreSeeds();
   }
 });

@@ -12,8 +12,9 @@ import { useEasyTodos } from "./useEasyTodos";
 
 /**
  * Easy mode's "My todos" card (todos PRD): my open todos, overdue and
- * today first, at most five, each with a big tick (Undo for about 10 s),
- * and "See all" to the Todos list on Mine. Viewers get it too (they may
+ * today first, at most five, each with a big tick (Undo for about 10 s) and
+ * its title opening its page, and "See all" to the Todos list on Mine. The
+ * easy roles, who have no Todos list, get every one of theirs and no "See all". Viewers get it too (they may
  * complete what they were given). Nothing when I have none. Not a tile:
  * the tiles open entry forms.
  *
@@ -71,7 +72,9 @@ export function EasyTodos({ className = "" }: { className?: string }) {
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="text-xl font-medium break-words" data-todo-title>
-                    {todo.title}
+                    <Link to={appUrls.todo(group.id, todo.id)} className="link link-hover">
+                      {todo.title}
+                    </Link>
                   </p>
                   <p
                     className={`text-base ${state === "overdue" ? "text-error" : "text-base-content/70"}`}
@@ -88,11 +91,13 @@ export function EasyTodos({ className = "" }: { className?: string }) {
       )}
       <TodoUndoStatus groupId={group.id} className="text-base" />
       {error && <p className="text-error text-base">{error}</p>}
-      <p className="text-xl">
-        <Link to={appUrls.todos(group.id, "?who=mine")} className="link" data-easy-todos-all="">
-          {total > todos.length ? `See all ${total} todos` : "See all"}
-        </Link>
-      </p>
+      {!group.easyRole && (
+        <p className="text-xl">
+          <Link to={appUrls.todos(group.id, "?who=mine")} className="link" data-easy-todos-all="">
+            {total > todos.length ? `See all ${total} todos` : "See all"}
+          </Link>
+        </p>
+      )}
     </section>
   );
 }
