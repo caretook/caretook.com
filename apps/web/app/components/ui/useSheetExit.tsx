@@ -135,12 +135,17 @@ export function useSheetExit({
     [setPhase],
   );
 
+  // Whatever removed the hold (the caller closing the sheet) took the exit with it.
+  const onReleased = useCallback(() => {
+    held.current = null;
+  }, []);
+
   const inDataRouter = useContext(UNSAFE_DataRouterContext) !== null;
   const isTopmost = useSyncExternalStore(subscribe, topmost, noSheet) === id;
   return {
     closing: phase !== "open",
     dismiss,
-    hold: inDataRouter && isOpen && isTopmost ? { shouldHold, onHeld } : null,
+    hold: inDataRouter && isOpen && isTopmost ? { shouldHold, onHeld, onReleased } : null,
   };
 }
 
@@ -148,10 +153,26 @@ export function useSheetExit({
 export function NavigationHold({
   shouldHold,
   onHeld,
+  onReleased,
 }: {
   shouldHold: BlockerFunction;
   onHeld: (blocker: Blocker) => void;
+  onReleased: () => void;
 }) {
+  // A caller may navigate and close in one go: unmounting would drop the held
+  // navigation, so it goes now. Declared before `useBlocker`, whose cleanup
+  // unregisters the blocker, and read from the router, as this render may
+  // never have seen it blocked.
+  const router = useContext(UNSAFE_DataRouterContext)?.router;
+  useEffect(
+    () => () => {
+      onReleased();
+      for (const held of router?.state.blockers.values() ?? []) {
+        if (held.state === "blocked") held.proceed();
+      }
+    },
+    [router, onReleased],
+  );
   const blocker = useBlocker(shouldHold);
   useEffect(() => {
     if (blocker.state === "blocked") onHeld(blocker);
