@@ -9,7 +9,7 @@
 | 1     | 1    | merged (opus)                                                    | e2e4a366 (9bfc245b, 81689593)                     |
 | 2     | 2    | started (opus), worktree agent-autonomy-2-2                      | —                                                 |
 | 3     | 1    | merged (opus); conflicts resolved in session.sh and status-extra | 5162f553 (9da26376, 41a67e83)                     |
-| 4     | 2    | started (opus), worktree agent-autonomy-2-4                      | —                                                 |
+| 4     | 2    | handed off (opus) at 8104cb2e; merge after 2                     | —                                                 |
 | 5     | 2    | handed off (opus) at ba12c013; merge after 2 and 4               | —                                                 |
 | 6     | 3    | —                                                                | —                                                 |
 | 7     | 3    | —                                                                | —                                                 |
@@ -33,6 +33,10 @@ pnpm exec vitest run --project tooling:unit --project scripts:unit $files # zsh:
 `pnpm prd check` still runs the file when a diff touches tooling (no skip switch yet): don't edit `check-body.sh` or bypass the gate. **The user, 2026-11-22:** when a diff touches only tool code, waves leave it out too. So while every changed file is Markdown, `scripts/loops/`, `scripts/backlog/` or `.githooks/` (the check gate's "none needed"), slices and wave gates run no `pnpm prd check`, only the list above and `pnpm exec eslint scripts`. The same browser-tooling exception applies.
 
 **Open issues:**
+
+- For slice 6 (from slice 4's hand-off): `rotate --self` finds the caller by process ancestry, so the dispatcher can't call it from its tick. It must open the `rotate-into.sh <name> <pid> [--brief <file>]` line itself, or add a way to name the session. Inbox still needs adding to `rotate.sh`, `rotate-into.sh` and `session.sh`.
+- For slice 7 (from slices 4 and 5): the brief path is `prompt.sh backlog --brief <file>`, read before `session.sh` deletes `.loops/.briefs/<name>.md`. A live `backlog-<name>` doesn't count as the kept `backlog` session, but counts toward the limit.
+- Slices 4 and 5 ran only against stubs: no real session or iTerm2 tab yet. Once wave 2 lands and the dispatcher restarts on it, it opens a backlog session whenever none is live (`CARETOOK_KEEP_SESSIONS=off` or `pnpm prd dispatch --pause` stops that). Say so in the landing report.
 
 - The hook has only run against a stub `claude`. `claude` 2.1.330 takes `--settings`, but the docs don't say that hooks passed this way merge with the others, or which transcript a subagent's PostToolUse names. First live test: this orchestrator's first session after the wave 1 landing should get a size in `pnpm prd context`. Slice 2 can time the nudge from `firstOverAt` (`remindedAt` moves on each repeat), setting `nudgeAt` through `updateRecord`.
 
