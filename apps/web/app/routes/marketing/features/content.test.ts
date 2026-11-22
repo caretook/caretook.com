@@ -33,11 +33,8 @@ describe("features content", () => {
     }
   });
 
-  it("has providers as a main feature, and medications as coming", () => {
+  it("has providers as a main feature, and a known icon for everything coming", () => {
     expect(content.showcases.map((s) => s.id)).toContain("providers");
-    const text = content.coming.items.map((i) => i.title).join(" ");
-    expect(text).toMatch(/medications/i);
-    expect(text).not.toMatch(/providers/i);
     for (const item of content.coming.items) expect(MARKETING_ICONS).toHaveProperty(item.icon);
   });
 

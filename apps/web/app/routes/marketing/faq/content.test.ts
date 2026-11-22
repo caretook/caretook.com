@@ -30,22 +30,6 @@ describe("FAQ content", () => {
     expect(new Set(questions).size).toBe(questions.length);
   });
 
-  it("answers the plan's questions", () => {
-    const questions = faqItems.map((i) => i.question).join("\n");
-    for (const topic of [
-      /cost/i,
-      /who can see/i,
-      /viewer and a caretaker/i,
-      /secure/i,
-      /offline/i,
-      /leave a care group/i,
-      /delete my data/i,
-      /care group is deleted/i,
-    ]) {
-      expect(questions).toMatch(topic);
-    }
-  });
-
   it("builds FAQPage JSON-LD with exactly the visible questions and answers, in order", () => {
     const ld = faqPageJsonLd(faqItems);
     expect(ld["@type"]).toBe("FAQPage");

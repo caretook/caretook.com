@@ -8,3 +8,5 @@ packages/api/src/rateLimit.ts            marketing
 # Directory defaults: a new file here needs no rule.
 apps/web/app/lib/marketing/              -
 packages/data/src/db/schema/marketing/   marketing
+# The component tests' world: only they read it.
+apps/web/app/routes/marketing/marketingWorld.tsx  -

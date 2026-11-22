@@ -9,6 +9,7 @@ import { createEntry, removeEntry } from "~/lib/timeline/timeline.sync";
 import * as timeline from "~/routes/app/groups/timeline/route";
 import { renderWithDevice } from "./device";
 import { found } from "./found";
+import { getByCss } from "./locators";
 import { fx, TEST_GROUP } from "./fixtures";
 
 // The test device's own tests: what every component test leans on.
@@ -53,6 +54,9 @@ describe("the test device", () => {
     });
     const { screen } = device;
     await expect.element(screen.getByText("Slept through the night")).toBeVisible();
+    // A data- hook through getByCss: the author's mark on Sam's note, retried until it's there.
+    const samsNote = screen.getByRole("listitem").filter({ hasText: "Slept through the night" });
+    await expect.element(getByCss(`[data-author="${sam.id}"]`, { within: samsNote })).toBeVisible();
     await expect.element(screen.getByText(/Dizzy when standing · 4/)).toBeVisible();
     await expect
       .element(screen.getByRole("listitem").filter({ hasText: "Lisinopril 10 mg" }).first())
@@ -302,6 +306,7 @@ describe("found", () => {
 
   test("times out, saying what it waited for", async () => {
     await expect(
+      // eslint-disable-next-line caretook/no-call-timeout -- the timeout itself is what's tested
       found(() => document.querySelector("#never"), { timeout: 100, message: "the never button" }),
     ).rejects.toThrow(/found: no element within 100 ms: the never button \(.*#never.*\)\./);
   });
