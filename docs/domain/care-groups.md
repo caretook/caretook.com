@@ -30,7 +30,7 @@ The shared space for one care recipient's caretakers. Always "care group" (never
   - `timeline_entry_provider`: read any member; create and delete writers; update `system`.
   - `care_recipient_details`: read, create and update writers (viewers none; outside contacts: owner, admin); delete `system`.
   - `user_contact`: yourself only for everything (not staff). `member_contact_share`: read any member; writes `system`.
-- ¹ `todoService` limits a viewer to ticking or unticking a todo assigned to them (`todoService:viewerCompletionOnly`); see [todos](todos.md).
+- ¹ `todoService` limits a viewer and both easy roles to ticking or unticking a todo assigned to them (`todoService:completionOnly`, one rule and one error for all three); see [todos](todos.md).
 - `system` has `all` everywhere. Ids that point at the group can't be changed except by `system`.
 - **Staff get no default access to care data.** Any support access will be an explicit, audited grant.
 - **Write memberships and invites through the services**, because they enforce what the map can't:

@@ -31,12 +31,8 @@ export const TODOS_ERRORS = {
     message: "That isn't a repeating todo's next occurrence",
     statusCode: 400,
   },
-  "todoService:viewerCompletionOnly": {
-    message: "Viewers can only complete or reopen todos assigned to them",
-    statusCode: 403,
-  },
-  "todoService:easyCompletionOnly": {
-    message: "This role can only complete or reopen todos assigned to them",
+  "todoService:completionOnly": {
+    message: "You can only complete or reopen todos assigned to you",
     statusCode: 403,
   },
 } as const;

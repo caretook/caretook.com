@@ -125,17 +125,17 @@ describe("todoService: viewers complete only their own todos", () => {
 
     for (const todo of [others, unassigned, typed]) {
       expect(codeOf(await todoService.complete(u.viewer.ctx, todo.id))).toBe(
-        "todoService:viewerCompletionOnly",
+        "todoService:completionOnly",
       );
       expect(codeOf(await todoService.reopen(u.viewer.ctx, todo.id))).toBe(
-        "todoService:viewerCompletionOnly",
+        "todoService:completionOnly",
       );
     }
     expect(codeOf(await todoService.update(u.viewer.ctx, own.id, { title: "Mine now" }))).toBe(
-      "todoService:viewerCompletionOnly",
+      "todoService:completionOnly",
     );
     expect(codeOf(await todoService.update(u.viewer.ctx, own.id, { assigneeId: null }))).toBe(
-      "todoService:viewerCompletionOnly",
+      "todoService:completionOnly",
     );
     expect(ok(await todoService.getById(u.owner.ctx, own.id))).toMatchObject({
       title: "Call the pharmacy",
