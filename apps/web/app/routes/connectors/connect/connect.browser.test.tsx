@@ -8,6 +8,7 @@ import { CONNECT_RETURN_DELAY_MS, CONNECT_SUCCESS_EXAMPLES } from "~/lib/connect
 import { ASK_OWNERS, ASKED_NOTE, askedOn } from "~/lib/connectors/connectGuide";
 import { apiCalls } from "../../../../test/api";
 import { renderWithDevice } from "../../../../test/device";
+import { found } from "../../../../test/found";
 import { connectReturn, ConnectSuccess } from "./ConnectConsent";
 import * as connect from "./route";
 
@@ -201,16 +202,15 @@ describe("/connect with no group that allows assistants", () => {
     });
     const { posts } = await open(offPage, undefined, api);
     await expect.poll(() => offRow("g-1")?.querySelector("p")?.textContent).toBe("Dev Family (Grandma Pat)");
-    expect(offRow("g-3")?.querySelector("p")?.textContent).toBe("Kim family");
+    const [viewerRow, ownerRow] = [await found(() => offRow("g-2")), await found(() => offRow("g-3"))];
+    expect(ownerRow.querySelector("p")?.textContent).toBe("Kim family");
 
     // A viewer who asked yesterday: Asked on, no button.
-    expect(offRow("g-2")!.querySelector("[data-asked-on]")?.textContent).toBe(askedOn(ASKED_AT));
-    expect(offRow("g-2")!.querySelector("button")).toBeNull();
+    expect(viewerRow.querySelector("[data-asked-on]")?.textContent).toBe(askedOn(ASKED_AT));
+    expect(viewerRow.querySelector("button")).toBeNull();
     // An owner: no button, a link to turn it on.
-    expect(offRow("g-3")!.querySelector("button")).toBeNull();
-    expect(offRow("g-3")!.querySelector("a")?.getAttribute("href")).toBe(
-      "/app/groups/g-3/settings/assistants",
-    );
+    expect(ownerRow.querySelector("button")).toBeNull();
+    expect(ownerRow.querySelector("a")?.getAttribute("href")).toBe("/app/groups/g-3/settings/assistants");
 
     // Only one ask button, the caretaker's.
     const ask = page.getByRole("button", { name: ASK_OWNERS });
@@ -220,7 +220,7 @@ describe("/connect with no group that allows assistants", () => {
     await expect
       .poll(() => offRow("g-1")?.querySelector("[data-asked-on]")?.textContent)
       .toMatch(/^Asked on /);
-    expect(offRow("g-1")!.textContent).toContain(ASKED_NOTE);
+    expect(offRow("g-1")?.textContent).toContain(ASKED_NOTE);
     expect(page.getByRole("button", { name: ASK_OWNERS }).elements()).toHaveLength(0);
     // Cancel is still there, and nothing was posted.
     await expect.element(page.getByRole("button", { name: "Cancel" })).toBeVisible();

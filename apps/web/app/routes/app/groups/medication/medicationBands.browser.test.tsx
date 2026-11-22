@@ -1,3 +1,4 @@
+import { waitUntil } from "../../../../../test/found";
 import { describe, expect, test } from "vitest";
 import { bandNames, bandsAlternate } from "../../../../../test/bands";
 import { renderWithDevice } from "../../../../../test/device";
@@ -7,7 +8,6 @@ import {
   MEDICATION_ROUTES,
   medicationUrl,
   OXYBUTYNIN,
-  waitUntil,
   world,
 } from "../medications/medicationWorld";
 
@@ -26,8 +26,8 @@ describe("the medication page's bands", () => {
       fixtures: [world(), todo({ title: "Ask about the refill", medicationId: LISINOPRIL.id })],
       role: "caretaker",
     });
-    await waitUntil(onPage, 4000, "the page");
-    await waitUntil(() => bandNames().includes("Todos"), 4000, "the todos");
+    await waitUntil(onPage, "the page");
+    await waitUntil(() => bandNames().includes("Todos"), "the todos");
     expect(bandNames()).toEqual(["(header)", ...PARTS, "Todos", "Notes", "History"]);
     expect(bandsAlternate()).toBe(true);
   });
@@ -38,7 +38,7 @@ describe("the medication page's bands", () => {
       url: medicationUrl(LISINOPRIL.id),
       fixtures: world(),
     });
-    await waitUntil(onPage, 4000, "the page");
+    await waitUntil(onPage, "the page");
     expect(bandNames()).toEqual(["(header)", ...PARTS, "(band)", "Notes", "History"]);
     expect(document.querySelector("main [data-band] [data-linked-todos-add]")).toBeTruthy();
   });
@@ -53,7 +53,7 @@ describe("the medication page's bands", () => {
         role: "viewer",
         theme,
       });
-      await waitUntil(onPage, 4000, "the page");
+      await waitUntil(onPage, "the page");
       expect(bandNames()).toEqual(["(header)", ...PARTS, "Notes", "History"]);
       expect(bandsAlternate()).toBe(true);
     },
@@ -66,7 +66,7 @@ describe("the medication page's bands", () => {
       fixtures: world(),
       width: 420,
     });
-    await waitUntil(onPage, 4000, "the page");
+    await waitUntil(onPage, "the page");
     const root = document.documentElement;
     expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth);
     for (const band of document.querySelectorAll("main [data-band]")) {

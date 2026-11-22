@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 
 import { renderInRouter } from "../../../test/device";
+import { found } from "../../../test/found";
 import { buttonClass } from "./buttonClass";
 import { Button, PageHeader } from "./index";
 
@@ -95,6 +96,7 @@ describe("PageHeader's add", () => {
 
   test("with neither, the header holds only its title", async () => {
     await renderInRouter(<PageHeader title="Providers" />);
-    expect([...document.querySelector("header")!.children].map((el) => el.tagName)).toEqual(["H1"]);
+    const header = await found(() => document.querySelector("header"));
+    expect([...header.children].map((el) => el.tagName)).toEqual(["H1"]);
   });
 });

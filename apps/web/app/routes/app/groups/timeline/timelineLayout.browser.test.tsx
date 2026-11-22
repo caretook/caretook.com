@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { found, stopsMoving } from "../../../../../test/found";
+import { found, stopsMoving, waitUntil } from "../../../../../test/found";
 import {
   authorOf,
   button,
@@ -13,7 +13,6 @@ import {
   tapAt,
   TIMELINE_URL,
   view,
-  waitUntil,
   world,
 } from "./timelineWorld";
 
@@ -31,7 +30,7 @@ const width = async (w: number) => {
   await frames();
 };
 const noHorizontalScroll = () => document.documentElement.scrollWidth <= document.documentElement.clientWidth;
-const ready = () => waitUntil(() => rows().length > 0, 4000, "rows");
+const ready = () => waitUntil(() => rows().length > 0, "rows");
 const dialog = () => document.querySelector<HTMLElement>("[role=dialog]");
 const menuItems = () => [...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim());
 const actionsOf = (li: Element) => li.querySelector<HTMLButtonElement>('button[aria-label^="Actions"]')!;
@@ -40,7 +39,7 @@ describe("the first screen", () => {
   test("the first entry is above the fold, no sideways scroll, and one page of 30", async () => {
     await openTimeline();
     await ready();
-    expect(rows()[0]!.getBoundingClientRect().top).toBeLessThan(900);
+    expect(rows()[0]?.getBoundingClientRect().top).toBeLessThan(900);
     expect(noHorizontalScroll()).toBe(true);
     expect(rows().length).toBe(30);
     expect(/live notes/i.test(document.body.innerText)).toBe(false);
@@ -54,7 +53,7 @@ describe("the first screen", () => {
     await device.screen.unmount();
     // The next visit reads the device's settings copy (lib/app-shell/me.ts): no server needed.
     await openTimeline();
-    await waitUntil(() => view() === "cards", 4000, "cards on the next visit");
+    await waitUntil(() => view() === "cards", "cards on the next visit");
   });
 });
 
@@ -63,16 +62,16 @@ describe("row taps", () => {
     const device = await openTimeline();
     await ready();
     for (const kind of ["Note", "Event"]) {
-      await tapAt(rowOf(kind)!.querySelector("p")!);
+      await tapAt(() => rowOf(kind)?.querySelector("p"));
       await expect.poll(() => device.location()).toMatch(/\/entries\/[0-9a-f-]{36}$/);
       await userEvent.click(device.screen.getByRole("button", { name: "Go back" }));
       await expect.poll(() => device.location()).toBe(TIMELINE_URL);
       await ready();
     }
-    await tapAt(rowOf("Symptom")!.querySelector("p")!);
-    await waitUntil(() => !!dialog()?.textContent?.includes("Edit symptom"), 4000, "the edit sheet");
+    await tapAt(() => rowOf("Symptom")?.querySelector("p"));
+    await waitUntil(() => !!dialog()?.textContent?.includes("Edit symptom"), "the edit sheet");
     await userEvent.keyboard("{Escape}");
-    await waitUntil(() => !dialog(), 4000, "the sheet to close");
+    await waitUntil(() => !dialog(), "the sheet to close");
     expect(device.location()).toBe(TIMELINE_URL);
   });
 
@@ -90,31 +89,31 @@ describe("row taps", () => {
     const device = await openTimeline();
     await ready();
     await setView("Cards");
-    await tapAt(rowOf("Note")!.querySelector("p")!);
+    await tapAt(() => rowOf("Note")?.querySelector("p"));
     await expect.poll(() => device.location()).toMatch(/\/entries\/[0-9a-f-]{36}$/);
     await userEvent.click(device.screen.getByRole("button", { name: "Go back" }));
     await ready();
-    await tapAt(rowOf("Vitals")!.querySelector("li")!);
-    await waitUntil(() => !!dialog()?.textContent?.includes("Edit vitals"), 4000, "the vitals sheet");
+    await tapAt(() => rowOf("Vitals")?.querySelector("li"));
+    await waitUntil(() => !!dialog()?.textContent?.includes("Edit vitals"), "the vitals sheet");
   });
 
   test("viewer: a note opens; a symptom does nothing and has no ⋯; a note's ⋯ is Print", async () => {
     const device = await openTimeline({ role: "viewer" });
     await ready();
-    await tapAt(rowOf("Note")!.querySelector("p")!);
+    await tapAt(() => rowOf("Note")?.querySelector("p"));
     await expect.poll(() => device.location()).toMatch(/\/entries\/[0-9a-f-]{36}$/);
     await userEvent.click(device.screen.getByRole("button", { name: "Go back" }));
     await ready();
-    expect(openOf(rowOf("Symptom")!)).toBeNull();
-    await tapAt(rowOf("Symptom")!.querySelector("p")!);
-    await new Promise((r) => setTimeout(r, 300));
+    expect(openOf(await found(() => rowOf("Symptom")))).toBeNull();
+    await tapAt(() => rowOf("Symptom")?.querySelector("p"));
+    await device.settle();
     expect(dialog()).toBeNull();
     expect(device.location()).toBe(TIMELINE_URL);
-    expect(rowOf("Symptom")!.querySelector('button[aria-label^="Actions"]')).toBeNull();
+    expect(rowOf("Symptom")?.querySelector('button[aria-label^="Actions"]')).toBeNull();
     // After Go back the quick-entry chips land late and push the rows down: click ⋯ once it stops moving.
     await stopsMoving(() => actionsOf(rowOf("Note")!));
-    await userEvent.click(actionsOf(rowOf("Note")!));
-    await waitUntil(() => menuItems().length > 0, 4000, "the menu");
+    await userEvent.click(await found(() => actionsOf(rowOf("Note")!)));
+    await waitUntil(() => menuItems().length > 0, "the menu");
     expect(menuItems()).toEqual(["Print"]);
     await userEvent.keyboard("{Escape}");
   });
@@ -122,16 +121,16 @@ describe("row taps", () => {
   test("More and Less toggle long text without opening it; ⋯ on a note is Print and Delete", async () => {
     const device = await openTimeline();
     await ready();
-    await waitUntil(() => !!button("More"), 4000, "More");
-    await userEvent.click(button("More")!);
+    await waitUntil(() => !!button("More"), "More");
+    await userEvent.click(await found(() => button("More")));
     await waitUntil(() => !!button("Less"));
     expect(device.location()).toBe(TIMELINE_URL);
-    await userEvent.click(button("Less")!);
+    await userEvent.click(await found(() => button("Less")));
     await waitUntil(() => !button("Less"));
     expect(device.location()).toBe(TIMELINE_URL);
 
-    await userEvent.click(actionsOf(rowOf("Note")!));
-    await waitUntil(() => menuItems().length > 0, 4000, "the menu");
+    await userEvent.click(await found(() => actionsOf(rowOf("Note")!)));
+    await waitUntil(() => menuItems().length > 0, "the menu");
     expect(menuItems()).toEqual(["Print", "Delete"]);
     expect(device.location()).toBe(TIMELINE_URL);
     await userEvent.keyboard("{Escape}");
@@ -278,7 +277,7 @@ describe("the author tooltip", () => {
     window.scrollTo(0, day.getBoundingClientRect().top + scrollY + 25);
     await frames();
     await userEvent.hover(link);
-    await waitUntil(() => !!TIP(), 3000, "the tooltip");
+    await waitUntil(() => !!TIP(), "the tooltip");
     const t = TIP()!;
     const r = t.getBoundingClientRect();
     const h = day.querySelector("[data-day-header]")!.getBoundingClientRect();
@@ -290,7 +289,7 @@ describe("the author tooltip", () => {
     expect(t.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2))).toBe(true);
     expect(t.closest("ol")).toBeNull();
     await userEvent.unhover(link);
-    await waitUntil(() => !TIP(), 3000, "the tooltip to hide");
+    await waitUntil(() => !TIP(), "the tooltip to hide");
   });
 
   test("keyboard: Tab reaches the initials and shows it; Escape hides it, keeping focus and the URL; Tab away hides it", async () => {
@@ -306,15 +305,15 @@ describe("the author tooltip", () => {
       expect(document.activeElement).toBe(link);
     };
     await fromIcon();
-    await waitUntil(() => !!TIP(), 3000, "the tooltip");
+    await waitUntil(() => !!TIP(), "the tooltip");
     await userEvent.keyboard("{Escape}");
-    await waitUntil(() => !TIP(), 3000, "Escape to hide it");
+    await waitUntil(() => !TIP(), "Escape to hide it");
     expect(document.activeElement).toBe(link);
     expect(device.location()).toBe(TIMELINE_URL);
     await fromIcon();
-    await waitUntil(() => !!TIP(), 3000, "the tooltip again");
+    await waitUntil(() => !!TIP(), "the tooltip again");
     await userEvent.keyboard("{Tab}");
-    await waitUntil(() => !TIP(), 3000, "Tab away to hide it");
+    await waitUntil(() => !TIP(), "Tab away to hide it");
   });
 
   test("a touch tap filters by the author, and shows no tooltip", async () => {
@@ -330,6 +329,7 @@ describe("the author tooltip", () => {
       link.dispatchEvent(new PointerEvent(type, touch));
     link.click();
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?author=${id}`);
+    // eslint-disable-next-line caretook/no-fixed-sleep -- past the tooltip's 500 ms hover delay: a touch tap shows none
     await new Promise((r) => setTimeout(r, 800));
     watch.disconnect();
     expect(seen).toBe(false);

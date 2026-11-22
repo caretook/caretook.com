@@ -66,16 +66,16 @@ export default defineConfig(
     },
   },
 
-  // The component-test harness's rules (scripts/eslint/plugin.mjs): warnings until every area's
-  // tests are migrated (test-health slices 15 to 18), then errors (slice 19).
+  // The component-test harness's rules (scripts/eslint/plugin.mjs). A real exception carries
+  // `// eslint-disable-next-line caretook/<rule> -- <reason>`.
   {
     files: ["apps/web/**/*.browser.test.tsx", "apps/web/test/**", "apps/web/**/*World.tsx"],
     plugins: { caretook },
     rules: {
-      "caretook/no-call-timeout": "warn",
-      "caretook/no-non-null-user-event": "warn",
-      "caretook/no-non-null-in-expect": "warn",
-      "caretook/no-fixed-sleep": "warn",
+      "caretook/no-call-timeout": "error",
+      "caretook/no-non-null-user-event": "error",
+      "caretook/no-non-null-in-expect": "error",
+      "caretook/no-fixed-sleep": "error",
     },
   },
 

@@ -413,7 +413,7 @@ describe("the floating tab bar", () => {
       expect(a.getAttribute("title")).toBe(a.getAttribute("aria-label"));
       expect(a.textContent?.trim()).toBe("");
       await expect
-        .element(page.getByRole("link", { name: a.getAttribute("aria-label")! }).first())
+        .element(page.getByRole("link", { name: a.getAttribute("aria-label") ?? "" }).first())
         .toBeVisible();
       const r = a.getBoundingClientRect();
       expect(r.width).toBeGreaterThanOrEqual(44);

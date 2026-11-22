@@ -132,10 +132,10 @@ describe("the disable comment", () => {
       languageOptions,
       plugins: { caretook: plugin },
       rules: {
-        "caretook/no-call-timeout": "warn",
-        "caretook/no-non-null-user-event": "warn",
-        "caretook/no-non-null-in-expect": "warn",
-        "caretook/no-fixed-sleep": "warn",
+        "caretook/no-call-timeout": "error",
+        "caretook/no-non-null-user-event": "error",
+        "caretook/no-non-null-in-expect": "error",
+        "caretook/no-fixed-sleep": "error",
       },
     },
   ];
@@ -149,7 +149,7 @@ describe("the disable comment", () => {
   };
 
   for (const [rule, code] of Object.entries(cases)) {
-    test(`${rule}: a warning, and none under a disable comment with its reason`, () => {
+    test(`${rule}: an error, and none under a disable comment with its reason`, () => {
       expect(lint(code)).toEqual([`caretook/${rule}`]);
       expect(
         lint(`// eslint-disable-next-line caretook/${rule} -- the timeout is what's tested\n${code}`),

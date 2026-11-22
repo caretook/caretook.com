@@ -15,13 +15,9 @@ describe("Chevron", () => {
         <Chevron open closed="down" />
       </div>,
     );
-    const [closed, open, downClosed, downOpen] = [...document.querySelectorAll("svg")];
-    expect(turn(closed!)).toBe("none");
-    expect(turn(open!)).toBe("90deg");
-    expect(turn(downClosed!)).toBe("none");
-    expect(turn(downOpen!)).toBe("180deg");
-    for (const svg of [closed, open, downClosed, downOpen])
-      expect(svg!.getAttribute("aria-hidden")).toBe("true");
+    const svgs = [...document.querySelectorAll("svg")];
+    expect(svgs.map(turn)).toEqual(["none", "90deg", "none", "180deg"]);
+    expect(svgs.map((svg) => svg.getAttribute("aria-hidden"))).toEqual(["true", "true", "true", "true"]);
     await expect.element(screen.getByRole("img")).not.toBeInTheDocument();
   });
 

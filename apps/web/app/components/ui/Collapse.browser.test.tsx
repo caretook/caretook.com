@@ -77,7 +77,7 @@ describe("Collapse", () => {
     expect(seconds(getComputedStyle(region()).transitionDuration).every((s) => s === 0)).toBe(true);
     await userEvent.click(toggle);
     expect(shown()).toBe(true);
-    expect(region().firstElementChild!.getBoundingClientRect().height).toBeGreaterThan(0);
+    expect(region().firstElementChild?.getBoundingClientRect().height).toBeGreaterThan(0);
     await userEvent.click(toggle);
     expect(shown()).toBe(false);
     expect(region().getBoundingClientRect().height).toBe(0);

@@ -1,8 +1,11 @@
 import type { SyncDb } from "~/lib/sync";
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import type { Locator } from "vitest/browser";
+
 import { page, userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { fixClock, found } from "../../../../../test/found";
+import { getByCss } from "../../../../../test/locators";
 import { fx } from "../../../../../test/fixtures";
 import { cancelEvent, rescheduleEvent, uncancelEvent } from "~/lib/appointments/appointments.sync";
 import {
@@ -12,9 +15,9 @@ import {
   entryUrl,
   EYES_NEW,
   EYES_OLD,
-  fixClock,
   fromNow,
   HEARING,
+  item,
   itemEl,
   ME,
   laTime,
@@ -23,6 +26,7 @@ import {
   dialogButton,
   NOW,
   openPlanner,
+  rowActions,
   rowOf,
   SAM,
   TIMELINE_URL,
@@ -53,6 +57,8 @@ const timelineRow = (id: string) =>
   [...document.querySelectorAll<HTMLElement>("main li")].find((li) =>
     li.querySelector(`a[href$="/entries/${id}"]`),
   );
+/** A timeline row's ⋯ button. */
+const timelineActions = (id: string) => getByCss(`main li:has(a[href$="/entries/${id}"]) ${ACTIONS}`);
 /** Whether a row is marked, labelled and struck through as cancelled. */
 const cancelledState = (li: Element | null | undefined) =>
   li && {
@@ -65,37 +71,33 @@ const cancelledState = (li: Element | null | undefined) =>
 const CANCELLED = { marked: true, label: true, struck: true };
 
 /** Open the ⋯ menu in `scope` and wait for its items. */
-const openMenu = async (button: Element | null | undefined) => {
-  await userEvent.click(button!);
+const openMenu = async (button: Locator) => {
+  await userEvent.click(button);
   await expect.poll(() => menuItems().length).toBeGreaterThan(0);
   return menuItems();
 };
 /** Pick Cancel event from the open menu, type `reason` (if any) and confirm. */
 const confirmCancel = async (reason?: string) => {
-  await userEvent.click(menuItem("Cancel event")!);
-  await expect.poll(() => document.querySelector("dialog[open] [data-cancel-reason]")).not.toBeNull();
-  if (reason)
-    await userEvent.fill(
-      document.querySelector<HTMLInputElement>("dialog[open] [data-cancel-reason]")!,
-      reason,
-    );
-  await userEvent.click(dialogButton("Cancel event")!);
+  await userEvent.click(menuItem("Cancel event"));
+  await expect.element(getByCss("dialog[open] [data-cancel-reason]")).toBeInTheDocument();
+  if (reason) await userEvent.fill(getByCss("dialog[open] [data-cancel-reason]"), reason);
+  await userEvent.click(dialogButton("Cancel event"));
   await expect.poll(() => document.querySelector("dialog[open]")).toBeNull();
 };
 /** Pick Reschedule from the open menu and wait for the sheet. */
 const openSheet = async () => {
-  await userEvent.click(menuItem("Reschedule")!);
-  await expect.poll(KEEP, { timeout: 5000 }).not.toBeNull();
+  await userEvent.click(menuItem("Reschedule"));
+  await expect.poll(KEEP).not.toBeNull();
 };
 /** Move the sheet's day `days` later, set Keep, and save. */
 const rescheduleBy = async (days: number, keep: boolean) => {
-  SHEET()!.querySelector<HTMLElement>('[data-type="day"]')!.focus();
+  (await found(() => SHEET()?.querySelector<HTMLElement>('[data-type="day"]'))).focus();
   for (let i = 0; i < days; i++) await userEvent.keyboard("{ArrowUp}");
-  if (KEEP()!.checked !== keep) await userEvent.click(await found(KEEP));
+  if ((await found(KEEP)).checked !== keep) await userEvent.click(await found(KEEP));
   await userEvent.click(
     await found(() => SHEET()?.querySelector<HTMLButtonElement>('button[type="submit"]')),
   );
-  await expect.poll(SHEET, { timeout: 5000 }).toBeNull();
+  await expect.poll(SHEET).toBeNull();
 };
 
 type Stored = {
@@ -108,11 +110,15 @@ type Stored = {
   rescheduled_to: string | null;
   deleted_at: string | null;
 };
-const stored = async (db: SyncDb, id: string) =>
-  (await db.powersync.getAll<Stored>("SELECT * FROM timeline_entry WHERE id = ?", [id]))[0];
-const ms = (local: string | null) => (local ? Date.parse(local.replace(" ", "T")) : null);
+/** The stored row (soft-deleted ones too); throws if there's none. */
+const stored = async (db: SyncDb, id: string) => {
+  const [row] = await db.powersync.getAll<Stored>("SELECT * FROM timeline_entry WHERE id = ?", [id]);
+  if (!row) throw new Error(`no timeline_entry ${id}`);
+  return row;
+};
+const ms = (local: string | null) => (local ? Date.parse(local.replace(" ", "T")) : NaN);
 
-beforeEach(() => fixClock());
+beforeEach(() => fixClock(NOW));
 afterEach(() => {
   vi.useRealTimers();
 });
@@ -120,7 +126,7 @@ afterEach(() => {
 describe("cancel and undo", () => {
   test("from Upcoming's ⋯ with a reason: struck through and labelled at once, stored with the reason, one PATCH queued", async () => {
     const device = await openPlanner({ role: "caretaker" });
-    const items = await openMenu(itemEl(CARDIOLOGY.id)!.querySelector(ACTIONS));
+    const items = await openMenu(rowActions(CARDIOLOGY.id));
     expect(items).toEqual([
       "Prepare for this visit",
       "Reschedule",
@@ -133,37 +139,37 @@ describe("cancel and undo", () => {
     await device.settle();
     await expect.poll(() => cancelledState(itemEl(CARDIOLOGY.id))).toEqual(CANCELLED);
     const row = await stored(device.db, CARDIOLOGY.id);
-    expect(row!.cancelled_at).not.toBeNull();
-    expect(row!.cancel_reason).toBe("Office called, doctor out sick");
+    expect(row.cancelled_at).not.toBeNull();
+    expect(row.cancel_reason).toBe("Office called, doctor out sick");
     const queued = await device.queued();
     expect(queued).toEqual([
       expect.objectContaining({ op: "PATCH", type: "timeline_entry", id: CARDIOLOGY.id }),
     ]);
-    expect(queued[0]!.data).toMatchObject({ cancel_reason: "Office called, doctor out sick" });
+    expect(queued[0]?.data).toMatchObject({ cancel_reason: "Office called, doctor out sick" });
   });
 
   test("a past event from a timeline row's ⋯, without a reason: struck through and labelled", async () => {
     const device = await openPlanner({ url: TIMELINE_URL });
     await expect.poll(() => !!timelineRow(BLOOD_DRAW.id)).toBe(true);
-    await openMenu(timelineRow(BLOOD_DRAW.id)!.querySelector(ACTIONS));
+    await openMenu(timelineActions(BLOOD_DRAW.id));
     await confirmCancel();
     await device.settle();
     await expect.poll(() => cancelledState(timelineRow(BLOOD_DRAW.id))).toEqual(CANCELLED);
     const row = await stored(device.db, BLOOD_DRAW.id);
-    expect(row!.cancelled_at).not.toBeNull();
-    expect(row!.cancel_reason).toBeNull();
+    expect(row.cancelled_at).not.toBeNull();
+    expect(row.cancel_reason).toBeNull();
   });
 
   test("Undo cancel from a row's ⋯: the label and the line go", async () => {
     const device = await openPlanner({ url: TIMELINE_URL });
     await expect.poll(() => cancelledState(timelineRow(HEARING.id))).toEqual(CANCELLED);
-    await openMenu(timelineRow(HEARING.id)!.querySelector(ACTIONS));
-    await userEvent.click(menuItem("Undo cancel")!);
+    await openMenu(timelineActions(HEARING.id));
+    await userEvent.click(menuItem("Undo cancel"));
     await device.settle();
     await expect
       .poll(() => cancelledState(timelineRow(HEARING.id)))
       .toEqual({ marked: false, label: false, struck: false });
-    expect((await stored(device.db, HEARING.id))!.cancelled_at).toBeNull();
+    expect((await stored(device.db, HEARING.id)).cancelled_at).toBeNull();
   });
 
   test("a viewer sees cancelled ones labelled on Upcoming and the timeline, and their device refuses a cancel or an undo", async () => {
@@ -212,7 +218,7 @@ describe("cancel and undo", () => {
       await device.settle();
       await expect.poll(BANNER).toBeNull();
       const row = await stored(device.db, CALLED_OFF.id);
-      expect([row!.cancelled_at, row!.cancel_reason]).toEqual([null, null]);
+      expect([row.cancelled_at, row.cancel_reason]).toEqual([null, null]);
       expect(await device.queued()).toEqual([
         expect.objectContaining({ op: "PATCH", type: "timeline_entry", id: CALLED_OFF.id }),
       ]);
@@ -221,7 +227,7 @@ describe("cancel and undo", () => {
     test("Cancel from the page's ⋯ (offline): the banner at once, queued for upload", async () => {
       const device = await openPlanner({ url: entryUrl(CARDIOLOGY.id) });
       await expect.poll(() => !!document.querySelector(ENTRY_MENU)).toBe(true);
-      const items = await openMenu(document.querySelector(ENTRY_MENU));
+      const items = await openMenu(getByCss(ENTRY_MENU));
       expect(items).toEqual(["Reschedule", "Cancel event", "Remind me", "Print", "Delete"]);
       await confirmCancel();
       await device.settle();
@@ -251,22 +257,22 @@ describe("reschedule", () => {
 
   test("an upcoming event's sheet starts with Keep on; keeping the old one opens the new event 3 days later, as long, with its title, provider and notes; the old one cancelled, linking to it; one transaction queued", async () => {
     const device = await openPlanner({ extra: [NEURO, fx.link(NEURO.id, TRAN.id)] });
-    await openMenu(itemEl(NEURO.id)!.querySelector(ACTIONS));
+    await openMenu(rowActions(NEURO.id));
     await openSheet();
     await expect.poll(() => KEEP()?.checked).toBe(true);
     await rescheduleBy(3, true);
-    await expect.poll(() => device.location(), { timeout: 5000 }).toMatch(/\/entries\/[0-9a-f-]{36}$/);
+    await expect.poll(() => device.location()).toMatch(/\/entries\/[0-9a-f-]{36}$/);
     const fresh = device.location().split("/").at(-1)!;
     expect(fresh).not.toBe(NEURO.id);
-    await expect.poll(() => EDITOR()?.textContent, { timeout: 5000 }).toContain("Bring the cuff log");
+    await expect.poll(() => EDITOR()?.textContent).toContain("Bring the cuff log");
 
     const [old, made] = [await stored(device.db, NEURO.id), await stored(device.db, fresh)];
-    expect(made!.title).toBe("Neurology consult");
-    expect(made!.cancelled_at).toBeNull();
-    expect(ms(made!.occurred_at)! - ms(NEURO.row.occurred_at as string)!).toBe(3 * DAY);
-    expect(ms(made!.ends_at)! - ms(NEURO.row.ends_at as string)!).toBe(3 * DAY);
-    expect(old!.cancelled_at).not.toBeNull();
-    expect(old!.rescheduled_to).toBe(fresh);
+    expect(made.title).toBe("Neurology consult");
+    expect(made.cancelled_at).toBeNull();
+    expect(ms(made.occurred_at) - ms(NEURO.row.occurred_at as string)).toBe(3 * DAY);
+    expect(ms(made.ends_at) - ms(NEURO.row.ends_at as string)).toBe(3 * DAY);
+    expect(old.cancelled_at).not.toBeNull();
+    expect(old.rescheduled_to).toBe(fresh);
     const links = await device.query<{ provider_id: string }>(
       "SELECT provider_id FROM timeline_entry_provider WHERE entry_id = ?",
       [fresh],
@@ -295,42 +301,38 @@ describe("reschedule", () => {
     await device.screen.unmount();
 
     await openPlanner({ extra: [NOTED_OLD] });
-    expect(await openMenu(itemEl(EYES_OLD.id)!.querySelector(ACTIONS))).toEqual([
-      "Undo cancel",
-      "Print",
-      "Delete",
-    ]);
+    expect(await openMenu(rowActions(EYES_OLD.id))).toEqual(["Undo cancel", "Print", "Delete"]);
     await userEvent.keyboard("{Escape}");
   });
 
   test("deleting the new event leaves the old one cancelled, with no link", async () => {
     const device = await openPlanner();
-    await openMenu(itemEl(EYES_NEW.id)!.querySelector(ACTIONS));
-    await userEvent.click(menuItem("Delete")!);
-    await expect.poll(() => dialogButton("Delete")).toBeTruthy();
-    await userEvent.click(dialogButton("Delete")!);
+    await openMenu(rowActions(EYES_NEW.id));
+    await userEvent.click(menuItem("Delete"));
+    await expect.element(dialogButton("Delete")).toBeInTheDocument();
+    await userEvent.click(dialogButton("Delete"));
     await device.settle();
     await expect.poll(() => itemEl(EYES_NEW.id)).toBeNull();
     expect(rowOf(EYES_OLD.id)).toMatchObject({ cancelled: true, struck: true });
-    expect(itemEl(EYES_OLD.id)!.querySelector("[data-rescheduled-to]")).toBeNull();
+    await expect.element(item(EYES_OLD.id).getByCss("[data-rescheduled-to]")).not.toBeInTheDocument();
     const old = await stored(device.db, EYES_OLD.id);
-    expect(old!.cancelled_at).not.toBeNull();
-    expect(old!.rescheduled_to).toBeNull();
-    expect((await stored(device.db, EYES_NEW.id))!.deleted_at).not.toBeNull();
+    expect(old.cancelled_at).not.toBeNull();
+    expect(old.rescheduled_to).toBeNull();
+    expect((await stored(device.db, EYES_NEW.id)).deleted_at).not.toBeNull();
   });
 
   test("just move, from the entry page: the same event a day later, its link kept, not cancelled, no new event; the sheet closes there", async () => {
     const device = await openPlanner({ url: entryUrl(CARDIOLOGY.id) });
     const before = await device.query<{ n: number }>("SELECT count(*) AS n FROM timeline_entry");
     await expect.poll(() => !!document.querySelector(ENTRY_MENU)).toBe(true);
-    await openMenu(document.querySelector(ENTRY_MENU));
+    await openMenu(getByCss(ENTRY_MENU));
     await openSheet();
     await rescheduleBy(1, false);
     await device.settle();
     expect(device.location()).toBe(entryUrl(CARDIOLOGY.id));
     const row = await stored(device.db, CARDIOLOGY.id);
-    expect(ms(row!.occurred_at)! - ms(CARDIOLOGY.row.occurred_at as string)!).toBe(DAY);
-    expect(row!.cancelled_at).toBeNull();
+    expect(ms(row.occurred_at) - ms(CARDIOLOGY.row.occurred_at as string)).toBe(DAY);
+    expect(row.cancelled_at).toBeNull();
     expect(await device.query("SELECT count(*) AS n FROM timeline_entry")).toEqual(before);
     expect(
       await device.query("SELECT provider_id FROM timeline_entry_provider WHERE entry_id = ?", [
@@ -342,7 +344,7 @@ describe("reschedule", () => {
   test("a past event's sheet, from a timeline row, starts with Keep off", async () => {
     await openPlanner({ url: TIMELINE_URL });
     await expect.poll(() => !!timelineRow(BLOOD_DRAW.id)).toBe(true);
-    await openMenu(timelineRow(BLOOD_DRAW.id)!.querySelector(ACTIONS));
+    await openMenu(timelineActions(BLOOD_DRAW.id));
     await openSheet();
     await expect.poll(() => KEEP()?.checked).toBe(false);
     await userEvent.keyboard("{Escape}");
@@ -401,7 +403,7 @@ describe("reschedule", () => {
     ).rejects.toThrow("injected");
     expect(await count()).toEqual(before);
     const old = await stored(db, NEURO.id);
-    expect([old!.cancelled_at, old!.rescheduled_to]).toEqual([null, null]);
+    expect([old.cancelled_at, old.rescheduled_to]).toEqual([null, null]);
   });
 });
 
@@ -413,28 +415,28 @@ describe("a refused delete", () => {
 
   test("from Upcoming's ⋯: the refusal is shown and the entry stays listed", async () => {
     const device = await openPlanner();
-    await openMenu(itemEl(CARDIOLOGY.id)!.querySelector(ACTIONS));
-    await userEvent.click(menuItem("Delete")!);
-    await expect.poll(() => dialogButton("Delete")).toBeTruthy();
+    await openMenu(rowActions(CARDIOLOGY.id));
+    await userEvent.click(menuItem("Delete"));
+    await expect.element(dialogButton("Delete")).toBeInTheDocument();
     await demote(device.db);
-    await userEvent.click(dialogButton("Delete")!);
+    await userEvent.click(dialogButton("Delete"));
     await expect.poll(ALERT).toBe("You don't have permission to do that.");
     await device.settle();
     expect(itemEl(CARDIOLOGY.id)).not.toBeNull();
-    expect((await stored(device.db, CARDIOLOGY.id))!.deleted_at).toBeNull();
+    expect((await stored(device.db, CARDIOLOGY.id)).deleted_at).toBeNull();
   });
 
   test("from a timeline row's ⋯ (useEntryRemoval): the refusal is shown and the entry stays listed", async () => {
     const device = await openPlanner({ url: TIMELINE_URL });
     await expect.poll(() => !!timelineRow(BLOOD_DRAW.id)).toBe(true);
-    await openMenu(timelineRow(BLOOD_DRAW.id)!.querySelector(ACTIONS));
-    await userEvent.click(menuItem("Delete")!);
-    await expect.poll(() => dialogButton("Delete")).toBeTruthy();
+    await openMenu(timelineActions(BLOOD_DRAW.id));
+    await userEvent.click(menuItem("Delete"));
+    await expect.element(dialogButton("Delete")).toBeInTheDocument();
     await demote(device.db);
-    await userEvent.click(dialogButton("Delete")!);
+    await userEvent.click(dialogButton("Delete"));
     await expect.poll(ALERT).toBe("You don't have permission to do that.");
     await device.settle();
     expect(timelineRow(BLOOD_DRAW.id)).toBeTruthy();
-    expect((await stored(device.db, BLOOD_DRAW.id))!.deleted_at).toBeNull();
+    expect((await stored(device.db, BLOOD_DRAW.id)).deleted_at).toBeNull();
   });
 });

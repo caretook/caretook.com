@@ -4,7 +4,7 @@ import type { GroupRole } from "../../../../../test/fixtures";
 import { addDays, localDate } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { getByCss } from "../../../../../test/locators";
 import * as todoRoute from "./route";
 import * as editSheet from "../todos/edit/route";
 import * as todosRoute from "../todos/route";
@@ -58,10 +58,11 @@ const world = () => [SAM, MINE, SAMS, MAYS, DONE];
 const open = (url: string, role: GroupRole = "owner", fixtures = world()) =>
   renderWithDevice({ route: ROUTES, url, role, fixtures });
 
-const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector<T>(sel);
-const EDITOR = () => $(".ProseMirror");
-const ACTIONS = () => $('main header [data-region="actions"]');
-const badge = () => $("main header [data-todo-badge]")?.textContent?.trim() ?? null;
+const EDITOR = () => getByCss(".ProseMirror");
+const ACTIONS = () => getByCss('main header [data-region="actions"]');
+const badge = () => document.querySelector("main header [data-todo-badge]")?.textContent?.trim() ?? null;
+const ASSIGNEE = () => getByCss("[data-todo-assignee]");
+const DUE = () => getByCss("[data-todo-due]");
 const heading = (name: string) => page.getByRole("heading", { name, level: 1 });
 
 describe("the todo page", () => {
@@ -69,8 +70,8 @@ describe("the todo page", () => {
     const device = await open(pageOf(MINE.id));
     await expect.element(heading("Call the pharmacy")).toBeInTheDocument();
     expect(badge()).toBe("Overdue");
-    expect($("[data-todo-assignee]")?.textContent).toBe("you");
-    expect($("[data-todo-due]")?.textContent).toContain("Overdue · 2 days");
+    await expect.element(ASSIGNEE()).toHaveTextContent("you");
+    await expect.element(DUE()).toMatchTextContent(/Overdue · 2 days/);
     await expect.element(page.getByRole("link", { name: "Edit" })).toBeInTheDocument();
     await expect
       .element(page.getByRole("button", { name: "Actions for Call the pharmacy" }))
@@ -88,7 +89,7 @@ describe("the todo page", () => {
     await userEvent.click(page.getByRole("button", { name: "Actions for Call the pharmacy" }));
     await userEvent.click(page.getByRole("menuitem", { name: "Reopen" }));
     await expect.poll(badge).toBe("Overdue");
-    expect($("[data-todo-done-by]")).toBeNull();
+    await expect.element(getByCss("[data-todo-done-by]")).not.toBeInTheDocument();
     await expect
       .element(page.getByRole("button", { name: "Mark “Call the pharmacy” done" }))
       .toBeInTheDocument();
@@ -97,8 +98,8 @@ describe("the todo page", () => {
   test("a typed-name todo, a member's and a done one read as they are; Edit opens the sheet and comes back", async () => {
     const device = await open(pageOf(MAYS.id));
     await expect.element(heading("Drive to physio")).toBeInTheDocument();
-    expect($("[data-todo-assignee]")?.textContent).toBe("Aunt May (not in the group)");
-    expect($("[data-todo-due]")?.textContent).toBe("No due date");
+    await expect.element(ASSIGNEE()).toHaveTextContent("Aunt May (not in the group)");
+    await expect.element(DUE()).toHaveTextContent("No due date");
     expect(badge()).toBeNull();
 
     await userEvent.click(page.getByRole("link", { name: "Edit" }));
@@ -115,15 +116,15 @@ describe("the todo page", () => {
     await expect.element(page.getByText(/^Done by Sam Okafor · today at \d\d:\d\d$/)).toBeInTheDocument();
     await userEvent.click(page.getByRole("button", { name: "Reopen “Book the eye exam”" }));
     await expect.poll(badge).toBe(null);
-    expect($("[data-todo-done-by]")).toBeNull();
+    await expect.element(getByCss("[data-todo-done-by]")).not.toBeInTheDocument();
   });
 
   test("the first words in the notes make the todo's document", async () => {
     const device = await open(pageOf(SAMS.id));
     await expect.element(heading("Fax the form")).toBeInTheDocument();
-    await expect.poll(() => EDITOR()?.getAttribute("contenteditable")).toBe("true");
+    await expect.element(EDITOR()).toHaveAttribute("contenteditable", "true");
     expect(await device.query("SELECT id FROM note_document WHERE id = ?", [SAMS.id])).toEqual([]);
-    (await found(EDITOR)).focus();
+    (await EDITOR().findElement()).focus();
     await userEvent.keyboard("Pharmacy said Friday");
     await expect
       .poll(() =>
@@ -145,12 +146,12 @@ describe("the todo page", () => {
     const notes = fx.document({ ownerId: MINE.id, subject: "todo", text: "Ask for the generic" });
     const device = await open(pageOf(MINE.id), "viewer", [...world(), notes]);
     await expect.element(heading("Call the pharmacy")).toBeInTheDocument();
-    await expect.poll(() => EDITOR()?.textContent).toContain("Ask for the generic");
-    await expect.poll(() => EDITOR()?.getAttribute("contenteditable")).toBe("false");
+    await expect.element(EDITOR()).toMatchTextContent(/Ask for the generic/);
+    await expect.element(EDITOR()).toHaveAttribute("contenteditable", "false");
     await expect
       .element(page.getByText("Shared with the care group. You can view these notes."))
       .toBeInTheDocument();
-    expect(ACTIONS()).toBeNull();
+    await expect.element(ACTIONS()).not.toBeInTheDocument();
 
     await userEvent.click(page.getByRole("button", { name: "Mark “Call the pharmacy” done" }));
     await expect.poll(badge).toBe("Done");
@@ -163,17 +164,17 @@ describe("the todo page", () => {
   test("another viewer has nothing to press", async () => {
     await open(pageOf(SAMS.id), "viewer");
     await expect.element(heading("Fax the form")).toBeInTheDocument();
-    expect($("[data-todo-assignee]")?.textContent).toBe("Sam Okafor");
-    await expect.poll(() => EDITOR()?.getAttribute("contenteditable")).toBe("false");
-    expect(ACTIONS()).toBeNull();
-    expect($("[data-todo-complete], [data-todo-reopen]")).toBeNull();
+    await expect.element(ASSIGNEE()).toHaveTextContent("Sam Okafor");
+    await expect.element(EDITOR()).toHaveAttribute("contenteditable", "false");
+    await expect.element(ACTIONS()).not.toBeInTheDocument();
+    await expect.element(getByCss("[data-todo-complete], [data-todo-reopen]")).not.toBeInTheDocument();
     expect([...document.querySelectorAll("main button")].map((b) => b.textContent?.trim())).toEqual([]);
   });
 
   test("a viewer can't complete a typed-name todo", async () => {
     await open(pageOf(MAYS.id), "viewer");
     await expect.element(heading("Drive to physio")).toBeInTheDocument();
-    expect($("[data-todo-complete]")).toBeNull();
+    await expect.element(getByCss("[data-todo-complete]")).not.toBeInTheDocument();
   });
 });
 

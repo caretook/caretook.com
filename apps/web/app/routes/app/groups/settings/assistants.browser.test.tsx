@@ -8,6 +8,7 @@ import * as settingsLayout from "./layout/route";
 import { apiCalls, refusal } from "../../../../../test/api";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, TEST_GROUP } from "../../../../../test/fixtures";
+import { found } from "../../../../../test/found";
 import {
   ASK_OFFLINE,
   ASK_OWNERS,
@@ -254,10 +255,11 @@ describe("group settings → Assistants' connect guide", () => {
     await expect.poll(() => guideUrl()?.value).toBe(MCP_URL);
     expect(MCP_URL).toMatch(/\/mcp$/);
     const switchCard = document.querySelector('section[data-section="assistants-switch"]')!;
-    expect(switchCard.compareDocumentPosition(guide()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const guideCard = await found(guide);
+    expect(switchCard.compareDocumentPosition(guideCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     for (const client of CONNECT_CLIENTS) {
-      const section = guide()!.querySelector(`[data-guide-client="${client.id}"]`)!;
-      expect(section.querySelector("h3")!.textContent).toBe(client.name);
+      const section = guideCard.querySelector(`[data-guide-client="${client.id}"]`)!;
+      expect(section.querySelector("h3")?.textContent).toBe(client.name);
       expect([...section.querySelectorAll("ol > li")].map((li) => li.textContent)).toEqual(client.steps);
       await expect
         .element(page.getByRole("link", { name: client.help.label }))
@@ -347,7 +349,7 @@ describe("group settings → Assistants' ask button", () => {
       await expect.poll(() => guideNote("off")).toBe(OFF_NOTE.member);
       await expect.element(askButton()).toBeVisible();
       // Beside the off note, in the guide.
-      expect(guide()!.contains(askButton().element())).toBe(true);
+      expect(guide()?.contains(askButton().element())).toBe(true);
 
       await userEvent.click(askButton());
       await expect

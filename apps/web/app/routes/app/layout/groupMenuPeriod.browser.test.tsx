@@ -2,11 +2,11 @@ import type { DeviceRoute } from "../../../../test/device";
 
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { found } from "../../../../test/found";
+import { found, waitUntil } from "../../../../test/found";
 import { renderWithDevice } from "../../../../test/device";
 import { PROBE } from "../../../../test/probe";
 import { at, fx, TEST_GROUP, TEST_USER } from "../../../../test/fixtures";
-import { HOSPITAL, PERIOD_ROUTES, PERIODS_URL, track, waitUntil } from "../groups/periods/periodWorld";
+import { HOSPITAL, PERIOD_ROUTES, PERIODS_URL, track } from "../groups/periods/periodWorld";
 
 // The group menu's care period (care-periods.mjs's group menu steps): the
 // current period's icon after the recipient's name on the group's screens at
@@ -55,7 +55,7 @@ const HOME_STATE = {
   visible: true,
 };
 const openMenu = async () => {
-  await userEvent.click(groupButton()!);
+  await userEvent.click(await found(groupButton));
   await expect.element(page.getByRole("menu")).toBeVisible();
 };
 const items = () =>
@@ -68,30 +68,26 @@ describe("the group menu's care period", () => {
     "at %i: the current period's icon on the timeline, the periods page and a period's page, named in the button's label and as its hint",
     async (width) => {
       const device = await open({ width });
-      await waitUntil(() => menuState().type !== null, 4000, "the icon");
+      await waitUntil(() => menuState().type !== null, "the icon");
       expect(menuState(), "the timeline").toEqual(HOME_STATE);
 
       await openMenu();
       await userEvent.click(page.getByRole("menuitem", { name: "Care periods" }));
       await expect.poll(device.location).toBe(PERIODS_URL);
-      await waitUntil(() => !!document.querySelector("main [data-period-list]"), 4000, "the list");
+      await waitUntil(() => !!document.querySelector("main [data-period-list]"), "the list");
       expect(menuState(), "the periods page").toEqual(HOME_STATE);
 
       await userEvent.click(
         await found(() => document.querySelector(`main [data-period="${HOSPITAL.id}"] a`)),
       );
-      await waitUntil(
-        () => !!document.querySelector(`main[data-period-page="${HOSPITAL.id}"]`),
-        4000,
-        "the page",
-      );
+      await waitUntil(() => !!document.querySelector(`main[data-period-page="${HOSPITAL.id}"]`), "the page");
       expect(menuState(), "a period's page").toEqual(HOME_STATE);
     },
   );
 
   test("the open menu lists the groups, New care group, then the profile, Care periods and Group settings last, with no Now item", async () => {
     await open();
-    await waitUntil(() => menuState().type !== null, 4000, "the icon");
+    await waitUntil(() => menuState().type !== null, "the icon");
     await openMenu();
     expect(items()).toEqual([
       "Grandma JuneMoreno Family",
@@ -105,11 +101,11 @@ describe("the group menu's care period", () => {
 
   test("a group without periods has no icon (Care periods stays); a period arriving there shows without a reload; switching back shows the first group's own", async () => {
     const device = await open();
-    await waitUntil(() => menuState().type !== null, 4000, "the icon");
+    await waitUntil(() => menuState().type !== null, "the icon");
     await openMenu();
     await userEvent.click(page.getByRole("menuitemradio", { name: /Grandpa Lou/ }));
     await expect.poll(device.location).toBe(timelineUrl(LOU.id));
-    await waitUntil(() => !!menuState().label?.startsWith("Grandpa Lou"), 4000, "Grandpa Lou's menu");
+    await waitUntil(() => !!menuState().label?.startsWith("Grandpa Lou"), "Grandpa Lou's menu");
     await device.settle();
     expect(menuState()).toMatchObject({ label: "Grandpa Lou: switch care group", type: null });
     await openMenu();
@@ -130,7 +126,7 @@ describe("the group menu's care period", () => {
     await openMenu();
     await userEvent.click(page.getByRole("menuitemradio", { name: /Grandma June/ }));
     await expect.poll(device.location).toBe(timelineUrl(TEST_GROUP.id));
-    await waitUntil(() => menuState().type === "home", 4000, "the first group's icon");
+    await waitUntil(() => menuState().type === "home", "the first group's icon");
     expect(menuState()).toEqual(HOME_STATE);
   });
 });

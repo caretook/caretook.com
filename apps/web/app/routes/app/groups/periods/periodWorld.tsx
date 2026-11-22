@@ -2,6 +2,8 @@ import type { DeviceRoute } from "../../../../../test/device";
 
 import { userEvent } from "vitest/browser";
 import { at, fx, TEST_GROUP } from "../../../../../test/fixtures";
+import { found } from "../../../../../test/found";
+import { getByCss } from "../../../../../test/locators";
 import * as period from "../period/route";
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
@@ -67,8 +69,6 @@ export const PERIOD_ROUTES: DeviceRoute[] = [
 
 // --- DOM helpers (care-periods.mjs's selectors) ------------------------------
 
-export const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector<T>(sel);
-
 /** The periods page's rows, newest first. */
 export const listRows = () =>
   [...document.querySelectorAll<HTMLLIElement>("main [data-period-list] > li")].map((li) => ({
@@ -79,15 +79,17 @@ export const listRows = () =>
     dates: li.querySelector("[data-period-dates]")?.textContent?.trim() ?? "",
   }));
 
-export const SHEET = () => $("[role=dialog]");
-export const FORM = () => $<HTMLFormElement>("[role=dialog] [data-period-form]");
+export const SHEET = () => document.querySelector<HTMLElement>("[role=dialog]");
+export const FORM = () => document.querySelector<HTMLFormElement>("[role=dialog] [data-period-form]");
 export const field = <T extends HTMLElement = HTMLInputElement>(name: string) =>
   FORM()?.querySelector<T>(`[name="${name}"]`) ?? null;
 export const typeRadio = (label: string) =>
   FORM()?.querySelector<HTMLInputElement>(`input[name="type"][aria-label="${label}"]`) ?? null;
-export const submit = () => FORM()!.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+/** The sheet's Save, as a locator. */
+export const submit = () => getByCss('[role=dialog] [data-period-form] button[type="submit"]');
+/** One of the sheet's buttons, by its name, as a locator. */
 export const formButton = (text: string) =>
-  [...(FORM()?.querySelectorAll("button") ?? [])].find((b) => b.textContent?.trim() === text)!;
+  getByCss("[role=dialog] [data-period-form]").getByRole("button", { name: text, exact: true });
 /** A field's message, through its `aria-describedby`. */
 export const errorOf = (name: string) => {
   const id = field(name)
@@ -105,22 +107,11 @@ export const option = (text: string) =>
     (o) => o.firstElementChild?.textContent === text,
   );
 
-/** Poll a condition (a DOM read) until it holds, or fail with `what`. */
-export const waitUntil = async (test: () => boolean, ms = 4000, what = "condition") => {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    if (test()) return;
-    await new Promise((r) => setTimeout(r, 25));
-  }
-  throw new Error(`timed out waiting for ${what}`);
-};
-
 /** Type `text` in the place picker and take `optionText` from its list. */
 export const pickPlace = async (text: string, optionText: string) => {
-  await userEvent.click(PICKER()!);
+  await userEvent.click(await found(PICKER));
   await userEvent.keyboard(text);
-  await waitUntil(() => !!option(optionText), 4000, `the option ${optionText}`);
-  await userEvent.click(option(optionText)!);
+  await userEvent.click(await found(() => option(optionText), { message: `the option ${optionText}` }));
 };
 
 /** The device's live periods, in track order. */

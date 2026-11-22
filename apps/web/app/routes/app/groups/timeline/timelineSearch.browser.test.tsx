@@ -3,7 +3,7 @@ import type { Fixture } from "../../../../../test/fixtures";
 
 import { afterEach, describe, expect, test } from "vitest";
 import { commands, userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_USER } from "../../../../../test/fixtures";
 import {
@@ -92,13 +92,13 @@ describe("searching the timeline", () => {
     await openField();
     expect(filterButton().checkVisibility()).toBe(true);
 
-    await userEvent.type(field()!, "quince");
+    await userEvent.type(await found(field), "quince");
     await expect.poll(() => texts().length).toBe(3);
     expect(texts().every((t) => t.includes("Quince"))).toBe(true);
     expect(params(device.location()).get("q")).toBe("quince");
     await expect.poll(statusText).toMatch(/^3 entries match/);
 
-    await userEvent.type(field()!, " alpha");
+    await userEvent.type(await found(field), " alpha");
     await expect.poll(texts).toEqual([expect.stringContaining("Quince alpha")]);
     // The appointment doesn't match "alpha": no appointment row.
     expect(document.querySelector("[data-next]")).toBeNull();
@@ -111,7 +111,9 @@ describe("searching the timeline", () => {
     await expect.element(box()).not.toBeInTheDocument();
     await openField();
     expect(magnifier().getAttribute("aria-expanded")).toBe("true");
-    expect(document.getElementById(magnifier().getAttribute("aria-controls")!)?.contains(field())).toBe(true);
+    expect(document.getElementById(magnifier().getAttribute("aria-controls") ?? "")?.contains(field())).toBe(
+      true,
+    );
     await expect.element(box()).toBeVisible();
 
     await userEvent.keyboard("{Escape}");
@@ -135,7 +137,7 @@ describe("searching the timeline", () => {
     await expect
       .poll(() => document.querySelector("[data-empty]")?.textContent)
       .toBe("No vitals match “quince”.");
-    await userEvent.click(chipStarting("Matching")!);
+    await userEvent.click(await found(() => chipStarting("Matching")));
     await expect.poll(() => params(empty.location()).has("q")).toBe(false);
     expect(params(empty.location()).get("kind")).toBe("vital");
   });
@@ -150,7 +152,7 @@ describe("searching the timeline", () => {
   test("Back after opening a match comes back to the search", async () => {
     const device = await open("?q=quince%20beta");
     await expect.poll(() => texts().length).toBe(1);
-    await userEvent.click(rows()[0]!.querySelector("a[aria-label^='Edit']")!);
+    await userEvent.click(await found(() => rows()[0]?.querySelector("a[aria-label^='Edit']")));
     await expect.poll(() => device.location()).toMatch(/\/edit/);
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => device.location()).not.toMatch(/\/edit/);
@@ -162,10 +164,10 @@ describe("searching the timeline", () => {
     await open("?q=paged", { fixtures: [world(), Object.values(tagged), paged] });
     await expect.poll(() => texts().length).toBe(30);
     expect(statusText()).toMatch(/^30\+ entries match/);
-    for (let i = 0; i < 40 && texts().length < 35; i++) {
+    await waitUntil(() => {
       document.querySelector("[data-older-entries]")?.scrollIntoView({ block: "end" });
-      await new Promise((r) => setTimeout(r, 100));
-    }
+      return texts().length >= 35;
+    }, "the older matches");
     expect(texts().length).toBe(35);
     await expect
       .poll(() => document.querySelector("[data-older-entries]")?.textContent)
@@ -173,8 +175,8 @@ describe("searching the timeline", () => {
 
     // A changed search (still more than a page of matches) starts from one page.
     await openField();
-    await userEvent.fill(field()!, "paged");
-    await userEvent.type(field()!, " -quince");
+    await userEvent.fill(await found(field), "paged");
+    await userEvent.type(await found(field), " -quince");
     await expect.poll(() => texts().length).toBe(30);
   });
 
@@ -187,10 +189,14 @@ describe("searching the timeline", () => {
     expect(texts().length).toBe(3);
     await openField();
     const eye = document.querySelector<HTMLElement>('button[aria-label="View options"]')!;
-    const [box, button, view] = [field()!, filterButton(), eye].map((el) => el.getBoundingClientRect());
-    expect(box!.left).toBeGreaterThan(button!.right);
-    expect(view!.left).toBeGreaterThan(box!.right);
-    expect(Math.abs(button!.top + button!.height / 2 - (box!.top + box!.height / 2))).toBeLessThan(2);
+    const [box, button, view] = [field()!, filterButton(), eye].map((el) => el.getBoundingClientRect()) as [
+      DOMRect,
+      DOMRect,
+      DOMRect,
+    ];
+    expect(box.left).toBeGreaterThan(button.right);
+    expect(view.left).toBeGreaterThan(box.right);
+    expect(Math.abs(button.top + button.height / 2 - (box.top + box.height / 2))).toBeLessThan(2);
   });
 
   test("at phone width the open field fills the row between Filter and View options; all three still work", async () => {
@@ -200,15 +206,15 @@ describe("searching the timeline", () => {
     const row = filterButton().parentElement!.getBoundingClientRect();
     const [m, f, box, v] = [magnifier(), filterButton(), field()!, eye()].map((el) =>
       el.getBoundingClientRect(),
-    );
-    expect(f!.left).toBeGreaterThan(m!.right);
-    expect(box!.left).toBeGreaterThan(f!.right);
-    expect(v!.left).toBeGreaterThan(box!.right);
+    ) as [DOMRect, DOMRect, DOMRect, DOMRect];
+    expect(f.left).toBeGreaterThan(m.right);
+    expect(box.left).toBeGreaterThan(f.right);
+    expect(v.left).toBeGreaterThan(box.right);
     // The eye at the row's right end, the field taking the room before it.
-    expect(Math.abs(v!.right - row.right)).toBeLessThan(1);
-    expect(box!.width).toBeGreaterThan(row.width - 4 * v!.width - 24);
+    expect(Math.abs(v.right - row.right)).toBeLessThan(1);
+    expect(box.width).toBeGreaterThan(row.width - 4 * v.width - 24);
 
-    await userEvent.type(field()!, "quince");
+    await userEvent.type(await found(field), "quince");
     await expect.poll(() => texts().length).toBe(3);
     await userEvent.click(filterButton());
     await expect.element(device.screen.getByRole("dialog", { name: "Filter entries" })).toBeVisible();
@@ -231,7 +237,7 @@ describe("searching the timeline", () => {
   test("a search used in the field (Enter) joins the recent searches the search page lists", async () => {
     await open();
     await openField();
-    await userEvent.type(field()!, "metformin{Enter}");
+    await userEvent.type(await found(field), "metformin{Enter}");
     expect(JSON.parse(localStorage.getItem(`caretook:recentSearches:${TEST_USER.id}`) ?? "[]")).toEqual([
       "metformin",
     ]);
@@ -303,7 +309,9 @@ describe("highlights and snippets", () => {
     await commands.colorScheme(theme);
     await open("?q=plumber", { fixtures: [world(), marked], theme });
     await expect.poll(() => !!rowWith("Plumber sore knee")?.querySelector("mark")).toBe(true);
-    expect(contrast(rowWith("Plumber sore knee")!.querySelector("mark")!)).toBeGreaterThanOrEqual(4.5);
+    expect(
+      contrast(await found(() => rowWith("Plumber sore knee")?.querySelector("mark"))),
+    ).toBeGreaterThanOrEqual(4.5);
   });
 
   test("cards at 1280 mark matches with no snippet (all the text shows); without a search nothing is marked", async () => {
@@ -362,7 +370,9 @@ describe("within a care period", () => {
     await expect.poll(() => during()?.getAttribute("aria-label")).toMatch(/: search every date$/);
 
     // Away (a match's edit sheet) and Back.
-    await userEvent.click(rowWith("Ankle inrehab")!.querySelector("a[aria-label^='Edit']")!);
+    await userEvent.click(
+      await found(() => rowWith("Ankle inrehab")?.querySelector("a[aria-label^='Edit']")),
+    );
     await expect.poll(() => device.location()).toMatch(/\/edit/);
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => device.location()).not.toMatch(/\/edit/);
@@ -373,7 +383,7 @@ describe("within a care period", () => {
     await expect.poll(names).toBe("inrehab");
     expect(during()).toBeDefined();
 
-    await userEvent.click(during()!);
+    await userEvent.click(await found(during));
     await expect.poll(names).toBe("before,edge,inrehab,now");
     expect(params(again.location()).get("period")).toBeNull();
     expect(params(again.location()).get("q")).toBe("ankle");
@@ -382,7 +392,7 @@ describe("within a care period", () => {
   test("the current period's matches run up to now; clearing the search clears the period and keeps the kind; ?period= alone changes nothing", async () => {
     const device = await open(`?kind=symptom&q=ankle&period=${home.id}`, { fixtures });
     await expect.poll(names).toBe("edge,now");
-    await userEvent.click(chipStarting("Matching")!);
+    await userEvent.click(await found(() => chipStarting("Matching")));
     await expect.poll(() => device.location()).toBe(`${TIMELINE_URL}?kind=symptom`);
     await device.screen.unmount();
 

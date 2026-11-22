@@ -5,12 +5,12 @@ import { addDays, localDate } from "@caretook/data/schema";
 import { Link } from "react-router";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { fixClock, found, waitUntil } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, medicationPass, todo, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
-import { clockAt, fixClock } from "../medications/medicationWorld";
+import { CLOCK, clockAt } from "../medications/medicationWorld";
 import * as timeline from "./route";
-import { chooseEasyMode, TIMELINE_URL, waitUntil } from "./timelineWorld";
+import { chooseEasyMode, TIMELINE_URL } from "./timelineWorld";
 
 // The tile cache (timeline-ux slice 2, B-166): the header tiles never pop
 // in. Mounted again in the same session (Back from another page), a Today
@@ -88,7 +88,7 @@ const listTop = () =>
 describe("the header tiles remember", () => {
   // A pass overdue at 10:00 on the fixed clock.
   beforeEach(() => {
-    fixClock();
+    fixClock(CLOCK);
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -100,7 +100,7 @@ describe("the header tiles remember", () => {
       url: TIMELINE_URL,
       fixtures: [fx.note({ text: "A day" }), todo({ title: "Call the pharmacy", dueOn: day(-2) })],
     });
-    await waitUntil(() => typeof todoStrip() === "object", 4000, "the todo strip");
+    await waitUntil(() => typeof todoStrip() === "object", "the todo strip");
     expect(todoStrip()).toEqual({ stale: false, text: "Overdue: Call the pharmacy" });
 
     // Away to another page, where the answer changes (another device's todo arrives).
@@ -114,14 +114,10 @@ describe("the header tiles remember", () => {
 
     const page = watchPage(todoStrip);
     await userEvent.click(await found(() => document.querySelector<HTMLElement>("main a")));
-    await waitUntil(
-      () => {
-        const s = todoStrip();
-        return typeof s === "object" && !s.stale && s.text.includes("Refill");
-      },
-      4000,
-      "the live answer",
-    );
+    await waitUntil(() => {
+      const s = todoStrip();
+      return typeof s === "object" && !s.stale && s.text.includes("Refill");
+    }, "the live answer");
     page.stop();
 
     const shown = page.states.filter((s) => s !== "none");
@@ -141,7 +137,6 @@ describe("the header tiles remember", () => {
     });
     await waitUntil(
       () => typeof seen(MEDS, "medications") === "object" && typeof todoStrip() === "object",
-      4000,
       "both strips",
     );
     page.stop();
@@ -163,7 +158,6 @@ describe("the header tiles remember", () => {
     });
     await waitUntil(
       () => listTop() !== null && seen(MEDS, "medications") === "none" && todoStrip() === "none",
-      4000,
       "the skeletons to go",
     );
     page.stop();
@@ -189,7 +183,6 @@ describe("easy mode's tiles remember", () => {
     const device = await renderWithDevice({ route: ROUTES, url: TIMELINE_URL, role: null, fixtures: EASY });
     await waitUntil(
       () => typeof todos() === "object" && typeof tiles() === "object",
-      4000,
       "the todos card and tiles",
     );
     first.stop();
@@ -202,14 +195,10 @@ describe("easy mode's tiles remember", () => {
     await waitUntil(() => !!document.querySelector("h1")?.textContent?.includes("Elsewhere"));
     const again = watchPage(() => ({ todos: todos(), tiles: tiles() }));
     await userEvent.click(await found(() => document.querySelector<HTMLElement>("main a")));
-    await waitUntil(
-      () => {
-        const [t, l] = [todos(), tiles()];
-        return typeof t === "object" && !t.stale && typeof l === "object" && !l.stale;
-      },
-      4000,
-      "the live answers",
-    );
+    await waitUntil(() => {
+      const [t, l] = [todos(), tiles()];
+      return typeof t === "object" && !t.stale && typeof l === "object" && !l.stale;
+    }, "the live answers");
     await device.settle();
     again.stop();
 
