@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import { found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
-import { allergy, condition, fx } from "../../../../../../test/fixtures";
+import { allergy, condition } from "../../../../../../test/fixtures";
 import { $, $$, LIST, MEDICATION_ROUTES, MEDS, SCHEDULE, waitUntil, world } from "../medicationWorld";
 
 // The printable sheets (medications.mjs's print, weekly and their offline
