@@ -210,30 +210,65 @@ export const useLiveQuery = <T>(sql: string, params: unknown[], initial: T[]): T
   return current.rows;
 };
 
-export type SyncState = { connected: boolean; uploading: boolean; downloading: boolean; hasSynced: boolean };
+/**
+ * The header's sync state: PowerSync's connection and data flow, whether its
+ * last upload failed (`uploadFailed`), how many writes wait to upload
+ * (`waiting`, the upload queue) and how many lines "Changes not saved" lists
+ * (`notSaved`: the local-only `unsaved_change`, one per row).
+ */
+export type SyncState = {
+  connected: boolean;
+  uploading: boolean;
+  downloading: boolean;
+  hasSynced: boolean;
+  uploadFailed: boolean;
+  waiting: number;
+  notSaved: number;
+};
 
-const toState = (s: SyncStatus): SyncState => ({
+type Counts = Pick<SyncState, "waiting" | "notSaved">;
+
+const toState = (s: SyncStatus, counts: Counts): SyncState => ({
   connected: s.connected,
   uploading: !!s.dataFlowStatus.uploading,
   downloading: !!s.dataFlowStatus.downloading,
   hasSynced: !!s.hasSynced,
+  uploadFailed: !!s.dataFlowStatus.uploadError,
+  ...counts,
 });
 
-/** PowerSync's connection state, for the "Offline" / "Saving…" indicator. */
+/** The queue's length and the not-saved lines, as one live query. */
+const COUNTS_SQL = `SELECT (SELECT count(*) FROM ps_crud) AS waiting,
+  (SELECT count(DISTINCT line_key) FROM unsaved_change) AS notSaved`;
+
+/** PowerSync's connection state and the counts, for the header's indicator. */
 export const useSyncState = (): SyncState | null => {
-  const [state, setState] = useState<SyncState | null>(null);
+  const [status, setStatus] = useState<SyncStatus | null>(null);
+  const [counts, setCounts] = useState<Counts>({ waiting: 0, notSaved: 0 });
   useEffect(() => {
     let dispose: (() => void) | undefined;
-    let cancelled = false;
+    const controller = new AbortController();
     void current?.then((db) => {
-      if (cancelled) return;
-      setState(toState(db.powersync.currentStatus));
-      dispose = db.powersync.registerListener({ statusChanged: (s) => setState(toState(s)) });
+      if (controller.signal.aborted) return;
+      setStatus(db.powersync.currentStatus);
+      dispose = db.powersync.registerListener({ statusChanged: setStatus });
+      db.powersync.watch(
+        COUNTS_SQL,
+        [],
+        {
+          onResult: (result) => {
+            const row = result.rows?._array[0] as Partial<Counts> | undefined;
+            setCounts({ waiting: Number(row?.waiting ?? 0), notSaved: Number(row?.notSaved ?? 0) });
+          },
+          onError: (error) => console.error("Local query failed", error),
+        },
+        { signal: controller.signal, throttleMs: 30 },
+      );
     });
     return () => {
-      cancelled = true;
+      controller.abort();
       dispose?.();
     };
   }, []);
-  return state;
+  return status ? toState(status, counts) : null;
 };

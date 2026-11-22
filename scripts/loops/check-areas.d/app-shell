@@ -41,6 +41,8 @@ apps/web/app/lib/app-shell/group.tsx     first-sync
 
 # Account settings, and group settings and members.
 apps/web/app/routes/app/settings/        layout-offline
+# Changes not saved (sync-safety): component tests; roundtrip finds a refusal listed.
+apps/web/app/routes/app/settings/not-saved/ roundtrip
 apps/web/app/lib/app-shell/me.ts         layout-offline
 apps/web/app/components/settings/        -
 packages/data/src/db/schema/app-shell/userPreferences.ts layout-offline

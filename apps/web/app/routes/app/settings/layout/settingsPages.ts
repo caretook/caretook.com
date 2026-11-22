@@ -1,7 +1,7 @@
 import type { SettingsItem } from "~/lib/app-shell/settingsNav";
 import type { AccountSettingsPage } from "~/lib/app-shell/urls";
 
-import { LayoutList, MonitorSmartphone, Phone, Ruler, UserRound } from "lucide-react";
+import { CloudAlert, LayoutList, MonitorSmartphone, Phone, Ruler, UserRound } from "lucide-react";
 import { appUrls } from "~/lib/app-shell/appUrls";
 
 /**
@@ -45,5 +45,12 @@ export const ACCOUNT_SETTINGS: readonly (SettingsItem & { id: AccountSettingsPag
     description: "Where you're signed in, and signing a device out",
     icon: MonitorSmartphone,
     path: appUrls.settings("devices"),
+  },
+  {
+    id: "not-saved",
+    label: "Changes not saved",
+    description: "Changes from this device the server didn't save",
+    icon: CloudAlert,
+    path: appUrls.settings("not-saved"),
   },
 ];

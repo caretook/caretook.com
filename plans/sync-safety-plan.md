@@ -4,14 +4,26 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/sync-safety` (slice commits) |
-| ----- | ---- | ----------- | -------------------------------------------- |
-| 1     | 1    | not started |                                              |
-| 2     | 1    | not started |                                              |
-| 3     | 2    | not started |                                              |
-| 4     | 2    | not started |                                              |
-| 5     | 2    | not started |                                              |
-| 6     | 1    | not started |                                              |
+| Slice | Wave | State         | Merge into `prd/sync-safety` (slice commits) |
+| ----- | ---- | ------------- | -------------------------------------------- |
+| 1     | 1    | landed (opus) | 5a140ed9 (8cc4d866, 2e34d947)                |
+| 2     | 1    | landed (opus) | 385a1ba8 (a67973a0)                          |
+| 3     | 2    | not started   |                                              |
+| 4     | 2    | not started   |                                              |
+| 5     | 2    | not started   |                                              |
+| 6     | 1    | landed (opus) | f4c6ad13 (a822dcba, 625bf09a)                |
+
+**Landing mode:** run everything through (started run-through, 2026-11-22): start every ready slice, land each green wave, clean up; ask only real questions via `pnpm prd ask`.
+
+**Held for test profiling after wave 1** (notice n7, 2026-11-22: the user holds every PRD after its current wave; the dispatcher restarts this topic later). Wave 1 (slices 1, 2, 6) landed through the PR into dev; the worktree is removed (`pnpm prd rm sync-safety`), so a restart begins with `pnpm prd start sync-safety` and then wave 2.
+
+**Next: wave 2, slices 3, 4 and 5** (all ready: slices 1 and 2 are in dev). Claim B-286 (slice 3), B-290 (slice 4), B-288 and B-289 (slice 5). Merge order: 5 before 3 (slice 3 syncs before its handoff). Notes from wave 1's hand-offs:
+
+- **Slice 5:** the PUT branch is the `op.op === "PUT"` block of `softDelete` in `packages/api/src/syncRegistry.ts`; its follow-ups (`deleted_at` → `remove`, then `afterPut`, todo's tick) are where "only when created, in one transaction" goes; todo's twin is the spec's `put` hook. Roundtrip's `unsaved_change` held only the two forced refusals (device B's timeline PATCH, device C's todo title PATCH): no twins to cover.
+- **Slice 3:** the loop is the one `applyOp` line in `packages/api/src/sync.ts`; new errors go in `packages/data/src/errors/sync.ts`. Set-aside records go in `unsaved_change` with `outcome = 'set_aside'`; the page renders every line through `unsavedSentence` and ignores `outcome` so far. `useSyncState().uploadFailed` exists for "Can't sync, retrying".
+- **Slice 4:** `useSyncState().waiting` is the count waiting to upload.
+- Wave 1 facts: the timeline remove's viewer 404 wasn't reproduced (it already answered 403); a PATCH naming any unknown column is now `sync:unknownColumn`; slice 6 also fixed `updateEntry` and `updateDose`, and device fixtures seed JSON via `pgJson()` (`apps/web/test/fixtures.ts`). Docs folded at the wave-1 landing: sync, app-shell, layout (medications and providers needed nothing beyond sync's "only changed columns").
+- Wave 1's browser checks ran as `--changed` (the classifier refused `--suite`; memory: ask before `--suite`).
 
 **Start conditions:** no other topic has an unlanded change to the upload procedure's file (`packages/api/src/sync.ts`) when slice 1 starts: this plan rewrites it wholesale, where the [rules across PRDs](../docs/agents/orchestrator.md#rules-across-prds) otherwise allow only additive edits. The service layer and `lib/auth/` are `fixes-bug`'s hot files, the browser checks `test-health`'s, and `powersync/sync-config.yaml` is `simple-mode`'s (this plan only reads it): `pnpm prd sync` before each wave, and whichever lands second syncs first.
 

@@ -66,6 +66,23 @@ const row = <K extends TableKey>(key: K, values: Values<K>, extra: Fixture[] = [
   return { table: getTableName(table), id: values.id, row: out as Fixture["row"], with: extra };
 };
 
+/**
+ * JSON as Postgres sends a jsonb column down (what a synced row holds): keys
+ * shortest first, then by code point, with `", "` and `": "` between, not
+ * `JSON.stringify`'s compact form. Seed JSON columns with it so a device
+ * write that rewrites the text unchanged shows in the upload queue.
+ */
+export const pgJson = (value: unknown): string => {
+  if (Array.isArray(value)) return `[${value.map(pgJson).join(", ")}]`;
+  if (value && typeof value === "object") {
+    const keys = Object.keys(value)
+      .filter((k) => (value as Record<string, unknown>)[k] !== undefined)
+      .sort((a, b) => a.length - b.length || (a < b ? -1 : a > b ? 1 : 0));
+    return `{${keys.map((k) => `${JSON.stringify(k)}: ${pgJson((value as Record<string, unknown>)[k])}`).join(", ")}}`;
+  }
+  return JSON.stringify(value);
+};
+
 /** A new random id (UUID v4). */
 export const newId = () => crypto.randomUUID();
 
@@ -232,14 +249,14 @@ const event = ({ text, ...v }: EntryValues & { text?: string } = {}) => {
 const symptom = ({ name = "Headache", severity = 3, ...v }: EntryValues & Partial<SymptomDetails> = {}) =>
   row(
     "timelineEntries",
-    entryBase("symptom", { details: JSON.stringify({ name, severity } satisfies SymptomDetails), ...v }),
+    entryBase("symptom", { details: pgJson({ name, severity } satisfies SymptomDetails), ...v }),
   );
 
 const vital = ({
   readings = [{ type: "heartRate", value: 72 }],
   ...v
 }: EntryValues & { readings?: VitalReading[] } = {}) =>
-  row("timelineEntries", entryBase("vital", { details: JSON.stringify({ readings }), ...v }));
+  row("timelineEntries", entryBase("vital", { details: pgJson({ readings }), ...v }));
 
 const dose = ({
   medicationId,
@@ -259,7 +276,7 @@ const dose = ({
     "timelineEntries",
     entryBase("dose", {
       title: null,
-      details: JSON.stringify({ medicationId, status, amount, scheduledFor, note: doseNote }),
+      details: pgJson({ medicationId, status, amount, scheduledFor, note: doseNote }),
       ...v,
     }),
   );
@@ -271,7 +288,7 @@ const medicationChange = ({
 }: EntryValues & { medicationId: string; change?: MedicationChangeType }) =>
   row(
     "timelineEntries",
-    entryBase("medicationChange", { title: null, details: JSON.stringify({ medicationId, change }), ...v }),
+    entryBase("medicationChange", { title: null, details: pgJson({ medicationId, change }), ...v }),
   );
 
 // --- Providers, medications, periods -----------------------------------------
@@ -287,7 +304,7 @@ const provider = ({
     type: "clinician",
     name: "Dr. Mira Lark",
     specialty: "Family medicine",
-    phones: JSON.stringify(phones),
+    phones: pgJson(phones),
     status: "current",
     isPrimary: 0,
     createdAt: created,
@@ -329,7 +346,7 @@ const medication = ({
     dose: "1 tablet",
     // `type: null` for one added before types (medications-3).
     type: "prescription",
-    schedule: JSON.stringify(schedule),
+    schedule: pgJson(schedule),
     status: "current",
     startedOn: created.slice(0, 10),
     createdAt: created,
