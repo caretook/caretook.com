@@ -183,7 +183,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-315 | bug | landed | fixes-bug | prd/fixes-bug | A removed member's open screen falls back to the first-loaded membership (write controls can come back), with no 'you no longer have access' state |
 | B-316 | change | triaged | fixes-ui |  | No unsaved-changes guard on any sheet or form: a click outside, Escape or Back discards a half-filled medication, emergency or provider form |
 | B-317 | bug | landed | fixes-bug | prd/fixes-bug | The previous user's typed lines, recent searches and settings stay in localStorage when a different user signs in on the device |
-| B-318 | bug | in-progress | fixes-bug | prd/fixes-bug | The app header ignores a simple-mode setting changed on another device until the next navigation |
+| B-318 | bug | ready | fixes-bug | prd/fixes-bug | The app header ignores a simple-mode setting changed on another device until the next navigation |
 | B-319 | bug | triaged | fixes-ui |  | Empty states flash before the first watch answer: a provider's linked entries ('No notes or events yet') and linked todos ('Former member') |
 | B-320 | bug | landed | fixes-bug | prd/fixes-bug | safeRedirect accepts a path with a tab, CR or LF ('/<tab>/evil.com' resolves to another site) |
 | B-321 | bug | landed | fixes-bug | prd/fixes-bug | A refused delete says nothing: UpcomingList voids removeEntry and useEntryRemoval never reads remover.data |
@@ -247,7 +247,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-379 | chore | landed | fixes-nit | prd/fixes-nit | Later contract migrations nobody tracks: dropping the old columns the simple-mode and planner-2 PRDs leave behind, and medications-2's default-passes backfill |
 | B-380 | chore | landed | fixes-nit | prd/fixes-nit | Backlog hygiene: B-205 and B-206 are the same test failure; B-208 is tagged simple-mode but landed as a hotfix; B-88 is landed with no commit; B-222's title and inbox line disagree; about 150 items read 'live' from one release merge though production hasn't started |
 | B-381 | bug | triaged | fixes-tooling |  | readTools.int.test.ts 'nothing private leaves' flakes when a random user UUID contains the birth year (e.g. …072194195bed matches '1941'): assert on fields, not a substring of the whole output |
-| B-382 | bug | in-progress | fixes-bug | prd/fixes-bug | Repeating todos: an offline Undo's delete of the next occurrence lands unconditionally (todoOp removeTodo), deleting a successor another member edited or completed even though todoService.reopen kept it; tell an Undo's delete from an explicit one and apply it only when the server finds the successor untouched (todos.sync.ts:499) |
+| B-382 | bug | ready | fixes-bug | prd/fixes-bug | Repeating todos: an offline Undo's delete of the next occurrence lands unconditionally (todoOp removeTodo), deleting a successor another member edited or completed even though todoService.reopen kept it; tell an Undo's delete from an explicit one and apply it only when the server finds the successor untouched (todos.sync.ts:499) |
 | B-383 | bug | triaged | sync-safety-2 |  | Repeating todos: reopen finds the successor by dueOn > the reopened todo's due day (todoService laterInChain, and the device's), so a successor rescheduled to the same day or earlier is missed and both rows stay open and repeating |
 | B-384 | bug | triaged | sync-safety-2 |  | Repeating todos: two concurrent completions of the same todo with doneAt on different recipient days both read doneAt null and each insert a different next occurrence; lock and reread the row (or a conditional transition) so only the winner makes the next (todoService.complete) |
 | B-385 | bug | landed | fixes-bug | prd/fixes-bug | Repeating todos: nextDueDay uses nextVisits' ~5-year search horizon, so a valid long-interval rule (e.g. FREQ=MONTHLY;INTERVAL=99) reads as ended and the chain stops; search to the rule's next occurrence or cap the accepted interval |
@@ -280,7 +280,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-412 | bug | triaged | fixes-ui |  | plus button on timeline day header should be on far right so all actions are on right. Care period… |
 | B-413 | bug | triaged | fixes-ui |  | don't collapse past providers on list providers page, it breaks search and isn't needed. This list… |
 | B-414 | feature | in-progress | ui-kit-2 | prd/ui-kit-2 | animations are cool. add some to actions, hovers, etc... be classy about it. For instance the… |
-| B-415 | feature | in-progress | ui-kit-2 | prd/ui-kit-2 | choose a more modern font set. |
+| B-415 | feature | ready | ui-kit-2 | prd/ui-kit-2 | choose a more modern font set. |
 | B-416 | bug | triaged | fixes-ui |  | owner pill on planner/planner list should be below time/date field. Too busy under title. |
 | B-417 | feature | triaged | marketing |  | We are getting close to feature complete. We need another marketing content pass that updates copy… |
 | B-418 | bug | triaged | test-health |  | Flaky tooling test under load: recover.test.mjs '--at a time that has passed waits until tomorrow' fails in the full pnpm test:tooling run and passes alone |
@@ -334,10 +334,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-466 | bug | triaged | fixes-tooling |  | resetStaging.int.test.ts 'wipes everything but real sign-ins, reseeds' times out at 30 s under load (passes alone in 3-10 s) |
 | B-467 | feature | triaged | asks-relay |  | The backlog session is the go-between for every agent's questions: agents file to the asks queue and wait, the backlog session ranks them by how soon an answer blocks real work, asks the user itself and decides which ones ping the phone |
 | B-468 | bug | triaged | fixes-tooling |  | open-session.sh fails when iTerm2 has windows but no current window: the dispatcher counts it as a planner death |
-| B-469 | bug | in-progress | fixes-bug | prd/fixes-bug | Easy roles' read-only search sheets (provider, medication, condition) show the values captured when tapped and miss edits or deletes that sync in while open |
-| B-470 | bug | in-progress | fixes-bug | prd/fixes-bug | An Easy helper can undo a writer's cancellation or reschedule of their own event by sending the setup fields as null (update API or sync upload) |
+| B-469 | bug | ready | fixes-bug | prd/fixes-bug | Easy roles' read-only search sheets (provider, medication, condition) show the values captured when tapped and miss edits or deletes that sync in while open |
+| B-470 | bug | ready | fixes-bug | prd/fixes-bug | An Easy helper can undo a writer's cancellation or reschedule of their own event by sending the setup fields as null (update API or sync upload) |
 | B-471 | feature | triaged | ui-kit-3 |  | Overlay motion: menus, popovers, dialogs and toasts fade in and out, and a sheet closes with the reverse of its opening |
-| B-472 | bug | in-progress | fixes-bug | prd/fixes-bug | A device's offline-queued simpleMode setting change, left from before the easy rename, is retried forever and takes later queued settings changes down with it |
+| B-472 | bug | ready | fixes-bug | prd/fixes-bug | A device's offline-queued simpleMode setting change, left from before the easy rename, is retried forever and takes later queued settings changes down with it |
 | B-473 | change | dropped | ui-kit-2 |  | Timeline: a + add button at the top right of the page header, like the other main pages, that adds an entry with its time set to now; the per-day + in the day headers stays |
 | B-474 | change | triaged | inbox-agent |  | Inbox agent plan amendments from the user: it never leaves staged or uncommitted changes behind (stash, or commit and push), and someone is named as owning cleanup of completed items |
 | B-475 | bug | triaged | fixes-tooling |  | Flaky component test: timelineSimpleTodos 'a viewer… done-only change' leaves an undo timer (useTodoTick → reopenTodo → liveTodo) that fires after the test's database closes: Unhandled Rejection 'Client has already been closed' fails the run |
@@ -347,8 +347,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-479 | bug | triaged | fixes-tooling |  | calendarCron.int.test.ts 'runs the reminders first, then Google push and pull, and the series top-up last by default' times out at 5 s under load (passes alone) |
 | B-480 | bug | triaged | fixes-tooling |  | timelineQuickEntry.browser.test.tsx 'the user's units are used, and an explicit unit wins' misses 'Saved 1 entry' under load (passes alone) |
 | B-481 | change | triaged | fixes-ui |  | Text entry boxes and the default page background are the same color, which is confusing: pick a different color for one or the other (no preference which) |
-| B-482 | bug | in-progress | fixes-bug | prd/fixes-bug | Offline settings change queued under the old simpleMode key is retried forever after the easy-mode rename, and blocks later offline settings changes |
+| B-482 | bug | ready | fixes-bug | prd/fixes-bug | Offline settings change queued under the old simpleMode key is retried forever after the easy-mode rename, and blocks later offline settings changes |
 | B-483 | bug | dropped | fixes-bug |  | Easy helper can undo a writer's cancellation of their own event by sending cancelledAt and cancelReason as null |
+| B-484 | bug | triaged | fixes-tooling |  | Flaky under load: staff.browser.test.tsx 'offline, the cached banner shows; it goes at its end time without a reload' sets endsAt to now + 2 s, so a render over 2 s (load ~20) sees the banner already gone |
 
 ## Items
 
@@ -1254,10 +1255,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-318 · bug · The app header ignores a simple-mode setting changed on another device until the next navigation
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: 3114a864
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. routes/app/layout/useSimpleFrame.ts:33-38 reads cachedSettings() with no subscription. Low; will change with the Easy helper and Easy viewer roles PRD (simple-mode).
 - 2026-11-21 (prd/orchestration-2): category: bug (orchestration-2 split)
@@ -1870,10 +1871,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-382 · bug · Repeating todos: an offline Undo's delete of the next occurrence lands unconditionally (todoOp removeTodo), deleting a successor another member edited or completed even though todoService.reopen kept it; tell an Undo's delete from an explicit one and apply it only when the server finds the successor untouched (todos.sync.ts:499)
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: 3114a864
 
 - 2026-11-21 (prd/planner-2): Codex finding on PR #22 (planner-2 wave 1, 2026-11-21); filed as a follow-up. P1.
 - 2026-11-21 (Robert Bo Davis): Codex found this again on PR #25 (dev into staging, reviewed at 2427f29c, 2026-11-21): still present, verified against the code. No new item filed.
@@ -2240,13 +2241,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-415 · feature · choose a more modern font set.
 
-- status: in-progress
+- status: ready
 - prd: ui-kit-2
 - owner: prd/ui-kit-2
-- commit:
+- commit: 7a3fff2f
 
 - 2026-11-21 (Robert Bo Davis): Triage: an app-wide look change (app.css, the ui/ primitives), which ui-kit holds as hot files while it runs; proposed for ui-kit-2, the follow-up written after ui-kit lands. The font choice needs the user's pick when it is planned.
 - 2026-11-21 (plan/ui-kit-2): ui-kit-2 plan (2026-11-21): planned in plans/ui-kit-2-plan.md. Slices: 1 Button (B-423), 2 the header add button (B-420, B-419), 3 medication tabs and add menu (B-424), 4 the typeface (B-415), 5 motion (B-414), 6 the choice dialog (B-268).
+- 2026-11-22 (slice/ui-kit-2/4): ui-kit-2 slice 4 (1efa71ca): Atkinson Hyperlegible Next 2.001 vendored in apps/web/app/fonts/ (48 KB upright + 53 KB italic woff2, OFL), --font-sans in app.css, preload in root.tsx, precached by the service worker; no wraps at 320/420.
 
 ### B-416 · bug · owner pill on planner/planner list should be below time/date field. Too busy under title.
 
@@ -2766,19 +2768,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-469 · bug · Easy roles' read-only search sheets (provider, medication, condition) show the values captured when tapped and miss edits or deletes that sync in while open
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: 3114a864
 
 - 2026-11-21 (prd/simple-mode): Codex P2 on PR #44 (simple-mode), verified: SearchResults.tsx keeps the whole item in useState (opened); useSearchPage refreshes data but not that copy, and EasyResultSheet watches no row. Fix: store { type, id }, read the row from the refreshed data (or a live query), close or say gone when deleted; component test with a synced edit.
 
 ### B-470 · bug · An Easy helper can undo a writer's cancellation or reschedule of their own event by sending the setup fields as null (update API or sync upload)
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: 3114a864
 
 - 2026-11-21 (prd/simple-mode): Codex P2 on PR #44 (simple-mode), verified: timelineEntryService.update's refuseLoggerOnly calls canLogEntry (entryRules.ts), which only checks ENTRY_SETUP_FIELDS are null, so { cancelledAt: null, cancelReason: null, rescheduledTo: null } passes and the ownership check passes on their own event. Fix: on update, an Easy helper may not change any setup field from its existing value (clearing included); integration test via the service and an upload.
 - 2026-11-22 (Robert Bo Davis): Codex flagged this again on PR #48 (dev→staging, P2, entryRules.ts:39); B-483 was filed as its duplicate and dropped.
@@ -2794,10 +2796,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-472 · bug · A device's offline-queued simpleMode setting change, left from before the easy rename, is retried forever and takes later queued settings changes down with it
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: 3114a864
 
 - 2026-11-21 (prd/simple-mode): Codex P2 on PR #44 (simple-mode), verified: lib/app-shell/me.ts readPending returns the stored caretook:settings-pending: payload as is; me.updatePreferences' strict schema now rejects simpleMode and clearPending no longer removes it. Fix: in readPending, map simpleMode (simple→easy, group→drop) to easyMode or drop it before sending; unit test. Only matters for devices that queued the change offline before the upgrade (none live today).
 
@@ -2886,10 +2888,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-482 · bug · Offline settings change queued under the old simpleMode key is retried forever after the easy-mode rename, and blocks later offline settings changes
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: 3114a864
 
 - 2026-11-22 (Robert Bo Davis): Codex P2 on PR #48 (dev→staging), verified: staging's me.ts queues 'simpleMode' under caretook:settings-pending:<user>; dev's strict userPreferencesZSchema rejects it and clearPending no longer removes it, so every refresh resends it and later offline units/layout changes merged in are refused and discarded. Fix: map the pending simpleMode to easyMode (value conversion) or drop it before sending. fixes-bug: wrong behaviour/data. Affects devices upgrading from staging only (nothing live).
 - 2026-11-22 (prd/fixes-bug): fixes-bug wave 2: folded into slice 17 with B-472 (same bug).
@@ -2903,3 +2905,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-22 (Robert Bo Davis): Codex P2 on PR #48 (dev→staging), verified: canLogEntry treats explicit nulls in ENTRY_SETUP_FIELDS as omitted (fields[f] == null), timelineEntryService.update passes the patch, and the own-row SQL permission allows it. Fix: on update, refuse a setup field present in the patch that changes the existing value (null included); keep null defaults on create. RBAC in the service layer, so fixes-bug, not fixes-ui.
 - 2026-11-22 (Robert Bo Davis): Duplicate of B-470 (same Codex finding on PR #48); dropped.
+
+### B-484 · bug · Flaky under load: staff.browser.test.tsx 'offline, the cached banner shows; it goes at its end time without a reload' sets endsAt to now + 2 s, so a render over 2 s (load ~20) sees the banner already gone
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (prd/ui-kit-2): Seen in ui-kit-2 slice 4's quick check (2026-11-22, render 2103 ms at load ~20); passes alone 3x. Fix: a fixed clock or a longer window, not a rerun.
