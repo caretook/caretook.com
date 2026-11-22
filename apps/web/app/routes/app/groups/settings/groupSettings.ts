@@ -199,17 +199,13 @@ export const memberAccess = ({
   actorRole: string | null;
   memberRole: string | null;
   isSelf: boolean;
-}): { roles: MemberRole[]; remove: boolean; leave: boolean; simpleMode: boolean; lock: boolean } => {
+}): { roles: MemberRole[]; remove: boolean; leave: boolean } => {
   const owner = actorRole === "owner";
   const manages = (owner || actorRole === "admin") && (owner || memberRole !== "owner");
   return {
     roles: manages ? MEMBER_ROLES.filter((role) => owner || role !== "owner") : [],
     remove: manages && !isSelf,
     leave: isSelf,
-    // Easy mode's default for them: whoever may change their role.
-    simpleMode: manages,
-    // Locking them in it: the same, but never yourself.
-    lock: manages && !isSelf,
   };
 };
 

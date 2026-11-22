@@ -24,6 +24,7 @@ import {
   setView,
   TIMELINE_URL,
   waitUntil,
+  chooseEasyMode,
 } from "./timelineWorld";
 
 // Condition changes on the timeline (conditions slice 2), on the test
@@ -176,12 +177,8 @@ describe("a condition written on this device", () => {
 
 describe("easy mode", () => {
   test("Remove my last entry never offers a condition change", async () => {
-    const membership = fx.member({
-      userId: TEST_USER.id,
-      role: "caretaker",
-      simpleMode: 1,
-      simpleModeLocked: 0,
-    });
+    const membership = fx.member({ userId: TEST_USER.id, role: "caretaker" });
+    chooseEasyMode();
     const mine = fx.symptom({ name: "Dizzy", occurredAt: minutesAgo(20), createdAt: minutesAgo(20) });
     const device = await openTimeline({ role: null, fixtures: [membership, mine] });
     await waitUntil(() => !!document.querySelector("[data-easy-timeline]"), 4000, "the easy view");

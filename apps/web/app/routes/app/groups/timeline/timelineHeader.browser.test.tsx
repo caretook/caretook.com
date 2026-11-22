@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { at, fx, TEST_RECIPIENT, TEST_USER } from "../../../../../test/fixtures";
 import { found } from "../../../../../test/found";
-import { frames, openTimeline, rows, TIMELINE_URL, waitUntil, world } from "./timelineWorld";
+import { chooseEasyMode, frames, openTimeline, rows, TIMELINE_URL, waitUntil, world } from "./timelineWorld";
 
 // The timeline's header on a phone and a desktop (quick-fixes slice 39): the
 // latest vitals only from `sm`, and the care period in each day's sticky
@@ -309,12 +309,14 @@ describe("the empty Today", () => {
     ["a kind filter", () => openTimeline({ role: "caretaker", fixtures: olderDays, query: "?kind=symptom" })],
     [
       "easy mode",
-      () =>
-        openTimeline({
+      () => {
+        chooseEasyMode();
+        return openTimeline({
           role: null,
           frame: true,
-          fixtures: [fx.member({ userId: TEST_USER.id, role: "caretaker", simpleMode: 1 }), ...olderDays],
-        }),
+          fixtures: [fx.member({ userId: TEST_USER.id, role: "caretaker" }), ...olderDays],
+        });
+      },
     ],
   ])("%s shows no empty-Today prompt", async (_, open) => {
     await open();

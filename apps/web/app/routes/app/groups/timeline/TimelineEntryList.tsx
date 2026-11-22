@@ -9,7 +9,7 @@ import type {
 import type { TimelineEntry } from "~/lib/core/rpc";
 import type { TimelineSearchState } from "./timelineSearch";
 
-import { parseSearch } from "@caretook/data/schema";
+import { canChangeEntry, parseSearch } from "@caretook/data/schema";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
@@ -80,8 +80,8 @@ export type TimelineEntryListFilters = {
  * with the care periods' boundary markers at their moments (filters on or
  * off; a day with only a marker gets its own section), each day's summary
  * line in its sticky header while no filter or search is on, then `OlderEntries`,
- * which loads older pages as the end comes near. Writers get each entry's ⋯ menu, with one delete
- * confirm for the whole list, and each day heading's + menu; a writer's list
+ * which loads older pages as the end comes near. Writers get each entry's ⋯ menu (an Easy
+ * helper, those of the entries they made), with one delete confirm for the whole list, and each day heading's + menu; a writer's list
  * always has a Today heading, so today's + is always there. With no filter or
  * search on and nothing logged today, that heading says so and offers "Add an
  * entry" (`onAddEntry`), in place of the empty timeline's line.
@@ -166,8 +166,12 @@ export function TimelineEntryList({
           })
       : undefined;
   const Entry = view === "cards" ? TimelineEntryCard : TimelineEntryRow;
+  const group = useGroup();
+  // Edit and Delete: writers on every row, an Easy helper on the rows they made (`canChangeEntry`).
+  const mayChange = (createdBy: string | null) =>
+    canWrite || canChangeEntry({ role: group.role, userId: group.userId, entry: { createdBy } });
   // The markers, placed among the entries by moment in the viewer's days; their times are the recipient's.
-  const recipientZone = useGroup().recipient?.timeZone ?? "UTC";
+  const recipientZone = group.recipient?.timeZone ?? "UTC";
   const now = new Date();
   const timeZone = localTimeZone();
   const days = withMarkers(data.days, easy ? NO_MARKERS : data.markers, timeZone, now);
@@ -228,7 +232,7 @@ export function TimelineEntryList({
   // Matches are marked in the history's rows and cards (the Upcoming block stays as it is).
   const parsed = useMemo(() => (searching.q ? parseSearch(searching.q) : undefined), [searching.q]);
   const item = (entry: TimelineEntry, marked = false) => {
-    const open = entryOpen({ groupId, entry, canWrite, search });
+    const open = entryOpen({ groupId, entry, canWrite: mayChange(entry.createdBy), search });
     return (
       <Entry
         key={entry.id}
@@ -244,7 +248,7 @@ export function TimelineEntryList({
             : editSeriesOf(entry)
         }
         onDelete={
-          canWrite
+          mayChange(entry.createdBy)
             ? () =>
                 scope.ask(entry, "delete", {
                   only: () => removal.ask(entry),
@@ -324,7 +328,11 @@ export function TimelineEntryList({
                       occurredAt={it.occurredAt}
                       authorName={data.nameOf(it.entries[0]!.createdBy)}
                       authorImage={data.imageOf(it.entries[0]!.createdBy)}
-                      sheetTo={canWrite ? appUrls.passSheet(groupId, it.id, { search }) : undefined}
+                      sheetTo={
+                        it.entries.every((e) => mayChange(e.createdBy))
+                          ? appUrls.passSheet(groupId, it.id, { search })
+                          : undefined
+                      }
                     />
                   ),
                 )}

@@ -26,7 +26,6 @@ const TIMELINE_VIEW_OPTIONS: ChoiceOption<TimelineView>[] = [
 ];
 
 const EASY_MODE_OPTIONS: ChoiceOption<EasyModeSetting>[] = [
-  { value: "group", label: "Follow the group" },
   { value: "easy", label: "Always" },
   { value: "full", label: "Never" },
 ];
@@ -78,9 +77,10 @@ function SaveStatusLine({ status }: { status: SaveStatus | null }) {
 /**
  * Rows or cards: the preference the timeline's own toggle changes, saved the
  * same way (`saveSettings`), as soon as it's chosen. Offline, it's kept on
- * this device and sent on the next online visit. Then easy mode: follow
- * the group's default for you, always or never; choosing clears this
- * device's easy/full toggles, so the choice shows at once.
+ * this device and sent on the next online visit. Then easy mode: always or
+ * never (an Easy helper or Easy viewer has it in their group whatever this
+ * says); choosing clears this device's easy/full toggles, so the choice shows
+ * at once.
  */
 export default function TimelineLayoutSettings({ loaderData }: Route.ComponentProps) {
   const { userId } = loaderData;
@@ -88,7 +88,8 @@ export default function TimelineLayoutSettings({ loaderData }: Route.ComponentPr
   const layout = useSavedChoice(settings.timelineView, (timelineView) =>
     saveSettings(userId, { timelineView }),
   );
-  const easy = useSavedChoice(settings.easyMode, (easyMode) => {
+  // A device's copy from before the easy roles may still say `group` ("follow the group"): that reads as Never.
+  const easy = useSavedChoice<EasyModeSetting>(settings.easyMode === "easy" ? "easy" : "full", (easyMode) => {
     clearToggles(userId);
     return saveSettings(userId, { easyMode });
   });
@@ -110,8 +111,7 @@ export default function TimelineLayoutSettings({ loaderData }: Route.ComponentPr
       </SettingsCard>
       <SettingsCard id="easy-mode" title="Easy mode">
         <p className="text-base-content/70 text-sm">
-          A simpler timeline in large type. &ldquo;Follow the group&rdquo; uses what the group&apos;s owners
-          chose for you. You can also switch it on the timeline itself.
+          A simpler timeline in large type. You can also switch it on the timeline itself.
         </p>
         <ChoiceGroup
           name="easyMode"

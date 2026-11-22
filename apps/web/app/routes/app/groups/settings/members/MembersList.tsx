@@ -22,7 +22,7 @@ import { RoleOptions } from "./RoleOptions";
 import { SharingForm } from "./SharingForm";
 
 // The members list and its rows. Each change posts an intent (`changeRole`,
-// `setMemberMode`, `removeMember`, `updateSharing`) to the route's action. Every row shows the
+// `removeMember`, `updateSharing`) to the route's action. Every row shows the
 // member's relationship to the recipient and what they share with the group;
 // your own row has "What this group sees" (online, from your account's
 // contact details).
@@ -152,9 +152,7 @@ function MemberItem({
     void fetcher.submit({ intent: "changeRole", userId: member.user_id, role }, { method: "post" });
   };
 
-  const easy = useEasyModeSwitch(member);
-
-  const error = (result && !result.ok ? result.error : undefined) ?? easy.error ?? removeError;
+  const error = (result && !result.ok ? result.error : undefined) ?? removeError;
   return (
     <li data-member={member.user_id} className="space-y-1 py-3 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -219,53 +217,6 @@ function MemberItem({
           </button>
         )}
       </div>
-      {(access?.simpleMode || !!member.simple_mode) && (
-        <div className="flex min-w-0 flex-col gap-2 pl-12" data-member-switches="">
-          {access?.simpleMode ? (
-            <label className="flex min-w-0 cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="toggle toggle-sm"
-                aria-label={`Easy mode for ${name}`}
-                checked={easy.on}
-                disabled={easy.busy || removing}
-                onChange={(event) => easy.set(event.target.checked)}
-                data-easy-mode-switch=""
-              />
-              <span aria-hidden="true" className="min-w-0">
-                Easy mode
-              </span>
-            </label>
-          ) : (
-            !!member.simple_mode && (
-              <span className="badge badge-sm badge-ghost" data-easy-mode-badge="">
-                {member.simple_mode_locked ? "Easy mode, locked" : "Easy mode"}
-              </span>
-            )
-          )}
-          {access?.lock && (
-            <label className="flex min-w-0 cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="toggle toggle-sm"
-                aria-label={`Lock ${name} in easy mode`}
-                checked={easy.locked}
-                disabled={easy.busy || removing}
-                onChange={(event) => easy.lock(event.target.checked)}
-                data-easy-lock-switch=""
-              />
-              <span aria-hidden="true" className="min-w-0">
-                Locked
-              </span>
-            </label>
-          )}
-          {access?.simpleMode && !access.lock && !!member.simple_mode_locked && (
-            <span className="badge badge-sm badge-ghost" data-easy-mode-badge="">
-              Locked
-            </span>
-          )}
-        </div>
-      )}
       {error && (
         <p role="alert" className="text-error text-sm">
           {error}
@@ -292,51 +243,3 @@ function MemberItem({
     </li>
   );
 }
-
-/**
- * A member's easy-mode switches: the managers' default for them, and the
- * lock. Locking turns the default on, and turning the default off unlocks
- * (the server's rule, shown at once). The latest choice shows while it saves
- * and until it syncs back. Each change sent is remembered until its own echo
- * arrives, so an earlier change syncing back after a later click doesn't
- * undo the later one on screen; a refused change, or a saved value none of
- * ours explains (anyone else's change), shows what's saved.
- */
-function useEasyModeSwitch(member: MemberDetailRow) {
-  const fetcher = useFetcher<ActionResult>();
-  const busy = fetcher.state !== "idle";
-  const result = busy ? undefined : fetcher.data;
-  const saved = { on: !!member.simple_mode, locked: !!member.simple_mode_locked };
-  const savedKey = modeKey(saved);
-  // What we've sent, oldest first, and the saved value we last looked at.
-  const [sent, setSent] = useState<{ pending: string[]; seen: string }>({ pending: [], seen: savedKey });
-  if (sent.seen !== savedKey) {
-    const echo = sent.pending.indexOf(savedKey);
-    // Our own change arriving drops it and anything older; anything else is someone else's.
-    setSent({ pending: echo < 0 ? [] : sent.pending.slice(echo + 1), seen: savedKey });
-  }
-  const latest = sent.pending.at(-1);
-  const shown = latest && (busy || result?.ok) ? parseModeKey(latest) : saved;
-  const send = (next: ModeState, field: "simpleMode" | "locked", value: boolean) => {
-    setSent({ pending: [...sent.pending, modeKey(next)], seen: savedKey });
-    void fetcher.submit(
-      { intent: "setMemberMode", userId: member.user_id, [field]: value ? "on" : "off" },
-      { method: "post" },
-    );
-  };
-  return {
-    on: shown.on,
-    locked: shown.locked,
-    busy,
-    set: (on: boolean) => send({ on, locked: on && shown.locked }, "simpleMode", on),
-    lock: (locked: boolean) => send({ on: locked || shown.on, locked }, "locked", locked),
-    error: result && !result.ok ? result.error : undefined,
-  };
-}
-
-type ModeState = { on: boolean; locked: boolean };
-const modeKey = ({ on, locked }: ModeState) => `${on}:${locked}`;
-const parseModeKey = (key: string): ModeState => {
-  const [on, locked] = key.split(":");
-  return { on: on === "true", locked: locked === "true" };
-};

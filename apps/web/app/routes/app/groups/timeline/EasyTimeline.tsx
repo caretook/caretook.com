@@ -4,6 +4,7 @@ import type { EasyModeState } from "~/lib/assistant/useEasyMode";
 import type { TimelineData } from "./useTimelineData";
 import type { TimelineEntryListFilters } from "./TimelineEntryList";
 
+import { isManagerRole } from "@caretook/data/permissions";
 import { QuickEntryBox } from "~/components/quick-entry";
 import { useGroup } from "~/lib/app-shell/group";
 import { nextStripText } from "~/lib/appointments/upcomingLabels";
@@ -27,11 +28,11 @@ export const easyTodayText = (now: Date, locale?: string) =>
  * Easy mode's timeline (assistant PRD): one column at the full timeline's type scale with the
  * recipient's name and today; the Upcoming block (due passes with Given all,
  * the next appointment, which opens the next five; for viewers as text); "My todos" (mine, with big ticks;
- * viewers too); for writers the four tiles in one row and "Remove my last
+ * viewers too); for loggers (writers and an Easy helper) the four tiles in one row and "Remove my last
  * entry", then the quick-entry box (normal size, with a hint to dictate on
  * phones and tablets), the full timeline's search, Filter button and chips
  * (`chips`), then the timeline's rows (`TimelineEntryList`'s `easy`: the
- * full ⋯ menus and sheets for writers). No strips, add menu or layout switch;
+ * full ⋯ menus and sheets for writers, and an Easy helper's on the rows they made). No strips, add menu or layout switch;
  * the /app header is reduced to match (`useEasyFrame`).
  */
 export function EasyTimeline({
@@ -77,7 +78,7 @@ export function EasyTimeline({
       <EasyTodos className={COLUMN_CAP} />
       {mode.inputs && (
         <div className={`space-y-3 ${EASY_BLOCK} ${COLUMN_CAP}`}>
-          <WriterTiles canChoose={(group.role === "owner" || group.role === "admin") && !mode.locked} />
+          <LoggerTiles canChoose={isManagerRole(group.role)} />
           <RemoveLastEntry groupId={group.id} userId={group.userId} now={data.now} />
         </div>
       )}
@@ -110,8 +111,8 @@ export function EasyTimeline({
   );
 }
 
-/** The tiles: writers only (viewers have none to tap), so only they read the tiles' data. */
-function WriterTiles({ canChoose }: { canChoose: boolean }) {
+/** The tiles: loggers only (viewers have none to tap), so only they read the tiles' data. */
+function LoggerTiles({ canChoose }: { canChoose: boolean }) {
   const group = useGroup();
   const { tiles, setting, words, ready, fresh } = useEasyTiles(group.id);
   if (!ready) return <EasyTilesSkeleton />;

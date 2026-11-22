@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Outlet, redirect, useLocation, useNavigate } from "react-router";
 import { getGroup, GroupProvider, setGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
-import { lockedRedirect } from "~/lib/assistant/easyModeLock";
+import { easyRoleRedirect } from "~/lib/assistant/easyModeLock";
 
 // Shared by web + native. `/app/groups/:groupId`: every screen about one
 // care group (the timeline, an entry, group settings, later sections) is a
@@ -17,22 +17,26 @@ import { lockedRedirect } from "~/lib/assistant/easyModeLock";
 // 404, or "Getting your care groups…" on a new device), thrown by
 // `getGroup` from the loaders (see lib/app-shell/group.tsx for why not the middleware).
 //
-// A member locked in easy mode is sent to the timeline from every other
-// group route but their notes' and events' pages (`lib/assistant/easyModeLock.ts`):
-// by the middleware on each navigation, and by `LockedRedirect` when a lock
-// arrives by sync while they're on one.
+// A member with an easy role (Easy helper, Easy viewer) is sent to the
+// timeline from every other group route but their notes' and events' pages
+// (`lib/assistant/easyModeLock.ts`): by the middleware on each navigation, and
+// by `EasyRoleRedirect` when the role arrives by sync while they're on one.
 
 export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
   async ({ request, params, context }) => {
     const { db } = context.get(sessionContext);
     await setGroup(context, db, params.groupId);
-    let locked = false;
+    let easyRole = false;
     try {
-      locked = getGroup(context).easyMode.locked;
+      easyRole = getGroup(context).easyRole;
     } catch {
       // No group: the loaders throw its error.
     }
-    const to = lockedRedirect({ groupId: params.groupId, pathname: new URL(request.url).pathname, locked });
+    const to = easyRoleRedirect({
+      groupId: params.groupId,
+      pathname: new URL(request.url).pathname,
+      easyRole,
+    });
     if (to) throw redirect(to);
   },
 ];
@@ -45,18 +49,18 @@ export default function GroupLayout({ loaderData }: Route.ComponentProps) {
   // Keyed on the group: another group is another page, with its own watch.
   return (
     <GroupProvider key={loaderData.id} group={loaderData}>
-      <LockedRedirect />
+      <EasyRoleRedirect />
       <Outlet />
     </GroupProvider>
   );
 }
 
-/** A lock that arrives (by sync) while you're on a page it closes: go to the timeline. */
-function LockedRedirect() {
-  const { id, easyMode } = useGroup();
+/** An easy role that arrives (by sync) while you're on a page it closes: go to the timeline. */
+function EasyRoleRedirect() {
+  const { id, easyRole } = useGroup();
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const to = lockedRedirect({ groupId: id, pathname, locked: easyMode.locked });
+  const to = easyRoleRedirect({ groupId: id, pathname, easyRole });
   useEffect(() => {
     if (to) void navigate(to, { replace: true });
   }, [to, navigate]);

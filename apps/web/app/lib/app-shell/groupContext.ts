@@ -32,11 +32,9 @@ export type GroupContext = Readonly<{
   canWrite: boolean;
   /** Whether you may log care: add entries, doses and Given all (writers, and an Easy helper). */
   canLog: boolean;
-  /** Whether your role is one of the easy roles (Easy helper, Easy viewer). */
+  /** Whether your role is one of the easy roles (Easy helper, Easy viewer): the easy view always. */
   easyRole: boolean;
   recipient: GroupRecipient | null;
-  /** Easy mode as the group's managers set it for you: their default, and whether you're locked in it. */
-  easyMode: Readonly<{ ownerDefault: boolean; locked: boolean }>;
 }>;
 
 /** The context for one of `userId`'s local group rows. */
@@ -61,6 +59,5 @@ export const toGroupContext = (row: GroupRow, userId: string): GroupContext => {
     canLog: isLoggerRole(row.role),
     easyRole: isEasyRole(row.role),
     recipient,
-    easyMode: { ownerDefault: !!row.simple_mode, locked: !!row.simple_mode_locked },
   };
 };

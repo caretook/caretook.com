@@ -57,10 +57,8 @@ export const careGroupMemberSchema = pgTable(
     // sharing a phone (null: they didn't). Managers see a note on the profile
     // until they're back on the list or a manager saves the list. System only.
     emergencyDroppedAt: timestampColumn("emergency_dropped_at"),
-    // Easy mode (easyMode.ts): the owner's default for this member, and
-    // whether they're locked in it (a lock means easy). Set by owners and
-    // admins, through careGroupMemberService.setMode; only owners change an
-    // owner's, and nobody their own lock.
+    // Retired by the easy roles (simple-mode PRD, slice 3: a locked member became an Easy helper or
+    // Easy viewer): no longer read, written or synced; a later contract migration drops them.
     simpleMode: boolean("simple_mode").notNull().default(false),
     simpleModeLocked: boolean("simple_mode_locked").notNull().default(false),
     ...timestamps,

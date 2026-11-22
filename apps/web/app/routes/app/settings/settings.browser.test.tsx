@@ -90,7 +90,7 @@ describe.each([420, 1280])("at %i", (width) => {
         .getByRole("radio")
         .elements()
         .map((r) => r.getAttribute("aria-label")),
-    ).toEqual(["Follow the group", "Always", "Never"]);
+    ).toEqual(["Always", "Never"]);
     frameAt(width, "timeline");
   });
 

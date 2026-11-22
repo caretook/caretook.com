@@ -36,7 +36,7 @@ export const DEFAULT_DAY_SUMMARY_MODE: DaySummaryMode = "highlights";
 export const userPreferencesZSchema = z.strictObject({
   units: unitChoicesZSchema.partial().optional(),
   timelineView: z.enum(TIMELINE_VIEWS).optional(),
-  /** Easy mode: follow the group's default for you, or always easy or full (easyMode.ts). */
+  /** Easy mode: your own choice, easy or full (easyMode.ts). */
   easyMode: z.enum(EASY_MODE_SETTINGS).optional(),
   daySummary: z.enum(DAY_SUMMARY_MODES).optional(),
 });
@@ -51,8 +51,11 @@ export const resolveUnits = (prefs: UserPreferences | null | undefined): UnitCho
 export const resolveTimelineView = (prefs: UserPreferences | null | undefined): TimelineView =>
   prefs?.timelineView ?? DEFAULT_TIMELINE_VIEW;
 
-export const resolveEasyModeSetting = (prefs: UserPreferences | null | undefined): EasyModeSetting =>
-  prefs?.easyMode ?? DEFAULT_EASY_MODE_SETTING;
+/** Anything but a known setting (a stored `group` from before the easy roles) reads as the default. */
+export const resolveEasyModeSetting = (prefs: UserPreferences | null | undefined): EasyModeSetting => {
+  const stored: unknown = prefs?.easyMode;
+  return EASY_MODE_SETTINGS.find((s) => s === stored) ?? DEFAULT_EASY_MODE_SETTING;
+};
 
 export const resolveDaySummaryMode = (prefs: UserPreferences | null | undefined): DaySummaryMode =>
   prefs?.daySummary ?? DEFAULT_DAY_SUMMARY_MODE;

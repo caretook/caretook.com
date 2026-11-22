@@ -20,7 +20,7 @@ import { feelLabel } from "~/lib/assistant/easyTiles";
 // Shared by web + native. `timeline/new/symptom` and `timeline/new/vital`
 // (`?type=heartRate` starts with that reading): the add sheet, over the
 // timeline (`?at=<ISO>` starts it at that time: a past day's +). Notes and events have a page instead (`entries/new?kind=`), so
-// any other kind, or a viewer, lands on the timeline. In easy mode (the
+// any other kind, or someone who doesn't log care, lands on the timeline. In easy mode (the
 // tiles) it's the easy variant: the feelings scale, or one vital type's
 // fields, titled in plain words ("How she feels", "Blood pressure").
 
@@ -30,7 +30,7 @@ export function clientLoader({ request, params, context }: Route.ClientLoaderArg
     groupId: group.id,
     kind: params.kind,
     search: new URL(request.url).search,
-    canWrite: group.canWrite,
+    canLog: group.canLog,
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
   return decision.sheet;

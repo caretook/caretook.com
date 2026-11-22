@@ -8,7 +8,7 @@ import type { MaterializeInput } from "~/lib/live-notes/liveEntry.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
 import type { EntryPageData } from "./loadEntry";
 
-import { canHaveNoteDocument, noteText } from "@caretook/data/schema";
+import { canChangeEntry, canHaveNoteDocument, noteText } from "@caretook/data/schema";
 import { useCallback, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -54,8 +54,14 @@ export type LiveEntry = {
   stored: boolean;
   /** Opened as `/entries/new` (stays true after the draft is saved). */
   isNew: boolean;
-  /** Live: a role changed on another device shows without a reload. */
+  /**
+   * Whether you may change this entry (its title, time, place, text, or delete it): writers any,
+   * an Easy helper one they made or their draft (`canChangeEntry`). Live: a role changed on
+   * another device shows without a reload.
+   */
   canWrite: boolean;
+  /** Whether you may set up around it (cancel, reschedule, a series, a repeat, providers, visit prep): writers only. */
+  canSetUp: boolean;
   /** It was stored and is gone (deleted here or elsewhere). */
   deleted: boolean;
   /** For the editor: saves a draft on its first real change; resolves true once saved. Stable. */
@@ -108,7 +114,8 @@ export type LiveEntry = {
  * editor stay mounted. Returns data and callbacks only.
  */
 export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
-  const { canWrite, recipient } = useGroup();
+  const group = useGroup();
+  const { recipient } = group;
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -122,6 +129,10 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
   const [seen, setSeen] = useState(!!live);
   if (live && !seen) setSeen(true);
   const deleted = seen && !live;
+  const canWrite = live
+    ? canChangeEntry({ role: group.role, userId: group.userId, entry: live })
+    : group.canLog;
+  const canSetUp = group.canWrite;
 
   // Saving: once, on the first real change (text or a title).
   const saved = useRef(!isNew && data.hasDocument);
@@ -353,6 +364,7 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
     stored: !!live,
     isNew,
     canWrite,
+    canSetUp,
     deleted,
     ensureSaved,
     commitTitle,

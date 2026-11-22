@@ -8,7 +8,7 @@ import { fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../../../test/fixture
 import * as newDose from "./new-dose/route";
 import * as newSheet from "./new/route";
 import * as timeline from "./route";
-import { TIMELINE_URL, waitUntil } from "./timelineWorld";
+import { chooseEasyMode, TIMELINE_URL, waitUntil } from "./timelineWorld";
 
 // Easy mode's tiles (assistant slice 6), on the test device and offline:
 // which four show for each of the group's choices (learned from use, the
@@ -46,19 +46,21 @@ const open = ({
   easyTiles?: object | null;
   pronouns?: string | null;
   entries?: ReturnType<typeof fx.note>[];
-} = {}) =>
-  renderWithDevice({
+} = {}) => {
+  chooseEasyMode();
+  return renderWithDevice({
     route: ROUTES,
     url: TIMELINE_URL,
     role: null,
     fixtures: [
-      fx.member({ userId: TEST_USER.id, role, simpleMode: 1 }),
+      fx.member({ userId: TEST_USER.id, role }),
       fx.group({ easyTiles: easyTiles ? JSON.stringify(easyTiles) : null }),
       fx.recipient({ pronouns }),
       METFORMIN,
       ...entries,
     ],
   });
+};
 
 const tiles = () => [...document.querySelectorAll<HTMLAnchorElement>("[data-tile]")];
 const tileLabels = () => tiles().map((t) => t.textContent?.trim());

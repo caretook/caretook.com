@@ -49,6 +49,9 @@ export const DEFAULT_ROLE_NAMES: RoleNames = {
  *   tables already sync, and devices build their own index.
  * - "care_group": `simple_tiles`, retired by `easy_tiles` (migration 0034) and no
  *   longer synced, stays until a contract migration drops it.
+ * - "care_group_member": `simple_mode` and `simple_mode_locked`, retired by the
+ *   easy roles (migration 0036) and no longer synced, stay until a contract
+ *   migration drops them.
  *
  * Keep this list short; the parser still refuses `*` in streams. A test
  * fails when a synced table can't be read with `SELECT *`.
@@ -58,6 +61,7 @@ export const REPLICATION_WHOLE_TABLES: readonly string[] = [
   "note_document",
   "timeline_entry",
   "care_group",
+  "care_group_member",
 ];
 
 const NAME = /^[a-z_][a-z0-9_]{0,62}$/;

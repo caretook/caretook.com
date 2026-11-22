@@ -17,13 +17,13 @@ import * as timeline from "./route";
 import { daysAgo } from "../periods/periodWorld";
 import { chooseViewOption, waitUntil } from "./timelineWorld";
 
-// Easy mode on the timeline (assistant slice 5), in the real /app frame on
-// the test device: the easy view (large type, the box, the full timeline's
-// search, filters, row menus and edit sheets) and the reduced header, who gets it (the managers'
-// default, your own setting, this device's toggle; `resolveEasyMode` has
-// every combination), a default arriving from another device, viewers, and
-// the account setting. The owner's switch reaching a real second device is
-// app-shell.mjs's.
+// Easy mode on the timeline, in the real /app frame on the test device: the
+// easy view (large type, the box, the full timeline's search, filters, row
+// menus and edit sheets) and the reduced header, who gets it (an easy role
+// always; anyone else by their own setting or this device's toggle;
+// `resolveEasyMode` has every combination), an easy role arriving from
+// another device, viewers, and the account setting. The easy roles' own
+// timelines are timelineEasyLock.browser.test.tsx's.
 
 const TIMELINE = "/app/groups/:groupId/timeline";
 const ROUTES: DeviceRoute[] = [
@@ -46,8 +46,7 @@ const TIMELINE_URL = `/app/groups/${TEST_GROUP.id}/timeline`;
 
 /** Your membership, with a known id so another device's change can replace it. */
 const MEMBERSHIP = "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f5a01";
-const membership = (role: GroupRole, easyMode = 0, simpleModeLocked = 0) =>
-  fx.member({ id: MEMBERSHIP, userId: TEST_USER.id, role, simpleMode: easyMode, simpleModeLocked });
+const membership = (role: GroupRole) => fx.member({ id: MEMBERSHIP, userId: TEST_USER.id, role });
 
 const minutesAgo = (m: number) => at(new Date(Date.now() - m * 60_000));
 const ENTRIES = [
@@ -55,33 +54,34 @@ const ENTRIES = [
   fx.symptom({ name: "Sore knee", severity: 3, occurredAt: minutesAgo(20) }),
 ];
 
+const SETTINGS_KEY = `caretook:settings:${TEST_USER.id}`;
+const TOGGLE_KEY = `caretook:easyMode:${TEST_USER.id}:${TEST_GROUP.id}`;
+const setOwnSetting = (easyMode: string) => localStorage.setItem(SETTINGS_KEY, JSON.stringify({ easyMode }));
+
+/** The timeline as `role`; `easyMode` is your own setting saying Easy mode. */
 const open = ({
   role = "caretaker",
-  easyMode = 0,
-  locked = 0,
+  easyMode = false,
   url = TIMELINE_URL,
   api,
   extra = [],
 }: {
   role?: GroupRole;
-  easyMode?: number;
-  locked?: number;
+  easyMode?: boolean;
   url?: string;
   api?: Record<string, (input: unknown) => unknown>;
   extra?: Fixtures[];
-} = {}) =>
-  renderWithDevice({
+} = {}) => {
+  if (easyMode) setOwnSetting("easy");
+  return renderWithDevice({
     route: ROUTES,
     url,
     role: null,
     frame: true,
-    fixtures: [membership(role, easyMode, locked), ...ENTRIES, ...extra],
+    fixtures: [membership(role), ...ENTRIES, ...extra],
     api,
   });
-
-const SETTINGS_KEY = `caretook:settings:${TEST_USER.id}`;
-const TOGGLE_KEY = `caretook:easyMode:${TEST_USER.id}:${TEST_GROUP.id}`;
-const setOwnSetting = (easyMode: string) => localStorage.setItem(SETTINGS_KEY, JSON.stringify({ easyMode }));
+};
 
 afterEach(() => {
   localStorage.removeItem(SETTINGS_KEY);
@@ -108,7 +108,7 @@ describe("the mic tip", () => {
       .spyOn(navigator, "userAgent", "get")
       .mockReturnValue("Mozilla/5.0 (Linux; Android 14; Pixel 8)");
     try {
-      await open({ easyMode: 1 });
+      await open({ easyMode: true });
       await waitUntil(isEasy, 4000, "the easy view");
       await expect.element(page.getByText(DICTATION_HINT)).toBeVisible();
       expect(document.querySelectorAll("[data-dictation-hint]")).toHaveLength(1);
@@ -120,8 +120,8 @@ describe("the mic tip", () => {
 });
 
 describe("the easy view", () => {
-  test("a member whose owner chose easy mode: their name and today, the box at the normal size, then the search and filters, then rows with menus, and a reduced header", async () => {
-    await open({ easyMode: 1 });
+  test("a caretaker who chose easy mode: their name and today, the box at the normal size, then the search and filters, then rows with every menu, a reduced header and Full app", async () => {
+    await open({ easyMode: true });
     await waitUntil(isEasy, 4000, "the easy view");
 
     // The recipient and today.
@@ -184,7 +184,7 @@ describe("the easy view", () => {
     });
     const home = fx.period({ type: "home", startedAt: at(daysAgo(4, 9)) });
     await open({
-      easyMode: 1,
+      easyMode: true,
       extra: [
         stay,
         home,
@@ -206,7 +206,7 @@ describe("the easy view", () => {
   });
 
   test("still saves through the box, on the device", async () => {
-    const device = await open({ easyMode: 1 });
+    const device = await open({ easyMode: true });
     await waitUntil(isEasy, 4000, "the easy view");
     await userEvent.fill(page.getByRole("textbox", { name: "What happened?" }), "bp 130/85");
     await waitUntil(() => !!document.querySelector("[data-quick-card]"), 4000, "the card");
@@ -218,13 +218,13 @@ describe("the easy view", () => {
   });
 
   test("a viewer gets the bigger rows and no box", async () => {
-    await open({ role: "viewer", easyMode: 1 });
+    await open({ role: "viewer", easyMode: true });
     await waitUntil(() => isEasy() && rows().length === 2, 4000, "the easy view");
     expect(page.getByRole("textbox", { name: "What happened?" }).elements()).toHaveLength(0);
   });
 
   test("keeps a filter from the URL, with its chip, and clearing the chip shows everything", async () => {
-    const device = await open({ easyMode: 1, url: `${TIMELINE_URL}?kind=note` });
+    const device = await open({ easyMode: true, url: `${TIMELINE_URL}?kind=note` });
     await waitUntil(() => isEasy() && rows().length === 1, 4000, "the filtered rows");
     expect(device.location()).toBe(`${TIMELINE_URL}?kind=note`);
     const chip = document.querySelector<HTMLAnchorElement>('nav[aria-label="Filters on"] a')!;
@@ -234,7 +234,7 @@ describe("the easy view", () => {
   });
 
   test("⋯ → Edit opens the full edit sheet over the easy view", async () => {
-    const device = await open({ easyMode: 1 });
+    const device = await open({ easyMode: true });
     await waitUntil(() => isEasy() && rows().length === 2, 4000, "the rows");
     const knee = rows().find((li) => li.textContent?.includes("Sore knee"))!;
     await userEvent.click(knee.querySelector('button[aria-label^="Actions"]')!);
@@ -270,10 +270,10 @@ describe("who gets it", () => {
     await waitUntil(() => !isEasy(), 4000, "the full timeline again");
   });
 
-  test("the owner's default arriving from another device switches the timeline without a reload, unless your own setting says otherwise", async () => {
+  test("an easy role arriving from another device switches the timeline without a reload, and back", async () => {
     const device = await open();
     await expect.element(page.getByRole("button", { name: "View options" })).toBeVisible();
-    await device.sync(membership("caretaker", 1));
+    await device.sync(membership("easy_helper"));
     await waitUntil(isEasy, 4000, "the easy view");
     await waitUntil(
       () => !header().querySelector('[data-region="sections"] nav'),
@@ -281,50 +281,60 @@ describe("who gets it", () => {
       "the reduced header",
     );
 
-    await device.sync(membership("caretaker", 0));
+    await device.sync(membership("caretaker"));
     await waitUntil(() => !isEasy(), 4000, "the full timeline");
   });
 
-  test("your own setting wins over the owner's default; the toggle wins over both", async () => {
+  test("this device's toggle wins over your own setting", async () => {
     setOwnSetting("full");
-    await open({ easyMode: 1 });
+    await open();
     await expect.element(page.getByRole("button", { name: "View options" })).toBeVisible();
     expect(isEasy()).toBe(false);
     await chooseViewOption("Easy view");
     await waitUntil(isEasy, 4000, "the easy view");
   });
 
-  test("your own setting of Always shows it with no default", async () => {
+  test("your own setting of Always shows it", async () => {
     setOwnSetting("easy");
     await open();
     await waitUntil(isEasy, 4000, "the easy view");
   });
 
-  test("a locked member has no toggle, and the user menu has no Full app", async () => {
-    localStorage.setItem(TOGGLE_KEY, "full");
-    await open({ easyMode: 1, locked: 1 });
-    await waitUntil(isEasy, 4000, "the easy view");
-    expect(page.getByRole("button", { name: "Full app" }).elements()).toHaveLength(0);
-    await userEvent.click(userButton());
-    await expect.poll(menuItems).toEqual(["Settings", "Sign out"]);
-    await userEvent.keyboard("{Escape}");
+  test("an old Follow the group setting on this device reads as full", async () => {
+    setOwnSetting("group");
+    await open();
+    await expect.element(page.getByRole("button", { name: "View options" })).toBeVisible();
+    expect(isEasy()).toBe(false);
   });
+
+  for (const role of ["easy_helper", "easy_viewer"] as const)
+    test(`an ${role === "easy_helper" ? "Easy helper" : "Easy viewer"} gets it whatever they chose: no toggle, and no Full app`, async () => {
+      setOwnSetting("full");
+      localStorage.setItem(TOGGLE_KEY, "full");
+      await open({ role });
+      await waitUntil(isEasy, 4000, "the easy view");
+      expect(page.getByRole("button", { name: "Full app" }).elements()).toHaveLength(0);
+      await userEvent.click(userButton());
+      await expect.poll(menuItems).toEqual(["Settings", "Sign out"]);
+      await userEvent.keyboard("{Escape}");
+    });
 });
 
 describe("the account setting", () => {
-  test("Follow the group, Always or Never: saved through the settings, and it clears this device's toggles", async () => {
+  test("Always or Never, with no Follow the group: saved through the settings, and it clears this device's toggles", async () => {
     const calls = apiCalls();
     localStorage.setItem(TOGGLE_KEY, "full");
     await open({
       url: "/app/settings/timeline",
       api: calls.record({
-        "me.get": () => ({ units: {}, timelineView: "rows", easyMode: "group" }),
+        "me.get": () => ({ units: {}, timelineView: "rows", easyMode: "full" }),
         "me.updatePreferences": () => null,
       }),
     });
     const group = page.getByRole("radiogroup", { name: "Easy mode" });
     await expect.element(group).toBeVisible();
-    await expect.element(page.getByRole("radio", { name: "Follow the group" })).toBeChecked();
+    await expect.element(page.getByRole("radio", { name: "Never" })).toBeChecked();
+    expect(group.getByRole("radio").elements()).toHaveLength(2);
     await userEvent.click(page.getByRole("radio", { name: "Always" }));
     await expect.poll(() => calls.of("me.updatePreferences")).toEqual([{ easyMode: "easy" }]);
     await expect.element(page.getByText("Saved.")).toBeVisible();

@@ -22,9 +22,9 @@
 //    comes back with the caretaker role. Also the member-share stream: a share
 //    row the server holds for caretaker@ reaches the owner's device, and goes
 //    from it with the membership when they're removed.
-// 4. Easy mode across two devices (assistant slice 5): the owner turns on
-//    easy mode for caretaker@ from Members; caretaker@'s open timeline
-//    switches to the easy view without a reload. Put back in SQL.
+// 4. An easy role across two devices: the owner makes caretaker@ an Easy
+//    helper from Members; caretaker@'s open timeline switches to the easy
+//    view without a reload, with no search. Put back in SQL.
 // 5. Staff (its screens are component tests under routes/admin/ and
 //    routes/app/layout/staff.browser.test.tsx): every /admin page is a 404 for
 //    member@ (a group's owner, not staff); admin@ posts an announcement through
@@ -59,9 +59,6 @@ const restoreSeeds = () => {
     `DELETE FROM member_contact_share WHERE group_id = '${DEV_FAMILY}' AND phones->0->>'number' = '(555) 010-1999'`,
   );
   psql(`UPDATE care_group SET name = '${SEED_GROUP}' WHERE id = '${DEV_FAMILY}'`);
-  psql(
-    `UPDATE care_group_member SET simple_mode = false, simple_mode_locked = false WHERE group_id = '${DEV_FAMILY}' AND (simple_mode OR simple_mode_locked)`,
-  );
   for (const [email, role] of SEEDED)
     psql(
       `INSERT INTO care_group_member (group_id, user_id, role, created_by, updated_by) SELECT '${DEV_FAMILY}', id, '${role}', id, id FROM "user" WHERE email = '${email}' ON CONFLICT (group_id, user_id) DO UPDATE SET role = EXCLUDED.role WHERE care_group_member.role <> EXCLUDED.role`,
@@ -363,8 +360,8 @@ test("members: changes reach another device", async ({ device }) => {
   await noErrors(dM, dO);
 });
 
-// ── 4. Easy mode: the owner's switch reaching the member's device ─────────
-test("easy mode: the owner's switch reaches the member's device", async ({ device }) => {
+// ── 4. An easy role: the owner's choice reaching the member's device ──────
+test("easy role: the owner's choice reaches the member's device", async ({ device }) => {
   test.setTimeout(150_000);
   const dM = await device("settings-owner");
   const dS = await device("easy-member");
@@ -379,21 +376,22 @@ test("easy mode: the owner's switch reaches the member's device", async ({ devic
 
     await signIn(M, "member@example.com");
     await M.goto(`/app/groups/${DEV_FAMILY}/settings/members`);
-    const toggle = M.locator('main [data-section="members"] li[data-member]')
+    const select = M.locator('main [data-section="members"] li[data-member]')
       .filter({ has: M.locator("p", { hasText: "Dev Caretaker" }) })
-      .locator("[data-easy-mode-switch]");
-    await expect(toggle).toBeEnabled({ timeout: 40_000 });
-    await toggle.click();
+      .locator("select");
+    await expect(select).toBeEnabled({ timeout: 40_000 });
+    await select.selectOption("easy_helper");
 
-    await test.step("the owner turns on easy mode for caretaker@: saved on the server, and their timeline switches without a reload", async () => {
-      const serverEasy = () =>
+    await test.step("the owner makes caretaker@ an Easy helper: saved on the server, and their timeline switches without a reload", async () => {
+      const serverRole = () =>
         psql(
-          `SELECT m.simple_mode FROM care_group_member m JOIN "user" u ON u.id = m.user_id WHERE m.group_id = '${DEV_FAMILY}' AND u.email = 'caretaker@example.com'`,
+          `SELECT m.role FROM care_group_member m JOIN "user" u ON u.id = m.user_id WHERE m.group_id = '${DEV_FAMILY}' AND u.email = 'caretaker@example.com'`,
         );
-      await expect.poll(serverEasy, { timeout: 20_000, intervals: [500] }).toBe("t");
+      await expect.poll(serverRole, { timeout: 20_000, intervals: [500] }).toBe("easy_helper");
       await expect(S.locator("[data-easy-timeline]")).toBeVisible({ timeout: 30_000 });
-      // Search stays in easy mode unless locked (B-208).
-      await expect(S.locator('header [data-region="search"]')).toHaveCount(1);
+      // The easy roles have no search (their pages are the timeline and entries) and no Full app.
+      await expect(S.locator('header [data-region="search"]')).toHaveCount(0);
+      await expect(S.getByRole("button", { name: "Full app" })).toHaveCount(0);
       expect(await stayed(S)).toBe(1);
     });
     await noErrors(dM, dS);

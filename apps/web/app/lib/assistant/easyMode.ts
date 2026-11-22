@@ -1,9 +1,11 @@
 import type { EasyModeSetting } from "@caretook/data/schema";
 
-// Which timeline a member sees (assistant PRD, easy mode). Pure: the
-// inputs come from the membership (synced: the managers' default and lock),
-// the user's own setting (`user.preferences.easyMode`) and this device's
-// toggle for the group (`lib/assistant/easyModeToggle.ts`).
+import { isEasyRole, isLoggerRole } from "@caretook/data/permissions";
+
+// Which timeline a member sees (easy mode). Pure: the inputs come from the
+// membership (synced: the role), the user's own setting
+// (`user.preferences.easyMode`) and this device's toggle for the group
+// (`lib/assistant/easyModeToggle.ts`).
 
 /** This device's choice for one group, from the timeline's toggle; null when never toggled. */
 export type DeviceToggle = "easy" | "full" | null;
@@ -11,10 +13,6 @@ export type DeviceToggle = "easy" | "full" | null;
 export type EasyModeInputs = {
   /** Your role in the group (null for one this build doesn't know). */
   role: string | null;
-  /** The managers' default for you (`care_group_member.simple_mode`). */
-  ownerDefault: boolean;
-  /** Locked in easy mode by a manager (`simple_mode_locked`). */
-  locked: boolean;
   ownSetting: EasyModeSetting;
   deviceToggle: DeviceToggle;
 };
@@ -22,32 +20,21 @@ export type EasyModeInputs = {
 export type EasyMode = {
   /** Show the easy view. */
   easy: boolean;
-  /** The toggle may switch between easy and full (not while locked). */
+  /** The toggle may switch between easy and full (never for the easy roles). */
   canToggle: boolean;
-  locked: boolean;
-  /** The view offers ways to add (the box, tiles, Now actions): writers only. */
+  /** Your role is an easy role (Easy helper, Easy viewer): the easy view always, and its reduced frame everywhere. */
+  easyRole: boolean;
+  /** The view offers ways to add (the box, tiles, Given all): the loggers (writers and an Easy helper). */
   inputs: boolean;
 };
 
-const WRITERS = ["owner", "admin", "caretaker"];
-
 /**
- * A lock wins over everything; otherwise this device's toggle, then your own
- * setting (unless it follows the group), then the managers' default.
+ * An easy role is always easy and can't toggle; anyone else sees this
+ * device's toggle, else their own setting (full by default).
  */
-export const resolveEasyMode = ({
-  role,
-  ownerDefault,
-  locked,
-  ownSetting,
-  deviceToggle,
-}: EasyModeInputs): EasyMode => {
-  const inputs = !!role && WRITERS.includes(role);
-  if (locked) return { easy: true, canToggle: false, locked: true, inputs };
-  const easy = deviceToggle
-    ? deviceToggle === "easy"
-    : ownSetting !== "group"
-      ? ownSetting === "easy"
-      : ownerDefault;
-  return { easy, canToggle: true, locked: false, inputs };
+export const resolveEasyMode = ({ role, ownSetting, deviceToggle }: EasyModeInputs): EasyMode => {
+  const inputs = isLoggerRole(role);
+  if (isEasyRole(role)) return { easy: true, canToggle: false, easyRole: true, inputs };
+  const easy = deviceToggle ? deviceToggle === "easy" : ownSetting === "easy";
+  return { easy, canToggle: true, easyRole: false, inputs };
 };

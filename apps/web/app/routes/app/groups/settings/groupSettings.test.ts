@@ -103,8 +103,6 @@ describe("memberAccess", () => {
         roles: ALL,
         remove: true,
         leave: false,
-        simpleMode: true,
-        lock: true,
       });
     }
   });
@@ -113,9 +111,6 @@ describe("memberAccess", () => {
       roles: ALL,
       remove: false,
       leave: true,
-      simpleMode: true,
-      // Nobody locks themselves.
-      lock: false,
     });
   });
   it("lets an admin change and remove members below owner, without offering owner", () => {
@@ -124,16 +119,12 @@ describe("memberAccess", () => {
         roles: BELOW_OWNER,
         remove: true,
         leave: false,
-        simpleMode: true,
-        lock: true,
       });
     }
     expect(access("admin", "admin", true)).toEqual({
       roles: BELOW_OWNER,
       remove: false,
       leave: true,
-      simpleMode: true,
-      lock: false,
     });
   });
   it("gives an admin nothing to do to an owner", () => {
@@ -141,8 +132,6 @@ describe("memberAccess", () => {
       roles: [],
       remove: false,
       leave: false,
-      simpleMode: false,
-      lock: false,
     });
   });
   it("lets caretakers, viewers and anyone without a role only leave", () => {
@@ -152,16 +141,12 @@ describe("memberAccess", () => {
           roles: [],
           remove: false,
           leave: false,
-          simpleMode: false,
-          lock: false,
         });
       }
       expect(access(actorRole, "viewer", true)).toEqual({
         roles: [],
         remove: false,
         leave: true,
-        simpleMode: false,
-        lock: false,
       });
     }
   });

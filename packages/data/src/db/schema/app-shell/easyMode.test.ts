@@ -36,10 +36,12 @@ describe("easyTilesZSchema", () => {
 });
 
 describe("the easyMode preference", () => {
-  it("follows the group unless set, and takes only its three values", () => {
-    expect(resolveEasyModeSetting({})).toBe("group");
-    expect(resolveEasyModeSetting(null)).toBe("group");
-    expect(resolveEasyModeSetting({ easyMode: "full" })).toBe("full");
+  it("is full unless set, reads an old “follow the group” as full, and takes only easy and full", () => {
+    expect(resolveEasyModeSetting({})).toBe("full");
+    expect(resolveEasyModeSetting(null)).toBe("full");
+    expect(resolveEasyModeSetting({ easyMode: "easy" })).toBe("easy");
+    expect(resolveEasyModeSetting({ easyMode: "group" } as never)).toBe("full");
+    expect(userPreferencesZSchema.safeParse({ easyMode: "group" }).success).toBe(false);
     expect(userPreferencesZSchema.safeParse({ easyMode: "easy" }).success).toBe(true);
     expect(userPreferencesZSchema.safeParse({ easyMode: "always" }).success).toBe(false);
   });

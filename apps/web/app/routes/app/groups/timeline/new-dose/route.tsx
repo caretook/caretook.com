@@ -22,7 +22,7 @@ import { logDose, logDoseOfNewMedication, medicationNamesQuery } from "~/lib/med
 import { doseChoicesQuery, toDoseChoices } from "~/lib/medications/medicationTimeline.sync";
 import { useMemberNames } from "~/lib/care-groups/memberNames.sync";
 import { readRows } from "~/lib/timeline/timeline.sync";
-import { doseFromForm, doseSheetOptions, quickAddFromForm } from "../doseFormData";
+import { doseFromForm, doseSheetOptions, NEW_MEDICATION_OPTION, quickAddFromForm } from "../doseFormData";
 import { DoseForm } from "../DoseForm";
 import { useCloseSheet } from "../sheet";
 import { newDoseGuard } from "../sheetGuard";
@@ -50,7 +50,7 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   const decision = newDoseGuard({
     groupId: group.id,
     search: new URL(request.url).search,
-    canWrite: group.canWrite,
+    canLog: group.canLog,
     choiceIds: choices.map((c) => c.id),
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
@@ -98,10 +98,13 @@ export default function NewDoseSheet({ loaderData, params }: Route.ComponentProp
     const asked = today.filter((p) => p.passId === passId);
     return [...asked, ...today.filter((p) => p.passId !== passId && isPassDueNow(p))];
   }, [due, passes, passId]);
-  const { options, initial } = useMemo(
-    () => doseSheetOptions(choices, due, { medicationId, slot }, new Set(shown.map((p) => p.passId))),
-    [choices, due, medicationId, slot, shown],
-  );
+  const { options, initial } = useMemo(() => {
+    const sheet = doseSheetOptions(choices, due, { medicationId, slot }, new Set(shown.map((p) => p.passId)));
+    // Only writers add a medication as they log its dose (an Easy helper logs doses of current ones).
+    return group.canWrite
+      ? sheet
+      : { ...sheet, options: sheet.options.filter((o) => o.value !== NEW_MEDICATION_OPTION) };
+  }, [choices, due, medicationId, slot, shown, group.canWrite]);
   const warningsFor = useCallback(
     (planned: PlannedDose) => doseWarnings(due, planned, new Date()).map((w) => doseWarningText(w, timeZone)),
     [due, timeZone],
@@ -117,7 +120,7 @@ export default function NewDoseSheet({ loaderData, params }: Route.ComponentProp
               pass={pass}
               groupId={params.groupId}
               timeZone={timeZone}
-              canWrite={group.canWrite}
+              canWrite={group.canLog}
               nameOf={nameOf}
               defaultExpanded
               onMark={(s, status, logId) => setMarking({ slot: s, status, passLogId: logId })}
@@ -128,21 +131,25 @@ export default function NewDoseSheet({ loaderData, params }: Route.ComponentProp
       <MarkDoseDialog marking={marking} groupId={params.groupId} onClose={() => setMarking(null)} />
       {choices.length === 0 && (
         <p className="mb-2" data-no-medications>
-          There are no current medications yet. Add one as you log its dose.
+          {group.canWrite
+            ? "There are no current medications yet. Add one as you log its dose."
+            : "There are no current medications yet."}
         </p>
       )}
-      <DoseForm
-        // A new URL is a new form (the medication, the slot, "When" set to now or `?at=`).
-        key={`${medicationId}-${slot}`}
-        options={options}
-        names={names}
-        initialOption={initial}
-        warningsFor={warningsFor}
-        draft={draft}
-        initialAt={startAtFrom(location.search)}
-        onDone={close}
-        onCancel={close}
-      />
+      {options.length > 0 && (
+        <DoseForm
+          // A new URL is a new form (the medication, the slot, "When" set to now or `?at=`).
+          key={`${medicationId}-${slot}`}
+          options={options}
+          names={names}
+          initialOption={initial}
+          warningsFor={warningsFor}
+          draft={draft}
+          initialAt={startAtFrom(location.search)}
+          onDone={close}
+          onCancel={close}
+        />
+      )}
     </Sheet>
   );
 }
