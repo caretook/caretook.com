@@ -366,6 +366,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-567 | bug | triaged | fixes-bug |  | inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2 |
 | B-568 | bug | triaged | fixes-bug |  | Component tests that failed once on CI's Linux runners: providers rows, provider empty links, emergency sheet, search speed, timeline Back, weekly print chart |
 | B-569 | bug | dropped | fixes-bug |  | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
+| B-570 | bug | triaged | fixes-tooling |  | Session request notices can exceed the notice board's 200 characters and get dropped |
 
 ## Items
 
@@ -2934,3 +2935,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-22 (slice/test-gates/3): Found by test-gates slice 3. accessCodes.browser.test.tsx:196 asserts BarcodeDetector is in window; failed in all 4 requested runs: https://github.com/caretook/caretook.com/actions/runs/45076033356 https://github.com/caretook/caretook.com/actions/runs/45076033291 https://github.com/caretook/caretook.com/actions/runs/45077489750 https://github.com/caretook/caretook.com/actions/runs/45077490098
 - 2026-11-22 (slice/test-gates/3): Duplicate of B-566: my retry after the add printed an error but had already written B-566. Close this one.
 - 2026-11-22 (prd/test-gates): Duplicate of B-566 (Access-code QR test fails on Linux): a retried add after a false error.
+
+### B-570 · bug · Session request notices can exceed the notice board's 200 characters and get dropped
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (prd/agent-autonomy-2): Codex P3 on PR #72, verified: requestNotice in scripts/loops/session-requests.mjs has no length bound. With 40-character names a refusal reaches 201 characters (longer opener errors too); createNotice rejects it, requestStep logs and ignores that, so the request settles but the requester hears nothing. Fix: truncate the text to MAX_TEXT, keeping the id and outcome.
