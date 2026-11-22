@@ -1,14 +1,19 @@
 // Test-only (integration tests): the whole OAuth dance in process, as an
 // assistant and a member's browser would do it, against the app's Better
 // Auth instance: register a public client, authorize with PKCE, sign in,
-// consent through /connect's server side, and exchange the code. Never
-// imported by app code.
+// consent through /connect's server side, and exchange the code. Then /mcp
+// as the assistant calls it: JSON-RPC posts and tool calls with those
+// tokens. Never imported by app code.
 import type { AuthUser, ConnectorScope } from "@caretook/data";
+import type { McpHandlerOptions } from "./http";
 
-import { getAuth, getAuthUser } from "@caretook/auth";
+import { getAuth, getAuthUser, validateConnectorToken } from "@caretook/auth";
 import { accountSchema, getDb, isError, SYSTEM_USER, userModel } from "@caretook/data";
 import { createHash, randomBytes } from "node:crypto";
+import { createRateLimiter } from "../rateLimit";
 import { submitConnectPage } from "./connect";
+import { resourceMetadataUrl } from "./discovery";
+import { createMcpHandler } from "./http";
 
 export const TEST_ORIGIN = process.env.BETTER_AUTH_URL ?? "http://localhost:5173";
 export const TEST_REDIRECT_URI = "https://assistant.example.com/oauth/callback";
@@ -178,3 +183,67 @@ export const connectAssistant = async ({
   if (res.status !== 200) throw new Error(`token failed: ${res.status} ${await res.text()}`);
   return { clientId: client.client_id, tokens: (await res.json()) as Tokens, cookies, authUser };
 };
+
+// ---------------------------------------------------------------------------
+// /mcp: one JSON-RPC message per POST, with a bearer token.
+// ---------------------------------------------------------------------------
+
+/** /mcp's handler as tests run it: real token validation, a limit no test reaches unless it sets its own. */
+export const mcpHandler = (options: Partial<McpHandlerOptions> = {}) =>
+  createMcpHandler({
+    resourceMetadataUrl: resourceMetadataUrl(TEST_ORIGIN),
+    validate: validateConnectorToken(),
+    limiter: createRateLimiter({ limit: 10_000, windowMs: 60_000 }),
+    ...options,
+  });
+export type McpHandler = ReturnType<typeof mcpHandler>;
+
+let nextRpcId = 1;
+/** A JSON-RPC request (each with its own id). */
+export const rpc = (method: string, params?: unknown) => ({
+  jsonrpc: "2.0",
+  id: nextRpcId++,
+  method,
+  ...(params ? { params } : {}),
+});
+/** A tools/call request. */
+export const toolRequest = (name: string, args: Record<string, unknown> = {}) =>
+  rpc("tools/call", { name, arguments: args });
+
+/** POST one JSON-RPC message to /mcp, as an assistant's server does (`token` null: none). */
+export const mcpPost = (handler: McpHandler, token: string | null, body: unknown) =>
+  handler(
+    new Request(`${TEST_ORIGIN}/mcp`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    }),
+  );
+
+/** A tool's answer: its text, its structured content, and isError for a refusal the model can fix. */
+export type ToolResult = {
+  content: { type: string; text: string }[];
+  structuredContent: Record<string, unknown> & { url?: string | null; entryIds?: string[]; todoId?: string };
+  isError?: boolean;
+};
+
+/** A tools/call answer's result (anything but a 200 throws). */
+export const toolResultOf = async (res: Response) => {
+  if (res.status !== 200) throw new Error(`/mcp answered ${res.status}: ${await res.text()}`);
+  return ((await res.json()) as { result: ToolResult }).result;
+};
+
+/** Call a tool with `token`: its result. */
+export const callTool = async (
+  handler: McpHandler,
+  token: string,
+  name: string,
+  args: Record<string, unknown> = {},
+) => toolResultOf(await mcpPost(handler, token, toolRequest(name, args)));
+
+/** A result's text, its parts joined by newlines. */
+export const textOf = (result: ToolResult) => result.content.map((c) => c.text).join("\n");

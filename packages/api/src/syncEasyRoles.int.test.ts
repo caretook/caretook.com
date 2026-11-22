@@ -1,37 +1,28 @@
-import type { AuthUser } from "@caretook/data";
-
-import { timelineEntryService, todoService } from "@caretook/data";
-import { createRouterClient } from "@orpc/server";
+import { timelineEntryService } from "@caretook/data";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor, sqliteTime } from "./testing";
 
-// sync.upload as the easy roles (easy roles PRD): an offline Easy helper's
-// writes follow the same rules once they upload. Each allowed op lands;
-// another member's entry and every setup op are refused (acknowledged,
-// never retried). Each test makes its own users and group. Fictional data.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
-
-/** A time `ms` from now, as PowerSync's SQLite text. */
-const local = (ms: number) => new Date(Date.now() + ms).toISOString().replace(/Z$/, "000Z");
+// sync.upload as an Easy helper (easy roles PRD): their own entry's ops
+// land, and another member's are refused (acknowledged, never retried),
+// through sync's own PATCH and DELETE paths. The role matrix itself is the
+// data layer's (easyRoles.int.test.ts). Each test makes its own users and
+// group. Fictional data.
 
 const setup = async () => {
   const owner = await createUser("owner");
   const caretaker = await createUser("caretaker");
   const helper = await createUser("easy-helper");
-  const easyViewer = await createUser("easy-viewer");
   const { group, recipient } = await createGroup(owner, [
     { user: caretaker.user, role: "caretaker" },
     { user: helper.user, role: "easy_helper" },
-    { user: easyViewer.user, role: "easy_viewer" },
   ]);
   const entryRow = (overrides: Record<string, unknown> = {}) => ({
     group_id: group.id,
     recipient_id: recipient.id,
     kind: "symptom",
-    occurred_at: local(-60_000),
+    occurred_at: sqliteTime(-60_000),
     time_zone: "America/Los_Angeles",
     title: null,
     body: null,
@@ -46,7 +37,6 @@ const setup = async () => {
     recipient,
     entryRow,
     helper: { ...helper, api: clientFor(helper.ctx.authUser) },
-    easyViewer: { ...easyViewer, api: clientFor(easyViewer.ctx.authUser) },
   };
 };
 
@@ -75,7 +65,7 @@ describe("sync.upload as an Easy helper", () => {
     expect(
       statuses(
         await helper.api.sync.upload({
-          ops: [{ op: "PATCH", table: "timeline_entry", id, data: { deleted_at: local(0) } }],
+          ops: [{ op: "PATCH", table: "timeline_entry", id, data: { deleted_at: sqliteTime(0) } }],
         }),
       ),
     ).toEqual(["applied"]);
@@ -102,7 +92,7 @@ describe("sync.upload as an Easy helper", () => {
           id: theirs.id,
           data: entryRow({ kind: "note", title: "Mine now", details: null }),
         },
-        { op: "PATCH", table: "timeline_entry", id: theirs.id, data: { deleted_at: local(0) } },
+        { op: "PATCH", table: "timeline_entry", id: theirs.id, data: { deleted_at: sqliteTime(0) } },
         { op: "DELETE", table: "timeline_entry", id: theirs.id },
       ],
     });
@@ -113,70 +103,6 @@ describe("sync.upload as an Easy helper", () => {
       title: "Slept well",
       deletedAt: null,
     });
-  });
-
-  it("refuses setup: a medication, a provider, a care period, a todo and an appointment's cancellation", async () => {
-    const { helper, group, recipient, entryRow } = await setup();
-    const res = await helper.api.sync.upload({
-      ops: [
-        {
-          op: "PUT",
-          table: "medication",
-          id: randomUUID(),
-          data: {
-            group_id: group.id,
-            recipient_id: recipient.id,
-            name: "Lisinopril",
-            type: "prescription",
-            schedule: JSON.stringify({ type: "asNeeded" }),
-            status: "current",
-            deleted_at: null,
-          },
-        },
-        {
-          op: "PUT",
-          table: "provider",
-          id: randomUUID(),
-          data: {
-            group_id: group.id,
-            type: "clinician",
-            name: "Dr. Offline",
-            status: "current",
-            deleted_at: null,
-          },
-        },
-        {
-          op: "PUT",
-          table: "care_period",
-          id: randomUUID(),
-          data: {
-            group_id: group.id,
-            recipient_id: recipient.id,
-            type: "hospital",
-            label: "Mercy General",
-            started_at: local(-3_600_000),
-            date_only: 0,
-            deleted_at: null,
-          },
-        },
-        {
-          op: "PUT",
-          table: "todo",
-          id: randomUUID(),
-          data: { group_id: group.id, recipient_id: recipient.id, title: "Call", deleted_at: null },
-        },
-        {
-          op: "PUT",
-          table: "timeline_entry",
-          id: randomUUID(),
-          data: entryRow({ kind: "event", title: "Dentist", details: null, cancelled_at: local(0) }),
-        },
-      ],
-    });
-    expect(res.results.map((r) => (r.status === "rejected" ? r.code : r.status))).toEqual([
-      ...Array<string>(4).fill("permissions:unauthorized"),
-      "timelineEntryService:loggerOnly",
-    ]);
   });
 
   it("refuses clearing a writer's cancellation or reschedule of their own event, and lands an edit", async () => {
@@ -230,60 +156,5 @@ describe("sync.upload as an Easy helper", () => {
       cancelReason: "Therapist away",
       rescheduledTo: later.id,
     });
-  });
-
-  it("ticks a todo assigned to them, and is refused another member's", async () => {
-    const { helper, owner, caretaker, group } = await setup();
-    const own = ok(
-      await todoService.create(owner.ctx, {
-        groupId: group.id,
-        title: "Water the plants",
-        assigneeId: helper.user.id,
-      }),
-    )!;
-    const theirs = ok(
-      await todoService.create(owner.ctx, {
-        groupId: group.id,
-        title: "Call the pharmacy",
-        assigneeId: caretaker.user.id,
-      }),
-    )!;
-    const tick = (id: string) => ({
-      op: "PATCH" as const,
-      table: "todo",
-      id,
-      data: { done_at: local(-1000), done_by: helper.user.id },
-    });
-    expect(statuses(await helper.api.sync.upload({ ops: [tick(own.id), tick(theirs.id)] }))).toEqual([
-      "applied",
-      "rejected",
-    ]);
-    expect(ok(await todoService.getById(owner.ctx, own.id))).toMatchObject({ doneBy: helper.user.id });
-    expect(ok(await todoService.getById(owner.ctx, theirs.id))).toMatchObject({ doneAt: null });
-  });
-});
-
-describe("sync.upload as an Easy viewer", () => {
-  it("refuses an entry and lands a tick on their own todo", async () => {
-    const { easyViewer, owner, group, entryRow } = await setup();
-    const own = ok(
-      await todoService.create(owner.ctx, {
-        groupId: group.id,
-        title: "Read the mail",
-        assigneeId: easyViewer.user.id,
-      }),
-    )!;
-    const res = await easyViewer.api.sync.upload({
-      ops: [
-        { op: "PUT", table: "timeline_entry", id: randomUUID(), data: entryRow() },
-        {
-          op: "PATCH",
-          table: "todo",
-          id: own.id,
-          data: { done_at: local(-1000), done_by: easyViewer.user.id },
-        },
-      ],
-    });
-    expect(statuses(res)).toEqual(["rejected", "applied"]);
   });
 });

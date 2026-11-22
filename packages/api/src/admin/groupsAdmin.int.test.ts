@@ -1,5 +1,3 @@
-import type { AuthUser } from "@caretook/data";
-
 import {
   adminAuditLogModel,
   careGroupMemberModel,
@@ -19,33 +17,20 @@ import {
   timelineEntryService,
 } from "@caretook/data";
 import { setBackgroundRunner } from "@caretook/notifications";
-import { createRouterClient, ORPCError } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createUser, ok } from "../../../data/test/fixtures";
-import { router } from "..";
+import { clientFor, codesOf } from "../testing";
 
 // Care groups in /admin (admin slice 4): admin.groups.* for admin, support
 // and members. Reads carry no care data; every admin write records one audit
 // entry in its own transaction, and a group always keeps an owner.
 
 const system = { authUser: SYSTEM_USER };
-const clientFor = (authUser: AuthUser | null) => createRouterClient(router, { context: { authUser } });
 
 const pending: Promise<unknown>[] = [];
 beforeAll(() => setBackgroundRunner((work) => void pending.push(work)));
 afterAll(() => setBackgroundRunner(null));
-
-const codeOf = async (call: Promise<unknown>) => {
-  try {
-    await call;
-    return "ok";
-  } catch (e) {
-    if (e instanceof ORPCError)
-      return `${e.code}:${String((e.data as { code?: string } | undefined)?.code ?? "")}`;
-    throw e;
-  }
-};
 
 const staff = async (role: "admin" | "support") => {
   const who = await createUser(`grp-${role}`, role);
@@ -236,7 +221,7 @@ describe("admin.groups reads", () => {
 
   it("answers a 404 for an unknown group", async () => {
     const { api } = await staff("support");
-    expect(await codeOf(api.admin.groups.get({ id: randomUUID() }))).toBe("NOT_FOUND:");
+    expect(await codesOf(api.admin.groups.get({ id: randomUUID() }))).toBe("NOT_FOUND:");
   });
 });
 
@@ -297,30 +282,30 @@ describe("admin.groups writes", () => {
     const { group, owner, caretaker } = await tagged(tagOf());
     const reason = "Requested";
     expect(
-      await codeOf(
+      await codesOf(
         api.admin.groups.changeRole({ groupId: group.id, userId: owner.user.id, role: "admin", reason }),
       ),
     ).toBe("CONFLICT:careGroupMemberService:lastOwner");
     expect(
-      await codeOf(api.admin.groups.removeMember({ groupId: group.id, userId: owner.user.id, reason })),
+      await codesOf(api.admin.groups.removeMember({ groupId: group.id, userId: owner.user.id, reason })),
     ).toBe("CONFLICT:careGroupMemberService:lastOwner");
     expect(await roleOf(group.id, owner.user.id)).toBe("owner");
     // Already that role; not a member; no such group.
     expect(
-      await codeOf(api.admin.groups.promoteOwner({ groupId: group.id, userId: owner.user.id, reason })),
+      await codesOf(api.admin.groups.promoteOwner({ groupId: group.id, userId: owner.user.id, reason })),
     ).toBe("CONFLICT:groupAdminService:unchanged");
     const stranger = await createUser("grp-stranger");
     expect(
-      await codeOf(api.admin.groups.removeMember({ groupId: group.id, userId: stranger.user.id, reason })),
+      await codesOf(api.admin.groups.removeMember({ groupId: group.id, userId: stranger.user.id, reason })),
     ).toBe("NOT_FOUND:groupAdminService:notMember");
     expect(
-      await codeOf(
+      await codesOf(
         api.admin.groups.promoteOwner({ groupId: randomUUID(), userId: caretaker.user.id, reason }),
       ),
     ).toBe("NOT_FOUND:groupAdminService:notFound");
     // A reason is required.
     expect(
-      await codeOf(
+      await codesOf(
         api.admin.groups.promoteOwner({ groupId: group.id, userId: caretaker.user.id, reason: " " }),
       ),
     ).toBe("BAD_REQUEST:");
@@ -348,7 +333,7 @@ describe("admin.groups writes", () => {
       { actor: { id: adminUser.id }, reason: "Only owner died", changes: { email: [null, email] } },
     ]);
     // A second invite to the same address waits on the first.
-    expect(await codeOf(api.admin.groups.inviteOwner({ groupId: group.id, email, reason: "Again" }))).toBe(
+    expect(await codesOf(api.admin.groups.inviteOwner({ groupId: group.id, email, reason: "Again" }))).toBe(
       "CONFLICT:careGroupInviteService:alreadyInvited",
     );
     expect(await auditFor(group.id, "group.inviteOwner")).toHaveLength(1);
@@ -362,11 +347,11 @@ describe("admin.groups writes", () => {
     const input = { groupId: group.id, userId: caretaker.user.id, reason: "Because" };
 
     for (const api of [support.api, memberApi]) {
-      expect(await codeOf(api.admin.groups.promoteOwner(input))).toBe("FORBIDDEN:");
-      expect(await codeOf(api.admin.groups.changeRole({ ...input, role: "viewer" }))).toBe("FORBIDDEN:");
-      expect(await codeOf(api.admin.groups.removeMember(input))).toBe("FORBIDDEN:");
+      expect(await codesOf(api.admin.groups.promoteOwner(input))).toBe("FORBIDDEN:");
+      expect(await codesOf(api.admin.groups.changeRole({ ...input, role: "viewer" }))).toBe("FORBIDDEN:");
+      expect(await codesOf(api.admin.groups.removeMember(input))).toBe("FORBIDDEN:");
       expect(
-        await codeOf(
+        await codesOf(
           api.admin.groups.inviteOwner({
             groupId: group.id,
             email: "someone@example.com",
@@ -375,8 +360,8 @@ describe("admin.groups writes", () => {
         ),
       ).toBe("FORBIDDEN:");
     }
-    expect(await codeOf(memberApi.admin.groups.search({}))).toBe("FORBIDDEN:");
-    expect(await codeOf(memberApi.admin.groups.get({ id: group.id }))).toBe("FORBIDDEN:");
+    expect(await codesOf(memberApi.admin.groups.search({}))).toBe("FORBIDDEN:");
+    expect(await codesOf(memberApi.admin.groups.get({ id: group.id }))).toBe("FORBIDDEN:");
     expect(await roleOf(group.id, caretaker.user.id)).toBe("caretaker");
     for (const action of [
       "group.promoteOwner",

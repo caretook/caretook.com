@@ -1,10 +1,10 @@
 import type { AuthUser, FakeGoogleCalendar } from "@caretook/data";
 
-import { createRouterClient, ORPCError } from "@orpc/server";
+import { ORPCError } from "@orpc/server";
 import { fakeGoogleCalendar, setCalendarBackgroundRunner, setGoogleCalendarClient } from "@caretook/data";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createGroup, createUser } from "../../../data/test/fixtures";
-import { router } from "..";
+import { clientFor } from "../testing";
 import { handleGoogleCallback, handleGoogleConnect } from "./googleRoutes";
 
 // Google Calendar over the API and its web-only routes (appointments-2
@@ -153,7 +153,7 @@ describe("/api/google/callback", () => {
 });
 
 describe("calendars.google", () => {
-  const api = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
+  const api = clientFor;
 
   it("reports the member's own connection, never a token, and disconnects it", async () => {
     const { owner, viewer, group } = await setup();

@@ -2,16 +2,13 @@ import type { AuthUser } from "@caretook/data";
 
 import { todoService, UNDO_NEXT_METADATA } from "@caretook/data";
 import { nextTodoId } from "@caretook/data/series";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor, upload } from "./testing";
 
 // sync.upload for todos: rows as a device's SQLite holds them (snake_case,
 // PowerSync's timestamps). Each test makes its own users and group.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 
 const setup = async () => {
   const owner = await createUser("owner");
@@ -62,7 +59,7 @@ describe("sync.upload: todo", () => {
       data: { title: "Call Corner Pharmacy", due_time: "17:00" },
     };
 
-    expect((await owner.api.sync.upload({ ops: [put, patch] })).results).toEqual([
+    expect(await upload(owner.api, [put, patch])).toEqual([
       { id, status: "applied" },
       { id, status: "applied" },
     ]);
@@ -72,15 +69,13 @@ describe("sync.upload: todo", () => {
       dueTime: "17:00",
       createdBy: owner.user.id,
     });
-    expect(
-      (await owner.api.sync.upload({ ops: [put, patch] })).results.every((r) => r.status === "applied"),
-    ).toBe(true);
+    expect((await upload(owner.api, [put, patch])).every((r) => r.status === "applied")).toBe(true);
 
-    expect((await owner.api.sync.upload({ ops: [{ op: "DELETE", table: "todo", id }] })).results).toEqual([
+    expect(await upload(owner.api, [{ op: "DELETE", table: "todo", id }])).toEqual([
       { id, status: "applied" },
     ]);
     expect(await todoService.getById(owner.ctx, id)).toBeNull();
-    expect((await owner.api.sync.upload({ ops: [{ op: "DELETE", table: "todo", id }] })).results).toEqual([
+    expect(await upload(owner.api, [{ op: "DELETE", table: "todo", id }])).toEqual([
       { id, status: "applied" },
     ]);
   });
@@ -90,10 +85,7 @@ describe("sync.upload: todo", () => {
     const id = randomUUID();
     const put = { op: "PUT" as const, table: "todo", id, data: todoRow(group.id, recipient.id) };
     const remove = { op: "PATCH" as const, table: "todo", id, data: { deleted_at: AT } };
-    expect((await owner.api.sync.upload({ ops: [put, remove] })).results.map((r) => r.status)).toEqual([
-      "applied",
-      "applied",
-    ]);
+    expect((await upload(owner.api, [put, remove])).map((r) => r.status)).toEqual(["applied", "applied"]);
     expect(ok(await todoService.getById(owner.ctx, id, { includeDeleted: true }))!.deletedAt).not.toBeNull();
   });
 
@@ -106,21 +98,21 @@ describe("sync.upload: todo", () => {
       id,
       data: todoRow(group.id, recipient.id, { assignee_id: viewer.user.id }),
     };
-    expect((await owner.api.sync.upload({ ops: [put] })).results).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [put])).toEqual([{ id, status: "applied" }]);
 
     const tick = { op: "PATCH" as const, table: "todo", id, data: { done_at: AT, done_by: viewer.user.id } };
-    expect((await viewer.api.sync.upload({ ops: [tick] })).results).toEqual([{ id, status: "applied" }]);
+    expect(await upload(viewer.api, [tick])).toEqual([{ id, status: "applied" }]);
     expect(ok(await todoService.getById(owner.ctx, id))).toMatchObject({
       doneAt: "2026-11-10 22:20:00+00",
       doneBy: viewer.user.id,
     });
 
     const reopen = { op: "PATCH" as const, table: "todo", id, data: { done_at: null, done_by: null } };
-    expect((await viewer.api.sync.upload({ ops: [reopen] })).results).toEqual([{ id, status: "applied" }]);
+    expect(await upload(viewer.api, [reopen])).toEqual([{ id, status: "applied" }]);
     expect(ok(await todoService.getById(owner.ctx, id))).toMatchObject({ doneAt: null, doneBy: null });
 
     const rename = { op: "PATCH" as const, table: "todo", id, data: { title: "Mine now" } };
-    expect((await viewer.api.sync.upload({ ops: [rename] })).results).toEqual([
+    expect(await upload(viewer.api, [rename])).toEqual([
       { id, status: "rejected", code: "todoService:completionOnly" },
     ]);
     expect(ok(await todoService.getById(owner.ctx, id))).toMatchObject({ title: "Call the pharmacy" });
@@ -130,7 +122,7 @@ describe("sync.upload: todo", () => {
     const { group, recipient, other, owner } = await setup();
     const id = randomUUID();
     const put = { op: "PUT" as const, table: "todo", id, data: todoRow(group.id, recipient.id) };
-    expect((await owner.api.sync.upload({ ops: [put] })).results).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [put])).toEqual([{ id, status: "applied" }]);
 
     const moved = { op: "PATCH" as const, table: "todo", id, data: { group_id: other.group.id } };
     const movedPut = {
@@ -139,7 +131,7 @@ describe("sync.upload: todo", () => {
       id,
       data: todoRow(other.group.id, other.recipient.id),
     };
-    expect((await owner.api.sync.upload({ ops: [moved, movedPut] })).results).toEqual([
+    expect(await upload(owner.api, [moved, movedPut])).toEqual([
       { id, status: "rejected", code: "todoService:immutable" },
       { id, status: "rejected", code: "todoService:immutable" },
     ]);
@@ -154,7 +146,7 @@ describe("sync.upload: todo", () => {
       { op: "DELETE" as const, table: "task", id },
     ];
     const rejected = { id, status: "rejected", code: "sync:readOnlyTable" };
-    expect((await owner.api.sync.upload({ ops })).results).toEqual([rejected, rejected, rejected]);
+    expect(await upload(owner.api, ops)).toEqual([rejected, rejected, rejected]);
     expect(ok(await todoService.getById(owner.ctx, id))).toBeNull();
   });
 });
@@ -205,11 +197,7 @@ describe("sync.upload: repeating todos", () => {
     const id = randomUUID();
     const put = { op: "PUT" as const, table: "todo", id, data: repeating(id, group.id, recipient.id) };
     const ops = [put, tick(id, MONDAY, owner.user.id), twin(id, group.id, recipient.id, "2026-11-23")];
-    expect((await owner.api.sync.upload({ ops })).results.map((r) => r.status)).toEqual([
-      "applied",
-      "applied",
-      "applied",
-    ]);
+    expect((await upload(owner.api, ops)).map((r) => r.status)).toEqual(["applied", "applied", "applied"]);
     expect(ok(await todoService.getById(owner.ctx, id))).toMatchObject({
       repeatRule: WEEKLY_MO,
       repeatStartsOn: "2026-11-16",
@@ -217,7 +205,7 @@ describe("sync.upload: repeating todos", () => {
     });
     expect(await openIn(owner.ctx, group.id, id)).toEqual([[nextTodoId(id, "2026-11-23"), "2026-11-23"]]);
     // A replay changes nothing.
-    expect((await owner.api.sync.upload({ ops })).results.every((r) => r.status === "applied")).toBe(true);
+    expect((await upload(owner.api, ops)).every((r) => r.status === "applied")).toBe(true);
     expect(await openIn(owner.ctx, group.id, id)).toEqual([[nextTodoId(id, "2026-11-23"), "2026-11-23"]]);
   });
 
@@ -230,16 +218,14 @@ describe("sync.upload: repeating todos", () => {
       id,
       data: repeating(id, group.id, recipient.id, { assignee_id: viewer.user.id }),
     };
-    expect((await owner.api.sync.upload({ ops: [put] })).results).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [put])).toEqual([{ id, status: "applied" }]);
 
     const twinOp = twin(id, group.id, recipient.id, "2026-11-23");
     const next = { ...twinOp, data: { ...twinOp.data, assignee_id: viewer.user.id } };
-    expect((await viewer.api.sync.upload({ ops: [tick(id, MONDAY, viewer.user.id), next] })).results).toEqual(
-      [
-        { id, status: "applied" },
-        { id: next.id, status: "applied" },
-      ],
-    );
+    expect(await upload(viewer.api, [tick(id, MONDAY, viewer.user.id), next])).toEqual([
+      { id, status: "applied" },
+      { id: next.id, status: "applied" },
+    ]);
     expect(await openIn(owner.ctx, group.id, id)).toEqual([[next.id, "2026-11-23"]]);
   });
 
@@ -252,19 +238,13 @@ describe("sync.upload: repeating todos", () => {
       id,
       data: repeating(id, group.id, recipient.id, { repeat_rule: DAILY }),
     };
-    expect((await owner.api.sync.upload({ ops: [put] })).results).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [put])).toEqual([{ id, status: "applied" }]);
 
     // One device ticked it Monday (next: Tuesday), another, offline, Tuesday (next: Wednesday).
     const first = [tick(id, MONDAY, owner.user.id), twin(id, group.id, recipient.id, "2026-11-17", DAILY)];
     const second = [tick(id, TUESDAY, owner.user.id), twin(id, group.id, recipient.id, "2026-11-18", DAILY)];
-    expect((await owner.api.sync.upload({ ops: first })).results.map((r) => r.status)).toEqual([
-      "applied",
-      "applied",
-    ]);
-    expect((await owner.api.sync.upload({ ops: second })).results.map((r) => r.status)).toEqual([
-      "applied",
-      "applied",
-    ]);
+    expect((await upload(owner.api, first)).map((r) => r.status)).toEqual(["applied", "applied"]);
+    expect((await upload(owner.api, second)).map((r) => r.status)).toEqual(["applied", "applied"]);
     expect(await openIn(owner.ctx, group.id, id)).toEqual([[nextTodoId(id, "2026-11-17"), "2026-11-17"]]);
     expect(
       await todoService.getById(owner.ctx, nextTodoId(id, "2026-11-18"), { includeDeleted: true }),
@@ -283,10 +263,7 @@ describe("sync.upload: repeating todos", () => {
       { op: "PATCH" as const, table: "todo", id, data: { done_at: null, done_by: null } },
       { op: "PATCH" as const, table: "todo", id: next.id, data: { deleted_at: MONDAY } },
     ];
-    expect((await owner.api.sync.upload({ ops: undo })).results.map((r) => r.status)).toEqual([
-      "applied",
-      "applied",
-    ]);
+    expect((await upload(owner.api, undo)).map((r) => r.status)).toEqual(["applied", "applied"]);
     expect(await openIn(owner.ctx, group.id, id)).toEqual([[id, "2026-11-16"]]);
 
     // Skip: this one's soft delete, then the next one brought back (the
@@ -295,10 +272,7 @@ describe("sync.upload: repeating todos", () => {
       { op: "PATCH" as const, table: "todo", id, data: { deleted_at: MONDAY } },
       { op: "PATCH" as const, table: "todo", id: next.id, data: { deleted_at: null } },
     ];
-    expect((await owner.api.sync.upload({ ops: skip })).results.map((r) => r.status)).toEqual([
-      "applied",
-      "applied",
-    ]);
+    expect((await upload(owner.api, skip)).map((r) => r.status)).toEqual(["applied", "applied"]);
     expect(await todoService.getById(owner.ctx, id)).toBeNull();
     expect(await openIn(owner.ctx, group.id, id)).toEqual([[next.id, "2026-11-23"]]);
 
@@ -316,7 +290,7 @@ describe("sync.upload: repeating todos", () => {
       { op: "PATCH" as const, table: "todo", id: other, data: { deleted_at: MONDAY } },
       otherNext,
     ];
-    expect((await owner.api.sync.upload({ ops: firstSkip })).results.map((r) => r.status)).toEqual([
+    expect((await upload(owner.api, firstSkip)).map((r) => r.status)).toEqual([
       "applied",
       "applied",
       "applied",
@@ -414,17 +388,14 @@ describe("sync.upload: repeating todos", () => {
     };
     ok(await owner.api.sync.upload({ ops: [put] }));
     const forged = { ...twin(id, group.id, recipient.id, "2026-11-23"), id: randomUUID() };
-    expect((await owner.api.sync.upload({ ops: [forged] })).results).toEqual([
+    expect(await upload(owner.api, [forged])).toEqual([
       { id: forged.id, status: "rejected", code: "todoService:notAnOccurrence" },
     ]);
 
     const next = twin(id, group.id, recipient.id, "2026-11-23");
     const skip = [{ op: "PATCH" as const, table: "todo", id, data: { deleted_at: MONDAY } }, next];
     // The delete is refused; with this one still open, the twin is stale: nothing is written.
-    expect((await viewer.api.sync.upload({ ops: skip })).results.map((r) => r.status)).toEqual([
-      "rejected",
-      "applied",
-    ]);
+    expect((await upload(viewer.api, skip)).map((r) => r.status)).toEqual(["rejected", "applied"]);
     expect(await todoService.getById(owner.ctx, next.id, { includeDeleted: true })).toBeNull();
     expect(await openIn(owner.ctx, group.id, id)).toEqual([[id, "2026-11-16"]]);
   });
