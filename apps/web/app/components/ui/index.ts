@@ -72,3 +72,8 @@ export type { PageHeaderAdd } from "./PageHeader";
 // ui-kit-2 (slice 5): motion's turning chevron and sliding region.
 export { Chevron } from "./Chevron";
 export { Collapse } from "./Collapse";
+// ui-kit-3 (slice 2): the accents and the icon chip.
+export { ACCENTS, accentClass } from "./accents";
+export type { Accent, AccentLook, AccentOrNeutral } from "./accents";
+export { IconChip } from "./IconChip";
+export type { IconChipLook, IconChipSize } from "./IconChip";
