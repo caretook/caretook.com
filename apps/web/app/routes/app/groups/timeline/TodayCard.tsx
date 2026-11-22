@@ -4,10 +4,11 @@ import type { TodaySummary } from "./todayStatus";
 import type { TimelineData } from "./useTimelineData";
 
 import { formatReading, VITALS } from "@caretook/data/schema";
-import { CalendarClock, ChevronDown, ListTodo } from "lucide-react";
+import { CalendarClock, ListTodo } from "lucide-react";
 import { Link } from "react-router";
 import { RepeatMark } from "~/components/entry";
 import { TodoRepeatMark } from "~/components/todos";
+import { Chevron } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatAgo } from "~/lib/core/format";
 import { nextStripText, upcomingTitle } from "~/lib/appointments/upcomingLabels";
@@ -97,10 +98,7 @@ export function TodayCard({
           onClick={() => today.setCollapsed(!collapsed)}
           data-today-toggle
         >
-          <ChevronDown
-            className={`size-4 shrink-0 transition-transform ${collapsed ? "-rotate-90" : ""}`}
-            aria-hidden="true"
-          />
+          <Chevron open={!collapsed} />
           <span className="font-semibold">Today</span>
           {collapsed && <SummaryLine summary={today.summary} />}
         </button>

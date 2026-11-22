@@ -103,10 +103,14 @@ describe("the periods page", () => {
     expect(link.getAttribute("href")).toBe(`${PERIODS_URL}/${HOSPITAL.id}`);
   });
 
-  test("a group with no periods says so, and a writer gets Add period", async () => {
+  test("a group with no periods says so, and a writer gets the header's +, Add period", async () => {
     await open({ fixtures: [] });
     await expect.element(page.getByText(/^No care periods yet\. Add where care is now/)).toBeVisible();
-    expect(ADD()).not.toBeNull();
+    const add = page.getByRole("link", { name: "Add period" });
+    await expect.element(add).toHaveAttribute("title", "Add period");
+    expect(add.element()).toBe(ADD());
+    expect(add.element().textContent.trim()).toBe("");
+    expect([...document.querySelectorAll("main header a, main header button")].at(-1)).toBe(add.element());
   });
 });
 

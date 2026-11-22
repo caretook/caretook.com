@@ -5,6 +5,8 @@ import { Link } from "react-router";
 
 /** The row's one padding. */
 const ROW = "px-3 py-3";
+/** A link row: a quiet fill on hover, a little deeper while its link is pressed (not a trailing control), faded in with the kit's motion. */
+const LINK_ROW = "motion-colors hover:bg-base-200 has-[>a:active]:bg-base-300/60 relative";
 /** A link stretched over its row (the screens' pattern), with its focus ring on the row. */
 const STRETCHED =
   "min-w-0 flex-1 outline-none before:absolute before:inset-0 focus-visible:before:outline-2 focus-visible:before:-outline-offset-2";
@@ -42,7 +44,8 @@ export function List({
  * A row of a `List`, with the row's one padding. With `to` the row is one
  * link (stretched over the row, named by `children`); `trailing` (a button,
  * a switch, a badge) sits at the end and stays its own control. Without
- * either, `children` is the row's whole content. `data-*` hooks and
+ * either, `children` is the row's whole content. A link row fills on hover
+ * and press (`motion-colors`; at once under "reduce motion"). `data-*` hooks and
  * `className` (the row's own stacking, a `space-y-*`) go on the `li`.
  */
 export function ListRow({
@@ -67,7 +70,7 @@ export function ListRow({
   return (
     <li
       {...data}
-      className={`${ROW} flex items-center gap-3 ${to === undefined ? "" : "hover:bg-base-200 relative"} ${className}`.trim()}
+      className={`${ROW} flex items-center gap-3 ${to === undefined ? "" : LINK_ROW} ${className}`.trim()}
     >
       {to === undefined ? (
         <div className="min-w-0 flex-1">{children}</div>

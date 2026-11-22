@@ -200,7 +200,7 @@ describe("contact details on each row (B-44)", () => {
 describe("who sees what", () => {
   test("a writer gets Add provider; a viewer sees the same list with no Add; the header is just “Providers” for both", async () => {
     const device = await open({ role: "caretaker" });
-    await expect.poll(() => ADD_PROVIDER()?.textContent.trim()).toBe("Add provider");
+    await expect.poll(() => ADD_PROVIDER()?.getAttribute("aria-label")).toBe("Add provider");
     await expect
       .poll(() => pageHeader())
       .toEqual({ h1: "Providers", namesRecipient: false, viewerNote: false });
@@ -307,7 +307,7 @@ describe("importing from another group (B-48)", () => {
 
   test("the action is for writers who belong to another group; a viewer's or a one-group writer's URL is the list", async () => {
     let device = await open({ fixtures: world(), role: "caretaker" });
-    await expect.poll(() => IMPORT()?.textContent.trim()).toBe("Import from another group");
+    await expect.poll(() => IMPORT()?.getAttribute("aria-label")).toBe("Import from another group");
     // Beside Add provider at 420, with no horizontal overflow.
     await expect
       .poll(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
@@ -330,6 +330,31 @@ describe("importing from another group (B-48)", () => {
 
     device = await open({ url: `${PROVIDERS_URL}/import` });
     await expect.poll(() => device.location()).toBe(PROVIDERS_URL);
+  });
+
+  test("the header: Import, icon only, just before the + (Add provider), each named by its label with no visible text, each opening its sheet", async () => {
+    const device = await open({ fixtures: world(), role: "caretaker" });
+    const header = await found(() => $("main header"));
+    const importLink = page.getByRole("link", { name: "Import from another group" });
+    const addLink = page.getByRole("link", { name: "Add provider" });
+    await expect.element(importLink).toHaveAttribute("title", "Import from another group");
+    await expect.element(addLink).toHaveAttribute("title", "Add provider");
+    expect([importLink, addLink].map((l) => l.element().textContent.trim())).toEqual(["", ""]);
+    const controls = [...header.querySelectorAll("a, button")];
+    expect(controls.slice(-2)).toEqual([importLink.element(), addLink.element()]);
+    // The same size, side by side.
+    const [i, a] = [importLink.element().getBoundingClientRect(), addLink.element().getBoundingClientRect()];
+    expect([i.width, i.height]).toEqual([a.width, a.height]);
+
+    await userEvent.click(importLink);
+    await found(() => $("[role=dialog] [data-import-sheet]"));
+    expect(device.location()).toBe(`${PROVIDERS_URL}/import`);
+    await device.screen.unmount();
+
+    const again = await open({ fixtures: world(), role: "caretaker" });
+    await userEvent.click(page.getByRole("link", { name: "Add provider" }));
+    await found(FORM);
+    expect(again.location()).toBe(`${PROVIDERS_URL}/new`);
   });
 
   test("pick a group, then its providers list in directory order; already here is disabled; the notes rule names the group", async () => {

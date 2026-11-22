@@ -39,3 +39,6 @@ export type { ButtonProps } from "../Button";
 // ui-kit-2 slice 6: the choice dialog.
 export { ChoiceDialog } from "../ChoiceDialog";
 export type { ChoiceTone, DialogChoice } from "../ChoiceDialog";
+// ui-kit-2 (slice 5): motion's turning chevron and sliding region.
+export { Chevron } from "../Chevron";
+export { Collapse } from "../Collapse";
