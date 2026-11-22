@@ -6,20 +6,20 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions via `pnpm prd ask`).
 
-**Wave 1 (2026-11-22): slices 1–8, all on opus.** 56 items wait; this wave takes eight that stay clear of the running topics' hot files (agent-autonomy: most of `scripts/loops/` incl. `lib.sh`, `land*`, `codex-review*`, `prompt.sh`, `prd.sh`, `dispatch*`, `lease*`; test-health: `vitest.config.ts`, `eslint.config.js`, `scripts/eslint/`, `apps/web/test/`). Later waves: the review/codex/land/lib.sh/dispatcher items once agent-autonomy lands; the rest of the load flakes.
+**Wave 1 (2026-11-22): slices 1–8, all on opus; all merged (tip af134b65), worktrees removed. Next: sync, quick check, PR, Codex, land.** Follow-ups filed: B-527 (fixes-bug, Undo writes uncaught), B-534 (tooling tests and the load gate). 56 items wait; this wave takes eight that stay clear of the running topics' hot files (agent-autonomy: most of `scripts/loops/` incl. `lib.sh`, `land*`, `codex-review*`, `prompt.sh`, `prd.sh`, `dispatch*`, `lease*`; test-health: `vitest.config.ts`, `eslint.config.js`, `scripts/eslint/`, `apps/web/test/`). Later waves: the review/codex/land/lib.sh/dispatcher items once agent-autonomy lands; the rest of the load flakes.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item  | State                                                                                     | Merge    |
-| ----- | ----- | ----------------------------------------------------------------------------------------- | -------- |
-| 1     | B-381 | merged (quick passed on slice)                                                            | 3df76253 |
-| 2     | B-394 | merged (quick passed; 20 s timeout kept, see note)                                        | 26e83fa4 |
-| 3     | B-411 | merged (tooling: rotate.test 20 s timeout at load 126, passes alone)                      | 7ccc8ff8 |
-| 4     | B-440 | merged (tooling; tidy-cli.test beforeAll 10 s timeout under load: B-460)                  | 1a7ad440 |
-| 5     | B-441 | started (opus agent)                                                                      |          |
-| 6     | B-458 | handed off 5418eb80 (tooling: tidy-cli/rotate/browser.test failed under load, pass alone) |          |
-| 7     | B-475 | handed off fd4f9f27 (test race, not a timer; Undo catch filed for fixes-bug)              |          |
-| 8     | B-484 | handed off 0b3f7d92 (quick passed)                                                        |          |
+| Slice | Item  | State                                                                                         | Merge    |
+| ----- | ----- | --------------------------------------------------------------------------------------------- | -------- |
+| 1     | B-381 | merged (quick passed on slice)                                                                | 3df76253 |
+| 2     | B-394 | merged (quick passed; 20 s timeout kept, see note)                                            | 26e83fa4 |
+| 3     | B-411 | merged (tooling: rotate.test 20 s timeout at load 126, passes alone)                          | 7ccc8ff8 |
+| 4     | B-440 | merged (tooling; tidy-cli.test beforeAll 10 s timeout under load: B-460)                      | 1a7ad440 |
+| 5     | B-441 | merged (conflict with 4 in tidy-cli.mjs resolved; +B-460 fix: load gate off in tidy-cli.test) | d971f6fa |
+| 6     | B-458 | merged (tooling)                                                                              | a8ab24cc |
+| 7     | B-475 | merged (test race, not a timer; Undo catch: B-527 fixes-bug)                                  | cd8cc1f5 |
+| 8     | B-484 | merged (quick passed on slice)                                                                | af134b65 |
 
 ## Wave 1
 
