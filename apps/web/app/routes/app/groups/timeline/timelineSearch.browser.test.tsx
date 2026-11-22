@@ -70,11 +70,15 @@ const statusText = () => document.querySelector("[data-search-status]")?.textCon
 const params = (location: string) => new URLSearchParams(location.split("?")[1] ?? "");
 const vitals = () => document.querySelector('[data-today-row="vitals"]')?.textContent ?? "";
 
-/** Open the field with the magnifier (once the screen is up: the loader can still be reading). */
+/**
+ * Open the field with the magnifier (once the screen is up: the loader can still be reading), and wait
+ * for it to finish sliding open (its `Collapse` settled), so its box is measured and clicked at full width.
+ */
 const openField = async () => {
   await expect.poll(() => !!document.querySelector('button[aria-label="Search entries"]')).toBe(true);
   await userEvent.click(magnifier());
   await expect.poll(() => document.activeElement === field()).toBe(true);
+  await expect.poll(() => field()?.closest("[data-collapse]")?.hasAttribute("data-settled")).toBe(true);
 };
 
 // --- The field ---------------------------------------------------------------
@@ -99,6 +103,26 @@ describe("searching the timeline", () => {
     // The appointment doesn't match "alpha": no appointment row.
     expect(document.querySelector("[data-next]")).toBeNull();
     expect(vitals()).toBe(vitalsBefore);
+  });
+
+  test("the magnifier is the field's toggle: it opens the field focused; Escape closes it, focus back on the magnifier; the magnifier closes it too", async () => {
+    const device = await open();
+    const box = () => device.screen.getByRole("searchbox", { name: "Search entries" });
+    await expect.element(box()).not.toBeInTheDocument();
+    await openField();
+    expect(magnifier().getAttribute("aria-expanded")).toBe("true");
+    expect(document.getElementById(magnifier().getAttribute("aria-controls")!)?.contains(field())).toBe(true);
+    await expect.element(box()).toBeVisible();
+
+    await userEvent.keyboard("{Escape}");
+    expect(magnifier().getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(magnifier());
+    await expect.element(box()).not.toBeInTheDocument();
+
+    await openField();
+    await userEvent.click(magnifier());
+    expect(magnifier().getAttribute("aria-expanded")).toBe("false");
+    await expect.element(box()).not.toBeInTheDocument();
   });
 
   test("a reload keeps the search with the kind filter; the Matching chip shows it; the empty state names it; the chip's ✕ clears only the search", async () => {

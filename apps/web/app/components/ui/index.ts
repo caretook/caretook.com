@@ -64,3 +64,6 @@ export { Section } from "./Section";
 // ui-kit-2 (slice 1): the button shapes and the props of the one Button.
 export type { ButtonShape } from "./buttonClass";
 export type { ButtonProps } from "./Button";
+// ui-kit-2 (slice 5): motion's turning chevron and sliding region.
+export { Chevron } from "./Chevron";
+export { Collapse } from "./Collapse";

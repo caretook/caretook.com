@@ -36,6 +36,7 @@ import { CheckFieldSection } from "./sections/CheckFieldSection";
 import { ToggleFieldSection } from "./sections/ToggleFieldSection";
 import { DetailHeaderSection } from "./sections/DetailHeaderSection";
 import { SectionBandsSection } from "./sections/SectionBandsSection";
+import { MotionSection } from "./sections/MotionSection";
 
 /** One gallery section: a primitive's variants, with fictional data. */
 export type GallerySection = { id: string; title: string; Section: ComponentType };
@@ -81,4 +82,6 @@ export const GALLERY: readonly GallerySection[] = [
   { id: "toggle-field", title: "ToggleField", Section: ToggleFieldSection },
   { id: "detail-header", title: "DetailHeader", Section: DetailHeaderSection },
   { id: "section", title: "Section (a banded Page)", Section: SectionBandsSection },
+  // ui-kit-2 (slice 5): motion.
+  { id: "motion", title: "Motion", Section: MotionSection },
 ];

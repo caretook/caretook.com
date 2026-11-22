@@ -1,8 +1,8 @@
 import type { DaySummaryMode } from "@caretook/data/schema";
 import type { DaySummary, SummaryPart } from "./daySummary";
 
-import { ChevronRight } from "lucide-react";
 import { Fragment, useId, useState } from "react";
+import { Chevron, Collapse } from "~/components/ui";
 import { ARROW, summaryLabel } from "./daySummary";
 
 /** A part's text, its arrow shown but read in words ("higher than last week"). */
@@ -28,7 +28,8 @@ function PartText({ part }: { part: SummaryPart }) {
  * `summary`), so it stays pinned while the day scrolls by: one line, clipped
  * when it's too long, that is also a disclosure button (named by
  * `summaryLabel`, so the whole summary is read, arrows in words); tapped (or
- * Enter/Space), the summary's lines show below it, one per kind of thing.
+ * Enter/Space), the summary's lines slide open below it (`Collapse`, the
+ * chevron turning), one per kind of thing.
  * Parts are bare text inside their line (no element per part), so an
  * event's title never matches on its own. The expanded state isn't
  * remembered. `mode` (the viewer's setting) picks the line: `highlights`
@@ -52,13 +53,13 @@ export function DaySummaryLine({
     <div className="pt-0.5" data-day-summary>
       <button
         type="button"
-        className="text-base-content/75 hover:text-base-content flex w-full min-w-0 cursor-pointer items-center gap-1 rounded text-left text-sm"
+        className="text-base-content/75 hover:text-base-content motion-colors flex w-full min-w-0 cursor-pointer items-center gap-1 rounded text-left text-sm"
         aria-expanded={expanded}
         aria-controls={id}
         aria-label={`Day summary: ${summaryLabel(parts)}`}
         onClick={() => setExpanded((e) => !e)}
       >
-        <ChevronRight aria-hidden="true" className={`size-4 shrink-0 ${expanded ? "rotate-90" : ""}`} />
+        <Chevron open={expanded} />
         <span className="min-w-0 flex-1 truncate">
           {parts.map((part, i) => (
             <Fragment key={i}>
@@ -69,19 +70,21 @@ export function DaySummaryLine({
           ))}
         </span>
       </button>
-      <ul id={id} hidden={!expanded} className="text-base-content/80 mt-1 space-y-0.5 pl-5 text-sm">
-        {summary.lines.map((line) => (
-          <li key={line.label}>
-            <span className="text-base-content/60">{line.label}:</span>{" "}
-            {line.parts.map((part, i) => (
-              <Fragment key={i}>
-                {i > 0 && ", "}
-                <PartText part={part} />
-              </Fragment>
-            ))}
-          </li>
-        ))}
-      </ul>
+      <Collapse open={expanded} id={id}>
+        <ul className="text-base-content/80 mt-1 space-y-0.5 pl-5 text-sm">
+          {summary.lines.map((line) => (
+            <li key={line.label}>
+              <span className="text-base-content/60">{line.label}:</span>{" "}
+              {line.parts.map((part, i) => (
+                <Fragment key={i}>
+                  {i > 0 && ", "}
+                  <PartText part={part} />
+                </Fragment>
+              ))}
+            </li>
+          ))}
+        </ul>
+      </Collapse>
     </div>
   );
 }
