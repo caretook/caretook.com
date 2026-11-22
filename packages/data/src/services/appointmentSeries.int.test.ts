@@ -436,7 +436,11 @@ describe("appointmentSeriesService.topUp", () => {
       await providerService.create(u.owner.ctx, { groupId: group.id, type: "practice", name: "Clinic" }),
     )!;
     const nephrologist = ok(
-      await providerService.create(u.owner.ctx, { groupId: group.id, type: "clinician", name: "Dr. Example" }),
+      await providerService.create(u.owner.ctx, {
+        groupId: group.id,
+        type: "clinician",
+        name: "Dr. Example",
+      }),
     )!;
     const series = ok(
       await appointmentSeriesService.create(
