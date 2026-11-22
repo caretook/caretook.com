@@ -4,6 +4,7 @@ import type { ActionResult } from "~/lib/core/api";
 import { WifiOff } from "lucide-react";
 import { useEffect, useId } from "react";
 import { useRevalidator } from "react-router";
+import { FormFooter, Message, Notice } from "~/components/ui";
 
 // The parts every settings subpage (account and group) is made of: the page
 // with its heading, its cards, read-only details, and a form's Save row.
@@ -36,10 +37,9 @@ export function SettingsPage({
         {title}
       </h1>
       {offlineNotice && (
-        <p role="status" data-needs-connection="" className="alert text-sm">
-          <WifiOff aria-hidden="true" className="size-4" />
+        <Notice icon={WifiOff} data-needs-connection="">
           {offlineNotice}
-        </p>
+        </Notice>
       )}
       {children}
     </section>
@@ -114,20 +114,18 @@ export function SaveRow({
   savedText?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 pt-1">
-      <button type="submit" className="btn btn-primary" disabled={busy}>
-        {busy ? "Saving…" : "Save"}
-      </button>
-      {result?.ok && (
-        <p role="status" className="text-success text-sm">
-          {savedText}
-        </p>
-      )}
-      {result && !result.ok && (
-        <p role="alert" className="text-error text-sm">
-          {result.error}
-        </p>
-      )}
-    </div>
+    <FormFooter
+      align="start"
+      className="pt-1"
+      submitLabel="Save"
+      busy={busy}
+      busyLabel="Saving…"
+      status={
+        <>
+          {result?.ok && <Message tone="success">{savedText}</Message>}
+          {result && !result.ok && <Message tone="error">{result.error}</Message>}
+        </>
+      }
+    />
   );
 }

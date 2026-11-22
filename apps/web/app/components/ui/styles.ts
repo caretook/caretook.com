@@ -24,3 +24,17 @@ export const chipClass = (current: boolean) =>
  */
 export const CIRCLE = "border-base-300 bg-base-100 shrink-0 rounded-full";
 export const TOOL_CIRCLE = `${buttonClass({ variant: "ghost", size: "sm", shape: "square" })} ${CIRCLE}`;
+
+// ui-kit (slice 4): the heading scale for /app (marketing, print and /admin keep
+// their own), the one inline link style and the three icon sizes.
+/** A page's title (the `h1`). */
+export const TITLE_PAGE = "text-xl font-semibold";
+/** A section's or card's title. */
+export const TITLE_SECTION = "text-base font-semibold";
+/** A sub-heading inside a section. */
+export const TITLE_SUB = "text-sm font-semibold";
+/** The one inline link style (the colour of `link-primary`, underlined, never a button). */
+export const LINK = "link link-primary";
+export const ICON_SM = "size-3.5";
+export const ICON = "size-4";
+export const ICON_LG = "size-5";

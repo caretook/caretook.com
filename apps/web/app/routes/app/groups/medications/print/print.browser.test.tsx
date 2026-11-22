@@ -78,7 +78,7 @@ const printLayout = (sheet: string, cell: string) => {
   const tables = $$(`main ${sheet} table`);
   return {
     header: shown($("header.navbar")),
-    tabBar: shown($('nav.dock[aria-label="Group sections"]')),
+    tabBar: shown($('nav[data-tab-bar][aria-label="Group sections"]')),
     controls: $$("button, a.btn, input, [role=button]")
       .filter(shown)
       .map((el) => el.textContent?.trim() || el.tagName),

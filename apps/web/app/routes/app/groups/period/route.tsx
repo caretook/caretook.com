@@ -8,7 +8,7 @@ import { neighbours } from "@caretook/data/schema";
 import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
-import { BackLink } from "~/components/ui";
+import { BackLink, Page } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { periodTitle } from "~/lib/care-periods/periodDisplay";
@@ -106,7 +106,7 @@ function PeriodPage({ loaderData, params }: Route.ComponentProps) {
   const onDeleted = useCallback(() => void navigate(listUrl, { replace: true }), [navigate, listUrl]);
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-period-page={period.id}>
+    <Page data-period-page={period.id}>
       <BackLink to={listUrl} label="Care periods" />
 
       <PeriodHeader
@@ -172,6 +172,6 @@ function PeriodPage({ loaderData, params }: Route.ComponentProps) {
           <PeriodNeighbours groupId={groupId} previous={previous} next={next} timeZone={timeZone} now={now} />
         </>
       )}
-    </main>
+    </Page>
   );
 }

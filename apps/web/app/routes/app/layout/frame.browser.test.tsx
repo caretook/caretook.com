@@ -2,6 +2,8 @@ import type { DeviceRoute } from "../../../../test/device";
 
 import { afterEach, describe, expect, test } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { render } from "vitest-browser-react";
+import { Toast } from "~/components/ui";
 import { THEME_KEY } from "~/lib/app-shell/theme";
 import * as entry from "~/routes/app/groups/entry/route";
 import * as groupSettingsIndex from "~/routes/app/groups/settings/index/route";
@@ -15,6 +17,7 @@ import * as home from "~/routes/app/home/route";
 import * as settingsIndex from "~/routes/app/settings/index/route";
 import * as settingsLayout from "~/routes/app/settings/layout/route";
 import * as units from "~/routes/app/settings/units/route";
+import { rgba, surfaceContrast, textContrast } from "../../../../test/contrast";
 import { renderWithDevice } from "../../../../test/device";
 import { fx, hoursAgo, TEST_GROUP, TEST_USER, todo } from "../../../../test/fixtures";
 
@@ -79,7 +82,9 @@ const active = () => document.activeElement;
 const header = () => document.querySelector("body header")!;
 const userButton = () => page.getByRole("button", { name: `Account menu for ${TEST_USER.name}` });
 const groupButton = () => page.getByRole("button", { name: /switch care group$/ });
-const TAB_BAR = 'nav.dock[aria-label="Group sections"]';
+const TAB_BAR = 'nav[data-tab-bar][aria-label="Group sections"]';
+/** A section link's accessible name: the bar's icons carry it in `aria-label`, the header's in their text. */
+const nameOf = (a: Element) => a.getAttribute("aria-label") ?? a.textContent?.trim();
 const HEADER_NAV = '[data-region="sections"] nav[aria-label="Group sections"]';
 const shown = (el: Element | null) =>
   !!el && getComputedStyle(el).display !== "none" && el.getBoundingClientRect().height > 0;
@@ -328,17 +333,11 @@ describe("the sections", () => {
     await expect.element(page.getByText("Note 11")).toBeInTheDocument();
     const bar = document.querySelector(TAB_BAR)!;
     const links = [...bar.querySelectorAll("a")];
-    expect(links.map((a) => a.textContent?.trim())).toEqual([
-      "Timeline",
-      "Providers",
-      "Medications",
-      "Planner",
-    ]);
-    expect(
-      links.filter((a) => a.getAttribute("aria-current") === "page").map((a) => a.textContent?.trim()),
-    ).toEqual(["Timeline"]);
+    expect(links.map(nameOf)).toEqual(["Timeline", "Providers", "Medications", "Planner"]);
+    expect(links.filter((a) => a.getAttribute("aria-current") === "page").map(nameOf)).toEqual(["Timeline"]);
     expect(links[0]?.getAttribute("href")).toBe(timelineUrl());
-    expect(Math.abs(bar.getBoundingClientRect().bottom - innerHeight)).toBeLessThan(2);
+    // It floats: clear of the window's bottom edge.
+    expect(innerHeight - bar.getBoundingClientRect().bottom).toBeGreaterThanOrEqual(8);
     expect(shown(document.querySelector(HEADER_NAV))).toBe(false);
 
     const quick = page.getByRole("button", { name: "Add to Today" }).element().getBoundingClientRect();
@@ -411,7 +410,7 @@ describe("the sections", () => {
     const current = (nav: string) =>
       [...document.querySelectorAll(`${nav} a`)]
         .filter((a) => a.hasAttribute("aria-current"))
-        .map((a) => [a.textContent?.trim(), a.getAttribute("aria-current")]);
+        .map((a) => [nameOf(a), a.getAttribute("aria-current")]);
     const base = `/app/groups/${TEST_GROUP.id}`;
     for (const [url, value, ready] of [
       [`${base}/planner`, "page", "Planner"],
@@ -430,4 +429,78 @@ describe("the sections", () => {
       }
     }
   });
+});
+
+describe("the floating tab bar", () => {
+  const bar = () => document.querySelector<HTMLElement>(TAB_BAR)!;
+  const barLinks = () => [...bar().querySelectorAll<HTMLAnchorElement>("a")];
+
+  test("at 420: icon links named by their sections (with the same title), each at least 44 px, the bar clear of the window's edges", async () => {
+    await open();
+    await expect.element(page.getByText("Slept well")).toBeVisible();
+    const links = barLinks();
+    expect(links.map((a) => a.getAttribute("aria-label"))).toEqual([
+      "Timeline",
+      "Providers",
+      "Medications",
+      "Planner",
+    ]);
+    for (const a of links) {
+      expect(a.getAttribute("title")).toBe(a.getAttribute("aria-label"));
+      expect(a.textContent?.trim()).toBe("");
+      await expect
+        .element(page.getByRole("link", { name: a.getAttribute("aria-label")! }).first())
+        .toBeVisible();
+      const r = a.getBoundingClientRect();
+      expect(r.width).toBeGreaterThanOrEqual(44);
+      expect(r.height).toBeGreaterThanOrEqual(44);
+    }
+    const b = bar().getBoundingClientRect();
+    expect(b.left).toBeGreaterThanOrEqual(16);
+    expect(innerWidth - b.right).toBeGreaterThanOrEqual(16);
+    expect(innerHeight - b.bottom).toBeGreaterThanOrEqual(8);
+    // The spacer reserves the bar, its gap below and some room above it.
+    const spacer = document.querySelector("[data-tab-bar-spacer]")!.getBoundingClientRect();
+    expect(spacer.height).toBeGreaterThanOrEqual(innerHeight - b.top);
+  });
+
+  test("at 420: a toast sits above the bar", async () => {
+    await open();
+    await expect.element(page.getByText("Slept well")).toBeVisible();
+    const toast = await render(
+      <Toast message="A new version is ready" actionLabel="Reload" onAction={() => {}} />,
+    );
+    const status = toast
+      .getByText("A new version is ready")
+      .element()
+      .closest("[role=status]")!
+      .getBoundingClientRect();
+    expect(status.bottom).toBeLessThanOrEqual(bar().getBoundingClientRect().top);
+    await toast.unmount();
+  });
+
+  test.each(["light", "dark"] as const)(
+    "in %s: the bar's surface stands off the page and from a card; resting and current icons clear 3:1; the current one has a fill of its own",
+    async (theme) => {
+      await open({ theme });
+      await expect.element(page.getByText("Slept well")).toBeVisible();
+      const probe = document.createElement("div");
+      probe.className = "bg-base-100";
+      document.body.append(probe);
+      const onPage = surfaceContrast(bar(), document.body);
+      const fromCard = surfaceContrast(bar(), probe);
+      probe.remove();
+      const links = barLinks();
+      const current = links.find((a) => a.getAttribute("aria-current") === "page")!;
+      const resting = links.find((a) => !a.hasAttribute("aria-current"))!;
+      const icon = (a: Element) => textContrast(a.querySelector("svg")!);
+      const fill = (a: Element) => rgba(getComputedStyle(a).backgroundColor)[3];
+      expect(onPage).toBeGreaterThanOrEqual(1.4);
+      expect(fromCard).toBeGreaterThan(1.2);
+      expect(icon(resting)).toBeGreaterThanOrEqual(3);
+      expect(icon(current)).toBeGreaterThanOrEqual(3);
+      expect(fill(current)).toBe(1);
+      expect(fill(resting)).toBe(0);
+    },
+  );
 });

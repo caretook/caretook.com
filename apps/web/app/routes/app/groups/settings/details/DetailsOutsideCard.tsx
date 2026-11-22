@@ -3,6 +3,7 @@ import type { ActionResult } from "~/lib/core/api";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { SettingsCard } from "~/components/settings";
+import { Message } from "~/components/ui";
 
 export const DETAILS_OUTSIDE_EXPLAINED =
   "Members can choose to include titles, places and providers in their own reminder emails, calendar feeds and Google Calendar. Turn this off to keep what leaves Caretook generic for everyone.";
@@ -48,14 +49,8 @@ export function DetailsOutsideCard({ allowed, editable }: { allowed: boolean; ed
           {allowed ? "Members may include details." : "Details stay private for everyone."}
         </p>
       )}
-      <p role="status" className="text-sm empty:hidden">
-        {busy ? "Saving…" : fetcher.data?.ok ? "Saved." : ""}
-      </p>
-      {failed && (
-        <p role="alert" className="text-error text-sm">
-          {failed}
-        </p>
-      )}
+      <Message>{busy ? "Saving…" : fetcher.data?.ok ? "Saved." : ""}</Message>
+      {failed && <Message tone="error">{failed}</Message>}
     </SettingsCard>
   );
 }

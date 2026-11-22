@@ -2,7 +2,7 @@ import type { SignInMethod } from "~/lib/auth/accountUrls";
 import type { Route } from "./+types/sign-in";
 
 import { Form, Link, redirect, useNavigation } from "react-router";
-import { Button, Field } from "~/components/ui/plain";
+import { Button, Field, TabNav } from "~/components/ui/plain";
 import { accountUrls, parseSignInMethod } from "~/lib/auth/accountUrls";
 import { authClient } from "~/lib/auth/auth-client";
 import { sessionChanged } from "~/lib/auth/sessionEpoch";
@@ -113,19 +113,16 @@ export default function SignIn({ loaderData, actionData }: Route.ComponentProps)
     <AuthCard title="Sign in to Caretook">
       {offlineTooLong && <StatusMessage>{authMessages.offlineTooLong}</StatusMessage>}
       {rateLimited && <StatusMessage>{authMessages.sessionRateLimited}</StatusMessage>}
-      <nav aria-label="Ways to sign in" className="tabs tabs-box tabs-sm grid grid-cols-2">
-        {METHODS.map((m) => (
-          <Link
-            key={m.method}
-            to={accountUrls.signIn(m.method, redirectTo)}
-            replace
-            className={`tab ${m.method === method ? "tab-active" : ""}`}
-            aria-current={m.method === method ? "page" : undefined}
-          >
-            {m.label}
-          </Link>
-        ))}
-      </nav>
+      <TabNav
+        label="Ways to sign in"
+        className="mx-auto"
+        tabs={METHODS.map((m) => ({
+          label: m.label,
+          to: accountUrls.signIn(m.method, redirectTo),
+          current: m.method === method,
+          replace: true,
+        }))}
+      />
 
       {method === "password" && (
         <Form method="post" onSubmit={submitOnce} className="space-y-1">

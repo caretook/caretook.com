@@ -1,3 +1,4 @@
+import { Page } from "~/components/ui";
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 
@@ -35,7 +36,7 @@ export default function PastEvents({ loaderData, params }: Route.ComponentProps)
   const authorName = author ? data.nameOf(author) : null;
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-past-events>
+    <Page data-past-events>
       <PlannerHeader />
       <PlannerFilterRow
         view="past"
@@ -50,6 +51,6 @@ export default function PastEvents({ loaderData, params }: Route.ComponentProps)
           endText={PAST_END_TEXT}
         />
       </UpcomingList>
-    </main>
+    </Page>
   );
 }

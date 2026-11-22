@@ -4,7 +4,7 @@ import type { CalendarCardProps } from "./calendarPage";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher, useSearchParams } from "react-router";
 import { SettingsCard } from "~/components/settings";
-import { ConfirmDialog } from "~/components/ui";
+import { Button, ConfirmDialog, Loading, Message } from "~/components/ui";
 import {
   DISCONNECT_MESSAGE,
   GOOGLE_EXPLAINED,
@@ -53,23 +53,19 @@ export function GoogleCard({ groupId, online }: CalendarCardProps) {
       <SettingsCard id="google-calendar" title="Google Calendar">
         <p className="text-base-content/70 text-sm">{GOOGLE_EXPLAINED}</p>
         {outcome && (
-          <p
-            role={outcome.tone === "error" ? "alert" : "status"}
-            className={`text-sm ${outcome.tone === "error" ? "text-error" : "text-success"}`}
-            data-google-outcome=""
-          >
+          <Message tone={outcome.tone} data-google-outcome="">
             {outcome.text}
-          </p>
+          </Message>
         )}
         {view.kind === "offline" && <p className="text-sm">{GOOGLE_OFFLINE}</p>}
-        {view.kind === "loading" && <p className="text-sm">Loading…</p>}
+        {view.kind === "loading" && <Loading label="Loading…" />}
         {view.kind === "failed" && <p className="text-sm">{GOOGLE_LOAD_FAILED}</p>}
         {view.kind === "unavailable" && <p className="text-sm">{GOOGLE_UNAVAILABLE}</p>}
         {view.kind === "connect" && (
           <div>
-            <a className="btn btn-primary btn-sm" href={googleConnectHref(groupId)} data-google-connect="">
+            <Button variant="primary" size="sm" href={googleConnectHref(groupId)} data-google-connect="">
               Connect Google Calendar
-            </a>
+            </Button>
           </div>
         )}
         {view.kind === "connected" && (
@@ -81,33 +77,29 @@ export function GoogleCard({ groupId, online }: CalendarCardProps) {
               {view.lastSynced ? `Last synced ${view.lastSynced}.` : "Not synced yet."}
             </p>
             {view.error && (
-              <p role="alert" className="text-error text-sm" data-google-error="">
+              <Message tone="error" data-google-error="">
                 {view.error}
-              </p>
+              </Message>
             )}
             <div className="flex flex-wrap gap-2">
               {view.reconnect && (
-                <a className="btn btn-primary btn-sm" href={googleConnectHref(groupId)}>
+                <Button variant="primary" size="sm" href={googleConnectHref(groupId)}>
                   Reconnect Google
-                </a>
+                </Button>
               )}
-              <button
-                type="button"
-                className="btn btn-sm"
+              <Button
+                size="sm"
                 data-google-disconnect=""
-                disabled={disconnecting}
+                busy={disconnecting}
+                busyLabel="Disconnecting…"
                 onClick={() => setConfirming(true)}
               >
-                {disconnecting ? "Disconnecting…" : "Disconnect"}
-              </button>
+                Disconnect
+              </Button>
             </div>
           </div>
         )}
-        {result && !result.ok && (
-          <p role="alert" className="text-error text-sm">
-            {result.error}
-          </p>
-        )}
+        {result && !result.ok && <Message tone="error">{result.error}</Message>}
       </SettingsCard>
       {/* Outside the card, so it isn't one of the card's parts. */}
       <ConfirmDialog
