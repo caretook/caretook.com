@@ -93,7 +93,7 @@ describe("your own row", () => {
     await open({ "me.contact": () => FILLED });
     await ready();
     await expect.poll(boxes).toEqual(["phones:false", "address:false"]);
-    const labels = [...sharing()!.querySelectorAll("label")].map((l) => l.textContent ?? "");
+    const labels = [...sharing()!.querySelectorAll("li")].map((l) => l.textContent ?? "");
     expect(labels[0]).toContain(PHONE);
     expect(labels[1]).toContain(ADDRESS);
     await expect

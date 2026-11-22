@@ -4,7 +4,7 @@ import type { JoinRequestRow } from "./linkRules";
 import { UserRoundPlus } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import { Button, ConfirmDialog, EmptyState, Message } from "~/components/ui";
+import { Button, Card, ConfirmDialog, EmptyState, List, ListRow, Message } from "~/components/ui";
 import { roleLabel } from "../groupSettings";
 import { requestedLine, requesterName } from "./linkRules";
 
@@ -25,33 +25,24 @@ export function JoinRequests({ requests }: { requests: JoinRequestRow[] }) {
   if (!requests.length && !declineResult) return null;
 
   return (
-    <section
-      aria-labelledby="join-requests-heading"
-      data-join-requests=""
-      className="card bg-base-100 shadow-sm"
-    >
-      <div className="card-body">
-        <h2 id="join-requests-heading" className="card-title text-lg">
-          Requests to join
-        </h2>
-        {requests.length ? (
-          <ul className="divide-base-200 divide-y">
-            {requests.map((request) => (
-              <JoinRequest
-                key={request.id}
-                request={request}
-                declining={
-                  declineFetcher.state !== "idle" && declineFetcher.formData?.get("requestId") === request.id
-                }
-                onDecline={() => setDeclining(request)}
-              />
-            ))}
-          </ul>
-        ) : (
-          <EmptyState>No one is waiting.</EmptyState>
-        )}
-        {declineResult && !declineResult.ok && <Message tone="error">{declineResult.error}</Message>}
-      </div>
+    <Card title="Requests to join" data-join-requests="">
+      {requests.length ? (
+        <List>
+          {requests.map((request) => (
+            <JoinRequest
+              key={request.id}
+              request={request}
+              declining={
+                declineFetcher.state !== "idle" && declineFetcher.formData?.get("requestId") === request.id
+              }
+              onDecline={() => setDeclining(request)}
+            />
+          ))}
+        </List>
+      ) : (
+        <EmptyState>No one is waiting.</EmptyState>
+      )}
+      {declineResult && !declineResult.ok && <Message tone="error">{declineResult.error}</Message>}
       <ConfirmDialog
         open={!!declining}
         title={`Decline ${declining ? requesterName(declining) : "this person"}'s request? They'll be told by email.`}
@@ -59,7 +50,7 @@ export function JoinRequests({ requests }: { requests: JoinRequestRow[] }) {
         onConfirm={confirmDecline}
         onClose={() => setDeclining(null)}
       />
-    </section>
+    </Card>
   );
 }
 
@@ -77,7 +68,7 @@ function JoinRequest({
   const result = approving ? undefined : fetcher.data;
   const name = requesterName(request);
   return (
-    <li data-join-request={request.id} className="space-y-1 py-3 first:pt-0 last:pb-0">
+    <ListRow data-join-request={request.id} className="space-y-1">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <UserRoundPlus aria-hidden="true" className="text-base-content/60 size-5 shrink-0" />
         <div className="min-w-0 flex-1">
@@ -113,6 +104,6 @@ function JoinRequest({
         </Button>
       </div>
       {result && !result.ok && <Message tone="error">{result.error}</Message>}
-    </li>
+    </ListRow>
   );
 }

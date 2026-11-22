@@ -4,7 +4,7 @@ import type { InviteRow } from "./invites";
 import { Mail } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import { Button, ConfirmDialog, EmptyState, Message } from "~/components/ui";
+import { Button, Card, ConfirmDialog, EmptyState, List, ListRow, Message } from "~/components/ui";
 import { roleLabel } from "../groupSettings";
 import { inviteStatusLine, mayResend, mayRevoke } from "./invites";
 
@@ -23,34 +23,25 @@ export function PendingInvites({ invites, myRole }: { invites: InviteRow[]; myRo
   const revokeResult = revokeFetcher.state === "idle" ? revokeFetcher.data : undefined;
 
   return (
-    <section
-      aria-labelledby="pending-invites-heading"
-      data-pending-invites=""
-      className="card bg-base-100 shadow-sm"
-    >
-      <div className="card-body">
-        <h2 id="pending-invites-heading" className="card-title text-lg">
-          Pending invitations
-        </h2>
-        {invites.length ? (
-          <ul className="divide-base-200 divide-y">
-            {invites.map((invite) => (
-              <PendingInvite
-                key={invite.id}
-                invite={invite}
-                myRole={myRole}
-                revoking={
-                  revokeFetcher.state !== "idle" && revokeFetcher.formData?.get("inviteId") === invite.id
-                }
-                onRevoke={() => setRevoking(invite)}
-              />
-            ))}
-          </ul>
-        ) : (
-          <EmptyState>No invitations waiting.</EmptyState>
-        )}
-        {revokeResult && !revokeResult.ok && <Message tone="error">{revokeResult.error}</Message>}
-      </div>
+    <Card title="Pending invitations" data-pending-invites="">
+      {invites.length ? (
+        <List>
+          {invites.map((invite) => (
+            <PendingInvite
+              key={invite.id}
+              invite={invite}
+              myRole={myRole}
+              revoking={
+                revokeFetcher.state !== "idle" && revokeFetcher.formData?.get("inviteId") === invite.id
+              }
+              onRevoke={() => setRevoking(invite)}
+            />
+          ))}
+        </List>
+      ) : (
+        <EmptyState>No invitations waiting.</EmptyState>
+      )}
+      {revokeResult && !revokeResult.ok && <Message tone="error">{revokeResult.error}</Message>}
       <ConfirmDialog
         open={!!revoking}
         title={`Withdraw the invitation to ${revoking?.email ?? "this address"}? Its link will stop working.`}
@@ -58,7 +49,7 @@ export function PendingInvites({ invites, myRole }: { invites: InviteRow[]; myRo
         onConfirm={confirmRevoke}
         onClose={() => setRevoking(null)}
       />
-    </section>
+    </Card>
   );
 }
 
@@ -78,11 +69,7 @@ function PendingInvite({
   const result = resending ? undefined : fetcher.data;
   const address = invite.email ?? "Invitation";
   return (
-    <li
-      data-invite={invite.id}
-      data-invite-status={invite.state}
-      className="space-y-1 py-3 first:pt-0 last:pb-0"
-    >
+    <ListRow data-invite={invite.id} data-invite-status={invite.state} className="space-y-1">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Mail aria-hidden="true" className="text-base-content/60 size-5 shrink-0" />
         <div className="min-w-0 flex-1">
@@ -123,6 +110,6 @@ function PendingInvite({
         <Message tone="success">Sent again, with a new link.</Message>
       )}
       {result && !result.ok && <Message tone="error">{result.error}</Message>}
-    </li>
+    </ListRow>
   );
 }

@@ -111,16 +111,14 @@ export function ComboBox({
       >
         <ListBox
           className="outline-none"
-          renderEmptyState={() => <p className="text-base-content/70 px-3 py-2 text-sm">{emptyText}</p>}
+          renderEmptyState={() => <p className="text-muted px-3 py-2 text-sm">{emptyText}</p>}
         >
           {options.map((item) => (
             <Option key={item.id} item={item} />
           ))}
           {sections.map((section) => (
             <ListBoxSection key={section.id} id={section.id} className="border-base-300 mt-1 border-t pt-1">
-              <Header className="text-base-content/70 px-3 pt-1 pb-0.5 text-xs font-semibold">
-                {section.heading}
-              </Header>
+              <Header className="text-muted px-3 pt-1 pb-0.5 text-xs font-semibold">{section.heading}</Header>
               {section.options.map((item) => (
                 <Option key={item.id} item={item} />
               ))}
@@ -141,7 +139,7 @@ function Option({ item }: { item: ComboBoxOption }) {
       className={`${ITEM} ${item.id === CREATE ? "text-primary font-medium" : ""}`}
     >
       <span className="truncate">{item.label}</span>
-      {item.description && <span className="text-base-content/70 truncate text-sm">{item.description}</span>}
+      {item.description && <span className="text-muted truncate text-sm">{item.description}</span>}
     </ListBoxItem>
   );
 }

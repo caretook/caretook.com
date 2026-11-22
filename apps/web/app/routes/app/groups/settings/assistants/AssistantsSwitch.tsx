@@ -2,7 +2,7 @@ import type { ActionResult } from "~/lib/core/api";
 
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import { ConfirmDialog, Message } from "~/components/ui";
+import { ConfirmDialog, Message, ToggleField } from "~/components/ui";
 import { turnOffMessage } from "./assistants";
 
 /**
@@ -28,17 +28,13 @@ export function AssistantsSwitch({ enabled, connected }: { enabled: boolean; con
 
   return (
     <>
-      <label className="flex cursor-pointer items-center gap-3">
-        <input
-          type="checkbox"
-          className="toggle"
-          checked={shown}
-          disabled={busy}
-          data-assistants-switch=""
-          onChange={(event) => (event.target.checked ? send(true) : setConfirming(true))}
-        />
-        <span>Allow members to connect assistants</span>
-      </label>
+      <ToggleField
+        label="Allow members to connect assistants"
+        checked={shown}
+        disabled={busy}
+        data-assistants-switch=""
+        onChange={(event) => (event.target.checked ? send(true) : setConfirming(true))}
+      />
       <Message>
         {busy ? "Saving…" : fetcher.data?.ok ? (shown ? "Assistants are on." : "Assistants are off.") : ""}
       </Message>

@@ -46,9 +46,9 @@ const open = (role: GroupRole, api?: Record<string, (input: unknown) => unknown>
   });
 
 const ready = () => expect.poll(() => document.querySelectorAll("main li[data-member]").length).toBe(3);
-const samSwitch = () => page.getByRole("checkbox", { name: "Simple mode for Sam Okafor" });
+const samSwitch = () => page.getByRole("switch", { name: "Simple mode for Sam Okafor" });
 const switches = () => [...document.querySelectorAll<HTMLInputElement>("[data-simple-mode-switch]")];
-const samLock = () => page.getByRole("checkbox", { name: "Lock Sam Okafor in simple mode" });
+const samLock = () => page.getByRole("switch", { name: "Lock Sam Okafor in simple mode" });
 const locks = () => [...document.querySelectorAll<HTMLInputElement>("[data-simple-lock-switch]")];
 
 describe("the Simple mode switch on Members", () => {
@@ -83,7 +83,7 @@ describe("the Simple mode switch on Members", () => {
     await open("admin", {});
     await ready();
     expect(switches()).toHaveLength(2);
-    expect(page.getByRole("checkbox", { name: "Simple mode for Olga Moreno" }).elements()).toHaveLength(0);
+    expect(page.getByRole("switch", { name: "Simple mode for Olga Moreno" }).elements()).toHaveLength(0);
   });
 
   test("caretakers, and anyone offline, see a badge where it's on, and no switch", async () => {
@@ -185,8 +185,8 @@ describe("the switches' layout on Members", () => {
       expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth);
     }
     const sam = document.querySelector(`li[data-member="${SAM_ID}"]`)!;
-    const first = sam.querySelector("[data-simple-mode-switch]")!.closest("label")!.getBoundingClientRect();
-    const second = sam.querySelector("[data-simple-lock-switch]")!.closest("label")!.getBoundingClientRect();
+    const first = sam.querySelector("[data-simple-mode-switch]")!.parentElement!.getBoundingClientRect();
+    const second = sam.querySelector("[data-simple-lock-switch]")!.parentElement!.getBoundingClientRect();
     expect(second.top).toBeGreaterThanOrEqual(first.bottom);
   });
 });

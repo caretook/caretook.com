@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fieldControl } from "./fieldIds";
+import { fieldControl, fieldControlClass } from "./fieldIds";
 
 describe("fieldControl", () => {
   it("is just the id with no help or error", () => {
@@ -35,5 +35,13 @@ describe("fieldControl", () => {
       "aria-invalid": true,
       "aria-describedby": "f-error",
     });
+  });
+});
+
+describe("fieldControlClass", () => {
+  it("is the kind's daisyUI class at full width, with its error style while there's an error", () => {
+    expect(fieldControlClass("input", false)).toBe("input w-full");
+    expect(fieldControlClass("select", true)).toBe("select select-error w-full");
+    expect(fieldControlClass("textarea", true)).toBe("textarea textarea-error w-full");
   });
 });
