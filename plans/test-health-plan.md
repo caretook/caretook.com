@@ -28,7 +28,7 @@ Notes for later slices: B-475 flake (fixes-tooling, timelineSimpleTodos undo tim
 | 10    | 2    | landed (opus) | 2b3b3046 (15ebe405)                          |
 | 11    | 3    | landed (opus) | f759f646 (be8b1ed0)                          |
 | 12    | 3    | landed (opus) | 856602af (b72a59e7, f0d7f192)                |
-| 13    | 4    | not started   |                                              |
+| 13    | 4    | merged (opus) | 1ac187ef                                     |
 | 14    | 5    | waiting       |                                              |
 | 15    | 6    | waiting       |                                              |
 | 16    | 6    | waiting       |                                              |
