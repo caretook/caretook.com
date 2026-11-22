@@ -13,7 +13,8 @@ import { parseOccurredAt } from "../entryFormData";
 // web:unit tests it; the route applies it.
 
 /**
- * A writer's log with at least one dose still there. A viewer, or a log
+ * A log with at least one dose still there, for someone who may change its
+ * doses (writers any, an Easy helper their own). Anyone else, or a log
  * that's missing or fully deleted, is the timeline (filters kept, other
  * sheets' parameters dropped).
  */
@@ -22,16 +23,17 @@ export const passSheetGuard = ({
   passLogId,
   liveDoses,
   search,
-  canWrite,
+  canChange,
 }: {
   groupId: string;
   passLogId: string;
   /** How many of the log's doses are on the device and not deleted. */
   liveDoses: number;
   search: string;
-  canWrite: boolean;
+  /** Whether you may change the log's doses (`canChangeEntry`). */
+  canChange: boolean;
 }): SheetDecision<{ passLogId: string }> => {
-  if (!canWrite || liveDoses === 0)
+  if (!canChange || liveDoses === 0)
     return { redirect: appUrls.timeline(groupId, withoutSheetParams(search)) };
   return { sheet: { passLogId } };
 };

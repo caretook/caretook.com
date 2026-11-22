@@ -216,7 +216,7 @@ describe("the runner", () => {
 });
 
 describe("the due-pass chip", () => {
-  test("a box with passChips off (simple mode, whose Upcoming block has Given all) offers none; the default box does", async () => {
+  test("a box with passChips off (easy mode, whose Upcoming block has Given all) offers none; the default box does", async () => {
     function Boxes() {
       return (
         <>

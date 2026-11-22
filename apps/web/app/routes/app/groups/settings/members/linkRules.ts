@@ -1,8 +1,10 @@
+import type { LinkRole } from "@caretook/data/schema";
 import type { ActionResult } from "~/lib/core/api";
 
 import {
   invitableRoles,
   LINK_MAX_USES_LIMIT,
+  LINK_ROLES,
   LINK_TTL_DEFAULT_DAYS,
   LINK_TTL_MAX_DAYS,
   LINK_TTL_MIN_DAYS,
@@ -34,7 +36,7 @@ export type JoinRequestRow = {
   email: string | null;
 };
 
-/** The roles a member may put on a link: caretaker and viewer, for owners and admins only. */
+/** The roles a member may put on a link (`LINK_ROLES`), for owners and admins only. */
 export const linkRoles = (myRole: string | null) => invitableRoles(myRole, "link");
 
 export { LINK_MAX_USES_LIMIT, LINK_TTL_DEFAULT_DAYS, LINK_TTL_MAX_DAYS, LINK_TTL_MIN_DAYS };
@@ -95,7 +97,7 @@ export const requesterName = (request: Pick<JoinRequestRow, "name" | "email">) =
 type Failure = Extract<ActionResult, { ok: false }>;
 
 export type LinkForm = {
-  role: "caretaker" | "viewer";
+  role: LinkRole;
   expiresInDays: number;
   maxUses: number | null;
 };
@@ -103,7 +105,7 @@ export type LinkForm = {
 const wholeNumber = (value: string) => (/^\d+$/.test(value.trim()) ? Number(value.trim()) : NaN);
 
 /**
- * A submitted link: a role the member may offer (caretaker or viewer), a
+ * A submitted link: a role the member may offer (`LINK_ROLES`), a
  * number of days within `limits` (empty: the default), and a maximum number
  * of uses (empty: no limit). `limits` are the admin settings' when the page
  * has them; the server checks them again either way.
@@ -114,9 +116,8 @@ export const parseLinkForm = (
   limits: InviteOptions["link"] = DEFAULT_INVITE_OPTIONS.link,
 ): { ok: true; data: LinkForm } | Failure => {
   const issues: Failure["issues"] = [];
-  const role = linkRoles(myRole).find((allowed) => allowed === values.role);
-  if (!role || (role !== "caretaker" && role !== "viewer"))
-    issues.push({ path: "role", message: "Choose caretaker or viewer." });
+  const role = LINK_ROLES.find((r) => r === values.role && linkRoles(myRole).includes(r));
+  if (!role) issues.push({ path: "role", message: "Choose a role." });
   const days = values.expiresInDays.trim() ? wholeNumber(values.expiresInDays) : limits.defaultDays;
   if (!(days >= LINK_TTL_MIN_DAYS && days <= limits.maxDays))
     issues.push({
@@ -129,8 +130,7 @@ export const parseLinkForm = (
       path: "maxUses",
       message: `Leave it empty for no limit, or choose 1 to ${limits.maxUses}.`,
     });
-  if (issues.length || (role !== "caretaker" && role !== "viewer"))
-    return { ok: false, error: "Check the link's settings.", issues };
+  if (issues.length || !role) return { ok: false, error: "Check the link's settings.", issues };
   return { ok: true, data: { role, expiresInDays: days, maxUses } };
 };
 

@@ -23,7 +23,7 @@ export function meta({}: Route.MetaArgs) {
 // whose first sync is slow, say so (and reload when it lands) rather than
 // "no care group".
 //
-// `?groups=1` (`appUrls.groupList`) always shows the list: simple mode has no
+// `?groups=1` (`appUrls.groupList`) always shows the list: easy mode has no
 // group menu, so it's how a member there reaches their other groups.
 export async function clientLoader({ request, context }: Route.ClientLoaderArgs) {
   const { db } = context.get(sessionContext);

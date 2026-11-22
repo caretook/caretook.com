@@ -1,3 +1,4 @@
+import { EASY_ROLE_NAMES, WRITER_ROLES, hasGroupRole } from "../../../constants/roles";
 import { repeatText } from "../appointments/repeatRule";
 import { localDate } from "../core/entryTiming";
 
@@ -120,16 +121,24 @@ export const assigneeOf = (todo: Pick<TodoRuleFields, "assigneeId" | "assigneeNa
   return { type: "none" };
 };
 
-/** The group roles that write todos (create, edit, assign, complete any, delete). */
-export const TODO_WRITER_ROLES = ["owner", "admin", "caretaker"] as const;
+/** The group roles that write todos (create, edit, assign, complete any, delete): the writers. */
+export const TODO_WRITER_ROLES = WRITER_ROLES;
 
-export const isTodoWriter = (role: string | null | undefined) =>
-  !!role && (TODO_WRITER_ROLES as readonly string[]).includes(role);
+export const isTodoWriter = (role: string | null | undefined) => hasGroupRole(TODO_WRITER_ROLES, role);
 
 /**
- * Whether someone may tick a todo done (or reopen it): writers always;
- * viewers only when it's assigned to them as a member (never a typed-in
- * name's todo). Non-members never.
+ * The roles that may only tick (and untick) a todo assigned to them: a
+ * viewer and both easy roles. Every other change is refused.
+ */
+export const TODO_COMPLETER_ROLES = ["viewer", ...EASY_ROLE_NAMES] as const;
+
+/** Whether `role` only completes its own todos (`TODO_COMPLETER_ROLES`). */
+export const isTodoCompleter = (role: string | null | undefined) => hasGroupRole(TODO_COMPLETER_ROLES, role);
+
+/**
+ * Whether someone may tick a todo done (or reopen it): writers always; a
+ * viewer or an easy role only when it's assigned to them as a member (never
+ * a typed-in name's todo, never an unassigned one). Non-members never.
  */
 export const canCompleteTodo = ({
   role,
@@ -141,7 +150,7 @@ export const canCompleteTodo = ({
   todo: Pick<TodoRuleFields, "assigneeId">;
 }) => {
   if (isTodoWriter(role)) return true;
-  return role === "viewer" && !!userId && todo.assigneeId === userId;
+  return isTodoCompleter(role) && !!userId && todo.assigneeId === userId;
 };
 
 /** Every column a todo has besides its done fields and bookkeeping. */

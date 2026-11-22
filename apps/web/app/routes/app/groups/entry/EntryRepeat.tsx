@@ -24,7 +24,7 @@ const NO_ROWS: SeriesRow[] = [];
  * a series.
  */
 export function EntryRepeat({ live }: { live: LiveEntry }) {
-  const { entry, canWrite, isNew, deleted, repeat } = live;
+  const { entry, canSetUp, isNew, deleted, repeat } = live;
   const { recipient } = useGroup();
   const [open, setOpen] = useState(false);
   const query = seriesQuery(entry.seriesId);
@@ -41,7 +41,7 @@ export function EntryRepeat({ live }: { live: LiveEntry }) {
     );
   }
   // Series are events only: a note has no Repeat.
-  if (!canWrite || !isNew || entry.kind !== "event") return null;
+  if (!canSetUp || !isNew || entry.kind !== "event") return null;
   const kind = "event";
 
   const schedule = { occurredAt: entry.occurredAt, endsAt: entry.endsAt, allDay: entry.allDay };

@@ -8,6 +8,8 @@ const ROLE_LABELS = {
   admin: "an admin",
   caretaker: "a caretaker",
   viewer: "a viewer",
+  easy_helper: "an Easy helper",
+  easy_viewer: "an Easy viewer",
 } as const;
 
 // An email invite to a care group (careGroupInviteService.createEmail and
@@ -21,7 +23,7 @@ export const groupInvite = defineNotification({
     /** The group as its members see it (the care recipient's preferred name or name). */
     groupName: z.string().trim().min(1).max(200),
     inviterName: z.string().trim().max(100).optional(),
-    role: z.enum(["owner", "admin", "caretaker", "viewer"]),
+    role: z.enum(["owner", "admin", "caretaker", "viewer", "easy_helper", "easy_viewer"]),
     token: tokenZ,
   }),
   email: (data, { link }) => {

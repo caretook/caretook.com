@@ -1,15 +1,15 @@
 import type { TimelineEntryDetails } from "@caretook/data/schema";
-import type { LastEntryRow } from "./simpleRows";
+import type { LastEntryRow } from "./easyRows";
 
 import { isSymptomDetails } from "@caretook/data/schema";
 import { isEntryKind, KIND_META } from "../../../../lib/timeline/entryDisplay";
 
-// Simple mode's "Remove my last entry" (assistant PRD): after Undo has gone,
+// Easy mode's "Remove my last entry" (assistant PRD): after Undo has gone,
 // you can still take back the latest entry you added in the last 30 minutes,
 // then the one before it. Only your own, and never one written for you (a
 // medication or condition change). Pure, so web:unit tests it.
 
-/** How long after adding an entry you can remove it from simple mode. */
+/** How long after adding an entry you can remove it from easy mode. */
 export const REMOVE_WINDOW_MS = 30 * 60_000;
 
 /** Your latest entry when it's still yours to remove at `now`; else null. */

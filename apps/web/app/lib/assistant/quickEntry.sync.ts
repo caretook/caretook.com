@@ -6,6 +6,7 @@ import type { MedicationRow, RecipientRow } from "../medications/medications.syn
 import type { ProviderRow } from "../providers/providers.sync";
 import type { EntryRow } from "../timeline/timeline.sync";
 
+import { isLoggerRole, isWriterRole } from "@caretook/data/permissions";
 import { eq } from "drizzle-orm";
 import {
   assistantActionZSchema,
@@ -35,7 +36,6 @@ import {
   invalid,
   nowTimestamp,
   readRows,
-  WRITER_ROLES,
 } from "../timeline/timeline.sync";
 
 // Carrying out assistant actions (quick entry's cards) on this device: every
@@ -155,8 +155,10 @@ export const runActions = async (
   { timeZone = deviceTimeZone() }: { timeZone?: string } = {},
 ): Promise<RunActionsResult> => {
   const group = await groupFor(db, groupId);
-  if (!group?.role || !WRITER_ROLES.includes(group.role))
-    return refuse("You don't have permission to do that.", null);
+  // Loggers: writers, and an Easy helper (who logs, but adds no todos and
+  // links no providers: those are setup).
+  if (!group || !isLoggerRole(group.role)) return refuse("You don't have permission to do that.", null);
+  const writer = isWriterRole(group.role);
   if (!group.recipient) return refuse("This care group has no care recipient yet", null);
   if (!actions.length) return { ok: true, ids: [], byAction: [] };
 
@@ -178,6 +180,7 @@ export const runActions = async (
       continue;
     }
     if (action.type === "addTodo") {
+      if (!writer) return refuse("You don't have permission to do that.", index);
       const { type: _type, ...input } = action;
       const todo = await plannedTodo(db, groupId, input);
       if (!todo.ok) return refuse(todo.error, index, todo.issues);
@@ -225,7 +228,8 @@ export const runActions = async (
       // A note mentions its providers in it; both link them.
       ...(action.type === "addNote" && { document: { text: action.text, mentions } }),
       ...(action.type === "addEvent" && { document: { text: null, mentions: [] } }),
-      providerIds,
+      // An Easy helper's note keeps its mentions in the text, unlinked.
+      providerIds: writer ? providerIds : [],
     });
   }
 
@@ -322,19 +326,33 @@ const passDoses = async (
  * refuses the lot.
  */
 export const removeEntries = async (db: SyncDb, ids: readonly string[]): Promise<ActionResult> => {
-  const live: { id: string; groupId: string; todo: boolean }[] = [];
+  const live: { id: string; groupId: string; todo: boolean; mine: boolean }[] = [];
   for (const id of new Set(ids)) {
     // Any kind (doses and medication changes too), so not through `toTimelineEntry`.
-    const [row] = await readRows<{ id: string; group_id: string | null; todo: number }>(db, {
-      sql: `SELECT id, group_id, 0 AS todo FROM timeline_entry WHERE id = ? AND deleted_at IS NULL
-            UNION ALL SELECT id, group_id, 1 AS todo FROM todo WHERE id = ? AND deleted_at IS NULL`,
+    const [row] = await readRows<{
+      id: string;
+      group_id: string | null;
+      todo: number;
+      created_by: string | null;
+    }>(db, {
+      sql: `SELECT id, group_id, 0 AS todo, created_by FROM timeline_entry WHERE id = ? AND deleted_at IS NULL
+            UNION ALL SELECT id, group_id, 1 AS todo, created_by FROM todo WHERE id = ? AND deleted_at IS NULL`,
       params: [id, id],
     });
-    if (row?.group_id) live.push({ id: row.id, groupId: row.group_id, todo: !!row.todo });
+    if (row?.group_id)
+      live.push({
+        id: row.id,
+        groupId: row.group_id,
+        todo: !!row.todo,
+        mine: !row.todo && row.created_by === db.userId,
+      });
   }
   for (const groupId of new Set(live.map((e) => e.groupId))) {
     const group = await groupFor(db, groupId);
-    if (!group?.role || !WRITER_ROLES.includes(group.role)) return forbidden;
+    // Quick entry's Undo removes what this device just saved: an Easy helper's own entries.
+    if (!isLoggerRole(group?.role)) return forbidden;
+    const theirs = isWriterRole(group?.role) || live.every((e) => e.groupId !== groupId || e.mine);
+    if (!theirs) return forbidden;
   }
   if (!live.length) return { ok: true };
   const now = nowTimestamp();

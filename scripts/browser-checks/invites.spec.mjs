@@ -786,13 +786,13 @@ test("10. a link: sign up through it, ask to join, approved", { tag: "@smoke" },
   const before = await idsNow();
 
   let linkId;
-  await test.step("a link offers caretaker and viewer only", async () => {
+  await test.step("a link offers caretaker, viewer and the easy roles only", async () => {
     await createButton.click();
     await expect(sheet.locator('select[name="role"]')).toBeVisible({ timeout: 10_000 });
     const roles = await sheet
       .locator('select[name="role"] option')
       .evaluateAll((os) => os.map((o) => o.value));
-    expect(roles.join()).toBe("caretaker,viewer");
+    expect(roles.join()).toBe("caretaker,viewer,easy_helper,easy_viewer");
   });
   await test.step("the new link is listed with its role, uses and expiry; it's stored sealed", async () => {
     await sheet.locator('input[name="maxUses"]').fill("5");

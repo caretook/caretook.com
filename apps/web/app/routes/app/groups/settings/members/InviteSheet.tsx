@@ -5,21 +5,15 @@ import { UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { Button, CheckField, Field, Message, Notice, Sheet } from "~/components/ui";
-import { roleLabel } from "../groupSettings";
+import { roleDescription } from "../groupSettings";
 import { emailInviteRoles } from "./invites";
 import { INVITES_UNAVAILABLE } from "./linkRules";
+import { RoleOptions } from "./RoleOptions";
 
 // The Members page's Invite button (owners and admins) and its sheet: an
 // email, a role, and the inviter's confirmation that the care recipient
 // agreed to share. Sending is online only; offline, or while email invites
 // are switched off (admin settings), the button is disabled and says why.
-
-const ROLE_HELP: Record<string, string> = {
-  owner: "Manages the group, its members and owners.",
-  admin: "Manages members and invitations.",
-  caretaker: "Reads and adds to the timeline.",
-  viewer: "Reads only.",
-};
 
 export function InviteButton({
   myRole,
@@ -33,6 +27,7 @@ export function InviteButton({
 }) {
   const roles = emailInviteRoles(myRole);
   const [open, setOpen] = useState(false);
+  const [role, setRole] = useState("caretaker");
   const fetcher = useFetcher<InviteActionResult>();
   const busy = fetcher.state !== "idle";
   const result = busy ? undefined : fetcher.data;
@@ -76,14 +71,10 @@ export function InviteButton({
           <Field kind="input" label="Email" error={issue("email")}>
             {(control) => <input {...control} type="email" name="email" autoComplete="off" required />}
           </Field>
-          <Field kind="select" label="Role" error={issue("role")}>
+          <Field kind="select" label="Role" help={roleDescription(role)} error={issue("role")}>
             {(control) => (
-              <select {...control} name="role" defaultValue="caretaker">
-                {roles.map((role) => (
-                  <option key={role} value={role}>
-                    {roleLabel(role)}: {ROLE_HELP[role]}
-                  </option>
-                ))}
+              <select {...control} name="role" value={role} onChange={(event) => setRole(event.target.value)}>
+                <RoleOptions roles={roles} />
               </select>
             )}
           </Field>

@@ -9,6 +9,7 @@ import {
   CONNECTOR_OAUTH_SCOPES,
   connectorGrantService,
   isConnectorScope,
+  isEasyRole,
   isError,
   scopesForRole,
 } from "@caretook/data";
@@ -108,7 +109,8 @@ const memberGroups = async (authUser: AuthUser) => {
   if (isError(recipients)) return recipients;
   return groups.data.flatMap((group) => {
     const role = authUser.groupRoles?.[group.id];
-    if (!role) return [];
+    // The easy roles never connect an assistant: their groups aren't offered.
+    if (!role || isEasyRole(role)) return [];
     const recipient = recipients.data.find((r) => r.groupId === group.id);
     return [
       {

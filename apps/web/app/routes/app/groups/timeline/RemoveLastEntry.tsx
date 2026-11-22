@@ -1,4 +1,4 @@
-import type { LastEntryRow } from "./simpleRows";
+import type { LastEntryRow } from "./easyRows";
 
 import { Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -6,13 +6,13 @@ import { useFetcher } from "react-router";
 import { ConfirmDialog } from "~/components/ui";
 import { useLiveQuery } from "~/lib/sync";
 import { lastEntryName, removableEntry } from "./removeLast";
-import { lastOwnEntryQuery } from "./simpleRows";
+import { lastOwnEntryQuery } from "./easyRows";
 
 // One array for every render: `useLiveQuery` treats a new `initial` as new loader data.
 const NO_ROWS: LastEntryRow[] = [];
 
 /**
- * Simple mode's "Remove my last entry" (writers): the latest entry you added
+ * Easy mode's "Remove my last entry" (writers): the latest entry you added
  * in the last 30 minutes, behind a confirm, deleted the normal way (the
  * timeline's `remove`, a soft delete that syncs). Then the one before it,
  * while it's in the window too. Nothing shows when there's none.

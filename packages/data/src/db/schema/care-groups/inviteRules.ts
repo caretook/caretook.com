@@ -5,6 +5,13 @@
 import type { GroupRoleName } from "../../../constants/roles";
 
 import { z } from "zod";
+import {
+  GROUP_ROLE_NAMES,
+  OWNER_ROLES,
+  hasGroupRole,
+  isGroupRoleName,
+  isManagerRole,
+} from "../../../constants/roles";
 
 export const INVITE_KINDS = ["email", "link"] as const;
 export type InviteKind = (typeof INVITE_KINDS)[number];
@@ -32,8 +39,17 @@ export const ATTESTATION_TEXT =
 /** What a care group shares with a new member, as a list for the consent screen. */
 export const SHARED_WITH_MEMBERS = ["Timeline", "Notes", "Vitals", "Medications", "Providers"] as const;
 
-/** Link invites can make caretakers and viewers only, so a leaked link never makes an owner or admin. */
-export const LINK_ROLES = ["caretaker", "viewer"] as const satisfies readonly GroupRoleName[];
+/**
+ * Link invites can make caretakers, viewers and the two easy roles only, so
+ * a leaked link never makes an owner or admin.
+ */
+export const LINK_ROLES = [
+  "caretaker",
+  "viewer",
+  "easy_helper",
+  "easy_viewer",
+] as const satisfies readonly GroupRoleName[];
+export type LinkRole = (typeof LINK_ROLES)[number];
 
 export const linkRoleAllowed = (role: string): boolean => LINK_ROLES.some((allowed) => allowed === role);
 
@@ -51,17 +67,15 @@ export const canInvite = ({
   targetRole: string;
   kind: InviteKind;
 }): boolean => {
-  if (actorRole !== "owner" && actorRole !== "admin") return false;
+  if (!isManagerRole(actorRole)) return false;
   if (kind === "link") return linkRoleAllowed(targetRole);
-  if (targetRole === "owner") return actorRole === "owner";
-  return ["admin", "caretaker", "viewer"].includes(targetRole);
+  if (hasGroupRole(OWNER_ROLES, targetRole)) return hasGroupRole(OWNER_ROLES, actorRole);
+  return isGroupRoleName(targetRole);
 };
 
 /** The roles a member with `actorRole` may pick for an invite of `kind`, highest first. */
 export const invitableRoles = (actorRole: string | null | undefined, kind: InviteKind): GroupRoleName[] =>
-  (["owner", "admin", "caretaker", "viewer"] as const).filter((role) =>
-    canInvite({ actorRole, targetRole: role, kind }),
-  );
+  GROUP_ROLE_NAMES.filter((role) => canInvite({ actorRole, targetRole: role, kind }));
 
 export const INVITE_STATES = ["usable", "expired", "revoked", "usedUp", "accepted", "declined"] as const;
 export type InviteState = (typeof INVITE_STATES)[number];

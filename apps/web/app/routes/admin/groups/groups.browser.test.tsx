@@ -159,6 +159,8 @@ describe("a group's staff page", () => {
     expect([...(role.element() as HTMLSelectElement).options].map((o) => o.textContent)).toEqual([
       "Admin",
       "Caretaker",
+      "Easy helper",
+      "Easy viewer",
     ]);
     await userEvent.selectOptions(role, "Caretaker");
     await userEvent.fill(dialog().getByRole("textbox", { name: /Reason/ }), "Helps with rides");

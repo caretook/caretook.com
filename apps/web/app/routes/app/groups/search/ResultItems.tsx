@@ -4,6 +4,7 @@ import type { ParsedSearch, Snippet, UnitChoices } from "@caretook/data/schema";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 import type { LocalCondition } from "~/lib/profiles/conditions.sync";
+import type { ReactNode } from "react";
 
 import { highlightRanges, notesSnippet } from "@caretook/data/schema";
 import { CircleCheck, ClipboardPlus, ListTodo, Pill } from "lucide-react";
@@ -26,6 +27,41 @@ const STRETCHED =
   "outline-none before:absolute before:inset-0 before:rounded-[inherit] focus-visible:before:outline-2 focus-visible:before:-outline-offset-2 focus-visible:before:outline-primary";
 
 const ROW = "relative isolate flex items-start gap-3 px-3 py-2.5";
+
+/**
+ * A result's name, opening it: a link to its page or sheet, or, with
+ * `onOpen` (the easy roles), a button opening its read-only sheet here.
+ */
+function OpenName({
+  to,
+  state,
+  onOpen,
+  className,
+  children,
+}: {
+  to: string;
+  state?: unknown;
+  onOpen?: () => void;
+  className: string;
+  children: ReactNode;
+}) {
+  if (onOpen)
+    return (
+      <button
+        type="button"
+        onClick={onOpen}
+        className={`cursor-pointer text-left ${className}`}
+        data-opens-sheet
+      >
+        {children}
+      </button>
+    );
+  return (
+    <Link to={to} state={state} className={className}>
+      {children}
+    </Link>
+  );
+}
 
 /** `text` with the search's matches marked. */
 const Marked = ({ text, search }: { text: string; search: ParsedSearch }) => (
@@ -106,16 +142,19 @@ export function EntryResultItem({
 /**
  * A provider as a result: name, type, specialty and practice; a past
  * provider is marked. Matches are marked, and a match only in its notes
- * shows a line from them.
+ * shows a line from them. It opens the provider's page (`onOpen`: its sheet).
  */
 export function ProviderResultItem({
   provider,
   notes,
   search,
+  onOpen,
 }: {
   provider: ProviderResult;
   notes?: string;
   search: ParsedSearch;
+  /** Opens its read-only sheet instead of its page (the easy roles). */
+  onOpen?: () => void;
 }) {
   const past = provider.status === "past";
   const details = [PROVIDER_TYPE_META[provider.type].label, provider.specialty, provider.practiceName].filter(
@@ -133,12 +172,13 @@ export function ProviderResultItem({
       <ProviderTypeIcon type={provider.type} past={past} className="size-8" />
       <div className="min-w-0 flex-1">
         <p className="flex min-w-0 items-center gap-1.5">
-          <Link
+          <OpenName
             to={appUrls.provider(provider.groupId, provider.id)}
+            onOpen={onOpen}
             className={`truncate font-medium ${STRETCHED} ${past ? "text-base-content/70" : ""}`}
           >
             <Marked text={provider.name} search={search} />
-          </Link>
+          </OpenName>
           {past && (
             <span className="badge badge-ghost badge-sm shrink-0" data-marker>
               Past
@@ -157,19 +197,22 @@ export function ProviderResultItem({
 /**
  * A medication as a result: name and strength, dose and schedule; a stopped
  * one is marked with how. Matches are marked, and a match only in its notes
- * shows a line from them.
+ * shows a line from them. It opens the medication's page (`onOpen`: its sheet).
  */
 export function MedicationResultItem({
   medication,
   passes,
   notes,
   search,
+  onOpen,
 }: {
   medication: LocalMedication;
   /** The group's passes, deleted ones too: the schedule reads by pass name. */
   passes: readonly SchedulePass[];
   notes?: string;
   search: ParsedSearch;
+  /** Opens its read-only sheet instead of its page (the easy roles). */
+  onOpen?: () => void;
 }) {
   const stopped = medication.status !== "current";
   const title = medicationTitle(medication);
@@ -190,12 +233,13 @@ export function MedicationResultItem({
       </span>
       <div className="min-w-0 flex-1">
         <p className="flex min-w-0 items-center gap-1.5">
-          <Link
+          <OpenName
             to={appUrls.medication(medication.groupId, medication.id)}
+            onOpen={onOpen}
             className={`font-medium wrap-break-word ${STRETCHED} ${stopped ? "text-base-content/70" : ""}`}
           >
             <Marked text={title} search={search} />
-          </Link>
+          </OpenName>
           {stopped && (
             <span className="badge badge-ghost badge-sm shrink-0" data-marker>
               {STATUS_LABELS[medication.status]}
@@ -276,9 +320,12 @@ export function TodoResultItem({
 export function ConditionResultItem({
   condition,
   search,
+  onOpen,
 }: {
   condition: LocalCondition;
   search: ParsedSearch;
+  /** Opens its read-only sheet here instead of over the profile (the easy roles). */
+  onOpen?: () => void;
 }) {
   const resolved = condition.status === "resolved";
   const line = [sinceText(condition), condition.note].filter(Boolean).join(" · ");
@@ -297,13 +344,14 @@ export function ConditionResultItem({
       </span>
       <div className="min-w-0 flex-1">
         <p className="flex min-w-0 items-center gap-1.5">
-          <Link
+          <OpenName
             to={appUrls.condition(condition.groupId, condition.id)}
             state={PROFILE_SHEET_STATE}
+            onOpen={onOpen}
             className={`font-medium wrap-break-word ${STRETCHED} ${resolved ? "text-base-content/70" : ""}`}
           >
             <Marked text={condition.name} search={search} />
-          </Link>
+          </OpenName>
           {resolved && (
             <span className="badge badge-ghost badge-sm shrink-0" data-marker>
               {CONDITION_STATUS_LABELS.resolved}

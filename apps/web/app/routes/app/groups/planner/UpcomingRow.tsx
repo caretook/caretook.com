@@ -6,7 +6,7 @@ import type { RescheduledTarget } from "./useUpcomingData";
 
 import { MapPin } from "lucide-react";
 import { Link } from "react-router";
-import { AuthorFilterLink, EntryBody, KindFilterLink, RepeatMark } from "~/components/entry";
+import { AuthorFilterLink, EntryBody, KindFilterLink, KindIcon, RepeatMark } from "~/components/entry";
 import { ContactActions } from "~/components/providers";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { initials } from "~/lib/timeline/entryDisplay";
@@ -28,7 +28,9 @@ const breakable = (text: string) => text.replace("–", "–​");
  * ("10:30 AM–11:15 AM", "All day", or "Now · until 11:15 AM"), the entry's
  * body with its "with …" line, its place, "Cancelled" (struck through), the
  * call and map actions, the author's initials (a filter) and, for writers,
- * the ⋯ menu (`menu`). The whole row opens the entry's page.
+ * the ⋯ menu (`menu`). The whole row opens the entry's page. `readOnly`
+ * (the easy roles' Planner) shows the kind and initials without their
+ * filter links.
  */
 export function UpcomingRow({
   entry,
@@ -40,6 +42,7 @@ export function UpcomingRow({
   contacts,
   rescheduledTo,
   menu,
+  readOnly = false,
 }: {
   entry: TimelineEntry;
   groupId: string;
@@ -52,6 +55,8 @@ export function UpcomingRow({
   rescheduledTo?: RescheduledTarget;
   /** The entry's ⋯ menu (Print for viewers; more for writers). */
   menu?: ReactNode;
+  /** No filter links (the easy roles' Planner has no filters). */
+  readOnly?: boolean;
 }) {
   const cancelled = cancelledLabel(entry);
   // A cancelled item isn't happening, so it's never "Now".
@@ -71,7 +76,7 @@ export function UpcomingRow({
         className="hover:bg-base-content/5 focus-visible:outline-primary absolute inset-0 cursor-pointer rounded-[inherit] focus-visible:-outline-offset-2 focus-visible:outline-2"
         aria-label={`Open ${upcomingTitle(entry)}, ${when}${cancelled ? `, ${cancelled.toLowerCase()}` : ""}`}
       />
-      <KindFilterLink kind={entry.kind} size="sm" />
+      {readOnly ? <KindIcon kind={entry.kind} size="sm" /> : <KindFilterLink kind={entry.kind} size="sm" />}
       <time
         dateTime={entry.occurredAt}
         className={`w-[5.5rem] shrink-0 pt-0.5 text-sm tabular-nums ${inProgress ? "text-primary font-semibold" : "text-base-content/70"}`}
@@ -116,12 +121,23 @@ export function UpcomingRow({
         )}
       </div>
       <ContactActions actions={actions} />
-      <AuthorFilterLink
-        userId={entry.createdBy}
-        name={authorName}
-        initials={initials(authorName)}
-        image={authorImage}
-      />
+      {readOnly ? (
+        <span
+          className="bg-base-200 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
+          title={authorName}
+          data-author={entry.createdBy}
+        >
+          <span aria-hidden="true">{initials(authorName)}</span>
+          <span className="sr-only">{authorName}</span>
+        </span>
+      ) : (
+        <AuthorFilterLink
+          userId={entry.createdBy}
+          name={authorName}
+          initials={initials(authorName)}
+          image={authorImage}
+        />
+      )}
       {menu}
     </li>
   );

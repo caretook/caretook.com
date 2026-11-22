@@ -8,7 +8,7 @@ import { z } from "zod";
 import { GROUP_ROLE_NAMES } from "../../../constants/roles";
 import { careGroupSchema } from "./careGroup";
 import { audits, enumCheck, id, timestamps } from "../core/columns";
-import { INVITE_KINDS } from "./inviteRules";
+import { INVITE_KINDS, LINK_ROLES } from "./inviteRules";
 import { userSchema } from "../auth/user";
 
 export const INVITE_STATUSES = ["pending", "accepted", "declined", "revoked"] as const;
@@ -65,7 +65,7 @@ export const careGroupInviteSchema = pgTable(
     // A link never makes an owner or admin.
     check(
       "care_group_invite_link_role_check",
-      sql`${t.kind} <> 'link' OR ${t.role} IN ('caretaker', 'viewer')`,
+      sql`${t.kind} <> 'link' OR ${t.role} IN (${sql.raw(LINK_ROLES.map((r) => `'${r}'`).join(", "))})`,
     ),
     check(
       "care_group_invite_email_check",

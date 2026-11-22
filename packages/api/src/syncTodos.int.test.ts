@@ -121,7 +121,7 @@ describe("sync.upload: todo", () => {
 
     const rename = { op: "PATCH" as const, table: "todo", id, data: { title: "Mine now" } };
     expect((await viewer.api.sync.upload({ ops: [rename] })).results).toEqual([
-      { id, status: "rejected", code: "todoService:viewerCompletionOnly" },
+      { id, status: "rejected", code: "todoService:completionOnly" },
     ]);
     expect(ok(await todoService.getById(owner.ctx, id))).toMatchObject({ title: "Call the pharmacy" });
   });

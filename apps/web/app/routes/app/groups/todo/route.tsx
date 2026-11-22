@@ -29,7 +29,9 @@ import { useTodoPage } from "./useTodoPage";
 // and its shared live notes (what the pharmacy said). All local and live,
 // like the medication page; the notes are the todo's document (its id is
 // the todo's), created on the first real change. Writers edit (the list's
-// sheet), reopen and delete from the header.
+// sheet), reopen and delete from the header. The easy roles read it (their
+// own todos they tick) and go back to the timeline: their pages hold no
+// links onward to the Todos list, providers or medications.
 
 export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: loaderData ? `${loaderData.todo.title} · Caretook` : "Caretook" }];
@@ -81,7 +83,10 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
   // Read once: after sign-out closes the database, this page may render once more before it goes.
   const [db] = useState(getSync);
   const location = useLocation();
-  const listUrl = appUrls.todos(groupId, listSearchFromState(location.state as unknown));
+  const listUrl = group.easyRole
+    ? appUrls.timeline(groupId)
+    : appUrls.todos(groupId, listSearchFromState(location.state as unknown));
+  const listLabel = group.easyRole ? "Timeline" : "Todos";
   const page = useTodoPage(groupId, todoId, loaderData);
   const { todo, deleted } = page;
   const tick = useTodoTick(groupId);
@@ -101,7 +106,7 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
   return (
     <Page bands data-todo-page={todoId}>
       <Section>
-        <BackLink to={listUrl} label="Todos" />
+        <BackLink to={listUrl} label={listLabel} />
 
         <TodoHeader
           title={todo.title}
@@ -131,7 +136,7 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
           <div role="alert" className="alert" data-todo-deleted>
             <span>This todo was deleted.</span>
             <Link to={listUrl} className="btn btn-sm">
-              Back to todos
+              Back to {listLabel.toLowerCase()}
             </Link>
           </div>
         </Section>
@@ -145,7 +150,7 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
             zoneNote={page.zoneNote}
           />
 
-          <TodoLinks groupId={groupId} todo={todo} loaded={loaderData.linkRows} />
+          <TodoLinks groupId={groupId} todo={todo} loaded={loaderData.linkRows} linkPages={!group.easyRole} />
 
           {mayComplete && (
             <TodoCompletion
@@ -183,6 +188,7 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
               initial={loaderData.initial}
               ensureSaved={ensureSaved}
               providers={mentionProviders}
+              linkMentions={!group.easyRole}
             />
           </Section>
         </>

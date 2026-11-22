@@ -11,10 +11,10 @@ import { QUICK_ENTRY_UNDO, useQuickEntry } from "./useQuickEntry";
 import { useQuickEntrySuggestions } from "./useQuickEntrySuggestions";
 import { QUICK_ENTRY_PLACEHOLDER, QUICK_ENTRY_RULES } from "./quickEntryCopy";
 
-/** Simple mode's hint under its large box: talking is the easy way in. */
+/** Easy mode's hint under its large box: talking is the easy way in. */
 export const DICTATION_HINT = "Tap the microphone on your keyboard to say it instead of typing.";
 
-/** The box's look: the timeline's (`md`), or simple mode's large one (`lg`, its label and a dictation hint shown). */
+/** The box's look: the timeline's (`md`), or easy mode's large one (`lg`, its label and a dictation hint shown). */
 export type QuickEntrySize = "md" | "lg";
 const TEXTAREA_CLASS: Record<QuickEntrySize, string> = {
   md: "min-h-11 text-base",
@@ -42,7 +42,7 @@ export function QuickEntryBox({
   groupId: string;
   units: UnitChoices;
   size?: QuickEntrySize;
-  /** Offer the due passes as one-tap chips ("Give evening meds"). Simple mode turns them off: its Upcoming block has Given all. */
+  /** Offer the due passes as one-tap chips ("Give evening meds"). Easy mode turns them off: its Upcoming block has Given all. */
   passChips?: boolean;
   /** The field itself, for a caller that brings it into view and focuses it (the empty Today's "Add an entry"). */
   fieldRef?: RefObject<HTMLTextAreaElement | null>;
