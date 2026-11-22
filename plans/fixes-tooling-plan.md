@@ -10,28 +10,28 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **Held for test-gates after wave 2 (backlog session, 2026-11-22; row flagged standing,hold).** Finish and land wave 2 as usual, start nothing more, then write the hand-off here, `pnpm prd rm fixes-tooling` (frees the slot and the `scripts/loops/`, `scripts/backlog/` hot files) and `pnpm prd end` from the main checkout, **without rotating**. The row is released after test-gates lands.
 
-**Wave 2 (started 2026-11-22, slices 9–16, all opus):** all eight worktrees made and agents spawned (opus). dev synced into prd/fixes-tooling first (backlog-only, conflict-free). Chosen clear of ui-kit-3's and sync-safety's hot files; agent-autonomy and test-health aren't running, so `scripts/loops/` is free. Remaining waiting items (the app-test load flakes B-479, B-480, B-485–B-502; B-239–B-244 codex-review; dispatcher B-452–B-454, B-462–B-465; B-418, B-431, B-432, B-442, B-443, B-446, B-447, B-459, B-461, B-468, B-477, B-525, B-526, B-370, B-375, B-539) wait for wave 3. B-489–B-491 touch ui-kit-3's `components/ui/`: not before it ends.
+**Wave 2 (started 2026-11-22, slices 9–16, all opus):** all eight merged (opus); worktrees removed. Fold at landing: machinery.md (load gate off in tooling:unit; `pnpm prd wait`; worker db names `caretook_tw_…`; `tooling-lint.mjs`, `CARETOOK_TOOLING_LINT=off`), loop.md (`pnpm prd wait check`, never `pgrep -f`), data-layer.md (worker names; seeds hash once), runbook (`DATABASE_CONNECT_TIMEOUT_MS`); stale comment vitest.config.ts:192. Possible follow-up: rm.sh reads `backlog prd list --json` twice. dev synced into prd/fixes-tooling first (backlog-only, conflict-free). Chosen clear of ui-kit-3's and sync-safety's hot files; agent-autonomy and test-health aren't running, so `scripts/loops/` is free. Remaining waiting items (the app-test load flakes B-479, B-480, B-485–B-502; B-239–B-244 codex-review; dispatcher B-452–B-454, B-462–B-465; B-418, B-431, B-432, B-442, B-443, B-446, B-447, B-459, B-461, B-468, B-477, B-525, B-526, B-370, B-375, B-539) wait for wave 3. B-489–B-491 touch ui-kit-3's `components/ui/`: not before it ends.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item  | State                                                                                                                                               | Merge    |
-| ----- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| 1     | B-381 | merged (quick passed on slice)                                                                                                                      | 3df76253 |
-| 2     | B-394 | merged (quick passed; 20 s timeout kept, see note)                                                                                                  | 26e83fa4 |
-| 3     | B-411 | merged (tooling: rotate.test 20 s timeout at load 126, passes alone)                                                                                | 7ccc8ff8 |
-| 4     | B-440 | merged (tooling; tidy-cli.test beforeAll 10 s timeout under load: B-460)                                                                            | 1a7ad440 |
-| 5     | B-441 | merged (conflict with 4 in tidy-cli.mjs resolved; +B-460 fix: load gate off in tidy-cli.test)                                                       | d971f6fa |
-| 6     | B-458 | merged (tooling)                                                                                                                                    | a8ab24cc |
-| 7     | B-475 | merged (test race, not a timer; Undo catch: B-527 fixes-bug)                                                                                        | cd8cc1f5 |
-| 8     | B-484 | merged (quick passed on slice)                                                                                                                      | af134b65 |
-| 9     | B-451 | merged (full passed on slice: package.json; browser not run, no stack)                                                                              | 4adeb2da |
-| 10    | B-445 | started (opus agent spawned)                                                                                                                        | —        |
-| 11    | B-534 | handed off 4074a56e (full passed: vitest.config.ts; fold: machinery load gate; rm.sh reads prd list twice)                                          | —        |
-| 12    | B-444 | handed off 3baa63c0 (quick passed)                                                                                                                  | —        |
-| 13    | B-405 | handed off 70cc7d85 (quick passed; fold: vitest.config.ts:192 comment, data-layer.md, machinery.md)                                                 | —        |
-| 14    | B-388 | handed off ad35cd5b (quick: only resetStaging B-466 timed out, 3/3 alone; browser not run, client.ts maps to @suite; fold: runbook connect timeout) | —        |
-| 15    | B-450 | handed off 0dc5a9a2 (quick passed; summary 2.5 s→ms per role, stopgap removed)                                                                      | —        |
-| 16    | B-466 | handed off 14db2807 (full passed: seeds; app-shell FLAKY on first PowerSync start, known gotcha; fold: data-layer seeds hash once)                  | —        |
+| Slice | Item  | State                                                                                         | Merge    |
+| ----- | ----- | --------------------------------------------------------------------------------------------- | -------- |
+| 1     | B-381 | merged (quick passed on slice)                                                                | 3df76253 |
+| 2     | B-394 | merged (quick passed; 20 s timeout kept, see note)                                            | 26e83fa4 |
+| 3     | B-411 | merged (tooling: rotate.test 20 s timeout at load 126, passes alone)                          | 7ccc8ff8 |
+| 4     | B-440 | merged (tooling; tidy-cli.test beforeAll 10 s timeout under load: B-460)                      | 1a7ad440 |
+| 5     | B-441 | merged (conflict with 4 in tidy-cli.mjs resolved; +B-460 fix: load gate off in tidy-cli.test) | d971f6fa |
+| 6     | B-458 | merged (tooling)                                                                              | a8ab24cc |
+| 7     | B-475 | merged (test race, not a timer; Undo catch: B-527 fixes-bug)                                  | cd8cc1f5 |
+| 8     | B-484 | merged (quick passed on slice)                                                                | af134b65 |
+| 9     | B-451 | merged (full passed on slice: package.json; browser not run, no stack)                        | 4adeb2da |
+| 10    | B-445 | merged (quick passed on slice)                                                                | da329245 |
+| 11    | B-534 | merged (full passed on slice)                                                                 | 0d7e9205 |
+| 12    | B-444 | merged (quick passed on slice)                                                                | 9a1479e9 |
+| 13    | B-405 | merged (quick passed on slice)                                                                | 6f8d07be |
+| 14    | B-388 | merged (quick: only resetStaging timed out (fixed by 16))                                     | e962e40d |
+| 15    | B-450 | merged (quick passed on slice)                                                                | d0b0324b |
+| 16    | B-466 | merged (full passed on slice)                                                                 | 3f739326 |
 
 ## Wave 1
 
