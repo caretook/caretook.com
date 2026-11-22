@@ -27,6 +27,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Symomtons need to be repeatble and filterable need multi filter. (B-549)
 - nested todos (B-550)
 - quick date jump on timeline via date picker AND quick entry (B-557)
+- Assistants settings needs to allow owner to enable read/write or stick to read only for group assistant plugin. Default to read/write (B-558)
 
 ## Big plans
 

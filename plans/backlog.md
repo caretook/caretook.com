@@ -17,7 +17,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `agent-autonomy` | — | `test-gates` | `scripts/loops/land`, `scripts/loops/lib.sh`, `scripts/loops/check-`, `scripts/loops/prompt.sh`, `scripts/loops/prd.sh` | [PRD](agent-autonomy-prd.md), [plan](agent-autonomy-plan.md) (B-503 to B-506, B-516 to B-518): 10 slices, waves (1, 2) → 3 → (4, 5) → 6 → 7 → (8, 9, 10): questions that take their recommendation after 30 minutes (planners' too), a notice board, a machine claim for a landing's full check, the flake rule, flakes filed by the check, a Checked: trailer and a full pass that carries over a dev sync, landing on an unsynced tip, landing notices and the hold. Tooling only. Follow-on: agent-autonomy-2. While test-health runs (its word, 2026-11-22): land no change to what quick or full means (check-plan.mjs, lib.sh checked_ok) or what land accepts in the middle of a test-health landing, only between its waves; never touch scripts/eslint/ or eslint.config.js. |
 | `agent-autonomy-2` | — | — | `scripts/loops/session`, `scripts/loops/context`, `scripts/loops/prompt.sh`, `scripts/loops/rotate`, `scripts/loops/open-session`, `scripts/loops/recover`, `scripts/loops/tidy`, `scripts/loops/end-session`, `scripts/loops/request` | [PRD](agent-autonomy-2-prd.md), [plan](agent-autonomy-2-plan.md) (B-507, B-508, B-509): 2 slices in 2 waves: a context hook that tells a session past 160k to rotate, sizes in status, the dispatcher's follow-up. Cut from agent-autonomy by its planner. Tooling only |
 | `test-gates-2` | — | `test-gates` | — | CI tiers 3-4: staging candidate, CI browser suites, staging to main gate, required checks (plans/test-gates-prd.md) |
-| `worker-watch` | — | `orchestration-3` | `scripts/loops/prompt.sh`, `scripts/loops/prd.sh`, `scripts/loops/check-times` | To write. Run metrics in one summary, then stuck workers handled against usual times (B-434, B-408). Cut from orchestration-3 |
+| `worker-watch` | — | `test-gates`, `agent-autonomy-2`, `agent-autonomy-3` | `scripts/loops/prompt.sh`, `scripts/loops/prd.sh`, `scripts/loops/check-times`, `scripts/loops/check-run`, `scripts/loops/check-body`, `scripts/loops/land.sh`, `scripts/loops/review.sh`, `scripts/loops/browser.sh`, `scripts/loops/new.sh`, `scripts/loops/rm.sh`, `scripts/loops/status-extra`, `scripts/loops/dispatch`, `scripts/loops/context`, `scripts/loops/skeptic`, `scripts/loops/ask` | To write. Run metrics in one summary, then stuck workers handled against usual times (B-434, B-408). Cut from orchestration-3 |
 | `agent-autonomy-3` | — | `agent-autonomy`, `agent-autonomy-2` | `scripts/loops/ask`, `scripts/loops/skeptic`, `scripts/loops/prompt.sh`, `scripts/loops/land`, `scripts/loops/prd.sh`, `scripts/loops/dispatch`, `scripts/loops/open-session`, `scripts/backlog/registry` | To write. A Fable skeptic before every ask, before risky landings (a forced landing, a flaky pass, a declined Codex finding), and as the final check on Opus planners, with a registry flag that keeps a design topic's planner on Fable (B-511, B-512, B-513). Filed into agent-autonomy after its plan landed; builds on its defaulting asks and flake rule |
 | `self-recovery` | — | `orchestration-3` | `scripts/loops/recover.sh`, `scripts/loops/land.sh`, `scripts/loops/session`, `scripts/loops/dispatch`, `scripts/loops/prd.sh` | To write. launchd recovery, draining before a usage limit, step-in-progress markers, cost records, records for every session kind, headless sessions (B-407, B-433, B-437, B-438). Cut from orchestration-3; its planner cuts headless out if over six slices |
 | `staging-ship` | — | `test-gates-2` | `scripts/loops/review.sh`, `scripts/loops/codex-review`, `scripts/loops/prd.sh`, `scripts/loops/land.sh` | To write. Ship dev to staging in one command, Codex findings filed by tool, a staging to-test report (B-404, B-430, B-436). Cut from orchestration-3; doesn't need the dispatcher |
@@ -349,6 +349,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-555 | chore | in-progress | test-gates | prd/test-gates | The check log records which step failed and which test files, and a check has a time limit (four quick runs hung 28 to 93 minutes; the log keeps only the exit code) |
 | B-556 | chore | in-progress | test-gates | prd/test-gates | Faster static steps in a check: typecheck, lint and format take 2.2 minutes run one after another on a quiet machine (lint 79 s, typecheck 38 s, format 15 s), most of the new slice check's 2.5 minutes |
 | B-557 | feature | inbox |  |  | quick date jump on timeline via date picker AND quick entry |
+| B-558 | feature | inbox |  |  | Assistants settings needs to allow owner to enable read/write or stick to read only for group… |
 
 ## Items
 
@@ -1569,6 +1570,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-21 (Robert Bo Davis): Asked for by the user 2026-11-21: unsticking workers is manual work they do often. Triaged to orchestration-3 (hot file scripts/loops/prompt.sh; the dispatcher reopens dead sessions, this covers live-but-stuck ones; asks from B-391). Exists today: browser checks have a 90 s silence limit, a cap and one contention retry (loop.md, Limits); pnpm prd check is timed in .loops/.check-times.log; nothing covers a hung pnpm check, a slice agent that has gone quiet, or a helper subagent. Proposed shape: (1) every long command runs with a budget from its usual time (check-times medians, scaled for load) and a silence limit, and a breach is reported with its last output, not just killed; (2) the orchestrator records each slice agent's start and last sign of progress (commit, file change in its worktree, message) and on no progress messages it, then restarts it once with --continue; (3) a second stall, or a stop that could lose work (uncommitted changes, a migration or landing step under way), is a judgement call: a fresh skeptic agent reads the evidence and decides, and files an ask with a recommendation only when it can't or the step is risky; (4) pnpm prd status shows each running command's and agent's age against its usual time. Open for the PRD: the thresholds, and whether the dispatcher's tick does the watching so an orchestrator that is itself stuck is caught. Could be its own small topic if orchestration-3 passes about six slices (it now has B-392, B-404, B-406, B-407 and this).
 - 2026-11-21 (plan/orchestration-3): Moved out of orchestration-3 by its planner (2026-11-21) to keep that PRD at six slices: orchestration-3 is the dispatcher core (B-392, B-426, B-427, B-428, B-439). The grouping and the row order of the four follow-on topics are the planner's; plans/orchestration-3-prd.md, Follow-on topics.
+- 2026-11-22 (plan/worker-watch): Planned in plans/worker-watch-prd.md: B-434 is slice 1; B-408 is slices 2 to 6 (check budget, heartbeat and status, the watch, orchestrator response, dispatcher).
 
 ### B-411 · bug · A session opened again under the same name while the first still runs gets marked ended when the first exits: session.sh writes ended and exit without checking the record is still its own
 
@@ -1720,6 +1722,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. Only .loops/.check-times.log and pnpm prd check --times exist; B-408 needs usual times to spot a stuck worker.
 - 2026-11-21 (plan/orchestration-3): Moved out of orchestration-3 by its planner (2026-11-21) to keep that PRD at six slices: orchestration-3 is the dispatcher core (B-392, B-426, B-427, B-428, B-439). The grouping and the row order of the four follow-on topics are the planner's; plans/orchestration-3-prd.md, Follow-on topics.
+- 2026-11-22 (plan/worker-watch): Planned in plans/worker-watch-prd.md: B-434 is slice 1; B-408 is slices 2 to 6 (check budget, heartbeat and status, the watch, orchestrator response, dispatcher).
 
 ### B-435 · feature · Filing checks for duplicates (similar open or archived titles shown before an item is added) and finished items are archived without a hand run
 
@@ -2785,3 +2788,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - prd:
 - owner:
 - commit:
+
+### B-558 · feature · Assistants settings needs to allow owner to enable read/write or stick to read only for group…
+
+- status: inbox
+- prd:
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): From the inbox: Assistants settings needs to allow owner to enable read/write or stick to read only for group assistant plugin. Default to read/write
