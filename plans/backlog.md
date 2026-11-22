@@ -2388,6 +2388,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user, after a31 and a33 held test-health and fixes-bug for hours overnight: agents should make their own best choices and coordinate. Overnight a31 (land on passes vs --suite) waited ~6h for the answer it recommended.
 - 2026-11-22 (plan/agent-autonomy): Planned in plans/agent-autonomy-prd.md and -plan.md (2026-11-22): B-503 slice 1, B-506 slice 2, B-504 slices 3 and 4, B-505 slices 5 and 6.
+- 2026-11-22 (Robert Bo Davis): 2026-11-22, the user, on ask a36's assumption 2: planners' questions default too. A planner's question with a recommendation takes it after 30 minutes of silence like any other; the never-default list still applies. Overrides the plan's 'a planner's questions always wait': the orchestrator updates the PRD and plan.
 
 ### B-504 · feature · Quiet-machine landing check: a landing's full check can claim the machine; the dispatcher and other orchestrators hold new slice starts and checks until it ends or a time limit passes; waiting landings take turns
 
