@@ -15,12 +15,20 @@ import {
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 
 /** The tables in a device schema's source: every `sqliteTable("name", …)`. */
-const deviceTables = (source) => [...source.matchAll(/sqliteTable\(\s*"([a-z_]+)"/g)].map((m) => m[1]);
+const allDeviceTables = (source) => [...source.matchAll(/sqliteTable\(\s*"([a-z_]+)"/g)].map((m) => m[1]);
 
-/** The tables the upload switch accepts: the keys of `const HANDLERS = { … }`. */
+/**
+ * The synced ones: local-only tables (`LOCAL_ONLY_TABLES`, PowerSync's
+ * `localOnly`, such as `unsaved_change`) never sync or upload, so they have
+ * no matrix row.
+ */
+const { LOCAL_ONLY_TABLES } = await import("../../apps/web/app/lib/sync/schema.ts");
+const deviceTables = (source) => allDeviceTables(source).filter((t) => !LOCAL_ONLY_TABLES.includes(t));
+
+/** The tables the upload registry accepts: the keys of `UPLOAD_REGISTRY = new Map([ … ])`. */
 const uploadTables = (source) => {
-  const block = /const HANDLERS\b.*= \{\n([\s\S]*?)\n\};/.exec(source)?.[1] ?? "";
-  return [...block.matchAll(/^\s*([a-z_]+):/gm)].map((m) => m[1]);
+  const block = /UPLOAD_REGISTRY\b.*= new Map\(\[\n([\s\S]*?)\n\]\);/.exec(source)?.[1] ?? "";
+  return [...block.matchAll(/^\s*\["([a-z_]+)",/gm)].map((m) => m[1]);
 };
 
 const matrixTables = (matrix) => matrix.map((r) => r.table);
@@ -28,7 +36,7 @@ const missingFrom = (matrix, tables) => tables.filter((t) => !matrixTables(matri
 
 describe("the sync matrix", () => {
   const schema = deviceTables(read("../../apps/web/app/lib/sync/schema.ts"));
-  const uploads = uploadTables(read("../../packages/api/src/sync.ts"));
+  const uploads = uploadTables(read("../../packages/api/src/syncRegistry.ts"));
 
   it("finds the device schema's tables and the upload switch's", () => {
     expect(schema).toContain("timeline_entry");
@@ -44,6 +52,12 @@ describe("the sync matrix", () => {
   it("writes every uploadable table from the device, and no other", () => {
     const fromDevice = SYNC_MATRIX.filter((r) => r.by !== "server").map((r) => r.table);
     expect([...fromDevice].sort()).toEqual([...uploads].sort());
+  });
+
+  it("skips the device's local-only tables, and only those", () => {
+    expect(LOCAL_ONLY_TABLES).toEqual(["unsaved_change"]);
+    const all = allDeviceTables(read("../../apps/web/app/lib/sync/schema.ts"));
+    expect(all.filter((t) => !schema.includes(t))).toEqual(LOCAL_ONLY_TABLES);
   });
 
   it("fails when a device-schema table has no row", () => {

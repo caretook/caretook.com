@@ -1,3 +1,4 @@
+import { getTableName } from "drizzle-orm";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 // The device's local copy of the synced tables, as SQLite holds them. These
@@ -481,6 +482,33 @@ export const appointmentSeries = sqliteTable(
   (t) => [index("appointment_series_group").on(t.groupId)],
 );
 
+/**
+ * Local only (never synced, never uploaded; cleared with the local copy): one
+ * row per change the server didn't save (sync-safety, B-285). `outcome` is
+ * `refused` (a 4xx: the server's `code` and `issues`, JSON text) or
+ * `set_aside` (tried too often, slice 3). `data` is the op's data (JSON
+ * text), `label` the row's title or name when the device knew it, and
+ * `line_key` what the "Changes not saved" page groups by (a note's document
+ * and its updates share one). Written by `lib/sync/uploader.ts`.
+ */
+export const unsavedChanges = sqliteTable(
+  "unsaved_change",
+  {
+    id: text("id").primaryKey(),
+    recordedAt: text("recorded_at"),
+    tableName: text("table_name"),
+    rowId: text("row_id"),
+    op: text("op"),
+    data: text("data"),
+    code: text("code"),
+    issues: text("issues"),
+    outcome: text("outcome"),
+    label: text("label"),
+    lineKey: text("line_key"),
+  },
+  (t) => [index("unsaved_change_line").on(t.lineKey)],
+);
+
 export const drizzleSchema = {
   careGroups,
   careGroupMembers,
@@ -502,6 +530,7 @@ export const drizzleSchema = {
   medicationConditions,
   conditionManagers,
   appointmentSeries,
+  unsavedChanges,
 };
 
 /**
@@ -509,8 +538,18 @@ export const drizzleSchema = {
  * with per-table options. `todo` tracks metadata, so a write can flag itself
  * for the upload through its `_metadata` column (an Undo's delete of the
  * next occurrence, B-382). Drizzle queries keep `drizzleSchema`.
+ * `unsaved_change` is local only: no stream, no upload, no sync-matrix row
+ * (`LOCAL_ONLY_TABLES`, which the agreement tests skip).
  */
 export const powerSyncSchema = {
   ...drizzleSchema,
   todos: { tableDefinition: todos, options: { trackMetadata: true } },
+  unsavedChanges: { tableDefinition: unsavedChanges, options: { localOnly: true } },
 };
+
+/** The device tables that never sync (`localOnly`): tests of the synced tables skip them. */
+export const LOCAL_ONLY_TABLES: readonly string[] = Object.values(powerSyncSchema).flatMap((entry) =>
+  "tableDefinition" in entry && entry.options && "localOnly" in entry.options && entry.options.localOnly
+    ? [getTableName(entry.tableDefinition)]
+    : [],
+);

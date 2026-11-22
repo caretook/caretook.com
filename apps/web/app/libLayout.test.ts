@@ -14,7 +14,8 @@ const TOP_LEVEL: string[] = [];
 
 /**
  * lib/sync/: the client, the device schema, the lazy front door, the page
- * cache, live rows, first sync, and the tile cache (remembered live answers).
+ * cache, live rows, first sync, the tile cache (remembered live answers), and
+ * the uploader (sync-safety: the connector's upload, and what didn't save).
  */
 const SYNC_PLUMBING = [
   "client.test.ts",
@@ -29,6 +30,8 @@ const SYNC_PLUMBING = [
   "schema.ts",
   "useLiveRows.ts",
   "useRememberedQuery.ts",
+  "uploader.ts",
+  "uploader.browser.test.tsx",
 ];
 
 const areas = readdirSync(domainDocs)
