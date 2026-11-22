@@ -22,7 +22,7 @@
 
 **Wave 2 landed** in dev as a7313664 through PR #70 (Codex clean on 04b2d4d; to-test `2026-11-22-1717-agent-autonomy-2.md`; landing report filed). Gate on the tip: 52 tooling test files, 971 tests, `eslint scripts` clean; `browser.test.mjs` and `pnpm prd check` skipped on the user's word. Docs folded, `machinery.md` trimmed to 15,320 B.
 
-**The next session:** start wave 3 (slices 6 and 7, opus) after the wave boundary and `pnpm prd sync`. `test-gates` wave 1 is in dev (adce90ee) but that topic is still running: check its state, and once it is done restore this topic's hot entries (see _Open issues_). Both wave 3 slices touch the dispatcher's tick in separate steps.
+**Wave 3 (started 2026-11-22):** the wave boundary is done (nothing new for this topic; synced with dev at a47a5963). B-541 claimed, B-515 still claimed. Worktrees `agent-autonomy-2-6` and `agent-autonomy-2-7` made and one opus agent spawned for each. `test-gates` wave 1 is in dev (adce90ee) but that topic is still running: once it is done, restore this topic's hot entries (see _Open issues_). Both wave 3 slices touch the dispatcher's tick in separate steps; merge 6, then 7.
 
 **Hook live test:** passed for the session's own size: this orchestrator read 53k from `pnpm prd context` after a wrapper start. Whether a subagent's PostToolUse names its own transcript is still unproven.
 
