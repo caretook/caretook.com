@@ -4,12 +4,10 @@
 # (todos/, todo/, components/todos/ and timeline/timelineEasyTodos,
 # timelineQuickEntryTodos browser tests); the pure wording, list, links and
 # Undo store have unit tests; the service and upload are integration tests.
-apps/web/app/routes/app/groups/todos/*   -
-apps/web/app/routes/app/groups/todo/*    -
-apps/web/app/components/todos/*          -
-apps/web/app/lib/todos/*.sync.ts        -
-# The todo sheets' link state lives in lib/ so quick entry can open them.
-apps/web/app/lib/todos/todoSheetLink.ts  -
+apps/web/app/routes/app/groups/todos/    -
+apps/web/app/routes/app/groups/todo/     -
+apps/web/app/components/todos/           -
 # No browser check reads them; seeds/todos.test.ts checks them.
 packages/data/src/db/seeds/todos.ts      -
-apps/web/app/lib/todos/todoDisplay.ts -
+# Directory defaults: a new file here needs no rule.
+apps/web/app/lib/todos/                  -

@@ -23,7 +23,7 @@ The data layer area's rules and decisions (AGENTS.md's core rules still apply).
   - UUID PKs via `id()`: clients create rows offline, so `create`/`upsert` accept a caller-supplied id.
   - Every table spreads `timestamps` (timestamptz, string mode) and `audits` (`created_by`/`updated_by`, set by models, not FKs).
 - **Adding a table:**
-  1. Write `db/schema/<area>/<name>.ts` (table, types, Zod) and export it from that folder's `index.ts`; a new area adds a folder and a line in `db/schema/index.ts`. Add the export names to the frozen list in `db/schema/index.test.ts`.
+  1. Write `db/schema/<area>/<name>.ts` (table, types, Zod) and export it from that folder's `index.ts`; a new area adds a folder and a line in `db/schema/index.ts`.
   2. Add its `PERMISSIONS` entry to `permissions/<area>.ts` (required; a test checks every table has one); its errors go in `errors/<area>.ts`.
   3. Add `models/<name>/` and `services/<name>Service.ts`, and register both.
   4. If it syncs: `ALTER PUBLICATION powersync ADD TABLE …` in a migration, plus a stream query and a device schema entry.

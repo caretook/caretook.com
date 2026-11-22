@@ -2,5 +2,6 @@
 # page's scripts, styles and connections; sign-in reads the headers themselves.
 apps/web/app/entry.server.tsx            sign-in phase2 roundtrip live-notes marketing invites
 apps/web/app/.server/securityHeaders.ts  sign-in phase2 roundtrip live-notes marketing invites
-apps/web/app/lib/security-headers/csp.ts sign-in phase2 roundtrip live-notes marketing invites
 apps/web/vercel.json                     sign-in marketing
+# Directory defaults: a new file here needs no rule.
+apps/web/app/lib/security-headers/       sign-in phase2 roundtrip live-notes marketing invites

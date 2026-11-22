@@ -15,7 +15,7 @@ The api area's rules and decisions, moved out of AGENTS.md (whose core rules sti
   - `clientIp` is `clientIpOf(headers)` from `host.ts`: the configured `CLIENT_IP_HEADER`'s first entry (`x-vercel-forwarded-for` on Vercel; a spoofed `x-forwarded-for` is ignored), else the first `x-forwarded-for` entry, then `x-real-ip` (what browser checks rely on). Better Auth keys its limits on the same header (`ipAddressHeaders`).
   - GET is refused.
 - **Mounting:** apps/web mounts it at `/rpc/*` through `app/.server/api.ts`. The browser client (`app/lib/core/rpc.ts`) uses a type-only router import and sends cookies.
-- **Procedures** live in `packages/api/src/<area>/` (with their integration tests); `router.ts` composes the area routers, and `routerPaths.test.ts` freezes every procedure path, so a new procedure adds its path there:
+- **Procedures** live in `packages/api/src/<area>/` (with their integration tests); `router.ts` composes the area routers (the typed client catches a removed path):
   - `me.get` and `me.updatePreferences`;
   - `careGroup.listMine` and `careGroup.members`;
   - `careGroup.update` (the name; owners and admins), `careGroup.recipient` (the profile with the date of birth, which is also synced; any member) and `careGroup.updateRecipient` (owners, admins and caretakers; fields left out keep their value, and an empty preferred name clears it). A non-member gets a 404, and a member without the role a 403 (the `updated()` helper maps `baseModel:update:nothingUpdated`, which has no status code);
