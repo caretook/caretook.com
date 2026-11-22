@@ -17,7 +17,7 @@
 | 1     | 1    | moved                                                    |                                              |
 | 2     | 1    | moved                                                    |                                              |
 | 3     | 1    | started (opus)                                           |                                              |
-| 4     | 1    | started (opus)                                           |                                              |
+| 4     | 1    | handed off (opus), 19d73291                              |                                              |
 | 5     | 1    | handed off (opus), 60f17a4f; waits for 3, 4 (plan order) |                                              |
 | 6     | 2    | moved                                                    |                                              |
 | 7     | 2    | moved                                                    |                                              |
