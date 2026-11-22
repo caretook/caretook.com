@@ -3,12 +3,16 @@ import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration }
 import type { Route } from "./+types/root";
 
 import stylesheet from "./app.css?url";
+import fontSans from "./fonts/AtkinsonHyperlegibleNext-Variable.woff2?url";
 import { useDocumentCsp } from "./lib/security-headers/csp";
 import { BUILD_APP_ENV, robotsMeta } from "./lib/marketing/noindex";
 import { THEME_SCRIPT } from "./lib/app-shell/theme";
 
 export const links: Route.LinksFunction = () => [
   { rel: "stylesheet", href: stylesheet },
+  // The upright face (B-415), by the same hashed URL app.css's @font-face uses,
+  // so the text's first paint doesn't wait for the stylesheet to find it.
+  { rel: "preload", href: fontSans, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
   // The draft brand icons (public/; marketing slice 1), for every page in both targets.
   { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
   { rel: "icon", href: "/icons/icon-32.png", type: "image/png", sizes: "32x32" },

@@ -27,6 +27,32 @@
   --color-base-300: oklch(37% 0.02 255);
 }
 
+/* The typeface (B-415): Atkinson Hyperlegible Next, one variable family for
+   the whole site (app, marketing, /admin, print), from our own origin
+   (app/fonts/, with its licence and version; the build hashes the files and
+   the service worker precaches them). Code keeps Tailwind's monospace stack.
+   To change the family, change the files, these rules and the one
+   --font-sans line; after it, the system stack that was there before. */
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: url("./fonts/AtkinsonHyperlegibleNext-Variable.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: url("./fonts/AtkinsonHyperlegibleNext-Italic-Variable.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: italic;
+  font-display: swap;
+}
+@theme {
+  --font-sans:
+    "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
+}
+
 /* A day's sticky heading band (DayHeader): the page's own colour, opaque,
    so rows scroll under it unseen. Borderless and window-wide: the shadow
    paints the colour out to both edges and the clip keeps it to the band's
