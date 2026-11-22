@@ -17,13 +17,13 @@ export const getSchema = <K extends keyof typeof schema>(name: K) => schema[name
 const POOL_KEY = "caretook:db-pool";
 
 const createPool = () => {
-  const { url, maxPool } = getDbConfig();
+  const { url, maxPool, connectTimeoutMs } = getDbConfig();
   if (!url) throw newError({ code: "db:missingUrl" });
   return new pg.Pool({
     connectionString: url,
     max: maxPool,
     idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 2_000,
+    connectionTimeoutMillis: connectTimeoutMs,
   });
 };
 
