@@ -8,11 +8,11 @@ Landing mode: **run everything through** (the user, 2026-11-21: "Run everything 
 
 Wave 1: slices 1–3, all done 2026-11-21. Synced with dev (profiles.md docs conflict resolved: dev's text, our check name). Next: full check on the tip (sync-config.yaml forces full), PR, Codex review (not Markdown only), land.
 
-| Slice | Item  | Model  | State   | Merge |
-| ----- | ----- | ------ | ------- | ----- |
-| 1     | B-326 | sonnet | merged | 72298bc8 |
+| Slice | Item  | Model  | State                                                                                        | Merge               |
+| ----- | ----- | ------ | -------------------------------------------------------------------------------------------- | ------------------- |
+| 1     | B-326 | sonnet | merged                                                                                       | 72298bc8            |
 | 2     | B-379 | sonnet | done (B-455–B-457 filed, topic contract-migrations; no PRD row yet: for the backlog session) | none (empty branch) |
-| 3     | B-380 | sonnet | done (verified; archived items refuse edits, so moved to B-458, B-459 in fixes-tooling) | none (empty branch) |
+| 3     | B-380 | sonnet | done (verified; archived items refuse edits, so moved to B-458, B-459 in fixes-tooling)      | none (empty branch) |
 
 ## Wave 1 (written 2026-11-21 by the orchestrator, from the triaged fixes-nit items)
 
