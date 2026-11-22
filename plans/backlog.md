@@ -652,6 +652,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. medications.sync.ts:457,642-645 and providers.sync.ts:264,347-350 write every column as compact JSON.stringify while the synced copy holds Postgres's jsonb text, so PowerSync's diff sends them in every PATCH. Rests on one assumption: check ps_crud on staging after a refill edit. conditions.sync.ts:545-547 already writes only changed fields. Fixtures seed compact JSON, so tests cannot see it.
 - 2026-11-21 (plan/sync-safety): Planned in plans/sync-safety-plan.md (2026-11-21). Slices: 1 = B-291, B-292, B-293; 2 = B-285; 3 = B-286; 4 = B-290; 5 = B-288, B-289; 6 = B-287.
+- 2026-11-22 (slice/sync-safety/6): Slice 6 (a822dcba): confirmed on a running stack: a refill edit's PATCH carried schedule (Postgres text vs compact JSON); after the fix it holds only last_filled_on, refills_left, updated_at. lib/core/changedColumns used by updateMedication, updateProvider, updateEntry and updateDose; series provider_ids were never rewritten by an update (test covers it).
 
 ### B-288 · bug · A replayed PUT on an existing row is a full update with the insert-time values, reverting newer edits (and for medications writing no change entry)
 
@@ -1843,6 +1844,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (prd/orchestration-3): Seen 2026-11-21: orchestration-3 wave 1 (e015a74) brought a no-useless-assignment in scripts/loops/sessions.test.mjs:248 into dev; fixed in PR #39 (12628b9e). Fix idea: 'none needed' still runs eslint + prettier on the changed tooling files (pnpm test:tooling's step, or the gate requires it).
+- 2026-11-22 (slice/fixes-tooling/9): slice 9 (556f3bfe): pnpm test:tooling runs scripts/loops/tooling-lint.mjs first: eslint + prettier on the tooling files changed since dev's merge base (plus uncommitted/untracked); Markdown-only gets no step; check-body.sh skips it via CARETOOK_TOOLING_LINT=off
 
 ### B-452 · bug · Dispatcher: a start or plan whose new.sh fails after making the worktree leaves it with no managed record, so later ticks treat it as opened by hand and it holds a slot for good
 
