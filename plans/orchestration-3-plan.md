@@ -13,7 +13,7 @@
 | 1     | 1    | merged (opus); pick contract in its hand-off: rows/worktrees/sessions shapes, own reopen ask filed with `session: "dispatch"`, a rotating record needs `rotatingAt` | 947da00d                         |
 | 2     | 1    | merged (opus); slice 5 builds its own planner command: `session.sh plan-<t> --auto --managed -- … "$(prompt.sh plan <t> --auto)"` (no `prd plan --open --auto`)     | c31e2ebc                         |
 | 3     | 1    | agent running (opus)                                                                                                                                                |                                  |
-| 4     | 2    | agent running (opus), started early (ready once 2 merged)                                                                                                           |                                  |
+| 4     | 2    | handed off (opus, cfb246a8); merge after slice 3 (plan order). Docs pass: hotfix.md still says `--force`                                                            |                                  |
 | 5     | 2    | not started                                                                                                                                                         |                                  |
 | 6     | 3    | not started                                                                                                                                                         |                                  |
 
