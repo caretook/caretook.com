@@ -15,7 +15,7 @@
 
 **Landing mode: run everything through** (started run-through, 2026-11-22): start every ready slice, land each green wave unasked, clean up; questions only through `pnpm prd ask`.
 
-**Now:** wave 1 (slices 1, 5) merged, worktrees removed; B-520, B-481 done; B-471 stays claimed until slice 6. Next: sync, wave gate, PR, Codex, land. Backlog had nothing new for this topic at the wave 1 boundary. Filed B-536 (danger text and DateTimeField placeholder contrast in light, fixes-ui) from slice 1's hand-off. Notices to sync at the boundary: agent-autonomy (0e38a6e7), test-health (e35fecd1).
+**Now:** wave 1 (slices 1, 5) merged, worktrees removed; B-520, B-481 done; B-471 stays claimed until slice 6. Synced dev (conflict-free). Full check: fixed test-health's new lint rule in the tokens test, and `setView` now waits for the menu's fade-out (a282700a); then the calendarCron load flake (B-479; my duplicate B-540 dropped). Full check rerunning once load < 16. Then: serve, `browser --changed --base dev`, PR, Codex, land. Backlog had nothing new for this topic at the wave 1 boundary. Filed B-536 (danger text and DateTimeField placeholder contrast in light, fixes-ui) from slice 1's hand-off. Notices to sync at the boundary: agent-autonomy (0e38a6e7), test-health (e35fecd1).
 
 **Start conditions:** `ui-kit-2` is in `dev` (done). Never beside `i18n`. `ui-kit-4` must not start before this lands. `fixes-ui` may touch the same screens, and `quick-entry-2` shares quick entry's cards and reads the entry metadata slice 2 reshapes (`KIND_META`'s class string becomes an accent and a look): sync first, and whoever lands second resolves and moves its readers onto the new shape.
 
