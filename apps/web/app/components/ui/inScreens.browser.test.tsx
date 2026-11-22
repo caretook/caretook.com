@@ -325,6 +325,17 @@ describe.each([
     await expect.poll(() => q('[role="dialog"]')).toBeNull();
   });
 
+  test("the + menu's add sheet: focus inside; Escape closes it and focus returns to the + button", async () => {
+    await open(TIMELINE, layout);
+    await expect.poll(rows).toBe(4);
+    await quickAdd("Symptom");
+    await expect.poll(() => nameOf(top())).toBe("Add to the timeline");
+    await expect.poll(() => top()?.contains(active()) ?? false).toBe(true);
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => q('[role="dialog"]')).toBeNull();
+    await expect.poll(active).toBe(addButton());
+  });
+
   test("the timeline's Delete confirm, from a symptom's ⋯ by tap and by keyboard: named, focus inside, themed; Escape returns focus to the ⋯", async () => {
     await open(TIMELINE, layout);
     await expect.poll(rows).toBe(4);

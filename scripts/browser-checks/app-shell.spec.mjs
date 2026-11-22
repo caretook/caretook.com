@@ -8,15 +8,15 @@
 //
 // What stays, one test each:
 // 1. The theme: Dark is set before first paint after a real reload (the inline
-//    THEME_SCRIPT under the CSP), and System puts it back; then sign out from
-//    the menu: to /sign-in, the last group forgotten, /app needs signing in
-//    again. (@smoke)
+//    THEME_SCRIPT under the CSP; System putting it back is frame.browser.test.tsx's);
+//    then sign out from the menu: to /sign-in, the last group forgotten, /app
+//    needs signing in again. (@smoke)
 // 2. Group settings: the owner's rename reaches the server and comes back to
 //    the timeline through sync; the seeds' name is put back through the page.
 // 3. Members across two devices: the owner makes caretaker@ an admin (their
-//    device gets the controls without a reload), then a viewer (their next
-//    timeline has no writer controls, and the details stream's own rule takes
-//    the recipient's writers-only details row off their device), then removes
+//    device gets the controls without a reload), then a viewer (their list
+//    follows, and the details stream's own rule takes the recipient's
+//    writers-only details row off their device), then removes
 //    them (their rows go on the next sync, and /app says they're in no care
 //    group). The seeds' memberships are put back in SQL, and the details row
 //    comes back with the caretaker role. Also the member-share stream: a share
@@ -24,10 +24,13 @@
 //    from it with the membership when they're removed.
 // 4. An easy role across two devices: the owner makes caretaker@ an Easy
 //    helper from Members; caretaker@'s open timeline switches to the easy
-//    view without a reload, with search and no Full app. As an Easy helper
-//    they log an entry (it reaches the server), open Upcoming's "See all"
-//    (the Planner) and search (a provider's read-only sheet), and a typed
-//    Medications URL lands on the timeline. Put back in SQL.
+//    view without a reload, and as an Easy helper they log an entry that
+//    reaches the server. Put back in SQL.
+// The screens each role then gets are component tests: the lists and controls
+// by role (groupSettings.browser.test.tsx: a caretaker's list, made an admin,
+// demoted to a viewer's timeline), and the easy roles' header, Planner,
+// search and typed URLs (timeline/timelineEasy*.browser.test.tsx,
+// groups/layout/easyRolePages.browser.test.tsx).
 // 5. Staff (its screens are component tests under routes/admin/ and
 //    routes/app/layout/staff.browser.test.tsx): every /admin page is a 404 for
 //    member@ (a group's owner, not staff); admin@ posts an announcement through
@@ -43,7 +46,6 @@ import {
   DEV_FAMILY,
   DEV_FAMILY_TIMELINE,
   PASSWORD,
-  addButton,
   expect,
   psql,
   signIn,
@@ -131,17 +133,6 @@ test("theme after a reload, and sign out", { tag: "@smoke" }, async ({ device })
     expect(await page.evaluate(() => window.__themeProbe)).toEqual({ body: "dark", frame: "dark" });
   });
 
-  await test.step("theme: System puts it back", async () => {
-    await chooseTheme("System");
-    expect(
-      await page.evaluate(() => ({
-        attr: document.documentElement.dataset.theme ?? null,
-        saved: localStorage.getItem("caretook:theme"),
-      })),
-    ).toEqual({ attr: null, saved: null });
-    await page.emulateMedia({ colorScheme: null });
-  });
-
   const lastGroupKeys = () =>
     page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("caretook:lastGroup:")));
   await test.step("sign out: to /sign-in, and the last group is forgotten", async () => {
@@ -218,24 +209,6 @@ test("members: changes reach another device", async ({ device }) => {
       .filter({ has: p.locator("p", { hasText: who }) });
   const roleSelect = (p, who) => memberRow(p, who).locator("select");
   const choose = (p, who, role) => roleSelect(p, who).selectOption(role);
-  const listed = (p) =>
-    p.evaluate(() =>
-      [
-        ...(document.querySelector('main [data-section="members"]')?.querySelectorAll("li[data-member]") ??
-          []),
-      ]
-        .map((li) => {
-          const select = li.querySelector("select");
-          const role = select
-            ? select.selectedOptions[0].textContent.trim() + "*"
-            : li.querySelector("[data-role]").textContent.trim();
-          const button = li.querySelector("button")?.textContent.trim();
-          return li.querySelector("p").textContent.trim() + ":" + role + (button ? ":" + button : "");
-        })
-        // The seeded Easy helper and Easy viewer stay as they are: this step is about the other three.
-        .filter((line) => !line.startsWith("Dev Easy "))
-        .join(","),
-    );
   const onMembers = async (p) => {
     await p.goto(SETTINGS);
     await expect(members(p).locator("li[data-member]").first()).toBeVisible({ timeout: 40_000 });
@@ -248,19 +221,11 @@ test("members: changes reach another device", async ({ device }) => {
   await onMembers(O);
   await stay(O);
 
-  await test.step("caretaker: a plain list, Leave on their own row only", async () => {
-    await expect
-      .poll(() => listed(O), { timeout: 20_000 })
-      .toBe("Dev Member:Owner,Dev Caretaker (you):Caretaker:Leave,Dev Viewer:Viewer");
-  });
-
   await test.step("made an admin: on the server, and their device gets role menus and Remove without a reload", async () => {
     await choose(M, "Dev Caretaker", "admin");
     await serverBecomes("Dev Member:owner,Dev Caretaker:admin,Dev Viewer:viewer");
     await expect(roleSelect(O, "Dev Caretaker")).toHaveValue("admin", { timeout: 20_000 });
-    expect(await listed(O)).toBe(
-      "Dev Member:Owner,Dev Caretaker (you):Admin*:Leave,Dev Viewer:Viewer*:Remove",
-    );
+    await expect(memberRow(O, "Dev Viewer").getByRole("button", { name: /Remove/ })).toBeVisible();
     expect(await stayed(O)).toBe(1);
   });
 
@@ -277,7 +242,7 @@ test("members: changes reach another device", async ({ device }) => {
       .catch(() => -1);
   const detailsBefore = await detailsRows(O);
 
-  await test.step("made a viewer: their list follows, and their next timeline has no writer controls (no reload)", async () => {
+  await test.step("made a viewer: their list follows, without a reload", async () => {
     await choose(M, "Dev Caretaker", "viewer");
     await serverBecomes("Dev Member:owner,Dev Caretaker:viewer,Dev Viewer:viewer");
     await expect(roleSelect(O, "Dev Viewer")).toHaveCount(0, { timeout: 20_000 });
@@ -287,23 +252,6 @@ test("members: changes reach another device", async ({ device }) => {
     await bar(O).locator("a").first().click();
     await O.waitForURL((u) => u.pathname === DEV_FAMILY_TIMELINE, { timeout: 45_000 });
     await expect(rowsOf(O).first()).toBeVisible({ timeout: 45_000 });
-    // A viewer keeps a ⋯ on notes and events, holding Print alone; anything else is a writer control.
-    const printOnly = 'button[aria-label^="Actions for note"], button[aria-label^="Actions for event"]';
-    await expect(addButton(O)).toHaveCount(0);
-    await expect(O.locator("[data-quick-entry]")).toHaveCount(0);
-    await expect(
-      O.locator(
-        `main ol button[aria-label^="Actions"]:not(:is(${printOnly})), main ol [aria-label^="Edit "]`,
-      ),
-    ).toHaveCount(0);
-    // One of those menus, opened: Print, with no Edit or Delete.
-    const menuButton = O.locator(`main ol :is(${printOnly})`).first();
-    if (await menuButton.count()) {
-      await menuButton.click();
-      await expect(O.getByRole("menuitem").first()).toBeVisible();
-      expect(await O.getByRole("menuitem").allTextContents()).toEqual(["Print"]);
-      await O.keyboard.press("Escape");
-    }
     expect(await stayed(O)).toBe(1);
   });
 
@@ -399,13 +347,10 @@ test("easy role: the owner's choice reaches the member's device", async ({ devic
         );
       await expect.poll(serverRole, { timeout: 20_000, intervals: [500] }).toBe("easy_helper");
       await expect(S.locator("[data-easy-timeline]")).toBeVisible({ timeout: 30_000 });
-      // The easy roles keep search, and have no Full app.
-      await expect(S.locator('header [data-region="search"]')).toHaveCount(1);
-      await expect(S.getByRole("button", { name: "Full app" })).toHaveCount(0);
       expect(await stayed(S)).toBe(1);
     });
 
-    await test.step("as an Easy helper: logs an entry, opens See all and search, and is sent back from Medications", async () => {
+    await test.step("as an Easy helper: logs an entry, and it reaches the server", async () => {
       const text = `Walked to the mailbox ${TAG}`;
       await S.getByRole("textbox", { name: "What happened?" }).fill(text);
       await expect(S.locator("[data-quick-card]")).toBeVisible({ timeout: 10_000 });
@@ -413,30 +358,6 @@ test("easy role: the owner's choice reaches the member's device", async ({ devic
       await expect
         .poll(mine, { timeout: 20_000, intervals: [500], message: "the entry on the server" })
         .toBe("1");
-      // A saved note opens its page (an entries/* page the role keeps); back to the timeline.
-      await S.waitForURL(`**/app/groups/${DEV_FAMILY}/entries/**`, { timeout: 20_000 });
-      await S.locator(`main a[href="${DEV_FAMILY_TIMELINE}"]`).first().click();
-      await S.waitForURL(`**${DEV_FAMILY_TIMELINE}`);
-
-      await S.locator("[data-easy-next] button").click();
-      await S.locator("[data-easy-upcoming-all]").click();
-      await S.waitForURL(`**/app/groups/${DEV_FAMILY}/planner`);
-      await expect(S.locator("main [data-upcoming-list] [data-upcoming-item]").first()).toBeVisible({
-        timeout: 20_000,
-      });
-      await expect(S.getByRole("navigation", { name: "Planner or todos" })).toHaveCount(0);
-
-      await S.locator('header [data-region="search"] a').click();
-      await S.waitForURL(`**/app/groups/${DEV_FAMILY}/search`);
-      await S.locator("input[data-search-field]").fill("Cornerstone");
-      await S.locator('[data-result="provider"] button[data-opens-sheet]').first().click();
-      await expect(S.locator("[role=dialog] [data-easy-sheet=provider]")).toBeVisible();
-      await S.getByRole("button", { name: "Done" }).click();
-      expect(new URL(S.url()).pathname).toBe(`/app/groups/${DEV_FAMILY}/search`);
-
-      await S.goto(`/app/groups/${DEV_FAMILY}/medications`);
-      await S.waitForURL(`**${DEV_FAMILY_TIMELINE}`, { timeout: 30_000 });
-      await expect(S.locator("[data-easy-timeline]")).toBeVisible({ timeout: 30_000 });
     });
     await noErrors(dM, dS);
   } finally {

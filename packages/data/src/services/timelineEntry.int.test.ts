@@ -2,7 +2,7 @@ import type { TimelineEntryCreateInput } from "../db";
 
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, newYDoc, ok, system, typeParagraph } from "../../test/fixtures";
+import { createGroup, createWorld, newYDoc, ok, system, typeParagraph } from "../../test/fixtures";
 import { isError } from "../errors";
 import { noteUpdateModel, timelineEntryModel } from "../models";
 import { careGroupService, careRecipientService, noteDocumentService, timelineEntryService } from ".";
@@ -15,19 +15,7 @@ const WRITERS = ["owner", "admin", "caretaker"] as const;
 const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
 
 const setup = async () => {
-  const u = {
-    owner: await createUser("owner"),
-    admin: await createUser("admin"),
-    caretaker: await createUser("caretaker"),
-    viewer: await createUser("viewer"),
-    outsider: await createUser("outsider"),
-    staff: await createUser("staff", "admin"),
-  };
-  const { group, recipient } = await createGroup(u.owner, [
-    { user: u.admin.user, role: "admin" },
-    { user: u.caretaker.user, role: "caretaker" },
-    { user: u.viewer.user, role: "viewer" },
-  ]);
+  const { u, group, recipient } = await createWorld({ extras: ["outsider", "staff"] });
   const note = (overrides: Partial<TimelineEntryCreateInput> = {}) =>
     ({
       groupId: group.id,
