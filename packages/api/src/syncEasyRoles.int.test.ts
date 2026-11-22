@@ -1,21 +1,13 @@
-import type { AuthUser } from "@caretook/data";
-
 import { timelineEntryService, todoService } from "@caretook/data";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor, sqliteTime } from "./testing";
 
 // sync.upload as the easy roles (easy roles PRD): an offline Easy helper's
 // writes follow the same rules once they upload. Each allowed op lands;
 // another member's entry and every setup op are refused (acknowledged,
 // never retried). Each test makes its own users and group. Fictional data.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
-
-/** A time `ms` from now, as PowerSync's SQLite text. */
-const local = (ms: number) => new Date(Date.now() + ms).toISOString().replace(/Z$/, "000Z");
 
 const setup = async () => {
   const owner = await createUser("owner");
@@ -31,7 +23,7 @@ const setup = async () => {
     group_id: group.id,
     recipient_id: recipient.id,
     kind: "symptom",
-    occurred_at: local(-60_000),
+    occurred_at: sqliteTime(-60_000),
     time_zone: "America/Los_Angeles",
     title: null,
     body: null,
@@ -75,7 +67,7 @@ describe("sync.upload as an Easy helper", () => {
     expect(
       statuses(
         await helper.api.sync.upload({
-          ops: [{ op: "PATCH", table: "timeline_entry", id, data: { deleted_at: local(0) } }],
+          ops: [{ op: "PATCH", table: "timeline_entry", id, data: { deleted_at: sqliteTime(0) } }],
         }),
       ),
     ).toEqual(["applied"]);
@@ -102,7 +94,7 @@ describe("sync.upload as an Easy helper", () => {
           id: theirs.id,
           data: entryRow({ kind: "note", title: "Mine now", details: null }),
         },
-        { op: "PATCH", table: "timeline_entry", id: theirs.id, data: { deleted_at: local(0) } },
+        { op: "PATCH", table: "timeline_entry", id: theirs.id, data: { deleted_at: sqliteTime(0) } },
         { op: "DELETE", table: "timeline_entry", id: theirs.id },
       ],
     });
@@ -154,7 +146,7 @@ describe("sync.upload as an Easy helper", () => {
             recipient_id: recipient.id,
             type: "hospital",
             label: "Mercy General",
-            started_at: local(-3_600_000),
+            started_at: sqliteTime(-3_600_000),
             date_only: 0,
             deleted_at: null,
           },
@@ -169,7 +161,7 @@ describe("sync.upload as an Easy helper", () => {
           op: "PUT",
           table: "timeline_entry",
           id: randomUUID(),
-          data: entryRow({ kind: "event", title: "Dentist", details: null, cancelled_at: local(0) }),
+          data: entryRow({ kind: "event", title: "Dentist", details: null, cancelled_at: sqliteTime(0) }),
         },
       ],
     });
@@ -199,7 +191,7 @@ describe("sync.upload as an Easy helper", () => {
       op: "PATCH" as const,
       table: "todo",
       id,
-      data: { done_at: local(-1000), done_by: helper.user.id },
+      data: { done_at: sqliteTime(-1000), done_by: helper.user.id },
     });
     expect(statuses(await helper.api.sync.upload({ ops: [tick(own.id), tick(theirs.id)] }))).toEqual([
       "applied",
@@ -227,7 +219,7 @@ describe("sync.upload as an Easy viewer", () => {
           op: "PATCH",
           table: "todo",
           id: own.id,
-          data: { done_at: local(-1000), done_by: easyViewer.user.id },
+          data: { done_at: sqliteTime(-1000), done_by: easyViewer.user.id },
         },
       ],
     });

@@ -1,17 +1,12 @@
-import type { AuthUser } from "@caretook/data";
-
 import { carePeriodService, providerService } from "@caretook/data";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor, upload } from "./testing";
 
 // sync.upload for care periods: rows as a device's SQLite holds them
 // (snake_case, `date_only` as 1/0, PowerSync's timestamps). Each test makes
 // its own users and group.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 
 const setup = async () => {
   const owner = await createUser("owner");
@@ -53,7 +48,7 @@ describe("sync.upload: care_period", () => {
     const put = { op: "PUT" as const, table: "care_period", id, data: periodRow(group.id, recipient.id) };
     const patch = { op: "PATCH" as const, table: "care_period", id, data: { label: "4 West", date_only: 0 } };
 
-    expect((await owner.api.sync.upload({ ops: [put, patch] })).results).toEqual([
+    expect(await upload(owner.api, [put, patch])).toEqual([
       { id, status: "applied" },
       { id, status: "applied" },
     ]);
@@ -65,16 +60,14 @@ describe("sync.upload: care_period", () => {
       createdBy: owner.user.id,
     });
     // A replay changes nothing.
-    expect(
-      (await owner.api.sync.upload({ ops: [put, patch] })).results.every((r) => r.status === "applied"),
-    ).toBe(true);
+    expect((await upload(owner.api, [put, patch])).every((r) => r.status === "applied")).toBe(true);
 
     const remove = { op: "PATCH" as const, table: "care_period", id, data: { deleted_at: STARTED } };
-    expect((await owner.api.sync.upload({ ops: [remove] })).results).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [remove])).toEqual([{ id, status: "applied" }]);
     expect(await carePeriodService.getById(owner.ctx, id)).toBeNull();
-    expect(
-      (await owner.api.sync.upload({ ops: [{ op: "DELETE", table: "care_period", id }] })).results,
-    ).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [{ op: "DELETE", table: "care_period", id }])).toEqual([
+      { id, status: "applied" },
+    ]);
   });
 
   it("takes a date-only start as 1, at midnight in the recipient's zone", async () => {
@@ -85,9 +78,9 @@ describe("sync.upload: care_period", () => {
       started_at: "2026-11-12T08:00:00.000000Z",
       date_only: 1,
     });
-    expect(
-      (await owner.api.sync.upload({ ops: [{ op: "PUT", table: "care_period", id, data }] })).results,
-    ).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [{ op: "PUT", table: "care_period", id, data }])).toEqual([
+      { id, status: "applied" },
+    ]);
     expect(ok(await carePeriodService.getById(owner.ctx, id))).toMatchObject({ dateOnly: true });
   });
 

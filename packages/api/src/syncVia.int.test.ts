@@ -1,21 +1,13 @@
-import type { AuthUser } from "@caretook/data";
-
 import { assistantActionService, todoService, timelineEntryService } from "@caretook/data";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor, sqliteTime } from "./testing";
 
 // sync.upload and `via` (connectors PRD): only the server's assistant runner
 // sets it. A device's PUT or PATCH carrying `via` neither sets it on a new
 // row nor changes it on one an assistant wrote. Each test makes its own
 // users and group. All data is fictional.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
-
-/** A time `ms` from now, as PowerSync's SQLite text. */
-const local = (ms: number) => new Date(Date.now() + ms).toISOString().replace(/Z$/, "000Z");
 
 const setup = async () => {
   const owner = await createUser("owner");
@@ -24,7 +16,7 @@ const setup = async () => {
     group_id: group.id,
     recipient_id: recipient.id,
     kind: "symptom",
-    occurred_at: local(-60_000),
+    occurred_at: sqliteTime(-60_000),
     time_zone: "America/Los_Angeles",
     title: null,
     body: null,

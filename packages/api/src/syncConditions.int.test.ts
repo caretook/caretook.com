@@ -1,20 +1,15 @@
-import type { AuthUser } from "@caretook/data";
-
 import { getDb, recipientConditionService, timelineEntryService } from "@caretook/data";
 import { conditionChangeId } from "@caretook/data/schema";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor, upload } from "./testing";
 
 // sync.upload for the recipient's conditions (conditions slice 1): rows as a
 // device's SQLite holds them (integers for the since, the device's columns
 // only), an edit, a resolve and a reactivate as PATCHes, a soft delete,
 // "No known conditions" as the recipient's one-column PATCH, and refusals.
 // Each test makes its own users and group.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 
 const setup = async () => {
   const owner = await createUser("owner");
@@ -107,9 +102,9 @@ describe("sync.upload: recipient_condition", () => {
     expect(removed.results).toEqual([{ id, status: "applied" }]);
     expect(ok(await recipientConditionService.getById(viewer.ctx, id))).toBeNull();
     // A replayed delete is fine.
-    expect(
-      (await owner.api.sync.upload({ ops: [{ op: "DELETE", table: "recipient_condition", id }] })).results,
-    ).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [{ op: "DELETE", table: "recipient_condition", id }])).toEqual([
+      { id, status: "applied" },
+    ]);
   });
 
   it("refuses a viewer, a changed group, a month without a year and a stranger's group", async () => {
@@ -177,12 +172,10 @@ describe("sync.upload: care_recipient's No known conditions", () => {
       data: { no_known_conditions_at: at },
     });
 
-    expect((await viewer.api.sync.upload({ ops: [patch(LATER)] })).results[0]?.status).toBe("rejected");
+    expect((await upload(viewer.api, [patch(LATER)]))[0]?.status).toBe("rejected");
     expect(await noKnownOf(recipient.id)).toBeNull();
 
-    expect((await owner.api.sync.upload({ ops: [patch(LATER)] })).results).toEqual([
-      { id: recipient.id, status: "applied" },
-    ]);
+    expect(await upload(owner.api, [patch(LATER)])).toEqual([{ id: recipient.id, status: "applied" }]);
     expect(await noKnownOf(recipient.id)).toMatch(/^2026-11-18/);
 
     // Adding a condition clears it; recording it again is refused.
@@ -265,7 +258,7 @@ describe("sync.upload: a condition's change entries", () => {
         change: "resolved",
       }),
     ];
-    const statuses = async () => (await owner.api.sync.upload({ ops })).results.map((r) => r.status);
+    const statuses = async () => (await upload(owner.api, ops)).map((r) => r.status);
     expect(await statuses()).toEqual(["applied", "applied", "applied", "applied"]);
     // Replayed: the same two entries.
     expect(await statuses()).toEqual(["applied", "applied", "applied", "applied"]);

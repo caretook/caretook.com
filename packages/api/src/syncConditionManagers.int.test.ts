@@ -1,12 +1,9 @@
-import type { AuthUser } from "@caretook/data";
-
 import { providerService, recipientConditionService, timelineEntryService } from "@caretook/data";
 import { conditionChangeId, conditionManagerId } from "@caretook/data/schema";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor } from "./testing";
 
 // sync.upload for who diagnosed a condition and who manages it (conditions
 // slice 3), as a device queues one save: a provider added from the picker,
@@ -15,8 +12,6 @@ import { router } from ".";
 // device's own change entry. The server records the save as one entry;
 // replays, a viewer, a PATCH of anything else and another group's provider
 // are refused or harmless. Each test makes its own users and group.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 
 const CREATED = "2026-11-17T21:45:25.229000Z";
 const SAVED_AT = "2026-11-18T09:00:00.000000Z";

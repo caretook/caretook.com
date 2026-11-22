@@ -1,19 +1,15 @@
-import type { AuthUser } from "@caretook/data";
-
 import { getAuth } from "@caretook/auth";
 import { careGroupInviteService, isError, SYSTEM_USER, userModel } from "@caretook/data";
 import { setBackgroundRunner, sharedMemorySender } from "@caretook/notifications";
-import { createRouterClient, ORPCError } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createGroup, createUser } from "../../../data/test/fixtures";
-import { router } from "..";
+import { clientFor, codesOf } from "../testing";
 
 // invite.* (invites slice 3) through the router, with the memory sender.
 
 const PASSWORD = "a long enough passphrase";
 
-const clientFor = (authUser: AuthUser | null) => createRouterClient(router, { context: { authUser } });
 const anonymous = clientFor(null);
 
 const pending: Promise<unknown>[] = [];
@@ -26,17 +22,6 @@ const mailTo = async (to: string) => {
 };
 
 const newAddress = (label: string) => `${label}-${randomUUID().slice(0, 8)}@example.com`;
-
-const codeOf = async (call: Promise<unknown>) => {
-  try {
-    await call;
-    return "ok";
-  } catch (e) {
-    if (e instanceof ORPCError)
-      return `${e.code}:${String((e.data as { code?: string } | undefined)?.code ?? "")}`;
-    throw e;
-  }
-};
 
 const setup = async () => {
   const owner = await createUser("api-owner");
@@ -93,11 +78,11 @@ describe("invite.createEmail and the email", () => {
       role: "viewer" as const,
       attested: true as const,
     };
-    expect(await codeOf(s.viewer.api.invite.createEmail(input))).toBe("FORBIDDEN:");
-    expect(await codeOf(s.outsider.api.invite.createEmail(input))).toBe("NOT_FOUND:");
-    expect(await codeOf(s.viewer.api.invite.listForGroup({ groupId: s.groupId }))).toBe("FORBIDDEN:");
+    expect(await codesOf(s.viewer.api.invite.createEmail(input))).toBe("FORBIDDEN:");
+    expect(await codesOf(s.outsider.api.invite.createEmail(input))).toBe("NOT_FOUND:");
+    expect(await codesOf(s.viewer.api.invite.listForGroup({ groupId: s.groupId }))).toBe("FORBIDDEN:");
     expect(
-      await codeOf(s.owner.api.invite.createEmail({ ...input, attested: false as unknown as true })),
+      await codesOf(s.owner.api.invite.createEmail({ ...input, attested: false as unknown as true })),
     ).toMatch(/^BAD_REQUEST/);
   });
 
@@ -138,16 +123,16 @@ describe("the invitee", () => {
 
     // Another address, or no ticket, creates nothing.
     expect(
-      await codeOf(
+      await codesOf(
         anonymous.invite.signUp({ token, name: "X", email: newAddress("other"), password: PASSWORD }),
       ),
     ).toBe("BAD_REQUEST:ticket:emailMismatch");
     expect(
-      await codeOf(
+      await codesOf(
         anonymous.invite.signUp({ token: "no-such-token-at-all", name: "X", email, password: PASSWORD }),
       ),
     ).toBe("FORBIDDEN:ticket:invalid");
-    expect(await codeOf(anonymous.invite.signUp({ token, name: "X", email, password: "short" }))).toBe(
+    expect(await codesOf(anonymous.invite.signUp({ token, name: "X", email, password: "short" }))).toBe(
       "BAD_REQUEST:ticket:weakPassword",
     );
 
@@ -155,7 +140,7 @@ describe("the invitee", () => {
       email,
       verified: true,
     });
-    expect(await codeOf(anonymous.invite.signUp({ token, name: "Again", email, password: PASSWORD }))).toBe(
+    expect(await codesOf(anonymous.invite.signUp({ token, name: "Again", email, password: PASSWORD }))).toBe(
       "CONFLICT:ticket:accountExists",
     );
     const user = await userModel.getByEmail(email, { authUser: SYSTEM_USER });
@@ -170,7 +155,7 @@ describe("the invitee", () => {
     expect(signedIn.status).toBe(200);
 
     const joiner = clientFor({ id: user.id, roleNames: ["member"] });
-    expect(await codeOf(joiner.invite.accept({ token, consent: false as unknown as true }))).toMatch(
+    expect(await codesOf(joiner.invite.accept({ token, consent: false as unknown as true }))).toMatch(
       /^BAD_REQUEST/,
     );
     expect(await joiner.invite.accept({ token, consent: true })).toEqual({
@@ -197,10 +182,10 @@ describe("the invitee", () => {
     const email = newAddress("wrong");
     await s.owner.api.invite.createEmail({ groupId: s.groupId, email, role: "viewer", attested: true });
     const { token } = await tokenFrom(email);
-    expect(await codeOf(s.outsider.api.invite.accept({ token, consent: true }))).toBe(
+    expect(await codesOf(s.outsider.api.invite.accept({ token, consent: true }))).toBe(
       "FORBIDDEN:careGroupInviteService:wrongEmail",
     );
-    expect(await codeOf(anonymous.invite.accept({ token, consent: true }))).toBe("UNAUTHORIZED:");
+    expect(await codesOf(anonymous.invite.accept({ token, consent: true }))).toBe("UNAUTHORIZED:");
     expect(await anonymous.invite.decline({ token })).toEqual({ ok: true });
     expect(await anonymous.invite.preview({ token })).toEqual({ state: "declined" });
     const listed = await s.owner.api.invite.listForGroup({ groupId: s.groupId });
@@ -217,7 +202,7 @@ describe("the invitee", () => {
       attested: true,
     });
     const { token } = await tokenFrom(email);
-    expect(await codeOf(s.viewer.api.invite.revoke({ id: created.id }))).toBe(
+    expect(await codesOf(s.viewer.api.invite.revoke({ id: created.id }))).toBe(
       "NOT_FOUND:careGroupInviteService:notFound",
     );
     await s.owner.api.invite.revoke({ id: created.id });

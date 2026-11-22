@@ -1,4 +1,4 @@
-import type { AuthUser, MedicationChangeDetails } from "@caretook/data";
+import type { MedicationChangeDetails } from "@caretook/data";
 
 import {
   medicationChangeId,
@@ -7,17 +7,14 @@ import {
   providerService,
   timelineEntryService,
 } from "@caretook/data";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor, upload } from "./testing";
 
 // sync.upload for the medication list: rows as a device's SQLite holds them
 // (snake_case, JSON as text, dates as "YYYY-MM-DD"), and the change entries
 // a device writes with them. Each test makes its own users and group.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 
 const setup = async () => {
   const owner = await createUser("owner");
@@ -132,22 +129,20 @@ describe("sync.upload: medication", () => {
       lastFilledOn: "2026-11-17",
       createdBy: owner.user.id,
     });
-    expect(
-      (await owner.api.sync.upload({ ops: [put, patch] })).results.every((r) => r.status === "applied"),
-    ).toBe(true);
+    expect((await upload(owner.api, [put, patch])).every((r) => r.status === "applied")).toBe(true);
 
     const remove = { op: "PATCH" as const, table: "medication", id, data: { deleted_at: EDITED_AT } };
-    expect((await owner.api.sync.upload({ ops: [remove] })).results).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [remove])).toEqual([{ id, status: "applied" }]);
     expect(await medicationService.getById(viewer.ctx, id)).toBeNull();
     // A late edit doesn't bring it back; deleting again is a replay.
     const late = { op: "PATCH" as const, table: "medication", id, data: { name: "Back" } };
-    expect((await owner.api.sync.upload({ ops: [late] })).results[0]).toMatchObject({
+    expect((await upload(owner.api, [late]))[0]).toMatchObject({
       status: "rejected",
       code: "medicationService:notFound",
     });
-    expect(
-      (await owner.api.sync.upload({ ops: [{ op: "DELETE", table: "medication", id }] })).results,
-    ).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [{ op: "DELETE", table: "medication", id }])).toEqual([
+      { id, status: "applied" },
+    ]);
   });
 
   it("takes the type a device set, none from an older build, and refuses an unknown one; no entry for it", async () => {
@@ -194,9 +189,9 @@ describe("sync.upload: medication", () => {
     const { owner, group, recipient } = await setup();
     const id = randomUUID();
     const data = medicationRow(group.id, recipient.id, { deleted_at: EDITED_AT });
-    expect(
-      (await owner.api.sync.upload({ ops: [{ op: "PUT", table: "medication", id, data }] })).results,
-    ).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [{ op: "PUT", table: "medication", id, data }])).toEqual([
+      { id, status: "applied" },
+    ]);
     expect(await medicationService.getById(owner.ctx, id)).toBeNull();
     expect(
       ok(await medicationService.getById(owner.ctx, id, { includeDeleted: true }))?.deletedAt,
@@ -256,7 +251,7 @@ describe("sync.upload: medication", () => {
     const id = randomUUID();
     const put = { op: "PUT" as const, table: "medication", id, data: medicationRow(group.id, recipient.id) };
 
-    expect((await viewer.api.sync.upload({ ops: [put] })).results[0]).toMatchObject({
+    expect((await upload(viewer.api, [put]))[0]).toMatchObject({
       status: "rejected",
       code: "permissions:unauthorized",
     });
@@ -285,7 +280,7 @@ describe("sync.upload: medication", () => {
         })
       ).results[0],
     ).toMatchObject({ status: "rejected", code: "medicationService:notFound" });
-    expect((await other.owner.api.sync.upload({ ops: [put] })).results[0]).toMatchObject({
+    expect((await upload(other.owner.api, [put]))[0]).toMatchObject({
       status: "rejected",
       code: "permissions:unauthorized",
     });
@@ -306,13 +301,14 @@ describe("sync.upload: medication", () => {
     )!;
     const id = randomUUID();
     const bad = medicationRow(group.id, recipient.id, { prescriber_id: pharmacy.id });
-    expect(
-      (await owner.api.sync.upload({ ops: [{ op: "PUT", table: "medication", id, data: bad }] })).results[0],
-    ).toMatchObject({ status: "rejected", code: "medicationService:badPrescriber" });
+    expect((await upload(owner.api, [{ op: "PUT", table: "medication", id, data: bad }]))[0]).toMatchObject({
+      status: "rejected",
+      code: "medicationService:badPrescriber",
+    });
     const good = medicationRow(group.id, recipient.id, { pharmacy_id: pharmacy.id });
-    expect(
-      (await owner.api.sync.upload({ ops: [{ op: "PUT", table: "medication", id, data: good }] })).results,
-    ).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [{ op: "PUT", table: "medication", id, data: good }])).toEqual([
+      { id, status: "applied" },
+    ]);
   });
 });
 
@@ -351,7 +347,7 @@ describe("sync.upload: medication change entries", () => {
     });
 
     // The whole batch again changes nothing.
-    expect((await owner.api.sync.upload({ ops })).results.every((r) => r.status === "applied")).toBe(true);
+    expect((await upload(owner.api, ops)).every((r) => r.status === "applied")).toBe(true);
     expect(await changesOf(id)).toHaveLength(2);
   });
 

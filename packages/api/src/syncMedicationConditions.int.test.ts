@@ -1,24 +1,19 @@
-import type { AuthUser } from "@caretook/data";
-
 import {
   medicationConditionId,
   medicationConditionService,
   medicationService,
   recipientConditionService,
 } from "@caretook/data";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor } from "./testing";
 
 // sync.upload for what a medication is for (conditions slice 4): a device's
 // medication_condition PUT (after the medication and condition it names, as
 // the device queues them) and DELETE, replays, and refusals: a viewer, an id
 // that isn't the pair's, a PATCH, a deleted condition. Each test makes its
 // own users and group.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 
 const SAVED_AT = "2026-11-17T21:45:25.229000Z";
 

@@ -1,22 +1,17 @@
-import type { AuthUser } from "@caretook/data";
-
 import {
   appointmentSeriesService,
   noteDocumentService,
   seriesVisitId,
   timelineEntryService,
 } from "@caretook/data";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor } from "./testing";
 
 // sync.upload for a series edit (appointments-2, slice 2): "This and later"
 // reaches the server as ordinary ops in one batch (the new series, the old
 // one ended, the visits moved), as the device's applySeriesEdit queues them.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 
 const AT = "2026-11-18T18:00:00.000000Z";
 const LA = "America/Los_Angeles";

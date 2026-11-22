@@ -1,4 +1,4 @@
-import type { AuthUser, PassMovedDetails } from "@caretook/data";
+import type { PassMovedDetails } from "@caretook/data";
 
 import {
   careRecipientService,
@@ -8,18 +8,15 @@ import {
   recipientAllergyService,
   timelineEntryService,
 } from "@caretook/data";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor, upload } from "./testing";
 
 // sync.upload for medication passes and the recipient's allergies
 // (medications-2 slice 1): rows as a device's SQLite holds them, a retime's
 // entry and a delete's schedule rewrites as the device writes them, and
 // refusals. Each test makes its own users and group.
-
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
 
 const setup = async () => {
   const owner = await createUser("owner");
@@ -86,9 +83,7 @@ describe("sync.upload: medication_pass", () => {
     ]);
     // Sort order 0 ties with Morning's: the time breaks it.
     expect((await passes()).map((p) => p.name)).toEqual(["Morning", "Lunch", "Evening"]);
-    expect(
-      (await owner.api.sync.upload({ ops: [put, patch] })).results.every((r) => r.status === "applied"),
-    ).toBe(true);
+    expect((await upload(owner.api, [put, patch])).every((r) => r.status === "applied")).toBe(true);
   });
 
   it("retimes a pass with its passMoved entry, so the device's own copy is a no-op", async () => {
@@ -132,18 +127,12 @@ describe("sync.upload: medication_pass", () => {
         },
       },
     ];
-    expect((await owner.api.sync.upload({ ops })).results.map((r) => r.status)).toEqual([
-      "applied",
-      "applied",
-    ]);
+    expect((await upload(owner.api, ops)).map((r) => r.status)).toEqual(["applied", "applied"]);
     expect(ok(await medicationPassService.getById(viewer.ctx, morning.id))).toMatchObject({ time: "08:30" });
     const entry = ok(await timelineEntryService.getById(viewer.ctx, entryId));
     expect(entry).toMatchObject({ kind: "medicationChange", details, createdBy: owner.user.id });
     // Replayed: the same one entry.
-    expect((await owner.api.sync.upload({ ops })).results.map((r) => r.status)).toEqual([
-      "applied",
-      "applied",
-    ]);
+    expect((await upload(owner.api, ops)).map((r) => r.status)).toEqual(["applied", "applied"]);
     const page = ok(
       await timelineEntryService.list(viewer.ctx, { groupId: group.id, kinds: ["medicationChange"] }),
     );
@@ -180,20 +169,14 @@ describe("sync.upload: medication_pass", () => {
         data: { schedule: JSON.stringify(rewritten), updated_at: MOVED_AT },
       },
     ];
-    expect((await owner.api.sync.upload({ ops })).results.map((r) => r.status)).toEqual([
-      "applied",
-      "applied",
-    ]);
+    expect((await upload(owner.api, ops)).map((r) => r.status)).toEqual(["applied", "applied"]);
     expect(ok(await medicationService.getById(viewer.ctx, medication!.id))?.schedule).toEqual(rewritten);
     const changes = ok(
       await timelineEntryService.list(viewer.ctx, { groupId: group.id, kinds: ["medicationChange"] }),
     ).data;
     // Only the medication's "started" entry: the delete wrote none.
     expect(changes).toHaveLength(1);
-    expect((await owner.api.sync.upload({ ops })).results.map((r) => r.status)).toEqual([
-      "applied",
-      "applied",
-    ]);
+    expect((await upload(owner.api, ops)).map((r) => r.status)).toEqual(["applied", "applied"]);
   });
 
   it("refuses a viewer, a moved group, and another group's pass", async () => {
@@ -269,9 +252,9 @@ describe("sync.upload: recipient_allergy", () => {
     expect(removed.results).toEqual([{ id, status: "applied" }]);
     expect(ok(await recipientAllergyService.getById(viewer.ctx, id))).toBeNull();
     // A replayed delete is fine.
-    expect(
-      (await owner.api.sync.upload({ ops: [{ op: "DELETE", table: "recipient_allergy", id }] })).results,
-    ).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [{ op: "DELETE", table: "recipient_allergy", id }])).toEqual([
+      { id, status: "applied" },
+    ]);
   });
 });
 

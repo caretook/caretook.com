@@ -1,5 +1,3 @@
-import type { AuthUser } from "@caretook/data";
-
 import {
   encodeNoteDoc,
   entryProviderId,
@@ -7,21 +5,16 @@ import {
   noteDocumentService,
   timelineEntryService,
 } from "@caretook/data";
-import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../data/test/fixtures";
-import { router } from ".";
+import { clientFor, sqliteTime, upload } from "./testing";
 
 // sync.upload for appointments and reminders: the new timeline_entry columns
 // as a device's SQLite holds them (timestamps as PowerSync text, all_day as
 // 1/0). Each test makes its own users and group.
 
-const clientFor = (authUser: AuthUser) => createRouterClient(router, { context: { authUser } });
-
 const HOUR = 3_600_000;
-/** A time `ms` from now, as PowerSync's SQLite text. */
-const local = (ms: number) => new Date(Date.now() + ms).toISOString().replace(/Z$/, "000Z");
 const iso = (text: string) => new Date(text).toISOString();
 
 const setup = async () => {
@@ -32,7 +25,7 @@ const setup = async () => {
     group_id: group.id,
     recipient_id: recipient.id,
     kind: "event",
-    occurred_at: local(48 * HOUR),
+    occurred_at: sqliteTime(48 * HOUR),
     time_zone: "America/Los_Angeles",
     title: "Cardiology",
     body: null,
@@ -59,19 +52,19 @@ describe("sync.upload: appointment columns", () => {
   it("round-trips every new column on PUT and PATCH, all_day as 1/0", async () => {
     const { owner, viewer, row } = await setup();
     const id = randomUUID();
-    const endsAt = local(49 * HOUR);
+    const endsAt = sqliteTime(49 * HOUR);
     const put = {
       op: "PUT" as const,
       table: "timeline_entry",
       id,
       data: row({ ends_at: endsAt, place: "Clinic" }),
     };
-    expect((await owner.api.sync.upload({ ops: [put] })).results).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [put])).toEqual([{ id, status: "applied" }]);
     const stored = ok(await timelineEntryService.getById(viewer.ctx, id))!;
     expect(stored).toMatchObject({ place: "Clinic", allDay: false, cancelledAt: null });
     expect(iso(stored.endsAt!)).toBe(iso(endsAt));
 
-    const cancelledAt = local(0);
+    const cancelledAt = sqliteTime(0);
     const nextId = randomUUID();
     const next = { op: "PUT" as const, table: "timeline_entry", id: nextId, data: row() };
     const cancel = {
@@ -85,7 +78,7 @@ describe("sync.upload: appointment columns", () => {
         rescheduled_to: nextId,
       },
     };
-    expect((await owner.api.sync.upload({ ops: [next, cancel] })).results).toEqual([
+    expect(await upload(owner.api, [next, cancel])).toEqual([
       { id: nextId, status: "applied" },
       { id, status: "applied" },
     ]);
@@ -107,9 +100,7 @@ describe("sync.upload: appointment columns", () => {
       id: allDayId,
       data: row({ kind: "event", title: "Hospice intake", occurred_at: midnight, all_day: 1 }),
     };
-    expect((await owner.api.sync.upload({ ops: [allDay] })).results).toEqual([
-      { id: allDayId, status: "applied" },
-    ]);
+    expect(await upload(owner.api, [allDay])).toEqual([{ id: allDayId, status: "applied" }]);
     expect(ok(await timelineEntryService.getById(viewer.ctx, allDayId))).toMatchObject({ allDay: true });
 
     // Undo the cancel, and drop all-day.
@@ -120,10 +111,7 @@ describe("sync.upload: appointment columns", () => {
       data: { cancelled_at: null, cancel_reason: null, rescheduled_to: null },
     };
     const notAllDay = { op: "PATCH" as const, table: "timeline_entry", id: allDayId, data: { all_day: 0 } };
-    expect((await owner.api.sync.upload({ ops: [undo, notAllDay] })).results.map((r) => r.status)).toEqual([
-      "applied",
-      "applied",
-    ]);
+    expect((await upload(owner.api, [undo, notAllDay])).map((r) => r.status)).toEqual(["applied", "applied"]);
     expect(ok(await timelineEntryService.getById(viewer.ctx, id))).toMatchObject({
       cancelledAt: null,
       cancelledBy: null,
@@ -132,7 +120,7 @@ describe("sync.upload: appointment columns", () => {
     expect(ok(await timelineEntryService.getById(viewer.ctx, allDayId))).toMatchObject({ allDay: false });
 
     // A replay changes nothing.
-    expect((await owner.api.sync.upload({ ops: [put] })).results).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [put])).toEqual([{ id, status: "applied" }]);
   });
 
   it("acknowledges a future vital, and a note with a place, as rejected", async () => {
@@ -148,7 +136,7 @@ describe("sync.upload: appointment columns", () => {
           data: row({
             kind: "vital",
             title: null,
-            occurred_at: local(3 * HOUR),
+            occurred_at: sqliteTime(3 * HOUR),
             details: JSON.stringify({ readings: [{ type: "heartRate", value: 72 }] }),
           }),
         },
@@ -172,7 +160,7 @@ describe("sync.upload: appointment columns", () => {
     const id = randomUUID();
     await owner.api.sync.upload({ ops: [{ op: "PUT", table: "timeline_entry", id, data: row() }] });
     const res = await viewer.api.sync.upload({
-      ops: [{ op: "PATCH", table: "timeline_entry", id, data: { cancelled_at: local(0) } }],
+      ops: [{ op: "PATCH", table: "timeline_entry", id, data: { cancelled_at: sqliteTime(0) } }],
     });
     expect(res.results[0]).toMatchObject({ status: "rejected", code: "permissions:unauthorized" });
     expect(ok(await timelineEntryService.getById(viewer.ctx, id))).toMatchObject({ cancelledAt: null });
@@ -235,7 +223,7 @@ describe("sync.upload: a reschedule that keeps the old event", () => {
       op: "PUT" as const,
       table: "timeline_entry",
       id: newId,
-      data: row({ occurred_at: local(96 * HOUR), place: "Valley Heart, Suite 200" }),
+      data: row({ occurred_at: sqliteTime(96 * HOUR), place: "Valley Heart, Suite 200" }),
     },
     {
       op: "PUT" as const,
@@ -259,7 +247,7 @@ describe("sync.upload: a reschedule that keeps the old event", () => {
       op: "PATCH" as const,
       table: "timeline_entry",
       id: oldId,
-      data: { cancelled_at: local(0), rescheduled_to: newId },
+      data: { cancelled_at: sqliteTime(0), rescheduled_to: newId },
     },
   ];
 

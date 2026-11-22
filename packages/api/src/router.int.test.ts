@@ -7,15 +7,13 @@ import {
   noteDocumentService,
   timelineEntryService,
 } from "@caretook/data";
-import { createRouterClient, ORPCError } from "@orpc/server";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, newYDoc, ok, typeParagraph } from "../../data/test/fixtures";
-import { createRpcHandler, router } from ".";
+import { createRpcHandler } from ".";
+import { clientFor, rejection, upload } from "./testing";
 
 // Each test makes its own users and group, so tests never depend on each other.
-
-const clientFor = (authUser: AuthUser | null) => createRouterClient(router, { context: { authUser } });
 
 /** An AuthUser as getAuthUser would build it, with the user's group roles. */
 const withRoles = (authUser: AuthUser, groupRoles: AuthUser["groupRoles"]) => ({ ...authUser, groupRoles });
@@ -43,14 +41,6 @@ const note = (groupId: string) => ({
 });
 
 /** The oRPC error a call rejects with. */
-const rejection = async (call: Promise<unknown>) => {
-  const error = await call.then(
-    () => undefined,
-    (e: unknown) => e,
-  );
-  if (!(error instanceof ORPCError)) throw new Error(`Expected an ORPCError, got ${String(error)}`);
-  return error as ORPCError<string, { code?: string; issues?: { path: string; message: string }[] }>;
-};
 
 describe("auth", () => {
   it("rejects every procedure without a user", async () => {
@@ -693,7 +683,7 @@ describe("sync.upload", () => {
       id,
       data: { deleted_at: "2026-11-17 21:00:00Z" },
     };
-    expect((await owner.api.sync.upload({ ops: [patch] })).results).toEqual([{ id, status: "applied" }]);
+    expect(await upload(owner.api, [patch])).toEqual([{ id, status: "applied" }]);
     expect((await viewer.api.timeline.list({ groupId: group.id })).data).toEqual([]);
   });
 
@@ -779,7 +769,7 @@ describe("sync.upload", () => {
       const { entryId, ops } = offlineDocument(group.id, recipient.id, 2);
       const res = await owner.api.sync.upload({ ops });
       expect(res.results.map((r) => r.status)).toEqual(["applied", "applied", "applied", "applied"]);
-      expect((await owner.api.sync.upload({ ops })).results.every((r) => r.status === "applied")).toBe(true);
+      expect((await upload(owner.api, ops)).every((r) => r.status === "applied")).toBe(true);
 
       const text = await noteDocumentService.currentText(owner.ctx, entryId);
       expect(text).toBe("Line 1\nLine 2");
@@ -829,9 +819,7 @@ describe("sync.upload", () => {
     it("accepts a note and its document split across two batches", async () => {
       const { owner, group, recipient } = await setup();
       const { entryId, entry, document, edit } = offlineNote(group.id, recipient.id);
-      expect((await owner.api.sync.upload({ ops: [entry] })).results).toEqual([
-        { id: entryId, status: "applied" },
-      ]);
+      expect(await upload(owner.api, [entry])).toEqual([{ id: entryId, status: "applied" }]);
       const second = await owner.api.sync.upload({ ops: [document, edit] });
       expect(second.results.map((r) => r.status)).toEqual(["applied", "applied"]);
       expect(await noteDocumentService.currentText(owner.ctx, entryId)).toBe("Ate lunch");
@@ -852,7 +840,7 @@ describe("sync.upload", () => {
       // And once stored, a PATCH can't add one either.
       await owner.api.sync.upload({ ops: [entry] });
       const patch = { op: "PATCH" as const, table: "timeline_entry", id: entryId, data: { body: "x" } };
-      expect((await owner.api.sync.upload({ ops: [patch] })).results[0]).toMatchObject({
+      expect((await upload(owner.api, [patch]))[0]).toMatchObject({
         status: "rejected",
         code: "timelineEntryService:invalid",
       });
@@ -896,7 +884,7 @@ describe("sync.upload", () => {
       await owner.api.sync.upload({ ops: [event] });
       for (const data of [{ body: "x" }, { title: null }]) {
         const patch = { op: "PATCH" as const, table: "timeline_entry", id: entryId, data };
-        expect((await owner.api.sync.upload({ ops: [patch] })).results[0]).toMatchObject({
+        expect((await upload(owner.api, [patch]))[0]).toMatchObject({
           status: "rejected",
           code: "timelineEntryService:invalid",
         });
@@ -927,7 +915,7 @@ describe("sync.upload", () => {
         id: randomUUID(),
         data: { group_id: group.id, document_id: entryId, data: typeParagraph(newYDoc(), "Hi") },
       };
-      expect((await viewer.api.sync.upload({ ops: [edit] })).results[0]).toMatchObject({
+      expect((await upload(viewer.api, [edit]))[0]).toMatchObject({
         status: "rejected",
         code: "permissions:unauthorized",
       });
@@ -964,7 +952,7 @@ describe("sync.upload", () => {
 
       // And a PATCH can't change them.
       const patch = { op: "PATCH" as const, table: "note_document", id: entryId, data: { editors: forged } };
-      expect((await owner.api.sync.upload({ ops: [patch] })).results[0]).toMatchObject({
+      expect((await upload(owner.api, [patch]))[0]).toMatchObject({
         status: "rejected",
         code: "sync:readOnlyTable",
       });
