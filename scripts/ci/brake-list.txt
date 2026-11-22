@@ -13,6 +13,8 @@ packages/api/src/sync*.test.ts
 scripts/loops/sync-matrix.test.mjs
 
 # Role-by-action matrices and permissions
+# router.int.test.ts also holds sync.upload, non-member 404s and no-email checks.
+packages/api/src/router.int.test.ts
 packages/data/src/constants/roles.test.ts
 packages/data/src/db/roles/**
 packages/data/src/permissions/**
