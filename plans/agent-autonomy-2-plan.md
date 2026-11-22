@@ -12,7 +12,7 @@
 | 4     | 2    | merged (opus)                                                    | 93b16067 (8104cb2e)                               |
 | 5     | 2    | merged (opus); conflicts resolved in dispatch.mjs and its test   | db78a219 (ba12c013)                               |
 | 6     | 3    | merged (opus)                                                    | 0b028f59 (6c43892f)                               |
-| 7     | 3    | —                                                                | —                                                 |
+| 7     | 3    | merged (opus, two agents); conflict resolved in dispatch.mjs     | 9a78216f (000d5483, 4563409b)                     |
 
 **Landing mode:** run everything through (started by the dispatcher): land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
@@ -26,7 +26,7 @@
 
 **Slice 6 merged** as 0b028f59; its worktree is removed and slice 7 is still running. Its gate: 52 tooling test files, 990 tests, `eslint scripts` clean, `browser.test.mjs` skipped; stubs only, no real session. The tick opens `rotate-into.sh <name> <pid> --reason context` itself, with `--brief <file>` or the new `--no-brief`. A backlog session's subagents get no reminder and no record. The command guard is one regex, so a running `pnpm backlog` now also holds an orchestrator's rotation. **Fold at landing:** machinery still says the hook is for `prd` sessions only; add backlog sessions, `--no-brief` and the wider guard. B-515 stays open until `inbox` is in the kept-alive kinds.
 
-**Slice 7:** its first agent stopped at the context limit (168k) with the build committed (000d5483) and the gate not run; a fresh opus `--continue` agent is finishing it (two missing tests, then the gate). Follow-up to weigh: a requested session still asks "what is this session for?" even with a brief, and the brief's heading says "from the session before".
+**Slice 7 merged** as 9a78216f (imports conflict in `dispatch.mjs`, both sides kept); B-541 done, worktree removed. **Wave gate on the merged tip:** 53 tooling test files, 1,020 tests, tooling-lint, `eslint scripts` and prettier clean; `browser.test.mjs` and `pnpm prd check` skipped on the user's word (tooling only). Stubs only: no real session or iTerm2 tab has run wave 3. Docs folded into machinery and backlog. Next: sync, PR, Codex, land, then `pnpm prd rm` (last wave). Follow-up to weigh: a requested session still asks "what is this session for?" even with a brief, and the brief's heading says "from the session before".
 
 **Hook live test:** passed for the session's own size: this orchestrator read 53k from `pnpm prd context` after a wrapper start. Whether a subagent's PostToolUse names its own transcript is still unproven.
 
