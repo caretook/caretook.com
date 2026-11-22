@@ -13,7 +13,8 @@ import { entryMedication, medicationLabel } from "~/lib/medications/medicationEn
  * A dose's or change's heading: the medication ("Lisinopril 10 mg"), a link
  * to its page above the row's open target (`relative z-10`), then what
  * happened ("Given 1 tablet", "Changed dose 1 tablet → 2 tablets"). A deleted
- * medication is greyed "(removed)" and isn't a link.
+ * medication is greyed "(removed)" and isn't a link; nor is it for the
+ * easy roles.
  */
 export function MedicationHeading({
   entry,
@@ -30,7 +31,8 @@ export function MedicationHeading({
   search?: ParsedSearch;
   className?: string;
 }) {
-  const { id: groupId } = useGroup();
+  // The easy roles can't open a medication's page: the name is text.
+  const { id: groupId, easyRole } = useGroup();
   if (standalone)
     return (
       <p className={`font-semibold break-words ${className}`} data-medication-entry data-pass-moved>
@@ -42,7 +44,7 @@ export function MedicationHeading({
   const shown = <Highlight text={label} ranges={search ? highlightRanges(label, search) : undefined} />;
   return (
     <p className={`font-semibold break-words ${className}`} data-medication-entry>
-      {medication && !medication.deletedAt ? (
+      {medication && !medication.deletedAt && !easyRole ? (
         <Link
           to={appUrls.medication(groupId, medication.id)}
           className="link link-hover relative z-10"
@@ -51,9 +53,9 @@ export function MedicationHeading({
           {shown}
         </Link>
       ) : (
-        <span className={medication ? "text-base-content/50" : undefined}>
+        <span className={medication?.deletedAt ? "text-base-content/50" : undefined}>
           {shown}
-          {medication && " (removed)"}
+          {medication?.deletedAt && " (removed)"}
         </span>
       )}
       <span className="font-normal">: {what}</span>

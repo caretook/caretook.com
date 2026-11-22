@@ -11,8 +11,6 @@ const row = (patch: Partial<GroupRow> = {}): GroupRow => ({
   recipient_name: "Patricia",
   recipient_preferred_name: "Grandma Pat",
   recipient_time_zone: "America/Los_Angeles",
-  simple_mode: 0,
-  simple_mode_locked: 0,
   ...patch,
 });
 
@@ -25,6 +23,8 @@ describe("toGroupContext", () => {
       displayName: "Grandma Pat",
       role: "caretaker",
       canWrite: true,
+      canLog: true,
+      easyRole: false,
       recipient: {
         id: "r1",
         name: "Patricia",
@@ -32,18 +32,6 @@ describe("toGroupContext", () => {
         displayName: "Grandma Pat",
         timeZone: "America/Los_Angeles",
       },
-      simpleMode: { ownerDefault: false, locked: false },
-    });
-  });
-
-  it("carries the managers' simple-mode default and lock", () => {
-    expect(toGroupContext(row({ simple_mode: 1, simple_mode_locked: 1 }), "u1").simpleMode).toEqual({
-      ownerDefault: true,
-      locked: true,
-    });
-    expect(toGroupContext(row({ simple_mode: null, simple_mode_locked: null }), "u1").simpleMode).toEqual({
-      ownerDefault: false,
-      locked: false,
     });
   });
 
@@ -61,5 +49,17 @@ describe("toGroupContext", () => {
     expect(toGroupContext(row({ role: "viewer" }), "u").canWrite).toBe(false);
     expect(toGroupContext(row({ role: "superuser" }), "u").canWrite).toBe(false);
     expect(toGroupContext(row({ role: null }), "u")).toMatchObject({ role: null, canWrite: false });
+  });
+
+  it.each([
+    ["owner", { canWrite: true, canLog: true, easyRole: false }],
+    ["admin", { canWrite: true, canLog: true, easyRole: false }],
+    ["caretaker", { canWrite: true, canLog: true, easyRole: false }],
+    ["viewer", { canWrite: false, canLog: false, easyRole: false }],
+    ["easy_helper", { canWrite: false, canLog: true, easyRole: true }],
+    ["easy_viewer", { canWrite: false, canLog: false, easyRole: true }],
+    ["superuser", { canWrite: false, canLog: false, easyRole: false }],
+  ] as const)("gives a %s canWrite, canLog and easyRole from the role sets", (role, expected) => {
+    expect(toGroupContext(row({ role }), "u")).toMatchObject(expected);
   });
 });

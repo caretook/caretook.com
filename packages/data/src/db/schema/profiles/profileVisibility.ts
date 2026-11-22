@@ -3,6 +3,7 @@ import type { ContactPhone } from "../core/contactFields";
 import type { SharedField } from "./memberContactShare";
 import type { ContactValues } from "./userContact";
 
+import { GROUP_MANAGER_ROLES, GROUP_ROLE_NAMES, WRITER_ROLES } from "../../../constants/roles";
 import { SHARED_FIELDS } from "./memberContactShare";
 
 // Who sees and edits what on a recipient's profile, and what a member's
@@ -26,9 +27,9 @@ export const RECIPIENT_FIELDS = {
   outsideContacts: ["outsideContacts"],
 } as const satisfies Record<RecipientFieldGroup, readonly string[]>;
 
-const EVERYONE: readonly GroupRoleName[] = ["owner", "admin", "caretaker", "viewer"];
-const WRITERS: readonly GroupRoleName[] = ["owner", "admin", "caretaker"];
-const MANAGERS: readonly GroupRoleName[] = ["owner", "admin"];
+const EVERYONE: readonly GroupRoleName[] = GROUP_ROLE_NAMES;
+const WRITERS: readonly GroupRoleName[] = WRITER_ROLES;
+const MANAGERS: readonly GroupRoleName[] = GROUP_MANAGER_ROLES;
 
 const READ: Record<RecipientFieldGroup, readonly GroupRoleName[]> = {
   identity: EVERYONE,

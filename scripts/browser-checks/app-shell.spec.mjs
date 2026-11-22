@@ -22,9 +22,12 @@
 //    comes back with the caretaker role. Also the member-share stream: a share
 //    row the server holds for caretaker@ reaches the owner's device, and goes
 //    from it with the membership when they're removed.
-// 4. Simple mode across two devices (assistant slice 5): the owner turns on
-//    simple mode for caretaker@ from Members; caretaker@'s open timeline
-//    switches to the simple view without a reload. Put back in SQL.
+// 4. An easy role across two devices: the owner makes caretaker@ an Easy
+//    helper from Members; caretaker@'s open timeline switches to the easy
+//    view without a reload, with search and no Full app. As an Easy helper
+//    they log an entry (it reaches the server), open Upcoming's "See all"
+//    (the Planner) and search (a provider's read-only sheet), and a typed
+//    Medications URL lands on the timeline. Put back in SQL.
 // 5. Staff (its screens are component tests under routes/admin/ and
 //    routes/app/layout/staff.browser.test.tsx): every /admin page is a 404 for
 //    member@ (a group's owner, not staff); admin@ posts an announcement through
@@ -59,9 +62,6 @@ const restoreSeeds = () => {
     `DELETE FROM member_contact_share WHERE group_id = '${DEV_FAMILY}' AND phones->0->>'number' = '(555) 010-1999'`,
   );
   psql(`UPDATE care_group SET name = '${SEED_GROUP}' WHERE id = '${DEV_FAMILY}'`);
-  psql(
-    `UPDATE care_group_member SET simple_mode = false, simple_mode_locked = false WHERE group_id = '${DEV_FAMILY}' AND (simple_mode OR simple_mode_locked)`,
-  );
   for (const [email, role] of SEEDED)
     psql(
       `INSERT INTO care_group_member (group_id, user_id, role, created_by, updated_by) SELECT '${DEV_FAMILY}', id, '${role}', id, id FROM "user" WHERE email = '${email}' ON CONFLICT (group_id, user_id) DO UPDATE SET role = EXCLUDED.role WHERE care_group_member.role <> EXCLUDED.role`,
@@ -70,7 +70,7 @@ const restoreSeeds = () => {
 const serverGroup = () => psql(`SELECT name FROM care_group WHERE id = '${DEV_FAMILY}'`);
 const serverMembers = () =>
   psql(
-    `SELECT coalesce(string_agg(u.name || ':' || m.role, ',' ORDER BY array_position(ARRAY['owner','admin','caretaker','viewer'], m.role), u.name), '') FROM care_group_member m JOIN "user" u ON u.id = m.user_id WHERE m.group_id = '${DEV_FAMILY}'`,
+    `SELECT coalesce(string_agg(u.name || ':' || m.role, ',' ORDER BY array_position(ARRAY['owner','admin','caretaker','viewer'], m.role), u.name), '') FROM care_group_member m JOIN "user" u ON u.id = m.user_id WHERE m.group_id = '${DEV_FAMILY}' AND m.role NOT IN ('easy_helper', 'easy_viewer')`,
   );
 /** Polls Postgres (20 s) until the members list reads `expected`. */
 const serverBecomes = (expected) =>
@@ -232,6 +232,8 @@ test("members: changes reach another device", async ({ device }) => {
           const button = li.querySelector("button")?.textContent.trim();
           return li.querySelector("p").textContent.trim() + ":" + role + (button ? ":" + button : "");
         })
+        // The seeded Easy helper and Easy viewer stay as they are: this step is about the other three.
+        .filter((line) => !line.startsWith("Dev Easy "))
         .join(","),
     );
   const onMembers = async (p) => {
@@ -361,11 +363,18 @@ test("members: changes reach another device", async ({ device }) => {
   await noErrors(dM, dO);
 });
 
-// ── 4. Simple mode: the owner's switch reaching the member's device ─────────
-test("simple mode: the owner's switch reaches the member's device", async ({ device }) => {
-  test.setTimeout(150_000);
+// ── 4. An easy role: the owner's choice reaching the member's device ──────
+test("easy role: the owner's choice reaches the member's device", async ({ device }) => {
+  test.setTimeout(210_000);
+  const TAG = `ESY${Date.now().toString(36)}`;
+  const started = psql("SELECT now() - interval '1 minute'");
+  /** caretaker@'s live entries since the test started, as the server holds them. */
+  const mine = () =>
+    psql(
+      `SELECT count(*) FROM timeline_entry WHERE created_by = (SELECT id FROM "user" WHERE email = 'caretaker@example.com') AND created_at >= '${started}' AND deleted_at IS NULL`,
+    );
   const dM = await device("settings-owner");
-  const dS = await device("simple-member");
+  const dS = await device("easy-member");
   const M = dM.page;
   const S = dS.page;
   try {
@@ -377,25 +386,63 @@ test("simple mode: the owner's switch reaches the member's device", async ({ dev
 
     await signIn(M, "member@example.com");
     await M.goto(`/app/groups/${DEV_FAMILY}/settings/members`);
-    const toggle = M.locator('main [data-section="members"] li[data-member]')
+    const select = M.locator('main [data-section="members"] li[data-member]')
       .filter({ has: M.locator("p", { hasText: "Dev Caretaker" }) })
-      .locator("[data-simple-mode-switch]");
-    await expect(toggle).toBeEnabled({ timeout: 40_000 });
-    await toggle.click();
+      .locator("select");
+    await expect(select).toBeEnabled({ timeout: 40_000 });
+    await select.selectOption("easy_helper");
 
-    await test.step("the owner turns on simple mode for caretaker@: saved on the server, and their timeline switches without a reload", async () => {
-      const serverSimple = () =>
+    await test.step("the owner makes caretaker@ an Easy helper: saved on the server, and their timeline switches without a reload", async () => {
+      const serverRole = () =>
         psql(
-          `SELECT m.simple_mode FROM care_group_member m JOIN "user" u ON u.id = m.user_id WHERE m.group_id = '${DEV_FAMILY}' AND u.email = 'caretaker@example.com'`,
+          `SELECT m.role FROM care_group_member m JOIN "user" u ON u.id = m.user_id WHERE m.group_id = '${DEV_FAMILY}' AND u.email = 'caretaker@example.com'`,
         );
-      await expect.poll(serverSimple, { timeout: 20_000, intervals: [500] }).toBe("t");
-      await expect(S.locator("[data-simple-timeline]")).toBeVisible({ timeout: 30_000 });
-      // Search stays in simple mode unless locked (B-208).
+      await expect.poll(serverRole, { timeout: 20_000, intervals: [500] }).toBe("easy_helper");
+      await expect(S.locator("[data-easy-timeline]")).toBeVisible({ timeout: 30_000 });
+      // The easy roles keep search, and have no Full app.
       await expect(S.locator('header [data-region="search"]')).toHaveCount(1);
+      await expect(S.getByRole("button", { name: "Full app" })).toHaveCount(0);
       expect(await stayed(S)).toBe(1);
+    });
+
+    await test.step("as an Easy helper: logs an entry, opens See all and search, and is sent back from Medications", async () => {
+      const text = `Walked to the mailbox ${TAG}`;
+      await S.getByRole("textbox", { name: "What happened?" }).fill(text);
+      await expect(S.locator("[data-quick-card]")).toBeVisible({ timeout: 10_000 });
+      await S.getByRole("button", { name: "Save" }).click();
+      await expect
+        .poll(mine, { timeout: 20_000, intervals: [500], message: "the entry on the server" })
+        .toBe("1");
+      // A saved note opens its page (an entries/* page the role keeps); back to the timeline.
+      await S.waitForURL(`**/app/groups/${DEV_FAMILY}/entries/**`, { timeout: 20_000 });
+      await S.locator(`main a[href="${DEV_FAMILY_TIMELINE}"]`).first().click();
+      await S.waitForURL(`**${DEV_FAMILY_TIMELINE}`);
+
+      await S.locator("[data-easy-next] button").click();
+      await S.locator("[data-easy-upcoming-all]").click();
+      await S.waitForURL(`**/app/groups/${DEV_FAMILY}/planner`);
+      await expect(S.locator("main [data-upcoming-list] [data-upcoming-item]").first()).toBeVisible({
+        timeout: 20_000,
+      });
+      await expect(S.getByRole("navigation", { name: "Planner or todos" })).toHaveCount(0);
+
+      await S.locator('header [data-region="search"] a').click();
+      await S.waitForURL(`**/app/groups/${DEV_FAMILY}/search`);
+      await S.locator("input[data-search-field]").fill("Cornerstone");
+      await S.locator('[data-result="provider"] button[data-opens-sheet]').first().click();
+      await expect(S.locator("[role=dialog] [data-easy-sheet=provider]")).toBeVisible();
+      await S.getByRole("button", { name: "Done" }).click();
+      expect(new URL(S.url()).pathname).toBe(`/app/groups/${DEV_FAMILY}/search`);
+
+      await S.goto(`/app/groups/${DEV_FAMILY}/medications`);
+      await S.waitForURL(`**${DEV_FAMILY_TIMELINE}`, { timeout: 30_000 });
+      await expect(S.locator("[data-easy-timeline]")).toBeVisible({ timeout: 30_000 });
     });
     await noErrors(dM, dS);
   } finally {
+    psql(
+      `UPDATE timeline_entry SET deleted_at = now() WHERE created_by = (SELECT id FROM "user" WHERE email = 'caretaker@example.com') AND created_at >= '${started}' AND deleted_at IS NULL`,
+    );
     restoreSeeds();
   }
 });

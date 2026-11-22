@@ -9,10 +9,13 @@ import type { ActionResult } from "../core/api";
 import type { GroupMember, LatestVital, MyGroup, TimelineEntry } from "../core/rpc";
 import type { SyncDb } from "../sync/index";
 
+import { WRITERS, isLoggerRole } from "@caretook/data/permissions";
 import {
   DEVICE_FUTURE_SKEW_MS,
   FUTURE_DATE_MESSAGE,
   FUTURE_KINDS,
+  canChangeEntry,
+  canLogEntry,
   isKnownReading,
   isTooFarAhead,
   timelineEntryContentZSchema,
@@ -29,7 +32,8 @@ import { timelineEntries, todos } from "../sync/schema";
 // Writes land in local SQLite at once and queue for upload (sync.upload),
 // where the services validate them again.
 
-export const WRITER_ROLES = ["owner", "admin", "caretaker"];
+/** The roles that change setup and anyone's data (the shared `WRITERS`). */
+export const WRITER_ROLES: readonly string[] = WRITERS;
 
 // ---------------------------------------------------------------------------
 // Timestamps. PowerSync stores timestamptz as ISO 8601 text with
@@ -332,16 +336,12 @@ export type GroupRow = {
   recipient_name: string | null;
   recipient_preferred_name: string | null;
   recipient_time_zone: string | null;
-  /** Simple mode: the managers' default for you and your lock (1 or 0; null until the columns sync). */
-  simple_mode: number | null;
-  simple_mode_locked: number | null;
 };
 
 /** The groups `userId` belongs to, with their role and the recipient. */
 export const myGroupsQuery = (userId: string): LocalQuery => ({
   sql: `SELECT g.id, g.name, m.role, r.id AS recipient_id, r.name AS recipient_name,
-               r.preferred_name AS recipient_preferred_name, r.time_zone AS recipient_time_zone,
-               m.simple_mode, m.simple_mode_locked
+               r.preferred_name AS recipient_preferred_name, r.time_zone AS recipient_time_zone
         FROM care_group g
         JOIN care_group_member m ON m.group_id = g.id AND m.user_id = ?
         LEFT JOIN care_recipient r ON r.group_id = g.id
@@ -352,8 +352,7 @@ export const myGroupsQuery = (userId: string): LocalQuery => ({
 /** One group `userId` belongs to (no row when they aren't a member, or it isn't on the device). */
 export const myGroupQuery = (userId: string, groupId: string): LocalQuery => ({
   sql: `SELECT g.id, g.name, m.role, r.id AS recipient_id, r.name AS recipient_name,
-               r.preferred_name AS recipient_preferred_name, r.time_zone AS recipient_time_zone,
-               m.simple_mode, m.simple_mode_locked
+               r.preferred_name AS recipient_preferred_name, r.time_zone AS recipient_time_zone
         FROM care_group g
         JOIN care_group_member m ON m.group_id = g.id AND m.user_id = ?
         LEFT JOIN care_recipient r ON r.group_id = g.id
@@ -446,6 +445,14 @@ export const groupFor = async (db: SyncDb, groupId: string) => {
   return row ? toMyGroup(row) : null;
 };
 
+/** Whether this device's user may log in the group (writers, and an Easy helper). */
+export const mayLog = async (db: SyncDb, groupId: string) =>
+  isLoggerRole((await groupFor(db, groupId))?.role);
+
+/** Whether this device's user may edit or delete the entry: writers any, an Easy helper their own. */
+export const mayChangeEntry = async (db: SyncDb, entry: { groupId: string; createdBy: string | null }) =>
+  canChangeEntry({ role: (await groupFor(db, entry.groupId))?.role, userId: db.userId, entry });
+
 export const contentColumns = (content: Omit<TimelineEntryContent, "kind">) => ({
   occurredAt: toLocalTimestamp(content.occurredAt),
   timeZone: content.timeZone,
@@ -472,11 +479,13 @@ export const futureRefusal = (kind: string, occurredAt: string, now = new Date()
 /** Add an entry on this device. It syncs when the device is online. */
 export const createEntry = async (db: SyncDb, groupId: string, input: unknown): Promise<ActionResult> => {
   const group = await groupFor(db, groupId);
-  if (!group?.role || !WRITER_ROLES.includes(group.role)) return forbidden;
-  if (!group.recipient) return { ok: false, error: "This care group has no care recipient yet", issues: [] };
+  if (!isLoggerRole(group?.role)) return forbidden;
+  if (!group?.recipient) return { ok: false, error: "This care group has no care recipient yet", issues: [] };
 
   const parsed = timelineEntryContentZSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
+  // An Easy helper logs notes, events, symptoms, vitals and doses only.
+  if (!canLogEntry(group.role, parsed.data.kind, parsed.data)) return forbidden;
   const future = futureRefusal(parsed.data.kind, parsed.data.occurredAt);
   if (future) return future;
 
@@ -520,7 +529,9 @@ export const updateEntry = async (
   const entry = await existingEntry(db, id);
   if (!entry) return missing;
   const group = await groupFor(db, entry.groupId);
-  if (!group?.role || !WRITER_ROLES.includes(group.role)) return forbidden;
+  // Writers change any entry; an Easy helper only one they made.
+  if (!canChangeEntry({ role: group?.role, userId: db.userId, entry })) return forbidden;
+  if (!canLogEntry(group?.role, entry.kind, patch)) return forbidden;
 
   const defined = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
   if (detach && entry.seriesId) defined.seriesDetached = true;
@@ -567,7 +578,7 @@ export const removeEntry = async (db: SyncDb, id: string): Promise<ActionResult>
   const entry = await existingEntry(db, id);
   if (!entry) return { ok: true };
   const group = await groupFor(db, entry.groupId);
-  if (!group?.role || !WRITER_ROLES.includes(group.role)) return forbidden;
+  if (!canChangeEntry({ role: group?.role, userId: db.userId, entry })) return forbidden;
 
   const now = nowTimestamp();
   await db.drizzle.transaction(async (tx) => {

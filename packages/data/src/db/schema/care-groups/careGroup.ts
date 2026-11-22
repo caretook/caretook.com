@@ -1,13 +1,13 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type { ProtectedField } from "../core/columns";
 
-import type { SimpleTiles } from "../app-shell/simpleMode";
+import type { EasyTiles } from "../app-shell/easyMode";
 
 import { boolean, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
 import { audits, id, timestamps } from "../core/columns";
-import { simpleTilesZSchema } from "../app-shell/simpleMode";
+import { easyTilesZSchema } from "../app-shell/easyMode";
 
 // The shared space care data belongs to: the caretakers looking after one
 // care recipient (see careRecipient.ts). Access comes only from membership
@@ -15,8 +15,11 @@ import { simpleTilesZSchema } from "../app-shell/simpleMode";
 export const careGroupSchema = pgTable("care_group", {
   id: id(),
   name: text("name").notNull(),
-  // How simple mode picks its four tiles (simpleMode.ts); null: learned from use.
-  simpleTiles: jsonb("simple_tiles").$type<SimpleTiles>(),
+  // How easy mode picks its four tiles (easyMode.ts); null: learned from use.
+  easyTiles: jsonb("easy_tiles").$type<EasyTiles>(),
+  // Retired by easy_tiles (simple-mode PRD, slice 1): no longer read or written; a later contract
+  // migration drops it.
+  simpleTiles: jsonb("simple_tiles").$type<EasyTiles>(),
   // Members may connect their own AI assistant (connectors PRD): off until
   // an owner turns it on (careGroupService.update); off revokes every grant.
   connectorsEnabled: boolean("connectors_enabled").notNull().default(false),
@@ -35,8 +38,8 @@ export type CareGroupUpdate = Partial<CareGroupInsert>;
 export type CareGroup = CareGroupSelect;
 
 const name = z.string().trim().min(1).max(120);
-const simpleTiles = simpleTilesZSchema.nullable();
+const easyTiles = easyTilesZSchema.nullable();
 
-export const careGroupSelectZSchema = createSelectSchema(careGroupSchema, { simpleTiles });
-export const careGroupInsertZSchema = createInsertSchema(careGroupSchema, { name, simpleTiles });
-export const careGroupUpdateZSchema = createUpdateSchema(careGroupSchema, { name, simpleTiles });
+export const careGroupSelectZSchema = createSelectSchema(careGroupSchema, { easyTiles });
+export const careGroupInsertZSchema = createInsertSchema(careGroupSchema, { name, easyTiles });
+export const careGroupUpdateZSchema = createUpdateSchema(careGroupSchema, { name, easyTiles });

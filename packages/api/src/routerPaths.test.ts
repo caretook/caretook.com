@@ -52,7 +52,6 @@ const FROZEN_PATHS = [
   "careGroup.recipientDetails",
   "careGroup.removeMember",
   "careGroup.setEmergencyContacts",
-  "careGroup.setMemberMode",
   "careGroup.setPrimaryContact",
   "careGroup.update",
   "careGroup.updateMySharing",

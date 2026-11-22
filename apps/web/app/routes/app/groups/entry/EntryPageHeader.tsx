@@ -58,13 +58,13 @@ export function EntryPageHeader({
   onPickTitle: (title: string) => void;
   editors: ReactNode;
 }) {
-  const { entry, canWrite, deleted, stored } = live;
+  const { entry, canWrite, canSetUp, deleted, stored } = live;
   const noun = KIND_META[entry.kind].label.toLowerCase();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const rescheduling = useEventReschedule(groupId, canWrite && entry.kind === "event");
+  const rescheduling = useEventReschedule(groupId, canSetUp && entry.kind === "event");
   const remind = useRemindMe(groupId);
-  const scope = useSeriesScope(canWrite && !!entry.seriesId);
+  const scope = useSeriesScope(canSetUp && !!entry.seriesId);
   const navigate = useNavigate();
   // The title being typed counts for suggestions until it's saved (or someone else renames it).
   const [typed, setTyped] = useState<{ text: string; over: string | null } | null>(null);
@@ -114,12 +114,12 @@ export function EntryPageHeader({
                 kind={entry.kind}
                 label={`Actions for this ${noun}`}
                 onEdit={
-                  canWrite && asksScope(entry, new Date())
+                  canSetUp && asksScope(entry, new Date())
                     ? () => scope.ask(entry, "edit", { only: live.onlyThisVisit })
                     : undefined
                 }
                 cancel={
-                  canWrite && entry.kind === "event"
+                  canSetUp && entry.kind === "event"
                     ? {
                         cancelled: !!entry.cancelledAt,
                         onCancel: () => scope.ask(entry, "cancel", { only: () => setConfirmCancel(true) }),
@@ -135,7 +135,7 @@ export function EntryPageHeader({
                     ? () => remind.ask({ id: entry.id, title: heading })
                     : undefined
                 }
-                // Everyone can print; only writers delete.
+                // Everyone can print; writers delete any entry, an Easy helper their own.
                 onPrint={() => window.print()}
                 onDelete={
                   canWrite
@@ -159,7 +159,7 @@ export function EntryPageHeader({
             <EntryWithRow
               entryId={entry.id}
               groupId={groupId}
-              canWrite={canWrite}
+              canWrite={canSetUp}
               title={currentTitle}
               ensureStored={live.ensureStored}
               pending={live.pendingProviders}
@@ -168,7 +168,7 @@ export function EntryPageHeader({
           )
         }
         suggestion={
-          canWrite &&
+          canSetUp &&
           !deleted &&
           stored &&
           entry.kind === "event" &&

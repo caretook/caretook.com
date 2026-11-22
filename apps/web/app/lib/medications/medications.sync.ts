@@ -47,6 +47,8 @@ import {
   readRows,
   toLocalTimestamp,
   WRITER_ROLES,
+  mayChangeEntry,
+  mayLog,
 } from "../timeline/timeline.sync";
 
 // The medication list, doses and medication changes on this device: local
@@ -780,8 +782,7 @@ export const logDose = async (
   groupId: string,
   { medicationId, occurredAt, timeZone, ...rest }: DoseInput,
 ): Promise<MedicationWriteResult> => {
-  const group = await groupFor(db, groupId);
-  if (!group?.role || !WRITER_ROLES.includes(group.role)) return forbidden as Refusal;
+  if (!(await mayLog(db, groupId))) return forbidden as Refusal;
   const medication = await liveMedication(db, medicationId);
   if (!medication || medication.groupId !== groupId) return medicationMissing;
 
@@ -837,8 +838,7 @@ export const logDoses = async (
   groupId: string,
   doses: readonly DoseInput[],
 ): Promise<{ ok: true; ids: string[] } | Refusal> => {
-  const group = await groupFor(db, groupId);
-  if (!group?.role || !WRITER_ROLES.includes(group.role)) return forbidden as Refusal;
+  if (!(await mayLog(db, groupId))) return forbidden as Refusal;
   const planned = await doseRows(db, groupId, doses);
   if (!planned.ok) return planned;
   const { rows } = planned;
@@ -944,8 +944,7 @@ export const removeDoses = async (db: SyncDb, ids: readonly string[]): Promise<A
     const entry = await liveMedicationEntry(db, id);
     if (entry && isDoseEntry(entry)) live.push(entry);
   }
-  for (const groupId of new Set(live.map((e) => e.groupId)))
-    if (!(await canWrite(db, groupId))) return forbidden;
+  for (const entry of live) if (!(await mayChangeEntry(db, entry))) return forbidden;
   if (!live.length) return { ok: true };
   const now = nowTimestamp();
   await db.drizzle.transaction(async (tx) => {
@@ -968,7 +967,7 @@ export const updateDose = async (
 ): Promise<MedicationWriteResult> => {
   const entry = await liveMedicationEntry(db, id);
   if (!entry || !isDoseEntry(entry)) return doseMissing;
-  if (!(await canWrite(db, entry.groupId))) return forbidden as Refusal;
+  if (!(await mayChangeEntry(db, entry))) return forbidden as Refusal;
 
   const { occurredAt, ...details } = Object.fromEntries(
     Object.entries(patch).filter(([, v]) => v !== undefined),
@@ -998,7 +997,7 @@ export const updateDose = async (
 export const removeMedicationEntry = async (db: SyncDb, id: string): Promise<ActionResult> => {
   const entry = await liveMedicationEntry(db, id);
   if (!entry) return { ok: true };
-  if (!(await canWrite(db, entry.groupId))) return forbidden;
+  if (!(await mayChangeEntry(db, entry))) return forbidden;
   const now = nowTimestamp();
   await db.drizzle
     .update(timelineEntries)

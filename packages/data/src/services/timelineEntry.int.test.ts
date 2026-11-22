@@ -169,7 +169,7 @@ describe("updating", () => {
       expect(updated).toMatchObject({ title: `Edited by ${role}`, updatedBy: u[role].user.id });
     }
     expect(codeOf(await timelineEntryService.update(u.viewer.ctx, entry.id, { title: "x" }))).toBe(
-      "baseModel:update:nothingUpdated",
+      "permissions:unauthorized",
     );
     expect(codeOf(await timelineEntryService.update(u.outsider.ctx, entry.id, { title: "x" }))).toBe(
       "timelineEntryService:notFound",
@@ -352,7 +352,11 @@ describe("deleting", () => {
   it("won't delete for viewers or outsiders, or delete twice", async () => {
     const { u, addNote } = await setup();
     const entry = await addNote();
-    for (const role of ["viewer", "outsider", "staff"] as const) {
+    // A viewer sees it, so is refused; outsiders learn nothing.
+    expect(codeOf(await timelineEntryService.remove(u.viewer.ctx, entry.id))).toBe(
+      "permissions:unauthorized",
+    );
+    for (const role of ["outsider", "staff"] as const) {
       expect(codeOf(await timelineEntryService.remove(u[role].ctx, entry.id))).toBe(
         "timelineEntryService:notFound",
       );

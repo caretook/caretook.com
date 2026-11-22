@@ -3,7 +3,7 @@ import { editSheetGuard, newDoseGuard, newSheetGuard, onlySheetChanged } from ".
 
 const G = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 const TIMELINE = `/app/groups/${G}/timeline`;
-const writer = { groupId: G, canWrite: true, search: "" };
+const writer = { groupId: G, canLog: true, search: "" };
 
 describe("newSheetGuard", () => {
   it("opens a symptom or a vital for a writer", () => {
@@ -36,10 +36,10 @@ describe("newSheetGuard", () => {
   });
 
   it("sends a viewer to the timeline", () => {
-    expect(newSheetGuard({ ...writer, canWrite: false, kind: "symptom", search: "?kind=vital" })).toEqual({
+    expect(newSheetGuard({ ...writer, canLog: false, kind: "symptom", search: "?kind=vital" })).toEqual({
       redirect: `${TIMELINE}?kind=vital`,
     });
-    expect(newSheetGuard({ ...writer, canWrite: false, kind: "vital", search: "?type=spo2" })).toEqual({
+    expect(newSheetGuard({ ...writer, canLog: false, kind: "vital", search: "?type=spo2" })).toEqual({
       redirect: TIMELINE,
     });
   });
@@ -47,8 +47,8 @@ describe("newSheetGuard", () => {
 
 describe("editSheetGuard", () => {
   const symptom = { id: "e1", groupId: G, kind: "symptom" as const, deletedAt: null };
-  const edit = (entry: Parameters<typeof editSheetGuard>[0]["entry"], canWrite = true) =>
-    editSheetGuard({ groupId: G, entry, search: "?kind=symptom&type=spo2", canWrite });
+  const edit = (entry: Parameters<typeof editSheetGuard>[0]["entry"], canChange = true) =>
+    editSheetGuard({ groupId: G, entry, search: "?kind=symptom&type=spo2", canChange });
 
   it("opens a writer's symptom or vital", () => {
     expect(edit(symptom)).toEqual({ sheet: { entry: symptom } });
@@ -85,7 +85,7 @@ describe("editSheetGuard", () => {
 
 describe("newDoseGuard", () => {
   const M = "11111111-2222-4333-8444-555555555555";
-  const dose = { groupId: G, canWrite: true, choiceIds: [M] };
+  const dose = { groupId: G, canLog: true, choiceIds: [M] };
 
   it("opens the Dose sheet for a writer, on a listed medication and a slot", () => {
     expect(newDoseGuard({ ...dose, search: "" })).toEqual({
@@ -106,9 +106,9 @@ describe("newDoseGuard", () => {
   });
 
   it("sends a viewer to the timeline, keeping its filters", () => {
-    expect(
-      newDoseGuard({ ...dose, canWrite: false, search: `?kind=dose&medication=${M}&slot=08:00` }),
-    ).toEqual({ redirect: `${TIMELINE}?kind=dose` });
+    expect(newDoseGuard({ ...dose, canLog: false, search: `?kind=dose&medication=${M}&slot=08:00` })).toEqual(
+      { redirect: `${TIMELINE}?kind=dose` },
+    );
   });
 });
 

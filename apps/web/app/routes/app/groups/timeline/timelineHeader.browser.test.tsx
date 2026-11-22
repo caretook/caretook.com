@@ -3,7 +3,16 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { at, fx, TEST_RECIPIENT, TEST_USER } from "../../../../../test/fixtures";
 import { found } from "../../../../../test/found";
-import { frames, openTimeline, rows, TIMELINE_URL, waitUntil, world } from "./timelineWorld";
+import {
+  chooseEasyMode,
+  frames,
+  openTimeline,
+  pressEasyMode,
+  rows,
+  TIMELINE_URL,
+  waitUntil,
+  world,
+} from "./timelineWorld";
 
 // The timeline's header on a phone and a desktop (quick-fixes slice 39): the
 // latest vitals only from `sm`, and the care period in each day's sticky
@@ -50,6 +59,69 @@ describe("the heading", () => {
     await userEvent.click(page.getByRole("button", { name: "View options" }));
     await expect.element(page.getByRole("menu")).toBeVisible();
     await userEvent.keyboard("{Escape}");
+  });
+});
+
+describe("the Easy mode button", () => {
+  const easyButton = () => document.querySelector<HTMLElement>('main header button[data-easy-toggle="easy"]');
+  const isEasy = () => !!document.querySelector("[data-easy-timeline]");
+
+  test("a caretaker's header has it beside “Timeline”; pressing it shows the easy view, whose “Full app” returns, and the choice survives a reload", async () => {
+    const device = await openTimeline({ role: "caretaker" });
+    await ready();
+    const button = await found(easyButton);
+    expect(button.textContent?.trim()).toBe("Easy mode");
+    const h1 = document.querySelector("main h1")!.getBoundingClientRect();
+    expect(button.getBoundingClientRect().left).toBeGreaterThan(h1.left);
+    await pressEasyMode();
+    await waitUntil(isEasy, 4000, "the easy view");
+    await userEvent.click(page.getByRole("button", { name: "Full app" }));
+    await waitUntil(() => !isEasy(), 4000, "the full timeline");
+    await pressEasyMode();
+    await waitUntil(isEasy, 4000, "the easy view again");
+    await device.screen.unmount();
+    await openTimeline({ role: "caretaker" });
+    await waitUntil(isEasy, 4000, "the easy view after a reload");
+  });
+
+  test("View options has Layout and Day summaries and no view switch", async () => {
+    await openTimeline({ role: "caretaker" });
+    await ready();
+    await userEvent.click(page.getByRole("button", { name: "View options" }));
+    await expect.element(page.getByRole("menu")).toBeVisible();
+    const text = [...document.querySelectorAll('[role="menu"] [role^="menuitem"]')].map((el) =>
+      el.textContent?.trim(),
+    );
+    expect(text.some((t) => t?.startsWith("Rows"))).toBe(true);
+    expect(text.some((t) => t?.startsWith("Highlights"))).toBe(true);
+    expect(text.some((t) => /easy/i.test(t ?? ""))).toBe(false);
+    expect(document.querySelector('[role="menu"]')!.textContent).toMatch(/Layout/);
+    expect(document.querySelector('[role="menu"]')!.textContent).toMatch(/Day summaries/);
+    await userEvent.keyboard("{Escape}");
+  });
+
+  test("a viewer gets the button too", async () => {
+    await openTimeline({ role: "viewer" });
+    await ready();
+    expect(await found(easyButton)).toBeTruthy();
+  });
+
+  test("an Easy helper, who can't toggle, has none in either view", async () => {
+    await openTimeline({ role: "easy_helper" });
+    await waitUntil(isEasy, 4000, "the easy view");
+    expect(document.querySelector("[data-easy-toggle]")).toBeNull();
+    expect(page.getByRole("button", { name: "Full app" }).query()).toBeNull();
+  });
+
+  test("at phone width the title and the button share a row, the button 44 px tall", async () => {
+    await openTimeline({ role: "caretaker", width: 360 });
+    await ready();
+    const button = await found(easyButton);
+    const h1 = document.querySelector("main h1")!.getBoundingClientRect();
+    const b = button.getBoundingClientRect();
+    expect(b.height).toBeGreaterThanOrEqual(44);
+    expect(b.top).toBeLessThan(h1.bottom);
+    expect(b.right).toBeLessThanOrEqual(360);
   });
 });
 
@@ -308,13 +380,15 @@ describe("the empty Today", () => {
     ["a viewer", () => openTimeline({ role: "viewer", fixtures: olderDays })],
     ["a kind filter", () => openTimeline({ role: "caretaker", fixtures: olderDays, query: "?kind=symptom" })],
     [
-      "simple mode",
-      () =>
-        openTimeline({
+      "easy mode",
+      () => {
+        chooseEasyMode();
+        return openTimeline({
           role: null,
           frame: true,
-          fixtures: [fx.member({ userId: TEST_USER.id, role: "caretaker", simpleMode: 1 }), ...olderDays],
-        }),
+          fixtures: [fx.member({ userId: TEST_USER.id, role: "caretaker" }), ...olderDays],
+        });
+      },
     ],
   ])("%s shows no empty-Today prompt", async (_, open) => {
     await open();

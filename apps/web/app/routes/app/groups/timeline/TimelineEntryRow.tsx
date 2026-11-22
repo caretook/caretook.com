@@ -48,8 +48,8 @@ export type EntryViewProps = {
   providers?: LinkedProviderName[];
   /** The timeline's search (`?q=`, parsed): its matches are marked. */
   search?: ParsedSearch;
-  /** Simple mode: the kind icon and the author aren't filters (rows only). */
-  simple?: boolean;
+  /** Easy mode: the kind icon and the author aren't filters (rows only). */
+  easy?: boolean;
 };
 
 /**
@@ -71,18 +71,18 @@ export function TimelineEntryRow({
   liveLabel,
   providers,
   search,
-  simple,
+  easy,
 }: EntryViewProps) {
   const elsewhere = formatTimeInZone(entry.occurredAt, entry.timeZone);
   const cancelled = cancelledLabel(entry);
   return (
     <li
       className={`relative isolate flex items-start gap-2.5 px-3 py-2 ${removing ? "opacity-50" : ""}`}
-      data-simple={simple ? "" : undefined}
+      data-easy={easy ? "" : undefined}
       data-cancelled={cancelled ? "" : undefined}
     >
       {open && <EntryOpenTarget open={open} entry={entry} />}
-      {simple ? <KindIcon kind={entry.kind} size="sm" /> : <KindFilterLink kind={entry.kind} size="sm" />}
+      {easy ? <KindIcon kind={entry.kind} size="sm" /> : <KindFilterLink kind={entry.kind} size="sm" />}
       <time
         dateTime={entry.occurredAt}
         className="text-base-content/70 w-[4.1rem] shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums"
@@ -126,7 +126,7 @@ export function TimelineEntryRow({
             onDelete={onDelete}
           />
         )}
-        {simple ? (
+        {easy ? (
           <span
             className="bg-base-200 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
             data-author={entry.createdBy}

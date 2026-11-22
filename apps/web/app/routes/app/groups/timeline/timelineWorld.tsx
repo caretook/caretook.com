@@ -90,6 +90,14 @@ export const TODAY_COUNT = 5;
 
 export const TIMELINE_URL = `/app/groups/${TEST_GROUP.id}/timeline`;
 
+/**
+ * Your own setting says Easy mode, as this device last loaded it: a regular
+ * role then gets the easy view (an easy role always does). Call it before
+ * the device opens; the device's storage is cleared after each test.
+ */
+export const chooseEasyMode = () =>
+  localStorage.setItem(`caretook:settings:${TEST_USER.id}`, JSON.stringify({ easyMode: "easy" }));
+
 /** Stands in for the entry page: says which entry, and has a Back button (history -1). */
 function EntryProbe() {
   const { entryId } = useParams();
@@ -166,13 +174,13 @@ export const button = (text: string) =>
   [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === text);
 export const view = () => document.querySelector("ol")?.dataset.view;
 
-/** Open the header's View options menu (layout, day summaries, simple view). */
+/** Open the header's View options menu (layout, day summaries). */
 export const openViewOptions = async () => {
   await userEvent.click(document.querySelector<HTMLElement>('button[aria-label="View options"]')!);
   await waitUntil(() => !!document.querySelector('[role="menu"]'), 4000, "the View options menu");
 };
 
-/** Choose an item of the View options menu by its name ("Cards", "Simple view"). */
+/** Choose an item of the View options menu by its name ("Cards"). */
 export const chooseViewOption = async (name: string) => {
   await openViewOptions();
   const item = [...document.querySelectorAll<HTMLElement>('[role="menu"] [role^="menuitem"]')].find((el) =>
@@ -181,6 +189,10 @@ export const chooseViewOption = async (name: string) => {
   if (!item) throw new Error(`no "${name}" in View options`);
   await userEvent.click(item);
 };
+
+/** Press the full timeline's header button "Easy mode": this device switches to the easy view. */
+export const pressEasyMode = () =>
+  userEvent.click(document.querySelector<HTMLElement>('button[data-easy-toggle="easy"]')!);
 
 /** Switch rows/cards in the header's View options menu, and wait for the list. */
 export const setView = async (to: "Rows" | "Cards") => {

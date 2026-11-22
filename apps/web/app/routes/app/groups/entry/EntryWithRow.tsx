@@ -79,6 +79,8 @@ export function EntryWithRow({
   const stored = useMemo(() => toProviders(rows), [rows]);
   const waiting = useMemo(() => (pending.length ? toProviders(pendingRows) : []), [pending, pendingRows]);
   const linked = stored.length ? stored : waiting;
+  // The easy roles can't open a provider's page: their chips are names.
+  const { easyRole } = useGroup();
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const addButton = useRef<HTMLButtonElement>(null);
@@ -120,7 +122,7 @@ export function EntryWithRow({
   const chips: ListChip[] = linked.map((provider) => ({
     id: provider.id,
     label: chipLabel(provider),
-    to: provider.deletedAt ? null : appUrls.provider(groupId, provider.id),
+    to: provider.deletedAt || easyRole ? null : appUrls.provider(groupId, provider.id),
     muted: !!provider.deletedAt,
     ...(canWrite && {
       removeLabel: `Remove ${provider.name}`,

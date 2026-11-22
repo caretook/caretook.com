@@ -6,7 +6,7 @@ import { completeTodo, reopenTodo } from "~/lib/todos/todos.sync";
 
 /**
  * Ticking todos done and reopening them: the one path for every todo tick
- * (the list, the page, Upcoming, the simple card, `LinkedTodos`). Local
+ * (the list, the page, Upcoming, the easy card, `LinkedTodos`). Local
  * writes, so they work offline; each tick offers its own Undo for about
  * 10 s (`TodoUndoStatus` shows them). Each control has its own, so `busy` and
  * `error` are its own.

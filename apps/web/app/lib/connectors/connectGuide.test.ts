@@ -55,6 +55,14 @@ describe("guideView", () => {
     });
   });
 
+  test("the easy roles get no guide at all, and don't count on Devices", () => {
+    const easy = { role: "easy_helper", enabled: true };
+    expect(guideView("group", [easy])).toEqual({ show: "none" });
+    expect(guideView("account", [easy, { role: "easy_viewer", enabled: false }])).toEqual({ show: "none" });
+    expect(guideView("account", [easy, owner])).toEqual({ show: "steps", viewerNote: null });
+    expect(guideView("account", [easy, viewer])).toEqual({ show: "steps", viewerNote: VIEWER_NOTE.account });
+  });
+
   test("a viewer gets the steps with the read-only note", () => {
     expect(guideView("group", [viewer])).toEqual({ show: "steps", viewerNote: VIEWER_NOTE.group });
   });

@@ -70,7 +70,7 @@ describe("auth", () => {
       preferences: {},
       units: DEFAULT_UNITS,
       timelineView: DEFAULT_TIMELINE_VIEW,
-      simpleMode: "group",
+      easyMode: "full",
       daySummary: "highlights",
     });
   });
@@ -83,7 +83,7 @@ describe("me.updatePreferences", () => {
       preferences: { units: { temperature: "c" } },
       units: { ...DEFAULT_UNITS, temperature: "c" },
       timelineView: DEFAULT_TIMELINE_VIEW,
-      simpleMode: "group",
+      easyMode: "full",
       daySummary: "highlights",
     });
     await owner.api.me.updatePreferences({ units: { weight: "kg" } });
@@ -115,7 +115,7 @@ describe("me.updatePreferences", () => {
       { units: { temperature: "k" } },
       { theme: "dark" },
       { timelineView: "grid" },
-      { simpleMode: "sometimes" },
+      { easyMode: "sometimes" },
       { daySummary: "some" },
     ] as never[];
     for (const input of bad) {
@@ -208,7 +208,7 @@ describe("careGroup: group settings", () => {
       expect(await s[role].careGroup.update({ groupId: s.group.id, name: "  Example Family  " })).toEqual({
         id: s.group.id,
         name: "Example Family",
-        simpleTiles: null,
+        easyTiles: null,
       });
       expect((await s.viewer.careGroup.listMine())[0]?.name).toBe("Example Family");
     });

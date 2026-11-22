@@ -1,5 +1,5 @@
 import type { SessionUser } from "~/lib/auth/session";
-import type { SimpleModeState } from "~/lib/assistant/useSimpleMode";
+import type { EasyModeState } from "~/lib/assistant/useEasyMode";
 
 import type { Theme } from "~/lib/app-shell/theme";
 
@@ -22,17 +22,17 @@ const isTheme = (id: string): id is Theme => THEME_ITEMS.some((t) => t.id === id
 /**
  * The header's `user` region: the signed-in user's avatar, opening their
  * account menu. The header (name, email) isn't an item, so it's never focused.
- * In simple mode (`simple`) it's reduced to Settings, "Your care groups"
- * (with `severalGroups`: simple mode has no group menu), "Full app" (unless
+ * In easy mode (`easy`) it's reduced to Settings, "Your care groups"
+ * (with `severalGroups`: easy mode has no group menu), "Full app" (unless
  * locked) and Sign out.
  */
 export function UserMenu({
   user,
-  simple,
+  easy,
   severalGroups,
 }: {
   user: SessionUser;
-  simple?: SimpleModeState | null;
+  easy?: EasyModeState | null;
   severalGroups?: boolean;
 }) {
   const submit = useSubmit();
@@ -52,7 +52,7 @@ export function UserMenu({
   };
   const settings = { id: "settings", label: "Settings", icon: Settings, href: appUrls.settings() };
 
-  if (simple)
+  if (easy)
     return (
       <Menu
         label={`Account menu for ${who}`}
@@ -69,8 +69,8 @@ export function UserMenu({
               ...(severalGroups
                 ? [{ id: "groups", label: "Your care groups", icon: Users, href: appUrls.groupList() }]
                 : []),
-              ...(simple.canToggle
-                ? [{ id: "full-app", label: "Full app", icon: LayoutGrid, onAction: simple.toggle }]
+              ...(easy.canToggle
+                ? [{ id: "full-app", label: "Full app", icon: LayoutGrid, onAction: easy.toggle }]
                 : []),
             ],
           },

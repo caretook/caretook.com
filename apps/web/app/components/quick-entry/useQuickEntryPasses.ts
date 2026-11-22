@@ -13,7 +13,7 @@ const NONE: never[] = [];
  * works offline) and re-evaluated with the clock: each live pass with
  * whether it's due now and how many of its medications are still open
  * today (the parser's `passes`), and today's named passes due now (the
- * one-tap chip, simple mode's Now block). Nothing until the device's rows
+ * one-tap chip, easy mode's Now block). Nothing until the device's rows
  * are read live (`fresh`: never the tile cache's remembered rows), so "gave
  * meds" never means a pass that only looks due.
  */

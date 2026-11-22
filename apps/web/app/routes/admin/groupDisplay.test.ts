@@ -34,8 +34,14 @@ describe("groupPage", () => {
   });
 
   it("offers every settable role but the member's own, never owner", () => {
-    expect(changeRoleOptions("caretaker")).toEqual(["admin", "viewer"]);
-    expect(changeRoleOptions("owner")).toEqual(["admin", "caretaker", "viewer"]);
+    expect(changeRoleOptions("caretaker")).toEqual(["admin", "viewer", "easy_helper", "easy_viewer"]);
+    expect(changeRoleOptions("owner")).toEqual([
+      "admin",
+      "caretaker",
+      "viewer",
+      "easy_helper",
+      "easy_viewer",
+    ]);
   });
 
   it("names the recipient, counts and days", () => {

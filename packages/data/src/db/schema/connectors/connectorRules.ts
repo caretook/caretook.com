@@ -5,6 +5,8 @@
 
 import type { GroupRoleName } from "../../../constants/roles";
 
+import { isEasyRole, isWriterRole } from "../../../constants/roles";
+
 /** What a connection may do: read the group, or read it and add to it. */
 export const CONNECTOR_SCOPES = ["read", "readWrite"] as const;
 export type ConnectorScope = (typeof CONNECTOR_SCOPES)[number];
@@ -40,18 +42,20 @@ export const CONNECTOR_CLIENT_NAME_MAX = 40;
 export const connectorClientName = (name: string | null | undefined) =>
   (name ?? "").replace(/\s+/g, " ").trim().slice(0, CONNECTOR_CLIENT_NAME_MAX).trim() || "AI assistant";
 
-const WRITER_ROLES: readonly GroupRoleName[] = ["owner", "admin", "caretaker"];
-
-/** The scopes a member with `role` may grant, widest last: viewers read only. */
+/**
+ * The scopes a member with `role` may grant, widest last: viewers read only,
+ * and the easy roles none (setup stays with technical members, so a role
+ * change to an easy role cuts a connected assistant off).
+ */
 export const scopesForRole = (role: GroupRoleName | null | undefined): readonly ConnectorScope[] => {
-  if (!role) return [];
-  return WRITER_ROLES.includes(role) ? CONNECTOR_SCOPES : ["read"];
+  if (!role || isEasyRole(role)) return [];
+  return isWriterRole(role) ? CONNECTOR_SCOPES : ["read"];
 };
 
 /**
  * What a grant may do now: what was granted, narrowed by the member's
  * current role (a caretaker demoted to viewer reads only, whatever they
- * granted). Null when they're no longer a member.
+ * granted). Null when they're no longer a member, or have an easy role.
  */
 export const effectiveScope = (
   granted: ConnectorScope,
