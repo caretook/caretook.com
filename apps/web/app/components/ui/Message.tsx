@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 export type MessageTone = "error" | "success" | "warning" | "info";
 
 const TEXT: Record<MessageTone, string> = {
-  error: "text-error",
-  success: "text-success",
-  warning: "text-warning",
+  error: "text-error-ink",
+  success: "text-success-ink",
+  warning: "text-warning-ink",
   info: "",
 };
 

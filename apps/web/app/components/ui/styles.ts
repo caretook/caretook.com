@@ -9,8 +9,8 @@ export const SURFACE = "rounded-box border-base-300 bg-base-100 border shadow-lg
 /** A field's label, and its help, error and warning lines (daisyUI `fieldset`). */
 export const FIELD_LABEL = "fieldset-legend";
 export const FIELD_HELP = "label text-muted whitespace-normal";
-export const FIELD_ERROR = "text-error text-sm";
-export const FIELD_WARNING = "text-warning text-sm";
+export const FIELD_ERROR = "text-error-ink text-sm";
+export const FIELD_WARNING = "text-warning-ink text-sm";
 
 /** A chip: a small rounded button or link; the current one is filled. */
 export const chipClass = (current: boolean) =>
@@ -33,8 +33,8 @@ export const TITLE_PAGE = "text-xl font-semibold";
 export const TITLE_SECTION = "text-base font-semibold";
 /** A sub-heading inside a section. */
 export const TITLE_SUB = "text-sm font-semibold";
-/** The one inline link style (the colour of `link-primary`, underlined, never a button). */
-export const LINK = "link link-primary";
+/** The one inline link style (primary, lifted in dark to keep 4.5:1; underlined, never a button). */
+export const LINK = "link text-primary-ink";
 export const ICON_SM = "size-3.5";
 export const ICON = "size-4";
 export const ICON_LG = "size-5";
