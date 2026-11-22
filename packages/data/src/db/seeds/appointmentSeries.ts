@@ -161,36 +161,42 @@ export const seed = async () => {
       .insert(appointmentSeriesSchema)
       .values({ ...series, ...audits })
       .onConflictDoNothing({ target: appointmentSeriesSchema.id });
-    for (const visit of visits) {
+    // One statement per table, not per row: a seed run is mostly round trips (B-466).
+    if (visits.length) {
       await db
         .insert(timelineEntrySchema)
-        .values({
-          id: visit.id,
-          groupId: series.groupId,
-          recipientId: series.recipientId,
-          ...visit.content,
-          ...audits,
-        })
+        .values(
+          visits.map((visit) => ({
+            id: visit.id,
+            groupId: series.groupId,
+            recipientId: series.recipientId,
+            ...visit.content,
+            ...audits,
+          })),
+        )
         .onConflictDoNothing();
       const doc = noteDocFromText("");
+      const snapshot = encodeNoteDoc(doc);
+      doc.destroy();
       await db
         .insert(noteDocumentSchema)
-        .values({
-          id: visit.id,
-          groupId: series.groupId,
-          subject: "entry",
-          entryId: visit.id,
-          snapshot: encodeNoteDoc(doc),
-          text: "",
-          ...audits,
-        })
+        .values(
+          visits.map((visit) => ({
+            id: visit.id,
+            groupId: series.groupId,
+            subject: "entry" as const,
+            entryId: visit.id,
+            snapshot,
+            text: "",
+            ...audits,
+          })),
+        )
         .onConflictDoNothing({ target: noteDocumentSchema.id });
-      doc.destroy();
     }
-    for (const link of links) {
+    if (links.length) {
       await db
         .insert(timelineEntryProviderSchema)
-        .values({ ...link, ...audits })
+        .values(links.map((link) => ({ ...link, ...audits })))
         .onConflictDoNothing({ target: timelineEntryProviderSchema.id });
     }
   }

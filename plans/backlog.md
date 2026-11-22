@@ -13,7 +13,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
 | `test-gates` | — | — | `.github/workflows/`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `vitest.config.ts`, `scripts/loops/land`, `scripts/loops/check-plan`, `scripts/loops/lib.sh`, `scripts/loops/dispatch`, `scripts/loops/prd.sh`, `scripts/loops/status-extra`, `scripts/backlog/registry` | CI test tiers 0-2, dev red, quarantine, rapid gate, modes (plans/test-gates-prd.md) |
-| `fixes-tooling` | standing, hold | — | `scripts/loops/`, `scripts/backlog/`, `packages/data/src/db/`, `packages/data/test/`, `apps/web/app/components/ui/inScreens.browser.test.tsx`, `apps/web/test/` | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md |
+| `fixes-tooling` | standing, hold | — | — | plan: plans/fixes-tooling-plan.md, rules: plans/fixes-rules.md |
 | `agent-autonomy` | — | `test-gates` | `scripts/loops/land`, `scripts/loops/lib.sh`, `scripts/loops/check-`, `scripts/loops/prompt.sh`, `scripts/loops/prd.sh` | [PRD](agent-autonomy-prd.md), [plan](agent-autonomy-plan.md) (B-503 to B-506, B-516 to B-518): 10 slices, waves (1, 2) → 3 → (4, 5) → 6 → 7 → (8, 9, 10): questions that take their recommendation after 30 minutes (planners' too), a notice board, a machine claim for a landing's full check, the flake rule, flakes filed by the check, a Checked: trailer and a full pass that carries over a dev sync, landing on an unsynced tip, landing notices and the hold. Tooling only. Follow-on: agent-autonomy-2. While test-health runs (its word, 2026-11-22): land no change to what quick or full means (check-plan.mjs, lib.sh checked_ok) or what land accepts in the middle of a test-health landing, only between its waves; never touch scripts/eslint/ or eslint.config.js. |
 | `agent-autonomy-2` | — | — | `scripts/loops/session`, `scripts/loops/context`, `scripts/loops/dispatch`, `scripts/loops/status-extra`, `scripts/loops/prompt.sh`, `scripts/loops/prd.sh`, `scripts/loops/rotate`, `scripts/loops/open-session`, `scripts/loops/recover`, `scripts/loops/tidy`, `scripts/loops/end-session`, `scripts/loops/request` | [PRD](agent-autonomy-2-prd.md), [plan](agent-autonomy-2-plan.md) (B-507, B-508, B-509): 2 slices in 2 waves: a context hook that tells a session past 160k to rotate, sizes in status, the dispatcher's follow-up. Cut from agent-autonomy by its planner. Tooling only |
 | `test-gates-2` | — | `test-gates` | — | CI tiers 3-4: staging candidate, CI browser suites, staging to main gate, required checks (plans/test-gates-prd.md) |
@@ -217,11 +217,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-383 | bug | triaged | sync-safety-2 |  | Repeating todos: reopen finds the successor by dueOn > the reopened todo's due day (todoService laterInChain, and the device's), so a successor rescheduled to the same day or earlier is missed and both rows stay open and repeating |
 | B-384 | bug | triaged | sync-safety-2 |  | Repeating todos: two concurrent completions of the same todo with doneAt on different recipient days both read doneAt null and each insert a different next occurrence; lock and reread the row (or a conditional transition) so only the winner makes the next (todoService.complete) |
 | B-387 | bug | triaged | sync-safety-2 |  | Repeating todos: a stopped chain (successor explicitly deleted) comes back when an offline writer ticks a stale copy of the original: complete leaves it done, but the twin of the next day finds no open row and upsertOccurrence creates it as if from a skip; tell an authorised skip from a stale completion twin |
-| B-388 | bug | ready | fixes-tooling | prd/fixes-tooling | Integration flakes seen in 2026-11-21 full checks: the connector MCP tests (mcpWrites, mcp, readTools .int.test.ts) failed 14 times with 'Connection terminated' in the transcripts, and todoRename.int.test.ts 4 times; find the cause (dropped connections on the shared test Postgres under load?) and fix it |
+| B-388 | bug | landed | fixes-tooling | prd/fixes-tooling | Integration flakes seen in 2026-11-21 full checks: the connector MCP tests (mcpWrites, mcp, readTools .int.test.ts) failed 14 times with 'Connection terminated' in the transcripts, and todoRename.int.test.ts 4 times; find the cause (dropped connections on the shared test Postgres under load?) and fix it |
 | B-394 | bug | staging | fixes-tooling | prd/fixes-tooling | mcp.int.test.ts 'list_timeline: the group's entries in the recipient's zone, with note text, paged at 50' times out at Vitest's 5 s default under load (full check, 5-min load ~21); passes alone 3x |
 | B-398 | change | triaged | ui-kit-4 |  | Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame |
 | B-404 | feature | triaged | staging-ship |  | One command to ship dev to staging: push dev, open the dev into staging PR, wait for Codex's review, triage its findings into the backlog (verified against the code, duplicates noted on the existing item), merge the PR when nothing is a blocker, and notify the user only when something is |
-| B-405 | bug | ready | fixes-tooling | prd/fixes-tooling | Worker database names cut the base to 59 characters, so two worktrees of a long topic (~46+ chars) share their _w<n> copies: concurrent checks DROP each other's databases and rm drops both; keep a short hash of the full base when shortening, and match it in isOwnDatabase and test-db.sh |
+| B-405 | bug | landed | fixes-tooling | prd/fixes-tooling | Worker database names cut the base to 59 characters, so two worktrees of a long topic (~46+ chars) share their _w<n> copies: concurrent checks DROP each other's databases and rm drops both; keep a short hash of the full base when shortening, and match it in isOwnDatabase and test-db.sh |
 | B-406 | feature | triaged | inbox-agent |  | Set priority in the inbox, not the backlog: the user orders a short 'Next up' list in plans/inbox.md (plain lines, no ids or fields) and the dispatcher reads it as the order to plan and run, keeping the PRD table's row order in step; the user opens the backlog only when an agent asks |
 | B-407 | feature | triaged | self-recovery |  | Recover by itself and land safely: a launchd job runs pnpm prd recover --wait at login and when work is recorded as running but no session is alive; the dispatcher slows down before a usage limit (starts no slice or planner, drains); a landing or migration cut off halfway leaves a step-in-progress marker so the resumed session finishes or undoes it |
 | B-408 | feature | triaged | worker-watch |  | Stuck workers handled by the orchestrator: it tracks how long its commands and slice agents have run against their usual time, stops and restarts a stuck one on its own judgement (once), and for a judgement call asks a fresh skeptic agent first and the user through the asks queue only if that doesn't settle it |
@@ -248,13 +248,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-441 | bug | staging | fixes-tooling | prd/fixes-tooling | pnpm prd tidy: a missing or failing lsof reads as no process in any worktree, so --yes can remove an active one |
 | B-442 | bug | triaged | fixes-tooling |  | pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check |
 | B-443 | bug | triaged | fixes-tooling |  | land.sh to-test file lists no items after a local landing: items are already landed, not ready, once dev has the merge |
-| B-444 | bug | ready | fixes-tooling | prd/fixes-tooling | docs_only counts a code file renamed to .md as docs only (git diff --name-only shows only the rename's destination) |
-| B-445 | bug | ready | fixes-tooling | prd/fixes-tooling | Agents wait on checks with `until ! pgrep -f "prd check"`, which never exits: it matches its own shell and every orchestrator whose prompt mentions `pnpm prd check` |
+| B-444 | bug | landed | fixes-tooling | prd/fixes-tooling | docs_only counts a code file renamed to .md as docs only (git diff --name-only shows only the rename's destination) |
+| B-445 | bug | landed | fixes-tooling | prd/fixes-tooling | Agents wait on checks with `until ! pgrep -f "prd check"`, which never exits: it matches its own shell and every orchestrator whose prompt mentions `pnpm prd check` |
 | B-446 | bug | triaged | fixes-tooling |  | browser.test.mjs 'kills a spec at its cap, worker and all, and retries it once' fails under heavy load (load 47), passes alone 3x |
 | B-447 | bug | triaged | fixes-tooling |  | to-test file: 'What wasn't checked' repeats the quick-check line, and a tooling-only landing still gets the app's dev URL and seed sign-ins under 'What to try' |
 | B-448 | chore | triaged | ui-kit-4 |  | Rename the profile's *Card components and files (ProfileCards.tsx, ConditionsCard, DetailsCards, EmergencyCard, VitalAveragesCard) now that they render bands, not cards |
-| B-450 | bug | ready | fixes-tooling | prd/fixes-tooling | Flaky under load: roles.int.test.ts beforeAll (applyRoles) times out at the 10s hookTimeout in a full check at load ~130; passes alone 3x |
-| B-451 | bug | ready | fixes-tooling | prd/fixes-tooling | Tooling-only landings run no eslint: the check gate's 'none needed' (Markdown, scripts/loops, scripts/backlog, .githooks) lets a lint error into dev, and every synced branch's full check then fails |
+| B-450 | bug | landed | fixes-tooling | prd/fixes-tooling | Flaky under load: roles.int.test.ts beforeAll (applyRoles) times out at the 10s hookTimeout in a full check at load ~130; passes alone 3x |
+| B-451 | bug | landed | fixes-tooling | prd/fixes-tooling | Tooling-only landings run no eslint: the check gate's 'none needed' (Markdown, scripts/loops, scripts/backlog, .githooks) lets a lint error into dev, and every synced branch's full check then fails |
 | B-452 | bug | triaged | fixes-tooling |  | Dispatcher: a start or plan whose new.sh fails after making the worktree leaves it with no managed record, so later ticks treat it as opened by hand and it holds a slot for good |
 | B-453 | bug | triaged | fixes-tooling |  | Dispatcher: a 'hold the topic' answer is consumed and the reopen count cleared even when the backlog write fails, so the same tick reopens the session |
 | B-454 | bug | triaged | fixes-tooling |  | Dispatcher lock: two dispatchers starting together over a stale lock can both take it (the takeover unlinks the path from an earlier pid read) |
@@ -269,7 +269,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-463 | bug | triaged | fixes-tooling |  | pnpm prd recover after a crash loses the dispatcher's restart intent when its reopen fails: clear-lock deletes the stale lock first, and no record is kept |
 | B-464 | bug | triaged | fixes-tooling |  | The backlog prompt's hold line (pnpm backlog prd set <topic> flags=hold) replaces the row's flags, dropping standing or alone |
 | B-465 | bug | triaged | fixes-tooling |  | pnpm prd down keeps stopping servers, stacks and the test Postgres when the dispatcher won't stop in time (mid new.sh), racing a start against the shutdown |
-| B-466 | bug | ready | fixes-tooling | prd/fixes-tooling | resetStaging.int.test.ts 'wipes everything but real sign-ins, reseeds' times out at 30 s under load (passes alone in 3-10 s) |
+| B-466 | bug | landed | fixes-tooling | prd/fixes-tooling | resetStaging.int.test.ts 'wipes everything but real sign-ins, reseeds' times out at 30 s under load (passes alone in 3-10 s) |
 | B-467 | feature | triaged | asks-relay |  | The backlog session is the go-between for every agent's questions: agents file to the asks queue and wait, the backlog session ranks them by how soon an answer blocks real work, asks the user itself and decides which ones ping the phone |
 | B-468 | bug | triaged | fixes-tooling |  | open-session.sh fails when iTerm2 has windows but no current window: the dispatcher counts it as a planner death |
 | B-471 | feature | in-progress | ui-kit-3 | prd/ui-kit-3 | Overlay motion: menus, popovers, dialogs and toasts fade in and out, and a sheet closes with the reverse of its opening |
@@ -325,7 +325,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-531 | chore | triaged | test-gates |  | Test-gate modes: rapid (the default) and pre-deployment (the dispatcher runs only launch-blocking topics, landings wait for dev green in CI, the candidate takes only fixes); one command sets the mode and every tool reads it |
 | B-532 | chore | triaged | test-gates-2 |  | Staging candidate: cut a release candidate branch from a green dev commit and open the PR into staging from it; CI runs the lean browser suite on the Docker stack against that fixed commit; only fixes go onto it |
 | B-533 | chore | triaged | test-gates-2 |  | staging to main gate: CI runs the full browser suite, a second time zone and repeated runs to catch flakes; a required status check on main always, on staging only in pre-deployment mode |
-| B-534 | bug | ready | fixes-tooling | prd/fixes-tooling | Tooling tests that call new.sh without CARETOOK_LOAD_GATE=off wait on the real machine's load gate (15 s polls up to 600 s) and time out under load; also registry.cli.test.mjs 'doctor reports…' and rotate.test.mjs 'sets done only for a merged branch…' timed out at 20 s once under load |
+| B-534 | bug | landed | fixes-tooling | prd/fixes-tooling | Tooling tests that call new.sh without CARETOOK_LOAD_GATE=off wait on the real machine's load gate (15 s polls up to 600 s) and time out under load; also registry.cli.test.mjs 'doctor reports…' and rotate.test.mjs 'sets done only for a merged branch…' timed out at 20 s once under load |
 | B-535 | change | triaged | fixes-ui |  | Hour-first time picker: defaults to the current hour at :00, minutes in 15-minute steps (00/15/30/45), works on phones; for medication dose times, pass time, todo due time, series edit times and event/appointment Starts/Ends |
 | B-536 | bug | triaged | fixes-ui |  | Danger text fails 4.5:1 in light: Menu's danger item and buttonClass's dangerQuiet use text-error (about 2.9:1); DateTimeField's placeholder segments at 60% opacity are a little under 4.5:1 on the light field fill |
 | B-537 | change | triaged | fixes-ui |  | One word in the app: Event, never Appointment; 'Upcoming event' / 'Past event' only where the two mix and timing isn't clear (an event's page heading, the Today card's next line, the todo form's event picker) |
@@ -338,11 +338,16 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-544 | chore | triaged | fixes-nit |  | vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405 |
 | B-545 | chore | triaged | fixes-tooling |  | rm.sh reads pnpm backlog prd list --json twice (lines ~57 and ~71); reuse $rows to save a node start per rm |
 | B-546 | change | staging | fixes-ui |  | Quick entry's box and the live notes editor take the text-box field fill in both themes (ui-kit-3 kept them on their own surfaces) |
-| B-547 | bug | in-progress | fixes-tooling | prd/fixes-tooling | Dev red: inScreens.browser.test.tsx 'the date field at 360 > in the symptom sheet' fails 3/3 (expected the calendar grid to be null, got the June 2027 grid) since sync-safety's landing 30f33275 |
+| B-547 | bug | landed | fixes-tooling | prd/fixes-tooling | Dev red: inScreens.browser.test.tsx 'the date field at 360 > in the symptom sheet' fails 3/3 (expected the calendar grid to be null, got the June 2027 grid) since sync-safety's landing 30f33275 |
 | B-548 | feature | triaged | tags |  | Group-wide tags on every record (entries, todos, providers, medications, events), filterable |
 | B-549 | feature | triaged | symptom-catalog |  | Symptoms become a catalog type: a default set for every group, writers add new ones quickly with a similar-name check; filter the timeline by several symptoms at once |
 | B-550 | feature | triaged | todo-subtasks |  | Nested todos: subtasks up to 3 levels deep, a parent completes when its last subtask is done |
 | B-551 | feature | triaged | agent-autonomy-2 |  | 'bye' for every agent role: a message of just 'bye' runs a handover check; nothing left means the session closes itself, otherwise it asks the user what to do with what's left |
+| B-552 | bug | triaged | fixes-tooling |  | Flaky: print.browser.test.tsx 'the Print menu offers both sheets' clicks getByLabel('Print') while the closing menu, with the same label, is still fading, so the locator matches two elements |
+| B-553 | change | triaged | test-gates |  | Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent |
+| B-554 | change | triaged | test-gates |  | CI runs only on request: the orchestrator asks for a tier (static, unit, integration, components, full) on any branch, and the landing gate checks for a green run of the tier it declared; no automatic run on a PR or a push |
+| B-555 | chore | triaged | test-gates |  | The check log records which step failed and which test files, and a check has a time limit (four quick runs hung 28 to 93 minutes; the log keeps only the exit code) |
+| B-556 | chore | triaged | test-gates |  | Faster static steps in a check: typecheck, lint and format take 2.2 minutes run one after another on a quiet machine (lint 79 s, typecheck 38 s, format 15 s), most of the new slice check's 2.5 minutes |
 
 ## Items
 
@@ -1477,7 +1482,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-388 · bug · Integration flakes seen in 2026-11-21 full checks: the connector MCP tests (mcpWrites, mcp, readTools .int.test.ts) failed 14 times with 'Connection terminated' in the transcripts, and todoRename.int.test.ts 4 times; find the cause (dropped connections on the shared test Postgres under load?) and fix it
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 3f739326
@@ -1522,7 +1527,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-405 · bug · Worker database names cut the base to 59 characters, so two worktrees of a long topic (~46+ chars) share their _w<n> copies: concurrent checks DROP each other's databases and rm drops both; keep a short hash of the full base when shortening, and match it in isOwnDatabase and test-db.sh
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 3f739326
@@ -1798,7 +1803,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-444 · bug · docs_only counts a code file renamed to .md as docs only (git diff --name-only shows only the rename's destination)
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 3f739326
@@ -1807,7 +1812,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-445 · bug · Agents wait on checks with `until ! pgrep -f "prd check"`, which never exits: it matches its own shell and every orchestrator whose prompt mentions `pnpm prd check`
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 3f739326
@@ -1846,7 +1851,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-450 · bug · Flaky under load: roles.int.test.ts beforeAll (applyRoles) times out at the 10s hookTimeout in a full check at load ~130; passes alone 3x
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 3f739326
@@ -1858,7 +1863,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-451 · bug · Tooling-only landings run no eslint: the check gate's 'none needed' (Markdown, scripts/loops, scripts/backlog, .githooks) lets a lint error into dev, and every synced branch's full check then fails
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 4adeb2da
@@ -2002,7 +2007,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-466 · bug · resetStaging.int.test.ts 'wipes everything but real sign-ins, reseeds' times out at 30 s under load (passes alone in 3-10 s)
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 3f739326
@@ -2558,7 +2563,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-534 · bug · Tooling tests that call new.sh without CARETOOK_LOAD_GATE=off wait on the real machine's load gate (15 s polls up to 600 s) and time out under load; also registry.cli.test.mjs 'doctor reports…' and rotate.test.mjs 'sets done only for a merged branch…' timed out at 20 s once under load
 
-- status: ready
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
 - commit: 3f739326
@@ -2681,12 +2686,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-547 · bug · Dev red: inScreens.browser.test.tsx 'the date field at 360 > in the symptom sheet' fails 3/3 (expected the calendar grid to be null, got the June 2027 grid) since sync-safety's landing 30f33275
 
-- status: in-progress
+- status: landed
 - prd: fixes-tooling
 - owner: prd/fixes-tooling
-- commit:
+- commit: e0c21bbf
 
 - 2026-11-22 (prd/fixes-tooling): Found by fixes-tooling's wave 2 gate (2026-11-22): passes in the full check on 99ecc1c2 (dev with ui-kit-3 wave 1 and B-546), fails 3/3 alone at load 5 after merging dev at 30f33275 (sync-safety wave 1, which changed apps/web/test/fixtures.ts and lib/sync/). Reproduced with dev's code alone (fixes-tooling's packages changes reverted). Likely sync-safety's fixture or sync changes meeting ui-kit-3's overlay fades (93cae190).
+- 2026-11-22 (prd/fixes-tooling): Cause: React Aria hides a popover with inline styles until it is placed; motion-overlay (ui-kit-3) faded to that hiding, React Aria cancels that fade on reveal, and an Escape in that window left the exit waiting on the cancelled fade forever: an invisible 314x246 panel stayed in the DOM and took taps. Real app bug, not only a test race. Fix (e0c21bbf): no transition on motion-overlay while the inline hiding is on (app.css), with a regression test in overlayMotion.browser.test.tsx that failed before the fix. inScreens 5/5 after. sync-safety only shifted the timing: reverting its sync files or fixtures singly did not stop the failure. Separate: print.browser.test.tsx 'the Print menu offers both sheets' failed once in the check (clicks getByLabel('Print') while the closing menu, same label, is still fading: strict-mode violation); passed 3/3 alone and in the rerun; not fixed here.
 
 ### B-548 · feature · Group-wide tags on every record (entries, todos, providers, medications, events), filterable
 
@@ -2724,3 +2730,48 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): From the user (backlog session, 2026-11-22): every agent type needs this; details are the agent's. Proposed shape: one shared command (e.g. pnpm prd bye, or a step every role doc points at) that checks the handover state for the session's role: uncommitted or unpushed work, a worktree or branch still out, leases and dev servers held, running background jobs or subagents, open asks it filed, peers waiting on a promised reply, notices to act on, memory to update. Clean: write the hand-off line (what was done, what waits), release leases, run pnpm prd end (or the role's end), and close the session. Not clean: one AskUserQuestion per open thing (finish it, hand it off, drop it), then check again. Each role doc (loop, orchestrator, planner, backlog, hotfix, recovery) names its own extra checks. Fits agent-autonomy-2's session work (recorded sessions B-437, rotate --self B-514); that plan is written, so its orchestrator adds a slice or its planner folds it in.
+
+### B-552 · bug · Flaky: print.browser.test.tsx 'the Print menu offers both sheets' clicks getByLabel('Print') while the closing menu, with the same label, is still fading, so the locator matches two elements
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (prd/fixes-tooling): Found at fixes-tooling wave 2's gate (2026-11-22): failed 1 of 5811 on e0c21bbf, passed 3/3 alone and in the rerun. A race from ui-kit-3's overlay fades (93cae190); other tests that reopen a menu by label may share it.
+
+### B-553 · change · Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent
+
+- status: triaged
+- prd: test-gates
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): From the 2026-11-22 quick-check triage with the user (check log: 111 quick runs, median 7.9 min, 30 failed). The slice check itself ships in hotfix/fast-gate; test-gates owns the orchestrator side: agents stay idle and addressable until the wave's run is back, release their stack at hand-off, and the orchestrator does not rotate before then.
+
+### B-554 · change · CI runs only on request: the orchestrator asks for a tier (static, unit, integration, components, full) on any branch, and the landing gate checks for a green run of the tier it declared; no automatic run on a PR or a push
+
+- status: triaged
+- prd: test-gates
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): From the 2026-11-22 quick-check triage with the user (check log: 111 quick runs, median 7.9 min, 30 failed). Replaces the every-push and every-PR triggers of B-341 and the rapid gate of B-528. The dev to staging promotion is the gate for dev (test-gates-2).
+
+### B-555 · chore · The check log records which step failed and which test files, and a check has a time limit (four quick runs hung 28 to 93 minutes; the log keeps only the exit code)
+
+- status: triaged
+- prd: test-gates
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): From the 2026-11-22 quick-check triage with the user (check log: 111 quick runs, median 7.9 min, 30 failed).
+
+### B-556 · chore · Faster static steps in a check: typecheck, lint and format take 2.2 minutes run one after another on a quiet machine (lint 79 s, typecheck 38 s, format 15 s), most of the new slice check's 2.5 minutes
+
+- status: triaged
+- prd: test-gates
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): From the 2026-11-22 quick-check triage with the user (check log: 111 quick runs, median 7.9 min, 30 failed). Lint and typecheck both run typegen, so they cannot simply run side by side; ESLint's cache is unsafe with type-aware rules. Measure before choosing.

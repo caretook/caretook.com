@@ -34,21 +34,41 @@ type Row = Record<string, unknown>;
 
 const rows = async (query: ReturnType<typeof sql>) => (await getDb().execute(query)).rows as Row[];
 
+// The grants are read from pg_catalog's ACLs, not information_schema: its
+// column_privileges, correlated against role_table_grants, took about 2.5 s a
+// role (B-450). These return the same rows: the views' relkinds and privilege
+// types, the owner's default ACL when a table has none, and only grants whose
+// grantor or grantee the connected role can use (as the views filter them).
+const VISIBLE = sql`(pg_has_role(g.grantor, 'USAGE') OR pg_has_role(g.grantee, 'USAGE'))`;
+
 /** What `names`' roles and publication hold now. */
 export const rolesSummary = async (names: RoleNames = DEFAULT_ROLE_NAMES): Promise<RolesSummary> => {
   const roles: RoleSummary[] = [];
   for (const role of [names.migrations, names.app, names.replication]) {
     const privileges = await rows(sql`
-      SELECT privilege_type, count(*)::int AS n FROM information_schema.role_table_grants
-      WHERE grantee = ${role} AND table_schema = 'public' GROUP BY privilege_type`);
+      SELECT g.privilege_type, count(*)::int AS n
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      CROSS JOIN LATERAL aclexplode(coalesce(c.relacl, acldefault('r', c.relowner))) g
+      JOIN pg_roles r ON r.oid = g.grantee
+      WHERE r.rolname = ${role} AND n.nspname = 'public' AND c.relkind IN ('r', 'v', 'f', 'p')
+      AND g.privilege_type IN ('INSERT', 'SELECT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER')
+      AND ${VISIBLE}
+      GROUP BY g.privilege_type`);
+    // Column-level SELECT grants on tables the role can't SELECT whole.
     const columns = await rows(sql`
-      SELECT table_name, column_name FROM information_schema.column_privileges
-      WHERE grantee = ${role} AND table_schema = 'public' AND privilege_type = 'SELECT'
+      SELECT c.relname AS table_name, a.attname AS column_name
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped AND a.attacl IS NOT NULL
+      CROSS JOIN LATERAL aclexplode(a.attacl) g
+      JOIN pg_roles r ON r.oid = g.grantee
+      WHERE r.rolname = ${role} AND n.nspname = 'public' AND c.relkind IN ('r', 'v', 'f', 'p')
+      AND g.privilege_type = 'SELECT' AND ${VISIBLE}
       AND NOT EXISTS (
-        SELECT 1 FROM information_schema.role_table_grants t
-        WHERE t.grantee = ${role} AND t.table_schema = 'public'
-        AND t.table_name = column_privileges.table_name AND t.privilege_type = 'SELECT')
-      ORDER BY table_name, column_name`);
+        SELECT 1 FROM aclexplode(coalesce(c.relacl, acldefault('r', c.relowner))) g
+        WHERE g.grantee = r.oid AND g.privilege_type = 'SELECT' AND ${VISIBLE})
+      ORDER BY c.relname, a.attname`);
     const attrs = await rows(sql`
       SELECT rolreplication,
         has_schema_privilege(${role}, 'public', 'CREATE') AS can_create
