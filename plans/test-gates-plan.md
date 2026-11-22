@@ -13,7 +13,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242. B-53
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** wave 1 (slices 1 and 2) landed in dev as adce90ee through PR #71 on 2026-11-22: full check on 0c91997, Codex clean, docs folded, slice worktrees removed. **Next: wave 2, slice 3, then slice 8 on top of it** (both edit `ci.yml` and `vitest.config.ts`). Run both on opus. Start with `pnpm prd sync`.
+**Now:** wave 1 (slices 1 and 2) landed in dev as adce90ee through PR #71 on 2026-11-22: full check on 0c91997, Codex clean, docs folded, slice worktrees removed. **Wave 2 is running:** slice 3 started on opus (worktree `.loops/test-gates-3`, from 47e453ef, level with dev). Slice 8 starts on opus once slice 3 is merged (both edit `ci.yml` and `vitest.config.ts`).
 
 **Open issues:**
 
@@ -31,7 +31,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242. B-53
 | ----- | ---- | ------------- | ------------------------------------------- |
 | 1     | 1    | merged (opus) | 98a36dd4 (5eb596a9)                         |
 | 2     | 1    | merged (opus) | 34b157fb (80a35650)                         |
-| 3     | 2    | —             | —                                           |
+| 3     | 2    | started opus  | —                                           |
 | 4     | 3    | —             | —                                           |
 | 5     | 4    | —             | —                                           |
 | 6     | 5    | —             | —                                           |
