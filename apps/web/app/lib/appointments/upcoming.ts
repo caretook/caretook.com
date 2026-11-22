@@ -41,19 +41,38 @@ export const entryTiming = (entry: TimedEntry, now: Date): EntryTiming => {
 export const isUpcoming = (entry: TimedEntry, now: Date) => entryTiming(entry, now) !== "past";
 
 /**
- * Upcoming's order, as a sort comparator: soonest day first, all-day items
- * first within their day, then by start, then by id (a stable tie-break).
- * An entry's day is its calendar day in its own zone.
+ * The day an entry is listed under, and the zone its day is in: an all-day
+ * entry's own day (in its own zone, where its day was chosen); a timed one's
+ * day where the viewer is. With no viewer zone, every entry's own zone.
  */
-export const upcomingOrder = (a: TimedEntry, b: TimedEntry) => {
-  const dayA = localDate(a.occurredAt, a.timeZone);
-  const dayB = localDate(b.occurredAt, b.timeZone);
-  if (dayA !== dayB) return dayA < dayB ? -1 : 1;
-  if (!!a.allDay !== !!b.allDay) return a.allDay ? -1 : 1;
-  const byStart = ms(a.occurredAt) - ms(b.occurredAt);
-  if (byStart !== 0) return byStart;
-  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+export const listedDay = (entry: TimedEntry, viewerZone?: string) => {
+  const zone = entry.allDay || !viewerZone ? entry.timeZone : viewerZone;
+  return { key: localDate(entry.occurredAt, zone), zone };
 };
+
+/**
+ * Upcoming's order for a viewer, as a sort comparator: soonest day first
+ * (the `listedDay` a list groups by, so each day's items stay in time order
+ * when entries are in other zones), all-day items first within their day,
+ * then by start, then by id (a stable tie-break).
+ */
+export const upcomingOrderIn =
+  (viewerZone?: string) =>
+  (a: TimedEntry, b: TimedEntry): number => {
+    const dayA = listedDay(a, viewerZone).key;
+    const dayB = listedDay(b, viewerZone).key;
+    if (dayA !== dayB) return dayA < dayB ? -1 : 1;
+    if (!!a.allDay !== !!b.allDay) return a.allDay ? -1 : 1;
+    const byStart = ms(a.occurredAt) - ms(b.occurredAt);
+    if (byStart !== 0) return byStart;
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  };
+
+/**
+ * Upcoming's order with each entry's day in its own zone, for lists that
+ * aren't split into the viewer's days (the Next strip, an event's todos).
+ */
+export const upcomingOrder = upcomingOrderIn();
 
 /** The items still upcoming (or in progress) at `now`, in Upcoming's order. */
 export const upcomingItems = <T extends TimedEntry>(items: readonly T[], now: Date) =>
