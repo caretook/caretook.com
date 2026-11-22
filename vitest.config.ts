@@ -121,6 +121,10 @@ export default defineConfig({
             "loops/check-plan.test.mjs",
           ],
           testTimeout: 20_000,
+          // Off for every spawned script (they pass process.env on): new.sh and
+          // check-run.sh would otherwise poll the real machine's load, 15 s at a
+          // time for up to 600 s. The gate's own tests set it back to "".
+          env: { CARETOOK_LOAD_GATE: "off" },
         },
       },
       {

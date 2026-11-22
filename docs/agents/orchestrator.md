@@ -58,7 +58,7 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 
 `pnpm prd land` and `ready` accept a tip on one of these, and say which (`lib.sh`, `checked_ok`, `checked_how`):
 
-- **None needed:** everything `dev...<tip>` changes is Markdown, `scripts/loops/`, `scripts/backlog/` or `.githooks/`; later commits of only those also keep an earlier pass. Still run `pnpm test:tooling`.
+- **None needed:** everything `dev...<tip>` changes is Markdown, `scripts/loops/`, `scripts/backlog/` or `.githooks/`; later commits of only those also keep an earlier pass. Still run `pnpm test:tooling` (it lints changed tooling files first).
 - **Full:** `pnpm prd check` (`pnpm check`, then `pnpm build:budget`: the entry and `/app` shell chunk ceilings in `scripts/build/budget.json`) passed on the tip.
 - **Quick:** `pnpm prd check --quick "<why>"` passed on the tip: typecheck, lint, format, the tests related to the diff since the last full pass, the always-run list (tests that read files by path), the check-areas lint and the docs budget; it prints how many test files it ran and warns above half. The reason is shown at landing.
 

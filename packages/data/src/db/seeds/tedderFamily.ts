@@ -12,7 +12,7 @@ import type {
 import type { SeedEntry } from "./timelineEntries";
 import type { SeedProvider } from "./providers";
 
-import { hashPassword } from "better-auth/crypto";
+import { seedPasswordHash } from "./accounts";
 import { inArray } from "drizzle-orm";
 import { SYSTEM_USER } from "../../constants";
 import { getDb } from "../client";
@@ -841,7 +841,7 @@ export const seed = async () => {
 
   const password = process.env.SEED_USER_PASSWORD;
   if (password) {
-    const hash = await hashPassword(password);
+    const hash = await seedPasswordHash(password);
     await db
       .insert(accountSchema)
       .values(users.map((u) => ({ userId: u.id, providerId: "credential", accountId: u.id, password: hash })))

@@ -1,4 +1,3 @@
-import { hashPassword } from "better-auth/crypto";
 import { eq } from "drizzle-orm";
 import { SYSTEM_USER } from "../../constants";
 import { hashInviteToken } from "../../models/careGroupInvite/careGroupInviteModel";
@@ -12,6 +11,7 @@ import {
   CONSENT_VERSION,
   userSchema,
 } from "../schema";
+import { seedPasswordHash } from "./accounts";
 import { DEV_GROUP_ID } from "./careGroups";
 
 // Invites for "Dev Family" (invites slice 4), so the Members page has
@@ -61,7 +61,7 @@ export const seed = async () => {
         userId: joiner.id,
         providerId: "credential",
         accountId: joiner.id,
-        password: await hashPassword(password),
+        password: await seedPasswordHash(password),
       })
       .onConflictDoNothing({ target: [accountSchema.providerId, accountSchema.accountId] });
   }
