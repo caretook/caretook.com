@@ -4,18 +4,24 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/agent-autonomy` (slice commits) |
-| ----- | ---- | ----- | ----------------------------------------------- |
-| 1     | 1    | —     | —                                               |
-| 2     | 1    | —     | —                                               |
-| 3     | 2    | —     | —                                               |
-| 4     | 3    | —     | —                                               |
-| 5     | 3    | —     | —                                               |
-| 6     | 4    | —     | —                                               |
-| 7     | 5    | —     | —                                               |
-| 8     | 6    | —     | —                                               |
-| 9     | 6    | —     | —                                               |
-| 10    | 6    | —     | —                                               |
+| Slice | Wave | State         | Merge into `prd/agent-autonomy` (slice commits) |
+| ----- | ---- | ------------- | ----------------------------------------------- |
+| 1     | 1    | landed (opus) | 55275f08 (d759b24e)                             |
+| 2     | 1    | landed (opus) | b3877be1 (142fa3d7)                             |
+| 3     | 2    | —             | —                                               |
+| 4     | 3    | —             | —                                               |
+| 5     | 3    | —             | —                                               |
+| 6     | 4    | —             | —                                               |
+| 7     | 5    | —             | —                                               |
+| 8     | 6    | —             | —                                               |
+| 9     | 6    | —             | —                                               |
+| 10    | 6    | —             | —                                               |
+
+**Held after wave 1 by the user** (2026-11-22, via the backlog session; the registry row is flagged `hold`), pending the CI test-gates plan; waves 2-6 to be rescoped. Land wave 1, start no wave 2 slice, then `pnpm prd rm agent-autonomy` (frees the hot files for the test-gates topic; slices 3-10 stay open here, so the row stays held, not done) and end the session without rotating.
+
+**Landing mode:** run everything through (started by the dispatcher, 2026-11-22): start every ready slice, land each green wave, clean up; ask only real questions via `pnpm prd ask`. test-health runs beside this PRD: waves 3 to 6 land only between its waves (see _Other topics_).
+
+**Now:** wave 1 landed in dev as 0e38a6e7 through PR #58 (2026-11-22; Codex clean on d9ee61f after one round: the P1 fixed in 7ac8b5b1, P2s filed as B-525 and B-526; docs folded). Held: worktree removed with `pnpm prd rm`; slices 3-10 not started. A resumed orchestrator starts from wave 2 once the user rescopes it after the CI test-gates plan.
 
 **Backlog:** claim B-503 when slice 1 starts and `done` it when slice 1 merges; B-506 with slice 2; B-504 when slice 3 starts, `done` when slice 4 merges; B-505 when slice 5 starts, `done` when slice 6 merges; B-517 when slice 7 starts, `done` when slice 8 merges; B-518 with slice 9; B-516 with slice 10.
 
