@@ -101,10 +101,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-183 | chore | triaged | hosting |  | Mask manual Actions' inputs in public run logs before production (staff emails, Database access and Rotate JWT keys reasons) |
 | B-196 | feature | triaged | connectors-2 |  | List Caretook in Anthropic's connector directory and ChatGPT's apps directory, for one-click connecting |
 | B-209 | feature | triaged | i18n |  | react-i18next or some other internationalization library to support multiple languages for all text… |
-| B-221 | feature | in-progress | simple-mode | prd/simple-mode | locked simple mode is really confusing. We may want to just add a new user type at this point for… |
+| B-221 | feature | ready | simple-mode | prd/simple-mode | locked simple mode is really confusing. We may want to just add a new user type at this point for… |
 | B-229 | bug | staging | quick-fixes | prd/quick-fixes | on timeline page, header and Today section should be in same column width as the rest of the… |
 | B-231 | bug | staging | quick-fixes | prd/quick-fixes | "Nothing logged today yet." message should be in a border box like a timeline entry box to match… |
-| B-236 | bug | in-progress | simple-mode | prd/simple-mode | In locked simple mode, SimpleNext's 'See all' (Upcoming) and task links look clickable but bounce back to the timeline: lockAllows only permits the timeline and entry routes |
+| B-236 | bug | ready | simple-mode | prd/simple-mode | In locked simple mode, SimpleNext's 'See all' (Upcoming) and task links look clickable but bounce back to the timeline: lockAllows only permits the timeline and entry routes |
 | B-239 | bug | triaged | fixes-tooling |  | pnpm prd review: --json mode prints progress lines (asked Codex…, waiting) on stdout, so its output isn't valid JSON |
 | B-240 | bug | triaged | fixes-tooling |  | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
 | B-241 | bug | triaged | fixes-tooling |  | codex-review: PR_QUERY reads only the first 100 review threads (and 50 comments each), so a PR with more could read as clean |
@@ -257,7 +257,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-397 | change | landed | ui-kit | prd/ui-kit | Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages |
 | B-398 | change | triaged | ui-kit-2 |  | Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame |
 | B-399 | bug | staging | ui-kit | prd/ui-kit | Bottom menu on mobile need a better deign. I like floating menus. It needs to be a different bg… |
-| B-400 | change | in-progress | simple-mode | prd/simple-mode | Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the… |
+| B-400 | change | ready | simple-mode | prd/simple-mode | Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the… |
 | B-401 | bug | staging | check-speed | prd/check-speed | check-run.sh's load reading can carry a blank line on Linux (sysctl fails under pipefail before the uptime fallback), splitting a check-times.log record across lines; normalise it to one number |
 | B-402 | bug | staging | check-speed | prd/check-speed | pnpm test:tooling runs only tooling:unit, so a tooling-only change to checks.mjs, check-areas.mjs, sync-matrix or check-times.mjs passes the docs-and-tooling gate without its own tests (they live in scripts:unit) |
 | B-403 | feature | staging | orchestration-2 | prd/orchestration-2 | A cleanup agent every few hours (pnpm prd tidy): finds finished sessions still open, finished worktrees and branches, and other leftovers; removes the safe ones and reports the rest |
@@ -467,10 +467,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-221 · feature · locked simple mode is really confusing. We may want to just add a new user type at this point for…
 
-- status: in-progress
+- status: ready
 - prd: simple-mode
 - owner: prd/simple-mode
-- commit:
+- commit: 2152796a
 
 - 2026-11-21 (prd/medications-3): From the inbox: locked simple mode is really confusing. We may want to just add a new user type at this point for locked simple mode. Or just review and fix all of the nits.
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): a simple-mode PRD to write. Its interview decides between a new member type for locked simple mode and fixing the nits (touches roles and permissions).
@@ -498,10 +498,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-236 · bug · In locked simple mode, SimpleNext's 'See all' (Upcoming) and task links look clickable but bounce back to the timeline: lockAllows only permits the timeline and entry routes
 
-- status: in-progress
+- status: ready
 - prd: simple-mode
 - owner: prd/simple-mode
-- commit:
+- commit: 2152796a
 
 - 2026-11-21 (Robert Bo Davis): From Codex's review of PR 9 (dev → staging), checked against dev 2026-11-21: Codex P2. Belongs with B-221's rethink of locked simple mode (allow those pages, or hide the links when locked). tasks-2 renames Upcoming to Planner and tasks to todos, so fix it after tasks-2 lands; if simple-mode isn't planned soon, a quick-fixes slice that hides the links when locked.
 - 2026-11-21 (Robert Bo Davis): PRD and plan written 2026-11-21 (plans/simple-mode-prd.md, simple-mode-plan.md): the lock becomes two roles, Easy helper and Easy viewer; simple is renamed easy. B-236 is slice 4 (the Planner, todo pages and search open for the easy roles). -- backlog session
@@ -1991,10 +1991,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-400 · change · Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the…
 
-- status: in-progress
+- status: ready
 - prd: simple-mode
 - owner: prd/simple-mode
-- commit:
+- commit: 2152796a
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the header on the full app header to match simple mode.
 - 2026-11-21 (Robert Bo Davis): Triage: proposed simple-mode. The Easy Mode toggle moves from the timeline's view (eyeball) menu into the full app header, matching the easy view's header. simple-mode slice 1 renames every simple* file and the role decides the view, so this goes inside or right after that PRD, not beside it. The PRD is written and not run: add it as a slice before starting. For the user's review.
