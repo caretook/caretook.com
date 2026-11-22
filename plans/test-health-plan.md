@@ -6,19 +6,19 @@
 
 **Landing mode: run everything through** (started run-through, 2026-11-21): start every ready slice, land each green wave through its PR + Codex, clean up; ask only real questions via `pnpm prd ask`.
 
-**Where it stands:** wave 1 merged (3, 4, 5), worktrees removed; B-277, B-279 done; docs folded (f5c2ff7e). Synced dev with simple-mode (b8ba8497: the two deleted frozen-list files conflicted with dev's edits; kept deleted). Full check passed on b8ba8497 (the first run had one unhandled rejection, filed as B-475 in fixes-tooling). PR #47 (Codex clean on b30ab6a; browser --changed: none needed). Next: sync (plans only), re-wait Codex, land. Slice 3 notes for wave 6: a world's own fixed clock must sit on the test clock's day (2027-06-09); plannerWorld's NOW still has its own base. Slice 4 note for slice 12: the lib/search/ default and search's rules point at signout-wipe. **Slices 1, 2, 6 and 7 moved to [`check-speed`](check-speed-plan.md)** (its slices 1 to 4, with B-271, B-272, B-273 and B-278): skip them here. `check-speed`, `list-filters`, `planner-2` and `ui-kit` are all in `dev`, so nothing outside this PRD blocks any wave (slice 11 and waves 5 to 7 included); the pause after wave 4 isn't needed.
+**Where it stands:** **wave 1 landed** in dev via PR #47 (2026-11-21, dev 69e9c6e; full check on b8ba849, Codex clean on c469ce1; report a28 filed and pushed; to-test/2026-11-21-2313-test-health.md). B-277, B-279 done; docs folded (f5c2ff7e). fixes-bug told to sync. **Next session: wave 2** (slices 8, 9, 10; all ready: 8 needs only 3). At its start: `pnpm backlog ingest`/`doctor`/`list`, claim B-276, B-280, B-282, then `pnpm prd slice` and spawn each on opus. Flake seen in wave 1's first full run: B-475 (fixes-tooling, timelineSimpleTodos undo timer after teardown). Slice 3 notes for wave 6: a world's own fixed clock must sit on the test clock's day (2027-06-09); plannerWorld's NOW still has its own base. Slice 4 note for slice 12: the lib/search/ default and search's rules point at signout-wipe. **Slices 1, 2, 6 and 7 moved to [`check-speed`](check-speed-plan.md)** (its slices 1 to 4, with B-271, B-272, B-273 and B-278): skip them here. `check-speed`, `list-filters`, `planner-2` and `ui-kit` are all in `dev`, so nothing outside this PRD blocks any wave (slice 11 and waves 5 to 7 included); the pause after wave 4 isn't needed.
 
 **Models:** slices 3, 4, 5 on opus.
 
-**Unplanned items triaged to test-health** (not in any slice yet; to fold into later waves or a follow-up at a wave boundary): B-370 quick check always-run guards, B-371 device-to-server round trip per table, B-372 a second time zone in tests, B-373 role coverage gaps, B-374 uploadData error test, B-375 small test fixes (its `retry: 2` part is slice 15's), B-405 worker database name collision, B-418 recover.test.mjs flake under load.
+**Unplanned items triaged to test-health** (notes added 2026-11-22: B-371 to B-374 are new coverage, out of this PRD's scope, proposed for a follow-up PRD; B-370 may already be covered by check-speed's always-run list) (not in any slice yet; to fold into later waves or a follow-up at a wave boundary): B-370 quick check always-run guards, B-371 device-to-server round trip per table, B-372 a second time zone in tests, B-373 role coverage gaps, B-374 uploadData error test, B-375 small test fixes (its `retry: 2` part is slice 15's), B-405 worker database name collision, B-418 recover.test.mjs flake under load.
 
 | Slice | Wave | State         | Merge into `prd/test-health` (slice commits) |
 | ----- | ---- | ------------- | -------------------------------------------- |
 | 1     | 1    | moved         |                                              |
 | 2     | 1    | moved         |                                              |
-| 3     | 1    | merged (opus) | 91beec28 (a3d6ad9f)                          |
-| 4     | 1    | merged (opus) | 2d4f6678 (19d73291)                          |
-| 5     | 1    | merged (opus) | 09bc4bd5 (60f17a4f)                          |
+| 3     | 1    | landed (opus) | 91beec28 (a3d6ad9f)                          |
+| 4     | 1    | landed (opus) | 2d4f6678 (19d73291)                          |
+| 5     | 1    | landed (opus) | 09bc4bd5 (60f17a4f)                          |
 | 6     | 2    | moved         |                                              |
 | 7     | 2    | moved         |                                              |
 | 8     | 2    | not started   |                                              |
