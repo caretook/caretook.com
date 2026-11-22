@@ -7,13 +7,13 @@ The [PRD](test-gates-prd.md) covers:
 - a run's failures are sorted by kind, and flakes are quarantined;
 - a landing waits for the tier its orchestrator declared.
 
-Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
+Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-566, B-567, B-568. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
 
 ## Status
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** waves 1 (adce90ee, PR #71) and 2 (5b724350, PR #74) are in dev. Wave 2 landed with `--force --no-review` on the user's word on 2026-11-22: its full check failed once on a harness flake (B-573) and the rerun was stopped; Codex was clean on d9bda4e, and only Markdown changed after it. No browser checks (no app code). Docs folded. **Next: wave 3, slice 4, on opus.** Start with `pnpm prd sync`.
+**Now:** waves 1 (adce90ee, PR #71) and 2 (5b724350, PR #74) are in dev. Wave 2 landed with `--force --no-review` on the user's word on 2026-11-22: its full check failed once on a harness flake (B-573) and the rerun was stopped; Codex was clean on d9bda4e, and only Markdown changed after it. No browser checks (no app code). Docs folded. **Wave 3 is slice 4, then slice 9 (both opus).** Synced with dev on 2026-11-22 (nothing new). Slice 9 was added for B-566, B-567 and B-568, which the user moved here (notice n19). Slice 4: starting.
 
 **Open issues:**
 
@@ -36,6 +36,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242. B-53
 | 6     | 5    | —             | —                                           |
 | 7     | 5    | —             | —                                           |
 | 8     | 2    | merged (opus) | ff6ac3c3 (7bd82c6f)                         |
+| 9     | 3    | —             | —                                           |
 
 **Backlog:**
 
@@ -51,6 +52,9 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242. B-53
 | B-553 | slice 7 starts | slice 7 merges |
 | B-559 | slice 8 starts | slice 8 merges |
 | B-242 | slice 8 starts | slice 8 merges |
+| B-566 | slice 9 starts | slice 9 merges |
+| B-567 | slice 9 starts | slice 9 merges |
+| B-568 | slice 9 starts | slice 9 merges |
 
 ## Architectural decisions
 
@@ -70,7 +74,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242. B-53
 - **Waves:**
   1. slices 1 and 2 (1 touches the local check runner; 2 adds the workflow and the request; they share only additive `prd.sh` cases)
   2. slice 3, then slice 8 on top of it (both edit `ci.yml` and `vitest.config.ts`)
-  3. slice 4
+  3. slice 4, then slice 9 on top of it (9 needs the quarantine list)
   4. slice 5
   5. slice 6, then slice 7 on top of it, landed together
 - Waves 1 to 4 land under today's gate. **Wave 5 lands under its own new gate**, with a real `--tier full` run as the proof, and its landing notice tells the other orchestrators that the gate changed at their next sync.
@@ -195,7 +199,7 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md · Tests: unit
 - A requested run with a test forced to fail once and then pass uploads `flake`. A narrowed run of two files starts only their jobs. The hand-off links both.
 - `pnpm test:tooling` passes.
 
-**Blocked by:** 2, 3, 8. **Blocks:** 5.
+**Blocked by:** 2, 3, 8. **Blocks:** 5, 9.
 
 ## Slice 5: Whose failure it is, and what gets filed
 
@@ -329,3 +333,23 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md · Tests: unit
 - `pnpm test:tooling` passes on the Mac.
 
 **Blocked by:** 2, 3. **Blocks:** 4.
+
+## Slice 9: The components tier goes green on Linux
+
+Stack: no · Reads: docs/agents/loop.md, docs/domain/components.md · Tests: component
+
+**User stories:** US 3, 7. Added for B-566, B-567 and B-568, which the user moved to this topic on 2026-11-22.
+
+**Build:**
+
+- B-566: the access-code QR test no longer depends on `BarcodeDetector`, which CI's Chromium lacks. It still proves the QR code carries the right value.
+- B-567: the inScreens first probe test waits for the first render instead of reading the Probe actions button once.
+- B-568: each test named in the item that still fails intermittently goes into the quarantine with B-568 as its item, unless it is on the brake list. A brake-list test is reported in the hand-off and not quarantined. Don't fix these flakes here.
+
+**Acceptance criteria:**
+
+- The QR and first probe tests pass locally and on the Linux runner.
+- A requested `components` run of the slice's branch is green, or each remaining failure is named in the hand-off with its run link. The hand-off links the run and lists the quarantine entries.
+- `pnpm test:tooling` passes.
+
+**Blocked by:** 4. **Blocks:** 5.
