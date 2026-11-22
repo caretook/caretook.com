@@ -38,6 +38,7 @@ import { DetailHeaderSection } from "./sections/DetailHeaderSection";
 import { SectionBandsSection } from "./sections/SectionBandsSection";
 import { TypeSection } from "./sections/TypeSection";
 import { ChoiceDialogSection } from "./sections/ChoiceDialogSection";
+import { MotionSection } from "./sections/MotionSection";
 
 /** One gallery section: a primitive's variants, with fictional data. */
 export type GallerySection = { id: string; title: string; Section: ComponentType };
@@ -85,4 +86,6 @@ export const GALLERY: readonly GallerySection[] = [
   { id: "section", title: "Section (a banded Page)", Section: SectionBandsSection },
   { id: "type", title: "Type", Section: TypeSection },
   { id: "choice-dialog", title: "ChoiceDialog", Section: ChoiceDialogSection },
+  // ui-kit-2 (slice 5): motion.
+  { id: "motion", title: "Motion", Section: MotionSection },
 ];

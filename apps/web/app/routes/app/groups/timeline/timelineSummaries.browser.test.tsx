@@ -41,6 +41,8 @@ const TODAY_FULL = "BP 150/90 ↑ · Nausea 5 (new) · Cough 2 · Fell in bathro
 
 const summaries = () => [...document.querySelectorAll<HTMLElement>("[data-day-summary]")];
 const summaryButton = (i = 0) => summaries()[i]?.querySelector("button");
+/** Whether a region shows (a closed `Collapse` is hidden once it has slid shut). */
+const shown = (el: HTMLElement) => el.checkVisibility({ visibilityProperty: true });
 const lineOf = (i = 0) => summaryButton(i)?.querySelector(".truncate")?.textContent ?? "";
 
 describe("the day summary", () => {
@@ -104,12 +106,12 @@ describe("the day summary", () => {
     const button = summaryButton()!;
     const details = document.getElementById(button.getAttribute("aria-controls")!)!;
     expect(button.getAttribute("aria-expanded")).toBe("false");
-    expect(details.hidden).toBe(true);
+    await expect.poll(() => shown(details)).toBe(false);
     expect(button.firstElementChild?.tagName.toLowerCase()).toBe("svg");
 
     await userEvent.click(button);
     expect(button.getAttribute("aria-expanded")).toBe("true");
-    expect(details.hidden).toBe(false);
+    await expect.poll(() => shown(details)).toBe(true);
     expect([...details.querySelectorAll("li")].map((li) => li.textContent)).toEqual([
       "Vitals: BP 150/90 ↑(higher than last week)",
       "Symptoms: Nausea 5 (new), Cough 2",
@@ -117,13 +119,13 @@ describe("the day summary", () => {
       "Logged by: Alex, Sam",
     ]);
     await userEvent.click(button);
-    expect(details.hidden).toBe(true);
+    await expect.poll(() => shown(details)).toBe(false);
 
     button.focus();
     await userEvent.keyboard("{Enter}");
-    expect(details.hidden).toBe(false);
+    await expect.poll(() => shown(details)).toBe(true);
     await userEvent.keyboard(" ");
-    expect(details.hidden).toBe(true);
+    await expect.poll(() => shown(details)).toBe(false);
   });
 
   test("shows in cards too", async () => {

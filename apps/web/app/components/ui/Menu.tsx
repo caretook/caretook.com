@@ -3,7 +3,7 @@ import type { NavigateOptions } from "react-router";
 import type { ButtonLook } from "./buttonClass";
 import type { MenuEntry, MenuItem, NormalizedGroup, NormalizedSection } from "./menuModel";
 
-import { Check, ChevronRight } from "lucide-react";
+import { Check } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   Button,
@@ -18,6 +18,7 @@ import {
 } from "react-aria-components";
 import { useHref, useNavigate } from "react-router";
 import { buttonClass } from "./buttonClass";
+import { Chevron } from "./Chevron";
 import { chosenKey, linkOptions, normalizeMenu, sectionName } from "./menuModel";
 import { SURFACE } from "./styles";
 
@@ -196,10 +197,7 @@ function groupEntries(group: NormalizedGroup, isExpanded: boolean, onToggle: () 
     >
       {Icon && <Icon aria-hidden="true" className="size-4 shrink-0" />}
       <span className="min-w-0 flex-1 truncate">{group.label}</span>
-      <ChevronRight
-        aria-hidden="true"
-        className={`size-4 shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`}
-      />
+      <Chevron open={isExpanded} />
     </AriaMenuItem>
   );
   if (!isExpanded) return [toggle];
