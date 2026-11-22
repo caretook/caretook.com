@@ -1,5 +1,5 @@
 // roundtrip.mjs's sync matrix (scripts/browser-checks/sync-matrix.mjs) against
-// the device schema and the upload registry: a new synced table must add a row.
+// the device schema and the upload switch: a new synced table must add a row.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
