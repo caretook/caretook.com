@@ -104,4 +104,57 @@ describe("sync.upload as an Easy helper", () => {
       deletedAt: null,
     });
   });
+
+  it("refuses clearing a writer's cancellation or reschedule of their own event, and lands an edit", async () => {
+    const { helper, caretaker, owner, group } = await setup();
+    const event = (title: string, by = helper.ctx) =>
+      timelineEntryService.create(by, {
+        groupId: group.id,
+        kind: "event",
+        title,
+        occurredAt: new Date(Date.now() - 60_000).toISOString(),
+        timeZone: "America/Los_Angeles",
+      });
+    const mine = ok(await event("Physio"))!;
+    const later = ok(await event("Physio, again", caretaker.ctx))!;
+    const cancelledAt = new Date(Date.now() - 30_000).toISOString();
+    ok(
+      await timelineEntryService.update(caretaker.ctx, mine.id, {
+        cancelledAt,
+        cancelReason: "Therapist away",
+        rescheduledTo: later.id,
+      }),
+    );
+
+    const res = await helper.api.sync.upload({
+      ops: [
+        {
+          op: "PATCH",
+          table: "timeline_entry",
+          id: mine.id,
+          data: { cancelled_at: null, cancel_reason: null, rescheduled_to: null },
+        },
+        { op: "PATCH", table: "timeline_entry", id: mine.id, data: { rescheduled_to: null } },
+        {
+          op: "PATCH",
+          table: "timeline_entry",
+          id: mine.id,
+          data: { title: "Physio visit", place: "Room 2" },
+        },
+      ],
+    });
+    expect(res.results.map((r) => (r.status === "rejected" ? r.code : r.status))).toEqual([
+      "timelineEntryService:loggerOnly",
+      "timelineEntryService:loggerOnly",
+      "applied",
+    ]);
+    const after = ok(await timelineEntryService.getById(owner.ctx, mine.id))!;
+    expect(new Date(String(after.cancelledAt)).toISOString()).toBe(cancelledAt);
+    expect(after).toMatchObject({
+      title: "Physio visit",
+      place: "Room 2",
+      cancelReason: "Therapist away",
+      rescheduledTo: later.id,
+    });
+  });
 });

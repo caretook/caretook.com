@@ -371,6 +371,43 @@ describe("an Easy helper's own entries", () => {
     );
   });
 
+  it("can't clear a writer's cancellation or reschedule of their own event, but still edits it", async () => {
+    const w = await setup();
+    const helper = w.u.easy_helper.ctx;
+    const event = ok(await timelineEntryService.create(helper, w.note({ kind: "event", title: "Dentist" })))!;
+    const later = await w.addNote("caretaker", { kind: "event", title: "Dentist, again" });
+    ok(
+      await timelineEntryService.update(w.u.caretaker.ctx, event.id, {
+        cancelledAt: AT,
+        cancelReason: "Office closed",
+        rescheduledTo: later.id,
+      }),
+    );
+
+    for (const patch of [
+      { cancelledAt: null, cancelReason: null, rescheduledTo: null },
+      { rescheduledTo: null },
+      { cancelReason: null },
+    ])
+      expect(codeOf(await timelineEntryService.update(helper, event.id, patch))).toBe(
+        "timelineEntryService:loggerOnly",
+      );
+    ok(
+      await timelineEntryService.update(helper, event.id, {
+        title: "Dentist visit",
+        place: "Main St clinic",
+      }),
+    );
+    const after = ok(await timelineEntryService.getById(helper, event.id))!;
+    expect(new Date(String(after.cancelledAt)).toISOString()).toBe(AT);
+    expect(after).toMatchObject({
+      title: "Dentist visit",
+      place: "Main St clinic",
+      cancelReason: "Office closed",
+      rescheduledTo: later.id,
+    });
+  });
+
   it("logs a dose and a pass (Given all), and undoes them", async () => {
     const w = await setup();
     const helper = w.u.easy_helper.ctx;

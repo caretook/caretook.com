@@ -531,7 +531,8 @@ export const updateEntry = async (
   const group = await groupFor(db, entry.groupId);
   // Writers change any entry; an Easy helper only one they made.
   if (!canChangeEntry({ role: group?.role, userId: db.userId, entry })) return forbidden;
-  if (!canLogEntry(group?.role, entry.kind, patch)) return forbidden;
+  // Nor may an Easy helper set, or clear, an appointment's setup.
+  if (!canLogEntry(group?.role, entry.kind, patch, entry)) return forbidden;
 
   const defined = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
   if (detach && entry.seriesId) defined.seriesDetached = true;

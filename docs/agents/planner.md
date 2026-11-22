@@ -51,7 +51,7 @@ After the _Decisions_ table: **Problem** and **Solution** (both from the user's 
 
 ## The skeptic pass
 
-Before landing, spawn one fresh agent (the session's own model) that reads the PRD, the plan and the items cold and returns a short list: an `assumed` decision that _What to ask_ says to ask; an item's need left uncovered; a slice too big for one agent or missing a `Blocked by`; a broken [rule across PRDs](orchestrator.md#rules-across-prds) or test budget. Fix what's right, note what you declined and why under the table, and ask the user only the decisions it rightly moved to "ask". It never moves a UX or UI detail there.
+Before landing, spawn one fresh agent on Fable (`model: "fable"`) that reads the PRD, the plan and the items cold and returns a short list: an `assumed` decision that _What to ask_ says to ask; an item's need left uncovered; a slice too big for one agent or missing a `Blocked by`; a broken [rule across PRDs](orchestrator.md#rules-across-prds) or test budget. Fix what's right, note what you declined and why under the table, and ask the user only the decisions it rightly moved to "ask". It never moves a UX or UI detail there.
 
 ## The plan's shape
 
