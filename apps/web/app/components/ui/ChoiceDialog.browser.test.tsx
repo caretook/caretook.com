@@ -1,7 +1,7 @@
 import type { DialogChoice } from "./index";
 
 import { useState } from "react";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, onTestFinished, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 
 import { renderInRouter } from "../../../test/device";
@@ -21,17 +21,15 @@ const active = () => document.activeElement;
 function Harness({
   onChoose,
   onClose,
-  onParentKey = () => {},
   viaMenu = false,
 }: {
   onChoose: (id: string) => void;
   onClose: () => void;
-  onParentKey?: (key: string) => void;
   viaMenu?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div onKeyDown={(e) => onParentKey(e.key)}>
+    <div>
       {viaMenu ? (
         <Menu
           label="Actions for Water the plants"
@@ -107,9 +105,11 @@ describe("ChoiceDialog", () => {
     const onChoose = vi.fn();
     const onClose = vi.fn();
     const parentKeys: string[] = [];
-    const { screen } = await renderInRouter(
-      <Harness onChoose={onChoose} onClose={onClose} onParentKey={(k) => parentKeys.push(k)} />,
-    );
+    const { screen } = await renderInRouter(<Harness onChoose={onChoose} onClose={onClose} />);
+    // What the dialog sits in (a sheet) listens for Escape too.
+    const listen = (e: KeyboardEvent) => void parentKeys.push(e.key);
+    document.body.addEventListener("keydown", listen);
+    onTestFinished(() => document.body.removeEventListener("keydown", listen));
     const opener = screen.getByRole("button", { name: "Delete todo" });
 
     await userEvent.click(opener);
