@@ -6,35 +6,35 @@
 
 **Landing mode: run everything through** (started run-through, 2026-11-21): start every ready slice, land each green wave through its PR + Codex, clean up; ask only real questions via `pnpm prd ask`.
 
-**Where it stands:** **wave 3 running** (session started 2026-11-22): slice 11 merged (f759f646; its full integration run had one calendarCron 5 s timeout, B-479, passing alone); slice 12 started (worktree test-health-12 slot 6, opus); **slice 13 (wave 4) started early** (it was ready once 11 merged; worktree test-health-13 no stack, opus): it lands as its own wave after wave 3, so merge it only after wave 3 has landed; B-283 claimed. Backlog ingest/doctor/list at the boundary: nothing new for test-health. Wave 3's landing runs `caffeinate -i pnpm prd browser --suite` once (the specs change). Codex: ask the user again at the PR whether to wait or land `--no-review` (it was out of credits on 2026-11-22; per memory, review exit 4 "out of credits" lands --no-review unasked). Earlier: wave 2 landed via PR #49 (dev 43d53bf), wave 1 via PR #47 (dev 69e9c6e).
+**Where it stands:** **wave 3 running** (session started 2026-11-22): slice 11 merged (f759f646; its full integration run had one calendarCron 5 s timeout, B-479, passing alone); slice 12 merged (856602af; B-282 done); landing wave 3 next; **slice 13 (wave 4) started early** (it was ready once 11 merged; worktree test-health-13 no stack, opus): it lands as its own wave after wave 3, so merge it only after wave 3 has landed; B-283 claimed. Backlog ingest/doctor/list at the boundary: nothing new for test-health. Wave 3's landing runs `caffeinate -i pnpm prd browser --suite` once (the specs change). Codex: ask the user again at the PR whether to wait or land `--no-review` (it was out of credits on 2026-11-22; per memory, review exit 4 "out of credits" lands --no-review unasked). Earlier: wave 2 landed via PR #49 (dev 43d53bf), wave 1 via PR #47 (dev 69e9c6e).
 
-Notes for later slices: B-475 flake (fixes-tooling, timelineSimpleTodos undo timer after teardown). Slice 3: a world's own fixed clock must sit on the test clock's day (2027-06-09); plannerWorld's NOW still has its own base. Slice 4 for slice 12: the lib/search/ default and search's rules point at signout-wipe. Slice 10 for slice 12: `page.clock.install()` before `goto` then `fastForward` replaces form-time waits; it didn't touch fixtures.mjs; vitest 5 `toHaveTextContent` matched only whole text, so use scoped `getByText`. Slice 8 for wave 6: 1,323 warnings (slice 15 timeline+entry 678, slice 16 378, slice 17 129, slice 18 137, incl. `groups/new` 1); rules are `caretook/*` in scripts/eslint/plugin.mjs, disable with `// eslint-disable-next-line caretook/<rule> -- <reason>`; `no-non-null-in-expect` also flags non-DOM `!` (use `?.`). Slice 11 for slice 13: `createWorld` (packages/data/test/fixtures.ts, header documents it) moved 23 data files; the api files still use createUser/createGroup and their own clientFor; easyMode.int.test.ts stays off it (second owner). Slice 9: admin's deviceLabel is now lib/auth's ("macOS"; no "Caretook app" WebView label); groupRoleLabel lives only in @caretook/data/permissions. **Slices 1, 2, 6 and 7 moved to [`check-speed`](check-speed-plan.md)**: skip them. Nothing outside this PRD blocks any wave; the pause after wave 4 isn't needed.
+Notes for later slices: B-475 flake (fixes-tooling, timelineSimpleTodos undo timer after teardown). Slice 3: a world's own fixed clock must sit on the test clock's day (2027-06-09); plannerWorld's NOW still has its own base. Slice 4 for slice 12: the lib/search/ default and search's rules point at signout-wipe. Slice 10 for slice 12: `page.clock.install()` before `goto` then `fastForward` replaces form-time waits; it didn't touch fixtures.mjs; vitest 5 `toHaveTextContent` matched only whole text, so use scoped `getByText`. Slice 8 for wave 6: 1,323 warnings (slice 15 timeline+entry 678, slice 16 378, slice 17 129, slice 18 137, incl. `groups/new` 1); rules are `caretook/*` in scripts/eslint/plugin.mjs, disable with `// eslint-disable-next-line caretook/<rule> -- <reason>`; `no-non-null-in-expect` also flags non-DOM `!` (use `?.`). Slice 12 for the docs: fold out signout-wipe from loop.md and search.md at wave 3; not trimmed yet: invites test 10 link-sheet steps and test 1 check-the-email text (no component test). Slice 11 for slice 13: `createWorld` (packages/data/test/fixtures.ts, header documents it) moved 23 data files; the api files still use createUser/createGroup and their own clientFor; easyMode.int.test.ts stays off it (second owner). Slice 9: admin's deviceLabel is now lib/auth's ("macOS"; no "Caretook app" WebView label); groupRoleLabel lives only in @caretook/data/permissions. **Slices 1, 2, 6 and 7 moved to [`check-speed`](check-speed-plan.md)**: skip them. Nothing outside this PRD blocks any wave; the pause after wave 4 isn't needed.
 
 **Models:** slices 3, 4, 5, 8, 9, 10, 11, 12, 13 on opus.
 
 **Unplanned items triaged to test-health** (notes added 2026-11-22: B-371 to B-374 are new coverage, out of this PRD's scope, proposed for a follow-up PRD; B-370 may already be covered by check-speed's always-run list) (not in any slice yet; to fold into later waves or a follow-up at a wave boundary): B-370 quick check always-run guards, B-371 device-to-server round trip per table, B-372 a second time zone in tests, B-373 role coverage gaps, B-374 uploadData error test, B-375 small test fixes (its `retry: 2` part is slice 15's), B-405 worker database name collision, B-418 recover.test.mjs flake under load.
 
-| Slice | Wave | State          | Merge into `prd/test-health` (slice commits) |
-| ----- | ---- | -------------- | -------------------------------------------- |
-| 1     | 1    | moved          |                                              |
-| 2     | 1    | moved          |                                              |
-| 3     | 1    | landed (opus)  | 91beec28 (a3d6ad9f)                          |
-| 4     | 1    | landed (opus)  | 2d4f6678 (19d73291)                          |
-| 5     | 1    | landed (opus)  | 09bc4bd5 (60f17a4f)                          |
-| 6     | 2    | moved          |                                              |
-| 7     | 2    | moved          |                                              |
-| 8     | 2    | landed (opus)  | b8a023cf (6c7284a4)                          |
-| 9     | 2    | landed (opus)  | efd71cca (c9fd4f50)                          |
-| 10    | 2    | landed (opus)  | 2b3b3046 (15ebe405)                          |
-| 11    | 3    | merged (opus)  | f759f646 (be8b1ed0)                          |
-| 12    | 3    | started (opus) |                                              |
-| 13    | 4    | not started    |                                              |
-| 14    | 5    | waiting        |                                              |
-| 15    | 6    | waiting        |                                              |
-| 16    | 6    | waiting        |                                              |
-| 17    | 6    | waiting        |                                              |
-| 18    | 6    | waiting        |                                              |
-| 19    | 7    | waiting        |                                              |
+| Slice | Wave | State         | Merge into `prd/test-health` (slice commits) |
+| ----- | ---- | ------------- | -------------------------------------------- |
+| 1     | 1    | moved         |                                              |
+| 2     | 1    | moved         |                                              |
+| 3     | 1    | landed (opus) | 91beec28 (a3d6ad9f)                          |
+| 4     | 1    | landed (opus) | 2d4f6678 (19d73291)                          |
+| 5     | 1    | landed (opus) | 09bc4bd5 (60f17a4f)                          |
+| 6     | 2    | moved         |                                              |
+| 7     | 2    | moved         |                                              |
+| 8     | 2    | landed (opus) | b8a023cf (6c7284a4)                          |
+| 9     | 2    | landed (opus) | efd71cca (c9fd4f50)                          |
+| 10    | 2    | landed (opus) | 2b3b3046 (15ebe405)                          |
+| 11    | 3    | merged (opus) | f759f646 (be8b1ed0)                          |
+| 12    | 3    | merged (opus) | 856602af (b72a59e7, f0d7f192)                |
+| 13    | 4    | not started   |                                              |
+| 14    | 5    | waiting       |                                              |
+| 15    | 6    | waiting       |                                              |
+| 16    | 6    | waiting       |                                              |
+| 17    | 6    | waiting       |                                              |
+| 18    | 6    | waiting       |                                              |
+| 19    | 7    | waiting       |                                              |
 
 **Backlog:** which slices close each item (run `pnpm backlog done` on an item when its last slice merges).
 
