@@ -1,12 +1,10 @@
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 import { entryProviderId } from "@caretook/data/schema";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo } from "../../../../../test/fixtures";
 import {
-  $,
-  $$,
   ADD_LINK,
   ALVAREZ,
   chips,
@@ -20,7 +18,6 @@ import {
   NOTES,
   option,
   PATEL,
-  pause,
   pick,
   PICKER,
   PROVIDER_ROUTES,
@@ -30,7 +27,6 @@ import {
   suggested,
   suggestion,
   SUGGESTIONS,
-  waitUntil,
   WESTSIDE,
   WITH,
 } from "../providers/providerWorld";
@@ -68,15 +64,15 @@ const idOf = (path: string) => path.split("/").at(-1)!;
 describe("the With row", () => {
   test("on a new note's draft: Add, no chips; linking saves the note and keeps the editor (the same element); focus goes back to Add", async () => {
     const device = await open(NEW_NOTE);
-    await waitUntil(() => !!NOTES() && !!ADD_LINK(), 4000, "the draft's With row");
-    expect(ADD_LINK()!.textContent.trim()).toBe("Add a provider");
+    await waitUntil(() => !!NOTES() && !!ADD_LINK(), "the draft's With row");
+    expect(ADD_LINK()?.textContent.trim()).toBe("Add a provider");
     expect(chips()).toEqual([]);
     const editor = NOTES();
 
     await pick("patel", "Dr. Samuel Patel");
     await expect.poll(() => device.location()).toMatch(ON_ENTRY);
     const id = idOf(device.location());
-    await waitUntil(() => chips().length === 1, 4000, "the chip");
+    await waitUntil(() => chips().length === 1, "the chip");
     expect(NOTES()).toBe(editor);
     expect(
       (await device.query<{ kind: string }>("SELECT kind FROM timeline_entry WHERE id = ?", [id]))[0]?.kind,
@@ -90,19 +86,19 @@ describe("the With row", () => {
     await pick("cardio", "Dr. Samuel Patel");
     await waitUntil(() => chips().length === 1);
     await pick("cornerstone", "Cornerstone Pharmacy");
-    await waitUntil(() => chips().length === 2, 4000, "two chips");
+    await waitUntil(() => chips().length === 2, "two chips");
     expect(await linkedIds(device, VISIT.id)).toEqual([CORNERSTONE.id, PATEL.id].sort());
     for (const chip of chips()) {
       expect(chip.href).toBe(providerUrl(chip.id));
       expect(chip.remove && !chip.muted).toBe(true);
     }
-    expect(ADD_LINK()!.textContent.trim()).toBe("Add");
+    expect(ADD_LINK()?.textContent.trim()).toBe("Add");
 
     await userEvent.click(
       await found(() => WITH()?.querySelector('button[aria-label="Remove Cornerstone Pharmacy"]')),
     );
-    await waitUntil(() => chips().length === 1, 4000, "one chip left");
-    expect(chips()[0]!.text).toBe("Dr. Samuel Patel");
+    await waitUntil(() => chips().length === 1, "one chip left");
+    expect(chips()[0]?.text).toBe("Dr. Samuel Patel");
     expect(await linkedIds(device, VISIT.id)).toEqual([PATEL.id]);
     // Linked then unlinked before uploading: the queue holds the PUT and the DELETE, in order.
     const cornerstoneLink = entryProviderId(VISIT.id, CORNERSTONE.id);
@@ -113,22 +109,24 @@ describe("the With row", () => {
   });
 
   test("the picker leaves out linked providers; Escape closes it, focus back on Add", async () => {
-    await open(entryUrl(VISIT.id), { fixtures: [directory(), VISIT, fx.link(VISIT.id, PATEL.id)] });
+    const device = await open(entryUrl(VISIT.id), {
+      fixtures: [directory(), VISIT, fx.link(VISIT.id, PATEL.id)],
+    });
     await waitUntil(() => chips().length === 1);
     await userEvent.click(await found(ADD_LINK));
-    await waitUntil(() => document.activeElement === PICKER(), 4000, "the picker");
+    await waitUntil(() => document.activeElement === PICKER(), "the picker");
     await userEvent.keyboard("patel");
-    await pause(300);
+    await device.settle();
     expect(option("Dr. Samuel Patel")).toBeUndefined();
     await userEvent.keyboard("{Escape}");
     if (PICKER()) await userEvent.keyboard("{Escape}");
-    await waitUntil(() => !PICKER() && document.activeElement === ADD_LINK(), 4000, "Add focused");
+    await waitUntil(() => !PICKER() && document.activeElement === ADD_LINK(), "Add focused");
   });
 
   test("a new name: added as a clinician and linked in one write (the provider queued before its link), staying on the entry", async () => {
     const device = await open(entryUrl(VISIT.id));
     await pick("Dr. Rosa Lin", 'Add "Dr. Rosa Lin" as a provider');
-    await waitUntil(() => chips().some((c) => c.text === "Dr. Rosa Lin"), 4000, "the new chip");
+    await waitUntil(() => chips().some((c) => c.text === "Dr. Rosa Lin"), "the new chip");
     const [made] = await device.query<{ id: string; type: string }>(
       "SELECT id, type FROM provider WHERE name = 'Dr. Rosa Lin'",
     );
@@ -159,14 +157,14 @@ describe("the With row", () => {
       fixtures: [directory(), VISIT, fx.link(VISIT.id, PATEL.id), fx.link(VISIT.id, MARIA.id)],
     });
     await waitUntil(() => chips().length === 2);
-    const title = $("main h1, main header input")?.outerHTML;
+    const title = document.querySelector<HTMLElement>("main h1, main header input")?.outerHTML;
     // The same row, deleted (soft) elsewhere.
     await device.sync({ ...MARIA, row: { ...MARIA.row, deleted_at: at() } });
     await device.settle();
     const gone = chips().find((c) => c.id === MARIA.id)!;
     expect(gone).toMatchObject({ text: "Maria Reyes (removed)", href: null, muted: true });
     expect(chips().length).toBe(2);
-    expect($("main h1, main header input")?.outerHTML).toBe(title);
+    expect(document.querySelector<HTMLElement>("main h1, main header input")?.outerHTML).toBe(title);
     expect(NOTES()).not.toBeNull();
   });
 
@@ -175,7 +173,7 @@ describe("the With row", () => {
       role: "viewer",
       fixtures: [directory(), VISIT, fx.link(VISIT.id, PATEL.id), fx.link(VISIT.id, CORNERSTONE.id)],
     });
-    await waitUntil(() => chips().length === 2, 4000, "the chips");
+    await waitUntil(() => chips().length === 2, "the chips");
     expect(chips().every((c) => !c.remove && !!c.href)).toBe(true);
     expect(ADD_LINK()).toBeNull();
     await device.screen.unmount();
@@ -191,7 +189,7 @@ describe("suggestions", () => {
   /** A new draft of `kind` with `title` typed (not saved). */
   const draft = async (kind: "note" | "event", title: string, options = {}) => {
     const device = await open(kind === "note" ? NEW_NOTE : NEW_EVENT, options);
-    await waitUntil(() => !!NOTES() && !!ENTRY_TITLE(), 4000, "the draft");
+    await waitUntil(() => !!NOTES() && !!ENTRY_TITLE(), "the draft");
     if (title) {
       await userEvent.click(await found(ENTRY_TITLE));
       await userEvent.keyboard(title);
@@ -220,23 +218,23 @@ describe("suggestions", () => {
       fx.link(CALL.id, p.id, { createdAt: hoursAgo(2) }),
     );
     await draft("event", "Dr. Patel follow-up", { fixtures: [directory(), VISIT, CALL, recent] });
-    await waitUntil(() => suggested()[0] === "Dr. Samuel Patel", 4000, "Dr. Patel first");
+    await waitUntil(() => suggested()[0] === "Dr. Samuel Patel", "Dr. Patel first");
     expect(suggested().length).toBe(5);
     const phone = layout();
     expect(phone).toMatchObject({ rows: 1, wrap: "nowrap", overflowX: "auto", fitsOneRow: true });
 
     await page.viewport(1280, 900);
-    await waitUntil(() => layout().wrap === "wrap", 4000, "wrapping at 1280");
+    await waitUntil(() => layout().wrap === "wrap", "wrapping at 1280");
     expect(layout()).toMatchObject({ chips: phone.chips, overflowX: "visible", clipped: false });
   });
 
   test("one tap after the title saves the event with its title and links the clinician; the suggestions go once linked", async () => {
     const device = await draft("event", "Dr. Patel follow-up");
-    await waitUntil(() => !!suggestion("Dr. Samuel Patel"), 4000, "the suggestion");
-    await userEvent.click(suggestion("Dr. Samuel Patel")!);
+    await waitUntil(() => !!suggestion("Dr. Samuel Patel"), "the suggestion");
+    await userEvent.click(await found(() => suggestion("Dr. Samuel Patel")));
     await expect.poll(() => device.location()).toMatch(ON_ENTRY);
     const id = idOf(device.location());
-    await waitUntil(() => chips().length === 1, 4000, "the chip");
+    await waitUntil(() => chips().length === 1, "the chip");
     expect(await linkedIds(device, id)).toEqual([PATEL.id]);
     expect(
       (await device.query<{ title: string }>("SELECT title FROM timeline_entry WHERE id = ?", [id]))[0]
@@ -250,7 +248,6 @@ describe("suggestions", () => {
     const firstTwo = () => suggested().slice(0, 2).sort();
     await waitUntil(
       () => JSON.stringify(firstTwo()) === JSON.stringify(["Cornerstone Pharmacy", "Dr. Samuel Patel"]),
-      4000,
       "the pickup's providers first",
     );
   });
@@ -260,7 +257,7 @@ describe("suggestions", () => {
     await draft("note", "", {
       fixtures: [directory(), VISIT, CALL, fx.link(CALL.id, MARIA.id, { createdAt: hoursAgo(2) })],
     });
-    await waitUntil(() => suggested().includes("Maria Reyes"), 4000, "a recent link");
+    await waitUntil(() => suggested().includes("Maria Reyes"), "a recent link");
     expect(suggested().length).toBeLessThanOrEqual(5);
   });
 });
@@ -288,7 +285,7 @@ describe("other groups' providers in the picker", () => {
 
   /** The picker's "From <group>" sections: each heading and the names under it. */
   const sections = () =>
-    $$('[role="listbox"] [role="group"]').map((g) => ({
+    [...document.querySelectorAll<HTMLElement>('[role="listbox"] [role="group"]')].map((g) => ({
       heading: document.getElementById(g.getAttribute("aria-labelledby") ?? "")?.textContent ?? null,
       names: [...g.querySelectorAll('[role="option"]')].map((o) => o.firstElementChild?.textContent),
     }));
@@ -296,30 +293,32 @@ describe("other groups' providers in the picker", () => {
   test("a “From <group>” section once something is typed (after this group's, minus ones already here); a pick copies it with its practice and links the copy, whose chip opens this group's page", async () => {
     const device = await open(entryUrl(VISIT.id), { fixtures: [directory(), VISIT, ...OTHERS] });
     await userEvent.click(await found(ADD_LINK));
-    await waitUntil(() => document.activeElement === PICKER(), 4000, "the picker");
-    await waitUntil(() => !!option("Dr. Samuel Patel"), 4000, "this group's providers");
+    await waitUntil(() => document.activeElement === PICKER(), "the picker");
+    await waitUntil(() => !!option("Dr. Samuel Patel"), "this group's providers");
     expect(sections()).toEqual([]);
 
     await userEvent.keyboard("dr");
-    await waitUntil(() => sections().length === 1, 4000, "the other group's section");
+    await waitUntil(() => sections().length === 1, "the other group's section");
     expect(sections()).toEqual([
       { heading: "From Lou Lindqvist", names: ["Dr. Grace Lindqvist", "Dr. Nia Okafor"] },
     ]);
     // This group's matches come first; the other group's Dr. Patel is already here.
-    const names = $$('[role="option"]').map((o) => o.firstElementChild?.textContent);
+    const names = [...document.querySelectorAll<HTMLElement>('[role="option"]')].map(
+      (o) => o.firstElementChild?.textContent,
+    );
     expect(names.indexOf("Dr. Samuel Patel")).toBeLessThan(names.indexOf("Dr. Grace Lindqvist"));
     expect(names.filter((n) => n === "Dr. Samuel Patel")).toHaveLength(1);
 
-    await userEvent.click(option("Dr. Nia Okafor")!);
-    await waitUntil(() => chips().length === 1, 4000, "the chip");
+    await userEvent.click(await found(() => option("Dr. Nia Okafor")));
+    await waitUntil(() => chips().length === 1, "the chip");
     const copied = await device.query<{ id: string; name: string; practice_id: string | null }>(
       "SELECT id, name, practice_id FROM provider WHERE group_id = ? AND name IN ('Dr. Nia Okafor', 'Harbor Clinic') ORDER BY name",
       [GROUP],
     );
     const [copy, practice] = copied;
     expect(copied.map((p) => p.name)).toEqual(["Dr. Nia Okafor", "Harbor Clinic"]);
-    expect([copy!.id, practice!.id]).not.toContain(OKAFOR.id);
-    expect(copy!.practice_id).toBe(practice!.id);
+    expect([copy?.id, practice?.id]).not.toContain(OKAFOR.id);
+    expect(copy?.practice_id).toBe(practice!.id);
     expect(await linkedIds(device, VISIT.id)).toEqual([copy!.id]);
     // One write: the practice, the clinician, then the link.
     const order = (await device.queued())
@@ -328,7 +327,7 @@ describe("other groups' providers in the picker", () => {
     expect(order).toEqual([practice!.id, copy!.id, entryProviderId(VISIT.id, copy!.id)]);
 
     expect(chips()[0]).toMatchObject({ id: copy!.id, text: "Dr. Nia Okafor", href: providerUrl(copy!.id) });
-    await userEvent.click(WITH()!.querySelector(`li[data-chip="${copy!.id}"] a`)!);
+    await userEvent.click(await found(() => WITH()?.querySelector(`li[data-chip="${copy?.id}"] a`)));
     await expect.poll(() => device.location()).toBe(providerUrl(copy!.id));
   });
 });

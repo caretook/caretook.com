@@ -9,14 +9,14 @@ import * as timelineSettings from "~/routes/app/settings/timeline/route";
 import { DICTATION_HINT } from "~/components/quick-entry/QuickEntryBox";
 import { cacheSettings } from "~/lib/app-shell/me";
 import { apiCalls } from "../../../../../test/api";
-import { found } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_GROUP, TEST_RECIPIENT, TEST_USER } from "../../../../../test/fixtures";
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
 import * as timeline from "./route";
 import { daysAgo } from "../periods/periodWorld";
-import { pressEasyMode, waitUntil } from "./timelineWorld";
+import { pressEasyMode } from "./timelineWorld";
 
 // Easy mode on the timeline, in the real /app frame on the test device: the
 // easy view (large type, the box, the full timeline's search, filters, row
@@ -110,7 +110,7 @@ describe("the mic tip", () => {
       .mockReturnValue("Mozilla/5.0 (Linux; Android 14; Pixel 8)");
     try {
       await open({ easyMode: true });
-      await waitUntil(isEasy, 4000, "the easy view");
+      await waitUntil(isEasy, "the easy view");
       await expect.element(page.getByText(DICTATION_HINT)).toBeVisible();
       expect(document.querySelectorAll("[data-dictation-hint]")).toHaveLength(1);
     } finally {
@@ -123,7 +123,7 @@ describe("the mic tip", () => {
 describe("the easy view", () => {
   test("a caretaker who chose easy mode: their name and today, the box at the normal size, then the search and filters, then rows with every menu, a reduced header and Full app", async () => {
     await open({ easyMode: true });
-    await waitUntil(isEasy, 4000, "the easy view");
+    await waitUntil(isEasy, "the easy view");
 
     // The recipient and today.
     await expect
@@ -148,9 +148,10 @@ describe("the easy view", () => {
     expect((await found(easyView)).querySelector(".text-2xl")).toBeNull();
 
     // The rows, with the full timeline's ⋯ menus; the kind icon and initials aren't filters.
-    await waitUntil(() => rows().length === 2, 4000, "the rows");
+    await waitUntil(() => rows().length === 2, "the rows");
     // At the full timeline's scale: no zoom on the list or its day summaries.
-    expect(getComputedStyle(document.querySelector("[data-easy-list]")!).zoom).toBe("1");
+    const easyList = await found(() => document.querySelector("[data-easy-list]"));
+    expect(getComputedStyle(easyList).zoom).toBe("1");
     expect(
       document.querySelector("[data-easy-list] [style*='zoom'], [data-easy-list] [class*='zoom']"),
     ).toBeNull();
@@ -193,12 +194,12 @@ describe("the easy view", () => {
         fx.note({ occurredAt: at(daysAgo(15, 12)), text: "Before any period" }),
       ],
     });
-    await waitUntil(() => isEasy() && rows().length === 4, 4000, "the rows");
+    await waitUntil(() => isEasy() && rows().length === 4, "the rows");
     const lines = () =>
       [...document.querySelectorAll("[data-easy-list] [data-day-header]")].map(
         (h) => h.querySelector<HTMLElement>("[data-period-line]")?.textContent?.trim() ?? null,
       );
-    await waitUntil(() => lines().length === 3, 4000, "the day headers");
+    await waitUntil(() => lines().length === 3, "the day headers");
     expect(lines()).toEqual([expect.stringMatching(/^At home · day 5$/), "In hospital · day 4", null]);
     // Today's line links to its period; no Change, no + menu in easy mode.
     const link = document.querySelector<HTMLAnchorElement>("[data-easy-list] [data-period-current]")!;
@@ -208,40 +209,40 @@ describe("the easy view", () => {
 
   test("still saves through the box, on the device", async () => {
     const device = await open({ easyMode: true });
-    await waitUntil(isEasy, 4000, "the easy view");
+    await waitUntil(isEasy, "the easy view");
     await userEvent.fill(page.getByRole("textbox", { name: "What happened?" }), "bp 130/85");
-    await waitUntil(() => !!document.querySelector("[data-quick-card]"), 4000, "the card");
+    await waitUntil(() => !!document.querySelector("[data-quick-card]"), "the card");
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     await expect
       .poll(async () => (await device.queued()).filter((op) => op.type === "timeline_entry").length)
       .toBe(1);
-    await waitUntil(() => rows().length === 3, 4000, "the new row");
+    await waitUntil(() => rows().length === 3, "the new row");
   });
 
   test("a viewer gets the bigger rows and no box", async () => {
     await open({ role: "viewer", easyMode: true });
-    await waitUntil(() => isEasy() && rows().length === 2, 4000, "the easy view");
+    await waitUntil(() => isEasy() && rows().length === 2, "the easy view");
     expect(page.getByRole("textbox", { name: "What happened?" }).elements()).toHaveLength(0);
   });
 
   test("keeps a filter from the URL, with its chip, and clearing the chip shows everything", async () => {
     const device = await open({ easyMode: true, url: `${TIMELINE_URL}?kind=note` });
-    await waitUntil(() => isEasy() && rows().length === 1, 4000, "the filtered rows");
+    await waitUntil(() => isEasy() && rows().length === 1, "the filtered rows");
     expect(device.location()).toBe(`${TIMELINE_URL}?kind=note`);
     const chip = document.querySelector<HTMLAnchorElement>('nav[aria-label="Filters on"] a')!;
     await userEvent.click(chip);
     await expect.poll(device.location).toBe(TIMELINE_URL);
-    await waitUntil(() => rows().length === 2, 4000, "every row");
+    await waitUntil(() => rows().length === 2, "every row");
   });
 
   test("⋯ → Edit opens the full edit sheet over the easy view", async () => {
     const device = await open({ easyMode: true });
-    await waitUntil(() => isEasy() && rows().length === 2, 4000, "the rows");
+    await waitUntil(() => isEasy() && rows().length === 2, "the rows");
     const knee = rows().find((li) => li.textContent?.includes("Sore knee"))!;
-    await userEvent.click(knee.querySelector('button[aria-label^="Actions"]')!);
+    await userEvent.click(await found(() => knee.querySelector('button[aria-label^="Actions"]')));
     await userEvent.click(page.getByRole("menuitem", { name: "Edit" }));
     const name = () => document.querySelector<HTMLInputElement>('[role=dialog] input[name="symptomName"]');
-    await waitUntil(() => !!name(), 4000, "the edit sheet");
+    await waitUntil(() => !!name(), "the edit sheet");
     await expect.poll(() => name()?.value).toBe("Sore knee");
     expect(device.location()).toMatch(/\/edit$/);
     expect(isEasy()).toBe(true);
@@ -255,35 +256,31 @@ describe("who gets it", () => {
     expect(isEasy()).toBe(false);
 
     await pressEasyMode();
-    await waitUntil(isEasy, 4000, "the easy view");
+    await waitUntil(isEasy, "the easy view");
     expect(localStorage.getItem(TOGGLE_KEY)).toBe("easy");
 
     await userEvent.click(userButton());
     await userEvent.click(page.getByRole("menuitem", { name: "Full app" }));
-    await waitUntil(() => !isEasy(), 4000, "the full timeline");
+    await waitUntil(() => !isEasy(), "the full timeline");
     expect(localStorage.getItem(TOGGLE_KEY)).toBe("full");
     // The full header is back.
     await expect.element(page.getByRole("button", { name: /switch care group$/ })).toBeVisible();
 
     await pressEasyMode();
-    await waitUntil(isEasy, 4000, "the easy view again");
+    await waitUntil(isEasy, "the easy view again");
     await userEvent.click(page.getByRole("button", { name: "Full app" }));
-    await waitUntil(() => !isEasy(), 4000, "the full timeline again");
+    await waitUntil(() => !isEasy(), "the full timeline again");
   });
 
   test("an easy role arriving from another device switches the timeline without a reload, and back", async () => {
     const device = await open();
     await expect.element(page.getByRole("button", { name: "View options" })).toBeVisible();
     await device.sync(membership("easy_helper"));
-    await waitUntil(isEasy, 4000, "the easy view");
-    await waitUntil(
-      () => !header().querySelector('[data-region="sections"] nav'),
-      4000,
-      "the reduced header",
-    );
+    await waitUntil(isEasy, "the easy view");
+    await waitUntil(() => !header().querySelector('[data-region="sections"] nav'), "the reduced header");
 
     await device.sync(membership("caretaker"));
-    await waitUntil(() => !isEasy(), 4000, "the full timeline");
+    await waitUntil(() => !isEasy(), "the full timeline");
   });
 
   test("your own setting changed on another device switches the timeline and the header without a navigation, and back", async () => {
@@ -296,13 +293,13 @@ describe("who gets it", () => {
 
     // A background refresh bringing the other device's change into the cache.
     cacheSettings(TEST_USER.id, { easyMode: "easy" });
-    await waitUntil(isEasy, 4000, "the easy view");
-    await waitUntil(() => !sections(), 4000, "the reduced header");
+    await waitUntil(isEasy, "the easy view");
+    await waitUntil(() => !sections(), "the reduced header");
     expect(page.getByRole("button", { name: /switch care group$/ }).elements()).toHaveLength(0);
 
     cacheSettings(TEST_USER.id, { easyMode: "full" });
-    await waitUntil(() => !isEasy(), 4000, "the full timeline");
-    await waitUntil(() => !!sections(), 4000, "the full header");
+    await waitUntil(() => !isEasy(), "the full timeline");
+    await waitUntil(() => !!sections(), "the full header");
   });
 
   test("the header alone follows that change too: no navigation and nothing else re-rendering it", async () => {
@@ -320,11 +317,11 @@ describe("who gets it", () => {
     expect(sections()).not.toBeNull();
 
     cacheSettings(TEST_USER.id, { easyMode: "easy" });
-    await waitUntil(() => !sections(), 4000, "the reduced header");
+    await waitUntil(() => !sections(), "the reduced header");
     expect(page.getByRole("button", { name: /switch care group$/ }).elements()).toHaveLength(0);
 
     cacheSettings(TEST_USER.id, { easyMode: "full" });
-    await waitUntil(() => !!sections(), 4000, "the full header");
+    await waitUntil(() => !!sections(), "the full header");
   });
 
   test("this device's toggle wins over your own setting", async () => {
@@ -333,13 +330,13 @@ describe("who gets it", () => {
     await expect.element(page.getByRole("button", { name: "View options" })).toBeVisible();
     expect(isEasy()).toBe(false);
     await pressEasyMode();
-    await waitUntil(isEasy, 4000, "the easy view");
+    await waitUntil(isEasy, "the easy view");
   });
 
   test("your own setting of Always shows it", async () => {
     setOwnSetting("easy");
     await open();
-    await waitUntil(isEasy, 4000, "the easy view");
+    await waitUntil(isEasy, "the easy view");
   });
 
   test("an old Follow the group setting on this device reads as full", async () => {
@@ -354,7 +351,7 @@ describe("who gets it", () => {
       setOwnSetting("full");
       localStorage.setItem(TOGGLE_KEY, "full");
       await open({ role });
-      await waitUntil(isEasy, 4000, "the easy view");
+      await waitUntil(isEasy, "the easy view");
       expect(page.getByRole("button", { name: "Full app" }).elements()).toHaveLength(0);
       await userEvent.click(userButton());
       await expect.poll(menuItems).toEqual(["Settings", "Sign out"]);

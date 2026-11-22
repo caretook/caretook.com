@@ -8,7 +8,8 @@ import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { clearTodoUndo } from "~/lib/todos/todoUndo";
 import * as timeline from "./route";
-import { chooseEasyMode, waitUntil } from "./timelineWorld";
+import { chooseEasyMode } from "./timelineWorld";
+import { waitUntil } from "../../../../../test/found";
 
 // Easy mode's "My todos" card (todos slice 6), on the test device
 // (offline): my open todos, overdue and today first, at most five with "See
@@ -68,7 +69,7 @@ afterEach(() => clearTodoUndo());
 describe("My todos in easy mode", () => {
   test("a writer: mine only, overdue and today first, five at most, See all to Mine; between Upcoming and the tiles", async () => {
     await open("caretaker", MANY);
-    await waitUntil(() => titles().length === 5, 4000, "the card's todos");
+    await waitUntil(() => titles().length === 5, "the card's todos");
     await expect.element(page.getByRole("region", { name: "My todos" })).toBeVisible();
     expect(titles()).toEqual([
       "Call the pharmacy",
@@ -87,13 +88,13 @@ describe("My todos in easy mode", () => {
     // Big ticks, one per todo.
     const ticks = card()!.querySelectorAll<HTMLInputElement>("[data-todo-tick]");
     expect(ticks).toHaveLength(5);
-    expect(ticks[0]!.classList.contains("checkbox-xl")).toBe(true);
+    expect(ticks[0]?.classList.contains("checkbox-xl")).toBe(true);
 
     // The other regions are where they were: Upcoming, then the card, the tiles, Remove, the box, the rows.
     // They can render after the card on a loaded machine (the tiles replace their skeleton
     // when their own query answers): wait for all of them first.
     const REGIONS = ["[data-quick-entry]", "[data-easy-now]", "[data-easy-tiles]", "[data-remove-last]"];
-    await waitUntil(() => REGIONS.every((r) => !!document.querySelector(r)), 4000, "the easy view's regions");
+    await waitUntil(() => REGIONS.every((r) => !!document.querySelector(r)), "the easy view's regions");
     const box = document.querySelector("[data-quick-entry]");
     const now = document.querySelector("[data-easy-now]");
     const tiles = document.querySelector("[data-easy-tiles]");
@@ -103,7 +104,7 @@ describe("My todos in easy mode", () => {
     expect(follows(document.querySelector("[data-remove-last]"), box)).toBe(true);
     await expect.element(page.getByText("Slept well after lunch")).toBeVisible();
     // The card isn't a tile.
-    expect(tiles!.contains(card())).toBe(false);
+    expect(tiles?.contains(card())).toBe(false);
   });
 
   test("a writer: a tick completes it with Undo, even for the last one; Undo brings it back", async () => {
@@ -117,7 +118,7 @@ describe("My todos in easy mode", () => {
     await expect.element(status).toBeInTheDocument();
     await expect.poll(() => titles()).toEqual([]);
     // The card stays up while Undo is offered.
-    expect(card()!.contains(document.querySelector("[data-todo-undo]"))).toBe(true);
+    expect(card()?.contains(document.querySelector("[data-todo-undo]"))).toBe(true);
     const done = await device.query<{ done_by: string | null }>("SELECT done_by FROM todo");
     expect(done).toEqual([{ done_by: TEST_USER.id }]);
 
@@ -131,7 +132,7 @@ describe("My todos in easy mode", () => {
       mine("Pick up the walker", { dueOn: today }),
       mine("Water the plants", { dueOn: day(-1) }),
     ]);
-    await waitUntil(() => titles().length === 2, 4000, "the card's todos");
+    await waitUntil(() => titles().length === 2, "the card's todos");
     await userEvent.click(page.getByRole("checkbox", { name: "Mark “Water the plants” done" }));
     await expect.poll(() => titles()).toEqual(["Pick up the walker"]);
     await userEvent.click(page.getByRole("checkbox", { name: "Mark “Pick up the walker” done" }));
@@ -164,7 +165,7 @@ describe("My todos in easy mode", () => {
         mine("Pick up groceries", { dueOn: today }),
         todo({ title: "Fax the form", dueOn: today, assigneeId: SAM_ID }),
       ]);
-      await waitUntil(() => titles().length === 1, 4000, "the viewer's card");
+      await waitUntil(() => titles().length === 1, "the viewer's card");
       expect(titles()).toEqual(["Pick up groceries"]);
       // No box or tiles for viewers (an Easy helper has both); the card is still there.
       const inputs = role === "easy_helper";
@@ -177,8 +178,22 @@ describe("My todos in easy mode", () => {
         .toBeInTheDocument();
       const patch = (await device.queued()).find((w) => w.op === "PATCH");
       expect(Object.keys(patch?.data ?? {}).sort()).toEqual(["done_at", "done_by"]);
+      // The card can still show the todo before its query catches up: wait for
+      // it to go, so the title coming back below is the Undo's write landing
+      // (and the test doesn't end, closing the database, mid-write: B-475).
+      await expect.poll(() => titles()).toEqual([]);
       await userEvent.click(page.getByRole("button", { name: "Undo Pick up groceries" }));
       await expect.poll(() => titles()).toEqual(["Pick up groceries"]);
+      // The undo's write lands before the test ends (the title shows before it does).
+      await expect
+        .poll(async () => {
+          const [row] = await device.query<{ done_at: string | null }>(
+            "SELECT done_at FROM todo WHERE title = 'Pick up groceries'",
+          );
+          return row?.done_at;
+        })
+        .toBeNull();
+      await device.settle();
     },
   );
 
@@ -189,7 +204,7 @@ describe("My todos in easy mode", () => {
       todo({ title: "Sort the batteries" }),
       mine("Return the library book", { doneAt: at(new Date(Date.now() - 60_000)), doneBy: TEST_USER.id }),
     ]);
-    await waitUntil(() => !!document.querySelector("[data-easy-tiles]"), 4000, "the easy view");
+    await waitUntil(() => !!document.querySelector("[data-easy-tiles]"), "the easy view");
     await expect.element(page.getByText("Slept well after lunch")).toBeVisible();
     expect(card()).toBeNull();
     expect(page.getByRole("region", { name: "My todos" }).query()).toBeNull();

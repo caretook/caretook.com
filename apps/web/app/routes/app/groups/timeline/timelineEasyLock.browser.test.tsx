@@ -11,7 +11,8 @@ import { at, fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
 import * as timeline from "./route";
-import { chooseEasyMode, TIMELINE_URL, waitUntil } from "./timelineWorld";
+import { chooseEasyMode, TIMELINE_URL } from "./timelineWorld";
+import { found, waitUntil } from "../../../../../test/found";
 
 // The easy roles, viewers and "Remove my last entry", in the real /app frame
 // on the test device: an Easy helper or Easy viewer is kept to the timeline,
@@ -87,7 +88,7 @@ describe("an easy role", () => {
     async (role) => {
       const device = await open({ role, url: `${base}/providers` });
       await expect.poll(device.location).toBe(TIMELINE_URL);
-      await waitUntil(isEasy, 4000, "the easy view");
+      await waitUntil(isEasy, "the easy view");
       expect(page.getByRole("heading", { name: "Providers" }).elements()).toHaveLength(0);
     },
   );
@@ -107,12 +108,12 @@ describe("an easy role", () => {
     await expect.element(page.getByRole("heading", { name: "Members" })).toBeVisible();
     await device.sync(membership("easy_helper"));
     await expect.poll(device.location).toBe(TIMELINE_URL);
-    await waitUntil(isEasy, 4000, "the easy view");
+    await waitUntil(isEasy, "the easy view");
   });
 
   test("reaches account settings from the user menu", async () => {
     const device = await open();
-    await waitUntil(isEasy, 4000, "the easy view");
+    await waitUntil(isEasy, "the easy view");
     await userEvent.click(userButton());
     await expect.poll(menuItems).toEqual(["Settings", "Sign out"]);
     await userEvent.click(page.getByRole("menuitem", { name: "Settings" }));
@@ -134,7 +135,7 @@ describe("an easy role", () => {
         fx.member({ userId: TEST_USER.id, groupId: OTHER, role: "caretaker" }),
       ],
     });
-    await waitUntil(isEasy, 4000, "the easy view");
+    await waitUntil(isEasy, "the easy view");
     await userEvent.click(userButton());
     await expect.poll(menuItems).toEqual(["Settings", "Your care groups", "Sign out"]);
     await userEvent.click(page.getByRole("menuitem", { name: "Your care groups" }));
@@ -142,7 +143,7 @@ describe("an easy role", () => {
     await expect.element(page.getByRole("heading", { name: "Your care groups" })).toBeVisible();
     await userEvent.click(page.getByRole("link", { name: /Lou Okafor/ }));
     await expect.poll(device.location).toBe(`/app/groups/${OTHER}/timeline`);
-    await waitUntil(() => !isEasy(), 4000, "the full timeline there");
+    await waitUntil(() => !isEasy(), "the full timeline there");
   });
 });
 
@@ -160,12 +161,12 @@ describe("an Easy helper's timeline", () => {
 
   test("logs through the box and the tiles, with no Full app", async () => {
     const device = await open({ fixtures: [SAM, mine, sams] });
-    await waitUntil(isEasy, 4000, "the easy view");
-    await waitUntil(() => !!document.querySelector("[data-easy-tiles]"), 4000, "the tiles");
+    await waitUntil(isEasy, "the easy view");
+    await waitUntil(() => !!document.querySelector("[data-easy-tiles]"), "the tiles");
     expect(page.getByRole("button", { name: "Full app" }).elements()).toHaveLength(0);
 
     await userEvent.fill(page.getByRole("textbox", { name: "What happened?" }), "Walked to the mailbox");
-    await waitUntil(() => !!document.querySelector("[data-quick-card]"), 4000, "the card");
+    await waitUntil(() => !!document.querySelector("[data-quick-card]"), "the card");
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     await expect
       .poll(async () => (await device.queued()).filter((op) => op.type === "timeline_entry").length)
@@ -174,22 +175,22 @@ describe("an Easy helper's timeline", () => {
 
   test("gets a ⋯ menu on their own row and none on another member's; Edit opens their own's sheet", async () => {
     const device = await open({ fixtures: [SAM, mine, sams] });
-    await waitUntil(() => isEasy() && rows().length === 2, 4000, "the rows");
-    expect(actions(rowWith("Cough")!)).toBeNull();
-    expect(rowWith("Cough")!.querySelector("a[href*='/edit']")).toBeNull();
+    await waitUntil(() => isEasy() && rows().length === 2, "the rows");
+    expect(actions(await found(() => rowWith("Cough")))).toBeNull();
+    expect(rowWith("Cough")?.querySelector("a[href*='/edit']")).toBeNull();
 
-    await userEvent.click(actions(rowWith("Dizzy")!)!);
+    await userEvent.click(await found(() => actions(rowWith("Dizzy")!)));
     await userEvent.click(page.getByRole("menuitem", { name: "Edit" }));
     const name = () => document.querySelector<HTMLInputElement>('[role=dialog] input[name="symptomName"]');
-    await waitUntil(() => !!name(), 4000, "the edit sheet");
+    await waitUntil(() => !!name(), "the edit sheet");
     await expect.poll(() => name()?.value).toBe("Dizzy");
     expect(device.location()).toBe(`${TIMELINE_URL}/${mine.id}/edit`);
   });
 
   test("deletes their own row from its menu", async () => {
     const device = await open({ fixtures: [SAM, mine, sams] });
-    await waitUntil(() => isEasy() && rows().length === 2, 4000, "the rows");
-    await userEvent.click(actions(rowWith("Dizzy")!)!);
+    await waitUntil(() => isEasy() && rows().length === 2, "the rows");
+    await userEvent.click(await found(() => actions(rowWith("Dizzy")!)));
     await userEvent.click(page.getByRole("menuitem", { name: "Delete" }));
     await userEvent.click(page.getByRole("button", { name: "Delete", exact: true }));
     await expect
@@ -200,7 +201,7 @@ describe("an Easy helper's timeline", () => {
   test("another member's edit sheet, typed in, goes back to the timeline", async () => {
     const device = await open({ fixtures: [SAM, mine, sams], url: `${TIMELINE_URL}/${sams.id}/edit` });
     await expect.poll(device.location).toBe(TIMELINE_URL);
-    await waitUntil(isEasy, 4000, "the easy view");
+    await waitUntil(isEasy, "the easy view");
   });
 });
 
@@ -215,7 +216,7 @@ describe("an Easy viewer's timeline", () => {
         fx.symptom({ name: "Cough", occurredAt: minutesAgo(8), createdAt: minutesAgo(8), createdBy: SAM.id }),
       ],
     });
-    await waitUntil(() => isEasy() && rows().length === 2, 4000, "the rows");
+    await waitUntil(() => isEasy() && rows().length === 2, "the rows");
     expect(page.getByRole("textbox", { name: "What happened?" }).elements()).toHaveLength(0);
     expect(document.querySelector("[data-easy-tiles]")).toBeNull();
     expect(page.getByRole("button", { name: "Remove my last entry" }).elements()).toHaveLength(0);
@@ -238,14 +239,10 @@ describe("a viewer in easy mode", () => {
         fx.symptom({ name: "Sore knee", occurredAt: minutesAgo(5), createdAt: minutesAgo(5) }),
       ],
     });
-    await waitUntil(isEasy, 4000, "the easy view");
-    await waitUntil(() => !!document.querySelector("[data-easy-next]"), 4000, "the next appointment");
-    expect(document.querySelector("[data-easy-next]")!.textContent).toMatch(/^Next: Visit with Dr\. Lark · /);
-    await waitUntil(
-      () => document.querySelectorAll("[data-easy-list] ol > li").length === 1,
-      4000,
-      "the rows",
-    );
+    await waitUntil(isEasy, "the easy view");
+    await waitUntil(() => !!document.querySelector("[data-easy-next]"), "the next appointment");
+    expect(document.querySelector("[data-easy-next]")?.textContent).toMatch(/^Next: Visit with Dr\. Lark · /);
+    await waitUntil(() => document.querySelectorAll("[data-easy-list] ol > li").length === 1, "the rows");
     expect(page.getByRole("textbox", { name: "What happened?" }).elements()).toHaveLength(0);
     expect(document.querySelector("[data-easy-tiles]")).toBeNull();
     expect(page.getByRole("button", { name: "Remove my last entry" }).elements()).toHaveLength(0);
@@ -271,7 +268,7 @@ describe("Remove my last entry", () => {
       easyMode: true,
       fixtures: [SAM, recent, older, samsNewer],
     });
-    await waitUntil(isEasy, 4000, "the easy view");
+    await waitUntil(isEasy, "the easy view");
     const remove = page.getByRole("button", { name: "Remove my last entry" });
     await expect.element(remove).toBeVisible();
 
@@ -292,13 +289,13 @@ describe("Remove my last entry", () => {
     const [left] = await device.query<{ n: number }>(
       "SELECT count(*) AS n FROM timeline_entry WHERE deleted_at IS NULL",
     );
-    expect(left!.n).toBe(2);
+    expect(left?.n).toBe(2);
   });
 
   test("offers nothing when your latest is older than 30 minutes", async () => {
     await open({ role: "caretaker", easyMode: true, fixtures: [mine("Tired", 31)] });
-    await waitUntil(isEasy, 4000, "the easy view");
-    await waitUntil(() => !!document.querySelector("[data-easy-tiles]"), 4000, "the tiles");
+    await waitUntil(isEasy, "the easy view");
+    await waitUntil(() => !!document.querySelector("[data-easy-tiles]"), "the tiles");
     expect(page.getByRole("button", { name: "Remove my last entry" }).elements()).toHaveLength(0);
   });
 });

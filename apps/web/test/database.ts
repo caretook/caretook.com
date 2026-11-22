@@ -4,6 +4,7 @@ import type { Fixture } from "./fixtures";
 import { DrizzleAppSchema, wrapPowerSyncWithDrizzle } from "@powersync/drizzle-driver";
 import { PowerSyncDatabase } from "@powersync/web";
 import { drizzleSchema, powerSyncSchema } from "~/lib/sync/schema";
+import { WAIT_TIMEOUT } from "./found";
 
 // The test device's database: a real PowerSync database with the device
 // schema, in this Chromium tab, that never connects (no connector, so
@@ -140,7 +141,7 @@ const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() 
  * `unsync()`, before reading the screen. Throws after `timeout` ms, saying
  * what was still moving.
  */
-export const settle = async (db: SyncDb, { timeout = 5_000 }: { timeout?: number } = {}) => {
+export const settle = async (db: SyncDb, { timeout = WAIT_TIMEOUT }: { timeout?: number } = {}) => {
   const tracker = trackers.get(db.powersync);
   if (!tracker) throw new Error("settle: this database isn't a test device's (openTestDatabase).");
   const start = performance.now();

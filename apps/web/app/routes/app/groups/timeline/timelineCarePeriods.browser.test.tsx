@@ -2,7 +2,7 @@ import type { DeviceRoute } from "../../../../../test/device";
 
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_USER } from "../../../../../test/fixtures";
 import {
@@ -21,7 +21,7 @@ import {
   track,
   typeRadio,
 } from "../periods/periodWorld";
-import { rows, setView, TIMELINE_ROUTES, TIMELINE_URL, waitUntil, world } from "./timelineWorld";
+import { rows, setView, TIMELINE_ROUTES, TIMELINE_URL, world } from "./timelineWorld";
 
 // The care period on the timeline (care-periods.mjs's timeline steps):
 // today's header line with Change (writers), the add sheet from it and back
@@ -66,33 +66,33 @@ const listOrder = () =>
 const inOrder = (list: ReturnType<typeof listOrder>) =>
   list.every((r, i) => i === 0 || !r.at || !list[i - 1]!.at || new Date(r.at) <= new Date(list[i - 1]!.at!));
 
-const ready = () => waitUntil(() => rows().length > 0, 8000, "the first rows");
+const ready = () => waitUntil(() => rows().length > 0, "the first rows");
 
 describe("today's line", () => {
   test("names the current period with its day, links to it, and gives a writer Change; Change opens the add sheet, and saving comes back to the filtered timeline with the line and a marker for it under Today, read as one sentence", async () => {
     const device = await open("?kind=symptom");
     await ready();
     expect(lineText()).toMatch(/^At home · day \d+$/);
-    expect(document.querySelector("main [data-period-current]")!.getAttribute("href")).toBe(
+    expect(document.querySelector("main [data-period-current]")?.getAttribute("href")).toBe(
       periodUrl(HOME_NOW.id),
     );
     expect(CHANGE()).not.toBeNull();
 
     await userEvent.click(await found(CHANGE));
-    await waitUntil(() => !!FORM(), 4000, "the add sheet");
+    await waitUntil(() => !!FORM(), "the add sheet");
     expect(device.location()).toMatch(/\/periods\/new$/);
-    await userEvent.click(typeRadio("Rehab or skilled nursing")!);
-    await userEvent.fill(field("label")!, "Line stay");
+    await userEvent.click(await found(() => typeRadio("Rehab or skilled nursing")));
+    await userEvent.fill(await found(() => field("label")), "Line stay");
     await userEvent.click(submit());
 
-    await waitUntil(() => !SHEET() && lineText() === "In rehab · Line stay · day 1", 6000, "the new line");
+    await waitUntil(() => !SHEET() && lineText() === "In rehab · Line stay · day 1", "the new line");
     expect(device.location()).toBe(`${TIMELINE_URL}?kind=symptom`);
     await device.settle();
     const [saved] = await device.query<{ id: string }>(
       "SELECT id FROM care_period WHERE label = 'Line stay'",
     );
     const id = saved!.id;
-    await waitUntil(() => !!markerLi(id), 4000, "the new marker");
+    await waitUntil(() => !!markerLi(id), "the new marker");
     const list = listOrder();
     const mine = list.find((r) => r.marker === id)!;
     expect(mine.day).toBe("Today");
@@ -106,16 +106,16 @@ describe("today's line", () => {
     await ready();
     await userEvent.click(await found(() => document.querySelector("main [data-period-current]")));
     await expect.poll(device.location).toBe(periodUrl(HOME_NOW.id));
-    await waitUntil(() => !!document.querySelector("main[data-period-page]"), 4000, "the period page");
+    await waitUntil(() => !!document.querySelector("main[data-period-page]"), "the period page");
   });
 
   test("a marker opens its period", async () => {
     const device = await open();
     await ready();
-    await waitUntil(() => !!markerLi(HOME_NOW.id), 4000, "the marker");
-    await userEvent.click(markerLi(HOME_NOW.id)!.querySelector("a")!);
+    await waitUntil(() => !!markerLi(HOME_NOW.id), "the marker");
+    await userEvent.click(await found(() => markerLi(HOME_NOW.id)?.querySelector("a")));
     await expect.poll(device.location).toBe(periodUrl(HOME_NOW.id));
-    await waitUntil(() => !!document.querySelector("main[data-period-page]"), 4000, "the period page");
+    await waitUntil(() => !!document.querySelector("main[data-period-page]"), "the period page");
   });
 });
 
@@ -123,8 +123,8 @@ describe("the markers", () => {
   test("show under an author filter (a kind filter: above)", async () => {
     await open(`?author=${TEST_USER.id}`);
     await ready();
-    await waitUntil(() => !!markerLi(HOME_NOW.id), 4000, "the marker under the author filter");
-    expect(markerLi(HOME_NOW.id)!.textContent?.trim()).toMatch(/^Rehab → Home · 15:30$/);
+    await waitUntil(() => !!markerLi(HOME_NOW.id), "the marker under the author filter");
+    expect(markerLi(HOME_NOW.id)?.textContent?.trim()).toMatch(/^Rehab → Home · 15:30$/);
   });
 
   test("show in cards", async () => {
@@ -133,7 +133,6 @@ describe("the markers", () => {
     await setView("Cards");
     await waitUntil(
       () => !!document.querySelector(`main ol[data-view="cards"] > li[data-marker="${HOME_NOW.id}"]`),
-      4000,
       "the marker in cards",
     );
   });
@@ -157,12 +156,12 @@ describe("places", () => {
     });
     await open("", { fixtures: [...world(10), RIVERSIDE, stay] });
     await ready();
-    await waitUntil(() => !!markerLi(stay.id), 4000, "the marker");
+    await waitUntil(() => !!markerLi(stay.id), "the marker");
     const line = document.querySelector<HTMLElement>(
       `main [data-day-header] [data-period-line="${stay.id}"]`,
     )!;
     const marker = markerLi(stay.id)!;
-    expect(line.querySelector("[data-period-current]")!.textContent?.trim()).toBe("In hospital · day 1");
+    expect(line.querySelector("[data-period-current]")?.textContent?.trim()).toBe("In hospital · day 1");
     expect(marker.textContent?.trim()).toMatch(/^Started: Hospital · \d\d:\d\d$/);
     for (const text of [
       line.textContent,
@@ -200,8 +199,8 @@ describe("scrolling back", () => {
 
     let outOfPlace: unknown = null;
     let samples = 0;
-    const started = Date.now();
-    while (Date.now() - started < 20_000) {
+    /** Scroll on (never while a page loads), checking the list's order each time; the status line. */
+    const sample = () => {
       const t = status();
       if (t !== LOADING) window.scrollTo(0, document.documentElement.scrollHeight);
       const list = listOrder();
@@ -213,8 +212,15 @@ describe("scrolling back", () => {
           (t !== END && list.some((r) => r.marker && low && new Date(r.at!) < new Date(low))))
       )
         outOfPlace = { t, rows: list.length, low };
-      if (t === END) break;
-      await new Promise((r) => setTimeout(r, 50));
+      return { t, rows: list.length };
+    };
+    // A page at a time, each within the harness's timeout.
+    while (status() !== END) {
+      const loaded = listOrder().length;
+      await waitUntil(() => {
+        const { t, rows } = sample();
+        return t === END || rows > loaded;
+      }, `the page after ${loaded} rows`);
     }
     expect(status()).toBe(END);
     expect(outOfPlace).toBeNull();
@@ -222,8 +228,8 @@ describe("scrolling back", () => {
 
     const all = listOrder().filter((r) => r.marker);
     expect(all.map((r) => r.marker)).toEqual([HOME_NOW.id, REHAB.id, HOSPITAL.id, ER.id, HOME_FIRST.id]);
-    expect(all.at(-1)!.text).toBe("Started: Home");
-    expect(all.find((r) => r.marker === HOSPITAL.id)!.text).toBe(
+    expect(all.at(-1)?.text).toBe("Started: Home");
+    expect(all.find((r) => r.marker === HOSPITAL.id)?.text).toBe(
       "Emergency room → Hospital · Cardiac unit (4 West) · 03:15",
     );
     expect(inOrder(listOrder())).toBe(true);

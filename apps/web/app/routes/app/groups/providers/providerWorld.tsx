@@ -2,6 +2,8 @@ import type { DeviceRoute } from "../../../../../test/device";
 
 import { page, userEvent } from "vitest/browser";
 import { fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
+import { found, waitUntil } from "../../../../../test/found";
+import { getByCss } from "../../../../../test/locators";
 import * as entryRoute from "../entry/route";
 import * as providerRoute from "../provider/route";
 import * as editSheet from "./edit/route";
@@ -174,16 +176,18 @@ export const PROVIDER_ROUTES: DeviceRoute[] = [
 
 // --- DOM helpers (providers.mjs's selectors) ---------------------------------
 
-export const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector<T>(sel);
-export const $$ = <T extends Element = HTMLElement>(sel: string) => [...document.querySelectorAll<T>(sel)];
-
 /** The names in one of the directory's lists. */
 export const listNames = (label: "Current providers" | "Past providers") =>
-  $$(`main ul[aria-label="${label}"] [data-provider-name]`).map((n) => n.textContent.trim());
-export const SEARCH = () => $<HTMLInputElement>('main input[type="search"]');
-export const SHOW_PAST = () => $<HTMLAnchorElement>("main [data-show-past]");
+  [...document.querySelectorAll<HTMLElement>(`main ul[aria-label="${label}"] [data-provider-name]`)].map(
+    (n) => n.textContent.trim(),
+  );
+export const SEARCH = () => document.querySelector<HTMLInputElement>('main input[type="search"]');
+export const SHOW_PAST = () => document.querySelector<HTMLAnchorElement>("main [data-show-past]");
 /** The "Filters on" chips' labels (without their ✕). */
-export const filterChips = () => $$('main nav[aria-label="Filters on"] a').map((a) => a.textContent.trim());
+export const filterChips = () =>
+  [...document.querySelectorAll<HTMLElement>('main nav[aria-label="Filters on"] a')].map((a) =>
+    a.textContent.trim(),
+  );
 /** The Filter button, by its exact name: the menu ("Filter providers") and the chips ("Filters on") are named alike. */
 export const filterButton = () => page.getByRole("button", { name: /^Filter(, \d+ on)?$/ });
 /** Opens the Filter menu and chooses an option (the menu closes). */
@@ -191,21 +195,23 @@ export const chooseFilter = async (option: string) => {
   await userEvent.click(filterButton());
   await userEvent.click(page.getByRole("menuitemradio", { name: option, exact: true }));
 };
-export const ADD_PROVIDER = () => $<HTMLAnchorElement>("main [data-add-provider]");
+export const ADD_PROVIDER = () => document.querySelector<HTMLAnchorElement>("main [data-add-provider]");
 
-export const SHEET = () => $("[role=dialog]");
-export const FORM = () => $<HTMLFormElement>("[role=dialog] [data-provider-form]");
+export const SHEET = () => document.querySelector<HTMLElement>("[role=dialog]");
+export const FORM = () => document.querySelector<HTMLFormElement>("[role=dialog] [data-provider-form]");
 export const field = <T extends HTMLElement = HTMLInputElement>(name: string, n = 0) =>
   FORM()?.querySelectorAll<T>(`[name="${name}"]`)[n] ?? null;
 export const formButton = (text: string) =>
   [...(FORM()?.querySelectorAll<HTMLButtonElement>("button") ?? [])].find((b) =>
     b.textContent?.includes(text),
   );
-export const submit = () => FORM()!.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+/** The sheet's Save, as a locator. */
+export const submit = () => getByCss('[role=dialog] [data-provider-form] button[type="submit"]');
 /** Each invalid field's name (phones by position) and its message, plus the phones message. */
 export const fieldErrors = () => {
-  const form = FORM()!;
+  const form = FORM();
   const out: Record<string, string> = {};
+  if (!form) return out;
   for (const el of form.querySelectorAll<HTMLInputElement>('[aria-invalid="true"]')) {
     const same = [...form.querySelectorAll(`[name="${el.name}"]`)];
     const key = el.name + (el.name.startsWith("phone") ? same.indexOf(el) : "");
@@ -218,33 +224,41 @@ export const fieldErrors = () => {
 };
 /** Replace a field's text, as typing it would. */
 export const fill = async (name: string, value: string, n = 0) => {
-  const el = field<HTMLInputElement | HTMLTextAreaElement>(name, n)!;
+  const el = await found(() => field<HTMLInputElement | HTMLTextAreaElement>(name, n));
   await userEvent.clear(el);
   if (value) await userEvent.type(el, value);
 };
-export const CONFIRM = () => $<HTMLDialogElement>("dialog.modal");
+export const CONFIRM = () => document.querySelector<HTMLDialogElement>("dialog.modal");
 export const confirmButton = (text: string) =>
   [...(CONFIRM()?.querySelectorAll<HTMLButtonElement>("button") ?? [])].find(
     (b) => b.textContent?.trim() === text,
   );
 
 /** The provider page's editor (its live notes). */
-export const NOTES = () => $(".ProseMirror");
+export const NOTES = () => document.querySelector<HTMLElement>(".ProseMirror");
 export const pageHeader = () => ({
-  h1: $("main h1")?.textContent?.trim() ?? null,
-  badges: $$('main header [data-region="title"] .badge').map((b) => b.textContent.trim()),
-  details: $('main header [data-region="details"]')?.textContent?.trim() ?? null,
-  practice: $("main header [data-practice]")?.getAttribute("href") ?? null,
+  h1: document.querySelector<HTMLElement>("main h1")?.textContent?.trim() ?? null,
+  badges: [...document.querySelectorAll<HTMLElement>('main header [data-region="title"] .badge')].map((b) =>
+    b.textContent.trim(),
+  ),
+  details:
+    document.querySelector<HTMLElement>('main header [data-region="details"]')?.textContent?.trim() ?? null,
+  practice: document.querySelector<HTMLElement>("main header [data-practice]")?.getAttribute("href") ?? null,
 });
 export const contactLinks = () =>
-  $$<HTMLAnchorElement>("main [data-contact-list] a").map((a) => [a.dataset.action, a.getAttribute("href")]);
+  [...document.querySelectorAll<HTMLAnchorElement>("main [data-contact-list] a")].map((a) => [
+    a.dataset.action,
+    a.getAttribute("href"),
+  ]);
 
 /** The entry header's With row. */
-export const WITH = () => $('main header [data-region="with"]');
+export const WITH = () => document.querySelector<HTMLElement>('main header [data-region="with"]');
 export const ADD_LINK = () => WITH()?.querySelector<HTMLButtonElement>("[data-add-provider-link]") ?? null;
 export const PICKER = () => WITH()?.querySelector<HTMLInputElement>("input") ?? null;
 export const option = (text: string) =>
-  $$('[role="option"]').find((o) => o.firstElementChild?.textContent === text);
+  [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(
+    (o) => o.firstElementChild?.textContent === text,
+  );
 export const chips = () =>
   [...(WITH()?.querySelectorAll<HTMLLIElement>("li[data-chip]") ?? [])].map((li) => ({
     id: li.dataset.chip!,
@@ -260,25 +274,12 @@ export const suggestion = (name: string) =>
   [...(SUGGESTIONS()?.querySelectorAll<HTMLButtonElement>("button") ?? [])].find(
     (b) => b.textContent?.trim() === name,
   );
-export const ENTRY_TITLE = () => $<HTMLInputElement>("main header input");
-
-/** Poll a condition (a DOM read) until it holds, or fail with `what`. */
-export const waitUntil = async (test: () => boolean, ms = 4000, what = "condition") => {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    if (test()) return;
-    await new Promise((r) => setTimeout(r, 25));
-  }
-  throw new Error(`timed out waiting for ${what}`);
-};
-export const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+export const ENTRY_TITLE = () => document.querySelector<HTMLInputElement>("main header input");
 
 /** Open the With row's picker, type `text`, and take the option `optionText`. */
 export const pick = async (text: string, optionText: string) => {
-  await waitUntil(() => !!ADD_LINK(), 4000, "the With row's Add");
-  await userEvent.click(ADD_LINK()!);
-  await waitUntil(() => !!PICKER() && document.activeElement === PICKER(), 4000, "the picker");
+  await userEvent.click(await found(ADD_LINK, { message: "the With row's Add" }));
+  await waitUntil(() => !!PICKER() && document.activeElement === PICKER(), "the picker");
   await userEvent.keyboard(text);
-  await waitUntil(() => !!option(optionText), 4000, `the option ${optionText}`);
-  await userEvent.click(option(optionText)!);
+  await userEvent.click(await found(() => option(optionText), { message: `the option ${optionText}` }));
 };

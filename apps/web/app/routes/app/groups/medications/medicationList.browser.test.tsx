@@ -4,8 +4,6 @@ import { renderWithDevice } from "../../../../../test/device";
 import { pageHeader } from "../../../../../test/pageHeader";
 import { fx } from "../../../../../test/fixtures";
 import {
-  $,
-  $$,
   dayAgo,
   LIST,
   LISINOPRIL,
@@ -37,7 +35,7 @@ const open = (options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
 
 const CURRENT = "Current medications";
 const STOPPED = "Completed and discontinued medications";
-const SEARCH = () => $<HTMLInputElement>('main input[type="search"]')!;
+const SEARCH = () => document.querySelector<HTMLInputElement>('main input[type="search"]')!;
 /** The Filter button, by its exact name: the menu ("Filter medications") and the chips ("Filters on") are named alike. */
 const filterButton = () => page.getByRole("button", { name: /^Filter(, \d+ on)?$/ });
 const openFilters = async () => {
@@ -45,7 +43,10 @@ const openFilters = async () => {
   await userEvent.click(filterButton());
 };
 /** The labels of the "Filters on" chips (without their ✕). */
-const chips = () => $$('main nav[aria-label="Filters on"] a').map((a) => a.textContent?.trim());
+const chips = () =>
+  [...document.querySelectorAll<HTMLElement>('main nav[aria-label="Filters on"] a')].map((a) =>
+    a.textContent?.trim(),
+  );
 /** Opens the Filter menu and chooses an option (the menu closes). */
 const choose = async (option: string) => {
   await openFilters();
@@ -64,7 +65,7 @@ describe("the list", () => {
     expect(rowText("Oxybutynin", "stopped")).toMatch(/^Discontinued \w{3} \d{1,2}, \d{4} · Side effects$/);
     expect(rowText("Amoxicillin", "stopped")).toMatch(/^Completed \w{3} \d{1,2}, \d{4}$/);
     // The name's link covers the row: a tap anywhere on it opens the page.
-    const row = $(`main li[data-medication-id="${OXYBUTYNIN.id}"]`)!;
+    const row = document.querySelector<HTMLElement>(`main li[data-medication-id="${OXYBUTYNIN.id}"]`)!;
     expect(row.querySelector("a[data-medication-name]")?.getAttribute("href")).toBe(
       medicationUrl(OXYBUTYNIN.id),
     );
@@ -118,9 +119,9 @@ describe("the list", () => {
     await expect.poll(() => SEARCH()).toBeTruthy();
     await expect.element(filterButton()).toHaveAccessibleName("Filter");
     expect(SEARCH().closest("form")?.parentElement).toBe(filterButton().element().parentElement);
-    expect($('main nav[aria-label="Show medications"]')).toBeNull();
-    expect($('main nav[aria-label="Medication type"]')).toBeNull();
-    expect($('main nav[aria-label="Filters on"]')).toBeNull();
+    expect(document.querySelector<HTMLElement>('main nav[aria-label="Show medications"]')).toBeNull();
+    expect(document.querySelector<HTMLElement>('main nav[aria-label="Medication type"]')).toBeNull();
+    expect(document.querySelector<HTMLElement>('main nav[aria-label="Filters on"]')).toBeNull();
   });
 
   test("Discontinued in the Filter menu shows only Oxybutynin and goes in the URL, which opens filtered; All shows everything again", async () => {
@@ -169,7 +170,7 @@ describe("the list", () => {
     await choose("Current");
     await expect.poll(device.location).toBe(`${LIST}?status=current&type=otc`);
     await expect.element(filterButton()).toHaveAccessibleName("Filter, 2 on");
-    expect($("main [data-filter-count]")?.textContent).toBe("2");
+    expect(document.querySelector<HTMLElement>("main [data-filter-count]")?.textContent).toBe("2");
     expect(chips()).toEqual(["Current", "Over the counter"]);
     await choose("Supplement");
     await expect.poll(device.location).toBe(`${LIST}?status=current&type=supplement`);
@@ -218,14 +219,14 @@ describe("the list", () => {
     await open({ role: "viewer" });
     await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
     expect(pageHeader()).toEqual({ h1: "Medications", namesRecipient: false, viewerNote: false });
-    expect($("main [data-add-medication]")).toBeNull();
+    expect(document.querySelector<HTMLElement>("main [data-add-medication]")).toBeNull();
   });
 
   test("on Schedule the header's actions run a printer-only Print, then the + (Add); the + opens its menu and Print its", async () => {
     const device = await open({ url: SCHEDULE });
-    await expect.poll(() => $("main [data-today]")).toBeTruthy();
+    await expect.poll(() => document.querySelector<HTMLElement>("main [data-today]")).toBeTruthy();
     expect(pageHeader()).toEqual({ h1: "Medications", namesRecipient: false, viewerNote: false });
-    const actions = $$("main header a, main header button");
+    const actions = [...document.querySelectorAll<HTMLElement>("main header a, main header button")];
     expect(actions.map((a) => a.getAttribute("aria-label") ?? a.textContent?.trim())).toEqual([
       "Print",
       "Add",

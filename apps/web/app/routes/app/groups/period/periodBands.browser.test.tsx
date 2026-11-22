@@ -1,7 +1,8 @@
+import { waitUntil } from "../../../../../test/found";
 import { describe, expect, test } from "vitest";
 import { bandNames, bandsAlternate } from "../../../../../test/bands";
 import { renderWithDevice } from "../../../../../test/device";
-import { HOME_NOW, HOSPITAL, PERIOD_ROUTES, periodUrl, track, waitUntil } from "../periods/periodWorld";
+import { HOME_NOW, HOSPITAL, PERIOD_ROUTES, periodUrl, track } from "../periods/periodWorld";
 
 // The care period page in bands (ui-kit slice 6): the header band, then
 // each part as a named band in today's order; a viewer sees the same parts
@@ -14,7 +15,7 @@ const onPage = (id: string) => () =>
 describe("the care period page's bands", () => {
   test("a writer's bands in order", async () => {
     await renderWithDevice({ route: PERIOD_ROUTES, url: periodUrl(HOSPITAL.id), fixtures: track() });
-    await waitUntil(onPage(HOSPITAL.id), 4000, "the page");
+    await waitUntil(onPage(HOSPITAL.id), "the page");
     expect(bandNames()).toEqual(["(header)", "Dates", "Place", "Notes", "Other care periods"]);
     expect(bandsAlternate()).toBe(true);
   });
@@ -29,7 +30,7 @@ describe("the care period page's bands", () => {
         role: "viewer",
         theme,
       });
-      await waitUntil(onPage(HOME_NOW.id), 4000, "the page");
+      await waitUntil(onPage(HOME_NOW.id), "the page");
       expect(bandNames()).toEqual(["(header)", "Dates", "Notes", "Other care periods"]);
       expect(bandsAlternate()).toBe(true);
     },

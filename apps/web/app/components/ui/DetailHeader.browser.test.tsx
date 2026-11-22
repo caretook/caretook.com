@@ -5,8 +5,7 @@ import { rgba } from "../../../test/contrast";
 import { renderInRouter } from "../../../test/device";
 import { Badge, DetailHeader } from "./index";
 
-const $ = (selector: string) => document.querySelector<HTMLElement>(selector);
-const region = (name: string) => $(`header [data-region="${name}"]`);
+const region = (name: string) => document.querySelector<HTMLElement>(`header [data-region="${name}"]`);
 
 describe("DetailHeader", () => {
   test("the title is the page's h1, and each part lands in its region", async () => {
@@ -35,7 +34,7 @@ describe("DetailHeader", () => {
     expect(region("details")?.hasAttribute("data-example-details")).toBe(true);
     expect(region("editors")?.querySelector("[data-person]")).toBeTruthy();
     expect(region("actions")?.querySelector("button")?.textContent).toBe("Edit");
-    expect($("header[data-example-header]")).toBeTruthy();
+    expect(document.querySelector("header[data-example-header]")).toBeTruthy();
     // The icon is decorative.
     expect(region("icon")?.getAttribute("aria-hidden")).toBe("true");
   });
@@ -78,7 +77,7 @@ describe("DetailHeader", () => {
       { theme },
     );
     const paint = (tone: string) => {
-      const icon = $(`[data-tone-case="${tone}"] [data-region="icon"]`)!;
+      const icon = document.querySelector<HTMLElement>(`[data-tone-case="${tone}"] [data-region="icon"]`)!;
       const style = getComputedStyle(icon);
       return { fill: rgba(style.backgroundColor).join(), text: rgba(style.color).join() };
     };

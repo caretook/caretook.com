@@ -10,9 +10,9 @@ import {
   rows,
   rowWith,
   TIMELINE_URL,
-  waitUntil,
   world,
 } from "./timelineWorld";
+import { found, waitUntil } from "../../../../../test/found";
 
 // Back from a page outside the timeline (B-174): the entry page isn't one of
 // the timeline's child routes, so going to it unmounts the timeline, and Back
@@ -23,7 +23,6 @@ import {
 
 const LOADING = "Loading older…";
 const status = () => document.querySelector("[data-older-entries] [role=status]");
-const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const probe = () => document.querySelector("h1")?.textContent?.startsWith("Entry page") ?? false;
 const ids = () =>
   rows().map(
@@ -34,11 +33,11 @@ const ids = () =>
 
 /** Scroll down until at least `count` rows are loaded and no page is loading. */
 const scrollTo = async (count: number) => {
-  for (let i = 0; i < 40 && rows().length < count; i++) {
+  await waitUntil(() => {
     window.scrollTo(0, document.documentElement.scrollHeight);
-    await pause(100);
-  }
-  await waitUntil(() => status()?.textContent !== LOADING, 8000, "the page to load");
+    return rows().length >= count;
+  }, `${count} rows`);
+  await waitUntil(() => status()?.textContent !== LOADING, "the page to load");
   expect(rows().length).toBeGreaterThanOrEqual(count);
 };
 
@@ -49,8 +48,8 @@ const openLastNote = async () => {
     .find((li) => li.querySelector('a[aria-label^="Open "]'))!;
   expect(note).toBeTruthy();
   note.scrollIntoView({ block: "center" });
-  await userEvent.click(note.querySelector('a[aria-label^="Open "]')!, { force: true });
-  await waitUntil(probe, 4000, "the entry page");
+  await userEvent.click(await found(() => note.querySelector('a[aria-label^="Open "]')), { force: true });
+  await waitUntil(probe, "the entry page");
 };
 
 describe("back from the entry page", () => {
@@ -69,8 +68,8 @@ describe("back from the entry page", () => {
       if (first === null && rows().length > 0) first = rows().length;
     });
     observer.observe(document.body, { childList: true, subtree: true });
-    await userEvent.click(button("Go back")!);
-    await waitUntil(() => rows().length > 0, 4000, "the timeline");
+    await userEvent.click(await found(() => button("Go back")));
+    await waitUntil(() => rows().length > 0, "the timeline");
     observer.disconnect();
     await expect.poll(device.location).toBe(TIMELINE_URL);
     expect(first).toBe(before.length);
@@ -79,20 +78,20 @@ describe("back from the entry page", () => {
 
     // The next page loads as the end comes near.
     window.scrollTo(0, document.documentElement.scrollHeight);
-    await waitUntil(() => rows().length > before.length, 8000, "the fourth page");
+    await waitUntil(() => rows().length > before.length, "the fourth page");
   });
 
   test("Back, then the filter that's on picked again: a dose still names its medication (B-235)", async () => {
     const medication = fx.medication({ name: "Quinapril", strength: "20 mg" });
     const dose = fx.dose({ medicationId: medication.id, occurredAt: at(new Date(Date.now() - 5 * 60_000)) });
     const device = await openTimeline({ fixtures: [...world(130), medication, dose] });
-    await waitUntil(() => !!rowWith("Quinapril"), 4000, "the dose's row");
+    await waitUntil(() => !!rowWith("Quinapril"), "the dose's row");
     await scrollTo(90);
     await device.settle();
 
     await openLastNote();
-    await userEvent.click(button("Go back")!);
-    await waitUntil(() => rows().length > 0, 4000, "the timeline");
+    await userEvent.click(await found(() => button("Go back")));
+    await waitUntil(() => rows().length > 0, "the timeline");
     await device.settle();
     expect(rowWith("Quinapril")).toBeTruthy();
 
@@ -103,8 +102,8 @@ describe("back from the entry page", () => {
     await closeFilters();
     await device.settle();
     await expect.poll(() => !!rowWith("Quinapril")).toBe(true);
-    // Held for a moment: the names don't fall back to "Medication" after the screen settles.
-    await new Promise((r) => setTimeout(r, 300));
+    // Settled again: the names don't fall back to "Medication" after the screen settles.
+    await device.settle();
     expect(rowWith("Quinapril")).toBeTruthy();
   });
 });

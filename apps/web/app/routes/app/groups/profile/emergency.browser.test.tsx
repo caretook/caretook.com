@@ -3,7 +3,8 @@ import { page, userEvent } from "vitest/browser";
 import * as settingsLayout from "~/routes/app/groups/settings/layout/route";
 import * as members from "~/routes/app/groups/settings/members/route";
 import { TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
-import { $, emergencyNames, NORA_ID, openProfile, RITA, rowsFor, SAM, sheetUrl } from "./profileWorld";
+import { getByCss } from "../../../../../test/locators";
+import { emergencyNames, NORA_ID, openProfile, RITA, rowsFor, SAM, sheetUrl } from "./profileWorld";
 
 // The emergency list (profiles.mjs's slice 5 steps): the card for each role,
 // the owner's sheet (members who share a phone, outside contacts, moves by
@@ -17,8 +18,9 @@ import { $, emergencyNames, NORA_ID, openProfile, RITA, rowsFor, SAM, sheetUrl }
 const ME = TEST_USER.name;
 const SEEDED = [`${ME}*`, SAM.name, "Nora Example"];
 
-const card = () => $("main [data-section=emergency]");
-const form = () => $("[role=dialog] [data-emergency-form]");
+const FORM = "[role=dialog] [data-emergency-form]";
+const card = () => document.querySelector("main [data-section=emergency]");
+const form = () => document.querySelector(FORM);
 const status = () => form()?.querySelector("[data-emergency-status]")?.textContent?.trim() ?? "";
 const draft = () =>
   [...(form()?.querySelectorAll<HTMLElement>("li[data-draft-entry]") ?? [])].map((li) =>
@@ -26,7 +28,7 @@ const draft = () =>
       ? li.querySelector("p")?.textContent?.trim()
       : li.querySelector("legend")?.textContent?.trim(),
   );
-const button = (label: string) => form()!.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
+const button = (label: string) => getByCss(`${FORM} button[aria-label="${label}"]`);
 const focusedName = () =>
   document.activeElement?.getAttribute("aria-label") ??
   (document.activeElement as HTMLElement | null)?.dataset.outsideField ??
@@ -103,12 +105,12 @@ describe("the owner's sheet", () => {
       (o) => o.textContent,
     );
     expect(offered).toEqual([SAM.name]);
-    await userEvent.click(form()!.querySelector<HTMLButtonElement>("[data-add-member]")!);
+    await userEvent.click(getByCss(`${FORM} [data-add-member]`));
     await expect.poll(status).toBe(`${SAM.name} added, 3 of 3.`);
     expect(draft()).toEqual([ME, "Nora Example", SAM.name]);
 
     // Move up by keyboard, twice: announced, focus kept; at the top it moves to Move down.
-    button(`Move ${SAM.name} up`).focus();
+    (await button(`Move ${SAM.name} up`).findElement()).focus();
     await userEvent.keyboard("{Enter}");
     await expect.poll(status).toBe(`${SAM.name} moved to 2 of 3.`);
     expect(draft()).toEqual([ME, SAM.name, "Nora Example"]);
@@ -117,17 +119,17 @@ describe("the owner's sheet", () => {
     await expect.poll(status).toBe(`${SAM.name} moved to 1 of 3.`);
     expect(draft()).toEqual([SAM.name, ME, "Nora Example"]);
     await expect.poll(focusedName).toBe(`Move ${SAM.name} down`);
-    expect(button(`Move ${SAM.name} up`).disabled).toBe(true);
+    await expect.element(button(`Move ${SAM.name} up`)).toBeDisabled();
 
     // An outside contact: focus on its name; with no phone it's refused on that field, nothing sent.
-    await userEvent.click(form()!.querySelector<HTMLButtonElement>("[data-add-outside]")!);
+    await userEvent.click(getByCss(`${FORM} [data-add-outside]`));
     await expect.poll(focusedName).toBe("name");
-    const row = () => form()!.querySelector("li[data-draft-entry]:last-child")!;
-    const outside = (f: string) => row().querySelector<HTMLInputElement>(`[data-outside-field="${f}"]`)!;
+    const outside = (f: string) =>
+      getByCss(`${FORM} li[data-draft-entry]:last-child [data-outside-field="${f}"]`);
     await userEvent.fill(outside("name"), "Theo Example");
     await userEvent.fill(outside("relationship"), "Across the street");
     await userEvent.click(page.getByRole("button", { name: "Save" }));
-    await expect.poll(() => outside("phone").getAttribute("aria-invalid")).toBe("true");
+    await expect.element(outside("phone")).toHaveAttribute("aria-invalid", "true");
     expect(focusedName()).toBe("phone");
     expect(device.calls.calls).toEqual([]);
     await userEvent.fill(outside("phone"), "(555) 010-7099");
@@ -136,13 +138,13 @@ describe("the owner's sheet", () => {
     await userEvent.click(page.getByRole("radio", { name: SAM.name }));
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     await expect.poll(device.location).toBe(`/app/groups/${TEST_GROUP.id}/profile`);
-    await expect.poll(() => $("[role=dialog]")).toBeNull();
+    await expect.element(getByCss("[role=dialog]")).not.toBeInTheDocument();
     await device.settle();
     expect(emergencyNames()).toEqual([`${SAM.name}*`, ME, "Nora Example", "Theo Example"]);
     expect(
-      card()!
-        .querySelectorAll("li[data-emergency-entry]")[3]!
-        .querySelector('a[data-action="call"]')
+      card()
+        ?.querySelectorAll("li[data-emergency-entry]")[3]
+        ?.querySelector('a[data-action="call"]')
         ?.getAttribute("href"),
     ).toBe("tel:5550107099");
     expect(device.calls.calls.map((c) => c.path)).toEqual([
@@ -151,7 +153,7 @@ describe("the owner's sheet", () => {
       "careGroup.setPrimaryContact",
     ]);
     const [order] = device.calls.of("careGroup.setEmergencyContacts") as { contacts: unknown[] }[];
-    expect(order!.contacts.slice(0, 3)).toEqual([
+    expect(order?.contacts.slice(0, 3)).toEqual([
       { kind: "member", userId: SAM.id },
       { kind: "member", userId: TEST_USER.id },
       { kind: "outside", id: NORA_ID },

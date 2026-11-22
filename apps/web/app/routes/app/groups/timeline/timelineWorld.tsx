@@ -4,6 +4,7 @@ import type { DeviceOptions, DeviceRoute } from "../../../../../test/device";
 import { useNavigate, useParams } from "react-router";
 import { userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
+import { found, waitUntil } from "../../../../../test/found";
 import { at, fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
@@ -156,14 +157,14 @@ export const filterButton = () => document.querySelector<HTMLButtonElement>("but
 const filterSheet = () => document.querySelector('[role="dialog"]');
 /** Open the Filter sheet with its button, once the screen is up. */
 export const openFilters = async () => {
-  await waitUntil(() => !!filterButton(), 4000, "the Filter button");
+  await waitUntil(() => !!filterButton(), "the Filter button");
   await userEvent.click(filterButton());
-  await waitUntil(() => chips().length > 0, 4000, "the Filter sheet");
+  await waitUntil(() => chips().length > 0, "the Filter sheet");
 };
 /** Done: close the Filter sheet. */
 export const closeFilters = async () => {
-  await userEvent.click(button("Done")!);
-  await waitUntil(() => !filterSheet(), 4000, "the Filter sheet to close");
+  await userEvent.click(await found(() => button("Done")));
+  await waitUntil(() => !filterSheet(), "the Filter sheet to close");
 };
 export const iconOf = (li: Element) =>
   li.querySelector<HTMLAnchorElement>('a[aria-label^="Show only"]:not([data-author])')!;
@@ -176,8 +177,10 @@ export const view = () => document.querySelector("ol")?.dataset.view;
 
 /** Open the header's View options menu (layout, day summaries). */
 export const openViewOptions = async () => {
-  await userEvent.click(document.querySelector<HTMLElement>('button[aria-label="View options"]')!);
-  await waitUntil(() => !!document.querySelector('[role="menu"]'), 4000, "the View options menu");
+  await userEvent.click(
+    await found(() => document.querySelector<HTMLElement>('button[aria-label="View options"]')),
+  );
+  await waitUntil(() => !!document.querySelector('[role="menu"]'), "the View options menu");
 };
 
 /** Choose an item of the View options menu by its name ("Cards"). */
@@ -191,24 +194,14 @@ export const chooseViewOption = async (name: string) => {
 };
 
 /** Press the full timeline's header button "Easy mode": this device switches to the easy view. */
-export const pressEasyMode = () =>
-  userEvent.click(document.querySelector<HTMLElement>('button[data-easy-toggle="easy"]')!);
+export const pressEasyMode = async () =>
+  userEvent.click(await found(() => document.querySelector<HTMLElement>('button[data-easy-toggle="easy"]')));
 
 /** Switch rows/cards in the header's View options menu, and wait for the list. */
 export const setView = async (to: "Rows" | "Cards") => {
   if (view() === to.toLowerCase()) return;
   await chooseViewOption(to);
-  await waitUntil(() => view() === to.toLowerCase());
-};
-
-/** Poll a condition (a DOM read) until it holds, or fail with `what`. */
-export const waitUntil = async (test: () => boolean, ms = 4000, what = "condition") => {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    if (test()) return;
-    await new Promise((r) => setTimeout(r, 25));
-  }
-  throw new Error(`timed out waiting for ${what}`);
+  await waitUntil(() => view() === to.toLowerCase(), `the ${to} view`);
 };
 
 export const frames = (n = 2) =>
@@ -218,4 +211,5 @@ export const frames = (n = 2) =>
   });
 
 /** A real tap at the centre of an element, landing on whatever is on top there (the row's open target over its text). */
-export const tapAt = (el: Element) => userEvent.click(el, { force: true });
+export const tapAt = async (read: Element | (() => Element | null | undefined)) =>
+  userEvent.click(typeof read === "function" ? await found(read) : read, { force: true });

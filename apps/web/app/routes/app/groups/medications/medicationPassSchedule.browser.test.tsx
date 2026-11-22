@@ -1,10 +1,10 @@
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
+import { getByCss } from "../../../../../test/locators";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx } from "../../../../../test/fixtures";
 import {
-  $,
   EVENING,
   field,
   FORM,
@@ -20,7 +20,6 @@ import {
   SHEET,
   submit,
   times,
-  waitUntil,
   openAddMedication,
 } from "./medicationWorld";
 
@@ -73,17 +72,17 @@ const BY_PASS = "Morning (50 mg), Evening and 14:00 (12.5 mg)";
 /** Add "Atenolol" by passes from the list; returns its id. */
 const addByPasses = async (device: Awaited<ReturnType<typeof open>>) => {
   await openAddMedication();
-  await userEvent.fill(field("name")!, "Atenolol");
-  await userEvent.fill(field("dose")!, "25 mg");
+  await userEvent.fill(await found(() => field("name")), "Atenolol");
+  await userEvent.fill(await found(() => field("dose")), "25 mg");
   await userEvent.click(passBox(MORNING.id));
   await expect.poll(() => passAmount(MORNING.id)).toBeTruthy();
   const placeholder = passAmount(MORNING.id)!.placeholder;
-  await userEvent.fill(passAmount(MORNING.id)!, "50 mg");
+  await userEvent.fill(await found(() => passAmount(MORNING.id)), "50 mg");
   await userEvent.click(passBox(EVENING.id));
   await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
   await expect.poll(() => times().length).toBe(1);
-  await userEvent.fill(times()[0]!, "14:00");
-  await userEvent.fill(timeAmounts()[0]!, "12.5 mg");
+  await userEvent.fill(await found(() => times()[0]), "14:00");
+  await userEvent.fill(await found(() => timeAmounts()[0]), "12.5 mg");
   await userEvent.click(submit());
   await expect.poll(() => SHEET()).toBeNull();
   await device.settle();
@@ -97,7 +96,7 @@ describe("a schedule by passes", () => {
     const { id, placeholder } = await addByPasses(device);
     expect(placeholder).toBe("25 mg");
     const [row] = await device.query<{ schedule: string }>(MEDICATION_SQL, [id]);
-    expect(sorted(row!.schedule)).toEqual(
+    expect(sorted(row?.schedule ?? "null")).toEqual(
       sorted(
         JSON.stringify({
           type: "scheduled",
@@ -110,7 +109,11 @@ describe("a schedule by passes", () => {
       ),
     );
     await expect
-      .poll(() => $(`main li[data-medication-id="${id}"] [data-medication-summary]`)?.textContent?.trim())
+      .poll(() =>
+        document
+          .querySelector<HTMLElement>(`main li[data-medication-id="${id}"] [data-medication-summary]`)
+          ?.textContent?.trim(),
+      )
       .toBe(`25 mg · ${BY_PASS}`);
   });
 
@@ -122,7 +125,11 @@ describe("a schedule by passes", () => {
       fixtures: [RECIPIENT, MORNING, EVENING, METOPROLOL],
     });
     await expect
-      .poll(() => $(`main tr[data-print-medication="${METOPROLOL.id}"]`)?.textContent ?? "")
+      .poll(
+        () =>
+          document.querySelector<HTMLElement>(`main tr[data-print-medication="${METOPROLOL.id}"]`)
+            ?.textContent ?? "",
+      )
       .toContain(BY_PASS);
     await print.screen.unmount();
 
@@ -132,22 +139,22 @@ describe("a schedule by passes", () => {
       .poll(() => medPage().rows.schedule ?? "")
       .toMatch(new RegExp(`^${BY_PASS.replace(/[()]/g, "\\$&")}`));
 
-    await waitUntil(() => !!$("main [data-edit-medication]"), 4000, "Edit");
-    await userEvent.click($("main [data-edit-medication]")!);
-    await waitUntil(() => !!FORM() && !!passAmount(MORNING.id), 4000, "the edit sheet");
+    await waitUntil(() => !!document.querySelector<HTMLElement>("main [data-edit-medication]"), "Edit");
+    await userEvent.click(getByCss("main [data-edit-medication]"));
+    await waitUntil(() => !!FORM() && !!passAmount(MORNING.id), "the edit sheet");
     expect(passBox(MORNING.id).checked).toBe(true);
-    expect(passAmount(MORNING.id)!.value).toBe("50 mg");
+    expect(passAmount(MORNING.id)?.value).toBe("50 mg");
     expect(passBox(EVENING.id).checked).toBe(true);
     expect(times().map((t) => t.value)).toEqual(["14:00"]);
     expect(timeAmounts().map((t) => t.value)).toEqual(["12.5 mg"]);
 
     await userEvent.click(passBox(EVENING.id));
-    await userEvent.fill(passAmount(MORNING.id)!, "75 mg");
+    await userEvent.fill(await found(() => passAmount(MORNING.id)), "75 mg");
     await userEvent.click(submit());
     await expect.poll(() => !SHEET() && page.location()).toBe(medicationUrl(id));
     await expect.poll(() => historyTexts()[0]).toBe("Removed from Evening; Morning amount 50 mg → 75 mg");
     const [row] = await page.query<{ schedule: string }>(MEDICATION_SQL, [id]);
-    expect(sorted(row!.schedule)).toEqual(
+    expect(sorted(row?.schedule ?? "null")).toEqual(
       sorted(
         JSON.stringify({
           type: "scheduled",

@@ -88,7 +88,7 @@ describe("the index on the device", () => {
       "SELECT count(*) AS n FROM search_item WHERE group_id = ? AND item_type = 'entry'",
       [G],
     );
-    expect(items[0]!.n).toBe(6);
+    expect(items[0]?.n).toBe(6);
     expect(await ids("checkup")).toEqual([visit.id]); // a title
     expect(await ids("mailbox")).toEqual([walk.id]); // a note's document text
     expect(await ids('"sore hip"')).toEqual([rest.id]); // a symptom's name
@@ -163,22 +163,15 @@ describe("the index follows the device", () => {
       fixtures: [fixtures, note],
       search: true,
     });
-    await expect.poll(() => !!document.querySelector(".ProseMirror")).toBe(true);
     await userEvent.click(await found(() => document.querySelector(".ProseMirror")));
     await userEvent.keyboard(" with the crossword");
-    const typed = Date.now();
+    const typed = performance.now();
     // Polling the index without forcing the indexer: what a screen would see.
     const db = device.db;
-    let foundAfter = 0;
-    while (Date.now() - typed < 3000) {
-      if ((await searchEntryIds(db, G, parseSearch("crossword"))).includes(note.id)) {
-        foundAfter = Date.now() - typed;
-        break;
-      }
-      await new Promise((r) => setTimeout(r, 25));
-    }
-    expect(foundAfter).toBeGreaterThan(0);
-    expect(foundAfter).toBeLessThanOrEqual(1000);
+    await expect
+      .poll(async () => (await searchEntryIds(db, G, parseSearch("crossword"))).includes(note.id))
+      .toBe(true);
+    expect(performance.now() - typed).toBeLessThanOrEqual(1000);
   });
 
   test("an index in an old format is rebuilt on the next open, and searches still work", async () => {
@@ -195,7 +188,7 @@ describe("the index follows the device", () => {
     const [version] = await device.query<{ value: string }>(
       "SELECT value FROM search_meta WHERE key = 'version'",
     );
-    expect(version!.value).toBe(String(SEARCH_INDEX_VERSION));
+    expect(version?.value).toBe(String(SEARCH_INDEX_VERSION));
     expect(await ids("blood pressure")).toEqual([bp.id]);
   });
 });

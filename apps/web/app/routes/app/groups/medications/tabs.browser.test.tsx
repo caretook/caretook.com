@@ -1,15 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
-import { found } from "../../../../../test/found";
+import { fixClock, found } from "../../../../../test/found";
 import { fx, medicationPass } from "../../../../../test/fixtures";
 import { pageHeader } from "../../../../../test/pageHeader";
 import {
-  $,
-  $$,
   clockAt,
   FORM,
-  fixClock,
   LIST,
   listNames,
   MEDICATION_ROUTES,
@@ -18,6 +15,7 @@ import {
   SCHEDULE,
   SHEET,
   world,
+  CLOCK,
 } from "./medicationWorld";
 
 // The Medications page's three tabs (B-226, B-424): one header (the title,
@@ -42,26 +40,30 @@ const open = (url: string, role: "caretaker" | "viewer" = "caretaker", extra: un
 
 const TABS = 'main nav[aria-label="Medications tabs"]';
 const tabLink = (label: string) =>
-  $$<HTMLAnchorElement>(`${TABS} a`).find((a) => a.textContent?.trim() === label) ?? null;
+  [...document.querySelectorAll<HTMLAnchorElement>(`${TABS} a`)].find(
+    (a) => a.textContent?.trim() === label,
+  ) ?? null;
 const currentTab = () =>
-  $$(`${TABS} a`)
+  [...document.querySelectorAll<HTMLElement>(`${TABS} a`)]
     .filter((a) => a.getAttribute("aria-current") === "page")
     .map((a) => a.textContent?.trim());
 
 /** What the page shows, by part. */
 const parts = () => ({
-  today: !!$("main [data-today]"),
-  allergies: !!$("main [data-allergies]"),
-  search: !!$('main input[type="search"]'),
-  filter: !!$("main [data-filter-button]"),
-  list: !!$('main ul[aria-label="Current medications"]'),
-  passes: !!$("main [data-passes]"),
+  today: !!document.querySelector<HTMLElement>("main [data-today]"),
+  allergies: !!document.querySelector<HTMLElement>("main [data-allergies]"),
+  search: !!document.querySelector<HTMLElement>('main input[type="search"]'),
+  filter: !!document.querySelector<HTMLElement>("main [data-filter-button]"),
+  list: !!document.querySelector<HTMLElement>('main ul[aria-label="Current medications"]'),
+  passes: !!document.querySelector<HTMLElement>("main [data-passes]"),
 });
 /** The shared header: its title, the `+` and Print. */
 const header = () => ({
   h1: pageHeader().h1,
-  add: !!$("main header [data-add-medication]"),
-  print: $$("main header button").some((b) => b.getAttribute("aria-label") === "Print"),
+  add: !!document.querySelector<HTMLElement>("main header [data-add-medication]"),
+  print: [...document.querySelectorAll<HTMLElement>("main header button")].some(
+    (b) => b.getAttribute("aria-label") === "Print",
+  ),
 });
 /** The header's `+`: the Add menu's trigger. */
 const addButton = () => page.getByRole("button", { name: "Add", exact: true });
@@ -69,17 +71,18 @@ const addButton = () => page.getByRole("button", { name: "Add", exact: true });
 const addMenu = async () => {
   await userEvent.click(addButton());
   await expect.poll(() => !!menuItem("Medication")).toBe(true);
-  return $$("[role=menuitem]").map((m) => m.textContent?.trim());
+  return [...document.querySelectorAll<HTMLElement>("[role=menuitem]")].map((m) => m.textContent?.trim());
 };
 const choose = async (item: string) => {
   await addMenu();
   await userEvent.click(await found(() => menuItem(item)));
 };
-const PASS_FORM = () => $("[role=dialog] [data-pass-form]");
-const doseButtons = () => $$("main [data-give], main [data-given-all]").length;
+const PASS_FORM = () => document.querySelector<HTMLElement>("[role=dialog] [data-pass-form]");
+const doseButtons = () =>
+  [...document.querySelectorAll<HTMLElement>("main [data-give], main [data-given-all]")].length;
 
 beforeEach(() => {
-  fixClock();
+  fixClock(CLOCK);
 });
 afterEach(() => {
   vi.useRealTimers();
@@ -90,7 +93,12 @@ describe("the tabs", () => {
     await open(SCHEDULE);
     // The tabs render after the first rows: wait on them, never read them at once.
     await expect
-      .poll(() => $$(`${TABS} a`).map((a) => [a.textContent?.trim(), a.getAttribute("href")]))
+      .poll(() =>
+        [...document.querySelectorAll<HTMLElement>(`${TABS} a`)].map((a) => [
+          a.textContent?.trim(),
+          a.getAttribute("href"),
+        ]),
+      )
       .toEqual([
         ["Schedule", SCHEDULE],
         ["Medications", LIST],
@@ -135,7 +143,11 @@ describe("the tabs", () => {
     expect(header()).toEqual({ h1: "Medications", add: true, print: true });
     expect(document.querySelectorAll("h1")).toHaveLength(1);
     // The old page's back link ("Medications", to Schedule) is gone: only the tab bar links there.
-    expect($$(`main a[href="${SCHEDULE}"]`).filter((a) => !a.closest(TABS))).toEqual([]);
+    expect(
+      [...document.querySelectorAll<HTMLElement>(`main a[href="${SCHEDULE}"]`)].filter(
+        (a) => !a.closest(TABS),
+      ),
+    ).toEqual([]);
     expect(parts()).toMatchObject({ today: false, list: false, search: false });
   });
 
@@ -162,7 +174,9 @@ describe("the tabs", () => {
 
   test("a viewer reads the three tabs with neither the + nor the dose buttons, Print only", async () => {
     const device = await open(SCHEDULE, "viewer");
-    await expect.poll(() => $(`main [data-slot^="${DUE.id}@"]`)).toBeTruthy();
+    await expect
+      .poll(() => document.querySelector<HTMLElement>(`main [data-slot^="${DUE.id}@"]`))
+      .toBeTruthy();
     expect(doseButtons()).toBe(0);
     expect(header()).toEqual({ h1: "Medications", add: false, print: true });
     await device.screen.unmount();
@@ -248,7 +262,7 @@ describe("the add sheet over a tab", () => {
     const cancel = [...FORM()!.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Cancel")!;
     await userEvent.click(cancel);
     await expect.poll(() => !SHEET() && device.location()).toBe(`${LIST}?q=done`);
-    expect($<HTMLInputElement>('main input[type="search"]')?.value).toBe("done");
+    expect(document.querySelector<HTMLInputElement>('main input[type="search"]')?.value).toBe("done");
     expect(listNames("Current medications")).toEqual(["Donepezil 5 mg"]);
   });
 

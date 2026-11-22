@@ -72,9 +72,8 @@ const open = (url: string, layout: { width: number; theme: "light" | "dark" }, f
 // ---- What the checks read ---------------------------------------------------
 
 const active = () => document.activeElement;
-const q = <E extends Element = HTMLElement>(selector: string) => document.querySelector<E>(selector);
 const must = <E extends Element = HTMLElement>(selector: string) => {
-  const el = q<E>(selector);
+  const el = document.querySelector<E>(selector);
   if (!el) throw new Error(`nothing matches ${selector}`);
   return el;
 };
@@ -127,18 +126,18 @@ async function menu(
   trigger: () => HTMLElement,
   want: { name: string | RegExp; items?: string; count?: number },
 ) {
-  await expect.poll(() => q(MENU)).toBeNull();
+  await expect.poll(() => document.querySelector(MENU)).toBeNull();
   await userEvent.click(trigger());
-  await expect.poll(() => q(MENU)).not.toBeNull();
+  await expect.poll(() => document.querySelector(MENU)).not.toBeNull();
   const m = must(MENU);
   if (typeof want.name === "string") expect(nameOf(m)).toBe(want.name);
   else expect(nameOf(m)).toMatch(want.name);
   const texts = [...document.querySelectorAll(ITEMS)].map((el) => el.textContent?.trim());
   if (want.items !== undefined) expect(texts.join(",")).toBe(want.items);
   if (want.count !== undefined) expect(texts).toHaveLength(want.count);
-  expect(getComputedStyle(surface(m)!).backgroundColor).toBe(base100());
+  expect(getComputedStyle(await found(() => surface(m))).backgroundColor).toBe(base100());
   await userEvent.keyboard("{Escape}");
-  await expect.poll(() => q(MENU)).toBeNull();
+  await expect.poll(() => document.querySelector(MENU)).toBeNull();
   await expect.poll(active).toBe(trigger());
 
   trigger().focus();
@@ -151,7 +150,7 @@ async function menu(
     expect(must(MENU).contains(active())).toBe(true);
   }
   await userEvent.keyboard("{Escape}");
-  await expect.poll(() => q(MENU)).toBeNull();
+  await expect.poll(() => document.querySelector(MENU)).toBeNull();
   await expect.poll(active).toBe(trigger());
 }
 
@@ -174,7 +173,8 @@ async function overlay(trigger: () => HTMLElement, want: { name: string | RegExp
     if (typeof want.name === "string") await expect.poll(() => nameOf(top())).toBe(want.name);
     else await expect.poll(() => nameOf(top())).toMatch(want.name);
     await expect.poll(() => box.contains(active())).toBe(true);
-    if (how === "tap") expect(getComputedStyle(surface(box)!).backgroundColor).toBe(base100());
+    if (how === "tap")
+      expect(getComputedStyle(await found(() => surface(box))).backgroundColor).toBe(base100());
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => overlays().length).toBe(before);
     await expect.poll(active).toBe(trigger());
@@ -186,9 +186,11 @@ const addButton = () => must('main [data-day-header] button[aria-label="Add to T
 /** Pick `label` from today's + menu. */
 const quickAdd = async (label: string) => {
   await userEvent.click(addButton());
-  await expect.poll(() => q(MENU)).not.toBeNull();
+  await expect.poll(() => document.querySelector(MENU)).not.toBeNull();
   await userEvent.click(
-    [...document.querySelectorAll<HTMLElement>(ITEMS)].find((el) => el.textContent?.trim() === label)!,
+    await found(() =>
+      [...document.querySelectorAll<HTMLElement>(ITEMS)].find((el) => el.textContent?.trim() === label),
+    ),
   );
 };
 const inSheet = (label: string) => () =>
@@ -210,7 +212,7 @@ describe.each([
   const actions = () => page.getByRole("button", { name: "Probe actions" }).element() as HTMLElement;
   const chooseAction = async (label: string) => {
     await userEvent.click(actions());
-    await expect.poll(() => q(MENU)).not.toBeNull();
+    await expect.poll(() => document.querySelector(MENU)).not.toBeNull();
     await userEvent.click(page.getByRole("menuitem", { name: label }));
   };
 
@@ -250,7 +252,7 @@ describe.each([
   test("a confirm from a menu: named, focus inside, on the surface, centred in the window; Escape returns focus to the menu's button", async () => {
     await open(PROBE_URL, layout);
     await chooseAction("Delete");
-    await expect.poll(() => q("dialog[open]")).not.toBeNull();
+    await expect.poll(() => document.querySelector("dialog[open]")).not.toBeNull();
     const dialog = must("dialog[open]");
     await expect.poll(() => nameOf(dialog)).toBe("Delete the probe?");
     await expect.poll(() => dialog.contains(active())).toBe(true);
@@ -261,13 +263,13 @@ describe.each([
     expect(Math.abs(r.left + r.width / 2 - document.documentElement.clientWidth / 2)).toBeLessThanOrEqual(10);
     expect(r.top >= 0 && r.bottom <= innerHeight).toBe(true);
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => q("dialog[open]")).toBeNull();
+    await expect.poll(() => document.querySelector("dialog[open]")).toBeNull();
     await expect.poll(active).toBe(actions());
   });
 
   test("the page header: the title is the h1, its actions beside it on the right", async () => {
     await open(PROBE_URL, layout);
-    const header = await found(() => q("main header"));
+    const header = await found(() => document.querySelector("main header"));
     const h1 = header.querySelector("h1")!;
     expect(h1.textContent).toBe("Probe");
     const [a, b] = [h1.getBoundingClientRect(), actions().getBoundingClientRect()];
@@ -301,13 +303,13 @@ describe.each([
     await expect.element(vitals).toHaveAttribute("aria-expanded", "false");
     await userEvent.click(vitals);
     await expect.element(vitals).toHaveAttribute("aria-expanded", "true");
-    expect(q(MENU)).not.toBeNull();
+    expect(document.querySelector(MENU)).not.toBeNull();
     const types = [...document.querySelectorAll(`${ITEMS}[data-menu-group-item]`)].map((el) =>
       el.textContent?.trim(),
     );
     expect(types).toEqual(VITAL_TYPES.map((t) => VITALS[t].label));
     await userEvent.click(page.getByRole("menuitem", { name: "Blood pressure" }));
-    await expect.poll(() => q(MENU)).toBeNull();
+    await expect.poll(() => document.querySelector(MENU)).toBeNull();
     await expect.poll(device.location).toBe(`${TIMELINE}/new/vital?type=bloodPressure`);
     await expect.poll(() => nameOf(top())).toBe("Add to the timeline");
   });
@@ -330,7 +332,7 @@ describe.each([
     const viewOptions = () => page.getByRole("button", { name: "View options" }).element() as HTMLElement;
     await menu(viewOptions, { name: "View options" });
     await userEvent.click(viewOptions());
-    await expect.poll(() => q(MENU)).not.toBeNull();
+    await expect.poll(() => document.querySelector(MENU)).not.toBeNull();
     const layouts = [...document.querySelectorAll('[role="menuitemradio"]')].slice(0, 2);
     expect(layouts.map((r) => r.textContent?.trim())).toEqual(["Rows", "Cards"]);
     expect(layouts.filter((r) => r.getAttribute("aria-checked") === "true")).toHaveLength(1);
@@ -345,11 +347,13 @@ describe.each([
     // A symptom with no name: labelled, invalid, described by its error.
     await quickAdd("Symptom");
     await expect.poll(() => nameOf(top())).toBe("Add to the timeline");
-    await expect.poll(() => q('[role="dialog"] input[name="symptomName"]')).not.toBeNull();
+    await expect
+      .poll(() => document.querySelector('[role="dialog"] input[name="symptomName"]'))
+      .not.toBeNull();
     await userEvent.click(must('[role="dialog"] button[type="submit"]'));
     const input = must<HTMLInputElement>('[role="dialog"] input[name="symptomName"]');
     await expect.poll(() => input.getAttribute("aria-invalid")).toBe("true");
-    expect(q(`label[for="${input.id}"]`)?.textContent?.trim()).toBe("Symptom");
+    expect(document.querySelector(`label[for="${input.id}"]`)?.textContent?.trim()).toBe("Symptom");
     expect(
       (input.getAttribute("aria-describedby") ?? "")
         .split(" ")
@@ -357,19 +361,19 @@ describe.each([
         .join(" "),
     ).toBe("Name the symptom.");
     await overlay(PICK, { name: /\S/ });
-    expect(q('[role="dialog"]')).not.toBeNull();
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull();
 
     // The kind picker's Vitals menu; Enter on a type makes it a vitals form, whose Add a reading menu closes alone.
     await menu(inSheet("Vitals"), { name: "Vital type", count: 10 });
     inSheet("Vitals")().focus();
     await userEvent.keyboard("{Enter}");
-    await expect.poll(() => q(MENU)).not.toBeNull();
+    await expect.poll(() => document.querySelector(MENU)).not.toBeNull();
     await userEvent.keyboard("{Enter}");
-    await expect.poll(() => !q(MENU) && !!inSheet("+ Add a reading")()).toBe(true);
+    await expect.poll(() => !document.querySelector(MENU) && !!inSheet("+ Add a reading")()).toBe(true);
     await menu(inSheet("+ Add a reading"), { name: "Vital type", count: 9 });
-    expect(q('[role="dialog"]')).not.toBeNull();
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull();
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => q('[role="dialog"]')).toBeNull();
+    await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
   });
 
   test("the + menu's add sheet: focus inside; Escape closes it and focus returns to the + button", async () => {
@@ -379,7 +383,7 @@ describe.each([
     await expect.poll(() => nameOf(top())).toBe("Add to the timeline");
     await expect.poll(() => top()?.contains(active()) ?? false).toBe(true);
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => q('[role="dialog"]')).toBeNull();
+    await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
     await expect.poll(active).toBe(addButton());
   });
 
@@ -390,22 +394,24 @@ describe.each([
     for (const how of ["tap", "keyboard"] as const) {
       if (how === "tap") {
         await userEvent.click(trigger());
-        await expect.poll(() => q(MENU)).not.toBeNull();
+        await expect.poll(() => document.querySelector(MENU)).not.toBeNull();
         await userEvent.click(page.getByRole("menuitem", { name: "Delete" }));
       } else {
         trigger().focus();
         await userEvent.keyboard("{Enter}");
-        await expect.poll(() => q(MENU)).not.toBeNull();
+        await expect.poll(() => document.querySelector(MENU)).not.toBeNull();
         await userEvent.keyboard("{ArrowDown}");
         await userEvent.keyboard("{Enter}");
       }
-      await expect.poll(() => q("dialog[open]")).not.toBeNull();
+      await expect.poll(() => document.querySelector("dialog[open]")).not.toBeNull();
       const dialog = must("dialog[open]");
       await expect.poll(() => nameOf(dialog)).toBe("Delete this entry?");
       await expect.poll(() => dialog.contains(active())).toBe(true);
-      expect(getComputedStyle(surface(dialog.querySelector(".modal-box"))!).backgroundColor).toBe(base100());
+      expect(
+        getComputedStyle(await found(() => surface(dialog.querySelector(".modal-box")))).backgroundColor,
+      ).toBe(base100());
       await userEvent.keyboard("{Escape}");
-      await expect.poll(() => q("dialog[open]")).toBeNull();
+      await expect.poll(() => document.querySelector("dialog[open]")).toBeNull();
       await expect.poll(active).toBe(trigger());
     }
   });
@@ -415,21 +421,27 @@ describe.each([
     const pageActions = () =>
       must('main header [data-region="actions"] button[aria-label^="Actions for this"]');
     await expect
-      .poll(() => q('main header [data-region="actions"] button[aria-label^="Actions for this"]'))
+      .poll(() =>
+        document.querySelector('main header [data-region="actions"] button[aria-label^="Actions for this"]'),
+      )
       .not.toBeNull();
     await menu(pageActions, { name: "Actions for this note", items: "Print,Delete" });
     await overlay(TIME_CHIP, { name: "When it happened" });
     await userEvent.click(TIME_CHIP());
-    await expect.poll(() => q('[role="dialog"] [aria-label="Pick a date"]')).not.toBeNull();
+    await expect
+      .poll(() => document.querySelector('[role="dialog"] [aria-label="Pick a date"]'))
+      .not.toBeNull();
     await overlay(PICK, { name: /\S/ });
-    expect(q('[role="dialog"] [aria-label="Pick a date"]')).not.toBeNull();
+    expect(document.querySelector('[role="dialog"] [aria-label="Pick a date"]')).not.toBeNull();
     await userEvent.keyboard("{Escape}");
   });
 
   test("an event's page ⋯: Reschedule, Cancel event, Delete", async () => {
     await open(`/app/groups/${TEST_GROUP.id}/entries/${EVENT.id}`, layout);
     await expect
-      .poll(() => q('main header [data-region="actions"] button[aria-label^="Actions for this"]'))
+      .poll(() =>
+        document.querySelector('main header [data-region="actions"] button[aria-label^="Actions for this"]'),
+      )
       .not.toBeNull();
     await menu(() => must('main header [data-region="actions"] button[aria-label^="Actions for this"]'), {
       name: "Actions for this event",
@@ -464,13 +476,13 @@ describe.each([
         (b) => b.textContent?.trim() === "Delete provider",
       )!;
     await expect.poll(() => !!del()).toBe(true);
-    expect(nameOf(q('[role="dialog"]'))).toMatch(/^Edit /);
+    expect(nameOf(document.querySelector('[role="dialog"]'))).toMatch(/^Edit /);
     await userEvent.click(del());
-    await expect.poll(() => q("dialog[open]")).not.toBeNull();
-    await expect.poll(() => nameOf(q("dialog[open]"))).toMatch(/^Delete .+\?$/);
+    await expect.poll(() => document.querySelector("dialog[open]")).not.toBeNull();
+    await expect.poll(() => nameOf(document.querySelector("dialog[open]"))).toMatch(/^Delete .+\?$/);
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => q("dialog[open]")).toBeNull();
-    expect(q('[role="dialog"]')).not.toBeNull();
+    await expect.poll(() => document.querySelector("dialog[open]")).toBeNull();
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull();
     await expect.poll(active).toBe(del());
   });
 });
@@ -507,13 +519,13 @@ async function dateFieldFits() {
   await expect.poll(taps).toEqual([true, true, true]);
 
   await userEvent.click(button);
-  await expect.poll(() => q('[role="grid"]')).not.toBeNull();
+  await expect.poll(() => document.querySelector('[role="grid"]')).not.toBeNull();
   const pop = must('[role="grid"]').closest('[role="dialog"]')!.parentElement!.getBoundingClientRect();
   expect(pop.left).toBeGreaterThanOrEqual(0);
   expect(pop.right).toBeLessThanOrEqual(vw);
   expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(vw);
   await userEvent.keyboard("{Escape}");
-  await expect.poll(() => q('[role="grid"]')).toBeNull();
+  await expect.poll(() => document.querySelector('[role="grid"]')).toBeNull();
 }
 
 describe.each([360, 390, 420, 1280])("the date field at %i", (width) => {
@@ -525,7 +537,9 @@ describe.each([360, 390, 420, 1280])("the date field at %i", (width) => {
       width,
       height: 800,
     });
-    await expect.poll(() => q('[role="dialog"] [aria-label="Pick a date"]')).not.toBeNull();
+    await expect
+      .poll(() => document.querySelector('[role="dialog"] [aria-label="Pick a date"]'))
+      .not.toBeNull();
     await dateFieldFits();
   });
 
@@ -537,9 +551,13 @@ describe.each([360, 390, 420, 1280])("the date field at %i", (width) => {
       width,
       height: 800,
     });
-    await expect.poll(() => q('main header button[aria-label="Change when it happened"]')).not.toBeNull();
+    await expect
+      .poll(() => document.querySelector('main header button[aria-label="Change when it happened"]'))
+      .not.toBeNull();
     await userEvent.click(TIME_CHIP());
-    await expect.poll(() => q('[role="dialog"] [aria-label="Pick a date"]')).not.toBeNull();
+    await expect
+      .poll(() => document.querySelector('[role="dialog"] [aria-label="Pick a date"]'))
+      .not.toBeNull();
     await dateFieldFits();
   });
 });

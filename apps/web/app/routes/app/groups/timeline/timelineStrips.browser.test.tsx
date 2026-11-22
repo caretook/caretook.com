@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { cdp, userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 
 /** Chrome DevTools, for media emulation (Vitest types the session loosely). */
 const devtools = () => cdp() as unknown as { send: (method: string, params: object) => Promise<unknown> };
 import { at, fx, medicationPass, newId, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
-import { frames, openTimeline, rowWith, rows, SAM, setView, waitUntil, world } from "./timelineWorld";
+import { frames, openTimeline, rowWith, rows, SAM, setView, world } from "./timelineWorld";
 
 // What sits around the Today card on the test device (from phase2.mjs: pass
 // logs; from live-notes.mjs: the Live now banner and the live dot, as another
@@ -49,10 +49,10 @@ describe("pass logs", () => {
 
   test("a round logged together is one row, with its pass sheet link; the toggle lists each medication; one card too", async () => {
     await openTimeline({ fixtures: round() });
-    await waitUntil(() => text() === "Morning: 1 given, 1 refused", 4000, "the pass row");
+    await waitUntil(() => text() === "Morning: 1 given, 1 refused", "the pass row");
     expect(tagged()).toBe(1);
     await expect.poll(() => row()?.querySelector('a[aria-label^="Edit Morning log"]')).toBeTruthy();
-    await userEvent.click(row()!.querySelector("[data-pass-log-toggle]")!);
+    await userEvent.click(await found(() => row()?.querySelector("[data-pass-log-toggle]")));
     await waitUntil(() => !row()!.querySelector<HTMLElement>("[data-pass-log-doses]")!.hidden);
     await expect.poll(() => row()?.querySelectorAll("[data-pass-log-doses] li").length).toBe(2);
     await setView("Cards");
@@ -62,7 +62,7 @@ describe("pass logs", () => {
 
   test("viewer: the pass row with its toggle, and no pass sheet", async () => {
     await openTimeline({ role: "viewer", fixtures: round() });
-    await waitUntil(() => text() === "Morning: 1 given, 1 refused", 4000, "the pass row");
+    await waitUntil(() => text() === "Morning: 1 given, 1 refused", "the pass row");
     await expect.poll(() => row()?.querySelector("[data-pass-log-toggle]")).toBeTruthy();
     await expect.poll(() => row()?.querySelector("a[aria-label^='Edit']")).toBeNull();
   });
@@ -109,7 +109,7 @@ describe("Live now and the live dot", () => {
     await expect
       .poll(() => BANNER()?.innerText.replace(/\s+/g, " ").trim())
       .toMatch(/^Sam Okafor is writing · Morning notes .*Join$/);
-    expect(dotOf("Morning notes")!.textContent).toBe("Being written now by Sam Okafor");
+    expect(dotOf("Morning notes")?.textContent).toBe("Being written now by Sam Okafor");
     expect(dotOf("Idle note")).toBeNull();
     const li = rowWith("Morning notes")!;
     li.scrollIntoView({ block: "center" });
@@ -150,7 +150,7 @@ describe("Live now and the live dot", () => {
       role: "viewer",
       fixtures: [world(), first.entry, first.doc, second.entry, second.doc],
     });
-    await waitUntil(() => bannerId() === second.entry.id, 4000, "the banner");
+    await waitUntil(() => bannerId() === second.entry.id, "the banner");
     await expect.poll(() => BANNER()?.innerText.replace(/\s+/g, " ")).toMatch(/· \+1 more/);
     expect(!!dotOf("Lunch") && !!dotOf("PT visit")).toBe(true);
     await setView("Cards");
@@ -163,9 +163,9 @@ describe("Live now and the live dot", () => {
 
   test("the writer's own typing shows no banner or dot", async () => {
     const mine = written("My note", TEST_USER.id, at());
-    await openTimeline({ fixtures: [world(), mine.entry, mine.doc] });
+    const device = await openTimeline({ fixtures: [world(), mine.entry, mine.doc] });
     await waitUntil(() => !!rowWith("My note"));
-    await new Promise((r) => setTimeout(r, 300));
+    await device.settle();
     expect(dotOf("My note")).toBeNull();
     expect(bannerId()).toBeNull();
   });
@@ -177,9 +177,15 @@ describe("Live now and the live dot", () => {
       // Last edited 1 min 50 s ago: inside the window now, past it within 10 s.
       const fading = written("Fading note", SAM.id, at(new Date(Date.now() - 110_000)));
       await openTimeline({ fixtures: [world(), fading.entry, fading.doc] });
-      await waitUntil(() => bannerId() === fading.entry.id && !!dotOf("Fading note"), 4000, "the banner");
+      await waitUntil(() => bannerId() === fading.entry.id && !!dotOf("Fading note"), "the banner");
       const shownAt = Date.now();
-      await waitUntil(() => !BANNER() && !dotOf("Fading note"), 30_000, "the banner and dot to go");
+      await expect
+        // eslint-disable-next-line caretook/no-call-timeout -- a real wait: the banner goes on its 2-minute window's timer, about 10 s away
+        .poll(() => !BANNER() && !dotOf("Fading note"), {
+          timeout: 30_000,
+          message: "the banner and dot to go",
+        })
+        .toBe(true);
       expect(Date.now() - shownAt).toBeGreaterThan(5000);
       expect(
         document.querySelector('main p[role="status"]:not([data-search-status])')?.textContent ?? "",

@@ -4,7 +4,7 @@ import type { Route } from "./+types/route";
 import { useNavigate } from "react-router";
 import { afterEach, describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { TEST_NOW, found, waitUntil } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import * as editSheet from "../timeline/edit/route";
@@ -62,32 +62,36 @@ const open = (url: string, options: Parameters<typeof renderWithDevice>[0] = {})
   renderWithDevice({ route: ROUTES, url, fixtures: base(), ...options });
 
 // --- DOM helpers (live-notes.mjs's selectors) ---------------------------------
-const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector<T>(sel);
-const HEADER = () => $("main header");
-const TITLE = () => $<HTMLInputElement>("main header input");
-const EDITOR = () => $(".ProseMirror");
+const HEADER = () => document.querySelector<HTMLElement>("main header");
+const TITLE = () => document.querySelector<HTMLInputElement>("main header input");
+const EDITOR = () => document.querySelector<HTMLElement>(".ProseMirror");
 const editorFocused = () => !!document.activeElement?.classList.contains("ProseMirror");
-const TOOLBAR = () => $('[role=toolbar][aria-label="Formatting"]');
-const TIME_CHIP = () => $<HTMLButtonElement>('main header button[aria-label="Change when it happened"]');
-const HEADER_TIME = () => $<HTMLTimeElement>("main header time");
-const DAY = () => $('[role=dialog] [data-type="day"]');
+const TOOLBAR = () => document.querySelector<HTMLElement>('[role=toolbar][aria-label="Formatting"]');
+const TIME_CHIP = () =>
+  document.querySelector<HTMLButtonElement>('main header button[aria-label="Change when it happened"]');
+const HEADER_TIME = () => document.querySelector<HTMLTimeElement>("main header time");
+const DAY = () => document.querySelector<HTMLElement>('[role=dialog] [data-type="day"]');
 const seg = (type: string, n = 0) =>
   document.querySelectorAll<HTMLElement>(`[role=dialog] [data-type="${type}"]`)[n];
-const PICK_DATE = () => $('[role=dialog] [aria-label="Pick a date"]');
-const GRID = () => $("[role=grid]");
-const CHIP_DIALOG = () => $('[role=dialog][aria-label="When it happened"]');
+const PICK_DATE = () => document.querySelector<HTMLElement>('[role=dialog] [aria-label="Pick a date"]');
+const GRID = () => document.querySelector<HTMLElement>("[role=grid]");
+const CHIP_DIALOG = () => document.querySelector<HTMLElement>('[role=dialog][aria-label="When it happened"]');
 const MENU = () =>
-  $<HTMLButtonElement>('main header [data-region="actions"] button[aria-label^="Actions for"]');
-const SHARE = () => $<HTMLButtonElement>('main header [data-region="actions"] button[aria-label="Share"]');
+  document.querySelector<HTMLButtonElement>(
+    'main header [data-region="actions"] button[aria-label^="Actions for"]',
+  );
+const SHARE = () =>
+  document.querySelector<HTMLButtonElement>('main header [data-region="actions"] button[aria-label="Share"]');
 const CHIPS = () => [
   ...document.querySelectorAll<HTMLButtonElement>('main header ul[aria-label="Suggested titles"] button'),
 ];
 const AVATARS = () => [
   ...document.querySelectorAll<HTMLElement>('main [data-region="editors"] [data-person]'),
 ];
-const PLACE = () => $<HTMLInputElement>('main [data-region="place"] input');
-const PLACE_REGION = () => $('main [data-region="place"]');
-const MAP = () => $<HTMLAnchorElement>('main [data-region="place"] a[data-action="map"]');
+const PLACE = () => document.querySelector<HTMLInputElement>('main [data-region="place"] input');
+const PLACE_REGION = () => document.querySelector<HTMLElement>('main [data-region="place"]');
+const MAP = () =>
+  document.querySelector<HTMLAnchorElement>('main [data-region="place"] a[data-action="map"]');
 const button = (text: string) =>
   [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === text);
 const menuItem = (text: string) =>
@@ -97,20 +101,11 @@ const dialogButton = (text: string) =>
     (b) => b.textContent?.trim() === text,
   );
 const addButton = () => document.querySelector<HTMLElement>('button[aria-label="Add to Today"]');
-const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const waitUntil = async (test: () => boolean, ms = 8000, what = "condition") => {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    if (test()) return;
-    await pause(25);
-  }
-  throw new Error(`timed out waiting for ${what}`);
-};
 /** Pick `text` from today's + menu. */
 const addFrom = async (text: string) => {
-  await userEvent.click(addButton()!);
-  await waitUntil(() => !!menuItem(text), 4000, `${text} in the + menu`);
-  await userEvent.click(menuItem(text)!);
+  await userEvent.click(await found(addButton));
+  await waitUntil(() => !!menuItem(text), `${text} in the + menu`);
+  await userEvent.click(await found(() => menuItem(text)));
 };
 const idOf = (path: string) => path.split("/").at(-1)!;
 const DAY_MS = 86_400_000;
@@ -138,10 +133,10 @@ const counts = async (device: Awaited<ReturnType<typeof open>>) =>
 /** Open the time chip, move the day by `steps` (negative is earlier), then Done. */
 const shiftDay = async (steps: number) => {
   await userEvent.click(await found(TIME_CHIP));
-  await waitUntil(() => !!DAY(), 4000, "the day segment");
+  await waitUntil(() => !!DAY(), "the day segment");
   (await found(DAY)).focus();
   for (let i = 0; i < Math.abs(steps); i++) await userEvent.keyboard(steps < 0 ? "{ArrowDown}" : "{ArrowUp}");
-  await userEvent.click(button("Done")!);
+  await userEvent.click(await found(() => button("Done")));
   await waitUntil(() => !DAY());
 };
 
@@ -153,14 +148,13 @@ describe("a draft", () => {
     await addFrom("Note");
     await waitUntil(
       () => device.location().endsWith("/entries/new?kind=note") && editorFocused(),
-      4000,
       "the draft",
     );
     expect(!!TIME_CHIP() && !SHARE() && !MENU()).toBe(true);
-    await pause(500);
+    await device.settle();
     await userEvent.click(device.screen.getByRole("link", { name: "Timeline" }));
     await expect.poll(() => device.location()).toBe(TIMELINE);
-    await pause(500);
+    await device.settle();
     expect(await counts(device)).toBe(before);
   });
 });
@@ -170,8 +164,11 @@ describe("a note in one tap", () => {
     const device = await open(TIMELINE);
     await waitUntil(() => !!addButton());
     await addFrom("Note");
-    await waitUntil(() => editorFocused(), 4000, "the editor's focus");
-    expect(Math.abs(new Date(HEADER_TIME()!.dateTime).getTime() - Date.now())).toBeLessThan(60_000);
+    await waitUntil(() => editorFocused(), "the editor's focus");
+    // Now on the test clock: no earlier than its start, no later than this line.
+    const started = new Date(HEADER_TIME()?.dateTime ?? "").getTime();
+    expect(started).toBeGreaterThanOrEqual(TEST_NOW);
+    expect(started).toBeLessThanOrEqual(Date.now());
 
     await userEvent.keyboard("first words");
     await expect.poll(() => device.location()).toMatch(ON_ENTRY);
@@ -188,7 +185,7 @@ describe("a note in one tap", () => {
     expect((await device.query("SELECT id FROM note_document WHERE id = ?", [id])).length).toBe(1);
 
     // Replaced, not pushed: Back skips the draft's URL.
-    await userEvent.click(button("Go back")!);
+    await userEvent.click(await found(() => button("Go back")));
     await expect.poll(() => device.location()).toBe(TIMELINE);
     // Its row shows the document as its body, with no "live notes" block.
     await waitUntil(() => document.body.textContent.includes("first words"));
@@ -206,12 +203,12 @@ describe("a note from a past day's +", () => {
     const plus = header.querySelector<HTMLElement>('button[aria-label^="Add to "]')!;
     expect(plus.getAttribute("aria-label")).toBe(`Add to ${header.querySelector("h3")!.textContent}`);
     await userEvent.click(plus);
-    await waitUntil(() => !!menuItem("Note"), 4000, "Note in the day's + menu");
-    await userEvent.click(menuItem("Note")!);
-    await waitUntil(() => editorFocused(), 4000, "the editor's focus");
+    await waitUntil(() => !!menuItem("Note"), "Note in the day's + menu");
+    await userEvent.click(await found(() => menuItem("Note")));
+    await waitUntil(() => editorFocused(), "the editor's focus");
     const [y, m, d] = key.split("-").map(Number) as [number, number, number];
     const noon = new Date(y, m - 1, d, 12).getTime();
-    expect(new Date(HEADER_TIME()!.dateTime).getTime()).toBe(noon);
+    expect(new Date(HEADER_TIME()?.dateTime ?? "").getTime()).toBe(noon);
 
     await userEvent.keyboard("from that day");
     await expect.poll(() => device.location()).toMatch(ON_ENTRY);
@@ -226,11 +223,11 @@ describe("an event in one tap, and title chips", () => {
     await waitUntil(() => !!addButton());
     const before = await counts(device);
     await addFrom("Event");
-    await waitUntil(() => device.location().endsWith("?kind=event") && editorFocused(), 4000, "the draft");
+    await waitUntil(() => device.location().endsWith("?kind=event") && editorFocused(), "the draft");
     await expect.poll(() => TITLE()?.placeholder).toBe("Title");
-    await waitUntil(() => CHIPS().length > 0, 4000, "the chips");
+    await waitUntil(() => CHIPS().length > 0, "the chips");
     expect(CHIPS().map((b) => b.textContent?.trim())).toContain("Physical therapy");
-    await pause(300);
+    await device.settle();
     expect(await counts(device)).toBe(before);
 
     await userEvent.keyboard("event start");
@@ -246,25 +243,21 @@ describe("an event in one tap, and title chips", () => {
     // A chip renames the unnamed event; then a typed rename.
     const pick = CHIPS()[0]!.textContent.trim();
     await userEvent.click(await found(() => CHIPS()[0]));
-    await waitUntil(() => TITLE()?.value === pick && CHIPS().length === 0, 4000, "the chip's title");
+    await waitUntil(() => TITLE()?.value === pick && CHIPS().length === 0, "the chip's title");
     await expect.poll(async () => (await stored(device, id))?.title).toBe(pick);
     (await found(TITLE)).focus();
     await userEvent.clear(await found(TITLE));
     await userEvent.keyboard("Dr. Lee visit");
     (await found(TITLE)).blur();
     await expect.poll(async () => (await stored(device, id))?.title).toBe("Dr. Lee visit");
-    await waitUntil(() => TITLE()?.placeholder === "Title", 10_000, "the named event's placeholder");
+    await waitUntil(() => TITLE()?.placeholder === "Title", "the named event's placeholder");
   });
 
   test("a named event in 2 taps: Event, then a chip; saved with that title, the cursor in the document", async () => {
     const device = await open(TIMELINE);
     await waitUntil(() => !!addButton());
     await addFrom("Event");
-    await waitUntil(
-      () => CHIPS().some((b) => b.textContent?.trim() === "Physical therapy"),
-      4000,
-      "the chips",
-    );
+    await waitUntil(() => CHIPS().some((b) => b.textContent?.trim() === "Physical therapy"), "the chips");
     await userEvent.click(
       await found(() => CHIPS()?.find((b) => b.textContent?.trim() === "Physical therapy")),
     );
@@ -277,12 +270,12 @@ describe("an event in one tap, and title chips", () => {
 
   test("typing a title hides the chips, clearing it brings them back, and a typed title saves the event", async () => {
     const device = await open(`/app/groups/${GROUP}/entries/new?kind=event`);
-    await waitUntil(() => CHIPS().length > 0, 4000, "the chips");
+    await waitUntil(() => CHIPS().length > 0, "the chips");
     (await found(TITLE)).focus();
     await userEvent.keyboard("Podiatrist");
-    await waitUntil(() => CHIPS().length === 0, 3000, "the chips to go");
+    await waitUntil(() => CHIPS().length === 0, "the chips to go");
     await userEvent.clear(await found(TITLE));
-    await waitUntil(() => CHIPS().length > 0, 3000, "the chips to come back");
+    await waitUntil(() => CHIPS().length > 0, "the chips to come back");
     await userEvent.keyboard("Podiatrist");
     (await found(TITLE)).blur();
     await expect.poll(() => device.location()).toMatch(ON_ENTRY);
@@ -303,10 +296,12 @@ describe("who's writing", () => {
     await device.sync(editors({ [SAM.id]: at() }));
     await device.settle();
     expect(AVATARS().length).toBe(1);
-    expect(AVATARS()[0]!.textContent).toBe("SO");
-    expect($('main [data-region="editors"] [role="group"]')!.getAttribute("aria-label")).toMatch(
-      /is editing$/,
-    );
+    expect(AVATARS()[0]?.textContent).toBe("SO");
+    expect(
+      document
+        .querySelector<HTMLElement>('main [data-region="editors"] [role="group"]')
+        ?.getAttribute("aria-label"),
+    ).toMatch(/is editing$/);
 
     // The signed-in user writing too: still only Sam.
     await device.sync(editors({ [SAM.id]: at(), [TEST_USER.id]: at() }));
@@ -325,21 +320,21 @@ describe("who's writing", () => {
         fx.document({ ownerId: event.id, text: "Notes", editors: JSON.stringify(editors) }),
       ],
     });
-    await waitUntil(() => AVATARS().length === 1, 4000, "avatars");
+    await waitUntil(() => AVATARS().length === 1, "avatars");
     // The viewer is the signed-in user here, so only Sam shows.
     expect(AVATARS().map((el) => el.dataset.person)).toEqual([SAM.id]);
     await expect.poll(() => HEADER()?.textContent).toContain("Event");
     await expect.poll(() => EDITOR()?.getAttribute("contenteditable")).toBe("false");
-    expect([!!TITLE(), !!$('[aria-label="Suggested titles"]'), !!TOOLBAR(), !!TIME_CHIP()]).toEqual([
-      false,
-      false,
-      false,
-      false,
-    ]);
+    expect([
+      !!TITLE(),
+      !!document.querySelector<HTMLElement>('[aria-label="Suggested titles"]'),
+      !!TOOLBAR(),
+      !!TIME_CHIP(),
+    ]).toEqual([false, false, false, false]);
     expect(!!HEADER_TIME() && !!SHARE()).toBe(true);
     // The viewer's ⋯ is Print alone.
     await userEvent.click(await found(MENU));
-    await waitUntil(() => !!menuItem("Print"), 4000, "the menu");
+    await waitUntil(() => !!menuItem("Print"), "the menu");
     expect([...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim())).toEqual([
       "Print",
     ]);
@@ -356,7 +351,7 @@ describe("who's writing", () => {
         fx.document({ ownerId: event.id, text: "x", editors: JSON.stringify(editors) }),
       ],
     });
-    await waitUntil(() => AVATARS().length === 2, 4000, "avatars");
+    await waitUntil(() => AVATARS().length === 2, "avatars");
     expect(AVATARS().map((el) => el.dataset.person)).toEqual([SAM.id, RIA.id]);
   });
 });
@@ -391,9 +386,9 @@ describe("the header: time and Delete", () => {
     await userEvent.click(await found(TIME_CHIP));
     await waitUntil(() => !!PICK_DATE());
     await userEvent.click(await found(PICK_DATE));
-    await waitUntil(() => !!GRID(), 4000, "the calendar");
+    await waitUntil(() => !!GRID(), "the calendar");
     await userEvent.keyboard("{Escape}");
-    await waitUntil(() => !GRID(), 3000, "the calendar to close");
+    await waitUntil(() => !GRID(), "the calendar to close");
     expect(DAY()).toBeTruthy();
 
     await userEvent.click(await found(PICK_DATE));
@@ -408,11 +403,11 @@ describe("the header: time and Delete", () => {
       (c) => c.textContent?.trim() === String(target.getDate()) && !c.hasAttribute("data-outside-month"),
     )!;
     await userEvent.click(cell);
-    await waitUntil(() => !GRID(), 3000, "the calendar to close");
-    await pause(300);
+    await waitUntil(() => !GRID(), "the calendar to close");
+    await device.settle();
     expect(DAY()).toBeTruthy();
-    expect(Date.parse((await stored(device, note.id))!.occurred_at)).toBe(was);
-    await userEvent.click(button("Done")!);
+    expect(Date.parse((await stored(device, note.id))?.occurred_at ?? "")).toBe(was);
+    await userEvent.click(await found(() => button("Done")));
     await waitUntil(() => !DAY());
     await expect.poll(async () => Date.parse((await stored(device, note.id))!.occurred_at)).toBe(moved);
   });
@@ -427,7 +422,7 @@ describe("the header: time and Delete", () => {
 
     // The calendar leaves every later day disabled.
     await userEvent.click(await found(PICK_DATE));
-    await waitUntil(() => !!GRID(), 4000, "the calendar");
+    await waitUntil(() => !!GRID(), "the calendar");
     const tomorrow = new Date(Date.now() + DAY_MS);
     const cell = [...document.querySelectorAll("[role=grid] [role=gridcell] > *")].find(
       (c) => c.textContent?.trim() === String(tomorrow.getDate()) && !c.hasAttribute("data-outside-month"),
@@ -435,20 +430,16 @@ describe("the header: time and Delete", () => {
     if (cell)
       expect(cell.hasAttribute("data-disabled") || cell.getAttribute("aria-disabled") === "true").toBe(true);
     await userEvent.keyboard("{Escape}");
-    await waitUntil(() => !GRID(), 3000, "the calendar to close");
+    await waitUntil(() => !GRID(), "the calendar to close");
 
     // Typing a later day marks it and keeps the chip open.
     seg("day")!.focus();
     await userEvent.keyboard("{ArrowUp}{ArrowUp}");
-    await waitUntil(
-      () => !!CHIP_DIALOG()?.textContent.includes("Can't be in the future"),
-      4000,
-      "the message",
-    );
-    await userEvent.click(button("Done")!);
-    await pause(300);
+    await waitUntil(() => !!CHIP_DIALOG()?.textContent.includes("Can't be in the future"), "the message");
+    await userEvent.click(await found(() => button("Done")));
+    await device.settle();
     expect(CHIP_DIALOG()).toBeTruthy();
-    expect(Date.parse((await stored(device, note.id))!.occurred_at)).toBe(was);
+    expect(Date.parse((await stored(device, note.id))?.occurred_at ?? "")).toBe(was);
   });
 
   test("Delete asks first; Cancel keeps it; Delete goes back to the timeline, soft-deleted, without its row", async () => {
@@ -457,21 +448,21 @@ describe("the header: time and Delete", () => {
     await waitUntil(() => !!MENU());
     await userEvent.click(await found(MENU));
     await waitUntil(() => !!menuItem("Delete"));
-    await userEvent.click(menuItem("Delete")!);
-    await waitUntil(() => !!$("dialog[open]"));
-    expect($("dialog[open]")!.textContent).toContain("Delete this note?");
-    await userEvent.click(dialogButton("Cancel")!);
-    await waitUntil(() => !$("dialog[open]"));
+    await userEvent.click(await found(() => menuItem("Delete")));
+    await waitUntil(() => !!document.querySelector<HTMLElement>("dialog[open]"));
+    expect(document.querySelector<HTMLElement>("dialog[open]")?.textContent).toContain("Delete this note?");
+    await userEvent.click(await found(() => dialogButton("Cancel")));
+    await waitUntil(() => !document.querySelector<HTMLElement>("dialog[open]"));
     expect(device.location()).toBe(entryPath(note.id));
     expect(MENU()).toBeTruthy();
 
     await userEvent.click(await found(MENU));
     await waitUntil(() => !!menuItem("Delete"));
-    await userEvent.click(menuItem("Delete")!);
-    await waitUntil(() => !!$("dialog[open]"));
-    await userEvent.click(dialogButton("Delete")!);
+    await userEvent.click(await found(() => menuItem("Delete")));
+    await waitUntil(() => !!document.querySelector<HTMLElement>("dialog[open]"));
+    await userEvent.click(await found(() => dialogButton("Delete")));
     await expect.poll(() => device.location()).toBe(TIMELINE);
-    expect((await stored(device, note.id))!.deleted_at).not.toBeNull();
+    expect((await stored(device, note.id))?.deleted_at).not.toBeNull();
     await waitUntil(() => !!document.querySelector("ol > li"));
     expect(document.body.textContent).not.toContain("To delete");
   });
@@ -504,7 +495,7 @@ describe("Share", () => {
     await userEvent.click(await found(SHARE));
     await expect.element(device.screen.getByText("Link copied")).toBeVisible();
     expect(copied).toEqual([location.origin + entryPath(note.id)]);
-    await expect.element(device.screen.getByText("Link copied"), { timeout: 5000 }).not.toBeInTheDocument();
+    await expect.element(device.screen.getByText("Link copied")).not.toBeInTheDocument();
   });
 
   test("a viewer's share sheet gets the title and web URL, and no 'Link copied'", async () => {
@@ -548,7 +539,7 @@ describe("404s and the sheet", () => {
     await open(TIMELINE);
     await waitUntil(() => !!addButton());
     await addFrom("Symptom");
-    await waitUntil(() => !!$("[role=dialog] form"), 4000, "the sheet");
+    await waitUntil(() => !!document.querySelector<HTMLElement>("[role=dialog] form"), "the sheet");
     const kinds = [...document.querySelectorAll("[role=dialog] fieldset .join > *")].map(
       (el) => el.getAttribute("aria-label") ?? el.textContent?.trim(),
     );
@@ -566,7 +557,7 @@ describe("appointments", () => {
   const pickAheadDay = async () => {
     const d = ahead();
     const heading = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-    await waitUntil(() => !!CHIP_DIALOG() && !!GRID(), 4000, "the calendar");
+    await waitUntil(() => !!CHIP_DIALOG() && !!GRID(), "the calendar");
     const calHeading = () => GRID()!.closest("[role=dialog]")!.querySelector("h2")!.textContent.trim();
     if (calHeading() !== heading)
       await userEvent.click(
@@ -577,16 +568,16 @@ describe("appointments", () => {
       (c) => c.textContent?.trim() === String(d.getDate()) && !c.hasAttribute("data-outside-month"),
     )!;
     await userEvent.click(cell);
-    await waitUntil(() => !GRID() && !!seg("hour"), 3000, "the time segments");
+    await waitUntil(() => !GRID() && !!seg("hour"), "the time segments");
   };
 
   test("?when=pick opens the calendar on arrival; a picked day starts at 9:00; leaving saves nothing; a title saves it at 9:00", async () => {
     const device = await open(`/app/groups/${GROUP}/entries/new?kind=event&when=pick`);
     await pickAheadDay();
-    expect(`${seg("hour")!.textContent}:${seg("minute")!.textContent}`).toBe("9:00");
-    await userEvent.click(button("Done")!);
+    expect(`${seg("hour")?.textContent}:${seg("minute")?.textContent}`).toBe("9:00");
+    await userEvent.click(await found(() => button("Done")));
     await waitUntil(() => !CHIP_DIALOG());
-    expect(new Date(HEADER_TIME()!.dateTime).getTime()).toBe(ahead().getTime());
+    expect(new Date(HEADER_TIME()?.dateTime ?? "").getTime()).toBe(ahead().getTime());
     expect(device.location()).toMatch(/\/entries\/new/);
     expect((await device.queued()).length).toBe(0);
 
@@ -605,29 +596,28 @@ describe("appointments", () => {
     await waitUntil(() => !!TIME_CHIP());
     await userEvent.click(await found(TIME_CHIP));
     await waitUntil(() => !!button("Add an end time"));
-    await userEvent.click(button("Add an end time")!);
+    await userEvent.click(await found(() => button("Add an end time")));
     await waitUntil(() => !!seg("hour", 1));
-    expect(seg("hour", 1)!.textContent).toBe("10");
+    expect(seg("hour", 1)?.textContent).toBe("10");
     seg("hour", 1)!.focus();
     await userEvent.keyboard("{ArrowDown}{ArrowDown}");
     await waitUntil(
       () => !!CHIP_DIALOG()?.textContent?.includes("Must be after the start"),
-      3000,
       "the field error",
     );
-    await userEvent.click(button("Done")!);
-    await pause(200);
+    await userEvent.click(await found(() => button("Done")));
+    await device.settle();
     expect(CHIP_DIALOG()).toBeTruthy();
     seg("hour", 1)!.focus();
     await userEvent.keyboard("{ArrowUp}{ArrowUp}{ArrowUp}");
     await waitUntil(() => !CHIP_DIALOG()!.textContent.includes("Must be after the start"));
-    await userEvent.click(button("Done")!);
+    await userEvent.click(await found(() => button("Done")));
     await waitUntil(() => !CHIP_DIALOG());
     await expect
       .poll(async () => Date.parse((await stored(device, appt.id))!.ends_at ?? ""))
       .toBe(ahead().getTime() + 2 * 3_600_000);
     // The header re-renders from the live query after the write lands.
-    await waitUntil(() => /–/.test(HEADER_TIME()?.textContent ?? ""), 10_000, "the range in the header");
+    await waitUntil(() => /–/.test(HEADER_TIME()?.textContent ?? ""), "the range in the header");
   });
 
   test("place: empty with no provider; a linked provider's address greyed, 'from …', with a map; a viewer sees it with no field; a typed place replaces it", async () => {
@@ -642,29 +632,24 @@ describe("appointments", () => {
     await device.settle();
     expect(PLACE()?.placeholder).toBe("12 Example Way, Springfield");
     await expect.poll(() => PLACE()?.value).toBe("");
-    expect(PLACE_REGION()!.textContent).toContain("from Harbor Heart Clinic");
-    expect(MAP()!.href).toContain(encodeURIComponent("12 Example Way, Springfield"));
+    expect(PLACE_REGION()?.textContent).toContain("from Harbor Heart Clinic");
+    expect(MAP()?.href).toContain(encodeURIComponent("12 Example Way, Springfield"));
 
     (await found(PLACE)).focus();
     await userEvent.keyboard("Lab, 2nd floor{Enter}");
     await expect.poll(async () => (await stored(device, appt.id))?.place).toBe("Lab, 2nd floor");
     await waitUntil(
       () => !!MAP()?.href.includes(encodeURIComponent("Lab, 2nd floor")),
-      10_000,
       "the typed place on the map link",
     );
-    expect(PLACE_REGION()!.textContent).not.toContain("from ");
+    expect(PLACE_REGION()?.textContent).not.toContain("from ");
     await device.screen.unmount();
 
     await open(entryPath(appt.id), {
       role: "viewer",
       fixtures: [base(), appt, clinic, fx.link(appt.id, clinic.id)],
     });
-    await waitUntil(
-      () => !!PLACE_REGION()?.textContent?.includes("12 Example Way"),
-      4000,
-      "the viewer's place",
-    );
+    await waitUntil(() => !!PLACE_REGION()?.textContent?.includes("12 Example Way"), "the viewer's place");
     expect(PLACE()).toBeNull();
     expect(MAP()).toBeTruthy();
   });
@@ -684,11 +669,11 @@ describe("appointments", () => {
     await waitUntil(() => !!CHIP_DIALOG()?.querySelector("input[type=checkbox]"));
     await userEvent.click(await found(() => CHIP_DIALOG()?.querySelector("input[type=checkbox]")));
     await waitUntil(() => !seg("hour") && !button("Add an end time"));
-    await userEvent.click(button("Done")!);
+    await userEvent.click(await found(() => button("Done")));
     await waitUntil(() => !CHIP_DIALOG());
     await expect.poll(async () => (await stored(device, appt.id))?.all_day).toBe(1);
-    expect((await stored(device, appt.id))!.ends_at).toBeNull();
-    await waitUntil(() => /All day/.test(HEADER_TIME()?.textContent ?? ""), 10_000, "All day in the header");
+    expect((await stored(device, appt.id))?.ends_at).toBeNull();
+    await waitUntil(() => /All day/.test(HEADER_TIME()?.textContent ?? ""), "All day in the header");
     await device.screen.unmount();
 
     await open(entryPath(appt.id), {
