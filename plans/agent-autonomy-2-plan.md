@@ -30,7 +30,7 @@ files=$(pnpm exec vitest list --filesOnly --project tooling:unit --project scrip
 pnpm exec vitest run --project tooling:unit --project scripts:unit $files # zsh: ${=files}
 ```
 
-`pnpm prd check` still runs the file when a diff touches tooling (no skip switch yet): don't edit `check-body.sh` or bypass the gate. This orchestrator's landing gate keeps the full `pnpm test:tooling`.
+`pnpm prd check` still runs the file when a diff touches tooling (no skip switch yet): don't edit `check-body.sh` or bypass the gate. **The user, 2026-11-22:** when a diff touches only tool code, waves leave it out too. So while every changed file is Markdown, `scripts/loops/`, `scripts/backlog/` or `.githooks/` (the check gate's "none needed"), slices and wave gates run no `pnpm prd check`, only the list above and `pnpm exec eslint scripts`. The same browser-tooling exception applies.
 
 **Open issues:**
 
