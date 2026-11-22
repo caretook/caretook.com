@@ -12,7 +12,7 @@
 | 4     | 2    | merged (its check passed on its first re-merge; second run stopped); items done; worktree removed                                                                                                                     | a59e35d2 (ebcbf4ac)                     |
 | 5     | 3    | merged; items done; worktree removed. Accepted: the settings side nav keeps its own list classes (borderless from `md`)                                                                                               | 1ded63f4 (b73e0bc6)                     |
 | 6     | 3    | merged (append-only conflicts in both ui indexes and the registry: kept both); worktree removed; B-264, B-397 stay open for slice 7                                                                                   | 740deb62 (3b738564)                     |
-| 7     | 4    | started 2026-11-21 (ui-kit-7, opus)                                                                                                                                                                                   |                                         |
+| 7     | 4    | started 2026-11-21 (ui-kit-7, opus); commit e0637f2c; agent respawned `--continue` (opus) 2026-11-21 by the new orchestrator; not handed off                                                                          |                                         |
 
 **Landing mode (recorded 2026-11-21): run everything through.** Queued with `pnpm prd queue ui-kit`: start every ready slice, land each green wave through its PR (Codex-reviewed, never `--force`), clean up; ask only real questions.
 
