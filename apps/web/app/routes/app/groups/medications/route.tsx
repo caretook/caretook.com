@@ -3,7 +3,7 @@ import type { Route } from "./+types/route";
 import { Clock, Plus } from "lucide-react";
 import { useMemo } from "react";
 import { Link, Outlet, useLocation } from "react-router";
-import { PageHeader, TabNav } from "~/components/ui";
+import { Page, PageHeader, TabNav } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { MEDICATION_SHEET_STATE, medicationTabOf } from "~/lib/medications/medicationSheets";
@@ -32,7 +32,7 @@ export default function Medications({ params }: Route.ComponentProps) {
   );
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
+    <Page>
       <PageHeader
         title="Medications"
         actions={
@@ -73,6 +73,6 @@ export default function Medications({ params }: Route.ComponentProps) {
 
       {/* The tab, and any sheet over it. */}
       <Outlet />
-    </main>
+    </Page>
   );
 }

@@ -393,3 +393,11 @@ describe("within a care period", () => {
     await expect.poll(() => resultIds("entry").length).toBe(5);
   });
 });
+
+describe("the page title", () => {
+  test("is one h1, Search", async () => {
+    await open();
+    await expect.poll(() => document.querySelector("main h1")?.textContent).toBe("Search");
+    expect(document.querySelectorAll("h1")).toHaveLength(1);
+  });
+});

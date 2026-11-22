@@ -4,11 +4,7 @@ The components area's rules and decisions.
 
 ## Layout
 
-- **`ui/`** holds primitives that import nothing from feature folders: `Menu` (with `SEPARATOR`), `FilterMenu` and `FilterMenuChips`, `Sheet`, `Popover`, `PageHeader` (a page's `h1` and actions), `TabNav` (a page's linked tabs), `ConfirmDialog` (`useShowModal`, `confirmVariant` `danger` or `primary`), `Field`, `ChipGroup`, `ChipList`, `UserAvatar`, `AvatarStack`, `IconButton`, `Button`, `FormFooter`, `ChoiceGroup`, `BackLink`, `ComboBox`, `Highlight`, `Toast` (`role="status"`, above the tab bar), `ViaTag` ("via X", `data-via`). **Only `ui/` imports `react-aria-components`.**
-  - `ui/tooltip/` and `ui/date/` (`DateTimeField`) have their own indexes, so the date picker (~42 KB) and tooltip stay off other pages.
-  - `ui/plain`: the light entry (below). The `ui` and `ui/plain` indexes, `ui/styles.ts` and the gallery registry are appended at the end only.
-  - **The gallery** `/dev/ui` (`routes/dev/ui/`, web only, 404 in production through `.server/devUi`, as `/dev/mail`): each primitive in both themes, one `sections/` file each, listed in `registry.ts`; a new primitive adds one.
-  - `ComboBox`: `options`, controlled `inputValue`, `onSelect`, `onCreate?`, `sections`; the caller filters.
+- **`ui/`** holds the primitives, the only importers of `react-aria-components`; what's there, which to use and their contracts are in [ui-kit](ui-kit.md).
 - **Feature folders:** `brand/`, `contact/`, `entry/` (shared by the timeline and the Planner: `RepeatMark`, `SeriesScopeDialog`, `RemindMeSheet`), `groups/`, `medications/`, `notes/` (the Tiptap editor), `providers/` (contact pieces and the provider pickers, [providers](providers.md)), `quick-entry/`, `repeat/` (`RepeatField`, `RepeatSheet`, `SeriesEditSheet`), `schedule/`, `settings/`, `shell/`, `todos/`, `visitPrep/`.
 - **Import through each folder's `index.ts`**, never a file inside it; a route never imports another route's folder. An index brings its whole chunk: keep heavy pieces out of indexes light routes use.
 - **A component lives beside its route** until a second route needs it, then moves to its feature folder (or `ui/`).
@@ -19,19 +15,12 @@ The components area's rules and decisions.
 - **Callers pass data, labels and callbacks** (no React Aria parts or render props), at most an outer `className` (`Field` and `ChoiceGroup` callers also style the control). Primitives own ARIA naming, presses, focus and the layers (sheets and modals `z-50`, tab bar `z-40`, sticky headers `z-10`). Styling is daisyUI classes and tokens only. **Surfaces:** `base-200` is the page (`body`), `base-100` a card on it, `base-300` a card's border, its dividers and a quiet fill; overlays share `SURFACE`, tool buttons `TOOL_CIRCLE` (`ui/styles.ts`).
 - **Every menu is `ui/Menu`**: callers pass `label`, `menuLabel` (the menu's own name), `items` (`menuModel.ts`, pure); the trigger takes `title` and `data-*`. An item has a label, description, icon, danger tone, disabled, and `onAction` or `href` (a link's `state` goes through `linkOptions`). Sections can have a title, a non-interactive `header`, and `selection` (`menuitemradio`). A group (`MenuGroup`) expands its items in place, indented: `aria-expanded`, keeps the menu open, closed on each open; no flyouts.
 - **Every list's filters are `FilterMenu`** (a `TOOL_CIRCLE` button with a count, a `Menu` of single-choice sections, Clear filters) **and `FilterMenuChips`** (one ✕ chip per filter on, then extra chips), both `{ label, sections, clear, chips? }`. The caller builds every search; a section on its `defaultId` counts for nothing (`filterModel.ts`); `?q=` is never a filter.
-- **Every labelled form control is a `Field`**; **every one-of-a-few choice is a `ChoiceGroup`** (native radios in a named `radiogroup`; a controlled `value` may be null: none chosen yet); **every text button is a `Button`** (five variants, three sizes, `block`, `icon`, `busy` with `busyLabel`, `to` for a look-alike link), a form's Cancel and submit a `FormFooter` (right-aligned or `align="start"`, a `status` slot); solid `danger` only in a confirm or a form whose one job is the destructive act. Classes come from the internal, pure `buttonClass`; every icon-only button is an `IconButton` (requires a `label`: its name and tooltip; with `to` it's a look-alike link); a page's back link is a `BackLink`. **Add a primitive only for a repeated pattern.**
+- **Use the kit** ([ui-kit](ui-kit.md#which-to-use)): a control is a `Field`, a button a `Button` or `IconButton`, a message a `Message` or `Notice`.
 - **One entry actions menu** (`entry/EntryActions`, pure `entryActionItems(kind, { canEdit })`): Edit then Delete for symptoms and vitals, Delete only for notes and events, everywhere.
-- **Primitive contracts:**
-  - `Sheet` is full screen below `sm` and a centred modal from `sm`, above the tab bar, and returns focus to its opener.
-  - `ConfirmDialog`/`useShowModal` wait for an open menu to close before `showModal()`; Escape closes only the dialog.
-  - `Field` gives its control the `id`, `aria-invalid` and `aria-describedby`, and shows an optional `warning` line (never `aria-invalid`) while there's no error. `Field` ids come from `useId`, so browser checks select inputs by `input[name=…]`.
-  - `ChipGroup`: link chips a `nav` (`aria-current="true"`), button chips a `ul` (`aria-pressed` when they toggle).
-  - `TabNav` (`{ label, tabs: [{ label, to, match? }] }`): a `nav` of links, not a tablist. A tab claims its path and below (`match` replaces that); the first claimant gets `aria-current="page"` from the pending navigation. Prefetches on render; `tabs-box`, full width on phones.
-  - `Highlight` marks a search's matches (`MARK_CLASS`, `bg-warning`, 5.2:1 in both themes).
 - **Hooks own state (data and callbacks, never JSX); components own markup.** Live data comes through hooks over `useLiveQuery`; components don't call `getSync()` while rendering. Pure logic goes in plain modules with `web:unit` tests.
 - **Size guideline:** a route ~100 lines, a component 150 (split into `load<Thing>.ts`, a hook, regions).
-- **Settings pages:** `SettingsPage` (heading, `offlineNotice`), `SettingsCard` (titled `section`, `data-section`), `SaveRow`.
-- **Light pages** (sign-in, the account forms, `/connect`, marketing) import from `~/components/ui/plain` (`Field`, `FieldControl`, `IconButton`, `ChoiceGroup`, `Button`, `FormFooter`), never `~/components/ui` (React Aria); `ui/plain/plain.test.ts` fails on any React Aria import it reaches.
+- **Settings pages:** `SettingsPage` (heading; `offlineNotice`, a `Notice`), `SettingsCard` (titled `section`, `data-section`), `SaveRow` (`FormFooter align="start"` with `Message`s).
+- **Light pages** (sign-in, the account forms, `/connect`, marketing) import from `~/components/ui/plain`, never `~/components/ui` ([ui-kit](ui-kit.md)).
 
 ## Component tests
 

@@ -5,7 +5,7 @@ import { Bot } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { SettingsCard } from "~/components/settings";
-import { ConfirmDialog } from "~/components/ui";
+import { Button, ConfirmDialog, EmptyState, Message } from "~/components/ui";
 import { formatAgo } from "~/lib/core/format";
 import { memberName } from "../groupSettings";
 import { scopeLabel } from "./assistants";
@@ -29,7 +29,7 @@ export function GroupConnections({ connections }: { connections: GroupConnection
   return (
     <SettingsCard id="group-connections" title="Connected assistants">
       {connections.length === 0 ? (
-        <p className="text-base-content/70 text-sm">No one has connected an assistant to this care group.</p>
+        <EmptyState>No one has connected an assistant to this care group.</EmptyState>
       ) : (
         <ul data-connections="" className="divide-base-300 divide-y">
           {connections.map((c) => (
@@ -44,27 +44,20 @@ export function GroupConnections({ connections }: { connections: GroupConnection
                   {c.lastUsedAt ? `Last used ${formatAgo(c.lastUsedAt)}` : "Not used yet"}
                 </p>
               </div>
-              <button
-                type="button"
-                className="btn btn-sm"
+              <Button
+                size="sm"
                 disabled={busy}
                 aria-label={`Disconnect ${who(c)}'s ${c.clientName}`}
                 onClick={() => setPending(c)}
               >
                 Disconnect
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
       )}
-      <p role="status" className="text-sm empty:hidden">
-        {busy ? "Disconnecting…" : fetcher.data?.ok ? (asked ?? "") : ""}
-      </p>
-      {!busy && fetcher.data && !fetcher.data.ok && (
-        <p role="alert" className="text-error text-sm">
-          {fetcher.data.error}
-        </p>
-      )}
+      <Message>{busy ? "Disconnecting…" : fetcher.data?.ok ? (asked ?? "") : ""}</Message>
+      {!busy && fetcher.data && !fetcher.data.ok && <Message tone="error">{fetcher.data.error}</Message>}
       <ConfirmDialog
         open={!!pending}
         title={pending ? `Disconnect ${who(pending)}'s ${pending.clientName}?` : "Disconnect?"}

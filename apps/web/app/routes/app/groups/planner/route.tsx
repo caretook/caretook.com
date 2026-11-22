@@ -1,3 +1,4 @@
+import { Page } from "~/components/ui";
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 
@@ -39,7 +40,7 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
   const authorName = author ? data.nameOf(author) : null;
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-planner>
+    <Page data-planner>
       <PlannerHeader />
       <PlannerFilterRow
         view="upcoming"
@@ -54,6 +55,6 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
         label="Upcoming"
         empty={emptyUpcomingText(show, authorName)}
       />
-    </main>
+    </Page>
   );
 }

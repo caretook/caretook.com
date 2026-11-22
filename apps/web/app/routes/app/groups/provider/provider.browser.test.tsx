@@ -289,7 +289,7 @@ describe("Copy to another group", () => {
     expect(page.getByRole("radio", { name: "Lou Lindqvist" })).toBeTruthy();
     await userEvent.click(dialogButton("Copy")!);
     await expect.poll(STATUS).toBe("Copied to Lou Lindqvist.");
-    expect(DIALOG()).toBeNull();
+    await expect.poll(DIALOG).toBeNull();
     await device.settle();
     expect(await secondNames(device.db)).toEqual([
       "Dr. Elena Alvarez",

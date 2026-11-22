@@ -4,7 +4,7 @@ import type { DeviceRow } from "./devices";
 import { LogOut, Monitor, Smartphone } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import { ConfirmDialog } from "~/components/ui";
+import { Badge, Button, ConfirmDialog, EmptyState, Message } from "~/components/ui";
 import { formatAgo } from "~/lib/core/format";
 
 const MOBILE = /\b(iPhone|iPad|Android)\b/;
@@ -52,22 +52,21 @@ export function DeviceList({ devices }: { devices: DeviceRow[] }) {
                 </p>
                 <p className="text-base-content/70 text-sm">
                   {d.current ? (
-                    <span className="badge badge-sm badge-primary">This device</span>
+                    <Badge tone="primary">This device</Badge>
                   ) : (
                     <>Last active {formatAgo(d.lastActive)}</>
                   )}
                 </p>
               </div>
               {!d.current && (
-                <button
-                  type="button"
-                  className="btn btn-sm"
+                <Button
+                  size="sm"
                   disabled={busy}
                   aria-label={`Sign out ${d.label}, last active ${formatAgo(d.lastActive)}`}
                   onClick={() => setPending({ kind: "one", device: d })}
                 >
                   Sign out
-                </button>
+                </Button>
               )}
             </li>
           );
@@ -75,27 +74,21 @@ export function DeviceList({ devices }: { devices: DeviceRow[] }) {
       </ul>
       {others.length > 0 ? (
         <div className="pt-2">
-          <button
-            type="button"
+          <Button
+            icon={LogOut}
             data-sign-out-others=""
-            className="btn gap-2"
             disabled={busy}
             onClick={() => setPending({ kind: "others" })}
           >
-            <LogOut aria-hidden="true" className="size-4" />
             Sign out everywhere else
-          </button>
+          </Button>
         </div>
       ) : (
-        <p className="text-base-content/70 text-sm">You&apos;re not signed in anywhere else.</p>
+        <EmptyState>You&apos;re not signed in anywhere else.</EmptyState>
       )}
-      <p role="status" className="text-sm empty:hidden">
-        {busy ? "Signing out…" : fetcher.data?.ok ? (asked ?? "") : ""}
-      </p>
+      <Message>{busy ? "Signing out…" : fetcher.data?.ok ? (asked ?? "") : ""}</Message>
       {fetcher.state === "idle" && fetcher.data && !fetcher.data.ok && (
-        <p role="alert" className="text-error text-sm">
-          {fetcher.data.error}
-        </p>
+        <Message tone="error">{fetcher.data.error}</Message>
       )}
       <ConfirmDialog
         open={!!pending}

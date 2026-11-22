@@ -6,7 +6,7 @@ import { visibleSharedFields } from "@caretook/data/schema";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { ContactLines } from "~/components/contact";
-import { ConfirmDialog, UserAvatar } from "~/components/ui";
+import { Badge, Button, ConfirmDialog, Message, UserAvatar } from "~/components/ui";
 import { emergencyBadges } from "~/lib/profiles/emergencyList";
 import { useLiveQuery } from "~/lib/sync";
 import {
@@ -166,13 +166,13 @@ function MemberItem({
           {badges.length > 0 && (
             <p className="flex flex-wrap gap-1 py-0.5" data-member-badges="">
               {badges.map((badge) => (
-                <span
+                <Badge
                   key={badge}
-                  className={`badge badge-sm ${badge === "Primary contact" ? "badge-primary" : "badge-outline"}`}
+                  tone={badge === "Primary contact" ? "primary" : "neutral"}
                   data-badge={badge === "Primary contact" ? "primary" : "emergency"}
                 >
                   {badge}
-                </span>
+                </Badge>
               ))}
             </p>
           )}
@@ -211,15 +211,16 @@ function MemberItem({
           </span>
         )}
         {(access?.remove || access?.leave) && (
-          <button
-            type="button"
-            className="btn btn-sm"
-            disabled={busy || removing}
+          <Button
+            size="sm"
+            busy={removing}
+            busyLabel={access.leave ? "Leaving…" : "Removing…"}
+            disabled={busy}
             aria-label={access.leave ? "Leave this care group" : `Remove ${name}`}
             onClick={onRemove}
           >
-            {access.leave ? (removing ? "Leaving…" : "Leave") : removing ? "Removing…" : "Remove"}
-          </button>
+            {access.leave ? "Leave" : "Remove"}
+          </Button>
         )}
       </div>
       {(access?.simpleMode || !!member.simple_mode) && (
@@ -241,9 +242,9 @@ function MemberItem({
             </label>
           ) : (
             !!member.simple_mode && (
-              <span className="badge badge-sm badge-ghost" data-simple-mode-badge="">
+              <Badge data-simple-mode-badge="" className="self-start">
                 {member.simple_mode_locked ? "Simple mode, locked" : "Simple mode"}
-              </span>
+              </Badge>
             )
           )}
           {access?.lock && (
@@ -263,17 +264,13 @@ function MemberItem({
             </label>
           )}
           {access?.simpleMode && !access.lock && !!member.simple_mode_locked && (
-            <span className="badge badge-sm badge-ghost" data-simple-mode-badge="">
+            <Badge data-simple-mode-badge="" className="self-start">
               Locked
-            </span>
+            </Badge>
           )}
         </div>
       )}
-      {error && (
-        <p role="alert" className="text-error text-sm">
-          {error}
-        </p>
-      )}
+      {error && <Message tone="error">{error}</Message>}
       {contactLines.length > 0 && (
         <div className="pl-12">
           <ContactLines lines={contactLines} data-member-contact="" />

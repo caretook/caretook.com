@@ -1,3 +1,4 @@
+import { Page } from "~/components/ui";
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { LocalTodo, TodoRow } from "~/lib/todos/todos.sync";
@@ -76,7 +77,7 @@ export default function Todos({ loaderData, params }: Route.ComponentProps) {
   const row = { nameOf: list.nameOf, now: list.now, timeZone: list.timeZone, onTick, busy };
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
+    <Page>
       <PlannerHeader />
 
       <TodoFilterRow who={list.who} />
@@ -92,6 +93,6 @@ export default function Todos({ loaderData, params }: Route.ComponentProps) {
 
       {/* The add and edit sheets render here, over the list. */}
       <Outlet />
-    </main>
+    </Page>
   );
 }

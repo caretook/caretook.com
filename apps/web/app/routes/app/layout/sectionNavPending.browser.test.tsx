@@ -44,11 +44,11 @@ const open = async (width: number) => {
 
 const links = (nav: string, name: string) =>
   document.querySelector(`${nav}`)!.querySelector(`a[href="${name}"]`)!;
-const HEADER = "nav:not(.dock)";
-const DOCK = "nav.dock";
+const HEADER = "nav:not([data-tab-bar])";
+const TAB_BAR = "nav[data-tab-bar]";
 
 describe.each([
-  ["phone", 420, DOCK],
+  ["phone", 420, TAB_BAR],
   ["wide", 1200, HEADER],
 ])("section links on %s", (_name, width, nav) => {
   test("a tap moves aria-current at once, and a superseded navigation moves it back", async () => {
