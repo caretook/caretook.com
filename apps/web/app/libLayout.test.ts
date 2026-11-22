@@ -17,6 +17,7 @@ const TOP_LEVEL: string[] = [];
  * cache, live rows, first sync, and the tile cache (remembered live answers).
  */
 const SYNC_PLUMBING = [
+  "client.test.ts",
   "client.ts",
   "firstSync.ts",
   "index.test.ts",
