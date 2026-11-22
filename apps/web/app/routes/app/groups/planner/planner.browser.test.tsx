@@ -212,8 +212,14 @@ describe("adding", () => {
   const items = () =>
     [...document.querySelectorAll("[role=menu] [role=menuitem]")].map((m) => m.textContent?.trim());
 
-  test("a writer's Add menu has Appointment and Todo; Appointment is a draft that picks the time first", async () => {
+  test("a writer's + is the header's Add menu, with Appointment and Todo; Appointment is a draft that picks the time first", async () => {
     const device = await openPlanner({ role: "caretaker" });
+    // The header's +: its last control, icon only, "Add" its name and tooltip.
+    await expect.element(addButton()).toHaveAttribute("title", "Add");
+    expect(addButton().element().textContent.trim()).toBe("");
+    expect([...document.querySelectorAll("main header a, main header button")].at(-1)).toBe(
+      addButton().element(),
+    );
     await userEvent.click(addButton());
     await expect.poll(items).toEqual(["Appointment", "Todo"]);
     const base = `/app/groups/${TEST_GROUP.id}/entries/new`;

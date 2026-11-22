@@ -190,3 +190,90 @@
 @utility text-faint {
   color: color-mix(in oklab, var(--color-base-content) 62%, transparent);
 }
+
+/* Motion (ui-kit-2): short and quiet. Three durations and one ease-out
+   curve; fades, colour changes, turns and small slides only, no bounce, no
+   scale above 1. Every rule that animates sits under `no-preference`, and
+   under "reduce motion" nothing moves at all (daisyUI's own 0.2s on `.btn`
+   is switched off too). `Chevron` takes `motion-turn`, `ListRow` and other
+   hover surfaces `motion-colors`; `Collapse` is the `[data-collapse]` rules. */
+:root {
+  --motion-fast: 120ms;
+  --motion: 180ms;
+  --motion-slow: 240ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Collapse: a one-cell grid whose track slides from 0fr to 1fr (block:
+   height; inline: width). Closed, the region is hidden (out of the
+   accessibility tree, no focus); the cell clips its content while it moves
+   and lets it show (focus rings) once open and settled. */
+[data-collapse] {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+}
+[data-collapse][data-open] {
+  grid-template-rows: 1fr;
+  visibility: visible;
+}
+[data-collapse="inline"] {
+  grid-template-rows: none;
+  grid-template-columns: 0fr;
+}
+[data-collapse="inline"][data-open] {
+  grid-template-columns: 1fr;
+}
+[data-collapse] > * {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+[data-collapse][data-open][data-settled] > * {
+  overflow: visible;
+}
+
+@utility motion-colors {
+  @media (prefers-reduced-motion: no-preference) {
+    transition-property: color, background-color, border-color;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: var(--motion-ease);
+  }
+}
+@utility motion-turn {
+  @media (prefers-reduced-motion: no-preference) {
+    transition-property: rotate, transform;
+    transition-duration: var(--motion);
+    transition-timing-function: var(--motion-ease);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Buttons: colours follow hover quickly; a press sinks them a little. */
+  .btn {
+    transition-property: color, background-color, border-color, box-shadow, translate, scale;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: var(--motion-ease);
+  }
+  .btn:active:not(:disabled, [aria-disabled="true"]) {
+    scale: 0.97;
+  }
+  /* Closing keeps the region visible until it has slid shut; opening shows it at once. */
+  [data-collapse] {
+    transition:
+      grid-template-rows var(--motion-slow) var(--motion-ease),
+      grid-template-columns var(--motion-slow) var(--motion-ease),
+      visibility var(--motion-slow);
+  }
+  [data-collapse][data-open] {
+    transition-property: grid-template-rows, grid-template-columns;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+  [data-collapse][data-open] > * {
+    overflow: visible;
+  }
+}

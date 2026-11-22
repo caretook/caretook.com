@@ -7,7 +7,7 @@ import { VITALS } from "@caretook/data/schema";
 import { CalendarRange, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useLocation } from "react-router";
-import { ChipGroup, CIRCLE, Field, IconButton, UserAvatar } from "~/components/ui";
+import { ChipGroup, CIRCLE, Collapse, Field, IconButton, UserAvatar } from "~/components/ui";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { useGroup } from "~/lib/app-shell/group";
 import { duringChipName, duringText } from "~/lib/care-periods/periodSearch";
@@ -31,7 +31,8 @@ const X_ICON = <X className="size-3.5" aria-hidden="true" />;
  * filters, no chip row. The magnifier opens the search field beside the
  * button; a search used there (Enter, leaving the field) is saved to the
  * recent searches the search page lists.
- * The open field fills the room between Filter and `trailing`.
+ * The open field fills the room between Filter and `trailing`, sliding open
+ * and shut (`Collapse`, inline); closed, it stays mounted but hidden.
  */
 export function FilterChips({
   kind,
@@ -142,36 +143,34 @@ export function FilterChips({
             </span>
           )}
         </button>
-        {field.open && (
-          <div id={fieldId} className="min-w-0 flex-1">
-            <Field label="Search entries" labelHidden>
-              {(control) => (
-                <input
-                  {...control}
-                  ref={input}
-                  type="search"
-                  autoComplete="off"
-                  enterKeyHint="search"
-                  placeholder="Search entries"
-                  className="input input-sm w-full rounded-full"
-                  value={field.value}
-                  onChange={(e) => field.change(e.currentTarget.value)}
-                  onBlur={field.used}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      field.submit();
-                    } else if (e.key === "Escape") {
-                      e.preventDefault();
-                      close();
-                    }
-                  }}
-                  data-search-field
-                />
-              )}
-            </Field>
-          </div>
-        )}
+        <Collapse open={field.open} axis="inline" id={fieldId} className="min-w-0 flex-1">
+          <Field label="Search entries" labelHidden>
+            {(control) => (
+              <input
+                {...control}
+                ref={input}
+                type="search"
+                autoComplete="off"
+                enterKeyHint="search"
+                placeholder="Search entries"
+                className="input input-sm w-full rounded-full"
+                value={field.value}
+                onChange={(e) => field.change(e.currentTarget.value)}
+                onBlur={field.used}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    field.submit();
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    close();
+                  }
+                }}
+                data-search-field
+              />
+            )}
+          </Field>
+        </Collapse>
         {trailing && <div className="ml-auto flex shrink-0">{trailing}</div>}
       </div>
       {active.length > 0 && <ChipGroup label="Filters on" replace preventScrollReset links={active} />}

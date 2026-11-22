@@ -32,6 +32,11 @@ describe("appUrls: medications", () => {
     );
   });
 
+  it("puts the Passes tab and its add-pass sheet under the Medications page", () => {
+    expect(appUrls.medicationPasses("g")).toBe("/app/groups/g/medications/passes");
+    expect(appUrls.newPass("g")).toBe("/app/groups/g/medications/passes/new");
+  });
+
   it("starts the weekly sheet on a day only when one is given", () => {
     expect(appUrls.medicationsPrintWeek("g")).toBe("/app/groups/g/medications/print/week");
     expect(appUrls.medicationsPrintWeek("g", "2026-11-23")).toBe(

@@ -18,6 +18,7 @@ import {
   SEEDED_CURRENT,
   SEEDED_STOPPED,
   world,
+  openAddMedication,
 } from "./medicationWorld";
 
 // The medication list (medications.mjs's list, search, status, tab, viewer
@@ -220,22 +221,20 @@ describe("the list", () => {
     expect($("main [data-add-medication]")).toBeNull();
   });
 
-  test("on Schedule the header's actions run + Add medication, labeled Passes, then a printer-only Print; Add opens the sheet and Print its menu", async () => {
+  test("on Schedule the header's actions run a printer-only Print, then the + (Add); the + opens its menu and Print its", async () => {
     const device = await open({ url: SCHEDULE });
     await expect.poll(() => $("main [data-today]")).toBeTruthy();
     expect(pageHeader()).toEqual({ h1: "Medications", namesRecipient: false, viewerNote: false });
     const actions = $$("main header a, main header button");
     expect(actions.map((a) => a.getAttribute("aria-label") ?? a.textContent?.trim())).toEqual([
-      "Add medication",
-      "Passes",
       "Print",
+      "Add",
     ]);
-    expect(actions[0]?.textContent?.trim()).toBe("");
-    expect(actions[2]?.textContent?.trim()).toBe("");
+    expect(actions.map((a) => a.textContent?.trim())).toEqual(["", ""]);
     await userEvent.click(page.getByRole("button", { name: "Print" }));
     await expect.element(page.getByRole("menuitem", { name: /Weekly chart/ })).toBeVisible();
     await userEvent.keyboard("{Escape}");
-    await userEvent.click(actions[0]!);
+    await openAddMedication();
     await expect.poll(device.location).toContain("/medications/schedule/new");
   });
 
