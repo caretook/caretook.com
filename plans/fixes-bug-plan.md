@@ -18,7 +18,7 @@ Wave 1 (slices 1–12) written 2026-11-21. Held back: B-318 (header ignores simp
 | 6     | B-320 | opus  | handed off (f803441d, quick ok)                                                               |          |
 | 7     | B-321 | opus  | handed off (238ca50f, quick ok)                                                               |          |
 | 8     | B-322 | opus  | handed off (311268a9, quick ok)                                                               |          |
-| 9     | B-323 | opus  | started (worktree, agent)                                                                     |          |
+| 9     | B-323 | opus  | handed off (2ae446ce, quick ok; live-notes at landing)                                        |          |
 | 10    | B-385 | opus  | handed off (d8f24ec9; quick failed only on resetStaging timeout under load, 3/3 alone: B-466) |          |
 | 11    | B-386 | opus  | written (blocked by 10)                                                                       |          |
 | 12    | B-393 | opus  | handed off (fd55c5f3, test only: already fixed by B-234)                                      |          |
