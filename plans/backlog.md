@@ -247,7 +247,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-383 | bug | triaged | sync-safety-2 |  | Repeating todos: reopen finds the successor by dueOn > the reopened todo's due day (todoService laterInChain, and the device's), so a successor rescheduled to the same day or earlier is missed and both rows stay open and repeating |
 | B-384 | bug | triaged | sync-safety-2 |  | Repeating todos: two concurrent completions of the same todo with doneAt on different recipient days both read doneAt null and each insert a different next occurrence; lock and reread the row (or a conditional transition) so only the winner makes the next (todoService.complete) |
 | B-385 | bug | ready | fixes-bug | prd/fixes-bug | Repeating todos: nextDueDay uses nextVisits' ~5-year search horizon, so a valid long-interval rule (e.g. FREQ=MONTHLY;INTERVAL=99) reads as ended and the chain stops; search to the rule's next occurrence or cap the accepted interval |
-| B-386 | bug | in-progress | fixes-bug | prd/fixes-bug | Repeating todos: a successor moved back onto its source's day and ticked gets nextTodoId(repeatId, that next day) = its own id, so insertNext (and the device's planNext) sees the row as the existing next and the chain silently ends; handle ids taken by the source or a done occurrence |
+| B-386 | bug | ready | fixes-bug | prd/fixes-bug | Repeating todos: a successor moved back onto its source's day and ticked gets nextTodoId(repeatId, that next day) = its own id, so insertNext (and the device's planNext) sees the row as the existing next and the chain silently ends; handle ids taken by the source or a done occurrence |
 | B-387 | bug | triaged | sync-safety-2 |  | Repeating todos: a stopped chain (successor explicitly deleted) comes back when an offline writer ticks a stale copy of the original: complete leaves it done, but the twin of the next day finds no open row and upsertOccurrence creates it as if from a skip; tell an authorised skip from a stale completion twin |
 | B-388 | bug | triaged | fixes-tooling |  | Integration flakes seen in 2026-11-21 full checks: the connector MCP tests (mcpWrites, mcp, readTools .int.test.ts) failed 14 times with 'Connection terminated' in the transcripts, and todoRename.int.test.ts 4 times; find the cause (dropped connections on the shared test Postgres under load?) and fix it |
 | B-389 | change | live | orchestration-2 | prd/orchestration-2 | A PRD registry: the PRD table gets a state, the topics it comes after and its hot files, kept through pnpm backlog prd; row order is the priority |
@@ -333,6 +333,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-469 | bug | triaged | fixes-bug |  | Easy roles' read-only search sheets (provider, medication, condition) show the values captured when tapped and miss edits or deletes that sync in while open |
 | B-470 | bug | triaged | fixes-bug |  | An Easy helper can undo a writer's cancellation or reschedule of their own event by sending the setup fields as null (update API or sync upload) |
 | B-471 | feature | triaged | ui-kit-3 |  | Overlay motion: menus, popovers, dialogs and toasts fade in and out, and a sheet closes with the reverse of its opening |
+| B-472 | bug | triaged | fixes-bug |  | A device's offline-queued simpleMode setting change, left from before the easy rename, is retried forever and takes later queued settings changes down with it |
 
 ## Items
 
@@ -1867,14 +1868,15 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-386 · bug · Repeating todos: a successor moved back onto its source's day and ticked gets nextTodoId(repeatId, that next day) = its own id, so insertNext (and the device's planNext) sees the row as the existing next and the chain silently ends; handle ids taken by the source or a done occurrence
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: 5235c5c6
 
 - 2026-11-21 (prd/planner-2): Codex finding on PR #22 (planner-2 wave 1, round 2, 2026-11-21); filed as a follow-up. P2.
 - 2026-11-21 (Robert Bo Davis): Moved from planner-2 (done) to quick-fixes: a contained repeat-rule fix, one slice each, no sync design needed.
 - 2026-11-21 (prd/orchestration-2): category: bug (orchestration-2 split)
+- 2026-11-21 (prd/fixes-bug): Edge left (slice 11): a soft-deleted done row reached by id is still restored as the new open next.
 
 ### B-387 · bug · Repeating todos: a stopped chain (successor explicitly deleted) comes back when an offline writer ticks a stale copy of the original: complete leaves it done, but the twin of the next day finds no open row and upsertOccurrence creates it as if from a skip; tell an authorised skip from a stale completion twin
 
@@ -2735,3 +2737,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (plan/ui-kit-2): From the ui-kit-2 plan (2026-11-21), the part of B-414 cut by its skeptic pass: ui-kit-2 slice 5 animates buttons, rows, chevrons and Collapse only. Route sheets close by navigating, so the route unmounts before an exit can play: a sheet's exit needs the navigation delayed. Uses ui-kit-2's motion variables; nothing under reduced motion.
+
+### B-472 · bug · A device's offline-queued simpleMode setting change, left from before the easy rename, is retried forever and takes later queued settings changes down with it
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-21 (prd/simple-mode): Codex P2 on PR #44 (simple-mode), verified: lib/app-shell/me.ts readPending returns the stored caretook:settings-pending: payload as is; me.updatePreferences' strict schema now rejects simpleMode and clearPending no longer removes it. Fix: in readPending, map simpleMode (simple→easy, group→drop) to easyMode or drop it before sending; unit test. Only matters for devices that queued the change offline before the upgrade (none live today).
