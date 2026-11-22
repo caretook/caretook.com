@@ -377,6 +377,65 @@ describe("sync.upload: repeating todos", () => {
     });
   });
 
+  describe("a viewer's flagged Undo delete (B-510)", () => {
+    const flagged = (id: string) => ({
+      op: "PATCH" as const,
+      table: "todo",
+      id,
+      data: { deleted_at: TUESDAY },
+      metadata: UNDO_NEXT_METADATA,
+    });
+
+    it("is refused on a repeating todo's next, which stays", async () => {
+      const { group, recipient, owner, viewer } = await setup();
+      const id = randomUUID();
+      const put = { op: "PUT" as const, table: "todo", id, data: repeating(id, group.id, recipient.id) };
+      const next = twin(id, group.id, recipient.id, "2026-11-23");
+      ok(await owner.api.sync.upload({ ops: [put, tick(id, MONDAY, owner.user.id), next] }));
+      // Its todo is still done (no reopen came first): the role decides, not the chain.
+      expect(await upload(viewer.api, [flagged(next.id)])).toEqual([
+        { id: next.id, status: "rejected", code: "todoService:completionOnly" },
+      ]);
+      expect(ok(await todoService.getById(owner.ctx, next.id))).toMatchObject({ deletedAt: null });
+    });
+
+    it("is refused on a todo that doesn't repeat, and on one already deleted", async () => {
+      const { group, recipient, owner, viewer } = await setup();
+      const id = randomUUID();
+      const put = { op: "PUT" as const, table: "todo", id, data: todoRow(group.id, recipient.id) };
+      ok(await owner.api.sync.upload({ ops: [put] }));
+
+      const refused = [{ id, status: "rejected", code: "todoService:completionOnly" }];
+      expect(await upload(viewer.api, [flagged(id)])).toEqual(refused);
+      expect(ok(await todoService.getById(owner.ctx, id))).toMatchObject({ deletedAt: null });
+
+      ok(await todoService.remove(owner.ctx, id));
+      expect(await upload(viewer.api, [flagged(id)])).toEqual(refused);
+    });
+
+    it("on their own todo, and a member's, still applies as before", async () => {
+      const { group, recipient, owner, viewer } = await setup();
+      const own = randomUUID();
+      const plain = randomUUID();
+      const puts = [
+        {
+          op: "PUT" as const,
+          table: "todo",
+          id: own,
+          data: todoRow(group.id, recipient.id, { assignee_id: viewer.user.id }),
+        },
+        { op: "PUT" as const, table: "todo", id: plain, data: todoRow(group.id, recipient.id) },
+      ];
+      ok(await owner.api.sync.upload({ ops: puts }));
+
+      // Not a repeating todo's next, so nothing goes; the upload is applied.
+      expect(await upload(viewer.api, [flagged(own)])).toEqual([{ id: own, status: "applied" }]);
+      expect(await upload(owner.api, [flagged(plain)])).toEqual([{ id: plain, status: "applied" }]);
+      expect(ok(await todoService.getById(owner.ctx, own))).toMatchObject({ deletedAt: null });
+      expect(ok(await todoService.getById(owner.ctx, plain))).toMatchObject({ deletedAt: null });
+    });
+  });
+
   it("refuses a twin whose id isn't its chain's for that day, and a viewer's skip", async () => {
     const { group, recipient, owner, viewer } = await setup();
     const id = randomUUID();
