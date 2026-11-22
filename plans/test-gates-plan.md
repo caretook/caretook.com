@@ -7,7 +7,7 @@ The [PRD](test-gates-prd.md) covers:
 - a run's failures are sorted by kind, and flakes are quarantined;
 - a landing waits for the tier its orchestrator declared.
 
-Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556. B-531 (modes) is dropped pending the user's word. B-532 and B-533 go to `test-gates-2`.
+Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
 
 ## Status
 
@@ -60,7 +60,6 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556. B-531 (modes) is d
 - **Hot files:** `.github/workflows/`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `packages/data/src/db/roles/syncConfig.ts` (the YAML reader the workflow tests use), `vitest.config.ts`, `scripts/loops/land`, `scripts/loops/check-plan`, `scripts/loops/check-body`, `scripts/loops/check-run`, `scripts/loops/check-times`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/pr.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/rotate`. These overlap:
   - fixes-tooling's scripts items: held until this topic lands (its wave 2 is in dev);
   - agent-autonomy (B-518) waits for this topic.
-- Before slice 6 lands, confirm with the user that the modes (B-531) are dropped.
 - Seven slices, one over the usual six: the skeptic pass split the workflow slice in two. Slice 1 stays here, not in fixes-tooling, because it shares the check plan and check body with slice 6 and fixes-tooling is held for this topic.
 
 ## Slice 1: A local check says why it failed, stops at a limit and reruns a flake
