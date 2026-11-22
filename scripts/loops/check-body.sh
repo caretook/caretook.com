@@ -6,6 +6,7 @@
 #   quick: typecheck, lint, format, `vitest --changed BASE`, the always-run
 #          tests, the check-areas lint, the docs budget, then the tooling tests
 #   full:  pnpm check, the build budget, then the tooling tests
+# (the tooling tests without their own lint step: this check lints everything)
 # A quick check writes "<test files run> <test files in all>" to
 # $CARETOOK_CHECK_COUNTS (check-run.sh logs them) and warns above half.
 set -euo pipefail
@@ -33,6 +34,8 @@ else
   pnpm docs:budget
 fi
 if [[ $tooling == 1 ]]; then
-  pnpm test:tooling
+  # The check above linted and formatted every file, so the tooling tests skip
+  # their own lint of the changed tooling files (tooling-lint.mjs).
+  CARETOOK_TOOLING_LINT=off pnpm test:tooling
 fi
 exit 0
