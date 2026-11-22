@@ -64,7 +64,7 @@ export function mergeSummaries(summaries) {
  * @param {{ commit: string, runId: string, tier: string, needs: Record<string, NeededJob> }} run
  */
 export function buildVerdict({ commit, runId, tier, needs }) {
-  const { jobs, ranTier, notBuilt } = jobsFor(tier);
+  const { jobs, ranTier } = jobsFor(tier);
   const failedJobs = jobs.filter((job) => needs[job]?.result !== "success");
   if (needs.plan?.result !== "success") failedJobs.unshift("plan");
   /** @type {string[]} */ const files = [];
@@ -88,9 +88,7 @@ export function buildVerdict({ commit, runId, tier, needs }) {
     target: commit,
     runId,
     tier,
-    // What really ran: a `full` request runs only up to here until its jobs exist.
     ranTier,
-    notBuilt,
     narrowed: false,
     narrowedFiles: [],
     kind: failedJobs.length ? "file" : "green",
@@ -130,7 +128,7 @@ function cli(/** @type {string[]} */ [command, path, ...more]) {
     });
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, `${JSON.stringify(verdict, null, 2)}\n`);
-    console.log(`verdict: ${verdict.kind} (${verdict.tier}, ran up to ${verdict.ranTier})`);
+    console.log(`verdict: ${verdict.kind} (${verdict.tier})`);
     return;
   }
   throw new Error("usage: verdict.mjs summarize <vitest.json>… | write <out.json>");

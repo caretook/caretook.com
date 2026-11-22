@@ -15,6 +15,10 @@ import { intWorkers } from "./packages/data/src/db/testDatabase.ts";
 //                checks, check-times, check-plan, deploy, build, the lint rules)
 //   tooling:unit the other tooling tests (scripts/loops, backlog, hooks), against
 //                throwaway git repos in the OS temp dir; `pnpm test:tooling`
+//   tooling:browser  scripts/loops/browser.test.mjs alone: it launches Playwright
+//                and waits on specs that hang on purpose. `pnpm test:browser-harness`;
+//                `pnpm test:tooling` adds it when the change touches what it tests
+//                (check-plan.mjs); CI runs it in the integration job
 //   integration  real Postgres, every package (*.int.test.ts): the test
 //                database on port 5435. Start it with `pnpm datastore:up:test`;
 //                each run clears and migrates it first, then copies it for
@@ -120,11 +124,21 @@ export default defineConfig({
             "loops/checks.test.mjs",
             "loops/check-times.test.mjs",
             "loops/check-plan.test.mjs",
+            "loops/browser.test.mjs",
           ],
           testTimeout: 20_000,
           // Off for every spawned script (they pass process.env on): new.sh and
           // check-run.sh would otherwise poll the real machine's load, 15 s at a
           // time for up to 600 s. The gate's own tests set it back to "".
+          env: { CARETOOK_LOAD_GATE: "off" },
+        },
+      },
+      {
+        test: {
+          name: "tooling:browser",
+          root: "./scripts",
+          include: ["loops/browser.test.mjs"],
+          testTimeout: 20_000,
           env: { CARETOOK_LOAD_GATE: "off" },
         },
       },
