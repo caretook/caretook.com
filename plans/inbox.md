@@ -23,6 +23,9 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - react-i18next or some other internationalization library to support multiple languages for all text in the app. (B-209)
 - We are getting close to feature complete. We need another marketing content pass that updates copy and layout to reflect the new features. Also improve ui to meet modern design standards. NO SCREENSHOTS yet. No videos. (B-417)
 - In providers list page, contact links in rows make it too hard to know what to click. Make those clickable in the details sheet and remove the information from the rows. Most of the time we want notes open during contact anyway. (B-422)
+- Tags on everything so users can organize data how they want. (B-548)
+- Symomtons need to be repeatble and filterable need multi filter. (B-549)
+- nested todos (B-550)
 
 ## Big plans
 
