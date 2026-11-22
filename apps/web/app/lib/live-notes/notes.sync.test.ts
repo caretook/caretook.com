@@ -34,7 +34,7 @@ const textOf = (rows: Row[]) => {
     null,
     rows.map((r) => r.data),
   );
-  const text = doc.getText("t").toString();
+  const text = doc.getText("t").toJSON();
   doc.destroy();
   return text;
 };
