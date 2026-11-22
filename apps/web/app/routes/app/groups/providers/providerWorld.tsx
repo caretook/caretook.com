@@ -2,7 +2,7 @@ import type { DeviceRoute } from "../../../../../test/device";
 
 import { page, userEvent } from "vitest/browser";
 import { fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
-import { found, waitUntil as waitFor } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 import { getByCss } from "../../../../../test/locators";
 import * as entryRoute from "../entry/route";
 import * as providerRoute from "../provider/route";
@@ -279,24 +279,7 @@ export const ENTRY_TITLE = () => document.querySelector<HTMLInputElement>("main 
 /** Open the With row's picker, type `text`, and take the option `optionText`. */
 export const pick = async (text: string, optionText: string) => {
   await userEvent.click(await found(ADD_LINK, { message: "the With row's Add" }));
-  await waitFor(() => !!PICKER() && document.activeElement === PICKER(), "the picker");
+  await waitUntil(() => !!PICKER() && document.activeElement === PICKER(), "the picker");
   await userEvent.keyboard(text);
   await userEvent.click(await found(() => option(optionText), { message: `the option ${optionText}` }));
 };
-
-// --- Kept for other areas' tests ----------------------------------------------
-// The entry and notes tests (test-health slices 15 and 18) still import these from here; this area's
-// tests use test/found.ts and test/locators.ts. Slice 19 deletes them.
-
-/** @deprecated `document.querySelector`, or `getByCss` (test/locators.ts) to act on it. */
-export const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector<T>(sel);
-/** @deprecated `document.querySelectorAll`, or `getByCss(…).all()`. */
-export const $$ = <T extends Element = HTMLElement>(sel: string) => [...document.querySelectorAll<T>(sel)];
-/** @deprecated test/found.ts's `waitUntil(read, message)`: the old signature, on the harness's one timeout. */
-export const waitUntil = async (test: () => boolean, _ms?: number, what?: string) => {
-  await waitFor(test, what);
-};
-/** @deprecated wait on the thing instead. */
-export const pause = (ms: number) =>
-  // eslint-disable-next-line caretook/no-fixed-sleep -- kept for the entry tests that still sleep (slice 15)
-  new Promise((r) => setTimeout(r, ms));

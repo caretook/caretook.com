@@ -4,7 +4,7 @@ import type { DeviceOptions, DeviceRoute } from "../../../../../test/device";
 import { useNavigate, useParams } from "react-router";
 import { userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
-import { found, waitUntil as untilHolds } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 import { at, fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
@@ -157,14 +157,14 @@ export const filterButton = () => document.querySelector<HTMLButtonElement>("but
 const filterSheet = () => document.querySelector('[role="dialog"]');
 /** Open the Filter sheet with its button, once the screen is up. */
 export const openFilters = async () => {
-  await untilHolds(() => !!filterButton(), "the Filter button");
+  await waitUntil(() => !!filterButton(), "the Filter button");
   await userEvent.click(filterButton());
-  await untilHolds(() => chips().length > 0, "the Filter sheet");
+  await waitUntil(() => chips().length > 0, "the Filter sheet");
 };
 /** Done: close the Filter sheet. */
 export const closeFilters = async () => {
   await userEvent.click(await found(() => button("Done")));
-  await untilHolds(() => !filterSheet(), "the Filter sheet to close");
+  await waitUntil(() => !filterSheet(), "the Filter sheet to close");
 };
 export const iconOf = (li: Element) =>
   li.querySelector<HTMLAnchorElement>('a[aria-label^="Show only"]:not([data-author])')!;
@@ -180,7 +180,7 @@ export const openViewOptions = async () => {
   await userEvent.click(
     await found(() => document.querySelector<HTMLElement>('button[aria-label="View options"]')),
   );
-  await untilHolds(() => !!document.querySelector('[role="menu"]'), "the View options menu");
+  await waitUntil(() => !!document.querySelector('[role="menu"]'), "the View options menu");
 };
 
 /** Choose an item of the View options menu by its name ("Cards"). */
@@ -201,15 +201,8 @@ export const pressEasyMode = async () =>
 export const setView = async (to: "Rows" | "Cards") => {
   if (view() === to.toLowerCase()) return;
   await chooseViewOption(to);
-  await untilHolds(() => view() === to.toLowerCase(), `the ${to} view`);
+  await waitUntil(() => view() === to.toLowerCase(), `the ${to} view`);
 };
-
-/**
- * The old `waitUntil(test, ms, what)`, for the files outside the timeline and entry directories that
- * still import it (layout, search, settings): the harness's `waitUntil` underneath, its milliseconds
- * ignored. New code imports `waitUntil` from `test/found.ts`; this goes once those files have moved.
- */
-export const waitUntil = (test: () => boolean, _ms?: number, what?: string) => untilHolds(test, what);
 
 export const frames = (n = 2) =>
   new Promise<void>((resolve) => {
