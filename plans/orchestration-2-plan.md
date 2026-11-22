@@ -4,30 +4,33 @@
 
 ## Status
 
-**Where it stands:** **waves 2 and 3 landed** in `dev` (e12d774, PR #29, Codex clean after one fix, 07cf66a6; 2026-11-21); docs folded (orchestrator, machinery, planner, recovery). Earlier: wave 1 landed (77c79ca, PR #26); the table migrated and set (`doctor` leaves 6 findings for the user: B-196, B-239–B-242, B-244 on done topics); the opener's `--background` tried (selected tab kept; the `title` variable bug fixed in 86afe808). check-speed is done (dea0b70). Landing report filed as ask `a1` and pushed. Slices 8 (B-409) and 9 (B-410) added after waves 2 and 3.
+**Wave 5 in flight (fresh session, 2026-11-21):** slice 7 merged (5241714c; quick check passed on a375489c, 525 tooling tests; worktree removed; B-403 done). Slice 8 merged (ec7ffb26; quick check passed on 5b16758a; B-409 done). Slice 9 merged (be61728f; begun on sonnet c78e7012, finished on opus 7f233325 under dev's new model rule; quick check passed, 535 tooling tests; B-410 done). All three merged; docs folded (machinery.md: tidy, dev-sync, landing reports; orchestrator.md: docs-only verdict, to-test). **Landing next:** full `pnpm prd check` (the sync resolved a conflict in code), PR, Codex. Unverified by a loop: what tapping a run-through push opens after rotation (check on this landing). Ask `a2` answered: the user merged origin/dev in the main checkout (71bfdcf5); synced (1bb93243, `prompt.sh` conflict resolved: dev's Codex-findings-to-backlog line plus slice 8's docs-only line; prompt tests pass), so the landing check is full. ui-kit told. Fold at landing too: orchestrator.md _Landing a wave_ step 6, docs-only `prd/` diffs need no verdict. Docs to fold at landing: `pnpm prd tidy` and `prompt tidy` in machinery.md and orchestrator.md; tidy skips `hold` rows. New backlog items B-412–B-415 are app UI, not this topic.
 
-**The rotation worked** (2026-11-21 22:01Z): the fresh session opened under `prd-orchestration-2` with `--auto` (record live, `auto: true`, `rotating` cleared); the old session's process is gone (no other `claude` in this worktree). Whether its tab closed isn't visible from here. **Slice 6 merged** (41ac39b6; B-395 done). The `open-session` test leaked a live session's `CARETOOK_SESSIONS_DIR` (failed only inside a recorded session): fixed on this branch. Next: tooling tests, docs fold, PR, landing, then the split.
+**Where it stood:** **wave 4 (slice 6) landed** through PR #31 (Codex clean on 5bdf20d; no check needed, tooling and docs; 503/503 tooling tests; 2026-11-21). Docs folded (planner, backlog, hotfix, AGENTS.md _Working rules_). **The split is done:** `fixes-ui`, `fixes-tooling`, `fixes-perf`, `fixes-bug`, `fixes-nit` added after `quick-fixes` with `standing,hold`; the 26 waiting items moved (B-385, B-386, B-393, filed after the planner's table, went to `fixes-bug` by the rule); `quick-fixes` set `done` (no worktree left). `doctor` shows only the same 6 findings left for the user. Report filed (ask `a3`) and pushed. Earlier: waves 1–3 landed (77c79ca PR #26, e12d774 PR #29); the first rotation worked (fresh session under `prd-orchestration-2` with `--auto`, old process gone).
 
-**B-411** (session.sh marks a reopened session ended when the first exits) was filed into this topic after waves 2 and 3; it has no slice yet: a candidate to append after slice 9.
+**Open: ask `a2`.** After the merge, the main checkout's dev-sync stopped: the user has uncommitted edits there (`prompt.sh`, `prompt.test.mjs`, `orchestrator.md`: Codex findings go to the backlog, reply on every thread; plus two inbox lines). Never touch them. **Fresh session:** `pnpm prd asks`; before slice 7, check the main checkout's `dev` has PR #31 (`git -C <main> log --oneline -3 dev`); if not, the user hasn't run `pnpm prd dev-sync prd/orchestration-2` yet: start slice 7 anyway (it builds on prd/orchestration-2, which has wave 4) and `pnpm prd sync` once dev has it. When their edit lands in dev, follow its Codex rule (findings go to the backlog).
 
-**Next after slice 6:** land it (tooling only; the split follows its landing), then slices 7, 8, 9 one after another (opus, sonnet, sonnet) and one landing for the three. Slice 9 adds `to-test/` to `.gitignore`, which isn't tooling: run `pnpm prd check --quick "<why>"` for that landing. B-409's open point was assumed (the PR stays for docs-only `prd/` landings, only the verdict is skipped): say so in the next report.
+**Next:** slices 7, 8, 9 one after another (opus, sonnet, sonnet), then one landing for the three. Claim B-403 for slice 7. Slice 9 adds `to-test/` to `.gitignore`, which isn't tooling: run `pnpm prd check --quick "<why>"` for that landing. B-409's open point was assumed (the PR stays for docs-only `prd/` landings, only the verdict is skipped): say so in the next report. **B-411** (session.sh marks a reopened session ended when the first exits) has no slice yet: a candidate to append after slice 9 (propose it in the report first).
 
 **B-403** (the cleanup run) is slice 7 (wave 5, after 6), added at the wave 1 boundary; scheduling past `/loop` stays with `orchestration-3`.
 
 **Landing mode: run everything through** (queued with `pnpm prd queue orchestration-2`): start every ready slice, land each green wave through its PR (Codex-reviewed), clean up; ask only real questions.
 
-**Models:** slices 1, 2, 3 opus (new modules and design), 4 opus, 5 sonnet, 6 sonnet (mechanical) — the plan gives no model, these are the handbook's _Models_.
+**Models:** slices 1, 2, 3 opus (new modules and design), 4 opus, 5 sonnet, 6 sonnet (mechanical), 7 opus, 8 and 9 sonnet — the plan gives no model, these are the handbook's _Models_.
 
-| Slice | Wave | State           | Merge into `prd/orchestration-2` (slice commits) |
-| ----- | ---- | --------------- | ------------------------------------------------ |
-| 1     | 1    | merged (opus)   | 3ba1e77b (9e722505)                              |
-| 2     | 1    | merged (opus)   | a0e66284 (c99d30c2)                              |
-| 3     | 1    | merged (opus)   | dda72b54 (84cdb649)                              |
-| 4     | 2    | merged (opus)   | 4c4a76cc (f5d86cc5)                              |
-| 5     | 3    | merged (sonnet) | 1a92480f (00a19c33)                              |
-| 6     | 4    | merged (sonnet) | 41ac39b6 (8522220d, 0b268a4e)                    |
+| Slice | Wave | State                      | Merge into `prd/orchestration-2` (slice commits) |
+| ----- | ---- | -------------------------- | ------------------------------------------------ |
+| 1     | 1    | merged (opus)              | 3ba1e77b (9e722505)                              |
+| 2     | 1    | merged (opus)              | a0e66284 (c99d30c2)                              |
+| 3     | 1    | merged (opus)              | dda72b54 (84cdb649)                              |
+| 4     | 2    | merged (opus)              | 4c4a76cc (f5d86cc5)                              |
+| 5     | 3    | merged (sonnet)            | 1a92480f (00a19c33)                              |
+| 6     | 4    | merged (sonnet)            | 41ac39b6 (8522220d, 0b268a4e)                    |
+| 7     | 5    | merged (opus)              | 5241714c (a375489c)                              |
+| 8     | 5    | merged (sonnet)            | ec7ffb26 (5b16758a)                              |
+| 9     | 5    | merged (sonnet, then opus) | be61728f (c78e7012, 7f233325)                    |
 
-**Backlog:** B-389 (the registry) closes with slice 1, B-390 (one session per wave) with slice 4, B-391 (the asks queue) with slice 5, B-395 (fix categories) with slice 6 and the split after it (`pnpm backlog done` when each merges).
+**Backlog:** B-389 (the registry) closes with slice 1, B-390 (one session per wave) with slice 4, B-391 (the asks queue) with slice 5, B-395 (fix categories) with slice 6 (done); B-403 with slice 7, B-409 with 8, B-410 with 9 (`pnpm backlog done` when each merges).
 
 ## Architectural decisions
 
