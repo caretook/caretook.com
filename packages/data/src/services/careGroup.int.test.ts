@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok, system } from "../../test/fixtures";
-import { careGroupMemberModel, careGroupInviteModel } from "../models";
+import { createGroup, createWorld, ok, system } from "../../test/fixtures";
+import { careGroupInviteModel } from "../models";
 import { isError } from "../errors";
 import {
   careGroupInviteService,
@@ -10,42 +10,16 @@ import {
   userService,
 } from ".";
 
-type Users = Record<
-  "owner" | "admin" | "caretaker" | "viewer" | "outsider" | "staff",
-  Awaited<ReturnType<typeof createUser>>
->;
-
 const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
 const byId = (id: string) => ({ filter: { id: { type: "eq", value: id } } }) as const;
 
 // Every test builds its own group and users, so tests never depend on each other.
 
 const setup = async () => {
-  const u: Users = {
-    owner: await createUser("owner"),
-    admin: await createUser("admin"),
-    caretaker: await createUser("caretaker"),
-    viewer: await createUser("viewer"),
-    outsider: await createUser("outsider"),
-    staff: await createUser("staff", "admin"),
-  };
-  const { group, recipient } = await createGroup(u.owner, [
-    { user: u.admin.user, role: "admin" },
-    { user: u.caretaker.user, role: "caretaker" },
-    { user: u.viewer.user, role: "viewer" },
-  ]);
-  const groupId = group.id;
-  const membershipOf = async (user: Users[keyof Users]) => {
-    const m = ok(
-      await careGroupMemberService.get(system, {
-        filter: { groupId: { type: "eq", value: groupId }, userId: { type: "eq", value: user.user.id } },
-      }),
-    );
-    if (!m) throw new Error("no membership");
-    return m;
-  };
-  return { u, groupId, recipientId: recipient.id, membershipOf };
+  const { u, groupId, recipient } = await createWorld({ extras: ["outsider", "staff"] });
+  return { u, groupId, recipientId: recipient.id };
 };
+type Users = Awaited<ReturnType<typeof setup>>["u"];
 
 describe("reading", () => {
   it("shows a group to every member and nobody else", async () => {
@@ -188,75 +162,8 @@ describe("creating a group", () => {
   });
 });
 
-describe("membership rules", () => {
-  it("only lets managers change roles, and never the group or user", async () => {
-    const { u, membershipOf } = await setup();
-    const viewer = await membershipOf(u.viewer);
-    expect(
-      codeOf(await careGroupMemberService.updateRole(u.caretaker.ctx, { id: viewer.id, role: "caretaker" })),
-    ).toBe("baseModel:update:nothingUpdated");
-    expect(
-      codeOf(
-        await careGroupMemberModel.update({
-          ...u.owner.ctx,
-          ...byId(viewer.id),
-          data: { userId: u.outsider.user.id },
-        }),
-      ),
-    ).toBe("permissions:fieldUnauthorized");
-  });
-
-  it("keeps owners in the hands of owners", async () => {
-    const { u, membershipOf } = await setup();
-    const owner = await membershipOf(u.owner);
-    const viewer = await membershipOf(u.viewer);
-    expect(
-      codeOf(await careGroupMemberService.updateRole(u.admin.ctx, { id: owner.id, role: "viewer" })),
-    ).toBe("careGroupMemberService:ownerOnly");
-    expect(
-      codeOf(await careGroupMemberService.updateRole(u.admin.ctx, { id: viewer.id, role: "owner" })),
-    ).toBe("careGroupMemberService:ownerOnly");
-    expect(codeOf(await careGroupMemberService.remove(u.admin.ctx, owner.id))).toBe(
-      "careGroupMemberService:ownerOnly",
-    );
-  });
-
-  it("never leaves a group without an owner", async () => {
-    const { u, groupId, membershipOf } = await setup();
-    const owner = await membershipOf(u.owner);
-    expect(codeOf(await careGroupMemberService.leave(u.owner.ctx, groupId))).toBe(
-      "careGroupMemberService:lastOwner",
-    );
-    expect(
-      codeOf(await careGroupMemberService.updateRole(u.owner.ctx, { id: owner.id, role: "admin" })),
-    ).toBe("careGroupMemberService:lastOwner");
-  });
-
-  it("allows handing over ownership and then leaving", async () => {
-    const { u } = await setup();
-    const { group } = await createGroup(u.owner, [{ user: u.caretaker.user, role: "caretaker" }]);
-    const filter = (userId: string) =>
-      ({
-        filter: { groupId: { type: "eq", value: group.id }, userId: { type: "eq", value: userId } },
-      }) as const;
-    const care = ok(await careGroupMemberService.get(system, filter(u.caretaker.user.id)))!;
-
-    expect(
-      ok(await careGroupMemberService.updateRole(u.owner.ctx, { id: care.id, role: "owner" })),
-    ).toMatchObject({
-      role: "owner",
-    });
-    expect(codeOf(await careGroupMemberService.leave(u.owner.ctx, group.id))).toBe("ok");
-    expect(await careGroupService.getById(u.owner.ctx, group.id)).toBeNull();
-  });
-
-  it("lets any member leave", async () => {
-    const { u } = await setup();
-    const { group } = await createGroup(u.owner, [{ user: u.viewer.user, role: "viewer" }]);
-    expect(codeOf(await careGroupMemberService.leave(u.viewer.ctx, group.id))).toBe("ok");
-    expect(await careGroupService.getById(u.viewer.ctx, group.id)).toBeNull();
-  });
-});
+// The member role rules (who changes, removes and adds whom; the last owner;
+// leaving) are careGroupMember.int.test.ts's matrix.
 
 describe("invites", () => {
   it("lets managers invite, returning the token once and never the hash", async () => {

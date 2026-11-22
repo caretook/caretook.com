@@ -1,34 +1,24 @@
 // A timeline layout change made offline isn't lost (quick-fixes slice 2):
-// it's kept pending on the device, survives a revisit while offline, and
-// reaches the server on the next online load. Online it saves at once, and
-// sign-out clears pending changes. The layout also follows the account: a
-// change made in another browser shows on this one's next load, over its own
-// cached copy (the Settings <-> timeline toggle on one device is
-// settings.browser.test.tsx's).
+// it's kept pending on the device and reaches the server on the next online
+// load. Online it saves at once, and sign-out clears pending changes. The
+// layout also follows the account: a change made in another browser shows on
+// this one's next load, over its own cached copy.
 //
 // Units save the same way (quick-fixes slice 30): °F → °C chosen offline in
-// Settings is pending, the vitals sheet shows °C at once, and the next online
-// load sends it.
+// Settings is pending, and the next online load sends it.
+//
+// What one device decides is settings.browser.test.tsx's: the Settings <->
+// timeline toggle, and offline the pending change applying at once (still
+// cards when the timeline opens again; "Saved on this device" and the vitals
+// sheet in °C).
 //
 // The device's proxy cuts the whole browser's network (the rpc call is what
-// matters). "Reload while offline" for the pending layout is a revisit inside
-// the app: open a note, then go back, which runs the timeline's clientLoader
-// again. A real reload offline has its own steps: the service worker (B-144)
+// matters). A real reload offline has its own steps: the service worker (B-144)
 // serves the shell, and the timeline and a provider's page open from local data.
 //
-// The sheets open offline too, once a full load has their route modules (the
-// add sheet for °C below, and a row's edit sheet).
-import {
-  addToTimeline,
-  assetsSettled,
-  DEV_FAMILY,
-  expect,
-  psql,
-  signIn,
-  signOut,
-  test,
-  waitFor,
-} from "./fixtures.mjs";
+// The sheets open offline too, once a full load has their route modules (a
+// row's edit sheet).
+import { assetsSettled, DEV_FAMILY, expect, psql, signIn, signOut, test, waitFor } from "./fixtures.mjs";
 
 const EMAIL = "member@example.com";
 
@@ -72,18 +62,6 @@ async function setView(page, view) {
   });
 }
 
-/** Open a note, then go back to the timeline (its clientLoader runs again). */
-async function revisit(page, timeline) {
-  const noteRow = rows(page)
-    .filter({ has: page.locator(".sr-only", { hasText: /^Note:\s*$/ }) })
-    .first();
-  await noteRow.locator("a").first().click();
-  await page.waitForURL((url) => /\/entries\//.test(url.pathname), { timeout: 15_000 });
-  await page.waitForTimeout(500);
-  await page.evaluate(() => history.back());
-  await rowsShown(page, timeline);
-}
-
 test("a layout change made offline reaches the server; units too", { tag: "@smoke" }, async ({ device }) => {
   resetPrefs();
   try {
@@ -112,9 +90,6 @@ test("a layout change made offline reaches the server; units too", { tag: "@smok
       await expect.poll(serverView).toBe("rows");
     });
 
-    // Open a note once while online, so its page's code is loaded.
-    await revisit(page, timeline);
-
     // Offline: switch to cards.
     await assetsSettled(page);
     d.offline(true);
@@ -124,12 +99,6 @@ test("a layout change made offline reaches the server; units too", { tag: "@smok
     });
     await test.step("offline: the server still has rows", () => {
       expect(serverView()).toBe("rows");
-    });
-
-    // Offline revisit: leave the timeline and come back.
-    await revisit(page, timeline);
-    await test.step("offline: still cards after leaving and coming back", async () => {
-      expect(await isCards(page)).toBe(true);
     });
 
     // Back online: a real reload sends the pending change first.
@@ -174,35 +143,15 @@ test("a layout change made offline reaches the server; units too", { tag: "@smok
     d.offline(true);
     await tempRadio("c").click();
     await page.getByRole("button", { name: "Save", exact: true }).click();
-    const unitsStatus = page.locator('form [role="status"]');
-    await test.step("units offline: saved on this device, to sync later", async () => {
-      await expect(unitsStatus).toHaveText(/^\s*Saved on this device/, { timeout: 10_000 });
-    });
-    await test.step("units offline: °C is pending", async () => {
-      expect(await pendingOf(page, "temperature")).toBe("c");
-    });
+    // Kept on the device (what the page says about it is a component test).
+    await expect.poll(() => pendingOf(page, "temperature"), { timeout: 10_000 }).toBe("c");
     await test.step("units offline: the server still has °F", () => {
       expect(serverTemp()).toBe("f");
     });
-    await test.step("units offline: no offline error", async () => {
-      await expect(page.locator('form [role="alert"]')).toHaveCount(0);
-    });
 
-    // Back to the timeline (still offline), then the vitals sheet's temperature.
+    // Back to the timeline (still offline).
     await page.evaluate(() => history.go(-2));
     await rowsShown(page, timeline);
-    await addToTimeline(page, "Temperature", { group: "Vitals" });
-    await expect(dialog.locator('input[name="vital.0.type"]')).toHaveValue("temperature", {
-      timeout: 10_000,
-    });
-    await test.step("units offline: the vitals sheet shows °C at once", async () => {
-      const labels = await dialog.locator(".label").allTextContents();
-      const text = labels.map((t) => t.trim()).join(",");
-      expect(text, text).toContain("°C");
-      expect(text).not.toContain("°F");
-    });
-    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
-    await expect(dialog).toHaveCount(0, { timeout: 5000 });
 
     // Still offline: a row's edit link opens its edit sheet.
     await test.step("offline: a row's edit link opens its edit sheet", async () => {

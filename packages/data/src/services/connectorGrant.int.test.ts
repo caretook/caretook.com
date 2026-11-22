@@ -3,7 +3,7 @@ import type { ValidatedToken } from "./connectorGrantService";
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok, system } from "../../test/fixtures";
+import { createGroup, createUser, createWorld, ok, system } from "../../test/fixtures";
 import { getDb } from "../db";
 import {
   CONNECTOR_CONSENT_VERSION,
@@ -101,17 +101,11 @@ const byId = (id: string) => ({ id: { type: "eq" as const, value: id } });
 
 /** A group with the switch on: an owner, an admin, a caretaker and a viewer. */
 const world = async () => {
-  const owner = await createUser("owner");
-  const admin = await createUser("admin");
-  const caretaker = await createUser("caretaker");
-  const viewer = await createUser("viewer");
-  const { group } = await createGroup(owner, [
-    { user: admin.user, role: "admin" },
-    { user: caretaker.user, role: "caretaker" },
-    { user: viewer.user, role: "viewer" },
-  ]);
-  ok(await careGroupService.update(owner.ctx, { filter: byId(group.id), data: { connectorsEnabled: true } }));
-  return { owner, admin, caretaker, viewer, group };
+  const { u, group } = await createWorld();
+  ok(
+    await careGroupService.update(u.owner.ctx, { filter: byId(group.id), data: { connectorsEnabled: true } }),
+  );
+  return { ...u, group };
 };
 
 type World = Awaited<ReturnType<typeof world>>;

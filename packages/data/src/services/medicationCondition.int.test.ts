@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok } from "../../test/fixtures";
+import { createGroup, createUser, createWorld, ok } from "../../test/fixtures";
 import { medicationConditionId } from "../db/schema";
 import { isError } from "../errors";
 import { medicationConditionService, medicationService, recipientConditionService } from ".";
@@ -14,15 +14,7 @@ import { medicationConditionService, medicationService, recipientConditionServic
 const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
 
 const setup = async () => {
-  const u = {
-    owner: await createUser("owner"),
-    caretaker: await createUser("caretaker"),
-    viewer: await createUser("viewer"),
-  };
-  const { group } = await createGroup(u.owner, [
-    { user: u.caretaker.user, role: "caretaker" },
-    { user: u.viewer.user, role: "viewer" },
-  ]);
+  const { u, group } = await createWorld({ members: ["caretaker", "viewer"] });
   const medication = async (name: string, groupId = group.id, ctx = u.caretaker.ctx) =>
     ok(await medicationService.create(ctx, { groupId, name, schedule: { type: "asNeeded" } }))!;
   const condition = async (name: string, groupId = group.id, ctx = u.caretaker.ctx) =>

@@ -3,7 +3,7 @@ import type { MedicationCreateInput, PassMovedDetails } from "../db";
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { createGroup, createUser, ok } from "../../test/fixtures";
+import { createGroup, createWorld, ok } from "../../test/fixtures";
 import { getDb } from "../db";
 import { careRecipientSchema, medicationSchema, passMovedId, timelineEntrySchema } from "../db/schema";
 import { isError } from "../errors";
@@ -16,17 +16,10 @@ import { medicationPassService, medicationService, recipientAllergyService } fro
 const codeOf = (res: unknown) => (isError(res) ? res.code : "ok");
 
 const setup = async () => {
-  const u = {
-    owner: await createUser("owner"),
-    caretaker: await createUser("caretaker"),
-    viewer: await createUser("viewer"),
-    outsider: await createUser("outsider"),
-    staff: await createUser("staff", "admin"),
-  };
-  const { group, recipient } = await createGroup(u.owner, [
-    { user: u.caretaker.user, role: "caretaker" },
-    { user: u.viewer.user, role: "viewer" },
-  ]);
+  const { u, group, recipient } = await createWorld({
+    members: ["caretaker", "viewer"],
+    extras: ["outsider", "staff"],
+  });
   const passes = async (includeDeleted = false) =>
     ok(await medicationPassService.list(u.viewer.ctx, { groupId: group.id, includeDeleted })).data;
   const [morning, evening] = await passes();
