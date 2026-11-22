@@ -148,7 +148,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-279 | chore | landed | test-health | prd/test-health | Unit tests: delete the frozen lists (schema exports, appUrls keys, procedure paths) and replace the frozen route list with native-build invariants |
 | B-280 | chore | landed | test-health | prd/test-health | Unit tests: trim change detectors: URL tests that restate a template, marketing copy assertions, exact seed counts and names, label maps |
 | B-281 | chore | triaged | test-health |  | Component tests: cut duplicates and brittle layout assertions; frame, harness and primitive tests use a probe route, not the timeline |
-| B-282 | chore | in-progress | test-health | prd/test-health | Playwright specs: move one-device and no-browser steps out (marketing first), remove fixed sleeps, merge signout-wipe into session-end |
+| B-282 | chore | ready | test-health | prd/test-health | Playwright specs: move one-device and no-browser steps out (marketing first), remove fixed sleeps, merge signout-wipe into session-end |
 | B-283 | chore | in-progress | test-health | prd/test-health | Server tests: shared fixtures (createWorld, a sync and MCP test helper) and trim rules re-tested through sync upload and the connector; first move the member matrix and condition refusals down to the data layer |
 | B-285 | bug | triaged | sync-safety |  | Server-refused sync changes vanish with only a console.warn: keep refused ops in a local table and show them with the server's reason |
 | B-286 | bug | triaged | sync-safety |  | A repeatable 5xx from sync.upload blocks a device's upload queue forever: no retry cap, and the sync indicator never shows uploadError or the queue length |
@@ -901,14 +901,15 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-282 · chore · Playwright specs: move one-device and no-browser steps out (marketing first), remove fixed sleeps, merge signout-wipe into session-end
 
-- status: in-progress
+- status: ready
 - prd: test-health
 - owner: prd/test-health
-- commit:
+- commit: 856602af
 
 - 2026-11-21 (Robert Bo Davis): 2026-11-21 test review (static, nothing run; counts are estimates). About 880 lines. marketing: 10 of 16 tests need no browser or are unit-covered; five MIN_FORM_MS waits. live-notes: about 11 s of sleeps in one serial test. invites, app-shell, phase2, first-sync, sign-in, layout-offline: one-device steps a component test already covers. ui.spec keeps only production CSS and the CSP. fixtures.mjs:137 sleeps 1 s on every sign-in.
 - 2026-11-21 (plan/test-health): Planned in plans/test-health-plan.md (19 slices, 7 waves; the plan's Backlog table maps items to slices). Waves 1 to 4 start now; the component cuts and harness migrations (slices 14 to 19) wait for list-filters, planner-2 and ui-kit.
 - 2026-11-21 (slice/test-health/10): slice 10 (marketing): spec 21 tests -> 11, run 33s -> 9s; one-device steps moved to component tests beside the marketing code (marketingWorld.tsx); MIN_FORM_MS waits replaced by Playwright's page.clock; no fixed sleep left. Commit 15ebe405.
+- 2026-11-22 (slice/test-health/12): slice/test-health/12: the rest of the specs. signout-wipe merged into session-end (spec, manifest line, check-areas rules gone, repointed). One-device steps cut from sign-in, ui, first-sync, phase2, layout-offline, app-shell, invites; new component tests for a wrong password, the + sheet's focus return, offline settings pending (units, layout) and the home's join-request Withdraw. Fixed sleeps out of live-notes (10), fixtures.mjs signIn retry, sign-in (2), first-sync (2), phase2, layout-offline; the note said fixtures slept on every sign-in, it was only on the token-401 retry. Commits b72a59e7, f0d7f192.
 
 ### B-283 · chore · Server tests: shared fixtures (createWorld, a sync and MCP test helper) and trim rules re-tested through sync upload and the connector; first move the member matrix and condition refusals down to the data layer
 
