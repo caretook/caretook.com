@@ -20,8 +20,6 @@ describe("timelineUrls", () => {
   });
 
   it("builds the add sheet's path, carrying the timeline's filters", () => {
-    expect(appUrls.newSheet(G, "symptom")).toBe(`/app/groups/${G}/timeline/new/symptom`);
-    expect(appUrls.newSheet(G, "vital")).toBe(`/app/groups/${G}/timeline/new/vital`);
     expect(appUrls.newSheet("g", "vital", { type: "heartRate" })).toBe(
       "/app/groups/g/timeline/new/vital?type=heartRate",
     );
@@ -49,7 +47,6 @@ describe("timelineUrls", () => {
   });
 
   it("builds the edit sheet's path, carrying the timeline's filters", () => {
-    expect(appUrls.editSheet(G, "e1")).toBe(`/app/groups/${G}/timeline/e1/edit`);
     expect(appUrls.editSheet("g", "e 1/x", { search: "?kind=vital&author=u&type=spo2" })).toBe(
       "/app/groups/g/timeline/e%201%2Fx/edit?kind=vital&author=u",
     );
@@ -62,7 +59,6 @@ describe("timelineUrls", () => {
 describe("appUrls.newDose", () => {
   const M = "11111111-2222-4333-8444-555555555555";
   it("is the Dose sheet over the timeline, carrying its filters", () => {
-    expect(appUrls.newDose(G)).toBe(`/app/groups/${G}/timeline/new/dose`);
     expect(appUrls.newDose(G, { search: "?kind=dose&type=spo2" })).toBe(
       `/app/groups/${G}/timeline/new/dose?kind=dose`,
     );
@@ -119,7 +115,6 @@ describe("a new entry's start time (`?at=`)", () => {
 
 describe("appUrls.passSheet", () => {
   it("is the pass sheet over the timeline, carrying its filters but not another sheet's", () => {
-    expect(appUrls.passSheet(G, "log1")).toBe(`/app/groups/${G}/timeline/pass/log1/edit`);
     expect(appUrls.passSheet("g", "log1", { search: "?kind=dose&type=spo2" })).toBe(
       "/app/groups/g/timeline/pass/log1/edit?kind=dose",
     );

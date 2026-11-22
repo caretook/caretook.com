@@ -6,6 +6,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import globals from "globals";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import tseslint from "typescript-eslint";
+import caretook from "./scripts/eslint/plugin.mjs";
 
 export default defineConfig(
   globalIgnores([
@@ -62,6 +63,19 @@ export default defineConfig(
           ],
         },
       ],
+    },
+  },
+
+  // The component-test harness's rules (scripts/eslint/plugin.mjs): warnings until every area's
+  // tests are migrated (test-health slices 15 to 18), then errors (slice 19).
+  {
+    files: ["apps/web/**/*.browser.test.tsx", "apps/web/test/**", "apps/web/**/*World.tsx"],
+    plugins: { caretook },
+    rules: {
+      "caretook/no-call-timeout": "warn",
+      "caretook/no-non-null-user-event": "warn",
+      "caretook/no-non-null-in-expect": "warn",
+      "caretook/no-fixed-sleep": "warn",
     },
   },
 
