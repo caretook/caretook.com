@@ -4,7 +4,10 @@
 // pinned-versions file, and inputs never reach a shell unquoted. Parsed with
 // the sync config's YAML reader (no YAML dependency), which refuses what it
 // doesn't know, so the workflows stay plain.
-import { readdirSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -90,15 +93,35 @@ describe("the deploy workflows", () => {
 
   it("runs the browser tooling test in CI's integration job, not its unit job", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
-    const unit = jobs.unit.steps.find((s) => s.id === "test").run;
-    expect(unit).toContain("--project tooling:unit");
-    expect(unit).toContain('--exclude "**/loops/browser.test.mjs"');
+    // Runs the job's real selection: a flag that Vitest ignores fails here.
+    const dir = mkdtempSync(join(tmpdir(), "ci-unit-files-"));
+    try {
+      const list = join(dir, "files.txt");
+      const select = jobs.unit.steps.find((s) => s.id === "select").run;
+      const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("VITEST")));
+      execFileSync("bash", ["-eo", "pipefail", "-c", select], {
+        cwd: root,
+        env: { ...env, NODE_ENV: "", CI_UNIT_FILES: list },
+        stdio: ["ignore", "ignore", "inherit"],
+      });
+      const files = readFileSync(list, "utf8").split("\n").filter(Boolean);
+      expect(files).not.toContain("scripts/loops/browser.test.mjs");
+      for (const kept of [
+        "scripts/loops/lease.test.mjs",
+        "scripts/deploy/workflows.test.mjs",
+        "apps/web/app/.server/devUi.test.ts",
+      ])
+        expect(files).toContain(kept);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+    expect(jobs.unit.steps.find((s) => s.id === "test").run).toContain('"${files[@]}"');
     const step = jobs.integration.steps.find((s) => s.id === "browser-tooling");
     expect(step.run).toContain("--project tooling:unit scripts/loops/browser.test.mjs");
     expect(step.if).toBe("${{ !cancelled() }}");
     const report = jobs.integration.steps.find((s) => s.id === "report").run;
     expect(report).toContain("ci-results/browser-tooling.json");
-  });
+  }, 60_000);
 
   it("gates CI's jobs on the tier and always writes a verdict unless cancelled", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
