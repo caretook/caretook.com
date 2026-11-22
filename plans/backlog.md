@@ -334,7 +334,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-543 | question | triaged | orchestration-split |  | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
 | B-544 | chore | triaged | fixes-nit |  | vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405 |
 | B-545 | chore | triaged | fixes-tooling |  | rm.sh reads pnpm backlog prd list --json twice (lines ~57 and ~71); reuse $rows to save a node start per rm |
-| B-546 | change | triaged | fixes-ui |  | Quick entry's box and the live notes editor take the text-box field fill in both themes (ui-kit-3 kept them on their own surfaces) |
+| B-546 | change | landed | fixes-ui |  | Quick entry's box and the live notes editor take the text-box field fill in both themes (ui-kit-3 kept them on their own surfaces) |
 
 ## Items
 
@@ -2659,10 +2659,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-546 · change · Quick entry's box and the live notes editor take the text-box field fill in both themes (ui-kit-3 kept them on their own surfaces)
 
-- status: triaged
+- status: landed
 - prd: fixes-ui
 - owner:
-- commit:
+- commit: 21055757
 
 - 2026-11-22 (Robert Bo Davis): User asked for it 2026-11-22 after ui-kit-3 wave 1: plans/ui-kit-3-prd.md excluded quick entry's box and the notes editor from the field fill (B-520, B-481). fixes-ui: look only. Keep white in print, as the other fields are.
 - 2026-11-22 (Robert Bo Davis): Dropped 2026-11-22: the user says it doesn't matter.
