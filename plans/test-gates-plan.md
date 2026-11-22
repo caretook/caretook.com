@@ -11,15 +11,19 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556. B-531 (modes) is d
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/test-gates` (slice commits) |
-| ----- | ---- | ----- | ------------------------------------------- |
-| 1     | 1    | —     | —                                           |
-| 2     | 1    | —     | —                                           |
-| 3     | 2    | —     | —                                           |
-| 4     | 3    | —     | —                                           |
-| 5     | 4    | —     | —                                           |
-| 6     | 5    | —     | —                                           |
-| 7     | 5    | —     | —                                           |
+**Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions through `pnpm prd ask`).
+
+**Now:** wave 1 started 2026-11-22. Worktrees `test-gates-1` and `test-gates-2` made, B-555, B-556, B-341 and B-554 claimed. Both slices run on opus (real logic). No open issues.
+
+| Slice | Wave | State          | Merge into `prd/test-gates` (slice commits) |
+| ----- | ---- | -------------- | ------------------------------------------- |
+| 1     | 1    | started (opus) | —                                           |
+| 2     | 1    | started (opus) | —                                           |
+| 3     | 2    | —              | —                                           |
+| 4     | 3    | —              | —                                           |
+| 5     | 4    | —              | —                                           |
+| 6     | 5    | —              | —                                           |
+| 7     | 5    | —              | —                                           |
 
 **Backlog:**
 
