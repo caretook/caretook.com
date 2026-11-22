@@ -8,14 +8,14 @@
 
 2026-11-21: registry rows `orchestration-2` and `check-speed` flagged `done` (both in `dev`, no worktrees). B-392, B-426, B-427, B-428, B-439 claimed. Wave 1 started: worktrees `orchestration-3-1`, `-2`, `-3` made, one background agent each, all on **opus**.
 
-| Slice | Wave | State                | Merge into `prd/orchestration-3` |
-| ----- | ---- | -------------------- | -------------------------------- |
-| 1     | 1    | agent running (opus) |                                  |
-| 2     | 1    | agent running (opus) |                                  |
-| 3     | 1    | agent running (opus) |                                  |
-| 4     | 2    | not started          |                                  |
-| 5     | 2    | not started          |                                  |
-| 6     | 3    | not started          |                                  |
+| Slice | Wave | State                                                                                                                                                               | Merge into `prd/orchestration-3` |
+| ----- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| 1     | 1    | merged (opus); pick contract in its hand-off: rows/worktrees/sessions shapes, own reopen ask filed with `session: "dispatch"`, a rotating record needs `rotatingAt` | 947da00d                         |
+| 2     | 1    | agent running (opus)                                                                                                                                                |                                  |
+| 3     | 1    | agent running (opus)                                                                                                                                                |                                  |
+| 4     | 2    | not started                                                                                                                                                         |                                  |
+| 5     | 2    | not started                                                                                                                                                         |                                  |
+| 6     | 3    | not started                                                                                                                                                         |                                  |
 
 **Backlog:** B-427 closes with slice 4; B-426, B-428 and B-439 with slice 5 (slices 1, 2 and 3 build their first halves, the dispatcher the rest); B-392 with slice 6.
 
