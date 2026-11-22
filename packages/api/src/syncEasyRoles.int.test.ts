@@ -209,7 +209,12 @@ describe("sync.upload as an Easy helper", () => {
           data: { cancelled_at: null, cancel_reason: null, rescheduled_to: null },
         },
         { op: "PATCH", table: "timeline_entry", id: mine.id, data: { rescheduled_to: null } },
-        { op: "PATCH", table: "timeline_entry", id: mine.id, data: { title: "Physio visit", body: "Shoes" } },
+        {
+          op: "PATCH",
+          table: "timeline_entry",
+          id: mine.id,
+          data: { title: "Physio visit", place: "Room 2" },
+        },
       ],
     });
     expect(res.results.map((r) => (r.status === "rejected" ? r.code : r.status))).toEqual([
@@ -219,7 +224,7 @@ describe("sync.upload as an Easy helper", () => {
     ]);
     expect(ok(await timelineEntryService.getById(owner.ctx, mine.id))).toMatchObject({
       title: "Physio visit",
-      body: "Shoes",
+      place: "Room 2",
       cancelledAt: new Date(cancelledAt),
       cancelReason: "Therapist away",
       rescheduledTo: later.id,

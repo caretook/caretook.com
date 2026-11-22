@@ -402,11 +402,14 @@ describe("an Easy helper's own entries", () => {
         "timelineEntryService:loggerOnly",
       );
     ok(
-      await timelineEntryService.update(helper, event.id, { title: "Dentist visit", body: "Bring the card" }),
+      await timelineEntryService.update(helper, event.id, {
+        title: "Dentist visit",
+        place: "Main St clinic",
+      }),
     );
     expect(ok(await timelineEntryService.getById(helper, event.id))).toMatchObject({
       title: "Dentist visit",
-      body: "Bring the card",
+      place: "Main St clinic",
       cancelledAt: new Date(AT),
       cancelReason: "Office closed",
       rescheduledTo: later.id,
