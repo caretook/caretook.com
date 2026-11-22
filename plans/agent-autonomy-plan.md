@@ -4,22 +4,22 @@
 
 ## Status
 
-| Slice | Wave | State                     | Merge into `prd/agent-autonomy` (slice commits) |
-| ----- | ---- | ------------------------- | ----------------------------------------------- |
-| 1     | 1    | started 2026-11-22 (opus) | —                                               |
-| 2     | 1    | handed off 142fa3d7 (opus) | —                                               |
-| 3     | 2    | —                         | —                                               |
-| 4     | 3    | —                         | —                                               |
-| 5     | 3    | —                         | —                                               |
-| 6     | 4    | —                         | —                                               |
-| 7     | 5    | —                         | —                                               |
-| 8     | 6    | —                         | —                                               |
-| 9     | 6    | —                         | —                                               |
-| 10    | 6    | —                         | —                                               |
+| Slice | Wave | State         | Merge into `prd/agent-autonomy` (slice commits) |
+| ----- | ---- | ------------- | ----------------------------------------------- |
+| 1     | 1    | merged (opus) | 55275f08 (d759b24e)                             |
+| 2     | 1    | merged (opus) | b3877be1 (142fa3d7)                             |
+| 3     | 2    | —             | —                                               |
+| 4     | 3    | —             | —                                               |
+| 5     | 3    | —             | —                                               |
+| 6     | 4    | —             | —                                               |
+| 7     | 5    | —             | —                                               |
+| 8     | 6    | —             | —                                               |
+| 9     | 6    | —             | —                                               |
+| 10    | 6    | —             | —                                               |
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-22): start every ready slice, land each green wave, clean up; ask only real questions via `pnpm prd ask`. test-health runs beside this PRD: waves 3 to 6 land only between its waves (see _Other topics_).
 
-**Now:** wave 1 running; B-503 and B-506 claimed; slices 1 and 2 spawned (opus), worktrees `.loops/agent-autonomy-1`, `-2`.
+**Now:** wave 1 merged (B-503, B-506 done, slice worktrees removed); syncing and running the gate (`pnpm test:tooling`, `pnpm exec eslint scripts`) before its PR and landing.
 
 **Backlog:** claim B-503 when slice 1 starts and `done` it when slice 1 merges; B-506 with slice 2; B-504 when slice 3 starts, `done` when slice 4 merges; B-505 when slice 5 starts, `done` when slice 6 merges; B-517 when slice 7 starts, `done` when slice 8 merges; B-518 with slice 9; B-516 with slice 10.
 
