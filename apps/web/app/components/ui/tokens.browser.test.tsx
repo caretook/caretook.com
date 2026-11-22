@@ -196,7 +196,9 @@ describe("the field fill (ui-kit-3)", () => {
     await renderInRouter(fields("bg-base-100"), { theme });
     await commands.media("print");
     for (const kind of KINDS) {
-      await expect.poll(() => surfaceOf(box(`[data-kind="${kind}"]`)), kind).toEqual([255, 255, 255, 1]);
+      await expect
+        .poll(() => surfaceOf(box(`[data-kind="${kind}"]`)), { message: kind })
+        .toEqual([255, 255, 255, 1]);
     }
   });
 });
