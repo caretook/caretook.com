@@ -7,7 +7,7 @@
 | Slice | Wave | State                             | Merge into `prd/sync-safety` (slice commits) |
 | ----- | ---- | --------------------------------- | -------------------------------------------- |
 | 1     | 1    | in progress (opus, spawned 11-22) |                                              |
-| 2     | 1    | in progress (opus, spawned 11-22) |                                              |
+| 2     | 1    | handed off (opus), a67973a0       |                                              |
 | 3     | 2    | not started                       |                                              |
 | 4     | 2    | not started                       |                                              |
 | 5     | 2    | not started                       |                                              |
