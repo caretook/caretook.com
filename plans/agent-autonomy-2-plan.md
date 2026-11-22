@@ -4,15 +4,15 @@
 
 ## Status
 
-| Slice | Wave | State                         | Merge into `prd/agent-autonomy-2` (slice commits) |
-| ----- | ---- | ----------------------------- | ------------------------------------------------- |
-| 1     | 1    | started (opus), agent running | —                                                 |
-| 2     | 2    | —                             | —                                                 |
-| 3     | 1    | started (opus), agent running | —                                                 |
-| 4     | 2    | —                             | —                                                 |
-| 5     | 2    | —                             | —                                                 |
-| 6     | 3    | —                             | —                                                 |
-| 7     | 3    | —                             | —                                                 |
+| Slice | Wave | State                                                                   | Merge into `prd/agent-autonomy-2` (slice commits) |
+| ----- | ---- | ----------------------------------------------------------------------- | ------------------------------------------------- |
+| 1     | 1    | started (opus), agent running                                           | —                                                 |
+| 2     | 2    | —                                                                       | —                                                 |
+| 3     | 1    | handed off (opus), slice check passed on 41a67e83; merges after slice 1 | —                                                 |
+| 4     | 2    | —                                                                       | —                                                 |
+| 5     | 2    | —                                                                       | —                                                 |
+| 6     | 3    | —                                                                       | —                                                 |
+| 7     | 3    | —                                                                       | —                                                 |
 
 **Landing mode:** run everything through (started by the dispatcher): land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
@@ -21,6 +21,8 @@
 **Open issues:**
 
 - `test-gates` runs beside this topic and also changes rotation and the dispatcher; whichever lands second resolves those merges. If this topic is unlanded once `test-gates` lands, add `scripts/loops/dispatch`, `scripts/loops/status-extra` and `scripts/loops/prd.sh` back to this topic's hot list (narrowed in 784def6a).
+- For slice 5 (from slice 3's hand-off): `tidy --yes` deletes an ended backlog record, so the keep-alive must not rely on one surviving. A second by-hand backlog session takes over the `backlog` record and the first runs unrecorded, so the `--remote-control backlog` process check still matters.
+- Slice 3's first check crashed inside `eslint .` (Node exit 134) and passed on rerun with no lint change. Undiagnosed; watch for it at the wave gate.
 - B-551 ('bye' for every agent role) is filed under this topic but has no slice in this plan. It is not being built here unless a later slice is planned for it.
 
 **Backlog:** claim B-507, B-509 and B-508 when slice 1 starts; `done` B-507 and B-509 when slice 1 merges, B-508 when slice 2 merges. B-437 with slice 3, B-514 with slice 4, B-541 with slice 7; claim B-515 when slice 5 starts and leave it open with a note when slice 6 merges unless `inbox` is in the kept-alive kinds by then (`inbox-agent`'s slice 5 then closes it).
