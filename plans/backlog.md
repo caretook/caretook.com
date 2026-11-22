@@ -12,6 +12,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | PRD | Flags | After | Hot files | Doc and notes |
 | --- | ----- | ----- | --------- | ------------- |
+| `agent-autonomy` | — | — | `scripts/loops/` | Agents decide and coordinate on their own: default answers, quiet-machine landing checks, a flake rule, a notice board. To write. |
 | `orchestration` | done | — | — | [PRD](orchestration-prd.md), [plan](orchestration-plan.md): **done** (`94e6b80`) |
 | `live-notes-ux` | done | — | — | [PRD](live-notes-ux-prd.md), [plan](live-notes-ux-plan.md): **done** |
 | `quick-fixes` | done | — | — | [plan](quick-fixes-plan.md) (no PRD: one slice per fix): slices 1–46 in `dev` (44–46: B-135, B-134, B-157 in `2d57e70`); wave 13 (slices 47–51: B-184 to B-190) in `dev` (`bf0891df`); wave 14 (slices 52–57: B-192, B-198, B-201, B-191, B-174, B-175) in `dev`; wave 15 (B-180, B-182, B-225, B-211) in `dev` (`2152bbed`; B-207 landed as hotfix `fc373a34`); wave 16 (B-228, B-230, B-232 to B-235, B-237, B-238) in `dev` (`5a47c18f`, PR #20); the next wave is **running**; new fixes append as the next slice · Hot files: varies by slice; none now |
@@ -304,6 +305,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-500 | bug | triaged | fixes-tooling |  | Flaky under load: appointmentSeries.int.test.ts 'writes visits through today + 90 for a series without them' fails in full checks (2 of 7 runs); passes alone |
 | B-501 | bug | triaged | fixes-tooling |  | Flaky under load: recipientCondition.int.test.ts 'refuses viewers, outsiders and staff, and another group's recipient' fails in a full check; passes alone |
 | B-502 | bug | triaged | fixes-tooling |  | Flaky under load: search.int.test.ts 'searches a group of 10,000 entries in under 200 ms' reads 210 ms in a full check; passes alone |
+| B-503 | feature | triaged | agent-autonomy |  | Default on silence: a question filed with a recommended option takes it by itself after a set wait (about 30 min) unless the user answers; the ask records it was defaulted; never for money, data loss, a live deploy or a destructive step |
+| B-504 | feature | triaged | agent-autonomy |  | Quiet-machine landing check: a landing's full check can claim the machine; the dispatcher and other orchestrators hold new slice starts and checks until it ends or a time limit passes; waiting landings take turns |
+| B-505 | feature | triaged | agent-autonomy |  | Flake rule replaces asking: when every failing test in a full check passes alone 3/3, rerun only the failed files on a quiet machine; if they pass, land and file each flaky test as a fixes-tooling item, with no question to the user |
+| B-506 | feature | triaged | agent-autonomy |  | Shared notice board: a short list in .loops/ every orchestrator reads at each step and writes heads-ups to (landing now, hold full checks until a time; touching a hot file, sync first); entries expire |
 
 ## Items
 
@@ -2364,3 +2369,39 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (prd/fixes-bug): Seen in fixes-bug wave 2 full checks (2026-11-22, 7 runs at load 11-20, overlapping ui-kit-2's); passes alone 3/3.
+
+### B-503 · feature · Default on silence: a question filed with a recommended option takes it by itself after a set wait (about 30 min) unless the user answers; the ask records it was defaulted; never for money, data loss, a live deploy or a destructive step
+
+- status: triaged
+- prd: agent-autonomy
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): 2026-11-22, the user, after a31 and a33 held test-health and fixes-bug for hours overnight: agents should make their own best choices and coordinate. Overnight a31 (land on passes vs --suite) waited ~6h for the answer it recommended.
+
+### B-504 · feature · Quiet-machine landing check: a landing's full check can claim the machine; the dispatcher and other orchestrators hold new slice starts and checks until it ends or a time limit passes; waiting landings take turns
+
+- status: triaged
+- prd: agent-autonomy
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): 2026-11-22, the user, after a31 and a33 held test-health and fixes-bug for hours overnight: agents should make their own best choices and coordinate. fixes-bug and ui-kit-2 full checks failed each other on load flakes through the night (load 20+ on 10 cores).
+
+### B-505 · feature · Flake rule replaces asking: when every failing test in a full check passes alone 3/3, rerun only the failed files on a quiet machine; if they pass, land and file each flaky test as a fixes-tooling item, with no question to the user
+
+- status: triaged
+- prd: agent-autonomy
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): 2026-11-22, the user, after a31 and a33 held test-health and fixes-bug for hours overnight: agents should make their own best choices and coordinate. fixes-bug wave 2 failed 7 full checks on different load flakes, then asked (a33); the user chose land --force, flakes filed. Changes the orchestrator rule 'never --force unless the user says so' for this case only.
+
+### B-506 · feature · Shared notice board: a short list in .loops/ every orchestrator reads at each step and writes heads-ups to (landing now, hold full checks until a time; touching a hot file, sync first); entries expire
+
+- status: triaged
+- prd: agent-autonomy
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): 2026-11-22, the user, after a31 and a33 held test-health and fixes-bug for hours overnight: agents should make their own best choices and coordinate. For coordination the leases and load gate can't express; no waiting on replies.
