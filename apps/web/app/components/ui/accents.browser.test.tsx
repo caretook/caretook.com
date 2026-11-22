@@ -134,13 +134,13 @@ describe("IconChip", () => {
         <IconChip icon={Heart} size={size} shape="rounded" />
       </>,
     );
-    const [round, rounded] = [...document.querySelectorAll<HTMLElement>("[data-icon-chip]")];
-    for (const chip of [round!, rounded!]) {
+    const chips = [...document.querySelectorAll<HTMLElement>("[data-icon-chip]")];
+    expect(chips).toHaveLength(2);
+    for (const chip of chips) {
       expect(chip.getBoundingClientRect().width).toBe(px);
       expect(chip.querySelector("svg")).not.toBeNull();
     }
-    expect(getComputedStyle(round!).borderTopLeftRadius).not.toBe(
-      getComputedStyle(rounded!).borderTopLeftRadius,
-    );
+    const [circle, box] = chips.map((chip) => getComputedStyle(chip).borderTopLeftRadius);
+    expect(circle).not.toBe(box);
   });
 });
