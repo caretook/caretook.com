@@ -164,14 +164,23 @@ const recipientDay = async (tx: Tx, recipientId: string, at: Date) => {
 
 /**
  * Make the occurrence after `todo` (ticked or skipped on `today`), unless a
- * live row with its id exists (a replay, or another device's tick that day).
- * A soft-deleted one (an Undo took it away) comes back as new. Returns the
- * next todo's id, or null when the rule has ended or it doesn't repeat.
+ * live open row with its id exists (a replay, or another device's tick that
+ * day). A live done one with its id (a successor moved off its day and
+ * ticked), like `todo` itself, is passed over for the rule's following day
+ * (B-386), as the device's `planNext` does. A soft-deleted one (an Undo took
+ * it away) comes back as new. Returns the next todo's id, or null when the
+ * rule has ended or it doesn't repeat.
  */
 const insertNext = async (tx: Tx, todo: Todo, today: string) => {
-  const next = nextOccurrence(todo, today);
+  const passOver = new Set<string>();
+  let next = nextOccurrence(todo, today, passOver);
+  let existing = next && (await todoModel.getById(next.id, { ...system(tx), includeDeleted: true }));
+  while (next && existing && !isError(existing) && !existing.deletedAt && existing.doneAt) {
+    passOver.add(next.id);
+    next = nextOccurrence(todo, today, passOver);
+    existing = next && (await todoModel.getById(next.id, { ...system(tx), includeDeleted: true }));
+  }
   if (!next) return null;
-  const existing = await todoModel.getById(next.id, { ...system(tx), includeDeleted: true });
   if (isError(existing)) return existing;
   if (existing && !existing.deletedAt) return next.id;
   const { id, ...content } = next;

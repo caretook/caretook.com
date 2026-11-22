@@ -156,6 +156,36 @@ describe("nextOccurrence", () => {
     expect(nextOccurrence(todo({ dueOn: null }), "2026-11-16")).toBeNull();
     expect(nextOccurrence(todo({ repeatRule: `${WEEKLY_MO};COUNT=1` }), "2026-11-16")).toBeNull();
   });
+
+  it("a successor moved back onto its source's day passes over its own id for the following day (B-386)", () => {
+    // Made for Mon 23rd (so its id is that day's), moved back to Mon 16th
+    // (the anchor moves with it) and ticked that day.
+    const movedBack = { ...todo({ dueOn: "2026-11-16" }), id: nextTodoId(CHAIN, "2026-11-23") };
+    expect(nextOccurrence(movedBack, "2026-11-16")).toMatchObject({
+      id: nextTodoId(CHAIN, "2026-11-30"),
+      dueOn: "2026-11-30",
+    });
+    // Not moved: the very next day, as ever.
+    const kept = { ...todo({ dueOn: "2026-11-23" }), id: nextTodoId(CHAIN, "2026-11-23") };
+    expect(nextOccurrence(kept, "2026-11-23")?.dueOn).toBe("2026-11-30");
+  });
+
+  it("passes over the ids it's given (done rows) to the first day whose id is free (B-386)", () => {
+    const passOver = new Set([nextTodoId(CHAIN, "2026-11-23"), nextTodoId(CHAIN, "2026-11-30")]);
+    expect(nextOccurrence(todo(), "2026-11-16", passOver)).toMatchObject({
+      id: nextTodoId(CHAIN, "2026-12-07"),
+      dueOn: "2026-12-07",
+    });
+    // Ids that aren't on the way change nothing.
+    expect(nextOccurrence(todo(), "2026-11-16", new Set([nextTodoId(CHAIN, "2026-12-07")]))?.dueOn).toBe(
+      "2026-11-23",
+    );
+  });
+
+  it("passing over runs into the rule's end: none", () => {
+    const twice = todo({ repeatRule: `${WEEKLY_MO};COUNT=2` });
+    expect(nextOccurrence(twice, "2026-11-16", new Set([nextTodoId(CHAIN, "2026-11-23")]))).toBeNull();
+  });
 });
 
 describe("isUntouchedNext", () => {

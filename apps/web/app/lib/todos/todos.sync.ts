@@ -390,15 +390,24 @@ type Tx = Parameters<Parameters<SyncDb["drizzle"]["transaction"]>[0]>[0];
 
 /**
  * Write the occurrence after `todo` (ticked or skipped today) in `tx`,
- * unless a live row with its id exists; a soft-deleted one (an Undo took it
- * away) comes back as new. As `todoService`'s `insertNext`.
+ * unless a live open row with its id exists; a live done one, like `todo`
+ * itself, is passed over for the rule's following day (B-386), and a
+ * soft-deleted one (an Undo took it away) comes back as new. As
+ * `todoService`'s `insertNext`, so both write the same row.
  */
 const planNext = async (db: SyncDb, todo: LocalTodo) => {
   if (!todo.repeatRule) return null;
   const { nextOccurrence } = await import("@caretook/data/series");
-  const next = nextOccurrence(todo, await recipientToday(db, todo.recipientId));
+  const today = await recipientToday(db, todo.recipientId);
+  const passOver = new Set<string>();
+  let next = nextOccurrence(todo, today, passOver);
+  let [row] = next ? await readRows<TodoRow>(db, todoQuery(next.id)) : [];
+  while (next && row && !row.deleted_at && row.done_at) {
+    passOver.add(next.id);
+    next = nextOccurrence(todo, today, passOver);
+    [row] = next ? await readRows<TodoRow>(db, todoQuery(next.id)) : [];
+  }
   if (!next) return null;
-  const [row] = await readRows<TodoRow>(db, todoQuery(next.id));
   if (row && !row.deleted_at) return null;
   const now = nowTimestamp();
   // The group and recipient never change (a PATCH of them is refused).
