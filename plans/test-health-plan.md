@@ -33,7 +33,7 @@ Notes for later slices: B-475 flake (fixes-tooling, timelineSimpleTodos undo tim
 | 15    | 6    | started (opus) |                                              |
 | 16    | 6    | started (opus) |                                              |
 | 17    | 6    | started (opus) |                                              |
-| 18    | 6    | started (opus) |                                              |
+| 18    | 6    | handed off     | (a61552e9; quick passed; waits for 15-17)    |
 | 19    | 7    | waiting        |                                              |
 
 **Backlog:** which slices close each item (run `pnpm backlog done` on an item when its last slice merges).
