@@ -396,3 +396,30 @@ fieldset:disabled :is(.input, .select, .textarea) {
     transition: none;
   }
 }
+
+/* Accents (ui-kit-3): six hues for sections and kinds of entry, in the gaps
+   between the status colours (error 13, warning 84, success 163, info 233),
+   so a colour never implies urgency. Each has a solid, a tint and a text
+   colour per theme; the solids share one content colour. Only `ui/accents.ts`
+   names these. */
+@theme inline {
+  --color-hue-content: light-dark(oklch(100% 0 0), oklch(22% 0.02 270));
+  --color-hue-indigo: light-dark(oklch(50% 0.13 277), oklch(76% 0.12 277));
+  --color-hue-indigo-tint: light-dark(oklch(93% 0.04 277), oklch(37% 0.06 277));
+  --color-hue-indigo-ink: light-dark(oklch(42% 0.13 277), oklch(86% 0.09 277));
+  --color-hue-teal: light-dark(oklch(50% 0.09 195), oklch(76% 0.11 195));
+  --color-hue-teal-tint: light-dark(oklch(93% 0.04 195), oklch(37% 0.06 195));
+  --color-hue-teal-ink: light-dark(oklch(42% 0.08 195), oklch(86% 0.09 195));
+  --color-hue-orange: light-dark(oklch(52% 0.14 50), oklch(76% 0.13 50));
+  --color-hue-orange-tint: light-dark(oklch(93% 0.04 50), oklch(37% 0.06 50));
+  --color-hue-orange-ink: light-dark(oklch(42% 0.12 50), oklch(86% 0.09 50));
+  --color-hue-lime: light-dark(oklch(50% 0.12 125), oklch(76% 0.15 125));
+  --color-hue-lime-tint: light-dark(oklch(93% 0.06 125), oklch(37% 0.06 125));
+  --color-hue-lime-ink: light-dark(oklch(42% 0.1 125), oklch(86% 0.12 125));
+  --color-hue-plum: light-dark(oklch(50% 0.14 312), oklch(76% 0.12 312));
+  --color-hue-plum-tint: light-dark(oklch(93% 0.04 312), oklch(37% 0.06 312));
+  --color-hue-plum-ink: light-dark(oklch(42% 0.13 312), oklch(86% 0.09 312));
+  --color-hue-pink: light-dark(oklch(52% 0.16 345), oklch(76% 0.13 345));
+  --color-hue-pink-tint: light-dark(oklch(93% 0.04 345), oklch(37% 0.06 345));
+  --color-hue-pink-ink: light-dark(oklch(42% 0.14 345), oklch(86% 0.09 345));
+}

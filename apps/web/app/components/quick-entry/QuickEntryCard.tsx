@@ -2,8 +2,8 @@ import type { ActionPreview } from "~/lib/assistant/quickEntryPreview";
 import type { QuickEntryCard as Card } from "./quickEntryCards";
 
 import { ListTodo, X } from "lucide-react";
-import { ChipGroup, IconButton } from "~/components/ui";
-import { KIND_META } from "~/lib/timeline/entryDisplay";
+import { ChipGroup, IconButton, IconChip } from "~/components/ui";
+import { KIND_META, TODO_CHIP } from "~/lib/timeline/entryDisplay";
 
 /**
  * One part of the line, as it will be saved: its kind, what it says and
@@ -30,8 +30,7 @@ export function QuickEntryCard({
 }) {
   const { kind, label } = card.reading;
   // A todo isn't a timeline entry, so it has no KIND_META: the Todos section's icon.
-  const { Icon, iconClass } =
-    kind === "todo" ? { Icon: ListTodo, iconClass: "bg-accent text-accent-content" } : KIND_META[kind];
+  const { Icon, accent, look } = kind === "todo" ? { Icon: ListTodo, ...TODO_CHIP } : KIND_META[kind];
   const blocked = card.blocking.length > 0 || !!error;
   const headingId = `quick-card-${card.key.replace(/[^\w-]/g, "_")}`;
   return (
@@ -41,12 +40,7 @@ export function QuickEntryCard({
       aria-labelledby={headingId}
     >
       <div className="flex items-start gap-2">
-        <span
-          className={`rounded-field grid size-8 shrink-0 place-items-center ${iconClass}`}
-          aria-hidden="true"
-        >
-          <Icon className="size-4" />
-        </span>
+        <IconChip icon={Icon} accent={accent} look={look} shape="rounded" />
         <div className="min-w-0 flex-1">
           <p id={headingId} className="text-sm">
             <span className="badge badge-neutral badge-sm font-semibold" data-quick-kind>

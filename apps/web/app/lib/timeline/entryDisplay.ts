@@ -1,5 +1,7 @@
 import type { TimelineEntryKind, UnitChoices } from "@caretook/data/schema";
 import type { LucideIcon } from "lucide-react";
+import type { AccentOrNeutral } from "~/components/ui/accents";
+import type { IconChipLook } from "~/components/ui/IconChip";
 import type { TimelineEntry } from "~/lib/core/rpc";
 
 import {
@@ -20,44 +22,41 @@ import {
 } from "lucide-react";
 import { isTimelineKind } from "./timelineFilters";
 
-// How each kind of entry looks: label, icon and color. Colors avoid green,
-// which reads as "all good", and the icon carries the kind as well as the color.
+// How each kind of entry looks: label, icon, and an accent in a look. Accents
+// are never status colours, so a kind doesn't read as urgent, and the icon and
+// label carry the kind as well as the colour.
+export type KindChip = { accent: AccentOrNeutral; look: IconChipLook };
+
 export const KIND_META: Record<
   TimelineEntryKind,
-  { label: string; plural: string; Icon: LucideIcon; iconClass: string }
+  { label: string; plural: string; Icon: LucideIcon } & KindChip
 > = {
-  note: { label: "Note", plural: "Notes", Icon: NotebookPen, iconClass: "bg-base-300 text-base-content" },
-  symptom: {
-    label: "Symptom",
-    plural: "Symptoms",
-    Icon: Bandage,
-    iconClass: "bg-warning text-warning-content",
-  },
-  event: { label: "Event", plural: "Events", Icon: CalendarCheck, iconClass: "bg-info text-info-content" },
-  vital: {
-    label: "Vitals",
-    plural: "Vitals",
-    Icon: HeartPulse,
-    iconClass: "bg-secondary text-secondary-content",
-  },
-  // Medications: violet (the theme's primary), solid for a dose and soft for
-  // a change to the list, so the two read as one family, apart from vitals' pink.
-  dose: { label: "Dose", plural: "Doses", Icon: Pill, iconClass: "bg-primary text-primary-content" },
+  note: { label: "Note", plural: "Notes", Icon: NotebookPen, accent: "neutral", look: "solid" },
+  symptom: { label: "Symptom", plural: "Symptoms", Icon: Bandage, accent: "pink", look: "solid" },
+  // The Planner's colour.
+  event: { label: "Event", plural: "Events", Icon: CalendarCheck, accent: "orange", look: "solid" },
+  vital: { label: "Vitals", plural: "Vitals", Icon: HeartPulse, accent: "plum", look: "solid" },
+  // Medications' colour: solid for a dose, soft for a change to the list.
+  dose: { label: "Dose", plural: "Doses", Icon: Pill, accent: "teal", look: "solid" },
   medicationChange: {
     label: "Medication change",
     plural: "Medication changes",
     Icon: PillBottle,
-    iconClass: "bg-primary/15 text-primary",
+    accent: "teal",
+    look: "soft",
   },
-  // A condition added, changed, resolved or reactivated (conditions PRD):
-  // soft blue, apart from an event's solid blue; the chart icon carries it.
+  // A condition added, changed, resolved or reactivated (conditions PRD).
   conditionChange: {
     label: "Condition change",
     plural: "Condition changes",
     Icon: ClipboardPlus,
-    iconClass: "bg-info/15 text-info",
+    accent: "indigo",
+    look: "soft",
   },
 };
+
+/** Quick entry's to-do card: a todo isn't a timeline entry, so it has no `KIND_META`. */
+export const TODO_CHIP: KindChip = { accent: "orange", look: "soft" };
 
 /** A kind the timeline shows. Rows of any other kind (a newer app's, or one not rendered yet) are skipped. */
 export const isEntryKind = (value: string | null): value is TimelineEntryKind => isTimelineKind(value);
