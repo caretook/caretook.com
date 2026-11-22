@@ -245,7 +245,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-434 | feature | triaged | worker-watch |  | Run metrics beyond check times: slice and landing durations, flake rate and how often Codex finds something, in one summary command |
 | B-435 | feature | triaged | inbox-agent |  | Filing checks for duplicates (similar open or archived titles shown before an item is added) and finished items are archived without a hand run |
 | B-436 | feature | triaged | staging-ship |  | A to-test report for a staging ship, like the landing reports of B-410 |
-| B-437 | change | in-progress | agent-autonomy-2 | prd/agent-autonomy-2 | Record backlog, hotfix and recovery sessions like orchestrator sessions, so pnpm prd status shows them and they can be reopened |
+| B-437 | change | ready | agent-autonomy-2 | prd/agent-autonomy-2 | Record backlog, hotfix and recovery sessions like orchestrator sessions, so pnpm prd status shows them and they can be reopened |
 | B-438 | plan | triaged | self-recovery |  | Headless orchestrator sessions: runs that need no terminal tab, so a helper cannot outlive or die with its window |
 | B-440 | bug | staging | fixes-tooling | prd/fixes-tooling | pnpm prd tidy --yes: a database for a topic ending -w1..-w16 reads as an orphan worker copy and is dropped |
 | B-441 | bug | staging | fixes-tooling | prd/fixes-tooling | pnpm prd tidy: a missing or failing lsof reads as no process in any worktree, so --yes can remove an active one |
@@ -302,9 +302,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-502 | bug | triaged | fixes-tooling |  | Flaky under load: search.int.test.ts 'searches a group of 10,000 entries in under 200 ms' reads 210 ms in a full check; passes alone |
 | B-504 | feature | dropped | agent-autonomy |  | Quiet-machine landing check: a landing's full check can claim the machine; the dispatcher and other orchestrators hold new slice starts and checks until it ends or a time limit passes; waiting landings take turns |
 | B-505 | feature | dropped | agent-autonomy |  | Flake rule replaces asking: when every failing test in a full check passes alone 3/3, rerun only the failed files on a quiet machine; if they pass, land and file each flaky test as a fixes-tooling item, with no question to the user |
-| B-507 | feature | in-progress | agent-autonomy-2 | prd/agent-autonomy-2 | Context hook: a Claude Code hook on orchestrator and loop sessions reads the transcript's latest context size after each tool call and, over 160k, tells the agent to finish its step, commit Status and pnpm prd rotate |
+| B-507 | feature | ready | agent-autonomy-2 | prd/agent-autonomy-2 | Context hook: a Claude Code hook on orchestrator and loop sessions reads the transcript's latest context size after each tool call and, over 160k, tells the agent to finish its step, commit Status and pnpm prd rotate |
 | B-508 | feature | in-progress | agent-autonomy-2 | prd/agent-autonomy-2 | pnpm prd status shows each live session's context size; the dispatcher nudges a session still over the limit after its reminder, then files an ask |
-| B-509 | change | in-progress | agent-autonomy-2 | prd/agent-autonomy-2 | Orchestrator rule: over 160k context, rotate at the next safe point, mid-wave included, without asking; continue only for a step that can't resume from Status (a landing under way), saying why in Status |
+| B-509 | change | ready | agent-autonomy-2 | prd/agent-autonomy-2 | Orchestrator rule: over 160k context, rotate at the next safe point, mid-wave included, without asking; continue only for a step that can't resume from Status (a landing under way), saying why in Status |
 | B-511 | feature | triaged | agent-autonomy-3 |  | Skeptic before every ask: a session sends its question, options and evidence to a fresh Fable skeptic first; it decides (reversible, within the rules) or confirms the question is the user's; pnpm prd ask records the verdict |
 | B-512 | feature | triaged | agent-autonomy-3 |  | Skeptic before risky landings: a Fable skeptic reviews the evidence before land --force, landing on flaky tests (B-505) or declining a Codex finding, and the landing report says what it said |
 | B-513 | change | triaged | agent-autonomy-3 |  | Opus planners and backlog sessions with a Fable final check: the skeptic pass runs on Fable and may send a plan back; a registry flag (e.g. design) keeps a heavy design topic's planner on Fable |
@@ -1750,10 +1750,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-437 · change · Record backlog, hotfix and recovery sessions like orchestrator sessions, so pnpm prd status shows them and they can be reopened
 
-- status: in-progress
+- status: ready
 - prd: agent-autonomy-2
 - owner: prd/agent-autonomy-2
-- commit:
+- commit: 5162f553
 
 - 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. Deferred in the orchestration-2 plan with no item.
 - 2026-11-21 (plan/orchestration-3): Moved out of orchestration-3 by its planner (2026-11-21) to keep that PRD at six slices: orchestration-3 is the dispatcher core (B-392, B-426, B-427, B-428, B-439). The grouping and the row order of the four follow-on topics are the planner's; plans/orchestration-3-prd.md, Follow-on topics.
@@ -2303,10 +2303,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-507 · feature · Context hook: a Claude Code hook on orchestrator and loop sessions reads the transcript's latest context size after each tool call and, over 160k, tells the agent to finish its step, commit Status and pnpm prd rotate
 
-- status: in-progress
+- status: ready
 - prd: agent-autonomy-2
 - owner: prd/agent-autonomy-2
-- commit:
+- commit: 5162f553
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: watch agent context and hand off past 160k unless there is a very good reason; fixes-bug's orchestrator was at 208k. Context size is readable from the session transcript (last assistant usage: input + cache read + cache creation).
 - 2026-11-22 (plan/agent-autonomy): Moved to agent-autonomy-2 by agent-autonomy's planner (2026-11-22): that PRD was already six slices and this work shares no code with it. Planned in plans/agent-autonomy-2-prd.md and -plan.md: B-507 and B-509 slice 1, B-508 slices 1 and 2.
@@ -2323,10 +2323,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-509 · change · Orchestrator rule: over 160k context, rotate at the next safe point, mid-wave included, without asking; continue only for a step that can't resume from Status (a landing under way), saying why in Status
 
-- status: in-progress
+- status: ready
 - prd: agent-autonomy-2
 - owner: prd/agent-autonomy-2
-- commit:
+- commit: 5162f553
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: watch agent context and hand off past 160k unless there is a very good reason; fixes-bug's orchestrator was at 208k. Context size is readable from the session transcript (last assistant usage: input + cache read + cache creation). The doc line went onto dev the same day; this item folds it into the hook's wording and tests.
 - 2026-11-22 (plan/agent-autonomy): Moved to agent-autonomy-2 by agent-autonomy's planner (2026-11-22): that PRD was already six slices and this work shares no code with it. Planned in plans/agent-autonomy-2-prd.md and -plan.md: B-507 and B-509 slice 1, B-508 slices 1 and 2.
