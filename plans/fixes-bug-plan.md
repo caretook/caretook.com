@@ -6,22 +6,22 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions via `pnpm prd ask`).
 
-Wave 1 (slices 1–12) written 2026-11-21. Held back: B-318 (header ignores simple-mode change from another device) until simple-mode lands (it reworks that code); B-324 (health data in page titles and `?q=`): the user chose leave as is (ask a10), dropped.
+Wave 1 (slices 1–12) written 2026-11-21; every slice runs on opus. Held back: B-318 (header ignores simple-mode change from another device) until simple-mode lands (it reworks that code); B-324 (health data in page titles and `?q=`): the user chose leave as is (ask a10), dropped.
 
-| Slice | Item  | Model | State                                                                                         | Merge    |
-| ----- | ----- | ----- | --------------------------------------------------------------------------------------------- | -------- |
-| 1     | B-310 | opus  | merged                                                                                        | 6afc3f58 |
-| 2     | B-312 | opus  | merged                                                                                        | 233dd07d |
-| 3     | B-314 | opus  | merged                                                                                        | 8fa65e6f |
-| 4     | B-315 | opus  | merged (first-sync at landing)                                                                | 3dc2f3cd |
-| 5     | B-317 | opus  | started (worktree, agent)                                                                     |          |
-| 6     | B-320 | opus  | handed off (f803441d, quick ok)                                                               |          |
-| 7     | B-321 | opus  | handed off (238ca50f, quick ok)                                                               |          |
-| 8     | B-322 | opus  | handed off (311268a9, quick ok)                                                               |          |
-| 9     | B-323 | opus  | handed off (2ae446ce, quick ok; live-notes at landing)                                        |          |
-| 10    | B-385 | opus  | handed off (d8f24ec9; quick failed only on resetStaging timeout under load, 3/3 alone: B-466) |          |
-| 11    | B-386 | opus  | written (blocked by 10)                                                                       |          |
-| 12    | B-393 | opus  | handed off (fd55c5f3, test only: already fixed by B-234)                                      |          |
+| Slice | Item  | State                                                                                         | Merge    |
+| ----- | ----- | --------------------------------------------------------------------------------------------- | -------- |
+| 1     | B-310 | merged                                                                                        | 6afc3f58 |
+| 2     | B-312 | merged                                                                                        | 233dd07d |
+| 3     | B-314 | merged                                                                                        | 8fa65e6f |
+| 4     | B-315 | merged (first-sync at landing)                                                                | 3dc2f3cd |
+| 5     | B-317 | started (worktree, agent)                                                                     |          |
+| 6     | B-320 | handed off (f803441d, quick ok)                                                               |          |
+| 7     | B-321 | handed off (238ca50f, quick ok)                                                               |          |
+| 8     | B-322 | handed off (311268a9, quick ok)                                                               |          |
+| 9     | B-323 | handed off (2ae446ce, quick ok; live-notes at landing)                                        |          |
+| 10    | B-385 | handed off (d8f24ec9; quick failed only on resetStaging timeout under load, 3/3 alone: B-466) |          |
+| 11    | B-386 | written (blocked by 10)                                                                       |          |
+| 12    | B-393 | handed off (fd55c5f3, test only: already fixed by B-234)                                      |          |
 
 ## Wave 1
 
