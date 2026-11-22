@@ -22,6 +22,16 @@
 
 **Hook live test:** passed for the session's own size: this orchestrator read 53k from `pnpm prd context` after a wrapper start. Whether a subagent's PostToolUse names its own transcript is still unproven.
 
+**Skipping the browser tooling test (until `test-gates` slice 8 lands):** the user's decision, relayed 2026-11-22 by the session `caretook-com-6a`. Slices may leave `scripts/loops/browser.test.mjs` out of their own tooling runs, because it is the slowest by far. They keep it if the slice changes `scripts/loops/browser.sh`, `lib.sh`, `lease.sh`, `scripts/loops/checks` or `scripts/browser-checks/`, and every hand-off says whether it was skipped. Vitest's `--exclude` doesn't drop it, so use the file list:
+
+```sh
+node scripts/loops/tooling-lint.mjs
+files=$(pnpm exec vitest list --filesOnly --project tooling:unit --project scripts:unit | awk '/\.test\.[a-z]+$/ {print $NF}' | sort -u | grep -v 'loops/browser\.test\.mjs$')
+pnpm exec vitest run --project tooling:unit --project scripts:unit $files # zsh: ${=files}
+```
+
+`pnpm prd check` still runs the file when a diff touches tooling (no skip switch yet): don't edit `check-body.sh` or bypass the gate. This orchestrator's landing gate keeps the full `pnpm test:tooling`.
+
 **Open issues:**
 
 - The hook has only run against a stub `claude`. `claude` 2.1.330 takes `--settings`, but the docs don't say that hooks passed this way merge with the others, or which transcript a subagent's PostToolUse names. First live test: this orchestrator's first session after the wave 1 landing should get a size in `pnpm prd context`. Slice 2 can time the nudge from `firstOverAt` (`remindedAt` moves on each repeat), setting `nudgeAt` through `updateRecord`.
