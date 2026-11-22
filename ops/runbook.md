@@ -22,6 +22,7 @@ How staging and production are set up, deployed, rotated and recovered. Written 
 - `APP_ENV` (`staging` | `production`) names the target; both run with `NODE_ENV=production`. The deploy derives it from the branch.
 - **The deploy** (`.github/workflows/deploy.yml`, on a push to `staging` or `main`): env check (`pnpm deploy:env`) → migrate (`pnpm datastore:migrate`, as the migrations role) → roles (`pnpm db:roles`) → sync config (PowerSync CLI) → `vercel pull`, `vercel build`, `vercel deploy --prebuilt --prod` → smoke check (`pnpm deploy:smoke`). A failed step stops the run and the previous deploy stays live. One deploy per environment at a time; a newer push waits.
 - **Manual Actions** (GitHub → Actions → Run workflow): `Grant staff` (`admin-grant.yml`), `Seed staging` (`seed-staging.yml`), `Reset staging` (`reset-staging.yml`), `Database access` (`db-access.yml`), `Rotate JWT keys` (`rotate-jwks.yml`).
+- **CI** (`.github/workflows/ci.yml`) runs only when requested: `pnpm prd ci run <tier>` pushes the commit to a `ci/<tier>/<name>` ref. No PR or push to `dev`, `staging` or `main` starts it. It reads no secrets, its env is fictional and generated per job, and its logs are public.
 - Vercel's own Git deploys are off (`apps/web/vercel.json`: `git.deploymentEnabled: false`). The Action is the only way code goes live. There are no per-PR previews.
 - Tool versions: the Vercel and PowerSync CLIs are pinned in `.github/cli-versions.env` and run through `pnpm dlx`. Node comes from `.nvmrc`, pnpm from `package.json`'s `packageManager`.
 

@@ -13,13 +13,11 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242. B-53
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** wave 1 started 2026-11-22. Worktrees `test-gates-1` and `test-gates-2` made, B-555, B-556, B-341 and B-554 claimed. Both slices run on opus (real logic). Slice 1 merged; its worktree stays until the wave's full check passes, because that check is the first real run of the new check body (real Vitest rerun, full mode). Slice 1's quiet-machine before/after time is only partial: static 127 s in series against 79.5 s side by side, at load 8 to 11. Slice 2 merged; its worktree also stays until the wave's check passes. Next: sync, the wave's check, PR, land. CI is not green on Linux yet: every requested run ends `file` on the 11 tooling failures slice 8 owns (latest: run 45073332408). The user put the Linux `stat` fix in this topic (slice 8, wave 2; B-559, B-242), relayed by the backlog session.
+**Now:** wave 1 started 2026-11-22. Worktrees `test-gates-1` and `test-gates-2` made, B-555, B-556, B-341 and B-554 claimed. Both slices run on opus (real logic). Slice 1 merged. Slice 1's quiet-machine before/after time is only partial: static 127 s in series against 79.5 s side by side, at load 8 to 11. Slice 2 merged. CI is not green on Linux yet: every requested run ends `file` on the 11 tooling failures slice 8 owns (latest: run 45073332408). The user put the Linux `stat` fix in this topic (slice 8, wave 2; B-559, B-242), relayed by the backlog session.
 
 **Until slice 8 lands (the user's permission):** a slice's manual tooling runs may leave out `scripts/loops/browser.test.mjs`, unless it changes `browser.sh`, `lib.sh`, `lease.sh`, `scripts/loops/checks` or `scripts/browser-checks/`, and says so in its hand-off. `pnpm prd check` still runs the file, and nobody bypasses it. Slice 2's `--exclude` bug is fixed (an explicit file list, pinned by the workflows test).
 
-**Docs to fold at landing (slice 2):** `ops/runbook.md`: CI runs only when requested through `pnpm prd ci run`, on a `ci/<tier>/<name>` ref; it reads no secrets, its env is fictional, its logs are public.
-
-**Docs to fold at landing (slice 1):** the 15-field check log, the time limits (`CARETOOK_CHECK_LIMIT`, `CARETOOK_CHECK_KILL_GRACE`), the rerun and its guards (`CARETOOK_CHECK_RERUN_MAX`), side-by-side static steps (machinery, orchestrator, loop), and the `check --times` line in `pnpm prd help`.
+**Wave 1 gate:** full check passed on 0c91997f (5,857 app tests, 915 tooling tests; no browser checks needed). Slice worktrees removed. Docs folded (machinery _The check runner_, runbook, `prd help`). Next: PR, Codex review, land, then rotate; wave 2 is slice 3, then slice 8.
 
 | Slice | Wave | State         | Merge into `prd/test-gates` (slice commits) |
 | ----- | ---- | ------------- | ------------------------------------------- |
