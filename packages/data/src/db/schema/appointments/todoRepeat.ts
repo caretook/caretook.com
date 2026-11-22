@@ -101,11 +101,28 @@ export const occurrenceOn = (todo: RepeatingTodoFields, day: string): TodoOccurr
  * The todo that follows `todo` when it's ticked or skipped `today` (the
  * recipient's day): on `nextDueDay`, or null when it doesn't repeat, has no
  * due day, or its rule has ended.
+ *
+ * A day whose id is `todo`'s own (a successor moved back onto its source's
+ * day keeps the id of the day it was made for) or one in `passOver` (the
+ * caller's done rows: a successor moved off its day and ticked) is passed
+ * over for the rule's following day (B-386), so the chain goes on and a
+ * device and the server, passing over the same rows, make the same one.
  */
-export const nextOccurrence = (todo: RepeatingTodoFields, today: string): TodoOccurrence | null => {
-  if (!todo.repeatRule || !todo.repeatStartsOn || !todo.repeatId || !todo.dueOn) return null;
-  const day = nextDueDay(todo.repeatRule, todo.repeatStartsOn, todo.dueOn, today);
-  return day ? occurrenceOn(todo, day) : null;
+export const nextOccurrence = (
+  todo: RepeatingTodoFields & { id?: string },
+  today: string,
+  passOver: ReadonlySet<string> = new Set(),
+): TodoOccurrence | null => {
+  const { repeatRule: rule, repeatStartsOn: startsOn, repeatId, dueOn } = todo;
+  if (!rule || !startsOn || !repeatId || !dueOn) return null;
+  let day = nextDueDay(rule, startsOn, dueOn, today);
+  // Each pass skips a distinct id (the days only go forward), so this ends.
+  for (let passes = 0; day && passes <= passOver.size + 1; passes++) {
+    const id = nextTodoId(repeatId, day);
+    if (id !== todo.id && !passOver.has(id)) return occurrenceOn(todo, day);
+    day = nextDueDay(rule, startsOn, day, day);
+  }
+  return null;
 };
 
 /** A later row of a chain, as `isUntouchedNext` compares it. */
