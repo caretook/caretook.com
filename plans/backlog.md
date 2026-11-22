@@ -127,7 +127,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-274 | chore | in-progress | test-health | prd/test-health | Component tests: one test clock on a fixed base date, reset per test, with harness deadlines on performance.now(); one shared fixClock |
 | B-275 | chore | in-progress | test-health | prd/test-health | Component tests: one waitUntil in test/found.ts with one central timeout; no per-call milliseconds (lint rule) |
 | B-276 | chore | in-progress | test-health | prd/test-health | Component tests: a retrying getByCss locator and world helpers that return locators, with lint rules against non-null reads in expect and userEvent calls and against fixed sleeps |
-| B-281 | chore | ready | test-health | prd/test-health | Component tests: cut duplicates and brittle layout assertions; frame, harness and primitive tests use a probe route, not the timeline |
+| B-281 | chore | landed | test-health | prd/test-health | Component tests: cut duplicates and brittle layout assertions; frame, harness and primitive tests use a probe route, not the timeline |
 | B-282 | chore | landed | test-health | prd/test-health | Playwright specs: move one-device and no-browser steps out (marketing first), remove fixed sleeps, merge signout-wipe into session-end |
 | B-283 | chore | landed | test-health | prd/test-health | Server tests: shared fixtures (createWorld, a sync and MCP test helper) and trim rules re-tested through sync upload and the connector; first move the member matrix and condition refusals down to the data layer |
 | B-285 | bug | triaged | sync-safety |  | Server-refused sync changes vanish with only a console.warn: keep refused ops in a local table and show them with the server's reason |
@@ -323,6 +323,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-516 | feature | triaged | agent-autonomy |  | Landing notices before and after: a landing posts a notice when its full check starts (topic, about when, the areas and hot files it touches) and after it merges (the sha, what it touched); an orchestrator that sees a landing coming holds its own full check, syncs after it, and checks once |
 | B-517 | feature | triaged | agent-autonomy |  | A check carries over a dev sync: a passed check stays valid after a merge of dev when every incoming commit landed through a full check, the merge was conflict-free, the sides share no file, and dev brought no migration, seeds, sync-config.yaml, lockfile, package.json or vitest config; the merged tip runs only typecheck, lint and the tests related to both sides' changes (check-plan.mjs); else today's quick |
 | B-518 | change | triaged | agent-autonomy |  | Land without re-syncing when dev's changes don't touch the branch: land.sh's drift refusal relaxes when dev's new commits share no file with the branch and bring none of the risky files; land still merges dev and typechecks the result, and the landing report says it landed on an unsynced tip |
+| B-519 | bug | triaged | fixes-ui |  | Easy mode button on the timeline sits lower than the Timeline page title: align it with the title's row (same vertical center and baseline) |
 
 ## Items
 
@@ -630,7 +631,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-281 · chore · Component tests: cut duplicates and brittle layout assertions; frame, harness and primitive tests use a probe route, not the timeline
 
-- status: ready
+- status: landed
 - prd: test-health
 - owner: prd/test-health
 - commit: a06ce3e9
@@ -2428,6 +2429,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user, after a31 and a33 held test-health and fixes-bug for hours overnight: agents should make their own best choices and coordinate. For coordination the leases and load gate can't express; no waiting on replies.
 - 2026-11-22 (plan/agent-autonomy): Planned in plans/agent-autonomy-prd.md and -plan.md (2026-11-22): B-503 slice 1, B-506 slice 2, B-504 slices 3 and 4, B-505 slices 5 and 6.
+- 2026-11-22 (slice/agent-autonomy/2): slice 2 built on slice/agent-autonomy/2 (142fa3d7): notices.mjs store, notice.mjs command, gated-command lines in prd.sh, status part in ls.sh, landed notice in land.sh
 
 ### B-507 · feature · Context hook: a Claude Code hook on orchestrator and loop sessions reads the transcript's latest context size after each tool call and, over 160k, tells the agent to finish its step, commit Status and pnpm prd rotate
 
@@ -2545,3 +2547,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: agents should tell each other before and after merging to dev, and the test gates should loosen by what dev changed, as the Codex verdict carry-over did, to cut the 'dev changed, rerun tests' churn. Added to the planned agent-autonomy on the user's pick: its orchestrator amends the PRD and plan. The user chose this too, knowing the risk: changes in different files can still break each other at runtime; typecheck catches some.
 - 2026-11-22 (plan/agent-autonomy): Planned 2026-11-22 in plans/agent-autonomy-plan.md: slice 9 (land on an unsynced tip; typegen and typecheck of the merge in a check lease).
+
+### B-519 · bug · Easy mode button on the timeline sits lower than the Timeline page title: align it with the title's row (same vertical center and baseline)
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): Seen on staging (dark theme, phone width): the 'Easy mode' toggle (apps/web/app/routes/app/groups/timeline/EasyModeToggle.tsx) is offset below the 'Timeline' heading in the page header. fixes-ui: layout only.
