@@ -3,9 +3,8 @@ import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { CarePeriodRow } from "~/lib/care-periods/carePeriods.sync";
 
-import { Plus } from "lucide-react";
 import { useMemo } from "react";
-import { Link, Outlet } from "react-router";
+import { Outlet } from "react-router";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { PERIOD_SHEET_STATE, onlyPeriodSheetChanged } from "~/lib/care-periods/periodSheets";
@@ -71,21 +70,16 @@ export default function Periods({ loaderData, params }: Route.ComponentProps) {
             {!group.canWrite && " · You can view this list"}
           </>
         }
-        actions={
-          group.canWrite && (
-            <Link
-              to={appUrls.newPeriod(params.groupId)}
-              state={PERIOD_SHEET_STATE}
-              // Loaded ahead, so the sheet opens offline too.
-              prefetch="render"
-              preventScrollReset
-              className="btn btn-primary btn-sm shrink-0"
-              data-add-period
-            >
-              <Plus className="size-4" aria-hidden="true" />
-              Add period
-            </Link>
-          )
+        add={
+          group.canWrite && {
+            label: "Add period",
+            to: appUrls.newPeriod(params.groupId),
+            state: PERIOD_SHEET_STATE,
+            // Loaded ahead, so the sheet opens offline too.
+            prefetch: "render",
+            preventScrollReset: true,
+            "data-add-period": "",
+          }
         }
       />
 

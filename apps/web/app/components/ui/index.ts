@@ -64,3 +64,5 @@ export { Section } from "./Section";
 // ui-kit-2 (slice 1): the button shapes and the props of the one Button.
 export type { ButtonShape } from "./buttonClass";
 export type { ButtonProps } from "./Button";
+// ui-kit-2 (slice 2): the header's add control.
+export type { PageHeaderAdd } from "./PageHeader";
