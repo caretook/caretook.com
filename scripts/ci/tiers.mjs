@@ -3,31 +3,31 @@
 // `ci/<tier>/<name>` asks for a tier.
 //
 //   node scripts/ci/tiers.mjs <ref name>   the workflow's plan job: prints
-//   `tier=…`, one `<job>=true|false` per job and `not_built=…`, for $GITHUB_OUTPUT.
+//   `tier=…` and one `<job>=true|false` per job, for $GITHUB_OUTPUT.
 //   Runs on the bare runner's Node before any install, so it imports nothing.
 
 export const TIERS = /** @type {const} */ (["static", "unit", "integration", "components", "full"]);
 
-/** The tiers whose jobs exist so far. A higher tier runs these and says the rest isn't built. */
-export const BUILT_TIERS = /** @type {const} */ (["static", "unit", "integration"]);
+/** The job each tier adds. `full` adds the build job. */
+export const TIER_JOBS = /** @type {const} */ ({
+  static: "static",
+  unit: "unit",
+  integration: "integration",
+  components: "components",
+  full: "build",
+});
 
 /** @param {string} tier */
 export const isTier = (tier) => /** @type {readonly string[]} */ (TIERS).includes(tier);
 
 /**
- * What a tier runs today: the built jobs it includes, the highest of them, and
- * the tiers it asks for that aren't built yet.
+ * The jobs a tier runs: its own and those of every tier before it.
  * @param {string} tier
  */
 export function jobsFor(tier) {
   if (!isTier(tier)) throw new Error(`unknown tier "${tier}" (${TIERS.join(", ")})`);
   const asked = TIERS.slice(0, TIERS.indexOf(/** @type {(typeof TIERS)[number]} */ (tier)) + 1);
-  const jobs = asked.filter((t) => /** @type {readonly string[]} */ (BUILT_TIERS).includes(t));
-  return {
-    jobs,
-    ranTier: jobs[jobs.length - 1],
-    notBuilt: asked.filter((t) => !(/** @type {readonly string[]} */ (BUILT_TIERS).includes(t))),
-  };
+  return { jobs: asked.map((t) => TIER_JOBS[t]), ranTier: tier };
 }
 
 /**
@@ -58,12 +58,8 @@ export function parseCiRef(ref) {
 export function planOutputs(ref) {
   const parsed = parseCiRef(ref);
   if (!parsed) throw new Error(`not a ci/<tier>/<name> ref: ${ref}`);
-  const { jobs, notBuilt } = jobsFor(parsed.tier);
-  return [
-    `tier=${parsed.tier}`,
-    ...BUILT_TIERS.map((t) => `${t}=${/** @type {readonly string[]} */ (jobs).includes(t)}`),
-    `not_built=${notBuilt.join(",")}`,
-  ];
+  const jobs = /** @type {readonly string[]} */ (jobsFor(parsed.tier).jobs);
+  return [`tier=${parsed.tier}`, ...TIERS.map((t) => `${TIER_JOBS[t]}=${jobs.includes(TIER_JOBS[t])}`)];
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

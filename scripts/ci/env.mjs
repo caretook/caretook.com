@@ -4,7 +4,8 @@
 // the job's own throwaway Postgres, whose password the workflow's plan job
 // generates per run and passes in as CI_PG_PASSWORD.
 //
-//   node scripts/ci/env.mjs >> "$GITHUB_ENV"
+//   node scripts/ci/env.mjs >> "$GITHUB_ENV"         the test jobs
+//   node scripts/ci/env.mjs build >> "$GITHUB_ENV"   the build job
 import { randomBytes } from "node:crypto";
 
 /** The Postgres service's port: the integration tests' test port. */
@@ -40,6 +41,33 @@ export function ciEnv(
   };
 }
 
+/** What a build reads that the build job leaves unset on purpose, and why. */
+export const BUILD_UNSET = {
+  APP_ENV: "only a deployed build names its environment",
+  BUILD_TARGET: "set by `build:native` itself",
+  VERCEL: "Vercel's preset is for the deploy; CI keeps the plain build",
+  VITE_CHECK_BUILD: "would keep window.caretookSync, which the job greps for",
+  VITEST: "set only by Vitest",
+  WEB_PORT: "the dev server's",
+};
+
+/**
+ * The env for production builds: the test env's fictional values, plus the public
+ * URLs bundled into the client. The API origin stays empty, as on the web.
+ * @param {Parameters<typeof ciEnv>} args
+ * @returns {Record<string, string>}
+ */
+export function ciBuildEnv(...args) {
+  return {
+    ...ciEnv(...args),
+    NODE_ENV: "production",
+    POWERSYNC_URL: "http://localhost:8080",
+    VITE_POWERSYNC_URL: "http://localhost:8080",
+    VITE_API_ORIGIN: "",
+  };
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-  for (const [name, value] of Object.entries(ciEnv())) console.log(`${name}=${value}`);
+  const env = process.argv[2] === "build" ? ciBuildEnv() : ciEnv();
+  for (const [name, value] of Object.entries(env)) console.log(`${name}=${value}`);
 }
