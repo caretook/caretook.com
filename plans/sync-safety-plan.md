@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State                             | Merge into `prd/sync-safety` (slice commits) |
-| ----- | ---- | --------------------------------- | -------------------------------------------- |
-| 1     | 1    | in progress (opus, spawned 11-22) |                                              |
-| 2     | 1    | handed off (opus), a67973a0       |                                              |
-| 3     | 2    | not started                       |                                              |
-| 4     | 2    | not started                       |                                              |
-| 5     | 2    | not started                       |                                              |
-| 6     | 1    | handed off (opus), 625bf09a       |                                              |
+| Slice | Wave | State         | Merge into `prd/sync-safety` (slice commits) |
+| ----- | ---- | ------------- | -------------------------------------------- |
+| 1     | 1    | merged (opus) | 5a140ed9 (8cc4d866, 2e34d947)                |
+| 2     | 1    | merged (opus) | 385a1ba8 (a67973a0)                          |
+| 3     | 2    | not started   |                                              |
+| 4     | 2    | not started   |                                              |
+| 5     | 2    | not started   |                                              |
+| 6     | 1    | merged (opus) | f4c6ad13 (a822dcba, 625bf09a)                |
 
 **Landing mode:** run everything through (started run-through, 2026-11-22): start every ready slice, land each green wave, clean up; ask only real questions via `pnpm prd ask`.
 
-**Now:** wave 1 running (slices 1, 2, 6; worktrees `.loops/sync-safety-{1,2,6}`). Start condition checked 2026-11-22: no other branch touches `packages/api/src/sync.ts`. Items claimed: B-285, B-287, B-291, B-292, B-293. Backlog inbox empty at the wave-1 boundary; nothing new proposed. Dev gained fixes-tooling wave 1 (PR #61, b0b9a31, tooling and tests only): `pnpm prd sync` at the wave-1 boundary, before the check.
+**Now:** wave 1 merged (slices 1, 2, 6; worktrees removed; B-285, B-287, B-291, B-292, B-293 done). Slice 2's merge had one conflict in `check-areas.d/sync` (both sides appended a rule; kept both). Next: `pnpm prd sync` (dev gained fixes-tooling, test-health, steady-seed), quick check, browser checks, PR, Codex review, land. Hand-off notes for wave 2: slice 5's PUT branch is the `op.op === "PUT"` block of `softDelete` in `packages/api/src/syncRegistry.ts` (todo's twin is the spec's `put` hook, the tick `afterPut`); slice 3's loop is the one `applyOp` line in `sync.ts`, new errors go in `packages/data/src/errors/sync.ts`; slice 3's set-aside rows use `unsaved_change.outcome = 'set_aside'`; roundtrip showed no twin refusals (only the two forced ones). Slice 1 found the timeline remove's viewer 404 already answered 403 (not reproduced); a PATCH naming any unknown column is now `sync:unknownColumn`. Slice 6 also fixed `updateEntry` and `updateDose` and seeds device JSON via `pgJson()` in `apps/web/test/fixtures.ts`.
 
 **Start conditions:** no other topic has an unlanded change to the upload procedure's file (`packages/api/src/sync.ts`) when slice 1 starts: this plan rewrites it wholesale, where the [rules across PRDs](../docs/agents/orchestrator.md#rules-across-prds) otherwise allow only additive edits. The service layer and `lib/auth/` are `fixes-bug`'s hot files, the browser checks `test-health`'s, and `powersync/sync-config.yaml` is `simple-mode`'s (this plan only reads it): `pnpm prd sync` before each wave, and whichever lands second syncs first.
 
