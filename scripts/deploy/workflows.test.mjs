@@ -34,6 +34,7 @@ describe("the deploy workflows", () => {
   it("are all here", () => {
     expect(WORKFLOWS.sort()).toEqual([
       ".github/workflows/admin-grant.yml",
+      ".github/workflows/ci.yml",
       ".github/workflows/db-access.yml",
       ".github/workflows/deploy.yml",
       ".github/workflows/reset-staging.yml",
@@ -63,8 +64,41 @@ describe("the deploy workflows", () => {
     expect(deploy.jobs.deploy.environment).toMatch(/main.*production.*staging/);
   });
 
-  it.each(WORKFLOWS.filter((p) => !p.endsWith("/deploy.yml")))("%s runs only by hand", (path) => {
+  it.each(WORKFLOWS.filter((p) => !/\/(deploy|ci)\.yml$/.test(p)))("%s runs only by hand", (path) => {
     expect(Object.keys(parseYaml(read(path)).on)).toEqual(["workflow_dispatch"]);
+  });
+
+  it("runs CI only on a push to a ci/ ref, reading no secret", () => {
+    const text = read(".github/workflows/ci.yml");
+    const ci = parseYaml(text);
+    expect(Object.keys(ci.on)).toEqual(["push"]);
+    expect(ci.on.push).toEqual({ branches: ["ci/**"] });
+    expect(secretsIn(text)).toEqual([]);
+    expect(text).not.toMatch(/\bsecrets\b(?!: none)/);
+    expect(ci.permissions).toEqual({ contents: "read" });
+    expect(ci.concurrency["cancel-in-progress"]).toBe("true");
+  });
+
+  it("checks CI out by the pushed SHA and keeps the job's token out of the checkout", () => {
+    const ci = parseYaml(read(".github/workflows/ci.yml"));
+    for (const job of Object.values(ci.jobs)) {
+      const checkout = job.steps.find((s) => s.id === "checkout");
+      expect(checkout.with.ref).toBe("${{ github.sha }}");
+      expect(checkout.with["persist-credentials"]).toBe("false");
+    }
+  });
+
+  it("gates CI's jobs on the tier and always writes a verdict unless cancelled", () => {
+    const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
+    expect(Object.keys(jobs)).toEqual(["plan", "static", "unit", "integration", "verdict"]);
+    for (const name of ["static", "unit", "integration"])
+      expect(jobs[name].if).toBe(`\${{ needs.plan.outputs.${name} == 'true' }}`);
+    expect(jobs.verdict.if).toBe("${{ !cancelled() }}");
+    expect(jobs.verdict.needs).toEqual(["plan", "static", "unit", "integration"]);
+    const upload = jobs.verdict.steps.at(-1);
+    expect(upload.uses).toMatch(/^actions\/upload-artifact@[0-9a-f]{40}$/);
+    expect(upload.with).toMatchObject({ name: "verdict", "retention-days": "7" });
+    expect(jobs.integration.services.postgres.ports).toEqual(["5435:5432"]);
   });
 
   it("runs the deploy's steps in order", () => {

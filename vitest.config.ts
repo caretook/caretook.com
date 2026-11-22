@@ -96,6 +96,7 @@ export default defineConfig({
             "loops/checks.test.mjs",
             "loops/check-times.test.mjs",
             "loops/check-plan.test.mjs",
+            "ci/**/*.test.mjs",
             "deploy/**/*.test.mjs",
             "build/**/*.test.mjs",
             "eslint/**/*.test.mjs",
