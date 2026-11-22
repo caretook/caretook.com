@@ -8,29 +8,29 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Hand-off (2026-11-22, after the wave 1 landing; no slices in flight).** Wave 1 (slices 1–12, all on opus) **landed** in dev as 7a205be1 through PR #46 with `--no-review` on the user's word (Codex out of credits); full check passed on 505d9eee; browser suite 12/12; docs folded (live-notes, auth, app-shell, appointments). Report filed as ask a29; to-test file `to-test/2026-11-22-0004-fixes-bug.md`. Load flakes filed: B-466, B-479, B-480.
 
-**Wave 2 (2026-11-22): slices 13–17 started, all on opus** (B-482 folded into slice 17 as B-472's duplicate). test-health wave 2 landed in dev (43d53bf: test lint rules, deviceLabel/groupRoleLabel moved): `pnpm prd sync` at this wave's boundary, after merging 13–17. Codex may still be out of credits: if `review --wait` stalls or times out (75), ask the user before `--no-review`.
+**Wave 2 (2026-11-22): slices 13–17 (all on opus) merged into prd/fixes-bug; next: `pnpm prd sync`, quick then full check, browser checks, PR** (B-482 folded into slice 17 as B-472's duplicate). test-health wave 2 landed in dev (43d53bf: test lint rules, deviceLabel/groupRoleLabel moved): `pnpm prd sync` at this wave's boundary, after merging 13–17. Codex may still be out of credits: if `review --wait` stalls or times out (75), ask the user before `--no-review`.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
-| Slice | Item  | State                                           | Merge    |
-| ----- | ----- | ----------------------------------------------- | -------- |
-| 1     | B-310 | landed                                          | 6afc3f58 |
-| 2     | B-312 | landed                                          | 233dd07d |
-| 3     | B-314 | landed                                          | 8fa65e6f |
-| 4     | B-315 | landed (first-sync at landing)                  | 3dc2f3cd |
-| 5     | B-317 | landed                                          | 7fb498ee |
-| 6     | B-320 | landed                                          | a40b9713 |
-| 7     | B-321 | landed                                          | c2605057 |
-| 8     | B-322 | landed                                          | 59763904 |
-| 9     | B-323 | landed (live-notes at landing)                  | e7cb1d5e |
-| 10    | B-385 | landed (resetStaging flake: B-466)              | 9736353b |
-| 11    | B-386 | landed                                          | 1327d9bd |
-| 12    | B-393 | landed (test only)                              | f9fb803b |
-| 13    | B-318 | started (opus)                                  |          |
-| 14    | B-382 | handed off 73326e56 (todos.md at landing)       |          |
-| 15    | B-469 | handed off dc0cc495 (search.md at landing)      |          |
-| 16    | B-470 | handed off 4bad9f44                             |          |
-| 17    | B-472 | handed off 5006b9da (layout-offline at landing) |          |
+| Slice | Item  | State                                      | Merge    |
+| ----- | ----- | ------------------------------------------ | -------- |
+| 1     | B-310 | landed                                     | 6afc3f58 |
+| 2     | B-312 | landed                                     | 233dd07d |
+| 3     | B-314 | landed                                     | 8fa65e6f |
+| 4     | B-315 | landed (first-sync at landing)             | 3dc2f3cd |
+| 5     | B-317 | landed                                     | 7fb498ee |
+| 6     | B-320 | landed                                     | a40b9713 |
+| 7     | B-321 | landed                                     | c2605057 |
+| 8     | B-322 | landed                                     | 59763904 |
+| 9     | B-323 | landed (live-notes at landing)             | e7cb1d5e |
+| 10    | B-385 | landed (resetStaging flake: B-466)         | 9736353b |
+| 11    | B-386 | landed                                     | 1327d9bd |
+| 12    | B-393 | landed (test only)                         | f9fb803b |
+| 13    | B-318 | merged                                     | 61d7355f |
+| 14    | B-382 | merged (todos.md at landing)               | 586cee75 |
+| 15    | B-469 | merged (search.md at landing)              | 681f425b |
+| 16    | B-470 | merged                                     | 7e65e0ab |
+| 17    | B-472 | merged (+B-482; layout-offline at landing) | 3114a864 |
 
 ## Wave 1
 
