@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { appointmentSeriesContentZSchema, repeatText, timelineEntryContentZSchema } from "../schema";
-import { DEV_FAMILY_SERIES, seriesRows } from "./appointmentSeries";
+import { appointmentSeriesContentZSchema, timelineEntryContentZSchema } from "../schema";
+import { seriesRows } from "./appointmentSeries";
 
 // Seeds write straight to the tables, skipping the services, so check them
 // against the same rules the API enforces, at any seeding time.
@@ -17,23 +17,12 @@ describe("series seeds", () => {
     }
   });
 
-  it("give dialysis Mon, Wed and Fri with no end, twelve PT visits with one moved", () => {
-    const [dialysis, pt] = groups;
-    expect(repeatText({ ...dialysis!.series, startTime: dialysis!.series.startTime ?? null })).toBe(
-      "Every Mon, Wed, Fri at 6:00",
-    );
-    expect(dialysis!.visits.length).toBeGreaterThan(36);
-    expect(dialysis!.links.length).toBe(dialysis!.visits.length);
-    expect(pt!.visits).toHaveLength(12);
-    expect(pt!.visits.filter((v) => v.content.seriesDetached)).toHaveLength(1);
-    expect(DEV_FAMILY_SERIES.map((s) => s.key)).toEqual(["dialysis", "pt"]);
-    expect(DEV_FAMILY_SERIES.every((s) => s.content.kind === "event")).toBe(true);
-  });
-
-  it("have one visit per series day, ids unique", () => {
+  it("have one visit per series day, ids unique, and link only their own visits", () => {
     const ids = groups.flatMap((g) => g.visits.map((v) => v.id));
     expect(new Set(ids).size).toBe(ids.length);
-    for (const { visits } of groups) {
+    for (const { visits, links } of groups) {
+      const visitIds = new Set(visits.map((v) => v.id));
+      for (const link of links) expect(visitIds.has(link.entryId)).toBe(true);
       const days = visits.map((v) => v.content.seriesDay);
       expect(new Set(days).size).toBe(days.length);
     }

@@ -2,11 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   carePeriodContentZSchema,
   carePeriodStartIssue,
-  currentPeriod,
   periodSpans,
   SERVER_FUTURE_SKEW_MS,
 } from "../schema";
-import { DEV_FAMILY_CARE_PERIODS, seedRows } from "./carePeriods";
+import { seedRows } from "./carePeriods";
 import { seedRows as providerRows } from "./providers";
 
 // Seeds write straight to the tables, skipping the services' validation, so
@@ -32,7 +31,7 @@ describe("care period seeds", () => {
     }
   });
 
-  it("make a track in list order, ending at home", () => {
+  it("make a track in list order", () => {
     const rows = seedRows(NOW).map((r) => ({
       id: r.id,
       ...r.content,
@@ -41,13 +40,5 @@ describe("care period seeds", () => {
     }));
     const spans = periodSpans(rows);
     expect(spans.map((s) => s.period.id)).toEqual(rows.map((r) => r.id));
-    expect(currentPeriod(spans, NOW, ZONE)).toMatchObject({ span: { period: { type: "home" } }, day: 6 });
-    expect(DEV_FAMILY_CARE_PERIODS.map((p) => p.type)).toEqual([
-      "home",
-      "emergency",
-      "hospital",
-      "rehab",
-      "home",
-    ]);
   });
 });

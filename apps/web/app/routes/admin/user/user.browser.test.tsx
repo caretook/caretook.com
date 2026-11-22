@@ -119,7 +119,7 @@ describe("an account's page", () => {
     const sessions = [...document.querySelectorAll("[data-sessions] li")].map(
       (li) => li.querySelector("p")!.textContent,
     );
-    expect(sessions).toEqual(["Safari on iPhone", "Chrome on Mac"]);
+    expect(sessions).toEqual(["Safari on iPhone", "Chrome on macOS"]);
 
     await expect
       .element(screen.getByRole("link", { name: "Grandma June" }))

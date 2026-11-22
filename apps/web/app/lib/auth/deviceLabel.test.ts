@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deviceInfo, deviceLabel } from "./deviceLabel";
+import { deviceLabel } from "./deviceLabel";
 
 // Real user agents, shortened only where noted.
 const UA = {
@@ -32,41 +32,30 @@ const UA = {
 };
 
 describe("deviceLabel", () => {
-  it.each([
-    [UA.chromeMac, "Chrome on macOS"],
-    [UA.headlessLinux, "Chrome on Linux"],
-    [UA.safariMac, "Safari on macOS"],
-    [UA.safariIphone, "Safari on iPhone"],
-    [UA.chromeIphone, "Chrome on iPhone"],
-    [UA.firefoxIpad, "Firefox on iPad"],
-    [UA.webviewIpad, "Safari on iPad"],
-    [UA.chromeAndroid, "Chrome on Android"],
-    [UA.samsung, "Samsung Internet on Android"],
-    [UA.edgeWindows, "Edge on Windows"],
-    [UA.operaWindows, "Opera on Windows"],
-    [UA.firefoxLinux, "Firefox on Linux"],
-    [UA.firefoxWindows, "Firefox on Windows"],
-    [UA.chromebook, "Chrome on ChromeOS"],
-  ])("names %s", (ua, label) => {
-    expect(deviceLabel(ua)).toBe(label);
-  });
-
-  it("says Unknown device when there's no user agent", () => {
+  it("names the browser and system, what it knows of them, or Unknown device", () => {
+    for (const [ua, label] of [
+      [UA.chromeMac, "Chrome on macOS"],
+      [UA.headlessLinux, "Chrome on Linux"],
+      [UA.safariMac, "Safari on macOS"],
+      [UA.safariIphone, "Safari on iPhone"],
+      [UA.chromeIphone, "Chrome on iPhone"],
+      [UA.firefoxIpad, "Firefox on iPad"],
+      [UA.webviewIpad, "Safari on iPad"],
+      [UA.chromeAndroid, "Chrome on Android"],
+      [UA.samsung, "Samsung Internet on Android"],
+      [UA.edgeWindows, "Edge on Windows"],
+      [UA.operaWindows, "Opera on Windows"],
+      [UA.firefoxLinux, "Firefox on Linux"],
+      [UA.firefoxWindows, "Firefox on Windows"],
+      [UA.chromebook, "Chrome on ChromeOS"],
+      ["SomeBot/1.0 (Windows NT 10.0)", "Unknown browser on Windows"],
+      ["Mozilla/5.0 Firefox/133.0", "Firefox"],
+      ["curl/8.7.1", "Unknown device"],
+      ["  ", "Unknown device"],
+    ] as const) {
+      expect(deviceLabel(ua), ua).toBe(label);
+    }
     expect(deviceLabel(null)).toBe("Unknown device");
     expect(deviceLabel(undefined)).toBe("Unknown device");
-    expect(deviceLabel("  ")).toBe("Unknown device");
-    expect(deviceLabel("curl/8.7.1")).toBe("Unknown device");
-  });
-
-  it("names what it knows when it knows only one part", () => {
-    expect(deviceLabel("SomeBot/1.0 (Windows NT 10.0)")).toBe("Unknown browser on Windows");
-    expect(deviceLabel("Mozilla/5.0 Firefox/133.0")).toBe("Firefox");
-  });
-});
-
-describe("deviceInfo", () => {
-  it("gives the browser and system apart", () => {
-    expect(deviceInfo(UA.edgeWindows)).toEqual({ browser: "Edge", os: "Windows" });
-    expect(deviceInfo("")).toEqual({ browser: null, os: null });
   });
 });

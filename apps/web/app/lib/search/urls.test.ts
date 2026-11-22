@@ -4,8 +4,7 @@ import { appUrls } from "../app-shell/appUrls";
 const G = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c0001";
 
 describe("searchUrls", () => {
-  it("builds the search page, with its text and the section shown in full", () => {
-    expect(appUrls.search(G)).toBe(`/app/groups/${G}/search`);
+  it("encodes the search, drops an empty one, and shows a section in full", () => {
     expect(appUrls.search(G, "")).toBe(`/app/groups/${G}/search`);
     expect(appUrls.search(G, "knee pain")).toBe(`/app/groups/${G}/search?q=knee+pain`);
     expect(appUrls.search(G, "knee", { all: "entry" })).toBe(`/app/groups/${G}/search?q=knee&all=entry`);

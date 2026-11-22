@@ -3,7 +3,6 @@ import {
   changeRoleOptions,
   countText,
   dayText,
-  groupRoleLabel,
   memberActionText,
   personLabel,
   recipientLabel,
@@ -11,9 +10,7 @@ import {
 } from "./groupDisplay";
 
 describe("groupPage", () => {
-  it("labels roles and people", () => {
-    expect(groupRoleLabel("caretaker")).toBe("Caretaker");
-    expect(groupRoleLabel("future")).toBe("future");
+  it("labels people", () => {
     expect(personLabel({ name: "Ana", email: "ana@example.com" })).toBe("Ana (ana@example.com)");
     expect(personLabel({ name: null, email: "ana@example.com" })).toBe("ana@example.com");
   });

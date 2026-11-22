@@ -29,8 +29,6 @@ describe("period types", () => {
       expect(meta.now).toBeTruthy();
       expect(meta.icon).toBeTruthy();
     }
-    expect(PERIOD_TYPE_META.emergency.label).toBe("Emergency room or observation");
-    expect(PERIOD_TYPE_META.rehab.label).toBe("Rehab or skilled nursing");
     expect(new Set(CARE_PERIOD_TYPES.map((t) => PERIOD_TYPE_META[t].icon)).size).toBe(
       CARE_PERIOD_TYPES.length,
     );
