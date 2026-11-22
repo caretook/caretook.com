@@ -283,9 +283,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-423 | feature | triaged | ui-kit-2 |  | Standardize on single Button design component. Can have options like primary, secondary, danger,… |
 | B-424 | feature | triaged | ui-kit-2 |  | medications page should have passes as a tab, not in header. + button should be a dropdown with add… |
 | B-425 | feature | triaged | inbox-agent |  | An inbox agent: a session that helps the user add, categorize and prioritize inbox items, and writes them by pushing straight to origin/dev instead of committing in the local dev checkout, so it never steps on the user's working copy |
-| B-426 | feature | in-progress | orchestration-3 | prd/orchestration-3 | A load gate: PRD, slice and check starts wait while machine load is high, and the dispatcher weighs load when it picks what to start |
-| B-427 | change | ready | orchestration-3 | prd/orchestration-3 | A landing agents can run when the last check is stale: pnpm prd land --force is blocked by the permission classifier, so give land a sanctioned path (a --quick recheck or a recorded reason) and document it |
-| B-428 | change | in-progress | orchestration-3 | prd/orchestration-3 | Rules for the five fixes topics in the dispatcher: hot files worked out from a wave's items, whether a fixes wave takes one of the three slots, and one answer on hold versus standing |
+| B-426 | feature | ready | orchestration-3 | prd/orchestration-3 | A load gate: PRD, slice and check starts wait while machine load is high, and the dispatcher weighs load when it picks what to start |
+| B-427 | change | landed | orchestration-3 | prd/orchestration-3 | A landing agents can run when the last check is stale: pnpm prd land --force is blocked by the permission classifier, so give land a sanctioned path (a --quick recheck or a recorded reason) and document it |
+| B-428 | change | ready | orchestration-3 | prd/orchestration-3 | Rules for the five fixes topics in the dispatcher: hot files worked out from a wave's items, whether a fixes wave takes one of the three slots, and one answer on hold versus standing |
 | B-429 | change | triaged | inbox-agent |  | Asks queue hygiene: reports that go stale are re-checked or expire, answered asks are archived, and an ask whose session has died still reaches the user |
 | B-430 | feature | triaged | staging-ship |  | Codex findings on a PRD pull request become backlog items by tool: verified against the code, duplicates noted on the existing item, as B-404 does for the staging PR |
 | B-431 | chore | triaged | fixes-tooling |  | A finished PRD gets its done flag without rm: set it at the last landing or in pnpm prd tidy (check-speed still reads planned with nothing waiting) |
@@ -296,7 +296,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-436 | feature | triaged | staging-ship |  | A to-test report for a staging ship, like the landing reports of B-410 |
 | B-437 | change | triaged | self-recovery |  | Record backlog, hotfix and recovery sessions like orchestrator sessions, so pnpm prd status shows them and they can be reopened |
 | B-438 | plan | triaged | self-recovery |  | Headless orchestrator sessions: runs that need no terminal tab, so a helper cannot outlive or die with its window |
-| B-439 | change | in-progress | orchestration-3 | prd/orchestration-3 | A hold between a planner landing and its topic starting: the dispatcher waits for the user to release a newly planned topic, or a stated rule says when it may start alone |
+| B-439 | change | ready | orchestration-3 | prd/orchestration-3 | A hold between a planner landing and its topic starting: the dispatcher waits for the user to release a newly planned topic, or a stated rule says when it may start alone |
 | B-440 | bug | triaged | fixes-tooling |  | pnpm prd tidy --yes: a database for a topic ending -w1..-w16 reads as an orphan worker copy and is dropped |
 | B-441 | bug | triaged | fixes-tooling |  | pnpm prd tidy: a missing or failing lsof reads as no process in any worktree, so --yes can remove an active one |
 | B-442 | bug | triaged | fixes-tooling |  | pnpm prd tidy --yes deletes dead leases from its earlier snapshot without lease.sh's takeover mutex and fresh liveness check |
@@ -306,7 +306,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-446 | bug | triaged | fixes-tooling |  | browser.test.mjs 'kills a spec at its cap, worker and all, and retries it once' fails under heavy load (load 47), passes alone 3x |
 | B-447 | bug | triaged | fixes-tooling |  | to-test file: 'What wasn't checked' repeats the quick-check line, and a tooling-only landing still gets the app's dev URL and seed sign-ins under 'What to try' |
 | B-448 | chore | triaged | ui-kit-2 |  | Rename the profile's *Card components and files (ProfileCards.tsx, ConditionsCard, DetailsCards, EmergencyCard, VitalAveragesCard) now that they render bands, not cards |
-| B-449 | chore | triaged | fixes-tooling |  | Reseed staging from scratch: a manual Action that wipes staging's data and runs the fictional seed again |
+| B-449 | chore | in-progress | fixes-tooling | hotfix/reseed-staging | Reseed staging from scratch: a manual Action that wipes staging's data and runs the fictional seed again |
 
 ## Items
 
@@ -2233,10 +2233,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-426 · feature · A load gate: PRD, slice and check starts wait while machine load is high, and the dispatcher weighs load when it picks what to start
 
-- status: in-progress
+- status: ready
 - prd: orchestration-3
 - owner: prd/orchestration-3
-- commit:
+- commit: 813bff39
 
 - 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. Seen: load 46/37/33 on 10 cores with three PRDs running. Only browser.sh waits on load (CARETOOK_BROWSER_BUSY); lease.sh has no load logic though B-271 says the lease waits; orchestrator.md says No load gate; the orchestration-2 PRD deferred it; B-392 picks without load. Why orchestration-3: it changes what the dispatcher starts.
 - 2026-11-21 (plan/orchestration-3): Planned 2026-11-21 (plan/orchestration-3): plans/orchestration-3-prd.md and -plan.md, six slices. B-439 by slice 1 (the user chose no hold), B-428 by slice 2, B-426 by slice 3, B-427 by slice 4, B-392 by slices 5 and 6.
@@ -2244,7 +2244,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-427 · change · A landing agents can run when the last check is stale: pnpm prd land --force is blocked by the permission classifier, so give land a sanctioned path (a --quick recheck or a recorded reason) and document it
 
-- status: ready
+- status: landed
 - prd: orchestration-3
 - owner: prd/orchestration-3
 - commit: 77bc95c5
@@ -2255,10 +2255,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-428 · change · Rules for the five fixes topics in the dispatcher: hot files worked out from a wave's items, whether a fixes wave takes one of the three slots, and one answer on hold versus standing
 
-- status: in-progress
+- status: ready
 - prd: orchestration-3
 - owner: prd/orchestration-3
-- commit:
+- commit: 813bff39
 
 - 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. The registry has fixes-ui, -bug, -tooling, -perf, -nit as standing with no hot files, so nothing stops a wave colliding with a running PRD; the dispatcher notes and report a3 say they are on hold. Beside B-392.
 - 2026-11-21 (plan/orchestration-3): Planned 2026-11-21 (plan/orchestration-3): plans/orchestration-3-prd.md and -plan.md, six slices. B-439 by slice 1 (the user chose no hold), B-428 by slice 2, B-426 by slice 3, B-427 by slice 4, B-392 by slices 5 and 6.
@@ -2364,10 +2364,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-439 · change · A hold between a planner landing and its topic starting: the dispatcher waits for the user to release a newly planned topic, or a stated rule says when it may start alone
 
-- status: in-progress
+- status: ready
 - prd: orchestration-3
 - owner: prd/orchestration-3
-- commit:
+- commit: 813bff39
 
 - 2026-11-21 (Robert Bo Davis): Filed from the backlog session 2026-11-21 after a gap review of the upcoming orchestration runs; the user chose to file it. An open question in the orchestration-3 notes with no item.
 - 2026-11-21 (plan/orchestration-3): Planned 2026-11-21 (plan/orchestration-3): plans/orchestration-3-prd.md and -plan.md, six slices. B-439 by slice 1 (the user chose no hold), B-428 by slice 2, B-426 by slice 3, B-427 by slice 4, B-392 by slices 5 and 6.
@@ -2458,9 +2458,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-449 · chore · Reseed staging from scratch: a manual Action that wipes staging's data and runs the fictional seed again
 
-- status: triaged
+- status: in-progress
 - prd: fixes-tooling
-- owner:
+- owner: hotfix/reseed-staging
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From the user (backlog session, 2026-11-21). Today's Seed staging Action (seed-staging.yml) is idempotent: it adds and updates but never clears, so hand-made test data and stale rows stay. Wanted: one step that empties staging and seeds it fresh. To settle when built: what is wiped (all app data and accounts, or keep staff grants and connector/Google links), refusing production the way the seed does, a typed confirmation input, and that devices' PowerSync copies follow the wipe. Triage: fixes-tooling (a script and a workflow, no app code); hosting was the other fit but is on hold.
