@@ -10,7 +10,7 @@
 | 2     | 2    | started (opus), worktree agent-autonomy-2-2                      | —                                                 |
 | 3     | 1    | merged (opus); conflicts resolved in session.sh and status-extra | 5162f553 (9da26376, 41a67e83)                     |
 | 4     | 2    | started (opus), worktree agent-autonomy-2-4                      | —                                                 |
-| 5     | 2    | started (opus), worktree agent-autonomy-2-5                      | —                                                 |
+| 5     | 2    | handed off (opus) at ba12c013; merge after 2 and 4               | —                                                 |
 | 6     | 3    | —                                                                | —                                                 |
 | 7     | 3    | —                                                                | —                                                 |
 
