@@ -90,7 +90,7 @@ Dev itself is checked when it is promoted to staging (`test-gates-2`).
 ## Implementation decisions
 
 - **The CI workflow** runs on a push to a `ci/**` ref and on nothing else.
-  - The ref names the tier; the workflow runs the jobs that tier includes: static (format, lint, typecheck); unit (the six small Vitest projects, `tooling:unit` included); integration (a Postgres service container on the test port); components (Playwright's Chromium); build (the build budget, `build:native`, the `caretookSync` grep).
+  - The ref names the tier; the workflow runs the jobs that tier includes: static (format, lint, typecheck); unit (the six small Vitest projects, `tooling:unit` without the browser harness test); integration (a Postgres service container on the test port, and the browser harness test); components (Playwright's Chromium); build (the build budget, `build:native`, the `caretookSync` grep).
   - A run can be narrowed to named test files (the blame rerun): a throwaway commit on top of the target, with a verdict marked narrowed.
   - A test job that fails reruns only its failed files once, in the same job, and records both results. A separate step runs the quarantined tests and can't fail the run.
   - The last job writes and uploads the verdict (kept 7 days).
