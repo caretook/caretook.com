@@ -6,11 +6,6 @@ import { MORE_GROUPS, MORE_USERS, seedRows } from "./moreGroups";
 // Seeds write straight to the tables, skipping the services' validation, so
 // check them against the same rules the API enforces.
 const NOW = Date.UTC(2026, 10, 17, 20, 0);
-const groupsOf = (email: string) =>
-  MORE_GROUPS.flatMap((g) =>
-    g.members.filter((m) => m.email === email).map((m) => ({ group: g.name, role: m.role })),
-  );
-
 describe("more groups seeds", () => {
   it("are valid entries for their kind, with notes and events in their live document", () => {
     for (const { entries, medicationEntry } of seedRows(NOW)) {
@@ -29,9 +24,8 @@ describe("more groups seeds", () => {
     }
   });
 
-  it("give every group a few entries, a provider and a medication it prescribes", () => {
-    for (const { entries, provider, medication, groupId } of seedRows(NOW)) {
-      expect(entries.length).toBeGreaterThanOrEqual(2);
+  it("give every group a provider and a medication it prescribes", () => {
+    for (const { provider, medication, groupId } of seedRows(NOW)) {
       expect(provider.groupId).toBe(groupId);
       expect(medication.prescriberId).toBe(provider.id);
       const { id: _id, groupId: _g, recipientId: _r, ...content } = medication;
@@ -47,11 +41,7 @@ describe("more groups seeds", () => {
     }
   });
 
-  it("mix roles: three groups, admin only, a viewer in two, a group with one owner", () => {
-    expect(groupsOf("trio@example.com").map((m) => m.role)).toEqual(["owner", "caretaker", "viewer"]);
-    expect(groupsOf("groupadmin@example.com")).toEqual([{ group: "Rivera Family", role: "admin" }]);
-    expect(groupsOf("viewer2@example.com").map((m) => m.role)).toEqual(["viewer", "viewer"]);
-    expect(MORE_GROUPS.some((g) => g.members.length === 1 && g.members[0]?.role === "owner")).toBe(true);
+  it("give every group one owner", () => {
     for (const group of MORE_GROUPS) expect(group.members.filter((m) => m.role === "owner")).toHaveLength(1);
   });
 

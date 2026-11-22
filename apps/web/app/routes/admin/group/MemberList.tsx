@@ -4,14 +4,8 @@ import { useState } from "react";
 import { Link, useNavigation, useSubmit } from "react-router";
 import { ConfirmDialog, Field } from "~/components/ui";
 import { adminUrls } from "../adminUrls";
-import {
-  changeRoleOptions,
-  dayText,
-  groupRoleLabel,
-  memberActionText,
-  personLabel,
-  sortGroupMembers,
-} from "../groupDisplay";
+import { changeRoleOptions, dayText, memberActionText, personLabel, sortGroupMembers } from "../groupDisplay";
+import { groupRoleLabel } from "@caretook/data/permissions";
 import { STAFF_REASON_MAX } from "@caretook/data/schema";
 
 // A group's members on its staff page: name and email (a link to the

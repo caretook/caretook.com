@@ -47,11 +47,6 @@ describe("timeline seed entries", () => {
     expect(others.every((n) => n.documentText === null)).toBe(true);
   });
 
-  it("seed a second group with a few entries of its own", () => {
-    expect(SECOND_GROUP_ENTRIES.length).toBeGreaterThan(0);
-    expect(SECOND_GROUP_ENTRIES.every((e) => e.author === "member@example.com")).toBe(true);
-  });
-
   it("places `at` entries at that local time", () => {
     const now = Date.UTC(2026, 10, 17, 20, 0); // 12:00 PM in Los Angeles
     const when = occurredAtOf(

@@ -2,14 +2,9 @@ import type { ApiOutputs } from "~/lib/core/rpc";
 
 import { Link } from "react-router";
 import { AccountBadges } from "../AccountBadges";
-import {
-  adminDay,
-  adminTime,
-  deviceLabel,
-  groupRoleLabel,
-  mailStatusLabel,
-  staffRoleLabel,
-} from "../accountDisplay";
+import { deviceLabel } from "~/lib/auth/deviceLabel";
+import { groupRoleLabel } from "@caretook/data/permissions";
+import { adminDay, adminTime, mailStatusLabel, staffRoleLabel } from "../accountDisplay";
 import { adminUrls } from "../adminUrls";
 import { HelpAction } from "./HelpAction";
 

@@ -1,5 +1,5 @@
 // A signed-in session's device, in words, from its user agent: "Chrome on
-// macOS". The Devices settings page shows it. A small parser for the browsers
+// macOS". The Devices settings page and /admin show it. A small parser for the browsers
 // and systems people use, not a full user-agent library: anything it doesn't
 // recognise is "Unknown browser" or "an unknown system".
 

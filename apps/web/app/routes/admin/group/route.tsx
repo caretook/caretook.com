@@ -10,7 +10,8 @@ import { adminFailure } from "../adminForms";
 import { adminUrls } from "../adminUrls";
 import { AuditEntryList } from "../AuditEntryList";
 import { auditSearch } from "../auditFilters";
-import { countText, dayText, groupRoleLabel, recipientLabel } from "../groupDisplay";
+import { groupRoleLabel } from "@caretook/data/permissions";
+import { countText, dayText, recipientLabel } from "../groupDisplay";
 import { InviteOwnerForm } from "./InviteOwnerForm";
 import { MemberList } from "./MemberList";
 
