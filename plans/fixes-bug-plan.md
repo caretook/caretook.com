@@ -6,22 +6,22 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions via `pnpm prd ask`).
 
-Wave 1 (slices 1–12) written 2026-11-21. Held back: B-318 (header ignores simple-mode change from another device) until simple-mode lands (it reworks that code); B-324 (health data in page titles and `?q=`) waits on the user's decision (asked via `pnpm prd ask`).
+Wave 1 (slices 1–12) written 2026-11-21. Held back: B-318 (header ignores simple-mode change from another device) until simple-mode lands (it reworks that code); B-324 (health data in page titles and `?q=`) waits on the user's decision (ask `a10`, waiting in the background).
 
-| Slice | Item  | Model | State                   | Merge |
-| ----- | ----- | ----- | ----------------------- | ----- |
-| 1     | B-310 | opus  | written                 |       |
-| 2     | B-312 | opus  | written                 |       |
-| 3     | B-314 | opus  | written                 |       |
-| 4     | B-315 | opus  | written                 |       |
-| 5     | B-317 | opus  | written                 |       |
-| 6     | B-320 | opus  | written                 |       |
-| 7     | B-321 | opus  | written                 |       |
-| 8     | B-322 | opus  | written                 |       |
-| 9     | B-323 | opus  | written                 |       |
-| 10    | B-385 | opus  | written                 |       |
-| 11    | B-386 | opus  | written (blocked by 10) |       |
-| 12    | B-393 | opus  | written                 |       |
+| Slice | Item  | Model | State                     | Merge |
+| ----- | ----- | ----- | ------------------------- | ----- |
+| 1     | B-310 | opus  | started (worktree, agent) |       |
+| 2     | B-312 | opus  | started (worktree, agent) |       |
+| 3     | B-314 | opus  | started (worktree, agent) |       |
+| 4     | B-315 | opus  | started (worktree, agent) |       |
+| 5     | B-317 | opus  | started (worktree, agent) |       |
+| 6     | B-320 | opus  | started (worktree, agent) |       |
+| 7     | B-321 | opus  | started (worktree, agent) |       |
+| 8     | B-322 | opus  | started (worktree, agent) |       |
+| 9     | B-323 | opus  | started (worktree, agent) |       |
+| 10    | B-385 | opus  | started (worktree, agent) |       |
+| 11    | B-386 | opus  | written (blocked by 10)   |       |
+| 12    | B-393 | opus  | started (worktree, agent) |       |
 
 ## Wave 1
 
