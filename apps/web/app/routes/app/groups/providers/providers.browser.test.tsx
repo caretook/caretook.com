@@ -1,12 +1,10 @@
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, TEST_USER } from "../../../../../test/fixtures";
 import { pageHeader } from "../../../../../test/pageHeader";
 import {
-  $,
-  $$,
   ADD_PROVIDER,
   filterChips,
   chooseFilter,
@@ -25,7 +23,6 @@ import {
   secondGroup,
   SHEET,
   SHOW_PAST,
-  waitUntil,
   WESTSIDE,
 } from "./providerWorld";
 
@@ -48,7 +45,7 @@ const params = (device: { location: () => string }) =>
 describe("the directory", () => {
   test("lists primary first, then current by name; past providers wait behind “Show past (1)”, then list below (?past=1)", async () => {
     const device = await open();
-    await expect.poll(() => $("main h1")?.textContent).toBe("Providers");
+    await expect.poll(() => document.querySelector<HTMLElement>("main h1")?.textContent).toBe("Providers");
     await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
     await expect.poll(() => listNames("Past providers")).toEqual([]);
     await expect.poll(() => SHOW_PAST()?.textContent.trim()).toBe("Show past (1)");
@@ -107,9 +104,9 @@ describe("the directory", () => {
   test("the search box and the Filter button share one row, with no type chip row above the directory; ✕ on the chip returns to All", async () => {
     const device = await open();
     await expect.element(filterButton()).toHaveAccessibleName("Filter");
-    expect($('main nav[aria-label="Show providers"]')).toBeNull();
-    expect($('main nav[aria-label="Filters on"]')).toBeNull();
-    expect(SEARCH()!.closest("form")?.parentElement).toBe(filterButton().element().parentElement);
+    expect(document.querySelector<HTMLElement>('main nav[aria-label="Show providers"]')).toBeNull();
+    expect(document.querySelector<HTMLElement>('main nav[aria-label="Filters on"]')).toBeNull();
+    expect(SEARCH()?.closest("form")?.parentElement).toBe(filterButton().element().parentElement);
 
     await chooseFilter("Pharmacies");
     await expect.poll(() => params(device)).toEqual({ type: "pharmacy" });
@@ -125,14 +122,16 @@ describe("the directory", () => {
 
   test("a search that matches nothing says so", async () => {
     await open({ url: `${PROVIDERS_URL}?q=dentist` });
-    await expect.poll(() => $("main [data-empty]")?.textContent).toBe("No providers match “dentist”.");
+    await expect
+      .poll(() => document.querySelector<HTMLElement>("main [data-empty]")?.textContent)
+      .toBe("No providers match “dentist”.");
   });
 });
 
 describe("contact details on each row (B-44)", () => {
   /** A row's contact links: name (what it does, then the value), href, target, and z-index over the row's open link. */
   const rowLinks = (name: string) => {
-    const li = $$("main li[data-provider-id]").find(
+    const li = [...document.querySelectorAll<HTMLElement>("main li[data-provider-id]")].find(
       (row) => row.querySelector("[data-provider-name]")?.textContent.trim() === name,
     )!;
     return [...li.querySelectorAll<HTMLAnchorElement>("[data-contact-details] a")].map((a) => [
@@ -183,14 +182,20 @@ describe("contact details on each row (B-44)", () => {
       const page = document.documentElement;
       await expect.poll(() => page.scrollWidth - page.clientWidth).toBeLessThanOrEqual(0);
       await expect
-        .poll(() => $$("main li[data-provider-id]").filter((li) => li.scrollWidth > li.clientWidth))
+        .poll(() =>
+          [...document.querySelectorAll<HTMLElement>("main li[data-provider-id]")].filter(
+            (li) => li.scrollWidth > li.clientWidth,
+          ),
+        )
         .toEqual([]);
     },
   );
 
   test("a tap on a row (not only the name) opens the provider's page", async () => {
     const device = await open();
-    const row = await found(() => $(`main li[data-provider-id="${PATEL.id}"] p.text-sm`));
+    const row = await found(() =>
+      document.querySelector<HTMLElement>(`main li[data-provider-id="${PATEL.id}"] p.text-sm`),
+    );
     await userEvent.click(row, { force: true });
     await expect.poll(() => device.location()).toBe(`${PROVIDERS_URL}/${PATEL.id}`);
     await expect.element(page.getByRole("heading", { level: 1, name: "Dr. Samuel Patel" })).toBeVisible();
@@ -230,7 +235,11 @@ describe("who sees what", () => {
   test("a non-member's …/providers?q=cardio is Not found, naming no one", async () => {
     await open({ role: null, url: `${PROVIDERS_URL}?q=cardio` });
     await expect.element(page.getByRole("heading", { level: 1, name: "Not found" })).toBeVisible();
-    expect(/Moreno|Alvarez|Patel|Westside|Cornerstone|Maria/.test($("main")?.innerText ?? "")).toBe(false);
+    expect(
+      /Moreno|Alvarez|Patel|Westside|Cornerstone|Maria/.test(
+        document.querySelector<HTMLElement>("main")?.innerText ?? "",
+      ),
+    ).toBe(false);
   });
 });
 
@@ -283,25 +292,27 @@ describe("importing from another group (B-48)", () => {
     LINDQVIST_NOTES,
   ];
 
-  const IMPORT = () => $<HTMLAnchorElement>("main [data-import-providers]");
+  const IMPORT = () => document.querySelector<HTMLAnchorElement>("main [data-import-providers]");
   const rows = () =>
-    $$("[role=dialog] li[data-import-row]").map((li) => ({
+    [...document.querySelectorAll<HTMLElement>("[role=dialog] li[data-import-row]")].map((li) => ({
       name: li.querySelector("[data-import-name]")!.textContent.trim(),
       disabled: li.querySelector("input")!.disabled,
       here: li.textContent.includes("Already here"),
     }));
   const row = (name: string) =>
-    $$<HTMLLIElement>("[role=dialog] li[data-import-row]").find(
+    [...document.querySelectorAll<HTMLLIElement>("[role=dialog] li[data-import-row]")].find(
       (li) => li.querySelector("[data-import-name]")?.textContent.trim() === name,
     )!;
-  const tick = (name: string) => userEvent.click(row(name).querySelector("input")!);
-  const SUBMIT = () => $<HTMLButtonElement>("[role=dialog] [data-import-submit]");
-  const STATUS = () => $("[role=dialog] [data-import-status]")?.textContent ?? "";
-  const NOTES_RULE = () => $("[role=dialog] [data-notes-rule]")?.textContent;
+  const tick = async (name: string) => userEvent.click(await found(() => row(name).querySelector("input")));
+  const SUBMIT = () => document.querySelector<HTMLButtonElement>("[role=dialog] [data-import-submit]");
+  const STATUS = () =>
+    document.querySelector<HTMLElement>("[role=dialog] [data-import-status]")?.textContent ?? "";
+  const NOTES_RULE = () =>
+    document.querySelector<HTMLElement>("[role=dialog] [data-notes-rule]")?.textContent;
   const openSheet = async (options: Partial<Parameters<typeof open>[0]> = {}) => {
     const device = await open({ fixtures: world(), ...options });
     await userEvent.click(await found(IMPORT));
-    await found(() => $("[role=dialog] [data-import-sheet]"));
+    await found(() => document.querySelector<HTMLElement>("[role=dialog] [data-import-sheet]"));
     return device;
   };
 
@@ -334,7 +345,7 @@ describe("importing from another group (B-48)", () => {
 
   test("the header: Import, icon only, just before the + (Add provider), each named by its label with no visible text, each opening its sheet", async () => {
     const device = await open({ fixtures: world(), role: "caretaker" });
-    const header = await found(() => $("main header"));
+    const header = await found(() => document.querySelector<HTMLElement>("main header"));
     const importLink = page.getByRole("link", { name: "Import from another group" });
     const addLink = page.getByRole("link", { name: "Add provider" });
     await expect.element(importLink).toHaveAttribute("title", "Import from another group");
@@ -347,7 +358,7 @@ describe("importing from another group (B-48)", () => {
     expect([i.width, i.height]).toEqual([a.width, a.height]);
 
     await userEvent.click(importLink);
-    await found(() => $("[role=dialog] [data-import-sheet]"));
+    await found(() => document.querySelector<HTMLElement>("[role=dialog] [data-import-sheet]"));
     expect(device.location()).toBe(`${PROVIDERS_URL}/import`);
     await device.screen.unmount();
 
@@ -361,7 +372,7 @@ describe("importing from another group (B-48)", () => {
     await openSheet({ fixtures: [...world(), ...third()] });
     expect(rows()).toEqual([]);
     await userEvent.click(page.getByRole("radio", { name: "Lou Lindqvist" }));
-    await waitUntil(() => rows().length > 0, 4000, "the second group's providers");
+    await waitUntil(() => rows().length > 0, "the second group's providers");
     expect(rows()).toEqual([
       { name: "Dr. Grace Lindqvist", disabled: false, here: false },
       { name: "Cornerstone Pharmacy", disabled: true, here: true },
@@ -391,12 +402,12 @@ describe("importing from another group (B-48)", () => {
   test("importing adds copies to the list with the counts: a practice reused, another copied first, primary off, no notes", async () => {
     const device = await openSheet();
     // One other group: it's chosen already.
-    await waitUntil(() => rows().length > 0, 4000, "the second group's providers");
+    await waitUntil(() => rows().length > 0, "the second group's providers");
     await tick("Dr. Grace Lindqvist");
     await tick("Dr. Nia Okafor");
     await tick("Dr. Ana Rivera");
     await expect.poll(() => SUBMIT()?.textContent).toBe("Import 3");
-    await userEvent.click(SUBMIT()!);
+    await userEvent.click(await found(SUBMIT));
     await expect.poll(STATUS).toBe("Imported 3 providers and 1 practice.");
     await device.settle();
 
@@ -442,7 +453,7 @@ describe("importing from another group (B-48)", () => {
     expect(byName["Dr. Grace Lindqvist"]?.id).not.toBe(LINDQVIST.id);
     expect(
       await device.query("SELECT id FROM note_document WHERE provider_id = ?", [
-        byName["Dr. Grace Lindqvist"]!.id,
+        byName["Dr. Grace Lindqvist"]?.id,
       ]),
     ).toEqual([]);
 
@@ -451,8 +462,8 @@ describe("importing from another group (B-48)", () => {
       .filter((w) => w.type === "provider" && w.op === "PUT")
       .map((w) => w.id);
     expect(puts).toHaveLength(4);
-    expect(puts.indexOf(byName["Harbor Clinic"]!.id)).toBeLessThan(
-      puts.indexOf(byName["Dr. Nia Okafor"]!.id),
+    expect(puts.indexOf(byName["Harbor Clinic"]?.id ?? "")).toBeLessThan(
+      puts.indexOf(byName["Dr. Nia Okafor"]?.id ?? ""),
     );
     // The source group is untouched.
     expect(await device.query("SELECT id FROM provider WHERE group_id = ?", [SECOND])).toHaveLength(6);
@@ -462,7 +473,7 @@ describe("importing from another group (B-48)", () => {
 describe("the page title", () => {
   test("is exactly one h1, Providers", async () => {
     await open();
-    await expect.poll(() => $("main h1")?.textContent).toBe("Providers");
+    await expect.poll(() => document.querySelector<HTMLElement>("main h1")?.textContent).toBe("Providers");
     expect(document.querySelectorAll("h1")).toHaveLength(1);
   });
 });
