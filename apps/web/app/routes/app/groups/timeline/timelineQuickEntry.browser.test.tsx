@@ -2,7 +2,7 @@ import type { DeviceRoute } from "../../../../../test/device";
 
 import { afterEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import { clearUndo } from "~/lib/medications/passUndo";
@@ -13,7 +13,7 @@ import * as editSheet from "./edit/route";
 import * as newDose from "./new-dose/route";
 import * as newSheet from "./new/route";
 import * as timeline from "./route";
-import { rowWith, TIMELINE_URL, waitUntil } from "./timelineWorld";
+import { rowWith, TIMELINE_URL } from "./timelineWorld";
 
 // Quick entry on the timeline, on the test device (offline throughout): the
 // box and its cards, alternatives, Remove, Edit into the usual sheets, Save
@@ -73,11 +73,7 @@ const status = () =>
 /** Type a line and wait for its cards (with `kinds`, until they read as those: names match once the group's medications and providers have loaded). */
 const type = async (text: string, kinds?: string[]) => {
   await userEvent.fill(box(), text);
-  await waitUntil(
-    () => (kinds ? cardKinds().join() === kinds.join() : cards().length > 0),
-    4000,
-    "the cards",
-  );
+  await waitUntil(() => (kinds ? cardKinds().join() === kinds.join() : cards().length > 0), "the cards");
 };
 
 afterEach(() => {
@@ -95,7 +91,7 @@ describe("the box and its cards", () => {
     expect(cardWith("Pain 4").textContent).toContain("left knee");
     expect(saveButton()?.textContent).toBe("Save all 3");
 
-    await userEvent.click(saveButton()!);
+    await userEvent.click(await found(saveButton));
     await expect.poll(status).toBe("Saved 3 entries");
     expect(cards()).toEqual([]);
     await expect.element(box()).toHaveValue("");
@@ -109,14 +105,14 @@ describe("the box and its cards", () => {
       "SELECT kind, details, body, created_by FROM timeline_entry WHERE kind IN ('vital', 'dose', 'symptom') ORDER BY kind",
     );
     expect(saved.map((r) => r.kind)).toEqual(["dose", "symptom", "vital"]);
-    expect(JSON.parse(saved[0]!.details)).toMatchObject({
+    expect(JSON.parse(saved[0]?.details ?? "null")).toMatchObject({
       medicationId: METFORMIN.id,
       status: "given",
       amount: "1 tablet",
     });
-    expect(JSON.parse(saved[1]!.details)).toEqual({ name: "Pain", severity: 4 });
-    expect(saved[1]!.body).toBe("left knee");
-    expect(JSON.parse(saved[2]!.details)).toEqual({
+    expect(JSON.parse(saved[1]?.details ?? "null")).toEqual({ name: "Pain", severity: 4 });
+    expect(saved[1]?.body).toBe("left knee");
+    expect(JSON.parse(saved[2]?.details ?? "null")).toEqual({
       readings: [
         { type: "bloodPressure", systolic: 130, diastolic: 85 },
         { type: "heartRate", value: 72 },
@@ -127,7 +123,7 @@ describe("the box and its cards", () => {
     const queued = (await device.queued()).filter((w) => w.type === "timeline_entry");
     expect(queued.map((w) => w.op)).toEqual(["PUT", "PUT", "PUT"]);
 
-    await waitUntil(() => !!rowWith("BP 130/85"), 4000, "the vital row");
+    await waitUntil(() => !!rowWith("BP 130/85"), "the vital row");
     expect(rowWith("Pain")).toBeTruthy();
   });
 
@@ -142,8 +138,8 @@ describe("the box and its cards", () => {
 
     // Changed (quick-entry): a provider event isn't written here; it opens on the new-event page to finish.
     await userEvent.fill(box(), "appt dr lee tomorrow 2pm");
-    await waitUntil(() => !!cards()[0]?.textContent?.includes("with Dr. Sandra Lee"), 4000, "the provider");
-    await userEvent.click(saveButton()!);
+    await waitUntil(() => !!cards()[0]?.textContent?.includes("with Dr. Sandra Lee"), "the provider");
+    await userEvent.click(await found(saveButton));
     await expect.poll(() => device.location()).toBe(`/app/groups/${TEST_GROUP.id}/entries/new?kind=event`);
     expect(await device.query("SELECT id FROM timeline_entry WHERE kind = 'event'")).toEqual([]);
   });
@@ -155,7 +151,7 @@ describe("the box and its cards", () => {
     await userEvent.keyboard("{Enter}");
     await expect.poll(status).toBe("Saved 2 entries");
     expect(device.location()).toBe(TIMELINE_URL);
-    await waitUntil(() => !!rowWith("Grandma had a good day"), 4000, "the note's preview on the timeline");
+    await waitUntil(() => !!rowWith("Grandma had a good day"), "the note's preview on the timeline");
   });
 
   test("an alternative chip switches a card's kind; Remove drops one card and keeps the rest", async () => {
@@ -175,7 +171,7 @@ describe("the box and its cards", () => {
     await userEvent.click(page.getByRole("button", { name: 'Remove "bp 120/80"' }));
     await waitUntil(() => cardKinds().join() === "note");
     expect(saveButton()?.textContent).toBe("Save");
-    await userEvent.click(saveButton()!);
+    await userEvent.click(await found(saveButton));
     await expect.poll(() => device.location()).toMatch(/\/entries\//);
     const kinds = await device.query<{ kind: string }>(
       "SELECT kind FROM timeline_entry WHERE created_at > ? ORDER BY kind",
@@ -194,16 +190,16 @@ describe("the box and its cards", () => {
 
     await userEvent.fill(box(), "bp 120/80 tomorrow");
     await waitUntil(() => !!cards()[0]?.querySelector("[data-quick-blocking]"));
-    expect(cards()[0]!.querySelector("[data-quick-blocking]")?.textContent).toBe("Can't be in the future");
+    expect(cards()[0]?.querySelector("[data-quick-blocking]")?.textContent).toBe("Can't be in the future");
     expect(saveButton()?.disabled).toBe(true);
 
     await userEvent.fill(box(), "hr 140");
     await waitUntil(() => !!cards()[0]?.querySelector("[data-quick-notice]"));
-    expect(cards()[0]!.querySelector("[data-quick-notice]")?.textContent).toBe(
+    expect(cards()[0]?.querySelector("[data-quick-notice]")?.textContent).toBe(
       "Heart rate: that's unusual. Double-check it before saving.",
     );
     expect(saveButton()?.disabled).toBe(false);
-    await userEvent.click(saveButton()!);
+    await userEvent.click(await found(saveButton));
     await expect.poll(status).toBe("Saved 1 entry");
     expect(await device.query("SELECT id FROM timeline_entry WHERE kind = 'vital'")).toHaveLength(1);
   });
@@ -215,10 +211,10 @@ describe("the box and its cards", () => {
     );
     const device = await open();
     await type("temp 37.5");
-    expect(cards()[0]!.querySelector("[data-quick-title]")?.textContent).toBe("Temp 37.5 °C");
+    expect(cards()[0]?.querySelector("[data-quick-title]")?.textContent).toBe("Temp 37.5 °C");
     await userEvent.fill(box(), "temp 99.5f");
     await waitUntil(() => cards()[0]?.querySelector("[data-quick-title]")?.textContent === "Temp 37.5 °C");
-    await userEvent.click(saveButton()!);
+    await userEvent.click(await found(saveButton));
     await expect.poll(status).toBe("Saved 1 entry");
     const [row] = await device.query<{ details: string }>(
       "SELECT details FROM timeline_entry WHERE kind = 'vital'",
@@ -235,15 +231,13 @@ describe("the box and its cards", () => {
     expect(page.getByRole("button", { name: 'Remove "pain 4"' }).query()).toBeTruthy();
     const live = document.querySelector("[data-quick-announce]")!;
     expect(live.getAttribute("aria-live")).toBe("polite");
-    await expect
-      .poll(() => live.textContent, { timeout: 3000 })
-      .toBe("2 cards: Dose, Metformin 500 mg; Symptom, Pain 4");
+    await expect.poll(() => live.textContent).toBe("2 cards: Dose, Metformin 500 mg; Symptom, Pain 4");
     expect(document.querySelector("[data-quick-status]")?.getAttribute("role")).toBe("status");
   });
 
   test("viewers get no box", async () => {
     await open({ role: "viewer" });
-    await waitUntil(() => !!rowWith("Older note"), 4000, "the timeline");
+    await waitUntil(() => !!rowWith("Older note"), "the timeline");
     expect(document.querySelector("[data-quick-entry]")).toBeNull();
   });
 });
@@ -353,8 +347,8 @@ describe("the runner", () => {
     const device = await open();
     await type("bp 120/80, gave metformin", ["vital", "dose"]);
     await device.sync([{ ...METFORMIN, row: { ...METFORMIN.row, deleted_at: at() }, with: [] }]);
-    await waitUntil(() => cardKinds().join() === "vital,note", 4000, "the dose card to become a note");
-    await userEvent.click(saveButton()!);
+    await waitUntil(() => cardKinds().join() === "vital,note", "the dose card to become a note");
+    await userEvent.click(await found(saveButton));
     await expect.poll(status).toBe("Saved 2 entries");
     expect(await device.query("SELECT id FROM timeline_entry WHERE kind = 'dose'")).toEqual([]);
   });
@@ -407,15 +401,15 @@ describe("a note that mentions a provider (quick-entry slice 2)", () => {
     const device = await open({ route: WITH_ENTRY });
     await type("called dr lee about refill", ["note"]);
     // The mention reads once the group's providers have loaded.
-    await waitUntil(() => !!cardWith("called @Dr. Sandra Lee about refill"), 4000, "the mention");
+    await waitUntil(() => !!cardWith("called @Dr. Sandra Lee about refill"), "the mention");
     expect(cardWith("called @Dr. Sandra Lee about refill").textContent).toContain("with Dr. Sandra Lee");
 
-    await userEvent.click(saveButton()!);
+    await userEvent.click(await found(saveButton));
     // One note: its entry page opens.
-    await waitUntil(() => mentionChips().length === 1, 6000, "the mention chip");
+    await waitUntil(() => mentionChips().length === 1, "the mention chip");
     expect(mentionChips()).toEqual([{ id: LEE.id, text: "Dr. Sandra Lee" }]);
-    expect(document.querySelector(".ProseMirror")!.textContent).toBe("called Dr. Sandra Lee about refill");
-    await waitUntil(() => withChips().length === 1, 4000, "the With chip");
+    expect(document.querySelector(".ProseMirror")?.textContent).toBe("called Dr. Sandra Lee about refill");
+    await waitUntil(() => withChips().length === 1, "the With chip");
     expect(withChips()[0]).toMatchObject({ id: LEE.id, text: "Dr. Sandra Lee" });
 
     const [note] = await device.query<{ id: string }>(
@@ -460,10 +454,9 @@ describe("provider events open a prefilled draft (quick-entry slice 3)", () => {
   const openWithPage = () =>
     renderWithDevice({ route: WITH_ENTRY_PAGE, url: TIMELINE_URL, fixtures: [METFORMIN, LEE, ALVAREZ] });
   type Device = Awaited<ReturnType<typeof openWithPage>>;
-  const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector<T>(sel);
-  const TITLE = () => $<HTMLInputElement>("main header input");
-  const HEADER_TIME = () => $<HTMLTimeElement>("main header time");
-  const PLACE = () => $<HTMLInputElement>('main [data-region="place"] input');
+  const TITLE = () => document.querySelector<HTMLInputElement>("main header input");
+  const HEADER_TIME = () => document.querySelector<HTMLTimeElement>("main header time");
+  const PLACE = () => document.querySelector<HTMLInputElement>('main [data-region="place"] input');
   const chipNames = () =>
     [...document.querySelectorAll('main header [data-region="with"] li[data-chip]')].map((li) =>
       li.textContent.trim(),
@@ -491,13 +484,12 @@ describe("provider events open a prefilled draft (quick-entry slice 3)", () => {
     await type("Dr. Elena Alvarez on the 25th", ["event"]);
     await waitUntil(
       () => !!cardWith("Dr. Elena Alvarez").querySelector("[data-quick-opens-draft]"),
-      4000,
       "the draft line",
     );
     expect(cardWith("Dr. Elena Alvarez").querySelector("[data-quick-opens-draft]")?.textContent).toMatch(
       /^Opens to finish · Dr\. Elena Alvarez · .*25/,
     );
-    await userEvent.click(saveButton()!);
+    await userEvent.click(await found(saveButton));
     await expect.poll(() => device.location()).toBe(NEW_EVENT);
     await expect.poll(() => TITLE()?.value).toBe("Dr. Elena Alvarez");
     await expect.poll(() => HEADER_TIME()?.textContent ?? "").toMatch(/25.*All day|All day.*25/);
@@ -507,7 +499,7 @@ describe("provider events open a prefilled draft (quick-entry slice 3)", () => {
     expect(await device.queued()).toEqual([]);
 
     // Back leaves no entry, and no Undo: nothing was written.
-    await userEvent.click(backToTimeline()!);
+    await userEvent.click(await found(backToTimeline));
     await expect.poll(() => device.location()).toBe(TIMELINE_URL);
     await expect.element(box()).toHaveValue("");
     expect(status()).toBe("");
@@ -515,9 +507,9 @@ describe("provider events open a prefilled draft (quick-entry slice 3)", () => {
 
     // Saving on the page writes one event linked to the provider.
     await type("Dr. Elena Alvarez on the 25th", ["event"]);
-    await userEvent.click(saveButton()!);
+    await userEvent.click(await found(saveButton));
     await expect.poll(() => device.location()).toBe(NEW_EVENT);
-    await userEvent.click(await found(() => $(".ProseMirror")));
+    await userEvent.click(await found(() => document.querySelector<HTMLElement>(".ProseMirror")));
     await userEvent.keyboard("Questions about the new pills");
     await expect.poll(() => device.location()).toMatch(/\/entries\/[0-9a-f-]{36}$/);
     const saved = await events(device);
@@ -531,7 +523,7 @@ describe("provider events open a prefilled draft (quick-entry slice 3)", () => {
     await type("bp 130/85, Dr. Lee friday 2pm", ["vital", "event"]);
     expect(cardWith("BP 130/85").querySelector("[data-quick-opens-draft]")).toBeNull();
     await waitUntil(() => !!cardWith("Dr. Sandra Lee").querySelector("[data-quick-opens-draft]"));
-    await userEvent.click(saveButton()!);
+    await userEvent.click(await found(saveButton));
     await expect.poll(() => device.location()).toBe(NEW_EVENT);
     await expect.poll(chipNames).toEqual(["Dr. Sandra Lee"]);
     const vitals = () =>
@@ -541,10 +533,10 @@ describe("provider events open a prefilled draft (quick-entry slice 3)", () => {
     expect((await vitals()).map((v) => v.deleted_at)).toEqual([null]);
     expect(await events(device)).toEqual([]);
 
-    await userEvent.click(backToTimeline()!);
+    await userEvent.click(await found(backToTimeline));
     await expect.poll(() => device.location()).toBe(TIMELINE_URL);
     await expect.poll(status).toBe("Saved 1 entry");
-    await userEvent.click(undoButton()!);
+    await userEvent.click(await found(undoButton));
     await expect.poll(async () => (await vitals())[0]?.deleted_at ?? null).not.toBeNull();
     expect(await events(device)).toEqual([]);
   });
@@ -554,13 +546,13 @@ describe("provider events open a prefilled draft (quick-entry slice 3)", () => {
     await type("Dr. Lee friday 2pm, Alvarez tomorrow 3pm", ["event", "event"]);
     await waitUntil(() => !!cardWith("Dr. Sandra Lee").querySelector("[data-quick-opens-draft]"));
     expect(cardWith("Dr. Elena Alvarez").querySelector("[data-quick-opens-draft]")).toBeNull();
-    await userEvent.click(saveButton()!);
+    await userEvent.click(await found(saveButton));
     await expect.poll(() => device.location()).toBe(NEW_EVENT);
     await expect.poll(chipNames).toEqual(["Dr. Sandra Lee"]);
     const saved = await events(device);
     expect(saved).toHaveLength(1);
-    expect(saved[0]!.title).toBe("Dr. Elena Alvarez");
-    expect(await linksOf(device, saved[0]!.id)).toEqual([ALVAREZ.id]);
+    expect(saved[0]?.title).toBe("Dr. Elena Alvarez");
+    expect(await linksOf(device, saved[0]?.id ?? "")).toEqual([ALVAREZ.id]);
     const docs = await device.query("SELECT id FROM note_document WHERE id = ?", [saved[0]!.id]);
     expect(docs).toHaveLength(1);
   });
@@ -571,7 +563,6 @@ describe("provider events open a prefilled draft (quick-entry slice 3)", () => {
     // It opens as a draft once the group's providers have loaded; before that it's a plain event.
     await waitUntil(
       () => !!cardWith("Dr. Elena Alvarez")?.querySelector("[data-quick-opens-draft]"),
-      4000,
       "the draft line",
     );
     await userEvent.click(page.getByRole("button", { name: 'Edit "Alvarez tomorrow 3pm"' }));
@@ -594,8 +585,8 @@ describe("kind chips", () => {
     expect(buttons.map((b) => b.textContent).sort()).toEqual(["Make it a note", "Make it an event"]);
     await userEvent.click(choices.getByRole("button", { name: "Make it a note" }));
     await waitUntil(() => cardKinds().join() === "note");
-    expect(cards()[0]!.querySelector("[data-quick-kind]")?.textContent).toBe("Note");
-    await userEvent.click(saveButton()!);
+    expect(cards()[0]?.querySelector("[data-quick-kind]")?.textContent).toBe("Note");
+    await userEvent.click(await found(saveButton));
     await expect.poll(() => device.location()).toMatch(/\/entries\//);
     const kinds = await device.query<{ kind: string }>(
       "SELECT kind FROM timeline_entry WHERE created_at > ? ORDER BY kind",

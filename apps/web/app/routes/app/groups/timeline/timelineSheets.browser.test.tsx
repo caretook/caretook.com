@@ -66,7 +66,9 @@ describe("the add sheet", () => {
     expect(await entriesNamed(device, "")).toHaveLength(0);
     expect(await device.queued()).toHaveLength(0);
     await userEvent.click(
-      [...SHEET()!.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Cancel")!,
+      await found(() =>
+        [...(SHEET()?.querySelectorAll("button") ?? [])].find((b) => b.textContent?.trim() === "Cancel"),
+      ),
     );
     await expect.poll(SHEET).toBeNull();
   });
@@ -79,7 +81,7 @@ describe("the add sheet", () => {
     await expect.poll(() => rowWith("Knee pain")).toBeTruthy();
     const [saved] = await entriesNamed(device, "Knee pain");
     expect(saved).toBeTruthy();
-    expect(saved!.created_by).toBe(TEST_USER.id);
+    expect(saved?.created_by).toBe(TEST_USER.id);
     expect((await device.queued()).some((w) => w.id === saved!.id)).toBe(true);
   });
 });
@@ -90,15 +92,17 @@ describe("the edit sheet", () => {
   test("a change shows in the row, stored and queued as the signed-in user", async () => {
     const device = await openTimeline({ role: "caretaker", fixtures: [KNEE] });
     await expect.poll(() => rowWith("Sore knee")).toBeTruthy();
-    await userEvent.click(rowWith("Sore knee")!.querySelector('a[aria-label^="Edit "]')!, { force: true });
+    await userEvent.click(await found(() => rowWith("Sore knee")?.querySelector('a[aria-label^="Edit "]')), {
+      force: true,
+    });
     await expect.poll(() => SHEET()?.textContent?.includes("Edit symptom")).toBe(true);
     await userEvent.fill(await found(NAME), "Sore knee, edited");
     await userEvent.click(await found(SUBMIT));
     await expect.poll(SHEET).toBeNull();
     await expect.poll(() => rowWith("Sore knee, edited")).toBeTruthy();
     const [saved] = await entriesNamed(device, "Sore knee, edited");
-    expect(saved!.id).toBe(KNEE.id);
-    expect(saved!.updated_by).toBe(TEST_USER.id);
+    expect(saved?.id).toBe(KNEE.id);
+    expect(saved?.updated_by).toBe(TEST_USER.id);
     expect((await device.queued()).some((w) => w.id === KNEE.id)).toBe(true);
   });
 });
@@ -108,14 +112,16 @@ describe("delete", () => {
     const knee = fx.symptom({ name: "Delete me", severity: 2 });
     const device = await openTimeline({ role: "caretaker", fixtures: [knee] });
     await expect.poll(() => rowWith("Delete me")).toBeTruthy();
-    await userEvent.click(rowWith("Delete me")!.querySelector('button[aria-label^="Actions"]')!);
+    await userEvent.click(
+      await found(() => rowWith("Delete me")?.querySelector('button[aria-label^="Actions"]')),
+    );
     await expect.poll(() => menuItem("Delete")).toBeTruthy();
-    await userEvent.click(menuItem("Delete")!);
+    await userEvent.click(await found(() => menuItem("Delete")));
     await expect.poll(() => document.querySelector("dialog[open] .btn-error")).toBeTruthy();
     await userEvent.click(await found(() => document.querySelector("dialog[open] .btn-error")));
     await expect.poll(() => rowWith("Delete me")).toBeUndefined();
     const [gone] = await entriesNamed(device, "Delete me");
-    expect(gone!.deleted_at).not.toBeNull();
+    expect(gone?.deleted_at).not.toBeNull();
     expect((await device.queued()).some((w) => w.id === knee.id)).toBe(true);
     expect(rows().some((li) => li.textContent?.includes("Delete me"))).toBe(false);
   });
@@ -189,7 +195,10 @@ describe("When's date picker", () => {
     await expect.poll(() => rowWith("Picked date")).toBeTruthy();
     expect(dayOf("Picked date")).toBe("Yesterday");
 
-    await userEvent.click(rowWith("Picked date")!.querySelector('a[aria-label^="Edit "]')!, { force: true });
+    await userEvent.click(
+      await found(() => rowWith("Picked date")?.querySelector('a[aria-label^="Edit "]')),
+      { force: true },
+    );
     await expect.poll(() => SHEET()?.textContent?.includes("Edit symptom") && PICK()).toBeTruthy();
     await userEvent.click(await found(PICK), { force: true });
     await expect.poll(SELECTED_DAY).toBe(yesterday.day);

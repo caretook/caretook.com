@@ -7,6 +7,7 @@ import { page, userEvent } from "vitest/browser";
 import type { FilterMenuProps } from "./index";
 
 import { renderInRouter } from "../../../test/device";
+import { found } from "../../../test/found";
 import {
   ChipGroup,
   ChoiceGroup,
@@ -106,7 +107,7 @@ describe.each(LAYOUTS)("at $width, $theme", ({ width, theme }) => {
     await expect.element(page.getByRole("menuitemradio", { name: "Dark" })).not.toBeChecked();
     await expect.element(page.getByRole("separator")).toBeInTheDocument();
     // The surface follows the theme.
-    expect(getComputedStyle(menu.element().parentElement!).backgroundColor).toBe(base100());
+    expect(getComputedStyle(await found(() => menu.element().parentElement)).backgroundColor).toBe(base100());
 
     await userEvent.click(page.getByRole("menuitem", { name: "Edit" }));
     expect(onEdit).toHaveBeenCalledOnce();
@@ -273,7 +274,9 @@ describe.each(LAYOUTS)("at $width, $theme", ({ width, theme }) => {
     // Full screen on phones (B-73), a centred dialog from `sm`.
     if (width < 640) expect(Math.round(box.width)).toBe(width);
     else expect(box.width).toBeLessThan(width / 2);
-    expect(getComputedStyle(dialog.element().parentElement!).backgroundColor).toBe(base100());
+    expect(getComputedStyle(await found(() => dialog.element().parentElement)).backgroundColor).toBe(
+      base100(),
+    );
 
     await userEvent.keyboard("{Escape}");
     await expect.element(dialog).not.toBeInTheDocument();
@@ -305,7 +308,9 @@ describe.each(LAYOUTS)("at $width, $theme", ({ width, theme }) => {
     const dialog = page.getByRole("dialog", { name: "When" });
     await expect.element(dialog).toBeVisible();
     await expect.poll(() => dialog.element().contains(active())).toBe(true);
-    expect(getComputedStyle(dialog.element().parentElement!).backgroundColor).toBe(base100());
+    expect(getComputedStyle(await found(() => dialog.element().parentElement)).backgroundColor).toBe(
+      base100(),
+    );
     await userEvent.keyboard("{Escape}");
     await expect.element(dialog).not.toBeInTheDocument();
     await expect.poll(active).toBe(trigger.element());

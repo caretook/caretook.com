@@ -99,7 +99,7 @@ describe("tick", () => {
     const ops = await queued(db);
     expect(ops.map((o) => `${o.op} ${o.id}`)).toEqual([`PATCH ${BINS_ID}`, `PUT ${NEXT_ID}`]);
     // Only the done columns: the upload maps it to complete.
-    expect(Object.keys(ops[0]!.data).sort()).toEqual(["done_at", "done_by"]);
+    expect(Object.keys(ops[0]?.data ?? {}).sort()).toEqual(["done_at", "done_by"]);
     expect(oneTransaction(ops)).toBe(true);
 
     expect(await completeTodo(db, BINS_ID)).toEqual({ ok: true, id: BINS_ID });

@@ -4,6 +4,7 @@ import { describe, expect, test } from "vitest";
 import { formString } from "~/lib/core/form";
 import { page, userEvent } from "vitest/browser";
 import { ADMIN_STAFF, adminFx } from "../../../../test/adminFixtures";
+import { found } from "../../../../test/found";
 import { openAdmin, postedForms } from "../adminWorld";
 import { accountActionDoneMessage } from "./accountActions";
 import { helpDoneMessage } from "./helpActions";
@@ -114,7 +115,7 @@ describe("an account's page", () => {
     const { device } = await openUser();
     const { screen } = device;
     await expect.element(screen.getByRole("heading", { name: "Pat Lindqvist", level: 1 })).toBeVisible();
-    expect(section("account")!.textContent).toContain("Password, Emailed link or code");
+    expect(section("account")?.textContent).toContain("Password, Emailed link or code");
 
     const sessions = [...document.querySelectorAll("[data-sessions] li")].map(
       (li) => li.querySelector("p")!.textContent,
@@ -124,14 +125,15 @@ describe("an account's page", () => {
     await expect
       .element(screen.getByRole("link", { name: "Grandma June" }))
       .toHaveAttribute("href", `/admin/groups/${group.groupId}`);
-    expect(section("groups")!.textContent).toContain("Lindqvist Family");
-    expect(section("groups")!.textContent).toContain("Owner");
+    expect(section("groups")?.textContent).toContain("Lindqvist Family");
+    expect(section("groups")?.textContent).toContain("Owner");
 
     const mail = document.querySelector('[data-mail] tr[data-mail-row="verifyEmail"]')!;
     expect(mail.textContent).toContain("Failed (3 tries)");
     expect(mail.textContent).toContain("bounced");
 
-    expect(section("history")!.querySelector('[data-action="user.view"]')).not.toBeNull();
+    const history = await found(() => section("history"));
+    expect(history.querySelector('[data-action="user.view"]')).not.toBeNull();
   });
 
   test("signing one session out takes a reason, posts that session, and the page loses it", async () => {
@@ -247,9 +249,9 @@ describe("an account's page", () => {
 
   test("your own page: a note, and no disable or role controls", async () => {
     await openUser({ isSelf: true });
-    await expect.poll(() => section("admin")).not.toBeNull();
-    expect(section("admin")!.querySelector("[data-self-note]")).not.toBeNull();
-    expect(section("admin")!.querySelectorAll("button, select")).toHaveLength(0);
+    const admin = await found(() => section("admin"));
+    expect(admin.querySelector("[data-self-note]")).not.toBeNull();
+    expect(admin.querySelectorAll("button, select")).toHaveLength(0);
   });
 
   test("support: the help actions, but no Access card", async () => {

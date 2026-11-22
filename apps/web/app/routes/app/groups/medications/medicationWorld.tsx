@@ -1,10 +1,10 @@
 import type { MedicationChangeDetails } from "@caretook/data/schema";
 import type { DeviceRoute } from "../../../../../test/device";
 
-import { vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { at, fx, medicationPass, TEST_GROUP } from "../../../../../test/fixtures";
-import { found } from "../../../../../test/found";
+import { fixClock as fixTestClock, found } from "../../../../../test/found";
+import { getByCss } from "../../../../../test/locators";
 import * as medicationPage from "../medication/route";
 import * as allergiesSheet from "./allergies/route";
 import * as editSheet from "./edit/route";
@@ -258,38 +258,45 @@ export const MEDICATION_ROUTES: DeviceRoute[] = [
 
 // --- DOM helpers (medications.mjs's selectors) -------------------------------
 
-export const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector<T>(sel);
-export const $$ = <T extends Element = HTMLElement>(sel: string) => [...document.querySelectorAll<T>(sel)];
-
 /** The names in one of the list's lists. */
 export const listNames = (label: string) =>
-  $$(`main ul[aria-label="${label}"] [data-medication-name]`).map((n) => n.textContent?.trim());
+  [...document.querySelectorAll<HTMLElement>(`main ul[aria-label="${label}"] [data-medication-name]`)].map(
+    (n) => n.textContent?.trim(),
+  );
 
 /** One field of a list row (`summary`, `reason`, `stopped`), by the start of its name. */
 export const rowText = (name: string, field: string) =>
-  $$("main li[data-medication-id]")
+  [...document.querySelectorAll<HTMLElement>("main li[data-medication-id]")]
     .find((li) => li.querySelector("[data-medication-name]")?.textContent?.trim().startsWith(name))
     ?.querySelector(`[data-medication-${field}]`)
     ?.textContent?.trim() ?? null;
 
-export const NOTES = () => $("main .ProseMirror");
+export const NOTES = () => document.querySelector<HTMLElement>("main .ProseMirror");
 
 /** A medication's page as the DOM has it. */
 export const medPage = () => ({
-  h1: $("main h1")?.textContent?.trim(),
-  badge: $('main header [data-region="title"] .badge')?.textContent?.trim() ?? null,
-  details: $('main header [data-region="details"]')?.textContent?.trim() ?? null,
-  stopped: $("main [data-medication-stopped]")?.textContent?.trim() ?? null,
+  h1: document.querySelector<HTMLElement>("main h1")?.textContent?.trim(),
+  badge:
+    document.querySelector<HTMLElement>('main header [data-region="title"] .badge')?.textContent?.trim() ??
+    null,
+  details:
+    document.querySelector<HTMLElement>('main header [data-region="details"]')?.textContent?.trim() ?? null,
+  stopped: document.querySelector<HTMLElement>("main [data-medication-stopped]")?.textContent?.trim() ?? null,
   rows: Object.fromEntries(
-    $$("main [data-detail]").map((r) => [r.dataset.detail ?? "", r.querySelector("dd")?.textContent?.trim()]),
+    [...document.querySelectorAll<HTMLElement>("main [data-detail]")].map((r) => [
+      r.dataset.detail ?? "",
+      r.querySelector("dd")?.textContent?.trim(),
+    ]),
   ) as Record<string, string | undefined>,
-  providers: $$("main li[data-medication-provider]").map((li) => [
+  providers: [...document.querySelectorAll<HTMLElement>("main li[data-medication-provider]")].map((li) => [
     li.dataset.medicationProvider,
     li.querySelector("[data-provider-name]")?.textContent?.trim(),
     li.querySelector("a[data-provider-name]")?.getAttribute("href") ?? null,
     !!li.querySelector("[data-contact-actions] a"),
   ]),
-  history: $$("main [data-medication-history] li[data-entry-id]").map((li) => ({
+  history: [
+    ...document.querySelectorAll<HTMLElement>("main [data-medication-history] li[data-entry-id]"),
+  ].map((li) => ({
     id: li.dataset.entryId,
     kind: li.dataset.kind,
     text: li.querySelector("[data-entry-text]")?.textContent?.trim(),
@@ -297,16 +304,21 @@ export const medPage = () => ({
   notes: NOTES()?.textContent ?? null,
   editable: NOTES()?.getAttribute("contenteditable") ?? null,
   readonly: NOTES()?.getAttribute("aria-readonly") ?? null,
-  actions: !!$('main header [data-region="actions"]'),
+  actions: !!document.querySelector<HTMLElement>('main header [data-region="actions"]'),
 });
 export const historyTexts = () =>
-  $$("main [data-medication-history] li[data-entry-id] [data-entry-text]").map((t) => t.textContent?.trim());
+  [
+    ...document.querySelectorAll<HTMLElement>(
+      "main [data-medication-history] li[data-entry-id] [data-entry-text]",
+    ),
+  ].map((t) => t.textContent?.trim());
 
-export const SHEET = () => $("[role=dialog]");
-export const FORM = () => $<HTMLFormElement>("[role=dialog] [data-medication-form]");
+export const SHEET = () => document.querySelector<HTMLElement>("[role=dialog]");
+export const FORM = () => document.querySelector<HTMLFormElement>("[role=dialog] [data-medication-form]");
 export const field = <T extends HTMLElement = HTMLInputElement>(name: string) =>
   FORM()?.querySelector<T>(`[name="${name}"]`) ?? null;
-export const submit = () => FORM()!.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+/** The sheet's Save, as a locator. */
+export const submit = () => getByCss('[role=dialog] [data-medication-form] button[type="submit"]');
 export const times = () => [...(FORM()?.querySelectorAll<HTMLInputElement>('input[name="time"]') ?? [])];
 /** A field's message, through its `aria-describedby`. */
 export const errorOf = (name: string) => {
@@ -321,37 +333,30 @@ export const pickerInput = (kind: "prescriber" | "pharmacy") =>
 export const pickerChip = (kind: "prescriber" | "pharmacy") =>
   FORM()?.querySelector(`[data-provider-picker="${kind}"] li[data-chip]`)?.textContent?.trim() ?? null;
 export const option = (text: string) =>
-  $$('[role="option"]').find((o) => o.firstElementChild?.textContent === text);
-export const menuItem = (text: string) => $$("[role=menuitem]").find((m) => m.textContent?.trim() === text);
-export const OPEN_DIALOG = () => $<HTMLDialogElement>("dialog[open]");
+  [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(
+    (o) => o.firstElementChild?.textContent === text,
+  );
+export const menuItem = (text: string) =>
+  [...document.querySelectorAll<HTMLElement>("[role=menuitem]")].find((m) => m.textContent?.trim() === text);
+export const OPEN_DIALOG = () => document.querySelector<HTMLDialogElement>("dialog[open]");
 export const dialogButton = (text: string) =>
   [...(OPEN_DIALOG()?.querySelectorAll("button") ?? [])].find((b) => b.textContent?.trim() === text);
 
-/** Poll a condition (a DOM read) until it holds, or fail with `what`. */
-export const waitUntil = async (test: () => boolean, ms = 4000, what = "condition") => {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    if (test()) return;
-    await new Promise((r) => setTimeout(r, 25));
-  }
-  throw new Error(`timed out waiting for ${what}`);
-};
-
 /** Type `text` in a provider picker and take `optionText` from its list. */
 export const pickProvider = async (kind: "prescriber" | "pharmacy", text: string, optionText: string) => {
-  await userEvent.click(pickerInput(kind)!);
+  await userEvent.click(await found(() => pickerInput(kind)));
   await userEvent.keyboard(text);
-  await waitUntil(() => !!option(optionText), 4000, `the option ${optionText}`);
-  await userEvent.click(option(optionText)!);
+  await userEvent.click(await found(() => option(optionText), { message: `the option ${optionText}` }));
 };
 
 /** Open a medication page's ⋯ menu and choose `item`. */
 export const pageAction = async (title: string, item: string) => {
-  const button = () => $(`main header [data-region="actions"] button[aria-label="Actions for ${title}"]`);
-  await waitUntil(() => !!button(), 4000, "the page's ⋯");
-  await userEvent.click(button()!);
-  await waitUntil(() => !!menuItem(item), 4000, `the menu item ${item}`);
-  await userEvent.click(menuItem(item)!);
+  const button = () =>
+    document.querySelector<HTMLElement>(
+      `main header [data-region="actions"] button[aria-label="Actions for ${title}"]`,
+    );
+  await userEvent.click(await found(button, { message: "the page's ⋯" }));
+  await userEvent.click(await found(() => menuItem(item), { message: `the menu item ${item}` }));
 };
 
 /** The device's medication row, for what a screen wrote. */
@@ -365,13 +370,12 @@ export const CHANGES_SQL =
 
 /** Wednesday Jun 9 2027, 10:00 in Los Angeles (the test browser's zone and the recipient's): the test clock's day (`TEST_NOW`), which the module-level fixtures are relative to. */
 export const CLOCK = new Date(2027, 5, 9, 10, 0);
-/** Fake `Date` and timers at `now`, still advancing (restore with `vi.useRealTimers()`). */
-export const fixClock = (now = CLOCK) =>
-  vi.useFakeTimers({
-    toFake: ["Date", "setInterval", "clearInterval", "setTimeout", "clearTimeout"],
-    shouldAdvanceTime: true,
-    now,
-  });
+/**
+ * The test clock at `CLOCK`: this area's tests call `test/found.ts`'s `fixClock(CLOCK)`. Kept only for
+ * the timeline's and the layout's tests that import it from here (test-health slices 15 and 18 move them
+ * to the shared one; slice 19 deletes this).
+ */
+export const fixClock = (now: Date | number = CLOCK) => fixTestClock(now);
 /** `HH:MM` on the fixed clock's day, `minutes` from 10:00 (negative is earlier). */
 export const clockAt = (minutes: number) => {
   const m = 10 * 60 + minutes;
@@ -396,7 +400,7 @@ export type DoseRow = {
 
 /** The header's `+` (writers), then Medication: the add sheet over the tab, once it's open. */
 export const openAddMedication = async () => {
-  await userEvent.click(await found(() => $("main header [data-add-medication]")));
+  await userEvent.click(getByCss("main header [data-add-medication]"));
   await userEvent.click(await found(() => menuItem("Medication")));
   await found(FORM);
 };

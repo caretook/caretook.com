@@ -115,7 +115,7 @@ describe("a writer's medication", () => {
     if (!made.ok) return;
     const entries = await changes(db, made.id);
     expect(entries.map((e) => [e.change, e.time_zone])).toEqual([["started", ZONE]]);
-    expect(JSON.parse((await row(db, made.id)).schedule!)).toEqual({
+    expect(JSON.parse((await row(db, made.id)).schedule ?? "null")).toEqual({
       type: "scheduled",
       slots: [{ time: "08:00" }, { time: "20:00" }],
     });

@@ -8,7 +8,8 @@ import { fx, hoursAgo, TEST_GROUP, TEST_USER } from "../../../../../test/fixture
 import * as newDose from "./new-dose/route";
 import * as newSheet from "./new/route";
 import * as timeline from "./route";
-import { chooseEasyMode, TIMELINE_URL, waitUntil } from "./timelineWorld";
+import { chooseEasyMode, TIMELINE_URL } from "./timelineWorld";
+import { waitUntil } from "../../../../../test/found";
 
 // Easy mode's tiles (assistant slice 6), on the test device and offline:
 // which four show for each of the group's choices (learned from use, the
@@ -67,7 +68,7 @@ const tileLabels = () => tiles().map((t) => t.textContent?.trim());
 const hint = () => document.querySelector("[data-tiles-hint]")?.textContent?.trim() ?? null;
 /** The tiles, once the recipient's pronouns have loaded (labels use their name until then). */
 const ready = () =>
-  waitUntil(() => tiles().length === 4 && !tileLabels().join().includes("June"), 4000, "the tiles");
+  waitUntil(() => tiles().length === 4 && !tileLabels().join().includes("June"), "the tiles");
 const queuedEntries = async (device: Awaited<ReturnType<typeof open>>) =>
   (await device.queued()).filter((w) => w.type === "timeline_entry");
 
@@ -100,7 +101,7 @@ describe("which tiles", () => {
       pronouns: null,
       entries: [sugar(2), sugar(5), sugar(30), fx.symptom({ occurredAt: hoursAgo(3) }), sugar(24 * 40)],
     });
-    await waitUntil(() => tileLabels()[0] === "Blood sugar", 4000, "the learned tiles");
+    await waitUntil(() => tileLabels()[0] === "Blood sugar", "the learned tiles");
     // Without pronouns, the labels use the recipient's name.
     expect(tileLabels()).toEqual([
       "Blood sugar",
@@ -139,7 +140,7 @@ describe("which tiles", () => {
         }),
       }),
     );
-    await waitUntil(() => tileLabels()[0] === "Blood sugar", 4000, "the picked tiles");
+    await waitUntil(() => tileLabels()[0] === "Blood sugar", "the picked tiles");
     expect(tileLabels()).toEqual(["Blood sugar", "Her medicines", "Weight", "How she feels"]);
   });
 });
@@ -163,9 +164,9 @@ describe("each tile's sheet saves an entry, offline", () => {
 
     await expect.poll(async () => (await queuedEntries(device)).length).toBe(1);
     const [saved] = await queuedEntries(device);
-    expect(saved!.data).toMatchObject({ kind: "symptom" });
-    expect(JSON.parse(saved!.data!.details as string)).toEqual({ name: "Feeling", severity: 4 });
-    await waitUntil(() => !document.querySelector('[role="dialog"]'), 4000, "the sheet to close");
+    expect(saved?.data).toMatchObject({ kind: "symptom" });
+    expect(JSON.parse(saved?.data?.details as string)).toEqual({ name: "Feeling", severity: 4 });
+    await waitUntil(() => !document.querySelector('[role="dialog"]'), "the sheet to close");
   });
 
   test("a vital: only that type's fields, saved as a vital", async () => {
@@ -181,7 +182,7 @@ describe("each tile's sheet saves an entry, offline", () => {
 
     await expect.poll(async () => (await queuedEntries(device)).length).toBe(1);
     const [saved] = await queuedEntries(device);
-    expect(JSON.parse(saved!.data!.details as string)).toEqual({
+    expect(JSON.parse(saved?.data?.details as string)).toEqual({
       readings: [{ type: "bloodPressure", systolic: 128, diastolic: 82 }],
     });
   });
@@ -195,8 +196,8 @@ describe("each tile's sheet saves an entry, offline", () => {
     await userEvent.click(sheet.getByRole("button", { name: /^Log (dose|anyway)$/ }));
     await expect.poll(async () => (await queuedEntries(device)).length).toBe(1);
     const [saved] = await queuedEntries(device);
-    expect(saved!.data).toMatchObject({ kind: "dose" });
-    expect(JSON.parse(saved!.data!.details as string)).toMatchObject({ medicationId: METFORMIN.id });
+    expect(saved?.data).toMatchObject({ kind: "dose" });
+    expect(JSON.parse(saved?.data?.details as string)).toMatchObject({ medicationId: METFORMIN.id });
   });
 
   test("a note: opens a new note's page", async () => {

@@ -2,7 +2,7 @@ import type { DeviceRoute } from "../../../../../test/device";
 
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_GROUP } from "../../../../../test/fixtures";
 import {
@@ -17,7 +17,6 @@ import {
   submit,
   track,
   typeRadio,
-  waitUntil,
 } from "../periods/periodWorld";
 import * as entryRoute from "./route";
 
@@ -66,23 +65,23 @@ const TITLE = () => document.querySelector<HTMLInputElement>("main header input"
 describe("the period suggestion", () => {
   test('"Admitted to Riverside General" offers one chip; it opens the add sheet with the type, the event\'s time and its linked practice; saving comes back to the entry, the chip gone', async () => {
     const device = await open(ADMITTED.id);
-    await waitUntil(onEntry, 4000, "the entry page");
-    await waitUntil(() => !!chip(), 4000, "the chip");
+    await waitUntil(onEntry, "the entry page");
+    await waitUntil(() => !!chip(), "the chip");
     expect(chips()).toHaveLength(1);
     await expect.poll(() => chip()?.dataset.periodSuggestion).toBe("hospital");
     await expect.poll(() => chip()?.textContent?.trim()).toBe("Start a hospital period?");
 
-    await userEvent.click(chip()!);
-    await waitUntil(() => !!FORM(), 4000, "the prefilled sheet");
+    await userEvent.click(await found(chip));
+    await waitUntil(() => !!FORM(), "the prefilled sheet");
     expect(device.location()).toMatch(/\/periods\/new\?/);
-    expect(typeRadio("Hospital")!.checked).toBe(true);
-    expect(field("dateOnly")!.checked).toBe(false);
-    expect(Date.parse(field("startedAt")!.value.replace(/\[.*\]$/, ""))).toBe(T.getTime());
+    expect(typeRadio("Hospital")?.checked).toBe(true);
+    expect(field("dateOnly")?.checked).toBe(false);
+    expect(Date.parse(field("startedAt")?.value.replace(/\[.*\]$/, "") ?? "")).toBe(T.getTime());
     expect(pickerChip()).toBe("Riverside General Hospital");
 
-    await userEvent.fill(field("label")!, "Suggested");
+    await userEvent.fill(await found(() => field("label")), "Suggested");
     await userEvent.click(submit());
-    await waitUntil(() => !SHEET() && onEntry(), 4000, "back on the entry");
+    await waitUntil(() => !SHEET() && onEntry(), "back on the entry");
     expect(device.location()).toBe(entryUrl(ADMITTED.id));
     await device.settle();
     expect(chip()).toBeNull();
@@ -90,7 +89,7 @@ describe("the period suggestion", () => {
       "SELECT type, started_at, place_provider_id FROM care_period WHERE label = 'Suggested'",
     );
     expect(saved).toMatchObject({ type: "hospital", place_provider_id: RIVERSIDE.id });
-    expect(new Date(saved!.started_at).getTime()).toBe(T.getTime());
+    expect(new Date(saved?.started_at ?? "").getTime()).toBe(T.getTime());
   });
 
   test.each([
@@ -98,37 +97,37 @@ describe("the period suggestion", () => {
     ["a note", NOTE.id],
   ])("no chip on %s", async (_, id) => {
     const device = await open(id);
-    await waitUntil(onEntry, 4000, "the entry page");
+    await waitUntil(onEntry, "the entry page");
     await device.settle();
     expect(chip()).toBeNull();
   });
 
   test('"Moved to rehab" offers Rehab', async () => {
     await open(REHAB.id);
-    await waitUntil(() => chip()?.dataset.periodSuggestion === "rehab", 4000, "the rehab chip");
+    await waitUntil(() => chip()?.dataset.periodSuggestion === "rehab", "the rehab chip");
     await expect.poll(() => chip()?.textContent?.trim()).toBe("Start a rehab period?");
   });
 
   test("a viewer gets no chip", async () => {
     const device = await open(REHAB.id, { role: "viewer" });
-    await waitUntil(onEntry, 4000, "the entry page");
+    await waitUntil(onEntry, "the entry page");
     await device.settle();
     expect(chip()).toBeNull();
   });
 
   test('a renamed event\'s chip follows ("Hospice intake" offers Hospice at home); its sheet opens prefilled, and Cancel comes back to the entry', async () => {
     const device = await open(REHAB.id);
-    await waitUntil(() => chip()?.dataset.periodSuggestion === "rehab", 4000, "the rehab chip");
+    await waitUntil(() => chip()?.dataset.periodSuggestion === "rehab", "the rehab chip");
     await userEvent.fill(await found(TITLE), "Hospice intake");
     await userEvent.tab();
-    await waitUntil(() => chip()?.dataset.periodSuggestion === "hospiceHome", 4000, "the hospice chip");
+    await waitUntil(() => chip()?.dataset.periodSuggestion === "hospiceHome", "the hospice chip");
     await expect.poll(() => chip()?.textContent?.trim()).toBe("Start a hospice at home period?");
 
-    await userEvent.click(chip()!);
-    await waitUntil(() => !!FORM(), 4000, "the sheet");
-    expect(typeRadio("Hospice at home")!.checked).toBe(true);
+    await userEvent.click(await found(chip));
+    await waitUntil(() => !!FORM(), "the sheet");
+    expect(typeRadio("Hospice at home")?.checked).toBe(true);
     await userEvent.click(formButton("Cancel"));
-    await waitUntil(() => !SHEET() && onEntry() && !!chip(), 4000, "back on the entry with its chip");
+    await waitUntil(() => !SHEET() && onEntry() && !!chip(), "back on the entry with its chip");
     expect(device.location()).toBe(entryUrl(REHAB.id));
     await expect.element(page.getByRole("link", { name: "Start a hospice at home period?" })).toBeVisible();
   });

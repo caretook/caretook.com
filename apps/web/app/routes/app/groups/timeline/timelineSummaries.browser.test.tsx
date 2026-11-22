@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
 import { at, fx, TEST_USER } from "../../../../../test/fixtures";
-import { openTimeline, rows, SAM, setView, TIMELINE_URL, waitUntil } from "./timelineWorld";
+import { openTimeline, rows, SAM, setView, TIMELINE_URL } from "./timelineWorld";
+import { found, waitUntil } from "../../../../../test/found";
 
 // The day summaries on the test device: the line in each day's sticky header,
 // what it says (arrows in words), expanding by tap and keyboard, live updates
@@ -50,15 +51,14 @@ const lineOf = (i = 0) => summaryButton(i)?.querySelector(".truncate")?.textCont
 describe("the day summary", () => {
   test("sits inside each day's sticky header, under the date, and says how the day went", async () => {
     await openTimeline({ fixtures });
-    await waitUntil(() => summaries().length === 2, 4000, "two summaries");
-    const [today, yesterday] = summaries();
+    await waitUntil(() => summaries().length === 2, "two summaries");
+    const today = await found(() => summaries()[0]);
+    const yesterday = summaries()[1];
     // In the sticky header, after the date's row.
-    const header = today!.closest("[data-day-header]")!;
+    const header = today.closest("[data-day-header]")!;
     expect(header).toBeTruthy();
-    expect(header.querySelector("h3")!.compareDocumentPosition(today!)).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    );
-    expect(yesterday!.closest("[data-day-header]")).toBeTruthy();
+    expect(header.querySelector("h3")?.compareDocumentPosition(today)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(yesterday?.closest("[data-day-header]")).toBeTruthy();
     expect(lineOf(0)).toBe(TODAY_TEXT);
     expect(lineOf(1)).toBe("Cough 3 (new)");
     expect(yesterday).toBeTruthy();
@@ -115,14 +115,14 @@ describe("the day summary", () => {
     await waitUntil(() => lineOf(0) === TODAY_TEXT);
     const fall = fx.event({ occurredAt: minutesAgo(5), title: "Walk in the garden", createdBy: SAM.id });
     await device.sync([fall]);
-    await waitUntil(() => lineOf(0).includes("Fell in bathroom · Walk in the garden"), 4000, "the new event");
+    await waitUntil(() => lineOf(0).includes("Fell in bathroom · Walk in the garden"), "the new event");
 
     const high = fx.vital({ occurredAt: minutesAgo(3), readings: [{ type: "heartRate", value: 140 }] });
     await device.sync([high]);
-    await waitUntil(() => lineOf(0).startsWith("BP 150/90 ↑ · HR 140 bpm ↑ ·"), 4000, "the reading");
+    await waitUntil(() => lineOf(0).startsWith("BP 150/90 ↑ · HR 140 bpm ↑ ·"), "the reading");
 
     await device.unsync([fall]);
-    await waitUntil(() => !lineOf(0).includes("Walk in the garden"), 4000, "the event gone");
+    await waitUntil(() => !lineOf(0).includes("Walk in the garden"), "the event gone");
   });
 
   test.each([
@@ -138,7 +138,7 @@ describe("the day summary", () => {
 
     await userEvent.click(device.screen.getByRole("link", { name: clear }));
     await expect.poll(() => device.location()).toBe(TIMELINE_URL);
-    await waitUntil(() => summaries().length === 2, 4000, "summaries back");
+    await waitUntil(() => summaries().length === 2, "summaries back");
   });
 
   test("the header's menu switches to the full line, and off", async () => {
@@ -150,13 +150,13 @@ describe("the day summary", () => {
     };
 
     await choose("Full");
-    await waitUntil(() => lineOf(0) === TODAY_FULL, 4000, "the full line");
+    await waitUntil(() => lineOf(0) === TODAY_FULL, "the full line");
     expect(lineOf(1)).toBe("BP 120/80 · Cough 3 (new) · Alex");
 
     await choose("Off");
-    await waitUntil(() => summaries().length === 0, 4000, "no summaries");
+    await waitUntil(() => summaries().length === 0, "no summaries");
 
     await choose("Highlights");
-    await waitUntil(() => lineOf(0) === TODAY_TEXT, 4000, "highlights back");
+    await waitUntil(() => lineOf(0) === TODAY_TEXT, "highlights back");
   });
 });

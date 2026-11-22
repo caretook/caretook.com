@@ -12,7 +12,7 @@ describe("Page", () => {
     );
     const mains = document.querySelectorAll("main");
     expect(mains).toHaveLength(1);
-    expect(mains[0]!.getAttribute("data-example-page")).toBe("x");
+    expect(mains[0]?.getAttribute("data-example-page")).toBe("x");
     await expect.element(screen.getByRole("heading", { level: 1, name: "Example" })).toBeVisible();
   });
 

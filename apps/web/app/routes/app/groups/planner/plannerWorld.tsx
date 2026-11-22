@@ -1,9 +1,11 @@
 import type { DeviceOptions, DeviceRoute } from "../../../../../test/device";
 import type { Fixture } from "../../../../../test/fixtures";
 
-import { expect, vi } from "vitest";
+import { expect } from "vitest";
+import { page } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
+import { getByCss } from "../../../../../test/locators";
 import * as entryRoute from "../entry/route";
 import * as editSheet from "../timeline/edit/route";
 import * as newDose from "../timeline/new-dose/route";
@@ -16,7 +18,8 @@ import * as todos from "../todos/route";
 import * as past from "./past/route";
 import * as planner from "./route";
 
-// The Planner's component tests share one fictional world, on a fixed clock:
+// The Planner's component tests share one fictional world, on a fixed clock
+// (`fixClock(NOW)` from test/found.ts, before building it):
 // Wednesday, November 18, 2026, 10:00 AM in Los Angeles (where the test
 // device runs). Something in progress, items later today, tomorrow and
 // Friday (one all day), cancelled and rescheduled ones,
@@ -34,19 +37,6 @@ export const fromNow = (ms: number) => at(new Date(NOW.getTime() + ms));
 /** A wall-clock time in Los Angeles `days` from today (Nov 18): `laTime(1, 10, 30)` is tomorrow 10:30 AM. */
 export const laTime = (days: number, hour: number, minute = 0) =>
   at(new Date(Date.UTC(2026, 10, 18 + days, hour + 8, minute)));
-
-/**
- * Fake the clock at `NOW` (Date and the timers the screens tick with), still
- * moving with real time, so `vi.advanceTimersByTime` can jump it. Call it
- * before building the world (its times are from the fixed now).
- */
-export const fixClock = (now = NOW) => {
-  vi.useFakeTimers({
-    toFake: ["Date", "setInterval", "clearInterval", "setTimeout", "clearTimeout"],
-    shouldAdvanceTime: true,
-    now,
-  });
-};
 
 export const SAM = fx.person({ name: "Sam Okafor", role: "caretaker" });
 /** The aide: a phone, no address (a row with only her calls her). */
@@ -179,7 +169,7 @@ export const PLANNER_ROUTES: DeviceRoute[] = [
   { path: "/app/groups/:groupId/entries/:entryId", module: entryRoute },
 ];
 
-/** Open the test device at `url` (the Planner tab by default) on the world plus `extra` rows. Fix the clock first. */
+/** Open the test device at `url` (the Planner tab by default) on the world plus `extra` rows. Fix the clock first (`fixClock(NOW)`). */
 export const openPlanner = async ({
   url = PLANNER_URL,
   extra = [],
@@ -239,17 +229,24 @@ export const listed = (): ListedRow[] =>
   );
 export const rowOf = (id: string) => listed().find((r) => r.id === id);
 export const titlesListed = () => listed().map((r) => r.id);
+/** A listed row (its `data-upcoming-item`), as an element to read, or null. */
 export const itemEl = (id: string) =>
   document.querySelector<HTMLElement>(`main [data-upcoming-item="${id}"]`);
+/** A listed row, as a locator. */
+export const item = (id: string) => getByCss(`main [data-upcoming-item="${id}"]`);
+/** A row's ⋯ button. */
+export const rowActions = (id: string) => item(id).getByCss('button[aria-label^="Actions for"]');
 
-export const menuItem = (text: string) =>
-  [...document.querySelectorAll<HTMLElement>("[role=menuitem]")].find((m) => m.textContent?.trim() === text);
+/** The open menu's item named `text`. */
+export const menuItem = (text: string) => page.getByRole("menuitem", { name: text, exact: true });
 export const menuItems = () =>
   [...document.querySelectorAll<HTMLElement>("[role=menuitem]")].map((m) => m.textContent?.trim());
+const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** The first button in an open dialog whose text is `text`. */
 export const dialogButton = (text: string) =>
-  [...document.querySelectorAll<HTMLButtonElement>("dialog[open] button")].find(
-    (b) => b.textContent?.trim() === text,
-  );
+  getByCss("dialog[open] button")
+    .filter({ hasText: new RegExp(`^${escape(text)}$`) })
+    .first();
 
 /** The signed-in user's id, for `createdBy` checks. */
 export const ME = TEST_USER.id;

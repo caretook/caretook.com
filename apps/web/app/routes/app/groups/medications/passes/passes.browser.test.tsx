@@ -4,8 +4,6 @@ import { found } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
 import { fx, medicationPass } from "../../../../../../test/fixtures";
 import {
-  $,
-  $$,
   dialogButton,
   EVENING,
   MEDICATION_ROUTES,
@@ -55,7 +53,7 @@ const SIX_MORE = ["Noon", "Afternoon", "Supper", "Bedtime", "Night", "Late"].map
   medicationPass({ name, time: `${String(9 + i).padStart(2, "0")}:30`, sortOrder: 2 + i }),
 );
 
-const rows = () => $$("main [data-passes] > li");
+const rows = () => [...document.querySelectorAll<HTMLElement>("main [data-passes] > li")];
 /** The screen's passes as "Name HH:MM", in order. */
 const passList = () =>
   rows().map(
@@ -65,9 +63,10 @@ const passList = () =>
 const row = (name: string) => rows().find((li) => li.querySelector("[data-pass-name]")?.textContent === name);
 const medsIn = (name: string) =>
   [...(row(name)?.querySelectorAll("[data-pass-medication]") ?? [])].map((a) => a.textContent);
-const FORM = () => $<HTMLFormElement>("[role=dialog] [data-pass-form]");
+const FORM = () => document.querySelector<HTMLFormElement>("[role=dialog] [data-pass-form]");
 const input = (name: string) => FORM()!.querySelector<HTMLInputElement>(`[name="${name}"]`)!;
-const description = () => $("main [data-passes-description]")?.textContent ?? null;
+const description = () =>
+  document.querySelector<HTMLElement>("main [data-passes-description]")?.textContent ?? null;
 
 const fillForm = async ({ name, time }: { name?: string; time?: string }) => {
   await expect.poll(FORM).toBeTruthy();
@@ -117,8 +116,8 @@ describe("the tab", () => {
   test("a viewer reads the passes and their medications, told so, with no controls", async () => {
     await open({ role: "viewer" });
     await expect.poll(passList).toEqual(["Morning 08:00", "Evening 20:00"]);
-    expect($("main header [data-add-medication]")).toBeNull();
-    expect($$("main [data-passes] button")).toHaveLength(0);
+    expect(document.querySelector<HTMLElement>("main header [data-add-medication]")).toBeNull();
+    expect([...document.querySelectorAll<HTMLElement>("main [data-passes] button")]).toHaveLength(0);
     expect(description()).toContain("You can view the passes");
   });
 
@@ -138,7 +137,7 @@ describe("the add-pass sheet's URL", () => {
     const device = await open({ ...options, url: NEW_PASS });
     await expect.poll(() => device.location()).toBe(PASSES);
     await expect.poll(() => rows().length).toBeGreaterThan(0);
-    expect($("[role=dialog]")).toBeNull();
+    expect(document.querySelector<HTMLElement>("[role=dialog]")).toBeNull();
   });
 
   test("opened directly by a writer, it shows over the tab and Cancel replaces it with the tab", async () => {
@@ -197,7 +196,7 @@ describe("a writer", () => {
       [noon],
     );
     expect(moved).toHaveLength(1);
-    expect(JSON.parse(moved[0]!.details)).toMatchObject({
+    expect(JSON.parse(moved[0]?.details ?? "null")).toMatchObject({
       change: "passMoved",
       beforeTime: "12:00",
       afterTime: "12:30",
@@ -235,7 +234,7 @@ describe("a writer", () => {
     const [med] = await device.query<{ schedule: string }>("SELECT schedule FROM medication WHERE id = ?", [
       PASS_MED.id,
     ]);
-    expect(JSON.parse(med!.schedule)).toEqual({
+    expect(JSON.parse(med?.schedule ?? "null")).toEqual({
       type: "scheduled",
       slots: [{ time: "12:00", amount: "2 tablets" }],
     });

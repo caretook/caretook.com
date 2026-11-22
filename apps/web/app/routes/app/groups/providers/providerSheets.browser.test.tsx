@@ -5,7 +5,7 @@ import { useLayoutEffect } from "react";
 import { useNavigate } from "react-router";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 import {
   createAndLinkProvider,
   createProvider,
@@ -16,7 +16,6 @@ import {
 import { renderWithDevice } from "../../../../../test/device";
 import { fx } from "../../../../../test/fixtures";
 import {
-  $,
   ADD_PROVIDER,
   CONFIRM,
   confirmButton,
@@ -37,7 +36,6 @@ import {
   SHEET,
   SHOW_PAST,
   submit,
-  waitUntil,
   WESTSIDE,
 } from "./providerWorld";
 import * as providers from "./route";
@@ -98,10 +96,10 @@ const storedNamed = async (device: Awaited<ReturnType<typeof open>>, name: strin
 const stored = async (device: Awaited<ReturnType<typeof open>>, id: string) =>
   (await device.query<StoredProvider>("SELECT * FROM provider WHERE id = ?", [id]))[0];
 
-const addPhone = () => userEvent.click(formButton("Add a phone number")!);
+const addPhone = async () => userEvent.click(await found(() => formButton("Add a phone number")));
 const openAdd = async () => {
   await userEvent.click(await found(ADD_PROVIDER));
-  await waitUntil(() => !!FORM(), 4000, "the add sheet");
+  await waitUntil(() => !!FORM(), "the add sheet");
 };
 
 describe("adding a provider", () => {
@@ -109,7 +107,9 @@ describe("adding a provider", () => {
     const device = await open({ role: "caretaker" });
     await openAdd();
     expect(device.location()).toBe(`${PROVIDERS_URL}/new`);
-    expect($("[role=dialog] :is(h2, h3)")?.textContent).toBe("Add a provider");
+    expect(document.querySelector<HTMLElement>("[role=dialog] :is(h2, h3)")?.textContent).toBe(
+      "Add a provider",
+    );
     await expect
       .poll(() => FORM()?.querySelector<HTMLInputElement>('[name="type"]:checked')?.value)
       .toBe("clinician");
@@ -123,7 +123,7 @@ describe("adding a provider", () => {
     await fill("website", "not a site");
     for (let i = 0; i < 5; i++) await addPhone();
     await expect.poll(() => FORM()?.querySelectorAll('[name="phoneNumber"]').length).toBe(6);
-    expect(formButton("Add a phone number")!.disabled).toBe(true);
+    expect(formButton("Add a phone number")?.disabled).toBe(true);
 
     // A seventh row, as an old or tampered form would send it.
     const li = document.createElement("li");
@@ -135,7 +135,7 @@ describe("adding a provider", () => {
       input.value = `555 01${10 + i}`;
 
     await userEvent.click(submit());
-    await waitUntil(() => !!FORM()?.querySelector('[aria-invalid="true"]'), 4000, "the errors");
+    await waitUntil(() => !!FORM()?.querySelector('[aria-invalid="true"]'), "the errors");
     expect(fieldErrors()).toMatchObject({
       name: "Enter a name",
       email: "Enter an email address",
@@ -166,7 +166,7 @@ describe("adding a provider", () => {
     await addPhone();
     await fill("phoneLabel", "After hours", 1);
     await fill("phoneNumber", "(555) 010-7701", 1);
-    await userEvent.selectOptions(field<HTMLSelectElement>("practiceId")!, WESTSIDE.id);
+    await userEvent.selectOptions(await found(() => field<HTMLSelectElement>("practiceId")), WESTSIDE.id);
     await userEvent.click(submit());
 
     await expect.poll(() => !SHEET() && device.location()).toBe(PROVIDERS_URL);
@@ -219,22 +219,24 @@ describe("editing a provider", () => {
 
   test("a deep link to …/:id/edit opens the sheet filled in; primary and past save together: it moves behind “Show past”, under Past providers", async () => {
     const device = await open({ url: `${PROVIDERS_URL}/${BROOKS.id}/edit`, fixtures: [directory(), BROOKS] });
-    await waitUntil(() => !!FORM(), 4000, "the edit sheet");
-    expect($("[role=dialog] :is(h2, h3)")?.textContent).toBe("Edit Dr. Nadia Brooks");
-    expect(field("name")!.value).toBe("Dr. Nadia Brooks");
+    await waitUntil(() => !!FORM(), "the edit sheet");
+    expect(document.querySelector<HTMLElement>("[role=dialog] :is(h2, h3)")?.textContent).toBe(
+      "Edit Dr. Nadia Brooks",
+    );
+    expect(field("name")?.value).toBe("Dr. Nadia Brooks");
     expect(
-      [...FORM()!.querySelectorAll<HTMLInputElement>('[name="phoneNumber"]')].map((i) => i.value),
+      [...(FORM()?.querySelectorAll<HTMLInputElement>('[name="phoneNumber"]') ?? [])].map((i) => i.value),
     ).toEqual(["(555) 010-7700", "(555) 010-7701"]);
-    expect(field<HTMLSelectElement>("practiceId")!.value).toBe(WESTSIDE.id);
-    expect(field<HTMLTextAreaElement>("address")!.value).toBe("9 Elm Lane\nSpringfield");
+    expect(field<HTMLSelectElement>("practiceId")?.value).toBe(WESTSIDE.id);
+    expect(field<HTMLTextAreaElement>("address")?.value).toBe("9 Elm Lane\nSpringfield");
 
-    await userEvent.click(field("isPrimary")!);
-    await userEvent.click(field("past")!);
+    await userEvent.click(await found(() => field("isPrimary")));
+    await userEvent.click(await found(() => field("past")));
     await userEvent.click(submit());
     // A deep link closes onto the list.
     await expect.poll(() => !SHEET() && device.location()).toBe(PROVIDERS_URL);
     await expect.poll(async () => (await stored(device, BROOKS.id))?.status).toBe("past");
-    expect((await stored(device, BROOKS.id))!.is_primary).toBe(1);
+    expect((await stored(device, BROOKS.id))?.is_primary).toBe(1);
     await device.settle();
     expect(listNames("Current providers")).not.toContain("Dr. Nadia Brooks");
     expect(SHOW_PAST()?.textContent.trim()).toBe("Show past (2)");
@@ -245,23 +247,23 @@ describe("editing a provider", () => {
   test("Delete asks first: Escape and Cancel close only the confirm; Delete closes the sheet and soft-deletes it; its edit URL is then the list", async () => {
     const device = await open({ url: `${PROVIDERS_URL}/${BROOKS.id}/edit`, fixtures: [directory(), BROOKS] });
     await waitUntil(() => !!FORM());
-    await userEvent.click(formButton("Delete provider")!);
-    await waitUntil(() => !!CONFIRM()?.open, 4000, "the confirm");
+    await userEvent.click(await found(() => formButton("Delete provider")));
+    await waitUntil(() => !!CONFIRM()?.open, "the confirm");
     await expect.poll(() => CONFIRM()?.querySelector("h2")?.textContent).toBe("Delete Dr. Nadia Brooks?");
     await userEvent.keyboard("{Escape}");
-    await waitUntil(() => !CONFIRM()?.open, 4000, "the confirm to close");
+    await waitUntil(() => !CONFIRM()?.open, "the confirm to close");
     expect(FORM()).not.toBeNull();
 
-    await userEvent.click(formButton("Delete provider")!);
+    await userEvent.click(await found(() => formButton("Delete provider")));
     await waitUntil(() => !!CONFIRM()?.open);
-    await userEvent.click(confirmButton("Cancel")!);
+    await userEvent.click(await found(() => confirmButton("Cancel")));
     await waitUntil(() => !CONFIRM()?.open);
     expect(FORM()).not.toBeNull();
-    expect((await stored(device, BROOKS.id))!.deleted_at).toBeNull();
+    expect((await stored(device, BROOKS.id))?.deleted_at).toBeNull();
 
-    await userEvent.click(formButton("Delete provider")!);
+    await userEvent.click(await found(() => formButton("Delete provider")));
     await waitUntil(() => !!CONFIRM()?.open);
-    await userEvent.click(confirmButton("Delete")!);
+    await userEvent.click(await found(() => confirmButton("Delete")));
     await expect.poll(() => !SHEET() && device.location()).toBe(PROVIDERS_URL);
     await expect.poll(async () => (await stored(device, BROOKS.id))?.deleted_at).not.toBeNull();
     await device.settle();
@@ -288,23 +290,23 @@ describe("editing a provider", () => {
     expect(!refused.ok && refused.error).toMatch(/Move them to another practice, or delete them, first/);
 
     await waitUntil(() => !!FORM());
-    await userEvent.click(formButton("Delete provider")!);
+    await userEvent.click(await found(() => formButton("Delete provider")));
     await waitUntil(() => !!CONFIRM()?.open);
     await expect
       .poll(() => CONFIRM()?.querySelector("p")?.textContent)
       .toMatch(/^1 provider is linked to this practice\./);
-    expect(confirmButton("Delete")!.disabled).toBe(true);
-    await userEvent.click(confirmButton("Cancel")!);
+    expect(confirmButton("Delete")?.disabled).toBe(true);
+    await userEvent.click(await found(() => confirmButton("Cancel")));
     await waitUntil(() => !CONFIRM()?.open);
-    expect((await stored(device, PRACTICE.id))!.deleted_at).toBeNull();
+    expect((await stored(device, PRACTICE.id))?.deleted_at).toBeNull();
 
     expect((await updateProvider(device.db, LINKED.id, { practiceId: null })).ok).toBe(true);
     await device.settle();
-    await userEvent.click(formButton("Delete provider")!);
+    await userEvent.click(await found(() => formButton("Delete provider")));
     await waitUntil(() => !!CONFIRM()?.open);
     await expect.poll(() => CONFIRM()?.querySelector("p")).toBeNull();
-    expect(confirmButton("Delete")!.disabled).toBe(false);
-    await userEvent.click(confirmButton("Delete")!);
+    expect(confirmButton("Delete")?.disabled).toBe(false);
+    await userEvent.click(await found(() => confirmButton("Delete")));
     await expect.poll(async () => (await stored(device, PRACTICE.id))?.deleted_at).not.toBeNull();
   });
 });

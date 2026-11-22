@@ -6,35 +6,35 @@
 
 **Landing mode: run everything through** (started run-through, 2026-11-21): start every ready slice, land each green wave through its PR + Codex, clean up; ask only real questions via `pnpm prd ask`.
 
-**Where it stands:** **wave 4 landed** in dev via PR #53 (2026-11-22, dev 04d3754; Codex clean on d9ecbec; full check on ca6a0a18, then a Markdown-only dev sync; no browser checks mapped; to-test/2026-11-22-0758-test-health.md; report filed). B-283 done. Docs for wave 4 folded (data-layer.md names `packages/api/src/testing.ts`, connectors.md the `/mcp` helpers; both trimmed below dev's size). fixes-bug's wave 2 (PR #52) will bring a one-line `apps/web/test/database.ts` change (AppSchema from `powerSyncSchema`); take it with the next sync. **Wave 5:** slice 14 merged (a06ce3e9; slice commits 55444f44, 7b23ad1c, c6c4e97b, 10af7ad5; 21 files, +491/−1,075, the note estimated more: wave 6 cuts the rest), B-281 ready, worktree removed. dev synced after it (fixes-bug wave 2, then ui-kit-2 PR #54, both no conflict); full check passed on 53e0f317 (ui-kit-2 shared test files, so full); no browser checks mapped; then a Markdown-only dev sync. PR opened, Codex review waiting. Next: land, docs (components.md: `PROBE` in `apps/web/test/probe.tsx` for frame/harness/primitive tests, inScreens opens with a probe block; app-shell.md: frame tests run on the probe), rotate. Slice 14 for wave 6: `useLiveQuery` needs a stable `initial` (a module constant, not `[]`); lint warnings now ~1,297. Codex: review exit 4 "out of credits" lands --no-review unasked; other non-clean verdicts ask. Don't commit Status between `pr` and `land` (it makes the verdict stale).
+**Where it stands:** **wave 6 merged** (15 to 18 in order; one conflict, `layout/typeface`, took slice 18's; typecheck clean; `eslint apps/web` 0 `caretook/*` warnings); next: tear down, full `pnpm prd check` (conflict resolved in code), PR, Codex. Before: **wave 6 started** (2026-11-22, a fresh session after rotation): no slice worktrees were left; backlog ingest/doctor clean, nothing new for test-health; `pnpm prd sync` was up to date; slices 15, 16, 17, 18 made (`.loops/test-health-<n>`) and one opus agent spawned each, with the wave-6 notes below. If this session dies: respawn each with `pnpm prd prompt slice test-health <n> --continue`. Wave-6 notes: slice 18's typeface test imports `CLOCK` (medicationWorld) and `NOW` (plannerWorld), both kept; slice 16 left `@deprecated` shims (providerWorld `$`/`$$`/`waitUntil`/`pause`, periodWorld `waitUntil`, medicationWorld `fixClock`) for slice 15's entry/timeline tests; slice 19 deletes them once unused; periodWorld's `submit()`/`formButton()` now return locators. Slice 17 also edited `entry/entryRepeat` (slice 15's) and `layout/typeface` (slice 18's) to `fixClock(NOW)` from `test/found`; at merge take the owning slice's version where they differ. Earlier: **wave 5 landed** in dev via PR #56 (2026-11-22, dev 72d5d28; Codex clean on 7bde4f6; full check on 53e0f317 after syncing fixes-bug wave 2 and ui-kit-2 (PR #54), then a Markdown-only dev sync; no browser checks mapped; to-test/2026-11-22-0848-test-health.md; report filed). B-281 done. Docs for wave 5 folded (components.md: `PROBE` in `apps/web/test/probe.tsx`, inScreens opens with a probe block; app-shell.md: frame tests on the probe; app-shell.md trimmed below dev's size, it sits at the 10 KB budget). Registry: the backlog session asked whether test-health can drop `scripts/loops/` from its hot files; answered yes (still needs `apps/web/**/*.browser.test.tsx`, `*World.tsx`, `apps/web/test/`, `eslint.config.js`, `scripts/eslint/`, maybe `vitest.config.ts`); the backlog session sets it on the user's word.
 
 Notes for later slices: B-475 flake (fixes-tooling, timelineSimpleTodos undo timer after teardown). Slice 3: a world's own fixed clock must sit on the test clock's day (2027-06-09); plannerWorld's NOW still has its own base. Slice 4 for slice 12: the lib/search/ default and search's rules point at signout-wipe. Slice 10 for slice 12: `page.clock.install()` before `goto` then `fastForward` replaces form-time waits; it didn't touch fixtures.mjs; vitest 5 `toHaveTextContent` matched only whole text, so use scoped `getByText`. Slice 8 for wave 6: 1,323 warnings (slice 15 timeline+entry 678, slice 16 378, slice 17 129, slice 18 137, incl. `groups/new` 1); rules are `caretook/*` in scripts/eslint/plugin.mjs, disable with `// eslint-disable-next-line caretook/<rule> -- <reason>`; `no-non-null-in-expect` also flags non-DOM `!` (use `?.`). Slice 12 for the docs: fold out signout-wipe from loop.md and search.md at wave 3; not trimmed yet: invites test 10 link-sheet steps and test 1 check-the-email text (no component test). Slice 13: possible load flake in mcp.int "allows 60 calls a minute per connection, then 429" (5 s timeout at load 22, passes alone; not filed); `deleteOp` exported, unused yet. Slice 11 for slice 13: `createWorld` (packages/data/test/fixtures.ts, header documents it) moved 23 data files; the api files still use createUser/createGroup and their own clientFor; easyMode.int.test.ts stays off it (second owner). Slice 9: admin's deviceLabel is now lib/auth's ("macOS"; no "Caretook app" WebView label); groupRoleLabel lives only in @caretook/data/permissions. **Slices 1, 2, 6 and 7 moved to [`check-speed`](check-speed-plan.md)**: skip them. Nothing outside this PRD blocks any wave; the pause after wave 4 isn't needed.
 
-**Models:** slices 3, 4, 5, 8, 9, 10, 11, 12, 13, 14 on opus.
+**Models:** slices 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 on opus.
 
 **Unplanned items triaged to test-health** (notes added 2026-11-22: B-371 to B-374 are new coverage, out of this PRD's scope, proposed for a follow-up PRD; B-370 may already be covered by check-speed's always-run list) (not in any slice yet; to fold into later waves or a follow-up at a wave boundary): B-370 quick check always-run guards, B-371 device-to-server round trip per table, B-372 a second time zone in tests, B-373 role coverage gaps, B-374 uploadData error test, B-375 small test fixes (its `retry: 2` part is slice 15's), B-405 worker database name collision, B-418 recover.test.mjs flake under load.
 
-| Slice | Wave | State          | Merge into `prd/test-health` (slice commits) |
-| ----- | ---- | -------------- | -------------------------------------------- |
-| 1     | 1    | moved          |                                              |
-| 2     | 1    | moved          |                                              |
-| 3     | 1    | landed (opus)  | 91beec28 (a3d6ad9f)                          |
-| 4     | 1    | landed (opus)  | 2d4f6678 (19d73291)                          |
-| 5     | 1    | landed (opus)  | 09bc4bd5 (60f17a4f)                          |
-| 6     | 2    | moved          |                                              |
-| 7     | 2    | moved          |                                              |
-| 8     | 2    | landed (opus)  | b8a023cf (6c7284a4)                          |
-| 9     | 2    | landed (opus)  | efd71cca (c9fd4f50)                          |
-| 10    | 2    | landed (opus)  | 2b3b3046 (15ebe405)                          |
-| 11    | 3    | landed (opus)  | f759f646 (be8b1ed0)                          |
-| 12    | 3    | landed (opus)  | 856602af (b72a59e7, f0d7f192)                |
-| 13    | 4    | landed (opus)  | 1ac187ef                                     |
-| 14    | 5    | started (opus) |                                              |
-| 15    | 6    | waiting        |                                              |
-| 16    | 6    | waiting        |                                              |
-| 17    | 6    | waiting        |                                              |
-| 18    | 6    | waiting        |                                              |
-| 19    | 7    | waiting        |                                              |
+| Slice | Wave | State         | Merge into `prd/test-health` (slice commits) |
+| ----- | ---- | ------------- | -------------------------------------------- |
+| 1     | 1    | moved         |                                              |
+| 2     | 1    | moved         |                                              |
+| 3     | 1    | landed (opus) | 91beec28 (a3d6ad9f)                          |
+| 4     | 1    | landed (opus) | 2d4f6678 (19d73291)                          |
+| 5     | 1    | landed (opus) | 09bc4bd5 (60f17a4f)                          |
+| 6     | 2    | moved         |                                              |
+| 7     | 2    | moved         |                                              |
+| 8     | 2    | landed (opus) | b8a023cf (6c7284a4)                          |
+| 9     | 2    | landed (opus) | efd71cca (c9fd4f50)                          |
+| 10    | 2    | landed (opus) | 2b3b3046 (15ebe405)                          |
+| 11    | 3    | landed (opus) | f759f646 (be8b1ed0)                          |
+| 12    | 3    | landed (opus) | 856602af (b72a59e7, f0d7f192)                |
+| 13    | 4    | landed (opus) | 1ac187ef                                     |
+| 14    | 5    | landed (opus) | (PR #56, dev 72d5d28)                        |
+| 15    | 6    | merged (opus) | d75f2c1e (5f55b382)                          |
+| 16    | 6    | merged (opus) | eea0d83e (36ccaa2d)                          |
+| 17    | 6    | merged (opus) | 89835ec2 (1b64ff59)                          |
+| 18    | 6    | merged (opus) | 86af6653 (a61552e9)                          |
+| 19    | 7    | waiting       |                                              |
 
 **Backlog:** which slices close each item (run `pnpm backlog done` on an item when its last slice merges).
 

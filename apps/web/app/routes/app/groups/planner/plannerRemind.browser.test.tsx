@@ -1,20 +1,23 @@
 import type { CalendarSettings } from "~/lib/calendars/calendarSettings";
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import type { Locator } from "vitest/browser";
+
 import { page, userEvent } from "vitest/browser";
 import { apiCalls } from "../../../../../test/api";
-import { found } from "../../../../../test/found";
+import { fixClock, found } from "../../../../../test/found";
+import { getByCss } from "../../../../../test/locators";
 import { TEST_GROUP } from "../../../../../test/fixtures";
 import {
   CARDIOLOGY,
   DENTIST,
   entryUrl,
-  fixClock,
-  itemEl,
   menuItem,
   menuItems,
+  NOW,
   openPlanner,
   PAST_NOTE,
+  rowActions,
 } from "./plannerWorld";
 
 // "Remind me" (appointments-2 slice 8): the ⋯ item before Print on Upcoming,
@@ -23,7 +26,6 @@ import {
 // is the test's stand-in for `calendars.overrides.*`; what it decides (own
 // only, the sweep) is overrides.int.test.ts's. Clock: Wed 2026-11-18, 10:00 AM.
 
-const ACTIONS = 'button[aria-label^="Actions for"]';
 const ENTRY_MENU = 'main header [data-region="actions"] button[aria-label^="Actions for"]';
 const SHEET = () => document.querySelector<HTMLFormElement>("[data-remind-sheet]");
 const SUMMARY = () => document.querySelector<HTMLElement>("[data-remind-summary]")?.textContent ?? "";
@@ -74,19 +76,19 @@ const server = (start: Choice = { mode: "default" }, mine: Partial<CalendarSetti
   return s;
 };
 
-const openMenu = async (button: Element | null | undefined) => {
-  await userEvent.click(button!);
+const openMenu = async (button: Locator) => {
+  await userEvent.click(button);
   await expect.poll(() => menuItems().length).toBeGreaterThan(0);
 };
-const rowMenu = async (id: string) => openMenu(await found(() => itemEl(id)?.querySelector(ACTIONS) ?? null));
+const rowMenu = (id: string) => openMenu(rowActions(id));
 const openSheet = async (id = CARDIOLOGY.id) => {
   await rowMenu(id);
-  await userEvent.click(menuItem("Remind me")!);
+  await userEvent.click(menuItem("Remind me"));
   await found(() => document.querySelector("[data-remind-sheet], [data-remind-offline]"));
 };
 const radio = (name: string) => page.getByRole("radio", { name });
 
-beforeEach(() => fixClock());
+beforeEach(() => fixClock(NOW));
 afterEach(() => vi.useRealTimers());
 
 describe.each(["caretaker", "viewer"] as const)("Remind me, a %s", (role) => {
@@ -167,13 +169,13 @@ describe("Remind me elsewhere", () => {
 
   test("is not on a note's entry page menu", async () => {
     await openPlanner({ url: entryUrl(PAST_NOTE.id), api: server().api });
-    await openMenu(await found(() => document.querySelector(ENTRY_MENU)));
+    await openMenu(getByCss(ENTRY_MENU));
     expect(menuItems()).not.toContain("Remind me");
   });
 
   test("is on the entry page's menu, before Print", async () => {
     await openPlanner({ url: entryUrl(CARDIOLOGY.id), api: server().api });
-    await openMenu(await found(() => document.querySelector(ENTRY_MENU)));
+    await openMenu(getByCss(ENTRY_MENU));
     const items = menuItems();
     expect(items.indexOf("Remind me")).toBe(items.indexOf("Print") - 1);
   });

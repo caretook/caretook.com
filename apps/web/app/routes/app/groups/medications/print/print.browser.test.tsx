@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
-import { found } from "../../../../../../test/found";
+import { found, waitUntil } from "../../../../../../test/found";
+import { getByCss } from "../../../../../../test/locators";
 import { renderWithDevice } from "../../../../../../test/device";
 import { allergy, condition } from "../../../../../../test/fixtures";
-import { $, $$, LIST, MEDICATION_ROUTES, MEDS, SCHEDULE, waitUntil, world } from "../medicationWorld";
+import { LIST, MEDICATION_ROUTES, MEDS, SCHEDULE, world } from "../medicationWorld";
 
 // The printable sheets (medications.mjs's print, weekly and their offline
 // steps): the list's Print menu with both sheets; the medication list's
@@ -34,39 +35,42 @@ const open = (url: string, options: Partial<Parameters<typeof renderWithDevice>[
   });
 
 const PRINT_MENU = () =>
-  $$<HTMLButtonElement>("main button").find(
+  [...document.querySelectorAll<HTMLButtonElement>("main button")].find(
     (b) => (b.getAttribute("aria-label") ?? b.textContent?.trim()) === "Print",
   );
 /** A Print menu item, by the start of its text (its description follows). */
 const printItem = (label: string) =>
-  $$("[role=menuitem]").find((m) => m.textContent?.trim().startsWith(label));
+  [...document.querySelectorAll<HTMLElement>("[role=menuitem]")].find((m) =>
+    m.textContent?.trim().startsWith(label),
+  );
 const choosePrint = async (label: string) => {
-  await waitUntil(() => !!PRINT_MENU(), 4000, "the Print menu");
+  await waitUntil(() => !!PRINT_MENU(), "the Print menu");
   await userEvent.click(await found(PRINT_MENU));
-  await waitUntil(() => !!printItem(label), 4000, `the menu item ${label}`);
-  await userEvent.click(printItem(label)!);
+  await waitUntil(() => !!printItem(label), `the menu item ${label}`);
+  await userEvent.click(await found(() => printItem(label)));
 };
 
-const printField = (f: string) => $(`main [data-print-field="${f}"]`)?.textContent?.trim() ?? null;
+const printField = (f: string) =>
+  document.querySelector<HTMLElement>(`main [data-print-field="${f}"]`)?.textContent?.trim() ?? null;
 const titleOf = (r: Element) => r.querySelector("[data-print-title]")?.firstChild?.textContent?.trim() ?? "";
 const sheetState = () => ({
   name: printField("name"),
   dob: printField("dateOfBirth"),
   group: printField("group"),
   printed: printField("printed"),
-  current: $$("main tr[data-print-medication]").map(titleOf),
+  current: [...document.querySelectorAll<HTMLElement>("main tr[data-print-medication]")].map(titleOf),
   prescribers: Object.fromEntries(
-    $$("main tr[data-print-medication]").map((r) => [
+    [...document.querySelectorAll<HTMLElement>("main tr[data-print-medication]")].map((r) => [
       titleOf(r),
       r.querySelector("[data-print-prescriber]")?.textContent?.trim(),
     ]),
   ),
-  stopped: $$("main tr[data-print-stopped]").map((r) => [
+  stopped: [...document.querySelectorAll<HTMLElement>("main tr[data-print-stopped]")].map((r) => [
     r.querySelector("[data-print-title]")?.textContent?.trim(),
     r.querySelector("[data-print-when]")?.textContent?.trim(),
     r.querySelector("[data-print-why]")?.textContent?.trim(),
   ]),
-  contacts: $$("main tr[data-print-contact]").map((r) => [
+  contacts: [...document.querySelectorAll<HTMLElement>("main tr[data-print-contact]")].map((r) => [
     r.querySelector("[data-print-title]")?.textContent?.trim(),
     r.querySelector("[data-print-phone]")?.firstChild?.textContent?.trim(),
   ]),
@@ -76,11 +80,11 @@ const sheetState = () => ({
 const shown = (el: Element | null) =>
   !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
 const printLayout = (sheet: string, cell: string) => {
-  const tables = $$(`main ${sheet} table`);
+  const tables = [...document.querySelectorAll<HTMLElement>(`main ${sheet} table`)];
   return {
-    header: shown($("header.navbar")),
-    tabBar: shown($('nav[data-tab-bar][aria-label="Group sections"]')),
-    controls: $$("button, a.btn, input, [role=button]")
+    header: shown(document.querySelector<HTMLElement>("header.navbar")),
+    tabBar: shown(document.querySelector<HTMLElement>('nav[data-tab-bar][aria-label="Group sections"]')),
+    controls: [...document.querySelectorAll<HTMLElement>("button, a.btn, input, [role=button]")]
       .filter(shown)
       .map((el) => el.textContent?.trim() || el.tagName),
     tables: tables.length,
@@ -91,8 +95,8 @@ const printLayout = (sheet: string, cell: string) => {
     ),
     pageFits: document.documentElement.scrollWidth <= innerWidth,
     background: getComputedStyle(document.body).backgroundColor,
-    color: getComputedStyle($(`main ${sheet} h1`)!).color,
-    cell: getComputedStyle($(`main ${sheet} ${cell}`)!).color,
+    color: getComputedStyle(document.querySelector<HTMLElement>(`main ${sheet} h1`)!).color,
+    cell: getComputedStyle(document.querySelector<HTMLElement>(`main ${sheet} ${cell}`)!).color,
   };
 };
 const BLACK_ON_WHITE = { background: "rgb(255, 255, 255)", color: "rgb(0, 0, 0)", cell: "rgb(0, 0, 0)" };
@@ -104,24 +108,28 @@ afterEach(async () => {
 
 /** The page's Back link ("← Medications"). */
 const backHref = () =>
-  $$("main a")
+  [...document.querySelectorAll<HTMLElement>("main a")]
     .find((a) => a.textContent?.trim() === "Medications")
     ?.getAttribute("href") ?? null;
 
 describe("the medication list sheet", () => {
   test("the Print menu offers both sheets; the list opens with the recipient, date of birth, group and day printed, Back going to the list", async () => {
     const device = await open(LIST);
-    await waitUntil(() => !!PRINT_MENU(), 4000, "the Print menu");
+    await waitUntil(() => !!PRINT_MENU(), "the Print menu");
     await userEvent.click(await found(PRINT_MENU));
-    await waitUntil(() => !!printItem("Weekly chart"), 4000, "the menu");
-    expect($$("[role=menuitem]").map((m) => m.querySelector(".truncate")?.textContent?.trim())).toEqual([
-      "Medication list",
-      "Weekly chart",
-    ]);
+    await waitUntil(() => !!printItem("Weekly chart"), "the menu");
+    expect(
+      [...document.querySelectorAll<HTMLElement>("[role=menuitem]")].map((m) =>
+        m.querySelector(".truncate")?.textContent?.trim(),
+      ),
+    ).toEqual(["Medication list", "Weekly chart"]);
     await userEvent.keyboard("{Escape}");
     await choosePrint("Medication list");
     await expect.poll(device.location).toBe(`${MEDS}/print`);
-    await waitUntil(() => $$("main [data-print-medication]").length >= 4, 4000, "the sheet");
+    await waitUntil(
+      () => [...document.querySelectorAll<HTMLElement>("main [data-print-medication]")].length >= 4,
+      "the sheet",
+    );
     const sheet = sheetState();
     expect(sheet.name).toContain("Grandma June");
     expect(sheet.dob).toBe("Mar 14, 1941");
@@ -132,7 +140,10 @@ describe("the medication list sheet", () => {
 
   test("the sheet shows each current medication with its prescriber, the stopped ones with why, and the contacts' phones", async () => {
     await open(`${MEDS}/print`);
-    await waitUntil(() => $$("main [data-print-medication]").length >= 4, 4000, "the sheet");
+    await waitUntil(
+      () => [...document.querySelectorAll<HTMLElement>("main [data-print-medication]")].length >= 4,
+      "the sheet",
+    );
     const sheet = sheetState();
     // Their order, grouping and wording are printSheet.test.ts's.
     expect(sheet.current).toHaveLength(4);
@@ -144,22 +155,23 @@ describe("the medication list sheet", () => {
 
   test("the active conditions follow the allergies, past ones left out", async () => {
     await open(`${MEDS}/print`);
-    await waitUntil(() => !!$("main [data-print-conditions]"), 4000, "the conditions block");
-    const conditions = $("main [data-print-conditions]")!;
-    expect($$("main [data-print-condition]").map((c) => c.textContent?.trim())).toEqual([
-      "Type 2 diabetes (since 2015)",
-    ]);
-    expect(conditions.textContent).not.toContain("Hip fracture");
+    const conditions = await found(() => document.querySelector("main [data-print-conditions]"), {
+      message: "the conditions block",
+    });
+    const allergies = await found(() => document.querySelector("main [data-print-allergies]"));
     expect(
-      $("main [data-print-allergies]")!.compareDocumentPosition(conditions) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+      [...document.querySelectorAll<HTMLElement>("main [data-print-condition]")].map((c) =>
+        c.textContent?.trim(),
+      ),
+    ).toEqual(["Type 2 diabetes (since 2015)"]);
+    expect(conditions.textContent).not.toContain("Hip fracture");
+    expect(allergies.compareDocumentPosition(conditions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   test("Print calls window.print()", async () => {
     const print = vi.spyOn(window, "print").mockImplementation(() => undefined);
     await open(`${MEDS}/print`);
-    await waitUntil(() => !!PRINT_MENU(), 4000, "the Print button");
+    await waitUntil(() => !!PRINT_MENU(), "the Print button");
     await userEvent.click(await found(PRINT_MENU));
     expect(print).toHaveBeenCalledTimes(1);
   });
@@ -172,7 +184,10 @@ describe("the medication list sheet", () => {
     "printed at %i (%s theme): no header, tab bar or buttons, the tables within the page, black on white",
     async (width, theme) => {
       await open(`${MEDS}/print`, { width, theme });
-      await waitUntil(() => $$("main [data-print-medication]").length >= 4, 4000, "the sheet");
+      await waitUntil(
+        () => [...document.querySelectorAll<HTMLElement>("main [data-print-medication]")].length >= 4,
+        "the sheet",
+      );
       await commands.media("print");
       const layout = printLayout("[data-print-sheet]", "td");
       expect(layout).toMatchObject({
@@ -204,9 +219,11 @@ describe("the weekly chart", () => {
   const weekOf = (start: string) => Array.from({ length: 7 }, (_, i) => shiftDay(start, i));
 
   const weekState = () => ({
-    days: $$("main th[data-week-day]").map((d) => d.dataset.weekDay),
-    weekdays: $$("main th[data-week-day]").map((d) => d.firstChild?.textContent?.trim()),
-    groups: $$("main tbody[data-week-group]").map((g) => [
+    days: [...document.querySelectorAll<HTMLElement>("main th[data-week-day]")].map((d) => d.dataset.weekDay),
+    weekdays: [...document.querySelectorAll<HTMLElement>("main th[data-week-day]")].map((d) =>
+      d.firstChild?.textContent?.trim(),
+    ),
+    groups: [...document.querySelectorAll<HTMLElement>("main tbody[data-week-group]")].map((g) => [
       g.querySelector("[data-week-group-name]")?.textContent?.trim(),
       [...g.querySelectorAll("tr[data-week-row], tr[data-week-as-needed] th")]
         .map((r) => {
@@ -218,17 +235,19 @@ describe("the weekly chart", () => {
         })
         .filter(([t]) => t),
     ]),
-    asNeededLines: $$("main tr[data-week-as-needed]").length,
-    boxes: $$("main tr[data-week-row] td[data-week-cell]").length,
-    rows: $$("main tr[data-week-row]").length,
+    asNeededLines: [...document.querySelectorAll<HTMLElement>("main tr[data-week-as-needed]")].length,
+    boxes: [...document.querySelectorAll<HTMLElement>("main tr[data-week-row] td[data-week-cell]")].length,
+    rows: [...document.querySelectorAll<HTMLElement>("main tr[data-week-row]")].length,
   });
-  const firstDay = () => $("main th[data-week-day]")?.dataset.weekDay;
-  const onWeek = () => !!$("main [data-week-sheet]") && $$("main tr[data-week-row]").length >= 4;
+  const firstDay = () => document.querySelector<HTMLElement>("main th[data-week-day]")?.dataset.weekDay;
+  const onWeek = () =>
+    !!document.querySelector<HTMLElement>("main [data-week-sheet]") &&
+    [...document.querySelectorAll<HTMLElement>("main tr[data-week-row]")].length >= 4;
 
   test("from Schedule's Print menu: this week, Monday to Sunday; the scheduled medications under their passes with amounts, then times of their own, then as-needed lines, a box a day; the allergies first; Back goes to Schedule", async () => {
     const device = await open(SCHEDULE);
     await choosePrint("Weekly chart");
-    await waitUntil(onWeek, 4000, "the weekly chart");
+    await waitUntil(onWeek, "the weekly chart");
     expect(device.location()).toBe(`${MEDS}/print/week`);
     expect(backHref()).toBe(SCHEDULE);
     const sheet = weekState();
@@ -248,31 +267,32 @@ describe("the weekly chart", () => {
     ]);
     expect(sheet.boxes).toBe(sheet.rows * 7);
     expect(sheet.asNeededLines).toBeGreaterThanOrEqual(2);
-    const allergies = $("main [data-print-allergies]")!;
+    const allergies = await found(() => document.querySelector("main [data-print-allergies]"));
+    const table = await found(() => document.querySelector("main [data-week-table]"));
     expect(allergies.textContent).toContain("Penicillin");
-    expect(
-      allergies.compareDocumentPosition($("main [data-week-table]")!) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(allergies.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(printField("name")).toContain("Grandma June");
-    const conditions = $("main [data-print-conditions]")!;
+    const conditions = document.querySelector<HTMLElement>("main [data-print-conditions]")!;
     expect(conditions.textContent).toContain("Type 2 diabetes (since 2015)");
     expect(allergies.compareDocumentPosition(conditions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   test("Next, Previous and This week move it by a week; a start day of its own shows that week (seven days across a clock change is weeklySheet.test.ts's)", async () => {
     const device = await open(`${MEDS}/print/week`);
-    await waitUntil(onWeek, 4000, "the weekly chart");
+    await waitUntil(onWeek, "the weekly chart");
     const start = monday();
-    await userEvent.click($("main [data-week-next]")!);
+    await userEvent.click(getByCss("main [data-week-next]"));
     await expect.poll(firstDay).toBe(shiftDay(start, 7));
-    await userEvent.click($("main [data-week-previous]")!);
-    await userEvent.click($("main [data-week-previous]")!);
+    await userEvent.click(getByCss("main [data-week-previous]"));
+    await userEvent.click(getByCss("main [data-week-previous]"));
     await expect.poll(firstDay).toBe(shiftDay(start, -7));
-    await userEvent.click($("main [data-week-this]")!);
+    await userEvent.click(getByCss("main [data-week-this]"));
     await expect.poll(firstDay).toBe(start);
-    expect($("main [data-week-this]")?.getAttribute("aria-current")).toBe("true");
+    expect(document.querySelector<HTMLElement>("main [data-week-this]")?.getAttribute("aria-current")).toBe(
+      "true",
+    );
 
-    await userEvent.fill($<HTMLInputElement>("main input[data-week-start]")!, "2026-10-26");
+    await userEvent.fill(getByCss("main input[data-week-start]"), "2026-10-26");
     await expect.poll(firstDay).toBe("2026-10-26");
     expect(device.location()).toBe(`${MEDS}/print/week?start=2026-10-26`);
   });
@@ -285,7 +305,7 @@ describe("the weekly chart", () => {
     "printed at %i (%s theme): no frame or controls, within the page, black on white, on a landscape page",
     async (width, theme) => {
       await open(`${MEDS}/print/week`, { width, theme });
-      await waitUntil(onWeek, 4000, "the weekly chart");
+      await waitUntil(onWeek, "the weekly chart");
       await commands.media("print");
       const layout = printLayout("[data-week-sheet]", "th[data-week-day]");
       expect(layout).toMatchObject({
@@ -296,10 +316,11 @@ describe("the weekly chart", () => {
         pageFits: true,
         ...BLACK_ON_WHITE,
       });
-      const box = $("main td[data-week-cell] span span");
+      const box = document.querySelector<HTMLElement>("main td[data-week-cell] span span");
       expect(box && getComputedStyle(box).borderTopColor).toBe("rgb(0, 0, 0)");
       // Its page is the landscape `@page weekly`.
-      expect(getComputedStyle($("main:has([data-week-sheet])")!).getPropertyValue("page")).toBe("weekly");
+      const sheet = await found(() => document.querySelector("main:has([data-week-sheet])"));
+      expect(getComputedStyle(sheet).getPropertyValue("page")).toBe("weekly");
       const rules = [...document.styleSheets].flatMap((s) => {
         try {
           return [...s.cssRules];

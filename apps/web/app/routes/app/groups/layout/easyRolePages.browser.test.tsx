@@ -10,7 +10,7 @@ import * as timeline from "../timeline/route";
 import * as todoPage from "../todo/route";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, condition, fx, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
-import { waitUntil } from "../timeline/timelineWorld";
+import { found, waitUntil } from "../../../../../test/found";
 
 // The pages the easy roles (Easy helper, Easy viewer) reach beyond the
 // timeline (simple-mode slice 4), in the real /app frame on the test device:
@@ -81,15 +81,16 @@ const deadLinks = () =>
 describe("the easy roles' Planner", () => {
   test.each(EASY_ROLES)("%s: Upcoming's See all opens it, the list alone and read-only", async (role) => {
     const device = await open(role, TIMELINE, [VISIT, MINE]);
-    await waitUntil(isEasy, 4000, "the easy view");
-    await waitUntil(() => !!document.querySelector("[data-easy-next] button"), 4000, "the next appointment");
-    await userEvent.click(document.querySelector<HTMLButtonElement>("[data-easy-next] button")!);
-    await waitUntil(() => !!document.querySelector("[data-easy-upcoming-all]"), 4000, "See all");
+    await waitUntil(isEasy, "the easy view");
+    await userEvent.click(
+      await found(() => document.querySelector<HTMLButtonElement>("[data-easy-next] button")),
+    );
+    await waitUntil(() => !!document.querySelector("[data-easy-upcoming-all]"), "See all");
     await userEvent.click(page.getByRole("link", { name: "See all", exact: true }));
 
     await expect.poll(device.location).toBe(`${base}/planner`);
     await expect.element(page.getByRole("heading", { name: "Planner", level: 1 })).toBeVisible();
-    await waitUntil(() => !!document.querySelector(`[data-upcoming-item="${VISIT.id}"]`), 4000, "the visit");
+    await waitUntil(() => !!document.querySelector(`[data-upcoming-item="${VISIT.id}"]`), "the visit");
     // Still the reduced header: no group menu or tab bar.
     expect(document.querySelector("nav[data-tab-bar]")).toBeNull();
     // No Add, tabs, filters or row menus, and no filter links on the rows.
@@ -103,15 +104,15 @@ describe("the easy roles' Planner", () => {
 
   test("a typed filter is ignored", async () => {
     await open("easy_viewer", `${base}/planner?show=todos`, [VISIT, MINE]);
-    await waitUntil(() => !!document.querySelector(`[data-upcoming-item="${VISIT.id}"]`), 4000, "the visit");
+    await waitUntil(() => !!document.querySelector(`[data-upcoming-item="${VISIT.id}"]`), "the visit");
   });
 });
 
 describe("the easy roles' todo pages", () => {
   test.each(EASY_ROLES)("%s: a todo link opens its page, and they tick their own", async (role) => {
     const device = await open(role, TIMELINE, [MINE]);
-    await waitUntil(isEasy, 4000, "the easy view");
-    await waitUntil(() => !!document.querySelector("[data-easy-todos]"), 4000, "My todos");
+    await waitUntil(isEasy, "the easy view");
+    await waitUntil(() => !!document.querySelector("[data-easy-todos]"), "My todos");
     // No Todos list to see all in.
     expect(document.querySelector("[data-easy-todos-all]")).toBeNull();
     await userEvent.click(page.getByRole("link", { name: "Water the plants" }));
@@ -146,7 +147,7 @@ describe("the easy roles' todo pages", () => {
       medicationId: pills.id,
     });
     await open("easy_helper", `${base}/todos/${linked.id}`, [lark, pills, linked]);
-    await waitUntil(() => document.querySelectorAll("[data-todo-link]").length === 2, 4000, "the links");
+    await waitUntil(() => document.querySelectorAll("[data-todo-link]").length === 2, "the links");
     expect(deadLinks()).toEqual([]);
     expect(document.querySelector('[data-todo-link="provider"] [data-todo-link-name]')?.textContent).toBe(
       "Dr. Mira Lark",
@@ -173,7 +174,7 @@ describe("the easy roles' search", () => {
 
   test("is in the reduced header", async () => {
     const device = await open("easy_viewer", TIMELINE);
-    await waitUntil(isEasy, 4000, "the easy view");
+    await waitUntil(isEasy, "the easy view");
     await userEvent.click(page.getByRole("link", { name: "Search this care group" }));
     await expect.poll(device.location).toBe(`${base}/search`);
     expect(page.getByRole("button", { name: /switch care group$/ }).elements()).toHaveLength(0);
@@ -186,8 +187,8 @@ describe("the easy roles' search", () => {
     expect(deadLinks()).toEqual([]);
     const url = device.location();
 
-    await userEvent.click(nameButton("provider")!);
-    await waitUntil(() => sheet()?.dataset.easySheet === "provider", 4000, "the provider's sheet");
+    await userEvent.click(await found(() => nameButton("provider")));
+    await waitUntil(() => sheet()?.dataset.easySheet === "provider", "the provider's sheet");
     const dialog = () => document.querySelector<HTMLElement>("[role=dialog]")!;
     expect(dialog().textContent).toContain("Dr. Mira Lark");
     expect(dialog().textContent).toContain("Family medicine");
@@ -198,22 +199,22 @@ describe("the easy roles' search", () => {
       [...dialog().querySelectorAll("a")].filter((a) => a.getAttribute("href")?.startsWith("/")),
     ).toEqual([]);
     await userEvent.click(page.getByRole("button", { name: "Done" }));
-    await waitUntil(() => !sheet(), 4000, "the sheet closing");
+    await waitUntil(() => !sheet(), "the sheet closing");
     expect(device.location()).toBe(url);
 
-    await userEvent.click(nameButton("medication")!);
-    await waitUntil(() => sheet()?.dataset.easySheet === "medication", 4000, "the medication's sheet");
-    expect(sheet()!.querySelector('[data-easy-fact="schedule"]')?.textContent).toContain("2 drops");
+    await userEvent.click(await found(() => nameButton("medication")));
+    await waitUntil(() => sheet()?.dataset.easySheet === "medication", "the medication's sheet");
+    expect(sheet()?.querySelector('[data-easy-fact="schedule"]')?.textContent).toContain("2 drops");
     await userEvent.click(page.getByRole("button", { name: "Done" }));
-    await waitUntil(() => !sheet(), 4000, "the sheet closing");
+    await waitUntil(() => !sheet(), "the sheet closing");
 
-    await userEvent.click(nameButton("condition")!);
-    await waitUntil(() => sheet()?.dataset.easySheet === "condition", 4000, "the condition's sheet");
-    expect(sheet()!.querySelector('[data-easy-fact="status"]')?.textContent).toContain("Active");
-    expect(sheet()!.querySelector('[data-easy-fact="note"]')?.textContent).toContain("Worse on stairs");
-    expect(sheet()!.querySelector("a")).toBeNull();
+    await userEvent.click(await found(() => nameButton("condition")));
+    await waitUntil(() => sheet()?.dataset.easySheet === "condition", "the condition's sheet");
+    expect(sheet()?.querySelector('[data-easy-fact="status"]')?.textContent).toContain("Active");
+    expect(sheet()?.querySelector('[data-easy-fact="note"]')?.textContent).toContain("Worse on stairs");
+    expect(sheet()?.querySelector("a")).toBeNull();
     await userEvent.keyboard("{Escape}");
-    await waitUntil(() => !sheet(), 4000, "the sheet closing");
+    await waitUntil(() => !sheet(), "the sheet closing");
     expect(device.location()).toBe(url);
 
     // A todo opens its page.
@@ -239,6 +240,6 @@ describe("a typed URL for a page the easy roles can't use", () => {
   ] as const)("%s at %s goes to the timeline", async (role, url) => {
     const device = await open(role, url);
     await expect.poll(device.location).toBe(TIMELINE);
-    await waitUntil(isEasy, 4000, "the easy view");
+    await waitUntil(isEasy, "the easy view");
   });
 });

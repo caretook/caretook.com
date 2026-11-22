@@ -4,7 +4,8 @@ import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { found } from "../../../../../test/found";
 import { at, condition, fx, TEST_RECIPIENT } from "../../../../../test/fixtures";
-import { $, JUNE, openProfile, PROFILE_URL } from "./profileWorld";
+import { getByCss } from "../../../../../test/locators";
+import { JUNE, openProfile, PROFILE_URL } from "./profileWorld";
 
 // The recipient's conditions on the profile (conditions slice 1): the card
 // for each role and state (active and Past, No known conditions, not
@@ -15,7 +16,7 @@ import { $, JUNE, openProfile, PROFILE_URL } from "./profileWorld";
 // decides is recipientCondition.int.test.ts's and syncConditions.int.test.ts's;
 // a condition reaching another device is roundtrip's sync matrix (6b).
 
-const CARD = () => $("main [data-section=conditions]");
+const CARD = () => document.querySelector("main [data-section=conditions]");
 const card = () => {
   const el = CARD();
   const names = (list: string) =>
@@ -35,16 +36,17 @@ const card = () => {
   };
 };
 const conditionUrl = (id: string) => `${PROFILE_URL}/conditions/${id}`;
-const SHEET = () => $("[role=dialog]");
+const SHEET = () => document.querySelector("[role=dialog]");
 const FORM = () => SHEET()?.querySelector<HTMLFormElement>("form[data-condition-form]") ?? null;
 const nameInput = () =>
   FORM()?.querySelector<HTMLInputElement>('[data-condition-name-field] input[role="combobox"]');
 const field = (name: string) =>
   FORM()?.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${name}"]`);
+/** The first button in an open dialog whose text is `text`. */
 const dialogButton = (text: string) =>
-  [...document.querySelectorAll<HTMLButtonElement>("dialog[open] button")].find(
-    (b) => b.textContent?.trim() === text,
-  );
+  getByCss("dialog[open] button")
+    .filter({ hasText: new RegExp(`^${text}$`) })
+    .first();
 const ROWS_SQL =
   "SELECT name, status, since_year, since_month, note, deleted_at FROM recipient_condition ORDER BY created_at";
 const NO_KNOWN_SQL = "SELECT no_known_conditions_at AS at FROM care_recipient WHERE id = ?";
@@ -151,11 +153,13 @@ describe("adding", () => {
       )
       .toEqual(["High blood pressure", "High cholesterol"]);
 
-    await userEvent.fill(nameInput()!, "Long COVID");
+    await userEvent.fill(await found(nameInput), "Long COVID");
     await expect
       .element(page.getByText("No suggestions: keep typing to use your own words"))
       .toBeInTheDocument();
-    await userEvent.click(FORM()!.querySelector<HTMLInputElement>('input[name="status"][value="resolved"]')!);
+    await userEvent.click(
+      getByCss('[role=dialog] form[data-condition-form] input[name="status"][value="resolved"]'),
+    );
     await userEvent.click(page.getByRole("button", { name: "Add condition" }));
     await expect.poll(() => card().past).toEqual(["Long COVID"]);
     expect((await device.query<{ name: string; status: string }>(ROWS_SQL)).at(-1)).toMatchObject({
@@ -171,7 +175,7 @@ describe("adding", () => {
     await expect.element(page.getByText("Enter the condition")).toBeInTheDocument();
     await expect.poll(() => document.activeElement).toBe(nameInput());
 
-    await userEvent.fill(nameInput()!, "Asthma");
+    await userEvent.fill(await found(nameInput), "Asthma");
     // Leaving the field closes its list.
     await userEvent.keyboard("{Tab}");
     await userEvent.click(page.getByRole("button", { name: "Add condition" }));
@@ -209,14 +213,14 @@ describe("a condition's sheet", () => {
     await userEvent.click(
       await found(() => SHEET()?.querySelector<HTMLButtonElement>("[data-delete-condition]")),
     );
-    await expect.poll(() => dialogButton("Delete")?.disabled).toBe(false);
-    await userEvent.click(dialogButton("Cancel")!);
+    await expect.element(dialogButton("Delete")).toBeEnabled();
+    await userEvent.click(dialogButton("Cancel"));
     await expect.poll(() => document.querySelector("dialog[open]")).toBeNull();
     expect(card().active).toContain("High blood pressure · Since 2012");
 
-    await userEvent.click(SHEET()!.querySelector<HTMLButtonElement>("[data-delete-condition]")!);
-    await expect.poll(() => dialogButton("Delete")?.disabled).toBe(false);
-    await userEvent.click(dialogButton("Delete")!);
+    await userEvent.click(getByCss("[role=dialog] [data-delete-condition]"));
+    await expect.element(dialogButton("Delete")).toBeEnabled();
+    await userEvent.click(dialogButton("Delete"));
     await expect.poll(() => !SHEET() && device.location()).toBe(PROFILE_URL);
     // The card's live query can rerun after the sheet has closed.
     await expect.poll(() => card().active).toEqual(["Type 2 diabetes · Since March 2016"]);
