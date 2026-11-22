@@ -7,6 +7,7 @@ import {
   newPasswordProblem,
   normalizeCode,
   requestFailure,
+  unreached,
 } from "./authMessages";
 
 describe("requestFailure", () => {
@@ -15,6 +16,18 @@ describe("requestFailure", () => {
     expect(requestFailure({ status: 429 })).toBe(authMessages.tooManyTries);
     expect(requestFailure({})).toBe(authMessages.offline);
     expect(requestFailure({ status: 400, code: "USER_NOT_FOUND" })).toBeNull();
+  });
+});
+
+describe("unreached", () => {
+  it("turns a fetch that never reached the server into the offline message", () => {
+    const { data, error } = unreached(new TypeError("Failed to fetch"));
+    expect(data).toBeNull();
+    expect(requestFailure(error)).toBe(authMessages.offline);
+  });
+
+  it("still throws anything else", () => {
+    expect(() => unreached(new Error("a bug"))).toThrow("a bug");
   });
 });
 
