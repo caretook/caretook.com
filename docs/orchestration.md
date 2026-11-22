@@ -104,7 +104,7 @@ Every change is committed straight onto `dev` (only those two files), so every s
 
 **At most three PRDs run at once.** `pnpm prd start` refuses a fourth (raise `CARETOOK_MAX_PRDS` to override).
 
-**Queue one for later:** `pnpm prd queue <topic>` in a terminal of its own. It waits for a free slot (a finished PRD removed with `pnpm prd rm`), in the order PRDs were queued, then creates the worktree and opens the orchestrator in that terminal. A queued orchestrator runs the whole plan through and lands each wave without asking (`--manual` makes it ask instead); it waits on other PRDs' work by asking their orchestrators to tell it when it lands. Its questions and reports wait for you in one place: `pnpm prd asks`, then `pnpm prd answer <id> <n>` ([machinery](agents/machinery.md#the-asks-queue)).
+**Let the dispatcher run them:** `pnpm prd dispatch` in a tab of its own plans and starts topics in the PRD table's row order as slots free up, never two that share hot files, waits while the machine is busy, and reopens sessions that die. `pnpm prd queue <topic>` moves a topic first; a row's `hold` flag or `pnpm prd dispatch --pause` holds it back, `--dry-run` shows why each topic waits. Its orchestrators land each wave without asking; their questions and reports wait in `pnpm prd asks` (answer with `pnpm prd answer <id> <n>`, [machinery](agents/machinery.md#the-dispatcher)).
 
 ### After a restart, a crash or a usage limit
 
