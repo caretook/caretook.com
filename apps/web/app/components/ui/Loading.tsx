@@ -43,7 +43,7 @@ export function Loading({
       {...data}
       role="status"
       aria-label={label}
-      className={`text-base-content/70 flex items-center gap-2 text-sm ${className}`.trim()}
+      className={`text-muted flex items-center gap-2 text-sm ${className}`.trim()}
     >
       <span className="loading loading-spinner loading-sm" aria-hidden="true" />
       {label}

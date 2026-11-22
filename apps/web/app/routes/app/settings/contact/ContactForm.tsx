@@ -36,6 +36,7 @@ export function ContactForm({ contact, signInEmail }: { contact: ContactValues; 
         labelPlaceholder="Mobile"
       />
       <Field
+        kind="input"
         label="Contact email"
         help={`Your sign-in email (${signInEmail}) stays private unless you enter it here.`}
         error={emailError}
@@ -48,11 +49,10 @@ export function ContactForm({ contact, signInEmail }: { contact: ContactValues; 
             defaultValue={contact.contactEmail ?? ""}
             maxLength={CONTACT_LIMITS.email}
             autoComplete="email"
-            className={`input w-full ${emailError ? "input-error" : ""}`}
           />
         )}
       </Field>
-      <Field label="Address" error={addressError}>
+      <Field kind="textarea" label="Address" error={addressError}>
         {(control) => (
           <textarea
             {...control}
@@ -61,7 +61,6 @@ export function ContactForm({ contact, signInEmail }: { contact: ContactValues; 
             defaultValue={contact.address ?? ""}
             maxLength={CONTACT_LIMITS.address}
             autoComplete="street-address"
-            className={`textarea w-full ${addressError ? "textarea-error" : ""}`}
           />
         )}
       </Field>

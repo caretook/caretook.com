@@ -10,7 +10,7 @@ import { Link, useNavigate } from "react-router";
 import { AllergiesRegion, MedicationStatusActions } from "~/components/medications";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { LinkedTodos } from "~/components/todos";
-import { BackLink, Page } from "~/components/ui";
+import { BackLink, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { medicationTitle } from "~/lib/medications/medicationDisplay";
@@ -115,49 +115,53 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
   }, [deleted, navigate, listUrl]);
 
   return (
-    <Page>
-      <BackLink to={listUrl} label="Medications" />
+    <Page bands>
+      <Section>
+        <BackLink to={listUrl} label="Medications" />
 
-      <MedicationHeader
-        medication={medication}
-        editors={
-          !deleted && <EditorAvatars documentId={medicationId} groupId={groupId} viewerId={db.userId} />
-        }
-        actions={
-          canWrite && (
-            <>
-              <Link
-                to={appUrls.editMedication(groupId, medicationId, "list")}
-                // Closing the sheet comes back here.
-                state={MEDICATION_SHEET_STATE}
-                prefetch="render"
-                className="btn btn-ghost btn-sm gap-1"
-                data-edit-medication
-              >
-                <Pencil className="size-4" aria-hidden="true" />
-                Edit
-              </Link>
-              <MedicationStatusActions
-                medication={medication}
-                recipientTimeZone={loaderData.recipientTimeZone}
-                layout="menu"
-                onSubmit={statusSent}
-              />
-            </>
-          )
-        }
-      />
+        <MedicationHeader
+          medication={medication}
+          editors={
+            !deleted && <EditorAvatars documentId={medicationId} groupId={groupId} viewerId={db.userId} />
+          }
+          actions={
+            canWrite && (
+              <>
+                <Link
+                  to={appUrls.editMedication(groupId, medicationId, "list")}
+                  // Closing the sheet comes back here.
+                  state={MEDICATION_SHEET_STATE}
+                  prefetch="render"
+                  className="btn btn-ghost btn-sm gap-1"
+                  data-edit-medication
+                >
+                  <Pencil className="size-4" aria-hidden="true" />
+                  Edit
+                </Link>
+                <MedicationStatusActions
+                  medication={medication}
+                  recipientTimeZone={loaderData.recipientTimeZone}
+                  layout="menu"
+                  onSubmit={statusSent}
+                />
+              </>
+            )
+          }
+        />
+      </Section>
 
       {deleted ? (
-        <div role="alert" className="alert">
-          <span>This medication was deleted.</span>
-          <Link to={listUrl} className="btn btn-sm">
-            Back to medications
-          </Link>
-        </div>
+        <Section>
+          <div role="alert" className="alert">
+            <span>This medication was deleted.</span>
+            <Link to={listUrl} className="btn btn-sm">
+              Back to medications
+            </Link>
+          </div>
+        </Section>
       ) : (
         <>
-          <AllergiesRegion groupId={groupId} state={allergies} canWrite={canWrite} />
+          <AllergiesRegion groupId={groupId} state={allergies} canWrite={canWrite} band />
 
           <MedicationDetails
             groupId={groupId}
@@ -176,19 +180,17 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
 
           <MedicationRefills medication={medication} />
 
-          <LinkedTodos link={{ medicationId }} />
+          <LinkedTodos link={{ medicationId }} band />
 
-          <section aria-labelledby="medication-notes-heading" className="space-y-2">
-            <div>
-              <h2 id="medication-notes-heading" className="font-semibold">
-                Notes
-              </h2>
-              <p className="text-base-content/70 text-sm">
-                {canWrite
-                  ? "Shared with the care group: how to give it, what to watch for, refill tips."
-                  : "Shared with the care group. You can view these notes."}
-              </p>
-            </div>
+          <Section
+            title="Notes"
+            id="notes"
+            description={
+              canWrite
+                ? "Shared with the care group: how to give it, what to watch for, refill tips."
+                : "Shared with the care group. You can view these notes."
+            }
+          >
             {saveError && (
               <p role="alert" className="text-error text-sm">
                 {saveError}
@@ -205,7 +207,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
               ensureSaved={ensureSaved}
               providers={mentionProviders}
             />
-          </section>
+          </Section>
 
           <MedicationHistory
             groupId={groupId}

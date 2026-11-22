@@ -8,7 +8,7 @@ export const SURFACE = "rounded-box border-base-300 bg-base-100 border shadow-lg
 
 /** A field's label, and its help, error and warning lines (daisyUI `fieldset`). */
 export const FIELD_LABEL = "fieldset-legend";
-export const FIELD_HELP = "label text-base-content/70 whitespace-normal";
+export const FIELD_HELP = "label text-muted whitespace-normal";
 export const FIELD_ERROR = "text-error text-sm";
 export const FIELD_WARNING = "text-warning text-sm";
 

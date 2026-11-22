@@ -6,7 +6,16 @@ import { visibleSharedFields } from "@caretook/data/schema";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import { ContactLines } from "~/components/contact";
-import { Badge, Button, ConfirmDialog, Message, UserAvatar } from "~/components/ui";
+import {
+  Badge,
+  Button,
+  ConfirmDialog,
+  List,
+  ListRow,
+  Message,
+  ToggleField,
+  UserAvatar,
+} from "~/components/ui";
 import { emergencyBadges } from "~/lib/profiles/emergencyList";
 import { useLiveQuery } from "~/lib/sync";
 import {
@@ -70,7 +79,7 @@ export function Members({
 
   return (
     <>
-      <ul className="divide-base-200 divide-y">
+      <List>
         {members.map((member) => {
           const isSelf = member.user_id === userId;
           const mine = target?.userId === member.user_id;
@@ -90,7 +99,7 @@ export function Members({
             />
           );
         })}
-      </ul>
+      </List>
       {/* Offline there's nothing to confirm: no controls at all. */}
       {online && (
         <ConfirmDialog
@@ -155,7 +164,7 @@ function MemberItem({
 
   const error = (result && !result.ok ? result.error : undefined) ?? simple.error ?? removeError;
   return (
-    <li data-member={member.user_id} className="space-y-1 py-3 first:pt-0 last:pb-0">
+    <ListRow data-member={member.user_id} className="space-y-1">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <UserAvatar name={member.name} image={member.image} size="lg" />
         <div className="min-w-0 flex-1">
@@ -226,20 +235,14 @@ function MemberItem({
       {(access?.simpleMode || !!member.simple_mode) && (
         <div className="flex min-w-0 flex-col gap-2 pl-12" data-member-switches="">
           {access?.simpleMode ? (
-            <label className="flex min-w-0 cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="toggle toggle-sm"
-                aria-label={`Simple mode for ${name}`}
-                checked={simple.on}
-                disabled={simple.busy || removing}
-                onChange={(event) => simple.set(event.target.checked)}
-                data-simple-mode-switch=""
-              />
-              <span aria-hidden="true" className="min-w-0">
-                Simple mode
-              </span>
-            </label>
+            <ToggleField
+              label="Simple mode"
+              aria-label={`Simple mode for ${name}`}
+              checked={simple.on}
+              disabled={simple.busy || removing}
+              onChange={(event) => simple.set(event.target.checked)}
+              data-simple-mode-switch=""
+            />
           ) : (
             !!member.simple_mode && (
               <Badge data-simple-mode-badge="" className="self-start">
@@ -248,20 +251,14 @@ function MemberItem({
             )
           )}
           {access?.lock && (
-            <label className="flex min-w-0 cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="toggle toggle-sm"
-                aria-label={`Lock ${name} in simple mode`}
-                checked={simple.locked}
-                disabled={simple.busy || removing}
-                onChange={(event) => simple.lock(event.target.checked)}
-                data-simple-lock-switch=""
-              />
-              <span aria-hidden="true" className="min-w-0">
-                Locked
-              </span>
-            </label>
+            <ToggleField
+              label="Locked"
+              aria-label={`Lock ${name} in simple mode`}
+              checked={simple.locked}
+              disabled={simple.busy || removing}
+              onChange={(event) => simple.lock(event.target.checked)}
+              data-simple-lock-switch=""
+            />
           )}
           {access?.simpleMode && !access.lock && !!member.simple_mode_locked && (
             <Badge data-simple-mode-badge="" className="self-start">
@@ -289,7 +286,7 @@ function MemberItem({
             {sharedSummary(visibleSharedFields(share))}
           </p>
         ))}
-    </li>
+    </ListRow>
   );
 }
 

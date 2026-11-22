@@ -4,7 +4,7 @@ import type { DeviceRow } from "./devices";
 import { LogOut, Monitor, Smartphone } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import { Badge, Button, ConfirmDialog, EmptyState, Message } from "~/components/ui";
+import { Badge, Button, ConfirmDialog, EmptyState, List, ListRow, Message } from "~/components/ui";
 import { formatAgo } from "~/lib/core/format";
 
 const MOBILE = /\b(iPhone|iPad|Android)\b/;
@@ -35,43 +35,46 @@ export function DeviceList({ devices }: { devices: DeviceRow[] }) {
 
   return (
     <>
-      <ul data-devices="" className="divide-base-300 divide-y">
+      <List data-devices="">
         {devices.map((d) => {
           const Icon = MOBILE.test(d.label) ? Smartphone : Monitor;
           return (
-            <li
+            <ListRow
               key={d.id}
               data-device={d.id}
               data-current={d.current ? "" : undefined}
-              className="flex items-center gap-3 py-3"
+              trailing={
+                !d.current && (
+                  <Button
+                    size="sm"
+                    disabled={busy}
+                    aria-label={`Sign out ${d.label}, last active ${formatAgo(d.lastActive)}`}
+                    onClick={() => setPending({ kind: "one", device: d })}
+                  >
+                    Sign out
+                  </Button>
+                )
+              }
             >
-              <Icon aria-hidden="true" className="text-base-content/70 size-5 shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium" data-device-label="">
-                  {d.label}
-                </p>
-                <p className="text-base-content/70 text-sm">
-                  {d.current ? (
-                    <Badge tone="primary">This device</Badge>
-                  ) : (
-                    <>Last active {formatAgo(d.lastActive)}</>
-                  )}
-                </p>
+              <div className="flex items-center gap-3">
+                <Icon aria-hidden="true" className="text-muted size-5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium" data-device-label="">
+                    {d.label}
+                  </p>
+                  <p className="text-muted text-sm">
+                    {d.current ? (
+                      <Badge tone="primary">This device</Badge>
+                    ) : (
+                      <>Last active {formatAgo(d.lastActive)}</>
+                    )}
+                  </p>
+                </div>
               </div>
-              {!d.current && (
-                <Button
-                  size="sm"
-                  disabled={busy}
-                  aria-label={`Sign out ${d.label}, last active ${formatAgo(d.lastActive)}`}
-                  onClick={() => setPending({ kind: "one", device: d })}
-                >
-                  Sign out
-                </Button>
-              )}
-            </li>
+            </ListRow>
           );
         })}
-      </ul>
+      </List>
       {others.length > 0 ? (
         <div className="pt-2">
           <Button

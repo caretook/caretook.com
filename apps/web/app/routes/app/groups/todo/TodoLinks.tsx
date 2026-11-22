@@ -8,6 +8,7 @@ import { CalendarClock, Pill } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router";
 import { ContactActions, ProviderTypeIcon } from "~/components/providers";
+import { Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { quickActions } from "~/lib/providers/contactActions";
 import { formatDate, medicationTitle } from "~/lib/medications/medicationDisplay";
@@ -170,10 +171,7 @@ export function TodoLinks({
   );
   if (!providerId && !eventId && !medicationId) return null;
   return (
-    <section aria-labelledby="todo-links-heading" className="space-y-2" data-todo-links>
-      <h2 id="todo-links-heading" className="font-semibold">
-        Linked to
-      </h2>
+    <Section title="Linked to" id="links" data-todo-links="">
       <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border">
         {providerId && (
           <ProviderLink key={providerId} groupId={groupId} id={providerId} loaded={initial.provider} />
@@ -188,6 +186,6 @@ export function TodoLinks({
           />
         )}
       </ul>
-    </section>
+    </Section>
   );
 }
