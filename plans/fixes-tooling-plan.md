@@ -14,24 +14,24 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item  | State                                                                                         | Merge    |
-| ----- | ----- | --------------------------------------------------------------------------------------------- | -------- |
-| 1     | B-381 | merged (quick passed on slice)                                                                | 3df76253 |
-| 2     | B-394 | merged (quick passed; 20 s timeout kept, see note)                                            | 26e83fa4 |
-| 3     | B-411 | merged (tooling: rotate.test 20 s timeout at load 126, passes alone)                          | 7ccc8ff8 |
-| 4     | B-440 | merged (tooling; tidy-cli.test beforeAll 10 s timeout under load: B-460)                      | 1a7ad440 |
-| 5     | B-441 | merged (conflict with 4 in tidy-cli.mjs resolved; +B-460 fix: load gate off in tidy-cli.test) | d971f6fa |
-| 6     | B-458 | merged (tooling)                                                                              | a8ab24cc |
-| 7     | B-475 | merged (test race, not a timer; Undo catch: B-527 fixes-bug)                                  | cd8cc1f5 |
-| 8     | B-484 | merged (quick passed on slice)                                                                | af134b65 |
-| 9     | B-451 | started (opus agent spawned)                                                                  | —        |
-| 10    | B-445 | started (opus agent spawned)                                                                  | —        |
-| 11    | B-534 | started (opus agent spawned)                                                                  | —        |
-| 12    | B-444 | started (opus agent spawned)                                                                  | —        |
-| 13    | B-405 | started (opus agent spawned)                                                                  | —        |
-| 14    | B-388 | started (opus agent spawned)                                                                  | —        |
-| 15    | B-450 | started (opus agent spawned)                                                                  | —        |
-| 16    | B-466 | started (opus agent spawned)                                                                  | —        |
+| Slice | Item  | State                                                                                                                                               | Merge    |
+| ----- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| 1     | B-381 | merged (quick passed on slice)                                                                                                                      | 3df76253 |
+| 2     | B-394 | merged (quick passed; 20 s timeout kept, see note)                                                                                                  | 26e83fa4 |
+| 3     | B-411 | merged (tooling: rotate.test 20 s timeout at load 126, passes alone)                                                                                | 7ccc8ff8 |
+| 4     | B-440 | merged (tooling; tidy-cli.test beforeAll 10 s timeout under load: B-460)                                                                            | 1a7ad440 |
+| 5     | B-441 | merged (conflict with 4 in tidy-cli.mjs resolved; +B-460 fix: load gate off in tidy-cli.test)                                                       | d971f6fa |
+| 6     | B-458 | merged (tooling)                                                                                                                                    | a8ab24cc |
+| 7     | B-475 | merged (test race, not a timer; Undo catch: B-527 fixes-bug)                                                                                        | cd8cc1f5 |
+| 8     | B-484 | merged (quick passed on slice)                                                                                                                      | af134b65 |
+| 9     | B-451 | started (opus agent spawned)                                                                                                                        | —        |
+| 10    | B-445 | started (opus agent spawned)                                                                                                                        | —        |
+| 11    | B-534 | handed off 4074a56e (full passed: vitest.config.ts; fold: machinery load gate; rm.sh reads prd list twice)                                          | —        |
+| 12    | B-444 | handed off 3baa63c0 (quick passed)                                                                                                                  | —        |
+| 13    | B-405 | handed off 70cc7d85 (quick passed; fold: vitest.config.ts:192 comment, data-layer.md, machinery.md)                                                 | —        |
+| 14    | B-388 | handed off ad35cd5b (quick: only resetStaging B-466 timed out, 3/3 alone; browser not run, client.ts maps to @suite; fold: runbook connect timeout) | —        |
+| 15    | B-450 | started (opus agent spawned)                                                                                                                        | —        |
+| 16    | B-466 | handed off 14db2807 (full passed: seeds; app-shell FLAKY on first PowerSync start, known gotcha; fold: data-layer seeds hash once)                  | —        |
 
 ## Wave 1
 
