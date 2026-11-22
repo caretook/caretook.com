@@ -4,7 +4,13 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-21), not started. **Slices 1, 2, 6 and 7 moved to [`check-speed`](check-speed-plan.md)** (its slices 1 to 4, with B-271, B-272, B-273 and B-278) on 2026-11-21: skip them here. The load gate was dropped there for two check leases and a check log. Waves 1 to 4 can start now, slice 11 included: `check-speed`'s worker databases (its slice 4, B-278) land with its wave 2 (until then, slice 11 waits for that landing). Waves 5 to 7 wait until `list-filters`, `planner-2` and `ui-kit` have all landed in `dev`.
+**Landing mode: run everything through** (started run-through, 2026-11-21): start every ready slice, land each green wave through its PR + Codex, clean up; ask only real questions via `pnpm prd ask`.
+
+**Where it stands:** wave 1 started 2026-11-21. **Slices 1, 2, 6 and 7 moved to [`check-speed`](check-speed-plan.md)** (its slices 1 to 4, with B-271, B-272, B-273 and B-278): skip them here. `check-speed`, `list-filters`, `planner-2` and `ui-kit` are all in `dev`, so nothing outside this PRD blocks any wave (slice 11 and waves 5 to 7 included); the pause after wave 4 isn't needed.
+
+**Models:** slices 3, 4, 5 on opus.
+
+**Unplanned items triaged to test-health** (not in any slice yet; to fold into later waves or a follow-up at a wave boundary): B-370 quick check always-run guards, B-371 device-to-server round trip per table, B-372 a second time zone in tests, B-373 role coverage gaps, B-374 uploadData error test, B-375 small test fixes (its `retry: 2` part is slice 15's), B-405 worker database name collision, B-418 recover.test.mjs flake under load.
 
 | Slice | Wave | State       | Merge into `prd/test-health` (slice commits) |
 | ----- | ---- | ----------- | -------------------------------------------- |
