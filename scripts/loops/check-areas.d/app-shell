@@ -7,9 +7,9 @@
 # Its header's magnifier is component tests (search/search.browser.test.tsx).
 apps/web/app/routes/app/layout/route.tsx sign-in session-end
 apps/web/app/routes/app/layout/UserMenu.tsx app-shell
-apps/web/app/routes/app/layout/*         -
-apps/web/app/routes/app/home/*           first-sync
-apps/web/app/components/shell/*          first-sync
+apps/web/app/routes/app/layout/          -
+apps/web/app/routes/app/home/            first-sync
+apps/web/app/components/shell/           first-sync
 # Native / redirects to /app (native build only; no rule had it).
 apps/web/app/routes/native-index.tsx     sign-in phase2 roundtrip
 
@@ -35,19 +35,19 @@ apps/web/app/routes/app/groups/planner/routes.ts first-sync layout-offline
 apps/web/app/routes/app/settings/routes.ts first-sync layout-offline
 apps/web/app/routes/dev/routes.ts        first-sync layout-offline
 apps/web/app/routes/marketing/routes.ts  first-sync layout-offline
-apps/web/app/routes/app/groups/layout/*  app-shell first-sync
-apps/web/app/routes/app/groups/index/*   -
+apps/web/app/routes/app/groups/layout/   app-shell first-sync
+apps/web/app/routes/app/groups/index/    -
 apps/web/app/lib/app-shell/group.tsx     first-sync
 
 # Account settings, and group settings and members.
-apps/web/app/routes/app/settings/*       layout-offline
+apps/web/app/routes/app/settings/        layout-offline
 apps/web/app/lib/app-shell/me.ts         layout-offline
-# The settings plan is unit-tested (settingsPlan.test.ts).
-apps/web/app/lib/app-shell/settingsPlan.ts -
-apps/web/app/components/settings/*       -
+apps/web/app/components/settings/        -
 packages/data/src/db/schema/app-shell/userPreferences.ts layout-offline
-apps/web/app/routes/app/groups/settings/members/* app-shell invites
-apps/web/app/routes/app/groups/settings/* app-shell
+apps/web/app/routes/app/groups/settings/members/  app-shell invites
+apps/web/app/routes/app/groups/settings/  app-shell
 # The service worker (lib/app-shell/serviceWorker*.ts; B-144) serves every /app
 # page load and the assets: the lean set.
 apps/web/app/lib/app-shell/serviceWorker* @suite
+# Directory defaults: a new file here needs no rule.
+apps/web/app/lib/app-shell/              -

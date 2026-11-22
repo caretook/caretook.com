@@ -1,17 +1,16 @@
 # check-areas: sign-in, the session, sign-out, account pages and Better Auth.
 apps/web/app/routes/sign-in.tsx          sign-in first-sync invites session-end
-apps/web/app/routes/account/*            invites sign-in
+apps/web/app/routes/account/             invites sign-in
 apps/web/app/routes/sign-out.tsx         signout-wipe sign-in invites session-end
-apps/web/app/routes/api/*                sign-in first-sync
+apps/web/app/routes/api/                 sign-in first-sync
 apps/web/app/lib/auth/session.ts         sign-in first-sync signout-wipe session-end
 apps/web/app/lib/auth/sessionRules.ts    sign-in session-end
-apps/web/app/lib/auth/sessionEpoch.ts    sign-in session-end
 apps/web/app/lib/core/redirect.ts        sign-in session-end
 apps/web/app/lib/auth/auth-client.ts     sign-in signout-wipe
 # Trusted origins and the client IP (hosting slice 8): Better Auth's sign-in
 # and limits, and the public forms' limit on /rpc.
 packages/auth/src/host.ts                sign-in marketing
-packages/auth/src/*                      sign-in first-sync signout-wipe invites
+packages/auth/src/                       sign-in first-sync signout-wipe invites
 # Shared rate limits (hosting): check builds (NODE_ENV=production) count
 # Better Auth's and the public forms' limits in Postgres.
 packages/data/src/db/schema/core/rateLimit.ts sign-in marketing
@@ -19,4 +18,6 @@ packages/data/src/services/rateLimitService.ts sign-in marketing
 # Devices: the account's sessions and signing them out (quick-fixes slice 29).
 # The page is component tests (devices/devices.browser.test.tsx); session-end
 # signs a browser out from another device through Better Auth's API.
-apps/web/app/routes/app/settings/devices/* -
+apps/web/app/routes/app/settings/devices/  -
+# Directory defaults: a new file here needs no rule.
+apps/web/app/lib/auth/                   sign-in session-end

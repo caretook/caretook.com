@@ -1,228 +1,78 @@
 import type { RouteConfigEntry } from "@react-router/dev/routes";
 
 import { describe, expect, it } from "vitest";
+import { adminRoutes } from "./routes/admin/routes";
+import { googleCalendarRoutes } from "./routes/api/google/routes";
+import { connectorRoutes } from "./routes/connectors/routes";
+import { devUiRoutes, notificationRoutes } from "./routes/dev/routes";
+import { marketingRoutes } from "./routes/marketing/routes";
 import { composeRoutes } from "./routes";
 
-// The route config as one flat list of "full path|file|id", frozen before each
-// area's routes moved into its own routes.ts (code-layout PRD). Sorted: only
-// what is routed matters, not the order the areas are spread in.
-// Adding a route means adding a line here.
+// Rules the route config keeps, not a list of its routes: adding a route
+// changes nothing here unless it breaks one.
 
-const flatten = (routes: RouteConfigEntry[], parent = ""): string[] =>
+type Flat = { path: string; file: string; id: string | undefined; index: boolean; leaf: boolean };
+
+const flatten = (routes: RouteConfigEntry[], parent = ""): Flat[] =>
   routes.flatMap((r) => {
     const path = r.path ? `${parent}/${r.path}` : parent;
     return [
-      `${path || "/"}|${r.file}|${r.id ?? ""}${r.index ? "|index" : ""}`,
+      { path: path || "/", file: r.file, id: r.id, index: !!r.index, leaf: !r.children?.length },
       ...flatten(r.children ?? [], path),
     ];
   });
 
-const WEB = [
-  "/.well-known/oauth-authorization-server/api/auth|routes/connectors/well-known/authorization-server.ts|",
-  "/.well-known/oauth-authorization-server|routes/connectors/well-known/authorization-server-root.ts|",
-  "/.well-known/oauth-protected-resource/mcp|routes/connectors/well-known/protected-resource.ts|",
-  "/.well-known/oauth-protected-resource|routes/connectors/well-known/protected-resource-root.ts|",
-  "/about|routes/marketing/about/route.tsx|",
-  "/admin/access-codes/:id/print|routes/admin/access-codes-print/route.tsx|",
-  "/admin/access-codes|routes/admin/access-codes/route.tsx|",
-  "/admin/audit|routes/admin/audit/route.tsx|",
-  "/admin/groups/:groupId|routes/admin/group/route.tsx|",
-  "/admin/groups|routes/admin/groups/route.tsx|",
-  "/admin/new-group|routes/admin/new-group/route.tsx|",
-  "/admin/settings|routes/admin/settings/route.tsx|",
-  "/admin/suppressions|routes/admin/suppressions/route.tsx|",
-  "/admin/users/:userId|routes/admin/user/route.tsx|",
-  "/admin/users|routes/admin/users/route.tsx|",
-  "/admin/waitlist/export|routes/admin/waitlist-export/route.ts|",
-  "/admin/waitlist|routes/admin/waitlist/route.tsx|",
-  "/admin|routes/admin/index/route.tsx|",
-  "/api/auth/*|routes/api/auth.ts|",
-  "/api/calendar/:file|routes/api/calendar/feed.ts|",
-  "/api/cron/calendar|routes/api/cron/calendar.ts|",
-  "/api/cron/outbox|routes/api/cron/outbox.ts|",
-  "/api/google/callback|routes/api/google/callback.ts|",
-  "/api/google/connect|routes/api/google/connect.ts|",
-  "/api/reminders/unsubscribe/:token|routes/api/reminders/unsubscribe.ts|",
-  "/api/webhooks/resend|routes/api/webhooks/resend.ts|",
-  "/app/groups/:groupId/entries/:entryId|routes/app/groups/entry/route.tsx|",
-  "/app/groups/:groupId/medications/:medicationId|routes/app/groups/medication/route.tsx|",
-  "/app/groups/:groupId/medications/list/:medicationId/edit|routes/app/groups/medications/edit/route.tsx|medications-list-edit",
-  "/app/groups/:groupId/medications/list/allergies|routes/app/groups/medications/allergies/route.tsx|medications-list-allergies",
-  "/app/groups/:groupId/medications/list/new|routes/app/groups/medications/new/route.tsx|medications-list-new",
-  "/app/groups/:groupId/medications/list|routes/app/groups/medications/list/route.tsx|",
-  "/app/groups/:groupId/medications/passes|routes/app/groups/medications/passes/route.tsx|",
-  "/app/groups/:groupId/medications/print/week|routes/app/groups/medications/print/week/route.tsx|",
-  "/app/groups/:groupId/medications/print|routes/app/groups/medications/print/route.tsx|",
-  "/app/groups/:groupId/medications/schedule/:medicationId/edit|routes/app/groups/medications/edit/route.tsx|medications-schedule-edit",
-  "/app/groups/:groupId/medications/schedule/allergies|routes/app/groups/medications/allergies/route.tsx|medications-schedule-allergies",
-  "/app/groups/:groupId/medications/schedule/new|routes/app/groups/medications/new/route.tsx|medications-schedule-new",
-  "/app/groups/:groupId/medications/schedule|routes/app/groups/medications/schedule/route.tsx|",
-  "/app/groups/:groupId/medications|routes/app/groups/medications/route.tsx|",
-  "/app/groups/:groupId/periods/:periodId/edit|routes/app/groups/periods/edit/route.tsx|",
-  "/app/groups/:groupId/periods/:periodId|routes/app/groups/period/route.tsx|",
-  "/app/groups/:groupId/periods/new|routes/app/groups/periods/new/route.tsx|",
-  "/app/groups/:groupId/periods|routes/app/groups/periods/route.tsx|",
-  "/app/groups/:groupId/planner/past|routes/app/groups/planner/past/route.tsx|",
-  "/app/groups/:groupId/planner|routes/app/groups/planner/route.tsx|",
-  "/app/groups/:groupId/profile/basics|routes/app/groups/profile/basics/route.tsx|",
-  "/app/groups/:groupId/profile/conditions/:conditionId/edit|routes/app/groups/profile/conditions/edit/route.tsx|",
-  "/app/groups/:groupId/profile/conditions/:conditionId|routes/app/groups/profile/conditions/view/route.tsx|",
-  "/app/groups/:groupId/profile/conditions/new|routes/app/groups/profile/conditions/new/route.tsx|",
-  "/app/groups/:groupId/profile/contact|routes/app/groups/profile/contact/route.tsx|",
-  "/app/groups/:groupId/profile/emergency|routes/app/groups/profile/emergency/route.tsx|",
-  "/app/groups/:groupId/profile/insurance|routes/app/groups/profile/insurance/route.tsx|",
-  "/app/groups/:groupId/profile/print|routes/app/groups/profile/print/route.tsx|",
-  "/app/groups/:groupId/profile|routes/app/groups/profile/route.tsx|",
-  "/app/groups/:groupId/providers/:providerId/edit|routes/app/groups/providers/edit/route.tsx|",
-  "/app/groups/:groupId/providers/:providerId|routes/app/groups/provider/route.tsx|",
-  "/app/groups/:groupId/providers/import|routes/app/groups/providers/import/route.tsx|",
-  "/app/groups/:groupId/providers/new|routes/app/groups/providers/new/route.tsx|",
-  "/app/groups/:groupId/providers|routes/app/groups/providers/route.tsx|",
-  "/app/groups/:groupId/search|routes/app/groups/search/route.tsx|",
-  "/app/groups/:groupId/settings/assistants|routes/app/groups/settings/assistants/route.tsx|",
-  "/app/groups/:groupId/settings/calendar|routes/app/groups/settings/calendar/route.tsx|",
-  "/app/groups/:groupId/settings/details|routes/app/groups/settings/details/route.tsx|",
-  "/app/groups/:groupId/settings/members|routes/app/groups/settings/members/route.tsx|",
-  "/app/groups/:groupId/settings|routes/app/groups/settings/index/route.tsx||index",
-  "/app/groups/:groupId/settings|routes/app/groups/settings/layout/route.tsx|",
-  "/app/groups/:groupId/timeline/:entryId/edit|routes/app/groups/timeline/edit/route.tsx|",
-  "/app/groups/:groupId/timeline/new/:kind|routes/app/groups/timeline/new/route.tsx|",
-  "/app/groups/:groupId/timeline/new/dose|routes/app/groups/timeline/new-dose/route.tsx|",
-  "/app/groups/:groupId/timeline/pass/:passLogId/edit|routes/app/groups/timeline/pass/route.tsx|",
-  "/app/groups/:groupId/timeline|routes/app/groups/timeline/route.tsx|",
-  "/app/groups/:groupId/todos/:todoId/edit|routes/app/groups/todos/edit/route.tsx|",
-  "/app/groups/:groupId/todos/:todoId|routes/app/groups/todo/route.tsx|",
-  "/app/groups/:groupId/todos/new|routes/app/groups/todos/new/route.tsx|",
-  "/app/groups/:groupId/todos|routes/app/groups/todos/route.tsx|",
-  "/app/groups/:groupId|routes/app/groups/index/route.tsx||index",
-  "/app/groups/:groupId|routes/app/groups/layout/route.tsx|group",
-  "/app/groups/new|routes/app/groups/new/route.tsx|",
-  "/app/settings/account|routes/app/settings/account/route.tsx|",
-  "/app/settings/contact|routes/app/settings/contact/route.tsx|",
-  "/app/settings/devices|routes/app/settings/devices/route.tsx|",
-  "/app/settings/timeline|routes/app/settings/timeline/route.tsx|",
-  "/app/settings/units|routes/app/settings/units/route.tsx|",
-  "/app/settings|routes/app/settings/index/route.tsx||index",
-  "/app/settings|routes/app/settings/layout/route.tsx|",
-  "/app|routes/app/home/route.tsx||index",
-  "/connect|routes/connectors/connect/route.tsx|",
-  "/contact|routes/marketing/contact/route.tsx|",
-  "/dev/mail.json|routes/dev/mail/json/route.ts|",
-  "/dev/mail/:id|routes/dev/mail/message/route.tsx|",
-  "/dev/mail|routes/dev/mail/list/route.tsx|",
-  "/dev/ui|routes/dev/ui/route.tsx|",
-  "/faq|routes/marketing/faq/route.tsx|",
-  "/features|routes/marketing/features/route.tsx|",
-  "/health-data-privacy|routes/marketing/health-data-privacy/route.tsx|",
-  "/invite/:token|routes/account/invite/route.tsx|",
-  "/join/:code|routes/account/join/route.tsx|",
-  "/mcp|routes/connectors/mcp/route.ts|",
-  "/privacy|routes/marketing/privacy/route.tsx|",
-  "/reset-password|routes/account/reset-password/route.tsx|",
-  "/robots.txt|routes/marketing/robots/route.ts|",
-  "/rpc/*|routes/rpc.ts|",
-  "/sign-in|routes/sign-in.tsx|",
-  "/sign-out|routes/sign-out.tsx|",
-  "/sitemap.xml|routes/marketing/sitemap/route.ts|",
-  "/terms|routes/marketing/terms/route.tsx|",
-  "/verify-email|routes/account/verify-email/route.tsx|",
-  "/|routes/admin/layout/route.tsx|admin",
-  "/|routes/app/layout/route.tsx|app",
-  "/|routes/marketing/home/route.tsx||index",
-  "/|routes/marketing/layout/route.tsx|marketing",
-  "/|routes/web/route.ts|web",
-];
+const key = (r: Flat) => `${r.path}|${r.file}|${r.id ?? ""}${r.index ? "|index" : ""}`;
 
-const NATIVE = [
-  "/app/groups/:groupId/entries/:entryId|routes/app/groups/entry/route.tsx|",
-  "/app/groups/:groupId/medications/:medicationId|routes/app/groups/medication/route.tsx|",
-  "/app/groups/:groupId/medications/list/:medicationId/edit|routes/app/groups/medications/edit/route.tsx|medications-list-edit",
-  "/app/groups/:groupId/medications/list/allergies|routes/app/groups/medications/allergies/route.tsx|medications-list-allergies",
-  "/app/groups/:groupId/medications/list/new|routes/app/groups/medications/new/route.tsx|medications-list-new",
-  "/app/groups/:groupId/medications/list|routes/app/groups/medications/list/route.tsx|",
-  "/app/groups/:groupId/medications/passes|routes/app/groups/medications/passes/route.tsx|",
-  "/app/groups/:groupId/medications/print/week|routes/app/groups/medications/print/week/route.tsx|",
-  "/app/groups/:groupId/medications/print|routes/app/groups/medications/print/route.tsx|",
-  "/app/groups/:groupId/medications/schedule/:medicationId/edit|routes/app/groups/medications/edit/route.tsx|medications-schedule-edit",
-  "/app/groups/:groupId/medications/schedule/allergies|routes/app/groups/medications/allergies/route.tsx|medications-schedule-allergies",
-  "/app/groups/:groupId/medications/schedule/new|routes/app/groups/medications/new/route.tsx|medications-schedule-new",
-  "/app/groups/:groupId/medications/schedule|routes/app/groups/medications/schedule/route.tsx|",
-  "/app/groups/:groupId/medications|routes/app/groups/medications/route.tsx|",
-  "/app/groups/:groupId/periods/:periodId/edit|routes/app/groups/periods/edit/route.tsx|",
-  "/app/groups/:groupId/periods/:periodId|routes/app/groups/period/route.tsx|",
-  "/app/groups/:groupId/periods/new|routes/app/groups/periods/new/route.tsx|",
-  "/app/groups/:groupId/periods|routes/app/groups/periods/route.tsx|",
-  "/app/groups/:groupId/planner/past|routes/app/groups/planner/past/route.tsx|",
-  "/app/groups/:groupId/planner|routes/app/groups/planner/route.tsx|",
-  "/app/groups/:groupId/profile/basics|routes/app/groups/profile/basics/route.tsx|",
-  "/app/groups/:groupId/profile/conditions/:conditionId/edit|routes/app/groups/profile/conditions/edit/route.tsx|",
-  "/app/groups/:groupId/profile/conditions/:conditionId|routes/app/groups/profile/conditions/view/route.tsx|",
-  "/app/groups/:groupId/profile/conditions/new|routes/app/groups/profile/conditions/new/route.tsx|",
-  "/app/groups/:groupId/profile/contact|routes/app/groups/profile/contact/route.tsx|",
-  "/app/groups/:groupId/profile/emergency|routes/app/groups/profile/emergency/route.tsx|",
-  "/app/groups/:groupId/profile/insurance|routes/app/groups/profile/insurance/route.tsx|",
-  "/app/groups/:groupId/profile/print|routes/app/groups/profile/print/route.tsx|",
-  "/app/groups/:groupId/profile|routes/app/groups/profile/route.tsx|",
-  "/app/groups/:groupId/providers/:providerId/edit|routes/app/groups/providers/edit/route.tsx|",
-  "/app/groups/:groupId/providers/:providerId|routes/app/groups/provider/route.tsx|",
-  "/app/groups/:groupId/providers/import|routes/app/groups/providers/import/route.tsx|",
-  "/app/groups/:groupId/providers/new|routes/app/groups/providers/new/route.tsx|",
-  "/app/groups/:groupId/providers|routes/app/groups/providers/route.tsx|",
-  "/app/groups/:groupId/search|routes/app/groups/search/route.tsx|",
-  "/app/groups/:groupId/settings/assistants|routes/app/groups/settings/assistants/route.tsx|",
-  "/app/groups/:groupId/settings/calendar|routes/app/groups/settings/calendar/route.tsx|",
-  "/app/groups/:groupId/settings/details|routes/app/groups/settings/details/route.tsx|",
-  "/app/groups/:groupId/settings/members|routes/app/groups/settings/members/route.tsx|",
-  "/app/groups/:groupId/settings|routes/app/groups/settings/index/route.tsx||index",
-  "/app/groups/:groupId/settings|routes/app/groups/settings/layout/route.tsx|",
-  "/app/groups/:groupId/timeline/:entryId/edit|routes/app/groups/timeline/edit/route.tsx|",
-  "/app/groups/:groupId/timeline/new/:kind|routes/app/groups/timeline/new/route.tsx|",
-  "/app/groups/:groupId/timeline/new/dose|routes/app/groups/timeline/new-dose/route.tsx|",
-  "/app/groups/:groupId/timeline/pass/:passLogId/edit|routes/app/groups/timeline/pass/route.tsx|",
-  "/app/groups/:groupId/timeline|routes/app/groups/timeline/route.tsx|",
-  "/app/groups/:groupId/todos/:todoId/edit|routes/app/groups/todos/edit/route.tsx|",
-  "/app/groups/:groupId/todos/:todoId|routes/app/groups/todo/route.tsx|",
-  "/app/groups/:groupId/todos/new|routes/app/groups/todos/new/route.tsx|",
-  "/app/groups/:groupId/todos|routes/app/groups/todos/route.tsx|",
-  "/app/groups/:groupId|routes/app/groups/index/route.tsx||index",
-  "/app/groups/:groupId|routes/app/groups/layout/route.tsx|group",
-  "/app/groups/new|routes/app/groups/new/route.tsx|",
-  "/app/settings/account|routes/app/settings/account/route.tsx|",
-  "/app/settings/contact|routes/app/settings/contact/route.tsx|",
-  "/app/settings/devices|routes/app/settings/devices/route.tsx|",
-  "/app/settings/timeline|routes/app/settings/timeline/route.tsx|",
-  "/app/settings/units|routes/app/settings/units/route.tsx|",
-  "/app/settings|routes/app/settings/index/route.tsx||index",
-  "/app/settings|routes/app/settings/layout/route.tsx|",
-  "/app|routes/app/home/route.tsx||index",
-  "/invite/:token|routes/account/invite/route.tsx|",
-  "/join/:code|routes/account/join/route.tsx|",
-  "/reset-password|routes/account/reset-password/route.tsx|",
-  "/sign-in|routes/sign-in.tsx|",
-  "/sign-out|routes/sign-out.tsx|",
-  "/verify-email|routes/account/verify-email/route.tsx|",
-  "/|routes/app/layout/route.tsx|app",
-  "/|routes/native-index.tsx||index",
-];
+const WEB = flatten(composeRoutes(false));
+const NATIVE = flatten(composeRoutes(true));
+const TARGETS = { web: WEB, native: NATIVE };
 
-describe("route config", () => {
-  it("composes the frozen web routes", () => {
-    expect(flatten(composeRoutes(false)).sort()).toEqual(WEB);
+// React Router's id for a route without one: its file, less the extension.
+const routeId = (r: Flat) => r.id ?? r.file.replace(/\.[^./]+$/, "");
+
+// The web-only areas, from their own route lists, and the server-only paths.
+const WEB_ONLY_FILES = new Set(
+  flatten([
+    ...marketingRoutes,
+    ...adminRoutes,
+    ...connectorRoutes,
+    ...notificationRoutes,
+    ...googleCalendarRoutes,
+    ...devUiRoutes,
+  ]).map((r) => r.file),
+);
+const WEB_ONLY_PATH = /^\/(api|rpc|admin|dev|mcp|connect|\.well-known)(\/|$)/;
+
+describe.each(Object.entries(TARGETS))("the %s route config", (_, routes) => {
+  it("has each route id once", () => {
+    const ids = routes.map(routeId);
+    expect(ids.filter((id, i) => ids.indexOf(id) !== i)).toEqual([]);
   });
 
-  it("composes the frozen native routes", () => {
-    expect(flatten(composeRoutes(true)).sort()).toEqual(NATIVE);
+  it("answers each path with one route", () => {
+    const paths = routes.filter((r) => r.leaf).map((r) => r.path);
+    expect(paths.filter((p, i) => paths.indexOf(p) !== i)).toEqual([]);
+  });
+});
+
+describe("the native route config", () => {
+  it("has no API, RPC, admin, dev or connector path", () => {
+    expect(NATIVE.map((r) => r.path).filter((p) => WEB_ONLY_PATH.test(p))).toEqual([]);
   });
 
-  it("has no path or id twice, and a file twice only with an id on each route", () => {
-    for (const native of [false, true]) {
-      const flat = flatten(composeRoutes(native));
-      expect(new Set(flat).size).toBe(flat.length);
-      const ids = flat.map((f) => f.split("|")[2]).filter((id) => id);
-      expect(new Set(ids).size).toBe(ids.length);
-      // The medication sheets serve both tabs, each route with its own id.
-      const files = flat.filter((f) => !f.split("|")[2]).map((f) => f.split("|")[1]);
-      expect(new Set(files).size).toBe(files.length);
-    }
+  it("has no route from a web-only area (marketing, admin, connectors, API, dev)", () => {
+    expect(
+      NATIVE.map((r) => r.file).filter((f) => WEB_ONLY_FILES.has(f) || f.startsWith("routes/web/")),
+    ).toEqual([]);
+  });
+
+  it("has every route in the web config too, but its own index, whose path web answers", () => {
+    const web = new Set(WEB.map(key));
+    const webPaths = new Set(WEB.filter((r) => r.leaf).map((r) => r.path));
+    const own = NATIVE.filter((r) => r.file === "routes/native-index.tsx");
+    expect(own.map((r) => r.path)).toEqual(["/"]);
+    expect(own.every((r) => webPaths.has(r.path))).toBe(true);
+    expect(NATIVE.filter((r) => !own.includes(r) && !web.has(key(r))).map(key)).toEqual([]);
   });
 });

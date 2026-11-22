@@ -15,17 +15,24 @@
 // fewest wildcards, then the longest glob. The order of files and lines never
 // matters. A tie left after that is an error (the lint finds it).
 //
+// A directory default: a line whose path ends in / (no wildcards), then its
+// checks, e.g. `apps/web/app/lib/todos/  -`. It answers for any file under that
+// directory that no rule matches (and the unit-tested fallback doesn't cover);
+// the deepest default wins. So an area declares its directories once, and a
+// new file there needs no rule; a rule is only for a file that differs.
+//
 // Before the rules, one built-in: a test file (*.test.ts, .tsx or .mjs, which
 // covers .int.test.ts, .browser.test.tsx and .sync.test.ts) needs no browser
 // check: pnpm check runs it. It sits above the rules because a folder's rule
 // is always more specific than a suffix like *.test.ts, so a suffix rule could
 // never win against one.
 //
-// After the rules, two built-in fallbacks:
+// After the rules, in order:
 //   - a .ts/.tsx module under apps/web/app/lib/ with a sibling .test.ts needs
 //     no check (its unit tests cover it), unless it ends in .sync.ts(x) or sits
 //     under lib/sync/: device queries still run their area's checks;
-//   - anything else gets UNMAPPED_DEFAULT, with a warning to add a rule.
+//   - the deepest directory default the file sits under;
+//   - anything else gets UNMAPPED_DEFAULT, with a warning to add a rule or a default.
 //
 //   node check-areas.mjs resolve [--root DIR] [--areas DIR] [file…]
 //     prints "<file>\t<checks>" per file (files from stdin when none are given):
@@ -33,7 +40,7 @@
 //     "UNMAPPED <default checks>". A tie exits 2 and names the rules.
 //   node check-areas.mjs lint [--root DIR] [--areas DIR]
 //     checks the rules against `git ls-files`: every tracked file resolves, no
-//     rule is dead, no glob is written twice, no tie. Exits 1 with the problems.
+//     rule or default is dead, no glob is written twice, no tie. Exits 1 with the problems.
 //
 // DIR defaults to the repo this file sits in; --areas to DIR/scripts/loops/check-areas.d.
 import { execFileSync } from "node:child_process";
@@ -111,9 +118,10 @@ export function compareSpecificity(a, b) {
 }
 
 /**
- * One rule file's rules: { glob, checks, source, line }, where checks is the
- * rest of the line ("-", "@suite", "@self" or check names, one space apart).
- * Throws on a rule with no checks.
+ * One rule file's rules: { glob, checks, source, line, dir? }, where checks is
+ * the rest of the line ("-", "@suite", "@self" or check names, one space
+ * apart). dir is set on a directory default (a path ending in /). Throws on a
+ * rule with no checks, or a default with a wildcard.
  */
 export function parseRules(text, source = "rules") {
   const rules = [];
@@ -123,10 +131,18 @@ export function parseRules(text, source = "rules") {
     const [glob, ...words] = line.split(/\s+/);
     if (!words.length)
       throw new Error(`${source}:${i + 1}: a rule needs checks, -, @suite or @self: ${line}`);
-    rules.push({ glob, checks: words.join(" "), source, line: i + 1, re: globToRegExp(glob) });
+    const rule = { glob, checks: words.join(" "), source, line: i + 1 };
+    if (glob.endsWith("/")) {
+      if (tokens(glob).some((t) => t.wild !== undefined) || glob.includes("\\"))
+        throw new Error(`${source}:${i + 1}: a directory default is a plain path, no wildcards: ${line}`);
+      rules.push({ ...rule, dir: glob });
+    } else rules.push({ ...rule, re: globToRegExp(glob) });
   });
   return rules;
 }
+
+/** Whether a rule (or a directory default) covers a file. */
+const covers = (r, file) => (r.dir ? file.startsWith(r.dir) : r.re.test(file));
 
 /** Every rule in a check-areas.d folder (files in name order; the order doesn't matter). */
 export function loadRules(dir) {
@@ -137,15 +153,31 @@ export function loadRules(dir) {
     .flatMap((name) => parseRules(readFileSync(join(dir, name), "utf8"), name));
 }
 
-/** The matching rules, most specific first. */
+/** The matching rules (not directory defaults), most specific first. */
 export function matching(file, rules) {
-  return rules.filter((r) => r.re.test(file)).sort(compareSpecificity);
+  return rules.filter((r) => !r.dir && r.re.test(file)).sort(compareSpecificity);
+}
+
+/** The directory default for a file: the deepest one it sits under, if any. */
+export function directoryDefault(file, rules) {
+  return rules
+    .filter((r) => r.dir && file.startsWith(r.dir))
+    .reduce((best, r) => (!best || r.dir.length > best.dir.length ? r : best), undefined);
 }
 
 const where = (r) => `${r.source}:${r.line} ${r.glob}`;
 
+/** A rule's answer for a file: its checks, with @self turned into the check's name. */
+function answer(file, rule, exists) {
+  if (rule.checks !== "@self") return rule.checks;
+  // A spec (sign-in.spec.mjs) or a plain check (phase2.mjs) runs as its name.
+  const name = basename(file, ".mjs").replace(/\.spec$/, "");
+  return !file.endsWith(".mjs") ? "-" : exists(file) ? name : "- (deleted)";
+}
+
 /**
- * A file's checks: { checks, rule?, tie? }. checks is what browser.sh prints:
+ * A file's checks: { checks, rule?, tie? } (rule is the directory default when
+ * one answers). checks is what browser.sh prints:
  * names, "-", "- (deleted)", "- (unit-tested)", "@suite" or
  * "UNMAPPED <default>". tie, when set, lists the equally specific rules (the
  * first of them still gives the answer). exists(path) says whether a path
@@ -158,13 +190,7 @@ export function resolveFile(file, rules, exists) {
     const rule = found[0];
     const tied = found.filter((r) => compareSpecificity(r, rule) === 0);
     const tie = tied.length > 1 ? tied : undefined;
-    if (rule.checks === "@self") {
-      // A spec (sign-in.spec.mjs) or a plain check (phase2.mjs) runs as its name.
-      const name = basename(file, ".mjs").replace(/\.spec$/, "");
-      const checks = !file.endsWith(".mjs") ? "-" : exists(file) ? name : "- (deleted)";
-      return { checks, rule, tie };
-    }
-    return { checks: rule.checks, rule, tie };
+    return { checks: answer(file, rule, exists), rule, tie };
   }
   if (
     file.startsWith("apps/web/app/lib/") &&
@@ -174,13 +200,15 @@ export function resolveFile(file, rules, exists) {
     exists(`${file.replace(/\.[^.]+$/, "")}.test.ts`)
   )
     return { checks: "- (unit-tested)" };
+  const fallback = directoryDefault(file, rules);
+  if (fallback) return { checks: answer(file, fallback, exists), rule: fallback };
   return { checks: `UNMAPPED ${UNMAPPED_DEFAULT}` };
 }
 
 /**
- * The rules' problems against a file list (every tracked file): files no rule
- * or fallback covers, rules that match nothing (test files don't count: they
- * never reach the rules), globs written twice, and ties.
+ * The rules' problems against a file list (every tracked file): files no rule,
+ * default or fallback covers, rules and defaults that match nothing (test files
+ * don't count: they never reach the rules), globs written twice, and ties.
  */
 export function lint(rules, files, exists) {
   const problems = [];
@@ -193,9 +221,9 @@ export function lint(rules, files, exists) {
   const used = new Set();
   const ties = new Set();
   for (const file of files) {
-    if (!TEST_FILE.test(file)) for (const r of rules) if (r.re.test(file)) used.add(r);
+    if (!TEST_FILE.test(file)) for (const r of rules) if (covers(r, file)) used.add(r);
     const { checks, tie } = resolveFile(file, rules, exists);
-    if (checks.startsWith("UNMAPPED")) problems.push(`no rule for ${file}`);
+    if (checks.startsWith("UNMAPPED")) problems.push(`no rule or default for ${file}`);
     // A tie between copies of one glob is the duplicate above, reported once.
     if (tie && new Set(tie.map((r) => r.glob)).size > 1) {
       const key = tie.map(where).join(" = ");
@@ -205,7 +233,13 @@ export function lint(rules, files, exists) {
       }
     }
   }
-  for (const r of rules) if (!used.has(r)) problems.push(`dead rule ${where(r)}: matches no tracked file`);
+  for (const r of rules)
+    if (!used.has(r))
+      problems.push(
+        r.dir
+          ? `dead default ${where(r)}: no tracked file under it`
+          : `dead rule ${where(r)}: matches no tracked file`,
+      );
   return problems;
 }
 

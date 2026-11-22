@@ -142,6 +142,57 @@ describe("the built-ins", () => {
   });
 });
 
+describe("directory defaults", () => {
+  const withDefaults = [
+    ...rules,
+    ...parseRules(
+      `apps/web/app/lib/todos/            -
+apps/web/app/lib/todos/*.sync.ts    roundtrip
+apps/web/app/lib/                   ui
+apps/web/app/lib/todos/deep/        phase2
+`,
+      "todos",
+    ),
+  ];
+  const of = (file, exists = none) => checks(file, exists, withDefaults);
+
+  it("answers for a file under the directory that no rule matches", () => {
+    expect(of("apps/web/app/lib/todos/todoDisplay.ts")).toBe("-");
+    expect(resolveFile("apps/web/app/lib/todos/x.ts", withDefaults, none).rule?.glob).toBe(
+      "apps/web/app/lib/todos/",
+    );
+  });
+
+  it("loses to any rule that matches, however broad", () => {
+    expect(of("apps/web/app/lib/todos/todos.sync.ts")).toBe("roundtrip");
+    // apps/web/app/routes/* is a rule: it beats a deeper default.
+    const routes = [...rules, ...parseRules("apps/web/app/routes/app/groups/todos/  ui\n")];
+    expect(checks("apps/web/app/routes/app/groups/todos/list.tsx", none, routes)).toBe("roundtrip");
+  });
+
+  it("picks the deepest default", () => {
+    expect(of("apps/web/app/lib/todos/deep/a.ts")).toBe("phase2");
+    expect(of("apps/web/app/lib/other/a.ts")).toBe("ui");
+  });
+
+  it("comes after the unit-tested fallback, and before UNMAPPED", () => {
+    const tested = (p) => p === "apps/web/app/lib/other/a.test.ts";
+    expect(of("apps/web/app/lib/other/a.ts", tested)).toBe("- (unit-tested)");
+    expect(of("apps/elsewhere/a.ts")).toBe(`UNMAPPED ${UNMAPPED_DEFAULT}`);
+  });
+
+  it("runs a check file itself under an @self default", () => {
+    const self = parseRules("scripts/browser-checks/  @self\n");
+    const present = (p) => p === "scripts/browser-checks/sign-in.spec.mjs";
+    expect(checks("scripts/browser-checks/sign-in.spec.mjs", present, self)).toBe("sign-in");
+    expect(checks("scripts/browser-checks/gone.spec.mjs", none, self)).toBe("- (deleted)");
+  });
+
+  it("is a plain path: a wildcard in it is refused", () => {
+    expect(() => parseRules("src/*/  -\n", "f")).toThrow(/f:1: a directory default is a plain path/);
+  });
+});
+
 describe("parseRules", () => {
   it("skips comments and blank lines, and refuses a rule with no checks", () => {
     expect(parseRules("# c\n\n  a/*   x  y \n").map((r) => [r.glob, r.checks, r.line])).toEqual([
@@ -165,7 +216,10 @@ describe("lint", () => {
   });
 
   it("finds unmapped files, dead rules, duplicate globs and ties", () => {
-    expect(lintOf("src/b/* -\n")).toEqual(["no rule for src/a.ts", "no rule for docs/x.md"]);
+    expect(lintOf("src/b/* -\n")).toEqual([
+      "no rule or default for src/a.ts",
+      "no rule or default for docs/x.md",
+    ]);
     expect(lintOf("src/* -\n*.md -\nold/* -\n")).toEqual(["dead rule f0:3 old/*: matches no tracked file"]);
     expect(lintOf("src/* -\n*.md -\n", "src/* ui\n")).toEqual([
       "duplicate glob src/*: f0:1 src/* and f1:1 src/*",
@@ -173,6 +227,29 @@ describe("lint", () => {
     expect(lintOf("src/*.ts -\n*.md -\n", "src/?.ts ui\n")).toEqual([
       "tie for src/a.ts: f0:1 src/*.ts = f1:1 src/?.ts",
     ]);
+  });
+
+  it("lets a directory default cover a file, and fails one with no tracked file under it", () => {
+    expect(lintOf("src/ -\n", "docs/ -\n")).toEqual([]);
+    expect(lintOf("src/ -\n", "docs/ -\nold/ -\n")).toEqual([
+      "dead default f1:2 old/: no tracked file under it",
+    ]);
+    // Only a test file under it: dead too (test files never reach the rules).
+    expect(lint(parseRules("src/ -\ndocs/ -\nt/ -\n", "f"), [...files, "t/a.test.ts"], none)).toEqual([
+      "dead default f:3 t/: no tracked file under it",
+    ]);
+  });
+
+  it("still fails a file under no rule and no default, a dead rule and a tie beside defaults", () => {
+    expect(lintOf("src/b/ -\n")).toEqual([
+      "no rule or default for src/a.ts",
+      "no rule or default for docs/x.md",
+    ]);
+    expect(lintOf("src/ -\n*.md -\nold/* -\n")).toEqual(["dead rule f0:3 old/*: matches no tracked file"]);
+    expect(lintOf("src/ -\nsrc/*.ts -\n*.md -\n", "src/?.ts ui\n")).toEqual([
+      "tie for src/a.ts: f0:2 src/*.ts = f1:1 src/?.ts",
+    ]);
+    expect(lintOf("src/ -\n*.md -\n", "src/ ui\n")).toEqual(["duplicate glob src/: f0:1 src/ and f1:1 src/"]);
   });
 
   it("counts a rule that only test files match as dead (they never reach the rules)", () => {
