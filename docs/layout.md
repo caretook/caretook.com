@@ -61,11 +61,11 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           <name>.sync.ts: an area's device queries (its tests .sync.test.ts, .sync.browser.test.tsx)
                           <area>/urls.ts: that area's URL builders and params; app-shell/appUrls.ts composes appUrls from them
                           (shared helpers in core/urls.ts)
-  app/lib/sync/           plumbing only: client (lazy), index, schema, pageCache, useLiveRows, firstSync
+  app/lib/sync/           plumbing only: client (lazy), index, schema, pageCache, useLiveRows, firstSync, uploader
   app/libLayout.test.ts   the layout guard: nothing directly under lib/, area names, the sync/ allowlist, .sync.ts in areas
 packages/auth/            @caretook/auth (emails.ts: auth emails through notify)
 packages/notifications/   @caretook/notifications: registry, templates (react-email), notify + outbox, senders, cron, dev mail
-packages/api/             @caretook/api: router, procedures, errors, dto, sync upload, HTTP handler
+packages/api/             @caretook/api: router, procedures, errors, dto, sync upload (sync.ts, its table registry syncRegistry.ts), HTTP handler
   src/<area>/             procedures by area (admin, app-shell, calendars, care-groups, connectors (MCP, OAuth, tools), marketing, profiles, search, timeline), int tests beside;
                           router.ts composes them; the shared helpers and sync.ts stay at the top
 packages/data/            @caretook/data
