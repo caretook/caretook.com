@@ -279,16 +279,16 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-411 | bug | triaged | fixes-tooling |  | A session opened again under the same name while the first still runs gets marked ended when the first exits: session.sh writes ended and exit without checking the record is still its own |
 | B-412 | bug | triaged | fixes-ui |  | plus button on timeline day header should be on far right so all actions are on right. Care period… |
 | B-413 | bug | triaged | fixes-ui |  | don't collapse past providers on list providers page, it breaks search and isn't needed. This list… |
-| B-414 | feature | triaged | ui-kit-2 |  | animations are cool. add some to actions, hovers, etc... be classy about it. For instance the… |
+| B-414 | feature | in-progress | ui-kit-2 | prd/ui-kit-2 | animations are cool. add some to actions, hovers, etc... be classy about it. For instance the… |
 | B-415 | feature | in-progress | ui-kit-2 | prd/ui-kit-2 | choose a more modern font set. |
 | B-416 | bug | triaged | fixes-ui |  | owner pill on planner/planner list should be below time/date field. Too busy under title. |
 | B-417 | feature | triaged | marketing |  | We are getting close to feature complete. We need another marketing content pass that updates copy… |
 | B-418 | bug | triaged | test-health |  | Flaky tooling test under load: recover.test.mjs '--at a time that has passed waits until tomorrow' fails in the full pnpm test:tooling run and passes alone |
-| B-419 | bug | triaged | ui-kit-2 |  | on providers page, import from another group is too wordy. Import icon is fine. It is for power… |
-| B-420 | bug | triaged | ui-kit-2 |  | planner add button can just be a plus icon. Maybe wait on button component. every main page header… |
+| B-419 | bug | in-progress | ui-kit-2 | prd/ui-kit-2 | on providers page, import from another group is too wordy. Import icon is fine. It is for power… |
+| B-420 | bug | in-progress | ui-kit-2 | prd/ui-kit-2 | planner add button can just be a plus icon. Maybe wait on button component. every main page header… |
 | B-421 | bug | triaged | fixes-ui |  | type pill on medication list items should float right. |
 | B-422 | feature | triaged | fixes-ui |  | In providers list page, contact links in rows make it too hard to know what to click. Make those… |
-| B-423 | feature | in-progress | ui-kit-2 | prd/ui-kit-2 | Standardize on single Button design component. Can have options like primary, secondary, danger,… |
+| B-423 | feature | ready | ui-kit-2 | prd/ui-kit-2 | Standardize on single Button design component. Can have options like primary, secondary, danger,… |
 | B-424 | feature | triaged | ui-kit-2 |  | medications page should have passes as a tab, not in header. + button should be a dropdown with add… |
 | B-425 | feature | triaged | inbox-agent |  | An inbox agent: a session that helps the user add, categorize and prioritize inbox items, and writes them by pushing straight to origin/dev instead of committing in the local dev checkout, so it never steps on the user's working copy |
 | B-426 | feature | live | orchestration-3 | prd/orchestration-3 | A load gate: PRD, slice and check starts wait while machine load is high, and the dispatcher weighs load when it picks what to start |
@@ -2229,9 +2229,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-414 · feature · animations are cool. add some to actions, hovers, etc... be classy about it. For instance the…
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit-2
-- owner:
+- owner: prd/ui-kit-2
 - commit:
 
 - 2026-11-21 (prd/orchestration-2): From the inbox: animations are cool. add some to actions, hovers, etc... be classy about it. For instance the expand carat on the timeline today header animates, the expand on the day summary does not. search toggle should animate, etc...
@@ -2279,9 +2279,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-419 · bug · on providers page, import from another group is too wordy. Import icon is fine. It is for power…
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit-2
-- owner:
+- owner: prd/ui-kit-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: on providers page, import from another group is too wordy. Import icon is fine. It is for power users anyway. Move the add button (just a + icon) and import icons to the right side of the header. Add is primary, import is secondary. and they should be similarly sized/styled.
@@ -2290,9 +2290,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-420 · bug · planner add button can just be a plus icon. Maybe wait on button component. every main page header…
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit-2
-- owner:
+- owner: prd/ui-kit-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: planner add button can just be a plus icon. Maybe wait on button component. every main page header can have a + icon button in the top right of header to add a new item. other secondary buttons should be to left of the + button.
@@ -2320,10 +2320,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-423 · feature · Standardize on single Button design component. Can have options like primary, secondary, danger,…
 
-- status: in-progress
+- status: ready
 - prd: ui-kit-2
 - owner: prd/ui-kit-2
-- commit:
+- commit: a4c2f3c5
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: Standardize on single Button design component. Can have options like primary, secondary, danger, etc. Can have sizes like small, medium, large. Can have variants like icon, text, etc. Can have shape like pill, square, round, etc. use it for every interactive link icon or text button in the app other than header and footer, expand actions, and hamburgers. Ask me if there should be other exceptions.
 - 2026-11-21 (Robert Bo Davis): Triage (backlog session): the single Button component is kit work, and ui-kit is mid-run, so it goes to the follow-up kit PRD. The planner asks the user about exceptions beyond header and footer, expand actions and hamburgers.
