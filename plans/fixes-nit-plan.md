@@ -6,7 +6,7 @@ Small nits: small tidies that users won't notice. There is no PRD: this plan is 
 
 Landing mode: **run everything through** (the user, 2026-11-21: "Run everything through", "Every ready slice", "run in auto mode"). Land each green wave, clean up, ask only real questions (through `pnpm prd ask`). B-379: **track only** (the user: file backlog items for each contract step, no migration now).
 
-Wave 1: slices 1–3, all done 2026-11-21. Synced with dev (profiles.md docs conflict resolved: dev's text, our check name). Next: full check on the tip (sync-config.yaml forces full), PR, Codex review (not Markdown only), land.
+Wave 1: slices 1–3, all done 2026-11-21. Synced with dev (profiles.md docs conflict resolved: dev's text, our check name). Full check passed on 2cdca857; no browser checks (no app code changed). Next: PR, Codex review, land.
 
 | Slice | Item  | Model  | State                                                                                        | Merge               |
 | ----- | ----- | ------ | -------------------------------------------------------------------------------------------- | ------------------- |
