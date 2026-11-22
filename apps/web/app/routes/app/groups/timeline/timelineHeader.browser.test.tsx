@@ -2,7 +2,7 @@ import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { at, fx, TEST_RECIPIENT, TEST_USER } from "../../../../../test/fixtures";
-import { found } from "../../../../../test/found";
+import { TEST_NOW, found, waitUntil } from "../../../../../test/found";
 import {
   chooseEasyMode,
   frames,
@@ -10,7 +10,6 @@ import {
   pressEasyMode,
   rows,
   TIMELINE_URL,
-  waitUntil,
   world,
 } from "./timelineWorld";
 
@@ -19,7 +18,7 @@ import {
 // header instead of the page's. The + menu is on each day's heading
 // (quick-fixes slice 44): today's adds start at now, another day's at 12:00.
 
-const ready = () => waitUntil(() => rows().length > 0, 8000, "the first rows");
+const ready = () => waitUntil(() => rows().length > 0, "the first rows");
 const addButton = () => page.getByRole("button", { name: "Add to Today" });
 const menuItems = () => [...document.querySelectorAll('[role="menu"] [role="menuitem"]')];
 const dayHeaders = () => [...document.querySelectorAll<HTMLElement>("[data-day-header]")];
@@ -74,14 +73,14 @@ describe("the Easy mode button", () => {
     const h1 = document.querySelector("main h1")!.getBoundingClientRect();
     expect(button.getBoundingClientRect().left).toBeGreaterThan(h1.left);
     await pressEasyMode();
-    await waitUntil(isEasy, 4000, "the easy view");
+    await waitUntil(isEasy, "the easy view");
     await userEvent.click(page.getByRole("button", { name: "Full app" }));
-    await waitUntil(() => !isEasy(), 4000, "the full timeline");
+    await waitUntil(() => !isEasy(), "the full timeline");
     await pressEasyMode();
-    await waitUntil(isEasy, 4000, "the easy view again");
+    await waitUntil(isEasy, "the easy view again");
     await device.screen.unmount();
     await openTimeline({ role: "caretaker" });
-    await waitUntil(isEasy, 4000, "the easy view after a reload");
+    await waitUntil(isEasy, "the easy view after a reload");
   });
 
   test("View options has Layout and Day summaries and no view switch", async () => {
@@ -95,8 +94,8 @@ describe("the Easy mode button", () => {
     expect(text.some((t) => t?.startsWith("Rows"))).toBe(true);
     expect(text.some((t) => t?.startsWith("Highlights"))).toBe(true);
     expect(text.some((t) => /easy/i.test(t ?? ""))).toBe(false);
-    expect(document.querySelector('[role="menu"]')!.textContent).toMatch(/Layout/);
-    expect(document.querySelector('[role="menu"]')!.textContent).toMatch(/Day summaries/);
+    expect(document.querySelector('[role="menu"]')?.textContent).toMatch(/Layout/);
+    expect(document.querySelector('[role="menu"]')?.textContent).toMatch(/Day summaries/);
     await userEvent.keyboard("{Escape}");
   });
 
@@ -108,7 +107,7 @@ describe("the Easy mode button", () => {
 
   test("an Easy helper, who can't toggle, has none in either view", async () => {
     await openTimeline({ role: "easy_helper" });
-    await waitUntil(isEasy, 4000, "the easy view");
+    await waitUntil(isEasy, "the easy view");
     expect(document.querySelector("[data-easy-toggle]")).toBeNull();
     expect(page.getByRole("button", { name: "Full app" }).query()).toBeNull();
   });
@@ -135,9 +134,11 @@ describe("the toolbar", () => {
     expect(document.querySelector('main header button[aria-label="View options"]')).toBeNull();
     const filter = toolbar.querySelector<HTMLElement>("button[data-filter-button]")!;
     expect(filter.compareDocumentPosition(eye) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    const [f, v] = [filter, eye].map((el) => el.getBoundingClientRect());
-    expect([v!.width, v!.height]).toEqual([f!.width, f!.height]);
-    expect(Math.abs(v!.right - filter.parentElement!.getBoundingClientRect().right)).toBeLessThan(1);
+    const [f, v] = [filter, eye].map((el) => el.getBoundingClientRect()) as [DOMRect, DOMRect];
+    expect([v.width, v.height]).toEqual([f.width, f.height]);
+    expect(
+      Math.abs(v.right - (filter.parentElement?.getBoundingClientRect().right ?? Number.NaN)),
+    ).toBeLessThan(1);
     await userEvent.click(eye);
     await expect.element(page.getByRole("menu", { name: "View options" })).toBeVisible();
     await userEvent.keyboard("{Escape}");
@@ -174,10 +175,10 @@ describe("the + menu", () => {
       const label = header.querySelector("h3")!.textContent;
       expect(plusOf(header)?.getAttribute("aria-label")).toBe(`Add to ${label}`);
       // Beside the heading, in the sticky header.
-      expect(plusOf(header)!.parentElement).toBe(header.querySelector("h3")!.parentElement);
+      expect(plusOf(header)?.parentElement).toBe(header.querySelector("h3")!.parentElement);
     }
-    expect(plusOf(headers[0]!)!.getAttribute("aria-label")).toBe("Add to Today");
-    expect(plusOf(headers[1]!)!.getAttribute("aria-label")).toBe("Add to Yesterday");
+    expect(headers[0] && plusOf(headers[0])?.getAttribute("aria-label")).toBe("Add to Today");
+    expect(headers[1] && plusOf(headers[1])?.getAttribute("aria-label")).toBe("Add to Yesterday");
     expect(document.querySelector('main > header button[aria-label^="Add to "]')).toBeNull();
   });
 
@@ -206,7 +207,9 @@ describe("the + menu", () => {
     await ready();
     await pick("Symptom");
     await expect.element(page.getByRole("dialog", { name: "Add to the timeline" })).toBeVisible();
-    expect(Math.abs(when().at - Date.now())).toBeLessThan(60_000);
+    // Now on the test clock: no earlier than its start, no later than this line.
+    expect(when().at).toBeGreaterThanOrEqual(TEST_NOW);
+    expect(when().at).toBeLessThanOrEqual(Date.now());
     await userEvent.keyboard("{Escape}");
     await expect.poll(device.location).toBe(TIMELINE_URL);
 
@@ -235,11 +238,11 @@ describe("the + menu", () => {
 
   test("a writer's timeline with nothing today still has Today's +", async () => {
     await openTimeline({ fixtures: [fx.symptom({ name: "Sore knee", occurredAt: at(pastNoon(3)) })] });
-    await waitUntil(() => rows().length === 1, 8000, "the row");
+    await waitUntil(() => rows().length === 1, "the row");
     const headers = dayHeaders();
     expect(headers.map((h) => h.querySelector("h3")!.textContent)[0]).toBe("Today");
     expect(headers).toHaveLength(2);
-    expect(plusOf(headers[0]!)!.getAttribute("aria-label")).toBe("Add to Today");
+    expect(headers[0] && plusOf(headers[0])?.getAttribute("aria-label")).toBe("Add to Today");
   });
 });
 
@@ -266,7 +269,7 @@ describe("the Today card's vitals", () => {
       document.querySelector<HTMLElement>("main [data-today-card][data-collapsed] [data-today-toggle]"),
     );
     await userEvent.click(toggle);
-    await waitUntil(shown, 4000, "the vitals row");
+    await waitUntil(shown, "the vitals row");
     await page.viewport(1280, 900);
     await frames();
     expect(shown()).toBe(true);
@@ -288,31 +291,27 @@ describe("the care period in the day headers", () => {
   test("a day inside the period shows it in its sticky header; a day before it doesn't; the main header doesn't", async () => {
     await openTimeline({ fixtures: [...world(), hospital] });
     await ready();
-    await waitUntil(
-      () => !!header(daysAgo(0, 12))?.querySelector("[data-period-line]"),
-      4000,
-      "today's period",
-    );
+    await waitUntil(() => !!header(daysAgo(0, 12))?.querySelector("[data-period-line]"), "today's period");
 
     for (const d of [0, 1, 3]) {
       const line = header(daysAgo(d, 12))!.querySelector<HTMLElement>("[data-period-line]");
       expect(line?.dataset.periodLine, `${d} days ago`).toBe(hospital.id);
       expect(line?.textContent).toMatch(/^In hospital · day \d+/);
     }
-    expect(header(daysAgo(0, 12))!.querySelector("h3")!.textContent).toBe("Today");
-    expect(getComputedStyle(header(daysAgo(0, 12))!).position).toBe("sticky");
+    expect(header(daysAgo(0, 12))?.querySelector("h3")?.textContent).toBe("Today");
+    expect(getComputedStyle(await found(() => header(daysAgo(0, 12)))).position).toBe("sticky");
     // Only today's header offers Change.
     expect(document.querySelectorAll("[data-period-change]")).toHaveLength(1);
-    expect(header(daysAgo(0, 12))!.querySelector("[data-period-change]")).not.toBeNull();
+    expect(header(daysAgo(0, 12))?.querySelector("[data-period-change]")).not.toBeNull();
 
     expect(header(daysAgo(4, 12))).toBeTruthy();
-    expect(header(daysAgo(4, 12))!.querySelector("[data-period-line]")).toBeNull();
+    expect(header(daysAgo(4, 12))?.querySelector("[data-period-line]")).toBeNull();
 
     // Nothing about the period above the list any more.
     expect(document.querySelectorAll("main [data-period-line]")).toHaveLength(
       document.querySelectorAll("[data-day-header] [data-period-line]").length,
     );
-    expect(document.querySelector("main > div > header")!.textContent).not.toMatch(/hospital/i);
+    expect(document.querySelector("main > div > header")?.textContent).not.toMatch(/hospital/i);
     expect(document.querySelector('[data-period-line="empty"]')).toBeNull();
   });
 });
@@ -320,13 +319,15 @@ describe("the care period in the day headers", () => {
 describe("the header's width", () => {
   test("1440: the heading, Today card and entries share the column's left and right edges", async () => {
     await openTimeline({ role: "caretaker", width: 1440 });
-    await waitUntil(() => rows().length > 0, 8000, "the rows");
+    await waitUntil(() => rows().length > 0, "the rows");
     const edges = (el: Element) => {
       const r = el.getBoundingClientRect();
       return [Math.round(r.left), Math.round(r.right)];
     };
     const list = edges(document.querySelector("main ol")!);
-    expect(edges(document.querySelector("main > div > header")!.parentElement!)).toEqual(list);
+    expect(edges(await found(() => document.querySelector("main > div > header")?.parentElement))).toEqual(
+      list,
+    );
     const card = await found(() => document.querySelector("main [data-today-card]"));
     expect(edges(card)).toEqual(list);
   });
@@ -342,10 +343,10 @@ describe("the empty Today", () => {
 
   test("a writer with nothing today sees the line under Today, older days below; Add an entry focuses the quick-entry field", async () => {
     await openTimeline({ role: "caretaker", fixtures: olderDays });
-    await waitUntil(() => rows().length === 2, 8000, "the rows");
+    await waitUntil(() => rows().length === 2, "the rows");
     const prompt = await found(emptyToday);
-    expect(todaySection()!.querySelector("h3")!.textContent).toBe("Today");
-    expect(todaySection()!.contains(prompt)).toBe(true);
+    expect(todaySection()?.querySelector("h3")?.textContent).toBe("Today");
+    expect(todaySection()?.contains(prompt)).toBe(true);
     expect(prompt.textContent).toContain("Nothing logged today yet.");
     expect(dayHeaders()).toHaveLength(3);
     expect(document.querySelector("[data-empty]")).toBeNull();
@@ -359,7 +360,7 @@ describe("the empty Today", () => {
 
   test("it sits in a bordered, rounded box like an entry row's list, and still offers Add an entry", async () => {
     await openTimeline({ role: "caretaker", fixtures: olderDays });
-    await waitUntil(() => rows().length === 2, 8000, "the rows");
+    await waitUntil(() => rows().length === 2, "the rows");
     const box = await found(emptyToday);
     const list = document.querySelector("main ol")!;
     const [a, b] = [getComputedStyle(box), getComputedStyle(list)];
@@ -367,7 +368,7 @@ describe("the empty Today", () => {
     expect(a.borderTopColor).toBe(b.borderTopColor);
     expect(a.borderTopLeftRadius).toBe(b.borderTopLeftRadius);
     expect(parseFloat(a.borderTopWidth)).toBeGreaterThan(0);
-    expect(box.querySelector("button")!.textContent).toBe("Add an entry");
+    expect(box.querySelector("button")?.textContent).toBe("Add an entry");
   });
 
   test("something logged today shows no prompt", async () => {
@@ -392,7 +393,7 @@ describe("the empty Today", () => {
     ],
   ])("%s shows no empty-Today prompt", async (_, open) => {
     await open();
-    await waitUntil(() => rows().length > 0, 8000, "the rows");
+    await waitUntil(() => rows().length > 0, "the rows");
     expect(emptyToday()).toBeNull();
     expect(page.getByRole("button", { name: "Add an entry" }).query()).toBeNull();
   });

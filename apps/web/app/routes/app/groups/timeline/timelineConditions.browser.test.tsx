@@ -23,9 +23,9 @@ import {
   rowWith,
   setView,
   TIMELINE_URL,
-  waitUntil,
   chooseEasyMode,
 } from "./timelineWorld";
+import { found, waitUntil } from "../../../../../test/found";
 
 // Condition changes on the timeline (conditions slice 2), on the test
 // device: rows and cards say what changed ("Added Type 2 diabetes", "Since:
@@ -120,7 +120,7 @@ describe("condition changes on the timeline", () => {
 
     const again = await open();
     await expect.poll(() => rowWith("Resolved Hip fracture")).toBeTruthy();
-    await userEvent.click(iconOf(rowWith("Resolved Hip fracture")!));
+    await userEvent.click(await found(() => iconOf(rowWith("Resolved Hip fracture")!)));
     await expect.poll(() => again.location()).toBe(`${TIMELINE_URL}?kind=conditionChange`);
   });
 
@@ -128,15 +128,15 @@ describe("condition changes on the timeline", () => {
     await open("?kind=conditionChange");
     await expect.poll(() => rowWith("Resolved Hip fracture")).toBeTruthy();
     const row = () => rowWith("Resolved Hip fracture");
-    expect(openOf(row()!)).toBeNull();
-    await userEvent.click(row()!.querySelector('button[aria-label^="Actions for"]')!);
+    expect(openOf(await found(row))).toBeNull();
+    await userEvent.click(await found(() => row()?.querySelector('button[aria-label^="Actions for"]')));
     await expect.poll(menuItems).toEqual(["Delete"]);
   });
 
   test("a viewer sees the rows, with no ⋯", async () => {
     await open("?kind=conditionChange", { role: "viewer" });
     await expect.poll(texts).toHaveLength(3);
-    expect(rowWith("Resolved Hip fracture")!.querySelector('button[aria-label^="Actions for"]')).toBeNull();
+    expect(rowWith("Resolved Hip fracture")?.querySelector('button[aria-label^="Actions for"]')).toBeNull();
   });
 });
 
@@ -169,8 +169,8 @@ describe("a condition written on this device", () => {
     // Each entry's id is the condition's and the save's time, as the server derives it.
     for (const i of [0, 2, 4]) {
       const updatedAt = queued[i]!.data!.updated_at as string;
-      expect(queued[i + 1]!.id).toBe(conditionChangeId(id, updatedAt));
-      expect(queued[i + 1]!.data).toMatchObject({ kind: "conditionChange", occurred_at: updatedAt });
+      expect(queued[i + 1]?.id).toBe(conditionChangeId(id, updatedAt));
+      expect(queued[i + 1]?.data).toMatchObject({ kind: "conditionChange", occurred_at: updatedAt });
     }
   });
 });
@@ -181,7 +181,7 @@ describe("easy mode", () => {
     chooseEasyMode();
     const mine = fx.symptom({ name: "Dizzy", occurredAt: minutesAgo(20), createdAt: minutesAgo(20) });
     const device = await openTimeline({ role: null, fixtures: [membership, mine] });
-    await waitUntil(() => !!document.querySelector("[data-easy-timeline]"), 4000, "the easy view");
+    await waitUntil(() => !!document.querySelector("[data-easy-timeline]"), "the easy view");
     expect((await addCondition(device.db, TEST_GROUP.id, { name: "Gout" })).ok).toBe(true);
     await device.settle();
 

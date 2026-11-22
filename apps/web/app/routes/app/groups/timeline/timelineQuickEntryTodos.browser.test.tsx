@@ -9,7 +9,8 @@ import { clearUndo } from "~/lib/medications/passUndo";
 import { runActions } from "~/lib/assistant/quickEntry.sync";
 import * as newTodo from "../todos/new/route";
 import * as timeline from "./route";
-import { rowWith, TIMELINE_URL, waitUntil } from "./timelineWorld";
+import { rowWith, TIMELINE_URL } from "./timelineWorld";
+import { found, waitUntil } from "../../../../../test/found";
 
 // Quick entry adds todos (todos slice 7), on the test device (offline): a
 // `todo:` line previews as a todo card ("Todo · Due tomorrow 17:00", its
@@ -53,7 +54,7 @@ const status = () =>
 /** Type a line and wait until its cards read as `kinds` (members load a moment after the box). */
 const type = async (text: string, kinds: string[], also: () => boolean = () => true) => {
   await userEvent.fill(box(), text);
-  await waitUntil(() => cardKinds().join() === kinds.join() && also(), 4000, "the cards");
+  await waitUntil(() => cardKinds().join() === kinds.join() && also(), "the cards");
 };
 /** The todo card names its assignee (members load a moment after the box). */
 const samNamed = () =>
@@ -89,7 +90,7 @@ describe("quick entry adds todos", () => {
         .query(),
     ).toBeTruthy();
 
-    await userEvent.click(saveButton()!);
+    await userEvent.click(await found(saveButton));
     await expect.poll(status).toBe("Saved 1 todo");
     expect(cards()).toEqual([]);
 
@@ -119,14 +120,14 @@ describe("quick entry adds todos", () => {
   test("a todo beside other parts: one Save writes them all", async () => {
     const device = await open();
     await type("bp 120/80, todo: fax the insurance form, n: called the office", ["vital", "todo", "note"]);
-    expect(cards()[1]!.querySelector("p")?.textContent).toBe("Todo · No due date");
-    await userEvent.click(saveButton()!);
+    expect(cards()[1]?.querySelector("p")?.textContent).toBe("Todo · No due date");
+    await userEvent.click(await found(saveButton));
     await expect.poll(status).toBe("Saved 2 entries and 1 todo");
     const todos = await device.query<TodoDbRow>("SELECT * FROM todo");
     expect(todos.map((t) => [t.title, t.assignee_id, t.due_on])).toEqual([
       ["Fax the insurance form", null, null],
     ]);
-    await waitUntil(() => !!rowWith("called the office"), 4000, "the note on the timeline");
+    await waitUntil(() => !!rowWith("called the office"), "the note on the timeline");
   });
 
   test("Note instead saves the same words as a note", async () => {
@@ -134,7 +135,7 @@ describe("quick entry adds todos", () => {
     await type("todo: ask about the ramp", ["todo"]);
     await userEvent.click(page.getByRole("button", { name: "Make it a note" }));
     await waitUntil(() => cardKinds().join() === "note");
-    await userEvent.click(saveButton()!);
+    await userEvent.click(await found(saveButton));
     // A lone note opens on its page.
     await expect.poll(() => device.location()).toMatch(/\/entries\//);
     expect(await device.query("SELECT id FROM todo")).toEqual([]);
@@ -167,7 +168,7 @@ describe("quick entry adds todos", () => {
         .query(),
     ).toBeTruthy();
 
-    await userEvent.click(saveButton()!);
+    await userEvent.click(await found(saveButton));
     await expect.poll(status).toBe("Saved 1 todo");
     const [saved] = await device.query<TodoDbRow>("SELECT * FROM todo");
     expect(saved).toMatchObject({
@@ -194,11 +195,11 @@ describe("quick entry adds todos", () => {
     const before = Date.now();
     await type("call the pharmacy tomorrow", ["todo"]);
     await userEvent.click(page.getByRole("button", { name: "Make it a note" }));
-    await waitUntil(() => cardKinds().join() === "note", 4000, "the note card");
-    expect(cards()[0]!.querySelector("[data-quick-title]")?.textContent).toContain(
+    await waitUntil(() => cardKinds().join() === "note", "the note card");
+    expect(cards()[0]?.querySelector("[data-quick-title]")?.textContent).toContain(
       "call the pharmacy tomorrow",
     );
-    await userEvent.click(saveButton()!);
+    await userEvent.click(await found(saveButton));
     // A lone note opens on its page.
     await expect.poll(() => device.location()).toMatch(/\/entries\//);
     expect(await device.query("SELECT id FROM todo")).toEqual([]);
@@ -215,8 +216,8 @@ describe("quick entry adds todos", () => {
   test("a note asked for with a time ahead can't be saved, and the runner refuses a note ahead", async () => {
     const device = await open();
     await type("n: call the pharmacy tomorrow", ["note"]);
-    expect(saveButton()!.disabled).toBe(true);
-    expect(cards()[0]!.querySelector("[data-quick-blocking]")?.textContent).toBe("Can't be in the future");
+    expect(saveButton()?.disabled).toBe(true);
+    expect(cards()[0]?.querySelector("[data-quick-blocking]")?.textContent).toBe("Can't be in the future");
     expect(page.getByRole("button", { name: "Make it a todo" }).query()).toBeTruthy();
 
     const result = await runActions(device.db, TEST_GROUP.id, [
@@ -236,7 +237,7 @@ describe("quick entry adds todos", () => {
 
   test("a viewer gets no box, and the runner refuses their todo", async () => {
     const device = await open({ role: "viewer" });
-    await waitUntil(() => !!rowWith("Older note"), 4000, "the timeline");
+    await waitUntil(() => !!rowWith("Older note"), "the timeline");
     expect(document.querySelector("[data-quick-entry]")).toBeNull();
     const result = await runActions(device.db, TEST_GROUP.id, [{ type: "addTodo", title: "Call pharmacy" }]);
     expect(result).toMatchObject({ ok: false, index: null });

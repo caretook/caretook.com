@@ -11,7 +11,8 @@ import { runActions } from "~/lib/assistant/quickEntry.sync";
 import { dayInZone, timeInZone } from "~/lib/core/zonedDay";
 import * as newDose from "./new-dose/route";
 import * as timeline from "./route";
-import { TIMELINE_URL, waitUntil } from "./timelineWorld";
+import { TIMELINE_URL } from "./timelineWorld";
+import { found, waitUntil } from "../../../../../test/found";
 
 // Passes in quick entry, on the test device (offline throughout): "gave
 // evening meds" and "gave meds" carried out as Given all (one round, the
@@ -90,7 +91,7 @@ const live = async (device: Awaited<ReturnType<typeof open>>) =>
 /** Type a line and wait until its cards say `text` (the passes load a moment after the box). */
 const typeUntil = async (line: string, text: string) => {
   await userEvent.fill(box(), line);
-  await waitUntil(() => cards().some((c) => c.textContent?.includes(text)), 4000, `a card with "${text}"`);
+  await waitUntil(() => cards().some((c) => c.textContent?.includes(text)), `a card with "${text}"`);
 };
 
 afterEach(() => clearUndo());
@@ -100,8 +101,8 @@ describe("passes in the box", () => {
     const device = await open();
     await typeUntil("gave evening meds", "Evening medications");
     expect(cards()).toHaveLength(1);
-    expect(cards()[0]!.dataset.quickCard).toBe("dose");
-    expect(cards()[0]!.textContent).toContain("Given all · 2 medications");
+    expect(cards()[0]?.dataset.quickCard).toBe("dose");
+    expect(cards()[0]?.textContent).toContain("Given all · 2 medications");
     await userEvent.click(saveButton());
     await expect.poll(undoLabel).toBe("Saved 2 entries");
 
@@ -132,7 +133,7 @@ describe("passes in the box", () => {
     await expect.poll(undoLabel).toBe("Saved 4 entries");
     expect(await live(device)).toHaveLength(4);
 
-    await userEvent.click(undoButton()!);
+    await userEvent.click(await found(undoButton));
     await expect.poll(async () => (await live(device)).length).toBe(0);
     expect((await entries(device)).filter((r) => r.deleted_at)).toHaveLength(4);
     await expect.poll(undoLabel).toBe("");
@@ -161,25 +162,25 @@ describe("the due pass as one tap", () => {
     await userEvent.click(passDueButton());
     await expect.element(suggestions()).toBeVisible();
     expect(dueChips()).toHaveLength(1);
-    expect(dueChips()[0]!.textContent).toBe("Give evening meds (2)");
+    expect(dueChips()[0]?.textContent).toBe("Give evening meds (2)");
     // First: before the other rows of chips.
     const first = suggestions().element().querySelector("[data-quick-row]");
     expect(first?.getAttribute("data-quick-row")).toBe("due");
 
-    await userEvent.click(dueChips()[0]!);
+    await userEvent.click(await found(() => dueChips()[0]));
     await expect.element(suggestions()).not.toBeInTheDocument();
     await expect.poll(undoLabel).toBe("Evening logged");
     expect(document.querySelector("[data-quick-entry] [data-pass-undo]")).not.toBeNull();
     await expect.poll(async () => (await live(device)).length).toBe(2);
     // Nothing left in it, and nothing else to suggest: the button goes.
-    await waitUntil(() => !suggestButton().query(), 4000, "the button to go");
+    await waitUntil(() => !suggestButton().query(), "the button to go");
   });
 
   test("not while typing", async () => {
     await open();
     await expect.element(passDueButton()).toBeVisible();
     await userEvent.fill(box(), "bp");
-    await waitUntil(() => !suggestButton().query(), 4000, "the button to hide");
+    await waitUntil(() => !suggestButton().query(), "the button to hide");
   });
 
   test("pass names are completed while typing", async () => {
@@ -232,8 +233,8 @@ describe("the due-pass chip", () => {
     });
     const button = (which: string) =>
       document.querySelector(`[data-boxes="${which}"] [data-quick-entry] button[aria-label^="Suggestions"]`);
-    await waitUntil(() => !!button("full"), 4000, "the Suggestions button in the default box");
-    expect(button("full")!.getAttribute("aria-label")).toBe(PASS_DUE);
+    await waitUntil(() => !!button("full"), "the Suggestions button in the default box");
+    expect(button("full")?.getAttribute("aria-label")).toBe(PASS_DUE);
     // Nothing else to suggest, and the due pass isn't offered: no button.
     expect(button("plain")).toBeNull();
   });

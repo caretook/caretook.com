@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, TEST_GROUP } from "../../../../../test/fixtures";
 import * as timeline from "../timeline/route";
@@ -35,24 +35,15 @@ const world = () => [
   fx.link(VISIT.id, PT.id),
   NOTE,
 ];
-
-const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector<T>(sel);
-const VIEW = () => $("[data-print-entry]");
+const VIEW = () => document.querySelector<HTMLElement>("[data-print-entry]");
 const part = (name: string) => VIEW()?.querySelector(`[data-print="${name}"]`)?.textContent ?? null;
 const MENU = () =>
-  $<HTMLButtonElement>('main header [data-region="actions"] button[aria-label^="Actions for"]');
+  document.querySelector<HTMLButtonElement>(
+    'main header [data-region="actions"] button[aria-label^="Actions for"]',
+  );
 const menuItem = (text: string) =>
   [...document.querySelectorAll<HTMLElement>("[role=menuitem]")].find((m) => m.textContent?.trim() === text);
 const menuItems = () => [...document.querySelectorAll("[role=menuitem]")].map((m) => m.textContent?.trim());
-const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const waitUntil = async (test: () => boolean, ms = 8000, what = "condition") => {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    if (test()) return;
-    await pause(25);
-  }
-  throw new Error(`timed out waiting for ${what}`);
-};
 
 const printed = () => vi.spyOn(window, "print").mockImplementation(() => undefined);
 afterEach(() => vi.restoreAllMocks());
@@ -60,7 +51,7 @@ afterEach(() => vi.restoreAllMocks());
 describe("the print view", () => {
   test("an event's: title, time, its provider's address as the place, With, and the text; hidden on screen", async () => {
     await renderWithDevice({ route: ROUTES, url: entryPath(VISIT.id), fixtures: world() });
-    await waitUntil(() => !!part("text")?.includes("Recheck in May"), 8000, "the print view");
+    await waitUntil(() => !!part("text")?.includes("Recheck in May"), "the print view");
     await expect.poll(() => part("title")).toBe("Visit with Dr. Lark");
     await expect.poll(() => part("time")).toMatch(/^Event · Today, /);
     await expect.poll(() => part("place")).toBe("Place: 12 Elm Street, Springfield (from Dr. Mira Lark)");
@@ -70,7 +61,7 @@ describe("the print view", () => {
     ).toEqual(["Keep the dose", "Recheck in May"]);
     expect(getComputedStyle(await found(VIEW)).display).toBe("none");
     // On paper the page's controls give way to it.
-    expect($("main > div.print\\:hidden")).toBeTruthy();
+    expect(document.querySelector<HTMLElement>("main > div.print\\:hidden")).toBeTruthy();
   });
 
   test("a typed place wins, and a note has no place or With", async () => {
@@ -96,7 +87,7 @@ describe("Print in the ⋯ menu", () => {
     await renderWithDevice({ route: ROUTES, url: entryPath(VISIT.id), fixtures: world(), role: "caretaker" });
     await waitUntil(() => !!MENU());
     await userEvent.click(await found(MENU));
-    await waitUntil(() => !!menuItem("Print"), 4000, "the menu");
+    await waitUntil(() => !!menuItem("Print"), "the menu");
     expect(menuItems().slice(-2)).toEqual(["Print", "Delete"]);
     await userEvent.click(await found(() => menuItem("Print")));
     expect(print).toHaveBeenCalledTimes(1);
@@ -107,7 +98,7 @@ describe("Print in the ⋯ menu", () => {
     await renderWithDevice({ route: ROUTES, url: entryPath(NOTE.id), fixtures: world(), role: "viewer" });
     await waitUntil(() => !!MENU());
     await userEvent.click(await found(MENU));
-    await waitUntil(() => !!menuItem("Print"), 4000, "the menu");
+    await waitUntil(() => !!menuItem("Print"), "the menu");
     expect(menuItems()).toEqual(["Print"]);
     await userEvent.click(await found(() => menuItem("Print")));
     expect(print).toHaveBeenCalledTimes(1);
@@ -123,14 +114,14 @@ describe("Print in the ⋯ menu", () => {
     });
     const actions = () =>
       [...document.querySelectorAll<HTMLButtonElement>('ol button[aria-label^="Actions for event"]')][0];
-    await waitUntil(() => !!actions(), 8000, "the event's ⋯");
-    await userEvent.click(actions()!);
-    await waitUntil(() => !!menuItem("Print"), 4000, "the menu");
+    await waitUntil(() => !!actions(), "the event's ⋯");
+    await userEvent.click(await found(actions));
+    await waitUntil(() => !!menuItem("Print"), "the menu");
     await userEvent.click(await found(() => menuItem("Print")));
-    await expect.poll(() => print.mock.calls.length, { timeout: 4000 }).toBe(1);
+    await expect.poll(() => print.mock.calls.length).toBe(1);
     await expect.poll(() => device.location()).toBe(entryPath(VISIT.id));
     await expect.poll(() => part("title")).toBe("Visit with Dr. Lark");
-    await pause(300);
+    await device.settle();
     expect(print).toHaveBeenCalledTimes(1);
   });
 });

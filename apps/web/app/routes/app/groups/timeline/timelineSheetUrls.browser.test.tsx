@@ -5,13 +5,13 @@ import { useLayoutEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { found, waitUntil } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, TEST_GROUP } from "../../../../../test/fixtures";
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
 import * as timeline from "./route";
-import { frames, rows, rowWith, TIMELINE_URL as T, waitUntil, world } from "./timelineWorld";
+import { frames, rows, rowWith, TIMELINE_URL as T, world } from "./timelineWorld";
 
 // The sheets' URLs (routing.mjs's add- and edit-sheet steps): the + menu and
 // a row open `timeline/new/:kind` and `timeline/:entryId/edit` with the
@@ -100,9 +100,9 @@ const menuItem = (text: string) =>
 /** + → `item`, pressed where they are. */
 const addFrom = async (item: string) => {
   press(document.querySelector('button[aria-label="Add to Today"]')!);
-  await waitUntil(() => !!menuItem(item), 4000, `${item} in the + menu`);
+  await waitUntil(() => !!menuItem(item), `${item} in the + menu`);
   press(menuItem(item)!);
-  await waitUntil(() => !!dialog()?.querySelector("form"), 4000, "the sheet");
+  await waitUntil(() => !!dialog()?.querySelector("form"), "the sheet");
 };
 
 const where = () => ({ y: Math.round(scrollY), rows: rows().length });
@@ -113,7 +113,7 @@ const open = (url = START, role?: "viewer") =>
 const fromStart = async (link: "Vitals" | "Symptoms") => {
   const device = await open();
   await userEvent.click(page.getByRole("link", { name: link, exact: true }));
-  await waitUntil(() => rows().length > 0, 8000, "the first rows");
+  await waitUntil(() => rows().length > 0, "the first rows");
   await device.settle();
   return device;
 };
@@ -123,7 +123,7 @@ describe("the add sheet", () => {
     const device = await fromStart("Vitals");
     // An older page loaded, and scrolled down into it.
     window.scrollTo(0, document.documentElement.scrollHeight);
-    await waitUntil(() => rows().length > 30 && !loading(), 8000, "the second page");
+    await waitUntil(() => rows().length > 30 && !loading(), "the second page");
     await device.settle();
     window.scrollTo(0, 1500);
     await frames();
@@ -140,7 +140,7 @@ describe("the add sheet", () => {
         "a save",
         async () => {
           await userEvent.fill(await found(NAME), "Hiccups");
-          await userEvent.click(dialog()!.querySelector('button[type="submit"]')!);
+          await userEvent.click(await found(() => dialog()?.querySelector('button[type="submit"]')));
         },
       ],
     ];
@@ -148,7 +148,7 @@ describe("the add sheet", () => {
       await addFrom("Symptom");
       expect(device.location(), how).toBe(`${T}/new/symptom${VITALS}`);
       await close();
-      await waitUntil(() => !dialog(), 4000, `${how} to close the sheet`);
+      await waitUntil(() => !dialog(), `${how} to close the sheet`);
       await expect.poll(device.location).toBe(`${T}${VITALS}`);
       await frames();
       const after = where();
@@ -172,10 +172,10 @@ describe("the add sheet", () => {
   test("a link to new/vital?type=heartRate opens the sheet with Heart rate; closing replaces it with the timeline, filters kept", async () => {
     const device = await open();
     await userEvent.click(page.getByRole("link", { name: "Heart rate link" }));
-    await waitUntil(() => !!dialog(), 8000, "the sheet");
+    await waitUntil(() => !!dialog(), "the sheet");
     expect(VITAL_TYPE()).toBe("heartRate");
     await userEvent.click(sheetButton("Cancel"));
-    await waitUntil(() => !dialog(), 4000, "the sheet to close");
+    await waitUntil(() => !dialog(), "the sheet to close");
     await expect.poll(device.location).toBe(`${T}${VITALS}`);
     // Replaced, not pushed: Back is the page before it.
     back();
@@ -184,11 +184,11 @@ describe("the add sheet", () => {
 
   test("opened at new/vital?type=heartRate (a bookmark, or a reload): the sheet with Heart rate; Cancel lands on the timeline", async () => {
     const device = await open(DEEP_VITAL);
-    await waitUntil(() => !!dialog(), 8000, "the sheet");
+    await waitUntil(() => !!dialog(), "the sheet");
     expect(VITAL_TYPE()).toBe("heartRate");
     await userEvent.click(sheetButton("Cancel"));
     await expect.poll(device.location).toBe(`${T}${VITALS}`);
-    await waitUntil(() => rows().length > 0 && !dialog(), 4000, "the timeline");
+    await waitUntil(() => rows().length > 0 && !dialog(), "the timeline");
   });
 });
 
@@ -198,7 +198,7 @@ describe("the edit sheet", () => {
   const toKnee = async () => {
     for (let i = 0; i < 20 && !knee(); i++) {
       window.scrollTo(0, document.documentElement.scrollHeight);
-      await waitUntil(() => !loading(), 4000, "a page to load");
+      await waitUntil(() => !loading(), "a page to load");
       await frames();
     }
     expect(knee()).toBeTruthy();
@@ -208,15 +208,15 @@ describe("the edit sheet", () => {
     const device = await fromStart("Symptoms");
     await toKnee();
     await userEvent.click(editLink());
-    await waitUntil(() => !!dialog()?.textContent?.includes("Edit symptom"), 4000, "the edit sheet");
+    await waitUntil(() => !!dialog()?.textContent?.includes("Edit symptom"), "the edit sheet");
     expect(device.location()).toBe(`${T}/${KNEE.id}/edit${SYMPTOMS}`);
     await expect.poll(() => NAME()?.value).toBe("Sore knee");
 
     await userEvent.fill(await found(NAME), "Sore knee, left");
-    await userEvent.click(dialog()!.querySelector('button[type="submit"]')!);
-    await waitUntil(() => !dialog(), 4000, "the sheet to close");
+    await userEvent.click(await found(() => dialog()?.querySelector('button[type="submit"]')));
+    await waitUntil(() => !dialog(), "the sheet to close");
     await expect.poll(device.location).toBe(`${T}${SYMPTOMS}`);
-    await waitUntil(() => !!rowWith("Sore knee, left"), 4000, "the changed row");
+    await waitUntil(() => !!rowWith("Sore knee, left"), "the changed row");
 
     back();
     await expect.poll(device.location).toBe(START);
@@ -225,20 +225,20 @@ describe("the edit sheet", () => {
   test("⋯ → Edit opens the same URL, filled; Escape closes it, filters kept", async () => {
     const device = await fromStart("Symptoms");
     await toKnee();
-    await userEvent.click(knee()!.querySelector('button[aria-label^="Actions"]')!);
+    await userEvent.click(await found(() => knee()?.querySelector('button[aria-label^="Actions"]')));
     await expect.element(page.getByRole("menuitem", { name: "Edit" })).toBeVisible();
     await userEvent.click(page.getByRole("menuitem", { name: "Edit" }));
-    await waitUntil(() => !!NAME(), 4000, "the edit sheet");
+    await waitUntil(() => !!NAME(), "the edit sheet");
     expect(device.location()).toBe(`${T}/${KNEE.id}/edit${SYMPTOMS}`);
     await expect.poll(() => NAME()?.value).toBe("Sore knee");
     await userEvent.keyboard("{Escape}");
-    await waitUntil(() => !dialog(), 4000, "the sheet to close");
+    await waitUntil(() => !dialog(), "the sheet to close");
     await expect.poll(device.location).toBe(`${T}${SYMPTOMS}`);
   });
 
   test("opened at its URL (a bookmark, or a reload), it has the entry's current values: a change synced since shows", async () => {
     const device = await open(`${T}/${KNEE.id}/edit${SYMPTOMS}`);
-    await waitUntil(() => !!NAME(), 8000, "the edit sheet");
+    await waitUntil(() => !!NAME(), "the edit sheet");
     await expect.poll(() => NAME()?.value).toBe("Sore knee");
     await userEvent.keyboard("{Escape}");
     await expect.poll(device.location).toBe(`${T}${SYMPTOMS}`);
@@ -247,20 +247,22 @@ describe("the edit sheet", () => {
     await device.sync(fx.symptom({ id: KNEE.id, name: "Sore knee (from Sam)", occurredAt: KNEE_AT }));
     await device.settle();
     await toKnee().catch(() => undefined);
-    await waitUntil(() => !!rowWith("Sore knee (from Sam)"), 8000, "the synced change");
+    await waitUntil(() => !!rowWith("Sore knee (from Sam)"), "the synced change");
     await userEvent.click(
-      rowWith("Sore knee (from Sam)")!.querySelector<HTMLElement>('a[aria-label^="Edit "]')!,
+      await found(() =>
+        rowWith("Sore knee (from Sam)")?.querySelector<HTMLElement>('a[aria-label^="Edit "]'),
+      ),
     );
-    await waitUntil(() => !!NAME(), 4000, "the edit sheet");
+    await waitUntil(() => !!NAME(), "the edit sheet");
     await expect.poll(() => NAME()?.value).toBe("Sore knee (from Sam)");
   });
 
   test("deleted on another device while open: the sheet closes onto the timeline, filters kept, with no error", async () => {
     const device = await open(`${T}/${KNEE.id}/edit${SYMPTOMS}`);
-    await waitUntil(() => !!NAME(), 8000, "the edit sheet");
+    await waitUntil(() => !!NAME(), "the edit sheet");
     await device.sync(fx.symptom({ id: KNEE.id, name: "Sore knee", occurredAt: KNEE_AT, deletedAt: at() }));
     await device.settle();
-    await waitUntil(() => !dialog(), 4000, "the sheet to close");
+    await waitUntil(() => !dialog(), "the sheet to close");
     await expect.poll(device.location).toBe(`${T}${SYMPTOMS}`);
     expect(document.body.textContent).not.toMatch(/Not found|Something went wrong/);
   });
@@ -270,7 +272,7 @@ describe("a viewer", () => {
   test("new/symptom is the timeline, filters kept, with no form", async () => {
     const device = await open(`${T}/new/symptom${VITALS}`, "viewer");
     await expect.poll(device.location).toBe(`${T}${VITALS}`);
-    await waitUntil(() => rows().length > 0, 8000, "the timeline");
+    await waitUntil(() => rows().length > 0, "the timeline");
     expect(dialog()).toBeNull();
     expect(document.querySelector('input[name="symptomName"]')).toBeNull();
   });
@@ -278,7 +280,7 @@ describe("a viewer", () => {
   test("a symptom's edit URL is the timeline, filters kept, with no form and no edit targets", async () => {
     const device = await open(`${T}/${KNEE.id}/edit${SYMPTOMS}`, "viewer");
     await expect.poll(device.location).toBe(`${T}${SYMPTOMS}`);
-    await waitUntil(() => rows().length > 0, 8000, "the timeline");
+    await waitUntil(() => rows().length > 0, "the timeline");
     expect(dialog()).toBeNull();
     expect(document.querySelector('input[name="symptomName"]')).toBeNull();
     expect(document.querySelector('main ol [aria-label^="Edit "]')).toBeNull();

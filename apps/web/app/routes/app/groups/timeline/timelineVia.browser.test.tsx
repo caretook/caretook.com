@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { at, fx } from "../../../../../test/fixtures";
-import { openTimeline, rowWith, rows, SAM, setView, waitUntil } from "./timelineWorld";
+import { openTimeline, rowWith, rows, SAM, setView } from "./timelineWorld";
+import { waitUntil } from "../../../../../test/found";
 
 // The "via" tag (connectors): an entry a member added through their own AI
 // assistant says so on its row and its card ("via Claude", `data-via`), and
@@ -22,7 +23,7 @@ const tagOf = (text: string) => rowWith(text)?.querySelector<HTMLElement>("[data
 describe("the via tag", () => {
   test("rows: on entries added through an assistant, and not on others", async () => {
     await openTimeline({ fixtures });
-    await waitUntil(() => rows().length === 3, 4000, "three rows");
+    await waitUntil(() => rows().length === 3, "three rows");
     expect(tagOf("Walked to the mailbox")?.textContent).toBe("via Claude");
     expect(tagOf("Walked to the mailbox")?.dataset.via).toBe("Claude");
     expect(tagOf("71")?.textContent).toBe("via Claude");
@@ -33,9 +34,9 @@ describe("the via tag", () => {
 
   test("cards: beside the author, and not on others", async () => {
     await openTimeline({ fixtures });
-    await waitUntil(() => rows().length === 3, 4000, "three rows");
+    await waitUntil(() => rows().length === 3, "three rows");
     await setView("Cards");
-    await waitUntil(() => !!tagOf("Walked to the mailbox"), 4000, "the card's tag");
+    await waitUntil(() => !!tagOf("Walked to the mailbox"), "the card's tag");
     const card = rowWith("Walked to the mailbox")!;
     expect(card.querySelector("[data-via]")?.textContent).toBe("via Claude");
     // In the footer, after who wrote it.
