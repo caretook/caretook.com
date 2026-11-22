@@ -1,6 +1,6 @@
 import type { TodoRow } from "./todos.sync";
 
-import { addDays, localDate } from "@caretook/data/schema";
+import { addDays, localDate, UNDO_NEXT_METADATA } from "@caretook/data/schema";
 import { nextTodoId } from "@caretook/data/series";
 import { describe, expect, test } from "vitest";
 import { renderWithDevice } from "../../../test/device";
@@ -66,8 +66,13 @@ const queued = (db: Db) =>
     .getAll<{ tx_id: number; data: string }>("SELECT tx_id, data FROM ps_crud ORDER BY id")
     .then((rows) =>
       rows.map((r) => {
-        const op = JSON.parse(r.data) as { op: string; id: string; data?: Record<string, unknown> };
-        return { tx: r.tx_id, op: op.op, id: op.id, data: op.data ?? {} };
+        const op = JSON.parse(r.data) as {
+          op: string;
+          id: string;
+          data?: Record<string, unknown>;
+          metadata?: string;
+        };
+        return { tx: r.tx_id, op: op.op, id: op.id, data: op.data ?? {}, metadata: op.metadata ?? null };
       }),
     );
 const oneTransaction = (ops: { tx: number }[]) => new Set(ops.map((o) => o.tx)).size === 1;
@@ -157,11 +162,20 @@ describe("Undo", () => {
     const undo = (await queued(db)).slice(before);
     expect(undo.map((o) => `${o.op} ${o.id}`)).toEqual([`PATCH ${BINS_ID}`, `PATCH ${NEXT_ID}`]);
     expect(oneTransaction(undo)).toBe(true);
+    // The next's delete is flagged as the Undo's, so the server keeps one
+    // another member touched meanwhile (B-382); the reopen isn't.
+    expect(undo.map((o) => o.metadata)).toEqual([null, UNDO_NEXT_METADATA]);
+    expect(undo[1]?.data).toMatchObject({ deleted_at: expect.any(String) as unknown });
 
     ok(await completeTodo(db, BINS_ID));
     expect(await read(db, NEXT_ID)).toMatchObject({ deletedAt: null, doneAt: null, dueOn: tomorrow });
     // Brought back by a PATCH of `deleted_at` (the server restores it on the tick).
-    expect((await queued(db)).at(-1)).toMatchObject({ op: "PATCH", id: NEXT_ID, data: { deleted_at: null } });
+    expect((await queued(db)).at(-1)).toMatchObject({
+      op: "PATCH",
+      id: NEXT_ID,
+      data: { deleted_at: null },
+      metadata: null,
+    });
   });
 
   test("keeps an edited next, or one with notes, and the reopened todo stops repeating", async () => {

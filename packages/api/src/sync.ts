@@ -30,6 +30,7 @@ import {
   recipientConditionService,
   todoService,
   timelineEntryService,
+  UNDO_NEXT_METADATA,
 } from "@caretook/data";
 import { z } from "zod";
 import { unwrap } from "./errors";
@@ -58,6 +59,8 @@ const crudOpZSchema = z.object({
   id: z.uuid(),
   // Column values as SQLite stores them (snake_case, JSON as text).
   data: z.record(z.string(), z.unknown()).nullish(),
+  // The write's client-side flag (PowerSync's `_metadata`, on tables that track it).
+  metadata: z.string().max(64).nullish(),
 });
 export type CrudOp = z.infer<typeof crudOpZSchema>;
 
@@ -677,6 +680,11 @@ const todoOp = async (ctx: { authUser: AuthUser }, op: CrudOp): Promise<Outcome>
 
   // PATCH: only the columns that changed.
   if ("group_id" in data || "recipient_id" in data) return newError({ code: "todoService:immutable" });
+  // An Undo's soft delete of the next occurrence: only an untouched one goes (B-382).
+  if (data.deleted_at && op.metadata === UNDO_NEXT_METADATA) {
+    const res = await todoService.removeUndoneNext(ctx, op.id);
+    return isError(res) ? res : applied;
+  }
   if (data.deleted_at) return removeTodo(ctx, op.id);
   // A repeating todo's later occurrence brought back (a tick or skip remade
   // one an Undo took away); its content follows as an ordinary edit.

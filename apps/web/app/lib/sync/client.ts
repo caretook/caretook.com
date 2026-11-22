@@ -7,12 +7,12 @@ import { forgetUserData } from "../auth/forgetUserData";
 import { rpc } from "../core/rpc";
 import { releaseSyncLocksWhenCached } from "./pageCache";
 import { dropSearchTables } from "../search/searchTables.sync";
-import { drizzleSchema } from "./schema";
+import { drizzleSchema, powerSyncSchema } from "./schema";
 
 // The PowerSync database and its connection. Browser only: load it through
 // `openSync()` in ./index.ts, never import it statically (it starts workers).
 
-const AppSchema = new DrizzleAppSchema(drizzleSchema);
+const AppSchema = new DrizzleAppSchema(powerSyncSchema);
 
 // A page frozen in the back/forward cache must let go of the database, or the
 // next page's never opens (see ./pageCache). Before PowerSync takes any lock.
@@ -51,6 +51,7 @@ const connector: PowerSyncBackendConnector = {
         table: entry.table,
         id: entry.id,
         data: entry.opData ?? null,
+        ...(entry.metadata ? { metadata: entry.metadata } : {}),
       })),
     });
     for (const result of results) {

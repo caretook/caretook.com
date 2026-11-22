@@ -14,8 +14,9 @@ import {
   todoContentZSchema,
   todoCreateZSchema,
   todoUpdateZSchema,
+  UNDO_NEXT_METADATA,
 } from "@caretook/data/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { noteDocuments, todos } from "../sync/schema";
 import { forbidden, fromLocalTimestamp, groupFor, nowTimestamp, readRows } from "../timeline/timeline.sync";
 
@@ -504,10 +505,13 @@ export const reopenTodo = async (db: SyncDb, id: string): Promise<TodoWriteResul
       .set({ doneAt: null, doneBy: null, ...stops })
       .where(eq(todos.id, id));
     if (next && untouched) {
-      await tx
-        .update(todos)
-        .set({ deletedAt: now, updatedAt: now, updatedBy: db.userId })
-        .where(eq(todos.id, next.id));
+      // Flagged for the upload: the server takes it away only while it's
+      // still untouched there, as its reopen does (B-382). `_metadata` is
+      // PowerSync's, outside the Drizzle table.
+      await tx.run(
+        sql`UPDATE todo SET deleted_at = ${now}, updated_at = ${now}, updated_by = ${db.userId},
+              _metadata = ${UNDO_NEXT_METADATA} WHERE id = ${next.id}`,
+      );
     }
   });
   return { ok: true, id };
