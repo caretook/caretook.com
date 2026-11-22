@@ -4,16 +4,18 @@
 
 ## Status
 
-Not started.
+**Landing mode: run everything through** (queued with `pnpm prd queue`; start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`). Landing is `pnpm prd land orchestration-3 -m …` through the PR (never `--force`).
 
-| Slice | Wave | State       | Merge into `prd/orchestration-3` |
-| ----- | ---- | ----------- | -------------------------------- |
-| 1     | 1    | not started |                                  |
-| 2     | 1    | not started |                                  |
-| 3     | 1    | not started |                                  |
-| 4     | 2    | not started |                                  |
-| 5     | 2    | not started |                                  |
-| 6     | 3    | not started |                                  |
+2026-11-21: registry rows `orchestration-2` and `check-speed` flagged `done` (both in `dev`, no worktrees). B-392, B-426, B-427, B-428, B-439 claimed. Wave 1 started: worktrees `orchestration-3-1`, `-2`, `-3` made, one background agent each, all on **opus**.
+
+| Slice | Wave | State                | Merge into `prd/orchestration-3` |
+| ----- | ---- | -------------------- | -------------------------------- |
+| 1     | 1    | agent running (opus) |                                  |
+| 2     | 1    | agent running (opus) |                                  |
+| 3     | 1    | agent running (opus) |                                  |
+| 4     | 2    | not started          |                                  |
+| 5     | 2    | not started          |                                  |
+| 6     | 3    | not started          |                                  |
 
 **Backlog:** B-427 closes with slice 4; B-426, B-428 and B-439 with slice 5 (slices 1, 2 and 3 build their first halves, the dispatcher the rest); B-392 with slice 6.
 
