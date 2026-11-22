@@ -1,9 +1,15 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import pg from "pg";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+
 import { getDb } from "../client";
 import { applyRoles, ident, literal, REPLICATION_WHOLE_TABLES, type RoleNames } from ".";
+
+// applyRoles and rolesSummary read each role's grants back through
+// information_schema (about 2 s a role on the test schema), past the 10 s
+// hook and 20 s test defaults on a busy machine (B-450).
+vi.setConfig({ hookTimeout: 60_000, testTimeout: 60_000 });
 
 // The generated roles on the test database (hosting slice 2): applied twice,
 // then used by connecting as each role. Roles are cluster-wide and the shared
