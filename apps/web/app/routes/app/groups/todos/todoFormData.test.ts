@@ -1,4 +1,6 @@
+import { ruleText } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
+import { choiceRule } from "../../../../lib/appointments/repeatChoice";
 import { initialRepeat, isFieldIssue, repeatOnDay, todoFromForm } from "./todoFormData";
 
 const form = (entries: Record<string, string>) => {
@@ -66,6 +68,14 @@ describe("the repeat", () => {
     expect(repeatOnDay(draft, "2026-11-27")).toBe(draft);
     expect(initialRepeat({ repeatRule: null, dueOn: "2026-11-27" })).toBeNull();
     expect(initialRepeat(undefined)).toBeNull();
+  });
+
+  it("keeps a last-Friday rule through the Repeat sheet's Done on a 4th Friday (B-393)", () => {
+    // The 27th is the last Friday of November 2026, and also its 4th: Done
+    // without a change must not turn -1FR into 4FR.
+    const draft = initialRepeat({ repeatRule: LAST_FRIDAY, dueOn: "2026-11-27" });
+    const rule = draft && choiceRule(draft.choice, draft.day);
+    expect(rule && ruleText(rule)).toBe(LAST_FRIDAY);
   });
 
   it("clears with the due day, and follows a new one", () => {
