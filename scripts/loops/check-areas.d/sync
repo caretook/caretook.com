@@ -11,3 +11,5 @@ packages/api/src/sync.ts                 roundtrip live-notes
 # (timeline/timelineRemembered.browser.test.tsx).
 apps/web/app/lib/sync/remembered.ts      -
 apps/web/app/lib/sync/useRememberedQuery.ts -
+# Directory defaults: a new sync module runs the lean set until it has its own rule.
+apps/web/app/lib/sync/                   @suite
