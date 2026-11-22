@@ -503,3 +503,14 @@ export const drizzleSchema = {
   conditionManagers,
   appointmentSeries,
 };
+
+/**
+ * The tables as PowerSync gets them (`DrizzleAppSchema`): `drizzleSchema`,
+ * with per-table options. `todo` tracks metadata, so a write can flag itself
+ * for the upload through its `_metadata` column (an Undo's delete of the
+ * next occurrence, B-382). Drizzle queries keep `drizzleSchema`.
+ */
+export const powerSyncSchema = {
+  ...drizzleSchema,
+  todos: { tableDefinition: todos, options: { trackMetadata: true } },
+};

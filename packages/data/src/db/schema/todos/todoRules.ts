@@ -227,3 +227,11 @@ export const todoRepeatText = (
         startsOn: todo.repeatStartsOn ?? undefined,
       })
     : null;
+
+/**
+ * The upload's flag on an Undo's soft delete of the next occurrence (the
+ * device's `_metadata` on that write, B-382): the server removes it only
+ * when it's still untouched (`todoService.removeUndoneNext`), unlike an
+ * explicit delete.
+ */
+export const UNDO_NEXT_METADATA = "todo:undoNext";

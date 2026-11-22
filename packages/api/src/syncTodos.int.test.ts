@@ -1,6 +1,6 @@
 import type { AuthUser } from "@caretook/data";
 
-import { todoService } from "@caretook/data";
+import { todoService, UNDO_NEXT_METADATA } from "@caretook/data";
 import { nextTodoId } from "@caretook/data/series";
 import { createRouterClient } from "@orpc/server";
 import { randomUUID } from "node:crypto";
@@ -322,6 +322,85 @@ describe("sync.upload: repeating todos", () => {
       "applied",
     ]);
     expect(await openIn(owner.ctx, group.id, other)).toEqual([[otherNext.id, "2026-11-23"]]);
+  });
+
+  describe("an offline Undo uploaded after another member touched the next (B-382)", () => {
+    /** A ticked weekly todo and its next; a second writer; the device's Undo ops (its delete flagged). */
+    const ticked = async () => {
+      const ownerUser = await createUser("owner");
+      const caretaker = await createUser("caretaker");
+      const { group, recipient } = await createGroup(ownerUser, [
+        { user: caretaker.user, role: "caretaker" },
+      ]);
+      const owner = { ...ownerUser, api: clientFor(ownerUser.ctx.authUser) };
+      const id = randomUUID();
+      const put = { op: "PUT" as const, table: "todo", id, data: repeating(id, group.id, recipient.id) };
+      const next = twin(id, group.id, recipient.id, "2026-11-23");
+      ok(await owner.api.sync.upload({ ops: [put, tick(id, MONDAY, owner.user.id), next] }));
+      const undo = [
+        { op: "PATCH" as const, table: "todo", id, data: { done_at: null, done_by: null } },
+        {
+          op: "PATCH" as const,
+          table: "todo",
+          id: next.id,
+          data: { deleted_at: TUESDAY, updated_at: TUESDAY, updated_by: owner.user.id },
+          metadata: UNDO_NEXT_METADATA,
+        },
+      ];
+      return { group, owner, caretaker, id, nextId: next.id, undo };
+    };
+
+    it("keeps a next they edited; the reopened todo stops repeating", async () => {
+      const { owner, caretaker, id, nextId, undo } = await ticked();
+      ok(await todoService.update(caretaker.ctx, nextId, { title: "Bins and recycling" }));
+
+      expect((await owner.api.sync.upload({ ops: undo })).results.map((r) => r.status)).toEqual([
+        "applied",
+        "applied",
+      ]);
+      expect(ok(await todoService.getById(owner.ctx, nextId))).toMatchObject({
+        title: "Bins and recycling",
+        deletedAt: null,
+        repeatId: id,
+      });
+      expect(ok(await todoService.getById(owner.ctx, id))).toMatchObject({ doneAt: null, repeatId: null });
+    });
+
+    it("keeps a next they completed", async () => {
+      const { owner, caretaker, nextId, undo } = await ticked();
+      ok(await todoService.complete(caretaker.ctx, nextId));
+
+      expect((await owner.api.sync.upload({ ops: undo })).results.map((r) => r.status)).toEqual([
+        "applied",
+        "applied",
+      ]);
+      expect(ok(await todoService.getById(owner.ctx, nextId))).toMatchObject({
+        deletedAt: null,
+        doneBy: caretaker.user.id,
+      });
+    });
+
+    it("still removes an untouched next (a replay is fine)", async () => {
+      const { group, owner, id, nextId, undo } = await ticked();
+      for (let pass = 0; pass < 2; pass++) {
+        expect((await owner.api.sync.upload({ ops: undo })).results.map((r) => r.status)).toEqual([
+          "applied",
+          "applied",
+        ]);
+        expect(await todoService.getById(owner.ctx, nextId)).toBeNull();
+        expect(await openIn(owner.ctx, group.id, id)).toEqual([[id, "2026-11-16"]]);
+      }
+    });
+
+    it("an explicit delete of the next is unchanged: it goes even when edited", async () => {
+      const { owner, caretaker, nextId } = await ticked();
+      ok(await todoService.update(caretaker.ctx, nextId, { title: "Bins and recycling" }));
+      const remove = { op: "PATCH" as const, table: "todo", id: nextId, data: { deleted_at: TUESDAY } };
+      expect((await owner.api.sync.upload({ ops: [remove] })).results).toEqual([
+        { id: nextId, status: "applied" },
+      ]);
+      expect(await todoService.getById(owner.ctx, nextId)).toBeNull();
+    });
   });
 
   it("refuses a twin whose id isn't its chain's for that day, and a viewer's skip", async () => {
