@@ -125,15 +125,44 @@ describe("the deploy workflows", () => {
 
   it("gates CI's jobs on the tier and always writes a verdict unless cancelled", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
-    expect(Object.keys(jobs)).toEqual(["plan", "static", "unit", "integration", "verdict"]);
-    for (const name of ["static", "unit", "integration"])
-      expect(jobs[name].if).toBe(`\${{ needs.plan.outputs.${name} == 'true' }}`);
+    const tierOf = {
+      static: "static",
+      unit: "unit",
+      integration: "integration",
+      "components-1": "components",
+      "components-2": "components",
+      build: "full",
+    };
+    const tierJobs = Object.keys(tierOf);
+    expect(Object.keys(jobs)).toEqual(["plan", ...tierJobs, "verdict"]);
+    for (const name of tierJobs)
+      expect(jobs[name].if).toBe(`\${{ needs.plan.outputs.${tierOf[name]} == 'true' }}`);
     expect(jobs.verdict.if).toBe("${{ !cancelled() }}");
-    expect(jobs.verdict.needs).toEqual(["plan", "static", "unit", "integration"]);
+    expect(jobs.verdict.needs).toEqual(["plan", ...tierJobs]);
     const upload = jobs.verdict.steps.at(-1);
     expect(upload.uses).toMatch(/^actions\/upload-artifact@[0-9a-f]{40}$/);
     expect(upload.with).toMatchObject({ name: "verdict", "retention-days": "7" });
     expect(jobs.integration.services.postgres.ports).toEqual(["5435:5432"]);
+  });
+
+  it.each([1, 2])("runs CI's component shard %i in Chromium and reports it", (n) => {
+    const job = parseYaml(read(".github/workflows/ci.yml")).jobs[`components-${n}`];
+    const run = (id) => job.steps.find((s) => s.id === id).run;
+    expect(run("chromium")).toBe("pnpm exec playwright install --with-deps chromium");
+    expect(run("test")).toContain(`--project web:components --shard=${n}/2`);
+    expect(run("test")).toContain(`--outputFile.json=ci-results/components-${n}.json`);
+    expect(run("report")).toContain(`ci-results/components-${n}.json`);
+  });
+
+  it("builds both targets in CI's full tier, with no debug handle in either client", () => {
+    const { build } = parseYaml(read(".github/workflows/ci.yml")).jobs;
+    const run = (id) => build.steps.find((s) => s.id === id).run;
+    expect(run("env")).toBe('node scripts/ci/env.mjs build >> "$GITHUB_ENV"');
+    expect(run("budget")).toBe("pnpm build:budget");
+    expect(run("native")).toBe("pnpm build:native");
+    for (const dir of ["apps/web/build/web/client", "apps/web/build/native/client"])
+      expect(run("grep")).toContain(dir);
+    expect(run("grep")).toContain("caretookSync");
   });
 
   it("runs the deploy's steps in order", () => {
