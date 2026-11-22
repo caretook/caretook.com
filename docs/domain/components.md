@@ -18,6 +18,8 @@ The components area's rules and decisions.
 - **Use the kit** ([ui-kit](ui-kit.md#which-to-use)): a control is a `Field`, `CheckField` or `ToggleField`, a button a `Button` or `IconButton`, a message a `Message` or `Notice`, a card a `Card`, a list box a `List`.
 - **One entry actions menu** (`entry/EntryActions`, pure `entryActionItems(kind, { canEdit })`): Edit then Delete for symptoms and vitals, Delete only for notes and events, everywhere.
 - **Hooks own state (data and callbacks, never JSX); components own markup.** Live data comes through hooks over `useLiveQuery`; components don't call `getSync()` while rendering. Pure logic goes in plain modules with `web:unit` tests.
+- **A main page's add control is the header's `+`** (`PageHeader` `add`, writers only); other actions sit to its left.
+- **Motion:** `--motion-fast` (120 ms), `--motion` (180 ms), `--motion-slow` (240 ms) and one ease-out curve, at the end of `app.css`. Every animating rule is under `prefers-reduced-motion: no-preference` (reduce also drops `.btn`'s transition); buttons fade on hover and press to 0.97, link rows fade their fill; no bounce, no scale above 1, no animated overlays. Tests emulate reduced motion from their own file (`cdp()` `Emulation.setEmulatedMedia`, reset after).
 - **Size guideline:** a route ~100 lines, a component 150 (split into `load<Thing>.ts`, a hook, regions).
 - **Settings pages:** `SettingsPage` (heading; `offlineNotice`, a `Notice`), `SettingsCard` (a `Card`, `data-section`), `SettingsFrame` (`Page width="wide"`), `SaveRow` (`FormFooter align="start"` with `Message`s).
 - **Light pages** (sign-in, the account forms, `/connect`, marketing) import from `~/components/ui/plain`, never `~/components/ui` ([ui-kit](ui-kit.md)).

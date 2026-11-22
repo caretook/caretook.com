@@ -65,7 +65,7 @@ type AsButton = Look &
 
 type AsLink = Look &
   Content &
-  Pick<LinkProps, "to" | "replace" | "state" | "prefetch"> &
+  Pick<LinkProps, "to" | "replace" | "state" | "prefetch" | "preventScrollReset"> &
   NotALink & { href?: never };
 
 type AsAnchor = Look &
@@ -88,7 +88,7 @@ const ONLY_ICON: Record<ButtonSize, string> = { lg: "size-6", md: "size-6", sm: 
  * `shape`, `block`). Text, an `icon` and text, or an `icon` alone with a
  * required `label` (its accessible name and tooltip; the box is `square`
  * unless a `shape` is given). With `to` it's a router link that looks the same
- * (and takes `replace`, `state`, `prefetch`); with `href`, a plain `<a>` for a
+ * (and takes `replace`, `state`, `prefetch`, `preventScrollReset`); with `href`, a plain `<a>` for a
  * navigation the router doesn't own (another site, a `webcal:` link, a server
  * route such as an OAuth start). As a button: `busy` disables it and swaps its
  * text for `busyLabel`, so nothing is sent twice; `pressed` makes it a toggle;

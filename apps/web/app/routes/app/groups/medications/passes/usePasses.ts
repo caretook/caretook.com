@@ -3,6 +3,8 @@ import type { PassRow } from "~/lib/medications/medicationPasses.sync";
 import type { MedicationRow } from "~/lib/medications/medications.sync";
 
 import { useMemo } from "react";
+import { useGroup } from "~/lib/app-shell/group";
+import { scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { useLiveQuery } from "~/lib/sync";
 import { passesQuery, passesWithMedications, toPasses } from "~/lib/medications/medicationPasses.sync";
 import { medicationsQuery, toMedications } from "~/lib/medications/medications.sync";
@@ -35,5 +37,14 @@ export function usePasses(groupId: string, initial: PassesRows) {
   return useMemo(
     () => passesWithMedications(toPasses(passRows), toMedications(medicationRows)),
     [passRows, medicationRows],
+  );
+}
+
+/** "Times are Los Angeles time", when this device is in another zone than the recipient (the tab and its sheets say it). */
+export function usePassZoneNote() {
+  const group = useGroup();
+  return scheduleZoneNote(
+    group.recipient?.timeZone ?? null,
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
   );
 }

@@ -4,10 +4,13 @@ import type { DeviceRoute } from "../../../../../test/device";
 import { vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { at, fx, medicationPass, TEST_GROUP } from "../../../../../test/fixtures";
+import { found } from "../../../../../test/found";
 import * as medicationPage from "../medication/route";
 import * as allergiesSheet from "./allergies/route";
 import * as editSheet from "./edit/route";
 import * as newSheet from "./new/route";
+import * as newPassSheet from "./passes/new/route";
+import * as passesTab from "./passes/route";
 import * as weekSheet from "./print/week/route";
 import * as printSheet from "./print/route";
 import * as listTab from "./list/route";
@@ -213,12 +216,14 @@ export const world = () => [
   METFORMIN_NOTES,
 ];
 
-/** The group's medications paths: a medication's page, print and passes sit below it. */
+/** The group's medications paths: the tabs, a medication's page and print sit below it. */
 export const MEDS = `/app/groups/${GROUP}/medications`;
 /** The Schedule tab (Today), where the section opens. */
 export const SCHEDULE = `${MEDS}/schedule`;
 /** The list tab (allergies, search, chips and the list). */
 export const LIST = `${MEDS}/list`;
+/** The Passes tab (the group's rounds). */
+export const PASSES = `${MEDS}/passes`;
 export const medicationUrl = (id: string) => `${MEDS}/${id}`;
 
 const sheetsOver = (tab: "schedule" | "list"): DeviceRoute[] => [
@@ -227,7 +232,7 @@ const sheetsOver = (tab: "schedule" | "list"): DeviceRoute[] => [
   { path: `/app/groups/:groupId/medications/${tab}/allergies`, module: allergiesSheet },
 ];
 
-/** The page with its two tabs and their sheets, a medication's page and the print sheets (as routes.ts nests them). */
+/** The page with its three tabs and their sheets, a medication's page and the print sheets (as routes.ts nests them). */
 export const MEDICATION_ROUTES: DeviceRoute[] = [
   {
     path: "/app/groups/:groupId/medications",
@@ -239,6 +244,11 @@ export const MEDICATION_ROUTES: DeviceRoute[] = [
         children: sheetsOver("schedule"),
       },
       { path: "/app/groups/:groupId/medications/list", module: listTab, children: sheetsOver("list") },
+      {
+        path: "/app/groups/:groupId/medications/passes",
+        module: passesTab,
+        children: [{ path: "/app/groups/:groupId/medications/passes/new", module: newPassSheet }],
+      },
     ],
   },
   { path: "/app/groups/:groupId/medications/:medicationId", module: medicationPage },
@@ -382,4 +392,11 @@ export type DoseRow = {
   passLogId: string | null;
   note: string | null;
   occurredAt: string;
+};
+
+/** The header's `+` (writers), then Medication: the add sheet over the tab, once it's open. */
+export const openAddMedication = async () => {
+  await userEvent.click(await found(() => $("main header [data-add-medication]")));
+  await userEvent.click(await found(() => menuItem("Medication")));
+  await found(FORM);
 };
