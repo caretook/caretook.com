@@ -17,6 +17,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `agent-autonomy` | — | `test-gates` | `scripts/loops/land`, `scripts/loops/lib.sh`, `scripts/loops/check-`, `scripts/loops/prompt.sh`, `scripts/loops/prd.sh` | [PRD](agent-autonomy-prd.md), [plan](agent-autonomy-plan.md) (B-503 to B-506, B-516 to B-518): 10 slices, waves (1, 2) → 3 → (4, 5) → 6 → 7 → (8, 9, 10): questions that take their recommendation after 30 minutes (planners' too), a notice board, a machine claim for a landing's full check, the flake rule, flakes filed by the check, a Checked: trailer and a full pass that carries over a dev sync, landing on an unsynced tip, landing notices and the hold. Tooling only. Follow-on: agent-autonomy-2. While test-health runs (its word, 2026-11-22): land no change to what quick or full means (check-plan.mjs, lib.sh checked_ok) or what land accepts in the middle of a test-health landing, only between its waves; never touch scripts/eslint/ or eslint.config.js. |
 | `agent-autonomy-2` | — | — | `scripts/loops/session`, `scripts/loops/context`, `scripts/loops/prompt.sh`, `scripts/loops/rotate`, `scripts/loops/open-session`, `scripts/loops/recover`, `scripts/loops/tidy`, `scripts/loops/end-session`, `scripts/loops/request` | [PRD](agent-autonomy-2-prd.md), [plan](agent-autonomy-2-plan.md) (B-507, B-508, B-509): 2 slices in 2 waves: a context hook that tells a session past 160k to rotate, sizes in status, the dispatcher's follow-up. Cut from agent-autonomy by its planner. Tooling only |
 | `test-gates-2` | — | `test-gates` | — | CI tiers 3-4: staging candidate, CI browser suites, staging to main gate, required checks (plans/test-gates-prd.md) |
+| `test-health-2` | — | `test-gates` | — | Test coverage follow-ups: device-to-server round trip per table, a second time zone, role gaps, an uploadData error test (B-371, B-372, B-373, B-374) |
 | `worker-watch` | — | `test-gates`, `agent-autonomy-2`, `agent-autonomy-3` | `scripts/loops/prompt.sh`, `scripts/loops/prd.sh`, `scripts/loops/check-times`, `scripts/loops/check-run`, `scripts/loops/check-body`, `scripts/loops/land.sh`, `scripts/loops/review.sh`, `scripts/loops/browser.sh`, `scripts/loops/new.sh`, `scripts/loops/rm.sh`, `scripts/loops/status-extra`, `scripts/loops/dispatch`, `scripts/loops/context`, `scripts/loops/skeptic`, `scripts/loops/ask` | To write. Run metrics in one summary, then stuck workers handled against usual times (B-434, B-408). Cut from orchestration-3 |
 | `agent-autonomy-3` | — | `agent-autonomy`, `agent-autonomy-2` | `scripts/loops/ask`, `scripts/loops/skeptic`, `scripts/loops/prompt.sh`, `scripts/loops/land`, `scripts/loops/prd.sh`, `scripts/loops/dispatch`, `scripts/loops/open-session`, `scripts/backlog/registry` | To write. A Fable skeptic before every ask, before risky landings (a forced landing, a flaky pass, a declined Codex finding), and as the final check on Opus planners, with a registry flag that keeps a design topic's planner on Fable (B-511, B-512, B-513). Filed into agent-autonomy after its plan landed; builds on its defaulting asks and flake rule |
 | `self-recovery` | — | `orchestration-3` | `scripts/loops/recover.sh`, `scripts/loops/land.sh`, `scripts/loops/session`, `scripts/loops/dispatch`, `scripts/loops/prd.sh` | To write. launchd recovery, draining before a usage limit, step-in-progress markers, cost records, records for every session kind, headless sessions (B-407, B-433, B-437, B-438). Cut from orchestration-3; its planner cuts headless out if over six slices |
@@ -98,6 +99,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `encryption` | hold | — | — | [security review](security-review.md) (on `plan/encryption`): reviewed 2026-11-19. E2E: option A for launch, C (files) with `documents`; fixes filed as B-79 to B-85 · Depends on: (none); affects `assistant` and `documents` · Hot files: none itself: its fixes land through `quick-fixes`, `data-rights`, `account-security` and hosting |
 | `documents` | hold | `encryption` | — | to write (B-56) · Depends on: hosting (B-33, file storage); `profiles` (soft); `encryption` decision · Hot files: file storage, its area's `routes.ts`, `urls.ts`, schema and `permissions/` parts, `GROUP_SECTIONS` |
 | `contract-migrations` | hold | — | — | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** Contract steps tracked from fixes-nit (B-379): B-455, B-456, B-457. Migrations: run alone in its wave. To write. |
+| `timeline-jump` | — | `quick-entry-2` | — | Jump to a date on the timeline, by picker and quick entry (B-557) |
+| `assistant-access` | — | — | — | Owner chooses read/write or read only for a group's assistants (B-558) |
 
 ## Summary
 
@@ -346,10 +349,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-552 | bug | triaged | fixes-tooling |  | Flaky: print.browser.test.tsx 'the Print menu offers both sheets' clicks getByLabel('Print') while the closing menu, with the same label, is still fading, so the locator matches two elements |
 | B-553 | change | triaged | test-gates |  | Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent |
 | B-554 | change | in-progress | test-gates | prd/test-gates | CI runs only on request: the orchestrator asks for a tier (static, unit, integration, components, full) on any branch, and the landing gate checks for a green run of the tier it declared; no automatic run on a PR or a push |
-| B-555 | chore | in-progress | test-gates | prd/test-gates | The check log records which step failed and which test files, and a check has a time limit (four quick runs hung 28 to 93 minutes; the log keeps only the exit code) |
-| B-556 | chore | in-progress | test-gates | prd/test-gates | Faster static steps in a check: typecheck, lint and format take 2.2 minutes run one after another on a quiet machine (lint 79 s, typecheck 38 s, format 15 s), most of the new slice check's 2.5 minutes |
-| B-557 | feature | inbox |  |  | quick date jump on timeline via date picker AND quick entry |
-| B-558 | feature | inbox |  |  | Assistants settings needs to allow owner to enable read/write or stick to read only for group… |
+| B-555 | chore | ready | test-gates | prd/test-gates | The check log records which step failed and which test files, and a check has a time limit (four quick runs hung 28 to 93 minutes; the log keeps only the exit code) |
+| B-556 | chore | ready | test-gates | prd/test-gates | Faster static steps in a check: typecheck, lint and format take 2.2 minutes run one after another on a quiet machine (lint 79 s, typecheck 38 s, format 15 s), most of the new slice check's 2.5 minutes |
+| B-557 | feature | triaged | timeline-jump |  | quick date jump on timeline via date picker AND quick entry |
+| B-558 | feature | triaged | assistant-access |  | Assistants settings needs to allow owner to enable read/write or stick to read only for group… |
 
 ## Items
 
@@ -2766,34 +2769,38 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-555 · chore · The check log records which step failed and which test files, and a check has a time limit (four quick runs hung 28 to 93 minutes; the log keeps only the exit code)
 
-- status: in-progress
+- status: ready
 - prd: test-gates
 - owner: prd/test-gates
-- commit:
+- commit: 1459d262
 
 - 2026-11-22 (Robert Bo Davis): From the 2026-11-22 quick-check triage with the user (check log: 111 quick runs, median 7.9 min, 30 failed).
 
 ### B-556 · chore · Faster static steps in a check: typecheck, lint and format take 2.2 minutes run one after another on a quiet machine (lint 79 s, typecheck 38 s, format 15 s), most of the new slice check's 2.5 minutes
 
-- status: in-progress
+- status: ready
 - prd: test-gates
 - owner: prd/test-gates
-- commit:
+- commit: 1459d262
 
 - 2026-11-22 (Robert Bo Davis): From the 2026-11-22 quick-check triage with the user (check log: 111 quick runs, median 7.9 min, 30 failed). Lint and typecheck both run typegen, so they cannot simply run side by side; ESLint's cache is unsafe with type-aware rules. Measure before choosing.
 
 ### B-557 · feature · quick date jump on timeline via date picker AND quick entry
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: timeline-jump
 - owner:
 - commit:
 
+- 2026-11-22 (Robert Bo Davis): Decided with the user 2026-11-22: jumping scrolls the continuous timeline to that day, with a Back to today control. An empty day lands on the nearest earlier day with entries and says so. Quick entry jumps only on an explicit phrase (go to Nov 3, jump to last Tuesday, show yesterday), giving a Go to card that navigates and saves nothing. The picker allows past dates through today. Note: the timeline loads by growing a limit on scroll, so a far jump needs a plan for loading that day.
+- 2026-11-22 (Robert Bo Davis): Triaged to timeline-jump: a timeline feature with its own loading question; after quick-entry-2 because both change the quick entry parser.
+
 ### B-558 · feature · Assistants settings needs to allow owner to enable read/write or stick to read only for group…
 
-- status: inbox
-- prd:
+- status: triaged
+- prd: assistant-access
 - owner:
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): From the inbox: Assistants settings needs to allow owner to enable read/write or stick to read only for group assistant plugin. Default to read/write
+- 2026-11-22 (Robert Bo Davis): Decided with the user 2026-11-22: one owner-only group setting under Group settings > Assistants, default read and write. Read only keeps connections and removes write tools on the next call; switching back restores writing for connections approved for it, with no reconnecting. Shown in Assistants settings, Connected assistants and the connect screen as Read only, set by the group owner; no email. Triaged to assistant-access: needs an additive group column, and connectors-3 waits behind the held planner-3.
