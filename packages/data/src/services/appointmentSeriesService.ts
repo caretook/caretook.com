@@ -131,10 +131,26 @@ const visitExists = async (tx: Tx, series: AppointmentSeries, day: string) => {
 };
 
 /**
+ * The series' providers a new visit links: all but the soft-deleted ones,
+ * since a provider deleted after the series was made would otherwise refuse
+ * every later visit (B-310). An unknown id stays, so its link still fails.
+ */
+const linkableProviders = async (tx: Tx, series: AppointmentSeries) => {
+  const ids: string[] = [];
+  for (const id of series.providerIds) {
+    const provider = await providerModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
+    if (isError(provider)) return provider;
+    if (provider?.deletedAt) continue;
+    ids.push(id);
+  }
+  return ids;
+};
+
+/**
  * Write the series' visits from `from` through `to` (local days), as the
  * actor, skipping days that already have one: an ordinary note or event
- * from the template, its provider links and an empty live document.
- * Returns the ids written.
+ * from the template, its provider links (deleted providers left out) and an
+ * empty live document. Returns the ids written.
  */
 const writeVisits = async (
   ctx: ServiceContext,
@@ -145,6 +161,8 @@ const writeVisits = async (
 ) => {
   const written: string[] = [];
   const event = series.kind === "event";
+  const providerIds = await linkableProviders(tx, series);
+  if (isError(providerIds)) return providerIds;
   for (const visit of seriesVisits(series, from, to)) {
     const exists = await visitExists(tx, series, visit.day);
     if (isError(exists)) return exists;
@@ -168,7 +186,7 @@ const writeVisits = async (
     if (isError(entry)) return entry;
     const document = await noteDocumentService.create({ ...ctx, tx }, { id, groupId: series.groupId });
     if (isError(document)) return document;
-    for (const providerId of series.providerIds) {
+    for (const providerId of providerIds) {
       const link = await entryProviderService.link(
         { ...ctx, tx },
         { groupId: series.groupId, entryId: id, providerId },
