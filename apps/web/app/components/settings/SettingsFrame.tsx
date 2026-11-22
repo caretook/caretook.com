@@ -3,7 +3,7 @@ import type { SettingsItem } from "~/lib/app-shell/settingsNav";
 import { ChevronRight } from "lucide-react";
 import { useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
-import { BackLink } from "~/components/ui";
+import { BackLink, Page, TITLE_PAGE } from "~/components/ui";
 import { isSettingsList, SETTINGS_WIDE_QUERY, settingsCurrent } from "~/lib/app-shell/settingsNav";
 
 /**
@@ -32,14 +32,14 @@ export function SettingsFrame({
   const atList = isSettingsList(pathname, listPath);
   useWideSettingsRedirect(atList ? items[0]?.path : undefined);
   return (
-    <main className="mx-auto max-w-4xl px-4 py-6 md:flex md:items-start md:gap-8">
+    <Page width="wide" className="md:flex md:items-start md:gap-8 md:space-y-0">
       <nav
         aria-label={title}
         data-settings-nav
         className={`${atList ? "" : "hidden md:block"} md:w-56 md:shrink-0`}
       >
         {atList ? (
-          <h1 className="mb-4 text-2xl font-semibold">{title}</h1>
+          <h1 className={`mb-4 ${TITLE_PAGE}`}>{title}</h1>
         ) : (
           <p className="text-base-content/70 mb-2 hidden px-3 text-sm font-semibold md:block">{title}</p>
         )}
@@ -77,7 +77,7 @@ export function SettingsFrame({
           <Outlet />
         </div>
       )}
-    </main>
+    </Page>
   );
 }
 

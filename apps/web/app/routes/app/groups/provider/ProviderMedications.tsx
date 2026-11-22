@@ -3,6 +3,7 @@ import type { MedicationRow } from "~/lib/medications/medications.sync";
 import { Pill } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router";
+import { Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { medicationSummaryLine, medicationTitle } from "~/lib/medications/medicationDisplay";
 import { useLiveQuery } from "~/lib/sync";
@@ -25,10 +26,7 @@ export function ProviderMedications({ groupId, providerId }: { groupId: string; 
   if (medications.length === 0) return null;
 
   return (
-    <section aria-labelledby="provider-medications-heading" className="space-y-2" data-provider-medications>
-      <h2 id="provider-medications-heading" className="font-semibold">
-        Medications
-      </h2>
+    <Section title="Medications" id="medications" data-provider-medications="">
       <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border">
         {medications.map((m) => {
           const roles = [
@@ -63,6 +61,6 @@ export function ProviderMedications({ groupId, providerId }: { groupId: string; 
           );
         })}
       </ul>
-    </section>
+    </Section>
   );
 }

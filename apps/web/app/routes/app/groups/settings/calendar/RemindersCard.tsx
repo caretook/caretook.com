@@ -2,6 +2,7 @@ import type { CalendarCardProps } from "./calendarPage";
 
 import { useId } from "react";
 import { SettingsCard } from "~/components/settings";
+import { CheckField, ToggleField } from "~/components/ui";
 import { CalendarSaveLine } from "./CalendarSaveLine";
 import { LEADS_CAP_NOTE, leadChoices, REMINDERS_EXPLAINED, TODOS_NOTE, withLead } from "./reminderChoices";
 import { useCalendarSave } from "./useCalendarSave";
@@ -26,32 +27,25 @@ export function RemindersCard({ groupId, userId, settings }: CalendarCardProps) 
         </p>
       ) : (
         <>
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              className="toggle mt-0.5"
-              checked={settings.remindersOn}
-              data-reminders-on=""
-              onChange={(event) => save({ remindersOn: event.target.checked })}
-            />
-            <span>Email me reminders</span>
-          </label>
+          <ToggleField
+            label="Email me reminders"
+            checked={settings.remindersOn}
+            data-reminders-on=""
+            onChange={(event) => save({ remindersOn: event.target.checked })}
+          />
           {settings.remindersOn && (
             <fieldset className="flex flex-col gap-2" aria-describedby={capId} data-reminder-leads="">
               <legend className="mb-1 text-sm font-medium">When</legend>
               {leadChoices(leads).map((choice) => (
-                <label key={choice.lead} className="flex cursor-pointer items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="checkbox checkbox-sm"
-                    checked={choice.checked}
-                    disabled={choice.disabled}
-                    onChange={(event) =>
-                      save({ reminderLeads: withLead(leads, choice.lead, event.target.checked) })
-                    }
-                  />
-                  <span>{choice.label}</span>
-                </label>
+                <CheckField
+                  key={choice.lead}
+                  label={choice.label}
+                  checked={choice.checked}
+                  disabled={choice.disabled}
+                  onChange={(event) =>
+                    save({ reminderLeads: withLead(leads, choice.lead, event.target.checked) })
+                  }
+                />
               ))}
               <p id={capId} className="text-base-content/70 text-sm">
                 {LEADS_CAP_NOTE}

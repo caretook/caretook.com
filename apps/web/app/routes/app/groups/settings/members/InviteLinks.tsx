@@ -5,7 +5,18 @@ import type { InviteOptions, LinkRow, ShareOutcome } from "./linkRules";
 import { Copy, Link2, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
-import { Button, ConfirmDialog, EmptyState, Field, Message, Notice, Sheet } from "~/components/ui";
+import {
+  Button,
+  Card,
+  ConfirmDialog,
+  EmptyState,
+  Field,
+  List,
+  ListRow,
+  Message,
+  Notice,
+  Sheet,
+} from "~/components/ui";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { rpc } from "~/lib/core/rpc";
 import { roleLabel } from "../groupSettings";
@@ -87,9 +98,9 @@ export function CreateLinkButton({
             Anyone with the link can ask to join. You or another owner or admin approves each request, and
             they see nothing until then.
           </p>
-          <Field label="Role" error={issue("role")}>
+          <Field kind="select" label="Role" error={issue("role")}>
             {(control) => (
-              <select {...control} className="select w-full" name="role" defaultValue="viewer">
+              <select {...control} name="role" defaultValue="viewer">
                 {roles.map((role) => (
                   <option key={role} value={role}>
                     {roleLabel(role)}: {ROLE_HELP[role]}
@@ -99,6 +110,7 @@ export function CreateLinkButton({
             )}
           </Field>
           <Field
+            kind="input"
             label="Works for (days)"
             help={`${LINK_TTL_MIN_DAYS} to ${limits.maxDays} days.`}
             error={issue("expiresInDays")}
@@ -106,7 +118,6 @@ export function CreateLinkButton({
             {(control) => (
               <input
                 {...control}
-                className="input w-full"
                 type="number"
                 inputMode="numeric"
                 name="expiresInDays"
@@ -117,11 +128,15 @@ export function CreateLinkButton({
               />
             )}
           </Field>
-          <Field label="Most people who can use it" help="Leave empty for no limit." error={issue("maxUses")}>
+          <Field
+            kind="input"
+            label="Most people who can use it"
+            help="Leave empty for no limit."
+            error={issue("maxUses")}
+          >
             {(control) => (
               <input
                 {...control}
-                className="input w-full"
                 type="number"
                 inputMode="numeric"
                 name="maxUses"
@@ -153,34 +168,23 @@ export function InviteLinks({ links, groupName }: { links: LinkRow[]; groupName:
   const revokeResult = revokeFetcher.state === "idle" ? revokeFetcher.data : undefined;
 
   return (
-    <section
-      aria-labelledby="invite-links-heading"
-      data-invite-links=""
-      className="card bg-base-100 shadow-sm"
-    >
-      <div className="card-body">
-        <h2 id="invite-links-heading" className="card-title text-lg">
-          Invite links
-        </h2>
-        {links.length ? (
-          <ul className="divide-base-200 divide-y">
-            {links.map((link) => (
-              <InviteLink
-                key={link.id}
-                link={link}
-                groupName={groupName}
-                revoking={
-                  revokeFetcher.state !== "idle" && revokeFetcher.formData?.get("inviteId") === link.id
-                }
-                onRevoke={() => setRevoking(link)}
-              />
-            ))}
-          </ul>
-        ) : (
-          <EmptyState>No links. Create one to share by text or chat.</EmptyState>
-        )}
-        {revokeResult && !revokeResult.ok && <Message tone="error">{revokeResult.error}</Message>}
-      </div>
+    <Card title="Invite links" data-invite-links="">
+      {links.length ? (
+        <List>
+          {links.map((link) => (
+            <InviteLink
+              key={link.id}
+              link={link}
+              groupName={groupName}
+              revoking={revokeFetcher.state !== "idle" && revokeFetcher.formData?.get("inviteId") === link.id}
+              onRevoke={() => setRevoking(link)}
+            />
+          ))}
+        </List>
+      ) : (
+        <EmptyState>No links. Create one to share by text or chat.</EmptyState>
+      )}
+      {revokeResult && !revokeResult.ok && <Message tone="error">{revokeResult.error}</Message>}
       <ConfirmDialog
         open={!!revoking}
         title="Revoke this invite link? It stops working at once, for everyone it was shared with."
@@ -188,7 +192,7 @@ export function InviteLinks({ links, groupName }: { links: LinkRow[]; groupName:
         onConfirm={confirmRevoke}
         onClose={() => setRevoking(null)}
       />
-    </section>
+    </Card>
   );
 }
 
@@ -253,11 +257,7 @@ function InviteLink({
     }).then(setOutcome);
 
   return (
-    <li
-      data-invite-link={link.id}
-      data-link-state={link.state}
-      className="space-y-1 py-3 first:pt-0 last:pb-0"
-    >
+    <ListRow data-invite-link={link.id} data-link-state={link.state} className="space-y-1">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Link2 aria-hidden="true" className="text-base-content/60 size-5 shrink-0" />
         <div className="min-w-0 flex-1">
@@ -316,6 +316,6 @@ function InviteLink({
         </div>
       )}
       {failed && <Message tone="error">Couldn't load this link. Reload the page to try again.</Message>}
-    </li>
+    </ListRow>
   );
 }

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { useTodoTick } from "~/components/todos";
-import { BackLink, Page } from "~/components/ui";
+import { BackLink, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
@@ -99,38 +99,42 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
   }, [deleted, navigate, listUrl]);
 
   return (
-    <Page data-todo-page={todoId}>
-      <BackLink to={listUrl} label="Todos" />
+    <Page bands data-todo-page={todoId}>
+      <Section>
+        <BackLink to={listUrl} label="Todos" />
 
-      <TodoHeader
-        title={todo.title}
-        state={page.state}
-        via={todo.via}
-        editors={!deleted && <EditorAvatars documentId={todoId} groupId={groupId} viewerId={db.userId} />}
-        actions={
-          group.canWrite &&
-          !deleted && (
-            <TodoActions
-              groupId={groupId}
-              todoId={todoId}
-              title={todo.title}
-              done={!!todo.doneAt}
-              repeats={!!todo.repeatRule}
-              busy={tick.busy}
-              onReopen={() => void tick.reopen(todo)}
-              onDelete={deleting}
-            />
-          )
-        }
-      />
+        <TodoHeader
+          title={todo.title}
+          state={page.state}
+          via={todo.via}
+          editors={!deleted && <EditorAvatars documentId={todoId} groupId={groupId} viewerId={db.userId} />}
+          actions={
+            group.canWrite &&
+            !deleted && (
+              <TodoActions
+                groupId={groupId}
+                todoId={todoId}
+                title={todo.title}
+                done={!!todo.doneAt}
+                repeats={!!todo.repeatRule}
+                busy={tick.busy}
+                onReopen={() => void tick.reopen(todo)}
+                onDelete={deleting}
+              />
+            )
+          }
+        />
+      </Section>
 
       {deleted ? (
-        <div role="alert" className="alert" data-todo-deleted>
-          <span>This todo was deleted.</span>
-          <Link to={listUrl} className="btn btn-sm">
-            Back to todos
-          </Link>
-        </div>
+        <Section>
+          <div role="alert" className="alert" data-todo-deleted>
+            <span>This todo was deleted.</span>
+            <Link to={listUrl} className="btn btn-sm">
+              Back to todos
+            </Link>
+          </div>
+        </Section>
       ) : (
         <>
           <TodoDetails
@@ -155,17 +159,15 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
             />
           )}
 
-          <section aria-labelledby="todo-notes-heading" className="space-y-2">
-            <div>
-              <h2 id="todo-notes-heading" className="font-semibold">
-                Notes
-              </h2>
-              <p className="text-base-content/70 text-sm">
-                {group.canWrite
-                  ? "Shared with the care group: what the pharmacy said, numbers, what's left to do."
-                  : "Shared with the care group. You can view these notes."}
-              </p>
-            </div>
+          <Section
+            title="Notes"
+            id="notes"
+            description={
+              group.canWrite
+                ? "Shared with the care group: what the pharmacy said, numbers, what's left to do."
+                : "Shared with the care group. You can view these notes."
+            }
+          >
             {saveError && (
               <p role="alert" className="text-error text-sm">
                 {saveError}
@@ -182,7 +184,7 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
               ensureSaved={ensureSaved}
               providers={mentionProviders}
             />
-          </section>
+          </Section>
         </>
       )}
     </Page>

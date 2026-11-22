@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import type { LocalProvider, ProviderRow } from "~/lib/providers/providers.sync";
 
 import { Link } from "react-router";
-import { ProviderTypeIcon } from "~/components/providers";
+import { PROVIDER_TYPE_ICONS } from "~/components/providers";
+import { Badge, DetailHeader, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 import { useLiveQuery } from "~/lib/sync";
@@ -11,15 +12,11 @@ import { providerQuery, toProvider } from "~/lib/providers/providers.sync";
 const NO_ROWS: ProviderRow[] = [];
 
 /**
- * The provider's header, in regions like `EntryHeader`'s:
- *
- *   [icon] [name, badges ......] [editors] [actions]
- *          [type · specialty · practice]
+ * The provider's header (`DetailHeader`): its type's icon, its name with a
+ * Primary or Past badge, and its type, specialty and practice (a link).
  *
  * - `editors`: who is editing the notes now (avatars).
- * - `actions`: Edit, for writers (empty until the edit sheet lands).
- *
- * Empty regions take no space.
+ * - `actions`: Copy to another group and Edit, for writers.
  */
 export function ProviderHeader({
   provider,
@@ -32,17 +29,20 @@ export function ProviderHeader({
 }) {
   const past = provider.status === "past";
   return (
-    <header className="flex items-start gap-3">
-      <ProviderTypeIcon type={provider.type} past={past} />
-      <div className="min-w-0 flex-1 space-y-0.5">
-        <div data-region="title" className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <h1 className="text-xl font-semibold break-words" data-provider-name>
-            {provider.name}
-          </h1>
-          {provider.isPrimary && !past && <span className="badge badge-primary badge-sm">Primary</span>}
-          {past && <span className="badge badge-ghost badge-sm">Past</span>}
-        </div>
-        <p data-region="details" className="text-base-content/70 text-sm">
+    <DetailHeader
+      icon={PROVIDER_TYPE_ICONS[provider.type]}
+      tone={past ? "muted" : "neutral"}
+      title={provider.name}
+      titleProps={{ "data-provider-name": "" }}
+      badges={
+        provider.isPrimary && !past ? (
+          <Badge tone={STATUS_TONE.current}>Primary</Badge>
+        ) : (
+          past && <Badge tone={STATUS_TONE.past}>Past</Badge>
+        )
+      }
+      details={
+        <>
           {[PROVIDER_TYPE_META[provider.type].label, provider.specialty].filter(Boolean).join(" · ")}
           {provider.practiceId && (
             <>
@@ -50,19 +50,11 @@ export function ProviderHeader({
               <PracticeLink groupId={provider.groupId} practiceId={provider.practiceId} />
             </>
           )}
-        </p>
-      </div>
-      {editors && (
-        <div data-region="editors" className="flex shrink-0 items-center -space-x-1.5 pt-1">
-          {editors}
-        </div>
-      )}
-      {actions && (
-        <div data-region="actions" className="flex shrink-0 items-center gap-1">
-          {actions}
-        </div>
-      )}
-    </header>
+        </>
+      }
+      editors={editors}
+      actions={actions}
+    />
   );
 }
 

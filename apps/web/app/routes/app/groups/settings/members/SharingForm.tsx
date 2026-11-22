@@ -5,7 +5,7 @@ import { CONTACT_LIMITS } from "@caretook/data/schema";
 import { useId } from "react";
 import { Link, useFetcher } from "react-router";
 import { SaveRow } from "~/components/settings";
-import { Field } from "~/components/ui";
+import { CheckField, Field } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { NO_CONTACT_YET, SHARING_FIELD, SHARING_HELP, sharingOptions } from "~/lib/profiles/memberContact";
 
@@ -56,23 +56,17 @@ export function SharingForm({
             </Link>
           </p>
         ) : (
-          <ul className="space-y-1">
+          <ul className="space-y-2">
             {options.map((option) => (
               <li key={option.field}>
-                <label className="flex cursor-pointer items-start gap-2 py-1">
-                  <input
-                    type="checkbox"
-                    name={SHARING_FIELD.share}
-                    value={option.field}
-                    defaultChecked={option.checked}
-                    className="checkbox checkbox-sm mt-0.5"
-                    data-share-field={option.field}
-                  />
-                  <span className="flex min-w-0 flex-col">
-                    {option.label}
-                    <span className="text-base-content/70 truncate text-sm">{option.preview}</span>
-                  </span>
-                </label>
+                <CheckField
+                  label={option.label}
+                  help={option.preview}
+                  name={SHARING_FIELD.share}
+                  value={option.field}
+                  defaultChecked={option.checked}
+                  data-share-field={option.field}
+                />
               </li>
             ))}
           </ul>
@@ -87,6 +81,7 @@ export function SharingForm({
         </p>
       </fieldset>
       <Field
+        kind="input"
         label={`How you're related to ${recipientName}`}
         help="For example: daughter, neighbour, aide from Sunrise."
         error={relationshipError}
@@ -98,7 +93,6 @@ export function SharingForm({
             defaultValue={relationship ?? ""}
             maxLength={CONTACT_LIMITS.relationship}
             autoComplete="off"
-            className={`input w-full ${relationshipError ? "input-error" : ""}`}
           />
         )}
       </Field>

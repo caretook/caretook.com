@@ -28,7 +28,7 @@ export function EmptyState({
 }) {
   return (
     <div {...data} className={`space-y-2 ${className}`.trim()}>
-      <p className="text-base-content/70 text-sm">{children}</p>
+      <p className="text-muted text-sm">{children}</p>
       {action &&
         (action.to !== undefined ? (
           <Button to={action.to} size="sm" icon={action.icon}>

@@ -1,9 +1,17 @@
-/** The ids and ARIA attributes a field gives its control. */
+/** The ids and ARIA attributes a field gives its control, and its classes when the field knows its kind. */
 export type FieldControl = {
   id: string;
   "aria-invalid"?: true;
   "aria-describedby"?: string;
+  className?: string;
 };
+
+/** The control a `Field` styles: a text input, a select or a textarea. */
+export type FieldKind = "input" | "select" | "textarea";
+
+/** The classes for a field's control of `kind`: full width, with daisyUI's error style while there's an error. */
+export const fieldControlClass = (kind: FieldKind, error: boolean) =>
+  error ? `${kind} ${kind}-error w-full` : `${kind} w-full`;
 
 /**
  * The control's props for a field with id `id`: invalid while there's an

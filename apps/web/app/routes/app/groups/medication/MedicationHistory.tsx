@@ -3,6 +3,7 @@ import type { MedicationEntry } from "~/lib/medications/medications.sync";
 import type { EntryRow, MemberRow } from "~/lib/timeline/timeline.sync";
 
 import { KindIcon } from "~/components/entry";
+import { Section } from "~/components/ui";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { formatDay, formatTime } from "~/lib/core/format";
 import { changeText, doseSlotText, doseText } from "~/lib/medications/medicationDisplay";
@@ -51,10 +52,7 @@ export function MedicationHistory({
     memberRows.map(toMember).find((m) => m.userId === id)?.name ?? "Former member";
 
   return (
-    <section aria-labelledby="medication-history-heading" className="space-y-2" data-medication-history>
-      <h2 id="medication-history-heading" className="font-semibold">
-        History
-      </h2>
+    <Section title="History" id="history" data-medication-history="">
       {entries.length === 0 ? (
         <p className="text-base-content/70 text-sm">No doses or changes yet.</p>
       ) : (
@@ -87,6 +85,6 @@ export function MedicationHistory({
           })}
         </ol>
       )}
-    </section>
+    </Section>
   );
 }
