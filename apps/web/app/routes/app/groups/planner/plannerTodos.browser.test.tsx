@@ -96,9 +96,9 @@ describe("todos on the Planner tab", () => {
     expect(late.querySelector("[data-when]")?.textContent).toBe("Overdue");
     expect(late.querySelector("[data-todo-due]")?.textContent).toBe("Overdue · 2 days");
     expect(late.querySelector("[data-todo-assignee]")?.textContent).toBe("Unassigned");
-    expect(rowOf(MINE)!.querySelector("[data-when]")?.textContent).toBe("All day");
-    expect(rowOf(MINE)!.querySelector("[data-todo-assignee]")?.textContent).toBe("you");
-    expect(rowOf(SAMS)!.querySelector("[data-todo-assignee]")?.textContent).toBe("Sam Okafor");
+    expect(rowOf(MINE)?.querySelector("[data-when]")?.textContent).toBe("All day");
+    expect(rowOf(MINE)?.querySelector("[data-todo-assignee]")?.textContent).toBe("you");
+    expect(rowOf(SAMS)?.querySelector("[data-todo-assignee]")?.textContent).toBe("Sam Okafor");
     expect(ticks()).toHaveLength(3);
 
     const link = late.querySelector<HTMLAnchorElement>("a[data-planner-todo-open]")!;
@@ -130,7 +130,7 @@ describe("todos on the Planner tab", () => {
     await expect.poll(() => allTodos().length).toBe(3);
     expect(ticks().map((t) => t.getAttribute("aria-label"))).toEqual(["Mark “Pick up the walker” done"]);
     // The others still link to their page.
-    expect(rowOf(SAMS)!.querySelector("a[data-planner-todo-open]")).toBeTruthy();
+    expect(rowOf(SAMS)?.querySelector("a[data-planner-todo-open]")).toBeTruthy();
   });
 
   test("a viewer with nothing assigned sees the todos without ticks", async () => {

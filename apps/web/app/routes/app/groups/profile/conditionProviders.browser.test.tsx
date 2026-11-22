@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
 import { found } from "../../../../../test/found";
 import { at, condition, conditionManager, fx, TEST_GROUP } from "../../../../../test/fixtures";
-import { $, openProfile, PROFILE_URL } from "./profileWorld";
+import { openProfile, PROFILE_URL } from "./profileWorld";
 
 // Who diagnosed a condition and who manages it (conditions slice 3): picking
 // both on the add sheet (one of the group's providers, and a new one added
@@ -25,7 +25,7 @@ const GOUT_MANAGERS = [conditionManager(GOUT.id, GONE.id)];
 const WORLD = [PROVIDERS, AFIB, AFIB_MANAGERS, GOUT, GOUT_MANAGERS];
 
 const conditionUrl = (id: string) => `${PROFILE_URL}/conditions/${id}`;
-const SHEET = () => $("[role=dialog]");
+const SHEET = () => document.querySelector("[role=dialog]");
 const FORM = () => SHEET()?.querySelector<HTMLFormElement>("form[data-condition-form]") ?? null;
 const nameInput = () =>
   FORM()?.querySelector<HTMLInputElement>('[data-condition-name-field] input[role="combobox"]');
@@ -43,10 +43,9 @@ const options = () =>
   [...document.querySelectorAll('[role="option"]')].map((o) => o.firstElementChild?.textContent);
 
 const pick = async (id: "diagnosedBy" | "managedBy", text: string, optionText: string) => {
-  await userEvent.click(pickerInput(id)!);
+  await userEvent.click(await found(() => pickerInput(id)));
   await userEvent.keyboard(text);
-  await expect.poll(() => !!option(optionText), { timeout: 4000 }).toBe(true);
-  await userEvent.click(option(optionText)!);
+  await userEvent.click(await found(() => option(optionText)));
 };
 
 /** The view's provider lines: each name, and whether it's a link. */
@@ -103,14 +102,13 @@ describe("the add sheet", () => {
     const device = await open("caretaker", `${PROFILE_URL}/conditions/new`);
     await userEvent.fill(await found(nameInput), "Heart failure");
     // Pharmacies and deleted providers aren't offered.
-    await userEvent.click(pickerInput("diagnosedBy")!);
+    await userEvent.click(await found(() => pickerInput("diagnosedBy")));
     await userEvent.keyboard("r");
     await expect
       .poll(() => options().filter((o) => !o?.startsWith("Add")))
       .toEqual(["Dr. Ana Ortiz", "Dr. Mei Lee"]);
     await userEvent.keyboard("{Backspace}lee");
-    await expect.poll(() => !!option("Dr. Mei Lee")).toBe(true);
-    await userEvent.click(option("Dr. Mei Lee")!);
+    await userEvent.click(await found(() => option("Dr. Mei Lee")));
     await expect.poll(() => chips("diagnosedBy")).toEqual(["Dr. Mei Lee"]);
 
     await pick("managedBy", "lee", "Dr. Mei Lee");
@@ -201,7 +199,10 @@ describe("the edit sheet", () => {
     const device = await open("caretaker", `${conditionUrl(GOUT.id)}/edit`);
     await expect.poll(() => chips("diagnosedBy")).toEqual(["Dr. Old Hart (removed)"]);
     expect(chips("managedBy")).toEqual(["Dr. Old Hart (removed)"]);
-    await userEvent.fill(FORM()!.querySelector<HTMLInputElement>('[name="note"]')!, "Flares in winter");
+    await userEvent.fill(
+      await found(() => FORM()?.querySelector<HTMLInputElement>('[name="note"]')),
+      "Flares in winter",
+    );
     const before = (await device.queued()).length;
     await userEvent.click(button("Save"));
     await expect.poll(device.location).toBe(PROFILE_URL);
