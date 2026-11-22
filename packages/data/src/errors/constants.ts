@@ -13,6 +13,7 @@ import { NOTIFICATION_SERVICE_ERRORS } from "./notifications";
 import { PROFILES_ERRORS } from "./profiles";
 import { PROVIDERS_ERRORS } from "./providers";
 import { SEARCH_ERRORS } from "./search";
+import { SYNC_ERRORS } from "./sync";
 import { TODOS_ERRORS } from "./todos";
 import { TIMELINE_ERRORS } from "./timeline";
 
@@ -271,6 +272,7 @@ export const SERVICE_ERRORS = {
   ...PROFILES_ERRORS,
   ...PROVIDERS_ERRORS,
   ...SEARCH_ERRORS,
+  ...SYNC_ERRORS,
   ...TODOS_ERRORS,
   ...TIMELINE_ERRORS,
 } as const;

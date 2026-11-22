@@ -1,5 +1,5 @@
 // roundtrip.mjs's sync matrix (scripts/browser-checks/sync-matrix.mjs) against
-// the device schema and the upload switch: a new synced table must add a row.
+// the device schema and the upload registry: a new synced table must add a row.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
@@ -17,10 +17,10 @@ const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 /** The tables in a device schema's source: every `sqliteTable("name", …)`. */
 const deviceTables = (source) => [...source.matchAll(/sqliteTable\(\s*"([a-z_]+)"/g)].map((m) => m[1]);
 
-/** The tables the upload switch accepts: the keys of `const HANDLERS = { … }`. */
+/** The tables the upload registry accepts: the keys of `UPLOAD_REGISTRY = new Map([ … ])`. */
 const uploadTables = (source) => {
-  const block = /const HANDLERS\b.*= \{\n([\s\S]*?)\n\};/.exec(source)?.[1] ?? "";
-  return [...block.matchAll(/^\s*([a-z_]+):/gm)].map((m) => m[1]);
+  const block = /UPLOAD_REGISTRY\b.*= new Map\(\[\n([\s\S]*?)\n\]\);/.exec(source)?.[1] ?? "";
+  return [...block.matchAll(/^\s*\["([a-z_]+)",/gm)].map((m) => m[1]);
 };
 
 const matrixTables = (matrix) => matrix.map((r) => r.table);
@@ -28,7 +28,7 @@ const missingFrom = (matrix, tables) => tables.filter((t) => !matrixTables(matri
 
 describe("the sync matrix", () => {
   const schema = deviceTables(read("../../apps/web/app/lib/sync/schema.ts"));
-  const uploads = uploadTables(read("../../packages/api/src/sync.ts"));
+  const uploads = uploadTables(read("../../packages/api/src/syncRegistry.ts"));
 
   it("finds the device schema's tables and the upload switch's", () => {
     expect(schema).toContain("timeline_entry");
