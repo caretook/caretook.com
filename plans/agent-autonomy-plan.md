@@ -7,7 +7,7 @@
 | Slice | Wave | State                     | Merge into `prd/agent-autonomy` (slice commits) |
 | ----- | ---- | ------------------------- | ----------------------------------------------- |
 | 1     | 1    | started 2026-11-22 (opus) | —                                               |
-| 2     | 1    | started 2026-11-22 (opus) | —                                               |
+| 2     | 1    | handed off 142fa3d7 (opus) | —                                               |
 | 3     | 2    | —                         | —                                               |
 | 4     | 3    | —                         | —                                               |
 | 5     | 3    | —                         | —                                               |
