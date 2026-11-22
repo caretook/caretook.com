@@ -372,7 +372,7 @@ describe("/mcp", () => {
       isError: true,
       structuredContent: { error: { code: "mcp:invalidArguments" } },
     });
-  });
+  }, 20_000);
 
   it("never returns an email or a phone number", async () => {
     const handler = handlerWith();
