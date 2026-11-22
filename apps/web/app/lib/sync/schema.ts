@@ -37,9 +37,6 @@ export const careGroupMembers = sqliteTable(
     isPrimaryContact: integer("is_primary_contact"),
     // When they fell off the list by no longer sharing a phone (the managers' note).
     emergencyDroppedAt: text("emergency_dropped_at"),
-    // Easy mode: the managers' default for this member and their lock (1 or 0).
-    simpleMode: integer("simple_mode"),
-    simpleModeLocked: integer("simple_mode_locked"),
   },
   (t) => [index("care_group_member_group").on(t.groupId), index("care_group_member_user").on(t.userId)],
 );

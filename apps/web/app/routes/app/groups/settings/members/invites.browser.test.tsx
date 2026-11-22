@@ -194,8 +194,9 @@ describe("who sees the invite controls", () => {
     }
   });
 
-  test("caretakers, viewers and the easy roles see no invite or link controls, no Pending, no links and no requests, and make no invite calls", async () => {
-    for (const role of ["caretaker", "viewer", "easy_helper", "easy_viewer"] as const) {
+  // The easy roles never reach Members: the group route sends them to the timeline (timelineEasyLock.browser.test.tsx).
+  test("caretakers and viewers see no invite or link controls, no Pending, no links and no requests, and make no invite calls", async () => {
+    for (const role of ["caretaker", "viewer"] as const) {
       const calls = apiCalls();
       const device = await open({ role, api: calls.record({ ...ONLINE }) });
       await expect.element(page.getByRole("heading", { name: "Members", level: 1 })).toBeVisible();

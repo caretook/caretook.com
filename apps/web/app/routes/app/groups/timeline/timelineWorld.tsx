@@ -90,6 +90,14 @@ export const TODAY_COUNT = 5;
 
 export const TIMELINE_URL = `/app/groups/${TEST_GROUP.id}/timeline`;
 
+/**
+ * Your own setting says Easy mode, as this device last loaded it: a regular
+ * role then gets the easy view (an easy role always does). Call it before
+ * the device opens; the device's storage is cleared after each test.
+ */
+export const chooseEasyMode = () =>
+  localStorage.setItem(`caretook:settings:${TEST_USER.id}`, JSON.stringify({ easyMode: "easy" }));
+
 /** Stands in for the entry page: says which entry, and has a Back button (history -1). */
 function EntryProbe() {
   const { entryId } = useParams();

@@ -121,7 +121,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const settings = useMySettings(userId, loaderData);
   const { units } = settings;
   const group = useGroup();
-  const { canWrite } = group;
+  const { canWrite, canLog } = group;
   const mode = useEasyMode(userId, groupId, group, settings.easyMode);
   const period = usePeriodSearch(groupId, loaderData.period, loaderData.searchPeriods);
   const search = timelineSearch(groupId, q, useSearchIndexStatus(), period.range);
@@ -144,9 +144,9 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       {/* "Added Ibuprofen · Add details", once the Dose sheet's quick add closes it. */}
       <AddedMedicationToast groupId={groupId} />
       {/* The edit sheet's route module, fetched now so a row opens it offline (one link for every row). */}
-      {canWrite && <PrefetchPageLinks page={appUrls.editSheet(groupId, "prefetch")} />}
+      {canLog && <PrefetchPageLinks page={appUrls.editSheet(groupId, "prefetch")} />}
       {/* The pass sheet's too, so a pass log opens it offline. */}
-      {canWrite && <PrefetchPageLinks page={appUrls.passSheet(groupId, "prefetch")} />}
+      {canLog && <PrefetchPageLinks page={appUrls.passSheet(groupId, "prefetch")} />}
     </>
   );
   // The search, Filter button and chips: the same in both views (View options at the end in the full one).

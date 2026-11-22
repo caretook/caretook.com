@@ -8,7 +8,7 @@ import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { clearTodoUndo } from "~/lib/todos/todoUndo";
 import * as timeline from "./route";
-import { waitUntil } from "./timelineWorld";
+import { chooseEasyMode, waitUntil } from "./timelineWorld";
 
 // Easy mode's "My todos" card (todos slice 6), on the test device
 // (offline): my open todos, overdue and today first, at most five with "See
@@ -40,17 +40,19 @@ const MANY = [
   mine("Return the library book", { doneAt: at(new Date(Date.now() - 60_000)), doneBy: TEST_USER.id }),
 ];
 
-const open = (role: GroupRole, fixtures: Fixture[]) =>
-  renderWithDevice({
+const open = (role: GroupRole, fixtures: Fixture[]) => {
+  chooseEasyMode();
+  return renderWithDevice({
     route: ROUTES,
     url: URL,
     role: null,
     fixtures: [
-      fx.member({ userId: TEST_USER.id, role, simpleMode: 1 }),
+      fx.member({ userId: TEST_USER.id, role }),
       fx.note({ occurredAt: at(new Date(Date.now() - 10 * 60_000)), text: "Slept well after lunch" }),
       ...fixtures,
     ],
   });
+};
 
 const card = () => document.querySelector<HTMLElement>("[data-easy-todos]");
 const titles = () =>
@@ -154,27 +156,31 @@ describe("My todos in easy mode", () => {
     ]);
   });
 
-  test("a viewer: the card too, and ticking their own todo is a done-only change", async () => {
-    const device = await open("viewer", [
-      SAM,
-      mine("Pick up groceries", { dueOn: today }),
-      todo({ title: "Fax the form", dueOn: today, assigneeId: SAM_ID }),
-    ]);
-    await waitUntil(() => titles().length === 1, 4000, "the viewer's card");
-    expect(titles()).toEqual(["Pick up groceries"]);
-    // No box or tiles for viewers; the card is still there.
-    expect(document.querySelector("[data-quick-entry]")).toBeNull();
-    expect(document.querySelector("[data-easy-tiles]")).toBeNull();
+  test.each(["viewer", "easy_viewer", "easy_helper"] as const)(
+    "a %s: the card too, and ticking their own todo is a done-only change",
+    async (role) => {
+      const device = await open(role, [
+        SAM,
+        mine("Pick up groceries", { dueOn: today }),
+        todo({ title: "Fax the form", dueOn: today, assigneeId: SAM_ID }),
+      ]);
+      await waitUntil(() => titles().length === 1, 4000, "the viewer's card");
+      expect(titles()).toEqual(["Pick up groceries"]);
+      // No box or tiles for viewers (an Easy helper has both); the card is still there.
+      const inputs = role === "easy_helper";
+      await expect.poll(() => !!document.querySelector("[data-quick-entry]")).toBe(inputs);
+      await expect.poll(() => !!document.querySelector("[data-easy-tiles]")).toBe(inputs);
 
-    await userEvent.click(page.getByRole("checkbox", { name: "Mark “Pick up groceries” done" }));
-    await expect
-      .element(page.getByRole("status").filter({ hasText: "Done: Pick up groceries" }))
-      .toBeInTheDocument();
-    const patch = (await device.queued()).find((w) => w.op === "PATCH");
-    expect(Object.keys(patch?.data ?? {}).sort()).toEqual(["done_at", "done_by"]);
-    await userEvent.click(page.getByRole("button", { name: "Undo Pick up groceries" }));
-    await expect.poll(() => titles()).toEqual(["Pick up groceries"]);
-  });
+      await userEvent.click(page.getByRole("checkbox", { name: "Mark “Pick up groceries” done" }));
+      await expect
+        .element(page.getByRole("status").filter({ hasText: "Done: Pick up groceries" }))
+        .toBeInTheDocument();
+      const patch = (await device.queued()).find((w) => w.op === "PATCH");
+      expect(Object.keys(patch?.data ?? {}).sort()).toEqual(["done_at", "done_by"]);
+      await userEvent.click(page.getByRole("button", { name: "Undo Pick up groceries" }));
+      await expect.poll(() => titles()).toEqual(["Pick up groceries"]);
+    },
+  );
 
   test("none of mine open: no card, and the rest of the view as before", async () => {
     await open("caretaker", [

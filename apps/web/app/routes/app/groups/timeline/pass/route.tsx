@@ -6,7 +6,7 @@ import type { PassLogDose } from "./PassLogForm";
 
 import { useEffect, useMemo } from "react";
 import { redirect } from "react-router";
-import { doseDetailsZSchema } from "@caretook/data/schema";
+import { canChangeEntry, doseDetailsZSchema } from "@caretook/data/schema";
 import { Sheet } from "~/components/ui";
 import { formString } from "~/lib/core/form";
 import { getGroup } from "~/lib/app-shell/group";
@@ -67,7 +67,10 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     passLogId: params.passLogId,
     liveDoses: toPassLogDoses(rows).length,
     search: new URL(request.url).search,
-    canWrite: group.canWrite,
+    // Writers change any log; an Easy helper only one whose doses they logged.
+    canChange: rows.every((r) =>
+      canChangeEntry({ role: group.role, userId: group.userId, entry: { createdBy: r.created_by ?? null } }),
+    ),
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
   const passId = rows.map((r) => parseDetails(r.details)?.passId).find(Boolean);

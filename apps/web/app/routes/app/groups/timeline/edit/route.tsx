@@ -3,6 +3,7 @@ import type { ActionResult } from "~/lib/core/api";
 import type { MedicationRow } from "~/lib/medications/medications.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
 
+import { canChangeEntry } from "@caretook/data/schema";
 import { useEffect, useMemo } from "react";
 import { redirect } from "react-router";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
@@ -35,11 +36,13 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
   const [row] = await readRows<EntryRow>(db, { sql: entrySql, params: [params.entryId] });
+  const entry = row ? toTimelineEntry(row) : null;
   const decision = editSheetGuard({
     groupId: group.id,
-    entry: row ? toTimelineEntry(row) : null,
+    entry,
     search: new URL(request.url).search,
-    canWrite: group.canWrite,
+    // Writers change any entry; an Easy helper only their own.
+    canChange: !!entry && canChangeEntry({ role: group.role, userId: group.userId, entry }),
   });
   if ("redirect" in decision) throw redirect(decision.redirect);
   // A dose names its medication (deleted or not: the dose keeps it).

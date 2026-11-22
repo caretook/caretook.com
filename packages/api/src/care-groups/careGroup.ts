@@ -190,40 +190,6 @@ export const careGroup = {
     }),
 
   /**
-   * Easy mode for a member: the default the managers choose for them
-   * (`simpleMode`) and the lock (`locked`; locking turns the default on, and
-   * turning the default off unlocks). Owners and admins; only owners change
-   * an owner's (403), and nobody locks or unlocks themselves (403). Other
-   * members get a 403, non-members and unknown members a 404. Fields left out
-   * keep their value. Reaches the member's devices by sync.
-   */
-  setMemberMode: authedProcedure
-    .input(
-      z.object({
-        groupId: id,
-        userId: id,
-        simpleMode: z.boolean().optional(),
-        locked: z.boolean().optional(),
-      }),
-    )
-    .handler(async ({ context, input }) => {
-      const membership = unwrap(
-        await careGroupMemberService.get(context, {
-          filter: { groupId: eq(input.groupId), userId: eq(input.userId) },
-        }),
-      );
-      if (!membership) throw new ORPCError("NOT_FOUND");
-      const saved = updated(
-        await careGroupMemberService.setMode(context, {
-          id: membership.id,
-          simpleMode: input.simpleMode,
-          locked: input.locked,
-        }),
-      );
-      return { userId: saved.userId, simpleMode: saved.simpleMode, locked: saved.simpleModeLocked };
-    }),
-
-  /**
    * Remove a member (owners and admins; only owners remove owners). Removing
    * yourself is leaving, which any member may do, except the last owner (a
    * 409). Other members get a 403, non-members and unknown members a 404.

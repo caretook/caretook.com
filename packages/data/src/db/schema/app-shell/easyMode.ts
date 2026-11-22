@@ -4,19 +4,16 @@ import { VITAL_TYPES } from "../timeline/vitals";
 // Easy mode (assistant PRD): a large-type, one-column view of the timeline
 // for people who won't learn the whole app. Client-safe.
 //
-// - Each membership has the owner's default for that member
-//   (`care_group_member.simple_mode`) and a lock (`simple_mode_locked`; a
-//   lock means easy). Owners and admins set them online
-//   (`careGroupMemberService.setMode`).
-// - Each user has their own setting (`user.preferences.easyMode`), and each
-//   device a toggle per group; the device decides with `resolveEasyMode`.
+// - The easy roles (Easy helper, Easy viewer) always get it and can't leave.
+// - Everyone else has their own setting (`user.preferences.easyMode`), and
+//   each device a toggle per group; the device decides with `resolveEasyMode`.
 // - The group's four tiles (`care_group.easy_tiles`): learned from use
 //   (null, the default), a fixed set, or four picked by an owner or admin.
 
-/** A member's own choice: follow the group's default for them, or always easy or full. */
-export const EASY_MODE_SETTINGS = ["group", "easy", "full"] as const;
+/** A member's own choice: easy or full (a stored `group`, from before the easy roles, reads as full). */
+export const EASY_MODE_SETTINGS = ["easy", "full"] as const;
 export type EasyModeSetting = (typeof EASY_MODE_SETTINGS)[number];
-export const DEFAULT_EASY_MODE_SETTING: EasyModeSetting = "group";
+export const DEFAULT_EASY_MODE_SETTING: EasyModeSetting = "full";
 
 /** How a group's tiles are chosen. */
 export const EASY_TILE_MODES = ["learned", "fixed", "custom"] as const;

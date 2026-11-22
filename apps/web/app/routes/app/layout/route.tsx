@@ -50,8 +50,8 @@ export function clientLoader({ context }: Route.ClientLoaderArgs) {
  *
  * Screens outside a group (`/app`, `/app/settings`) get the header without a
  * group menu, sections or tab bar. So does a timeline in easy mode
- * (`useEasyFrame`), which keeps the search magnifier (unless locked in
- * easy mode) and has a reduced user menu.
+ * (`useEasyFrame`), which keeps the search magnifier (but not for the easy
+ * roles) and has a reduced user menu.
  */
 export default function AppLayout({ loaderData }: Route.ComponentProps) {
   const { user } = loaderData;
@@ -60,8 +60,8 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
   // Easy mode's timeline: only the mark, the sync status and a reduced user menu.
   const easy = useEasyFrame(user.id, groupId, pathname);
   const groupFrame = groupId && !easy ? groupId : undefined;
-  // Search stays in easy mode, but not while locked (the lock keeps you off the search page).
-  const searchGroup = groupId && !easy?.locked ? groupId : undefined;
+  // Search stays in easy mode, but not for the easy roles (their allow-list keeps them off the search page).
+  const searchGroup = groupId && !easy?.easyRole ? groupId : undefined;
   const severalGroups = useSeveralGroups(user.id);
   return (
     <>

@@ -10,7 +10,7 @@ import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, medicationPass, todo, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { clockAt, fixClock } from "../medications/medicationWorld";
 import * as timeline from "./route";
-import { TIMELINE_URL, waitUntil } from "./timelineWorld";
+import { chooseEasyMode, TIMELINE_URL, waitUntil } from "./timelineWorld";
 
 // The tile cache (timeline-ux slice 2, B-166): the header tiles never pop
 // in. Mounted again in the same session (Back from another page), a Today
@@ -176,12 +176,13 @@ describe("the header tiles remember", () => {
 
 describe("easy mode's tiles remember", () => {
   const EASY: Fixture[] = [
-    fx.member({ userId: TEST_USER.id, role: "owner", simpleMode: 1 }),
+    fx.member({ userId: TEST_USER.id, role: "owner" }),
     fx.note({ occurredAt: at(new Date(Date.now() - 10 * 60_000)), text: "Slept well after lunch" }),
     todo({ title: "Water the plants", dueOn: day(-1), assigneeId: TEST_USER.id }),
   ];
   const todos = () => seen("[data-easy-todos]", "todos");
   const tiles = () => seen("[data-easy-tiles]", "tiles");
+  beforeEach(chooseEasyMode);
 
   test("skeletons on a first mount; mounted again, the todos card and tiles paint dimmed, then fresh", async () => {
     const first = watchPage(() => ({ todos: todos(), tiles: tiles() }));

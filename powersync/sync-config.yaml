@@ -36,11 +36,10 @@ streams:
       # `relationship` and `shared_fields`: the member's own sharing choices;
       # `emergency_rank` and `is_primary_contact`: the emergency list's badges;
       # `emergency_dropped_at`: the managers' note when someone fell off it.
-      # `simple_mode` and `simple_mode_locked`: the managers' easy-mode default and lock (assistant).
       - >-
         SELECT id, group_id, user_id, role, invited_by, created_at,
         relationship, shared_fields, emergency_rank, is_primary_contact, emergency_dropped_at,
-        simple_mode, simple_mode_locked, updated_at, created_by, updated_by
+        updated_at, created_by, updated_by
         FROM care_group_member WHERE group_id IN my_groups
       # `time_zone`: a medication's schedule times are in the recipient's zone.
       # `date_of_birth`: the printable medication sheet works offline.

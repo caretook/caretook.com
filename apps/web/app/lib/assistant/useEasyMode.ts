@@ -10,10 +10,10 @@ import { useLiveQuery } from "../sync";
 import { myGroupQuery } from "../timeline/timeline.sync";
 
 /** What `resolveEasyMode` needs from the membership. */
-export type EasyMembership = Pick<GroupContext, "role" | "easyMode">;
+export type EasyMembership = Pick<GroupContext, "role">;
 
 export type EasyModeState = EasyMode & {
-  /** Switch this device between easy and full for the group (a no-op while locked). */
+  /** Switch this device between easy and full for the group (a no-op for the easy roles). */
   toggle: () => void;
 };
 
@@ -31,8 +31,6 @@ export function useEasyMode(
   const [deviceToggle, setDeviceToggle] = useDeviceToggle(userId, groupId);
   const mode = resolveEasyMode({
     role: membership.role,
-    ownerDefault: membership.easyMode.ownerDefault,
-    locked: membership.easyMode.locked,
     ownSetting,
     deviceToggle,
   });
@@ -64,7 +62,6 @@ export function useLiveMembership(
       row
         ? {
             role: (row.role ?? null) as GroupContext["role"],
-            easyMode: { ownerDefault: !!row.simple_mode, locked: !!row.simple_mode_locked },
           }
         : (initial ?? null),
     [row, initial],

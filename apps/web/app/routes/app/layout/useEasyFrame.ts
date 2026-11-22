@@ -11,13 +11,13 @@ import { useLiveQuery } from "~/lib/sync";
 import { myGroupsQuery } from "~/lib/timeline/timeline.sync";
 import { useLiveMembership, useEasyMode } from "~/lib/assistant/useEasyMode";
 
-const NO_MEMBERSHIP: EasyMembership = { role: null, easyMode: { ownerDefault: false, locked: false } };
+const NO_MEMBERSHIP: EasyMembership = { role: null };
 
 /**
  * Whether the /app header is easy mode's reduced one: on a group's
  * timeline (its sheets included) while the timeline shows its easy view,
- * and on every page of a group you're locked into it in (the lock keeps you
- * to the timeline and your notes' and events' pages: `lib/assistant/easyModeLock.ts`).
+ * and on every page of a group where your role is an easy one (it keeps you
+ * to the pages in `lib/assistant/easyModeLock.ts`).
  * The same inputs as the timeline's (`useEasyMode`): the membership live
  * from the device (the group route's loader data until the watch answers),
  * your own setting as this device last loaded it, and the device's toggle.
@@ -37,7 +37,7 @@ export function useEasyFrame(
     cachedSettings(userId).easyMode,
   );
   const onTimeline = !!groupId && pathname.startsWith(appUrls.timeline(groupId));
-  return membership && (mode.locked || (onTimeline && mode.easy)) ? mode : null;
+  return membership && (mode.easyRole || (onTimeline && mode.easy)) ? mode : null;
 }
 
 // One array for every render: `useLiveQuery` treats a new `initial` as new loader data.

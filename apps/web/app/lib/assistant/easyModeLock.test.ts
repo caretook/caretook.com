@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { lockedRedirect } from "./easyModeLock";
+import { easyRoleRedirect } from "./easyModeLock";
 
 const G = "7e1c9a40-2b6d-4f3e-8a15-0c9d4e2f1b01";
 const base = `/app/groups/${G}`;
 const timeline = `${base}/timeline`;
-const go = (pathname: string, locked = true) => lockedRedirect({ groupId: G, pathname, locked });
+const go = (pathname: string, easyRole = true) => easyRoleRedirect({ groupId: G, pathname, easyRole });
 
-describe("lockedRedirect", () => {
-  it("keeps a locked member on the timeline, its sheets and their notes' and events' pages", () => {
+describe("easyRoleRedirect", () => {
+  it("keeps an easy role on the timeline, its sheets and their notes' and events' pages", () => {
     for (const path of [
       timeline,
       `${timeline}/new/symptom`,
@@ -19,7 +19,7 @@ describe("lockedRedirect", () => {
       expect(go(path), path).toBeNull();
   });
 
-  it("sends a locked member from every other group route to the timeline", () => {
+  it("sends an easy role from every other group route to the timeline", () => {
     for (const path of [
       base,
       `${base}/settings`,
@@ -37,7 +37,7 @@ describe("lockedRedirect", () => {
       expect(go(path), path).toBe(timeline);
   });
 
-  it("never moves a member who isn't locked", () => {
+  it("never moves a member with a regular role", () => {
     expect(go(`${base}/settings`, false)).toBeNull();
     expect(go(`${base}/providers`, false)).toBeNull();
   });

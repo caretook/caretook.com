@@ -37,7 +37,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
-  const { canWrite } = getGroup(context);
+  const { canLog } = getGroup(context);
   const { db } = context.get(sessionContext);
   const search = new URL(request.url).searchParams;
   return loadEntry(db, {
@@ -47,7 +47,7 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     when: search.get(WHEN_PARAM),
     withProvider: search.get(WITH_PROVIDER_PARAM),
     at: search.get(START_AT_PARAM),
-    canWrite,
+    canLog,
   });
 }
 
@@ -118,7 +118,7 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
             cancelledBy={entry.cancelledBy}
             cancelReason={entry.cancelReason}
             rescheduledTo={entry.rescheduledTo}
-            onUndo={canWrite ? live.uncancel : undefined}
+            onUndo={live.canSetUp ? live.uncancel : undefined}
           />
         )}
         <EntryVisitPrep live={live} groupId={groupId} />
@@ -154,7 +154,8 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
               initial={loaderData.initial}
               autofocus={live.isNew && !loaderData.pickDay}
               ensureSaved={live.ensureSaved}
-              providers={mentions.providers}
+              // Mentions link providers, which only writers do: an Easy helper types plain text.
+              providers={canWrite && !live.canSetUp ? undefined : mentions.providers}
               onMention={mentions.onMention}
               onAdd={mentions.onAdd}
               onImport={mentions.onImport}

@@ -15,10 +15,6 @@ export const CARE_GROUPS_ERRORS = {
     message: "A care group needs at least one owner. Make someone else an owner first.",
     statusCode: 409,
   },
-  "careGroupMemberService:ownLock": {
-    message: "You can't lock or unlock easy mode for yourself",
-    statusCode: 403,
-  },
   "careGroupInviteService:ownerOnly": {
     message: "Only an owner can invite someone as an owner",
     statusCode: 403,
