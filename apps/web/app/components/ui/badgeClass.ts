@@ -4,13 +4,15 @@
 /** A badge's colour. Every badge is one size and soft. */
 export type BadgeTone = "neutral" | "primary" | "success" | "warning" | "danger" | "info";
 
+// The tint is daisyUI's soft badge; the text is the tone's ink (app.css), so
+// it keeps 4.5:1 on its tint in both themes.
 const TONE: Record<BadgeTone, string> = {
-  neutral: "badge-neutral",
-  primary: "badge-primary",
-  success: "badge-success",
-  warning: "badge-warning",
-  danger: "badge-error",
-  info: "badge-info",
+  neutral: "badge-neutral text-neutral-ink",
+  primary: "badge-primary text-primary-ink",
+  success: "badge-success text-success-ink",
+  warning: "badge-warning text-warning-ink",
+  danger: "badge-error text-error-ink",
+  info: "badge-info text-info-ink",
 };
 
 export const badgeClass = (tone: BadgeTone = "neutral") => `badge badge-sm badge-soft ${TONE[tone]}`;

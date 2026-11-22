@@ -19,12 +19,66 @@
   --color-base-200: oklch(96.5% 0.007 255);
   --color-base-300: oklch(89.5% 0.012 255);
 }
+/* Dark (ui-kit-3): lifted to a soft indigo-grey (hue 270, toward the brand
+   indigo) with clear steps: page 23%, card 30% (1.23:1 on the page), border
+   and quiet fill 40% (1.48:1 on a card). */
 @plugin "daisyui/theme" {
   name: "dark";
   prefersdark: true;
-  --color-base-100: oklch(27% 0.018 255);
-  --color-base-200: oklch(19.5% 0.014 255);
-  --color-base-300: oklch(37% 0.02 255);
+  --color-base-100: oklch(30% 0.022 270);
+  --color-base-200: oklch(23% 0.02 270);
+  --color-base-300: oklch(40% 0.025 270);
+}
+
+/* The field fill (ui-kit-3): every text box (daisyUI's `input`, `select`,
+   `textarea`, in the kit or not) is a shallow well a little darker than the
+   page in both themes, so it never matches the page, a card, a sheet or a
+   band it sits on. daisyUI paints a box with `base-100`, so the box takes the
+   fill as its own `base-100`: its states keep working (a ghost input stays
+   transparent; a focused ghost takes the fill). A disabled box keeps
+   daisyUI's `base-200` and faded text, with a `base-300` edge so it still
+   reads as a box on the page. Placeholders (daisyUI's are half the text
+   colour, under 4.5:1) take `text-faint`'s tone. White in print. Quick
+   entry's box keeps its own surface (`data-own-surface`); the notes editor
+   is no `textarea`, so it keeps its own too. */
+:root {
+  --color-field: light-dark(oklch(94% 0.01 255), oklch(18% 0.018 270));
+}
+:is(.input, .select, .textarea):not([data-own-surface]) {
+  --color-base-100: var(--color-field);
+}
+:is(.input, .select, .textarea):is(:disabled, [disabled]),
+fieldset:disabled :is(.input, .select, .textarea) {
+  border-color: var(--color-base-300);
+}
+:is(.input, .textarea):not(:disabled)::placeholder,
+.input:not(:disabled) input::placeholder {
+  color: color-mix(in oklab, var(--color-base-content) 62%, transparent);
+  opacity: 1;
+}
+
+/* Coloured text (ui-kit-3): a status colour as text, shifted until it keeps
+   4.5:1 on the page, a card, a field, a quiet fill and its own soft tint:
+   toward black in light (daisyUI's amber, green, blue and red are light
+   colours), toward white in dark. `text-<tone>-ink`; the kit's coloured
+   lines (`LINK`, a field's error and warning, `Message`, `Badge`) use them.
+   Fills and daisyUI's status tokens are unchanged. */
+@theme inline {
+  --color-primary-ink: light-dark(var(--color-primary), color-mix(in oklab, var(--color-primary) 50%, white));
+  --color-error-ink: light-dark(
+    color-mix(in oklab, var(--color-error) 70%, black),
+    color-mix(in oklab, var(--color-error) 65%, white)
+  );
+  --color-warning-ink: light-dark(color-mix(in oklab, var(--color-warning) 55%, black), var(--color-warning));
+  --color-success-ink: light-dark(
+    color-mix(in oklab, var(--color-success) 60%, black),
+    color-mix(in oklab, var(--color-success) 95%, white)
+  );
+  --color-info-ink: light-dark(
+    color-mix(in oklab, var(--color-info) 60%, black),
+    color-mix(in oklab, var(--color-info) 80%, white)
+  );
+  --color-neutral-ink: light-dark(var(--color-neutral), color-mix(in oklab, var(--color-neutral) 25%, white));
 }
 
 /* The typeface (B-415): Atkinson Hyperlegible Next, one variable family for
@@ -164,6 +218,7 @@
     --color-base-200: #fff;
     --color-base-300: #9ca3af;
     --color-base-content: #000;
+    --color-field: #fff;
   }
   html,
   body {
