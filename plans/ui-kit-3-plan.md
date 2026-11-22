@@ -10,7 +10,7 @@
 | 2     | 2    | —                                                                                                   | —                                         |
 | 3     | 3    | —                                                                                                   | —                                         |
 | 4     | 3    | —                                                                                                   | —                                         |
-| 5     | 1    | started (opus), worktree `.loops/ui-kit-3-5`, slot 4                                                | —                                         |
+| 5     | 1    | handed off (93cae190: quick, components, browser ui pass); waits for slice 1 to merge first         | —                                         |
 | 6     | 2    | —                                                                                                   | —                                         |
 
 **Landing mode: run everything through** (started run-through, 2026-11-22): start every ready slice, land each green wave unasked, clean up; questions only through `pnpm prd ask`.
