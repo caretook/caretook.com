@@ -87,7 +87,7 @@ describe("the group route", () => {
       role: "caretaker",
       fixtures: [SAM, NOTE],
     });
-    await expect.poll(() => EDITOR()?.getAttribute("contenteditable"), { timeout: 10_000 }).toBe("true");
+    await expect.poll(() => EDITOR()?.getAttribute("contenteditable")).toBe("true");
     expect(TITLE()).not.toBeNull();
     const main = document.querySelector("main");
     const id = await myMembership(device);
@@ -111,7 +111,7 @@ describe("the group route", () => {
       role: "caretaker",
       fixtures: [SAM, NOTE],
     });
-    await expect.poll(() => EDITOR()?.getAttribute("contenteditable"), { timeout: 10_000 }).toBe("true");
+    await expect.poll(() => EDITOR()?.getAttribute("contenteditable")).toBe("true");
     const id = await myMembership(device);
 
     await device.sync(fx.member({ id, userId: TEST_USER.id, role: "viewer" }));

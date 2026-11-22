@@ -1,13 +1,8 @@
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import { renderWithDevice } from "../../../../test/device";
-import { found } from "../../../../test/found";
-import { openPlanner, fixClock as fixPlannerClock } from "../groups/planner/plannerWorld";
-import {
-  MEDICATION_ROUTES,
-  SCHEDULE,
-  fixClock as fixMedicationClock,
-  world,
-} from "../groups/medications/medicationWorld";
+import { fixClock, found } from "../../../../test/found";
+import { CLOCK, MEDICATION_ROUTES, SCHEDULE, world } from "../groups/medications/medicationWorld";
+import { NOW, openPlanner } from "../groups/planner/plannerWorld";
 
 // The typeface (B-415): app.css's @font-face and --font-sans, on /app pages in
 // the frame. The family is found and loaded from our own files; code keeps the
@@ -40,13 +35,9 @@ async function noSidewaysScroll() {
   await expect.poll(() => root.scrollWidth - root.clientWidth).toBeLessThanOrEqual(0);
 }
 
-afterEach(() => {
-  vi.useRealTimers();
-});
-
 describe("the typeface", () => {
   test("the body and a button use it, its file loads, and code keeps the monospace stack", async () => {
-    fixMedicationClock();
+    fixClock(CLOCK);
     await openMedications();
     const button = await found(() => document.querySelector("main header button"));
     expect(firstFamily(document.body)).toBe(FAMILY);
@@ -62,7 +53,7 @@ describe("the typeface", () => {
 
     const code = document.createElement("code");
     code.textContent = "I l 1 O 0";
-    document.querySelector("main")!.append(code);
+    (await found(() => document.querySelector("main"))).append(code);
     expect(firstFamily(code)).toBe("ui-monospace");
     code.remove();
   });
@@ -70,7 +61,7 @@ describe("the typeface", () => {
 
 describe.each([320, 420])("at %i px nothing scrolls the page sideways", (width) => {
   test("Medications: its tab bar, its header (the title, Print and Add), the app header and the bottom bar", async () => {
-    fixMedicationClock();
+    fixClock(CLOCK);
     await openMedications(width);
     await found(() => document.querySelector('main nav[aria-label="Medications tabs"]'));
     const header = await found(() => document.querySelector("main header"));
@@ -81,7 +72,7 @@ describe.each([320, 420])("at %i px nothing scrolls the page sideways", (width) 
   });
 
   test("the Planner: its tab bar and header", async () => {
-    fixPlannerClock();
+    fixClock(NOW);
     await openPlanner({ frame: true, width });
     await found(() => document.querySelector("main header h1"));
     await found(() => document.querySelector("main nav a[aria-current='page']"));

@@ -136,7 +136,7 @@ async function menu(
   const texts = [...document.querySelectorAll(ITEMS)].map((el) => el.textContent?.trim());
   if (want.items !== undefined) expect(texts.join(",")).toBe(want.items);
   if (want.count !== undefined) expect(texts).toHaveLength(want.count);
-  expect(getComputedStyle(surface(m)!).backgroundColor).toBe(base100());
+  expect(getComputedStyle(await found(() => surface(m))).backgroundColor).toBe(base100());
   await userEvent.keyboard("{Escape}");
   await expect.poll(() => q(MENU)).toBeNull();
   await expect.poll(active).toBe(trigger());
@@ -174,7 +174,8 @@ async function overlay(trigger: () => HTMLElement, want: { name: string | RegExp
     if (typeof want.name === "string") await expect.poll(() => nameOf(top())).toBe(want.name);
     else await expect.poll(() => nameOf(top())).toMatch(want.name);
     await expect.poll(() => box.contains(active())).toBe(true);
-    if (how === "tap") expect(getComputedStyle(surface(box)!).backgroundColor).toBe(base100());
+    if (how === "tap")
+      expect(getComputedStyle(await found(() => surface(box))).backgroundColor).toBe(base100());
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => overlays().length).toBe(before);
     await expect.poll(active).toBe(trigger());
@@ -188,7 +189,9 @@ const quickAdd = async (label: string) => {
   await userEvent.click(addButton());
   await expect.poll(() => q(MENU)).not.toBeNull();
   await userEvent.click(
-    [...document.querySelectorAll<HTMLElement>(ITEMS)].find((el) => el.textContent?.trim() === label)!,
+    await found(() =>
+      [...document.querySelectorAll<HTMLElement>(ITEMS)].find((el) => el.textContent?.trim() === label),
+    ),
   );
 };
 const inSheet = (label: string) => () =>
@@ -403,7 +406,9 @@ describe.each([
       const dialog = must("dialog[open]");
       await expect.poll(() => nameOf(dialog)).toBe("Delete this entry?");
       await expect.poll(() => dialog.contains(active())).toBe(true);
-      expect(getComputedStyle(surface(dialog.querySelector(".modal-box"))!).backgroundColor).toBe(base100());
+      expect(
+        getComputedStyle(await found(() => surface(dialog.querySelector(".modal-box")))).backgroundColor,
+      ).toBe(base100());
       await userEvent.keyboard("{Escape}");
       await expect.poll(() => q("dialog[open]")).toBeNull();
       await expect.poll(active).toBe(trigger());

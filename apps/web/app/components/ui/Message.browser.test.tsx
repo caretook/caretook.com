@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { renderInRouter } from "../../../test/device";
+import { found } from "../../../test/found";
 import { Message } from "./index";
 
 describe("Message", () => {
@@ -29,10 +30,9 @@ describe("Message", () => {
         </Message>
       </div>,
     );
-    const line = document.querySelector<HTMLElement>("[data-probe]");
-    expect(line).not.toBeNull();
-    expect(line!.getAttribute("role")).toBe("alert");
-    expect(line!.getBoundingClientRect().height).toBe(0);
+    const line = await found(() => document.querySelector<HTMLElement>("[data-probe]"));
+    expect(line.getAttribute("role")).toBe("alert");
+    expect(line.getBoundingClientRect().height).toBe(0);
     expect(screen.getByTestId("box").element().getBoundingClientRect().height).toBe(0);
     await expect.element(screen.getByRole("alert")).not.toBeInTheDocument();
   });

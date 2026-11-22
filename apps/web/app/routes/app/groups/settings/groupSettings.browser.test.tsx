@@ -336,7 +336,7 @@ describe("Members", () => {
     await ready();
     await userEvent.click(page.getByRole("button", { name: "Leave this care group" }));
     await userEvent.click(page.getByRole("button", { name: "Leave", exact: true }));
-    await expect.poll(device.location, { timeout: 10_000 }).toBe("/app");
+    await expect.poll(device.location).toBe("/app");
     await expect.element(page.getByRole("heading", { level: 1, name: "Your care groups" })).toBeVisible();
     expect(document.querySelector("[data-lost-group]")).toBeNull();
   });
@@ -451,7 +451,7 @@ describe("Members", () => {
 
     await userEvent.click(page.getByRole("button", { name: "Leave this care group" }));
     await userEvent.click(page.getByRole("button", { name: "Leave", exact: true }));
-    await expect.poll(device.location, { timeout: 10_000 }).toBe("/app");
+    await expect.poll(device.location).toBe("/app");
     await expect.element(page.getByText(/You're not in a care group yet/)).toBeVisible();
   });
 

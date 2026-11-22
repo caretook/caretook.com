@@ -10,6 +10,7 @@ import * as members from "./route";
 import { apiCalls } from "../../../../../../test/api";
 import { renderWithDevice } from "../../../../../../test/device";
 import { contactShare, fx, TEST_GROUP, TEST_USER } from "../../../../../../test/fixtures";
+import { found } from "../../../../../../test/found";
 
 // Members' contact details on the Members page (profiles-contacts.mjs's
 // steps): your own row's "What this group sees" (from your Contact details,
@@ -83,7 +84,7 @@ describe("your own row", () => {
     await ready();
     await expect.poll(() => !!sharing()?.querySelector("[data-no-contact]")).toBe(true);
     expect(boxes()).toEqual([]);
-    expect(rowOf(TEST_USER.id)!.querySelector("[data-member-contact]")).toBeNull();
+    expect((await found(() => rowOf(TEST_USER.id))).querySelector("[data-member-contact]")).toBeNull();
     await userEvent.click(page.getByRole("link", { name: "Add contact details" }));
     await expect.poll(device.location).toBe("/app/settings/contact");
     await expect.element(page.getByRole("heading", { name: "Contact details", level: 1 })).toBeVisible();
@@ -153,7 +154,7 @@ describe("what a co-member shares", () => {
       "phones",
     ]);
     expect(text(CT.id)).not.toContain(ADDRESS);
-    expect(document.querySelector("main")!.textContent).not.toMatch(/@example\.com/);
+    expect((await found(() => document.querySelector("main"))).textContent).not.toMatch(/@example\.com/);
   });
 
   test("a changed number follows the sync, without a reload", async () => {
@@ -185,7 +186,9 @@ describe("what a co-member shares", () => {
     expect(text(CT.id)).toContain(PHONE);
     expect(text(CT.id)).toContain(RELATIONSHIP);
     expect(sharing()).toBeNull();
-    expect(rowOf(TEST_USER.id)!.querySelector("[data-sharing-summary]")?.textContent).toMatch(/^You share /);
+    expect(
+      (await found(() => rowOf(TEST_USER.id))).querySelector("[data-sharing-summary]")?.textContent,
+    ).toMatch(/^You share /);
     expect(document.querySelector("[data-needs-connection]")).not.toBeNull();
   });
 
@@ -198,7 +201,7 @@ describe("what a co-member shares", () => {
       contactShare({ memberId: CT_MEMBERSHIP, userId: CT.id, phones: [] }),
     ]);
     await device.settle();
-    expect(rowOf(CT.id)!.querySelector("[data-member-contact]")).toBeNull();
+    expect((await found(() => rowOf(CT.id))).querySelector("[data-member-contact]")).toBeNull();
     expect(text(CT.id)).toContain(RELATIONSHIP);
   });
 
