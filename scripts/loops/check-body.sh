@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # check-body.sh MODE BASE TOOLING [OWN_TEST_FILE…]: what one check runs, in the
 # current directory (prd.sh check puts it inside the lease and check-run.sh).
-# The plan (check-plan.mjs) has decided MODE, TOOLING (1 or 0) and the diff's
+# The plan (check-plan.mjs) has decided MODE, TOOLING (0, 1, or 2 with the
+# browser harness test) and the diff's
 # own test files; this runs them.
 #   slice: typecheck, lint, format, every unit test, and the integration and
 #          component test files the diff adds or edits (the OWN files that still
@@ -91,7 +92,7 @@ tests() {
 selection=() targets=()
 static
 if [[ $mode == full ]]; then
-  projects=(--project '!tooling:unit')
+  projects=(--project '!tooling:unit' --project '!tooling:browser')
   tests tests
   step docs; pnpm docs:budget
   step build; pnpm build:budget
@@ -102,7 +103,7 @@ else
     if [[ $f == *.browser.test.tsx ]]; then own_browser+=("$f"); else own_int+=("$f"); fi
   done
   files() { pnpm exec vitest list --filesOnly "$@" | awk '/\.test\.[a-z]+$/ {print $NF}' | sort -u; }
-  all=$(files --project '!tooling:unit' | grep -c . || true)
+  all=$(files --project '!tooling:unit' --project '!tooling:browser' | grep -c . || true)
   run=$( { files "${unit[@]}"
            if [[ $mode == quick ]]; then files --project integration --changed "$base"; fi
            printf '%s\n' ${own_int[@]+"${own_int[@]}"} ${own_browser[@]+"${own_browser[@]}"}; } | sort -u | grep -c . || true)
@@ -130,10 +131,11 @@ else
   step lint; node scripts/loops/check-areas.mjs lint
   step docs; pnpm docs:budget
 fi
-if [[ $tooling == 1 ]]; then
+if [[ $tooling != 0 ]]; then
   # The static steps linted and formatted every file, so this skips the lint of
   # the changed tooling files that `pnpm test:tooling` runs first.
   projects=(--project tooling:unit --project scripts:unit)
+  [[ $tooling != 2 ]] || projects+=(--project tooling:browser)
   tests tooling
 fi
 exit 0

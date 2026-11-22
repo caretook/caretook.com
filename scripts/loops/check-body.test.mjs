@@ -97,7 +97,7 @@ const ESLINT = "exec eslint .";
 const PRETTIER = "exec prettier --check .";
 const UNIT =
   "exec vitest run --project data:unit --project web:unit --project notifications:unit --project server:unit --project scripts:unit";
-const ALL = "exec vitest run --project !tooling:unit";
+const ALL = "exec vitest run --project !tooling:unit --project !tooling:browser";
 const TOOLING = "exec vitest run --project tooling:unit --project scripts:unit";
 const runs = (r) => r.ran.filter((c) => !c.startsWith("exec vitest list"));
 // The three static tools run side by side, so their order is free.
@@ -145,7 +145,7 @@ describe("check-body.sh", () => {
     expect(pkg.scripts.check).toBe(
       "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm docs:budget",
     );
-    expect(pkg.scripts.test).toBe("vitest run --project '!tooling:unit'");
+    expect(pkg.scripts.test).toBe("vitest run --project '!tooling:unit' --project '!tooling:browser'");
   });
 
   it("fails a full check at a failing tooling test and names the step", () => {
