@@ -122,7 +122,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-261 | change | landed | ui-kit | prd/ui-kit | List primitives: one bordered, divided list box and a row, replacing six hand-written variants |
 | B-262 | change | staging | ui-kit | prd/ui-kit | Empty and loading states: an EmptyState line (optional action) and one Skeleton/Loading placeholder |
 | B-263 | change | staging | ui-kit | prd/ui-kit | Page frame: a Page container and one heading scale; every section page uses PageHeader |
-| B-264 | change | in-progress | ui-kit | prd/ui-kit | DetailHeader primitive for the provider, care period, todo, medication and profile pages |
+| B-264 | change | ready | ui-kit | prd/ui-kit | DetailHeader primitive for the provider, care period, todo, medication and profile pages |
 | B-265 | change | staging | ui-kit | prd/ui-kit | Badge primitive with named tones and one size |
 | B-266 | change | landed | ui-kit | prd/ui-kit | Checkbox and toggle rows (CheckField, ToggleField), and Field-owned control classes so callers stop passing 'input w-full' |
 | B-267 | change | staging | ui-kit | prd/ui-kit | Text and icon tokens: named muted and faint text, inline link style, icon sizes |
@@ -254,7 +254,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-394 | bug | triaged | fixes-tooling |  | mcp.int.test.ts 'list_timeline: the group's entries in the recipient's zone, with note text, paged at 50' times out at Vitest's 5 s default under load (full check, 5-min load ~21); passes alone 3x |
 | B-395 | change | staging | orchestration-2 | prd/orchestration-2 | Split quick-fixes into categories that land separately: UI/UX, tooling, optimizations, bugfixes, nits (a plan or topic per category; the dispatcher treats each as a standing topic) |
 | B-396 | change | staging | ui-kit | prd/ui-kit | Redesign TabNav as a pill bar: a fully rounded floating container, plain text tabs, and the current tab as a tinted pill with optional icon and count badge |
-| B-397 | change | in-progress | ui-kit | prd/ui-kit | Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages |
+| B-397 | change | ready | ui-kit | prd/ui-kit | Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages |
 | B-398 | change | triaged | ui-kit-2 |  | Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame |
 | B-399 | bug | staging | ui-kit | prd/ui-kit | Bottom menu on mobile need a better deign. I like floating menus. It needs to be a different bg… |
 | B-400 | change | triaged | simple-mode |  | Timeline header has room for "Easy Mode" toggle now. move it out of eyeball menu and into the… |
@@ -305,6 +305,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-445 | bug | triaged | fixes-tooling |  | Agents wait on checks with `until ! pgrep -f "prd check"`, which never exits: it matches its own shell and every orchestrator whose prompt mentions `pnpm prd check` |
 | B-446 | bug | triaged | fixes-tooling |  | browser.test.mjs 'kills a spec at its cap, worker and all, and retries it once' fails under heavy load (load 47), passes alone 3x |
 | B-447 | bug | triaged | fixes-tooling |  | to-test file: 'What wasn't checked' repeats the quick-check line, and a tooling-only landing still gets the app's dev URL and seed sign-ins under 'What to try' |
+| B-448 | chore | triaged | ui-kit-2 |  | Rename the profile's *Card components and files (ProfileCards.tsx, ConditionsCard, DetailsCards, EmergencyCard, VitalAveragesCard) now that they render bands, not cards |
+| B-449 | chore | triaged | fixes-tooling |  | Reseed staging from scratch: a manual Action that wipes staging's data and runs the fictional seed again |
 
 ## Items
 
@@ -664,10 +666,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-264 · change · DetailHeader primitive for the provider, care period, todo, medication and profile pages
 
-- status: in-progress
+- status: ready
 - prd: ui-kit
 - owner: prd/ui-kit
-- commit:
+- commit: de546c6a
 
 - 2026-11-21 (Robert Bo Davis): Review 2026-11-21: ProviderHeader, PeriodHeader, TodoHeader and MedicationHeader copy the same header line for line: a size-9 icon disc (primary or muted), h1 text-xl with badges, a details line, and the editors and actions regions (data-region). ProfileHeader is a fifth near copy. Callers pass icon, tone, title, badges, details, editors, actions.
 - 2026-11-21 (plan/ui-kit): ui-kit plan (2026-11-21, plans/ui-kit-plan.md): done here when the primitive exists and its first adopters use it (settings, sign-in, the five detail pages); the rest of the app is swept in ui-kit-2 (B-398).
@@ -1938,10 +1940,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-397 · change · Break long pages into clear vertical sections: a section rhythm for the page frame (spacing scale, titled cards, section headings, dividers) applied to the text-heavy pages
 
-- status: in-progress
+- status: ready
 - prd: ui-kit
 - owner: prd/ui-kit
-- commit:
+- commit: de546c6a
 
 - 2026-11-21 (Robert Bo Davis): From the user (2026-11-21): pages read as long blocks of text; split the space vertically in a sensible way. Options proposed to the user, to choose from when the PRD is written: (1) each section a titled card on the base-200 page with a fixed gap; (2) small uppercase section labels with an icon and a one-line summary; (3) a two-step spacing scale, large between sections and small inside; (4) definition rows (label left, value right) instead of paragraphs; (5) collapsible secondary sections (details/summary) showing a summary line; (6) a sticky in-page section bar on long detail pages, using the new pill TabNav; (7) two columns on wide screens (main and side cards), one on phones; (8) summary tiles at the top of detail pages. Triage: ui-kit, with Card (B-260), Page frame (B-263) and DetailHeader (B-264), which this builds on.
 - 2026-11-21 (Robert Bo Davis): User's direction (2026-11-21): full page-width background blocks for sections, i.e. each section is a band across the whole page width with its own background (alternating surfaces), content held to the column inside it; this replaces the titled-card base I recommended. The user gave no preference on the extras for long detail pages (collapsible sections, sticky section bar, two columns, summary tiles): undecided, ask again when the PRD is written.
@@ -2444,3 +2446,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-21 (prd/orchestration-2): Seen on the first real file, to-test/2026-11-21-1838-orchestration-2.md (orchestration-2 wave 5). For a diff that is only scripts/ and docs, name the commands to try instead.
+
+### B-448 · chore · Rename the profile's *Card components and files (ProfileCards.tsx, ConditionsCard, DetailsCards, EmergencyCard, VitalAveragesCard) now that they render bands, not cards
+
+- status: triaged
+- prd: ui-kit-2
+- owner:
+- commit:
+
+- 2026-11-21 (prd/ui-kit): From ui-kit slice 7: kept the names to keep the diff small.
+
+### B-449 · chore · Reseed staging from scratch: a manual Action that wipes staging's data and runs the fictional seed again
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-21 (Robert Bo Davis): From the user (backlog session, 2026-11-21). Today's Seed staging Action (seed-staging.yml) is idempotent: it adds and updates but never clears, so hand-made test data and stale rows stay. Wanted: one step that empties staging and seeds it fresh. To settle when built: what is wiped (all app data and accounts, or keep staff grants and connector/Google links), refusing production the way the seed does, a typed confirmation input, and that devices' PowerSync copies follow the wipe. Triage: fixes-tooling (a script and a workflow, no app code); hosting was the other fit but is on hold.
