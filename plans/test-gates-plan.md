@@ -7,19 +7,28 @@ The [PRD](test-gates-prd.md) covers:
 - a run's failures are sorted by kind, and flakes are quarantined;
 - a landing waits for the tier its orchestrator declared.
 
-Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
+Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/test-gates` (slice commits) |
-| ----- | ---- | ----- | ------------------------------------------- |
-| 1     | 1    | —     | —                                           |
-| 2     | 1    | —     | —                                           |
-| 3     | 2    | —     | —                                           |
-| 4     | 3    | —     | —                                           |
-| 5     | 4    | —     | —                                           |
-| 6     | 5    | —     | —                                           |
-| 7     | 5    | —     | —                                           |
+**Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions through `pnpm prd ask`).
+
+**Now:** wave 1 started 2026-11-22. Worktrees `test-gates-1` and `test-gates-2` made, B-555, B-556, B-341 and B-554 claimed. Both slices run on opus (real logic). Slice 1 merged. Slice 1's quiet-machine before/after time is only partial: static 127 s in series against 79.5 s side by side, at load 8 to 11. Slice 2 merged. CI is not green on Linux yet: every requested run ends `file` on the 11 tooling failures slice 8 owns (latest: run 45073332408). The user put the Linux `stat` fix in this topic (slice 8, wave 2; B-559, B-242), relayed by the backlog session.
+
+**Until slice 8 lands (the user's permission):** a slice's manual tooling runs may leave out `scripts/loops/browser.test.mjs`, unless it changes `browser.sh`, `lib.sh`, `lease.sh`, `scripts/loops/checks` or `scripts/browser-checks/`, and says so in its hand-off. `pnpm prd check` still runs the file, and nobody bypasses it. Slice 2's `--exclude` bug is fixed (an explicit file list, pinned by the workflows test).
+
+**Wave 1 gate:** full check passed on 0c91997f (5,857 app tests, 915 tooling tests; no browser checks needed). Slice worktrees removed. Docs folded (machinery _The check runner_, runbook, `prd help`). Next: PR, Codex review, land, then rotate; wave 2 is slice 3, then slice 8.
+
+| Slice | Wave | State         | Merge into `prd/test-gates` (slice commits) |
+| ----- | ---- | ------------- | ------------------------------------------- |
+| 1     | 1    | merged (opus) | 98a36dd4 (5eb596a9)                         |
+| 2     | 1    | merged (opus) | 34b157fb (80a35650)                         |
+| 3     | 2    | —             | —                                           |
+| 4     | 3    | —             | —                                           |
+| 5     | 4    | —             | —                                           |
+| 6     | 5    | —             | —                                           |
+| 7     | 5    | —             | —                                           |
+| 8     | 2    | —             | —                                           |
 
 **Backlog:**
 
@@ -33,6 +42,8 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556. B-531 (modes) is d
 | B-530 | slice 4 starts | slice 5 merges |
 | B-528 | slice 6 starts | slice 6 merges |
 | B-553 | slice 7 starts | slice 7 merges |
+| B-559 | slice 8 starts | slice 8 merges |
+| B-242 | slice 8 starts | slice 8 merges |
 
 ## Architectural decisions
 
@@ -51,16 +62,16 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556. B-531 (modes) is d
 
 - **Waves:**
   1. slices 1 and 2 (1 touches the local check runner; 2 adds the workflow and the request; they share only additive `prd.sh` cases)
-  2. slice 3
+  2. slice 3, then slice 8 on top of it (both edit `ci.yml` and `vitest.config.ts`)
   3. slice 4
   4. slice 5
   5. slice 6, then slice 7 on top of it, landed together
 - Waves 1 to 4 land under today's gate. **Wave 5 lands under its own new gate**, with a real `--tier full` run as the proof, and its landing notice tells the other orchestrators that the gate changed at their next sync.
 - **Proving a workflow change:** a slice pushes its own commit to a `ci/` ref (`pnpm prd ci run`, or `git push origin HEAD:refs/heads/ci/<tier>/<name>` before the command exists), links the runs in its hand-off and deletes the refs. A pushed ref runs the workflow of that commit, so nothing needs to be in dev or staging first.
-- **Hot files:** `.github/workflows/`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `packages/data/src/db/roles/syncConfig.ts` (the YAML reader the workflow tests use), `vitest.config.ts`, `scripts/loops/land`, `scripts/loops/check-plan`, `scripts/loops/check-body`, `scripts/loops/check-run`, `scripts/loops/check-times`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/pr.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/rotate`. These overlap:
+- **Hot files:** `.github/workflows/`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `packages/data/src/db/roles/syncConfig.ts` (the YAML reader the workflow tests use), `vitest.config.ts`, `scripts/loops/land`, `scripts/loops/check-plan`, `scripts/loops/check-body`, `scripts/loops/check-run`, `scripts/loops/check-times`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/pr.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/rotate`, `scripts/loops/browser.sh`, `scripts/loops/lease.sh`, `scripts/loops/stack-lib.sh`, `package.json`. These overlap:
   - fixes-tooling's scripts items: held until this topic lands (its wave 2 is in dev);
   - agent-autonomy (B-518) waits for this topic.
-- Seven slices, one over the usual six: the skeptic pass split the workflow slice in two. Slice 1 stays here, not in fixes-tooling, because it shares the check plan and check body with slice 6 and fixes-tooling is held for this topic.
+- Eight slices: the skeptic pass split the workflow slice in two, and the user added slice 8 (the Linux fix) on 2026-11-22 so the CI tiers can go green before landing. Slice 1 stays here, not in fixes-tooling, because it shares the check plan and check body with slice 6 and fixes-tooling is held for this topic.
 
 ## Slice 1: A local check says why it failed, stops at a limit and reruns a flake
 
@@ -96,7 +107,7 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md, ops/runbook.m
 
 - `ci.yml`, triggered only by a push to `ci/**`. The ref is `ci/<tier>/<name>`; the tier picks the jobs. This slice builds `static`, `unit` and `integration`; a higher tier runs those three and says the rest is not built yet.
   - Setup: `.github/actions/setup`, a Postgres service container on the test port with `DATABASE_URL` pointing at it (so the integration `globalSetup` never falls back to docker compose), `CARETOOK_LEASES=off`, a git identity for the tooling tests, and a fictional env generated by a small script under `scripts/ci/`.
-  - Jobs: static (format, lint, typecheck; the docs budget as a warning); unit (the six small Vitest projects, `tooling:unit` included); integration. Each test job uses the JSON reporter and checks out by the pushed SHA, never the ref name.
+  - Jobs: static (format, lint, typecheck; the docs budget as a warning); unit (the six small Vitest projects, `tooling:unit` without `scripts/loops/browser.test.mjs`); integration (with that file). Each test job uses the JSON reporter and checks out by the pushed SHA, never the ref name.
   - The last job writes `green` or `file` (the other kinds come in slice 4) and uploads it as the `verdict` artifact, kept 7 days.
   - A newer run for the same ref cancels the older one.
   - Keep the workflow inside the YAML shapes `scripts/deploy/workflows.test.mjs`'s reader already parses where that is possible; name any reader change in the hand-off.
@@ -143,7 +154,7 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md, docs/domain/c
 - A requested `components` run starts no build job. The hand-off links it.
 - `pnpm test:tooling` passes.
 
-**Blocked by:** 2. **Blocks:** 4.
+**Blocked by:** 2. **Blocks:** 4, 8.
 
 ## Slice 4: The rerun, the verdict's kinds and the quarantine
 
@@ -153,7 +164,7 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md · Tests: unit
 
 **Build:**
 
-- **The verdict module** (the PRD's _The verdict module_): the five kinds, for any tier, with the narrowed flag and the file list.
+- **The verdict module** (the PRD's _The verdict module_): the five kinds, for any tier, with the narrowed flag and the file list. It reads `ci-results/browser-tooling.json` too, and the rerun and narrowed runs cover the browser harness.
 - **The rerun:** a test job that fails reruns its failed files once, in the same job.
 - **The brake list:** globs and named files for the sync and offline tests, the role-by-action matrices and permissions tests, the privacy and connector-leak tests, and the migration and seed tests.
 - **The quarantine list,** starting empty.
@@ -177,7 +188,7 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md · Tests: unit
 - A requested run with a test forced to fail once and then pass uploads `flake`. A narrowed run of two files starts only their jobs. The hand-off links both.
 - `pnpm test:tooling` passes.
 
-**Blocked by:** 2, 3. **Blocks:** 5.
+**Blocked by:** 2, 3, 8. **Blocks:** 5.
 
 ## Slice 5: Whose failure it is, and what gets filed
 
@@ -187,7 +198,7 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/orchestrator.md, docs/
 
 **Build:**
 
-- `pnpm prd ci blame [<branch>]`, for a `file` or a `brake` verdict: requests a narrowed run of the failed files (for a failed static or build job, that tier) on dev's tip and splits the failures.
+- `pnpm prd ci blame [<branch>]`, for a `file` or a `brake` verdict: requests a narrowed run of the failed files (for a failed static or build job, that tier) on dev's tip and splits the failures. It reads `ci-results/browser-tooling.json` as well.
   - Failing on dev too is dev's; passing there is the branch's; a test file dev doesn't have is the branch's.
   - It prints both lists with, for the branch's, the slices whose merges changed files in the failing test's area.
 - **Filing on a transition**, by the reader:
@@ -225,9 +236,9 @@ Stack: no · Reads: docs/agents/orchestrator.md, docs/agents/loop.md, docs/agent
 
 **Build:**
 
-- The check plan proposes a minimum tier from the diff: docs and tooling only, none (the tooling tests, as today); app code, `components`; server code without app code, `integration`; a migration, seeds, the sync config, the lockfile, a `package.json`, the Vitest config, the workflow or `scripts/ci/`, `full`. It no longer turns a quick check into a full one.
+- The check plan proposes a minimum tier from the diff: docs and tooling only, none (the tooling tests, as today), except a diff touching the browser harness's trigger paths (slice 8), `integration`; app code, `components`; server code without app code, `integration`; a migration, seeds, the sync config, the lockfile, a `package.json`, the Vitest config, the workflow or `scripts/ci/`, `full`. It no longer turns a quick check into a full one.
 - `pnpm prd pr` and `pnpm prd land` take `--tier <t>` and, for a tier below the proposal, `--why "<reason>"`; the PR body and the landing report name the tier, the proposal and the reason.
-- `land` needs a whole-tier verdict for that tier or higher on the tip, and requests the run itself when there is none:
+- `land` needs a whole-tier verdict for that tier or higher on the tip, read from the verdict's `ranTier` (a `full` request before slice 3 records `ranTier: integration` and `notBuilt`), and requests the run itself when there is none:
   - green lands;
   - flake lands when every flake is in a file the branch didn't touch, and files them after the merge;
   - file lands when `blame` gives every failure to dev, and otherwise refuses, naming the branch's failing tests;
@@ -282,3 +293,32 @@ Stack: no · Reads: docs/agents/orchestrator.md, docs/agents/loop.md, docs/agent
 - `pnpm test:tooling` passes.
 
 **Blocked by:** 5, 6. **Blocks:** nothing.
+
+## Slice 8: The tooling scripts work on Linux
+
+Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md · Tests: unit
+
+**User stories:** US 3, 10. Added on the user's decision, 2026-11-22.
+
+**Build:**
+
+- One shared mtime helper that tries GNU `stat -c %Y` first, used at every `stat -f %m` site: `browser.sh`, `stack-lib.sh`, `lease.sh` and `lib.sh` (`with_backlog_lock`, B-242). On Linux, `stat -f %m` prints a `File:` block to stdout before failing, so the existing `||` fallbacks capture junk.
+- `load_avg` in `lib.sh` prints a stray blank line on Linux, which breaks `browser.test.mjs`'s `cap 30s` line match. It prints one clean line on both systems.
+- Trace the lease failures rather than assuming `stat` explains them, and fix what the tooling gets wrong on Linux. "The check lease makes runs beyond the limit of two wait" passes in some runs and fails in others: recheck it once `stat` is fixed, and file it if it still fails.
+- **`browser.test.mjs` gets its own Vitest project and script** (the user's decision, 2026-11-22; something like `pnpm test:browser-harness`), removed from `tooling:unit`, because it launches Playwright and waits on deliberately hanging specs. This replaces slice 2's interim exclusion from the CI unit job.
+  - CI: it always runs in the `integration` tier's job.
+  - Locally: `pnpm test:tooling` runs it only when the change touches `scripts/loops/browser.sh`, `scripts/loops/lib.sh`, `scripts/loops/lease.sh`, `scripts/loops/checks`, the area map, `scripts/browser-checks/` or the test file. It reuses the check plan's base, and runs the harness when the base can't be determined. Check that list against what `browser.sh` actually sources, and name any addition in the hand-off.
+  - `pnpm test` and `check-body.sh` select `--project '!tooling:unit'`, so a new project would join every `pnpm test` and skew the counts: update both to leave it out.
+  - The hand-off lists any AGENTS.md or `docs/agents/loop.md` wording about what `test:tooling` covers; the orchestrator folds it.
+- Watch `check-run`'s empty branch name on a detached HEAD: it failed in one CI run and passed in the next. If it recurs, fix it; if not, say so in the hand-off.
+
+**Acceptance criteria:**
+
+- A unit test of the helper: a numeric mtime when the first `stat` form prints junk, and on the system it runs on.
+- No `stat -f %m` is left outside the helper.
+- The 11 failures from slice 2's CI unit run (browser 6, lease 2, stack, disk, load-gate) are green on the Linux runner, in a requested run of the slice's branch linked in the hand-off.
+- A test of the selection: `pnpm test:tooling` picks the browser project for a change to each listed path and skips it for any other tooling change.
+- A requested `integration` run includes the browser project, and a `unit` run does not.
+- `pnpm test:tooling` passes on the Mac.
+
+**Blocked by:** 2, 3. **Blocks:** 4.
