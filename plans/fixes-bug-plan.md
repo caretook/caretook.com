@@ -6,9 +6,9 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions via `pnpm prd ask`).
 
-**Hand-off (2026-11-22, after the wave 1 landing; no slices in flight).** Wave 1 (slices 1–12, all on opus) **landed** in dev as 7a205be1 through PR #46 with `--no-review` on the user's word (Codex out of credits); full check passed on 505d9eee; browser suite 12/12; docs folded (live-notes, auth, app-shell, appointments). Report filed as ask a29; to-test file `to-test/2026-11-22-0004-fixes-bug.md`. Load flakes filed: B-466, B-479, B-480.
+**Hand-off (2026-11-22, after the wave 2 landing; no slices in flight).** Wave 1 landed as 7a205be1 (PR #46). **Wave 2 (slices 13–17, all on opus) landed in dev through PR #52** (dev 4f94740): full check passed on 99023ba (557/557, quiet machine, after 7 earlier runs failed on load flakes only; flakes filed B-489–B-502), Codex clean on 608a759, tooling 47/47, browser `--changed` 8/8; lean `--suite` was skipped (said in the report). Report: ask a39; to-test `to-test/2026-11-22-0812-fixes-bug.md`. Docs folded (todos, search, app-shell, care-groups; all at ~10.2 KB, trim when adding). B-450 stopgap (roles test 60 s timeouts) landed with it; the query fix stays on B-450.
 
-**Wave 2 (2026-11-22): slices 13–17 (all on opus) merged into prd/fixes-bug; dev synced (43d53bf, clean); browser --changed 8/8 passed; 7 full checks failed on load flakes only (each failing test passes alone 3/3; ui-kit-2 fails the same; we take turns on full checks). Roles test stopgap for B-450 committed (1ff78369, 2f7fe930); planner timing flake filed. Ask a33 answered: **land with --force, flakes noted; each flaky test filed as a fixes-tooling item** (B-489–B-502 new; notes on B-388, B-450, B-466, B-479, B-486). Docs folded (todos, search, app-shell, care-groups). Synced dev again (ui-kit-2 wave 1, 4f58d177; todos.md conflict resolved in docs); typecheck, lint, format clean. Skeptical review (Fable 5.2) done: synced dev a third time (test-health wave 3, 97e9074; backlog.md taken from dev) → **full check passed on 10d8c1cc** (557/557, quiet machine), so no --force needed; follow-up B-510 (removeUndoneNext role check order); lean `--suite` was skipped (only `--changed` 8/8), said in the report. Next: PR push, Codex, plain `land`, report, rotate** (B-482 folded into slice 17 as B-472's duplicate). test-health wave 2 landed in dev (43d53bf: test lint rules, deviceLabel/groupRoleLabel moved): `pnpm prd sync` at this wave's boundary, after merging 13–17. Codex may still be out of credits: if `review --wait` stalls or times out (75), ask the user before `--no-review`.
+**Next session: wave 3.** `pnpm backlog ingest`, `list`; candidate: B-510 (removeUndoneNext reports 'applied' for a viewer's Undo delete before checking the role; todoService.ts:450). Check `pnpm backlog prd list` hot files, append slices under _Wave 3_, set hot files, claim. Full checks: run on a quiet machine only (no other check lease, 5-min load < 12; coordinate with ui-kit-2/test-health), under `caffeinate -i`; `pnpm prd check` takes no reason (only `--quick` does). `land --no-review` is classifier-blocked: re-wait for Codex instead.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -26,11 +26,11 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 10    | B-385 | landed (resetStaging flake: B-466)         | 9736353b |
 | 11    | B-386 | landed                                     | 1327d9bd |
 | 12    | B-393 | landed (test only)                         | f9fb803b |
-| 13    | B-318 | merged                                     | 61d7355f |
-| 14    | B-382 | merged (todos.md at landing)               | 586cee75 |
-| 15    | B-469 | merged (search.md at landing)              | 681f425b |
-| 16    | B-470 | merged                                     | 7e65e0ab |
-| 17    | B-472 | merged (+B-482; layout-offline at landing) | 3114a864 |
+| 13    | B-318 | landed                                     | 61d7355f |
+| 14    | B-382 | landed (todos.md at landing)               | 586cee75 |
+| 15    | B-469 | landed (search.md at landing)              | 681f425b |
+| 16    | B-470 | landed                                     | 7e65e0ab |
+| 17    | B-472 | landed (+B-482; layout-offline at landing) | 3114a864 |
 
 ## Wave 1
 
