@@ -126,7 +126,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-239 | bug | triaged | fixes-tooling |  | pnpm prd review: --json mode prints progress lines (asked Codex…, waiting) on stdout, so its output isn't valid JSON |
 | B-240 | bug | triaged | fixes-tooling |  | pnpm prd review --again --wait: if Codex never takes up the re-review within 5 min it falls through to the old verdict instead of exiting 75 |
 | B-241 | bug | triaged | fixes-tooling |  | codex-review: PR_QUERY reads only the first 100 review threads (and 50 comments each), so a PR with more could read as clean |
-| B-242 | bug | triaged | test-gates |  | with_backlog_lock: on Linux, BSD 'stat -f %m' succeeds with non-numeric output before GNU stat is tried, breaking the lock-age arithmetic |
+| B-242 | bug | in-progress | test-gates | prd/test-gates | with_backlog_lock: on Linux, BSD 'stat -f %m' succeeds with non-numeric output before GNU stat is tried, breaking the lock-age arithmetic |
 | B-244 | chore | triaged | fixes-tooling |  | codex-review: trust Codex's summary for the head; outdated Codex threads stop blocking once its codex-review-state on the head says has_unresolved_findings:false |
 | B-245 | plan | triaged | planner-3 |  | Attach a todo to a note: a note can carry a todo (with its own due day and assignee) instead of a note having a future date |
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
@@ -181,7 +181,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-338 | feature | triaged | account-security |  | Account settings: change name, email and password (today the page is read-only; password only via reset) |
 | B-339 | question | triaged | account-security |  | Decide the session cookie cache before launch: ordinary /rpc calls keep working for up to 3 minutes after a session is revoked |
 | B-340 | change | triaged | account-security |  | A member in two groups can connect a given assistant to only one (one grant per user and client) |
-| B-341 | chore | in-progress | test-gates | prd/test-gates | CI: a workflow on PRs into dev that runs format, lint, typecheck, unit and integration tests (today no workflow runs any test) |
+| B-341 | chore | ready | test-gates | prd/test-gates | CI: a workflow on PRs into dev that runs format, lint, typecheck, unit and integration tests (today no workflow runs any test) |
 | B-342 | bug | triaged | hosting |  | The Postgres pool has no error listener: a dropped idle connection crashes the function; 10 clients with a 2 s wait time out under a burst of uploads |
 | B-343 | bug | triaged | hosting |  | The break-glass database grant (pnpm db:access grant) very likely fails on Neon: it sends a SCRAM verifier, which the runbook records Neon rejecting |
 | B-344 | bug | triaged | hosting |  | The migrator can silently skip a migration whose journal timestamp is older than the last applied one; nothing guards it |
@@ -355,13 +355,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-556 | chore | landed | test-gates | prd/test-gates | Faster static steps in a check: typecheck, lint and format take 2.2 minutes run one after another on a quiet machine (lint 79 s, typecheck 38 s, format 15 s), most of the new slice check's 2.5 minutes |
 | B-557 | feature | triaged | timeline-jump |  | quick date jump on timeline via date picker AND quick entry |
 | B-558 | feature | triaged | assistant-access |  | Assistants settings needs to allow owner to enable read/write or stick to read only for group… |
-| B-559 | bug | triaged | test-gates |  | Tooling scripts break on Linux: BSD 'stat -f %m' succeeds under GNU stat, so watchdog caps and silence limits never fire |
+| B-559 | bug | in-progress | test-gates | prd/test-gates | Tooling scripts break on Linux: BSD 'stat -f %m' succeeds under GNU stat, so watchdog caps and silence limits never fire |
 | B-560 | feature | triaged | self-recovery-2 |  | A cost record: tokens by model per PRD and slice, from session and subagent transcripts, in pnpm prd cost |
 | B-561 | feature | triaged | demo-site |  | Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites |
 | B-562 | change | inbox |  |  | Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet |
 | B-563 | feature | inbox |  |  | Accessibility statement page |
 | B-564 | change | inbox |  |  | App-store prerequisites for the Capacitor apps |
 | B-565 | feature | inbox |  |  | Ownership transfer: a last owner can hand a care group to another member |
+| B-566 | bug | triaged | fixes-bug |  | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
+| B-567 | bug | triaged | fixes-bug |  | inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2 |
+| B-568 | bug | triaged | fixes-bug |  | Component tests that failed once on CI's Linux runners: providers rows, provider empty links, emergency sheet, search speed, timeline Back, weekly print chart |
+| B-569 | bug | dropped | fixes-bug |  | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
 
 ## Items
 
@@ -544,9 +548,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-242 · bug · with_backlog_lock: on Linux, BSD 'stat -f %m' succeeds with non-numeric output before GNU stat is tried, breaking the lock-age arithmetic
 
-- status: triaged
+- status: in-progress
 - prd: test-gates
-- owner:
+- owner: prd/test-gates
 - commit:
 
 - 2026-11-21 (prd/github-review): Codex finding on PR #12 (lib.sh:328), verified. Macs are fine today; check the output is numeric before falling back.
@@ -1093,10 +1097,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-341 · chore · CI: a workflow on PRs into dev that runs format, lint, typecheck, unit and integration tests (today no workflow runs any test)
 
-- status: in-progress
+- status: ready
 - prd: test-gates
 - owner: prd/test-gates
-- commit:
+- commit: 39f87cf0
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. .github/workflows/ has deploy, seed and admin jobs only; deploy.yml migrates and deploys with no test step. Three reviewers. Also: grep the built client for caretookSync in the deploy job, and run build:native somewhere.
 - 2026-11-22 (Robert Bo Davis): Moved from hosting to test-gates (2026-11-22): CI full check on PRs into and pushes to dev is test-gates' first tier.
@@ -2831,9 +2835,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-559 · bug · Tooling scripts break on Linux: BSD 'stat -f %m' succeeds under GNU stat, so watchdog caps and silence limits never fire
 
-- status: triaged
+- status: in-progress
 - prd: test-gates
-- owner:
+- owner: prd/test-gates
 - commit:
 
 - 2026-11-22 (slice/test-gates/2): Found by the first CI runs (test-gates slice 2): https://github.com/caretook/caretook.com/actions/runs/45071425596. GNU stat -f prints filesystem text and exits 0, giving 'File: unbound variable'. Sites: browser.sh:369 (no GNU fallback), stack-lib.sh:167, lease.sh:134; lib.sh:386 is B-242. Fix: try stat -c %Y first, or a shared helper. 11 Linux-only tooling:unit failures: browser.test.mjs (6), lease.test.mjs (2), disk.test.mjs, load-gate.test.mjs, stack.test.mjs (1 each).
@@ -2892,3 +2896,41 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (plan/onboarding): Split from B-360's review note (2026-11-22): careGroupMemberService says the last owner must hand over ownership first, and no flow does. Related to the open question on a last owner deleting their account.
+
+### B-566 · bug · Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-22 (slice/test-gates/3): Found by test-gates slice 3. accessCodes.browser.test.tsx:196 asserts BarcodeDetector is in window; failed in all 4 requested runs: https://github.com/caretook/caretook.com/actions/runs/45076033356 https://github.com/caretook/caretook.com/actions/runs/45076033291 https://github.com/caretook/caretook.com/actions/runs/45077489750 https://github.com/caretook/caretook.com/actions/runs/45077490098
+
+### B-567 · bug · inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-22 (slice/test-gates/3): Found by test-gates slice 3. actions() uses .element(), which does not retry; the body was still empty. Failed in both sharded runs (https://github.com/caretook/caretook.com/actions/runs/45077489750 https://github.com/caretook/caretook.com/actions/runs/45077490098), passed in both unsharded runs (https://github.com/caretook/caretook.com/actions/runs/45076033356 https://github.com/caretook/caretook.com/actions/runs/45076033291). The shard split exposes it. Root cause read from the log and code, fix not tried.
+
+### B-568 · bug · Component tests that failed once on CI's Linux runners: providers rows, provider empty links, emergency sheet, search speed, timeline Back, weekly print chart
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-22 (slice/test-gates/3): Found by test-gates slice 3; each differs between runs of the same code, causes not investigated. providers.browser (rowLinks, two different tests: https://github.com/caretook/caretook.com/actions/runs/45076033356 https://github.com/caretook/caretook.com/actions/runs/45077489750); provider.browser 'with no links' and emergency.browser 'builds the list' (https://github.com/caretook/caretook.com/actions/runs/45076033356); search.sync.browser 2,000-entry speed, timelineBack.browser B-235 and medications print.browser weekly chart (https://github.com/caretook/caretook.com/actions/runs/45076033291).
+
+### B-569 · bug · Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector
+
+- status: dropped
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-22 (slice/test-gates/3): Found by test-gates slice 3. accessCodes.browser.test.tsx:196 asserts BarcodeDetector is in window; failed in all 4 requested runs: https://github.com/caretook/caretook.com/actions/runs/45076033356 https://github.com/caretook/caretook.com/actions/runs/45076033291 https://github.com/caretook/caretook.com/actions/runs/45077489750 https://github.com/caretook/caretook.com/actions/runs/45077490098
+- 2026-11-22 (slice/test-gates/3): Duplicate of B-566: my retry after the add printed an error but had already written B-566. Close this one.
+- 2026-11-22 (prd/test-gates): Duplicate of B-566 (Access-code QR test fails on Linux): a retried add after a false error.
