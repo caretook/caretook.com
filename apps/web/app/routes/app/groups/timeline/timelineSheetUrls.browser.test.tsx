@@ -138,7 +138,7 @@ describe("the add sheet", () => {
       [
         "Escape",
         async () => {
-          // A virtual press focuses the sheet once its entry transition ends.
+          // The sheet takes focus just after it appears; an Escape before that reaches nothing.
           await waitUntil(() => dialog()?.contains(document.activeElement), "focus in the sheet");
           await userEvent.keyboard("{Escape}");
         },
