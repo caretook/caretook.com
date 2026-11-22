@@ -1,10 +1,10 @@
 # check-areas: the ui/ primitives and the app's CSS: ui (the built CSS under
 # the CSP). The date field: its own steps in ui, and the sheets and time chip
 # that type and pick with it.
-apps/web/app/components/ui/date/*        ui roundtrip
-apps/web/app/components/ui/*             ui
+apps/web/app/components/ui/date/         ui roundtrip
+apps/web/app/components/ui/              ui
 apps/web/app/app.css                     ui
 # The dev UI gallery (/dev/ui, web only, 404 in production; ui-kit): component
 # tests render it, and its gate is unit-tested.
-apps/web/app/routes/dev/ui/*             -
+apps/web/app/routes/dev/ui/              -
 apps/web/app/.server/devUi.ts            -

@@ -3,9 +3,7 @@
 # (timeline/timelineQuickEntry*.browser.test.tsx); the runner's rows are the
 # ones roundtrip already uploads. The parser and actions are packages/data
 # (unit tests). session-end checks the recent lines are wiped at sign-out.
-apps/web/app/components/quick-entry/*    -
-apps/web/app/lib/assistant/*.sync.ts     -
-apps/web/app/lib/assistant/quickEntryDraft.ts -
+apps/web/app/components/quick-entry/     -
 apps/web/app/lib/assistant/recentLines.ts session-end
 # Easy mode (slices 5 and 6): the view, the tiles, the lock and the Members
 # switch are component tests (timeline/timelineEasy*.browser.test.tsx,
@@ -16,5 +14,6 @@ apps/web/app/lib/assistant/useEasyMode.ts app-shell
 # Visit prep (slice 4): the sheet, its hooks and the device module (reads, and
 # one note_update like typing): component tests
 # (components/visitPrep/visitPrep.browser.test.tsx).
-apps/web/app/components/visitPrep/*      -
-apps/web/app/lib/assistant/quickEntryPreview.ts -
+apps/web/app/components/visitPrep/       -
+# Directory defaults: a new file here needs no rule.
+apps/web/app/lib/assistant/              -

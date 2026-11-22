@@ -4,7 +4,7 @@
 # keeps what only the server proves: /admin a 404 for non-staff (the door, the
 # staff rules), a real action's audit row on /admin/audit, and the banner
 # reaching /app.
-apps/web/app/routes/admin/*              -
+apps/web/app/routes/admin/               -
 apps/web/app/.server/admin.ts            app-shell invites
 packages/api/src/admin/auditAdmin.ts           app-shell
 packages/api/src/procedures.ts           app-shell
@@ -12,16 +12,18 @@ packages/data/src/db/schema/admin/staffRules.ts app-shell
 packages/data/src/db/schema/admin/adminAudit.ts app-shell
 packages/data/src/services/adminAuditService.ts app-shell
 packages/data/src/services/staffAccess.ts app-shell
-packages/data/src/models/adminAuditLog/* app-shell
+packages/data/src/models/adminAuditLog/  app-shell
 packages/auth/src/staffEmails.ts         invites
 # Settings: the registry and the service, and the sign-up switches' consumers
 # (access codes, invites).
 packages/api/src/admin/settingsAdmin.ts        app-shell
 packages/data/src/db/schema/admin/appSettings.ts app-shell invites
 packages/data/src/services/appSettingService.ts app-shell invites
-packages/data/src/models/appSetting/*    app-shell
+packages/data/src/models/appSetting/     app-shell
 # The announcement banner: public.announcement and /app's banner.
 packages/api/src/admin/announcement.ts         app-shell
 apps/web/app/routes/app/layout/Announcement.tsx app-shell
 apps/web/app/routes/app/layout/useAnnouncement.ts app-shell
 apps/web/app/components/shell/AnnouncementBanner.tsx app-shell first-sync
+# Directory defaults: a new file here needs no rule.
+apps/web/app/lib/admin/                  -

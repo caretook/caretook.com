@@ -22,7 +22,7 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
   app/routes.ts, root.tsx, app.css
                           routes.ts is the frame (the /app layout, group layout, account routes, web/native split); each area's
                           route pieces are a routes.ts beside its route folders (routes/app/groups/<area>/routes.ts, routes/admin/,
-                          routes/marketing/, routes/dev/), frozen by app/routes.test.ts (path, file, id; web and native)
+                          routes/marketing/, routes/dev/), guarded by app/routes.test.ts (unique ids and paths; native ⊂ web, no server-only route)
   app/routes/app/         shared screens, a folder per route (route.tsx + its private files; no server loaders):
                           layout/ (the /app frame: GroupMenu, SectionNav + TabBar, SyncIndicator, UserMenu), home/,
                           settings/ (layout, index, units, timeline, account),
@@ -60,14 +60,14 @@ apps/web/                 @caretook/web (React Router 8, Vite 8)
                           redirect, zonedDay, urls); tests beside their modules; no index files: import the file
                           <name>.sync.ts: an area's device queries (its tests .sync.test.ts, .sync.browser.test.tsx)
                           <area>/urls.ts: that area's URL builders and params; app-shell/appUrls.ts composes appUrls from them
-                          (keys frozen in appUrls.test.ts; shared helpers in core/urls.ts)
+                          (shared helpers in core/urls.ts)
   app/lib/sync/           plumbing only: client (lazy), index, schema, pageCache, useLiveRows, firstSync
   app/libLayout.test.ts   the layout guard: nothing directly under lib/, area names, the sync/ allowlist, .sync.ts in areas
 packages/auth/            @caretook/auth (emails.ts: auth emails through notify)
 packages/notifications/   @caretook/notifications: registry, templates (react-email), notify + outbox, senders, cron, dev mail
 packages/api/             @caretook/api: router, procedures, errors, dto, sync upload, HTTP handler
   src/<area>/             procedures by area (admin, app-shell, calendars, care-groups, connectors (MCP, OAuth, tools), marketing, profiles, search, timeline), int tests beside;
-                          router.ts composes them (paths frozen in routerPaths.test.ts); the shared helpers and sync.ts stay at the top
+                          router.ts composes them; the shared helpers and sync.ts stay at the top
 packages/data/            @caretook/data
   scripts/                migrate, seed, clear runners; googleSmoke.ts (`pnpm calendar:google-smoke`, manual)
   test/                   env guard, globalSetup, setup, fixtures
@@ -76,7 +76,7 @@ packages/data/            @caretook/data
   src/permissions/        <area>.ts parts (each satisfies a partial Permissions), blocks.ts; permissions.ts spreads them
   src/db/                 client, types, migrate, clear, migrations/, seeds/
   src/db/schema/<area>/   tables + Zod (client-safe) by area, each folder with an index.ts; core/ holds the shared helpers (columns,
-                          uuidV5, timeZone, contactFields, entryTiming, rateLimit); index.ts lists the folders (exports frozen in index.test.ts)
+                          uuidV5, timeZone, contactFields, entryTiming, rateLimit); index.ts lists the folders
   src/google/             the Google Calendar client seam (client, real, fake), pushPlan, pullPlan
   src/models/, src/services/
 ```

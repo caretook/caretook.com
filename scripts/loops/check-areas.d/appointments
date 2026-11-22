@@ -4,18 +4,20 @@
 # (planner/*.browser.test.tsx; plannerWorld.tsx is their world), and the lib
 # modules have unit tests. roundtrip uploads a reschedule's one transaction to
 # another member.
-apps/web/app/routes/app/groups/planner/* -
+apps/web/app/routes/app/groups/planner/  -
 apps/web/app/lib/appointments/*.sync.ts  roundtrip live-notes
 # Visit prep's reads (live notes' prepared section): component tests
 # (components/visitPrep/visitPrep.browser.test.tsx).
 apps/web/app/lib/appointments/visitPrep.sync.ts -
 # The time fields and the reschedule sheet: component tests (upcoming/upcomingEvents and entry/entry).
-apps/web/app/components/schedule/*       -
+apps/web/app/components/schedule/        -
 # Fed to Upcoming (component tests).
 packages/data/src/db/seeds/appointments.ts -
 # Repeating series (appointments-2): the repeat field and its sheet, opened
 # from the entry page: component tests (entry/entryRepeat.browser.test.tsx).
 # The series' device writes are `*.sync.ts` above; the sync matrix row is roundtrip's.
-apps/web/app/components/repeat/*         -
+apps/web/app/components/repeat/          -
 # Fed to Upcoming and the timeline (component tests).
 packages/data/src/db/seeds/appointmentSeries.ts -
+# Directory defaults: a new file here needs no rule.
+apps/web/app/lib/appointments/           -
