@@ -1,6 +1,6 @@
 import type { DeviceAnnouncement } from "~/lib/admin/announcement";
 
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../test/device";
 import { TEST_GROUP, TEST_USER } from "../../../../test/fixtures";
@@ -91,8 +91,8 @@ describe("the announcement banner", () => {
     await expect.poll(() => banner()?.getAttribute("data-tone")).toBe("info");
   });
 
-  test("offline, the cached banner shows; it goes at its end time without a reload", async () => {
-    const endsAt = new Date(Date.now() + 2_000).toISOString();
+  test("offline, the cached banner shows after a reload", async () => {
+    const endsAt = new Date(Date.now() + 3_600_000).toISOString();
     const online = await open({ announcement: () => ({ ...SLOW, endsAt }) });
     await expect.poll(bannerText).toBe(SLOW.text);
     await online.screen.unmount();
@@ -100,8 +100,47 @@ describe("the announcement banner", () => {
     // The server can't be reached: this device's copy.
     await open();
     await expect.poll(bannerText).toBe(SLOW.text);
-    await expect.poll(banner, { timeout: 5_000 }).toBeNull();
-    expect(Date.now()).toBeGreaterThanOrEqual(Date.parse(endsAt));
+  });
+
+  test("it goes at its end time without a reload, offline too", async () => {
+    // The end is set when the server answers (after the screen is up), and the end-time timer is
+    // held (fake setTimeout only; `Date` stays real) until the banner has been seen, so a slow
+    // render can't use up the window (B-484).
+    const WINDOW_MS = 1_000;
+    let reachable = false;
+    let endsAt = "";
+    let asked = 0;
+    await open({
+      announcement: () => {
+        asked += 1;
+        if (!reachable) throw new TypeError("Failed to fetch (offline)");
+        endsAt = new Date(Date.now() + WINDOW_MS).toISOString();
+        return { ...SLOW, endsAt };
+      },
+    });
+    await expect.poll(() => asked).toBe(1);
+    expect(banner()).toBeNull();
+
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      reachable = true;
+      window.dispatchEvent(new Event("online"));
+      await expect.poll(bannerText).toBe(SLOW.text);
+
+      // Offline again: the cached copy still shows.
+      reachable = false;
+      window.dispatchEvent(new Event("online"));
+      await expect.poll(() => asked).toBe(3);
+      expect(bannerText()).toBe(SLOW.text);
+
+      // Its end passes on the real clock; the held timer fires then.
+      await expect.poll(() => Date.now() >= Date.parse(endsAt)).toBe(true);
+      expect(bannerText()).toBe(SLOW.text);
+      vi.advanceTimersByTime(WINDOW_MS + 100);
+      await expect.poll(banner).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test("cleared on the server: the cached one goes", async () => {
