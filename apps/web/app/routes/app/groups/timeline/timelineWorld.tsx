@@ -202,6 +202,8 @@ export const setView = async (to: "Rows" | "Cards") => {
   if (view() === to.toLowerCase()) return;
   await chooseViewOption(to);
   await waitUntil(() => view() === to.toLowerCase(), `the ${to} view`);
+  // The menu fades out (ui-kit-3): wait until it has left, so nothing reads it over the list.
+  await waitUntil(() => !document.querySelector('[role="menu"]'), "the View options menu to close");
 };
 
 export const frames = (n = 2) =>

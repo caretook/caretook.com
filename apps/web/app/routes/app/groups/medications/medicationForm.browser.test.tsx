@@ -373,8 +373,12 @@ describe("the status actions", () => {
     await waitUntil(() => !!OPEN_DIALOG()?.querySelector("[data-discontinue-form]"), "the dialog");
     await userEvent.click(await found(() => dialogButton("Discontinue")));
     await expect
-      .poll(() => OPEN_DIALOG()?.querySelector("[data-discontinue-form] .text-error")?.textContent?.trim())
-      .toBe("Choose why it was stopped");
+      .poll(() =>
+        [...(OPEN_DIALOG()?.querySelectorAll("[data-discontinue-form] p") ?? [])].some(
+          (p) => p.textContent?.trim() === "Choose why it was stopped",
+        ),
+      )
+      .toBe(true);
     expect(await medication(device, LOSARTAN.id)).toMatchObject({ status: "current" });
 
     await userEvent.click(

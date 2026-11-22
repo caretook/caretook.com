@@ -2,6 +2,12 @@ import { Info } from "lucide-react";
 import { ICON, ICON_LG, ICON_SM, LINK, TITLE_PAGE, TITLE_SECTION, TITLE_SUB } from "~/components/ui";
 import { Example } from "../Example";
 
+const SURFACE_NAMES = {
+  "bg-base-200": "base-200: the page",
+  "bg-base-100": "base-100: a card",
+  "bg-base-300": "base-300: a border or quiet fill",
+} as const;
+
 export function TokensSection() {
   return (
     <div className="space-y-4">
@@ -18,6 +24,14 @@ export function TokensSection() {
             <p>Body text</p>
             <p className="text-muted">text-muted: supporting copy</p>
             <p className="text-faint">text-faint: the quietest text</p>
+          </div>
+        ))}
+      </Example>
+      <Example label="Surfaces (page, card, border and quiet fill) and a text box's own fill on each">
+        {(["bg-base-200", "bg-base-100", "bg-base-300"] as const).map((surface) => (
+          <div key={surface} className={`${surface} border-base-300 space-y-2 rounded-lg border p-3`}>
+            <p className="text-sm">{SURFACE_NAMES[surface]}</p>
+            <input aria-label={`A text box on ${surface}`} className="input" placeholder="A text box" />
           </div>
         ))}
       </Example>

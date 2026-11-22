@@ -5,11 +5,11 @@ The `ui/` primitives and their contracts: part of the components area ([componen
 ## What's in it
 
 - **Primitives** import nothing from feature folders; **only `ui/` imports `react-aria-components`**: `Menu` (with `SEPARATOR`), `FilterMenu` and `FilterMenuChips`, `Sheet`, `Popover`, `PageHeader`, `TabNav`, `ConfirmDialog` (`useShowModal`), `ChoiceDialog`, `Field`, `ChipGroup`, `ChipList`, `UserAvatar`, `AvatarStack`, `IconButton`, `Button`, `FormFooter`, `ChoiceGroup`, `BackLink`, `ComboBox`, `Highlight`, `Toast`, `ViaTag`, `Message`, `Notice`, `EmptyState`, `Loading`, `Skeleton`, `Badge`, `Page`, `Card`, `List`, `ListRow`, `CheckField`, `ToggleField`, `DetailHeader`, `Section`, `Chevron`, `Collapse`.
-- `ui/tooltip/` and `ui/date/` (`DateTimeField`) have their own indexes, so the date picker and tooltip stay off other pages.
+- `ui/tooltip/` and `ui/date/` (`DateTimeField`) have their own indexes, so they stay off other pages.
 - **`ui/plain`**, the light entry: everything without React Aria (`Field`, `FieldControl`, `IconButton`, `ChoiceGroup`, `Button`, `FormFooter`, `TabNav`, `Message`, `Notice`, `EmptyState`, `Loading`, `Skeleton`, `Badge`, `Page`, `Card`, `List`, `CheckField`, `ToggleField`, `DetailHeader`, `Section`, `ChoiceDialog`, `Chevron`, `Collapse`). Light pages (sign-in, the account forms, `/connect`, marketing) import from it, never from `ui` (its chunk carries React Aria); `ui/plain/plain.test.ts` fails on any React Aria import it reaches.
 - **Append-only:** the `ui` and `ui/plain` indexes, `ui/styles.ts` and the gallery registry take new lines at the end only.
-- **The gallery** `/dev/ui` (`routes/dev/ui/`, web only, 404 in production as `/dev/mail`): each primitive in both themes with fictional data, one `sections/` file each, listed in `registry.ts` (and Type). A new primitive adds its section. **Add a primitive only for a repeated pattern.**
-- **Contrast** is measured in component tests with `apps/web/test/contrast.ts` (translucent colours composited over what's behind them).
+- **The gallery** `/dev/ui` (`routes/dev/ui/`, web only, 404 in production): each primitive in both themes with fictional data, one `sections/` file each, listed in `registry.ts` (and Type). A new primitive adds its section. **Add a primitive only for a repeated pattern.**
+- **Contrast** is measured in component tests with `apps/web/test/contrast.ts` (translucent colours composited).
 
 ## Which to use
 
@@ -18,8 +18,8 @@ The `ui/` primitives and their contracts: part of the components area ([componen
 
 ## Contracts
 
-- `Button`: `variant` `primary`, `secondary` (default), `ghost`, `danger`, `dangerQuiet`; `size` `lg`, `md`, `sm`, `xs`; `shape` `rounded` (default), `pill`, `square`, `round`; `block`; `icon`. Icon only is `square` unless shaped; a button takes `pressed` (the toggle look, in place of the variant), `expanded`, `controls`, `ref`. `busy` with `busyLabel` (disabled, `aria-busy`, text swapped); type `button` unless given. With `to` a router link that looks the same (`replace`, `state`, `prefetch`, `preventScrollReset`); with `href` a plain `<a>` for navigations the router doesn't own (`webcal:`, an OAuth start, another site). Classes come from the pure `buttonClass` (it takes `pressed` too), which `TOOL_CIRCLE`, the chips, the date field and `Menu`'s trigger build on.
-- `Menu`'s trigger takes a look (`variant`, `size`, `shape`; no default shape) through `buttonClass`; a bare class string still works until `ui-kit-3`. Solid `danger` only in a confirm or a form whose one job is the destructive act.
+- `Button`: `variant` `primary`, `secondary` (default), `ghost`, `danger`, `dangerQuiet`; `size` `lg`, `md`, `sm`, `xs`; `shape` `rounded` (default), `pill`, `square`, `round`; `block`; `icon`. Icon only is `square` unless shaped; a button takes `pressed` (the toggle look, in place of the variant), `expanded`, `controls`, `ref`. `busy` with `busyLabel` (disabled, `aria-busy`, text swapped); type `button` unless given. With `to` a router link that looks the same (`replace`, `state`, `prefetch`, `preventScrollReset`); with `href` a plain `<a>` for navigations the router doesn't own. Classes come from the pure `buttonClass` (it takes `pressed` too), which `TOOL_CIRCLE`, the chips, the date field and `Menu`'s trigger build on.
+- `Menu`'s trigger takes a look (`variant`, `size`, `shape`; no default shape) through `buttonClass`; a bare class string still works until `ui-kit-4`. Solid `danger` only in a confirm or a form whose one job is the destructive act.
 - `FormFooter`: Cancel (`{ label, to }` or `{ label, onCancel }`) then the submit `Button` (`submitLabel`, `busy`, `busyLabel`, `submitDisabled`, `danger`); right-aligned, or `align="start"`; a `status` slot.
 - `ConfirmDialog`/`useShowModal`: `confirmVariant` `danger` (default) or `primary`; waits for an open menu to close before `showModal()`; Escape closes only the dialog.
 - `ChoiceDialog` (`open`, `title`, `message`, up to three `choices` `{ id, label, tone, data-* }`, `cancelLabel`, `onChoose(id)`, `onClose`, `data-*` on the dialog): `ConfirmDialog`'s rules; choices stacked full width, then Cancel; `onClose` runs on every close.
@@ -37,7 +37,7 @@ The `ui/` primitives and their contracts: part of the components area ([componen
 - `TabNav` (`{ label, tabs: [{ label, to, match?, current?, icon?, count?, replace? }] }`): a `nav` of links, not a tablist. A tab claims its path and below (`match` replaces that, `current` overrides both); the first claimant gets `aria-current="page"` from the pending navigation; prefetches on render. `count` is a badge read in the name ("List, 12"). A rounded pill, the current tab `bg-primary/15`. Equal tabs on phones, `sm:w-fit`; scrolls sideways when the tabs overflow (never the page), keeping the current tab in view.
 - `Message` (`{ tone, children }`): `error` is `role="alert"`; `success`, `warning`, `info` (default) `role="status"`. Empty, it stays mounted and takes no space (`empty:hidden`).
 - `Notice` (`{ tone, icon?, action? }`): a soft daisyUI alert with the tone's icon (or `icon`); role by tone; `action` a `{ label, to }` link or a `{ label, onAction }` button.
-- `EmptyState`: one quiet line and an optional action (a link or a button).
+- `EmptyState`: one quiet line and an optional action (a link or a button). `Toast` takes `open`; it stays, inert, through its fade.
 - `Loading` (`{ label, lines? }`): a status named by `label`, a spinner and the label, or with `lines` a `Skeleton` and a screen-reader label. `Skeleton` (`{ lines }`): bars, `aria-hidden`, `data-skeleton`.
 - `Badge` (`{ tone, icon? }`): one size, soft (`badgeClass`, pure); `neutral`, `primary`, `success`, `warning`, `danger`, `info`. **Status tones** (`STATUS_TONE`): current and now `primary`; past and stopped `neutral`; overdue `danger`; due soon `warning`; done `success`. `ViaTag` stays its own.
 - `Highlight` marks a search's matches (`MARK_CLASS`, `bg-warning`, 5.2:1 in both themes).
@@ -47,7 +47,7 @@ The `ui/` primitives and their contracts: part of the components area ([componen
 - `Page` is a page's one `main` (`mx-auto max-w-2xl space-y-4 px-4 py-5`; `width="wide"` is `max-w-4xl`), passing `data-*`, `id` and `className` through. Every `/app` page uses it but the timeline and entry folders, print sheets, the error screen and first sync.
 - **Every section page starts with a `PageHeader`** (its `h1` and actions; `description` for one quiet line under the title).
 - **Heading scale** (`ui/styles.ts`): `TITLE_PAGE` `text-xl font-semibold` (`PageHeader` uses it), `TITLE_SECTION` `text-base font-semibold` (sections and cards), `TITLE_SUB` `text-sm font-semibold`.
-- **Tokens:** `text-muted` (70%) and `text-faint` (62%, still 4.5:1 on the light page) in `app.css`. `LINK` (`link link-primary`), `ICON_SM`, `ICON`, `ICON_LG` (`size-3.5`, `4`, `5`) in `ui/styles.ts`.
+- **Tokens:** `text-muted` (70%) and `text-faint` (62%, still 4.5:1 on the light page) in `app.css`. `LINK` (`link text-primary-ink`); `text-<tone>-ink` lifts a tone's text to 4.5:1 on every surface, `ICON_SM`, `ICON`, `ICON_LG` (`size-3.5`, `4`, `5`) in `ui/styles.ts`.
 
 ## Bands
 

@@ -5,18 +5,18 @@ const classes = (tone?: Parameters<typeof badgeClass>[0]) => badgeClass(tone).sp
 
 describe("badgeClass", () => {
   it("is a small soft neutral badge by default", () => {
-    expect(classes()).toEqual(["badge", "badge-sm", "badge-soft", "badge-neutral"]);
+    expect(classes()).toEqual(["badge", "badge-sm", "badge-soft", "badge-neutral", "text-neutral-ink"]);
   });
 
   it.each([
-    ["neutral", "badge-neutral"],
-    ["primary", "badge-primary"],
-    ["success", "badge-success"],
-    ["warning", "badge-warning"],
-    ["danger", "badge-error"],
-    ["info", "badge-info"],
-  ] as const)("maps the %s tone", (tone, colour) => {
-    expect(classes(tone)).toEqual(["badge", "badge-sm", "badge-soft", colour]);
+    ["neutral", "badge-neutral", "text-neutral-ink"],
+    ["primary", "badge-primary", "text-primary-ink"],
+    ["success", "badge-success", "text-success-ink"],
+    ["warning", "badge-warning", "text-warning-ink"],
+    ["danger", "badge-error", "text-error-ink"],
+    ["info", "badge-info", "text-info-ink"],
+  ] as const)("maps the %s tone", (tone, colour, ink) => {
+    expect(classes(tone)).toEqual(["badge", "badge-sm", "badge-soft", colour, ink]);
   });
 
   it("is always one size and soft, never outlined or ghost", () => {

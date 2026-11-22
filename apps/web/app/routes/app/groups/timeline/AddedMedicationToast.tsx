@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Toast } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -18,7 +18,8 @@ const noNotice = () => null;
  * sheet has closed, for about 10 s or until the next navigation
  * (`lib/medications/addedNotice.ts`). Add details opens the new
  * medication's edit sheet, for its strength, directions and the rest. The
- * timeline mounts it beside its sheets.
+ * timeline mounts it beside its sheets. The last notice stays rendered
+ * while the toast fades out.
  */
 export function AddedMedicationToast({ groupId }: { groupId: string }) {
   const notice = useSyncExternalStore(subscribeAddedNotice, addedNoticeSnapshot, noNotice);
@@ -37,15 +38,20 @@ export function AddedMedicationToast({ groupId }: { groupId: string }) {
     return () => clearTimeout(timer);
   }, [shown]);
 
-  if (!shown) return null;
+  // The last notice shown, kept for the toast's exit.
+  const [last, setLast] = useState(shown);
+  if (shown && shown !== last) setLast(shown);
+
+  if (!last) return null;
   return (
-    <div data-added-medication={shown.medicationId}>
+    <div data-added-medication={shown ? last.medicationId : undefined}>
       <Toast
-        message={addedNoticeText(shown)}
+        open={!!shown}
+        message={addedNoticeText(last)}
         actionLabel="Add details"
         onAction={() => {
-          clearAddedNotice(shown.key);
-          void navigate(appUrls.editMedication(groupId, shown.medicationId, "list"));
+          clearAddedNotice(last.key);
+          void navigate(appUrls.editMedication(groupId, last.medicationId, "list"));
         }}
       />
     </div>
