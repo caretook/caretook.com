@@ -160,7 +160,8 @@ export default defineConfig({
           sequence: { groupOrder: 1 },
           // expect.poll and expect.element give up after 1 s by default, which a
           // loaded machine passes before a route's clientLoader or first query
-          // has answered (B-131): 5 s, as waitUntil's default is.
+          // has answered (B-131): 5 s, `WAIT_TIMEOUT` in apps/web/test/found.ts
+          // (the harness's one timeout; keep the two the same).
           expect: { poll: { timeout: 5000 } },
           browser: {
             enabled: true,
