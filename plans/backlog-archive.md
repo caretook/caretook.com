@@ -201,9 +201,9 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-203 | feature | staging | github-review | prd/github-review | Now that we are we have github fixed, we should start using it for some of the merge management so… |
 | B-204 | feature | staging | connectors-2 | prd/connectors-2 | connector should be able to edit notes and events so it can help you draft questions or add… |
 | B-205 | bug | staging | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails at some times of day: give_pass on w.evening returns isError (line 160) |
-| B-206 | bug | staging | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails in the evening: its Metformin dose a minute earlier fills the Evening pass, so give_pass says 'Nothing is left to give in Evening today' |
+| B-206 | bug | dropped | quick-fixes | prd/quick-fixes | mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails in the evening: its Metformin dose a minute earlier fills the Evening pass, so give_pass says 'Nothing is left to give in Evening today' |
 | B-207 | bug | staging | quick-fixes | hotfix/stack-healthcheck | pnpm prd stack up fails at migrate with 'Connection terminated unexpectedly': the compose Postgres healthcheck (pg_isready -U caretook -d caretook) passes against the socket-only init server; use -h 127.0.0.1 (powersync-storage has the same pattern) |
-| B-208 | change | staging | simple-mode |  | you should be able to edit all entries, search, and filter in simple mode. |
+| B-208 | change | staging | quick-fixes | hotfix/simple-mode | you should be able to edit all entries, search, and filter in simple mode. |
 | B-210 | bug | staging | quick-fixes |  | Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864 |
 | B-211 | change | staging | quick-fixes | prd/quick-fixes | link to group details edit page from the edit profile screen for editing the care recipient's… |
 | B-212 | bug | staging | medications-3 | prd/medications-3 | icon order at top of medications page is not great. Add medication button should be a + icon. Print… |
@@ -216,7 +216,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-219 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | can the tooltip in the quick entry box appear inside the box instead of outside? That icon is also… |
 | B-220 | change | staging | quick-entry | prd/quick-entry | Improve quick entry box to be more powerful and flexible. Things like "fell" creates an event,… |
 | B-221 | feature | staging | simple-mode | prd/simple-mode | locked simple mode is really confusing. We may want to just add a new user type at this point for… |
-| B-222 | feature | staging | tasks-2 | prd/tasks-2 | Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to… |
+| B-222 | feature | staging | tasks-2 | prd/tasks-2 | Tasks become todos, and Upcoming and Todos merge into the Planner (tabs Planner, Todos, Past) |
 | B-223 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | in header care group drop down, we don't need to show the current care period line. New care group… |
 | B-224 | bug | staging | timeline-ux-2 | prd/timeline-ux-2 | in the add timeline entry dropdown, vitals should be a menu entry with an expandable submenu for… |
 | B-225 | bug | staging | quick-fixes | prd/quick-fixes | Component tests fail between midnight and about 5 a.m.: they put entries a few hours before now, which lands on yesterday (entryPrint 'an event's: title, time…' gets 'Yesterday, 10:18 PM' for /^Event · Today/; timelineCarePeriods 'a period at a place…' gets 'day 2'; timelineSimple 'a day header names the care period…' times out) |
@@ -1271,11 +1271,12 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - status: landed
 - prd: orchestration
 - owner:
-- commit:
+- commit: 59d382f9
 
 - 2026-11-19 (backlog planner): From the inbox: PRD tooling needs improvements: remove references to gh issues. Have orchestrator agent ask if the user wants to prompt for landing or just work through everything and which slices to land automatically. Add command to spin up new planning session.
 - 2026-11-19 (backlog planner): Built directly on dev (uncommitted until the user says): GitHub-issue steps removed from AGENTS.md, the guide and the medications-2 PRD; the orchestrator prompt now asks for a landing mode (ask each time, run everything through, or land chosen waves/slices automatically) and records it in the plan's Status; pnpm prd plan <topic> --open [B-n…] starts a planning session (prompt.sh plan) that interviews, writes, lands and cleans up; plus pnpm prd queue <topic> (wait for a slot, then a run-through orchestrator).
 - 2026-11-19 (plan/orchestration): Left out of the orchestration PRD: already built on dev (landing mode, plan --open, queue); marked landed, confirm.
+- 2026-11-22 (prd/fixes-tooling): Built in 59d382f9, feat(orchestration): queue PRDs for a free slot, landing modes, planning sessions (hygiene via B-458).
 
 ### B-89 · feature · PRD tooling streamlining. We are using way too many resources for full docker stacks and browser…
 
@@ -2526,16 +2527,18 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-20 (prd/conditions): Failed in conditions slice 4's full check (~21:20 EST 2026-11-20) and again alone on prd/conditions without slice 4 at 21:24 EST, load 31. Looks time-of-day dependent (the Evening pass vs now, or the Metformin dose logged a minute earlier covering it). Not caused by conditions.
 - 2026-11-20 (prd/quick-fixes): Taken into quick-fixes as slice 58 (wave 14) at conditions' request; blocks evening full checks.
 - 2026-11-20 (prd/conditions): Cause (conditions slice 2's agent): the test logs a Metformin dose 1 minute ago; between 20:00 and ~22:00 that dose answers the Evening (20:00) slot, so give_pass returns assistantActionService:nothingLeft ('Nothing is left to give in Evening today').
+- 2026-11-22 (prd/fixes-tooling): B-206 was its duplicate; both fixed by 56b50a96 (hygiene via B-458).
 
 ### B-206 · bug · mcpWrites.int.test.ts 'log vitals, a symptom, a dose and a pass's Given all' fails in the evening: its Metformin dose a minute earlier fills the Evening pass, so give_pass says 'Nothing is left to give in Evening today'
 
-- status: staging
+- status: dropped
 - prd: quick-fixes
 - owner: prd/quick-fixes
 - commit: 56b50a96
 
 - 2026-11-20 (prd/appointments-2): Found by appointments-2 at 21:52 EST, 3/3 alone, on a branch with no connectors diff. Time-of-day dependent: pin the test's clock or log the dose against the morning pass. Fails pnpm check in the evening for every PRD.
 - 2026-11-20 (prd/quick-fixes): Duplicate of B-205: quick-fixes slice 58 fixes both; done with it.
+- 2026-11-22 (prd/fixes-tooling): Duplicate of B-205; both fixed by 56b50a96 (hygiene via B-458, 2026-11-22).
 
 ### B-207 · bug · pnpm prd stack up fails at migrate with 'Connection terminated unexpectedly': the compose Postgres healthcheck (pg_isready -U caretook -d caretook) passes against the socket-only init server; use -h 127.0.0.1 (powersync-storage has the same pattern)
 
@@ -2552,13 +2555,14 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 ### B-208 · change · you should be able to edit all entries, search, and filter in simple mode.
 
 - status: staging
-- prd: simple-mode
-- owner:
+- prd: quick-fixes
+- owner: hotfix/simple-mode
 - commit: 4e5e0187
 
 - 2026-11-20 (Robert Bo Davis): Triage: a new small PRD (simple-mode), not a quick fix: simple mode drops the row ⋯ menus, search and filters on purpose, and the lock limits locked members to the timeline and entries/*, so it needs decisions (which edits, whether search/filter are a simple variant or the full ones, whether the lock still allows /search). Hot files: SimpleTimeline.tsx, TimelineEntryList, simpleModeLock.ts.
 - 2026-11-20 (plan/simple-mode): Decision (user, 2026-11-20): simple mode reuses the full timeline's controls for now: the row ⋯ menus and edit sheets as on the full timeline, its magnifier/search, Filter button and chips (kind icons and authors as links). No simple variants yet. Done as hotfix/simple-mode, not a PRD.
 - 2026-11-20 (hotfix/simple-mode): Landed as hotfix/simple-mode (4e5e0187): simple mode has the full ⋯ menus and sheets (locked too), FilterChips, kept filtered URLs; header search in simple mode unless locked (lock still blocks /search); row kind icons and initials stay plain (user's call).
+- 2026-11-22 (prd/fixes-tooling): Landed as hotfix 4e5e0187 (hygiene via B-458, 2026-11-22).
 
 ### B-210 · bug · Browser specs left stale by dev's timeline hotfixes: app-shell ([data-simple-toggle] gone), layout-offline ([aria-label="Cards"] gone) since 76375c07 (one View options menu); invites (first main a[href*=/entries/] is the collapsed Today card's Next link) since 1ff53864
 
@@ -2697,7 +2701,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): a simple-mode PRD to write. Its interview decides between a new member type for locked simple mode and fixing the nits (touches roles and permissions).
 - 2026-11-21 (Robert Bo Davis): PRD and plan written 2026-11-21 (plans/simple-mode-prd.md, simple-mode-plan.md): the lock becomes two roles, Easy helper and Easy viewer; simple is renamed easy. B-236 is slice 4 (the Planner, todo pages and search open for the easy roles). -- backlog session
 
-### B-222 · feature · Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to…
+### B-222 · feature · Tasks become todos, and Upcoming and Todos merge into the Planner (tabs Planner, Todos, Past)
 
 - status: staging
 - prd: tasks-2
@@ -2707,6 +2711,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-21 (prd/medications-3): From the inbox: Tasks and todos are confusing. We should rename tasks "todos" or something similar and move them to the Upcoming section... and maybe rename the upcoming page to something that covers both.
 - 2026-11-21 (Robert Bo Davis): Triage (user's choice): a tasks-2 PRD to write: rename tasks to todos (or similar), fold them into Upcoming, and maybe rename Upcoming to cover both (routes, appUrls, sync, connector tool names).
 - 2026-11-21 (plan/tasks-2): Planned (tasks-2, 2026-11-21): tasks become todos down to the table (one-step migration, production not live), Upcoming + Tasks merge into Planner (tabs Planner, Todos, Past; /planner, /planner/past, /todos; no redirects); 4 slices, waves 1 → 2 → (3, 4); starts after timeline-ux-2 is in dev.
+- 2026-11-22 (prd/fixes-tooling): Built in 2db975a7 (hygiene via B-458, 2026-11-22).
 
 ### B-223 · bug · in header care group drop down, we don't need to show the current care period line. New care group…
 
