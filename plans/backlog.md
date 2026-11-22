@@ -326,6 +326,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-535 | change | triaged | fixes-ui |  | Hour-first time picker: defaults to the current hour at :00, minutes in 15-minute steps (00/15/30/45), works on phones; for medication dose times, pass time, todo due time, series edit times and event/appointment Starts/Ends |
 | B-536 | bug | triaged | fixes-ui |  | Danger text fails 4.5:1 in light: Menu's danger item and buttonClass's dangerQuiet use text-error (about 2.9:1); DateTimeField's placeholder segments at 60% opacity are a little under 4.5:1 on the light field fill |
 | B-537 | change | triaged | fixes-ui |  | One word in the app: Event, never Appointment; 'Upcoming event' / 'Past event' only where the two mix and timing isn't clear (an event's page heading, the Today card's next line, the todo form's event picker) |
+| B-538 | change | triaged | fixes-ui |  | Planner tabs become Upcoming \| Past \| Todos: Upcoming and Past move out of the chip row into the main pill tabs (the Planner heading names the section), the filter button sits beside the tabs on Upcoming, and switching to Todos and back keeps Past |
 
 ## Items
 
@@ -2546,3 +2547,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): From the user (2026-11-22): drop the Planner 'Appointment' vs Timeline 'Event' split; a fall or ER trip is an event too. Wording only, the stored kind stays event, no migration. Rename to Event: Planner Add menu and Show filter (PlannerHeader.tsx, upcomingFilters.ts 'appointments'), provider 'Add an appointment' (ProviderVisitPrep.tsx), todo link fields and TodoLinks (TodoLinkFields.tsx, todo/TodoLinks.tsx), Today card and todayStatus/useTodayCard, EasyNow, calendar FeedCard 'Appointment for …' and reminderChoices text, visit prep copy ('on an upcoming appointment'), the dev/ui sections' samples. Keep plain 'Event' for the kind label (lib/timeline/entryDisplay.ts), default title, filters, cancel, day summary, search, quick entry, the AI tools' fallback. Qualified 'Upcoming event'/'Past event' only on: the entry page heading (entryPage.ts entryHeading), the Today card's next line, the todo form's picker ('Upcoming and recent appointments'). Leave marketing pages and health-data-privacy text as they are (real-world prose and legal wording). Update docs (appointments.md, todos.md, timeline.md) to the one word. Overlaps: entryDisplay.ts and lib/app-shell are ui-kit-3 hot files; todos/ and todo/ are planner-3 hot files (planner-3 already says 'event' for new screens; this covers the existing ones its PRD left out). fixes-ui: wording.
+
+### B-538 · change · Planner tabs become Upcoming | Past | Todos: Upcoming and Past move out of the chip row into the main pill tabs (the Planner heading names the section), the filter button sits beside the tabs on Upcoming, and switching to Todos and back keeps Past
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): Triage: fixes-ui (layout and flow, one header: PlannerHeader.tsx). Chosen over a sub-tab row or a segmented control from mockups https://claude.ai/artifact/PFMCEFbW3e7C7k4nH5C2tV. The old chips read as filters, and the Planner tab always linked back to Upcoming. Routes stay /planner and /planner/past, so each tab keeps its own view. Touches B-537 (Event wording) and B-416 (owner pill) in the same area.
