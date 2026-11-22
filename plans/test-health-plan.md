@@ -6,33 +6,33 @@
 
 **Landing mode: run everything through** (started run-through, 2026-11-21): start every ready slice, land each green wave through its PR + Codex, clean up; ask only real questions via `pnpm prd ask`.
 
-**Where it stands:** wave 1 started 2026-11-21. **Slices 1, 2, 6 and 7 moved to [`check-speed`](check-speed-plan.md)** (its slices 1 to 4, with B-271, B-272, B-273 and B-278): skip them here. `check-speed`, `list-filters`, `planner-2` and `ui-kit` are all in `dev`, so nothing outside this PRD blocks any wave (slice 11 and waves 5 to 7 included); the pause after wave 4 isn't needed.
+**Where it stands:** wave 1 merged (3, 4, 5), worktrees removed; B-277, B-279 done. Next: sync, quick gate (slice 3 touched vitest.config.ts, so it runs full), PR, Codex, land. Slice 3 notes for wave 6: a world's own fixed clock must sit on the test clock's day (2027-06-09); plannerWorld's NOW still has its own base. Slice 4 note for slice 12: the lib/search/ default and search's rules point at signout-wipe. **Slices 1, 2, 6 and 7 moved to [`check-speed`](check-speed-plan.md)** (its slices 1 to 4, with B-271, B-272, B-273 and B-278): skip them here. `check-speed`, `list-filters`, `planner-2` and `ui-kit` are all in `dev`, so nothing outside this PRD blocks any wave (slice 11 and waves 5 to 7 included); the pause after wave 4 isn't needed.
 
 **Models:** slices 3, 4, 5 on opus.
 
 **Unplanned items triaged to test-health** (not in any slice yet; to fold into later waves or a follow-up at a wave boundary): B-370 quick check always-run guards, B-371 device-to-server round trip per table, B-372 a second time zone in tests, B-373 role coverage gaps, B-374 uploadData error test, B-375 small test fixes (its `retry: 2` part is slice 15's), B-405 worker database name collision, B-418 recover.test.mjs flake under load.
 
-| Slice | Wave | State                                                    | Merge into `prd/test-health` (slice commits) |
-| ----- | ---- | -------------------------------------------------------- | -------------------------------------------- |
-| 1     | 1    | moved                                                    |                                              |
-| 2     | 1    | moved                                                    |                                              |
-| 3     | 1    | started (opus)                                           |                                              |
-| 4     | 1    | handed off (opus), 19d73291                              |                                              |
-| 5     | 1    | handed off (opus), 60f17a4f; waits for 3, 4 (plan order) |                                              |
-| 6     | 2    | moved                                                    |                                              |
-| 7     | 2    | moved                                                    |                                              |
-| 8     | 2    | not started                                              |                                              |
-| 9     | 2    | not started                                              |                                              |
-| 10    | 2    | not started                                              |                                              |
-| 11    | 3    | not started                                              |                                              |
-| 12    | 3    | not started                                              |                                              |
-| 13    | 4    | not started                                              |                                              |
-| 14    | 5    | waiting                                                  |                                              |
-| 15    | 6    | waiting                                                  |                                              |
-| 16    | 6    | waiting                                                  |                                              |
-| 17    | 6    | waiting                                                  |                                              |
-| 18    | 6    | waiting                                                  |                                              |
-| 19    | 7    | waiting                                                  |                                              |
+| Slice | Wave | State         | Merge into `prd/test-health` (slice commits) |
+| ----- | ---- | ------------- | -------------------------------------------- |
+| 1     | 1    | moved         |                                              |
+| 2     | 1    | moved         |                                              |
+| 3     | 1    | merged (opus) | 91beec28 (a3d6ad9f)                          |
+| 4     | 1    | merged (opus) | 2d4f6678 (19d73291)                          |
+| 5     | 1    | merged (opus) | 09bc4bd5 (60f17a4f)                          |
+| 6     | 2    | moved         |                                              |
+| 7     | 2    | moved         |                                              |
+| 8     | 2    | not started   |                                              |
+| 9     | 2    | not started   |                                              |
+| 10    | 2    | not started   |                                              |
+| 11    | 3    | not started   |                                              |
+| 12    | 3    | not started   |                                              |
+| 13    | 4    | not started   |                                              |
+| 14    | 5    | waiting       |                                              |
+| 15    | 6    | waiting       |                                              |
+| 16    | 6    | waiting       |                                              |
+| 17    | 6    | waiting       |                                              |
+| 18    | 6    | waiting       |                                              |
+| 19    | 7    | waiting       |                                              |
 
 **Backlog:** which slices close each item (run `pnpm backlog done` on an item when its last slice merges).
 
