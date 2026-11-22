@@ -22,3 +22,4 @@ dist/
 
 # Browser check screenshots (debug output)
 scripts/browser-checks/*.png
+to-test/

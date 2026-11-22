@@ -1,3 +1,4 @@
+import { Page, PageHeader } from "~/components/ui";
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { CarePeriodRow } from "~/lib/care-periods/carePeriods.sync";
@@ -61,30 +62,32 @@ export default function Periods({ loaderData, params }: Route.ComponentProps) {
   const timeZone = group.recipient?.timeZone ?? "UTC";
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold">Care periods</h1>
-          <p className="text-base-content/70 text-sm">
+    <Page>
+      <PageHeader
+        title="Care periods"
+        description={
+          <>
             Where {group.recipient?.displayName || group.displayName}’s care has been
             {!group.canWrite && " · You can view this list"}
-          </p>
-        </div>
-        {group.canWrite && (
-          <Link
-            to={appUrls.newPeriod(params.groupId)}
-            state={PERIOD_SHEET_STATE}
-            // Loaded ahead, so the sheet opens offline too.
-            prefetch="render"
-            preventScrollReset
-            className="btn btn-primary btn-sm shrink-0"
-            data-add-period
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Add period
-          </Link>
-        )}
-      </header>
+          </>
+        }
+        actions={
+          group.canWrite && (
+            <Link
+              to={appUrls.newPeriod(params.groupId)}
+              state={PERIOD_SHEET_STATE}
+              // Loaded ahead, so the sheet opens offline too.
+              prefetch="render"
+              preventScrollReset
+              className="btn btn-primary btn-sm shrink-0"
+              data-add-period
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              Add period
+            </Link>
+          )
+        }
+      />
 
       {spans.length ? (
         <PeriodList groupId={params.groupId} spans={spans} places={places} timeZone={timeZone} now={now} />
@@ -97,6 +100,6 @@ export default function Periods({ loaderData, params }: Route.ComponentProps) {
 
       {/* The add sheet renders here, over the list. */}
       <Outlet />
-    </main>
+    </Page>
   );
 }

@@ -6,7 +6,7 @@ import { Copy, Link2Off, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
 import { SettingsCard } from "~/components/settings";
-import { ConfirmDialog } from "~/components/ui";
+import { Button, ConfirmDialog, Message } from "~/components/ui";
 import { feedLinks } from "~/lib/calendars/feedLinks";
 import { copyLinkText } from "../members/linkRules";
 
@@ -72,15 +72,16 @@ export function FeedCard({ settings, online }: CalendarCardProps) {
             </p>
             {!active && (
               <div>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={!online || busy}
+                <Button
+                  variant="primary"
+                  disabled={!online}
+                  busy={busy}
+                  busyLabel="Creating…"
                   data-feed-create=""
                   onClick={() => send("feedCreate")}
                 >
-                  {busy ? "Creating…" : "Create calendar feed"}
-                </button>
+                  Create calendar feed
+                </Button>
               </div>
             )}
             {active && (
@@ -100,31 +101,28 @@ export function FeedCard({ settings, online }: CalendarCardProps) {
                       {FEED_SECRET}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        className="btn btn-sm"
+                      <Button
+                        size="sm"
+                        icon={Copy}
                         onClick={() => void copyLinkText(navigator, url).then(setCopied)}
                       >
-                        <Copy aria-hidden="true" className="size-4" />
                         Copy link
-                      </button>
-                      <a className="btn btn-sm" href={links.apple}>
+                      </Button>
+                      <Button size="sm" href={links.apple}>
                         Add to Apple
-                      </a>
-                      <a className="btn btn-sm" href={links.google} target="_blank" rel="noreferrer">
+                      </Button>
+                      <Button size="sm" href={links.google} target="_blank" rel="noreferrer">
                         Add to Google
-                      </a>
-                      <a className="btn btn-sm" href={links.outlook} target="_blank" rel="noreferrer">
+                      </Button>
+                      <Button size="sm" href={links.outlook} target="_blank" rel="noreferrer">
                         Add to Outlook
-                      </a>
+                      </Button>
                     </div>
-                    <div role="status">
-                      {copied === "copied" && <p className="text-success text-sm">Link copied.</p>}
-                    </div>
+                    {copied === "copied" && <Message tone="success">Link copied.</Message>}
                     {copied === "failed" && (
-                      <p className="text-sm" role="alert">
+                      <Message tone="error">
                         Couldn't copy the link. Select it above and copy it by hand.
-                      </p>
+                      </Message>
                     )}
                   </div>
                 ) : (
@@ -135,39 +133,32 @@ export function FeedCard({ settings, online }: CalendarCardProps) {
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-sm"
+                  <Button
+                    size="sm"
+                    icon={RefreshCw}
                     disabled={!online || busy}
                     data-feed-regenerate=""
                     onClick={() => setConfirming(true)}
                   >
-                    <RefreshCw aria-hidden="true" className="size-4" />
                     Regenerate
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-ghost"
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={Link2Off}
                     disabled={!online || busy}
                     data-feed-revoke=""
                     onClick={() => send("feedRevoke")}
                   >
-                    <Link2Off aria-hidden="true" className="size-4" />
                     Revoke
-                  </button>
+                  </Button>
                 </div>
               </>
             )}
           </>
         )}
-        <p role="status" className="text-sm empty:hidden">
-          {busy ? "Working…" : ""}
-        </p>
-        {failed && (
-          <p role="alert" className="text-error text-sm">
-            {failed}
-          </p>
-        )}
+        <Message>{busy ? "Working…" : ""}</Message>
+        {failed && <Message tone="error">{failed}</Message>}
       </SettingsCard>
       <ConfirmDialog
         open={confirming}

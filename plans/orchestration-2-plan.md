@@ -1,27 +1,36 @@
 # Plan: Orchestration 2
 
-> Source PRD: [`plans/orchestration-2-prd.md`](orchestration-2-prd.md). User-story numbers (US) refer to it. Backlog items B-389, B-390, B-391, B-395, B-403 (slice 7, added at the wave 1 boundary). Topic `orchestration-2`. The dispatcher (B-392) is the follow-on topic `orchestration-3`.
+> Source PRD: [`plans/orchestration-2-prd.md`](orchestration-2-prd.md). User-story numbers (US) refer to it. Backlog items B-389, B-390, B-391, B-395, B-403 (slice 7, added at the wave 1 boundary), B-409 and B-410 (slices 8 and 9, added after waves 2 and 3). Topic `orchestration-2`. The dispatcher (B-392) is the follow-on topic `orchestration-3`.
 
 ## Status
 
-**Where it stands:** wave 1 landed (77c79ca, PR #26; 2026-11-21); the table migrated and set (`doctor` leaves 6 findings for the user: B-196, B-239–B-242, B-244 on done topics); the opener's `--background` tried (selected tab kept; a `title` variable bug fixed in 86afe808). check-speed is done (dea0b70). **Waves 2 and 3 merged** (slices 4, 5); docs folded (orchestrator, machinery, planner, recovery). **Next:** gate, PR, Codex, land; then **the first real rotation** (`pnpm prd rotate`, this session was started before the wrapper, so it tries the no-record path), then slice 6.
+**Wave 5 in flight (fresh session, 2026-11-21):** slice 7 merged (5241714c; quick check passed on a375489c, 525 tooling tests; worktree removed; B-403 done). Slice 8 merged (ec7ffb26; quick check passed on 5b16758a; B-409 done). Slice 9 merged (be61728f; begun on sonnet c78e7012, finished on opus 7f233325 under dev's new model rule; quick check passed, 535 tooling tests; B-410 done). All three merged; docs folded (machinery.md: tidy, dev-sync, landing reports; orchestrator.md: docs-only verdict, to-test). **Landing next:** full `pnpm prd check` (the sync resolved a conflict in code), PR, Codex. Unverified by a loop: what tapping a run-through push opens after rotation (check on this landing). Ask `a2` answered: the user merged origin/dev in the main checkout (71bfdcf5); synced (1bb93243, `prompt.sh` conflict resolved: dev's Codex-findings-to-backlog line plus slice 8's docs-only line; prompt tests pass), so the landing check is full. ui-kit told. Fold at landing too: orchestrator.md _Landing a wave_ step 6, docs-only `prd/` diffs need no verdict. Docs to fold at landing: `pnpm prd tidy` and `prompt tidy` in machinery.md and orchestrator.md; tidy skips `hold` rows. New backlog items B-412–B-415 are app UI, not this topic.
+
+**Where it stood:** **wave 4 (slice 6) landed** through PR #31 (Codex clean on 5bdf20d; no check needed, tooling and docs; 503/503 tooling tests; 2026-11-21). Docs folded (planner, backlog, hotfix, AGENTS.md _Working rules_). **The split is done:** `fixes-ui`, `fixes-tooling`, `fixes-perf`, `fixes-bug`, `fixes-nit` added after `quick-fixes` with `standing,hold`; the 26 waiting items moved (B-385, B-386, B-393, filed after the planner's table, went to `fixes-bug` by the rule); `quick-fixes` set `done` (no worktree left). `doctor` shows only the same 6 findings left for the user. Report filed (ask `a3`) and pushed. Earlier: waves 1–3 landed (77c79ca PR #26, e12d774 PR #29); the first rotation worked (fresh session under `prd-orchestration-2` with `--auto`, old process gone).
+
+**Open: ask `a2`.** After the merge, the main checkout's dev-sync stopped: the user has uncommitted edits there (`prompt.sh`, `prompt.test.mjs`, `orchestrator.md`: Codex findings go to the backlog, reply on every thread; plus two inbox lines). Never touch them. **Fresh session:** `pnpm prd asks`; before slice 7, check the main checkout's `dev` has PR #31 (`git -C <main> log --oneline -3 dev`); if not, the user hasn't run `pnpm prd dev-sync prd/orchestration-2` yet: start slice 7 anyway (it builds on prd/orchestration-2, which has wave 4) and `pnpm prd sync` once dev has it. When their edit lands in dev, follow its Codex rule (findings go to the backlog).
+
+**Next:** slices 7, 8, 9 one after another (opus, sonnet, sonnet), then one landing for the three. Claim B-403 for slice 7. Slice 9 adds `to-test/` to `.gitignore`, which isn't tooling: run `pnpm prd check --quick "<why>"` for that landing. B-409's open point was assumed (the PR stays for docs-only `prd/` landings, only the verdict is skipped): say so in the next report. **B-411** (session.sh marks a reopened session ended when the first exits) has no slice yet: a candidate to append after slice 9 (propose it in the report first).
 
 **B-403** (the cleanup run) is slice 7 (wave 5, after 6), added at the wave 1 boundary; scheduling past `/loop` stays with `orchestration-3`.
 
 **Landing mode: run everything through** (queued with `pnpm prd queue orchestration-2`): start every ready slice, land each green wave through its PR (Codex-reviewed), clean up; ask only real questions.
 
-**Models:** slices 1, 2, 3 opus (new modules and design), 4 opus, 5 sonnet, 6 sonnet (mechanical) — the plan gives no model, these are the handbook's _Models_.
+**Models:** slices 1, 2, 3 opus (new modules and design), 4 opus, 5 sonnet, 6 sonnet (mechanical), 7 opus, 8 and 9 sonnet — the plan gives no model, these are the handbook's _Models_.
 
-| Slice | Wave | State           | Merge into `prd/orchestration-2` (slice commits) |
-| ----- | ---- | --------------- | ------------------------------------------------ |
-| 1     | 1    | merged (opus)   | 3ba1e77b (9e722505)                              |
-| 2     | 1    | merged (opus)   | a0e66284 (c99d30c2)                              |
-| 3     | 1    | merged (opus)   | dda72b54 (84cdb649)                              |
-| 4     | 2    | merged (opus)   | 4c4a76cc (f5d86cc5)                              |
-| 5     | 3    | merged (sonnet) | 1a92480f (00a19c33)                              |
-| 6     | 4    | not started     |                                                  |
+| Slice | Wave | State                      | Merge into `prd/orchestration-2` (slice commits) |
+| ----- | ---- | -------------------------- | ------------------------------------------------ |
+| 1     | 1    | merged (opus)              | 3ba1e77b (9e722505)                              |
+| 2     | 1    | merged (opus)              | a0e66284 (c99d30c2)                              |
+| 3     | 1    | merged (opus)              | dda72b54 (84cdb649)                              |
+| 4     | 2    | merged (opus)              | 4c4a76cc (f5d86cc5)                              |
+| 5     | 3    | merged (sonnet)            | 1a92480f (00a19c33)                              |
+| 6     | 4    | merged (sonnet)            | 41ac39b6 (8522220d, 0b268a4e)                    |
+| 7     | 5    | merged (opus)              | 5241714c (a375489c)                              |
+| 8     | 5    | merged (sonnet)            | ec7ffb26 (5b16758a)                              |
+| 9     | 5    | merged (sonnet, then opus) | be61728f (c78e7012, 7f233325)                    |
 
-**Backlog:** B-389 (the registry) closes with slice 1, B-390 (one session per wave) with slice 4, B-391 (the asks queue) with slice 5, B-395 (fix categories) with slice 6 and the split after it (`pnpm backlog done` when each merges).
+**Backlog:** B-389 (the registry) closes with slice 1, B-390 (one session per wave) with slice 4, B-391 (the asks queue) with slice 5, B-395 (fix categories) with slice 6 (done); B-403 with slice 7, B-409 with 8, B-410 with 9 (`pnpm backlog done` when each merges).
 
 ## Architectural decisions
 
@@ -38,7 +47,7 @@
 
 ## How to run this plan
 
-- **Waves:** (1, 2, 3) → 4 → 5 → 6 → 7. Slices 4, 5 and 6 each edit `prompt.sh`, its tests and `prd.sh`, so they run one after another, each from a branch that has the one before. Land after wave 1, after slice 5 (waves 2 and 3 together), after slice 6 and after slice 7. Slice 7 edits `prd.sh` and `prompt.sh` too, so it runs after 6.
+- **Waves:** (1, 2, 3) → 4 → 5 → 6 → 7 → 8 → 9. Slices 4, 5 and 6 each edit `prompt.sh`, its tests and `prd.sh`, so they run one after another, each from a branch that has the one before. Land after wave 1, after slice 5 (waves 2 and 3 together), after slice 6, and after slice 9 (7, 8 and 9 together). Slices 7, 8 and 9 each edit `prd.sh`, `prompt.sh` or `land.sh`, so they run one after another.
 - **Gates:** every slice is tooling, so the check gate needs no app check: run the tooling tests (`pnpm test:tooling`) and prettier on the changed files. No browser checks.
 - **Shared files in wave 1:** slice 1 owns `scripts/backlog/`; slice 2 `session.sh`, `open-session.*`, `queue.sh`, `rm.sh` and `prd.sh`'s `start`, `open`, `plan` and `end` commands; slice 3 the asks files and a new "asks" group in `prd.sh`'s usage with its own `case` lines. Slices 2 and 3 each add lines to `prd.sh`: the orchestrator resolves that conflict at the merge (both sides are kept).
 - **Migrating the table (the orchestrator, once, after wave 1 lands):** the backlog tool writes `dev` in the main checkout, so no slice can do it.
@@ -224,3 +233,41 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/orchestrator.md · Tes
 - [ ] The prompt test: `prompt.sh tidy` names `pnpm prd tidy --yes`, SendMessage and `/loop`, and says never to close sessions or delete unmerged work.
 
 **Blocked by:** 2, 3, 6 (`prd.sh`, `prompt.sh`). **Blocks:** nothing.
+
+## Slice 8: Docs-only landings skip the Codex wait
+
+Stack: no · Reads: docs/agents/orchestrator.md · Tests: unit
+
+**Backlog:** B-409. **User stories:** 22.
+
+**What to build**
+
+- In `lib.sh`, a narrower test beside the check gate's: `docs_only <base> <tip>`, true when everything `base...tip` changes is Markdown (`*.md` anywhere: `plans/`, `docs/`, AGENTS.md). Tooling scripts are code and keep the review.
+- `land.sh`: on the PR path, a docs-only diff needs no Codex verdict. It prints that it skipped the verdict and why, and still needs the PR open with the local tip as its head. **Assumed (the orchestrator, 2026-11-21):** a docs-only `prd/` landing still goes through its PR; only the verdict is skipped. `plan/` branches are unchanged.
+- `prompt.sh`: the orchestrator prompt (every variant) says that when the wave's diff is docs only, don't run or wait for `pnpm prd review`: open the PR and land.
+
+**Acceptance criteria**
+
+- [ ] Tooling tests: `docs_only` for a Markdown-only diff, a diff with one `.mjs` or `.sh` file, and an empty diff; `land.sh` lands a docs-only PR with no verdict (stubbed `gh`) and still refuses a code PR without one.
+- [ ] A prompt test for the docs-only line.
+
+**Blocked by:** 7 (`prd.sh`, `prompt.sh`). **Blocks:** 9.
+
+## Slice 9: A `to-test/` file for each landing
+
+Stack: no · Reads: docs/agents/orchestrator.md, docs/agents/machinery.md · Tests: unit
+
+**Backlog:** B-410 (its notes hold the user's answers). **User stories:** 23.
+
+**What to build**
+
+- `land.sh`, after a successful merge of a PRD, hotfix or fix-topic landing whose diff isn't docs only (slice 8's `docs_only`): writes `to-test/<date>-<time>-<topic>.md` in the main checkout, itself, so it exists even if the session dies after merging. Its content comes from what `pnpm prd ready` reports: the topic's and wave's plain titles, the items with ids and titles, the `dev` commit and PR link, what to try and where (screens, steps, the dev URL), what wasn't checked (`--quick`, skipped browser checks, `--no-review`), follow-ups filed. Agents only add files there, never edit or delete them.
+- `to-test/` goes in `.gitignore`.
+- The push still fires: `prompt.sh`'s run-through landing report (`pnpm prd ask --report`) names the topic, what landed and the `to-test/` file, and stands alone (tapping it may open a session that has ended or rotated: verify what it opens and say so in the hand-off).
+
+**Acceptance criteria**
+
+- [ ] Tooling tests: `land.sh` (stubbed `gh`, a temporary main checkout) writes one file with those parts after a code landing, none after a docs-only one, and none when the merge fails.
+- [ ] `.gitignore` has `to-test/`; a prompt test for the report line.
+
+**Blocked by:** 8 (`land.sh`). **Blocks:** nothing.

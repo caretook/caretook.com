@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { LinkedTodos } from "~/components/todos";
-import { BackLink } from "~/components/ui";
+import { BackLink, Page } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { PROVIDER_SHEET_STATE } from "~/lib/providers/providerSheetLink";
@@ -73,7 +73,7 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
   const mentionProviders = useMentionProviders(groupId);
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
+    <Page>
       <BackLink to={directoryUrl} label="Providers" />
 
       <ProviderHeader
@@ -157,6 +157,6 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
           <ProviderConditions groupId={groupId} providerId={providerId} />
         </>
       )}
-    </main>
+    </Page>
   );
 }

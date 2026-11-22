@@ -1,7 +1,7 @@
 import type { Route } from "./+types/route";
 
 import { Form, Link, useNavigation } from "react-router";
-import { Field } from "~/components/ui/plain";
+import { Button, Field } from "~/components/ui/plain";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { authClient } from "~/lib/auth/auth-client";
 import {
@@ -61,9 +61,9 @@ export default function ResetPassword({ loaderData, actionData }: Route.Componen
     return (
       <AuthCard title="Password changed">
         <StatusMessage>{authMessages.passwordChanged}</StatusMessage>
-        <Link to={accountUrls.signIn()} className="btn btn-primary btn-block">
+        <Button to={accountUrls.signIn()} variant="primary" block>
           Sign in
-        </Link>
+        </Button>
       </AuthCard>
     );
   }
@@ -103,9 +103,9 @@ export default function ResetPassword({ loaderData, actionData }: Route.Componen
             )}
           </Field>
           {result && "error" in result && result.error && <ErrorMessage>{result.error}</ErrorMessage>}
-          <button type="submit" className="btn btn-primary btn-block mt-2" disabled={busy}>
-            {busy ? "Saving…" : "Save new password"}
-          </button>
+          <Button type="submit" variant="primary" block className="mt-2" busy={busy} busyLabel="Saving…">
+            Save new password
+          </Button>
         </Form>
       </AuthCard>
     );
@@ -126,9 +126,9 @@ export default function ResetPassword({ loaderData, actionData }: Route.Componen
         <input type="hidden" name="intent" value="request" />
         <EmailField defaultValue={sentTo} />
         {error && <ErrorMessage>{error}</ErrorMessage>}
-        <button type="submit" className="btn btn-primary btn-block mt-2" disabled={busy}>
-          {busy ? "Sending…" : sentTo ? "Send another link" : "Email me a link"}
-        </button>
+        <Button type="submit" variant="primary" block className="mt-2" busy={busy} busyLabel="Sending…">
+          {sentTo ? "Send another link" : "Email me a link"}
+        </Button>
       </Form>
       <p className="text-center text-sm">
         <Link to={accountUrls.signIn()} className="link">

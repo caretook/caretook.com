@@ -4,7 +4,7 @@ import type { InviteRow } from "./invites";
 import { Mail } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import { ConfirmDialog } from "~/components/ui";
+import { Button, ConfirmDialog, EmptyState, Message } from "~/components/ui";
 import { roleLabel } from "../groupSettings";
 import { inviteStatusLine, mayResend, mayRevoke } from "./invites";
 
@@ -47,13 +47,9 @@ export function PendingInvites({ invites, myRole }: { invites: InviteRow[]; myRo
             ))}
           </ul>
         ) : (
-          <p className="text-base-content/70 text-sm">No invitations waiting.</p>
+          <EmptyState>No invitations waiting.</EmptyState>
         )}
-        {revokeResult && !revokeResult.ok && (
-          <p role="alert" className="text-error text-sm">
-            {revokeResult.error}
-          </p>
-        )}
+        {revokeResult && !revokeResult.ok && <Message tone="error">{revokeResult.error}</Message>}
       </div>
       <ConfirmDialog
         open={!!revoking}
@@ -96,40 +92,37 @@ function PendingInvite({
           </p>
         </div>
         {mayResend(myRole, invite) && (
-          <button
-            type="button"
-            className="btn btn-sm"
-            disabled={resending || revoking}
+          <Button
+            size="sm"
+            busy={resending}
+            busyLabel="Sending…"
+            disabled={revoking}
             aria-label={`Resend the invitation to ${address}`}
             onClick={() =>
               void fetcher.submit({ intent: "resendInvite", inviteId: invite.id }, { method: "post" })
             }
           >
-            {resending ? "Sending…" : "Resend"}
-          </button>
+            Resend
+          </Button>
         )}
         {mayRevoke(myRole, invite) && (
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
-            disabled={resending || revoking}
+          <Button
+            variant="ghost"
+            size="sm"
+            busy={revoking}
+            busyLabel="Revoking…"
+            disabled={resending}
             aria-label={`Revoke the invitation to ${address}`}
             onClick={onRevoke}
           >
-            {revoking ? "Revoking…" : "Revoke"}
-          </button>
+            Revoke
+          </Button>
         )}
       </div>
       {result?.ok && result.sentTo !== undefined && (
-        <p role="status" className="text-success text-sm">
-          Sent again, with a new link.
-        </p>
+        <Message tone="success">Sent again, with a new link.</Message>
       )}
-      {result && !result.ok && (
-        <p role="alert" className="text-error text-sm">
-          {result.error}
-        </p>
-      )}
+      {result && !result.ok && <Message tone="error">{result.error}</Message>}
     </li>
   );
 }

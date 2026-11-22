@@ -14,3 +14,7 @@ export const notificationRoutes: RouteConfigEntry[] = [
   // A reminder email's one-click unsubscribe (calendars, appointments-2).
   route("api/reminders/unsubscribe/:token", "routes/api/reminders/unsubscribe.ts"),
 ];
+
+// The UI gallery (components, ui-kit PRD; web only, 404 in production): every
+// ui/ primitive in light and dark. Its gate is `~/.server/devUi`.
+export const devUiRoutes: RouteConfigEntry[] = [route("dev/ui", "routes/dev/ui/route.tsx")];

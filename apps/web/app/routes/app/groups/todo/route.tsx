@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { useTodoTick } from "~/components/todos";
-import { BackLink } from "~/components/ui";
+import { BackLink, Page } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
@@ -99,7 +99,7 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
   }, [deleted, navigate, listUrl]);
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5" data-todo-page={todoId}>
+    <Page data-todo-page={todoId}>
       <BackLink to={listUrl} label="Todos" />
 
       <TodoHeader
@@ -185,6 +185,6 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
           </section>
         </>
       )}
-    </main>
+    </Page>
   );
 }

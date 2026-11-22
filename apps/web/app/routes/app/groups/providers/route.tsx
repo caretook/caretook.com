@@ -8,7 +8,7 @@ import type { ProvidersOutlet } from "./providerSheet";
 import { Import, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
-import { PageHeader } from "~/components/ui";
+import { Page, PageHeader } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { directoryList, parseDirectoryFilters } from "~/lib/providers/providerDirectory";
@@ -86,7 +86,7 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
   );
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5">
+    <Page>
       <PageHeader
         title="Providers"
         actions={
@@ -134,6 +134,6 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
       />
 
       <Outlet context={{ providers } satisfies ProvidersOutlet} />
-    </main>
+    </Page>
   );
 }
