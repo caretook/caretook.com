@@ -480,11 +480,11 @@ describe("todo completion by role", () => {
       expect(ok(await todoService.reopen(ctx, own.id))).toMatchObject({ doneAt: null });
 
       for (const other of [await todoFor(w, "caretaker"), await todoFor(w, null)]) {
-        expect(codeOf(await todoService.complete(ctx, other.id))).toBe("todoService:easyCompletionOnly");
-        expect(codeOf(await todoService.reopen(ctx, other.id))).toBe("todoService:easyCompletionOnly");
+        expect(codeOf(await todoService.complete(ctx, other.id))).toBe("todoService:completionOnly");
+        expect(codeOf(await todoService.reopen(ctx, other.id))).toBe("todoService:completionOnly");
       }
       expect(codeOf(await todoService.update(ctx, own.id, { title: "Mine now" }))).toBe(
-        "todoService:easyCompletionOnly",
+        "todoService:completionOnly",
       );
       expect(codeOf(await todoService.create(ctx, { groupId: w.group.id, title: "New" }))).toBe(
         "permissions:unauthorized",
@@ -496,7 +496,7 @@ describe("todo completion by role", () => {
     const own = await todoFor(w, "viewer");
     ok(await todoService.complete(w.u.viewer.ctx, own.id));
     expect(codeOf(await todoService.complete(w.u.viewer.ctx, (await todoFor(w, "caretaker")).id))).toBe(
-      "todoService:viewerCompletionOnly",
+      "todoService:completionOnly",
     );
   });
 });

@@ -140,7 +140,7 @@ describe("todoService: repeat columns", () => {
 
     const viewers = await addTodo({ assigneeId: u.viewer.user.id });
     expect(codeOf(await todoService.update(u.viewer.ctx, viewers.id, { repeatRule: null }))).toBe(
-      "todoService:viewerCompletionOnly",
+      "todoService:completionOnly",
     );
   });
 });

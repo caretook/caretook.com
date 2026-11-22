@@ -6,7 +6,7 @@ export const TODOS_PERMISSIONS = {
   // The group's todos (todos PRD). Any member reads; writers create, edit
   // and soft-delete. Viewers may update, but todoService limits them to
   // completing and reopening todos assigned to them
-  // (todoService:viewerCompletionOnly). Write through todoService.
+  // (todoService:completionOnly). Write through todoService.
   todoSchema: {
     groupField: "groupId",
     read: groupEntry(ANY_GROUP_ROLE),

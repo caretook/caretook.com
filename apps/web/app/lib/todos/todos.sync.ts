@@ -15,7 +15,6 @@ import {
   todoCreateZSchema,
   todoUpdateZSchema,
 } from "@caretook/data/schema";
-import { isEasyRole } from "@caretook/data/permissions";
 import { eq } from "drizzle-orm";
 import { noteDocuments, todos } from "../sync/schema";
 import { forbidden, fromLocalTimestamp, groupFor, nowTimestamp, readRows } from "../timeline/timeline.sync";
@@ -189,11 +188,8 @@ const invalid = (error: { issues: { path: PropertyKey[]; message: string }[] }):
   );
 
 const todoMissing = refuse("That todo is gone. It may have been deleted.");
-const viewerOnly = refuse("Viewers can only complete or reopen todos assigned to them");
-const easyOnly = refuse("You can only complete or reopen todos assigned to you");
-
-/** A completer's refusal (a viewer's, or the easy roles' own words), the server's twin. */
-const completionOnlyFor = (role: string | null | undefined) => (isEasyRole(role) ? easyOnly : viewerOnly);
+/** A completer's refusal (a viewer or an easy role), the server's `todoService:completionOnly` twin. */
+const completionOnly = refuse("You can only complete or reopen todos assigned to you");
 
 const liveTodo = async (db: SyncDb, id: string) => {
   const [row] = await readRows<TodoRow>(db, todoQuery(id));
@@ -344,7 +340,7 @@ export const updateTodo = async (
   const existing = await liveTodo(db, id);
   if (!existing) return todoMissing;
   const group = await groupFor(db, existing.groupId);
-  if (isTodoCompleter(group?.role)) return completionOnlyFor(group?.role);
+  if (isTodoCompleter(group?.role)) return completionOnly;
   if (!isTodoWriter(group?.role)) return forbidden as Refusal;
 
   const shape = todoUpdateZSchema.safeParse(patch);
@@ -430,7 +426,7 @@ const planNext = async (db: SyncDb, todo: LocalTodo) => {
 const doneRefusal = async (db: SyncDb, existing: LocalTodo) => {
   const group = await groupFor(db, existing.groupId);
   if (canCompleteTodo({ role: group?.role, userId: db.userId, todo: existing })) return null;
-  return isTodoCompleter(group?.role) ? completionOnlyFor(group?.role) : (forbidden as Refusal);
+  return isTodoCompleter(group?.role) ? completionOnly : (forbidden as Refusal);
 };
 
 /**
