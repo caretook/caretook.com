@@ -6,10 +6,9 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { getDb } from "../client";
 import { applyRoles, ident, literal, REPLICATION_WHOLE_TABLES, type RoleNames } from ".";
 
-// applyRoles and rolesSummary read each role's grants back through
-// information_schema (about 2 s a role on the test schema), past the 10 s
-// hook and 20 s test defaults on a busy machine (B-450).
-vi.setConfig({ hookTimeout: 60_000, testTimeout: 60_000 });
+// applyRoles reads each role's grants back through information_schema
+// (about 2 s a role on the test schema), past the 10 s hook default (B-450).
+vi.setConfig({ hookTimeout: 60_000 });
 
 // The generated roles on the test database (hosting slice 2): applied twice,
 // then used by connecting as each role. Roles are cluster-wide and the shared
@@ -68,9 +67,9 @@ afterAll(async () => {
   }
 });
 
-// Each test grants on every table and rewrites the publication: about 2 s
-// alone, past the 5 s default when other PRDs load the machine.
-describe("applyRoles", { timeout: 20_000 }, () => {
+// Each test grants on every table, rewrites the publication and reads the
+// grants back: several seconds alone, more when other PRDs load the machine.
+describe("applyRoles", { timeout: 60_000 }, () => {
   it("applies twice without error and ends with the same grants", async () => {
     if ("code" in generated) throw new Error(String(generated.code), { cause: generated });
     const again = await applyRoles({ names });
