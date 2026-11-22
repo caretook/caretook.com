@@ -4,14 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/ui-kit-2` (slice commits) |
-| ----- | ---- | ----- | ----------------------------------------- |
-| 1     | 1    | —     | —                                         |
-| 2     | 2    | —     | —                                         |
-| 3     | 3    | —     | —                                         |
-| 4     | 1    | —     | —                                         |
-| 5     | 2    | —     | —                                         |
-| 6     | 1    | —     | —                                         |
+| Slice | Wave | State                                             | Merge into `prd/ui-kit-2` (slice commits) |
+| ----- | ---- | ------------------------------------------------- | ----------------------------------------- |
+| 1     | 1    | started 2026-11-22 (worktree, opus agent)         | —                                         |
+| 2     | 2    | —                                                 | —                                         |
+| 3     | 3    | —                                                 | —                                         |
+| 4     | 1    | started 2026-11-22 (worktree + stack, opus agent) | —                                         |
+| 5     | 2    | —                                                 | —                                         |
+| 6     | 1    | started 2026-11-22 (worktree + stack, opus agent) | —                                         |
+
+**Landing mode:** run everything through (started run-through; land each green wave, PR + Codex; `--no-review` unasked only when Codex is out of credits).
+
+**Now:** wave 1 running (slices 1, 4, 6; B-423, B-415, B-268 claimed). Backlog at the wave-1 boundary: nothing new for ui-kit-2. `test-health` wave 2 landed in dev (43d53bf): sync at the wave-1 gate.
 
 **Start conditions:** `ui-kit` is in `dev` (done). Never beside `i18n`. Its hot files (the PRD table) overlap `fixes-bug` while a wave of it holds the Planner or timeline folders, and `ui-kit-3` must not start before this lands.
 
