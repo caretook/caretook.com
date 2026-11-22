@@ -13,7 +13,15 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242. B-53
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** wave 1 started 2026-11-22. Worktrees `test-gates-1` and `test-gates-2` made, B-555, B-556, B-341 and B-554 claimed. Both slices run on opus (real logic). Slice 1 merged. Slice 1's quiet-machine before/after time is only partial: static 127 s in series against 79.5 s side by side, at load 8 to 11. Slice 2 merged. CI is not green on Linux yet: every requested run ends `file` on the 11 tooling failures slice 8 owns (latest: run 45073332408). The user put the Linux `stat` fix in this topic (slice 8, wave 2; B-559, B-242), relayed by the backlog session.
+**Now:** wave 1 (slices 1 and 2) landed in dev as adce90ee through PR #71 on 2026-11-22: full check on 0c91997, Codex clean, docs folded, slice worktrees removed. **Next: wave 2, slice 3, then slice 8 on top of it** (both edit `ci.yml` and `vitest.config.ts`). Run both on opus. Start with `pnpm prd sync`.
+
+**Open issues:**
+
+- CI is not green on Linux: every requested run ends `file` on 11 tooling failures (latest: run 45073332408). They are B-559 and B-242, slice 8's, so slice 3 lists them in its hand-off and does not file them again.
+- "The check lease makes runs beyond the limit of two wait" fails only in some runs, and its cause is unconfirmed. Slice 8 rechecks it.
+- The `ci/` ref deletion in `pnpm prd tidy` has not run against a real old ref; only its sorter is tested.
+- Slice 1's before and after time on a quiet machine is partial: static steps 127 s in series, 79.5 s side by side, at load 8 to 11.
+- B-341 stays in progress until slice 3 merges, and B-554 until slice 6 merges.
 
 **Until slice 8 lands (the user's permission):** a slice's manual tooling runs may leave out `scripts/loops/browser.test.mjs`, unless it changes `browser.sh`, `lib.sh`, `lease.sh`, `scripts/loops/checks` or `scripts/browser-checks/`, and says so in its hand-off. `pnpm prd check` still runs the file, and nobody bypasses it. Slice 2's `--exclude` bug is fixed (an explicit file list, pinned by the workflows test).
 
