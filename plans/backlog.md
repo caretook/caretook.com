@@ -334,6 +334,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-668 | change | triaged | fixes-ui |  | Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus |
 | B-669 | feature | triaged | onboarding-2 |  | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
 | B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a Later exit and a Want help onboarding? toast |
+| B-671 | change | triaged | onboarding-2 |  | New groups default to No known allergies |
 
 ## Items
 
@@ -2630,3 +2631,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23, settles the nudge timing. The nudges start once the creator finishes the page flow or picks Later. One toast at a time, at most one per hour on login-plus-hourly while the app has attention, in this order: Want help onboarding?, first entry, invite. 'Don't ask again' retires that toast for this group and moves to the next one after a small wait, rather than at the next hourly slot (default 30 seconds, a named constant; the user said only 'a small wait'). Once all three are finished or retired, no more onboarding toasts for the group.
 - 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: connect an AI assistant is the final toast nudge. Order is now: Want help onboarding?, first entry, invite, connect assistant. Same rules: one at a time, login plus hourly, Don't ask again moves on after the small wait. Its action opens group settings, Assistants (appUrls.groupSettings(id, 'assistants')). It only points there: the switch stays off by default and the /connect consent stays as is, because connecting shares health data with an outside AI. Finished needs new work: today's connect step is never ticked, and connector_grant is not in the PowerSync sync config, so the device can't see a live grant. The planner should choose how to tell (an online oRPC read of this member's grants for the group, or a synced fact); when it can't be known, as offline, skip the nudge rather than ask someone already connected. Show it only if the creator can still reach the switch (still owner).
 - 2026-11-23 (Robert Bo Davis): 2026-11-23: if B-594 (manage allergies on the Profile page) isn't done when this PRD starts, pull it into onboarding-2 ahead of the pages. The profile basics step should reuse that section, so the allergy form isn't moved twice.
+
+### B-671 · change · New groups default to No known allergies
+
+- status: triaged
+- prd: onboarding-2
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User request 2026-11-23: new groups should default to "No known allergies". Today a new recipient has no_known_allergies_at null, shown as "Allergies not recorded". Adding an allergy already clears the flag (recipientAllergyService, allergies.sync.ts). Effects to handle: (1) the flag is shown as a recorded fact on the Medications region, printed sheets, the emergency sheet (emergencyPrintSheet.ts) and the connector recipient_profile tool (noKnownAllergies), so a default would state it for a recipient nobody has asked about; PrintAllergies exists so an empty block is never read as none. (2) gettingStarted.sync.ts counts the flag as the allergy/condition step done, so a default ticks it for every new group. Open with the user: true stored default, or preselected in the onboarding profile basics step (B-670) and saved on confirm. Triaged to onboarding-2 because it shapes that step.
