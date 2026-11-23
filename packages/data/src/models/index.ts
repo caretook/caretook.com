@@ -48,6 +48,10 @@ import * as timelineEntryProviderModel from "./timelineEntryProvider";
 export { timelineEntryProviderModel };
 export type * from "./timelineEntryProvider/types";
 
+import * as legalAcceptanceModel from "./legalAcceptance";
+export { legalAcceptanceModel };
+export type * from "./legalAcceptance/types";
+
 import * as careGroupConsentModel from "./careGroupConsent";
 export { careGroupConsentModel };
 export type * from "./careGroupConsent/types";

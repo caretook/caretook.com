@@ -17,6 +17,11 @@ packages/auth/src/                       sign-in first-sync session-end invites
 # Better Auth's and the public forms' limits in Postgres.
 packages/data/src/db/schema/core/rateLimit.ts sign-in marketing
 packages/data/src/services/rateLimitService.ts sign-in marketing
+# Legal acceptance (onboarding): recorded at sign-up, which invites walks.
+packages/data/src/db/schema/auth/legalAcceptance.ts invites
+packages/data/src/db/schema/auth/legalRules.ts invites
+packages/data/src/services/legalAcceptanceService.ts invites
+packages/data/src/models/legalAcceptance/ invites
 # Devices: the account's sessions and signing them out (quick-fixes slice 29).
 # The page is component tests (devices/devices.browser.test.tsx); session-end
 # signs a browser out from another device through Better Auth's API.

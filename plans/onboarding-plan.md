@@ -4,15 +4,19 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/onboarding` (slice commits) |
-| ----- | ---- | ----- | ------------------------------------------- |
-| 1     | 1    | —     | —                                           |
-| 2     | 1    | —     | —                                           |
-| 3     | 1    | —     | —                                           |
-| 4     | 2    | —     | —                                           |
-| 5     | 3    | —     | —                                           |
+| Slice | Wave | State         | Merge into `prd/onboarding` (slice commits) |
+| ----- | ---- | ------------- | ------------------------------------------- |
+| 1     | 1    | merged (opus) | 8404c3a4 (ebfc909c)                         |
+| 2     | 1    | merged (opus) | 043a28f5 (c6a64dd5, bcfee496)               |
+| 3     | 1    | merged (opus) | 6bb9316c (9310f2f9, 071859ba)               |
+| 4     | 2    | —             | —                                           |
+| 5     | 3    | —             | —                                           |
 
-**Backlog:** claim B-359 when slice 1 starts, B-360 when slice 2 starts and B-31 when slice 3 starts; `done` B-360 when slice 2 merges, B-359 when slice 4 merges and B-31 when slice 5 merges.
+**Landing mode:** run everything through (started run-through): land each green wave, clean up, ask real questions only through `pnpm prd ask`.
+
+**Now (2026-11-23):** wave 1 (slices 1, 2, 3) merged. Full CI green on 5e7a8057 (run 45123362908); `first-sync` and `invites` browser checks passed; slice worktrees removed. Next: sync dev (docs and tooling only), quick check, PR, Codex review, land. Open question a101: run the lean browser suite before landing? It defaults to landing without it at 01:41. Slice 4 must move `LegalAgreement` out of the join route to share it. Follow-ups filed: B-628 (preferences save can lose a change), B-629 (focus after dismissing the setup card), B-630 (two legal-link helpers). Slice 5 should check the card for an owner in Easy mode (noted on B-31).
+
+**Backlog:** `done` B-360 when slice 2 merges, B-359 when slice 4 merges and B-31 when slice 5 merges.
 
 ## Architectural decisions
 

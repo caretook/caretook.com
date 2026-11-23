@@ -33,12 +33,17 @@ export const DAY_SUMMARY_MODES = ["off", "highlights", "full"] as const;
 export type DaySummaryMode = (typeof DAY_SUMMARY_MODES)[number];
 export const DEFAULT_DAY_SUMMARY_MODE: DaySummaryMode = "highlights";
 
+/** The most care groups whose setup card one account remembers dismissing. */
+export const MAX_SETUP_DISMISSED = 500;
+
 export const userPreferencesZSchema = z.strictObject({
   units: unitChoicesZSchema.partial().optional(),
   timelineView: z.enum(TIMELINE_VIEWS).optional(),
   /** Easy mode: your own choice, easy or full (easyMode.ts). */
   easyMode: z.enum(EASY_MODE_SETTINGS).optional(),
   daySummary: z.enum(DAY_SUMMARY_MODES).optional(),
+  /** The care groups whose setup card you dismissed. Only ever grows (`mergeSetupDismissed`). */
+  setupDismissed: z.array(z.uuid()).max(MAX_SETUP_DISMISSED).optional(),
 });
 export type UserPreferences = z.infer<typeof userPreferencesZSchema>;
 
@@ -59,3 +64,15 @@ export const resolveEasyModeSetting = (prefs: UserPreferences | null | undefined
 
 export const resolveDaySummaryMode = (prefs: UserPreferences | null | undefined): DaySummaryMode =>
   prefs?.daySummary ?? DEFAULT_DAY_SUMMARY_MODE;
+
+export const resolveSetupDismissed = (prefs: UserPreferences | null | undefined): string[] =>
+  prefs?.setupDismissed ?? [];
+
+/**
+ * Two lists of dismissed groups as one, so a dismissal made offline on one
+ * device never undoes another device's. Keeps the newest within the cap.
+ */
+export const mergeSetupDismissed = (
+  base: readonly string[] | null | undefined,
+  added: readonly string[] | null | undefined,
+): string[] => [...new Set([...(base ?? []), ...(added ?? [])])].slice(-MAX_SETUP_DISMISSED);

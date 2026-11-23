@@ -6,6 +6,7 @@ import {
   careGroupInviteService,
   emailMatches,
   isError,
+  legalAcceptanceService,
   newError,
   normalizeAccessCode,
   normalizeInviteEmail,
@@ -22,7 +23,9 @@ import { sendAccessCodeExistingAccount } from "./emails";
 // which also starts the person's own care group.
 
 export type Ticket =
-  { kind: "invite"; token: string } | { kind: "accessCode"; code: string; group: NewCareGroupInput };
+  | { kind: "invite"; token: string }
+  // `legal`: the person ticked the box; the acceptance is recorded with the account.
+  | { kind: "accessCode"; code: string; group: NewCareGroupInput; legal: true };
 
 export type SignUpWithTicketInput = {
   ticket: Ticket;
@@ -105,8 +108,8 @@ export const signUpWithTicket = async ({
  * An access code's sign-up: in one transaction, the account (not yet
  * verified: the code doesn't prove the address, so the person confirms it
  * by email before using the app), its password, and the code's redemption,
- * which creates their care group with them as its owner. Any refusal (a
- * used-up code, a bad group) leaves nothing behind.
+ * which creates their care group with them as its owner, and their legal
+ * acceptance. Any refusal (a used-up code, a bad group) leaves nothing behind.
  *
  * An address that already has an account answers like a new one (`id:
  * null`, no `groupId`), so a code can't be used to find out who has an
@@ -154,6 +157,8 @@ const signUpWithAccessCode = async ({
       group: ticket.group,
     });
     if (isError(redeemed)) return redeemed;
+    const accepted = await legalAcceptanceService.record(tx, { userId: user.id, source: "access_code" });
+    if (isError(accepted)) return accepted;
     return { id: user.id, email: user.email, emailVerified: false, groupId: redeemed.groupId };
   });
   if (result === EXISTING) return existingAccount();
