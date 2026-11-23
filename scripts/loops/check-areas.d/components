@@ -8,3 +8,4 @@ apps/web/app/app.css                     ui
 # tests render it, and its gate is unit-tested.
 apps/web/app/routes/dev/ui/              -
 apps/web/app/.server/devUi.ts            -
+apps/web/app/components/members/         -

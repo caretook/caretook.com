@@ -16,13 +16,20 @@ const SIZE = {
 } as const;
 
 export type AvatarSize = keyof typeof SIZE;
-export type AvatarLook = { color?: string | null; icon?: string | null };
+export type AvatarLook = {
+  color?: string | null;
+  icon?: string | null;
+  /** The color when none is chosen (a member's in this group); a picture still wins over it. */
+  defaultColor?: string | null;
+  /** Someone no longer in the group: initials on a neutral disc. */
+  neutral?: boolean;
+};
 
 type UserAvatarProps = {
   name?: string | null;
   email?: string | null;
   image?: string | null;
-  /** The member's chosen color and icon ids. */
+  /** The member's chosen color and icon ids, and their default. */
   look?: AvatarLook | null;
   size?: AvatarSize;
   /** Classes for the avatar (the outer element), such as a ring. */
@@ -32,9 +39,10 @@ type UserAvatarProps = {
 /**
  * A user's look: a chosen color shows their initials on it, a chosen icon
  * replaces the initials, and either wins over `image`. With neither, their
- * picture, or their initials (name, then email) when there's no image or it
- * fails to load. An id this version doesn't know counts as unset. Decorative:
- * the control or group around it carries the accessible name.
+ * picture, or their initials (name, then email) on their default color when
+ * there's no image or it fails to load. An id this version doesn't know counts
+ * as unset. Decorative: the control or group around it carries the accessible
+ * name.
  */
 export function UserAvatar({
   name,
@@ -46,16 +54,23 @@ export function UserAvatar({
   ...rest
 }: UserAvatarProps) {
   const [failed, setFailed] = useState(false);
-  const colorClass = avatarColorClass(look?.color);
+  const chosen = avatarColorClass(look?.color);
   const glyph = avatarIconGlyph(look?.icon);
-  const showImage = !!image && !failed && !colorClass && !glyph;
+  const neutral = !!look?.neutral;
+  const showImage = !!image && !failed && !chosen && !glyph && !neutral;
+  const shownColor = chosen ? look?.color : avatarColorClass(look?.defaultColor) ? look?.defaultColor : null;
+  const colorClass = neutral
+    ? "bg-base-300 text-base-content"
+    : (avatarColorClass(shownColor) ?? "bg-primary text-primary-content");
   return (
     <span
       aria-hidden="true"
-      data-avatar-color={colorClass ? look?.color : undefined}
+      data-avatar-color={!neutral && !showImage && shownColor ? shownColor : undefined}
+      data-avatar-default={!neutral && !chosen && !showImage && shownColor ? "" : undefined}
+      data-avatar-neutral={neutral ? "" : undefined}
       data-avatar-icon={glyph ? look?.icon : undefined}
       {...rest}
-      className={`${colorClass ?? "bg-primary text-primary-content"} inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold ${SIZE[size]} ${className}`}
+      className={`${colorClass} inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold ${SIZE[size]} ${className}`}
     >
       {glyph ? (
         createElement(glyph, { className: "size-3/5" })
