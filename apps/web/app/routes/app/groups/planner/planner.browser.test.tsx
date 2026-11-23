@@ -193,6 +193,29 @@ describe("the list", () => {
     expect(rowOf(RIDE.id)?.actions).toEqual([]);
   });
 
+  test("the owner's initials sit under the time and actions, as a filter above the row's link", async () => {
+    await openPlanner();
+    const column = itemEl(CARDIOLOGY.id)?.querySelector<HTMLElement>("[data-when-column]");
+    const pill = column?.querySelector<HTMLElement>("[data-author]");
+    const box = pill?.getBoundingClientRect();
+    const actions = column?.querySelector("[data-contact-actions]")?.getBoundingClientRect();
+    expect(box?.top).toBeGreaterThanOrEqual(actions?.bottom ?? Infinity);
+    expect(box?.right).toBeLessThanOrEqual(column?.getBoundingClientRect().right ?? 0);
+    // On top at its centre: the tap reaches the filter, not the row's link.
+    const hit = document.elementFromPoint((box?.left ?? 0) + 12, (box?.top ?? 0) + 12);
+    expect(hit?.closest("[data-author]")).toBe(pill);
+  });
+
+  test("an easy role's initials sit in the same column, with no filter: a tap there opens the row", async () => {
+    await openPlanner({ role: "easy_viewer" });
+    const row = itemEl(CARDIOLOGY.id);
+    const pill = row?.querySelector<HTMLElement>("[data-when-column] [data-author]");
+    expect(pill?.tagName).toBe("SPAN");
+    const box = pill?.getBoundingClientRect();
+    const hit = document.elementFromPoint((box?.left ?? 0) + 12, (box?.top ?? 0) + 12);
+    expect(hit?.getAttribute("href")).toBe(`/app/groups/${TEST_GROUP.id}/entries/${CARDIOLOGY.id}`);
+  });
+
   test("a row's call and map sit under its time, still tappable; a row without them has no gap there", async () => {
     await openPlanner();
     const column = (id: string) => itemEl(id)?.querySelector<HTMLElement>("[data-when-column]");
@@ -209,9 +232,10 @@ describe("the list", () => {
 
     const bare = column(RIDE.id);
     expect(bare?.querySelector("[data-contact-actions]")).toBeNull();
-    expect(bare?.getBoundingClientRect().height).toBe(
-      bare?.querySelector("[data-when]")?.getBoundingClientRect().height,
-    );
+    // Only the column's gap-1 between the time and the owner's initials.
+    const bareTime = bare?.querySelector("[data-when]")?.getBoundingClientRect();
+    const barePill = bare?.querySelector("[data-author]")?.getBoundingClientRect();
+    expect((barePill?.top ?? 0) - (bareTime?.bottom ?? 0)).toBeCloseTo(4, 0);
   });
 
   test("an item leaves the Planner tab once its end (in progress) or its start passes, without a reload", async () => {

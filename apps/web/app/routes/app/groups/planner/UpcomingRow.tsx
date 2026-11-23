@@ -26,11 +26,11 @@ const breakable = (text: string) => text.replace("–", "–​");
 /**
  * One upcoming (or past) item as a row: kind icon (a filter), its time
  * ("10:30 AM–11:15 AM", "All day", or "Now · until 11:15 AM") with the call
- * and map actions under it, the entry's body with its "with …" line, its
- * place, "Cancelled" (struck through), the author's initials (a filter) and,
+ * and map actions and the author's initials (a filter) under it, the entry's
+ * body with its "with …" line, its place, "Cancelled" (struck through) and,
  * for writers, the ⋯ menu (`menu`). The whole row opens the entry's page. `readOnly`
  * (the easy roles' Planner) shows the kind and initials without their
- * filter links.
+ * filter links, so a tap on the initials opens the row.
  */
 export function UpcomingRow({
   entry,
@@ -87,6 +87,23 @@ export function UpcomingRow({
           {entry.seriesId && <RepeatMark seriesId={entry.seriesId} className="flex" />}
         </time>
         <ContactActions actions={actions} />
+        {readOnly ? (
+          <span
+            className="bg-base-200 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
+            title={authorName}
+            data-author={entry.createdBy}
+          >
+            <span aria-hidden="true">{initials(authorName)}</span>
+            <span className="sr-only">{authorName}</span>
+          </span>
+        ) : (
+          <AuthorFilterLink
+            userId={entry.createdBy}
+            name={authorName}
+            initials={initials(authorName)}
+            image={authorImage}
+          />
+        )}
       </div>
       <div className="min-w-0 flex-1 pt-0.5">
         <EntryBody
@@ -123,23 +140,6 @@ export function UpcomingRow({
           </p>
         )}
       </div>
-      {readOnly ? (
-        <span
-          className="bg-base-200 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
-          title={authorName}
-          data-author={entry.createdBy}
-        >
-          <span aria-hidden="true">{initials(authorName)}</span>
-          <span className="sr-only">{authorName}</span>
-        </span>
-      ) : (
-        <AuthorFilterLink
-          userId={entry.createdBy}
-          name={authorName}
-          initials={initials(authorName)}
-          image={authorImage}
-        />
-      )}
       {menu}
     </li>
   );
