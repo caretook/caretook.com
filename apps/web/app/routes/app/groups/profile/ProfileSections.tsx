@@ -8,7 +8,7 @@ import { basicLines } from "~/lib/profiles/recipientDisplay";
 // writers' sections after them.
 
 /** Code status, blood type, language and pronouns: each only when set. */
-export function BasicsCard({ profile }: { profile: RecipientProfile }) {
+export function BasicsSection({ profile }: { profile: RecipientProfile }) {
   const lines = basicLines(profile);
   return (
     <Section id="basics" title="Basics">
@@ -38,7 +38,7 @@ export function BasicsCard({ profile }: { profile: RecipientProfile }) {
 }
 
 /** The note for helpers ("hard of hearing on the left; uses a walker"), as written. */
-export function NoteCard({ profile, canEdit }: { profile: RecipientProfile; canEdit: boolean }) {
+export function NoteSection({ profile, canEdit }: { profile: RecipientProfile; canEdit: boolean }) {
   if (!profile.notes && !canEdit) return null;
   return (
     <Section id="note" title="Note for helpers">

@@ -17,7 +17,7 @@ import { PROFILE_SHEET_STATE } from "./profileSheet";
  * file "No known conditions" to record (or clear); the profile's action
  * writes it locally, so it works offline.
  */
-export function ConditionsCard({
+export function ConditionsSection({
   groupId,
   state,
   canWrite,

@@ -23,7 +23,7 @@ import { PROFILE_SHEET_STATE, useOnline } from "./profileSheet";
 // to owners, admins and caretakers; a viewer's device never has the data.
 
 /** The recipient's phones, email and address, as links. */
-export function ContactCard({
+export function ContactSection({
   groupId,
   name,
   details,
@@ -51,7 +51,7 @@ export function ContactCard({
 }
 
 /** Each insurance plan, primary first: its insurer and plan, member ID, group number and a call action. */
-export function InsuranceCard({
+export function InsuranceSection({
   groupId,
   details,
   canEdit,

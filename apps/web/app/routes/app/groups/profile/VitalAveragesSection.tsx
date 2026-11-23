@@ -25,7 +25,7 @@ function WindowCell({ window, unit }: { window: WindowAverage; unit: string }) {
   );
 }
 
-export function VitalAveragesCard({ rows }: { rows: VitalAverageRow[] }) {
+export function VitalAveragesSection({ rows }: { rows: VitalAverageRow[] }) {
   const windows = rows[0]?.windows ?? [];
   return (
     <Section id="vital-averages" title="Recent vital averages">

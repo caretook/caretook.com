@@ -4,7 +4,7 @@ import type { EmergencyMemberRow } from "~/lib/profiles/emergencyList";
 import { ContactLines } from "~/components/contact";
 import { Badge, Section, STATUS_TONE } from "~/components/ui";
 import { droppedNotes, emergencyEntries, emergencyPhoneLines } from "~/lib/profiles/emergencyList";
-import { EditSheetLink } from "./DetailsCards";
+import { EditSheetLink } from "./DetailsSections";
 
 // The writers' Emergency contacts card (profiles slice 5): the group's one
 // ordered list across members (the phones they share) and outside contacts,
@@ -12,7 +12,7 @@ import { EditSheetLink } from "./DetailsCards";
 // `profile/emergency` sheet) and a note when someone fell off the list by
 // no longer sharing a phone.
 
-export function EmergencyCard({
+export function EmergencySection({
   groupId,
   members,
   outside,

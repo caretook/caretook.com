@@ -60,9 +60,9 @@ export const KIT_CLASSES_NOT_SWEPT = [
   "routes/app/groups/providers/import/route.tsx",
   // Slice 4: the profile.
   "routes/app/groups/profile/BasicsForm.tsx",
-  "routes/app/groups/profile/ConditionsCard.tsx",
-  "routes/app/groups/profile/DetailsCards.tsx",
-  "routes/app/groups/profile/EmergencyCard.tsx",
+  "routes/app/groups/profile/ConditionsSection.tsx",
+  "routes/app/groups/profile/DetailsSections.tsx",
+  "routes/app/groups/profile/EmergencySection.tsx",
   "routes/app/groups/profile/EmergencyForm.tsx",
   "routes/app/groups/profile/InsuranceForm.tsx",
   "routes/app/groups/profile/ProfileHeader.tsx",
