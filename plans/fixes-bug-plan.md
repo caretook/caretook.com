@@ -92,19 +92,19 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 46    | B-662 | landed (assistant.md folded)               | 8c930686 |
 | 47    | B-666 | landed (needs a hand test)                 | 288e9cbe |
 | 48    | B-675 | landed                                     | 3d8e9cf5 |
-| 49    | B-615 | fixing, ask a161                           |          |
-| 50    | B-717 | handed off (opus)                          |          |
-| 51    | B-718 | handed off (opus)                          |          |
-| 52    | B-719 | handed off (opus)                          |          |
-| 53    | B-706 | handed off (opus)                          |          |
-| 54    | B-707 | handed off (opus)                          |          |
-| 55    | B-708 | handed off (opus)                          |          |
-| 56    | B-709 | handed off (opus)                          |          |
-| 57    | B-710 | handed off (opus)                          |          |
-| 58    | B-711 | handed off (opus)                          |          |
-| 59    | B-712 | handed off (opus)                          |          |
-| 60    | B-713 | handed off (opus)                          |          |
-| 61    | B-714 | handed off (opus)                          |          |
+| 49    | B-615 | merged (opus), ask a161                    | ec9155df |
+| 50    | B-717 | merged (opus)                              | 16156d44 |
+| 51    | B-718 | merged (opus)                              | 01632c12 |
+| 52    | B-719 | merged (opus)                              | 09e91a94 |
+| 53    | B-706 | merged (opus)                              | b692a863 |
+| 54    | B-707 | merged (opus)                              | db29dbe1 |
+| 55    | B-708 | merged (opus)                              | b965c5cd |
+| 56    | B-709 | merged (opus)                              | 4d419f6f |
+| 57    | B-710 | merged (opus)                              | 2767bd9d |
+| 58    | B-711 | merged (opus)                              | 00c8c823 |
+| 59    | B-712 | merged (opus)                              | 57459518 |
+| 60    | B-713 | merged (opus)                              | 417c0719 |
+| 61    | B-714 | merged (opus)                              | e1fb3268 |
 
 **Wave 12 (slices 49–61, all on opus):** resumed after a rotation; git matched _Status_, no slice in flight, already up to date with dev. **Held for a later wave:** B-689, B-690 and B-715, because member-avatars holds `routes/app/groups/planner/`. New York run of the nine other zone files on b21f66d2: 25 of 93 tests fail. Most hard-code Los Angeles times; B-708's all-day day (Jul 24 for Jul 25) may be a real bug, so each slice decides from evidence.
 
@@ -117,7 +117,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 - **Hand test for the report:** B-717's Reload with a real service worker update after a deploy; unit tests use fakes.
 - **Docs at landing:** `connectors.md` and `medications.md` (`log_dose` slot identity, "Already logged", the repeat rule); `assistant.md` _Doses_ (`asksAmount` is for a given dose only; at budget, trim); `calendars.md` (reload on an outdated consent; at budget, trim). `docs/agents/machinery.md` is 8 B over budget from before this wave: don't grow it.
 - **Still held:** B-689, B-690, B-715 (member-avatars holds the Planner folder).
-- **Resumed after the mid-wave rotation (2026-11-23); git matched this Status.** Nothing merged, 50–61 clean at the SHAs above, `prd/fixes-bug` is 35 commits behind `dev`. Slice 49 respawned with `--continue` on opus to confirm its tests and check on 4b5bc80d. **Next:** on its hand-off, merge 49 to 61 in order.
+- **Resumed after the mid-wave rotation (2026-11-23); git matched this Status.** Nothing merged, 50–61 clean at the SHAs above, `prd/fixes-bug` is 35 commits behind `dev`. Slice 49 respawned with `--continue` on opus to confirm its tests and check on 4b5bc80d. Its slice check passed on 4b5bc80d (30 of 30 integration tests). **All of 49 to 61 are merged (tip e1fb3268); worktrees stay until the wave is green.** The landing report must say: a `log_dose` that leaves out the amount or note counts as a repeat of the recorded dose (`saysTheSame`), so a real second dose logged bare reports "Already logged"; this is looser than a161's wording. **Next:** `pnpm prd sync`, `pnpm prd ci run components --wait` on the synced tip, then `pnpm datastore:migrate` (never reset), PowerSync restart if `sync-config.yaml` changed, `pnpm prd serve --restart`, `pnpm prd browser --changed --base dev` once, `pnpm prd rm` slices 49-61, fold docs, `pnpm prd pr fixes-bug`, review, land `--tier components`.
 
 ## Wave 1
 
