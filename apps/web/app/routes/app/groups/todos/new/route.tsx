@@ -67,7 +67,7 @@ export default function NewTodoSheet({ loaderData, params }: Route.ComponentProp
   const dueOn = query.get(TODO_PREFILL_PARAMS.dueOn);
   const dueTime = query.get(TODO_PREFILL_PARAMS.dueTime);
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title="Add a todo">
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title="Add a todo">
       <TodoForm
         // A new URL is a new form.
         key={search}

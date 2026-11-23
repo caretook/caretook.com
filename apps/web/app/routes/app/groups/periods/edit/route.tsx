@@ -76,7 +76,12 @@ export default function EditPeriodSheet({ loaderData, params }: Route.ComponentP
   }, [gone, close]);
 
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title={`Edit ${periodTitle(loaderData.period)}`}>
+    <Sheet
+      guardChanges
+      isOpen
+      onOpenChange={(open) => !open && close()}
+      title={`Edit ${periodTitle(loaderData.period)}`}
+    >
       <PeriodForm
         key={loaderData.period.id}
         period={loaderData.period}

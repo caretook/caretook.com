@@ -69,7 +69,7 @@ export function ConfirmDialog({
         {children && <div className="mt-3">{children}</div>}
         <div className="modal-action">
           <Button onClick={onClose}>{cancelLabel}</Button>
-          <Button variant={confirmVariant} disabled={confirmDisabled} onClick={onConfirm}>
+          <Button variant={confirmVariant} disabled={confirmDisabled} onClick={onConfirm} data-form-cancel="">
             {confirmLabel}
           </Button>
         </div>

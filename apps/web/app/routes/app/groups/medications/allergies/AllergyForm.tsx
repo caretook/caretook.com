@@ -100,7 +100,7 @@ export function AllergyForm({
       )}
       <div className="flex justify-end gap-2 pt-3">
         {onCancel && (
-          <button type="button" className="btn btn-ghost" onClick={onCancel}>
+          <button data-form-cancel="" type="button" className="btn btn-ghost" onClick={onCancel}>
             Cancel
           </button>
         )}
