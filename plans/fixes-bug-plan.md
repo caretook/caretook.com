@@ -56,7 +56,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 32    | B-644 | landed                                     | a4252709 |
 | 33    | B-643 | landed                                     | ce9c55a2 |
 | 34    | B-641 | landed                                     | 501a58bf |
-| 35    | B-648 | merged (opus; quick check running)         | 11820cae |
+| 35    | B-648 | merged (opus; quick check on 6b75cb73)     | 11820cae |
 | 36    | B-647 | started (opus)                             |          |
 | 37    | B-646 | waiting on 36                              |          |
 
