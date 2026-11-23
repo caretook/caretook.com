@@ -28,6 +28,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 10 (slices 41–42, B-620, B-631, both on opus):** ui-kit-5's last wave landed as a5ec12da, which frees the timeline files; synced as 7f2e8685. B-615 and B-616 stay held as above. Slice 41 merged (slice check passed on c957fd24); its worktree stays until the wave is green. At landing, fold into `docs/domain/care-periods.md`: a day header counts to its own viewer-zone date. New item B-656 (a period starting just after midnight in the recipient's zone shows day 1 on two headers for a viewer behind that zone) waits for a later wave. Slice 42 merged (slice check passed on 09f40ff6); its worktree stays until the wave is green. New item B-657 (after a successful Add a medication, Back loses unsaved dose edits without asking) waits for a later wave. Synced as 7ab994fc (brings migrations 0039 and 0040; database reset): quick check passed, `components` CI green (run 45221463090). Slice worktrees removed; `care-periods.md` folded. `browser --changed --base dev` (roundtrip, ui) passed on c617e7f5 (don't rerun). Synced again as c3d6f826 (dose-accuracy wave 4, no migration): quick check passed, `components` CI green (run 45227226270). **PR #124 is open. Rotated here for context (no slice in flight). Next:** `pnpm prd review fixes-bug --wait` in the background, triage, then `pnpm prd land fixes-bug --tier components -m "fix(fixes-bug): day headers never repeat a care period day, Back asks after a refused action (B-620, B-631)"`. No Status commit between the review and the landing: it moves the PR's head. Land's report names Codex's verdict; the report text covers B-620, B-631 and the follow-ups B-656, B-657. The tier command reads files from stdin: `git diff --name-only dev...HEAD | node scripts/loops/check-plan.mjs --propose --repo "$PWD" --base dev --head HEAD`.
 
+**Wave 10 landed in dev through PR #124 as 07529c63** (2026-11-23): `components` CI green on c3d6f826 (run 45227226270). **Codex did not review it** (out of credits, `--no-review`). Report: ask a151. To-test: `to-test/2026-11-23-1235-fixes-bug.md`. Docs already folded (`care-periods.md`). **Next session:** `pnpm prd sync`, ingest, recheck hot files, then write wave 11 from the triaged items: B-615, B-656, B-657, B-659, B-662, B-666, B-675, B-689, B-690.
+
 **After wave 10:** B-616 moved to dose-accuracy slice 6 (recorded in the backlog on the user's word): dropped from this plan. **B-615** goes in wave 11: dose-accuracy's wave 4 landed as 30b6685a, and its orchestrator cleared `assistantActionService.ts` and `timelineEntryService.ts` for it, but asks that no one touch the `timelineEntryService` upsert until its wave 5 lands (it will message). Also waiting for wave 11: B-656 and B-657.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
@@ -74,8 +76,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 38    | B-651 | landed                                     | a447334a |
 | 39    | B-652 | landed                                     | 7be34f48 |
 | 40    | B-655 | landed                                     | 487cb235 |
-| 41    | B-620 | merged (opus; care-periods.md at landing)  | ab9dcfae |
-| 42    | B-631 | merged (opus)                              | 2a479df8 |
+| 41    | B-620 | landed (care-periods.md folded)            | ab9dcfae |
+| 42    | B-631 | landed                                     | 2a479df8 |
 
 ## Wave 1
 
