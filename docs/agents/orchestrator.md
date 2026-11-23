@@ -54,7 +54,7 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 - A go-ahead covers one landing, unless the landing mode covers more. Never land on your own judgement, never another PRD.
 - **`--force` and `--no-review`** need a fresh Fable land skeptic's `go` for this tip and action (`--skeptic <id>`, in the report for a veto) or the user's word (`--by-user`). A `no`: fix it or ask. On a brake or an unsynced tip, `--force` needs `--by-user`.
 - **Run each browser check once:** never rerun one that passed, never `--suite` twice for a landing.
-- **Staging takes a candidate:** `pnpm prd ci candidate cut`, then `pnpm prd ci promote`, which refuses a tip that isn't passing. Agents never merge one any other way; the user's hand merge is the override.
+- **Staging takes a candidate:** `pnpm prd ci candidate cut`, then `pnpm prd ci promote` (refuses a failing tip). Agents merge one no other way; the user's hand merge is the override. **Main:** only `pnpm prd ci release` writes `release-gate`.
 
 ### The check gate
 
