@@ -4,14 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/inbox-agent` (slice commits) |
-| ----- | ---- | ----- | -------------------------------------------- |
-| 1     | 1    | —     | —                                            |
-| 2     | 1    | —     | —                                            |
-| 3     | 2    | —     | —                                            |
-| 4     | 3    | —     | —                                            |
-| 5     | 4    | —     | —                                            |
-| 6     | 5    | —     | —                                            |
+| Slice | Wave | State                                    | Merge into `prd/inbox-agent` (slice commits) |
+| ----- | ---- | ---------------------------------------- | -------------------------------------------- |
+| 1     | 1    | started (opus), worktree `inbox-agent-1` | —                                            |
+| 2     | 1    | started (opus), worktree `inbox-agent-2` | —                                            |
+| 3     | 2    | —                                        | —                                            |
+| 4     | 3    | —                                        | —                                            |
+| 5     | 4    | —                                        | —                                            |
+| 6     | 5    | —                                        | —                                            |
+
+**Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
+
+**Now (2026-11-23):** wave 1 running from `0aff974c`. B-425, B-474 and B-435 claimed. Models: every slice on opus. Gate for this tooling and Markdown diff: `pnpm test:tooling` and `pnpm exec eslint scripts`. No `fixes-tooling`, `test-health` or `code-health` worktree was open at the start. `pnpm backlog doctor` reports two old inbox-line mismatches (B-548, B-549), not this topic's. Open issues: none.
 
 **Backlog:** claim B-425 and B-474 when slice 1 starts, `done` B-474 when slice 3 merges and B-425 when slice 4 merges; B-435 when slice 2 starts, `done` when slice 3 merges; B-515 when slice 5 starts, `done` when it merges; B-551 when slice 6 starts, `done` when it merges.
 
