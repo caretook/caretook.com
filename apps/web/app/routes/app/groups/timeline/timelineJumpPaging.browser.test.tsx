@@ -110,12 +110,13 @@ describe("scrolling newer from a day", () => {
   test("a day before the first entry shows the oldest day under its notice", async () => {
     await openTimeline({ fixtures: history(40), query: `?day=${key(400)}` });
     const oldest = await found(() => document.getElementById(`day-${key(40)}`));
-    expect(notice()?.textContent).toMatch(/^No entries on or before /);
-    expect(notice()!.compareDocumentPosition(oldest) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const shown = await found(notice);
+    expect(shown.textContent).toMatch(/^No entries on or before /);
+    expect(shown.compareDocumentPosition(oldest) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // On screen, at the notice (the page's end may stop it short of the top), not left at the page's top.
     await expect.poll(() => scrollY).toBeGreaterThan(0);
-    await expect.poll(() => notice()!.getBoundingClientRect().top).toBeLessThan(innerHeight);
-    expect(notice()!.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+    await expect.poll(() => shown.getBoundingClientRect().top).toBeLessThan(innerHeight);
+    expect(shown.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
     expect(document.getElementById(`day-${key(0)}`)).toBeNull();
   });
 
