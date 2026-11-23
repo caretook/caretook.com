@@ -374,7 +374,10 @@ describe.each([
     await expect.poll(() => !document.querySelector(MENU) && !!inSheet("+ Add a reading")()).toBe(true);
     await menu(inSheet("+ Add a reading"), { name: "Vital type", count: 9 });
     expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+    // The form has a reading on it now, so Escape asks first.
     await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector("dialog[open]")).not.toBeNull();
+    await userEvent.click(page.getByRole("button", { name: "Discard" }));
     await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
   });
 

@@ -334,7 +334,11 @@ test("stacked sheets: the top one exits alone; the one under it then navigates; 
 
   // Escape reaches the sheet that holds focus, so wait for it to come back.
   await expect.poll(() => todo.element().contains(document.activeElement)).toBe(true);
+  // The todo has a due date typed in, so it asks before it goes.
   await userEvent.keyboard("{Escape}");
+  await expect.poll(() => document.querySelector("dialog[open]")).not.toBeNull();
+  expect(device.location()).toBe(`${LIST}/new`);
+  await userEvent.click(page.getByRole("button", { name: "Discard" }));
   await expect.poll(() => device.location().split("?")[0]).toBe(LIST);
   await expect.poll(overlay).toBeNull();
   expect(warn.mock.calls.flat().join(" ")).not.toContain("one blocker");
