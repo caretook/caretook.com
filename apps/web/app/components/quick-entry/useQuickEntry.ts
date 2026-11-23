@@ -4,15 +4,19 @@ import type { DuePass } from "~/lib/medications/duePasses";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { parseQuickEntry } from "@caretook/data/schema";
+import { parseQuickEntry, readGoTo } from "@caretook/data/schema";
 import { usePassLog } from "~/components/medications";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { localTimeZone } from "~/lib/core/format";
 import { useGroup } from "~/lib/app-shell/group";
 import { offerUndo } from "~/lib/medications/passUndo";
 import { eventDraftFor, QUICK_ENTRY_DRAFT } from "~/lib/assistant/quickEntryDraft";
 import { actionPreview } from "~/lib/assistant/quickEntryPreview";
 import { recentLineFor, recordLine } from "~/lib/assistant/recentLines";
 import { getSync } from "~/lib/sync";
+import { setDay } from "~/lib/timeline/timelineFilters";
+import { JUMP_LINK_STATE, jumpDayText } from "~/lib/timeline/timelineJump";
+import { withoutSheetParams } from "~/lib/timeline/urls";
 import { runActions } from "~/lib/assistant/quickEntry.sync";
 import {
   buildCards,
@@ -28,6 +32,7 @@ import {
   pruneCardState,
   savedText,
 } from "./quickEntryCards";
+import { GO_TO_AHEAD } from "./quickEntryCopy";
 import { useQuickEntryData } from "./useQuickEntryData";
 import { useQuickEntryPasses } from "./useQuickEntryPasses";
 
@@ -71,6 +76,10 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     [text, timeZone, units, medications, providers, passes, members],
   );
 
+  // A whole line asking for a day is a Go to: it has no save cards, so nothing can reach the runner.
+  const goTo = readGoTo(text, { now: new Date(), timeZone: localTimeZone() });
+  const isGoTo = goTo !== null;
+
   // Forget a card's state as soon as its part of the line is gone (adjusted while rendering, so no stale frame).
   const kept = pruneCardState(parts, { chosen, removed, errors });
   if (kept.chosen !== chosen) setChosen(kept.chosen);
@@ -92,12 +101,14 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   const titleOf = useCallback((r: QuickEntryReading) => preview(r).title, [preview]);
 
   const cards = useMemo(
-    () => markDraft(buildCards(parts, { chosen, removed }, titleOf)),
-    [parts, chosen, removed, titleOf],
+    () => (isGoTo ? [] : markDraft(buildCards(parts, { chosen, removed }, titleOf))),
+    [isGoTo, parts, chosen, removed, titleOf],
   );
 
   // Announce the cards once typing settles, not on every keystroke.
-  const spoken = cardsAnnouncement(cards, titleOf);
+  const spoken = goTo
+    ? `Go to ${jumpDayText(goTo.day)}${goTo.ahead ? `. ${GO_TO_AHEAD}` : ""}`
+    : cardsAnnouncement(cards, titleOf);
   useEffect(() => {
     const timer = setTimeout(() => setAnnouncement(spoken), ANNOUNCE_DELAY_MS);
     return () => clearTimeout(timer);
@@ -173,7 +184,23 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     });
   };
 
+  /** Open the timeline on the line's day (read again, in case midnight passed): saves and records nothing. */
+  const go = async () => {
+    const target = readGoTo(text, { now: new Date(), timeZone: localTimeZone() });
+    if (!target || target.ahead) return;
+    reset();
+    setStatus("");
+    await navigate(
+      appUrls.timeline(groupId, setDay(`?${withoutSheetParams(search).toString()}`, target.day)),
+      {
+        state: JUMP_LINK_STATE,
+        preventScrollReset: true,
+      },
+    );
+  };
+
   const save = async () => {
+    if (isGoTo) return go();
     if (busy || !canSaveCards(cards)) return;
     setBusy(true);
     try {
@@ -236,6 +263,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     text,
     setText,
     cards,
+    goTo,
     preview,
     draftLine,
     errors,
