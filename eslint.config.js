@@ -6,7 +6,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import globals from "globals";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import tseslint from "typescript-eslint";
-import caretook from "./scripts/eslint/plugin.mjs";
+import caretook, { kitGuard } from "./scripts/eslint/plugin.mjs";
 
 export default defineConfig(
   globalIgnores([
@@ -78,6 +78,9 @@ export default defineConfig(
       "caretook/no-fixed-sleep": "error",
     },
   },
+
+  // The kit's guard: React Aria only in ui/, no hand-written kit classes (lists: scripts/eslint/kit-guard.mjs).
+  ...kitGuard,
 
   // Plain JS config files aren't in any tsconfig.
   { files: ["**/*.{js,mjs,cjs}"], extends: [tseslint.configs.disableTypeChecked] },
