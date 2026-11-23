@@ -161,7 +161,7 @@ When a whole PRD is done: `pnpm prd rm <topic>` removes its worktree, stack and 
 
 ### Going live
 
-Before the PR to `staging`, run the lean end-to-end set once on `dev` from any synced worktree, on a quiet machine: `caffeinate -i pnpm prd browser --suite` (about 5 minutes). Screens are covered by component tests in `pnpm check`; the lean set covers what needs the server and sync (sign-in, first sync, sign-out, devices converging, offline, invites, the CSP). Open pull requests on GitHub: `dev` → `staging`, then `staging` → `main`. The tracker then shows the items as staging, then live (`pnpm backlog refresh` writes those statuses into the file).
+`staging` takes a release candidate: `pnpm prd ci candidate cut --wait` fixes a `dev` commit on an `rc/*` branch, opens its PR and runs the whole suite and the browser checks in CI; `pnpm prd ci promote` merges it only if that run passes. Merging the PR by hand on GitHub is your override. Then open the pull request `staging` → `main`. The tracker then shows the items as staging, then live (`pnpm backlog refresh` writes those statuses into the file).
 
 ## Commit messages
 
