@@ -25,7 +25,7 @@
 - Slice 3: land verdicts need the full 40-character tip and an action of `force`, `no-review` or `decline <thread>`. They aren't spent, so a retry on the same tip works: use `checkRecord`, not `useRecord`.
 - Slice 4: plan verdicts are `go` or `send-back`. A land `no` or plan `send-back` used for an ask is bound only by topic, age and single use.
 
-**Wave 1:** quick check passed on the synced tip; tier `none` (tooling and docs), no CI run. PR #103, Codex clean on 32515ef; this docs-only trim (machinery was 18 bytes over budget) needs its verdict again. Next: land, then file the report and rotate. Wave 2 (slices 2, 3, 4) starts in the next session.
+**Wave 1:** landed in dev as ed73b3a3 through PR #103 (Codex clean on 84079b2, tier `none`), report filed, machinery doc folded. **Next: wave 2, slices 2, 3 and 4 together** (all ready; slice 1 is merged): `pnpm backlog claim B-512 B-513 --owner prd/agent-autonomy-3`, sync first, opus for each. B-511 stays in progress until slice 2 merges.
 
 Fold into the docs at landing (the PRD's _Docs at landing_): wave 1, [machinery](../docs/agents/machinery.md) (the store and the brief); wave 2, machinery, [orchestrator](../docs/agents/orchestrator.md), [planner](../docs/agents/planner.md), [preferences](../docs/agents/preferences.md), [backlog](../docs/agents/backlog.md). Trim at least what you fold in.
 
