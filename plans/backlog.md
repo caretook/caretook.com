@@ -329,6 +329,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-605 | bug | triaged | fixes-bug |  | PageUp and PageDown on a date field's hour still wrap inside AM/PM, so 11 AM can page to 12 AM |
 | B-606 | feature | inbox |  |  | Highlight a double dose on a next-dose-due notification |
 | B-607 | bug | triaged | fixes-tooling |  | Component test harness: settle can return before the page mounts, so a test reading right after open can get nothing |
+| B-608 | chore | triaged | fixes-tooling |  | Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check |
 
 ## Items
 
@@ -2506,3 +2507,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (prd/test-gates): Found by test-gates wave 5: entryRepeat.browser.test.tsx failed on CI runs 45108684442 and 45109646741 and was fixed in the test only. renderWithDevice's settle can go quiet while route loaders read the device; plannerWorld.ts already waits for main first.
+
+### B-608 · chore · Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): User asked for this 2026-11-22. Today nothing auto-formats: the slice check runs prettier --check . and failed on format twice in fixes-ui. Add to the slice prompt: prettier --write --ignore-unknown on the slice's changed files and commit, before pnpm prd check (it refuses a dirty tree). Add --cache to the prettier --check in check-body.sh, using each worktree's default cache location. Measured on dev at load 34 with Prettier 3.10.1: no cache 26.3s, cold cache 23.9s, warm 2.5s. One cache file shared across worktrees did not help (20.5s in another worktree), so a fresh worktree's first run stays cold. CI gets no benefit unless the cache is restored between runs.
