@@ -222,6 +222,12 @@ export function buildVerdict({ commit, runId, tier, needs, brakes = [], quaranti
     if (beforeFiles.length || beforeTests.length) failedJobs.add(job);
 
     if (need?.result === "success") continue;
+    // The browser suite ran and failed: real, with no test named yet.
+    if (job === "browser" && need?.outputs?.started === "true") {
+      failedJobs.add(job);
+      unnamedJobs.push(job);
+      continue;
+    }
     if (CHECK_JOBS.has(job)) {
       failedJobs.add(job);
       if (need?.outputs?.started === "true") brakeJobs.push(job);

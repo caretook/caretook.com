@@ -124,6 +124,7 @@ describe("the deploy workflows", () => {
       "components-1": "components",
       "components-2": "components",
       build: "full",
+      browser: "candidate",
     };
     const tierJobs = Object.keys(tierOf);
     expect(Object.keys(jobs)).toEqual(["plan", ...tierJobs, "verdict"]);
@@ -164,7 +165,8 @@ describe("the deploy workflows", () => {
     }
     // One shard runs the quarantined component tests, not both.
     expect(jobs["components-2"].steps.some((s) => s.id === "quarantine")).toBe(false);
-    for (const name of ["static", "build"]) expect(jobs[name].outputs.started).toContain("steps.started");
+    for (const name of ["static", "build", "browser"])
+      expect(jobs[name].outputs.started).toContain("steps.started");
   });
 
   it("builds both targets in CI's full tier, with no debug handle in either client", () => {
@@ -176,6 +178,33 @@ describe("the deploy workflows", () => {
     for (const dir of ["apps/web/build/web/client", "apps/web/build/native/client"])
       expect(run("grep")).toContain(dir);
     expect(run("grep")).toContain("caretookSync");
+  });
+
+  it("runs the browser suite on the Docker stack, against a check build it serves itself", () => {
+    const { browser } = parseYaml(read(".github/workflows/ci.yml")).jobs;
+    expect(Number(browser["timeout-minutes"])).toBeLessThanOrEqual(35);
+    expect(browser.services).toBeUndefined();
+    expect(browser.steps.map((s) => s.id)).toEqual([
+      "checkout",
+      "setup",
+      "env",
+      "chromium",
+      "stack",
+      "migrate",
+      "seed",
+      "build",
+      "serve",
+      "powersync",
+      "started",
+      "suite",
+      "logs",
+    ]);
+    const run = (id) => browser.steps.find((s) => s.id === id).run;
+    expect(run("env")).toContain('node scripts/ci/env.mjs browser >> "$GITHUB_ENV"');
+    expect(run("stack")).toBe("pnpm datastore:up");
+    expect(run("serve")).toContain("NODE_ENV=production");
+    expect(run("serve")).toContain("host-headers.mjs");
+    expect(run("suite")).toBe("bash scripts/loops/browser.sh --suite");
   });
 
   it("runs the deploy's steps in order", () => {
