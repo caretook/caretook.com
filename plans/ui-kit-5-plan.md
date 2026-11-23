@@ -8,17 +8,25 @@
 | ----- | --------------------------------------------- | ---- | ------------- | -------- |
 | 1     | Timeline list and Today, guard list regrouped | 1    | landed (opus) | 052389e8 |
 | 2     | Timeline forms and sheets                     | 2    | started, opus |          |
-| 3     | Easy view and quick entry                     | 2    | started, opus |          |
-| 4     | Entries and the notes editor                  | 2    | started, opus |          |
-| 5     | Admin                                         | 2    | started, opus |          |
-| 6     | Account, connectors and marketing             | 2    | started, opus |          |
+| 3     | Easy view and quick entry                     | 2    | handed off    |          |
+| 4     | Entries and the notes editor                  | 2    | handed off    |          |
+| 5     | Admin                                         | 2    | handed off    |          |
+| 6     | Account, connectors and marketing             | 2    | handed off    |          |
 | 7     | The frame, home, and closing the guard        | 3    | not started   |          |
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
 **Now:** wave 1 landed in dev as fc079091 (PR #107, Codex clean, full CI flake on 035ef61c filed as B-653, a planner test outside this branch). Report filed. Slice 1 worktree removed. Wave 2 started 2026-11-23 from 515f9c73 (dev synced, only backlog and quarantine changes newer, so no quick check): slices 2 to 6 each have a worktree and an opus agent. Next: merge hand-offs in plan order, quick check after each, then the wave's CI run. Browser checks at gates: the changed ones only (`pnpm prd browser --changed --base dev --list`, one name per call). No Status commit between `pr` and `land`.
 
-**For slice 3:** use `variant="warning"` for `EasyNow`'s Given all.
+**For slice 3:** use `variant="warning"` for `EasyNow`'s Given all. Handed off at bab7bbfd; waits for slice 2 (plan order). Its `timelineEasyTiles`, `timelineEasyLock` and `timelineQuickEntry*` tests first run at the wave's CI. Fold at landing: `ui-kit.md` drops Easy view as a `Page` exception and records `Popover`'s trigger look (`variant`, `size`, `shape`).
+
+**For slice 2:** handed off at bce86882, sent back before merge: `DoseForm`'s duplicate-dose warning must stay `role="alert"` (a `role` override on `Notice`, asserted in `timelineDoses`). Its other timeline tests first run at the wave's CI. Fold at landing: `FormFooter`'s `size`, `CHOICE_BUTTON`, `CHOICE_TILE`, `Notice`'s `role`.
+
+**For slice 4:** handed off at be20b8e1; merges after 2 and 3. Only `entryMentions` ran. At the wave's CI watch `entry*`, `plannerEvents` (cancelled banner) and `plannerRemind` (Remind me sheet).
+
+**For slice 5:** handed off at 2b68c17e; merges after 2 to 4. Only `groups.browser.test.tsx` ran; the other 8 admin test files first run at the wave's CI.
+
+**For slice 6:** handed off at 7eb3a808; merges after 2 to 5. Its account, connector and marketing component tests first run at the wave's CI. It drops the public form's `data-field-error` hook, and `/connect` keeps a `Button` pair because its submits send `intent`.
 
 **Backlog:** B-577 claimed by prd/ui-kit-5. It is done when slice 7 merges.
 
