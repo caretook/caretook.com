@@ -18,7 +18,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 7 (slices 35–37, B-648, B-647, B-646, all on opus) landed in dev through PR #108 as bdff2e8** (2026-11-23): `integration` CI on 943a1b2c was `flake` (run 45155090185; only `scripts/loops/lease.test.mjs`, not this branch's, filed as B-654), quick check and Codex clean on 943a1b2c; `browser --changed` needs none. To-test: `to-test/2026-11-23-0529-fixes-bug.md`. Docs folded (`assistant.md`, at its 10 KB budget: trim when adding). Slice worktrees removed.
 
-**Wave 8 (slices 38–39, B-651, B-652, both on opus) is running** (2026-11-23), one after the other: slice 39 starts when 38 is merged. Synced with dev at b5f7b685 (nothing to merge). The landing also carries wave 7's docs commit. **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (ui-kit-5 holds `routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
+**Wave 8 (slices 38–39, B-651, B-652, both on opus): both merged** (2026-11-23; 38 as a447334a, 39 as 7be34f48). Quick check passed on ecd376bd (slice 38 merged); next the quick check on the tip, then the `integration` CI run. Slice worktrees stay until the verdict is green. The landing also carries wave 7's docs commit. **Next wave:** B-655 (a counted ordinal before a part of day, filed from slice 39). **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (ui-kit-5 holds `routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -62,7 +62,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 36    | B-647 | landed                                     | 3e6adea0 |
 | 37    | B-646 | landed                                     | ce4d22b1 |
 | 38    | B-651 | merged (opus)                              | a447334a |
-| 39    | B-652 | started (opus)                             | —        |
+| 39    | B-652 | merged (opus)                              | 7be34f48 |
 
 ## Wave 1
 
