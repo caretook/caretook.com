@@ -100,7 +100,10 @@ describe("fakeGoogleCalendar", () => {
 
   it("lists a window: live events inside its bounds, repeats' instances marked, and no others", async () => {
     const { google, session, calendarId } = await connected();
-    const at = (hour: number) => ({ dateTime: `2027-03-01T${hour}:00:00.000Z`, timeZone: "UTC" });
+    const at = (hour: number) => ({
+      dateTime: `2027-03-01T${String(hour).padStart(2, "0")}:00:00.000Z`,
+      timeZone: "UTC",
+    });
     const make = (summary: string, start: number, end: number, recurring = false) =>
       google.user.create(calendarId, { summary, start: at(start), end: at(end), recurring });
     make("Ended at the lower bound", 8, 10);
