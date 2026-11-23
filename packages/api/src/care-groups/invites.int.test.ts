@@ -299,7 +299,7 @@ describe("legal acceptance at an invite", () => {
     const email = newAddress("lost");
     const token = await emailInvite(s, email);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
-    const create = vi.spyOn(legalAcceptanceModel, "create").mockImplementationOnce(lost as never);
+    const create = vi.spyOn(legalAcceptanceModel, "create").mockImplementationOnce(lost);
     expect(
       await anonymous.invite.signUp({ token, name: "Lost Write", email, password: PASSWORD, legal: true }),
     ).toEqual({ email, verified: true });
