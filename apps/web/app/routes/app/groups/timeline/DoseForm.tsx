@@ -80,8 +80,9 @@ export function DoseForm(props: Props) {
   const [status, setStatus] = useState<DoseStatus>(stored?.status ?? draft?.status ?? "given");
   // The amount follows the chosen medication's dose until it's typed in (or came filled in).
   const [amount, setAmount] = useState({
-    value: stored ? (stored.amount ?? "") : draft?.amount ? draft.amount : doseOf(choice),
-    typed: !!entry || !!draft?.amount,
+    value: stored ? (stored.amount ?? "") : (draft?.amount ?? doseOf(choice)),
+    // An empty draft amount is quick entry asking: the usual dose must not fill it in.
+    typed: !!entry || (draft?.amount ?? null) !== null,
   });
   // Warnings shown for this choice; submitting again with the same ones saves.
   const [warnings, setWarnings] = useState<string[]>([]);
