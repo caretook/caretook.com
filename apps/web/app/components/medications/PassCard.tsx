@@ -15,6 +15,7 @@ import {
   passStateText,
   passTitle,
 } from "~/lib/medications/medicationDisplay";
+import { passLogIdFor } from "~/lib/medications/duePasses";
 import { DoseSlotRow } from "./DoseSlotRow";
 import { usePassLog } from "./usePassLog";
 
@@ -52,10 +53,9 @@ export function PassCard({
 }) {
   const { givenAll, busy, error } = usePassLog(groupId);
   const [expanded, setExpanded] = useState(defaultExpanded);
-  // The round a single mark joins: the pass's, or one made now and kept, so
-  // marks made before the first one syncs back still share it.
-  const [freshLogId] = useState(() => crypto.randomUUID());
-  const passLogId = pass.passLogId ?? freshLogId;
+  // The round a single mark joins: the pass's, else the one its key and day
+  // derive, so two members' marks in one pass fold into one timeline item.
+  const passLogId = passLogIdFor(pass);
   const listId = useId();
   const title = passTitle(pass);
   const logged = passLoggedText(pass, nameOf);

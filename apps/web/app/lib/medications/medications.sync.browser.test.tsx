@@ -1,5 +1,6 @@
 import type { MedicationRow, RecipientRow } from "./medications.sync";
 
+import { doseSlotId } from "@caretook/data/schema";
 import { describe, expect, test } from "vitest";
 import { renderWithDevice } from "../../../test/device";
 import { newId } from "../../../test/fixtures";
@@ -11,16 +12,19 @@ import {
   world,
 } from "../../routes/app/groups/medications/medicationWorld";
 import { readRows } from "../timeline/timeline.sync";
+import { addToPassLog } from "./passLogs.sync";
 import {
   changeMedicationStatus,
   createMedication,
   dayBounds,
   groupDosesQuery,
   logDose,
+  logDoses,
   medicationEntriesQuery,
   medicationQuery,
   medicationsQuery,
   recipientQuery,
+  removeDoses,
   removeMedication,
   removeMedicationEntry,
   toMedicationEntries,
@@ -195,6 +199,85 @@ describe("doses", () => {
 
     const stray = await logDose(db, GROUP, { medicationId: newId(), status: "given" });
     expect(stray.ok).toBe(false);
+  });
+});
+
+describe("slot ids", () => {
+  // 08:05 on Jan 15 2026 in Los Angeles.
+  const AT = "2026-01-15T16:05:00.000Z";
+  const PASS = "6f1c2d3e-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
+  const slotDose = (medicationId: string = LISINOPRIL.id) => ({
+    medicationId,
+    status: "given" as const,
+    scheduledFor: "08:00",
+    occurredAt: AT,
+  });
+  const slotId = (medicationId: string = LISINOPRIL.id) =>
+    doseSlotId(medicationId, "2026-01-15", "08:00", "given");
+  const liveDoses = async (db: Db) =>
+    db.powersync.getAll<{ id: string }>(
+      "SELECT id FROM timeline_entry WHERE kind = 'dose' AND deleted_at IS NULL AND occurred_at LIKE '2026-01-15%'",
+    );
+
+  test("logDose takes the slot's id; with it live (Log anyway) or deleted (after Undo), a random one", async () => {
+    const { db } = await device();
+    const first = await logDose(db, GROUP, slotDose());
+    expect(first).toEqual({ ok: true, id: slotId() });
+
+    const extra = await logDose(db, GROUP, slotDose());
+    expect(extra.ok && extra.id).not.toBe(slotId());
+    expect(await liveDoses(db)).toHaveLength(2);
+
+    expect((await removeDoses(db, [slotId()])).ok).toBe(true);
+    const again = await logDose(db, GROUP, slotDose());
+    expect(again.ok && again.id).not.toBe(slotId());
+    expect(await liveDoses(db)).toHaveLength(2);
+  });
+
+  test("a dose naming no slot takes a random id; a different answer for the slot its own", async () => {
+    const { db } = await device();
+    const unnamed = await logDose(db, GROUP, { ...slotDose(), scheduledFor: null });
+    expect(unnamed.ok && unnamed.id[14]).toBe("4");
+    const skipped = await logDose(db, GROUP, { ...slotDose(), status: "skipped" });
+    expect(skipped.ok && skipped.id).toBe(doseSlotId(LISINOPRIL.id, "2026-01-15", "08:00", "skipped"));
+  });
+
+  test("two taps at once both save: the second takes a random id", async () => {
+    const { db } = await device();
+    const [a, b] = await Promise.all([logDose(db, GROUP, slotDose()), logDose(db, GROUP, slotDose())]);
+    expect(a.ok && b.ok).toBe(true);
+    if (!a.ok || !b.ok) return;
+    expect(new Set([a.id, b.id]).size).toBe(2);
+    expect([a.id, b.id]).toContain(slotId());
+  });
+
+  test("logDoses: slot ids, one row per id in a batch; Given all, Undo, Given all leaves one live dose per slot", async () => {
+    const { db } = await device();
+    const batch = [slotDose(), slotDose(ACETAMINOPHEN.id)];
+    const first = await logDoses(db, GROUP, batch);
+    expect(first.ok && first.ids).toEqual([slotId(), slotId(ACETAMINOPHEN.id)]);
+    expect((await removeDoses(db, first.ok ? first.ids : [])).ok).toBe(true);
+    const second = await logDoses(db, GROUP, batch);
+    expect(second.ok).toBe(true);
+    expect(second.ok && second.ids.some((id) => first.ok && first.ids.includes(id))).toBe(false);
+    expect(await liveDoses(db)).toHaveLength(2);
+
+    const twice = await logDoses(db, GROUP, [
+      { ...slotDose(), occurredAt: "2026-01-16T16:05:00.000Z" },
+      { ...slotDose(), occurredAt: "2026-01-16T16:05:00.000Z" },
+    ]);
+    expect(twice.ok && new Set(twice.ids).size).toBe(2);
+  });
+
+  test("the pass sheet's added dose takes the slot's id, in the log's round", async () => {
+    const { db } = await device();
+    const added = await addToPassLog(
+      db,
+      GROUP,
+      { passLogId: PASS, passId: PASS, scheduledFor: "08:00", occurredAt: AT },
+      { medicationId: LISINOPRIL.id, amount: "1 tablet" },
+    );
+    expect(added).toEqual({ ok: true, id: doseSlotId(LISINOPRIL.id, "2026-01-15", PASS, "given") });
   });
 });
 

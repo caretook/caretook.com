@@ -1,10 +1,12 @@
 import type { DoseDetails, MedicationSchedule, MedicationStatus } from "./medication";
-import type { PassLike } from "./medicationPass";
+import type { PassLike, TimedSlot } from "./medicationPass";
+import type { DoseSlotName, ScheduleChange } from "./scheduleHistory";
 
 import { addDays } from "../core/entryTiming";
 import { dayInZone, zonedInstant } from "../core/zonedDay";
 import { slotAmount } from "./medication";
 import { slotTimes } from "./medicationPass";
+import { scheduleHistory } from "./scheduleHistory";
 
 // What's due today: a plain function of `now`, so a timer re-evaluates it
 // (`useDueDoses`) and tests pin every boundary. Schedule times are the
@@ -24,7 +26,7 @@ export type DueMedication = {
   createdAt?: string | null;
   /** "YYYY-MM-DD": no slots on days before it started. */
   startedOn?: string | null;
-  /** "YYYY-MM-DD": once completed or discontinued, no slots from this day on (`doseSlotsBetween`). */
+  /** "YYYY-MM-DD": while completed or discontinued, no slots from this day on (`doseSlotsBetween`). */
   stoppedOn?: string | null;
 };
 
@@ -126,25 +128,25 @@ const scheduledOn = (m: DueMedication, day: string, timeZone: string) => {
 
 type Working = { slot: Omit<DoseSlot, "state" | "dose">; ms: number; dose: DueDose | null };
 
-/** Every medication's slots on `days` (one per time: a pass's, the first, ahead of a time of its own). */
+/** One slot per time: a pass's, the first, ahead of a time of its own. */
+const onePerTime = (all: readonly TimedSlot[]) =>
+  all.filter((slot) => {
+    const first = all.find((s) => s.time === slot.time && s.passId) ?? all.find((s) => s.time === slot.time);
+    return first === slot;
+  });
+
+/** Every medication's slots on `days`, as `slotsOn` gives them. */
 const expandSlots = (
   medications: readonly DueMedication[],
   days: readonly string[],
-  passes: readonly Pick<PassLike, "id" | "time">[],
   timeZone: string,
-  takesOn: (m: DueMedication, day: string) => boolean = () => true,
+  slotsOn: (m: DueMedication, day: string) => readonly TimedSlot[],
 ): Working[] => {
   const working: Working[] = [];
   for (const medication of medications) {
-    const all = slotTimes(medication.schedule, passes);
-    const timed = all.filter((slot) => {
-      const first =
-        all.find((s) => s.time === slot.time && s.passId) ?? all.find((s) => s.time === slot.time);
-      return first === slot;
-    });
     for (const d of days) {
-      if (!scheduledOn(medication, d, timeZone) || !takesOn(medication, d)) continue;
-      for (const { time, passId, amount } of timed) {
+      if (!scheduledOn(medication, d, timeZone)) continue;
+      for (const { time, passId, amount } of onePerTime(slotsOn(medication, d))) {
         const at = zonedInstant(d, time, timeZone);
         working.push({
           slot: {
@@ -173,11 +175,8 @@ const nearest = (candidates: readonly Working[], ms: number) =>
 const inWindow = (candidates: readonly Working[], ms: number, windowMinutes: number) =>
   candidates.filter((w) => Math.abs(w.ms - ms) <= windowMinutes * MINUTE);
 
-/** What a dose says about its slot. */
-type SlotName = { passId?: string | null; scheduledFor?: string | null };
-
 /** The medication's slots a dose names: its pass's, else its time's; null when it names neither any more. */
-const namedSlots = (own: readonly Working[], { passId, scheduledFor }: SlotName) => {
+const namedSlots = (own: readonly Working[], { passId, scheduledFor }: DoseSlotName) => {
   const inPass = passId ? own.filter((w) => w.slot.passId === passId) : [];
   if (inPass.length) return inPass;
   const atTime = scheduledFor ? own.filter((w) => w.slot.time === scheduledFor) : [];
@@ -193,7 +192,7 @@ const slotAt = (named: readonly Working[], ms: number, windowMinutes: number, ti
 /** The open slot a dose would answer, or null (a surplus dose). */
 const slotToAnswer = (
   own: readonly Working[],
-  name: SlotName,
+  name: DoseSlotName,
   ms: number,
   windowMinutes: number,
   timeZone: string,
@@ -219,10 +218,13 @@ const answerSlots = (
   doses: readonly DueDose[],
   windowMinutes: number,
   timeZone: string,
+  nameOf: (dose: DueDose) => DoseSlotName = (dose) => dose.details,
 ) => {
   // Doses that name a pass or a slot first, then the rest; each in time order,
   // so the earliest keeps the slot.
-  const names = (d: DueDose) => !!d.details.passId || !!d.details.scheduledFor;
+  const slotNames = new Map(doses.map((d) => [d, nameOf(d)]));
+  const nameFor = (d: DueDose) => slotNames.get(d) ?? d.details;
+  const names = (d: DueDose) => !!nameFor(d).passId || !!nameFor(d).scheduledFor;
   const ordered = [...doses].sort((a, b) => {
     const named = Number(!names(a)) - Number(!names(b));
     return named || a.occurredAt.localeCompare(b.occurredAt) || a.id.localeCompare(b.id);
@@ -231,7 +233,7 @@ const answerSlots = (
     const ms = new Date(dose.occurredAt).getTime();
     if (Number.isNaN(ms)) continue;
     const own = working.filter((w) => w.slot.medication.id === dose.details.medicationId);
-    const match = slotToAnswer(own, dose.details, ms, windowMinutes, timeZone);
+    const match = slotToAnswer(own, nameFor(dose), ms, windowMinutes, timeZone);
     if (match) match.dose = dose;
   }
 };
@@ -289,7 +291,7 @@ export function dueDoses({
   const yesterdayDay = addDays(day, -1);
   const active = medications.filter(isActive).sort(byName);
   const reach = [addDays(day, -2), yesterdayDay, day, addDays(day, 1)];
-  const working = expandSlots(active, reach, passes, timeZone);
+  const working = expandSlots(active, reach, timeZone, (m) => slotTimes(m.schedule, passes));
   answerSlots(working, doses, windowMinutes, timeZone);
   const slots = settle(working, { now, today: day, overdueAfterMinutes });
 
@@ -324,6 +326,12 @@ export type DoseSlotsBetweenInput = Omit<DueDosesInput, "now"> & {
   from: string | Date;
   /** ISO 8601 or a Date: the range's end (usually now); slots up to it. */
   to: string | Date;
+  /**
+   * The group's `medicationChange` entries from the day before `from` on,
+   * deleted ones too: each day reads the schedule it had (`scheduleHistory`).
+   * Left out: every day reads the schedule as it is now.
+   */
+  changes?: readonly ScheduleChange[];
 };
 
 /**
@@ -332,10 +340,12 @@ export type DoseSlotsBetweenInput = Omit<DueDosesInput, "now"> & {
  * either side take part, so a dose answering a slot just outside the range
  * stays there), with the state each has at `to`: a slot nothing answered is
  * `missed` once its day has ended. Slots fall in the
- * recipient's zone, DST-safe. Medications that are completed or discontinued
- * count up to the day they stopped; deleted ones not at all. Schedules are
- * read as they are now: a schedule edited inside the range is read as if it
- * always was. `doses` should cover the range (a little either side is fine).
+ * recipient's zone, DST-safe. Each day has the slots of its own schedule
+ * (`scheduleHistory`, from `changes`), so a schedule edit, a moved pass or a
+ * pause doesn't rewrite earlier days; with no entries, the schedule as it is
+ * now. Medications that are completed or discontinued count up to the day
+ * they stopped; deleted ones not at all. `doses` should cover the range (a
+ * little either side is fine).
  */
 export function doseSlotsBetween({
   medications,
@@ -343,6 +353,7 @@ export function doseSlotsBetween({
   doses,
   from,
   to,
+  changes = [],
   timeZone,
   overdueAfterMinutes = OVERDUE_AFTER_MINUTES,
   windowMinutes = 120,
@@ -357,10 +368,18 @@ export function doseSlotsBetween({
   const taken = medications
     .filter((m) => !m.deletedAt && (m.status === "current" || !!m.stoppedOn))
     .sort(byName);
-  const stillTaking = (m: DueMedication, day: string) =>
-    m.status === "current" || !m.stoppedOn || day < m.stoppedOn;
-  const working = expandSlots(taken, days, passes, timeZone, stillTaking);
-  answerSlots(working, doses, windowMinutes, timeZone);
+  const histories = new Map(
+    taken.map((medication) => [medication.id, scheduleHistory({ medication, passes, changes, timeZone })]),
+  );
+  const working = expandSlots(taken, days, timeZone, (m, day) => histories.get(m.id)?.slotsOn(day) ?? []);
+  // Answered before trimming to the range, so a dose near its edge keeps its own slot.
+  answerSlots(
+    working,
+    doses,
+    windowMinutes,
+    timeZone,
+    (dose) => histories.get(dose.details.medicationId)?.doseName(dose) ?? dose.details,
+  );
   const inRange = working.filter((w) => w.ms >= start.getTime() && w.ms <= end.getTime());
   return settle(inRange, { now: end, today: lastDay, overdueAfterMinutes });
 }

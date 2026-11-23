@@ -309,6 +309,33 @@ describe("passes", () => {
     expect(queued).toHaveLength(2);
   });
 
+  test("two single Given taps in one pass share one round", async () => {
+    const device = await open([ROUNDS, XA, YB]);
+    await expand(ROUNDS.id);
+    await userEvent.click(await found(() => slot(XA.id, R1)?.querySelector("[data-give]")));
+    await expect.poll(() => slotState(XA.id, R1)).toBe("given");
+    await userEvent.click(await found(() => slot(YB.id, R1)?.querySelector("[data-give]")));
+    await expect.poll(() => slotState(YB.id, R1)).toBe("given");
+    const logged = await doses(device);
+    expect(logged).toHaveLength(2);
+    expect(logged[0]?.passLogId).toBeTruthy();
+    expect(new Set(logged.map((d) => d.passLogId)).size).toBe(1);
+  });
+
+  test("Given all, Undo, then Given on one slot shows that slot given once", async () => {
+    const device = await open([ROUNDS, XA, YB]);
+    await userEvent.click(await found(() => card(ROUNDS.id)?.querySelector("[data-given-all]")));
+    await expect.poll(() => cardState(ROUNDS.id)).toBe("done");
+    await expect.poll(UNDO).toBe("Rounds logged");
+    await userEvent.click(getByCss("[data-pass-undo-button]"));
+    await expect.poll(() => cardState(ROUNDS.id)).toBe("due");
+    await expand(ROUNDS.id);
+    await userEvent.click(await found(() => slot(XA.id, R1)?.querySelector("[data-give]")));
+    await expect.poll(() => slotState(XA.id, R1)).toBe("given");
+    expect(slotState(YB.id, R1)).toBe("due");
+    expect((await doses(device)).map((d) => d.medicationId)).toEqual([XA.id]);
+  });
+
   test("two Given doses on yesterday's slot leave today's due, not given", async () => {
     const DAY = 24 * 60;
     const added = clockMoment(-3 * DAY);

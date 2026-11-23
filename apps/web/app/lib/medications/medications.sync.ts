@@ -17,6 +17,7 @@ import {
   BAD_PHARMACY_ISSUE,
   BAD_PRESCRIBER_ISSUE,
   doseDetailsZSchema,
+  doseSlotIdFor,
   isPharmacyType,
   isPrescriberType,
   MEDICATION_FORMS,
@@ -780,34 +781,72 @@ const doseRow = (
 });
 
 /**
+ * The id a planned dose takes on this device: its slot's (`doseSlotIdFor`),
+ * unless a row here has it, live or deleted, or the batch already used it
+ * (`used`); then a random one, so a deliberate extra dose or one logged again
+ * after an Undo is a new row.
+ */
+const plannedDoseId = async (
+  db: SyncDb,
+  { occurredAt, details }: { occurredAt: string; details: DoseDetails },
+  timeZone: string,
+  used: ReadonlySet<string>,
+) => {
+  const [pass] = details.passId
+    ? await readRows<{ time: string | null }>(db, {
+        sql: "SELECT time FROM medication_pass WHERE id = ? AND deleted_at IS NULL",
+        params: [details.passId],
+      })
+    : [];
+  const slotId = doseSlotIdFor({ ...details, occurredAt }, { timeZone, passTime: pass?.time });
+  if (!slotId || used.has(slotId)) return crypto.randomUUID();
+  const [taken] = await readRows<{ id: string }>(db, {
+    sql: "SELECT id FROM timeline_entry WHERE id = ?",
+    params: [slotId],
+  });
+  return taken ? crypto.randomUUID() : slotId;
+};
+
+/**
+ * Inside the write's transaction, give any dose whose id a row has taken since
+ * it was planned (a double tap, a row just synced down) a random id. Changes
+ * `rows` in place, so a caller's ids stay right.
+ */
+export const claimDoseIds = async (
+  tx: Pick<SyncDb["drizzle"], "select">,
+  rows: readonly (typeof timelineEntries.$inferInsert)[],
+) => {
+  for (const row of rows) {
+    const [taken] = await tx
+      .select({ id: timelineEntries.id })
+      .from(timelineEntries)
+      .where(eq(timelineEntries.id, row.id));
+    if (taken) row.id = crypto.randomUUID();
+  }
+};
+
+const writeDoseRows = (db: SyncDb, rows: readonly (typeof timelineEntries.$inferInsert)[]) =>
+  db.drizzle.transaction(async (tx) => {
+    await claimDoseIds(tx, rows);
+    for (const row of rows) await tx.insert(timelineEntries).values(row);
+  });
+
+/**
  * Log a dose (given, skipped or refused) of one of the group's medications,
  * as a `dose` entry on the timeline. The medication must be on this device,
- * in the group and not deleted.
+ * in the group and not deleted. A dose naming a slot takes that slot's id
+ * (`plannedDoseId`).
  */
 export const logDose = async (
   db: SyncDb,
   groupId: string,
-  { medicationId, occurredAt, timeZone, ...rest }: DoseInput,
+  dose: DoseInput,
 ): Promise<MedicationWriteResult> => {
   if (!(await mayLog(db, groupId))) return forbidden as Refusal;
-  const medication = await liveMedication(db, medicationId);
-  if (!medication || medication.groupId !== groupId) return medicationMissing;
-
-  const parsed = doseContent(
-    { medicationId, ...rest },
-    { occurredAt: occurredAt ?? new Date().toISOString(), timeZone: timeZone ?? deviceTimeZone() },
-  );
-  if (!parsed.success) return invalid(parsed.error, "The dose is invalid");
-
-  const row = doseRow(parsed.data, medication, {
-    id: crypto.randomUUID(),
-    now: nowTimestamp(),
-    groupId,
-    userId: db.userId,
-  });
-  await db.drizzle.insert(timelineEntries).values(row);
-  const { id } = row;
-  return { ok: true, id };
+  const planned = await doseRows(db, groupId, [dose]);
+  if (!planned.ok) return planned;
+  await writeDoseRows(db, planned.rows);
+  return { ok: true, id: planned.rows[0]!.id };
 };
 
 /**
@@ -821,6 +860,8 @@ export const doseRows = async (
   doses: readonly DoseInput[],
 ): Promise<{ ok: true; rows: (typeof timelineEntries.$inferInsert)[] } | Refusal> => {
   const now = nowTimestamp();
+  const recipientZone = (await recipientOf(db, groupId))?.time_zone || "UTC";
+  const used = new Set<string>();
   const rows: (typeof timelineEntries.$inferInsert)[] = [];
   for (const { medicationId, occurredAt, timeZone, ...rest } of doses) {
     const medication = await liveMedication(db, medicationId);
@@ -830,7 +871,14 @@ export const doseRows = async (
       { occurredAt: occurredAt ?? new Date().toISOString(), timeZone: timeZone ?? deviceTimeZone() },
     );
     if (!parsed.success) return invalid(parsed.error, "The dose is invalid");
-    rows.push(doseRow(parsed.data, medication, { id: crypto.randomUUID(), now, groupId, userId: db.userId }));
+    const id = await plannedDoseId(
+      db,
+      { occurredAt: parsed.data.occurredAt, details: parsed.data.details as DoseDetails },
+      recipientZone,
+      used,
+    );
+    used.add(id);
+    rows.push(doseRow(parsed.data, medication, { id, now, groupId, userId: db.userId }));
   }
   return { ok: true, rows };
 };
@@ -849,10 +897,7 @@ export const logDoses = async (
   const planned = await doseRows(db, groupId, doses);
   if (!planned.ok) return planned;
   const { rows } = planned;
-  if (rows.length)
-    await db.drizzle.transaction(async (tx) => {
-      for (const row of rows) await tx.insert(timelineEntries).values(row);
-    });
+  if (rows.length) await writeDoseRows(db, rows);
   return { ok: true, ids: rows.map((r) => r.id) };
 };
 
