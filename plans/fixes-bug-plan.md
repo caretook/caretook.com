@@ -92,21 +92,31 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 46    | B-662 | landed (assistant.md folded)               | 8c930686 |
 | 47    | B-666 | landed (needs a hand test)                 | 288e9cbe |
 | 48    | B-675 | landed                                     | 3d8e9cf5 |
-| 49    | B-615 | started (opus)                             |          |
-| 50    | B-717 | started (opus)                             |          |
-| 51    | B-718 | started (opus)                             |          |
-| 52    | B-719 | started (opus)                             |          |
-| 53    | B-706 | started (opus)                             |          |
-| 54    | B-707 | started (opus)                             |          |
-| 55    | B-708 | started (opus)                             |          |
-| 56    | B-709 | started (opus)                             |          |
-| 57    | B-710 | started (opus)                             |          |
-| 58    | B-711 | started (opus)                             |          |
-| 59    | B-712 | started (opus)                             |          |
-| 60    | B-713 | started (opus)                             |          |
-| 61    | B-714 | started (opus)                             |          |
+| 49    | B-615 | fixing, ask a161                           |          |
+| 50    | B-717 | handed off (opus)                          |          |
+| 51    | B-718 | handed off (opus)                          |          |
+| 52    | B-719 | handed off (opus)                          |          |
+| 53    | B-706 | handed off (opus)                          |          |
+| 54    | B-707 | handed off (opus)                          |          |
+| 55    | B-708 | handed off (opus)                          |          |
+| 56    | B-709 | handed off (opus)                          |          |
+| 57    | B-710 | handed off (opus)                          |          |
+| 58    | B-711 | handed off (opus)                          |          |
+| 59    | B-712 | handed off (opus)                          |          |
+| 60    | B-713 | handed off (opus)                          |          |
+| 61    | B-714 | handed off (opus)                          |          |
 
 **Wave 12 (slices 49–61, all on opus):** resumed after a rotation; git matched _Status_, no slice in flight, already up to date with dev. **Held for a later wave:** B-689, B-690 and B-715, because member-avatars holds `routes/app/groups/planner/`. New York run of the nine other zone files on b21f66d2: 25 of 93 tests fail. Most hard-code Los Angeles times; B-708's all-day day (Jul 24 for Jul 25) may be a real bug, so each slice decides from evidence.
+
+**Wave 12 hand-over (rotated mid-wave for context, 2026-11-23). Nothing is merged yet; merge in plan order, 49 to 61.** Handed off, clean, quick check passed: 50 at 55b32372, 51 at dd042445, 52 at d880bd00, 53 at c96afea4, 54 at dc764a2e, 55 at a549ae6a, 56 at 9134375e, 57 at f5745c73, 58 at 88bd4c2b, 59 at 662973e9, 60 at 803c90cc, 61 at a432a42b. All zone slices (53–61) were test-only: the app was right, including B-708's all-day day.
+
+- **Slice 49 (B-615) is the only one in flight.** Its first hand-off was af715f46. Skeptic s18 decided (ask a161, the user can veto): a `log_dose` is a repeat only when the amount and note also match; a differing call records a separate dose on a random id. The fix is committed as 4b5bc80d and its quick check was running at rotation. Respawn with `--continue` if there's no hand-off for that tip; confirm the check passed and that a test covers different amount, different note and identical retry.
+- **Expect a conflict check** between 49 and 52 only if `timelineEntryService.ts` appears in 49's diff (it shouldn't).
+- **Gate:** slice 50 changes `serviceWorkerRegister.ts`, which `check-areas` maps to `@suite`, so `browser --changed --base dev` pulls in the lean set; run it once. Tier: take the check plan's proposal. Use `pnpm datastore:migrate`, never reset.
+- **Follow-ups filed:** B-726 (a retried dose upload can still bring back an undone dose after a time edit), B-728 (repeat preview pairs the recipient's day with the viewer's time; the fix needs a product choice). Both triaged for fixes-bug. B-719's new tests were never seen failing on the old code (the agent's direct run was blocked): say so in the report.
+- **Hand test for the report:** B-717's Reload with a real service worker update after a deploy; unit tests use fakes.
+- **Docs at landing:** `connectors.md` and `medications.md` (`log_dose` slot identity, "Already logged", the repeat rule); `assistant.md` _Doses_ (`asksAmount` is for a given dose only; at budget, trim); `calendars.md` (reload on an outdated consent; at budget, trim). `docs/agents/machinery.md` is 8 B over budget from before this wave: don't grow it.
+- **Still held:** B-689, B-690, B-715 (member-avatars holds the Planner folder).
 
 ## Wave 1
 
