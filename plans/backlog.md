@@ -24,7 +24,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `self-recovery-2` | — | `self-recovery` | `scripts/loops/session`, `scripts/loops/open-session`, `scripts/loops/dispatch`, `scripts/loops/prd.sh` | Cost record and headless sessions, cut from self-recovery to keep it at six slices |
 | `staging-ship` | — | `test-gates-2` | `scripts/loops/review.sh`, `scripts/loops/codex-review`, `scripts/loops/prd.sh`, `scripts/loops/land.sh` | To write. Ship dev to staging in one command, Codex findings filed by tool, a staging to-test report (B-404, B-430, B-436). Cut from orchestration-3; doesn't need the dispatcher |
 | `ui-kit-3` | done | `ui-kit-2` | `apps/web/app/app.css`, `apps/web/app/components/ui/`, `apps/web/app/routes/dev/ui/`, `apps/web/app/lib/timeline/entryDisplay.ts`, `apps/web/app/components/entry/KindIcon.tsx`, `apps/web/app/components/quick-entry/QuickEntryCard.tsx`, `apps/web/app/lib/app-shell/` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** to write (B-398, B-269, B-448 and overlay motion): every remaining area swept onto the kit, one area per slice; then the lint guard. Cut from ui-kit-2 to keep it at six slices; starts after ui-kit-2 so the sweeps copy its final Button, header and motion contracts; before test-health waves 5 to 7; never beside i18n. Hot files when planned: most route and component folders, one area per slice |
-| `ui-kit-4` | — | `ui-kit-3` | `apps/web/app/routes/`, `apps/web/app/components/`, `eslint.config.js`, `scripts/eslint/` | — |
+| `ui-kit-4` | — | `ui-kit-3` | `eslint.config.js`, `scripts/eslint/`, `apps/web/app/routes/app/groups/medication/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/profile/`, `apps/web/app/routes/app/groups/period/`, `apps/web/app/routes/app/groups/periods/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/search/`, `apps/web/app/components/medications/`, `apps/web/app/components/schedule/`, `apps/web/app/components/providers/`, `apps/web/app/components/contact/`, `apps/web/app/components/todos/`, `apps/web/app/components/visitPrep/`, `apps/web/app/components/repeat/` | — |
+| `ui-kit-5` | — | `ui-kit-4`, `quick-entry-2` | `eslint.config.js`, `scripts/eslint/`, `apps/web/app/components/ui/Menu.tsx`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/components/entry/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/admin/`, `apps/web/app/routes/account/`, `apps/web/app/routes/connectors/`, `apps/web/app/routes/marketing/`, `apps/web/app/routes/app/layout/` | — |
 | `quick-entry-2` | — | — | `packages/data/src/db/schema/assistant/quickEntry`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/timeline/timelineQuickEntry` | to write (B-300 to B-303), from the 2026-11-21 code review: negated doses, typed counts, wrong times, the stuck card · Depends on: `planner-2` in `dev` (it edits quick entry's future note; last item B-248) · Hot files: `db/schema/assistant/quickEntry.ts`, `quickEntryTime.ts`, `components/quick-entry/` |
 | `onboarding` | — | — | `apps/web/app/routes/account/join/`, `apps/web/app/routes/account/invite/`, `packages/auth/src/tickets.ts`, `packages/api/src/care-groups/`, `packages/data/src/services/careGroupInviteService.ts`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/root.tsx`, `apps/web/public/site.webmanifest`, `apps/web/app/routes/marketing/layout/`, `packages/data/src/db/schema/app-shell/userPreferences.ts`, `apps/web/app/lib/app-shell/me.ts`, `scripts/browser-checks/invites.spec.mjs` | to write (B-31): guided onboarding for new users, the real requirement; a demo group is one idea to refine; may point at the connect guide · Depends on: invites (done) · Hot files: seeds, careGroupService, /app home |
 | `assistant-access` | — | — | `packages/data/src/db/schema/care-groups/careGroup.ts`, `packages/data/src/db/schema/connectors/connectorRules`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/careGroupService.ts`, `packages/api/src/care-groups/careGroup.ts`, `packages/api/src/connectors/protocol.ts`, `packages/api/src/connectors/connect.ts`, `packages/api/src/connectors/connector.ts`, `packages/api/src/connectors/tools/groupOverview.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/care-groups/assistantsSwitch.sync.ts`, `apps/web/app/routes/app/groups/settings/assistants/`, `apps/web/app/routes/connectors/connect/`, `apps/web/app/routes/app/settings/devices/ConnectedAssistants.tsx` | Owner chooses read/write or read only for a group's assistants (B-558) |
@@ -144,10 +145,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-297 | bug | in-progress | dose-accuracy | prd/dose-accuracy | A surplus dose marks the next day's slot as given: two caregivers both tapping Given for one pass makes tomorrow's dose read done |
 | B-298 | change | triaged | dose-accuracy |  | Deterministic dose ids per medication, day and slot, so two devices logging the same pass converge on one row |
 | B-299 | bug | triaged | dose-accuracy |  | Visit prep's 'Missed doses' reads history through today's schedule: a schedule change shows phantom misses back to the last visit |
-| B-300 | bug | in-progress | quick-entry-2 | prd/quick-entry-2 | Quick entry logs negated doses as given: 'did not give metoprolol', 'metoprolol not given', 'couldn't give…' all record a given dose at 0.9 confidence |
-| B-301 | bug | triaged | quick-entry-2 |  | Quick entry discards a typed count and records the usual dose: 'gave 3 tylenol' records '2 tabs' with '3' in the note; 'gave half a tylenol' too |
+| B-300 | bug | ready | quick-entry-2 | prd/quick-entry-2 | Quick entry logs negated doses as given: 'did not give metoprolol', 'metoprolol not given', 'couldn't give…' all record a given dose at 0.9 confidence |
+| B-301 | bug | in-progress | quick-entry-2 | prd/quick-entry-2 | Quick entry discards a typed count and records the usual dose: 'gave 3 tylenol' records '2 tabs' with '3' in the note; 'gave half a tylenol' too |
 | B-302 | bug | in-progress | quick-entry-2 | prd/quick-entry-2 | Quick entry gives silently wrong times: 'sat up in chair' is last Saturday, '2nd tylenol' is Nov 2, '11/25 at 2pm' is tomorrow, 'dr alvarez at 2' is 2 AM, 'pain 8 a bit better' is 8:00 AM |
-| B-303 | bug | in-progress | quick-entry-2 | prd/quick-entry-2 | Quick entry gets stuck: remove a card, delete the text, retype the same line: no card, no Save, Enter does nothing |
+| B-303 | bug | ready | quick-entry-2 | prd/quick-entry-2 | Quick entry gets stuck: remove a card, delete the text, retype the same line: no card, no Save, Enter does nothing |
 | B-304 | bug | triaged | calendars-2 |  | Deleting an old event in Google Calendar rewrites past Caretook records: soft-deletes a past reminder note, cancels a past appointment, marks a todo done for the group |
 | B-305 | bug | triaged | calendars-2 |  | Events made in Google more than 90 days out never arrive: ignored as outsideWindow, the sync token advances, nothing revisits them |
 | B-306 | bug | triaged | calendars-2 |  | A reminder email can arrive after its appointment: about 2 h of retry backoff, no expiry, text rendered at queue time |
@@ -316,16 +317,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-563 | feature | triaged | marketing |  | Accessibility statement page |
 | B-564 | change | triaged | hosting |  | App-store prerequisites for the Capacitor apps |
 | B-565 | feature | triaged | data-rights |  | Ownership transfer: a last owner can hand a care group to another member |
-| B-566 | bug | ready | test-gates | prd/test-gates | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
-| B-567 | bug | ready | test-gates | prd/test-gates | inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2 |
+| B-566 | bug | landed | test-gates | prd/test-gates | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
+| B-567 | bug | landed | test-gates | prd/test-gates | inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2 |
 | B-568 | bug | triaged | fixes-tooling | prd/test-gates | Component tests that failed once on CI's Linux runners: providers rows, provider empty links, emergency sheet, search speed, timeline Back, weekly print chart |
 | B-570 | bug | triaged | fixes-tooling |  | Session request notices can exceed the notice board's 200 characters and get dropped |
 | B-571 | bug | triaged | fixes-tooling |  | Staging reset test still times out at 30 s now and then, in CI as well as under local load |
-| B-572 | bug | ready | test-gates | prd/test-gates | Check gate: a package.json change to scripts alone should not force a full check |
+| B-572 | bug | landed | test-gates | prd/test-gates | Check gate: a package.json change to scripts alone should not force a full check |
 | B-573 | bug | triaged | fixes-tooling |  | Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error |
 | B-574 | bug | triaged | fixes-tooling |  | ESLint aborts with exit 134 in the lint step of a check, seen in two worktrees within a second |
 | B-575 | change | triaged | fixes-ui |  | Planner tabs' accessible name still says 'Planner or todos': name it for Upcoming, Past and Todos, and update the roundtrip browser check that selects it |
 | B-576 | bug | triaged | fixes-tooling |  | Local pnpm lint runs out of memory at Node's default 4 GB heap: CI sets 6 GB, local checks don't |
+| B-577 | change | triaged | ui-kit-5 |  | Finish the UI kit sweep: timeline, entries and quick entry (TodayRow, PassLogItem, EasyNext, EntryBody, the four skeleton files, containers); admin, account, connectors, marketing and the app frame (home's h1); then empty the guard's not-swept list and drop Menu's bare class-string trigger |
 
 ## Items
 
@@ -582,6 +584,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-21 (plan/ui-kit): ui-kit plan (2026-11-21): moved to the follow-on ui-kit-2, after the area sweeps (B-398); ui-kit itself is the primitives and their first adopters.
 - 2026-11-21 (plan/ui-kit-2): ui-kit-2 plan (2026-11-21): moved to the follow-on ui-kit-3 (ui-kit-2 is six slices without them). B-448 belongs in the profile area's sweep slice.
 - 2026-11-22 (plan/ui-kit-3): ui-kit-3 plan (2026-11-22): moved to the follow-on ui-kit-4 (ui-kit-3 is six slices without them: the colour plan and overlay motion). ui-kit-4 is the five area sweeps, B-448 in the profile area's slice, ending with the guard B-269; it also moves the remaining 'No … yet.' lines onto EmptyState and hand-written dark-contrast text onto the kit's classes.
+- 2026-11-22 (plan/ui-kit-4): ui-kit-4 plan (2026-11-22): the guard now comes first, with a not-swept list each sweep shrinks; ui-kit-5 empties it.
 
 ### B-286 · bug · A repeatable 5xx from sync.upload blocks a device's upload queue forever: no retry cap, and the sync indicator never shows uploadError or the queue length
 
@@ -685,19 +688,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-300 · bug · Quick entry logs negated doses as given: 'did not give metoprolol', 'metoprolol not given', 'couldn't give…' all record a given dose at 0.9 confidence
 
-- status: in-progress
+- status: ready
 - prd: quick-entry-2
 - owner: prd/quick-entry-2
-- commit:
+- commit: 26d0b935
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. packages/data/src/db/schema/assistant/quickEntry.ts:257-279, 931-952. Reproduced with a scratch script. Negation is only recognised before take/have/swallow. Fix idea: any not/never/don't/couldn't near a dose verb makes it skipped or demotes the line to a note.
 - 2026-11-21 (plan/quick-entry-2): Planned in plans/quick-entry-2-plan.md (2026-11-21): B-300 slice 1, B-301 slice 2, B-302 slices 3 and 4, B-303 slice 5.
 
 ### B-301 · bug · Quick entry discards a typed count and records the usual dose: 'gave 3 tylenol' records '2 tabs' with '3' in the note; 'gave half a tylenol' too
 
-- status: triaged
+- status: in-progress
 - prd: quick-entry-2
-- owner:
+- owner: prd/quick-entry-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. quickEntry.ts:910-924, 981. Reproduced. Related: 'tylenol 2 at 8' becomes a Symptom named Tylenol, severity 2.
@@ -715,10 +718,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-303 · bug · Quick entry gets stuck: remove a card, delete the text, retype the same line: no card, no Save, Enter does nothing
 
-- status: in-progress
+- status: ready
 - prd: quick-entry-2
 - owner: prd/quick-entry-2
-- commit:
+- commit: 26d0b935
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. components/quick-entry/useQuickEntry.ts:98-118,206-216: removed and chosen reset only on Save or Clear, and Clear is hidden when no cards show. Prune both maps to the current part keys.
 - 2026-11-21 (plan/quick-entry-2): Planned in plans/quick-entry-2-plan.md (2026-11-21): B-300 slice 1, B-301 slice 2, B-302 slices 3 and 4, B-303 slice 5.
@@ -1360,6 +1363,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-21 (plan/ui-kit-2): ui-kit-2 plan (2026-11-21): moved to the follow-on ui-kit-3 (ui-kit-2 is six slices without them). B-448 belongs in the profile area's sweep slice.
 - 2026-11-21 (plan/ui-kit-2): ui-kit-2 plan (2026-11-21): this sweep also carries the rest of B-423 (use Button for every remaining button and button-like link; move the menus that still pass btn class strings onto the trigger look), the list of what is not a Button (plans/ui-kit-2-prd.md, Decisions), and Collapse and Chevron for the expanders ui-kit-2 leaves (TodayRow, PassLogItem, SimpleNext, EntryBody, PassCard, the medication form's details).
 - 2026-11-22 (plan/ui-kit-3): ui-kit-3 plan (2026-11-22): moved to the follow-on ui-kit-4 (ui-kit-3 is six slices without them: the colour plan and overlay motion). ui-kit-4 is the five area sweeps, B-448 in the profile area's slice, ending with the guard B-269; it also moves the remaining 'No … yet.' lines onto EmptyState and hand-written dark-contrast text onto the kit's classes.
+- 2026-11-22 (plan/ui-kit-4): ui-kit-4 plan (2026-11-22): this topic sweeps medications; providers and care periods; the profile; the Planner, to-dos and search. The remaining areas are filed as a new item under ui-kit-5.
 
 ### B-404 · feature · One command to ship dev to staging: push dev, open the dev into staging PR, wait for Codex's review, triage its findings into the backlog (verified against the code, duplicates noted on the existing item), merge the PR when nothing is a blocker, and notify the user only when something is
 
@@ -1632,6 +1636,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-21 (prd/ui-kit): From ui-kit slice 7: kept the names to keep the diff small.
 - 2026-11-21 (plan/ui-kit-2): ui-kit-2 plan (2026-11-21): moved to the follow-on ui-kit-3 (ui-kit-2 is six slices without them). B-448 belongs in the profile area's sweep slice.
 - 2026-11-22 (plan/ui-kit-3): ui-kit-3 plan (2026-11-22): moved to the follow-on ui-kit-4 (ui-kit-3 is six slices without them: the colour plan and overlay motion). ui-kit-4 is the five area sweeps, B-448 in the profile area's slice, ending with the guard B-269; it also moves the remaining 'No … yet.' lines onto EmptyState and hand-written dark-contrast text onto the kit's classes.
+- 2026-11-22 (plan/ui-kit-4): ui-kit-4 plan (2026-11-22): slice 4, renamed to *Section.
 
 ### B-452 · bug · Dispatcher: a start or plan whose new.sh fails after making the worktree leaves it with no managed record, so later ticks treat it as opened by hand and it holds a slot for good
 
@@ -2411,10 +2416,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-566 · bug · Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector
 
-- status: ready
+- status: landed
 - prd: test-gates
 - owner: prd/test-gates
-- commit: f285f1a5
+- commit: 12a01485
 
 - 2026-11-22 (slice/test-gates/3): Found by test-gates slice 3. accessCodes.browser.test.tsx:196 asserts BarcodeDetector is in window; failed in all 4 requested runs: https://github.com/caretook/caretook.com/actions/runs/45076033356 https://github.com/caretook/caretook.com/actions/runs/45076033291 https://github.com/caretook/caretook.com/actions/runs/45077489750 https://github.com/caretook/caretook.com/actions/runs/45077490098
 - 2026-11-22 (Robert Bo Davis): Moved to test-gates by the user (2026-11-22): these keep the components CI tier from going green. B-568's intermittent failures go through the flake quarantine (B-530).
@@ -2422,10 +2427,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-567 · bug · inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2
 
-- status: ready
+- status: landed
 - prd: test-gates
 - owner: prd/test-gates
-- commit: f285f1a5
+- commit: 12a01485
 
 - 2026-11-22 (slice/test-gates/3): Found by test-gates slice 3. actions() uses .element(), which does not retry; the body was still empty. Failed in both sharded runs (https://github.com/caretook/caretook.com/actions/runs/45077489750 https://github.com/caretook/caretook.com/actions/runs/45077490098), passed in both unsharded runs (https://github.com/caretook/caretook.com/actions/runs/45076033356 https://github.com/caretook/caretook.com/actions/runs/45076033291). The shard split exposes it. Root cause read from the log and code, fix not tried.
 - 2026-11-22 (Robert Bo Davis): Moved to test-gates by the user (2026-11-22): these keep the components CI tier from going green. B-568's intermittent failures go through the flake quarantine (B-530).
@@ -2463,10 +2468,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-572 · bug · Check gate: a package.json change to scripts alone should not force a full check
 
-- status: ready
+- status: landed
 - prd: test-gates
 - owner: prd/test-gates
-- commit: 7484100e
+- commit: 12a01485
 
 - 2026-11-22 (Robert Bo Davis): User's decision 2026-11-22: compare each changed package.json with its base, ignoring the scripts field. If only scripts differ (added, edited or removed, in any package, lifecycle hooks included), it does not force a full check, the browser @suite or a higher CI tier. Any other field, or an added/deleted/unparseable package.json, still forces them; the lockfile rule stays. Three places: FORCED in scripts/loops/check-plan.mjs (planCheck only gets paths today, so it needs the base's contents or a prefilter), the package.json @suite rules in scripts/loops/check-areas.d/_global, and test-gates' minimum-tier rule (plans/test-gates-plan.md). The user accepted that a script edit that breaks build, typecheck or the check itself gets only a quick check. Update the rule's wording in docs/agents/orchestrator.md and prd.sh.
 - 2026-11-22 (Robert Bo Davis): Moved to test-gates-2 on the user's word (2026-11-22). Its PRD and plan were written before this item: add it to a slice when the topic starts.
@@ -2509,3 +2514,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (prd/fixes-ui): Seen 2026-11-22 on prd/fixes-ui (7c90a0e4): eslint exit 134 at about 3.98 GB with 5-minute load 12, so not load. check --times shows 12 lint failures. ci.yml already sets NODE_OPTIONS=--max-old-space-size=6144; the local lint script sets nothing. Fix: give local lint the same heap, or cut type-aware ESLint's memory.
+
+### B-577 · change · Finish the UI kit sweep: timeline, entries and quick entry (TodayRow, PassLogItem, EasyNext, EntryBody, the four skeleton files, containers); admin, account, connectors, marketing and the app frame (home's h1); then empty the guard's not-swept list and drop Menu's bare class-string trigger
+
+- status: triaged
+- prd: ui-kit-5
+- owner:
+- commit:
+
+- 2026-11-22 (plan/ui-kit-4): Cut from B-398 by the ui-kit-4 plan (2026-11-22): about 300 files is too many for one topic, and quick-entry-2 is running in quick entry. Carries B-398's notes for these areas, including the remaining Cancel and Save footers, No-yet lines, dark-contrast text and icon sizes.
