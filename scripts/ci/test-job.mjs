@@ -9,7 +9,8 @@
 // On a narrowed run (.ci-narrowed.json) it runs only the listed files this step owns.
 //
 // With --quarantine it runs the quarantined tests this step owns, under
-// CARETOOK_QUARANTINE=run, into <out>.quarantine.json, and always exits 0.
+// CARETOOK_QUARANTINE=run, into <out>.quarantine.json, and always exits 0. On a
+// narrowed run, only those in its listed files: blame needs their result on dev.
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { relative } from "node:path";
@@ -95,10 +96,12 @@ export function runStep(args, io) {
 
 /** @param {string[]} args @param {JobIo} io */
 export function runQuarantine(args, io) {
-  if (narrowedFiles(io)) return 0;
+  const narrowed = narrowedFiles(io);
   const group = stepGroup(args);
   const text = io.readText("scripts/ci/quarantine.txt") ?? "";
-  const files = [...new Set(parseQuarantine(text).map((e) => e.file))].filter((f) => fileGroup(f) === group);
+  const files = [...new Set(parseQuarantine(text).map((e) => e.file))].filter(
+    (f) => fileGroup(f) === group && (!narrowed || narrowed.includes(f)),
+  );
   if (!files.length) {
     io.log(`no quarantined ${group} tests`);
     return 0;
