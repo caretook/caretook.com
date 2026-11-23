@@ -11,7 +11,7 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 | 3. A release candidate                         | 3    | landed ce792df3 (PR #122) | 22dc1231 |
 | 4. Promotion refuses what isn't passing        | 3    | landed ce792df3 (PR #122) | c9670a4c |
 | 5. The release tier                            | 4    | landed 4160dee5 (PR #127) | 55abe5cd |
-| 6. The required check on main and its override | 5    | started (opus)            |          |
+| 6. The required check on main and its override | 5    | merged (opus)             | 8d738b9c |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
@@ -19,7 +19,11 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 
 **Wave 5 (2026-11-23):** synced dev at 54194267; slice 6 worktree made, opus agent spawned, told to make **no real CI run, `release-gate` status, PR or override** until the orchestrator passes on the wave 5 CI approval (**a155, skeptic s15, the user's yes**: one `release` run from slice 6's branch, reruns after a fix, the wave's gate run, and one real `release-gate` status on a throwaway commit on a temporary branch, through the same status code, with a guard refusing staging or main; each run files at most 10 new `fixes-bug` items. It covers no staging to main PR, candidate, promotion, ruleset edit or real override). No staging to main PR is open, and none may be opened for this.
 
-**Next:** slice 6 does its approved real run and status, then hands off. The user's "skip rechecks after a clean sync" was for wave 4 only, so wave 5 rechecks after each sync unless they repeat it. A local browser check that repeats a CI browser run on the same code adds little: the user questioned it in wave 4, and the handbook rule is unchanged.
+**Slice 6 handed off (f57458d5), merged 8d738b9c, B-533 ready.** `release` run 45241502966 has a green verdict (11 of 11 browser checks; GitHub shows it red because of the report-only zone jobs). The real `release-gate` status is on throwaway commit fe017f92 and is deliberately `error`, so **no real green status exists yet and the user's ruleset step waits for one**. `ci release` and the override have run only against fixtures. Follow-ups: B-721 (zone filing refiles a landed item) and B-722 (a run replaces an override's status). Filing amended an unpushed backlog commit on local `dev` (51f86b34 to 0603e604, 11 note lines only).
+
+**Doc folds at landing:** the runbook's ruleset step, `ci release`, the override and the red-run note; handbooks: agents never write `release-gate` any other way, `release-test` only on throwaway commits.
+
+**Next:** quick check, the `full` gate run on the merged tip, docs, PR, land (last wave), `pnpm prd rm`, `pnpm prd end`. The user's "skip rechecks after a clean sync" was for wave 4 only, so wave 5 rechecks after each sync unless they repeat it. A local browser check that repeats a CI browser run on the same code adds little: the user questioned it in wave 4, and the handbook rule is unchanged.
 
 **For slice 6:** call `zone-file` from `pnpm prd ci release`; nothing calls it yet, and it has never run against the real backlog before this wave.
 
