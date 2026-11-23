@@ -4,17 +4,19 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-21), not started. Nothing blocks wave 1.
+**Where it stands:** wave 1 running (2026-11-23), from `a7acddec`. B-304, B-306, B-309 claimed. No open `fixes-bug` slice touches this topic's hot files.
 
-| Slice | Wave | State       | Merge into `prd/calendars-2` (slice commits) |
-| ----- | ---- | ----------- | -------------------------------------------- |
-| 1     | 1    | not started |                                              |
-| 2     | 2    | not started |                                              |
-| 3     | 1    | not started |                                              |
-| 4     | 2    | not started |                                              |
-| 5     | 1    | not started |                                              |
-| 6     | 1    | not started |                                              |
-| 7     | 3    | not started |                                              |
+**Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
+
+| Slice | Wave | Model | State                             | Merge into `prd/calendars-2` (slice commits) |
+| ----- | ---- | ----- | --------------------------------- | -------------------------------------------- |
+| 1     | 1    | opus  | started (worktree, agent spawned) |                                              |
+| 2     | 2    |       | not started                       |                                              |
+| 3     | 1    | opus  | started (worktree, agent spawned) |                                              |
+| 4     | 2    |       | not started                       |                                              |
+| 5     | 1    | opus  | started (worktree, agent spawned) |                                              |
+| 6     | 1    | opus  | started (worktree, agent spawned) |                                              |
+| 7     | 3    |       | not started                       |                                              |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 
