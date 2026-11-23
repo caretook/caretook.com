@@ -295,8 +295,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-532 | chore | triaged | test-gates-2 |  | Staging candidate: cut a release candidate branch from a green dev commit and open the PR into staging from it; CI runs the lean browser suite on the Docker stack against that fixed commit; only fixes go onto it |
 | B-533 | chore | triaged | test-gates-2 |  | staging to main gate: CI runs the full browser suite, a second time zone and repeated runs to catch flakes; a required status check on main always, on staging only in pre-deployment mode |
 | B-535 | change | in-progress | fixes-ui | prd/fixes-ui | Hour-first time picker: defaults to the current hour at :00, minutes in 15-minute steps (00/15/30/45), works on phones; for medication dose times, pass time, todo due time, series edit times and event/appointment Starts/Ends |
-| B-536 | bug | in-progress | fixes-ui | prd/fixes-ui | Danger text fails 4.5:1 in light: Menu's danger item and buttonClass's dangerQuiet use text-error (about 2.9:1); DateTimeField's placeholder segments at 60% opacity are a little under 4.5:1 on the light field fill |
-| B-537 | change | in-progress | fixes-ui | prd/fixes-ui | One word in the app: Event, never Appointment; 'Upcoming event' / 'Past event' only where the two mix and timing isn't clear (an event's page heading, the Today card's next line, the todo form's event picker) |
+| B-536 | bug | ready | fixes-ui | prd/fixes-ui | Danger text fails 4.5:1 in light: Menu's danger item and buttonClass's dangerQuiet use text-error (about 2.9:1); DateTimeField's placeholder segments at 60% opacity are a little under 4.5:1 on the light field fill |
+| B-537 | change | ready | fixes-ui | prd/fixes-ui | One word in the app: Event, never Appointment; 'Upcoming event' / 'Past event' only where the two mix and timing isn't clear (an event's page heading, the Today card's next line, the todo form's event picker) |
 | B-538 | change | landed | fixes-ui | prd/fixes-ui | Planner tabs become Upcoming \| Past \| Todos: Upcoming and Past move out of the chip row into the main pill tabs (the Planner heading names the section), the filter button sits beside the tabs on Upcoming, and switching to Todos and back keeps Past |
 | B-542 | chore | triaged | fixes-tooling |  | Unit-test projects run at Vitest's default workers (cores - 1, 9 here): two overlapping checks run ~18 test processes on 10 cores, the load behind the under-load timeouts; cap the unit group at about 4 (or half the cores) and time it against check-times |
 | B-543 | question | triaged | orchestration-split |  | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
@@ -325,14 +325,15 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-572 | bug | landed | test-gates | prd/test-gates | Check gate: a package.json change to scripts alone should not force a full check |
 | B-573 | bug | triaged | fixes-tooling |  | Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error |
 | B-574 | bug | triaged | fixes-tooling |  | ESLint aborts with exit 134 in the lint step of a check, seen in two worktrees within a second |
-| B-575 | change | in-progress | fixes-ui | prd/fixes-ui | Planner tabs' accessible name still says 'Planner or todos': name it for Upcoming, Past and Todos, and update the roundtrip browser check that selects it |
+| B-575 | change | ready | fixes-ui | prd/fixes-ui | Planner tabs' accessible name still says 'Planner or todos': name it for Upcoming, Past and Todos, and update the roundtrip browser check that selects it |
 | B-576 | bug | triaged | fixes-tooling |  | Local pnpm lint runs out of memory at Node's default 4 GB heap: CI sets 6 GB, local checks don't |
 | B-577 | change | triaged | ui-kit-5 |  | Finish the UI kit sweep: timeline, entries and quick entry (TodayRow, PassLogItem, EasyNext, EntryBody, the four skeleton files, containers); admin, account, connectors, marketing and the app frame (home's h1); then empty the guard's not-swept list and drop Menu's bare class-string trigger |
 | B-578 | bug | triaged | fixes-bug |  | Quick entry reads other slash numbers as dates: 'gave 1/6 tylenol', 'bp 12/8', 'pain 5/5' |
-| B-579 | bug | triaged | fixes-bug |  | Quick entry reads 'no pain gave tylenol' (no comma) as a skipped dose |
+| B-579 | bug | in-progress | fixes-bug | prd/quick-entry-2 | Quick entry reads 'no pain gave tylenol' (no comma) as a skipped dose |
 | B-580 | bug | triaged | fixes-bug |  | Quick entry dates a line ending in 'sat' to Saturday: 'she sat' |
 | B-581 | bug | triaged | fixes-bug |  | Quick entry keeps 'call the pharmacy in the morning' at 7:00 as a note, not a todo |
 | B-582 | bug | triaged | fixes-tooling |  | MCP rate-limit integration test times out at 5 s under machine load |
+| B-583 | change | triaged | fixes-ui |  | Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump) |
 
 ## Items
 
@@ -2206,19 +2207,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-536 · bug · Danger text fails 4.5:1 in light: Menu's danger item and buttonClass's dangerQuiet use text-error (about 2.9:1); DateTimeField's placeholder segments at 60% opacity are a little under 4.5:1 on the light field fill
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 5566480a
 
 - 2026-11-22 (prd/ui-kit-3): Found by ui-kit-3 slice 1, which adds text-error-ink (and other text-<tone>-ink classes): switch these to it, and lift the DateTimeField placeholder to the text-faint tone.
 
 ### B-537 · change · One word in the app: Event, never Appointment; 'Upcoming event' / 'Past event' only where the two mix and timing isn't clear (an event's page heading, the Today card's next line, the todo form's event picker)
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 5566480a
 
 - 2026-11-22 (Robert Bo Davis): From the user (2026-11-22): drop the Planner 'Appointment' vs Timeline 'Event' split; a fall or ER trip is an event too. Wording only, the stored kind stays event, no migration. Rename to Event: Planner Add menu and Show filter (PlannerHeader.tsx, upcomingFilters.ts 'appointments'), provider 'Add an appointment' (ProviderVisitPrep.tsx), todo link fields and TodoLinks (TodoLinkFields.tsx, todo/TodoLinks.tsx), Today card and todayStatus/useTodayCard, EasyNow, calendar FeedCard 'Appointment for …' and reminderChoices text, visit prep copy ('on an upcoming appointment'), the dev/ui sections' samples. Keep plain 'Event' for the kind label (lib/timeline/entryDisplay.ts), default title, filters, cancel, day summary, search, quick entry, the AI tools' fallback. Qualified 'Upcoming event'/'Past event' only on: the entry page heading (entryPage.ts entryHeading), the Today card's next line, the todo form's picker ('Upcoming and recent appointments'). Leave marketing pages and health-data-privacy text as they are (real-world prose and legal wording). Update docs (appointments.md, todos.md, timeline.md) to the one word. Overlaps: entryDisplay.ts and lib/app-shell are ui-kit-3 hot files; todos/ and todo/ are planner-3 hot files (planner-3 already says 'event' for new screens; this covers the existing ones its PRD left out). fixes-ui: wording.
 
@@ -2504,10 +2505,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-575 · change · Planner tabs' accessible name still says 'Planner or todos': name it for Upcoming, Past and Todos, and update the roundtrip browser check that selects it
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 5566480a
 
 - 2026-11-22 (prd/fixes-ui): Found by fixes-ui slice 3 (B-538). The nav's label no longer describes its three tabs. Left alone there because renaming edits scripts/browser-checks/roundtrip.spec.mjs.
 
@@ -2540,9 +2541,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-579 · bug · Quick entry reads 'no pain gave tylenol' (no comma) as a skipped dose
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/quick-entry-2
 - commit:
 
 - 2026-11-22 (prd/quick-entry-2): From quick-entry-2 hand-offs, 2026-11-22. A negating word within three words before the verb decides, and here it belongs to the symptom.
@@ -2573,3 +2574,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (prd/quick-entry-2): mcp.int.test.ts 'allows 60 calls a minute per connection': timed out in the quick-entry-2 full check (load about 20), passed when rerun alone. Needs a longer timeout or a cheaper world, as the list_timeline test got in B-394.
+
+### B-583 · change · Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump)
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-22 (prd/fixes-ui): Found by fixes-ui slice 12 (B-537), which kept these on purpose: packages/api/src/connectors/ is API-facing and tests pin it; connectorRules.ts is consent text. Needs the user's call before any slice.
