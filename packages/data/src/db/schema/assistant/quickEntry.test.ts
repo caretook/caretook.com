@@ -782,6 +782,32 @@ describe("doses", () => {
             expect(r.asksAmount).toBeUndefined();
             expect(action(r)).toMatchObject({ amount: "2 tablets" });
           });
+
+          test.each([
+            ["skipped lisinopril 10", "skipped"],
+            ["didn't give lisinopril 10", "skipped"],
+            ["refused lisinopril 10", "refused"],
+            ["wouldn't take lisinopril 10", "refused"],
+          ])("%s records as %s without asking or guessing an amount (B-718)", (line, status) => {
+            const { readings } = parse(line, lisinopril("2 tablets"))[0]!;
+            const r = readings[0]!;
+            expect(r.asksAmount).toBeUndefined();
+            expect(r.warnings.some((w) => w.blocking)).toBe(false);
+            expect(action(r)).toMatchObject({ type: "logDose", medicationId: LIS, status, amount: null });
+            expect(readings.some((o) => o.amountChoice)).toBe(false);
+          });
+
+          test("a not-given status carried to the next medication doesn't ask either (B-718)", () => {
+            const parts = parse("skipped tylenol and lisinopril 10", {
+              medications: [
+                { id: APAP, name: "Tylenol", strength: "500 mg", dose: "2 tablets" },
+                { id: LIS, name: "Lisinopril", strength: "10 mg", dose: "2 tablets" },
+              ],
+            });
+            const r = parts[1]!.readings[0]!;
+            expect(r.asksAmount).toBeUndefined();
+            expect(action(r)).toMatchObject({ medicationId: LIS, status: "skipped", amount: null });
+          });
         });
 
         test("a fraction that isn't the strength is still the amount", () => {

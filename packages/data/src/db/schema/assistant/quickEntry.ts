@@ -1393,6 +1393,8 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
     const said = amount ?? typed[rank]!.count?.amount ?? typed[rank]!.partAmount;
     // "lisinopril 10" at 10 mg with a usual 2 tablets: one tablet or the usual two? The caretaker says.
     if (!said && typed[rank]!.wholeAtStrength && isSeveralUnits(m.item.dose)) {
+      // A dose that wasn't given has no amount to choose, and none to guess.
+      if ((inherited ?? "given") !== "given") return [doseOf(null, confidence, futureWarning(at, s.context))];
       const usual = m.item.dose!.trim();
       const message = `Choose the amount: ${m.item.strength} is the strength, and the usual dose is ${usual}.`;
       return [
