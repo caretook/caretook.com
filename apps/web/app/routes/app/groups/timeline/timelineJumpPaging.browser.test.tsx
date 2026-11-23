@@ -141,4 +141,63 @@ describe("scrolling newer from a day", () => {
     expect(headingIds()[0]).toBe(first);
     expect(rows()).toHaveLength(count);
   });
+
+  describe("an edit sheet over a day's window", () => {
+    // Under a page below the day: nothing loads older after the jump, which would save the reset by itself.
+    const withSymptom = () => [
+      ...history(25),
+      fx.symptom({ occurredAt: at(daysAgo(20, 11)), name: "Sheet symptom" }),
+    ];
+    const loadNewer = async () => {
+      await userEvent.click(await found(() => document.querySelector<HTMLElement>("[data-load-newer]")));
+      await waitUntil(() => headingIds()[0] !== `day-${key(20)}`, "newer days");
+    };
+    const openSheet = async () => {
+      await tapAt(() => rowWith("Sheet symptom")?.querySelector('a[aria-label^="Edit "]'));
+      await waitUntil(() => !!document.querySelector("[role=dialog] form"), "the edit sheet");
+    };
+
+    test("a repeated jump's reset survives the sheet: the window and scroll stay put", async () => {
+      const device = await openTimeline({ fixtures: withSymptom(), query: `?day=${key(20)}` });
+      await stopsMoving(() => document.getElementById(`day-${key(20)}`));
+      await loadNewer();
+      await device.settle();
+
+      // The same day again, from the picker (it opens on the current day).
+      await userEvent.click(
+        await found(() => document.querySelector<HTMLElement>('button[aria-label="Go to another day"]')),
+      );
+      await userEvent.click(
+        await found(() => document.querySelector<HTMLElement>("[data-day-picker] button[type=submit]")),
+      );
+      await waitUntil(() => headingIds()[0] === `day-${key(20)}`, "the day's window again");
+      await device.settle();
+      const landed = document.getElementById(`day-${key(20)}`)!;
+      await stopsMoving(() => landed);
+      const count = rows().length;
+      const y = Math.round(scrollY);
+
+      await openSheet();
+      await device.settle();
+      await frames(3);
+      expect(device.location()).toContain(`day=${key(20)}`);
+      expect(headingIds()[0]).toBe(`day-${key(20)}`);
+      expect(rows()).toHaveLength(count);
+      expect(Math.abs(Math.round(scrollY) - y)).toBeLessThanOrEqual(2);
+    });
+
+    test("without a repeat, the sheet keeps the window paged newer", async () => {
+      const device = await openTimeline({ fixtures: withSymptom(), query: `?day=${key(20)}` });
+      await stopsMoving(() => document.getElementById(`day-${key(20)}`));
+      await loadNewer();
+      await device.settle();
+      const first = headingIds()[0];
+      const count = rows().length;
+
+      await openSheet();
+      await device.settle();
+      expect(headingIds()[0]).toBe(first);
+      expect(rows()).toHaveLength(count);
+    });
+  });
 });
