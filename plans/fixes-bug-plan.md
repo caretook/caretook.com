@@ -117,6 +117,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 - **Hand test for the report:** B-717's Reload with a real service worker update after a deploy; unit tests use fakes.
 - **Docs at landing:** `connectors.md` and `medications.md` (`log_dose` slot identity, "Already logged", the repeat rule); `assistant.md` _Doses_ (`asksAmount` is for a given dose only; at budget, trim); `calendars.md` (reload on an outdated consent; at budget, trim). `docs/agents/machinery.md` is 8 B over budget from before this wave: don't grow it.
 - **Still held:** B-689, B-690, B-715 (member-avatars holds the Planner folder).
+- **Resumed after the mid-wave rotation (2026-11-23); git matched this Status.** Nothing merged, 50–61 clean at the SHAs above, `prd/fixes-bug` is 35 commits behind `dev`. Slice 49 respawned with `--continue` on opus to confirm its tests and check on 4b5bc80d. **Next:** on its hand-off, merge 49 to 61 in order.
 
 ## Wave 1
 
