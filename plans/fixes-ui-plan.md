@@ -19,7 +19,7 @@ Left for a later wave: B-316 (unsaved-changes guard), B-535 (hour-first time pic
 | 5     | B-519 | merged (opus)       | b2aa214a |
 | 6     | B-413 | merged (opus)       | 13ac9f5a |
 | 7     | B-422 | merged (opus)       | 8834115b |
-| 8     | B-421 | handed off 9709e003 | —        |
+| 8     | B-421 | merged (opus)       | fc5dbe18 |
 | 9     | B-319 | handed off dccaafca | —        |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
