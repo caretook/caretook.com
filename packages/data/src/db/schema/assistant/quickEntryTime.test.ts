@@ -62,6 +62,11 @@ describe("words that aren't times", () => {
     "received the 2nd at the clinic",
     "received a 2nd at the clinic",
     "got the 2nd at the clinic",
+    "gave a 2nd",
+    "gave the 2nd",
+    "took an 8th",
+    "a 2nd",
+    "a 2nd at the clinic",
     "pain 8 a bit better",
     "pain 8 p",
   ])("%s has no time", (line) => {
@@ -100,6 +105,11 @@ describe("the days they must not take away", () => {
     ["2nd nov", { month: 11, date: 2 }],
   ])("%s", (line, day) => {
     expect(specOf(line)?.day).toEqual(day);
+  });
+
+  test("'a 2nd' at a time keeps the time and takes no day", () => {
+    expect(specOf("a 2nd at 2pm")?.day).toBeUndefined();
+    expect(specOf("a 2nd at 2pm")?.clock).toMatchObject({ hour: 2, meridiem: "pm" });
   });
 
   test("a count word still guards an ordinal after 'on'", () => {
@@ -149,6 +159,19 @@ describe("through the parser", () => {
     expect(r.actions[0]).toMatchObject({
       occurredAt: new Date("2026-12-02T22:00:00Z").toISOString(),
       allDay: false,
+    });
+  });
+
+  test.each(["gave a 2nd", "a 2nd at the clinic"])("a counted ordinal gets no day: %s logs now", (line) => {
+    expect(top(line).actions[0]).toMatchObject({ occurredAt: NOW.toISOString() });
+  });
+
+  test.each(["dr lee the 2nd", "dr lee the 2nd at the clinic"])("a named day stays a day: %s", (line) => {
+    const r = top(line);
+    expect(r.kind).toBe("event");
+    expect(r.actions[0]).toMatchObject({
+      occurredAt: new Date("2026-12-02T08:00:00Z").toISOString(),
+      allDay: true,
     });
   });
 
