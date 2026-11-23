@@ -6,7 +6,7 @@
 
 | Slice | Title                                         | Wave | State         | Merge    |
 | ----- | --------------------------------------------- | ---- | ------------- | -------- |
-| 1     | Timeline list and Today, guard list regrouped | 1    | merged (opus) | 052389e8 |
+| 1     | Timeline list and Today, guard list regrouped | 1    | landed (opus) | 052389e8 |
 | 2     | Timeline forms and sheets                     | 2    | not started   |          |
 | 3     | Easy view and quick entry                     | 2    | not started   |          |
 | 4     | Entries and the notes editor                  | 2    | not started   |          |
@@ -16,7 +16,7 @@
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** wave 1. Slice 1 merged as 052389e8, worktree removed. Full CI green on 03a832f3; synced with dev (d8003f82), quick check passed; browser checks roundtrip, first-sync, invites, ui passed. Docs folded. Next: PR, full CI on the synced tip, Codex, land, then rotate for wave 2.
+**Now:** wave 1 landed in dev as fc079091 (PR #107, Codex clean, full CI flake on 035ef61c filed as B-653, a planner test outside this branch). Report filed. Slice 1 worktree removed. Next session: `pnpm backlog ingest` and `list`, `pnpm prd sync`, quick check, then start wave 2 (slices 2 to 6 together, opus). Browser checks at gates: the changed ones only (`pnpm prd browser --changed --base dev --list`, one name per call). No Status commit between `pr` and `land`.
 
 **For slice 3:** use `variant="warning"` for `EasyNow`'s Given all.
 
