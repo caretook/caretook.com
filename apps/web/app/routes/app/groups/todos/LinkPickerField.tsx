@@ -1,7 +1,7 @@
 import type { LinkOption } from "./todoLinks";
 
 import { useId, useMemo, useState } from "react";
-import { ChipList, ComboBox } from "~/components/ui";
+import { ChipList, ComboBox, Message } from "~/components/ui";
 
 /**
  * One of the todo's optional links (a provider, an appointment, a
@@ -77,9 +77,9 @@ export function LinkPickerField({
       )}
       <input type="hidden" name={name} value={chosen ?? ""} />
       {error && (
-        <p className="text-error text-sm" role="alert" data-picker-error>
+        <Message tone="error" data-picker-error="">
           {error}
-        </p>
+        </Message>
       )}
     </div>
   );

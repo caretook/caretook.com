@@ -20,24 +20,6 @@ export const KIT_CLASSES_ALLOWED = [
 /** Areas with hits today. A sweep's last step deletes its group; `ui-kit-5` empties the list. */
 /** @type {string[]} */
 export const KIT_CLASSES_NOT_SWEPT = [
-  // Slice 5: the Planner, to-dos and search.
-  "components/repeat/RepeatSheet.tsx",
-  "components/repeat/SeriesEditSheet.tsx",
-  "components/todos/LinkedTodos.tsx",
-  "components/todos/TodoUndoStatus.tsx",
-  "components/visitPrep/VisitPrepSheet.tsx",
-  "routes/app/groups/planner/PlannerTodoRow.tsx",
-  "routes/app/groups/planner/UpcomingRow.tsx",
-  "routes/app/groups/planner/UpcomingRowParts.tsx",
-  "routes/app/groups/search/ResultItems.tsx",
-  "routes/app/groups/todo/TodoActions.tsx",
-  "routes/app/groups/todo/TodoCompletion.tsx",
-  "routes/app/groups/todo/TodoLinks.tsx",
-  "routes/app/groups/todo/route.tsx",
-  "routes/app/groups/todos/DoneTodos.tsx",
-  "routes/app/groups/todos/TodoForm.tsx",
-  "routes/app/groups/todos/TodoRepeat.tsx",
-  "routes/app/groups/todos/TodoRow.tsx",
   // ui-kit-5: the timeline, entries, quick entry, admin, account, connectors and the app frame.
   "components/connectors/ConnectGuide.tsx",
   "components/connectors/ask/AskOwners.tsx",

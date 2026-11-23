@@ -226,6 +226,22 @@ describe("the todo list", () => {
     expect(document.querySelector("[data-todo-undo]")).toBeNull();
   });
 
+  test("the tick and its Undo take focus and work from the keyboard, under their names", async () => {
+    await open();
+    const tick = page.getByRole("checkbox", { name: "Mark “Pick up the walker” done" });
+    await expect.element(tick).toBeInTheDocument();
+    (tick.element() as HTMLElement).focus();
+    await expect.element(tick).toHaveFocus();
+    await userEvent.keyboard(" ");
+
+    const undo = page.getByRole("button", { name: "Undo Pick up the walker" });
+    await expect.element(undo).toBeVisible();
+    (undo.element() as HTMLElement).focus();
+    await expect.element(undo).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => titles("today")).toEqual(["Pick up the walker"]);
+  });
+
   test("two ticks each keep their own Undo; undoing the first reopens only it", async () => {
     const device = await open();
     const pharmacy = page.getByRole("checkbox", { name: "Mark “Call the pharmacy” done" });
