@@ -31,6 +31,8 @@ import http from "node:http";
 import net from "node:net";
 import { test as base, expect } from "@playwright/test";
 
+import { testZone } from "../ci/zones.mjs";
+
 export { expect };
 
 export const BASE = process.env.BASE ?? "http://localhost:5176";
@@ -387,7 +389,7 @@ export const test = base.extend({
         ...(proxy && { proxy: { server: proxy.server, bypass: "<-loopback>" } }),
         baseURL: BASE,
         viewport: { width: 420, height: 900 },
-        timezoneId: "America/Los_Angeles",
+        timezoneId: testZone(),
         locale: "en-US",
         ...opts,
         extraHTTPHeaders: { "x-forwarded-for": randomIp(), ...opts.extraHTTPHeaders },

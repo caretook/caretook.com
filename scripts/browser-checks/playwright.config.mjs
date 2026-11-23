@@ -9,6 +9,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { defineConfig } from "@playwright/test";
 
+import { testZone } from "../ci/zones.mjs";
+
 export default defineConfig({
   testDir: ".",
   testMatch: "*.spec.mjs",
@@ -24,7 +26,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.BASE ?? "http://localhost:5176",
     viewport: { width: 420, height: 900 },
-    timezoneId: "America/Los_Angeles",
+    timezoneId: testZone(),
     locale: "en-US",
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
