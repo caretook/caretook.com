@@ -83,6 +83,38 @@ describe("seriesVisits: patterns", () => {
     ]);
   });
 
+  it("monthly on the last day lands in every month, through a leap February and 30-day months", () => {
+    const from31 = { startsOn: "2028-01-31" };
+    expect(days(series("FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1", from31), "2028-01-01", "2028-06-30")).toEqual(
+      ["2028-01-31", "2028-02-29", "2028-03-31", "2028-04-30", "2028-05-31", "2028-06-30"],
+    );
+    // A common year's February.
+    expect(
+      days(
+        series("FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1", { startsOn: "2027-01-31" }),
+        "2027-01-01",
+        "2027-03-31",
+      ),
+    ).toEqual(["2027-01-31", "2027-02-28", "2027-03-31"]);
+  });
+
+  it("the last day every 2 months, with a count and with an end date", () => {
+    const from31 = { startsOn: "2028-01-31" };
+    expect(days(series("FREQ=MONTHLY;INTERVAL=2;BYMONTHDAY=-1", from31), "2028-01-01", "2028-07-31")).toEqual(
+      ["2028-01-31", "2028-03-31", "2028-05-31", "2028-07-31"],
+    );
+    expect(
+      days(series("FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1;COUNT=3", from31), "2028-01-01", "2028-12-31"),
+    ).toEqual(["2028-01-31", "2028-02-29", "2028-03-31"]);
+    expect(
+      days(
+        series("FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1;UNTIL=20280430", from31),
+        "2028-01-01",
+        "2028-12-31",
+      ),
+    ).toEqual(["2028-01-31", "2028-02-29", "2028-03-31", "2028-04-30"]);
+  });
+
   it("monthly on the nth weekday, the last, and a 5th that only some months have", () => {
     expect(days(series("FREQ=MONTHLY;INTERVAL=1;BYDAY=2TU"), "2026-11-18", "2027-02-28")).toEqual([
       "2026-12-08",
@@ -250,9 +282,11 @@ const randomRule = (rand: () => number, startsOn: string) => {
     monthly:
       freq !== "monthly"
         ? null
-        : rand() < 0.5
-          ? { by: "date", day: int(1, 31) }
-          : { by: "weekday", nth: pick([1, 2, 3, 4, 5, -1] as const), weekday: pick(WEEKDAYS) },
+        : rand() < 0.2
+          ? { by: "lastDay" }
+          : rand() < 0.5
+            ? { by: "date", day: int(1, 31) }
+            : { by: "weekday", nth: pick([1, 2, 3, 4, 5, -1] as const), weekday: pick(WEEKDAYS) },
     end:
       end === "never"
         ? { type: "never" }

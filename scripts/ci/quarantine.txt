@@ -14,3 +14,4 @@ apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx	back from 
 apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the header the tabs carry what each reads: Upcoming what it shows and the author, Past the author, Todos its chip	B-645
 apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the list an item leaves the Planner tab once its end (in progress) or its start passes, without a reload	B-653
 scripts/loops/lease.test.mjs	pnpm prd check's check lease makes the runs beyond the default limit of two wait, and holders shows who holds what	B-654
+packages/api/src/admin/usersAdmin.int.test.ts	admin.users.get shows the account, its sessions, groups and mail, and nothing from the care tables	B-658

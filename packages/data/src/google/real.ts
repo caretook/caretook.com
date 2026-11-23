@@ -59,7 +59,8 @@ const toTime = (time: calendar_v3.Schema$EventDateTime | undefined): GoogleEvent
   return null;
 };
 
-const fromGoogle = (event: calendar_v3.Schema$Event): GoogleEvent => ({
+/** Google's event as ours. Exported for its unit test; not part of the package's surface. */
+export const fromGoogle = (event: calendar_v3.Schema$Event): GoogleEvent => ({
   id: event.id ?? "",
   etag: event.etag ?? "",
   status: event.status === "cancelled" || event.status === "tentative" ? event.status : "confirmed",
@@ -70,6 +71,7 @@ const fromGoogle = (event: calendar_v3.Schema$Event): GoogleEvent => ({
   end: toTime(event.end),
   privateProperties: { ...(event.extendedProperties?.private ?? {}) },
   updated: event.updated ?? "",
+  recurring: !!event.recurringEventId,
 });
 
 const toGoogle = (event: GoogleEventInput): calendar_v3.Schema$Event => ({
@@ -138,6 +140,28 @@ const session = (auth: OAuth2Client): GoogleCalendarSession => {
         return failure(error);
       }
     },
+    // Parameters per Google's events.list reference (checked 2026-11-23): timeMin is an exclusive
+    // bound on an event's end, timeMax on its start, and neither can go with a sync token.
+    listWindow: (calendarId, from, to) =>
+      call(async () => {
+        const events: GoogleEvent[] = [];
+        let pageToken: string | undefined;
+        for (let page = 0; page < 100; page++) {
+          const res = await api.events.list({
+            calendarId,
+            showDeleted: false,
+            singleEvents: true,
+            timeMin: from.toISOString(),
+            timeMax: to.toISOString(),
+            maxResults: 250,
+            ...(pageToken ? { pageToken } : {}),
+          });
+          events.push(...(res.data.items ?? []).map(fromGoogle));
+          if (!res.data.nextPageToken) return events;
+          pageToken = res.data.nextPageToken;
+        }
+        return newError({ code: "googleCalendar:failed", meta: { reason: "tooManyPages" } });
+      }),
   };
 };
 

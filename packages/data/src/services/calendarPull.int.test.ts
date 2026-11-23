@@ -192,7 +192,7 @@ describe("pulling", () => {
     expect(event.summary).toMatch(/^Cancelled: /);
   });
 
-  it("completes a todo deleted in Google, and moves the due day of one moved there", async () => {
+  it("moves the due day of a todo moved in Google", async () => {
     const { caretaker, group, todo } = await setup();
     const conn = await connect(caretaker, group.id);
     await pull(conn);
@@ -204,13 +204,63 @@ describe("pulling", () => {
       dueOn: day,
       dueTime: null,
     });
+  });
 
+  it("leaves a past event as it was when its Google event is deleted, and it stays deleted", async () => {
+    const { owner, caretaker, group } = await setup();
+    const past = ok(
+      await timelineEntryService.create(owner.ctx, {
+        groupId: group.id,
+        kind: "event",
+        title: "Cardiology follow-up",
+        occurredAt: inDays(-3),
+        endsAt: inDays(-3, 18),
+        timeZone: LA,
+        details: null,
+      }),
+    )!;
+    const conn = await connect(caretaker, group.id);
+    await pull(conn);
+    const uid = `entry:${past.id}`;
     google.user.delete(conn.calendarId, googleEventId(uid));
-    expect(await pull(conn)).toMatchObject({ applied: 1 });
+    expect(await pull(conn)).toMatchObject({ applied: 0, overwritten: 0, ignored: 1 });
+
+    const row = await entryRow(past.id);
+    expect(row).toMatchObject({ cancelledAt: null, cancelReason: null, deletedAt: null });
+
+    // The daily push doesn't bring it back: nothing about the item changed.
+    ok(await calendarSyncService.enqueue(undefined, { connectionId: conn.id }, "daily"));
+    ok(await calendarSyncService.runDue({ client: google }));
+    await settled();
+    expect(eventOf(conn, uid).status).toBe("cancelled");
+
+    // Its time corrected in Caretook afterwards (the member's generic event shows no place), it is written again.
+    const corrected = plusHours(past.occurredAt, 1);
+    ok(
+      await timelineEntryService.update(owner.ctx, past.id, {
+        occurredAt: corrected,
+        endsAt: plusHours(corrected, 1),
+      }),
+    );
+    await settled();
+    ok(await calendarSyncService.runDue({ client: google }));
+    await settled();
+    expect(eventOf(conn, uid).status).toBe("confirmed");
+  });
+
+  it("keeps an upcoming todo open when its Google event is deleted, and writes the event back", async () => {
+    const { caretaker, group, todo } = await setup();
+    const conn = await connect(caretaker, group.id);
+    await pull(conn);
+    const uid = `todo:${todo.id}`;
+    google.user.delete(conn.calendarId, googleEventId(uid));
+    expect(await pull(conn)).toMatchObject({ applied: 0, overwritten: 1 });
+
     const [row] = await getDb().select().from(todoSchema).where(eq(todoSchema.id, todo.id));
-    expect(row!.doneAt).not.toBeNull();
-    expect(row!.doneBy).toBe(caretaker.user.id);
-    expect(row!.deletedAt).toBeNull();
+    expect(row).toMatchObject({ doneAt: null, doneBy: null, deletedAt: null });
+    expect(eventOf(conn, uid).status).toBe("confirmed");
+    // The event written back comes in as our own echo.
+    expect(await pull(conn)).toMatchObject({ applied: 0, overwritten: 0 });
   });
 
   it("gives a stored future note no item: nothing is pushed for it, and its plan is ignored", async () => {
@@ -319,6 +369,207 @@ describe("pulling", () => {
   });
 });
 
+describe("the Google horizon", () => {
+  const linkOf = async (conn: GoogleCalendarConnection, googleEventId: string) => {
+    const [row] = await getDb()
+      .select()
+      .from(googleEventLinkSchema)
+      .where(
+        and(
+          eq(googleEventLinkSchema.connectionId, conn.id),
+          eq(googleEventLinkSchema.googleEventId, googleEventId),
+        ),
+      );
+    return row;
+  };
+
+  it("takes an event made in Google 200 days out, a later move of it, and keeps it at the next push", async () => {
+    const { caretaker, group } = await setup();
+    const conn = await connect(caretaker, group.id);
+    await pull(conn);
+    const start = inDays(200, 20);
+    const made = google.user.create(conn.calendarId, {
+      summary: "Knee surgery consult",
+      start: timed(start),
+      end: timed(plusHours(start, 1)),
+    });
+    expect(await pull(conn)).toMatchObject({ applied: 1 });
+    const linked = await linkOf(conn, made.id);
+    const entryId = linked!.itemUid.replace(/^entry:/, "");
+    expect(await entryRow(entryId)).toMatchObject({ kind: "event", title: "Knee surgery consult" });
+
+    const movedTo = inDays(210, 20);
+    google.user.move(conn.calendarId, made.id, timed(movedTo), timed(plusHours(movedTo, 1)));
+    expect(await pull(conn)).toMatchObject({ applied: 1 });
+    expect(ms((await entryRow(entryId)).occurredAt)).toBe(ms(movedTo));
+
+    ok(await calendarSyncService.enqueue(undefined, { connectionId: conn.id }, "daily"));
+    ok(await calendarSyncService.runDue({ client: google }));
+    await settled();
+    expect(google.event(conn.calendarId, made.id)!.status).toBe("confirmed");
+    expect(await linkOf(conn, made.id)).toBeDefined();
+  });
+
+  it("leaves an instance of a Google repeat 200 days out for later", async () => {
+    const { caretaker, group } = await setup();
+    const conn = await connect(caretaker, group.id);
+    await pull(conn);
+    const start = inDays(200, 20);
+    const instance = google.user.create(conn.calendarId, {
+      summary: "Weekly infusion",
+      start: timed(start),
+      end: timed(plusHours(start, 1)),
+      recurring: true,
+    });
+    expect(await pull(conn)).toMatchObject({ applied: 0, overwritten: 0, ignored: 1 });
+    expect(await linkOf(conn, instance.id)).toBeUndefined();
+  });
+});
+
+describe("the daily catch-up", () => {
+  // Pushes started after a commit use the real clock, so each story starts in
+  // the past and its catch-up runs at about the real now.
+  const hoursAfter = (at: Date, hours: number) => new Date(at.getTime() + hours * HOUR);
+  const makeAt = (conn: GoogleCalendarConnection, summary: string, iso: string, recurring = false) =>
+    google.user.create(conn.calendarId, {
+      summary,
+      start: timed(iso),
+      end: timed(plusHours(iso, 1)),
+      recurring,
+    });
+  const linkOf = async (conn: GoogleCalendarConnection, eventId: string) => {
+    const [row] = await getDb()
+      .select()
+      .from(googleEventLinkSchema)
+      .where(
+        and(
+          eq(googleEventLinkSchema.connectionId, conn.id),
+          eq(googleEventLinkSchema.googleEventId, eventId),
+        ),
+      );
+    return row;
+  };
+  const entriesTitled = (groupId: string, title: string) =>
+    getDb()
+      .select()
+      .from(timelineEntrySchema)
+      .where(and(eq(timelineEntrySchema.groupId, groupId), eq(timelineEntrySchema.title, title)));
+  const dueNow = (conn: GoogleCalendarConnection) =>
+    getDb()
+      .update(googleCalendarConnectionSchema)
+      .set({ lastCatchUpAt: null })
+      .where(eq(googleCalendarConnectionSchema.id, conn.id));
+
+  it("takes an event once it comes inside the horizon, once, and lists at most daily", async () => {
+    const { caretaker, group } = await setup();
+    const conn = await connect(caretaker, group.id);
+    const first = new Date(Date.now() - 40 * DAY);
+    const made = makeAt(conn, "Far-off scan", new Date(first.getTime() + 400 * DAY).toISOString());
+
+    expect(await pull(conn, first)).toMatchObject({ applied: 0 });
+    expect(await linkOf(conn, made.id)).toBeUndefined();
+    expect(ms((await connectionRow(conn.id)).lastCatchUpAt)).toBe(first.getTime());
+
+    const later = new Date();
+    expect(await pull(conn, later)).toMatchObject({ applied: 1 });
+    const linked = await linkOf(conn, made.id);
+    expect(linked?.itemUid).toMatch(/^entry:/);
+    expect(await entriesTitled(group.id, "Far-off scan")).toHaveLength(1);
+
+    const lists = google.calls.listWindow;
+    expect(await pull(conn, hoursAfter(later, 1))).toMatchObject({ applied: 0 });
+    expect(google.calls.listWindow).toBe(lists);
+
+    expect(await pull(conn, hoursAfter(later, 25))).toMatchObject({ applied: 0 });
+    expect(google.calls.listWindow).toBe(lists + 1);
+    expect(await entriesTitled(group.id, "Far-off scan")).toHaveLength(1);
+  });
+
+  it("takes a weekly Google repeat only inside 90 days, and one more a week later", async () => {
+    const { caretaker, group } = await setup();
+    const conn = await connect(caretaker, group.id);
+    const first = new Date(Date.now() - 7 * DAY);
+    // Weekly from day 5: days 82 and 89 are inside 90, day 96 is inside only after a week.
+    const days = Array.from({ length: 14 }, (_, week) => 5 + week * 7);
+    for (const day of days)
+      makeAt(conn, "Weekly infusion", new Date(first.getTime() + day * DAY).toISOString(), true);
+
+    await pull(conn, first);
+    expect(await entriesTitled(group.id, "Weekly infusion")).toHaveLength(days.filter((d) => d < 90).length);
+    await pull(conn, new Date());
+    expect(await entriesTitled(group.id, "Weekly infusion")).toHaveLength(days.filter((d) => d < 97).length);
+  });
+
+  it("leaves a linked event's item and the sync token alone", async () => {
+    const { caretaker, group, appointment } = await setup();
+    const conn = await connect(caretaker, group.id);
+    await pull(conn);
+    const start = plusHours(appointment.occurredAt, 2);
+    google.user.move(
+      conn.calendarId,
+      googleEventId(`entry:${appointment.id}`),
+      timed(start),
+      timed(plusHours(start, 1)),
+    );
+    // The change list has already passed this move, so only the catch-up could see it.
+    const session = ok(
+      await google.refresh(openGoogleToken((await connectionRow(conn.id)).refreshTokenSealed!, conn.id)!),
+    );
+    const current = ok(await session.listChanges(conn.calendarId, null));
+    if (current.fullSyncRequired) throw new Error("expected a token");
+    await getDb()
+      .update(googleCalendarConnectionSchema)
+      .set({ syncToken: current.syncToken, lastCatchUpAt: null })
+      .where(eq(googleCalendarConnectionSchema.id, conn.id));
+
+    const lists = google.calls.listWindow;
+    expect(await pull(conn)).toMatchObject({ applied: 0, overwritten: 0 });
+    expect(google.calls.listWindow).toBe(lists + 1);
+    expect(ms((await entryRow(appointment.id)).occurredAt)).toBe(ms(appointment.occurredAt));
+    expect((await connectionRow(conn.id)).syncToken).toBe(current.syncToken);
+  });
+
+  it("overwrites a viewer's unlinked event, as a pull does", async () => {
+    const { viewer, group } = await setup();
+    const conn = await connect(viewer, group.id);
+    const first = new Date(Date.now() - 40 * DAY);
+    const made = makeAt(conn, "Viewer's far event", new Date(first.getTime() + 400 * DAY).toISOString());
+    expect(await pull(conn, first)).toMatchObject({ overwritten: 0 });
+
+    expect(await pull(conn, new Date())).toMatchObject({ applied: 0, overwritten: 1 });
+    expect(google.event(conn.calendarId, made.id)!.status).toBe("cancelled");
+    expect(await entriesTitled(group.id, "Viewer's far event")).toHaveLength(0);
+  });
+
+  it("keeps the pull's changes and token when the window list fails, and runs again next pull", async () => {
+    const { caretaker, group, appointment } = await setup();
+    const conn = await connect(caretaker, group.id);
+    await pull(conn);
+    await dueNow(conn);
+    const start = plusHours(appointment.occurredAt, 1);
+    google.user.move(
+      conn.calendarId,
+      googleEventId(`entry:${appointment.id}`),
+      timed(start),
+      timed(plusHours(start, 1)),
+    );
+    const before = (await connectionRow(conn.id)).syncToken;
+    google.failCalls(true, "listWindow");
+    expect(await pull(conn)).toMatchObject({ status: "pulled", applied: 1 });
+    google.failCalls(false, "listWindow");
+
+    const after = await connectionRow(conn.id);
+    expect(ms((await entryRow(appointment.id)).occurredAt)).toBe(ms(start));
+    expect(after.syncToken).not.toBe(before);
+    expect(after.lastCatchUpAt).toBeNull();
+
+    const lists = google.calls.listWindow;
+    await pull(conn);
+    expect(google.calls.listWindow).toBe(lists + 1);
+    expect((await connectionRow(conn.id)).lastCatchUpAt).not.toBeNull();
+  });
+});
+
 describe("what the member can't do", () => {
   it("puts a viewer's move back on the next push, and removes their new event", async () => {
     const { viewer, group, appointment } = await setup();
@@ -349,7 +600,7 @@ describe("what the member can't do", () => {
     expect(await pull(conn)).toMatchObject({ applied: 0, overwritten: 0 });
   });
 
-  it("puts back a deleted todo a viewer may not complete, and completes one assigned to them", async () => {
+  it("puts back a viewer's deleted todos, even one assigned to them, and completes neither", async () => {
     const { owner, viewer, group, todo } = await setup();
     const theirs = ok(
       await todoService.create(owner.ctx, {
@@ -363,13 +614,14 @@ describe("what the member can't do", () => {
     await pull(conn);
     google.user.delete(conn.calendarId, googleEventId(`todo:${todo.id}`));
     google.user.delete(conn.calendarId, googleEventId(`todo:${theirs.id}`));
-    expect(await pull(conn)).toMatchObject({ applied: 1, overwritten: 1 });
+    expect(await pull(conn)).toMatchObject({ applied: 0, overwritten: 2 });
 
     const done = async (id: string) =>
       (await getDb().select().from(todoSchema).where(eq(todoSchema.id, id)))[0]!.doneBy;
     expect(await done(todo.id)).toBeNull();
-    expect(await done(theirs.id)).toBe(viewer.user.id);
+    expect(await done(theirs.id)).toBeNull();
     expect(eventOf(conn, `todo:${todo.id}`).status).toBe("confirmed");
+    expect(eventOf(conn, `todo:${theirs.id}`).status).toBe("confirmed");
   });
 });
 

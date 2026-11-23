@@ -5,6 +5,7 @@ import { useId, useRef } from "react";
 import { PassUndoStatus } from "~/components/medications";
 import { Button, Field, Message } from "~/components/ui";
 import { QuickEntryCard } from "./QuickEntryCard";
+import { QuickEntryGoToCard } from "./QuickEntryGoToCard";
 import { QuickEntryCompletions, useCompletionsOverlay } from "./QuickEntryCompletions";
 import { QuickEntrySuggestButton, SUGGEST_ROOM } from "./QuickEntrySuggestButton";
 import { QUICK_ENTRY_UNDO, useQuickEntry } from "./useQuickEntry";
@@ -132,6 +133,7 @@ export function QuickEntryBox({
         <p id={rulesId} className="sr-only">
           {QUICK_ENTRY_RULES}
         </p>
+        {q.goTo && <QuickEntryGoToCard goTo={q.goTo} />}
         {count > 0 && (
           <ul aria-label="To save" className="space-y-2" data-quick-cards>
             {q.cards.map((card) => (
@@ -150,6 +152,11 @@ export function QuickEntryBox({
         )}
         {!empty && (
           <div className="flex items-center gap-2">
+            {q.goTo && (
+              <Button type="submit" variant="primary" size={size} disabled={q.goTo.ahead}>
+                Go
+              </Button>
+            )}
             {count > 0 && (
               <Button type="submit" variant="primary" size={size} disabled={!q.canSave}>
                 {q.busy ? "Saving…" : count === 1 ? "Save" : `Save all ${count}`}

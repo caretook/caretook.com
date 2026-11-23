@@ -25,21 +25,22 @@ import { localTimeZone } from "~/lib/core/format";
 // with live queries over the same rows. Its own module (no hooks), so the
 // loader's chunk stays small.
 
-/** The rows the first render needs: the history up to `cutoff`, and what's ahead of it. */
+/** The rows the first render needs: the history up to `cutoff` (and a jump's `before`), and what's ahead of it. */
 export const loadTimelineRows = async (
   db: SyncDb,
   groupId: string,
   filters: EntryFilters,
+  before: string | null = null,
   cutoff = historyCutoff(new Date()),
 ) => {
   const ahead = aheadQueries(groupId, filters, cutoff);
   const [entryRows, memberRows, readingRows, documentRows, linkRows, nextRows, periodRows] =
     await Promise.all([
-      readRows<EntryRow>(db, historyQuery(groupId, filters, PAGE_SIZE, cutoff)),
+      readRows<EntryRow>(db, historyQuery(groupId, filters, PAGE_SIZE, cutoff, before)),
       readRows<MemberRow>(db, membersQuery(groupId)),
       readRows<ReadingRow>(db, readingsQuery(groupId)),
       readRows<NoteDocRow>(db, groupDocumentsQuery(groupId)),
-      readRows<EntryProviderLinkRow>(db, timelineLinksQuery(groupId, filters, PAGE_SIZE, cutoff)),
+      readRows<EntryProviderLinkRow>(db, timelineLinksQuery(groupId, filters, PAGE_SIZE, cutoff, before)),
       readRows<EntryRow>(db, ahead.next),
       // The care periods' track (the current-period line and the markers).
       readRows<CarePeriodRow>(db, carePeriodsQuery(groupId)),
@@ -49,10 +50,11 @@ export const loadTimelineRows = async (
   const since = summarySince(oldest ? fromLocalTimestamp(oldest) : null, cutoff, localTimeZone());
   const summaryRows = await readRows<EntryRow>(
     db,
-    daySummaryQuery(groupId, since, cutoff, summariesOff(filters)),
+    daySummaryQuery(groupId, since, cutoff, summariesOff(filters), before),
   );
   return {
     cutoff,
+    before,
     entryRows,
     memberRows,
     readingRows,
