@@ -7,7 +7,7 @@ The [PRD](test-gates-prd.md) covers:
 - a run's failures are sorted by kind, and flakes are quarantined;
 - a landing waits for the tier its orchestrator declared.
 
-Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-566, B-567, B-568, B-572, B-587, B-588, B-589, B-607. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
+Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-566, B-567, B-568, B-572, B-587, B-588, B-589, B-607, B-612. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
 
 ## Status
 
@@ -15,7 +15,9 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 
 **Done:** waves 1 to 5 are in dev (adce90ee PR #71, 5b724350 PR #74, da93fcfa PR #76, 2991461a PR #81, 3b09844b PR #90). Wave 5 landed at tier `full` on run 45111715656 (`flake`, filed as B-610), Codex clean. Its docs are folded, its report is filed, the dev hold is withdrawn and the other orchestrators are told the gate changed. Worktrees `test-gates-6`, `-7` and `-11` are gone.
 
-**Now: wave 6 (slice 12, B-607, the harness mount race), the last wave. Slice 12 merged (6f01c446); quick check next, then the wave's CI run.** Its worktree `test-gates-12` stays until the verdict is green. Its own `components` run 45114298819 read `flake` on 05f8c6ce: `sheetExit` "with reduced motion Back completes in the next frame" (uses `renderInRouter`, which the change doesn't touch) and `timelineBack` "back from the entry page three pages down" (timed out in the test's own `device.settle()`); neither was run on the base. To fold at landing, in `docs/domain/components.md` _Settle_: "`renderWithDevice` waits for the route's first load to finish and the route to mount (or error; a load that never finishes stops waiting at `WAIT_TIMEOUT`), then settles before it returns (`settle: false` for a first-paint test)." `dev` is ahead only by backlog commits and B-610's quarantine entry. The user added this wave on 2026-11-22. Its gate is a requested `components` run at least; the check plan proposes the landing's tier. fixes-tooling is held until this wave lands. After it: `pnpm prd rm test-gates`, then `cd` to the main checkout and `pnpm prd end`.
+**Now: wave 6 (slice 12, B-607, the harness mount race). Slice 12 merged (6f01c446), dev synced (d74f6fa0), quick check passed; the wave's `components` CI run is requested.** Its worktree `test-gates-12` stays until the verdict is green. Its own `components` run 45114298819 read `flake` on 05f8c6ce: `sheetExit` "with reduced motion Back completes in the next frame" (uses `renderInRouter`, which the change doesn't touch) and `timelineBack` "back from the entry page three pages down" (timed out in the test's own `device.settle()`); neither was run on the base. To fold at landing, in `docs/domain/components.md` _Settle_: "`renderWithDevice` waits for the route's first load to finish and the route to mount (or error; a load that never finishes stops waiting at `WAIT_TIMEOUT`), then settles before it returns (`settle: false` for a first-paint test)." The user added this wave on 2026-11-22. Its gate is a requested `components` run at least; the check plan proposes the landing's tier.
+
+**Next: wave 7 (slice 13, B-612, the default PRD cap from 3 to 4), the last wave.** The backlog session asked for it on the user's word on 2026-11-23; B-612 is claimed. After wave 6 lands and its docs are folded, rotate; the fresh session starts slice 13. fixes-tooling is held until wave 7 lands. Wave 7's landing report must say the running dispatcher keeps the old default until the user restarts it; never restart it. After wave 7: `pnpm prd rm test-gates`, then `cd` to the main checkout and `pnpm prd end`.
 
 **Open issues:**
 
@@ -40,6 +42,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 | 10    | 3    | merged (opus) | 7484100e (b5c9c6c6)                         |
 | 11    | 5    | merged (opus) | e7cfad86 (d64c4d14, 105a9f38)               |
 | 12    | 6    | merged (opus) | 6f01c446 (05f8c6ce)                         |
+| 13    | 7    | not started   | —                                           |
 
 **Backlog:**
 
@@ -64,6 +67,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 | B-589 | slice 11 starts | slice 11 merges |
 | B-590 | slice 11 fix    | slice 11 merges |
 | B-607 | slice 12 starts | slice 12 merges |
+| B-612 | claimed         | slice 13 merges |
 
 ## Architectural decisions
 
@@ -87,6 +91,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
   4. slice 5
   5. slice 11, then slice 6 on top of it, then slice 7, landed together
   6. slice 12 (the harness race, B-607), after wave 5 has landed
+  7. slice 13 (the default PRD cap, B-612), after wave 6 has landed
 - Waves 1 to 4 land under today's gate. **Wave 5 lands under its own new gate**, with a real `--tier full` run as the proof, and its landing notice tells the other orchestrators that the gate changed at their next sync.
 - **Proving a workflow change:** a slice pushes its own commit to a `ci/` ref (`pnpm prd ci run`, or `git push origin HEAD:refs/heads/ci/<tier>/<name>` before the command exists), links the runs in its hand-off and deletes the refs. A pushed ref runs the workflow of that commit, so nothing needs to be in dev or staging first.
 - **Hot files:** `.github/workflows/`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `packages/data/src/db/roles/syncConfig.ts` (the YAML reader the workflow tests use), `vitest.config.ts`, `scripts/loops/land`, `scripts/loops/check-plan`, `scripts/loops/check-body`, `scripts/loops/check-run`, `scripts/loops/check-times`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/pr.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/rotate`, `scripts/loops/browser.sh`, `scripts/loops/lease.sh`, `scripts/loops/stack-lib.sh`, `package.json`. These overlap:
@@ -426,3 +431,25 @@ Stack: no · Reads: docs/agents/loop.md, docs/domain/components.md · Tests: com
 - `pnpm test:tooling` passes.
 
 **Blocked by:** 7. **Blocks:** nothing.
+
+## Slice 13: The default PRD cap is 4
+
+Stack: no · Reads: docs/agents/loop.md, docs/agents/machinery.md · Tests: unit
+
+**User stories:** none; B-612, the user's decision of 2026-11-23, because testing has moved to CI.
+
+**Build:**
+
+- Change the default from 3 to 4 in `scripts/loops/lib.sh` (`max_prds`), `scripts/loops/dispatch.mjs` (the cap and its _Env_ comment) and `scripts/loops/dispatch-pick.mjs` (`DEFAULT_CAPS`). `CARETOOK_MAX_PRDS` stays the override.
+- Update the tests that assume 3, and the "slots used of three" wording in the backlog prompt in `scripts/loops/prompt.sh`.
+- Leave the check and browser leases at 2 and the load gate as it is.
+- The hand-off lists the doc wording for the orchestrator to fold: `docs/orchestration.md` (_At most three PRDs_), `docs/agents/machinery.md`, `docs/agents/orchestrator.md` and `docs/agents/backlog.md`.
+
+**Acceptance criteria:**
+
+- With no env var, `pnpm prd start`, `pnpm prd status` and the dispatcher all use 4. A test covers each default, and `CARETOOK_MAX_PRDS` still overrides it.
+- No default of 3 for the PRD cap is left in `scripts/loops/`.
+- The lease limits and the load gate are unchanged.
+- `pnpm test:tooling` passes.
+
+**Blocked by:** wave 6 landing. **Blocks:** nothing.
