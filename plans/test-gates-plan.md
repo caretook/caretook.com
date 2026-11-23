@@ -15,7 +15,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 
 **Done:** waves 1 to 5 are in dev (adce90ee PR #71, 5b724350 PR #74, da93fcfa PR #76, 2991461a PR #81, 3b09844b PR #90). Wave 5 landed at tier `full` on run 45111715656 (`flake`, filed as B-610), Codex clean. Its docs are folded, its report is filed, the dev hold is withdrawn and the other orchestrators are told the gate changed. Worktrees `test-gates-6`, `-7` and `-11` are gone.
 
-**Now: wave 6 (slice 12, B-607, the harness mount race), the last wave. Started:** B-607 claimed, worktree `test-gates-12` made from 059007f9, one opus agent spawned. `dev` is ahead only by backlog commits and B-610's quarantine entry. The user added this wave on 2026-11-22. Its gate is a requested `components` run at least; the check plan proposes the landing's tier. fixes-tooling is held until this wave lands. After it: `pnpm prd rm test-gates`, then `cd` to the main checkout and `pnpm prd end`.
+**Now: wave 6 (slice 12, B-607, the harness mount race), the last wave. Slice 12 merged (6f01c446); quick check next, then the wave's CI run.** Its worktree `test-gates-12` stays until the verdict is green. Its own `components` run 45114298819 read `flake` on 05f8c6ce: `sheetExit` "with reduced motion Back completes in the next frame" (uses `renderInRouter`, which the change doesn't touch) and `timelineBack` "back from the entry page three pages down" (timed out in the test's own `device.settle()`); neither was run on the base. To fold at landing, in `docs/domain/components.md` _Settle_: "`renderWithDevice` waits for the route's first load to finish and the route to mount (or error; a load that never finishes stops waiting at `WAIT_TIMEOUT`), then settles before it returns (`settle: false` for a first-paint test)." `dev` is ahead only by backlog commits and B-610's quarantine entry. The user added this wave on 2026-11-22. Its gate is a requested `components` run at least; the check plan proposes the landing's tier. fixes-tooling is held until this wave lands. After it: `pnpm prd rm test-gates`, then `cd` to the main checkout and `pnpm prd end`.
 
 **Open issues:**
 
@@ -26,20 +26,20 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 - A flake verdict's GitHub run shows `success`: read the verdict, not the colour.
 - `pnpm prd ci <branch>` reads only the exact tip, so it says unknown after a docs commit even though `land` keeps the verdict.
 
-| Slice | Wave | State          | Merge into `prd/test-gates` (slice commits) |
-| ----- | ---- | -------------- | ------------------------------------------- |
-| 1     | 1    | merged (opus)  | 98a36dd4 (5eb596a9)                         |
-| 2     | 1    | merged (opus)  | 34b157fb (80a35650)                         |
-| 3     | 2    | merged (opus)  | 39f87cf0 (f0645753)                         |
-| 4     | 3    | merged (opus)  | 6396b470 (be81f850, e68f8866)               |
-| 5     | 4    | merged (opus)  | 009275c5 (3a0324bc … 54c05411)              |
-| 6     | 5    | merged (opus)  | e82dc279 (64569315 … 68016f5c)              |
-| 7     | 5    | merged (opus)  | 490eb14a (e033b8f1, 0da30aed, 6dc62462)     |
-| 8     | 2    | merged (opus)  | ff6ac3c3 (7bd82c6f)                         |
-| 9     | 3    | merged (opus)  | f285f1a5 (3b4428f0, 3b752d2e, 21533389)     |
-| 10    | 3    | merged (opus)  | 7484100e (b5c9c6c6)                         |
-| 11    | 5    | merged (opus)  | e7cfad86 (d64c4d14, 105a9f38)               |
-| 12    | 6    | started (opus) | —                                           |
+| Slice | Wave | State         | Merge into `prd/test-gates` (slice commits) |
+| ----- | ---- | ------------- | ------------------------------------------- |
+| 1     | 1    | merged (opus) | 98a36dd4 (5eb596a9)                         |
+| 2     | 1    | merged (opus) | 34b157fb (80a35650)                         |
+| 3     | 2    | merged (opus) | 39f87cf0 (f0645753)                         |
+| 4     | 3    | merged (opus) | 6396b470 (be81f850, e68f8866)               |
+| 5     | 4    | merged (opus) | 009275c5 (3a0324bc … 54c05411)              |
+| 6     | 5    | merged (opus) | e82dc279 (64569315 … 68016f5c)              |
+| 7     | 5    | merged (opus) | 490eb14a (e033b8f1, 0da30aed, 6dc62462)     |
+| 8     | 2    | merged (opus) | ff6ac3c3 (7bd82c6f)                         |
+| 9     | 3    | merged (opus) | f285f1a5 (3b4428f0, 3b752d2e, 21533389)     |
+| 10    | 3    | merged (opus) | 7484100e (b5c9c6c6)                         |
+| 11    | 5    | merged (opus) | e7cfad86 (d64c4d14, 105a9f38)               |
+| 12    | 6    | merged (opus) | 6f01c446 (05f8c6ce)                         |
 
 **Backlog:**
 
