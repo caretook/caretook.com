@@ -17,8 +17,8 @@ import { formString } from "~/lib/core/form";
 import { rpc } from "~/lib/core/rpc";
 import { NEW_GROUP_LINK_STATE } from "~/lib/care-groups/newGroupLink";
 import { AuthCard, ErrorMessage, useSubmitOnce } from "../AuthCard";
+import { LegalAgreement } from "../LegalAgreement";
 import { CLOSED_CODE, stepForIssues } from "./joinPage";
-import { LegalAgreement } from "./LegalAgreement";
 
 // `/join/:code`: a staff access code's link (printed as a QR code). Shared by
 // web + native, client-only. Signed out, it's a two-step form: your account
