@@ -1,4 +1,4 @@
-import type { TimelineEntry } from "../../db";
+import type { TimelineEntry, Tx } from "../../db";
 import type { Filter, QuerySelectArgs } from "../base/queryHelpers";
 
 import { and, desc, isNotNull, sql } from "drizzle-orm";
@@ -243,6 +243,16 @@ export const restore = async (
   if (isError(res)) return res;
   return res.length ? getById(id, args) : null;
 };
+
+/**
+ * Hold this entry's id until the transaction ends, whether or not a row has it
+ * yet, so two first writes of one shared dose id take turns (B-616).
+ */
+export const lockId = (id: string, tx: Tx) =>
+  dbMayFail(
+    () => tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`timeline_entry:${id}`}, 0))`),
+    "timelineEntryModel:lock",
+  );
 
 /** Hard delete, for retention jobs and data-deletion requests. System only. */
 export const purge = (args: QuerySelectArgs<K>) =>
