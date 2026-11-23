@@ -39,6 +39,7 @@ const open = (api: Record<string, (input: unknown) => unknown>, code = CODE) =>
 const usable = { "accessCode.preview": () => ({ state: "usable", code: CODE }) };
 const heading = () => page.getByRole("heading", { level: 1 });
 const field = (label: string) => page.getByLabelText(label, { exact: true });
+const legalBox = () => page.getByRole("checkbox", { name: /18 or older/ });
 
 /** Fill the account step and press Continue. */
 const fillAccount = async (email = "rose.example@example.com", password = "a long fictional passphrase") => {
@@ -107,6 +108,7 @@ describe("/join/:code", () => {
     await userEvent.fill(field("Their name"), "Rose Example");
     await userEvent.fill(field("What you call them"), "Nana");
     await expect.element(field("Group name")).toHaveAttribute("placeholder", "Nana's care");
+    await userEvent.click(legalBox());
 
     // Back keeps what was typed.
     await userEvent.click(page.getByRole("button", { name: "Back" }));
@@ -127,6 +129,7 @@ describe("/join/:code", () => {
           groupName: "",
           timeZone: "America/Los_Angeles",
         },
+        legal: true,
       },
     ]);
     // The confirmation link goes on to /app, which opens the only group.
@@ -144,6 +147,7 @@ describe("/join/:code", () => {
     await userEvent.fill(field("Password again"), "a different passphrase");
     await userEvent.click(page.getByRole("button", { name: "Continue" }));
     await userEvent.fill(field("Their name"), "Rose Example");
+    await userEvent.click(legalBox());
     await userEvent.click(page.getByRole("button", { name: "Create care group" }));
     await expect.element(heading()).toHaveTextContent("Start a care group");
     await expect.element(page.getByRole("alert").first()).toBeVisible();
@@ -157,6 +161,7 @@ describe("/join/:code", () => {
     });
     await fillAccount();
     await userEvent.fill(field("Their name"), "Rose Example");
+    await userEvent.click(legalBox());
     await userEvent.click(page.getByRole("button", { name: "Create care group" }));
     await expect
       .element(page.getByRole("alert"))
@@ -169,8 +174,41 @@ describe("/join/:code", () => {
     const device = await open({ ...usable });
     await fillAccount();
     await userEvent.fill(field("Their name"), "Rose Example");
+    await userEvent.click(legalBox());
     await userEvent.click(page.getByRole("button", { name: "Create care group" }));
     await expect.element(page.getByText(/Couldn't reach Caretook/)).toBeVisible();
     expect(device.location()).toBe(`/join/${CODE}`);
+  });
+
+  test("it can't be submitted without the box", async () => {
+    const calls = apiCalls();
+    const device = await open(
+      calls.record({ ...usable, "accessCode.signUp": () => ({ email: "x@example.com" }) }),
+    );
+    await fillAccount();
+    await userEvent.fill(field("Their name"), "Rose Example");
+    await userEvent.click(page.getByRole("button", { name: "Create care group" }));
+    await expect.element(legalBox()).not.toBeChecked();
+    expect(document.querySelector<HTMLInputElement>("[data-legal-box]")?.validity.valueMissing).toBe(true);
+    expect(calls.of("accessCode.signUp")).toEqual([]);
+    expect(device.location()).toBe(`/join/${CODE}`);
+  });
+
+  test("the three legal links open in a new tab, and the form keeps what was typed", async () => {
+    await open({ ...usable });
+    await fillAccount();
+    await userEvent.fill(field("Their name"), "Rose Example");
+    for (const [name, href] of [
+      ["Terms", "/terms"],
+      ["Privacy Policy", "/privacy"],
+      ["Consumer Health Data Privacy Policy", "/health-data-privacy"],
+    ] as const) {
+      const link = page.getByRole("link", { name, exact: true });
+      await expect.element(link).toHaveAttribute("href", href);
+      await expect.element(link).toHaveAttribute("target", "_blank");
+      await expect.element(link).toHaveAttribute("rel", "noopener noreferrer");
+    }
+    await expect.element(field("Their name")).toHaveValue("Rose Example");
+    await expect.element(legalBox()).not.toBeChecked();
   });
 });

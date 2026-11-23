@@ -1034,15 +1034,17 @@ test("13. /join: sign up with a code, confirm, the new group opens; a closed cod
   await button(p, "Continue").click();
   await expect(p.locator('[data-join-form="recipient"]')).toBeVisible();
   await p.locator('[name="recipientName"]').fill(`${RUN} Rose Example`);
+  await p.locator('[name="legal"]').check();
   await submit(p, "Create care group").click();
   await p.waitForURL((u) => u.pathname === "/verify-email", { timeout: 20_000 });
 
-  await test.step("one call makes the account, its group as owner, and the redemption", () => {
+  await test.step("one call makes the account, its group as owner, the redemption and the acceptance", () => {
     expect(
       psql(`
       SELECT m.role || '|' || (SELECT count(*) FROM access_code_redemption r WHERE r.user_id = u.id AND r.group_id = m.group_id)
+        || '|' || (SELECT count(*) FROM legal_acceptance a WHERE a.user_id = u.id AND a.source = 'access_code')
       FROM "user" u JOIN care_group_member m ON m.user_id = u.id WHERE u.email = '${joiner}'`),
-    ).toBe("owner|1");
+    ).toBe("owner|1|1");
   });
 
   await test.step("the confirmed link opens the new group's timeline, with the Invite someone card", async () => {
