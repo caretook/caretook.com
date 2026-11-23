@@ -306,7 +306,14 @@ const NOT_A_PLACE = new Set(
 );
 
 /** Words before an ordinal that make it a count of something ("gave the 2nd", "her 2nd"). */
-const COUNTED_AFTER = new Set("gave give given giving took take taking had my her his their our".split(" "));
+const COUNTED_AFTER = new Set(
+  "gave give given giving took take taking had received receive receiving got my her his their our".split(
+    " ",
+  ),
+);
+
+/** Articles between a count word and its ordinal ("gave a 2nd", "took an 8th"). */
+const ARTICLES = new Set(["the", "a", "an"]);
 
 /** "at the clinic", "at kaiser", "at 123 main st": a bare number of one or two digits is no place. */
 const placeFollows = (words: readonly string[], j: number) => {
@@ -326,7 +333,7 @@ const ordinalIsADay = (words: readonly string[], at: number, afterOn: boolean) =
   const next = words[at + 1]!;
   if (clockFollows(words, at + 1) || inThePeriod(words, at + 1)) return true;
   if (next === "at" && words[at + 2] === "night") return true;
-  const before = words[at - 1] === "the" ? words[at - 2] : words[at - 1];
+  const before = ARTICLES.has(words[at - 1] ?? "") ? words[at - 2] : words[at - 1];
   if (placeFollows(words, at + 1) && !COUNTED_AFTER.has(before ?? "")) return true;
   return PERIOD_WORDS.has(next) && at + 1 === words.length - 1;
 };
