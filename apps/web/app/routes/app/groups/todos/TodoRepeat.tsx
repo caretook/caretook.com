@@ -2,6 +2,7 @@ import type { TodoRepeatDraft } from "./todoFormData";
 
 import { Repeat } from "lucide-react";
 import { lazy, Suspense, useId, useState } from "react";
+import { Button } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { defaultChoice } from "~/lib/appointments/repeatChoice";
 import { todoRepeatLine } from "~/lib/todos/todoDisplay";
@@ -43,20 +44,21 @@ export function TodoRepeat({
   return (
     <div className="fieldset" data-todo-repeat>
       <span className="fieldset-legend text-sm">Repeat</span>
-      <button
-        type="button"
-        className="btn btn-ghost btn-sm border-base-300 justify-start gap-2 font-normal"
+      <Button
+        variant="ghost"
+        size="sm"
+        icon={Repeat}
+        className="border-base-300 justify-start gap-2 font-normal [&>svg]:shrink-0"
         aria-label={`Repeat: ${label}`}
         aria-describedby={help ? helpId : undefined}
         disabled={!day}
         onClick={() => setOpen(true)}
-        data-todo-repeat-button
+        data-todo-repeat-button=""
       >
-        <Repeat className="size-4 shrink-0" aria-hidden="true" />
         <span>{label}</span>
-      </button>
+      </Button>
       {help && (
-        <p id={helpId} className={`text-sm ${error ? "text-error" : "text-base-content/70"}`}>
+        <p id={helpId} className={`text-sm ${error ? "text-error-ink" : "text-muted"}`}>
           {help}
         </p>
       )}

@@ -30,7 +30,7 @@ PRD: [`plans/tasks-prd.md`](../../plans/tasks-prd.md) (B-55); renamed todos by [
 
 - `toTodo`/`todosQuery`/`doneCountQuery`/`todoQuery` read; `createTodo` (over `plannedTodo`, which quick entry uses too), `updateTodo`, `completeTodo`, `reopenTodo`, `removeTodo` write. A done-only change is a PATCH of `done_at`/`done_by` that the server maps to `complete` or `reopen`.
 - `dueTodosQuery`, `dueTodosThrough` and `useDueTodos` (ticking every `DUE_TODOS_TICK_MS`) feed the Planner, the Today card and the easy view; `linkedTodosQuery`, `linkOf` and `TodoLink` serve links.
-- Wording in `lib/todos/todoDisplay.ts` (`dueText`, `doneText`, `assigneeLabel`, `linkLabel`); the filter and sections in `lib/todos/todoList.ts`; the tick's Undo in `lib/todos/todoUndo.ts`: newest first, each 10 s from its tick; `TodoUndoStatus`: a line per todo, "Undo <title>".
+- Wording in `lib/todos/todoDisplay.ts`; the filter and sections in `lib/todos/todoList.ts`; the tick's Undo in `lib/todos/todoUndo.ts`: newest first, each 10 s from its tick; `TodoUndoStatus`: a line per todo, "Undo <title>", in a soft box, not a `Notice` (it stays mounted).
 
 ## Screens
 

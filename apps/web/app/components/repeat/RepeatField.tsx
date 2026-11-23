@@ -91,12 +91,11 @@ export function RepeatField({
 
   return (
     <div className="space-y-2" data-repeat-field>
-      <Field label="Repeat">
+      <Field label="Repeat" kind="select">
         {(control) => (
           <select
             {...control}
             name="repeat"
-            className="select w-full"
             value={choice.preset}
             onChange={(e) => set({ preset: e.target.value as RepeatPreset })}
           >
@@ -111,7 +110,7 @@ export function RepeatField({
 
       {choice.preset === "custom" && (
         <div className="flex items-end gap-2">
-          <Field label="Every" className="w-24">
+          <Field label="Every" kind="input" className="w-24">
             {(control) => (
               <input
                 {...control}
@@ -120,18 +119,16 @@ export function RepeatField({
                 inputMode="numeric"
                 min={1}
                 max={99}
-                className="input w-full"
                 value={choice.interval}
                 onChange={(e) => set({ interval: Number(e.target.value) })}
               />
             )}
           </Field>
-          <Field label="Unit" labelHidden className="flex-1">
+          <Field label="Unit" kind="select" labelHidden className="flex-1">
             {(control) => (
               <select
                 {...control}
                 name="unit"
-                className="select w-full"
                 value={choice.unit}
                 onChange={(e) => set({ unit: e.target.value as RepeatFreq })}
               >
@@ -188,14 +185,13 @@ export function RepeatField({
             onChange={(end) => set({ end })}
           />
           {choice.end === "on" && (
-            <Field label="Last day">
+            <Field label="Last day" kind="input">
               {(control) => (
                 <input
                   {...control}
                   name="until"
                   type="date"
                   min={timing.startsOn}
-                  className="input w-full"
                   value={choice.until}
                   onChange={(e) => set({ until: e.target.value })}
                 />
@@ -203,7 +199,7 @@ export function RepeatField({
             </Field>
           )}
           {choice.end === "after" && (
-            <Field label={`Number of ${noun}`}>
+            <Field label={`Number of ${noun}`} kind="input">
               {(control) => (
                 <input
                   {...control}
@@ -212,7 +208,6 @@ export function RepeatField({
                   inputMode="numeric"
                   min={1}
                   max={500}
-                  className="input w-full"
                   value={choice.count}
                   onChange={(e) => set({ count: Number(e.target.value) })}
                 />
@@ -225,7 +220,7 @@ export function RepeatField({
       {freq && (
         <div className="bg-base-200 rounded-box space-y-1 p-3 text-sm" aria-live="polite" data-repeat-preview>
           {problem ? (
-            <p className="text-error" data-repeat-problem>
+            <p className="text-error-ink" data-repeat-problem>
               {problem}
             </p>
           ) : (
@@ -240,8 +235,8 @@ export function RepeatField({
                     kind: textKind(kind),
                   })}
                 </p>
-                <p className="text-base-content/70">Next:</p>
-                <ul className="text-base-content/70" data-repeat-next>
+                <p className="text-muted">Next:</p>
+                <ul className="text-muted" data-repeat-next>
                   {preview.map((visit) => (
                     <li key={visit.day}>{visitLabel(visit, timing.allDay)}</li>
                   ))}

@@ -3,7 +3,7 @@ import type { RepeatChoice } from "~/lib/appointments/repeatChoice";
 import type { RepeatKind } from "./RepeatField";
 
 import { useState } from "react";
-import { Sheet } from "~/components/ui";
+import { Button, Sheet } from "~/components/ui";
 import { repeatOutcome, RepeatField } from "./RepeatField";
 
 /**
@@ -34,17 +34,14 @@ export function RepeatSheet({
         <input type="hidden" name="repeatWeekdays" value={choice.weekdays.join(",")} />
         <RepeatField choice={choice} onChange={setChoice} timing={timing} kind={kind} />
         <div className="flex justify-end gap-2">
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
+          <Button onClick={onClose}>Cancel</Button>
+          <Button
+            variant="primary"
             aria-disabled={problem ? true : undefined}
             onClick={() => !problem && onDone(choice, rule)}
           >
             Done
-          </button>
+          </Button>
         </div>
       </div>
     </Sheet>

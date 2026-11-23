@@ -1,7 +1,7 @@
 import type { AssigneeMember } from "./assigneeOptions";
 
 import { useId, useMemo, useState } from "react";
-import { ChipList, ComboBox } from "~/components/ui";
+import { ChipList, ComboBox, Message } from "~/components/ui";
 import { assigneeOptions, canAssignName, memberName, UNASSIGNED_OPTION } from "./assigneeOptions";
 import { FIELD } from "./todoFormData";
 
@@ -82,9 +82,9 @@ export function AssigneeField({
       <input type="hidden" name={FIELD.assigneeId} value={choice.kind === "member" ? choice.userId : ""} />
       <input type="hidden" name={FIELD.assigneeName} value={choice.kind === "name" ? choice.name : ""} />
       {error && (
-        <p className="text-error text-sm" role="alert" data-picker-error>
+        <Message tone="error" data-picker-error="">
           {error}
-        </p>
+        </Message>
       )}
     </div>
   );
