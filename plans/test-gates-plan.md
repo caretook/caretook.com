@@ -15,7 +15,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 
 **Done:** waves 1 to 6 are in dev (adce90ee PR #71, 5b724350 PR #74, da93fcfa PR #76, 2991461a PR #81, 3b09844b PR #90, d0fe52d8 PR #93). Wave 6 landed at tier `components` on run 45117253571 (`flake`, filed as B-619, likely a duplicate of B-492), Codex clean. Its docs are folded, its report is filed and worktree `test-gates-12` is gone.
 
-**Now: wave 7 (slice 13, B-612, the default PRD cap from 3 to 4), the last wave. Started: worktree `test-gates-13` made from 4919ee4b, one opus agent spawned.** The backlog session asked for it on the user's word on 2026-11-23; B-612 is claimed. The diff is tooling, so the proposal should be tier `none` plus `pnpm test:tooling`. fixes-tooling is held until this wave lands. Its landing report must say the running dispatcher keeps the old default until the user restarts it; never restart it. After it: `pnpm prd rm test-gates`, then `cd` to the main checkout and `pnpm prd end`.
+**Now: wave 7 (slice 13, B-612, the default PRD cap from 3 to 4), the last wave. Slice 13 merged as 411fb7a9, B-612 marked done, docs folded; next the dev sync, the quick check, the requested run and the PR. Keep worktree `test-gates-13` until the verdict is green.** The backlog session asked for it on the user's word on 2026-11-23. The diff touches `lib.sh`, a browser-harness trigger path, so expect a proposal of tier `integration`, not `none`. fixes-tooling is held until this wave lands. Its landing report must say the running dispatcher keeps the old default until the user restarts it; never restart it. After it: `pnpm prd rm test-gates`, then `cd` to the main checkout and `pnpm prd end`.
 
 **Open issues:**
 
@@ -39,7 +39,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 | 10    | 3    | merged (opus)  | 7484100e (b5c9c6c6)                         |
 | 11    | 5    | merged (opus)  | e7cfad86 (d64c4d14, 105a9f38)               |
 | 12    | 6    | merged (opus)  | 6f01c446 (05f8c6ce)                         |
-| 13    | 7    | started (opus) | —                                           |
+| 13    | 7    | merged (opus)  | 411fb7a9 (3a435254)                         |
 
 **Backlog:**
 
