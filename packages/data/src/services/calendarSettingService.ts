@@ -120,9 +120,11 @@ export const get = (ctx: ServiceContext, groupId: string) => read(ctx, groupId);
 
 /**
  * Change the actor's own settings for `groupId`. Fields left out keep their
- * value. Turning details on records the consent (when, and
- * DETAILS_CONSENT_VERSION), unless it's already on for the current wording;
- * off clears it. Details the owners forbid are refused (`detailsForbidden`).
+ * value. Turning details on needs the version of the wording the member saw:
+ * anything but the current one records nothing (`consentOutdated`). It records
+ * when and that version, unless it's already on for the current wording; off
+ * needs no version and clears it. Details the owners forbid are refused
+ * (`detailsForbidden`).
  */
 export const update = (
   ctx: ServiceContext,
@@ -140,6 +142,8 @@ export const update = (
     if (isError(allows)) return allows;
     if (change.detailsConsent && !allows)
       return newError({ code: "calendarSettingService:detailsForbidden" });
+    if (change.detailsConsent && change.detailsConsentVersion !== DETAILS_CONSENT_VERSION)
+      return newError({ code: "calendarSettingService:consentOutdated" });
 
     const existing = await ownRow(ctx, groupId, userId, tx);
     if (isError(existing)) return existing;

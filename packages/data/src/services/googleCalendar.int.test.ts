@@ -6,6 +6,7 @@ import { createUser, createWorld, ok, system } from "../../test/fixtures";
 import { getDb, withTransaction } from "../db";
 import {
   calendarSyncJobSchema,
+  DETAILS_CONSENT_VERSION,
   googleCalendarConnectionSchema,
   googleEventLinkSchema,
   googleOauthStateSchema,
@@ -304,7 +305,12 @@ describe("pushing", () => {
     await settled();
 
     const conn = await connect(caretaker, group.id);
-    ok(await calendarSettingService.update(caretaker.ctx, group.id, { detailsConsent: true }));
+    ok(
+      await calendarSettingService.update(caretaker.ctx, group.id, {
+        detailsConsent: true,
+        detailsConsentVersion: DETAILS_CONSENT_VERSION,
+      }),
+    );
     await settled();
     const pushed = google
       .events(conn.calendarId)
@@ -316,7 +322,12 @@ describe("pushing", () => {
   it("rewrites the events when details go on, and back to generic when they go off", async () => {
     const { caretaker, group } = await setup();
     const conn = await connect(caretaker, group.id);
-    ok(await calendarSettingService.update(caretaker.ctx, group.id, { detailsConsent: true }));
+    ok(
+      await calendarSettingService.update(caretaker.ctx, group.id, {
+        detailsConsent: true,
+        detailsConsentVersion: DETAILS_CONSENT_VERSION,
+      }),
+    );
     await settled();
     expect(summaries(conn.calendarId)).toEqual([
       "Event for Pat Example: Dialysis",
@@ -333,7 +344,12 @@ describe("pushing", () => {
   it("goes generic when the consent wording changed, until the member agrees again", async () => {
     const { caretaker, group } = await setup();
     const conn = await connect(caretaker, group.id);
-    ok(await calendarSettingService.update(caretaker.ctx, group.id, { detailsConsent: true }));
+    ok(
+      await calendarSettingService.update(caretaker.ctx, group.id, {
+        detailsConsent: true,
+        detailsConsentVersion: DETAILS_CONSENT_VERSION,
+      }),
+    );
     await settled();
     expect(summaries(conn.calendarId)).toContain("Event for Pat Example: Dialysis");
 
@@ -345,7 +361,12 @@ describe("pushing", () => {
     expect(summaries(conn.calendarId)).toEqual(["Event for Pat Example", "Todo for Pat Example"]);
     expect(JSON.stringify(google.events(conn.calendarId))).not.toMatch(/Dialysis|Riverside|walker/);
 
-    ok(await calendarSettingService.update(caretaker.ctx, group.id, { detailsConsent: true }));
+    ok(
+      await calendarSettingService.update(caretaker.ctx, group.id, {
+        detailsConsent: true,
+        detailsConsentVersion: DETAILS_CONSENT_VERSION,
+      }),
+    );
     await settled();
     expect(summaries(conn.calendarId)).toEqual([
       "Event for Pat Example: Dialysis",
@@ -356,7 +377,12 @@ describe("pushing", () => {
   it("goes generic for everyone when the owners forbid details", async () => {
     const { owner, caretaker, group } = await setup();
     const conn = await connect(caretaker, group.id);
-    ok(await calendarSettingService.update(caretaker.ctx, group.id, { detailsConsent: true }));
+    ok(
+      await calendarSettingService.update(caretaker.ctx, group.id, {
+        detailsConsent: true,
+        detailsConsentVersion: DETAILS_CONSENT_VERSION,
+      }),
+    );
     await settled();
     ok(await calendarSettingService.setDetailsAllowed(owner.ctx, group.id, false));
     await settled();
