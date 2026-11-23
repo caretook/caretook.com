@@ -84,7 +84,7 @@ describe("the Reminders card", () => {
     await expect
       .element(page.getByText(/Todos assigned to you remind you the morning they're due/))
       .toBeVisible();
-    await expect.element(page.getByText(/Emails before appointments and todos in this group/)).toBeVisible();
+    await expect.element(page.getByText(/Emails before events and todos in this group/)).toBeVisible();
     expect(card()?.textContent ?? "").not.toMatch(/appointments and reminders/);
 
     await userEvent.click(onSwitch());

@@ -124,6 +124,8 @@ describe("the medication list sheet", () => {
       ),
     ).toEqual(["Medication list", "Weekly chart"]);
     await userEvent.keyboard("{Escape}");
+    // The closing menu fades with the same label as its button, so wait for it to go.
+    await waitUntil(() => !document.querySelector("[role=menu]"), "the menu to close");
     await choosePrint("Medication list");
     await expect.poll(device.location).toBe(`${MEDS}/print`);
     await waitUntil(

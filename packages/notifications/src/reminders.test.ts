@@ -62,7 +62,7 @@ const render = async (
 describe("reminder emails", () => {
   it("say only the kind, the time and a link in the generic form", async () => {
     const visit = await render("appointmentReminder", appointment, "generic");
-    expect(visit.subject).toBe("Appointment for Pat · Thu 19 Nov · 9:00–10:00");
+    expect(visit.subject).toBe("Event for Pat · Thu 19 Nov · 9:00–10:00");
     const due = await render("todoDue", todo, "generic");
     expect(due.subject).toBe("Todo for Pat · Thu 19 Nov · 9:00");
     for (const out of [visit, due]) {
@@ -81,7 +81,7 @@ describe("reminder emails", () => {
 
   it("add the title, place and providers with details", async () => {
     const visit = await render("appointmentReminder", appointment, "details");
-    expect(visit.subject).toBe("Appointment for Pat: Kidney dialysis · Thu 19 Nov · 9:00–10:00");
+    expect(visit.subject).toBe("Event for Pat: Kidney dialysis · Thu 19 Nov · 9:00–10:00");
     expect(visit.text).toContain("At Riverside Clinic");
     expect(visit.text).toContain("With Dr. Rivera Example");
     const due = await render("todoDue", todo, "details");

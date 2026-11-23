@@ -59,10 +59,13 @@ export const list = (ctx: ServiceContext, opts: ServiceSelectArgs<K> = {}) =>
  * Update groups in the actor's scope (owners and admins, in SQL). The
  * Assistants switch (`connectorsEnabled`, connectors PRD) is owners' only,
  * one group at a time; turning it off revokes every member's connection in
- * the same transaction, and turning it on restores none.
+ * the same transaction, and turning it on restores none. Read only
+ * (`connectorsReadOnly`, assistant-access) is owners' only the same way and
+ * revokes nothing.
  */
 export const update = (ctx: ServiceContext, opts: ServiceUpdateArgs<K>) => {
-  if (opts.data.connectorsEnabled === undefined) return careGroupModel.update({ ...ctx, ...opts });
+  if (opts.data.connectorsEnabled === undefined && opts.data.connectorsReadOnly === undefined)
+    return careGroupModel.update({ ...ctx, ...opts });
   const target = opts.filter?.id;
   const groupId = target && "value" in target && target.type === "eq" ? target.value : undefined;
   if (typeof groupId !== "string")

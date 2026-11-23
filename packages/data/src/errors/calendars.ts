@@ -30,7 +30,7 @@ export const CALENDARS_ERRORS = {
     statusCode: 404,
   },
   "reminderOverrideService:notFound": {
-    message: "Appointment not found",
+    message: "Event not found",
     statusCode: 404,
   },
   "reminderOverrideService:invalid": {

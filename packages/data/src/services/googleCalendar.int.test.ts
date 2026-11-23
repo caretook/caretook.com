@@ -121,7 +121,7 @@ describe("connecting", () => {
     ]);
     const events = google.events(conn.calendarId);
     expect(events.map((e) => [e.privateProperties[UID_PROPERTY], e.summary])).toEqual([
-      [`entry:${appointment.id}`, "Appointment for Pat Example"],
+      [`entry:${appointment.id}`, "Event for Pat Example"],
       [`todo:${todo.id}`, "Todo for Pat Example"],
     ]);
     expect(JSON.stringify(events)).not.toMatch(/Dialysis|Riverside|walker/);
@@ -251,7 +251,7 @@ describe("pushing", () => {
     const [event, ...rest] = google.events(conn.calendarId);
     expect(rest).toEqual([]);
     expect(event).toMatchObject({
-      summary: "Cancelled: Appointment for Pat Example",
+      summary: "Cancelled: Event for Pat Example",
       privateProperties: { [UID_PROPERTY]: `entry:${appointment.id}`, [STATUS_PROPERTY]: "cancelled" },
     });
     const links = await getDb()
@@ -267,14 +267,14 @@ describe("pushing", () => {
     ok(await calendarSettingService.update(caretaker.ctx, group.id, { detailsConsent: true }));
     await settled();
     expect(summaries(conn.calendarId)).toEqual([
-      "Appointment for Pat Example: Dialysis",
+      "Event for Pat Example: Dialysis",
       "Todo for Pat Example: Pick up the walker",
     ]);
     expect(google.events(conn.calendarId)[0]!.location).toBe("Riverside Clinic");
 
     ok(await calendarSettingService.update(caretaker.ctx, group.id, { detailsConsent: false }));
     await settled();
-    expect(summaries(conn.calendarId)).toEqual(["Appointment for Pat Example", "Todo for Pat Example"]);
+    expect(summaries(conn.calendarId)).toEqual(["Event for Pat Example", "Todo for Pat Example"]);
     expect(JSON.stringify(google.events(conn.calendarId))).not.toMatch(/Dialysis|Riverside|walker/);
   });
 
@@ -285,7 +285,7 @@ describe("pushing", () => {
     await settled();
     ok(await calendarSettingService.setDetailsAllowed(owner.ctx, group.id, false));
     await settled();
-    expect(summaries(conn.calendarId)).toEqual(["Appointment for Pat Example", "Todo for Pat Example"]);
+    expect(summaries(conn.calendarId)).toEqual(["Event for Pat Example", "Todo for Pat Example"]);
   });
 
   it("keeps a viewer's calendar current too", async () => {

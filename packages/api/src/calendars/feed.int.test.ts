@@ -220,7 +220,7 @@ describe("GET /api/calendar/<token>.ics", () => {
     const ics = await res.text();
     expect(ics).toContain("BEGIN:VCALENDAR");
     expect(ics).toContain("X-WR-CALNAME:Caretook: Pat Example");
-    expect(ics).toContain("SUMMARY:Appointment for Pat Example");
+    expect(ics).toContain("SUMMARY:Event for Pat Example");
   });
 
   it("lets a viewer have a feed too", async () => {
@@ -228,7 +228,7 @@ describe("GET /api/calendar/<token>.ics", () => {
     await s.entry({});
     const { file } = await makeFeed(s, "viewer");
     const ics = await (await fetchFeed(s.handler(), file)).text();
-    expect(ics).toContain("SUMMARY:Appointment for Pat Example");
+    expect(ics).toContain("SUMMARY:Event for Pat Example");
   });
 
   it("holds appointments and dated open todos from 90 days back to 90 ahead", async () => {
@@ -326,7 +326,7 @@ describe("GET /api/calendar/<token>.ics", () => {
 
     await s.api("caretaker").calendars.settings.update({ groupId: s.group.id, detailsConsent: true });
     const details = await read();
-    expect(details).toContain("Appointment for Pat Example: Kidney check");
+    expect(details).toContain("Event for Pat Example: Kidney check");
     expect(details).toContain("LOCATION:Mercy Clinic");
     expect(details).toContain("With Mercy Clinic Group");
 

@@ -13,7 +13,7 @@ export function ChoiceDialogSection() {
       </Button>
       <ChoiceDialog
         open={open === "change"}
-        title="Change a repeating appointment"
+        title="Change a repeating event"
         message="Change only this visit, or this one and the visits after it? Past visits stay as they were."
         choices={[
           { id: "only", label: "Only this visit", tone: "primary" },

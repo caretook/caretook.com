@@ -58,7 +58,7 @@ export default function NewGroupSheet() {
   };
   return (
     <Page>
-      <Sheet isOpen onOpenChange={(open) => !open && close()} title="New care group">
+      <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title="New care group">
         <fetcher.Form method="post" className="space-y-2" data-new-group-form="">
           <p className="text-base-content/70 text-sm">
             Who do you care for? You'll be the group's owner, and can invite others next.

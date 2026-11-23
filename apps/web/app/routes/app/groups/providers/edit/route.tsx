@@ -86,7 +86,7 @@ export default function EditProviderSheet({ loaderData }: Route.ComponentProps) 
   const refusal = remover.state === "idle" && remover.data && !remover.data.ok ? remover.data.error : null;
 
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title={`Edit ${provider.name}`}>
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title={`Edit ${provider.name}`}>
       <ProviderForm
         key={provider.id}
         provider={provider}

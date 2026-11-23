@@ -19,6 +19,7 @@ import {
   rowActions,
   TIMELINE_URL,
 } from "./plannerWorld";
+import { pickTime } from "../../../../../test/timeSelect";
 
 // Editing a series on the test device (appointments-2, slice 2): the
 // SeriesScopeDialog before Edit, Cancel, Reschedule and Delete on a series
@@ -145,21 +146,21 @@ describe("the scope dialog in Upcoming", () => {
     await openPlanner({ extra: SERIES });
     await rowMenu(FRI_20.id);
     await userEvent.click(menuItem("Delete"));
-    const dialog = page.getByRole("dialog", { name: "Delete a repeating appointment" });
+    const dialog = page.getByRole("dialog", { name: "Delete a repeating event" });
     await expect.element(dialog).toBeVisible();
     await expect.element(dialog).toHaveAccessibleDescription(/Delete only this visit/);
     await expect.poll(() => look("Only this visit").background).toBe(token("bg-error", "backgroundColor"));
-    expect(look("This and later visits").color).toBe(token("text-error", "color"));
+    expect(look("This and later visits").color).toBe(token("text-error-ink", "color"));
     await userEvent.click(dialogButton("Cancel"));
     await expect.poll(SCOPE).toBeNull();
 
     await rowMenu(FRI_20.id);
     await userEvent.click(menuItem("Edit"));
-    await expect.element(page.getByRole("dialog", { name: "Change a repeating appointment" })).toBeVisible();
+    await expect.element(page.getByRole("dialog", { name: "Change a repeating event" })).toBeVisible();
     // The pointer is still where Edit was, now over this button: rest it on the title to read the unhovered tone.
-    await userEvent.hover(page.getByRole("heading", { name: "Change a repeating appointment" }));
+    await userEvent.hover(page.getByRole("heading", { name: "Change a repeating event" }));
     await expect.poll(() => look("Only this visit").background).toBe(token("bg-primary", "backgroundColor"));
-    expect(look("This and later visits").color).not.toBe(token("text-error", "color"));
+    expect(look("This and later visits").color).not.toBe(token("text-error-ink", "color"));
   });
 
   test("Delete, only this visit: that visit goes at once (the dialog was the confirm), the rest stay", async () => {
@@ -261,8 +262,8 @@ describe("the scope dialog in Upcoming", () => {
     expect(sheet.querySelector<HTMLSelectElement>('select[name="repeat"]')?.value).toBe("weekly");
     expect(sheet.querySelector("[data-repeat-text]")?.textContent).toBe("Every Mon, Wed, Fri at 6:00");
 
-    await userEvent.fill(field("startTime"), "07:00");
-    await userEvent.fill(field("endTime"), "11:00");
+    await pickTime(() => field("startTime"), "07:00");
+    await pickTime(() => field("endTime"), "11:00");
     await userEvent.click(getByCss("[data-series-edit] button").filter({ hasText: /^Save$/ }));
     await expect.poll(SHEET).toBeNull();
     await device.settle();
@@ -308,7 +309,7 @@ describe("on a visit's page", () => {
     await userEvent.fill(title, "Dialysis, chair 4");
     await userEvent.keyboard("{Enter}");
     await found(SCOPE);
-    await expect.poll(() => SCOPE()?.textContent).toContain("Change a repeating appointment");
+    await expect.poll(() => SCOPE()?.textContent).toContain("Change a repeating event");
     await userEvent.click(dialogButton("Cancel"));
     await expect.poll(() => TITLE()?.value).toBe("Dialysis");
     expect(await device.queued()).toEqual([]);

@@ -110,7 +110,7 @@ export default function NewDoseSheet({ loaderData, params }: Route.ComponentProp
     [due, timeZone],
   );
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title="Log a dose">
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title="Log a dose">
       <PassUndoStatus groupId={params.groupId} className="mb-2" />
       {shown.length > 0 && (
         <div className="mb-4 space-y-2" data-dose-passes>

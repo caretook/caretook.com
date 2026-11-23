@@ -24,6 +24,7 @@ import {
 import * as newTodo from "../../routes/app/groups/todos/new/route";
 import * as todosRoute from "../../routes/app/groups/todos/route";
 import { Sheet } from "./index";
+import { pickTime } from "../../../test/timeSelect";
 
 // A sheet closes the way it opened (ui-kit-3 slice 6): a dismissal plays the
 // exit and then tells the caller; a navigation that changes the path is held
@@ -284,7 +285,10 @@ describe("a real route sheet (adding a pass)", () => {
       const { device } = await openSheet();
       const dialog = page.getByRole("dialog", { name: "Add a pass" });
       await userEvent.fill(dialog.getByRole("textbox", { name: "Name" }), "Noon");
-      await userEvent.fill(dialog.getByLabelText("Time"), "12:00");
+      await pickTime(
+        () => document.querySelector<HTMLInputElement>('[role=dialog] input[name="time"]'),
+        "12:00",
+      );
       await userEvent.click(dialog.getByRole("button", { name: "Add pass" }));
       await expect.poll(() => device.location()).toBe(PASSES);
       await expect.poll(overlay).toBeNull();
@@ -330,7 +334,11 @@ test("stacked sheets: the top one exits alone; the one under it then navigates; 
 
   // Escape reaches the sheet that holds focus, so wait for it to come back.
   await expect.poll(() => todo.element().contains(document.activeElement)).toBe(true);
+  // The todo has a due date typed in, so it asks before it goes.
   await userEvent.keyboard("{Escape}");
+  await expect.poll(() => document.querySelector("dialog[open]")).not.toBeNull();
+  expect(device.location()).toBe(`${LIST}/new`);
+  await userEvent.click(page.getByRole("button", { name: "Discard" }));
   await expect.poll(() => device.location().split("?")[0]).toBe(LIST);
   await expect.poll(overlay).toBeNull();
   expect(warn.mock.calls.flat().join(" ")).not.toContain("one blocker");

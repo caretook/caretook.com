@@ -6,7 +6,10 @@ import { Plus, X } from "lucide-react";
 import { useId, useState } from "react";
 import { Link } from "react-router";
 import { MEDICATION_LIMITS } from "@caretook/data/schema";
-import { ChoiceGroup, Field, IconButton } from "~/components/ui";
+import { ChoiceGroup, Field, IconButton, TimeSelect } from "~/components/ui";
+import { useGroup } from "~/lib/app-shell/group";
+import { localTimeZone } from "~/lib/core/format";
+import { currentHourTime } from "~/lib/core/timeOfDay";
 import { clockTime } from "~/lib/medications/medicationDisplay";
 import { FIELD, passAmountField } from "./medicationFormData";
 import { initialSlots } from "./scheduleSlots";
@@ -53,6 +56,8 @@ export function ScheduleFields({
   // Each row keeps its key as rows come and go, so typing stays in its field.
   const [times, setTimes] = useState(start.times);
   const id = useId();
+  // Schedule times are the recipient's, so a new one starts at their current hour.
+  const zone = useGroup().recipient?.timeZone ?? localTimeZone();
   const timesError = issueFor(issues, "schedule.times");
   const passesError = issueFor(issues, "schedule.passes");
   const live = passes.filter((p) => !p.deletedAt);
@@ -180,23 +185,16 @@ export function ScheduleFields({
               <ul className="space-y-1.5">
                 {times.map((time, index) => (
                   <li key={time.key} className="flex flex-wrap items-start gap-x-1 gap-y-1" data-time-slot>
-                    <Field
+                    <TimeSelect
                       label={`Time ${index + 1}`}
                       labelHidden
-                      className="w-36"
+                      name={FIELD.time}
+                      className="w-44"
+                      timeZone={zone}
                       error={issueFor(issues, `schedule.times.${index}`)}
-                    >
-                      {(control) => (
-                        <input
-                          {...control}
-                          type="time"
-                          name={FIELD.time}
-                          className="input w-full"
-                          value={time.value}
-                          onChange={(e) => setTime(time.key, { value: e.target.value })}
-                        />
-                      )}
-                    </Field>
+                      value={time.value}
+                      onChange={(value) => setTime(time.key, { value })}
+                    />
                     <Field
                       label={`Amount at time ${index + 1}`}
                       labelHidden
@@ -233,7 +231,11 @@ export function ScheduleFields({
                 onClick={() =>
                   setTimes((all) => [
                     ...all,
-                    { key: Math.max(-1, ...all.map((t) => t.key)) + 1, value: "", amount: "" },
+                    {
+                      key: Math.max(-1, ...all.map((t) => t.key)) + 1,
+                      value: currentHourTime(zone),
+                      amount: "",
+                    },
                   ])
                 }
                 data-add-time

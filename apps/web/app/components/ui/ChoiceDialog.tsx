@@ -74,6 +74,7 @@ export function ChoiceDialog<Id extends string>({
             <Button
               key={id}
               {...hooks}
+              data-form-cancel=""
               block
               // Secondary is Button's default look.
               variant={tone === "secondary" ? undefined : tone}

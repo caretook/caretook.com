@@ -43,9 +43,13 @@ export function FormFooter({
     <>
       {cancel &&
         (cancel.to !== undefined ? (
-          <Button to={cancel.to}>{cancel.label}</Button>
+          <Button to={cancel.to} data-form-cancel="">
+            {cancel.label}
+          </Button>
         ) : (
-          <Button onClick={cancel.onCancel}>{cancel.label}</Button>
+          <Button onClick={cancel.onCancel} data-form-cancel="">
+            {cancel.label}
+          </Button>
         ))}
       <Button
         type="submit"

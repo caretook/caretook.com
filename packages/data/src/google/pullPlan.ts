@@ -58,7 +58,7 @@ export type GoogleChangeAction =
   | { type: "overwrite"; reason: "role" | "pastVisit" };
 
 /** The title a Google-made event takes when it has none. */
-export const UNTITLED_APPOINTMENT = "Appointment";
+export const UNTITLED_APPOINTMENT = "Event";
 const TITLE_LIMIT = 200;
 
 /** A time from Google as an instant (ms), or an all-day event's day. */

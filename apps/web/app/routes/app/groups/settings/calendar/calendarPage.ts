@@ -36,7 +36,7 @@ export const COMING_SOON = "Coming soon.";
 
 /** The generic default, said before the switch. */
 export const detailsExplained = (recipient: string) =>
-  `Emails, your calendar feed and Google Calendar say only "Appointment for ${recipient}", the time and a link back to Caretook.`;
+  `Emails, your calendar feed and Google Calendar say only "Event for ${recipient}", the time and a link back to Caretook.`;
 
 export const DETAILS_FORBIDDEN = "Your group's owners keep details private.";
 

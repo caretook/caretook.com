@@ -167,7 +167,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 /**
  * The collapsed card's line, in three parts: `overdue` ("3 overdue", red)
  * and `soon` ("2 due soon", orange) lead so they're never cut off, then
- * `rest` ("BP 130/85 mmHg · 1 appt · Meds 20:00 · 1 todo today"), in the
+ * `rest` ("BP 130/85 mmHg · 1 event · Meds 20:00 · 1 todo today"), in the
  * card's order, without what the counts already hold. A part with nothing
  * to say is null (`rest` is "").
  */
@@ -177,7 +177,7 @@ export function todaySummary({ counts, vital, appointments = 0, medications, tod
   const rest: string[] = [];
   if (vital) rest.push(vital);
   const appts = appointments - counts.appointments.soon;
-  if (appts > 0) rest.push(plural(appts, "appt"));
+  if (appts > 0) rest.push(plural(appts, "event"));
   if (medications && !counts.doses.overdue && !counts.doses.soon) rest.push(`Meds ${medications}`);
   const today = todos - counts.todos.overdue - counts.todos.soon;
   if (today > 0) rest.push(`${plural(today, "todo")} today`);

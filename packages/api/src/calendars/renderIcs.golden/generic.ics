@@ -11,7 +11,7 @@ SEQUENCE:0
 DTSTAMP:20261118T180000Z
 DTSTART:20261119T170000Z
 DTEND:20261119T180000Z
-SUMMARY:Appointment for Pat
+SUMMARY:Event for Pat
 DESCRIPTION:Thu 19 Nov · 9:00–10:00\nOpen in Caretook: https://app.care
  took.test/app/groups/g1/entry/a1
 URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/a1
@@ -23,7 +23,7 @@ SEQUENCE:0
 DTSTAMP:20261118T180000Z
 DTSTART:20261120T180000Z
 DTEND:20261120T190000Z
-SUMMARY:Cancelled: Appointment for Pat
+SUMMARY:Cancelled: Event for Pat
 DESCRIPTION:Fri 20 Nov · 10:00–11:00\nOpen in Caretook: https://app.car
  etook.test/app/groups/g1/entry/a2
 URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/a2
@@ -61,7 +61,7 @@ SEQUENCE:0
 DTSTAMP:20261118T180000Z
 DTSTART:20261124T140000Z
 DTEND:20261124T180000Z
-SUMMARY:Appointment for Pat
+SUMMARY:Event for Pat
 DESCRIPTION:Tue 24 Nov · 6:00–10:00\nOpen in Caretook: https://app.care
  took.test/app/groups/g1/entry/s1
 URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/s1
@@ -73,7 +73,7 @@ SEQUENCE:0
 DTSTAMP:20261118T180000Z
 DTSTART:20261126T140000Z
 DTEND:20261126T180000Z
-SUMMARY:Appointment for Pat
+SUMMARY:Event for Pat
 DESCRIPTION:Thu 26 Nov · 6:00–10:00\nOpen in Caretook: https://app.care
  took.test/app/groups/g1/entry/s2
 URL;VALUE=URI:https://app.caretook.test/app/groups/g1/entry/s2

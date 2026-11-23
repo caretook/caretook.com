@@ -62,7 +62,7 @@ export default function BasicsSheet({ loaderData, params }: Route.ComponentProps
   const close = useCloseProfileSheet(params.groupId);
   const group = useGroup();
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title="Edit profile">
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title="Edit profile">
       <BasicsForm profile={loaderData.profile} role={group.role} onDone={close} onCancel={close} />
     </Sheet>
   );

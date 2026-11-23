@@ -98,7 +98,7 @@ export function PlannerHeader({
   const add: MenuEntry[] = [
     {
       id: "appointment",
-      label: "Appointment",
+      label: "Event",
       icon: CalendarPlus,
       href: appUrls.newPlannerEntry(groupId, "event"),
     },
@@ -118,7 +118,7 @@ export function PlannerHeader({
       <div className="space-y-1.5">
         <div className="flex items-center justify-between gap-2">
           <TabNav
-            label="Planner or todos"
+            label="Upcoming, past or todos"
             tabs={tabs}
             accent={section?.accent}
             className="min-w-0 flex-1 sm:flex-none"

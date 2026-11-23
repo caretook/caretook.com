@@ -66,7 +66,7 @@ export default function NewPassSheet({ params }: Route.ComponentProps) {
   const close = useClosePassSheet(params.groupId);
   const zoneNote = usePassZoneNote();
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title="Add a pass">
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title="Add a pass">
       <PassForm zoneNote={zoneNote} onDone={close} onCancel={close} />
     </Sheet>
   );

@@ -34,7 +34,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `assistant-access` | — | — | `packages/data/src/db/schema/care-groups/careGroup.ts`, `packages/data/src/db/schema/connectors/connectorRules`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/careGroupService.ts`, `packages/api/src/care-groups/careGroup.ts`, `packages/api/src/connectors/protocol.ts`, `packages/api/src/connectors/connect.ts`, `packages/api/src/connectors/connector.ts`, `packages/api/src/connectors/tools/groupOverview.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/care-groups/assistantsSwitch.sync.ts`, `apps/web/app/routes/app/groups/settings/assistants/`, `apps/web/app/routes/connectors/connect/`, `apps/web/app/routes/app/settings/devices/ConnectedAssistants.tsx` | Owner chooses read/write or read only for a group's assistants (B-558) |
 | `code-health` | — | `check-speed`, `orchestration-2` | `packages/data/src/db/schema/`, `packages/data/src/domain/`, `packages/data/src/services/`, `packages/data/package.json`, `package.json`, `apps/web/package.json`, `apps/web/app/`, `packages/api/src/`, `scripts/loops/lib.sh`, `scripts/loops/lease.sh`, `scripts/loops/land.test.mjs`, `scripts/loops/check-areas.d/`, `scripts/backlog/backlog.mjs`, `scripts/build/` | [PRD](code-health-prd.md), [plan](code-health-plan.md) (B-361, B-365, B-366, B-367): 6 slices, waves (1, 2, 3, 5) → 4 → 6: exact pins and a test refusing ranges, unused exports removed, the backlog lock held once and a knobs page, tests on pr/ready/review/land, pure logic moved to @caretook/data/domain, then every importer switched (slice 6, alone, after simple-mode lands; it touches import lines across apps/web/app and packages/api). No behaviour change, no migration. Follow-ons: code-health-2, code-health-3 |
 | `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
-| `fixes-ui` | standing | — | `apps/web/app/components/ui/`, `apps/web/app/components/repeat/`, `apps/web/app/components/schedule/`, `apps/web/app/components/entry/RemindMeSheet.tsx`, `apps/web/app/components/visitPrep/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/periods/`, `apps/web/app/routes/app/groups/profile/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/settings/calendar/`, `apps/web/app/routes/app/groups/timeline/edit/`, `apps/web/app/routes/app/groups/timeline/new/`, `apps/web/app/routes/app/groups/timeline/new-dose/`, `apps/web/app/routes/app/groups/timeline/pass/`, `apps/web/app/routes/app/groups/timeline/TodayCard.tsx`, `apps/web/app/routes/app/groups/timeline/todayStatus.ts`, `apps/web/app/routes/app/groups/timeline/useTodayCard.ts`, `apps/web/app/routes/dev/ui/`, `scripts/browser-checks/roundtrip.spec.mjs` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
+| `fixes-ui` | standing | — | `apps/web/app/components/ui/date/DateTimeField`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/settings/members/`, `apps/web/app/routes/app/groups/providers/import/`, `apps/web/app/components/repeat/`, `apps/web/app/components/visitPrep/` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety` | — | — | `packages/api/src/sync`, `apps/web/app/lib/sync/`, `apps/web/app/lib/auth/session`, `apps/web/app/routes/sign-out.tsx`, `apps/web/app/routes/app/layout/SyncIndicator.tsx`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `packages/data/src/services/`, `apps/web/app/lib/medications/medications.sync.ts`, `apps/web/app/lib/providers/providers.sync.ts`, `scripts/browser-checks/roundtrip.spec.mjs`, `scripts/browser-checks/signout-wipe.spec.mjs`, `scripts/browser-checks/session-end.spec.mjs` | to write (B-285 to B-296, B-382 to B-384, B-387: repeating-todo upload bugs Codex found, moved from `planner-2`), from the 2026-11-21 code review (findings not re-verified): refused sync changes shown to the user, an upload queue that can't wedge, offline edits that don't revert a co-member's change, replayed PUTs, global client-chosen ids, the sign-out wipe and unsent writes, then the column-agreement test and one generic upload handler · Depends on: (none); `test-health` shares the upload tests (B-371, B-374) · Hot files: `packages/api/src/sync.ts`, `lib/sync/client.ts`, `SyncIndicator`, `session.ts`, `sign-out.tsx`, `medications.sync.ts`, `providers.sync.ts`, the services' `upsert`s |
 | `demo-site` | hold | — | — | Shared demo site with generic logins and nightly reset; separate environment |
 | `planner-3` | hold | `simple-mode` | `packages/data/src/db/schema/timeline/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/timeline.ts`, `packages/data/src/services/entryLinkService.ts`, `packages/api/src/sync`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/timeline/entryLinks.sync.ts`, `apps/web/app/lib/todos/urls.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/new/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/lib/appointments/`, `packages/api/src/connectors/tools/writes.ts`, `scripts/browser-checks/sync-matrix.mjs` | **On hold 2026-11-21: the landed plan must be revised first to link any timeline entry to todos, many to many (the user’s correction is on B-245; B-477).** to write (B-245: a note can carry a todo with its own due day and assignee, the replacement for reminders; B-254: quick entry reads a repeating todo) · Depends on: `planner-2` in `dev` (last item B-248) · Hot files: the note editor and entry page, `todoService` and the todo schema (a link to its note), the Planner's todo rows, the Today card, the connector's `add_note` and `add_todo`; quick entry (B-254) |
@@ -103,8 +103,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `encryption` | hold | — | — | [security review](security-review.md) (on `plan/encryption`): reviewed 2026-11-19. E2E: option A for launch, C (files) with `documents`; fixes filed as B-79 to B-85 · Depends on: (none); affects `assistant` and `documents` · Hot files: none itself: its fixes land through `quick-fixes`, `data-rights`, `account-security` and hosting |
 | `documents` | hold | `encryption` | — | to write (B-56) · Depends on: hosting (B-33, file storage); `profiles` (soft); `encryption` decision · Hot files: file storage, its area's `routes.ts`, `urls.ts`, schema and `permissions/` parts, `GROUP_SECTIONS` |
 | `contract-migrations` | hold | — | — | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** Contract steps tracked from fixes-nit (B-379): B-455, B-456, B-457. Migrations: run alone in its wave. To write. |
-| `timeline-jump` | — | `quick-entry-2` | — | Jump to a date on the timeline, by picker and quick entry (B-557) |
+| `timeline-jump` | — | `quick-entry-2` | `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/providers/providers.sync.ts`, `apps/web/app/lib/medications/medicationTimeline.sync.ts`, `apps/web/app/lib/care-periods/periodMarkers.ts`, `apps/web/app/routes/app/groups/timeline/useTimelineData.ts`, `apps/web/app/routes/app/groups/timeline/timelineRows.ts`, `apps/web/app/routes/app/groups/timeline/timelinePaging.ts`, `apps/web/app/routes/app/groups/timeline/daySummaryRows.ts`, `apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/route.tsx`, `apps/web/app/components/quick-entry/`, `packages/data/src/db/schema/assistant/quickEntryTime` | Jump to a date on the timeline, by picker and quick entry (B-557) |
 | `orchestration-split` | hold | — | — | Held until after launch by the user (B-543): extract the orchestration tooling or replace it with a prebuilt one |
+| `member-avatars` | hold | — | — | Members choose an avatar color and icon; no photos or image storage. Held until the user releases it. |
 
 ## Summary
 
@@ -133,7 +134,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-254 | feature | triaged | planner-3 |  | Quick entry: 'bins out every monday' makes a repeating todo |
-| B-256 | bug | landed | fixes-ui | prd/fixes-ui | call and directions icons on planner schedule should be below the time, not beside the… |
+| B-256 | bug | staging | fixes-ui | prd/fixes-ui | call and directions icons on planner schedule should be below the time, not beside the… |
 | B-269 | chore | triaged | ui-kit-4 |  | Guard the kit: a lint rule or layout test that keeps react-aria imports in ui/ and flags raw btn, card, badge and alert classes outside ui/ |
 | B-286 | bug | triaged | sync-safety |  | A repeatable 5xx from sync.upload blocks a device's upload queue forever: no retry cap, and the sync indicator never shows uploadError or the queue length |
 | B-288 | bug | triaged | sync-safety |  | A replayed PUT on an existing row is a full update with the insert-time values, reverting newer edits (and for medications writing no change entry) |
@@ -145,10 +146,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-297 | bug | in-progress | dose-accuracy | prd/dose-accuracy | A surplus dose marks the next day's slot as given: two caregivers both tapping Given for one pass makes tomorrow's dose read done |
 | B-298 | change | triaged | dose-accuracy |  | Deterministic dose ids per medication, day and slot, so two devices logging the same pass converge on one row |
 | B-299 | bug | triaged | dose-accuracy |  | Visit prep's 'Missed doses' reads history through today's schedule: a schedule change shows phantom misses back to the last visit |
-| B-300 | bug | landed | quick-entry-2 | prd/quick-entry-2 | Quick entry logs negated doses as given: 'did not give metoprolol', 'metoprolol not given', 'couldn't give…' all record a given dose at 0.9 confidence |
-| B-301 | bug | landed | quick-entry-2 | prd/quick-entry-2 | Quick entry discards a typed count and records the usual dose: 'gave 3 tylenol' records '2 tabs' with '3' in the note; 'gave half a tylenol' too |
-| B-302 | bug | landed | quick-entry-2 | prd/quick-entry-2 | Quick entry gives silently wrong times: 'sat up in chair' is last Saturday, '2nd tylenol' is Nov 2, '11/25 at 2pm' is tomorrow, 'dr alvarez at 2' is 2 AM, 'pain 8 a bit better' is 8:00 AM |
-| B-303 | bug | landed | quick-entry-2 | prd/quick-entry-2 | Quick entry gets stuck: remove a card, delete the text, retype the same line: no card, no Save, Enter does nothing |
+| B-300 | bug | staging | quick-entry-2 | prd/quick-entry-2 | Quick entry logs negated doses as given: 'did not give metoprolol', 'metoprolol not given', 'couldn't give…' all record a given dose at 0.9 confidence |
+| B-301 | bug | staging | quick-entry-2 | prd/quick-entry-2 | Quick entry discards a typed count and records the usual dose: 'gave 3 tylenol' records '2 tabs' with '3' in the note; 'gave half a tylenol' too |
+| B-302 | bug | staging | quick-entry-2 | prd/quick-entry-2 | Quick entry gives silently wrong times: 'sat up in chair' is last Saturday, '2nd tylenol' is Nov 2, '11/25 at 2pm' is tomorrow, 'dr alvarez at 2' is 2 AM, 'pain 8 a bit better' is 8:00 AM |
+| B-303 | bug | staging | quick-entry-2 | prd/quick-entry-2 | Quick entry gets stuck: remove a card, delete the text, retype the same line: no card, no Save, Enter does nothing |
 | B-304 | bug | triaged | calendars-2 |  | Deleting an old event in Google Calendar rewrites past Caretook records: soft-deletes a past reminder note, cancels a past appointment, marks a todo done for the group |
 | B-305 | bug | triaged | calendars-2 |  | Events made in Google more than 90 days out never arrive: ignored as outsideWindow, the sync token advances, nothing revisits them |
 | B-306 | bug | triaged | calendars-2 |  | A reminder email can arrive after its appointment: about 2 h of retry backoff, no expiry, text rendered at queue time |
@@ -157,8 +158,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-309 | change | triaged | calendars-2 |  | Reminder emails show times in the recipient's zone with no zone label, 24-hour en-GB format; and 'monthly on the 29th–31st' silently skips short months (no 'last day' option) |
 | B-311 | bug | triaged | fixes-perf |  | The series top-up reads every live series every minute and rewrites topped_up_through daily even on ended series (re-syncing them to every device) |
 | B-313 | bug | triaged | fixes-perf |  | Timeline and Planner load and watch every note document in the group (snapshot, text, pending updates) to preview 30 rows, rerunning on each co-member keystroke |
-| B-316 | change | in-progress | fixes-ui | prd/fixes-ui | No unsaved-changes guard on any sheet or form: a click outside, Escape or Back discards a half-filled medication, emergency or provider form |
-| B-319 | bug | landed | fixes-ui | prd/fixes-ui | Empty states flash before the first watch answer: a provider's linked entries ('No notes or events yet') and linked todos ('Former member') |
+| B-316 | change | landed | fixes-ui | prd/fixes-ui | No unsaved-changes guard on any sheet or form: a click outside, Escape or Back discards a half-filled medication, emergency or provider form |
+| B-319 | bug | staging | fixes-ui | prd/fixes-ui | Empty states flash before the first watch answer: a provider's linked entries ('No notes or events yet') and linked todos ('Former member') |
 | B-325 | change | triaged | fixes-ui |  | Native readiness: no top safe-area inset on the header or sticky day headers (viewport-fit=cover), and /app is a blank page on cold start for up to about 4 s (HydrateFallback returns null) |
 | B-327 | bug | triaged | account-security |  | A removed or demoted manager's pending invites still work: a removed owner can accept their own owner invite within 7 days and be an owner again |
 | B-328 | bug | triaged | account-security |  | The emailed sign-in code has no per-address limit (per IP only): a distributed attacker gets unlimited guesses at any account's 6-digit code |
@@ -218,13 +219,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-406 | feature | triaged | inbox-agent |  | Set priority in the inbox, not the backlog: the user orders a short 'Next up' list in plans/inbox.md (plain lines, no ids or fields) and the dispatcher reads it as the order to plan and run, keeping the PRD table's row order in step; the user opens the backlog only when an agent asks |
 | B-407 | feature | triaged | self-recovery |  | Recover by itself and land safely: a launchd job runs pnpm prd recover --wait at login and when work is recorded as running but no session is alive; the dispatcher slows down before a usage limit (starts no slice or planner, drains); a landing or migration cut off halfway leaves a step-in-progress marker so the resumed session finishes or undoes it |
 | B-408 | feature | triaged | worker-watch |  | Stuck workers handled by the orchestrator: it tracks how long its commands and slice agents have run against their usual time, stops and restarts a stuck one on its own judgement (once), and for a judgement call asks a fresh skeptic agent first and the user through the asks queue only if that doesn't settle it |
-| B-412 | bug | landed | fixes-ui | prd/fixes-ui | plus button on timeline day header should be on far right so all actions are on right. Care period… |
-| B-413 | bug | landed | fixes-ui | prd/fixes-ui | don't collapse past providers on list providers page, it breaks search and isn't needed. This list… |
-| B-416 | bug | landed | fixes-ui | prd/fixes-ui | owner pill on planner/planner list should be below time/date field. Too busy under title. |
+| B-412 | bug | staging | fixes-ui | prd/fixes-ui | plus button on timeline day header should be on far right so all actions are on right. Care period… |
+| B-413 | bug | staging | fixes-ui | prd/fixes-ui | don't collapse past providers on list providers page, it breaks search and isn't needed. This list… |
+| B-416 | bug | staging | fixes-ui | prd/fixes-ui | owner pill on planner/planner list should be below time/date field. Too busy under title. |
 | B-417 | feature | triaged | marketing |  | We are getting close to feature complete. We need another marketing content pass that updates copy… |
 | B-418 | bug | triaged | fixes-tooling |  | Flaky tooling test under load: recover.test.mjs '--at a time that has passed waits until tomorrow' fails in the full pnpm test:tooling run and passes alone |
-| B-421 | bug | landed | fixes-ui | prd/fixes-ui | type pill on medication list items should float right. |
-| B-422 | feature | landed | fixes-ui | prd/fixes-ui | In providers list page, contact links in rows make it too hard to know what to click. Make those… |
+| B-421 | bug | staging | fixes-ui | prd/fixes-ui | type pill on medication list items should float right. |
+| B-422 | feature | staging | fixes-ui | prd/fixes-ui | In providers list page, contact links in rows make it too hard to know what to click. Make those… |
 | B-425 | feature | triaged | inbox-agent |  | An inbox agent: a session that helps the user add, categorize and prioritize inbox items, and writes them by pushing straight to origin/dev instead of committing in the local dev checkout, so it never steps on the user's working copy |
 | B-429 | change | triaged | asks-relay |  | Asks queue hygiene: reports that go stale are re-checked or expire, answered asks are archived, and an ask whose session has died still reaches the user |
 | B-430 | feature | triaged | staging-ship |  | Codex findings on a PRD pull request become backlog items by tool: verified against the code, duplicates noted on the existing item, as B-404 does for the staging PR |
@@ -254,7 +255,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-465 | bug | triaged | fixes-tooling |  | pnpm prd down keeps stopping servers, stacks and the test Postgres when the dispatcher won't stop in time (mid new.sh), racing a start against the shutdown |
 | B-467 | feature | triaged | asks-relay |  | The backlog session is the go-between for every agent's questions: agents file to the asks queue and wait, the backlog session ranks them by how soon an answer blocks real work, asks the user itself and decides which ones ping the phone |
 | B-468 | bug | triaged | fixes-tooling |  | open-session.sh fails when iTerm2 has windows but no current window: the dispatcher counts it as a planner death |
-| B-471 | feature | landed | ui-kit-3 | prd/ui-kit-3 | Overlay motion: menus, popovers, dialogs and toasts fade in and out, and a sheet closes with the reverse of its opening |
+| B-471 | feature | staging | ui-kit-3 | prd/ui-kit-3 | Overlay motion: menus, popovers, dialogs and toasts fade in and out, and a sheet closes with the reverse of its opening |
 | B-474 | change | triaged | inbox-agent |  | Inbox agent plan amendments from the user: it never leaves staged or uncommitted changes behind (stash, or commit and push), and someone is named as owning cleanup of completed items |
 | B-477 | change | triaged | fixes-tooling |  | PRD registry: a hold carries its reason |
 | B-479 | bug | triaged | fixes-tooling |  | calendarCron.int.test.ts 'runs the reminders first, then Google push and pull, and the series top-up last by default' times out at 5 s under load (passes alone) |
@@ -281,23 +282,23 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-513 | change | triaged | agent-autonomy-3 |  | Opus planners and backlog sessions with a Fable final check: the skeptic pass runs on Fable and may send a plan back; a registry flag (e.g. design) keeps a heavy design topic's planner on Fable |
 | B-515 | feature | triaged | inbox-agent |  | Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too |
 | B-518 | change | triaged | agent-autonomy |  | Land without re-syncing when dev's changes don't touch the branch: land.sh's drift refusal relaxes when dev's new commits share no file with the branch and bring none of the risky files; land still merges dev and typechecks the result, and the landing report says it landed on an unsynced tip |
-| B-519 | bug | landed | fixes-ui | prd/fixes-ui | Easy mode button on the timeline sits lower than the Timeline page title: align it with the title's row (same vertical center and baseline) |
-| B-521 | change | landed | ui-kit-3 | prd/ui-kit-3 | Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark |
-| B-522 | change | landed | ui-kit-3 | prd/ui-kit-3 | Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary) |
-| B-523 | change | landed | ui-kit-3 | prd/ui-kit-3 | Each section's accent color as an icon chip beside the page title and as the current tab's pill tint; Easy mode stays neutral |
-| B-524 | change | landed | ui-kit-3 | prd/ui-kit-3 | Empty states show a colored icon circle in the section's accent color |
+| B-519 | bug | staging | fixes-ui | prd/fixes-ui | Easy mode button on the timeline sits lower than the Timeline page title: align it with the title's row (same vertical center and baseline) |
+| B-521 | change | staging | ui-kit-3 | prd/ui-kit-3 | Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark |
+| B-522 | change | staging | ui-kit-3 | prd/ui-kit-3 | Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary) |
+| B-523 | change | staging | ui-kit-3 | prd/ui-kit-3 | Each section's accent color as an icon chip beside the page title and as the current tab's pill tint; Easy mode stays neutral |
+| B-524 | change | staging | ui-kit-3 | prd/ui-kit-3 | Empty states show a colored icon circle in the section's accent color |
 | B-525 | bug | triaged | fixes-tooling |  | Asks: two processes taking over a dead holder's ask lock can both remove it, so one deletes the other's fresh lock and an answer and a default overlap (asks.mjs withAskLock) |
 | B-526 | bug | triaged | fixes-tooling |  | Notices: two concurrent posts can lower the .seq high-water mark (check-then-rename), so after both expire a notice id is reused and a late notices --done withdraws a newer notice (notices.mjs createNotice) |
 | B-527 | bug | triaged | fixes-bug |  | Todo Undo and Done writes are voided with no catch (TodoUndoStatus.undo, useTodoTick's run via void complete(...)): a write that throws becomes an unhandled rejection, with nothing shown to the user |
-| B-528 | chore | triaged | test-gates |  | Rapid-mode landing gate: a landing into dev needs only the quick check (no local full, no escalation to full), the changed browser checks and Codex; CI on dev runs the rest |
-| B-529 | chore | ready | test-gates | prd/test-gates | Dev red, by kind after one CI rerun of the failed tests: brake (build, typecheck, lint, or a sync, offline, RBAC, privacy, migration or seed test: other landings wait, only the fix lands); file (a real failure in one area: a fixes-bug item against the landing); flake (passes on rerun: quarantined, filed to fixes-tooling) |
-| B-530 | chore | ready | test-gates | prd/test-gates | Flake quarantine: CI runs quarantined tests without failing on them; each entry names its fixes-tooling item and leaves the list when the item is done |
+| B-528 | chore | ready | test-gates | prd/test-gates | Rapid-mode landing gate: a landing into dev needs only the quick check (no local full, no escalation to full), the changed browser checks and Codex; CI on dev runs the rest |
+| B-529 | chore | staging | test-gates | prd/test-gates | Dev red, by kind after one CI rerun of the failed tests: brake (build, typecheck, lint, or a sync, offline, RBAC, privacy, migration or seed test: other landings wait, only the fix lands); file (a real failure in one area: a fixes-bug item against the landing); flake (passes on rerun: quarantined, filed to fixes-tooling) |
+| B-530 | chore | staging | test-gates | prd/test-gates | Flake quarantine: CI runs quarantined tests without failing on them; each entry names its fixes-tooling item and leaves the list when the item is done |
 | B-532 | chore | triaged | test-gates-2 |  | Staging candidate: cut a release candidate branch from a green dev commit and open the PR into staging from it; CI runs the lean browser suite on the Docker stack against that fixed commit; only fixes go onto it |
 | B-533 | chore | triaged | test-gates-2 |  | staging to main gate: CI runs the full browser suite, a second time zone and repeated runs to catch flakes; a required status check on main always, on staging only in pre-deployment mode |
-| B-535 | change | ready | fixes-ui | prd/fixes-ui | Hour-first time picker: defaults to the current hour at :00, minutes in 15-minute steps (00/15/30/45), works on phones; for medication dose times, pass time, todo due time, series edit times and event/appointment Starts/Ends |
-| B-536 | bug | ready | fixes-ui | prd/fixes-ui | Danger text fails 4.5:1 in light: Menu's danger item and buttonClass's dangerQuiet use text-error (about 2.9:1); DateTimeField's placeholder segments at 60% opacity are a little under 4.5:1 on the light field fill |
-| B-537 | change | ready | fixes-ui | prd/fixes-ui | One word in the app: Event, never Appointment; 'Upcoming event' / 'Past event' only where the two mix and timing isn't clear (an event's page heading, the Today card's next line, the todo form's event picker) |
-| B-538 | change | landed | fixes-ui | prd/fixes-ui | Planner tabs become Upcoming \| Past \| Todos: Upcoming and Past move out of the chip row into the main pill tabs (the Planner heading names the section), the filter button sits beside the tabs on Upcoming, and switching to Todos and back keeps Past |
+| B-535 | change | landed | fixes-ui | prd/fixes-ui | Hour-first time picker: defaults to the current hour at :00, minutes in 15-minute steps (00/15/30/45), works on phones; for medication dose times, pass time, todo due time, series edit times and event/appointment Starts/Ends |
+| B-536 | bug | landed | fixes-ui | prd/fixes-ui | Danger text fails 4.5:1 in light: Menu's danger item and buttonClass's dangerQuiet use text-error (about 2.9:1); DateTimeField's placeholder segments at 60% opacity are a little under 4.5:1 on the light field fill |
+| B-537 | change | landed | fixes-ui | prd/fixes-ui | One word in the app: Event, never Appointment; 'Upcoming event' / 'Past event' only where the two mix and timing isn't clear (an event's page heading, the Today card's next line, the todo form's event picker) |
+| B-538 | change | staging | fixes-ui | prd/fixes-ui | Planner tabs become Upcoming \| Past \| Todos: Upcoming and Past move out of the chip row into the main pill tabs (the Planner heading names the section), the filter button sits beside the tabs on Upcoming, and switching to Todos and back keeps Past |
 | B-542 | chore | triaged | fixes-tooling |  | Unit-test projects run at Vitest's default workers (cores - 1, 9 here): two overlapping checks run ~18 test processes on 10 cores, the load behind the under-load timeouts; cap the unit group at about 4 (or half the cores) and time it against check-times |
 | B-543 | question | triaged | orchestration-split |  | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
 | B-544 | chore | triaged | fixes-nit |  | vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405 |
@@ -306,40 +307,56 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-549 | feature | triaged | symptom-catalog |  | Symptoms become a catalog type: a default set for every group, writers add new ones quickly with a similar-name check; filter the timeline by several symptoms at once |
 | B-550 | feature | triaged | todo-subtasks |  | Nested todos: subtasks up to 3 levels deep, a parent completes when its last subtask is done |
 | B-551 | feature | triaged | inbox-agent |  | 'bye' for every agent role: a message of just 'bye' runs a handover check; nothing left means the session closes itself, otherwise it asks the user what to do with what's left |
-| B-552 | bug | triaged | fixes-tooling |  | Flaky: print.browser.test.tsx 'the Print menu offers both sheets' clicks getByLabel('Print') while the closing menu, with the same label, is still fading, so the locator matches two elements |
-| B-553 | change | triaged | test-gates |  | Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent |
-| B-554 | change | in-progress | test-gates | prd/test-gates | CI runs only on request: the orchestrator asks for a tier (static, unit, integration, components, full) on any branch, and the landing gate checks for a green run of the tier it declared; no automatic run on a PR or a push |
+| B-552 | bug | landed | fixes-tooling |  | Flaky: print.browser.test.tsx 'the Print menu offers both sheets' clicks getByLabel('Print') while the closing menu, with the same label, is still fading, so the locator matches two elements |
+| B-553 | change | ready | test-gates | prd/test-gates | Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent |
+| B-554 | change | ready | test-gates | prd/test-gates | CI runs only on request: the orchestrator asks for a tier (static, unit, integration, components, full) on any branch, and the landing gate checks for a green run of the tier it declared; no automatic run on a PR or a push |
 | B-557 | feature | triaged | timeline-jump |  | quick date jump on timeline via date picker AND quick entry |
-| B-558 | feature | in-progress | assistant-access | prd/assistant-access | Assistants settings needs to allow owner to enable read/write or stick to read only for group… |
+| B-558 | feature | ready | assistant-access | prd/assistant-access | Assistants settings needs to allow owner to enable read/write or stick to read only for group… |
 | B-560 | feature | triaged | self-recovery-2 |  | A cost record: tokens by model per PRD and slice, from session and subagent transcripts, in pnpm prd cost |
 | B-561 | feature | triaged | demo-site |  | Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites |
 | B-562 | change | triaged | data-rights |  | Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet |
 | B-563 | feature | triaged | marketing |  | Accessibility statement page |
 | B-564 | change | triaged | hosting |  | App-store prerequisites for the Capacitor apps |
 | B-565 | feature | triaged | data-rights |  | Ownership transfer: a last owner can hand a care group to another member |
-| B-566 | bug | landed | test-gates | prd/test-gates | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
-| B-567 | bug | landed | test-gates | prd/test-gates | inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2 |
+| B-566 | bug | staging | test-gates | prd/test-gates | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
+| B-567 | bug | staging | test-gates | prd/test-gates | inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2 |
 | B-568 | bug | triaged | fixes-tooling | prd/test-gates | Component tests that failed once on CI's Linux runners: providers rows, provider empty links, emergency sheet, search speed, timeline Back, weekly print chart |
 | B-570 | bug | triaged | fixes-tooling |  | Session request notices can exceed the notice board's 200 characters and get dropped |
 | B-571 | bug | triaged | fixes-tooling |  | Staging reset test still times out at 30 s now and then, in CI as well as under local load |
-| B-572 | bug | landed | test-gates | prd/test-gates | Check gate: a package.json change to scripts alone should not force a full check |
+| B-572 | bug | staging | test-gates | prd/test-gates | Check gate: a package.json change to scripts alone should not force a full check |
 | B-573 | bug | triaged | fixes-tooling |  | Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error |
 | B-574 | bug | triaged | fixes-tooling |  | ESLint aborts with exit 134 in the lint step of a check, seen in two worktrees within a second |
-| B-575 | change | ready | fixes-ui | prd/fixes-ui | Planner tabs' accessible name still says 'Planner or todos': name it for Upcoming, Past and Todos, and update the roundtrip browser check that selects it |
+| B-575 | change | landed | fixes-ui | prd/fixes-ui | Planner tabs' accessible name still says 'Planner or todos': name it for Upcoming, Past and Todos, and update the roundtrip browser check that selects it |
 | B-576 | bug | triaged | fixes-tooling |  | Local pnpm lint runs out of memory at Node's default 4 GB heap: CI sets 6 GB, local checks don't |
 | B-577 | change | triaged | ui-kit-5 |  | Finish the UI kit sweep: timeline, entries and quick entry (TodayRow, PassLogItem, EasyNext, EntryBody, the four skeleton files, containers); admin, account, connectors, marketing and the app frame (home's h1); then empty the guard's not-swept list and drop Menu's bare class-string trigger |
 | B-578 | bug | triaged | fixes-bug |  | Quick entry reads other slash numbers as dates: 'gave 1/6 tylenol', 'bp 12/8', 'pain 5/5' |
-| B-579 | bug | landed | fixes-bug | prd/quick-entry-2 | Quick entry reads 'no pain gave tylenol' (no comma) as a skipped dose |
+| B-579 | bug | staging | fixes-bug | prd/quick-entry-2 | Quick entry reads 'no pain gave tylenol' (no comma) as a skipped dose |
 | B-580 | bug | triaged | fixes-bug |  | Quick entry dates a line ending in 'sat' to Saturday: 'she sat' |
 | B-581 | bug | triaged | fixes-bug |  | Quick entry keeps 'call the pharmacy in the morning' at 7:00 as a note, not a todo |
 | B-582 | bug | triaged | fixes-tooling |  | MCP rate-limit integration test times out at 5 s under machine load |
 | B-583 | change | triaged | fixes-ui |  | Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump) |
 | B-584 | chore | triaged | fixes-tooling |  | Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone |
-| B-585 | bug | triaged | fixes-ui |  | Stepping an event's hour up from 11 AM wraps to 12 AM the same day, not 12 PM, so Ends shows 'Must be after the start' |
+| B-585 | bug | ready | fixes-ui | prd/fixes-ui | Stepping an event's hour up from 11 AM wraps to 12 AM the same day, not 12 PM, so Ends shows 'Must be after the start' |
 | B-586 | bug | triaged | fixes-tooling |  | Phone notifications from the backlog session never arrive |
-| B-587 | bug | triaged | test-gates |  | ci blame calls a failure the branch's when dev's comparison run skipped it as quarantined |
-| B-588 | bug | triaged | test-gates |  | ci blame says every failure is dev's when a flake hides an unnamed job failure |
-| B-589 | bug | triaged | test-gates |  | ci blame calls a named failure dev's when dev only failed to load the test file |
+| B-587 | bug | ready | test-gates | prd/test-gates | ci blame calls a failure the branch's when dev's comparison run skipped it as quarantined |
+| B-588 | bug | ready | test-gates | prd/test-gates | ci blame says every failure is dev's when a flake hides an unnamed job failure |
+| B-589 | bug | ready | test-gates | prd/test-gates | ci blame calls a named failure dev's when dev only failed to load the test file |
+| B-590 | bug | ready | test-gates | prd/test-gates | ci blame calls a branch's file-level failure dev's when dev only fails a named test in that file |
+| B-591 | bug | triaged | fixes-bug |  | Quick entry reads a fraction after the medication as a date: 'gave tylenol 3/8' logs the usual dose on March 8 |
+| B-592 | change | ready | fixes-ui | prd/fixes-ui | Planner event card: replace the narrow time column with a footer-actions layout |
+| B-593 | feature | triaged | member-avatars |  | Choose your avatar: a color and icon instead of plain initials |
+| B-594 | change | triaged | fixes-ui |  | Manage allergies on the Profile page; Medications keeps a read-only summary |
+| B-595 | chore | triaged | fixes-tooling |  | Slice agents read only their slice's section and the PRD decisions it cites, not the whole plan and PRD |
+| B-596 | chore | triaged | fixes-tooling |  | Cap slice size at planning: split a slice touching more than about 8 files or several hot files |
+| B-597 | chore | triaged | fixes-tooling |  | Split scripts/ci/ci.mjs and scripts/loops/prompt.sh so an agent reads only the part it needs |
+| B-598 | chore | triaged | fixes-tooling |  | Keep a plan's Status short by moving finished-wave history out of it |
+| B-599 | bug | triaged | fixes-bug |  | Assistants settings: connection labels stay stale when another owner flips read only while the page is open |
+| B-600 | change | triaged | fixes-tooling |  | Context watch: a soft limit where the agent decides and a hard limit where it hands off, set per agent type |
+| B-601 | bug | triaged | fixes-bug |  | Back right after a failed sheet save skips the discard prompt and loses the edits: the leaving flag stays set until the next touch |
+| B-602 | bug | triaged | fixes-bug |  | Discard prompt misfires or is missed: a sync after the first touch reads as a change, a record deleted elsewhere can prompt, and Back with an unguarded sheet on top of a changed one does not ask |
+| B-603 | change | ready | fixes-ui | prd/fixes-ui | Extend the unsaved-changes guard to InviteSheet, InviteLinks, provider import, RepeatSheet and VisitPrepSheet |
+| B-604 | chore | triaged | fixes-tooling |  | Test Discard under reduced motion in the sheet guard |
+| B-605 | bug | triaged | fixes-bug |  | PageUp and PageDown on a date field's hour still wrap inside AM/PM, so 11 AM can page to 12 AM |
 
 ## Items
 
@@ -575,7 +592,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-256 · bug · call and directions icons on planner schedule should be below the time, not beside the…
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: b5373bc9
@@ -700,7 +717,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-300 · bug · Quick entry logs negated doses as given: 'did not give metoprolol', 'metoprolol not given', 'couldn't give…' all record a given dose at 0.9 confidence
 
-- status: landed
+- status: staging
 - prd: quick-entry-2
 - owner: prd/quick-entry-2
 - commit: 26d0b935
@@ -710,7 +727,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-301 · bug · Quick entry discards a typed count and records the usual dose: 'gave 3 tylenol' records '2 tabs' with '3' in the note; 'gave half a tylenol' too
 
-- status: landed
+- status: staging
 - prd: quick-entry-2
 - owner: prd/quick-entry-2
 - commit: 563a3472
@@ -720,7 +737,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-302 · bug · Quick entry gives silently wrong times: 'sat up in chair' is last Saturday, '2nd tylenol' is Nov 2, '11/25 at 2pm' is tomorrow, 'dr alvarez at 2' is 2 AM, 'pain 8 a bit better' is 8:00 AM
 
-- status: landed
+- status: staging
 - prd: quick-entry-2
 - owner: prd/quick-entry-2
 - commit: 563a3472
@@ -730,7 +747,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-303 · bug · Quick entry gets stuck: remove a card, delete the text, retype the same line: no card, no Save, Enter does nothing
 
-- status: landed
+- status: staging
 - prd: quick-entry-2
 - owner: prd/quick-entry-2
 - commit: 26d0b935
@@ -820,10 +837,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-316 · change · No unsaved-changes guard on any sheet or form: a click outside, Escape or Back discards a half-filled medication, emergency or provider form
 
-- status: in-progress
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: df2ff0d5
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. components/ui/Sheet.tsx:47-51 (isDismissable); no useBlocker or dirty check anywhere. May belong with the ui-kit PRD's form primitives.
 - 2026-11-21 (prd/orchestration-2): category: ui (orchestration-2 split)
@@ -831,7 +848,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-319 · bug · Empty states flash before the first watch answer: a provider's linked entries ('No notes or events yet') and linked todos ('Former member')
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 488e09bf
@@ -1423,7 +1440,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-412 · bug · plus button on timeline day header should be on far right so all actions are on right. Care period…
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 91aced06
@@ -1434,7 +1451,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-413 · bug · don't collapse past providers on list providers page, it breaks search and isn't needed. This list…
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 13ac9f5a
@@ -1445,7 +1462,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-416 · bug · owner pill on planner/planner list should be below time/date field. Too busy under title.
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: f6f40e4f
@@ -1477,7 +1494,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-421 · bug · type pill on medication list items should float right.
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: fc5dbe18
@@ -1486,7 +1503,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-422 · feature · In providers list page, contact links in rows make it too hard to know what to click. Make those…
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 8834115b
@@ -1790,7 +1807,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-471 · feature · Overlay motion: menus, popovers, dialogs and toasts fade in and out, and a sheet closes with the reverse of its opening
 
-- status: landed
+- status: staging
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
 - commit: 6711b506
@@ -2021,6 +2038,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: build the Fable 5.2 skeptic into more of the workflow; Fable reviews in short passes, Opus does the long work. Pairs with B-503 default on silence; a31 and a33 would likely have been decided.
 - 2026-11-22 (plan/agent-autonomy): Moved to agent-autonomy-3 (to write) by agent-autonomy's planner (2026-11-22): filed after that plan landed with six slices; this builds on its defaulting asks (B-503) and flake rule (B-505).
 - 2026-11-22 (plan/agent-autonomy-3): 2026-11-22 planned in agent-autonomy-3 (skeptic's go is enough for --force/--no-review, the user's pick)
+- 2026-11-22 (Robert Bo Davis): Skeptic models changed 2026-11-22 (eb41417e): asks and plan checks run on Opus, risky landings stay on Fable. The PRD and plan are updated; where this item's title says Fable, this note wins. The design flag's planner stays on Fable.
 
 ### B-512 · feature · Skeptic before risky landings: a Fable skeptic reviews the evidence before land --force, landing on flaky tests (B-505) or declining a Codex finding, and the landing report says what it said
 
@@ -2033,6 +2051,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-22 (plan/agent-autonomy): Moved to agent-autonomy-3 (to write) by agent-autonomy's planner (2026-11-22): filed after that plan landed with six slices; this builds on its defaulting asks (B-503) and flake rule (B-505).
 - 2026-11-22 (plan/agent-autonomy): 2026-11-22: B-505 (landing on flaky tests) was dropped; the flaky case to guard is now test-gates' quarantine (B-530) and a brake/--fixes landing
 - 2026-11-22 (plan/agent-autonomy-3): 2026-11-22 planned in agent-autonomy-3 (skeptic's go is enough for --force/--no-review, the user's pick)
+- 2026-11-22 (Robert Bo Davis): Skeptic models changed 2026-11-22 (eb41417e): asks and plan checks run on Opus, risky landings stay on Fable. The PRD and plan are updated; where this item's title says Fable, this note wins. The design flag's planner stays on Fable.
 
 ### B-513 · change · Opus planners and backlog sessions with a Fable final check: the skeptic pass runs on Fable and may send a plan back; a registry flag (e.g. design) keeps a heavy design topic's planner on Fable
 
@@ -2044,6 +2063,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: build the Fable 5.2 skeptic into more of the workflow; Fable reviews in short passes, Opus does the long work. Last 36h: main-checkout Fable sessions read 428M tokens, Fable planners 148M. The default model moved to Opus on dev the same day; this item adds the flag and the send-back rule.
 - 2026-11-22 (plan/agent-autonomy): Moved to agent-autonomy-3 (to write) by agent-autonomy's planner (2026-11-22): filed after that plan landed with six slices; this builds on its defaulting asks (B-503) and flake rule (B-505).
 - 2026-11-22 (plan/agent-autonomy-3): 2026-11-22 planned in agent-autonomy-3 (skeptic's go is enough for --force/--no-review, the user's pick)
+- 2026-11-22 (Robert Bo Davis): Skeptic models changed 2026-11-22 (eb41417e): asks and plan checks run on Opus, risky landings stay on Fable. The PRD and plan are updated; where this item's title says Fable, this note wins. The design flag's planner stays on Fable.
 
 ### B-515 · feature · Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too
 
@@ -2071,7 +2091,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-519 · bug · Easy mode button on the timeline sits lower than the Timeline page title: align it with the title's row (same vertical center and baseline)
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: b2aa214a
@@ -2080,7 +2100,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-521 · change · Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark
 
-- status: landed
+- status: staging
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
 - commit: 49d983dd
@@ -2090,7 +2110,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-522 · change · Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary)
 
-- status: landed
+- status: staging
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
 - commit: 49d983dd
@@ -2100,7 +2120,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-523 · change · Each section's accent color as an icon chip beside the page title and as the current tab's pill tint; Easy mode stays neutral
 
-- status: landed
+- status: staging
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
 - commit: b3a6562f
@@ -2110,7 +2130,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-524 · change · Empty states show a colored icon circle in the section's accent color
 
-- status: landed
+- status: staging
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
 - commit: a1ff2d67
@@ -2151,17 +2171,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-528 · chore · Rapid-mode landing gate: a landing into dev needs only the quick check (no local full, no escalation to full), the changed browser checks and Codex; CI on dev runs the rest
 
-- status: triaged
+- status: ready
 - prd: test-gates
-- owner:
-- commit:
+- owner: prd/test-gates
+- commit: e82dc279
 
 - 2026-11-22 (Robert Bo Davis): From the 2026-11-22 backlog session: the user's test-gate tiers and modes; being planned inline. User chose quick only (no local full ever).
 - 2026-11-22 (plan/test-gates): Planned in plans/test-gates-prd.md and plans/test-gates-plan.md (6 slices, 5 waves; 2026-11-22).
 
 ### B-529 · chore · Dev red, by kind after one CI rerun of the failed tests: brake (build, typecheck, lint, or a sync, offline, RBAC, privacy, migration or seed test: other landings wait, only the fix lands); file (a real failure in one area: a fixes-bug item against the landing); flake (passes on rerun: quarantined, filed to fixes-tooling)
 
-- status: ready
+- status: staging
 - prd: test-gates
 - owner: prd/test-gates
 - commit: 009275c5
@@ -2171,7 +2191,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-530 · chore · Flake quarantine: CI runs quarantined tests without failing on them; each entry names its fixes-tooling item and leaves the list when the item is done
 
-- status: ready
+- status: staging
 - prd: test-gates
 - owner: prd/test-gates
 - commit: 009275c5
@@ -2204,7 +2224,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-535 · change · Hour-first time picker: defaults to the current hour at :00, minutes in 15-minute steps (00/15/30/45), works on phones; for medication dose times, pass time, todo due time, series edit times and event/appointment Starts/Ends
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 1dc972d8
@@ -2213,7 +2233,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-536 · bug · Danger text fails 4.5:1 in light: Menu's danger item and buttonClass's dangerQuiet use text-error (about 2.9:1); DateTimeField's placeholder segments at 60% opacity are a little under 4.5:1 on the light field fill
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 5566480a
@@ -2222,7 +2242,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-537 · change · One word in the app: Event, never Appointment; 'Upcoming event' / 'Past event' only where the two mix and timing isn't clear (an event's page heading, the Today card's next line, the todo form's event picker)
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 5566480a
@@ -2231,7 +2251,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-538 · change · Planner tabs become Upcoming | Past | Todos: Upcoming and Past move out of the chip row into the main pill tabs (the Planner heading names the section), the filter button sits beside the tabs on Upcoming, and switching to Todos and back keeps Past
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 439b6571
@@ -2319,31 +2339,34 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-552 · bug · Flaky: print.browser.test.tsx 'the Print menu offers both sheets' clicks getByLabel('Print') while the closing menu, with the same label, is still fading, so the locator matches two elements
 
-- status: triaged
+- status: landed
 - prd: fixes-tooling
 - owner:
-- commit:
+- commit: df2ff0d5
 
 - 2026-11-22 (prd/fixes-tooling): Found at fixes-tooling wave 2's gate (2026-11-22): failed 1 of 5811 on e0c21bbf, passed 3/3 alone and in the rerun. A race from ui-kit-3's overlay fades (93cae190); other tests that reopen a menu by label may share it.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-22 (prd/test-gates): Failed in test-gates slice 9's components run 45088030543 (commit 21533389) and again on the job's rerun, so CI read it as a real failure. It now keeps the components tier red. Not quarantined, per the user's decision to re-measure after the quarantine lands.
+- 2026-11-22 (prd/fixes-ui): fixes-ui wave 2 gate (2026-11-22): failed in the full run and its rerun on ff19deb0, then 1 of 3 alone, with the strict-mode double match on getByLabel('Print'). Suggested fix, not applied or tested: after the {Escape} in print.browser.test.tsx, wait until no [role=menu] remains.
+- 2026-11-22 (prd/fixes-ui): Fixed on the user's word (2026-11-22) in prd/fixes-ui df2ff0d5: the test waits for the closing menu to go. Passed 5 of 5 alone. Mark done when fixes-ui wave 2 lands.
+- 2026-11-22 (prd/test-gates): Re-measured after the quarantine landed: passed in both component jobs of CI run 45101406161 on 93603ce5 (one run, so not proof it is gone).
 
 ### B-553 · change · Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent
 
-- status: triaged
+- status: ready
 - prd: test-gates
-- owner:
-- commit:
+- owner: prd/test-gates
+- commit: 490eb14a
 
 - 2026-11-22 (Robert Bo Davis): From the 2026-11-22 quick-check triage with the user (check log: 111 quick runs, median 7.9 min, 30 failed). The slice check itself ships in hotfix/fast-gate; test-gates owns the orchestrator side: agents stay idle and addressable until the wave's run is back, release their stack at hand-off, and the orchestrator does not rotate before then.
 - 2026-11-22 (Robert Bo Davis): VERIFY AFTER test-gates LANDS (user, 2026-11-22): the 20-minute quick-check limit stays for now, though the slowest passing quick check on record took 28 minutes under load. The user expects the quick check to speed up once browser tests are out of the unit tests, which should come with test-gates. After it lands, compare quick-check times (pnpm prd check --times) against the limit; if healthy checks can still reach 20 minutes, raise it with the user.
 
 ### B-554 · change · CI runs only on request: the orchestrator asks for a tier (static, unit, integration, components, full) on any branch, and the landing gate checks for a green run of the tier it declared; no automatic run on a PR or a push
 
-- status: in-progress
+- status: ready
 - prd: test-gates
 - owner: prd/test-gates
-- commit:
+- commit: e82dc279
 
 - 2026-11-22 (Robert Bo Davis): From the 2026-11-22 quick-check triage with the user (check log: 111 quick runs, median 7.9 min, 30 failed). Replaces the every-push and every-PR triggers of B-341 and the rapid gate of B-528. The dev to staging promotion is the gate for dev (test-gates-2).
 
@@ -2356,17 +2379,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-22 (Robert Bo Davis): Decided with the user 2026-11-22: jumping scrolls the continuous timeline to that day, with a Back to today control. An empty day lands on the nearest earlier day with entries and says so. Quick entry jumps only on an explicit phrase (go to Nov 3, jump to last Tuesday, show yesterday), giving a Go to card that navigates and saves nothing. The picker allows past dates through today. Note: the timeline loads by growing a limit on scroll, so a far jump needs a plan for loading that day.
 - 2026-11-22 (Robert Bo Davis): Triaged to timeline-jump: a timeline feature with its own loading question; after quick-entry-2 because both change the quick entry parser.
+- 2026-11-22 (plan/timeline-jump): Planned in plans/timeline-jump-prd.md: a bounded ?day= window with paging both ways, a toolbar picker, and a whole-line Go to card in quick entry; four slices.
 
 ### B-558 · feature · Assistants settings needs to allow owner to enable read/write or stick to read only for group…
 
-- status: in-progress
+- status: ready
 - prd: assistant-access
 - owner: prd/assistant-access
-- commit:
+- commit: febc5386
 
 - 2026-11-22 (Robert Bo Davis): From the inbox: Assistants settings needs to allow owner to enable read/write or stick to read only for group assistant plugin. Default to read/write
 - 2026-11-22 (Robert Bo Davis): Decided with the user 2026-11-22: one owner-only group setting under Group settings > Assistants, default read and write. Read only keeps connections and removes write tools on the next call; switching back restores writing for connections approved for it, with no reconnecting. Shown in Assistants settings, Connected assistants and the connect screen as Read only, set by the group owner; no email. Triaged to assistant-access: needs an additive group column, and connectors-3 waits behind the held planner-3.
 - 2026-11-22 (plan/assistant-access): PRD and plan written: three slices (server gate, owner control, connect screen and Devices). See plans/assistant-access-prd.md.
+- 2026-11-22 (prd/assistant-access): Codex P2 on PR #83 (verified): /connect still offers Read and add entries on a read-only group, because memberGroups drops connectorsReadOnly and eligibleGroups calls scopesForRole without it; the grant service refuses it safely. Fixed by assistant-access slice 3 (wave 2), which keeps the server check.
 
 ### B-560 · feature · A cost record: tokens by model per PRD and slice, from session and subagent transcripts, in pnpm prd cost
 
@@ -2428,7 +2453,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-566 · bug · Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector
 
-- status: landed
+- status: staging
 - prd: test-gates
 - owner: prd/test-gates
 - commit: 12a01485
@@ -2439,7 +2464,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-567 · bug · inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2
 
-- status: landed
+- status: staging
 - prd: test-gates
 - owner: prd/test-gates
 - commit: 12a01485
@@ -2480,7 +2505,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-572 · bug · Check gate: a package.json change to scripts alone should not force a full check
 
-- status: landed
+- status: staging
 - prd: test-gates
 - owner: prd/test-gates
 - commit: 12a01485
@@ -2511,7 +2536,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-575 · change · Planner tabs' accessible name still says 'Planner or todos': name it for Upcoming, Past and Todos, and update the roundtrip browser check that selects it
 
-- status: ready
+- status: landed
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 5566480a
@@ -2548,7 +2573,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-579 · bug · Quick entry reads 'no pain gave tylenol' (no comma) as a skipped dose
 
-- status: landed
+- status: staging
 - prd: fixes-bug
 - owner: prd/quick-entry-2
 - commit: b1fb0641
@@ -2603,10 +2628,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-585 · bug · Stepping an event's hour up from 11 AM wraps to 12 AM the same day, not 12 PM, so Ends shows 'Must be after the start'
 
-- status: triaged
+- status: ready
 - prd: fixes-ui
-- owner:
-- commit:
+- owner: prd/fixes-ui
+- commit: 6af2f056
 
 - 2026-11-22 (prd/fixes-ui): Found by fixes-ui slice 13 (B-535). React Aria's 12-hour segment wraps inside AM/PM; stock behaviour that predates the slice. Affects keyboard stepping in DateTimeField.
 
@@ -2621,27 +2646,176 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-587 · bug · ci blame calls a failure the branch's when dev's comparison run skipped it as quarantined
 
-- status: triaged
+- status: ready
 - prd: test-gates
-- owner:
-- commit:
+- owner: prd/test-gates
+- commit: e7cfad86
 
 - 2026-11-22 (prd/test-gates): Codex on PR #81 (scripts/ci/blame.mjs:120), verified: a narrowed dev run skips quarantined tests and runQuarantine returns early on narrowed runs, so a test never run on dev reads as passing there. Run the targeted quarantined tests or leave them unknown. Fix before slice 6's gate relies on blame.
 
 ### B-588 · bug · ci blame says every failure is dev's when a flake hides an unnamed job failure
 
-- status: triaged
+- status: ready
 - prd: test-gates
-- owner:
-- commit:
+- owner: prd/test-gates
+- commit: e7cfad86
 
 - 2026-11-22 (prd/test-gates): Codex on PR #81 (scripts/ci/blame.mjs:42), reproduced: a file verdict with empty afterRerun and the job's assertion in flaky gives partial=false and exit 0 with nothing run on dev. A flake must not explain the failed job; return unknown. Must be fixed before slice 6, whose gate lands a file verdict when blame gives every failure to dev.
 
 ### B-589 · bug · ci blame calls a named failure dev's when dev only failed to load the test file
 
-- status: triaged
+- status: ready
 - prd: test-gates
+- owner: prd/test-gates
+- commit: e7cfad86
+
+- 2026-11-22 (prd/test-gates): Codex on PR #81 (scripts/ci/blame.mjs:109), reproduced: a branch's named assertion against a dev verdict listing the file with no named tests lands in split.dev, though dev never ran the assertion. Leave it unknown. Must be fixed before slice 6, whose gate lands a file verdict when blame gives every failure to dev.
+
+### B-590 · bug · ci blame calls a branch's file-level failure dev's when dev only fails a named test in that file
+
+- status: ready
+- prd: test-gates
+- owner: prd/test-gates
+- commit: e7cfad86
+
+- 2026-11-22 (prd/test-gates): Found in slice 11's hand-off, verified in scripts/ci/blame.mjs failsOnDev: a failure with no test name matches any named dev failure in the same file, so a branch load error can be cleared as dev's and blameExit can return 0. Fixed in slice 11 before slice 6 relies on blame.
+
+### B-591 · bug · Quick entry reads a fraction after the medication as a date: 'gave tylenol 3/8' logs the usual dose on March 8
+
+- status: triaged
+- prd: fixes-bug
 - owner:
 - commit:
 
-- 2026-11-22 (prd/test-gates): Codex on PR #81 (scripts/ci/blame.mjs:109), reproduced: a branch's named assertion against a dev verdict listing the file with no named tests lands in split.dev, though dev never ran the assertion. Leave it unknown. Must be fixed before slice 6, whose gate lands a file verdict when blame gives every failure to dev.
+- 2026-11-22 (Robert Bo Davis): Codex on PR #82 (quickEntry.ts:1907), reproduced on db91f582: with a usual dose of 2 tablets, 'gave tylenol 3/8' gives amount 2 tablets dated 2026-03-08, while 'gave 3/8 tylenol' gives 3/8 tablet now. isFractionAmount only looks forward for the medication. Sibling of B-578.
+
+### B-592 · change · Planner event card: replace the narrow time column with a footer-actions layout
+
+- status: ready
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 6af2f056
+
+- 2026-11-22 (Robert Bo Davis): User report from staging (phone width, 2026-11-22): the card is still ugly after B-256 and B-416 moved call, directions and initials under the time. Cause: UpcomingRow's 5.5rem when column wraps the time and stacks the actions and initials into a tall block. User's chosen layout: kind icon on the left and the ⋯ menu on the right; the time on one line above the title, with the repeat mark beside it; then title, with-line and address at full width; a footer row with labelled Call and Directions buttons on the left and the author's initials on the right. Drop the address line's duplicate map pin. A card with no actions has no footer row, and its initials sit at the end of the last line. Keep the whole-row link, filter links, read-only Easy mode and cancelled state. Check whether PlannerTodoRow should match. Triage: fixes-ui, a layout change on one screen.
+
+### B-593 · feature · Choose your avatar: a color and icon instead of plain initials
+
+- status: triaged
+- prd: member-avatars
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): User decision 2026-11-22: no Gravatar (a third party would see viewer IPs and email hashes) and no photo upload for now. Each member picks a color and an icon from a fixed set in their account settings, and everyone in their care groups sees it wherever UserAvatar, AvatarStack and author initials appear (Timeline, Planner, members, live-note editors, the header). Members who have not chosen keep initials. Open for the planner: whether initials can sit on the chosen color, a default color per member, and contrast in both themes. Colors must not be confused with section or status colors. Needs an additive migration, sync to co-members, and validated values on the server. Stored choices are ids from the fixed set, never free text or URLs. Works offline with no external requests, so the image CSP stays as is. Photo upload is not part of this.
+- 2026-11-22 (Robert Bo Davis): User decision 2026-11-22: a member who has not chosen defaults to a color different from everyone else in the group. This settles the earlier open question on a default color. For the planner: one person can be in several groups, so the default is per group, and every device must agree on it offline (for example, worked out from a stable order such as join order, skipping colors members chose). A member's default should not change when someone else joins or leaves if that can be avoided. When a group has more members than colors, colors repeat, and the initials or icon still tell members apart.
+
+### B-594 · change · Manage allergies on the Profile page; Medications keeps a read-only summary
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): User decision 2026-11-22. An allergy is a fact about the care recipient, so Profile becomes the one place to manage it. (1) Add an Allergies section to the Profile page next to Conditions, with add, edit, remove and No known allergies, for the same roles as today. (2) The Medications list and each medication page keep a read-only allergy summary with a Manage link to Profile, and severe allergies stay prominent: the safety check must stay where medications are given and added. (3) Printed sheets, the emergency sheet and the connector view do not change. Must work offline as Conditions does, although most of the Profile page does not sync. No migration expected: recipient_allergy already belongs to the recipient and syncs. Old allergy URLs should redirect or keep working. Triage: fixes-ui (flow change on existing data). Sequencing: ui-kit-4 sweeps the medications and profile folders, so take this after those slices land or coordinate through hot files; if it proves too large for a fixes slice, move it to its own topic.
+
+### B-595 · chore · Slice agents read only their slice's section and the PRD decisions it cites, not the whole plan and PRD
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): Highest payoff. Startup docs are about 110 KB (30k tokens), while slice 6's own section is 2.9 KB. Change prompt.sh. Wait until test-gates wave 5 lands: it is editing prompt.sh. Evidence: test-gates slice 6 (B-528) took three Opus agents (174k, about 165k, 87k tokens); they stopped on the project's 160k context watch in scripts/loops/context.mjs, not proven model limits. Sizes are estimates from files; transcripts not broken down. Filed at the test-gates orchestrator's request; awaiting the user's review.
+
+### B-596 · chore · Cap slice size at planning: split a slice touching more than about 8 files or several hot files
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): Slice 6 touched 15 files (about 990 lines added, 330 removed) and should have been three: proposal and gate logic, ci gate, then land and pr wiring. Evidence: test-gates slice 6 (B-528) took three Opus agents (174k, about 165k, 87k tokens); they stopped on the project's 160k context watch in scripts/loops/context.mjs, not proven model limits. Sizes are estimates from files; transcripts not broken down. Filed at the test-gates orchestrator's request; awaiting the user's review.
+
+### B-597 · chore · Split scripts/ci/ci.mjs and scripts/loops/prompt.sh so an agent reads only the part it needs
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): Both are about 40 KB, within about 195 KB (55k tokens) of code slice 6 had to understand. Wait until test-gates wave 5 lands: it is editing both. Evidence: test-gates slice 6 (B-528) took three Opus agents (174k, about 165k, 87k tokens); they stopped on the project's 160k context watch in scripts/loops/context.mjs, not proven model limits. Sizes are estimates from files; transcripts not broken down. Filed at the test-gates orchestrator's request; awaiting the user's review.
+
+### B-598 · chore · Keep a plan's Status short by moving finished-wave history out of it
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): test-gates' Status is 8.9 KB of a 37 KB plan. Could be a rule in the orchestrator handbook. The test-gates orchestrator can trim its own Status itself. Evidence: test-gates slice 6 (B-528) took three Opus agents (174k, about 165k, 87k tokens); they stopped on the project's 160k context watch in scripts/loops/context.mjs, not proven model limits. Sizes are estimates from files; transcripts not broken down. Filed at the test-gates orchestrator's request; awaiting the user's review.
+
+### B-599 · bug · Assistants settings: connection labels stay stale when another owner flips read only while the page is open
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-22 (prd/assistant-access): From assistant-access slice 2: the toggle and status follow by sync, but row labels come from connector.listForGroup and refresh only on the next load.
+
+### B-600 · change · Context watch: a soft limit where the agent decides and a hard limit where it hands off, set per agent type
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): The user: complex coding runs on Opus, so agents have a 1M window. Opus 5.5 is listed at 1M, and a recent session's cache read reached 235k, past any 200k cap. Today limitOf in scripts/loops/context.mjs gives every session and subagent one 160k limit, about 16% of the window, so slice agents hand off far too early (B-528 slice 6 needed three). Proposed start: 300k for slice agents, tuned from real runs. Update docs/agents/loop.md and machinery.md, which state 160k. Pairs with B-595 and B-596. Runs after test-gates with the rest of fixes-tooling. Exact number awaits the user's review.
+- 2026-11-22 (Robert Bo Davis): Replaces the single raised limit (user, 2026-11-22: soft and hard limits, the agent decides whether the work is worth continuing; numbers left to us). Slice agents: soft 175k, hard 300k. Orchestrators and backlog sessions: soft 160k, hard 225k. Soft: one reminder asking the agent to judge: continue if it is mid-change or holds understanding a fresh agent would pay to rebuild, hand off at a natural boundary, and say which in its hand-off. Repeat only every further 25k, not every 10 minutes. Hard: commit and hand off now; repeats on every tool call and --keep cannot silence it. Still never blocks a tool call, so uncommitted work is not stranded. The dispatcher's nudge, question and rotation start at the hard limit, not the soft one. --keep is refused on slice branches today, so a slice's decision needs no command. Touches context.mjs, dispatch-context.mjs, their tests, loop.md and machinery.md.
+- 2026-11-22 (Robert Bo Davis): User chose a hotfix in its own session for the slice-agent part only (soft 175k, hard 300k): session backlog - slice-context-limits. Orchestrator limits and the dispatcher stay here, after test-gates.
+- 2026-11-22 (Robert Bo Davis): Slice-agent part landed in dev as 86447987 (local hotfix): every orchestrator subagent now has soft 175k (judge, repeats every further 25k) and hard 300k (hand off on every tool call), as constants. Worktree-launched orchestrators get it at their next pnpm prd sync on the prd/ branch; sessions launched from the main checkout get it at once. Remains here, after test-gates: orchestrator and backlog soft 160k and hard 225k, and moving the dispatcher to the hard limit. Known hole, not fixed: pnpm prd context --keep from a subagent outside a slice/ branch mutes its orchestrator for 30 minutes.
+
+### B-601 · bug · Back right after a failed sheet save skips the discard prompt and loses the edits: the leaving flag stays set until the next touch
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-22 (prd/fixes-ui): Codex P2 on PR #84, verified in useSheetChanges.ts: submit sets leaving.current and only a later pointer, key, input or change clears it; focusin on the invalid field does not. Tie the bypass to a successful save.
+
+### B-602 · bug · Discard prompt misfires or is missed: a sync after the first touch reads as a change, a record deleted elsewhere can prompt, and Back with an unguarded sheet on top of a changed one does not ask
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-22 (prd/fixes-ui): Known gaps from slice 14 (B-316).
+- 2026-11-22 (prd/fixes-ui): Also from fixes-ui slice 17 (B-603), read from useSheetExit and not reproduced: under reduced motion the discarded flag is not reset on a sheet that stays mounted, so a reopened guarded sheet may stop asking. Slice 17's invite sheets avoid it by rendering only while open.
+
+### B-603 · change · Extend the unsaved-changes guard to InviteSheet, InviteLinks, provider import, RepeatSheet and VisitPrepSheet
+
+- status: ready
+- prd: fixes-ui
+- owner: prd/fixes-ui
+- commit: 18180d36
+
+- 2026-11-22 (prd/fixes-ui): Left unguarded by slice 14 (B-316).
+
+### B-604 · chore · Test Discard under reduced motion in the sheet guard
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (prd/fixes-ui): Gap from slice 14 (B-316).
+
+### B-605 · bug · PageUp and PageDown on a date field's hour still wrap inside AM/PM, so 11 AM can page to 12 AM
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-22 (prd/fixes-ui): Found by fixes-ui slice 15 (B-585), which fixed the arrow keys only.

@@ -6,12 +6,12 @@ import { localTime } from "../todos/todoRules";
 
 // What a calendar item says outside Caretook (appointments-2): the email's
 // subject and body, the feed's and Google's event. Generic by default:
-// "Appointment for Pat", the time and a link back, and nothing else. With
+// "Event for Pat", the time and a link back, and nothing else. With
 // `details` (shareLevel), the title, place and providers' names are added.
 // It never says more: a CalendarItem carries no note text to say.
 
 const NOUNS: Record<CalendarItemKind, string> = {
-  appointment: "Appointment",
+  appointment: "Event",
   todo: "Todo",
 };
 

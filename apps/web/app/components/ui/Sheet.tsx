@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { IconButton } from "./IconButton";
+import { useSheetChanges } from "./useSheetChanges";
 import { NavigationHold, useSheetExit } from "./useSheetExit";
 
 /** What had focus as the sheet mounted. A menu item is gone by the close, so its menu's trigger instead. */
@@ -30,16 +32,23 @@ function findOpener() {
  * It closes the way it opened (`useSheetExit`): a dismissal plays the exit and
  * then calls `onOpenChange(false)`; a navigation that changes the path is held
  * for the exit. Under "reduce motion" nothing is held.
+ *
+ * `guardChanges` (a sheet that edits data): once its form differs from where
+ * it started, Close, Escape, a tap outside and Back ask "Discard changes?"
+ * first. A save and the form's own Cancel don't ask.
  */
 export function Sheet({
   isOpen,
   onOpenChange,
   title,
+  guardChanges = false,
   children,
 }: {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
+  /** `true` watches the whole sheet; a selector watches just that form (a sheet that also lists and saves). */
+  guardChanges?: boolean | string;
   children: ReactNode;
 }) {
   const [opener] = useState(findOpener);
@@ -57,7 +66,13 @@ export function Sheet({
   );
 
   const panelRef = useRef<HTMLDivElement>(null);
-  const { closing, dismiss, hold } = useSheetExit({ isOpen, onOpenChange, panelRef });
+  const hasChanges = useSheetChanges(panelRef, guardChanges, isOpen);
+  const { closing, dismiss, asking, keepEditing, discard, hold } = useSheetExit({
+    isOpen,
+    onOpenChange,
+    panelRef,
+    hasChanges,
+  });
 
   return (
     <ModalOverlay
@@ -85,6 +100,17 @@ export function Sheet({
                 <IconButton label="Close" icon={X} onPress={close} />
               </div>
               {children}
+              {guardChanges !== false && (
+                <ConfirmDialog
+                  open={asking}
+                  title="Discard changes?"
+                  message="What you changed here won't be saved."
+                  confirmLabel="Discard"
+                  cancelLabel="Keep editing"
+                  onConfirm={discard}
+                  onClose={keepEditing}
+                />
+              )}
             </>
           )}
         </Dialog>

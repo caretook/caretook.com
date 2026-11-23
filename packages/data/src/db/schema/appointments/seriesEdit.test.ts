@@ -157,7 +157,7 @@ describe("planSeriesEdit: only this visit", () => {
       now: NOW,
       newSeriesId: NEW_ID,
     });
-    expect(res).toEqual({ ok: false, problem: "Only appointments can be cancelled" });
+    expect(res).toEqual({ ok: false, problem: "Only events can be cancelled" });
   });
 });
 

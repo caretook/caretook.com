@@ -221,7 +221,7 @@ function Item({ item, selectable, inGroup }: { item: MenuItem; selectable?: bool
       routerOptions={linkOptions(item)}
       isDisabled={item.isDisabled}
       onAction={selectable ? undefined : item.onAction}
-      className={`${ITEM} ${inGroup ? "pr-3 pl-9" : "px-3"} ${item.tone === "danger" ? "text-error" : ""}`}
+      className={`${ITEM} ${inGroup ? "pr-3 pl-9" : "px-3"} ${item.tone === "danger" ? "text-error-ink" : ""}`}
     >
       {({ isSelected }) => (
         <>
