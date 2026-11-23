@@ -123,7 +123,7 @@ describe("adding a provider", () => {
     await userEvent.click(button("Cancel"));
     await expect.poll(() => !FORM() && device.location()).toBe(PROVIDERS_URL);
 
-    await open({ url: `${PROVIDERS_URL}/${BROOKS.id}/edit`, fixtures: [directory(), BROOKS] });
+    await open({ url: `${PROVIDERS_URL}/${PATEL.id}/edit` });
     await expect.element(button("Save")).toHaveAttribute("type", "submit");
     await expect.element(button("Cancel")).toBeVisible();
     await expect.element(button("Delete provider")).toBeVisible();
