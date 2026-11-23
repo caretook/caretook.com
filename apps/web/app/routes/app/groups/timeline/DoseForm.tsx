@@ -186,7 +186,7 @@ export function DoseForm(props: Props) {
       </Field>
 
       {warnings.length > 0 && (
-        <Notice tone="warning" data-dose-warning="">
+        <Notice tone="warning" role="alert" data-dose-warning="">
           {warnings.join(" ")} Log it anyway?
         </Notice>
       )}
