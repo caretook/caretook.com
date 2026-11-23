@@ -116,6 +116,7 @@ export { todoService };
 import * as connectorGrantService from "./connectorGrantService";
 export { connectorGrantService };
 export type {
+  ConnectorConnectionView,
   ConnectorGrantView,
   ValidateToken,
   ValidatedToken,

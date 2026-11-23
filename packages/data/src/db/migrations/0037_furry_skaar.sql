@@ -1,0 +1,1 @@
+ALTER TABLE "care_group" ADD COLUMN "connectors_read_only" boolean DEFAULT false NOT NULL;

@@ -45,26 +45,45 @@ export const connectorClientName = (name: string | null | undefined) =>
 /**
  * The scopes a member with `role` may grant, widest last: viewers read only,
  * and the easy roles none (setup stays with technical members, so a role
- * change to an easy role cuts a connected assistant off).
+ * change to an easy role cuts a connected assistant off). A group its owner
+ * set to read only narrows everyone to read.
  */
-export const scopesForRole = (role: GroupRoleName | null | undefined): readonly ConnectorScope[] => {
+export const scopesForRole = (
+  role: GroupRoleName | null | undefined,
+  groupReadOnly = false,
+): readonly ConnectorScope[] => {
   if (!role || isEasyRole(role)) return [];
-  return isWriterRole(role) ? CONNECTOR_SCOPES : ["read"];
+  return isWriterRole(role) && !groupReadOnly ? CONNECTOR_SCOPES : ["read"];
 };
 
 /**
  * What a grant may do now: what was granted, narrowed by the member's
  * current role (a caretaker demoted to viewer reads only, whatever they
- * granted). Null when they're no longer a member, or have an easy role.
+ * granted) and the group's read-only setting. Null when they're no longer a
+ * member, or have an easy role. The stored grant never changes.
  */
 export const effectiveScope = (
   granted: ConnectorScope,
   role: GroupRoleName | null | undefined,
+  groupReadOnly = false,
 ): ConnectorScope | null => {
-  const allowed = scopesForRole(role);
+  const allowed = scopesForRole(role, groupReadOnly);
   if (!allowed.length) return null;
   return allowed.includes(granted) ? granted : "read";
 };
+
+/**
+ * Whether the group's read-only setting is what stops this connection
+ * writing: true only when it could write with the setting off. A read grant,
+ * a demoted viewer or a token without the write scope is never the owner's
+ * doing. `tokenCanWrite` is for /mcp, which knows the token's scopes.
+ */
+export const readOnlyByOwner = (
+  granted: ConnectorScope,
+  role: GroupRoleName | null | undefined,
+  groupReadOnly: boolean,
+  tokenCanWrite = true,
+) => groupReadOnly && tokenCanWrite && effectiveScope(granted, role) === "readWrite";
 
 /** The OAuth scopes a grant of `scope` puts on its tokens. */
 export const oauthScopesFor = (scope: ConnectorScope): string[] =>
@@ -77,3 +96,6 @@ export const CONNECTOR_SCOPE_LABELS: Record<ConnectorScope, string> = {
   read: "Read only",
   readWrite: "Read and add entries",
 };
+
+/** Why a connection can only read when the group's owner chose it (every screen, and /mcp's refusal). */
+export const CONNECTOR_READ_ONLY_BY_OWNER_LABEL = "Read only, set by the group owner";
