@@ -47,10 +47,16 @@ const onPage = () =>
   !!document.querySelector<HTMLElement>("main h1")?.textContent &&
   !!document.querySelector<HTMLElement>("main [data-medication-history]");
 const NOT_FOUND = () => page.getByRole("heading", { name: "Not found" });
+/** The world with its recipient living in `timeZone`; the schedule's zone note compares it with the device's. */
+const recipientIn = (timeZone: string) => [
+  world(),
+  { ...RECIPIENT, row: { ...RECIPIENT.row, time_zone: timeZone } },
+];
+const DEVICE_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 describe("the page", () => {
   test("Lisinopril's details, its prescriber and pharmacy as links with contact actions, and its doses and changes newest first", async () => {
-    const device = await open(medicationUrl(LISINOPRIL.id));
+    const device = await open(medicationUrl(LISINOPRIL.id), { fixtures: recipientIn(DEVICE_ZONE) });
     await waitUntil(onPage, "the page");
     const state = medPage();
     expect(state).toMatchObject({ h1: "Lisinopril 10 mg", badge: null, details: "Tablet · 1 tablet" });
@@ -89,11 +95,10 @@ describe("the page", () => {
   });
 
   test("with the recipient in another zone, the schedule says whose times they are", async () => {
-    await open(medicationUrl(LISINOPRIL.id), {
-      fixtures: [world(), { ...RECIPIENT, row: { ...RECIPIENT.row, time_zone: "America/New_York" } }],
-    });
+    // Chicago is neither zone the tests run in, so it is always another zone.
+    await open(medicationUrl(LISINOPRIL.id), { fixtures: recipientIn("America/Chicago") });
     await waitUntil(onPage, "the page");
-    expect(medPage().rows.schedule).toBe("MorningTimes are New York time");
+    expect(medPage().rows.schedule).toBe("MorningTimes are Chicago time");
   });
 
   test("a discontinued medication says so, with the reason and the note, its stop first in the history", async () => {
