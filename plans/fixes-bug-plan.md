@@ -40,7 +40,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 22    | B-580 | blocked by 21                              |          |
 | 23    | B-581 | blocked by 22                              |          |
 | 24    | B-599 | handed off (ff0d0577), merge in plan order |          |
-| 25    | B-601 | started                                    |          |
+| 25    | B-601 | handed off (e2c29395), merge in plan order |          |
 | 26    | B-602 | blocked by 25                              |          |
 | 27    | B-605 | handed off (f42f5557), merge in plan order |          |
 
