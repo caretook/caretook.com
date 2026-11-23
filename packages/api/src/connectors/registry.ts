@@ -14,6 +14,8 @@ export type ToolContext = {
   groupId: string;
   role: GroupRoleName;
   scope: ConnectorScope;
+  /** The group's read-only setting is what stops this connection writing (never a read grant). */
+  readOnlyByOwner?: boolean;
   clientName: string;
   /** The server's clock, for defaults such as "the last 90 days". */
   now: Date;

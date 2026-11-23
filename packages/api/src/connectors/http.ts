@@ -18,7 +18,8 @@ import { CONNECTOR_TOOLS } from "./tools";
 //     with the RFC 9728 `resource_metadata` pointer, so the client starts
 //     the OAuth flow (or reconnects).
 //   - A call to a write tool on a read-only connection is a 403
-//     `insufficient_scope`.
+//     `insufficient_scope`, unless the group's owner set read only: then
+//     it's an `mcp:groupReadOnly` tool result (re-authorizing can't help).
 //   - 60 calls a minute per connection (a looping assistant can't hammer
 //     the database), then 429 with Retry-After.
 //   - Logs follow the api rules: codes, the tool (`procedure`), the actor

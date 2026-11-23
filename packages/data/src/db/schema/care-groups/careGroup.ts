@@ -23,6 +23,9 @@ export const careGroupSchema = pgTable("care_group", {
   // Members may connect their own AI assistant (connectors PRD): off until
   // an owner turns it on (careGroupService.update); off revokes every grant.
   connectorsEnabled: boolean("connectors_enabled").notNull().default(false),
+  // An owner's choice that assistants only read (assistant-access). Grants
+  // keep their stored scope, so switching back restores writing.
+  connectorsReadOnly: boolean("connectors_read_only").notNull().default(false),
   // Members may opt in to titles, places and providers in their emails,
   // feed and Google calendar (appointments-2). Owners turn it off for
   // everyone (calendarSettingService.setDetailsAllowed); not synced.

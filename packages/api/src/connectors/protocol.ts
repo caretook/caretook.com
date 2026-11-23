@@ -3,7 +3,7 @@ import type { Prompt } from "./prompts";
 import type { Tool, ToolContext } from "./registry";
 
 import { ERRORS, isError } from "@caretook/data";
-import { CONNECTOR_OAUTH_SCOPES } from "@caretook/data/schema";
+import { CONNECTOR_OAUTH_SCOPES, CONNECTOR_READ_ONLY_BY_OWNER_LABEL } from "@caretook/data/schema";
 import { CONNECTOR_PROMPTS, describePrompt, promptAllowed } from "./prompts";
 import { describeTool, toolAllowed } from "./registry";
 
@@ -130,6 +130,16 @@ const callTool = async (
   const tool = registry.find((t) => t.name === name);
   if (!tool) return failure(id, JSON_RPC.invalidParams, `Unknown tool: ${name}`);
   if (!toolAllowed(tool, ctx.scope)) {
+    // Re-authorizing can't help when the owner chose this, so it's a plain refusal, not the 403 challenge.
+    if (ctx.readOnlyByOwner) {
+      return result(
+        id,
+        toolError(
+          "mcp:groupReadOnly",
+          `${CONNECTOR_READ_ONLY_BY_OWNER_LABEL}. Nothing was saved. Reconnecting won't change this; a group owner can in the group's Assistants settings.`,
+        ),
+      );
+    }
     return {
       kind: "insufficientScope",
       scope: CONNECTOR_OAUTH_SCOPES.write,

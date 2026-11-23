@@ -1,4 +1,9 @@
-import type { AssistantRequestMailer, AssistantRequestView, ConnectorGrantView } from "@caretook/data";
+import type {
+  AssistantRequestMailer,
+  AssistantRequestView,
+  ConnectorConnectionView,
+  ConnectorGrantView,
+} from "@caretook/data";
 
 import {
   assistantRequestService,
@@ -38,6 +43,12 @@ const toConnection = (grant: ConnectorGrantView) => ({
 });
 
 export type Connection = ReturnType<typeof toConnection>;
+
+/** A listed connection: `readOnlyByOwner` says the group's owner is why it can only read. */
+const toListed = (grant: ConnectorConnectionView) => ({
+  ...toConnection(grant),
+  readOnlyByOwner: grant.readOnlyByOwner,
+});
 
 type Ctx = Parameters<typeof careGroupService.list>[0];
 
@@ -103,7 +114,7 @@ export const connector = {
   listMine: authedProcedure.handler(async ({ context }) => {
     const grants = unwrap(await connectorGrantService.listMine(context));
     const names = await groupNames(context, unique(grants.map((g) => g.groupId)));
-    return grants.map((g) => ({ ...toConnection(g), groupName: names.get(g.groupId) ?? null }));
+    return grants.map((g) => ({ ...toListed(g), groupName: names.get(g.groupId) ?? null }));
   }),
 
   /**
@@ -114,7 +125,7 @@ export const connector = {
   listForGroup: authedProcedure.input(z.object({ groupId: id })).handler(async ({ context, input }) => {
     const grants = unwrap(await connectorGrantService.listForGroup(context, input.groupId));
     const names = await memberNames(context, unique(grants.map((g) => g.userId)));
-    return grants.map((g) => ({ ...toConnection(g), memberName: names.get(g.userId) ?? null }));
+    return grants.map((g) => ({ ...toListed(g), memberName: names.get(g.userId) ?? null }));
   }),
 
   /**
