@@ -78,17 +78,22 @@ const addMedication = async (
   ctx: { authUser: AuthUser },
   groupId: string,
   overrides: Record<string, unknown> = {},
+  opts: { changedAt?: string } = {},
 ) =>
   ok(
-    await medicationService.create(ctx, {
-      groupId,
-      name: "Lisinopril",
-      strength: "10 mg",
-      form: "tablet",
-      dose: "1 tablet",
-      schedule: { type: "scheduled", slots: [{ time: "08:00" }] },
-      ...overrides,
-    } as never),
+    await medicationService.create(
+      ctx,
+      {
+        groupId,
+        name: "Lisinopril",
+        strength: "10 mg",
+        form: "tablet",
+        dose: "1 tablet",
+        schedule: { type: "scheduled", slots: [{ time: "08:00" }] },
+        ...overrides,
+      } as never,
+      opts,
+    ),
   )!;
 
 describe("read tools", { timeout: 60_000 }, () => {
@@ -348,6 +353,34 @@ describe("read tools", { timeout: 60_000 }, () => {
     expect(has("Reactivated Asthma")).toBe(true);
   });
 
+  it("todays_doses: leaves out the past slot of a medication added today", async () => {
+    // 15:00 in Los Angeles, the group's zone, ahead of the rows' real creation time.
+    const clock = new Date("2030-06-12T22:00:00.000Z");
+    const handler = handlerAt(clock);
+    const w = await world();
+    const med = await addMedication(
+      w.caretaker.ctx,
+      w.group.id,
+      {
+        name: "Aspirin",
+        strength: null,
+        schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
+      },
+      { changedAt: "2030-06-12T21:59:00.000Z" },
+    );
+    const token = await w.connect(w.viewer);
+    const result = await callTool(handler, token, "todays_doses");
+    const out = result.structuredContent as {
+      passes: { slots: { medicationId: string; time: string; state: string }[] }[];
+    };
+    expect(
+      out.passes
+        .flatMap((p) => p.slots)
+        .filter((s) => s.medicationId === med.id)
+        .map((s) => [s.time, s.state]),
+    ).toEqual([["20:00", "upcoming"]]);
+  });
+
   it("todays_doses: agrees with the app's due-doses core for the same data and now, in the recipient's zone", async () => {
     const now = new Date();
     const handler = handlerAt(now);
@@ -355,11 +388,17 @@ describe("read tools", { timeout: 60_000 }, () => {
     const passes = ok(await medicationPassService.list(w.owner.ctx, { groupId: w.group.id })).data;
     const morning = passes.find((p) => p.name === "Morning")!;
     const evening = passes.find((p) => p.name === "Evening")!;
-    const aspirin = await addMedication(w.caretaker.ctx, w.group.id, {
-      name: "Aspirin",
-      strength: null,
-      schedule: { type: "scheduled", slots: [{ passId: morning.id }, { passId: evening.id }] },
-    });
+    // Started days ago, so both slots are on today's schedule at any hour the test runs.
+    const aspirin = await addMedication(
+      w.caretaker.ctx,
+      w.group.id,
+      {
+        name: "Aspirin",
+        strength: null,
+        schedule: { type: "scheduled", slots: [{ passId: morning.id }, { passId: evening.id }] },
+      },
+      { changedAt: hoursAgo(72) },
+    );
     const pain = await addMedication(w.caretaker.ctx, w.group.id, {
       name: "Ibuprofen",
       strength: null,

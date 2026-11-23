@@ -360,6 +360,36 @@ export const list = async (
   return isError(data) ? data : { ...page, data };
 };
 
+/**
+ * The group's medication change entries from `from` on, deleted ones too
+ * (deleting the line doesn't undo the change), as `scheduleHistory` reads them.
+ */
+export const scheduleChanges = async (
+  ctx: ServiceContext,
+  { groupId, from }: { groupId: string; from: string },
+) => {
+  const changes: { id: string; occurredAt: string; details: unknown }[] = [];
+  let cursor: string | null = null;
+  do {
+    const page = await timelineEntryModel.listPage({
+      ...ctx,
+      includeDeleted: true,
+      filter: {
+        groupId: { type: "eq", value: groupId },
+        kind: { type: "eq", value: "medicationChange" },
+        occurredAt: { type: "gte", value: from },
+      },
+      cursor,
+      limit: 500,
+    });
+    if (isError(page)) return page;
+    for (const { id, occurredAt, details } of page.data)
+      changes.push({ id, occurredAt: new Date(occurredAt).toISOString(), details });
+    cursor = page.nextCursor;
+  } while (cursor);
+  return changes;
+};
+
 /** The newest reading of each vital type in a group, with the entry it came from. */
 export const latestVitals = (ctx: ServiceContext, { groupId }: { groupId: string }) =>
   timelineEntryModel.latestReadings({ ...ctx, filter: { groupId: { type: "eq", value: groupId } } });

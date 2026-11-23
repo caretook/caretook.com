@@ -14,6 +14,7 @@ import {
   passTitle,
   slotStateText,
   startOfDay,
+  timelineEntryService,
 } from "@caretook/data";
 import { z } from "zod";
 import { defineTool, READ_ANNOTATIONS } from "../registry";
@@ -78,6 +79,12 @@ export const todaysDoses = defineTool({
     const from = startOfDay(addDays(dayInZone(ctx.now, timeZone), -1), timeZone).toISOString();
     const entries = await entriesBetween(ctx, { kinds: ["dose"], from });
     if (isError(entries)) return entries;
+    // The schedule each day had, from the first day the matching reaches.
+    const changes = await timelineEntryService.scheduleChanges(asMember(ctx), {
+      groupId: ctx.groupId,
+      from: startOfDay(addDays(dayInZone(ctx.now, timeZone), -2), timeZone).toISOString(),
+    });
+    if (isError(changes)) return changes;
 
     const medications = meds.data.flatMap((m): DueMedication[] => {
       const schedule = normalizeSchedule(m.schedule);
@@ -103,7 +110,7 @@ export const todaysDoses = defineTool({
       return [{ id: e.id, occurredAt: e.occurredAt, details, createdBy: e.createdBy }];
     });
 
-    const due = dueDoses({ medications, passes: passes.data, doses, now: ctx.now, timeZone });
+    const due = dueDoses({ medications, passes: passes.data, doses, changes, now: ctx.now, timeZone });
     const rounds = duePasses(due, passes.data).map((pass) => ({
       name: passTitle(pass),
       time: pass.time,
