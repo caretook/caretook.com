@@ -259,6 +259,60 @@ describe("/mcp write tools", () => {
     expect(await dosesOf(inRound.id)).toHaveLength(1);
   });
 
+  it("a log_dose with a different amount or note is its own dose; an identical retry is not", async () => {
+    const w = await world();
+    const token = w.writer.tokens.access_token;
+    const time = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "America/Los_Angeles",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).format(new Date());
+    const medication = ok(
+      await medicationService.create(
+        w.owner.ctx,
+        { groupId: w.group.id, name: "Lisinopril", schedule: { type: "scheduled", slots: [{ time }] } },
+        { changedAt: minutesAgo(3 * 24 * 60) },
+      ),
+    )!;
+    const doses = async () =>
+      (await w.groupEntries()).filter(
+        (e) => e.kind === "dose" && (e.details as { medicationId: string }).medicationId === medication.id,
+      );
+    const log = (args: Record<string, unknown>) =>
+      tool(token, "log_dose", { medicationId: medication.id, status: "given", ...args });
+
+    const first = await log({ amount: "1 tablet", note: "With breakfast" });
+    const [firstId] = first.structuredContent.entryIds!;
+    const retry = await log({ amount: "1 tablet", note: "With breakfast" });
+    expect(retry.structuredContent.entryIds).toEqual([firstId]);
+    expect(textOf(retry)).toMatch(/^Already logged, nothing added: /);
+    expect(await doses()).toHaveLength(1);
+
+    // A different amount: a separate dose, on its own id, the first left as it was.
+    const more = await log({ amount: "2 tablets", note: "With breakfast" });
+    const [moreId] = more.structuredContent.entryIds!;
+    expect(moreId).not.toBe(firstId);
+    expect(textOf(more)).toMatch(/^Logged: /);
+    expect(await doses()).toHaveLength(2);
+    expect((await w.entry(firstId!))!.details).toMatchObject({ amount: "1 tablet", note: "With breakfast" });
+
+    // A different note: another, and retrying either extra dose adds nothing.
+    const noted = await log({ amount: "1 tablet", note: "After the walk" });
+    expect(noted.structuredContent.entryIds).not.toContain(firstId);
+    expect(await doses()).toHaveLength(3);
+    const moreAgain = await log({ amount: "2 tablets", note: "With breakfast" });
+    expect(moreAgain.structuredContent.entryIds).toEqual([moreId]);
+    const notedAgain = await log({ amount: "1 tablet", note: "After the walk" });
+    expect(notedAgain.structuredContent.entryIds).toEqual(noted.structuredContent.entryIds);
+    expect(await doses()).toHaveLength(3);
+
+    // Leaving them out states nothing different, so it is a repeat.
+    const bare = await log({});
+    expect(textOf(bare)).toMatch(/^Already logged, nothing added: /);
+    expect(await doses()).toHaveLength(3);
+  });
+
   it("two as-needed log_dose calls stay two doses", async () => {
     const w = await world();
     const token = w.writer.tokens.access_token;

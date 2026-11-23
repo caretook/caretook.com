@@ -1,6 +1,7 @@
 import type {
   AssistantAction,
   ConditionAction,
+  DoseDetails,
   DoseSlot,
   DueDose,
   DueMedication,
@@ -95,7 +96,7 @@ export type RunResult = {
   ids: string[];
   /** Each action's entries (an `addTodo`'s todo), in the actions' order. */
   byAction: string[][];
-  /** Of `ids`, the doses already logged for their slot: a repeat `logDose` wrote nothing. */
+  /** Of `ids`, the doses a repeat `logDose` (same slot, answer, amount and note) found and left alone. */
   alreadyLogged: string[];
 };
 
@@ -119,7 +120,7 @@ type EntryPlan = {
   document?: { text: string | null; mentions: NoteMention[] };
   providerIds: string[];
 };
-/** A repeat `logDose`: the slot's dose already there, written again by nobody. */
+/** A repeat `logDose`: the same dose already there, written again by nobody. */
 type LoggedDose = { type: "logged"; id: string };
 type EditPlan =
   | { type: "append"; entryId: string; lines: NoteSectionLine[] }
@@ -350,14 +351,27 @@ const slotDoseId = async (
 type SlotName = { passId: string | null; scheduledFor: string };
 
 /**
+ * Whether a `logDose` says what a recorded dose says. An amount or note left
+ * out states nothing different, so it matches whatever is recorded: a retry
+ * with identical arguments always repeats, and a bare call doesn't double a
+ * dose whose amount came from its slot. One given must equal the recorded one.
+ */
+const saysTheSame = (
+  { amount, note }: Pick<Extract<AssistantAction, { type: "logDose" }>, "amount" | "note">,
+  recorded: Pick<DoseDetails, "amount" | "note">,
+) => (!amount || amount === recorded.amount) && (!note || note === recorded.note);
+
+/**
  * The scheduled slot a `logDose` is for, as a named dose finds its own: the
  * medication's nearest slot within the window, answered or not. With one, the
- * dose names it and takes its id (`doseSlotIdFor`), so a repeat of the same
- * answer is the dose already there (`logged`); a row deleted from that id (an
- * Undo) leaves a new dose a random id. Null for no slot (as needed, or off
- * schedule): the dose stays as it came. The id's lock is taken before the doses
- * are read and held to the end of the transaction, so two simultaneous calls
- * make one dose.
+ * dose names it and takes its id (`doseSlotIdFor`). A repeat is the same
+ * answer for the slot with the same amount and note (`saysTheSame`): it is the
+ * dose already there (`logged`). The same answer saying something different is
+ * a real extra dose: it still names the slot, so its own retry is a repeat, on
+ * a random id, as is a new dose after an Undo left the id on a deleted row.
+ * Null for no slot (as needed, or off schedule): the dose stays as it came.
+ * The id's lock is taken before the doses are read and held to the end of the
+ * transaction, so two simultaneous calls make one dose.
  */
 const scheduledDose = async (
   ctx: ServiceContext,
@@ -407,21 +421,30 @@ const scheduledDose = async (
     { medicationId: medication.id, status: action.status, occurredAt: when, ...named },
     { timeZone, passTime },
   )!;
-  if (usedDoseIds.has(slotId)) return { logged: slotId };
+  // This batch's rows aren't in Postgres to compare: each action is its own dose.
+  if (usedDoseIds.has(slotId)) return { id: crypto.randomUUID(), named };
   const locked = await timelineEntryModel.lockId(slotId, tx);
   if (isError(locked)) return locked;
 
   const doses = await dosesSince(ctx, tx, groupId, startOfDay(addDays(today, -2), timeZone).toISOString());
   if (isError(doses)) return doses;
   const answer = slotsWith(doses).matched.find((s) => s.day === slot.day && s.time === slot.time)?.dose;
-  if (answer?.details.status === action.status) return { logged: answer.id };
+  // The slot's doses with this answer: the one answering it first, then any extra ones naming it.
+  const sameAnswer = doses.filter(
+    (d) =>
+      (d.id === answer?.id && d.details.status === action.status) ||
+      doseSlotIdFor({ ...d.details, occurredAt: d.occurredAt }, { timeZone, passTime }) === slotId,
+  );
+  sameAnswer.sort((a, b) => Number(b.id === answer?.id) - Number(a.id === answer?.id));
+  const repeated = sameAnswer.find((d) => saysTheSame(action, d.details));
+  if (repeated) return { logged: repeated.id };
+  if (sameAnswer.length) return { id: crypto.randomUUID(), named };
   const taken = await timelineEntryModel.getById(slotId, {
     authUser: SYSTEM_USER,
     tx,
     includeDeleted: true,
   });
   if (isError(taken)) return taken;
-  if (taken && !taken.deletedAt) return { logged: slotId };
   if (taken) return { id: crypto.randomUUID(), named };
   usedDoseIds.add(slotId);
   return { id: slotId, named };
@@ -429,7 +452,7 @@ const scheduledDose = async (
 
 /** The group's live doses from `from` on, as the due-doses core reads them. */
 const dosesSince = async (ctx: ServiceContext, tx: Tx, groupId: string, from: string) => {
-  const doses: DueDose[] = [];
+  const doses: (DueDose & { details: DoseDetails })[] = [];
   let cursor: string | null = null;
   do {
     const page = await timelineEntryModel.listPage({
