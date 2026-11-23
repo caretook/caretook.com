@@ -20,7 +20,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 8 (slices 38–39, B-651, B-652, both on opus) landed in dev through PR #109 as c1c5b0bf** (2026-11-23): `integration` CI on 53ab862c was `flake` (run 45159391173; only `scripts/loops/lease.test.mjs`, not this branch's, noted on B-654), quick check on 53ab862c, Codex clean on b29e187; `browser --changed` needs none. To-test: `to-test/2026-11-23-0558-fixes-bug.md`. Docs folded (`assistant.md`, exactly at its 10 KB budget: trim when adding). Slice worktrees removed.
 
-**Wave 9 (slice 40, B-655, on opus) in flight**, on dev-synced 5373e2f0. **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (ui-kit-5 holds `routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
+**Wave 9 (slice 40, B-655, on opus) merged as 487cb235**; slice check passed on 99d5cc1b; next the quick check, the `integration` CI run, PR and Codex. The slice worktree stays until the verdict is green. **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (ui-kit-5 holds `routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -65,7 +65,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 37    | B-646 | landed                                     | ce4d22b1 |
 | 38    | B-651 | landed                                     | a447334a |
 | 39    | B-652 | landed                                     | 7be34f48 |
-| 40    | B-655 | started (opus)                             |          |
+| 40    | B-655 | merged                                     | 487cb235 |
 
 ## Wave 1
 
