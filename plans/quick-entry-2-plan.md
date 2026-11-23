@@ -4,15 +4,49 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-21), not started. Wave 1 can start now.
+**Where it stands (hand-over, 2026-11-22):** both waves are merged, synced and in PR #79 (reviewed head eaeefffe; full check passed on 1f5ba799, quick check on eaeefffe, docs folded). **Not landed:** Codex found two P2s, both reproduced on the parser and both new regressions that save a wrong medication record, so they are fixed before landing (critical for this PRD). No slice is in flight.
 
-| Slice | Wave | State       | Merge into `prd/quick-entry-2` (slice commits) |
-| ----- | ---- | ----------- | ---------------------------------------------- |
-| 1     | 1    | not started |                                                |
-| 2     | 2    | not started |                                                |
-| 3     | 1    | not started |                                                |
-| 4     | 2    | not started |                                                |
-| 5     | 1    | not started |                                                |
+**Resumed 2026-11-22:** Status reconciled with git (head a593f23d, no slice worktrees or branches, PR #79 open, both threads unresolved). Step 1 is done: the opus fix agent committed both fixes as 993e7eb5 (532 parser and time rows pass, no existing row changed). Steps 2 and 3 are done (quick check passed on e6e33d31, pushed, both threads answered and resolved).
+
+**Codex round 2 (on e6e33d31), both reproduced against dev and both new regressions that save a wrong record, fixed by an opus agent in e4fde503 (fractions) and b906df77 (application sites), 593 assistant rows pass; quick check passed on bacb37ee, all threads answered and resolved, **Codex clean on bacb37ee**, the rules folded into the assistant doc; next is step 4, the landing. Known limit: a brand right after a site word ("Switch to Voltaren") no longer counts as a name:**
+
+- **A fraction beside a medication is an amount, not a date** (threads `PRRT_kwDOVx-WLM66quBS`, `quBW`, `quBY`, one finding posted three times): "gave 3/8 tylenol" saves 1 tablet dated March 8; dev kept today with "3/8" in the note. "bp 12/8" and "pain 5/5" stay with B-578.
+- **An application site isn't a medication's name** (thread `PRRT_kwDOVx-WLM66quBc`): with directions "Apply to knee twice daily", "knee 3" saves a dose and "knee 3/10" a note; dev read both as a Knee symptom, severity 3.
+
+After the fix: quick check, `pnpm prd pr`, reply and resolve all four threads, `--wait`, then step 4. This is review round 2 of about 3; after round 3, ask the user. Known limits, left on purpose: "no relief after metformin given" and "tylenol no pain given" stay skipped (the safer wrong reading); "vitamin 3" for "Vitamin D 3" still reads as a count.
+
+**Next, in order:**
+
+1. Spawn one opus fix agent on `prd/quick-entry-2` (`packages/data/src/db/schema/assistant/quickEntry.ts` and `quickEntry.test.ts`) for both fixes below, with test rows. Export `PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"` and run checks with `NODE_OPTIONS=--max-old-space-size=6144`.
+   - **A number in the medication's name isn't a count** (thread `PRRT_kwDOVx-WLM66qkT6`): with a medication named "Omega 3", usual dose "1 capsule", "gave omega 3" and "omega 3" record "3 capsules"; they must keep "1 capsule". `matchMedication` leaves numeric tokens out of `m.used`, so `typedBeside` sees them as open. "gave 2 omega 3" must still record "2 capsules".
+   - **A negation of a symptom isn't a negated dose** (thread `PRRT_kwDOVx-WLM66qkUB`, also B-579): "no pain after metformin given" and "no problems when given metformin" read skipped with the note "pain after"; they must read given and keep the words whole in the note, as does "no pain gave tylenol". A "no" that opens a phrase about something other than the medication or verb doesn't negate. All of slice 1's rows must still pass ("no metoprolol given", "did not give", "forgot to give", "never gave", "couldn't give").
+2. Merge, `pnpm prd check --quick "Codex fixes"`, `pnpm prd pr quick-entry-2`.
+3. Reply on both threads with the fixing commit, `pnpm prd review quick-entry-2 --resolve <threadId>` each, `--again`, then `--wait` in the background.
+4. On a clean verdict: `pnpm prd land quick-entry-2 -m "fix(quick-entry-2): quick entry reads what was typed (B-300, B-301, B-302, B-303)"`, file the report with `pnpm prd ask --topic quick-entry-2 --report`, `pnpm prd rm quick-entry-2`, then `cd` to the main checkout and `pnpm prd end`. Mark B-579 done if the fix covers it.
+
+**Context:** the previous session kept itself past 160k only to finish this landing; the findings changed that, so it rotated here.
+
+**Flake seen:** MCP rate-limit test timed out once under load and passed alone (B-582, `fixes-tooling`); this diff has no connector code.
+
+**Landing mode:** run everything through (start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`). The PRD lands once, after wave 2.
+
+| Slice | Wave | State         | Merge into `prd/quick-entry-2` (slice commits) |
+| ----- | ---- | ------------- | ---------------------------------------------- |
+| 1     | 1    | merged (opus) | 85128423 (fc942dc7)                            |
+| 2     | 2    | merged (opus) | 7faa3d9f (fdc92179, 6ed1bc0a)                  |
+| 3     | 1    | merged (opus) | 235487f7 (694ed6e7)                            |
+| 4     | 2    | merged (opus) | 563a3472 (087641c7, dce726f6)                  |
+| 5     | 1    | merged (opus) | 26d0b935 (42d56eb5)                            |
+
+**Items:** B-300, B-301, B-302, B-303 are ready.
+
+**For the gate:** the other quick entry component tests render the box and haven't run on slice 5 (`timelineQuickEntrySuggestions`, `Passes`, `Todos`, the easy-mode files); the full check covers them. Lint runs out of memory at the default heap (B-576): run checks with `NODE_OPTIONS=--max-old-space-size=6144`, CI's value.
+
+**For the docs at landing:** the negation rules (plus the extra n't words and curly apostrophes slice 1 added), the time-word rules, the card pruning and Clear.
+
+**Filed as follow-ups (`fixes-bug`):** B-578 other slash numbers read as dates, B-579 "no pain gave tylenol" reads skipped, B-580 a line ending in "sat" reads as Saturday, B-581 "call the pharmacy in the morning" at 7:00 stays a note.
+
+**For the docs at landing (slices 2 and 4):** typed counts and what isn't one, no symptom named after a medication, month/day dates, bare hours forward never before 7:00, zero-padded hours are am, Feb 29 takes the nearest leap year, a period underway is now.
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 

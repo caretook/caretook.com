@@ -242,6 +242,50 @@ describe("the box and its cards", () => {
   });
 });
 
+describe("the box never gets stuck", () => {
+  const clearButton = () => page.getByRole("button", { name: "Clear", exact: true });
+
+  test("remove a card, delete the text, type the line again: the card and Save are back and Enter saves", async () => {
+    const device = await open();
+    await type("bp 120/80", ["vital"]);
+    await userEvent.click(page.getByRole("button", { name: 'Remove "bp 120/80"' }));
+    await waitUntil(() => cards().length === 0, "the card to go");
+    await userEvent.fill(box(), "");
+    await expect.element(box()).toHaveValue("");
+
+    await type("bp 120/80", ["vital"]);
+    expect(saveButton()?.textContent).toBe("Save");
+    await userEvent.click(box());
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(status).toBe("Saved 1 entry");
+    expect(await device.query("SELECT id FROM timeline_entry WHERE kind = 'vital'")).toHaveLength(1);
+  });
+
+  test("with two parts, removing the second and editing the first keeps the second removed", async () => {
+    await open();
+    await type("bp 120/80, dizzy", ["vital", "symptom"]);
+    await userEvent.click(page.getByRole("button", { name: 'Remove "dizzy"' }));
+    await waitUntil(() => cardKinds().join() === "vital", "the second card to go");
+
+    await userEvent.fill(box(), "bp 130/85, dizzy");
+    await waitUntil(() => !!cards()[0]?.textContent?.includes("BP 130/85"), "the first card to change");
+    expect(cardKinds()).toEqual(["vital"]);
+  });
+
+  test("with the only card removed and the text still there, Clear is shown and empties the box", async () => {
+    await open();
+    await expect.element(clearButton()).not.toBeInTheDocument();
+    await type("bp 120/80", ["vital"]);
+    await userEvent.click(page.getByRole("button", { name: 'Remove "bp 120/80"' }));
+    await waitUntil(() => cards().length === 0, "the card to go");
+    expect(saveButton()).toBeNull();
+
+    await userEvent.click(clearButton());
+    await expect.element(box()).toHaveValue("");
+    await expect.element(clearButton()).not.toBeInTheDocument();
+  });
+});
+
 describe("Edit", () => {
   test("a vital opens the vitals sheet filled in, and the card leaves the box", async () => {
     await open();

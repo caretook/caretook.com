@@ -41,7 +41,9 @@ static() {
   step static
   local names=(typecheck lint format) pids=() i code=0 failed=""
   pnpm --filter './apps/*' --filter './packages/*' exec tsc > "$work/typecheck.log" 2>&1 & pids+=($!)
-  pnpm exec eslint . > "$work/lint.log" 2>&1 & pids+=($!)
+  # Type-aware ESLint sits at Node's default heap limit (about 4 GB), as in ci.yml.
+  NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=6144" \
+    pnpm exec eslint . > "$work/lint.log" 2>&1 & pids+=($!)
   pnpm exec prettier --check . > "$work/format.log" 2>&1 & pids+=($!)
   for i in 0 1 2; do
     code=0; wait "${pids[$i]}" || code=$?
