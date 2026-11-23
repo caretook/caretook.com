@@ -7,7 +7,7 @@
 | Slice | Wave | State                                                | Merge into `prd/inbox-agent` (slice commits) |
 | ----- | ---- | ---------------------------------------------------- | -------------------------------------------- |
 | 1     | 1    | merged (opus); worktree kept until the wave is green | `0c37dc6d` (`ced2c458`)                      |
-| 2     | 1    | started (opus), worktree `inbox-agent-2`             | —                                            |
+| 2     | 1    | merged (opus); worktree kept until the wave is green | `935bc723` (`4b98c644`)                      |
 | 3     | 2    | —                                                    | —                                            |
 | 4     | 3    | —                                                    | —                                            |
 | 5     | 4    | —                                                    | —                                            |
@@ -18,6 +18,10 @@
 **Now (2026-11-23):** wave 1 running from `0aff974c`. B-425, B-474 and B-435 claimed. Models: every slice on opus. Gate for this tooling and Markdown diff: `pnpm test:tooling` and `pnpm exec eslint scripts`. No `fixes-tooling`, `test-health` or `code-health` worktree was open at the start. `pnpm backlog doctor` reports two old inbox-line mismatches (B-548, B-549), not this topic's. Open issues: none.
 
 **Slice 1 notes for later:** it added `land_push_trunk` (a landing refuses when the pickup brings anything but the backlog files and CI's two lists). Slice 3's origin writer can call `dev_sync` as the pickup, and must treat its refusal of a checkout off `dev` or mid-merge as "skipped". Fold dev-sync into machinery.md at landing.
+
+**Slice 2 notes for later:** the look-alike threshold (Dice 0.6, at least two shared words) was tested only on fictional titles, so its noise on the real backlog is unmeasured. `tidy --yes` exits 1 if the archive step fails (main checkout mid-merge or off `dev`); its other removals still run. Slice 3 changes the same `scripts/backlog/backlog.mjs`.
+
+**Wave 1 gate:** both slices merged; `pnpm test:tooling` and `pnpm exec eslint scripts` running on the merged tip. Next: sync, PR, Codex review, land.
 
 **Backlog:** claim B-425 and B-474 when slice 1 starts, `done` B-474 when slice 3 merges and B-425 when slice 4 merges; B-435 when slice 2 starts, `done` when slice 3 merges; B-515 when slice 5 starts, `done` when it merges; B-551 when slice 6 starts, `done` when it merges.
 
