@@ -17,7 +17,7 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 
 **Now:** wave 3 landed in `dev` as ce792df3 through PR #122, **without a Codex review (out of credits)**. `full` run 45212045467 green on 25523b82. The real candidate rc/20261123-1613 (PR #121, `candidate` run 45214064116, 11 of 11 browser checks) was closed unmerged with its branches deleted; `staging` stayed at 94b26ec3 and held PR #115 is still open. Slice 3 and 4 worktrees are removed, the docs are folded, B-532 is finished and report a146 is filed. B-533 (the staging to main gate) stays open for slices 5 and 6.
 
-**Next:** wave 4 is running. `prd/test-gates-2` is synced with `dev` (only backlog commits are newer). Slice 5 has its worktree `test-gates-2-5` and an opus agent, under a hard stop on any CI run until wave 4's approval ask is answered. If that agent is gone, respawn it with `--continue` and repeat the stop.
+**Next:** wave 4 is running. `prd/test-gates-2` is synced with `dev` (only backlog commits are newer). Slice 5 has its worktree `test-gates-2-5` and an opus agent, told a147 lifted its stop on CI runs. If that agent is gone, respawn it with `--continue` and repeat a147's limits.
 
 **Docs:** `docs/agents/machinery.md` is 10 bytes over budget already, so don't grow it. `docs/agents/orchestrator.md` has about 35 bytes left.
 
@@ -25,7 +25,7 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 
 **For slice 5:** reuse `runBrowserJob` and `summarizeBrowser` for repeat runs. **For slice 6:** reuse `releasePasses(v, tier, sha)` in `scripts/ci/gate.mjs`, which already refuses a `flake` with a brake-list test.
 
-**CI approval:** each wave needs its own. a140 covered wave 2, and a144 (the user's yes) covered wave 3's runs and its one real candidate only. **Wave 4's ask is a147 (`--waits`, skeptic s13), unanswered: no run until it is yes**, including one a slice agent would request (`pnpm prd ask --wait a147`). It covers no real candidate or promotion. Slice 5 must fit three suite runs past the `browser` job's 35-minute limit. The permission classifier denied agents' `pnpm prd ci run` until the user allowed it; never work around a denial.
+**CI approval:** each wave needs its own. a140 covered wave 2, and a144 (the user's yes) covered wave 3's runs and its one real candidate only. **Wave 4 is approved: a147 (skeptic s13), the user's yes**, for the slice's `release` run, reruns after a fix and the wave's gate run, each `release` run filing at most 10 `fixes-bug` items. It covers no real candidate or promotion, and **wave 5 needs its own ask**. Slice 5 must fit three suite runs past the `browser` job's 35-minute limit. The permission classifier denied agents' `pnpm prd ci run` until the user allowed it; never work around a denial.
 
 **For slice 2 and later:** `pnpm prd ci blame` requests a run on `dev`, so it couldn't place a candidate failure until `dev` had the tier (it does now). The later roundtrip steps passed on Linux, but the refused-upload queue counts are timing-sensitive.
 
