@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import type { Accent } from "~/components/ui/accents";
 
-import { History } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { GROUP_SECTIONS } from "./groupSections";
 
 /** The sections that carry a colour. Care periods isn't in `GROUP_SECTIONS`, so this is a map of its own. */
@@ -21,8 +21,8 @@ const SECTION_ACCENTS: Record<AccentedSection, SectionAccent> = {
   medications: { accent: "teal", icon: registryIcon("medications") },
   planner: { accent: "orange", icon: registryIcon("planner") },
   providers: { accent: "lime", icon: registryIcon("providers") },
-  // The group menu's icon for Care periods.
-  periods: { accent: "plum", icon: History },
+  // Where care has been; the timeline already has the clock-history icon.
+  periods: { accent: "plum", icon: MapPin },
 };
 
 /** A section's colour and icon; nothing in Easy mode, which stays neutral. */

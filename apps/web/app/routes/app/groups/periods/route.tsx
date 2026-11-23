@@ -1,4 +1,4 @@
-import { Page, PageHeader } from "~/components/ui";
+import { EmptyState, Page, PageHeader } from "~/components/ui";
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { CarePeriodRow } from "~/lib/care-periods/carePeriods.sync";
@@ -7,6 +7,7 @@ import { useMemo } from "react";
 import { Outlet } from "react-router";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { PERIOD_SHEET_STATE, onlyPeriodSheetChanged } from "~/lib/care-periods/periodSheets";
 import { sessionContext } from "~/lib/auth/session";
 import { useLiveQuery } from "~/lib/sync";
@@ -64,6 +65,7 @@ export default function Periods({ loaderData, params }: Route.ComponentProps) {
     <Page>
       <PageHeader
         title="Care periods"
+        {...sectionAccent("periods", { easy: group.easyRole })}
         description={
           <>
             Where {group.recipient?.displayName || group.displayName}’s care has been
@@ -86,10 +88,10 @@ export default function Periods({ loaderData, params }: Route.ComponentProps) {
       {spans.length ? (
         <PeriodList groupId={params.groupId} spans={spans} places={places} timeZone={timeZone} now={now} />
       ) : (
-        <p className="text-base-content/70 py-6 text-center" data-periods-empty>
+        <EmptyState {...sectionAccent("periods", { easy: group.easyRole })} data-periods-empty="">
           No care periods yet.
           {group.canWrite && " Add where care is now, or where it was before."}
-        </p>
+        </EmptyState>
       )}
 
       {/* The add sheet renders here, over the list. */}

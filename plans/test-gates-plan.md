@@ -7,53 +7,58 @@ The [PRD](test-gates-prd.md) covers:
 - a run's failures are sorted by kind, and flakes are quarantined;
 - a landing waits for the tier its orchestrator declared.
 
-Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
+Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-566, B-567, B-568, B-572. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
 
 ## Status
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** wave 1 (slices 1 and 2) landed in dev as adce90ee through PR #71 on 2026-11-22: full check on 0c91997, Codex clean, docs folded, slice worktrees removed. **Wave 2 is running:** slice 3 merged as 39f87cf0 (quick check passed on f0645753; final runs 45077490098 `full` and 45077489750 `components` both end `file`, on the failures below). Slice 8 merged as ff6ac3c3 and dev synced (0500a57e). Its proof on 7bd82c6f: `unit` green (45081669282), `integration` green (45082124113) after one rerun; the first (45081669105) timed out on the staging reset test, filed as B-571. **The wave gate** (`pnpm prd check --quick`, which runs full because the diff touches `package.json` and the Vitest config) failed once on 6e805ecd, only on the browser harness "one spec" test (three output lines, not two); it passed 3/3 alone, and is filed in fixes-tooling. **The user said to force-land rather than wait for another full run**, so the rerun was stopped and wave 2 lands with `--force` (no passing full check on the tip). Docs are folded. **Next: PR, Codex, `pnpm prd land test-gates --force`, report, rotate.** No browser checks: the wave touches no app code, and `--changed` names the whole lean set only because of the config files. Still to fold at landing, from slice 3: `ops/runbook.md` (what `components` and `full` run, the two shards, `node scripts/ci/env.mjs build`) and `docs/domain/components.md` (two CI shards, no `BarcodeDetector` in Linux Chromium). From slice 8: `docs/agents/loop.md` _Tests_ (`tooling:browser`, `pnpm test:browser-harness`, `test:tooling` runs the harness only for its paths) and remove the interim rule about leaving `browser.test.mjs` out. Slice 8's known gap: a change only under `scripts/browser-checks/` triggers the harness in `pnpm test:tooling` and CI but not in `pnpm prd check`.
+**Now:** waves 1 (adce90ee, PR #71) and 2 (5b724350, PR #74) are in dev. Wave 2 landed with `--force --no-review` on the user's word on 2026-11-22: its full check failed once on a harness flake (B-573) and the rerun was stopped; Codex was clean on d9bda4e, and only Markdown changed after it. No browser checks (no app code). Docs folded. **Wave 3 is slices 4 and 10 side by side, then slice 9 (all opus).** Synced with dev on 2026-11-22 (nothing new). Slice 9 was added for B-566, B-567 and B-568, which the user moved here (notice n19). Slice 10 was added for B-572, moved back from test-gates-2 on the user's word (its note); dev 42cba6b8 drops it from that plan, and the next `pnpm prd sync` brings the revert in. Slices 4 (6396b470) and 10 (7484100e) are merged and their worktrees removed. Slice 4's CI proof: flake run 45085948202, narrowed run 45086351881. Slice 9 is merged (f285f1a5); its worktree stays until the wave's full check passes, so a failure can go back to it. Synced with dev (e1845b41, ui-kit-3 wave 2 came in). **The user's word (2026-11-22): skip wave 3's full check, land with `--force`, and let the next wave pick up any errors.** The check was stopped before a result, so this tip has no check pass. **Next (slice 9's worktree is already removed): `pnpm prd pr test-gates`, `pnpm prd review test-gates --wait` (the user waived the check, not Codex; exit 4 lands `--no-review`), `pnpm prd land test-gates --force -m "feat(test-gates): failure kinds, the quarantine and the scripts-only rule (B-529, B-530, B-566, B-567, B-572)"`, the landing report (say the check was skipped on the user's word), then rotate. Wave 4 (slice 5) should expect errors from this unchecked wave.** Docs are folded into `ops/runbook.md`, `orchestrator.md` and `prompt.sh`; `machinery.md` and `loop.md` have no room, so the runbook holds the CI detail. The fold's list, for reference: `orchestrator.md` _The check gate_ ("a `package.json` (beyond its `scripts`)"), the same old wording at `scripts/loops/prompt.sh` line 154, and `loop.md` _Which checks a file needs_ (the `- (scripts only)` answer); in `ops/runbook.md` and `machinery.md`, the kinds and `ci run --wait` exit codes (0 green, 1 brake, 2 file, 3 flake, 4 infra, 5 unknown, 64 usage, 75 timeout), the brake list (hand-edited; a line matching no test fails `lists.test.mjs`; its flakes are filed, never quarantined), the quarantine (skipped except in a run's quarantine step), `--files` and `.ci-narrowed.json`. A flake verdict's GitHub run shows `success`: read the verdict, not the colour.
+
+**For slice 5:** quarantine lines are `<file><TAB><full test name><TAB>B-n`; a flake with `name: null` is a whole-file flake and can't be quarantined by name. The brake list works per file, so an unrelated failure in `packages/api/src/router.int.test.ts` is also a brake (accepted).
 
 **Open issues:**
 
-- CI is not green on Linux: every requested run ends `file` on 11 tooling failures (latest: run 45073332408). They are B-559 and B-242, slice 8's, so slice 3 lists them in its hand-off and does not file them again.
-- Component failures on Linux, filed under fixes-bug by slice 3 and outside slice 8: B-566 (access-code QR test, no `BarcodeDetector`), B-567 (inScreens first probe reads before the first render; the shard split exposes it, so `components-2` stays red until it is fixed), B-568 (six tests that failed intermittently). B-569 was a duplicate of B-566 and is dropped.
+- CI: `unit` and `integration` are green on 7bd82c6f (runs 45081669282, 45082124113). `components` on slice 9's tip (21533389, run 45088030543) read `file` on one test: B-552 (the print menu race, in fixes-tooling), which failed on the job's rerun too. **Slice 6's wave needs a green `full` run, so B-552 must be fixed or re-measured before wave 5.** The user's note on it says to re-measure after the quarantine lands. Waves 3 and 4 land under today's gate.
+- B-566 and B-567 are fixed. B-568 moved to fixes-tooling and **stays open: six tests in the quarantine name it, and closing it removes them.** Its three provider tests failed again in the quarantine step and look like read-before-render races. Its search speed test is on the brake list, so it isn't quarantined. B-569 was a duplicate of B-566 and is dropped.
 - For slices 4 to 6: job names are now `components-1`, `components-2` and `build`; a verdict from before slice 3 can say `tier: full` with `ranTier: integration`, so the gate compares `ranTier`.
-- "The check lease makes runs beyond the limit of two wait" fails only in some runs, and its cause is unconfirmed. Slice 8 rechecks it.
+- "The check lease makes runs beyond the limit of two wait": slice 8 traced it to `stat` junk in `lease_alive` (from the code, race not reproduced); green in every CI run since.
+- Flakes filed in fixes-tooling: B-571 (staging reset test times out) and B-573 (harness "one spec" test; the check's rerun also skips it as an unhandled error). A change only under `scripts/browser-checks/` triggers the harness in `test:tooling` and CI but not in `pnpm prd check`.
 - The `ci/` ref deletion in `pnpm prd tidy` has not run against a real old ref; only its sorter is tested.
 - Slice 1's before and after time on a quiet machine is partial: static steps 127 s in series, 79.5 s side by side, at load 8 to 11.
-- B-341 stays in progress until slice 3 merges, and B-554 until slice 6 merges.
-
-**Until slice 8 lands (the user's permission):** a slice's manual tooling runs may leave out `scripts/loops/browser.test.mjs`, unless it changes `browser.sh`, `lib.sh`, `lease.sh`, `scripts/loops/checks` or `scripts/browser-checks/`, and says so in its hand-off. `pnpm prd check` still runs the file, and nobody bypasses it. Slice 2's `--exclude` bug is fixed (an explicit file list, pinned by the workflows test).
-
-**Wave 1 gate:** full check passed on 0c91997f (5,857 app tests, 915 tooling tests; no browser checks needed). Slice worktrees removed. Docs folded (machinery _The check runner_, runbook, `prd help`). Next: PR, Codex review, land, then rotate; wave 2 is slice 3, then slice 8.
+- B-554 stays in progress until slice 6 merges.
 
 | Slice | Wave | State         | Merge into `prd/test-gates` (slice commits) |
 | ----- | ---- | ------------- | ------------------------------------------- |
 | 1     | 1    | merged (opus) | 98a36dd4 (5eb596a9)                         |
 | 2     | 1    | merged (opus) | 34b157fb (80a35650)                         |
 | 3     | 2    | merged (opus) | 39f87cf0 (f0645753)                         |
-| 4     | 3    | —             | —                                           |
+| 4     | 3    | merged (opus) | 6396b470 (be81f850, e68f8866)               |
 | 5     | 4    | —             | —                                           |
 | 6     | 5    | —             | —                                           |
 | 7     | 5    | —             | —                                           |
 | 8     | 2    | merged (opus) | ff6ac3c3 (7bd82c6f)                         |
+| 9     | 3    | merged (opus) | f285f1a5 (3b4428f0, 3b752d2e, 21533389)     |
+| 10    | 3    | merged (opus) | 7484100e (b5c9c6c6)                         |
 
 **Backlog:**
 
-| Item  | Claim          | `done`         |
-| ----- | -------------- | -------------- |
-| B-555 | slice 1 starts | slice 1 merges |
-| B-556 | slice 1 starts | slice 1 merges |
-| B-341 | slice 2 starts | slice 3 merges |
-| B-554 | slice 2 starts | slice 6 merges |
-| B-529 | slice 4 starts | slice 5 merges |
-| B-530 | slice 4 starts | slice 5 merges |
-| B-528 | slice 6 starts | slice 6 merges |
-| B-553 | slice 7 starts | slice 7 merges |
-| B-559 | slice 8 starts | slice 8 merges |
-| B-242 | slice 8 starts | slice 8 merges |
+| Item  | Claim           | `done`          |
+| ----- | --------------- | --------------- |
+| B-555 | slice 1 starts  | slice 1 merges  |
+| B-556 | slice 1 starts  | slice 1 merges  |
+| B-341 | slice 2 starts  | slice 3 merges  |
+| B-554 | slice 2 starts  | slice 6 merges  |
+| B-529 | slice 4 starts  | slice 5 merges  |
+| B-530 | slice 4 starts  | slice 5 merges  |
+| B-528 | slice 6 starts  | slice 6 merges  |
+| B-553 | slice 7 starts  | slice 7 merges  |
+| B-559 | slice 8 starts  | slice 8 merges  |
+| B-242 | slice 8 starts  | slice 8 merges  |
+| B-566 | slice 9 starts  | slice 9 merges  |
+| B-567 | slice 9 starts  | slice 9 merges  |
+| B-568 | slice 9 starts  | slice 9 merges  |
+| B-572 | slice 10 starts | slice 10 merges |
 
 ## Architectural decisions
 
@@ -73,7 +78,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242. B-53
 - **Waves:**
   1. slices 1 and 2 (1 touches the local check runner; 2 adds the workflow and the request; they share only additive `prd.sh` cases)
   2. slice 3, then slice 8 on top of it (both edit `ci.yml` and `vitest.config.ts`)
-  3. slice 4
+  3. slices 4 and 10 side by side, then slice 9 on top of 4 (9 needs the quarantine list)
   4. slice 5
   5. slice 6, then slice 7 on top of it, landed together
 - Waves 1 to 4 land under today's gate. **Wave 5 lands under its own new gate**, with a real `--tier full` run as the proof, and its landing notice tells the other orchestrators that the gate changed at their next sync.
@@ -198,7 +203,7 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md · Tests: unit
 - A requested run with a test forced to fail once and then pass uploads `flake`. A narrowed run of two files starts only their jobs. The hand-off links both.
 - `pnpm test:tooling` passes.
 
-**Blocked by:** 2, 3, 8. **Blocks:** 5.
+**Blocked by:** 2, 3, 8. **Blocks:** 5, 9.
 
 ## Slice 5: Whose failure it is, and what gets filed
 
@@ -246,7 +251,7 @@ Stack: no · Reads: docs/agents/orchestrator.md, docs/agents/loop.md, docs/agent
 
 **Build:**
 
-- The check plan proposes a minimum tier from the diff: docs and tooling only, none (the tooling tests, as today), except a diff touching the browser harness's trigger paths (slice 8), `integration`; app code, `components`; server code without app code, `integration`; a migration, seeds, the sync config, the lockfile, a `package.json`, the Vitest config, the workflow or `scripts/ci/`, `full`. It no longer turns a quick check into a full one.
+- The check plan proposes a minimum tier from the diff: docs and tooling only, none (the tooling tests, as today), except a diff touching the browser harness's trigger paths (slice 8), `integration`; app code, `components`; server code without app code, `integration`; a migration, seeds, the sync config, the lockfile, a `package.json` change beyond its `scripts` field (slice 10's rule), the Vitest config, the workflow or `scripts/ci/`, `full`. It no longer turns a quick check into a full one.
 - `pnpm prd pr` and `pnpm prd land` take `--tier <t>` and, for a tier below the proposal, `--why "<reason>"`; the PR body and the landing report name the tier, the proposal and the reason.
 - `land` needs a whole-tier verdict for that tier or higher on the tip, read from the verdict's `ranTier` (a `full` request before slice 3 records `ranTier: integration` and `notBuilt`), and requests the run itself when there is none:
   - green lands;
@@ -271,7 +276,7 @@ Stack: no · Reads: docs/agents/orchestrator.md, docs/agents/loop.md, docs/agent
   - a tip with docs-only commits since its verdict lands.
 - `pnpm test:tooling` passes.
 
-**Blocked by:** 1, 5. **Blocks:** 7, test-gates-2.
+**Blocked by:** 1, 5, 10. **Blocks:** 7, test-gates-2.
 
 ## Slice 7: The orchestrator sends failures back to the slice that caused them
 
@@ -332,3 +337,44 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/loop.md · Tests: unit
 - `pnpm test:tooling` passes on the Mac.
 
 **Blocked by:** 2, 3. **Blocks:** 4.
+
+## Slice 9: The components tier goes green on Linux
+
+Stack: no · Reads: docs/agents/loop.md, docs/domain/components.md · Tests: component
+
+**User stories:** US 3, 7. Added for B-566, B-567 and B-568, which the user moved to this topic on 2026-11-22.
+
+**Build:**
+
+- B-566 (the user's decision, 2026-11-22): in `apps/web/app/routes/admin/access-codes/accessCodes.browser.test.tsx`, drop the image, canvas and `BarcodeDetector` steps and the `BarcodeDetectorCtor` type. The test only checks that a QR code is created (an svg renders in `[data-access-code-qr]`). No new dependency and no comparison with an expected code.
+- B-567: the inScreens first probe test waits for the first render instead of reading the Probe actions button once.
+- B-568: each test named in the item that still fails intermittently goes into the quarantine with B-568 as its item, unless it is on the brake list. A brake-list test is reported in the hand-off and not quarantined. Don't fix these flakes here.
+
+**Acceptance criteria:**
+
+- The QR and first probe tests pass locally and on the Linux runner.
+- A requested `components` run of the slice's branch is green, or each remaining failure is named in the hand-off with its run link. The hand-off links the run and lists the quarantine entries.
+- `pnpm test:tooling` passes.
+
+**Blocked by:** 4. **Blocks:** 5.
+
+## Slice 10: A scripts-only package.json change forces nothing
+
+Stack: no · Reads: docs/agents/loop.md, docs/agents/orchestrator.md · Tests: unit
+
+**User stories:** US 1. Added for B-572, the user's decision of 2026-11-22.
+
+**Build:**
+
+- Compare each changed `package.json` with its base, ignoring the `scripts` field. If only scripts differ (added, edited or removed, in any package, lifecycle hooks included), it does not force a full check or the browser `@suite`.
+- Any other field, or an added, deleted or unparseable `package.json`, still forces them. The lockfile rule stays. The user accepted that a script edit that breaks the build, typecheck or the check itself gets only a quick check.
+- Two places: `FORCED` in `scripts/loops/check-plan.mjs` (`planCheck` only gets paths today, so give it the base's contents or a prefilter, and keep it pure) and the `package.json` `@suite` rules in `scripts/loops/check-areas.d/_global`.
+- Update the rule's wording in `scripts/loops/prd.sh`. The hand-off lists the `docs/agents/orchestrator.md` wording for the orchestrator to fold.
+
+**Acceptance criteria:**
+
+- `check-plan.test.mjs`: a scripts-only change (added, edited, removed, a lifecycle hook, a nested package) stays quick; a change to another field, an added, a deleted and an unparseable `package.json` each force full; a scripts-only change beside a lockfile change still forces full.
+- A test that the browser selection leaves out `@suite` for a scripts-only change and keeps it for any other `package.json` change.
+- `pnpm test:tooling` passes.
+
+**Blocked by:** nothing. **Blocks:** 6.

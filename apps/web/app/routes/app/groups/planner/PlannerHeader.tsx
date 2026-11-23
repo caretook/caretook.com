@@ -8,6 +8,7 @@ import { useLocation } from "react-router";
 import { FilterMenu, FilterMenuChips, PageHeader, TabNav, UserAvatar } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
+import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { clearAuthor } from "~/lib/timeline/timelineFilters";
 import { listSearch, TODO_SHEET_STATE } from "~/lib/todos/todoSheets";
 import { setShow, tabSearch, UPCOMING_SHOW_LABELS, UPCOMING_SHOWS } from "./upcomingFilters";
@@ -76,8 +77,9 @@ export function PlannerHeader({
   show?: UpcomingShow;
   author?: PlannerAuthor | null;
 }) {
-  const { id: groupId, canWrite } = useGroup();
+  const { id: groupId, canWrite, easyRole } = useGroup();
   const { search } = useLocation();
+  const section = sectionAccent("planner", { easy: easyRole });
   const filters = useMemo(
     () => (view ? plannerFilters(search, view, show, author) : null),
     [search, view, show, author],
@@ -112,10 +114,15 @@ export function PlannerHeader({
 
   return (
     <div className="space-y-3">
-      <PageHeader title="Planner" add={canWrite && { label: "Add", items: add }} />
+      <PageHeader title="Planner" add={canWrite && { label: "Add", items: add }} {...section} />
       <div className="space-y-1.5">
         <div className="flex items-center justify-between gap-2">
-          <TabNav label="Planner or todos" tabs={tabs} className="min-w-0 flex-1 sm:flex-none" />
+          <TabNav
+            label="Planner or todos"
+            tabs={tabs}
+            accent={section?.accent}
+            className="min-w-0 flex-1 sm:flex-none"
+          />
           {view === "upcoming" && filters && <FilterMenu {...filters} />}
         </div>
         {filters && <FilterMenuChips {...filters} />}

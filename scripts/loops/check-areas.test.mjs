@@ -287,6 +287,44 @@ describe("the command line", () => {
     expect(byStdin.stdout).toBe("src/a.ts\tui\nsrc/x/b.md\t-\n");
   });
 
+  it("with --base, leaves out @suite for a scripts-only package.json and keeps it for any other", () => {
+    const repo = mkdtempSync(join(tmpdir(), "check-areas-pkg-"));
+    const git = (...args) =>
+      execFileSync("git", ["-C", repo, "-c", "user.name=t", "-c", "user.email=t@example.com", ...args], {
+        encoding: "utf8",
+      }).trim();
+    const save = (text) => {
+      writeFileSync(join(repo, "package.json"), text);
+      git("add", ".");
+      git("commit", "-qm", "c");
+      return git("rev-parse", "HEAD");
+    };
+    const resolve = (...refs) =>
+      spawnSync(
+        "node",
+        [CLI, "resolve", "--root", repo, "--areas", join(repo, "areas"), ...refs, "package.json"],
+        { encoding: "utf8" },
+      ).stdout;
+    try {
+      git("init", "-q");
+      mkdirSync(join(repo, "areas"));
+      writeFileSync(join(repo, "areas/a"), "package.json @suite\n");
+      const first = save('{"name":"a","scripts":{"x":"1"}}\n');
+      const scripts = save('{"name":"a","scripts":{"x":"2"}}\n');
+      const version = save('{"name":"a","version":"2.0.0","scripts":{"x":"2"}}\n');
+      expect(resolve("--base", first, "--head", scripts)).toBe("package.json\t- (scripts only)\n");
+      expect(resolve("--base", scripts, "--head", version)).toBe("package.json\t@suite\n");
+      expect(resolve()).toBe("package.json\t@suite\n");
+      // No --head: the working tree.
+      writeFileSync(join(repo, "package.json"), '{"name":"a","version":"2.0.0","scripts":{"x":"3"}}\n');
+      expect(resolve("--base", version)).toBe("package.json\t- (scripts only)\n");
+      rmSync(join(repo, "package.json"));
+      expect(resolve("--base", version)).toBe("package.json\t@suite\n");
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
   it("exits 2 on a tie, naming both rules, and still answers", () => {
     const r = run(["resolve", "src/y/a.ts"]);
     expect(r.status).toBe(2);

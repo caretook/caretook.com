@@ -2,6 +2,9 @@ import type { ProviderType } from "@caretook/data/schema";
 import type { DirectoryList } from "~/lib/providers/providerDirectory";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
+import { EmptyState } from "~/components/ui";
+import { useGroup } from "~/lib/app-shell/group";
+import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 import { ProviderListItem } from "./ProviderListItem";
 
@@ -54,6 +57,9 @@ export function DirectoryResults({
 }) {
   const shown = list.current.length + list.past.length;
   const kind = type ? PROVIDER_TYPE_META[type].plural.toLowerCase() : "providers";
+  const filtered = !!text.trim() || !!type;
+  const { easyRole } = useGroup();
+  const emptyMark = filtered ? undefined : sectionAccent("providers", { easy: easyRole });
   return (
     <>
       <p role="status" className="sr-only">
@@ -66,7 +72,11 @@ export function DirectoryResults({
         </h2>
 
         {total === 0 ? (
-          <p className="text-base-content/70">No providers yet.</p>
+          emptyMark ? (
+            <EmptyState {...emptyMark}>No providers yet.</EmptyState>
+          ) : (
+            <p className="text-base-content/70">No providers yet.</p>
+          )
         ) : (
           shown === 0 && (
             <p className="text-base-content/70" data-empty>

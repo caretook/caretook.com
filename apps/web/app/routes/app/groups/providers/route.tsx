@@ -11,6 +11,7 @@ import { Outlet, useLocation } from "react-router";
 import { Button, Page, PageHeader } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { directoryList, parseDirectoryFilters } from "~/lib/providers/providerDirectory";
 import { IMPORT_ACTION } from "~/lib/providers/importWording";
 import { PROVIDER_SHEET_STATE } from "~/lib/providers/providerSheetLink";
@@ -88,6 +89,7 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
     <Page>
       <PageHeader
         title="Providers"
+        {...sectionAccent("providers", { easy: group.easyRole })}
         actions={
           canImport && (
             <Button
