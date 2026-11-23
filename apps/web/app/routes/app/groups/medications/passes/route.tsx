@@ -82,7 +82,7 @@ export default function MedicationPasses({ loaderData, params }: Route.Component
       <PassList groupId={params.groupId} passes={passes} canWrite={group.canWrite} onEdit={setEditing} />
 
       {editing && (
-        <Sheet isOpen onOpenChange={(open) => !open && close()} title={`Edit ${editing.name}`}>
+        <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title={`Edit ${editing.name}`}>
           <PassForm pass={editing} zoneNote={zoneNote} onDone={close} onCancel={close} />
         </Sheet>
       )}

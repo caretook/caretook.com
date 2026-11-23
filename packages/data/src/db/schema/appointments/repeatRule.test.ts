@@ -118,7 +118,7 @@ describe("the series create schema", () => {
         allDay: true,
         rule: "FREQ=MONTHLY;BYDAY=2TU",
       }),
-    ).toEqual(["kind: A series makes appointments"]);
+    ).toEqual(["kind: A series makes events"]);
   });
 
   it("refuses a weekly rule without days, a monthly one without a date or weekday, and COUNT with UNTIL", () => {
@@ -135,7 +135,7 @@ describe("the series create schema", () => {
   });
 
   it("refuses kinds other than appointments, and mixed timing", () => {
-    expect(issues({ kind: "vital" })).toEqual(["kind: A series makes appointments"]);
+    expect(issues({ kind: "vital" })).toEqual(["kind: A series makes events"]);
     expect(issues({ startTime: null })).toEqual(["startTime: Choose a time, or all day"]);
     expect(issues({ allDay: true })).toEqual([
       "startTime: An all-day item has no time",

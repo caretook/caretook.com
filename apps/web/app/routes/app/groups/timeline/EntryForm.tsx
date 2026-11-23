@@ -157,7 +157,12 @@ export function EntryForm({
           {busy ? "Saving…" : entry ? "Save changes" : "Add to timeline"}
         </button>
         {onCancel && (
-          <button type="button" className={`btn btn-ghost ${easy ? "btn-lg" : ""}`} onClick={onCancel}>
+          <button
+            data-form-cancel=""
+            type="button"
+            className={`btn btn-ghost ${easy ? "btn-lg" : ""}`}
+            onClick={onCancel}
+          >
             Cancel
           </button>
         )}

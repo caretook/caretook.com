@@ -40,7 +40,7 @@ export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: Should
 export default function InsuranceSheet({ loaderData, params }: Route.ComponentProps) {
   const close = useCloseProfileSheet(params.groupId);
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title="Edit insurance">
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title="Edit insurance">
       <InsuranceForm plans={loaderData.details.insurance} onDone={close} onCancel={close} />
     </Sheet>
   );

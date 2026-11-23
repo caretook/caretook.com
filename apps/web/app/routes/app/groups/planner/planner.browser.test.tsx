@@ -60,7 +60,7 @@ const choose = async (option: string) => {
   await userEvent.click(page.getByRole("menuitemradio", { name: option, exact: true }));
   await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
 };
-const TABS = 'main nav[aria-label="Planner or todos"]';
+const TABS = 'main nav[aria-label="Upcoming, past or todos"]';
 const tab = (label: string) =>
   [...document.querySelectorAll<HTMLAnchorElement>(`${TABS} a`)].find(
     (a) => a.textContent?.trim() === label,
@@ -269,7 +269,7 @@ describe("adding", () => {
   const items = () =>
     [...document.querySelectorAll("[role=menu] [role=menuitem]")].map((m) => m.textContent?.trim());
 
-  test("a writer's + is the header's Add menu, with Appointment and Todo; Appointment is a draft that picks the time first", async () => {
+  test("a writer's + is the header's Add menu, with Event and Todo, and no Appointment; Event is a draft that picks the time first", async () => {
     const device = await openPlanner({ role: "caretaker" });
     // The header's +: its last control, icon only, "Add" its name and tooltip.
     await expect.element(addButton()).toHaveAttribute("title", "Add");
@@ -278,9 +278,9 @@ describe("adding", () => {
       addButton().element(),
     );
     await userEvent.click(addButton());
-    await expect.poll(items).toEqual(["Appointment", "Todo"]);
+    await expect.poll(items).toEqual(["Event", "Todo"]);
     const base = `/app/groups/${TEST_GROUP.id}/entries/new`;
-    await userEvent.click(page.getByRole("menuitem", { name: "Appointment" }));
+    await userEvent.click(page.getByRole("menuitem", { name: "Event" }));
     await expect.poll(() => device.location()).toBe(`${base}?kind=event&when=pick`);
   });
 

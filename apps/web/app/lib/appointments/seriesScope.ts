@@ -37,10 +37,10 @@ const VERBS: Record<SeriesAction, string> = {
   delete: "Delete",
 };
 
-/** The dialog's title and message: "Delete a repeating appointment", … */
+/** The dialog's title and message: "Delete a repeating event", … */
 export const scopeQuestion = (action: SeriesAction) => {
   return {
-    title: `${VERBS[action]} a repeating appointment`,
+    title: `${VERBS[action]} a repeating event`,
     message:
       action === "edit" || action === "reschedule"
         ? "Change only this visit, or this one and the visits after it? Past visits stay as they were."

@@ -1,6 +1,8 @@
 import type { TimedEntry } from "./upcoming";
 
 import { dayLabel } from "../core/format";
+import { isUnnamedEvent } from "../live-notes/liveEntry";
+import { entryTiming } from "./upcoming";
 
 // The words for appointments: time ranges, "Now · until …",
 // "Cancelled", "Rescheduled to …" and the Next strip. Pure, with `locale`
@@ -36,9 +38,15 @@ export const rescheduledLabel = (to: Pick<TimedEntry, "occurredAt">, where: Wher
     timeZone: where.timeZone,
   }).format(new Date(to.occurredAt))}`;
 
-/** What an upcoming item is called: its title, else "Appointment". */
+/** What an upcoming item is called: its title, else "Event". */
 export const upcomingTitle = (entry: { kind: string; title?: string | null }) =>
-  entry.title?.trim() || "Appointment";
+  entry.title?.trim() || "Event";
+
+/** The Today card's next line: an unnamed event still ahead is "Upcoming event". */
+export const nextEventTitle = (entry: TimedEntry & { kind: string; title?: string | null }, now: Date) =>
+  isUnnamedEvent(entry.kind, entry.title) && entryTiming(entry, now) === "upcoming"
+    ? "Upcoming event"
+    : upcomingTitle(entry);
 
 /**
  * When an upcoming item is, in a line: "Tomorrow 10:30 AM", "Friday, Nov 20"
@@ -61,9 +69,10 @@ export const nextStripText = (
   { next, more }: { next: (TimedEntry & { kind: string; title?: string | null }) | null; more: number },
   now: Date,
   where: Where = {},
+  titleOf: (entry: TimedEntry & { kind: string; title?: string | null }) => string = upcomingTitle,
 ) => {
   if (!next) return null;
-  const parts = [`Next: ${upcomingTitle(next)}`, upcomingWhen(next, now, where)];
+  const parts = [`Next: ${titleOf(next)}`, upcomingWhen(next, now, where)];
   if (more > 0) parts.push(`+${more} more`);
   return parts.join(" · ");
 };

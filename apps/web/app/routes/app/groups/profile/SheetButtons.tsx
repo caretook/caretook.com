@@ -31,7 +31,7 @@ export function SheetButtons({
         </p>
       )}
       <div className="flex justify-end gap-2 pt-3">
-        <button type="button" className="btn btn-ghost" onClick={onCancel}>
+        <button data-form-cancel="" type="button" className="btn btn-ghost" onClick={onCancel}>
           Cancel
         </button>
         <button type="submit" className="btn btn-primary" disabled={busy || !online}>

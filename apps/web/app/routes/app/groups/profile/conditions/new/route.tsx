@@ -53,6 +53,7 @@ export default function NewConditionSheet({ loaderData, params }: Route.Componen
   const who = recipient?.displayName;
   return (
     <Sheet
+      guardChanges
       isOpen
       onOpenChange={(open) => !open && close()}
       title={who ? `Add a condition for ${who}` : "Add a condition"}

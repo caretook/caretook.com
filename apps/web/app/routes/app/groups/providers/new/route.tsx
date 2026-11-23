@@ -50,7 +50,7 @@ export default function NewProviderSheet({ loaderData }: Route.ComponentProps) {
   const { search } = useLocation();
   const practices = useMemo(() => providers.filter((p) => isPracticeType(p.type)), [providers]);
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title="Add a provider">
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title="Add a provider">
       <ProviderForm
         // A new URL is a new form.
         key={search}

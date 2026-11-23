@@ -7,7 +7,7 @@ import type { LocalTodo } from "~/lib/todos/todos.sync";
 import { TODO_LIMITS } from "@caretook/data/schema";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
-import { Field } from "~/components/ui";
+import { Field, TimeSelect } from "~/components/ui";
 import { AssigneeField } from "./AssigneeField";
 import { TodoLinkFields } from "./TodoLinkFields";
 import { FIELD, initialRepeat, isFieldIssue, repeatOnDay } from "./todoFormData";
@@ -150,19 +150,16 @@ export function TodoForm({
             />
           )}
         </Field>
-        <Field label="Time (optional)" help={zoneNote ?? undefined} error={issueFor(issues, FIELD.dueTime)}>
-          {(control) => (
-            <input
-              {...control}
-              type="time"
-              name={FIELD.dueTime}
-              className="input w-full"
-              value={time}
-              onChange={(e) => setTime(e.currentTarget.value)}
-              disabled={!day}
-            />
-          )}
-        </Field>
+        <TimeSelect
+          label="Time (optional)"
+          name={FIELD.dueTime}
+          optional
+          help={zoneNote ?? undefined}
+          error={issueFor(issues, FIELD.dueTime)}
+          value={time}
+          onChange={setTime}
+          disabled={!day}
+        />
       </div>
 
       <TodoRepeat
@@ -194,7 +191,7 @@ export function TodoForm({
       )}
 
       <div className="flex flex-wrap items-center justify-end gap-2 pt-3">
-        <button type="button" className="btn btn-ghost" onClick={onCancel}>
+        <button data-form-cancel="" type="button" className="btn btn-ghost" onClick={onCancel}>
           Cancel
         </button>
         <button type="submit" className="btn btn-primary" disabled={busy}>

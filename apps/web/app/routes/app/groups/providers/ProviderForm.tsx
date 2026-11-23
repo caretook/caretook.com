@@ -227,7 +227,7 @@ export function ProviderForm({
           </button>
         )}
         <div className="ml-auto flex gap-2">
-          <button type="button" className="btn btn-ghost" onClick={onCancel}>
+          <button data-form-cancel="" type="button" className="btn btn-ghost" onClick={onCancel}>
             Cancel
           </button>
           <button type="submit" className="btn btn-primary" disabled={busy}>

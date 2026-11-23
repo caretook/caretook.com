@@ -161,7 +161,7 @@ describe("sweepReminders", { timeout: 30_000 }, () => {
     );
 
     const [generic] = to((await sweep(HOUR_BEFORE)).sent, ana.user.email);
-    expect(generic?.subject).toMatch(/^Appointment for Pat Example · .+ · 9:00–10:00$/);
+    expect(generic?.subject).toMatch(/^Event for Pat Example · .+ · 9:00–10:00$/);
     for (const part of [generic!.subject, generic!.text, generic!.html]) {
       expect(part).not.toContain("Dialysis");
       expect(part).not.toContain("Riverside");
@@ -175,7 +175,7 @@ describe("sweepReminders", { timeout: 30_000 }, () => {
     const moved = plus(NINE, 30);
     ok(await timelineEntryService.update(ana.ctx, visit.id, { occurredAt: moved.toISOString() }));
     const [detailed] = to((await sweep(plus(moved, -60))).sent, ana.user.email);
-    expect(detailed?.subject).toContain("Appointment for Pat Example: Dialysis");
+    expect(detailed?.subject).toContain("Event for Pat Example: Dialysis");
     expect(detailed!.text).toContain("At Riverside Clinic");
     expect(detailed!.text).toContain("With Dr. Rivera Example");
 

@@ -109,7 +109,7 @@ function EventLink({ groupId, id, loaded }: { groupId: string; id: string; loade
         <CalendarClock className="size-4" />
       </IconDot>
       <div className="min-w-0 flex-1">
-        <p className="text-base-content/70 text-sm">Appointment</p>
+        <p className="text-base-content/70 text-sm">Event</p>
         <Link
           to={appUrls.entry(groupId, event.id)}
           className={`${STRETCHED} ${cancelled ? "text-base-content/60 line-through" : ""}`}

@@ -139,7 +139,7 @@ export const ASSIGNEE_NOT_MEMBER_ISSUE = {
 export const BAD_TODO_LINK_ISSUES = {
   providerId: { path: "providerId", message: "Choose a provider in this care group" },
   medicationId: { path: "medicationId", message: "Choose a medication in this care group" },
-  eventId: { path: "eventId", message: "Choose an appointment in this care group" },
+  eventId: { path: "eventId", message: "Choose an event in this care group" },
 } as const;
 
 /** Optional text: trimmed, and empty means none (null). */

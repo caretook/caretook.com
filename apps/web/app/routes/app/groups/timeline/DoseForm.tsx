@@ -204,7 +204,7 @@ export function DoseForm(props: Props) {
           {busy ? "Saving…" : entry ? "Save changes" : warnings.length ? "Log anyway" : "Log dose"}
         </button>
         {onCancel && (
-          <button type="button" className="btn btn-ghost" onClick={onCancel}>
+          <button data-form-cancel="" type="button" className="btn btn-ghost" onClick={onCancel}>
             Cancel
           </button>
         )}
