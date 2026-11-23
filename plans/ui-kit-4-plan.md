@@ -9,7 +9,7 @@
 | 1     | 1    | merged, torn down (opus) | 6814c3dc (7acd4f33)                       |
 | 2     | 2    | running (opus)           |                                           |
 | 3     | 2    | running (opus)           |                                           |
-| 4     | 2    | running (opus)           |                                           |
+| 4     | 2    | handed off (opus)        | not merged (9dd63d03, 8de6ee85)           |
 | 5     | 3    | not started              |                                           |
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`.
@@ -17,6 +17,8 @@
 **Now:** wave 1 landed in `dev` as eef72fd8 (PR #89, Codex clean, quick check on the merged tip 61efde0e, no browser checks needed; report a95). Docs folded. Wave 2 started: synced (already up to date), B-398 and B-448 claimed, worktrees `ui-kit-4-2`, `-3`, `-4` made from 77b4ea24, one opus agent spawned per slice. Next: merge their hand-offs in plan order. `backlog doctor`'s two findings (B-548, B-549 inbox titles) aren't this topic's.
 
 **Landing hold (2026-11-22):** the test-gates orchestrator, at the user's request, asked every PRD to hold `pnpm prd land` and any code push to `dev` until test-gates wave 5 lands; it will message this session (`prd-ui-kit-4`), and also check `pnpm log dev`. Slices, merges into this branch, checks, CI runs and the PR carry on. `pnpm backlog` commits are fine. After that landing, `land` needs a CI verdict for a `--tier` (see its landing notice). Wave 1 had already landed when the request arrived, and test-gates was told.
+
+**Slice 4 hand-off (waits for 2 and 3, plan order):** slice check passed on 8de6ee85. Its six profile component test files (`profile`, `profileBands`, `conditions`, `conditionProviders`, `emergency`, `vitalAverages`) were not run: the wave's full check must cover them. To fold at landing, in `docs/domain/profiles.md`: line 19 `**Card and sheets:** ConditionsCard` becomes `**Section and sheets:** ConditionsSection`; line 24 `VitalAveragesCard` becomes `VitalAveragesSection`. Worth noting for slice 5: `ListRow`'s `to` can't carry `state`, `prefetch` or `preventScrollReset`, so condition rows use a raw `li` inside `List`.
 
 **For wave 2 (from slice 1):** the guard's lists are in `scripts/eslint/kit-guard.mjs`. The print routes stay on the not-swept list because each holds an on-screen Print button: slices 2 and 4 sweep them. A listed path that no longer exists fails a test, so slice 4's renames must update their lines.
 
