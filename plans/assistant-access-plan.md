@@ -4,7 +4,9 @@
 
 ## Status
 
-**Where it stands:** wave 1 running (2026-11-22). Slice 1's worktree is `.loops/assistant-access-1` and its opus agent is spawned; B-558 is claimed. Slices 2 and 3 wait for it. If this session is gone, respawn it with `pnpm prd prompt slice assistant-access 1 --continue`.
+**Where it stands:** wave 1 merged and synced with `dev` (2026-11-22); its full check is next (the migration makes it full), then the PR, Codex and landing. Slices 2 and 3 start in the next session, after the rotate. B-558 is claimed and stays open until wave 2 merges.
+
+**For wave 2 (from slice 1's hand-off):** slice 2 adds the column to `sync-config.yaml` and the device schema and uses `CONNECTOR_READ_ONLY_BY_OWNER_LABEL`. Slice 3 changes `loadConnectPage` to `scopesForRole(role, group.connectorsReadOnly)`; until then Connect on a read-only group shows the `groupReadOnly` refusal. Migration `0037` is regenerated if another PRD lands one first.
 
 **Landing mode:** run everything through (started run-through). Start every ready slice, land each green wave, clean up. Questions go through `pnpm prd ask`; each landing files a report.
 
@@ -12,7 +14,7 @@
 
 | Slice | Wave | State       | Merge into `prd/assistant-access` (slice commits) |
 | ----- | ---- | ----------- | ------------------------------------------------- |
-| 1     | 1    | in progress |                                                   |
+| 1     | 1    | merged      | c4956606 (eecc474f, af69bd00)                     |
 | 2     | 2    | not started |                                                   |
 | 3     | 2    | not started |                                                   |
 
