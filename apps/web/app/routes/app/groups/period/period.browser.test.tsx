@@ -3,7 +3,7 @@ import { page, userEvent } from "vitest/browser";
 import { found, waitUntil } from "../../../../../test/found";
 import { getByCss } from "../../../../../test/locators";
 import { renderWithDevice } from "../../../../../test/device";
-import { at, fx, TEST_USER } from "../../../../../test/fixtures";
+import { at, fx, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import {
   daysAgo,
   field,
@@ -33,9 +33,26 @@ import {
 // sync matrix (6b).
 
 /** An Other period inside the rehab stay (10 days back, 14:00), then a hospital one at 18:00. */
-const NOTES_STAY = fx.period({ type: "other", label: "Notes stay", startedAt: at(daysAgo(10, 14)) });
+const NOTES_START = daysAgo(10, 14);
+const NOTES_STAY = fx.period({ type: "other", label: "Notes stay", startedAt: at(NOTES_START) });
 const GONE_STAY = fx.period({ type: "hospital", label: "Gone stay", startedAt: at(daysAgo(10, 18)) });
 const fixtures = () => [...track(), NOTES_STAY, GONE_STAY];
+
+/**
+ * "Jun 4, 15:30" for this instant on the recipient's clock. The fixtures are
+ * built on the browser's clock and the page shows the recipient's, so a viewer
+ * in another zone sees the same instant at a different hour.
+ */
+const shownAt = (when: Date) => {
+  const clock = new Intl.DateTimeFormat("en-GB", {
+    timeZone: TEST_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(when);
+  return new RegExp(`^\\w{3} \\d+, ${clock}$`);
+};
+const TWO_HOURS = 2 * 3_600_000;
 
 const open = (url: string, options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
   renderWithDevice({ route: PERIOD_ROUTES, url, fixtures: fixtures(), ...options });
@@ -84,8 +101,8 @@ describe("the period page", () => {
     });
     expect(state.actions.filter((a) => a === "call")).toHaveLength(2);
     expect(state.actions).toEqual(expect.arrayContaining(["map", "website"]));
-    expect(state.start).toMatch(/^\w{3} \d+, 03:15$/);
-    expect(state.end).toMatch(/^\w{3} \d+, 11:00$/);
+    expect(state.start).toMatch(shownAt(daysAgo(19, 3, 15)));
+    expect(state.end).toMatch(shownAt(daysAgo(12, 11)));
     expect(state.previous).toMatch(/^Previous period: Emergency room, /);
     expect(state.next).toMatch(/^Next period: Rehab, /);
   });
@@ -209,7 +226,8 @@ describe("editing from the page", () => {
     expect(typeRadio("Other")?.checked).toBe(true);
 
     await userEvent.fill(await found(() => field("label")), "Notes stay edited");
-    // 14:00 → 12:00: the hour segment counts within AM or PM, so it mustn't cross noon.
+    // Two hours earlier on the recipient's clock (14:00 → 12:00 in Los Angeles, 11:00 → 09:00 for a
+    // New York browser): the hour segment counts within AM or PM, so it mustn't cross noon.
     await userEvent.click(await found(() => FORM()?.querySelector('[data-period-start] [data-type="hour"]')));
     await userEvent.keyboard("{ArrowDown}{ArrowDown}");
     await userEvent.click(submit());
@@ -219,14 +237,15 @@ describe("editing from the page", () => {
     );
     expect(device.location()).toBe(periodUrl(NOTES_STAY.id));
     await device.settle();
-    expect(pageState().start).toMatch(/, 12:00$/);
+    const earlier = shownAt(new Date(NOTES_START.getTime() - TWO_HOURS));
+    expect(pageState().start).toMatch(earlier);
 
     await userEvent.click(getByCss('main [data-period-neighbour="previous"]'));
     await waitUntil(
       () => document.querySelector<HTMLElement>("main h1")?.textContent === "Rehab · Oak Hills Rehab",
       "the period before",
     );
-    expect(pageState().end).toMatch(/, 12:00$/);
+    expect(pageState().end).toMatch(earlier);
   });
 });
 
@@ -261,7 +280,7 @@ describe("deleting", () => {
     await device.sync(gone());
     await device.settle();
     // The period after GONE_STAY is the current Home, from 15:30 five days back.
-    expect(pageState().end).toMatch(/^\w{3} \d+, 15:30$/);
+    expect(pageState().end).toMatch(shownAt(daysAgo(5, 15, 30)));
     expect(pageState().next).toMatch(/^Next period: Home, /);
   });
 
