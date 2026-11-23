@@ -4,17 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State                                                               | Merge into `prd/dose-accuracy` (slice commits) |
-| ----- | ---- | ------------------------------------------------------------------- | ---------------------------------------------- |
-| 1     | 1    | back with its agent (opus) for the a92 fix; first hand-off 597f6f1f | —                                              |
-| 2     | 2    | —                                                                   | —                                              |
-| 3     | 3    | —                                                                   | —                                              |
-| 4     | 2    | —                                                                   | —                                              |
-| 5     | 4    | —                                                                   | —                                              |
+| Slice | Wave | State                           | Merge into `prd/dose-accuracy` (slice commits) |
+| ----- | ---- | ------------------------------- | ---------------------------------------------- |
+| 1     | 1    | merged (opus), worktree removed | e851c83d (597f6f1f, d3fb1182)                  |
+| 2     | 2    | —                               | —                                              |
+| 3     | 3    | —                               | —                                              |
+| 4     | 2    | —                               | —                                              |
+| 5     | 4    | —                               | —                                              |
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-22). Start every ready slice, land each green wave, clean up; ask only real questions through `pnpm prd ask`.
 
-**Now:** wave 1: slice 1's slice check passed. B-297 claimed. **Ask a92 answered: "Answer nothing"** (a second 23:30 dose after midnight answers no slot and stays on the timeline). Plan and PRD updated; slice 1's agent is making the fix, then merge. The user's side request, highlighting a double dose on a next-dose-due notification, is a backlog follow-up because no such notification exists: name it in the wave 1 landing report. For slices 2, 4 and 5: `doseSlotDay` uses the same reach as `slotAt`; keep the days either side when replacing the expansion, and answer doses before trimming to the range. `pnpm backlog doctor` reports two old inbox-line findings (B-548, B-549), unrelated to this topic.
+**Now:** wave 1: slice 1 merged, B-297 done. Next: `pnpm prd sync`, the full check on the tip, `prd serve --restart`, `prd browser --changed --base dev`, PR, Codex, land. **Ask a92 answered: "Answer nothing"** (a second 23:30 dose after midnight answers no slot and stays on the timeline); built in d3fb1182. The user's side request is B-606 (highlight a double dose on a next-dose-due notification), filed because no such notification exists: name it in the wave 1 landing report. For slices 2, 4 and 5: `doseSlotDay` uses the same reach as `slotAt`; keep the days either side when replacing the expansion, and answer doses before trimming to the range. `pnpm backlog doctor` reports two old inbox-line findings (B-548, B-549), unrelated to this topic.
 
 **Backlog:** claim B-297 when slice 1 starts and `done` it when slice 1 merges; B-298 when slice 2 starts, `done` after slice 3 merges; B-299 when slice 4 starts, `done` after slice 5 merges.
 
