@@ -339,6 +339,42 @@ describe("GET /api/calendar/<token>.ics", () => {
     expect(await read()).not.toContain("Kidney check");
   });
 
+  it("still stops at 90 days ahead, though Google looks further", async () => {
+    const s = await setup();
+    const near = await s.entry({ occurredAt: daysFrom(89), endsAt: null });
+    const far = await s.entry({ occurredAt: daysFrom(200), endsAt: null });
+    const { file } = await makeFeed(s, "caretaker");
+    const ics = await (await fetchFeed(s.handler(), file)).text();
+    expect(ics).toContain(`entry:${near.id}`);
+    expect(ics).not.toContain(`entry:${far.id}`);
+  });
+
+  it("names only live providers", async () => {
+    const s = await setup();
+    const event = await s.entry({});
+    const provider = async (name: string) => {
+      const made = ok(
+        await providerService.create(s.ctx("caretaker"), { groupId: s.group.id, type: "practice", name }),
+      )!;
+      ok(
+        await entryProviderService.link(s.ctx("caretaker"), {
+          groupId: s.group.id,
+          entryId: event.id,
+          providerId: made.id,
+        }),
+      );
+      return made;
+    };
+    const gone = await provider("Harbor Cardiology");
+    await provider("Lakeside Nephrology");
+    ok(await providerService.remove(s.ctx("owner"), gone.id));
+    await s.api("caretaker").calendars.settings.update({ groupId: s.group.id, detailsConsent: true });
+    const { file } = await makeFeed(s, "caretaker");
+    const ics = (await (await fetchFeed(s.handler(), file)).text()).replaceAll("\r\n", "\n");
+    expect(ics).toContain("Lakeside Nephrology");
+    expect(ics).not.toContain("Harbor Cardiology");
+  });
+
   it("answers an unknown, malformed or wrongly named token with a bodyless 404", async () => {
     const s = await setup();
     const handle = s.handler();

@@ -1,7 +1,13 @@
 import type { CalendarEntryInput, CalendarTodoInput } from "./calendarItems";
 
 import { describe, expect, it } from "vitest";
-import { CALENDAR_WINDOW_DAYS, calendarItems, calendarWindow } from "./calendarItems";
+import {
+  CALENDAR_WINDOW_DAYS,
+  calendarItems,
+  calendarWindow,
+  GOOGLE_WINDOW_AHEAD_DAYS,
+  googleWindow,
+} from "./calendarItems";
 
 // calendarItems (appointments-2): one group's appointments and open
 // todos as neutral items, on the appointments area's clock (Wed
@@ -55,6 +61,15 @@ describe("calendarWindow", () => {
     expect(CALENDAR_WINDOW_DAYS).toBe(90);
     expect(from.toISOString()).toBe("2026-08-20T18:00:00.000Z");
     expect(to.toISOString()).toBe("2027-02-16T18:00:00.000Z");
+  });
+});
+
+describe("googleWindow", () => {
+  it("runs 90 days back, as the calendar window does, to 365 days ahead of now", () => {
+    expect(GOOGLE_WINDOW_AHEAD_DAYS).toBe(365);
+    const google = googleWindow(NOW);
+    expect(google.from).toEqual(from);
+    expect(google.to.toISOString()).toBe("2027-11-18T18:00:00.000Z");
   });
 });
 

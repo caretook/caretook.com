@@ -80,6 +80,24 @@ describe("fakeGoogleCalendar", () => {
     expect(await session.listChanges(calendarId, changes.syncToken)).toEqual({ fullSyncRequired: true });
   });
 
+  it("keeps a repeat's instance one when Caretook writes to it", async () => {
+    const { google, session, calendarId } = await connected();
+    const one = google.user.create(calendarId, {
+      summary: "Dentist",
+      start: { date: "2026-11-22" },
+      end: { date: "2026-11-23" },
+    });
+    const instance = google.user.create(calendarId, {
+      summary: "Weekly walk",
+      start: { date: "2026-11-24" },
+      end: { date: "2026-11-25" },
+      recurring: true,
+    });
+    expect([one.recurring, instance.recurring]).toEqual([false, true]);
+    await session.upsertEvent(calendarId, event(instance.id, "entry:3"));
+    expect(google.event(calendarId, instance.id)?.recurring).toBe(true);
+  });
+
   it("counts a delete of a gone event as done, and fails every call while Google is down", async () => {
     const { google, session, calendarId } = await connected();
     expect(await session.deleteEvent(calendarId, "never-there")).toBe(true);
