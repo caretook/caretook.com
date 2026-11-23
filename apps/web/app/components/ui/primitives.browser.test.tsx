@@ -23,6 +23,7 @@ import {
   TabNav,
 } from "./index";
 import { DateTimeField } from "./date";
+import { buttonClass } from "./buttonClass";
 import { Tooltip } from "./tooltip";
 
 // The ui/ primitives' behaviour (what ui.mjs checks through screens), on the
@@ -633,6 +634,19 @@ describe("DateTimeField", () => {
   test("a step that keeps the day is React Aria's own", async () => {
     expect(await step("2026-10-15T17:00:00.000Z", "month", "{ArrowDown}")).toBe("2026-09-15T17:00:00.000Z");
   });
+
+  test("a placeholder segment takes the text-faint tone, not a faded opacity", async () => {
+    await renderInRouter(
+      <DateTimeField
+        label="Start from"
+        defaultValue="2026-10-15T17:00:00.000Z"
+        timeZone="America/Los_Angeles"
+      />,
+    );
+    const classes = document.querySelector<HTMLElement>('[data-type="month"]')!.className;
+    expect(classes).toContain("data-[placeholder]:text-faint");
+    expect(classes).not.toContain("opacity");
+  });
 });
 
 /** A `Field` around an input, re-rendered with new props. */
@@ -776,5 +790,25 @@ describe("FilterMenu", () => {
     await expect.element(page.getByRole("menu")).toBeVisible();
     expect(page.getByRole("menuitem", { name: "Clear filters" }).elements()).toEqual([]);
     await userEvent.keyboard("{Escape}");
+  });
+});
+
+describe("danger text", () => {
+  test("a danger menu item carries text-error-ink, not text-error", async () => {
+    const { screen } = await renderInRouter(
+      <Menu label="More" items={[{ id: "del", label: "Delete", tone: "danger", onAction: () => undefined }]}>
+        <Trash2 className="size-4" aria-hidden="true" />
+      </Menu>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "More" }));
+    const item = screen.getByRole("menuitem", { name: "Delete" }).element();
+    expect(item.classList.contains("text-error-ink")).toBe(true);
+    expect(item.classList.contains("text-error")).toBe(false);
+  });
+
+  test("a dangerQuiet button carries text-error-ink, not text-error", () => {
+    const classes = buttonClass({ variant: "dangerQuiet" }).split(" ");
+    expect(classes).toContain("text-error-ink");
+    expect(classes).not.toContain("text-error");
   });
 });

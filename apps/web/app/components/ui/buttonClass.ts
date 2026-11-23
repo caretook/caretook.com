@@ -38,7 +38,7 @@ const VARIANT: Record<ButtonVariant, string> = {
   secondary: "",
   ghost: "btn-ghost",
   danger: "btn-error",
-  dangerQuiet: "btn-ghost text-error",
+  dangerQuiet: "btn-ghost text-error-ink",
 };
 
 const SIZE: Record<ButtonSize, string> = { lg: "btn-lg", md: "", sm: "btn-sm", xs: "btn-xs" };

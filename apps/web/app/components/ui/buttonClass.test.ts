@@ -16,7 +16,7 @@ describe("buttonClass", () => {
     ["secondary", ["btn"]],
     ["ghost", ["btn", "btn-ghost"]],
     ["danger", ["btn", "btn-error"]],
-    ["dangerQuiet", ["btn", "btn-ghost", "text-error"]],
+    ["dangerQuiet", ["btn", "btn-ghost", "text-error-ink"]],
   ] as const)("maps the %s variant", (variant, expected) => {
     expect(classes({ variant })).toEqual(expected);
   });
