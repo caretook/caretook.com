@@ -1,9 +1,15 @@
 import type { TimelineEntryCreateInput } from "../db";
 
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createGroup, createWorld, newYDoc, ok, system, typeParagraph } from "../../test/fixtures";
-import { isError } from "../errors";
+import { SYSTEM_USER } from "../constants";
+import { getDb, withTransaction } from "../db";
+import { careGroupSchema, doseDuplicateUploadSchema, userSchema } from "../db/schema";
+import { isError, newError } from "../errors";
 import { noteUpdateModel, timelineEntryModel } from "../models";
 import {
   careGroupService,
@@ -718,6 +724,115 @@ describe("upsert: a dose's shared slot id", () => {
 
     ok(await timelineEntryService.upsert(u.caretaker.ctx, dose("other device", id, LATER)));
     expect(await stored(id)).toMatchObject({ deletedAt: null, details: { note: "other device" } });
+  });
+
+  describe("a retried duplicate (B-627)", () => {
+    const records = (entryId: string) =>
+      getDb().select().from(doseDuplicateUploadSchema).where(eq(doseDuplicateUploadSchema.entryId, entryId));
+
+    /** A's dose, B's accepted duplicate at `LATER`, then A's Undo. */
+    const undoneAfterDuplicate = async () => {
+      const world = await doseSetup();
+      const { u, dose } = world;
+      const id = randomUUID();
+      ok(await timelineEntryService.upsert(u.caretaker.ctx, dose("A", id)));
+      ok(await timelineEntryService.upsert(u.admin.ctx, dose("B", id, LATER)));
+      ok(await timelineEntryService.remove(u.caretaker.ctx, id));
+      return { ...world, id };
+    };
+
+    it("leaves the dose deleted when B's accepted duplicate is replayed after A's Undo", async () => {
+      const { u, dose, stored, id } = await undoneAfterDuplicate();
+
+      ok(await timelineEntryService.upsert(u.admin.ctx, dose("B", id, LATER)));
+
+      const row = await stored(id);
+      expect(row.deletedAt).not.toBeNull();
+      expect(row).toMatchObject({ createdBy: u.caretaker.user.id, details: { note: "A" } });
+    });
+
+    it("restores it for a new log by B at another time", async () => {
+      const { u, dose, stored, id } = await undoneAfterDuplicate();
+
+      ok(await timelineEntryService.upsert(u.admin.ctx, dose("B again", id, "2026-11-17T16:40:00.000Z")));
+
+      expect(await stored(id)).toMatchObject({
+        deletedAt: null,
+        createdBy: u.admin.user.id,
+        details: { note: "B again" },
+      });
+    });
+
+    it("restores it for B's first upload after A's Undo, with no earlier duplicate", async () => {
+      const { u, dose, stored } = await doseSetup();
+      const id = randomUUID();
+      ok(await timelineEntryService.upsert(u.caretaker.ctx, dose("A", id)));
+      ok(await timelineEntryService.remove(u.caretaker.ctx, id));
+
+      ok(await timelineEntryService.upsert(u.admin.ctx, dose("B", id, LATER)));
+
+      expect(await stored(id)).toMatchObject({ deletedAt: null, createdBy: u.admin.user.id });
+    });
+
+    it("keeps no record of a failed upload, so its retry is still a first upload", async () => {
+      const { u, dose, stored } = await doseSetup();
+      const id = randomUUID();
+      ok(await timelineEntryService.upsert(u.caretaker.ctx, dose("A", id)));
+
+      const failed = await withTransaction(async (tx) => {
+        ok(await timelineEntryService.upsert({ ...u.admin.ctx, tx }, dose("B", id, LATER)));
+        return newError({ code: "timelineEntryService:notFound" });
+      }, u.admin.ctx);
+      expect(codeOf(failed)).toBe("timelineEntryService:notFound");
+      expect(await records(id)).toEqual([]);
+
+      ok(await timelineEntryService.remove(u.caretaker.ctx, id));
+      ok(await timelineEntryService.upsert(u.admin.ctx, dose("B", id, LATER)));
+      expect(await stored(id)).toMatchObject({ deletedAt: null, createdBy: u.admin.user.id });
+    });
+
+    it("records a duplicate once, and nothing for a viewer", async () => {
+      const { u, dose, id } = await undoneAfterDuplicate();
+      ok(await timelineEntryService.upsert(u.admin.ctx, dose("B", id, LATER)));
+      await timelineEntryService.upsert(u.viewer.ctx, dose("viewer", id));
+
+      expect(await records(id)).toMatchObject([{ userId: u.admin.user.id }]);
+    });
+
+    it("drops the records with the entry", async () => {
+      const { id } = await undoneAfterDuplicate();
+      expect(await records(id)).toHaveLength(1);
+
+      ok(
+        await timelineEntryModel.purge({ authUser: SYSTEM_USER, filter: { id: { type: "eq", value: id } } }),
+      );
+
+      expect(await records(id)).toEqual([]);
+    });
+
+    it("drops the records with the user", async () => {
+      const { u, id } = await undoneAfterDuplicate();
+
+      await getDb().delete(userSchema).where(eq(userSchema.id, u.admin.user.id));
+
+      expect(await records(id)).toEqual([]);
+    });
+
+    it("drops the records with the group", async () => {
+      const { group, id } = await undoneAfterDuplicate();
+
+      await getDb().delete(careGroupSchema).where(eq(careGroupSchema.id, group.id));
+
+      expect(await records(id)).toEqual([]);
+    });
+
+    it("is not in the sync config", () => {
+      const config = readFileSync(
+        fileURLToPath(new URL("../../../../powersync/sync-config.yaml", import.meta.url)),
+        "utf8",
+      );
+      expect(config).not.toContain("dose_duplicate_upload");
+    });
   });
 
   it("lets an Easy helper upload onto another member's live dose, changing nothing", async () => {
