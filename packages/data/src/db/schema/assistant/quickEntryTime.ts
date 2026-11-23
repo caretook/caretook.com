@@ -326,7 +326,7 @@ const placeFollows = (words: readonly string[], j: number) => {
  * Whether the ordinal at word `at` can be a day of the month: after "on", at
  * the end of the line, or before a time word or "at" a place. "a 2nd" is
  * always a count, and a counting word before it ("gave the 2nd") makes it one
- * at the line's end or before a place. A period word counts only last in the
+ * at the line's end or before a clock time or a place. A period word counts only last in the
  * line, so "2nd evening dose" and "2nd night in a row" stay counts.
  */
 const ordinalIsADay = (words: readonly string[], at: number, afterOn: boolean) => {
@@ -337,7 +337,8 @@ const ordinalIsADay = (words: readonly string[], at: number, afterOn: boolean) =
   const counted = COUNTED_AFTER.has(before ?? "");
   if (at === words.length - 1) return !counted;
   const next = words[at + 1]!;
-  if (clockFollows(words, at + 1) || inThePeriod(words, at + 1)) return true;
+  if (clockFollows(words, at + 1)) return !counted;
+  if (inThePeriod(words, at + 1)) return true;
   if (next === "at" && words[at + 2] === "night") return true;
   if (placeFollows(words, at + 1) && !counted) return true;
   return PERIOD_WORDS.has(next) && at + 1 === words.length - 1;

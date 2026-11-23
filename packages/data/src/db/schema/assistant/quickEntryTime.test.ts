@@ -107,9 +107,14 @@ describe("the days they must not take away", () => {
     expect(specOf(line)?.day).toEqual(day);
   });
 
-  test("'a 2nd' at a time keeps the time and takes no day", () => {
-    expect(specOf("a 2nd at 2pm")?.day).toBeUndefined();
-    expect(specOf("a 2nd at 2pm")?.clock).toMatchObject({ hour: 2, meridiem: "pm" });
+  test.each(["a 2nd at 2pm", "gave the 2nd at 2pm"])("%s keeps the time and takes no day", (line) => {
+    expect(specOf(line)?.day).toBeUndefined();
+    expect(specOf(line)?.clock).toMatchObject({ hour: 2, meridiem: "pm" });
+  });
+
+  test("a named ordinal before a clock time stays that day", () => {
+    expect(specOf("dr lee the 2nd at 2pm")?.day).toEqual({ date: 2 });
+    expect(specOf("dr lee the 2nd at 2pm")?.clock).toMatchObject({ hour: 2, meridiem: "pm" });
   });
 
   test("a count word still guards an ordinal after 'on'", () => {
