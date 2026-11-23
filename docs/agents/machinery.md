@@ -61,18 +61,22 @@ The scripts behind `pnpm prd` (`scripts/loops/`): worktrees and leases, recorded
 
 ## The asks queue
 
-- One place for the user to answer: `.loops/.asks/<id>.json` in the main checkout (`CARETOOK_ASKS_DIR`), ids `a1`, `a2`…, created exclusively. A question awaits an answer until answered, dismissed or defaulted; a report is listed until dismissed.
-- `pnpm prd ask --topic <t> --question <text> --option <a>… --recommend <a>` or `--report <text>` (the topic and session default to the worktree's) prints the id and, for a question only, a "Now send a PushNotification" line (a report is never pushed); it shows a macOS notification and runs `$CARETOOK_ASK_NOTIFY <id> <kind> <topic> <text>` when set (failures and hangs ignored, `CARETOOK_ASK_NOTIFY_TIMEOUT`).
+- `.loops/.asks/<id>.json` in the main checkout (`CARETOOK_ASKS_DIR`), ids `a1`…, created exclusively. A question waits until answered, dismissed or defaulted; a report until dismissed.
+- `pnpm prd ask --topic <t> --question <text> --option <a>… --recommend <a>` or `--report <text>` prints the id and, for a question only, a PushNotification line; it shows a macOS notification and runs `$CARETOOK_ASK_NOTIFY <id> <kind> <topic> <text>` when set (failures ignored, `CARETOOK_ASK_NOTIFY_TIMEOUT`).
 - `pnpm prd ask --wait <id> [--timeout <s>]` prints the answer (exit 0; 75 at the timeout, 1 if dismissed). `pnpm prd asks [--json]` lists them oldest first; `pnpm prd answer <id> <n|text>`; `pnpm prd asks --done <id>` dismisses.
-- **Defaults** (`asks.mjs`): a question with `--recommend` must say `--defaults` or `--waits` (neither files nothing and names the [never list](preferences.md#planning-and-slices)). A defaulting one takes its recommendation `CARETOOK_ASK_DEFAULT_MIN` (30) minutes after it was asked, settled only by `--wait` and the dispatcher's tick, never by the listing; answering and settling share one lock per ask, so the first wins. The push line and listing show when (`due` once past, still answerable); a defaulted ask is listed under _decided for you_ until dismissed and can't be answered. The dispatcher's own question waits.
+- **Defaults** (`asks.mjs`): a question with `--recommend` must say `--defaults` or `--waits` (neither files nothing and names the [never list](preferences.md#planning-and-slices)). A defaulting one takes its recommendation `CARETOOK_ASK_DEFAULT_MIN` (30) minutes after it was asked, settled only by `--wait` and the dispatcher's tick; answering and settling share a lock, so the first wins. The push line and listing show when (`due` once past, still answerable); a defaulted ask is listed under _decided for you_ until dismissed and can't be answered. The dispatcher's own question waits.
+
+## The skeptic
+
+- `skeptics.mjs`, `skeptic.mjs`: one verdict per file in `.loops/.skeptic/` (main checkout, `CARETOOK_SKEPTIC_DIR`), ids `s1`…. `pnpm prd skeptic record|list`; `pnpm prd prompt skeptic ask|land|plan --evidence <file>` prints the brief. A verdict is bound to its kind, topic, age (`CARETOOK_SKEPTIC_MAX_MIN`, 60), tip and action or question hash; `decide` on `--waits` is refused.
 
 ## The notice board
 
-- One-way and advisory (`notices.mjs`, `notice.mjs`): `.loops/.notices/<id>.json` in the main checkout (`CARETOOK_NOTICES_DIR`), ids `n1`, `n2`… never reused. `pnpm prd notice "<text>" [--for <min>] [--topic <t>]` (one line, 200 characters; 60 minutes, 24 hours at most), `pnpm prd notices [--json]`, `notices --done <id>`; expired ones go on every write and list.
-- `check`, `sync`, `slice`, `browser`, `pr`, `ready` and `land` print other sessions' live notices to stderr first (five lines at most; a slice counts as its orchestrator's session); `pnpm prd status` prints all. Nothing blocks on a notice, and a broken board never changes a command's exit.
-- A code landing posts "landed `<branch>` in dev as `<sha>`: sync at your next wave boundary" for six hours; a failure to post only warns.
+- One-way and advisory (`notices.mjs`, `notice.mjs`): `.loops/.notices/<id>.json` in the main checkout (`CARETOOK_NOTICES_DIR`), ids `n1`, `n2`… never reused. `pnpm prd notice "<text>" [--for <min>] [--topic <t>]` (one line, 200 characters; 60 minutes, 24 hours at most), `pnpm prd notices [--json]`, `notices --done <id>`.
+- `check`, `sync`, `slice`, `browser`, `pr`, `ready` and `land` print other sessions' live notices to stderr first (five lines at most; a slice counts as its orchestrator's session); `pnpm prd status` prints all. Notices never block or change an exit.
+- A code landing posts "landed `<branch>` in dev as `<sha>`: sync at your next wave boundary" for six hours.
 
 ## Landing reports
 
-- After merging a `prd/` or `hotfix/` branch whose diff isn't Markdown only, `land.sh` writes `to-test/<date>-<HHMM>-<topic>.md` in the main checkout, so it survives the session: title, what landed, commit and PR, dev URL, seed accounts, and what wasn't checked (browser checks, an unsynced landing). Agents only add to them; a failed write is ignored.
+- After merging a `prd/` or `hotfix/` branch whose diff isn't Markdown only, `land.sh` writes `to-test/<date>-<HHMM>-<topic>.md` in the main checkout: what landed, commit and PR, dev URL, seed accounts, what wasn't checked. Agents only add to them.
 - **Unsynced:** land skips the sync if dev's new files miss the branch and the risky list (`dev-brought.mjs`), dev has no known brake and the merge typechecks. Never with `--force`/`--fixes`.
