@@ -4,15 +4,19 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/onboarding` (slice commits) |
-| ----- | ---- | ----- | ------------------------------------------- |
-| 1     | 1    | —     | —                                           |
-| 2     | 1    | —     | —                                           |
-| 3     | 1    | —     | —                                           |
-| 4     | 2    | —     | —                                           |
-| 5     | 3    | —     | —                                           |
+| Slice | Wave | State          | Merge into `prd/onboarding` (slice commits) |
+| ----- | ---- | -------------- | ------------------------------------------- |
+| 1     | 1    | started (opus) | —                                           |
+| 2     | 1    | started (opus) | —                                           |
+| 3     | 1    | started (opus) | —                                           |
+| 4     | 2    | —              | —                                           |
+| 5     | 3    | —              | —                                           |
 
-**Backlog:** claim B-359 when slice 1 starts, B-360 when slice 2 starts and B-31 when slice 3 starts; `done` B-360 when slice 2 merges, B-359 when slice 4 merges and B-31 when slice 5 merges.
+**Landing mode:** run everything through (started run-through): land each green wave, clean up, ask real questions only through `pnpm prd ask`.
+
+**Now (2026-11-23):** wave 1 running from b91c9d56. Worktrees `onboarding-1`, `-2`, `-3` made, one background opus agent each; none handed off yet. B-359, B-360 and B-31 claimed. No new backlog items for this topic.
+
+**Backlog:** `done` B-360 when slice 2 merges, B-359 when slice 4 merges and B-31 when slice 5 merges.
 
 ## Architectural decisions
 
