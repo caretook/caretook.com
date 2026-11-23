@@ -22,6 +22,7 @@ import {
   canHaveNoteDocument,
   entryEditActionZSchema,
   DEVICE_FUTURE_SKEW_MS,
+  doseSlotIdFor,
   dueDoses,
   duePasses,
   encodeNoteDoc,
@@ -142,7 +143,14 @@ const runnableActionZSchema = z.discriminatedUnion("type", [
   ...conditionActionZSchema.options,
 ]);
 
-type Setting = { groupId: string; recipientId: string; timeZone: string; now: Date };
+type Setting = {
+  groupId: string;
+  recipientId: string;
+  timeZone: string;
+  now: Date;
+  /** Slot ids this batch has planned: its rows aren't in Postgres yet. */
+  usedDoseIds: Set<string>;
+};
 
 /** The content an action writes (a pass's doses and a todo are planned apart). */
 const contentOf = (action: Exclude<AssistantAction, { type: "givePass" | "addTodo" }>, timeZone: string) => {
@@ -273,11 +281,41 @@ const passDoses = async (
       code: "assistantActionService:nothingLeft",
       message: `Nothing is left to give in ${pass.name} today.`,
     });
-  return writes.map(({ occurredAt, ...details }) => ({
-    type: "entry",
-    input: { groupId, recipientId: setting.recipientId, kind: "dose", occurredAt, timeZone, details },
-    providerIds: [],
-  }));
+  const rows: EntryPlan[] = [];
+  for (const { occurredAt, ...details } of writes) {
+    const id = await slotDoseId(tx, setting, { ...details, occurredAt }, pass.time);
+    if (isError(id)) return id;
+    rows.push({
+      type: "entry",
+      input: { id, groupId, recipientId: setting.recipientId, kind: "dose", occurredAt, timeZone, details },
+      providerIds: [],
+    });
+  }
+  return rows;
+};
+
+/**
+ * The id a planned dose takes: its slot's (`doseSlotIdFor`), unless a row in
+ * Postgres has it, live or deleted, or this batch already used it; then a
+ * random one, so a dose logged again after an Undo is a new row.
+ */
+const slotDoseId = async (
+  tx: Tx,
+  { timeZone, usedDoseIds }: Setting,
+  dose: Parameters<typeof doseSlotIdFor>[0],
+  passTime: string,
+) => {
+  const slotId = doseSlotIdFor(dose, { timeZone, passTime });
+  if (!slotId || usedDoseIds.has(slotId)) return crypto.randomUUID();
+  const taken = await timelineEntryModel.getById(slotId, {
+    authUser: SYSTEM_USER,
+    tx,
+    includeDeleted: true,
+  });
+  if (isError(taken)) return taken;
+  if (taken) return crypto.randomUUID();
+  usedDoseIds.add(slotId);
+  return slotId;
 };
 
 /** The group's live doses from `from` on, as the due-doses core reads them. */
@@ -553,6 +591,7 @@ export const run = (
       recipientId: recipient.id,
       timeZone: recipient.timeZone || FALLBACK_TIME_ZONE,
       now,
+      usedDoseIds: new Set(),
     };
     const plans: Plan[] = [];
     for (const [index, input] of actions.entries()) {
