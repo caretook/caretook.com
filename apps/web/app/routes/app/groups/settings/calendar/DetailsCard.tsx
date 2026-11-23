@@ -3,6 +3,7 @@ import type { CalendarCardProps } from "./calendarPage";
 import { DETAILS_CONSENT_TEXT } from "@caretook/data/schema";
 import { SettingsCard } from "~/components/settings";
 import { ToggleField } from "~/components/ui";
+import { detailsConsentChange } from "~/lib/calendars/calendarSettings";
 import { CalendarSaveLine } from "./CalendarSaveLine";
 import { detailsCardState, detailsExplained, detailsStaleNote } from "./calendarPage";
 import { useCalendarSave } from "./useCalendarSave";
@@ -42,7 +43,7 @@ export function DetailsCard({
             checked={state.on}
             disabled={state.disabled}
             data-details-consent=""
-            onChange={(event) => save({ detailsConsent: event.target.checked })}
+            onChange={(event) => save(detailsConsentChange(event.target.checked))}
           />
           {state.note && (
             <p className="text-sm" data-details-forbidden="">

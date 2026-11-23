@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  DETAILS_CONSENT_VERSION,
   calendarFeedService,
   entryProviderService,
   memberCalendarSettingModel,
@@ -324,7 +325,13 @@ describe("GET /api/calendar/<token>.ics", () => {
     for (const secret of ["Kidney check", "Mercy Clinic", "Mercy Clinic Group"])
       expect(generic).not.toContain(secret);
 
-    await s.api("caretaker").calendars.settings.update({ groupId: s.group.id, detailsConsent: true });
+    await s
+      .api("caretaker")
+      .calendars.settings.update({
+        groupId: s.group.id,
+        detailsConsent: true,
+        detailsConsentVersion: DETAILS_CONSENT_VERSION,
+      });
     const details = await read();
     expect(details).toContain("Event for Pat Example: Kidney check");
     expect(details).toContain("LOCATION:Mercy Clinic");
@@ -368,7 +375,13 @@ describe("GET /api/calendar/<token>.ics", () => {
     const gone = await provider("Harbor Cardiology");
     await provider("Lakeside Nephrology");
     ok(await providerService.remove(s.ctx("owner"), gone.id));
-    await s.api("caretaker").calendars.settings.update({ groupId: s.group.id, detailsConsent: true });
+    await s
+      .api("caretaker")
+      .calendars.settings.update({
+        groupId: s.group.id,
+        detailsConsent: true,
+        detailsConsentVersion: DETAILS_CONSENT_VERSION,
+      });
     const { file } = await makeFeed(s, "caretaker");
     const ics = (await (await fetchFeed(s.handler(), file)).text()).replaceAll("\r\n", "\n");
     expect(ics).toContain("Lakeside Nephrology");
@@ -381,7 +394,13 @@ describe("GET /api/calendar/<token>.ics", () => {
     const handle = s.handler();
     const { file } = await makeFeed(s, "caretaker");
     const read = async () => (await (await fetchFeed(handle, file)).text()).replaceAll("\r\n", "\n");
-    await s.api("caretaker").calendars.settings.update({ groupId: s.group.id, detailsConsent: true });
+    await s
+      .api("caretaker")
+      .calendars.settings.update({
+        groupId: s.group.id,
+        detailsConsent: true,
+        detailsConsentVersion: DETAILS_CONSENT_VERSION,
+      });
     expect(await read()).toContain("Kidney check");
 
     ok(
@@ -398,7 +417,13 @@ describe("GET /api/calendar/<token>.ics", () => {
     expect(stale).not.toContain("Kidney check");
     expect(stale).not.toContain("Mercy Clinic");
 
-    await s.api("caretaker").calendars.settings.update({ groupId: s.group.id, detailsConsent: true });
+    await s
+      .api("caretaker")
+      .calendars.settings.update({
+        groupId: s.group.id,
+        detailsConsent: true,
+        detailsConsentVersion: DETAILS_CONSENT_VERSION,
+      });
     expect(await read()).toContain("Kidney check");
   });
 
