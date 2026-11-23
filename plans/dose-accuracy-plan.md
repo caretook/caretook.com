@@ -4,13 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/dose-accuracy` (slice commits) |
-| ----- | ---- | ----- | ---------------------------------------------- |
-| 1     | 1    | —     | —                                              |
-| 2     | 2    | —     | —                                              |
-| 3     | 3    | —     | —                                              |
-| 4     | 2    | —     | —                                              |
-| 5     | 4    | —     | —                                              |
+| Slice | Wave | State                           | Merge into `prd/dose-accuracy` (slice commits) |
+| ----- | ---- | ------------------------------- | ---------------------------------------------- |
+| 1     | 1    | merged (opus), worktree removed | e851c83d (597f6f1f, d3fb1182)                  |
+| 2     | 2    | —                               | —                                              |
+| 3     | 3    | —                               | —                                              |
+| 4     | 2    | —                               | —                                              |
+| 5     | 4    | —                               | —                                              |
+
+**Landing mode:** run everything through (started by the dispatcher, 2026-11-22). Start every ready slice, land each green wave, clean up; ask only real questions through `pnpm prd ask`.
+
+**Now:** wave 1: slice 1 merged, B-297 done. Full check passed on d3a3f906; no browser check applies to the diff; quick check passed on 74faa22b after a conflict-free dev sync. Next: PR, Codex, land, fold the docs, rotate. **Ask a92 answered: "Answer nothing"** (a second 23:30 dose after midnight answers no slot and stays on the timeline); built in d3fb1182. The user's side request is B-606 (highlight a double dose on a next-dose-due notification), filed because no such notification exists: name it in the wave 1 landing report. For slices 2, 4 and 5: `doseSlotDay` uses the same reach as `slotAt`; keep the days either side when replacing the expansion, and answer doses before trimming to the range. `pnpm backlog doctor` reports two old inbox-line findings (B-548, B-549), unrelated to this topic.
 
 **Backlog:** claim B-297 when slice 1 starts and `done` it when slice 1 merges; B-298 when slice 2 starts, `done` after slice 3 merges; B-299 when slice 4 starts, `done` after slice 5 merges.
 
@@ -18,7 +22,7 @@ Fold into [medications](../docs/domain/medications.md) at landing: the matching 
 
 ## Architectural decisions
 
-- **Matching:** a dose naming a pass or time its medication still has answers the open slot with that name nearest within the window (two hours); with none, the open one on the recipient's day of its `occurredAt`; else nothing. Named doses first, in time order. Unnamed doses, and ones naming something the schedule no longer has, keep the nearest-open-slot-in-the-window rule. `doseWarnings` uses the same lookup.
+- **Matching:** a dose naming a pass or time its medication still has looks at the slot with that name nearest within the window (two hours): open, it answers it; already answered, it answers nothing. With no such slot in the window, it answers the open one on the recipient's day of its `occurredAt`; else nothing. Named doses first, in time order. Unnamed doses, and ones naming something the schedule no longer has, keep the nearest-open-slot-in-the-window rule. `doseWarnings` uses the same lookup.
 - **Ids:** `doseSlotId(medicationId, day, slotKey)` and `passRoundId(passKey, day)` are UUID v5 through the existing helper; `slotKey` is the pass id, else the named time; the id also covers the dose's status, so only the same answer shares a row; `day` comes from `doseSlotDay` (the slot's nearest moment within the window, else the recipient's day it was given). Pure, exported with the due-dose logic from `@caretook/data/schema`.
 - **Every dose writer** asks one helper for the id and uses the slot id **only when no row with it exists where it writes, live or deleted**; else a random id. A dose in a pass joins the pass's started round, else `passRoundId`.
 - **Server:** in `timelineEntryService.upsert`, a `dose` uploaded onto a live row another member created changes nothing; onto a row another member deleted, it restores the row with the uploaded content. Everything else as now. `packages/api/src/sync.ts` is not edited (it is `sync-safety`'s hot file).
@@ -47,13 +51,13 @@ Stack: no · Reads: docs/domain/medications.md · Tests: unit, component
 
 ### What to build
 
-Change the matching inside the due-dose module so a named dose (a pass or time its medication still has) answers the open slot with that name nearest within the window, else the open one on the recipient's day of its `occurredAt`, else nothing. Keep the order (named first, by time) and the unnamed rule. Make `doseWarnings` find "already given" through the same lookup. Both `dueDoses` and `doseSlotsBetween` pick it up, since they share the matcher. Update the module's doc comment and any test that pinned the old spill-over.
+Change the matching inside the due-dose module so a named dose (a pass or time its medication still has) answers the slot with that name nearest within the window if it is open and nothing if it is answered; with none in the window, the open one on the recipient's day of its `occurredAt`, else nothing. Keep the order (named first, by time) and the unnamed rule. Make `doseWarnings` find "already given" through the same lookup. Both `dueDoses` and `doseSlotsBetween` pick it up, since they share the matcher. Update the module's doc comment and any test that pinned the old spill-over.
 
 ### Acceptance criteria
 
 - [ ] Unit (the due-dose tests): two Given doses for today's Morning slot leave tomorrow's Morning open when evaluated tomorrow; the earlier dose holds the slot and the later answers nothing.
 - [ ] Unit: a dose naming the 20:00 slot, given at 07:00 today, answers today's 20:00 slot and yesterday's stays missed.
-- [ ] Unit: a dose naming the 23:30 slot, given at 00:10, answers last night's slot while it is open, and tonight's when last night's is already answered.
+- [ ] Unit: a dose naming the 23:30 slot, given at 00:10, answers last night's slot while it is open, and nothing when last night's is already answered (tonight's stays open; the user's answer, ask a92).
 - [ ] Unit: the same cases through `doseSlotsBetween`; `missedDoseCounts` counts the real miss.
 - [ ] Unit: a retimed pass still keeps its answered doses; a dose naming a pass or time the medication no longer has is matched as unnamed; an unnamed dose near midnight still answers the nearest open slot across the day line; a DST day.
 - [ ] Unit: `doseWarnings` gives `alreadyGiven` exactly when the planned dose would answer nothing because its slot is given, for a pass and for a time.
