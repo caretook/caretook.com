@@ -670,6 +670,55 @@ describe("doses", () => {
         expect(action(r)).toMatchObject({ amount: "3/8 tablet" });
         expect(day(r)).toBe("11/12");
       });
+
+      describe("the odd cases (B-632)", () => {
+        const lorazepam = [{ id: MET, name: "Lorazepam", strength: "0.5 mg", dose: "1 tablet" }];
+
+        test("a 'no' about a symptom doesn't negate the dose: the fraction is the amount", () => {
+          const r = top("no pain gave tylenol 3/8", { medications: usual });
+          expect(action(r)).toMatchObject({ type: "logDose", status: "given", amount: "3/8 tablet" });
+          expect(when(r)).toBe(NOW.toISOString());
+        });
+
+        test.each(["need to take tylenol 3/8", "need to give tylenol 3/8", "remember to give tylenol 3/8"])(
+          "%s isn't a report of a dose, so it keeps its date",
+          (line) => {
+            const r = top(line, { medications: usual });
+            expect(JSON.stringify(action(r))).toContain("-03-08");
+            expect(JSON.stringify(action(r))).not.toContain("3/8 tablet");
+          },
+        );
+
+        test.each([
+          ["gave lorazepam 1/2", "0.5 mg"],
+          ["gave lorazepam 3/8", "0.375 mg"],
+        ])("%s is the %s strength: the usual dose, no date", (line, strength) => {
+          const r = top(line, { medications: [{ ...lorazepam[0]!, strength }] });
+          expect(action(r)).toMatchObject({ type: "logDose", amount: "1 tablet", note: null });
+          expect(when(r)).toBe(NOW.toISOString());
+        });
+
+        test("a fraction that isn't the strength is still the amount", () => {
+          const r = top("gave lorazepam 1/4", { medications: lorazepam });
+          expect(action(r)).toMatchObject({ amount: "1/4 tablet" });
+          expect(when(r)).toBe(NOW.toISOString());
+        });
+
+        test("'gave tylenol 3/8 at 9pm' is 3/8 tablet today at 9pm", () => {
+          // 10pm on Nov 19 in Los Angeles, so 9pm has passed today.
+          const now = new Date("2026-11-20T06:00:00Z");
+          const r = top("gave tylenol 3/8 at 9pm", { medications: usual, now });
+          expect(action(r)).toMatchObject({ amount: "3/8 tablet" });
+          expect(day(r)).toBe("11/19");
+          expect(
+            new Date(when(r)!).toLocaleTimeString("en-US", {
+              timeZone: "America/Los_Angeles",
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+          ).toBe("9:00 PM");
+        });
+      });
     });
 
     test("a line forced to another kind keeps its date", () => {
