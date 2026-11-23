@@ -14,7 +14,7 @@ Left for a later wave: B-316 (unsaved-changes guard), B-535 (hour-first time pic
 | ----- | ----- | ------------------- | -------- |
 | 1     | B-256 | merged (opus)       | b5373bc9 |
 | 2     | B-416 | merged (opus)       | f6f40e4f |
-| 3     | B-538 | started (opus)      | —        |
+| 3     | B-538 | merged (opus)       | 439b6571 |
 | 4     | B-412 | handed off e0fd0647 | —        |
 | 5     | B-519 | handed off b1be7664 | —        |
 | 6     | B-413 | handed off e36150f8 | —        |
