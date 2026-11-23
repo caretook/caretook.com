@@ -7,17 +7,17 @@ The [PRD](test-gates-prd.md) covers:
 - a run's failures are sorted by kind, and flakes are quarantined;
 - a landing waits for the tier its orchestrator declared.
 
-Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-566, B-567, B-568, B-572. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
+Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-566, B-567, B-568, B-572, B-587, B-588, B-589. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
 
 ## Status
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** waves 1 (adce90ee, PR #71) and 2 (5b724350, PR #74) are in dev. Wave 2 landed with `--force --no-review` on the user's word on 2026-11-22: its full check failed once on a harness flake (B-573) and the rerun was stopped; Codex was clean on d9bda4e, and only Markdown changed after it. No browser checks (no app code). Docs folded. **Wave 3 is slices 4 and 10 side by side, then slice 9 (all opus).** Synced with dev on 2026-11-22 (nothing new). Slice 9 was added for B-566, B-567 and B-568, which the user moved here (notice n19). Slice 10 was added for B-572, moved back from test-gates-2 on the user's word (its note); dev 42cba6b8 drops it from that plan, and the next `pnpm prd sync` brings the revert in. Slices 4 (6396b470) and 10 (7484100e) are merged and their worktrees removed. Slice 4's CI proof: flake run 45085948202, narrowed run 45086351881. Slice 9 is merged (f285f1a5); its worktree stays until the wave's full check passes, so a failure can go back to it. Synced with dev (e1845b41, ui-kit-3 wave 2 came in). **The user's word (2026-11-22): skip wave 3's full check, land with `--force`, and let the next wave pick up any errors.** The check was stopped before a result, so this tip has no check pass. **Wave 3 landed in dev as da93fcfa (PR #76, `--force` on the user's word, Codex clean on d6a27c1 and carried over the dev merge 12a01485); report filed; B-566, B-567 and B-572 done. Next: `pnpm prd sync`, then wave 4 (slice 5, opus; claim nothing new, B-529 and B-530 stay in progress until it merges). Wave 4 should expect errors from wave 3, which has no check pass.** Docs are folded into `ops/runbook.md`, `orchestrator.md` and `prompt.sh`; `machinery.md` and `loop.md` have no room, so the runbook holds the CI detail. The fold's list, for reference: `orchestrator.md` _The check gate_ ("a `package.json` (beyond its `scripts`)"), the same old wording at `scripts/loops/prompt.sh` line 154, and `loop.md` _Which checks a file needs_ (the `- (scripts only)` answer); in `ops/runbook.md` and `machinery.md`, the kinds and `ci run --wait` exit codes (0 green, 1 brake, 2 file, 3 flake, 4 infra, 5 unknown, 64 usage, 75 timeout), the brake list (hand-edited; a line matching no test fails `lists.test.mjs`; its flakes are filed, never quarantined), the quarantine (skipped except in a run's quarantine step), `--files` and `.ci-narrowed.json`. A flake verdict's GitHub run shows `success`: read the verdict, not the colour.
+**Now:** waves 1 (adce90ee, PR #71) and 2 (5b724350, PR #74) are in dev. Wave 2 landed with `--force --no-review` on the user's word on 2026-11-22: its full check failed once on a harness flake (B-573) and the rerun was stopped; Codex was clean on d9bda4e, and only Markdown changed after it. No browser checks (no app code). Docs folded. **Wave 3 is slices 4 and 10 side by side, then slice 9 (all opus).** Synced with dev on 2026-11-22 (nothing new). Slice 9 was added for B-566, B-567 and B-568, which the user moved here (notice n19). Slice 10 was added for B-572, moved back from test-gates-2 on the user's word (its note); dev 42cba6b8 drops it from that plan, and the next `pnpm prd sync` brings the revert in. Slices 4 (6396b470) and 10 (7484100e) are merged and their worktrees removed. Slice 4's CI proof: flake run 45085948202, narrowed run 45086351881. Slice 9 is merged (f285f1a5); its worktree stays until the wave's full check passes, so a failure can go back to it. Synced with dev (e1845b41, ui-kit-3 wave 2 came in). **The user's word (2026-11-22): skip wave 3's full check, land with `--force`, and let the next wave pick up any errors.** The check was stopped before a result, so this tip has no check pass. **Wave 3 landed in dev as da93fcfa (PR #76, `--force` on the user's word, Codex clean on d6a27c1 and carried over the dev merge 12a01485); report filed; B-566, B-567 and B-572 done.** Docs are folded into `ops/runbook.md`, `orchestrator.md` and `prompt.sh`; `machinery.md` and `loop.md` have no room, so the runbook holds the CI detail. The fold's list, for reference: `orchestrator.md` _The check gate_ ("a `package.json` (beyond its `scripts`)"), the same old wording at `scripts/loops/prompt.sh` line 154, and `loop.md` _Which checks a file needs_ (the `- (scripts only)` answer); in `ops/runbook.md` and `machinery.md`, the kinds and `ci run --wait` exit codes (0 green, 1 brake, 2 file, 3 flake, 4 infra, 5 unknown, 64 usage, 75 timeout), the brake list (hand-edited; a line matching no test fails `lists.test.mjs`; its flakes are filed, never quarantined), the quarantine (skipped except in a run's quarantine step), `--files` and `.ci-narrowed.json`. A flake verdict's GitHub run shows `success`: read the verdict, not the colour.
 
-**Wave 4 (resumed 2026-11-22):** reconciled with git: nothing in flight, no slice worktrees left, `pnpm prd sync` found dev up to date. Slice 5 took two opus agents (the first hit its context limit) and is merged as 009275c5; B-529 and B-530 are done. Its slice check passed on 54c05411 (the first try died of an ESLint heap error at load 18). Real rerun proof: run 45093707597. `ci blame`, `ci file`, `ci status`, the commit status and the infra-rerun loop have run only against fakes and temp repos. Synced with dev (6722c95b). The first full check died of the same ESLint heap crash (12 recent checks across four PRDs), so f88e5946 gives the local check's ESLint CI's 6 GB. **The full check passed on f88e5946**; no browser checks are needed (tooling only) and slice 5's worktree is removed. Next: PR, Codex, land, fold the docs, rotate.
+**Wave 4 landed in dev as 2991461a (PR #81; 2026-11-22).** Slice 5 (009275c5, two opus agents, the first hit its context limit). B-529 and B-530 are done. Full check passed on f88e5946, quick recheck on the synced tip e7cf0736; no browser checks (tooling only). f88e5946 gives the local check's ESLint CI's 6 GB heap, after that crash hit 12 recent checks across four PRDs. Real rerun proof: run 45093707597. `ci blame`, `ci file`, `ci status`, the commit status and the infra-rerun loop have run only against fakes and temp repos. Codex found three real blame bugs over three rounds (B-587, B-588, B-589, filed, replied, resolved) and was clean on 5d7f9a7, carried over the dev merge. Docs are folded into `ops/runbook.md`; report filed.
 
-**For the fold (machinery.md has no room, so the runbook):** an infra verdict is rerun once and a rerun replaces the `verdict` artifact; whole-tier runs write the commit status `caretook-ci/<tier>`; `ci blame` exits 0 all dev's, 2 some the branch's, 5 unknown (infra, truncated or flaky dev results stay unknown); `[ci-key <key>]` in an item's first note; `ci-file` is one locked commit, never amended, pushed without force; dev-brake notices; quarantine pruning on any write and by tidy; a list-only commit is not drift and keeps a pass, but a branch changing only a list still needs a check; `pnpm prd status` shows CI verdicts, cached in the main checkout's `.loops/.ci-status/`.
+**Next: wave 5 is slice 11 (the three blame bugs, opus), then slice 6, then slice 7 on top, landed together.** Claim B-587, B-588 and B-589 when slice 11 starts. Slice 6's gate must not trust blame before slice 11 is merged: two of the bugs can clear a branch's failure as dev's.
 
 **For slice 6:** pass `--base` (dev before the merge) to `ci file`, because after the merge the branch's diff is empty. The commit status is written only by a waiting run (`ci run --wait`, or blame's dev run). Dev-failure filing commits to local dev without a push; only a quarantine write pushes, and a refused push leaves the commit on local dev and exits 5. A brake notice lasts at most 24 hours and is withdrawn only by a later blame that re-tests its key and passes.
 
@@ -46,6 +46,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 | 8     | 2    | merged (opus) | ff6ac3c3 (7bd82c6f)                         |
 | 9     | 3    | merged (opus) | f285f1a5 (3b4428f0, 3b752d2e, 21533389)     |
 | 10    | 3    | merged (opus) | 7484100e (b5c9c6c6)                         |
+| 11    | 5    | —             | —                                           |
 
 **Backlog:**
 
@@ -65,6 +66,9 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 | B-567 | slice 9 starts  | slice 9 merges  |
 | B-568 | slice 9 starts  | slice 9 merges  |
 | B-572 | slice 10 starts | slice 10 merges |
+| B-587 | slice 11 starts | slice 11 merges |
+| B-588 | slice 11 starts | slice 11 merges |
+| B-589 | slice 11 starts | slice 11 merges |
 
 ## Architectural decisions
 
@@ -86,7 +90,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
   2. slice 3, then slice 8 on top of it (both edit `ci.yml` and `vitest.config.ts`)
   3. slices 4 and 10 side by side, then slice 9 on top of 4 (9 needs the quarantine list)
   4. slice 5
-  5. slice 6, then slice 7 on top of it, landed together
+  5. slice 11, then slice 6 on top of it, then slice 7, landed together
 - Waves 1 to 4 land under today's gate. **Wave 5 lands under its own new gate**, with a real `--tier full` run as the proof, and its landing notice tells the other orchestrators that the gate changed at their next sync.
 - **Proving a workflow change:** a slice pushes its own commit to a `ci/` ref (`pnpm prd ci run`, or `git push origin HEAD:refs/heads/ci/<tier>/<name>` before the command exists), links the runs in its hand-off and deletes the refs. A pushed ref runs the workflow of that commit, so nothing needs to be in dev or staging first.
 - **Hot files:** `.github/workflows/`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `packages/data/src/db/roles/syncConfig.ts` (the YAML reader the workflow tests use), `vitest.config.ts`, `scripts/loops/land`, `scripts/loops/check-plan`, `scripts/loops/check-body`, `scripts/loops/check-run`, `scripts/loops/check-times`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/pr.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/rotate`, `scripts/loops/browser.sh`, `scripts/loops/lease.sh`, `scripts/loops/stack-lib.sh`, `package.json`. These overlap:
@@ -282,7 +286,7 @@ Stack: no · Reads: docs/agents/orchestrator.md, docs/agents/loop.md, docs/agent
   - a tip with docs-only commits since its verdict lands.
 - `pnpm test:tooling` passes.
 
-**Blocked by:** 1, 5, 10. **Blocks:** 7, test-gates-2.
+**Blocked by:** 1, 5, 10, 11. **Blocks:** 7, test-gates-2.
 
 ## Slice 7: The orchestrator sends failures back to the slice that caused them
 
@@ -384,3 +388,23 @@ Stack: no · Reads: docs/agents/loop.md, docs/agents/orchestrator.md · Tests: u
 - `pnpm test:tooling` passes.
 
 **Blocked by:** nothing. **Blocks:** 6.
+
+## Slice 11: Blame never clears a failure it didn't compare
+
+Stack: no · Reads: docs/agents/loop.md, ops/runbook.md (the CI section) · Tests: unit
+
+**User stories:** US 5. Added for Codex's findings on PR #81 (B-587, B-588, B-589).
+
+**Build,** in `scripts/ci/blame.mjs` and, for B-587, the narrowed path in `scripts/ci/test-job.mjs`:
+
+- B-587: a test skipped as quarantined in dev's comparison run has not passed there. Run it, or leave it unknown.
+- B-588: a flake doesn't explain a failed job. A `file` verdict whose failure no remaining test explains is partial, so blame exits 5 instead of 0.
+- B-589: a named failure against a dev result that lists only its file (a load failure) stays unknown, not dev's.
+
+**Acceptance criteria:**
+
+- `blame.test.mjs` has a failing-first case for each of the three, built through `buildVerdict()` where the bug depends on its shape.
+- None of the three can make `blameExit` return 0.
+- `pnpm test:tooling` passes.
+
+**Blocked by:** 5. **Blocks:** 6.
