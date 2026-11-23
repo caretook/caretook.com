@@ -294,7 +294,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-613 | change | triaged | fixes-ui |  | Motion tuning: Today card slides open and shut, sheets fade only, overlays at 240 ms |
 | B-614 | bug | triaged | dose-accuracy |  | An offline log-then-Undo can delete another member's dose: the PUT is a no-op on their row, then the PATCH of deleted_at removes it (a PUT already carrying deleted_at does the same) |
 | B-615 | bug | triaged | fixes-bug |  | Connector log_dose names no slot, so two log_dose calls for one pass never merge into one dose; only give_pass converges |
-| B-616 | bug | triaged | fixes-bug |  | Two simultaneous first uploads of one dose id: the loser hits the primary key and gets a 500; a device retries into the no-op, but a connector run fails and must be retried |
+| B-616 | bug | triaged | dose-accuracy |  | Two simultaneous first uploads of one dose id: the loser hits the primary key and gets a 500; a device retries into the no-op, but a connector run fails and must be retried |
 | B-617 | bug | triaged | fixes-ui |  | List tool buttons show no hover: search, filter and view on Timeline, filter on Providers and Planner |
 | B-618 | change | triaged | fixes-ui |  | Timeline day header: move Change care period to the left of the period text |
 | B-619 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
@@ -334,7 +334,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-668 | change | triaged | fixes-ui |  | Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus |
 | B-669 | feature | triaged | onboarding-2 |  | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
 | B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast |
-| B-671 | change | triaged | onboarding-2 |  | New groups default to No known allergies |
+| B-671 | change | dropped | onboarding-2 |  | New groups default to No known allergies |
 | B-672 | feature | triaged | fixes-ui |  | Add an allergy: suggest substances and reactions as you type, like conditions |
 | B-673 | feature | triaged | fixes-ui |  | Add a medication: suggest common medication names as you type, like conditions |
 | B-674 | change | triaged | fixes-ui |  | Add a medication: the schedule starts on As needed |
@@ -360,6 +360,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-694 | change | triaged | fixes-ui |  | Long create forms: core fields on the first tab, the rest on other tabs |
 | B-695 | change | triaged | fixes-ui |  | Rename "passes" to "Med times" everywhere users see it |
 | B-696 | bug | triaged | fixes-tooling |  | check-plan can hang forever or wrongly report no changes when called by hand, which stalled two orchestrators for hours |
+| B-697 | change | triaged | fixes-ui |  | Medications Schedule: logging a dose shows a toast (after the shared toast system) |
+| B-698 | change | triaged | fixes-ui |  | One medication card for Schedule and the Medications list: the whole card opens it, with a Log button |
+| B-699 | bug | triaged | fixes-ui |  | Medication page: Back returns to where you came from, not always the Medications list |
+| B-700 | feature | triaged | fixes-ui |  | Passes tab: quick log a pass, with cards matching the new medication card |
+| B-701 | change | triaged | fixes-ui |  | Passes always sort by time: remove Move up and Move down |
+| B-702 | bug | triaged | fixes-ui |  | Medications Print menu: text overflows or crowds the menu box |
 
 ## Items
 
@@ -2268,12 +2274,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-616 · bug · Two simultaneous first uploads of one dose id: the loser hits the primary key and gets a 500; a device retries into the no-op, but a connector run fails and must be retried
 
 - status: triaged
-- prd: fixes-bug
+- prd: dose-accuracy
 - owner:
 - commit:
 
 - 2026-11-23 (prd/dose-accuracy): From dose-accuracy slice 3's hand-off. timelineEntryService upsert, dose kind.
 - 2026-11-23 (prd/dose-accuracy): Codex on PR #96 (P2, verified by reading assistantActionService slotDoseId): two concurrent give_pass runs can both read the slot id as free; the loser's create hits the primary key and rolls back its whole action batch, unrelated entries included. A rerun doesn't double the slot. Fix: claim or insert the id atomically and treat an existing dose as already logged.
+- 2026-11-23 (prd/dose-accuracy): Moved from fixes-bug to dose-accuracy slice 6 (wave 5) on the user's word, 2026-11-23: it shares the dose upload path in timelineEntryService with B-614 and B-627.
 
 ### B-617 · bug · List tool buttons show no hover: search, filter and view on Timeline, filter on Providers and Planner
 
@@ -2666,12 +2673,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-671 · change · New groups default to No known allergies
 
-- status: triaged
+- status: dropped
 - prd: onboarding-2
 - owner:
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): User request 2026-11-23: new groups should default to "No known allergies". Today a new recipient has no_known_allergies_at null, shown as "Allergies not recorded". Adding an allergy already clears the flag (recipientAllergyService, allergies.sync.ts). Effects to handle: (1) the flag is shown as a recorded fact on the Medications region, printed sheets, the emergency sheet (emergencyPrintSheet.ts) and the connector recipient_profile tool (noKnownAllergies), so a default would state it for a recipient nobody has asked about; PrintAllergies exists so an empty block is never read as none. (2) gettingStarted.sync.ts counts the flag as the allergy/condition step done, so a default ticks it for every new group. Open with the user: true stored default, or preselected in the onboarding profile basics step (B-670) and saved on confirm. Triaged to onboarding-2 because it shapes that step.
+- 2026-11-23 (Robert Bo Davis): Dropped at the user's request, 2026-11-23: new groups will not default to No known allergies.
 
 ### B-672 · feature · Add an allergy: suggest substances and reactions as you type, like conditions
 
@@ -2911,3 +2919,57 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): 2026-11-23 incident: dose-accuracy (about 9 h) and fixes-bug (about 4 h) ran 'node scripts/loops/check-plan.mjs --base dev' in a chained background command ahead of pnpm prd check --quick. The CLI reads stdin to EOF before looking at flags (check-plan.mjs:150); stdin never closed, so the check never started, no lease was taken, and the session waited for an exit notice. Also verified: --propose takes changed files only from stdin, so empty stdin prints 'none / no changes' even on a branch with changes. land and pr are safe (propose_tier in lib.sh pipes the diff). Fix: (1) validate args before reading stdin: require --mode or --propose, refuse unknown flags; a TTY check alone would not catch this, because a background stdin need not be a TTY. (2) With --propose and --base/--head, compute the diff itself rather than trusting empty stdin. (3) Add one pnpm prd command that prints the proposed tier, and name it in the orchestrator prompt and handbook, which today say to use the proposed tier with no command. (4) Orchestrator rule: don't chain a lookup ahead of a long check; confirm the check holds a lease (pnpm prd status) before reporting it as running. Touches scripts/loops/prd.sh and prompt.sh, hot for test-gates-2 and worker-watch.
+
+### B-697 · change · Medications Schedule: logging a dose shows a toast (after the shared toast system)
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: logging from the medications schedule should generate a toast once toasts are in place. BLOCKED BY B-669 (shared toast system), which is in onboarding-2, on hold: don't start this until it lands. Same waiting pattern as B-693 (saved toast for events and notes). Today a one-tap Given (DoseSlotRow via usePassLog.logSlot) only changes the row. Skipped and Refused go through MarkDoseDialog, as-needed Log through the Schedule route's clientAction/TodaySection. Cover each path that logs from this tab. Given all already shows 'Morning logged · Undo' in PassUndoStatus (lib/medications/passUndo.ts, about 10 s): move that into the toast rather than showing both. Toast only after the local write succeeds; errors stay inline. Wording and whether single doses get Undo are not decided: ask the user when this is built. Mind dose-accuracy's Undo fixes (B-614, B-627) if adding Undo.
+
+### B-698 · change · One medication card for Schedule and the Medications list: the whole card opens it, with a Log button
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the medication card on Schedule and on Medications should probably be a single component that has the log button, and the entire card should be clickable. Today there are three separate rows: MedicationListItem (list; name link already stretched over the row), DoseSlotRow and AsNeededRow (Schedule; only the name is a link, with Given, the more menu, or Log). Build one shared card in components/medications. Use the stretched link pattern with actions above it (ui/ListRow to + trailing, z-10), so Given, Log and the menu never open the page. Keep the dose safety behavior: AsNeededRow's over-maximum confirm, Skipped/Refused via MarkDoseDialog, canWrite gating, inline errors. Not decided, ask when built: what Log does on the list tab for a scheduled medication (which slot; likely Given for the current open slot, or the Dose sheet), and that stopped medications show no Log. Take after dose accuracy lands (dose-accuracy changes the due-dose data these rows read). Coordinate with B-697 (logging toast) and B-695 (Med times wording).
+
+### B-699 · bug · Medication page: Back returns to where you came from, not always the Medications list
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the back button on the medication page should take you back to where you came from, not the medications page. Today medication/route.tsx:120 is BackLink to appUrls.medicationList with the label Medications. Pages link here from Schedule, the list, Med times (PassList), a provider, a todo, search, a condition and timeline entries (MedicationEntryText). Pass the origin (URL and label) in link state, as todo/route.tsx does with listSearchFromState, rather than a bare navigate(-1), so it survives sheets opened over the page and keeps the origin's filters. The label names the origin (Schedule, Timeline, Search...). Direct load, refresh without state, or a shared link falls back to the Medications list. Deleting a medication still goes to the list unless the origin is safe. Pairs with the one-card item, which changes two of these links.
+
+### B-700 · feature · Passes tab: quick log a pass, with cards matching the new medication card
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: you should be able to quick log passes from the passes tab on the Medications page, and the styling should match the new medications card. AFTER B-698 (one medication card), which sets the card style, and after dose accuracy lands. Today PassList (medications/passes/PassList.tsx) only lists each pass's name, time and medication links, with a menu for Edit, Move and Delete; it has no today state. Reuse Schedule's logging rather than a second path: read today's DuePass from useDueDoses, and use usePassLog.givenAll plus PassUndoStatus (it already scopes offers by place). Same rules as Given all on Schedule (PassCard): writers only, open medications only, given now, then Undo; a pass already done shows its state instead of the button. Keep the management menu for writers. Viewers see no log action. The toast follows B-697 and the wording B-695 (Med times). Not decided, ask when built: whether a pass can be logged before it is due if Schedule's rule doesn't already settle it, and whether the whole pass card opens anything (it has no page of its own today).
+
+### B-701 · change · Passes always sort by time: remove Move up and Move down
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: remove Move up and Move down from the Passes tab menu and always order passes by time, then name. Why: the manual order changes no due time, but it can list Evening above Morning on the Passes tab, quick entry, the printed weekly sheet and medication schedule summaries. Schedule already sorts by time first (duePasses) and uses sort order only as a tie-break. Change sortPasses (packages/data/src/db/schema/medications/medicationPass.ts), passesQuery's ORDER BY (medicationPasses.sync.ts), the model's sort (medicationPassModel.ts) and duePasses' tie-break; remove the move intent, movePass and its menu items and tests. No migration: keep the sort_order column for now (migrations stay additive, contract later) and keep writing a valid value. Existing custom orders simply stop applying. Take after dose accuracy lands (duePasses.ts is its hot file). Touches the same PassList menu as B-700 (Passes tab quick log), so do them together or this one first.
+
+### B-702 · bug · Medications Print menu: text overflows or crowds the menu box
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23, with a screenshot of the Print menu on the Medications page: the print list overflows the box. Not reproduced in a browser. From the code: PrintMenu uses Menu width=md (w-56, 224px). After the daisyUI menu padding, item px-3, icon and gap, about 160px is left, and 'Every medication, and who to call' needs about that much, so it sits against the right edge and may truncate with another font or text size. Likely fix: width=lg in PrintMenu.tsx (w-64), then check at phone width and in both themes that the text fits with even padding and the menu stays on screen. Confirm with the user that this is the overflow they meant. Also check the other Menus with descriptions (GroupMenu, TimelineViewMenu), since they share the same item layout.
