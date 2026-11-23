@@ -571,13 +571,16 @@ describe("appointments", () => {
     await waitUntil(() => !GRID() && !!seg("hour"), "the time segments");
   };
 
-  test("?when=pick opens the calendar on arrival; a picked day starts at 9:00; leaving saves nothing; a title saves it at 9:00", async () => {
+  test("?when=pick opens the calendar on arrival; a picked day starts at the current hour; leaving saves nothing; a title saves it then", async () => {
+    const hour = new Date().getHours();
+    const start = ahead();
+    start.setHours(hour, 0, 0, 0);
     const device = await open(`/app/groups/${GROUP}/entries/new?kind=event&when=pick`);
     await pickAheadDay();
-    expect(`${seg("hour")?.textContent}:${seg("minute")?.textContent}`).toBe("9:00");
+    expect(`${seg("hour")?.textContent}:${seg("minute")?.textContent}`).toBe(`${hour % 12 || 12}:00`);
     await userEvent.click(await found(() => button("Done")));
     await waitUntil(() => !CHIP_DIALOG());
-    expect(new Date(HEADER_TIME()?.dateTime ?? "").getTime()).toBe(ahead().getTime());
+    expect(new Date(HEADER_TIME()?.dateTime ?? "").getTime()).toBe(start.getTime());
     expect(device.location()).toMatch(/\/entries\/new/);
     expect((await device.queued()).length).toBe(0);
 
@@ -587,7 +590,23 @@ describe("appointments", () => {
     await expect.poll(() => device.location()).toMatch(ON_ENTRY);
     await expect
       .poll(async () => Date.parse((await stored(device, idOf(device.location())))!.occurred_at))
-      .toBe(ahead().getTime());
+      .toBe(start.getTime());
+  });
+
+  test("an event's minutes step by 15 from a saved 9:10, which stays until stepped", async () => {
+    const start = ahead();
+    start.setMinutes(10);
+    const appt = fx.event({ title: "Podiatry", occurredAt: at(start), text: "" });
+    const device = await open(entryPath(appt.id), { fixtures: [base(), appt] });
+    await waitUntil(() => !!TIME_CHIP());
+    await userEvent.click(await found(TIME_CHIP));
+    await waitUntil(() => seg("minute")?.textContent === "10", "the saved minute");
+    (await found(() => seg("minute"))).focus();
+    await userEvent.keyboard("{ArrowUp}");
+    await waitUntil(() => seg("minute")?.textContent === "15", "the next quarter");
+    await userEvent.keyboard("{ArrowDown}");
+    await waitUntil(() => seg("minute")?.textContent === "00", "the quarter before");
+    expect(device.location()).toContain(appt.id);
   });
 
   test("end time: an hour after the start by default; before the start is an error Done refuses; saved as a range", async () => {

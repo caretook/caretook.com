@@ -21,6 +21,7 @@ import {
   Label,
 } from "react-aria-components";
 import { localTimeZone } from "~/lib/core/format";
+import { steppedMinute } from "~/lib/core/timeOfDay";
 import { buttonClass } from "../buttonClass";
 import { PopoverPanel } from "../Popover";
 import { FIELD_ERROR, FIELD_LABEL } from "../styles";
@@ -53,7 +54,8 @@ const SEGMENT_STEPS: Record<string, { sign: 1 | -1; page: boolean }> = {
  * starts at 9:00); after that, picking a day keeps the time as usual.
  * `calendarOpen` opens the calendar as the field mounts. `timeZone` shows
  * and edits the time in that zone (the care recipient's) instead of the
- * device's.
+ * device's. `minuteStep` makes the minute segment's step keys move on that
+ * grid (:10 goes to :15 or :00); a typed or saved minute stays as it is.
  */
 export function DateTimeField({
   name,
@@ -66,6 +68,7 @@ export function DateTimeField({
   dayPickTime,
   calendarOpen,
   timeZone,
+  minuteStep,
 }: {
   name?: string;
   label: string;
@@ -82,6 +85,8 @@ export function DateTimeField({
   calendarOpen?: boolean;
   /** The IANA zone the time is shown and typed in; the device's by default. */
   timeZone?: string;
+  /** The minutes the step keys move by. */
+  minuteStep?: number;
 }) {
   const zone = timeZone ?? localTimeZone();
   const [value, setValue] = useState<ZonedDateTime>(() =>
@@ -104,7 +109,14 @@ export function DateTimeField({
   const stepClamped = (e: KeyboardEvent<HTMLElement>) => {
     const field = (e.target as HTMLElement).dataset.type;
     const step = SEGMENT_STEPS[e.key];
-    if ((field !== "month" && field !== "year") || !step || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (!step || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (field === "minute" && minuteStep) {
+      e.preventDefault();
+      e.stopPropagation();
+      change(value.set({ minute: steppedMinute(value.minute, step.sign, minuteStep) }));
+      return;
+    }
+    if (field !== "month" && field !== "year") return;
     const amount = step.sign * (step.page ? (field === "year" ? 5 : 2) : 1);
     const next = value.cycle(field, amount, { round: field === "year" });
     if (next.day === value.day) return;

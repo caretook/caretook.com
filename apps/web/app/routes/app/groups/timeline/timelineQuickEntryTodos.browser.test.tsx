@@ -151,7 +151,7 @@ describe("quick entry adds todos", () => {
     await expect.element(dialog.getByRole("textbox", { name: "Todo" })).toHaveValue("Pick up the walker");
     await expect.element(dialog.getByText("Sam Okafor")).toBeVisible();
     expect(dialog.getByLabelText("Due (optional)").element()).toHaveProperty("value", tomorrow);
-    expect(dialog.getByLabelText("Time (optional)").element()).toHaveProperty("value", "15:00");
+    expect(document.querySelector('[role=dialog] input[name="dueTime"]')).toHaveProperty("value", "15:00");
     expect(await device.query("SELECT id FROM todo")).toEqual([]);
   });
 

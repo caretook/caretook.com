@@ -4,7 +4,8 @@ import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
 import { MEDICATION_PASS_LIMITS } from "@caretook/data/schema";
 import { useEffect, useRef } from "react";
 import { useFetcher } from "react-router";
-import { Field } from "~/components/ui";
+import { Field, TimeSelect } from "~/components/ui";
+import { useGroup } from "~/lib/app-shell/group";
 import { PASS_FIELD } from "./passActions";
 
 const issueFor = (issues: FieldIssue[], path: string) => issues.find((i) => i.path === path)?.message;
@@ -28,6 +29,8 @@ export function PassForm({
   onCancel: () => void;
 }) {
   const fetcher = useFetcher<ActionResult>();
+  // A pass's time is the recipient's, so a new one starts at their current hour.
+  const timeZone = useGroup().recipient?.timeZone ?? undefined;
   const formRef = useRef<HTMLFormElement>(null);
   const result = fetcher.state === "idle" ? fetcher.data : undefined;
   const issues = result && !result.ok ? result.issues : [];
@@ -63,26 +66,19 @@ export function PassForm({
           />
         )}
       </Field>
-      <Field
+      <TimeSelect
         label="Time"
+        name={PASS_FIELD.time}
+        className="max-w-44"
+        timeZone={timeZone}
+        defaultValue={pass?.time}
         help={
           pass
             ? `Every medication in ${pass.name} moves with it.${zoneNote ? ` ${zoneNote}.` : ""}`
             : (zoneNote ?? undefined)
         }
         error={timeError}
-      >
-        {(control) => (
-          <input
-            {...control}
-            type="time"
-            name={PASS_FIELD.time}
-            className="input w-40"
-            defaultValue={pass?.time ?? ""}
-            required
-          />
-        )}
-      </Field>
+      />
       {general && (
         <p className="text-error text-sm" role="alert">
           {general}

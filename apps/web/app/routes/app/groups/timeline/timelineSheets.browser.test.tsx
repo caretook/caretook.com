@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
-import { found } from "../../../../../test/found";
+import { fixClock, found } from "../../../../../test/found";
 import { fx, TEST_USER } from "../../../../../test/fixtures";
 import { rows, rowWith, TIMELINE_URL as T, openTimeline } from "./timelineWorld";
 
@@ -71,6 +71,12 @@ describe("the add sheet", () => {
       ),
     );
     await expect.poll(SHEET).toBeNull();
+  });
+
+  test("a log's time still defaults to the current minute", async () => {
+    fixClock(new Date(2027, 5, 9, 12, 7));
+    await openAdd();
+    expect(segments().minute).toBe("07");
   });
 
   test("a save shows on the device at once, stored and queued as the signed-in user", async () => {
