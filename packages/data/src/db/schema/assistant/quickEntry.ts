@@ -1085,7 +1085,7 @@ const countedAmount = (word: string, value: number, dose: string | null | undefi
 const MEASURE = /^(\d+(?:\.\d+)?)\s*([a-z]+)$/i;
 
 /**
- * What a fraction that is exactly the strength records. It names one unit of
+ * What a fraction or decimal that is exactly the strength records. It names one unit of
  * the medication, so the usual dose when that is one unit or the same measure.
  * A usual "2 tablets" would double what was typed, so there the typed amount stands.
  */
@@ -1202,7 +1202,7 @@ const typedBeside = (
   const strengths = (m.item.strength?.match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
   let count: { used: number[]; amount: string } | null = null;
   const strength: number[] = [];
-  let fractionAmount: string | null = null;
+  let partAmount: string | null = null;
   const counted = (k: number, word: string, links: number[]) => {
     const value = countValue(word);
     if (!count && isCount(value))
@@ -1227,10 +1227,10 @@ const typedBeside = (
       if (wantCount) counted(k, times[1]!, []);
     } else if (/^\d/.test(w) && strengths.includes(countValue(w) ?? NaN)) {
       strength.push(k);
-      if (wantCount && w.includes("/")) fractionAmount ??= amountAtStrength(w, m.item);
+      if (wantCount && /[./]/.test(w)) partAmount ??= amountAtStrength(w, m.item);
     } else if (wantCount) counted(k, w, []);
   }
-  return { count: count as { used: number[]; amount: string } | null, strength, fractionAmount };
+  return { count: count as { used: number[]; amount: string } | null, strength, partAmount };
 };
 
 /**
@@ -1366,7 +1366,7 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
         type: "logDose",
         medicationId: m.item.id,
         status: inherited ?? "given",
-        amount: amount ?? typed[rank]!.count?.amount ?? typed[rank]!.fractionAmount ?? m.item.dose ?? null,
+        amount: amount ?? typed[rank]!.count?.amount ?? typed[rank]!.partAmount ?? m.item.dose ?? null,
         note,
         occurredAt: at.toISOString(),
       },
