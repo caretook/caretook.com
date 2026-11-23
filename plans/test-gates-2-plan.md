@@ -10,14 +10,14 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 | 2. Browser results, reruns and flakes          | 2    | landed b55e4413 (PR #120) | 186a23c3 |
 | 3. A release candidate                         | 3    | landed ce792df3 (PR #122) | 22dc1231 |
 | 4. Promotion refuses what isn't passing        | 3    | landed ce792df3 (PR #122) | c9670a4c |
-| 5. The release tier                            | 4    | not started               |          |
+| 5. The release tier                            | 4    | in progress (opus)        |          |
 | 6. The required check on main and its override | 5    | not started               |          |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
 **Now:** wave 3 landed in `dev` as ce792df3 through PR #122, **without a Codex review (out of credits)**. `full` run 45212045467 green on 25523b82. The real candidate rc/20261123-1613 (PR #121, `candidate` run 45214064116, 11 of 11 browser checks) was closed unmerged with its branches deleted; `staging` stayed at 94b26ec3 and held PR #115 is still open. Slice 3 and 4 worktrees are removed, the docs are folded, B-532 is finished and report a146 is filed. B-533 (the staging to main gate) stays open for slices 5 and 6.
 
-**Next:** rotate, then start wave 4 (slice 5, on opus): `pnpm prd sync`, backlog ingest and list, and a new CI approval ask before its first run.
+**Next:** wave 4 is running. `prd/test-gates-2` is synced with `dev` (only backlog commits are newer). Slice 5 has its worktree `test-gates-2-5` and an opus agent, under a hard stop on any CI run until wave 4's approval ask is answered. If that agent is gone, respawn it with `--continue` and repeat the stop.
 
 **Docs:** `docs/agents/machinery.md` is 10 bytes over budget already, so don't grow it. `docs/agents/orchestrator.md` has about 35 bytes left.
 
