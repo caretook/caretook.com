@@ -12,7 +12,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 4 (slices 19–27, B-527, B-578, B-580, B-581, B-591, B-599, B-601, B-602, B-605, all on opus) landed in dev through PR #100 as b97b5d69** (2026-11-23): `components` CI green on 336578d3 (run 45131667111), Codex clean, browser `roundtrip` and `ui` passed; lean `--suite` not run (the user's standing rule: ask first). To-test: `to-test/2026-11-23-0247-fixes-bug.md`. Docs folded (assistant, ui-kit, todos, connectors; all at the 10 KB line, trim when adding). Slice worktrees removed.
 
-**Wave 5 (slices 28–31, B-628, B-632, B-634, B-635, all on opus) is planned** (2026-11-23). Slices 29–31 chain on the quick-entry files; 28 runs beside 29. **Held:** B-615 and B-616 while dose-accuracy holds `timelineEntryService.ts` and `assistantActionService.ts`; B-620 and B-631 while onboarding holds `routes/app/groups/timeline/` (B-620's fix is user-approved, see its note; B-631 names `PassLogForm` there). Recheck `pnpm backlog prd list` at the next wave. **New for a later wave:** B-641 (`gave lorazepam 1/2 mg` at 0.5 mg may not record the usual dose; from slice 29, unconfirmed). Slice 29's diff is reviewed; merge it right after 28, then start 30.
+**Wave 5 (slices 28–31, B-628, B-632, B-634, B-635, all on opus) is planned** (2026-11-23). Slices 29–31 chain on the quick-entry files; 28 runs beside 29. **Held:** B-615 and B-616 while dose-accuracy holds `timelineEntryService.ts` and `assistantActionService.ts`; B-620 and B-631 while onboarding holds `routes/app/groups/timeline/` (B-620's fix is user-approved, see its note; B-631 names `PassLogForm` there). Recheck `pnpm backlog prd list` at the next wave. **New for a later wave:** B-641 (`gave lorazepam 1/2 mg` at 0.5 mg may not record the usual dose; from slice 29, unconfirmed). Slices 28 and 29 are merged, keeping their worktrees until the wave's CI verdict is green.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -45,9 +45,9 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 25    | B-601 | landed                                     | efb9d552 |
 | 26    | B-602 | landed                                     | 43e222d4 |
 | 27    | B-605 | landed                                     | 23e69857 |
-| 28    | B-628 | started (opus)                             |          |
-| 29    | B-632 | handed off (728d02fa), merge after 28      |          |
-| 30    | B-634 | planned (after 29)                         |          |
+| 28    | B-628 | merged                                     | 46f779de |
+| 29    | B-632 | merged                                     | 82eebf78 |
+| 30    | B-634 | started (opus)                             |          |
 | 31    | B-635 | planned (after 30)                         |          |
 
 ## Wave 1
