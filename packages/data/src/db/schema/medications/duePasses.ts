@@ -154,6 +154,15 @@ export const passRoundId = (passKey: string, day: string) =>
   uuidV5(`${passKey.toLowerCase()}:${day}`, PASS_ROUND_NAMESPACE);
 
 /**
+ * The flag on a device's PATCH of a dose it still holds as its own (`_metadata`
+ * on the upload's op, B-614). If the server's row turns out to be another
+ * member's, this device's PUT was a duplicate, so its edit or Undo was of its
+ * own tap and leaves their dose alone. A PATCH of a dose the device shows as
+ * another member's has no flag: that's a deliberate change of the shared row.
+ */
+export const OWN_DOSE_COPY_METADATA = "dose:ownCopy";
+
+/**
  * The slot id a dose gets, or null for a dose naming no slot (it takes a
  * random id). Every dose writer asks here, and uses the answer only when no
  * row with that id exists where it writes, live or deleted: a deliberate

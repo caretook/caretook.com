@@ -753,6 +753,32 @@ describe("upsert: a dose's shared slot id", () => {
     expect((await stored(id)).details).toMatchObject({ note: "helper edit" });
   });
 
+  it("lets the first of two simultaneous uploads win, and the other no-op", async () => {
+    const { u, dose, stored } = await doseSetup();
+    const id = randomUUID();
+    const [a, b] = await Promise.all([
+      timelineEntryService.upsert(u.caretaker.ctx, dose("caretaker", id)),
+      timelineEntryService.upsert(u.admin.ctx, dose("admin", id)),
+    ]);
+    ok(a);
+    ok(b);
+    const row = await stored(id);
+    expect(row.details).toMatchObject({
+      note: row.createdBy === u.caretaker.user.id ? "caretaker" : "admin",
+    });
+  });
+
+  it("finds another member's dose for a logger, never for its author or a viewer", async () => {
+    const { u, dose } = await doseSetup();
+    const id = randomUUID();
+    ok(await timelineEntryService.upsert(u.caretaker.ctx, dose("first", id)));
+
+    expect(ok(await timelineEntryService.anotherMembersDose(u.admin.ctx, id))?.id).toBe(id);
+    expect(ok(await timelineEntryService.anotherMembersDose(u.easy_helper.ctx, id))?.id).toBe(id);
+    expect(ok(await timelineEntryService.anotherMembersDose(u.caretaker.ctx, id))).toBeNull();
+    expect(ok(await timelineEntryService.anotherMembersDose(u.viewer.ctx, id))).toBeNull();
+  });
+
   it("refuses a viewer on a live dose and restores nothing for one", async () => {
     const { u, dose, stored } = await doseSetup();
     const id = randomUUID();
