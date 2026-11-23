@@ -6,6 +6,7 @@ import { accentClass } from "~/components/ui";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { rgba } from "../../../../test/contrast";
 import { renderWithDevice } from "../../../../test/device";
+import { at, TEST_USER, todo } from "../../../../test/fixtures";
 import { found } from "../../../../test/found";
 import { LIST, MEDICATION_ROUTES, PASSES } from "./medications/medicationWorld";
 import { PERIOD_ROUTES, PERIODS_URL } from "./periods/periodWorld";
@@ -80,6 +81,14 @@ describe("what stays quiet", () => {
   test("a filtered Todos list shows its line and no circle", async () => {
     await renderWithDevice({ route: PLANNER_ROUTES, url: `${TODOS_URL}?who=mine`, fixtures: [] });
     await expect.element(page.getByText("Nothing assigned to you.")).toBeVisible();
+    expect(chip()).toBeNull();
+  });
+
+  test("Todos with only Done ones shows its line and no circle", async () => {
+    const finished = todo({ title: "Refill the pill box", doneAt: at(), doneBy: TEST_USER.id });
+    await renderWithDevice({ route: PLANNER_ROUTES, url: TODOS_URL, fixtures: [finished] });
+    await expect.element(page.getByText("Refill the pill box")).toBeVisible();
+    await expect.element(page.getByText("No open todos.")).toBeVisible();
     expect(chip()).toBeNull();
   });
 

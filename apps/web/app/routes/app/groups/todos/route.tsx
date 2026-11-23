@@ -77,7 +77,9 @@ export default function Todos({ loaderData, params }: Route.ComponentProps) {
   );
   const row = { nameOf: list.nameOf, now: list.now, timeZone: list.timeZone, onTick, busy };
   const { easyRole } = useGroup();
-  const emptyMark = list.who === "everyone" ? sectionAccent("planner", { easy: easyRole }) : undefined;
+  // The circle marks a group with no todos at all; with Done ones listed below, the line stays quiet.
+  const emptyMark =
+    list.who === "everyone" && !list.done.length ? sectionAccent("planner", { easy: easyRole }) : undefined;
 
   return (
     <Page>
