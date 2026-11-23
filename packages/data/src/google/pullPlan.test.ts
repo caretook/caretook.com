@@ -249,14 +249,12 @@ describe("a series visit", () => {
     });
   });
 
-  it("a visit that has started is never rewritten (overwritten instead)", () => {
+  it("a visit that has started keeps its time (overwritten instead)", () => {
     // Wed 18 Nov, 9:00 in Los Angeles: an hour before the clock.
     const it_ = visit({ start: "2026-11-18T17:00:00.000Z", end: "2026-11-18T21:00:00.000Z" });
-    for (const change of [eventFor(it_, { ...moved, ...movedEnd }), eventFor(it_, { status: "cancelled" })])
-      expect(run({ change, link: linkFor(it_), item: it_, role: "owner" })).toEqual({
-        type: "overwrite",
-        reason: "pastVisit",
-      });
+    expect(
+      run({ change: eventFor(it_, { ...moved, ...movedEnd }), link: linkFor(it_), item: it_, role: "owner" }),
+    ).toEqual({ type: "overwrite", reason: "pastVisit" });
   });
 
   it("a viewer's move is overwritten", () => {
@@ -292,19 +290,69 @@ describe("a todo", () => {
     });
   });
 
-  it.each(ROLES)("deleted in Google is completed, as %s (the service decides a viewer's)", (role) => {
-    const it_ = todo({ allDay: true, start: "2026-11-19", end: "2026-11-20" });
-    expect(
-      run({ change: eventFor(it_, { status: "cancelled" }), link: linkFor(it_), item: it_, role }),
-    ).toEqual({ type: "completeTodo", todoId: "t1" });
-  });
-
   it("a viewer's move is overwritten", () => {
     const it_ = todo();
     expect(run({ change: eventFor(it_, moved), link: linkFor(it_), item: it_, role: "viewer" })).toEqual({
       type: "overwrite",
       reason: "role",
     });
+  });
+});
+
+describe("a delete in Google", () => {
+  const deleted = (it_: CalendarItem, role: (typeof ROLES)[number]) =>
+    run({ change: eventFor(it_, { status: "cancelled" }), link: linkFor(it_), item: it_, role });
+  const IGNORED = { type: "ignore", reason: "started" };
+  const PUT_BACK = { type: "overwrite", reason: "todoDelete" };
+  // Wed 18 Nov, 9:00 in Los Angeles: an hour before the clock.
+  const earlier = { start: "2026-11-18T17:00:00.000Z", end: "2026-11-18T18:00:00.000Z" };
+  const today = { allDay: true, start: "2026-11-18", end: "2026-11-19" };
+
+  it.each(ROLES)("leaves a started one-off event as it was, as %s", (role) => {
+    expect(deleted(item(earlier), role)).toEqual(IGNORED);
+  });
+
+  it.each(ROLES)("leaves a started all-day event on its day, as %s", (role) => {
+    expect(deleted(item(today), role)).toEqual(IGNORED);
+  });
+
+  it.each(ROLES)("leaves a started visit of a repeat, as %s", (role) => {
+    const series = { id: "s1", day: "2026-11-18", detached: false };
+    expect(deleted(item({ ...earlier, series }), role)).toEqual(IGNORED);
+  });
+
+  it.each(ROLES)("leaves an overdue todo open, timed or all-day, as %s", (role) => {
+    expect(deleted(todo(earlier), role)).toEqual(IGNORED);
+    expect(deleted(todo({ allDay: true, start: "2026-11-17", end: "2026-11-18" }), role)).toEqual(IGNORED);
+    expect(deleted(todo(today), role)).toEqual(IGNORED);
+  });
+
+  it("leaves a started event that was already cancelled", () => {
+    expect(deleted(item({ ...earlier, status: "cancelled" }), "owner")).toEqual(IGNORED);
+  });
+
+  it.each(WRITERS)("still cancels an upcoming one-off event, as %s", (role) => {
+    expect(deleted(item(), role)).toEqual({ type: "cancelEntry", entryId: "e1", seriesDetached: false });
+  });
+
+  it.each(ROLES)("puts an upcoming todo with a due time back, as %s", (role) => {
+    expect(deleted(todo(), role)).toEqual(PUT_BACK);
+  });
+
+  it.each(ROLES)("puts an upcoming todo with no due time back, as %s", (role) => {
+    expect(deleted(todo({ allDay: true, start: "2026-11-19", end: "2026-11-20" }), role)).toEqual(PUT_BACK);
+  });
+
+  it("finds nothing to do for a note (a link whose item is no calendar item)", () => {
+    const note = item({ uid: "entry:n1", source: { type: "entry", id: "n1" } });
+    expect(
+      run({
+        change: eventFor(note, { status: "cancelled" }),
+        link: linkFor(note),
+        item: null,
+        role: "owner",
+      }),
+    ).toEqual({ type: "ignore", reason: "gone" });
   });
 });
 
