@@ -1,6 +1,6 @@
 import { HeartPulse } from "lucide-react";
 import { Link } from "react-router";
-import { Section } from "~/components/ui";
+import { IconChip, List, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useProviderConditions } from "~/lib/profiles/conditionProviders.sync";
 import { sinceText } from "~/lib/profiles/conditions";
@@ -18,7 +18,7 @@ export function ProviderConditions({ groupId, providerId }: { groupId: string; p
 
   return (
     <Section title="Conditions" id="conditions" data-provider-conditions="">
-      <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border">
+      <List>
         {conditions.map((c) => {
           const roles = [c.diagnosed && "Diagnosed", c.manages && "Manages"].filter(Boolean).join(" and ");
           const since = sinceText(c);
@@ -30,17 +30,12 @@ export function ProviderConditions({ groupId, providerId }: { groupId: string; p
                 className="hover:bg-base-200/50 flex items-center gap-3 px-3 py-2.5"
                 data-condition-id={c.id}
               >
-                <span
-                  aria-hidden="true"
-                  className="bg-primary/15 text-primary grid size-8 shrink-0 place-items-center rounded-full"
-                >
-                  <HeartPulse className="size-4" />
-                </span>
+                <IconChip icon={HeartPulse} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium" data-condition-name>
                     {c.name}
                   </span>
-                  <span className="text-base-content/70 block text-sm">
+                  <span className="text-muted block text-sm">
                     <span data-condition-role>{roles}</span>
                     {c.status === "resolved" && " · Resolved"}
                     {since && ` · ${since}`}
@@ -50,7 +45,7 @@ export function ProviderConditions({ groupId, providerId }: { groupId: string; p
             </li>
           );
         })}
-      </ul>
+      </List>
     </Section>
   );
 }

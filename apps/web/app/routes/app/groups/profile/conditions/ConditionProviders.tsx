@@ -2,6 +2,7 @@ import type { ConditionProviders as Providers } from "~/lib/profiles/conditionPr
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { Link } from "react-router";
+import { LINK } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { chosenLabel } from "~/lib/providers/providerPicker";
 
@@ -9,14 +10,14 @@ import { chosenLabel } from "~/lib/providers/providerPicker";
 function ProviderName({ groupId, provider }: { groupId: string; provider: LocalProvider }) {
   if (provider.deletedAt)
     return (
-      <span className="text-base-content/50" data-condition-provider={provider.id} data-removed="">
+      <span className="text-faint" data-condition-provider={provider.id} data-removed="">
         {chosenLabel(provider.name, { deleted: true })}
       </span>
     );
   return (
     <Link
       to={appUrls.provider(groupId, provider.id)}
-      className="link font-medium"
+      className={`${LINK} font-medium`}
       data-condition-provider={provider.id}
     >
       {provider.name}
@@ -36,7 +37,7 @@ export function ConditionProviders({ groupId, providers }: { groupId: string; pr
     <dl className="grid grid-cols-2 gap-3" data-condition-providers="">
       {diagnosedBy && (
         <div data-condition-line="diagnosedBy">
-          <dt className="text-base-content/70 text-sm">Diagnosed by</dt>
+          <dt className="text-muted text-sm">Diagnosed by</dt>
           <dd>
             <ProviderName groupId={groupId} provider={diagnosedBy} />
           </dd>
@@ -44,7 +45,7 @@ export function ConditionProviders({ groupId, providers }: { groupId: string; pr
       )}
       {managers.length > 0 && (
         <div data-condition-line="managedBy">
-          <dt className="text-base-content/70 text-sm">Managed by</dt>
+          <dt className="text-muted text-sm">Managed by</dt>
           <dd>
             <ul className="space-y-0.5">
               {managers.map((m) => (

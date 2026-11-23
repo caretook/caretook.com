@@ -11,7 +11,7 @@ const readingsText = (count: number) => (count === 1 ? "1 reading" : `${count} r
 function WindowCell({ window, unit }: { window: WindowAverage; unit: string }) {
   if (!window.value)
     return (
-      <td className="text-base-content/60" data-window={window.days}>
+      <td className="text-faint" data-window={window.days}>
         <span aria-hidden="true">—</span>
         <span className="sr-only">No readings</span>
       </td>
@@ -19,13 +19,13 @@ function WindowCell({ window, unit }: { window: WindowAverage; unit: string }) {
   return (
     <td data-window={window.days}>
       <span className="font-semibold tabular-nums">{window.value}</span>
-      {unit && <span className="text-base-content/70 text-sm">{unit === "%" ? unit : ` ${unit}`}</span>}
-      <span className="text-base-content/70 block text-xs">{readingsText(window.count)}</span>
+      {unit && <span className="text-muted text-sm">{unit === "%" ? unit : ` ${unit}`}</span>}
+      <span className="text-muted block text-xs">{readingsText(window.count)}</span>
     </td>
   );
 }
 
-export function VitalAveragesCard({ rows }: { rows: VitalAverageRow[] }) {
+export function VitalAveragesSection({ rows }: { rows: VitalAverageRow[] }) {
   const windows = rows[0]?.windows ?? [];
   return (
     <Section id="vital-averages" title="Recent vital averages">

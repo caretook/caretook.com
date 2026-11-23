@@ -52,11 +52,10 @@ export function MarkDoseDialog({
         onClose();
       }}
     >
-      <Field label="Note (optional)">
+      <Field label="Note (optional)" kind="textarea">
         {(control) => (
           <textarea
             {...control}
-            className="textarea w-full"
             rows={2}
             maxLength={MEDICATION_LIMITS.doseNote}
             value={note}
