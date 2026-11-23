@@ -83,3 +83,5 @@ export { TimeSelect } from "./TimeSelect";
 export { COUNT_BADGE } from "./styles";
 // ui-kit-5 (slice 2): radios that look like buttons.
 export { CHOICE_BUTTON, CHOICE_TILE } from "./styles";
+// ui-kit-5 (slice 7): a navigation bar's link.
+export { navLinkClass } from "./styles";
