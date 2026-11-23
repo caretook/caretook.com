@@ -18,6 +18,8 @@ Slice 13 decisions: optional times (todo due, series Ends) stay empty by default
 
 Slice 14 gaps to file as follow-ups once the wave is green: a sync after the first touch can read as a change; Back after a failed save does not ask until the next touch; a record deleted elsewhere can prompt; Back with an unguarded sheet on top of a changed one does not ask; Discard under reduced motion has no test; `InviteSheet`, `InviteLinks`, provider import, `RepeatSheet` and `VisitPrepSheet` are unguarded. Wave gate: full check on the tip, then `pnpm prd browser --changed --base dev` (the user asks to be asked before any `--suite`).
 
+Wave 2 full check on ff19deb0 **failed**: 4 component tests, in both runs (`inScreens` add and edit sheets at 420 light and 1280 dark, `sheetExit` stacked sheets, `print` Print menu). Sent back to the slice 14 agent; merge its fix, then rerun the full check.
+
 Notes for the next wave:
 
 - Until B-576 (local lint runs out of memory) is fixed, run checks and landings with `NODE_OPTIONS=--max-old-space-size=6144`; lint passes Node's 4 GB default even on a quiet machine.
