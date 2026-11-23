@@ -2334,6 +2334,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-22 (prd/test-gates): Failed in test-gates slice 9's components run 45088030543 (commit 21533389) and again on the job's rerun, so CI read it as a real failure. It now keeps the components tier red. Not quarantined, per the user's decision to re-measure after the quarantine lands.
 - 2026-11-22 (prd/fixes-ui): fixes-ui wave 2 gate (2026-11-22): failed in the full run and its rerun on ff19deb0, then 1 of 3 alone, with the strict-mode double match on getByLabel('Print'). Suggested fix, not applied or tested: after the {Escape} in print.browser.test.tsx, wait until no [role=menu] remains.
 - 2026-11-22 (prd/fixes-ui): Fixed on the user's word (2026-11-22) in prd/fixes-ui df2ff0d5: the test waits for the closing menu to go. Passed 5 of 5 alone. Mark done when fixes-ui wave 2 lands.
+- 2026-11-22 (prd/test-gates): Re-measured after the quarantine landed: passed in both component jobs of CI run 45101406161 on 93603ce5 (one run, so not proof it is gone).
 
 ### B-553 · change · Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent
 
@@ -2375,6 +2376,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-22 (Robert Bo Davis): From the inbox: Assistants settings needs to allow owner to enable read/write or stick to read only for group assistant plugin. Default to read/write
 - 2026-11-22 (Robert Bo Davis): Decided with the user 2026-11-22: one owner-only group setting under Group settings > Assistants, default read and write. Read only keeps connections and removes write tools on the next call; switching back restores writing for connections approved for it, with no reconnecting. Shown in Assistants settings, Connected assistants and the connect screen as Read only, set by the group owner; no email. Triaged to assistant-access: needs an additive group column, and connectors-3 waits behind the held planner-3.
 - 2026-11-22 (plan/assistant-access): PRD and plan written: three slices (server gate, owner control, connect screen and Devices). See plans/assistant-access-prd.md.
+- 2026-11-22 (prd/assistant-access): Codex P2 on PR #83 (verified): /connect still offers Read and add entries on a read-only group, because memberGroups drops connectorsReadOnly and eligibleGroups calls scopesForRole without it; the grant service refuses it safely. Fixed by assistant-access slice 3 (wave 2), which keeps the server check.
 
 ### B-560 · feature · A cost record: tokens by model per PRD and slice, from session and subagent transcripts, in pnpm prd cost
 
