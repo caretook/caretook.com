@@ -186,7 +186,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-357 | question | triaged | data-rights |  | Consent evidence is deleted with the user or group (care_group_consent, connector_grant cascade), and the audit log loses target_user_id: keep them? |
 | B-358 | question | triaged | data-rights |  | Should the legal drafts promise only what is built (deletion, 'permanently removed' entries, backups, at-rest encryption), and who fills the placeholders ([Company legal name], [privacy email], [backup retention period])? |
 | B-359 | feature | in-progress | onboarding | prd/onboarding | Record terms, privacy and 18+ acceptance at sign-up and invite accept (no /terms or /privacy link outside the marketing pages; the terms require 18+) |
-| B-360 | change | in-progress | onboarding | prd/onboarding | The app isn't installable: site.webmanifest has display 'browser', start_url '/', and is linked only from the marketing layout |
+| B-360 | change | ready | onboarding | prd/onboarding | The app isn't installable: site.webmanifest has display 'browser', start_url '/', and is linked only from the marketing layout |
 | B-361 | change | triaged | code-health |  | A @caretook/data/domain export for the pure logic now living under db/schema (quick entry parser, due doses, medication display, series edits: about half that folder) |
 | B-362 | change | triaged | code-health-2 |  | A soft-delete model factory and a shared upsert helper: nine models are the same file, twelve upserts repeat the exists-as-system, visible-as-actor sequence, 'invalid' is defined 18 times |
 | B-363 | change | triaged | code-health-2 |  | One exported role-capability table (canWrite(role), canComplete(role)) used by services, device modules and screens, before any role is added |
@@ -342,7 +342,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-618 | change | triaged | fixes-ui |  | Timeline day header: move Change care period to the left of the period text |
 | B-619 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
 | B-620 | bug | triaged | fixes-bug |  | Timeline day headers repeat a care period day number when the viewer and recipient are in different time zones |
-| B-621 | feature | triaged | fixes-ui |  | Quick entry: a one-line 'why don't you try' tip under the box on a user's first 3 focuses |
+| B-621 | feature | triaged | fixes-ui |  | Quick entry: a tips panel under the box on a user's first 3 focuses, with examples, two shorthand codes and an X |
 
 ## Items
 
@@ -1074,10 +1074,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-360 · change · The app isn't installable: site.webmanifest has display 'browser', start_url '/', and is linked only from the marketing layout
 
-- status: in-progress
+- status: ready
 - prd: onboarding
 - owner: prd/onboarding
-- commit:
+- commit: 043a28f5
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. Also absent and untracked: an accessibility statement, app-store prerequisites, an ownership-transfer flow (careGroupMemberService.ts:173 says the last owner 'must hand over ownership first').
 - 2026-11-22 (plan/onboarding): Planned in onboarding (2026-11-22): installable, opens /app standalone. The accessibility statement, app-store prerequisites and ownership transfer are filed as their own items.
@@ -2650,7 +2650,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-23 (Robert Bo Davis): 2026-11-23, reported by the user with a screenshot: just after midnight Eastern, Today and Yesterday both read 'At home · day 6'. Cause from the code: DayHeader splits days in the viewer's zone (dayKey), but DayPeriod counts periodDay in the recipient's zone from a moment (now for Today, the day's newest row for past days). At 00:34 EST it is still the previous evening in a Los Angeles recipient's zone, so both headers land on one recipient date. The recipient's zone on the user's group was not checked, and this was not reproduced in a test. Proposed fix: in a day header, derive the number from the header's own date, so consecutive headers always differ by one: the period's start date in the recipient's zone to dayKey, plus 1, minimum 1. Keep the period's page and other 'current' lines in the recipient's zone; during the offset hours Today's header can then read one day ahead of the period page, which the user should accept or overrule when reviewing. Which period a header shows (periodAt) should be checked for the same offset. Test with a viewer and recipient in different zones, both sides of midnight (see B-372, a second time zone in tests).
 - 2026-11-23 (Robert Bo Davis): 2026-11-23, the user approved the proposed fix: each day header counts from its own date, so consecutive headers always differ by one. Accepted: for a few hours around midnight, Today's header can read one day ahead of the period's page, which stays in the recipient's zone ('nobody will do the math; the display bug will be noticeable'). No further decision needed.
 
-### B-621 · feature · Quick entry: a one-line 'why don't you try' tip under the box on a user's first 3 focuses
+### B-621 · feature · Quick entry: a tips panel under the box on a user's first 3 focuses, with examples, two shorthand codes and an X
 
 - status: triaged
 - prd: fixes-ui
@@ -2658,3 +2658,5 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): 2026-11-23, the user: when a user clicks into the quick entry box, the first 3 times, a tooltip comes up below it with an advanced suggestion, to show it does more than it appears. No icon, no button, no dismiss control: just a line like: Why don't you try “bp 130/85 hr 72”? Use the examples removed with the rotating placeholder in 189bf74b (B-198), one per focus in order: bp 130/85 hr 72; gave metformin; pain 4 left knee; appt Dr Lee Friday 2pm. They still live in QUICK_ENTRY_RULES (quickEntryCopy.ts); share one list. Behaviour, proposed where the user did not say: shows only while the box is focused and empty; goes on typing or blur; floats over the page and pushes nothing (B-216), and takes no taps (pointer-events none); uses the kit's overlay fade at the motion default from B-613, nothing under reduced motion. Count real user focuses only: not autofocus, the refocus after Save, closing a sheet or returning from the Suggestions popover. Store the count per user per device in localStorage with try/catch, cleared with the app's other per-user keys at sign-out; if storage fails, show nothing. The box's accessible description already carries the rules, so screen readers should not hear the tip twice. Applies to the shared QuickEntryBox in both the full timeline and Easy mode: B-157 removed permanent typing tips from Easy mode, but this one is brief and the user named the easy entry box; in Easy mode check it against the dictation hint under the box. Must not cover name completions or the suggestions popover.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user's update, replacing the first note where they differ: the tip can be rather large and also shows the shorthand create codes. It is a panel below the box with: Why don't you try, then all four examples (bp 130/85 hr 72; gave metformin; pain 4 left knee; appt Dr Lee Friday 2pm, so none is dropped), then the codes the parser really takes: n: note, e: event, s: symptom, v: vital, d: dose, t: todo, and commas to log several at once. Read the codes from one shared list so the panel can't drift from the parser (PREFIXES and TODO_PREFIX in quickEntry.ts). It disappears when focus leaves the box. It shows on the first 3 focuses, and an X ends it for good on that first press (stored with the count). The X replaces the earlier no-button and no-taps rules: the panel takes taps, pressing the X or the panel must not blur the box first, and the X is a real labelled kit IconButton reachable by keyboard, with focus on it counting as still in the box. Proposed where the user did not say: it stays while typing a code, so the reference is there when needed, and gets out of the way when a preview card or name completions appear, since it must not cover them. At phone width with the keyboard up it must fit or scroll inside itself. The panel's text should not be read twice with the box's accessible description.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user: list only a couple of the shorthands: n: for a note and e: for an event. This replaces the full code list in the previous note: don't show s:, v:, d: or t:, and no shared list of codes is needed for the panel. The parser keeps accepting all of them. The four examples and the comma tip are unchanged.
