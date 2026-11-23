@@ -49,7 +49,7 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   ]);
   // Recent vital averages: the windows are days in the recipient's zone.
   const readingRows = await loadRecentReadingRows(db, params.groupId, rows[0]?.time_zone ?? null);
-  // The conditions card (every role).
+  // The conditions section (every role).
   const conditionRows = await loadConditions(db, params.groupId);
   // Writers' details: only owners', admins' and caretakers' devices have them.
   const detailsRows = canReadRecipient(group.role, "details")
@@ -70,7 +70,7 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   };
 }
 
-/** The conditions card's "No known conditions" (writers; a local write, so it works offline). */
+/** The conditions section's "No known conditions" (writers; a local write, so it works offline). */
 export async function clientAction({ request, context }: Route.ClientActionArgs): Promise<ActionResult> {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
@@ -105,7 +105,7 @@ export default function Profile({ loaderData, params }: Route.ComponentProps) {
   const group = useGroup();
   const profile = useRecipientProfile(params.groupId, loaderData.rows);
   const details = useRecipientDetails(params.groupId, loaderData.detailsRows);
-  // Live: a member demoted to viewer loses the writers' cards as the role syncs.
+  // Live: a member demoted to viewer loses the writers' sections as the role syncs.
   const readsDetails = canReadRecipient(group.role, "details");
   const editsDetails = canEditRecipient(group.role, "details");
   const membersQuery = useMemo(() => memberDetailsQuery(params.groupId), [params.groupId]);

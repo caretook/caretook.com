@@ -4,7 +4,7 @@ import type { LocalCondition } from "~/lib/profiles/conditions.sync";
 
 import { ChevronRight } from "lucide-react";
 import { Link, useFetcher } from "react-router";
-import { Section } from "~/components/ui";
+import { Button, EmptyState, ICON, List, Message, Section, TITLE_SUB } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { CONDITIONS_NOT_RECORDED, NO_KNOWN_CONDITIONS, sinceText } from "~/lib/profiles/conditions";
 import { CONDITION_FIELD } from "./conditions/conditionActions";
@@ -40,17 +40,18 @@ export function ConditionsSection({
       title="Conditions"
       actions={
         canWrite && (
-          <Link
+          <Button
             to={appUrls.newCondition(groupId)}
             state={PROFILE_SHEET_STATE}
             // Loaded ahead, so the sheet opens offline too.
             prefetch="render"
             preventScrollReset
-            className="btn btn-ghost btn-sm"
+            variant="ghost"
+            size="sm"
             data-add-condition=""
           >
             Add<span className="sr-only"> a condition</span>
-          </Link>
+          </Button>
         )
       }
     >
@@ -59,13 +60,11 @@ export function ConditionsSection({
           {state.active.length ? (
             <ConditionList groupId={groupId} conditions={state.active} list="active" />
           ) : (
-            <p className="text-base-content/70 text-sm" data-no-active-conditions="">
-              No active conditions.
-            </p>
+            <EmptyState data-no-active-conditions="">No active conditions.</EmptyState>
           )}
           {state.past.length > 0 && (
             <div className="space-y-1">
-              <h3 className="text-base-content/70 text-sm font-semibold">Past</h3>
+              <h3 className={`${TITLE_SUB} text-muted`}>Past</h3>
               <ConditionList groupId={groupId} conditions={state.past} list="past" />
             </div>
           )}
@@ -74,36 +73,27 @@ export function ConditionsSection({
         <div className="flex items-center justify-between gap-2" data-no-known-conditions="">
           <p className="font-semibold">{NO_KNOWN_CONDITIONS}</p>
           {canWrite && (
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setNoKnown(false)}
               data-clear-no-known-conditions=""
             >
               Clear<span className="sr-only"> No known conditions</span>
-            </button>
+            </Button>
           )}
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-2" data-conditions-not-recorded="">
-          <p className="text-base-content/70 text-sm">{CONDITIONS_NOT_RECORDED}</p>
+          <p className="text-muted text-sm">{CONDITIONS_NOT_RECORDED}</p>
           {canWrite && (
-            <button
-              type="button"
-              className="btn btn-outline btn-sm"
-              onClick={() => setNoKnown(true)}
-              data-record-no-known-conditions=""
-            >
+            <Button size="sm" onClick={() => setNoKnown(true)} data-record-no-known-conditions="">
               {NO_KNOWN_CONDITIONS}
-            </button>
+            </Button>
           )}
         </div>
       )}
-      {refusal && (
-        <p className="text-error text-sm" role="alert">
-          {refusal}
-        </p>
-      )}
+      {refusal && <Message tone="error">{refusal}</Message>}
     </Section>
   );
 }
@@ -118,7 +108,7 @@ function ConditionList({
   list: "active" | "past";
 }) {
   return (
-    <ul className="divide-base-300 border-base-300 rounded-box divide-y border" data-condition-list={list}>
+    <List data-condition-list={list}>
       {conditions.map((condition) => {
         const since = sinceText(condition);
         return (
@@ -128,23 +118,23 @@ function ConditionList({
               state={PROFILE_SHEET_STATE}
               prefetch="render"
               preventScrollReset
-              className="hover:bg-base-200 flex items-center gap-2 px-3 py-2"
+              className="motion-colors hover:bg-base-200 flex items-center gap-2 px-3 py-2 focus-visible:outline-2 focus-visible:-outline-offset-2"
             >
               <span className="min-w-0 flex-1">
                 <span className="font-medium wrap-break-word" data-condition-name="">
                   {condition.name}
                 </span>
                 {since && (
-                  <span className="text-base-content/70 block text-sm" data-condition-since="">
+                  <span className="text-muted block text-sm" data-condition-since="">
                     {since.charAt(0).toUpperCase() + since.slice(1)}
                   </span>
                 )}
               </span>
-              <ChevronRight className="text-base-content/50 size-4 shrink-0" aria-hidden="true" />
+              <ChevronRight className={`text-faint ${ICON} shrink-0`} aria-hidden="true" />
             </Link>
           </li>
         );
       })}
-    </ul>
+    </List>
   );
 }

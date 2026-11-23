@@ -6,7 +6,7 @@ import { DETAILS_LIMITS, INSURANCE_RANKS, PROVIDER_LIMITS } from "@caretook/data
 import { Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
-import { ChoiceGroup, Field, IconButton } from "~/components/ui";
+import { Button, ChoiceGroup, Field, IconButton } from "~/components/ui";
 import { INSURANCE_RANK_LABELS, plansByRank } from "~/lib/profiles/recipientDetails";
 import { nextRank, PLAN_KEY, planFieldName } from "./detailsFormData";
 import { SheetButtons } from "./SheetButtons";
@@ -74,22 +74,20 @@ export function InsuranceForm({
         ))}
       </ul>
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm"
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={Plus}
           disabled={full}
           onClick={() => setRows((all) => [...all, planRow(null, nextRank(all.map((r) => r.rank)))])}
           data-add-plan=""
         >
-          <Plus className="size-4" aria-hidden="true" />
           Add a plan
-        </button>
-        {full && (
-          <span className="text-base-content/70 text-sm">{DETAILS_LIMITS.insurance} plans is the most</span>
-        )}
+        </Button>
+        {full && <span className="text-muted text-sm">{DETAILS_LIMITS.insurance} plans is the most</span>}
       </div>
       {listError && (
-        <p className="text-error text-sm" data-plans-error="">
+        <p className="text-error-ink text-sm" data-plans-error="">
           {listError}
         </p>
       )}
@@ -118,7 +116,7 @@ function PlanFields({
     const message = error(field);
     const value = row.plan?.[field];
     return (
-      <Field label={label} error={message}>
+      <Field kind="input" label={label} error={message}>
         {(control) => (
           <input
             {...control}
@@ -127,7 +125,6 @@ function PlanFields({
             defaultValue={typeof value === "string" ? value : ""}
             maxLength={max + 20}
             autoComplete="off"
-            className={`input w-full ${message ? "input-error" : ""}`}
           />
         )}
       </Field>
