@@ -955,7 +955,7 @@ type PartState = {
 
 const roleIdx = (s: PartState, ...roles: VocabularyRole[]) =>
   s.vocab.filter((m) => roles.includes(m.entry.role)).flatMap((m) => m.used);
-const hasRole = (s: PartState, ...roles: VocabularyRole[]) =>
+const hasRole = (s: Pick<PartState, "vocab">, ...roles: VocabularyRole[]) =>
   s.vocab.some((m) => roles.includes(m.entry.role));
 
 /**
@@ -1080,6 +1080,28 @@ const countedAmount = (word: string, value: number, dose: string | null | undefi
   if (word === "half") return `half ${article} ${unit.one}`;
   if (word === "quarter") return `quarter of ${article} ${unit.one}`;
   return `${word} ${value <= 1 ? unit.one : unit.many}`;
+};
+
+const MEASURE = /^(\d+(?:\.\d+)?)\s*([a-z]+)$/i;
+
+/**
+ * The amount typed with a unit. A fraction that is exactly the strength ("1/2
+ * mg" at 0.5 mg) names one unit of it, so it records the usual dose when that
+ * is one unit or the same measure. A usual "2 tablets" would double what was
+ * typed, so there the typed amount stands.
+ */
+const typedAmount = (tokens: readonly Token[], used: readonly number[], med: QuickEntryMedication) => {
+  const raw = rawOf(tokens, used);
+  const [word, unit] = used.map((i) => tokens[i]!.w);
+  if (used.length !== 2 || !/^(?:\d\/\d|½)$/.test(word!)) return raw;
+  const strength = MEASURE.exec(med.strength?.trim() ?? "");
+  if (!strength || Number(strength[1]) !== countValue(word!) || strength[2]!.toLowerCase() !== unit)
+    return raw;
+  const dose = med.dose?.trim() ?? "";
+  const measure = MEASURE.exec(dose);
+  const sameMeasure =
+    !!measure && Number(measure[1]) === Number(strength[1]) && measure[2]!.toLowerCase() === unit;
+  return sameMeasure || (/^(?:1|one|an?)\s/i.test(dose) && usualUnit(dose)) ? dose : raw;
 };
 
 /** Words in directions that describe how to take a medication; only another word there can be a brand. */
@@ -1308,8 +1330,8 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   if (!inherited && !forced && !nameOnly) return [];
   for (const i of [...verbUsed, ...amountUsed, ...matches[0]!.used, ...typedUsed(0)]) s.claimed.add(i);
   const at = s.time.past.at;
-  const amount = amountUsed.length ? rawOf(s.tokens, amountUsed) : null;
   return matches.map((m, rank) => {
+    const amount = amountUsed.length ? typedAmount(s.tokens, amountUsed, m.item) : null;
     const noteIdx = stripLeading(
       s.tokens,
       rest.filter((i) => !amountUsed.includes(i) && !m.used.includes(i) && !typedUsed(rank).includes(i)),
@@ -1709,7 +1731,7 @@ const mentionedText = (s: PartState) => {
  * Whether the line opens by asking for something to be done ("call the
  * pharmacy", "remember to …") and nothing in it reports what happened.
  */
-const asksForAction = (s: PartState) =>
+const asksForAction = (s: Pick<PartState, "vocab" | "free">) =>
   s.vocab.some(
     (m) => m.used[0] === s.free[0] && (m.entry.role === "requestVerb" || m.entry.role === "requestLead"),
   ) && !hasRole(s, "reportWord", "visitVerb", "contactVerb");
@@ -1731,12 +1753,11 @@ const noteAhead = (s: PartState) => {
 };
 
 /**
- * Whether the line asks for something at a part of day still ahead ("check bp
- * 120/80 in the morning", "ask about pain tonight"): its measurement or
- * complaint is what to ask about, not a report, so the todo comes before them.
+ * Whether the line asks for something at a time still ahead ("check bp 120/80
+ * tomorrow", "ask about pain tonight"): its measurement or complaint is what
+ * to ask about, not a report, so the todo comes before them.
  */
-const requestsAhead = (s: PartState, ahead: boolean) =>
-  ahead && !!s.time.spec && "period" in s.time.spec && !!s.time.spec.period && asksForAction(s);
+const requestsAhead = (s: PartState, ahead: boolean) => ahead && asksForAction(s);
 
 /** Below a todo and its note: a vital or symptom on a line that only asks for one. */
 const ASKED_FOR_CONFIDENCE = 0.3;
@@ -2081,21 +2102,27 @@ const parsePart = (
   const readsAmounts = forced === null || forced === "dose";
   // So is a measurement's value or a member's "sat", unless the line was asked to be something with a day.
   const readsValues = forced !== "event" && forced !== "todo";
-  const time = findTime(
-    tokens.map((t, i) =>
-      (readsAmounts &&
-        (isFractionAmount(tokens, context.medications, i, forced === "dose") ||
-          isFractionAfterName(tokens, context.medications, i, forced === "dose", previousDose))) ||
-      (readsValues && (isMeasurementValue(tokens, i) || isSatAfterMember(tokens, context, i)))
-        ? ""
-        : t.w,
-    ),
+  const timeWords = tokens.map((t, i) =>
+    (readsAmounts &&
+      (isFractionAmount(tokens, context.medications, i, forced === "dose") ||
+        isFractionAfterName(tokens, context.medications, i, forced === "dose", previousDose))) ||
+    (readsValues && (isMeasurementValue(tokens, i) || isSatAfterMember(tokens, context, i)))
+      ? ""
+      : t.w,
   );
-  const free = tokens.map((_, i) => i).filter((i) => !time?.used.has(i));
-  const vocab = findVocabulary(
-    tokens.map((t) => vocabularyWord(t.w)),
-    (i) => free.includes(i),
-  );
+  const wordsLeft = (found: ReturnType<typeof findTime>) => {
+    const free = tokens.map((_, i) => i).filter((i) => !found?.used.has(i));
+    const vocab = findVocabulary(
+      tokens.map((t) => vocabularyWord(t.w)),
+      (i) => free.includes(i),
+    );
+    return { free, vocab };
+  };
+  // "tomorrow morning" is a part of day on a request; a report or event keeps its day.
+  const requested =
+    forced === null || forced === "todo" ? findTime(timeWords, { periodAfterTomorrow: true }) : null;
+  const time = requested && asksForAction(wordsLeft(requested)) ? requested : findTime(timeWords);
+  const { free, vocab } = wordsLeft(time);
   const providers = matchProviders(context, tokens, free);
   const verb = vocab.some((m) => ["visitVerb", "contactVerb", "noteIncident"].includes(m.entry.role));
   const s: PartState = {
