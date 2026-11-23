@@ -602,6 +602,76 @@ describe("doses", () => {
       expect(day(r)).toBe("11/12");
     });
 
+    describe("typed after the medication (B-591)", () => {
+      const usual = [{ id: APAP, name: "Tylenol", dose: "2 tablets" }];
+
+      test.each([
+        ["gave tylenol 3/8", "3/8 tablet"],
+        ["gave tylenol 1/2", "1/2 tablet"],
+        ["tylenol 3/8", "3/8 tablet"],
+        ["tylenol 3/8 given", "3/8 tablet"],
+        ["d: tylenol 3/8", "3/8 tablet"],
+        ["gave tylenol 3/8 tablet", "3/8 tablet"],
+      ])("%s records %s, dated now", (line, amount) => {
+        const r = top(line, { medications: usual });
+        expect(action(r)).toMatchObject({ type: "logDose", amount, note: null });
+        expect(when(r)).toBe(NOW.toISOString());
+      });
+
+      test("a number in the name stays in the name", () => {
+        const r = top("gave omega 3 1/2", {
+          medications: [{ id: APAP, name: "Omega 3", dose: "2 capsules" }],
+        });
+        expect(action(r)).toMatchObject({ amount: "1/2 capsule", note: null });
+        expect(when(r)).toBe(NOW.toISOString());
+      });
+
+      test.each([
+        ["gave tylenol on 3/8", "2 tablets"],
+        ["gave 2 tylenol 3/8", "2 tablets"],
+        ["gave half a tylenol 3/8", "half a tablet"],
+        ["skipped tylenol 3/8", "2 tablets"],
+        ["didn't give tylenol 3/8", "2 tablets"],
+        ["refused tylenol 3/8", "2 tablets"],
+      ])("%s keeps March 8 and records %s", (line, amount) => {
+        const r = top(line, { medications: usual });
+        expect(action(r)).toMatchObject({ type: "logDose", amount });
+        expect(day(r)).toBe("3/8");
+      });
+
+      test("a dose not given carried from the last part keeps the date", () => {
+        const r = parse("skipped metformin, tylenol 3/8", {
+          medications: [...usual, { id: MET, name: "Metformin" }],
+        })[1]!.readings[0]!;
+        expect(action(r)).toMatchObject({ status: "skipped", amount: "2 tablets" });
+        expect(day(r)).toBe("3/8");
+      });
+
+      test.each(["refill tylenol 3/8", "appt tylenol 3/8"])(
+        "%s has no dose verb, so 3/8 stays a date",
+        (line) => {
+          expect(JSON.stringify(action(top(line, { medications: usual })))).toContain("-03-08");
+        },
+      );
+
+      test("a part carried from a given dose reads the fraction only when it is just the name", () => {
+        const meds = [...usual, { id: MET, name: "Metformin" }];
+        expect(
+          action(parse("gave metformin, tylenol 3/8", { medications: meds })[1]!.readings[0]!),
+        ).toMatchObject({
+          amount: "3/8 tablet",
+        });
+        const refill = parse("gave metformin, refill tylenol 3/8", { medications: meds })[1]!.readings[0]!;
+        expect(JSON.stringify(action(refill))).toContain("-03-08");
+      });
+
+      test("a real date later in the line still dates the dose", () => {
+        const r = top("gave tylenol 3/8 on 11/12", { medications: usual });
+        expect(action(r)).toMatchObject({ amount: "3/8 tablet" });
+        expect(day(r)).toBe("11/12");
+      });
+    });
+
     test("a line forced to another kind keeps its date", () => {
       const r = top("n: 3/8 tylenol", { medications });
       expect(r.kind).toBe("note");

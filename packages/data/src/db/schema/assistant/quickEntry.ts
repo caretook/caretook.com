@@ -1885,6 +1885,11 @@ const DETECTORS: Record<
 /** A proper fraction with a dose-like denominator: "3/8", "1/6", not "4/3" or "3/7". */
 const DOSE_FRACTION = /^([1-9])\/([234568])$/;
 
+const isDoseFraction = (tokens: readonly Token[], i: number) => {
+  const fraction = DOSE_FRACTION.exec(tokens[i]!.w);
+  return !!fraction && Number(fraction[1]) < Number(fraction[2]) && tokens[i - 1]?.w !== "on";
+};
+
 /**
  * Whether the word at `i` is a fraction typed directly before a medication's
  * words ("gave 3/8 tylenol", "3/8 of a tylenol"), so its amount and not a date.
@@ -1898,8 +1903,7 @@ const isFractionAmount = (
   i: number,
   forcedDose: boolean,
 ) => {
-  const fraction = DOSE_FRACTION.exec(tokens[i]!.w);
-  if (!fraction || Number(fraction[1]) >= Number(fraction[2]) || tokens[i - 1]?.w === "on") return false;
+  if (!isDoseFraction(tokens, i)) return false;
   let first = i + 1;
   while (first <= i + 2 && COUNT_LINKS.has(tokens[first]?.w ?? "")) first++;
   let named = first;
@@ -1912,6 +1916,45 @@ const isFractionAmount = (
       nameNumbers(m, tokens, named, -1, (k) => k >= first).length === named - first &&
       (verb || (i === 0 && tokens.slice(named).every((_, k) => namesMedication(m, tokens, named + k)))),
   );
+};
+
+/**
+ * Whether the word at `i` is a fraction typed directly after a medication's
+ * name on a line that gives it ("gave tylenol 3/8"), so its amount and not a
+ * date. A dose not given has no amount, so there it stays a date ("skipped
+ * tylenol 3/8"), as it does after a count ("gave 2 tylenol 3/8") or a time
+ * unit ("gave tylenol 3/8 days"). Without a verb the line must be only the
+ * name and the fraction, so "refill tylenol 3/8" keeps its date.
+ */
+const isFractionAfterName = (
+  tokens: readonly Token[],
+  medications: readonly QuickEntryMedication[],
+  i: number,
+  forcedDose: boolean,
+  previousDose: DoseStatus | null,
+) => {
+  if (i === 0 || !isDoseFraction(tokens, i)) return false;
+  const next = tokens[i + 1]?.w ?? "";
+  if (NOT_SEVERITY_AFTER.test(next) && !AMOUNT_UNITS.test(next)) return false;
+  const verb = tokens.findIndex((t) => t.w in DOSE_VERBS);
+  const status = verb < 0 ? previousDose : DOSE_VERBS[tokens[verb]!.w]!;
+  if ((status ?? "given") !== "given") return false;
+  const all = tokens.map((_, k) => k);
+  if (verb >= 0 && negationBefore(tokens, all, verb, new Set()) !== undefined) return false;
+  let named = i - 1;
+  while (named > 0 && /^\d/.test(tokens[named]!.w)) named--;
+  return medications.some((m) => {
+    const hasVerb = verb >= 0 || forcedDose;
+    if (!namesMedication(m, tokens, named, { verb: hasVerb })) return false;
+    if (nameNumbers(m, tokens, named, 1, (k) => k < i).length !== i - 1 - named) return false;
+    let start = named;
+    while (start > 0 && namesMedication(m, tokens, start - 1, { verb: hasVerb })) start--;
+    start -= nameNumbers(m, tokens, start, -1, (k) => k >= 0).length;
+    let before = start - 1;
+    while (before >= 0 && COUNT_LINKS.has(tokens[before]!.w)) before--;
+    if (before >= 0 && isCount(countValue(tokens[before]!.w))) return false;
+    return hasVerb || (start === 0 && i === tokens.length - 1);
+  });
 };
 
 /**
@@ -1982,7 +2025,9 @@ const parsePart = (
   const readsValues = forced !== "event" && forced !== "todo";
   const time = findTime(
     tokens.map((t, i) =>
-      (readsAmounts && isFractionAmount(tokens, context.medications, i, forced === "dose")) ||
+      (readsAmounts &&
+        (isFractionAmount(tokens, context.medications, i, forced === "dose") ||
+          isFractionAfterName(tokens, context.medications, i, forced === "dose", previousDose))) ||
       (readsValues && isMeasurementValue(tokens, i))
         ? ""
         : t.w,
