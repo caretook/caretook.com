@@ -7,6 +7,7 @@ import {
   emailMatches,
   isError,
   legalAcceptanceService,
+  logError,
   newError,
   normalizeAccessCode,
   normalizeInviteEmail,
@@ -23,8 +24,8 @@ import { sendAccessCodeExistingAccount } from "./emails";
 // which also starts the person's own care group.
 
 export type Ticket =
-  | { kind: "invite"; token: string }
   // `legal`: the person ticked the box; the acceptance is recorded with the account.
+  | { kind: "invite"; token: string; legal: true }
   | { kind: "accessCode"; code: string; group: NewCareGroupInput; legal: true };
 
 export type SignUpWithTicketInput = {
@@ -76,6 +77,7 @@ export const signUpWithTicket = async ({
   }
 
   const hash = await ctx.password.hash(password);
+  let created: { id: string; email: string; emailVerified: boolean };
   try {
     const user = await ctx.internalAdapter.createUser(
       {
@@ -93,7 +95,7 @@ export const signUpWithTicket = async ({
       accountId: user.id,
       password: hash,
     });
-    return { id: user.id, email: user.email, emailVerified: byEmail };
+    created = { id: user.id, email: user.email, emailVerified: byEmail };
   } catch (e) {
     // Two sign-ups with one address at once: the unique email decides.
     if (await ctx.internalAdapter.findUserByEmail(address))
@@ -101,6 +103,21 @@ export const signUpWithTicket = async ({
         ? newError({ code: "ticket:accountExists" })
         : { id: null, email: address, emailVerified: false };
     throw e;
+  }
+  await recordInviteSignUp(created.id);
+  return created;
+};
+
+/**
+ * The account exists by now, so a failed write doesn't fail the sign-up:
+ * with no current acceptance, the accept step asks again.
+ */
+const recordInviteSignUp = async (userId: string) => {
+  try {
+    const recorded = await legalAcceptanceService.record(undefined, { userId, source: "invite_signup" });
+    if (isError(recorded)) logError("invite sign-up: acceptance not recorded", recorded);
+  } catch (e) {
+    logError("invite sign-up: acceptance not recorded", e);
   }
 };
 
