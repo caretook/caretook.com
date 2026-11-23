@@ -288,9 +288,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-608 | chore | triaged | fixes-tooling |  | Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check |
 | B-609 | chore | triaged | fixes-tooling |  | Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh |
 | B-613 | change | triaged | fixes-ui |  | Motion tuning: Today card slides open and shut, sheets fade only, overlays at 240 ms |
-| B-614 | bug | in-progress | dose-accuracy | prd/dose-accuracy | An offline log-then-Undo can delete another member's dose: the PUT is a no-op on their row, then the PATCH of deleted_at removes it (a PUT already carrying deleted_at does the same) |
+| B-614 | bug | ready | dose-accuracy | prd/dose-accuracy | An offline log-then-Undo can delete another member's dose: the PUT is a no-op on their row, then the PATCH of deleted_at removes it (a PUT already carrying deleted_at does the same) |
 | B-615 | bug | triaged | fixes-bug |  | Connector log_dose names no slot, so two log_dose calls for one pass never merge into one dose; only give_pass converges |
-| B-616 | bug | in-progress | dose-accuracy | prd/dose-accuracy | Two simultaneous first uploads of one dose id: the loser hits the primary key and gets a 500; a device retries into the no-op, but a connector run fails and must be retried |
+| B-616 | bug | ready | dose-accuracy | prd/dose-accuracy | Two simultaneous first uploads of one dose id: the loser hits the primary key and gets a 500; a device retries into the no-op, but a connector run fails and must be retried |
 | B-617 | bug | triaged | fixes-ui |  | List tool buttons show no hover: search, filter and view on Timeline, filter on Providers and Planner |
 | B-618 | change | triaged | fixes-ui |  | Timeline day header: move Change care period to the left of the period text |
 | B-619 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
@@ -2210,10 +2210,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-614 · bug · An offline log-then-Undo can delete another member's dose: the PUT is a no-op on their row, then the PATCH of deleted_at removes it (a PUT already carrying deleted_at does the same)
 
-- status: in-progress
+- status: ready
 - prd: dose-accuracy
 - owner: prd/dose-accuracy
-- commit:
+- commit: c22fd80f
 
 - 2026-11-23 (prd/dose-accuracy): From slice 3's hand-off, read from the code, no test yet. timelineEntryService upsert first-upload rule plus the delete path in syncRegistry.ts. An offline edit by a writer also lands on the other member's row; an Easy helper's PATCH is refused and shows in Changes not saved.
 - 2026-11-23 (prd/dose-accuracy): Slice 6 (wave 5). Ask a108: keep member A's dose when B's offline log-then-Undo uploads.
@@ -2229,10 +2229,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-616 · bug · Two simultaneous first uploads of one dose id: the loser hits the primary key and gets a 500; a device retries into the no-op, but a connector run fails and must be retried
 
-- status: in-progress
+- status: ready
 - prd: dose-accuracy
 - owner: prd/dose-accuracy
-- commit:
+- commit: c22fd80f
 
 - 2026-11-23 (prd/dose-accuracy): From dose-accuracy slice 3's hand-off. timelineEntryService upsert, dose kind.
 - 2026-11-23 (prd/dose-accuracy): Codex on PR #96 (P2, verified by reading assistantActionService slotDoseId): two concurrent give_pass runs can both read the slot id as free; the loser's create hits the primary key and rolls back its whole action batch, unrelated entries included. A rerun doesn't double the slot. Fix: claim or insert the id atomically and treat an existing dose as already logged.
@@ -2345,6 +2345,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-23 (prd/dose-accuracy): Codex on PR #96 (P2, verified by reading timelineEntryService mayRestoreDose): the restore rule can't tell a retry of an already-accepted upload from a new log. sync.upload retries a whole batch when a later op fails, or a response can be lost. Needs upload identity or history before restoring. Decide with B-614 at the wave 4 boundary.
 - 2026-11-23 (prd/dose-accuracy): Slice 6 (wave 5), with B-614.
+- 2026-11-23 (slice/dose-accuracy/6): Slice 6: not fixed, stopped as the plan says. A retry and a first upload arrive identical, and the server keeps no record of an accepted duplicate (it writes nothing). The device can't tell either: a failed request may or may not have reached the server. Needs a stored record of accepted duplicates (a schema change) or a change to the US 8 restore rule: orchestrator's call.
+- 2026-11-23 (prd/dose-accuracy): Decided (skeptic, user can veto in the asks list): slice 7, a server-only additive table of accepted duplicates keyed on member + dose id + occurredAt, written in the upsert's transaction at the duplicate return, removed with the user, group and entry, never synced. Wave 5 lands B-614 and B-616 first.
 
 ### B-629 · bug · Dismissing the setup card leaves keyboard focus nowhere, because the button disappears with the card
 
