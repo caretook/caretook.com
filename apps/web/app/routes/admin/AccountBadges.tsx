@@ -1,14 +1,10 @@
+import { Badge } from "~/components/ui";
 import { accountBadges } from "./accountDisplay";
 
 // An account's badges (confirmed or not, disabled, staff role), on the Users
 // list and an account's page.
 
-const TONES = {
-  success: "badge-success",
-  warning: "badge-warning",
-  error: "badge-error",
-  info: "badge-info",
-} as const;
+const TONES = { success: "success", warning: "warning", error: "danger", info: "info" } as const;
 
 export function AccountBadges({
   account,
@@ -18,13 +14,9 @@ export function AccountBadges({
   return (
     <span className="flex flex-wrap gap-1">
       {accountBadges(account).map((badge) => (
-        <span
-          key={badge.id}
-          className={`badge badge-sm badge-soft ${TONES[badge.tone]}`}
-          data-badge={badge.id}
-        >
+        <Badge key={badge.id} tone={TONES[badge.tone]} data-badge={badge.id}>
           {badge.label}
-        </span>
+        </Badge>
       ))}
     </span>
   );

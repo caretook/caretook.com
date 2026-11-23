@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { Notice } from "~/components/ui/plain";
 
 import { formatLegalDate, inlineParts, TOC_MIN_SECTIONS } from "./legal";
 import type { LegalBlock, LegalPageContent } from "./legal";
@@ -57,11 +58,11 @@ export function LegalPage({ content }: { content: LegalPageContent }) {
   return (
     <article aria-labelledby="page-heading" className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
       {content.draft && (
-        <div role="note" data-draft className="alert alert-warning mb-8 items-start text-base">
-          <p>
+        <div role="note" data-draft className="mb-8">
+          <Notice tone="warning">
             <strong>DRAFT, not yet reviewed.</strong> This text is a draft for legal review. It isn&apos;t
             final and may change before Caretook opens to the public.
-          </p>
+          </Notice>
         </div>
       )}
       <h1 id="page-heading" className="text-4xl font-bold tracking-tight text-balance">

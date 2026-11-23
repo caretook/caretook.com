@@ -1,6 +1,8 @@
+import { Button } from "~/components/ui";
+import { AdminPager } from "../AdminPager";
+import { AdminCard } from "../AdminCard";
 import type { Route } from "./+types/route";
 
-import { Link } from "react-router";
 import { requireStaff } from "~/.server/admin";
 import { adminUrls } from "../adminUrls";
 import { WaitlistFilterForm } from "./WaitlistFilterForm";
@@ -28,51 +30,36 @@ export default function Waitlist({ loaderData }: Route.ComponentProps) {
   const { filter, count, page, pages, entries } = loaderData;
   const search = waitlistSearch(filter);
   return (
-    <section className="card bg-base-100 shadow-sm" aria-labelledby="waitlist">
-      <div className="card-body gap-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h1 id="waitlist" className="card-title">
-            Waitlist
-          </h1>
-          <a
-            href={adminUrls.waitlistExport(search)}
-            download
-            className={`btn btn-sm ${count ? "" : "btn-disabled"}`}
-            aria-disabled={count === 0}
-            data-waitlist-export=""
-          >
-            Export CSV
-          </a>
-        </div>
-        <WaitlistFilterForm filter={filter} />
-        <p role="status" className="text-sm" data-waitlist-count={count}>
-          {hasFilters(filter)
-            ? `${people(count)} ${count === 1 ? "matches" : "match"}.`
-            : `${people(count)} on the waitlist.`}
-        </p>
-        {entries.length > 0 && <WaitlistTable entries={entries} />}
-        {pages > 1 && (
-          <nav aria-label="Waitlist pages" className="flex items-center justify-between gap-2 text-sm">
-            {page > 1 ? (
-              <Link className="btn btn-sm" to={adminUrls.waitlist(waitlistSearch(filter, page - 1))}>
-                Newer
-              </Link>
-            ) : (
-              <span />
-            )}
-            <span>
-              Page {page} of {pages}
-            </span>
-            {page < pages ? (
-              <Link className="btn btn-sm" to={adminUrls.waitlist(waitlistSearch(filter, page + 1))}>
-                Older
-              </Link>
-            ) : (
-              <span />
-            )}
-          </nav>
-        )}
-      </div>
-    </section>
+    <AdminCard
+      id="waitlist"
+      level={1}
+      title="Waitlist"
+      actions={
+        <Button
+          href={adminUrls.waitlistExport(search)}
+          download
+          size="sm"
+          className={count ? "" : "pointer-events-none opacity-50"}
+          aria-disabled={count === 0}
+          data-waitlist-export=""
+        >
+          Export CSV
+        </Button>
+      }
+    >
+      <WaitlistFilterForm filter={filter} />
+      <p role="status" className="text-sm" data-waitlist-count={count}>
+        {hasFilters(filter)
+          ? `${people(count)} ${count === 1 ? "matches" : "match"}.`
+          : `${people(count)} on the waitlist.`}
+      </p>
+      {entries.length > 0 && <WaitlistTable entries={entries} />}
+      <AdminPager
+        label="Waitlist pages"
+        page={page}
+        pages={pages}
+        to={(n) => adminUrls.waitlist(waitlistSearch(filter, n))}
+      />
+    </AdminCard>
   );
 }

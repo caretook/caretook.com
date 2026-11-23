@@ -7,7 +7,7 @@ The `ui/` primitives' contracts; layout, rules and tests are in [components](com
 - **Primitives** (the `ui` index) import nothing from feature folders; **only `ui/` imports React Aria** (lint).
 - `ui/tooltip/` and `ui/date/` (`DateTimeField`; hour arrows cross AM/PM) have their own indexes, to stay off other pages.
 - **`ui/plain`**, the light entry: everything without React Aria. Light pages (sign-in, the account forms, `/connect`, marketing) import from it, never from `ui` (its chunk carries React Aria); `ui/plain/plain.test.ts` fails on any React Aria import it reaches.
-- **Append-only:** the `ui` and `ui/plain` indexes, `ui/styles.ts` and the gallery registry take new lines at the end only.
+- **Append-only:** the `ui` and `ui/plain` indexes, `ui/styles.ts` and the gallery registry.
 - **The gallery** `/dev/ui` (`routes/dev/ui/`, web only, 404 in production): each primitive in both themes with fictional data, one `sections/` file each, listed in `registry.ts` (and Type). A new primitive adds its section. **Add a primitive only for a repeated pattern.**
 - **Contrast** is measured in component tests with `apps/web/test/contrast.ts` (translucent colours composited).
 
@@ -19,8 +19,8 @@ The `ui/` primitives' contracts; layout, rules and tests are in [components](com
 ## Contracts
 
 - `Button`: `variant` `primary`, `secondary` (default), `ghost`, `danger`, `dangerQuiet`, `warning`; `size` `lg`, `md`, `sm`, `xs`; `shape` `rounded` (default), `pill`, `square`, `round`; `block`; `icon`. Icon only is `square` unless shaped; a button takes `pressed` (the toggle look, in place of the variant), `expanded`, `controls`, `ref`. `busy` with `busyLabel` (disabled, `aria-busy`, text swapped); type `button` unless given. With `to` a router link (`replace`, `state`, `prefetch`, `preventScrollReset`); with `href` a plain `<a>` the router doesn't own (no `title` on a text one: put it on a wrapper). Classes: the pure `buttonClass` (with `pressed`), which `TOOL_CIRCLE`, the chips, the date field and `Menu`'s trigger build on.
-- `Menu`'s trigger takes a look (`variant`, `size`, `shape`; no default) through `buttonClass`; a bare class string works until `ui-kit-5`. Solid `danger` only in a confirm, a form whose one job is destructive, or overdue Given all.
-- `FormFooter` (forms only): Cancel (`{ label, to }` or `{ label, onCancel }`) then submit `Button` (`submitLabel`, `busy`, `busyLabel`, `submitDisabled`, `danger`); right-aligned, or `align="start"`; a `status` slot.
+- `Menu`'s and `Popover`'s triggers take a look (`variant`, `size`, `shape`; no default) through `buttonClass`; `Menu`'s bare string goes in `ui-kit-5`. Solid `danger` only in a confirm, a form whose one job is destructive, or overdue Given all.
+- `FormFooter` (forms only): Cancel (`{ label, to }` or `{ label, onCancel }`) then submit `Button` (`submitLabel`, `busy`, `busyLabel`, `submitDisabled`, `danger`, `size`); right-aligned, or `align="start"`; a `status` slot.
 - `ConfirmDialog`/`useShowModal`: `confirmVariant` `danger` (default) or `primary`; waits for an open menu to close before `showModal()`; Escape closes only the dialog.
 - `ChoiceDialog` (`open`, `title`, `message`, up to three `choices` `{ id, label, tone, data-* }`, `cancelLabel`, `onChoose(id)`, `onClose`, `data-*` on the dialog): `ConfirmDialog`'s rules; choices stacked full width, then Cancel; `onClose` runs on every close.
 - `PageHeader` `icon`, `accent`: a soft chip before the title. `add`: a `label` and a link (`to` and its options), `onPress`, or `items` (`menuLabel`); a primary `sm` icon-only `+`, the header's last control, `actions` before it; `data-*` on it.
@@ -37,7 +37,7 @@ The `ui/` primitives' contracts; layout, rules and tests are in [components](com
 - `ComboBox`: `options`, a controlled `inputValue`, `onSelect`, `onCreate?` (last), `sections`; the caller filters.
 - `TabNav` (`{ label, tabs: [{ label, to, match?, current?, icon?, count?, replace? }] }`): a `nav` of links, not a tablist. A tab claims its path and below (`match` replaces that, `current` overrides both); the first claimant gets `aria-current="page"` from the pending navigation; prefetches on render. `count` is a badge read in the name. A rounded pill; `accent` tints the current one and the counts (default primary). Equal tabs on phones, `sm:w-fit`; overflow scrolls sideways, keeping the current tab in view.
 - `Message` (`{ tone, children }`): `error` is `role="alert"`; `success`, `warning`, `info` (default) `role="status"`. Empty, it stays mounted (`empty:hidden`).
-- `Notice` (`{ tone, icon?, action? }`): a soft daisyUI alert with the tone's icon (or `icon`); role by tone; `action` a `{ label, to }` link or a `{ label, onAction }` button.
+- `Notice` (`{ tone, icon?, action? }`): a soft daisyUI alert with the tone's icon (or `icon`); role by tone (`role` overrides); `action` a `{ label, to }` link or a `{ label, onAction }` button.
 - `EmptyState`: one quiet line and an optional action; `icon`, `accent` add a soft circle above it (main lists only). `Toast` takes `open`; it stays, inert, through its fade.
 - `Loading` (`{ label, lines? }`): a status named by `label`, a spinner and the label, or with `lines` a `Skeleton` and a screen-reader label. `Skeleton` (`{ lines }`): bars, `aria-hidden`, `data-skeleton`.
 - `Badge` (`{ tone, icon? }`): one size, soft (`badgeClass`, pure); `neutral`, `primary`, `success`, `warning`, `danger`, `info`. **Status tones** (`STATUS_TONE`): current and now `primary`; past and stopped `neutral`; overdue `danger`; due soon `warning`; done `success`. `ViaTag` stays its own.
@@ -45,10 +45,10 @@ The `ui/` primitives' contracts; layout, rules and tests are in [components](com
 
 ## Page, headings and tokens (`/app` only; marketing, print and `/admin` keep theirs)
 
-- `Page` is a page's one `main` (`mx-auto max-w-2xl space-y-4 px-4 py-5`; `width="wide"` is `max-w-4xl`), passes `data-*`, `id`, `className`. Every `/app` page uses it but Easy view, the entry folder, print sheets, the error screen and first sync.
+- `Page` is a page's one `main` (`mx-auto max-w-2xl space-y-4 px-4 py-5`; `width="wide"` is `max-w-4xl`), passes `data-*`, `id`, `className`. Every `/app` page uses it but print sheets, the error screen and first sync.
 - **Every section page starts with a `PageHeader`** (its `h1` and actions; `description` for one quiet line under the title).
 - **Heading scale** (`ui/styles.ts`): `TITLE_PAGE` `text-xl font-semibold` (`PageHeader` uses it), `TITLE_SECTION` `text-base font-semibold` (sections and cards), `TITLE_SUB` `text-sm font-semibold`.
-- **Tokens:** `text-muted` (70%) and `text-faint` (62%, still 4.5:1 on the light page) in `app.css`. `LINK` (`link text-primary-ink`); `text-<tone>-ink` lifts a tone's text to 4.5:1 on every surface. `ui/styles.ts`: `ICON_SM`, `ICON`, `ICON_LG` (`size-3.5`, `4`, `5`), `COUNT_BADGE`.
+- **Tokens:** `text-muted` (70%) and `text-faint` (62%, 4.5:1 on light) in `app.css`. `LINK` (`link text-primary-ink`); `text-<tone>-ink` lifts a tone's text to 4.5:1 on every surface. `ui/styles.ts`: `ICON_SM`, `ICON`, `ICON_LG` (`size-3.5`, `4`, `5`), `COUNT_BADGE`, `CHOICE_BUTTON`, `CHOICE_TILE`.
 
 ## Bands
 

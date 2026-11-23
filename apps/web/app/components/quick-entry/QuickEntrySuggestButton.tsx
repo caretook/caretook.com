@@ -2,11 +2,12 @@ import type { ComponentProps } from "react";
 import type { QuickEntrySize } from "./QuickEntryBox";
 
 import { Sparkles } from "lucide-react";
-import { Popover } from "~/components/ui";
+import { ICON_LG, Popover } from "~/components/ui";
 import { QuickEntrySuggestions } from "./QuickEntrySuggestions";
 
-const BUTTON_CLASS: Record<QuickEntrySize, string> = {
-  md: "btn-sm top-1.5 right-1.5",
+const BUTTON_SIZE = { md: "sm", lg: "md" } as const;
+const BUTTON_PLACE: Record<QuickEntrySize, string> = {
+  md: "top-1.5 right-1.5",
   lg: "top-3 right-3",
 };
 
@@ -30,10 +31,13 @@ export function QuickEntrySuggestButton({
       label={due ? "Suggestions, a pass is due" : "Suggestions"}
       dialogLabel="Suggestions"
       placement="bottom end"
-      className={`btn btn-ghost btn-circle absolute ${BUTTON_CLASS[size]}`}
+      variant="ghost"
+      size={BUTTON_SIZE[size]}
+      shape="round"
+      className={`absolute ${BUTTON_PLACE[size]}`}
       trigger={
         <>
-          <Sparkles className="size-5" aria-hidden="true" />
+          <Sparkles className={ICON_LG} aria-hidden="true" />
           {due && (
             <span
               className="bg-warning ring-base-100 absolute top-0.5 right-0.5 size-2.5 rounded-full ring-2"

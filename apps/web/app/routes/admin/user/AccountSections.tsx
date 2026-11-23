@@ -1,6 +1,8 @@
 import type { ApiOutputs } from "~/lib/core/rpc";
 
 import { Link } from "react-router";
+import { EmptyState, LINK, List, ListRow } from "~/components/ui";
+import { AdminCard } from "../AdminCard";
 import { AccountBadges } from "../AccountBadges";
 import { deviceLabel } from "~/lib/auth/deviceLabel";
 import { groupRoleLabel } from "@caretook/data/permissions";
@@ -19,14 +21,9 @@ const person = (p: { name: string | null; email: string | null }) =>
 
 function Card({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <section className="card bg-base-100 shadow-sm" aria-labelledby={id} data-user-section={id}>
-      <div className="card-body gap-3">
-        <h2 id={id} className="card-title text-base">
-          {title}
-        </h2>
-        {children}
-      </div>
-    </section>
+    <AdminCard id={id} title={title} titleSize="base" data-user-section={id}>
+      {children}
+    </AdminCard>
   );
 }
 
@@ -34,45 +31,46 @@ export function AccountSection({ page, canHelp }: { page: AccountPage; canHelp: 
   const { account, signIn } = page;
   const methods = [signIn.password && "Password", signIn.emailed && "Emailed link or code"].filter(Boolean);
   return (
-    <section className="card bg-base-100 shadow-sm" aria-labelledby="account" data-user-section="account">
-      <div className="card-body gap-3">
-        <h1 id="account" className="card-title break-all">
-          {account.name || account.email}
-        </h1>
-        <AccountBadges account={{ ...account, disabled: account.disabledAt !== null }} />
-        <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[max-content_1fr]">
-          <dt className="text-base-content/70">Email</dt>
-          <dd className="break-all" data-account-email="">
-            {account.email}
-          </dd>
-          <dt className="text-base-content/70">Role</dt>
-          <dd>{staffRoleLabel(account.role) ?? "Member"}</dd>
-          <dt className="text-base-content/70">Created</dt>
-          <dd>{adminDay(account.createdAt)}</dd>
-          <dt className="text-base-content/70">Signs in with</dt>
-          <dd>{methods.join(", ")}</dd>
-          <dt className="text-base-content/70">Last sign-in</dt>
-          <dd>{signIn.lastSignInAt ? adminTime(signIn.lastSignInAt) : "No active session"}</dd>
-          {account.disabledAt && (
-            <>
-              <dt className="text-base-content/70">Disabled</dt>
-              <dd>
-                {adminTime(account.disabledAt)}
-                {account.disabledBy && ` by ${person(account.disabledBy)}`}
-                {account.disabledReason && `: ${account.disabledReason}`}
-              </dd>
-            </>
-          )}
-        </dl>
-        {/* A disabled account gets no email (slice 3): re-enable it first. */}
-        {canHelp && !account.disabledAt && (
-          <div className="flex flex-wrap gap-2" data-help-actions="">
-            {!account.emailVerified && <HelpAction intent="resendVerification" />}
-            <HelpAction intent="sendReset" />
-          </div>
+    <AdminCard
+      id="account"
+      level={1}
+      titleClassName="break-all"
+      title={account.name || account.email}
+      data-user-section="account"
+    >
+      <AccountBadges account={{ ...account, disabled: account.disabledAt !== null }} />
+      <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[max-content_1fr]">
+        <dt className="text-muted">Email</dt>
+        <dd className="break-all" data-account-email="">
+          {account.email}
+        </dd>
+        <dt className="text-muted">Role</dt>
+        <dd>{staffRoleLabel(account.role) ?? "Member"}</dd>
+        <dt className="text-muted">Created</dt>
+        <dd>{adminDay(account.createdAt)}</dd>
+        <dt className="text-muted">Signs in with</dt>
+        <dd>{methods.join(", ")}</dd>
+        <dt className="text-muted">Last sign-in</dt>
+        <dd>{signIn.lastSignInAt ? adminTime(signIn.lastSignInAt) : "No active session"}</dd>
+        {account.disabledAt && (
+          <>
+            <dt className="text-muted">Disabled</dt>
+            <dd>
+              {adminTime(account.disabledAt)}
+              {account.disabledBy && ` by ${person(account.disabledBy)}`}
+              {account.disabledReason && `: ${account.disabledReason}`}
+            </dd>
+          </>
         )}
-      </div>
-    </section>
+      </dl>
+      {/* A disabled account gets no email (slice 3): re-enable it first. */}
+      {canHelp && !account.disabledAt && (
+        <div className="flex flex-wrap gap-2" data-help-actions="">
+          {!account.emailVerified && <HelpAction intent="resendVerification" />}
+          <HelpAction intent="sendReset" />
+        </div>
+      )}
+    </AdminCard>
   );
 }
 
@@ -80,21 +78,21 @@ export function SessionsSection({ page, canHelp }: { page: AccountPage; canHelp:
   return (
     <Card id="sessions" title="Sessions">
       {page.sessions.length === 0 ? (
-        <p className="text-sm">Not signed in anywhere.</p>
+        <EmptyState>Not signed in anywhere.</EmptyState>
       ) : (
         <>
-          <ul className="divide-base-300 divide-y" data-sessions="">
+          <List data-sessions="">
             {page.sessions.map((s) => (
-              <li
+              <ListRow
                 key={s.id}
-                className="flex flex-wrap items-start justify-between gap-2 py-2"
+                className="flex flex-wrap items-start justify-between gap-2"
                 data-session={s.id}
               >
                 <div className="text-sm">
                   <p className="font-medium" title={s.userAgent ?? undefined}>
                     {deviceLabel(s.userAgent)}
                   </p>
-                  <p className="text-base-content/70 text-xs">
+                  <p className="text-muted text-xs">
                     Signed in {adminTime(s.createdAt)} · last active {adminTime(s.lastActiveAt)}
                     {s.ipAddress && ` · ${s.ipAddress}`}
                   </p>
@@ -104,12 +102,12 @@ export function SessionsSection({ page, canHelp }: { page: AccountPage; canHelp:
                     intent="revokeSession"
                     sessionId={s.id}
                     label={`Sign out ${deviceLabel(s.userAgent)}, signed in ${adminTime(s.createdAt)}`}
-                    className="btn btn-sm btn-ghost"
+                    variant="ghost"
                   />
                 )}
-              </li>
+              </ListRow>
             ))}
-          </ul>
+          </List>
           {canHelp && <HelpAction intent="revokeAllSessions" />}
         </>
       )}
@@ -121,24 +119,22 @@ export function GroupsSection({ page }: { page: AccountPage }) {
   return (
     <Card id="groups" title="Care groups">
       {page.groups.length === 0 ? (
-        <p className="text-sm">Not in any care group.</p>
+        <EmptyState>Not in any care group.</EmptyState>
       ) : (
-        <ul className="divide-base-300 divide-y" data-groups="">
+        <List data-groups="">
           {page.groups.map((g) => (
-            <li key={g.groupId} className="py-2 text-sm" data-group={g.groupId}>
-              <Link to={adminUrls.group(g.groupId)} className="link font-medium">
+            <ListRow key={g.groupId} className="text-sm" data-group={g.groupId}>
+              <Link to={adminUrls.group(g.groupId)} className={`${LINK} font-medium`}>
                 {g.displayName}
               </Link>
-              {g.displayName !== g.groupName && (
-                <span className="text-base-content/70"> · {g.groupName}</span>
-              )}
-              <p className="text-base-content/70 text-xs">
+              {g.displayName !== g.groupName && <span className="text-muted"> · {g.groupName}</span>}
+              <p className="text-muted text-xs">
                 {groupRoleLabel(g.role)} · joined {adminDay(g.joinedAt)}
                 {g.invitedBy && ` · invited by ${person(g.invitedBy)}`}
               </p>
-            </li>
+            </ListRow>
           ))}
-        </ul>
+        </List>
       )}
     </Card>
   );
@@ -147,11 +143,9 @@ export function GroupsSection({ page }: { page: AccountPage }) {
 export function MailSection({ page }: { page: AccountPage }) {
   return (
     <Card id="mail" title="Recent mail">
-      <p className="text-base-content/70 text-xs">
-        The latest 20 emails to this address. Never their content.
-      </p>
+      <p className="text-muted text-xs">The latest 20 emails to this address. Never their content.</p>
       {page.mail.length === 0 ? (
-        <p className="text-sm">No email sent to this address.</p>
+        <EmptyState>No email sent to this address.</EmptyState>
       ) : (
         <div className="overflow-x-auto">
           <table className="table-sm table" data-mail="">
