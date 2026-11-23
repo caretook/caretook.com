@@ -346,6 +346,27 @@ describe("the type", () => {
     expect(made).toEqual({ type: "otc", rx_number: "RX 7781" });
   });
 
+  test("a refused field folded away opens its section and takes focus", async () => {
+    await openWith(`${LIST}/new`);
+    await waitUntil(() => !!FORM(), "the add sheet");
+    await userEvent.fill(await found(() => field("name")), "Loratadine");
+    await userEvent.click(
+      await found(() =>
+        FORM()?.querySelector<HTMLInputElement>('input[name="scheduleType"][value="asNeeded"]'),
+      ),
+    );
+    await userEvent.click(typeRadio("otc"));
+    await userEvent.click(await found(toggle));
+    await expect.poll(() => toggle()?.getAttribute("aria-expanded")).toBe("true");
+    await userEvent.fill(await found(() => field("refillsLeft")), "-1");
+    await userEvent.click(await found(toggle));
+    await expect.poll(() => toggle()?.getAttribute("aria-expanded")).toBe("false");
+
+    await userEvent.click(submit());
+    await expect.poll(() => toggle()?.getAttribute("aria-expanded")).toBe("true");
+    await expect.poll(() => document.activeElement).toBe(field("refillsLeft"));
+  });
+
   test("an over-the-counter one with an Rx number opens with the section open; one without, closed", async () => {
     await openWith(`${LIST}/${NAPROXEN.id}/edit`);
     await waitUntil(() => !!FORM(), "the edit sheet");
