@@ -21,7 +21,7 @@ The shared space for one care recipient's caretakers: always "care group", never
   - `care_group_invite`: owner and admin for everything (update: status only).
   - `care_group_consent`, `care_group_join_request`: read owner, admin, yourself; writes `system`.
   - `access_code`: staff for everything (update: not the code or use count). `access_code_redemption`: read staff; `system` writes.
-  - `user`: read self, staff and co-members (id, name, image); create staff; update self (no role or email); delete self and staff.
+  - `user`: read self, staff and co-members (`PUBLIC_PROFILE_FIELDS`); create staff; update self (no role or email); delete self and staff.
   - `timeline_entry`: read any member; create loggers; update and (soft) delete writers, and an Easy helper on own entries (`groupOwn`), never changing a setup field, even to clear it. `provider`, `medication`, `care_period`, `medication_pass`, `recipient_allergy`, `recipient_condition`: read any member; create, update and (soft) delete writers.
   - `medication_condition`, `condition_manager` (`medicationConditionSchema`, `conditionManagerSchema`): read any member; create and delete writers; update `system`. Written through their services, which check both ends.
   - `task`: as above, but update also for viewers ¹. `appointment_series`: as above (writers).

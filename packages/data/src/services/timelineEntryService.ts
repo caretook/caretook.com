@@ -11,12 +11,14 @@ import type { Filter } from "../models";
 import type { IncludeDeleted } from "../models/timelineEntry";
 import type { ServiceContext } from "./types";
 
+import { and, eq } from "drizzle-orm";
 import { SYSTEM_USER, isOwnRowLogger } from "../constants";
-import { withTransaction } from "../db";
+import { dbMayFail, withTransaction } from "../db";
 import {
   buildNoteDoc,
   canHaveNoteDocument,
   canLogEntry,
+  doseDuplicateUploadSchema,
   FUTURE_DATE_MESSAGE,
   isDoseDetails,
   isTooFarAhead,
@@ -589,6 +591,33 @@ const mayRestoreDose = (
   row.updatedBy !== uploader &&
   !(row.createdBy === uploader && new Date(row.occurredAt).getTime() === new Date(occurredAt).getTime());
 
+/** Note an upload accepted as a duplicate, in its transaction: it commits only if the upload does. */
+const recordDuplicateDose = (tx: Tx, entryId: string, userId: string, occurredAt: string) =>
+  dbMayFail(
+    () => tx.insert(doseDuplicateUploadSchema).values({ entryId, userId, occurredAt }).onConflictDoNothing(),
+    "timelineEntryService:duplicateRecord",
+  );
+
+/** Whether this exact upload was already accepted as a duplicate: a retry, not a new log (B-627). */
+const isAcceptedDuplicate = async (tx: Tx, entryId: string, userId: string, occurredAt: string) => {
+  const rows = await dbMayFail(
+    () =>
+      tx
+        .select({ entryId: doseDuplicateUploadSchema.entryId })
+        .from(doseDuplicateUploadSchema)
+        .where(
+          and(
+            eq(doseDuplicateUploadSchema.entryId, entryId),
+            eq(doseDuplicateUploadSchema.userId, userId),
+            eq(doseDuplicateUploadSchema.occurredAt, occurredAt),
+          ),
+        )
+        .limit(1),
+    "timelineEntryService:duplicateRecord",
+  );
+  return isError(rows) ? rows : rows.length > 0;
+};
+
 /**
  * The dose with this id when it is another member's and the actor may log
  * doses in its group; else null. An upload of the actor's own copy of it (a
@@ -616,8 +645,9 @@ export const anotherMembersDose = (ctx: ServiceContext, id: string) =>
  * - A deleted entry stays deleted (a delete wins over a late edit).
  * - A dose shares its id with the same answer for the same slot, so for
  *   anyone who may log one: onto a live row another member created, the first
- *   upload stands and nothing changes; onto a row another member deleted, it
- *   comes back as the uploader's, unless this is their own dose replayed.
+ *   upload stands, nothing changes and the duplicate is recorded; onto a row
+ *   another member deleted, it comes back as the uploader's, unless this is
+ *   their own dose replayed or a retry of a recorded duplicate (B-627).
  *   Two first uploads of one id take turns, so the second is that duplicate.
  * - An id that exists but the actor can't see is refused, without saying
  *   whether it exists.
@@ -680,8 +710,16 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
       const uploader = await doseUploader(ctx, tx, groupId, scheduling);
       if (isError(uploader)) return uploader;
       if (uploader) {
-        if (!visible.deletedAt && visible.createdBy !== uploader) return visible;
-        if (visible.deletedAt && mayRestoreDose(visible, uploader, occurredAt)) {
+        if (!visible.deletedAt && visible.createdBy !== uploader) {
+          const recorded = await recordDuplicateDose(tx, id, uploader, occurredAt);
+          return isError(recorded) ? recorded : visible;
+        }
+        const retried =
+          visible.deletedAt && mayRestoreDose(visible, uploader, occurredAt)
+            ? await isAcceptedDuplicate(tx, id, uploader, occurredAt)
+            : null;
+        if (isError(retried)) return retried;
+        if (retried === false) {
           const future = refuseFuture(kind, occurredAt);
           if (future) return future;
           const medication = await checkDoseMedication(ctx, tx, groupId, details);
