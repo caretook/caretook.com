@@ -1,4 +1,4 @@
-import { Page } from "~/components/ui";
+import { Message, Page } from "~/components/ui";
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { LocalTodo, TodoRow } from "~/lib/todos/todos.sync";
@@ -87,11 +87,7 @@ export default function Todos({ loaderData, params }: Route.ComponentProps) {
 
       <TodoFilterRow who={list.who} />
       <TodoUndoStatus groupId={params.groupId} />
-      {error && (
-        <p role="alert" className="text-error text-sm">
-          {error}
-        </p>
-      )}
+      {error && <Message tone="error">{error}</Message>}
 
       <TodoSections
         sections={list.sections}
