@@ -339,6 +339,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-673 | feature | triaged | fixes-ui |  | Add a medication: suggest common medication names as you type, like conditions |
 | B-674 | change | triaged | fixes-ui |  | Add a medication: the schedule starts on As needed |
 | B-675 | bug | triaged | fixes-bug |  | Timeline: after repeating a day jump, opening a sheet brings back the old expanded window and moves the scroll |
+| B-676 | change | triaged | fixes-ui |  | Quick entry: the suggested result card can be clicked to add it, as Enter does |
+| B-677 | change | triaged | fixes-ui |  | Role pickers: explain what each role can do, when inviting and managing members |
+| B-678 | bug | triaged | fixes-ui |  | Manage members: cards truncate names and details on phone and desktop; redo the layout |
+| B-679 | feature | triaged | fixes-ui |  | Manage members: show email confirmation status (last login only if easy) |
 
 ## Items
 
@@ -2580,6 +2584,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23 (testing on dev): replaces the fix above. Don't just delete the notice: move the Invite someone prompt into a toast, so no card sits on the Timeline. It belongs in the second onboarding PRD the user is about to triage; prd stays fixes-ui until that topic exists. Reuse the ui Toast (AddedMedicationToast.tsx is the pattern: timed, clears on navigation, one action). Same audience as today: an owner or admin who is the group's only member, after the setup card is dismissed or its 14 days end. Still open: what triggers the toast and how often it may return, so it doesn't appear on every Timeline visit. InviteSomeoneCard and the data-invite-card tests still need updating.
 - 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: folded into B-670 (onboarding pages). Delete InviteSomeoneCard and its Timeline fallback; inviting becomes a step in the flow and the one 'Want help onboarding?' toast covers it. No separate invite toast. This replaces the earlier toast note.
 - 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: replaces the earlier fold-in note. Delete InviteSomeoneCard and its Timeline fallback, and make inviting a toast nudge for the group's creator, not a page step in B-670. Its action opens group settings, members. Stops once the group has another member. Timing is decided in B-670.
+- 2026-11-23 (Robert Bo Davis): User report 2026-11-23, no separate bug because the new onboarding replaces it: the current Invite someone onboarding item takes the user to their profile but does not open the invite-by-email form. When B-665 builds the invite toast nudge, its action must land on the invite form already open, not just the page.
 
 ### B-666 · bug · Signing up at the join link doesn't prompt the password manager to save the new password
 
@@ -2681,3 +2686,44 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (prd/timeline-jump): Codex on PR #119 (P2), verified in useTimelineData.ts: a repeat jump only ignores the old paging while its marker is present (current=false) and never saves the reset. A sheet link replaces the location state with SHEET_LINK_STATE, so jumpMark goes null, current turns true and the old before/limit return under the sheet. Fix: persist the reset bound, limit and marker when accepting a new jump. Repro: jump to a day, load newer, jump to the same day again, open an entry's edit sheet. No data affected.
+
+### B-676 · change · Quick entry: the suggested result card can be clicked to add it, as Enter does
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User report 2026-11-23: "when adding something from the quick entry field, the main selection should be clickable AND enter should add the suggestion." Open with the user: which selection. (a) The top name in the floating Matching names list (QuickEntryCompletions): chips are already clickable, but nothing is highlighted and Enter saves the line as typed even while the list is open (QuickEntryBox.tsx:109). (b) The result card (QuickEntryCard): not clickable today; Enter already saves it. Confirm before building. If Enter completes a name, a second Enter saves, and Shift+Enter stays a new line. A saved reading must never come from a stray tap on a card without a clear affordance.
+- 2026-11-23 (Robert Bo Davis): User answer 2026-11-23, settles the open question: the "main selector" is the default suggested item in Timeline quick entry, the result card (QuickEntryCard). It cannot be clicked today; Enter adds it correctly; it should be a real button. Enter behavior stays as is, and the Matching names list is out of scope. Build: make the main reading (icon, kind, when, title, detail) a native button that does what Enter does, with hover, focus and an accessible name saying what it adds. Do not wrap the whole card: Remove, Edit and the Make it a note chips are their own buttons and must not nest. A blocked card (red warning) or a busy save leaves it disabled, matching q.canSave. For a line with several cards Enter and Save all write every card, so the plan must decide whether a click adds that card alone or all of them; default to matching Enter unless the user says otherwise. Check on a phone.
+- 2026-11-23 (Robert Bo Davis): User clarification 2026-11-23: the "other options" (Make it a note, Metoprolol 25 mg instead) are already buttons, and the main suggestion should be one too, so it reads as a choice beside them. Note the difference when building: those chips only switch the reading (onChoose) and save nothing, while the main button adds the entry as Enter does, so it should look like the primary choice and not be mistaken for another switch.
+
+### B-677 · change · Role pickers: explain what each role can do, when inviting and managing members
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User request 2026-11-23: a short description of what each role does and its permissions, beside or below each item in the role dropdown when inviting, and the same in Manage members. Today RoleOptions.tsx renders a native select and puts the description only in each option title, which phones and most browsers do not show. InviteSheet.tsx:84 and InviteLinks.tsx:108 show the selected role only as field help; MembersList.tsx:201 shows nothing. A native option cannot hold a second line, so this needs another control: a radio list with a description under each label (native first, fits the invite sheet), or a ui/ React Aria Select if the compact member row needs a dropdown (read docs/domain/components.md). Cover all three pickers through one shared component, keeping the Regular and Easier to use groups and each manager only seeing the roles they may assign. The wording in GROUP_ROLES (packages/data/src/constants/roles.ts) is thin ("Reads and writes care data."): rewrite it in plain words and check each line against the real permissions in docs/domain/care-groups.md. Staff /admin role pickers are out of scope. Check on a phone.
+- 2026-11-23 (Robert Bo Davis): User addition 2026-11-23: an accepted alternative is a link that opens a modal with the information, so it can be longer form. Backlog session recommendation: take this one. A "What can each role do?" link beside the Role label opens a native dialog listing every role with what it can see and change. The native selects stay, so there is no new picker control, it works in the compact member row, and it fits a phone. Keep the selected role short help line in the invite forms and add it where it is missing. The dialog opens from inside the invite Sheet, so check focus return and stacking. Show all roles for understanding, marking none as assignable beyond what the select offers. Final choice between this and per-item descriptions is the user to confirm if they want the latter.
+- 2026-11-23 (Robert Bo Davis): User decision 2026-11-23: take the recommendation. A "What can each role do?" link beside the Role label opens a native dialog with the longer explanation of every role; the native selects stay; per-item descriptions in the picker are dropped. This settles the choice in the earlier notes.
+
+### B-678 · bug · Manage members: cards truncate names and details on phone and desktop; redo the layout
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User report with screenshot 2026-11-23: on the Members page, text is very truncated on mobile and desktop ("Robert Bo ...", "Joined Nov...", "Invite..."); the cards need work. Cause in MemberItem (settings/members/MembersList.tsx): avatar, name block, role select and Leave/Remove share one flex row, and the name, relationship and history lines use truncate in a min-w-0 column, so the controls squeeze the text. Wanted: full name and history readable at phone width, for example identity on its own line with role and action below it or right-aligned only when there is room. Long names wrap rather than cut. Also tidy the error line and the nested What this group sees form, which dominates your own card (consider folding it). Keep badges, relationship, contact lines and the offline state. Coordinate with B-677 (role explanation link) in the same row. Check at phone and desktop widths.
+
+### B-679 · feature · Manage members: show email confirmation status (last login only if easy)
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User request 2026-11-23: show email confirmation status for invited users and last login on the Members page. Neither reaches the device today: PowerSync member_profiles syncs only user id, name and image (powersync/sync-config.yaml:172), so this needs a manager-only oRPC read and shows only online; do not add these to the synced user row. email_verified exists on user. Last sign-in exists only in the staff admin view, derived from live sessions (packages/api/src/admin/usersAdmin.ts:70), so it disappears when sessions expire or sign out; a durable value needs a new additive column set at sign-in, which means a migration and a fixes slice or PRD. Return status and time only, never the sign-in email (docs/domain/profiles.md). Open with the user: who sees last login. It tells co-members when someone was last active, so default to owners and admins only. Build with the card redo (B-678 if numbered next).
+- 2026-11-23 (Robert Bo Davis): User decision 2026-11-23: last login is optional, only if it is easy. Email confirmation status is the required part. Read "easy" as: no migration and no new sign-in hook. If the existing session rows can give it through the same manager-only read, show it to owners and admins, and show nothing (not "never") when no session remains. If it needs the durable column, leave last login out and do not add a migration for it. This replaces the earlier note on a new column.
