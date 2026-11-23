@@ -52,8 +52,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 30    | B-634 | landed                                     | c2c53eee |
 | 31    | B-635 | landed                                     | b1cf109f |
 | 32    | B-644 | merged (keeps worktree until wave green)   | a4252709 |
-| 33    | B-643 | started (opus)                             |          |
-| 34    | B-641 | waiting on slice 33                        |          |
+| 33    | B-643 | merged (keeps worktree until wave green)   | ce9c55a2 |
+| 34    | B-641 | started (opus)                             |          |
 
 ## Wave 1
 
