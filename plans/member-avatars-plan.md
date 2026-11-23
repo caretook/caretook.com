@@ -8,12 +8,12 @@
 | ----- | ---- | ----------- | ------------------------------------------------- |
 | 1     | 1    | landed      | 816ac0c5 (aa217ed2, cd475969, 0cd26332, 129dbb45) |
 | 2     | 2    | landed      | a8f52f91 (567e2913), opus                         |
-| 3     | 3    | not started |                                                   |
+| 3     | 3    | in progress | worktree member-avatars-3, agent spawned, opus    |
 | 4     | 4    | not started |                                                   |
 
 **Landing mode:** run everything through (started run-through). Land each green wave, clean up, and ask only real questions through `pnpm prd ask`.
 
-**Now (2026-11-23):** wave 1 landed as a3e635e2 (PR #125). Wave 2 landed in `dev` as b1ee1d19 through PR #128, at tier `components` (CI run 45245508309 green on 38582b4d), with the browser suite 11 of 11. Codex did not review either wave (out of credits, `--no-review`). Report a156 is filed. No slice is in flight and no slice worktree is left. **Next: wave 3:** `pnpm backlog ingest`, `list`, `pnpm prd sync`, then start slice 3 on opus. B-593 stays claimed until slice 4 merges.
+**Now (2026-11-23):** wave 1 landed as a3e635e2 (PR #125). Wave 2 landed in `dev` as b1ee1d19 through PR #128, at tier `components` (CI run 45245508309 green on 38582b4d), with the browser suite 11 of 11. Codex did not review either wave (out of credits, `--no-review`). Report a156 is filed. **Wave 3 is running:** backlog ingested (nothing new for this topic), `pnpm prd sync` needed no merge, and slice 3 started from 07a45e70 on opus. **Next:** review its hand-off, merge, quick check, then the wave's CI run. B-593 stays claimed until slice 4 merges.
 
 **Rechecks:** the user's "skip rechecks after a clean dev sync" covered wave 1 only. Later waves recheck after each dev sync unless the user repeats it.
 
