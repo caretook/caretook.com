@@ -14,7 +14,9 @@
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`.
 
-**Now:** wave 1 at its gate: slice 1 merged, B-269 ready. Synced; quick check passed on af3dd985 (the wave changes only lint tooling, no app code); no browser checks needed; guard folded into the components and ui-kit docs. Next: PR, Codex, land, rotate. No new backlog items for this topic at the wave 1 boundary; `backlog doctor`'s two findings (B-548, B-549 inbox titles) aren't this topic's.
+**Now:** wave 1 landed in `dev` as eef72fd8 (PR #89, Codex clean, quick check on the merged tip 61efde0e, no browser checks needed; report a95). Docs folded. Next: `pnpm prd sync`, backlog boundary, claim B-398 and B-448, start wave 2 (slices 2, 3, 4; opus). `backlog doctor`'s two findings (B-548, B-549 inbox titles) aren't this topic's.
+
+**Landing hold (2026-11-22):** the test-gates orchestrator, at the user's request, asked every PRD to hold `pnpm prd land` and any code push to `dev` until test-gates wave 5 lands; it will message this session (`prd-ui-kit-4`), and also check `pnpm log dev`. Slices, merges into this branch, checks, CI runs and the PR carry on. `pnpm backlog` commits are fine. After that landing, `land` needs a CI verdict for a `--tier` (see its landing notice). Wave 1 had already landed when the request arrived, and test-gates was told.
 
 **For wave 2 (from slice 1):** the guard's lists are in `scripts/eslint/kit-guard.mjs`. The print routes stay on the not-swept list because each holds an on-screen Print button: slices 2 and 4 sweep them. A listed path that no longer exists fails a test, so slice 4's renames must update their lines.
 
