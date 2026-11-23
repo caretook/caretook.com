@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from "react";
 
-import { useState } from "react";
+import { createElement, useState } from "react";
 import { userInitials } from "~/lib/core/initials";
 import { avatarColorClass, avatarIconGlyph } from "./avatarLook";
 
@@ -47,18 +47,18 @@ export function UserAvatar({
 }: UserAvatarProps) {
   const [failed, setFailed] = useState(false);
   const colorClass = avatarColorClass(look?.color);
-  const Icon = avatarIconGlyph(look?.icon);
-  const showImage = !!image && !failed && !colorClass && !Icon;
+  const glyph = avatarIconGlyph(look?.icon);
+  const showImage = !!image && !failed && !colorClass && !glyph;
   return (
     <span
       aria-hidden="true"
       data-avatar-color={colorClass ? look?.color : undefined}
-      data-avatar-icon={Icon ? look?.icon : undefined}
+      data-avatar-icon={glyph ? look?.icon : undefined}
       {...rest}
       className={`${colorClass ?? "bg-primary text-primary-content"} inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold ${SIZE[size]} ${className}`}
     >
-      {Icon ? (
-        <Icon className="size-3/5" />
+      {glyph ? (
+        createElement(glyph, { className: "size-3/5" })
       ) : showImage ? (
         <img src={image} alt="" className="size-full object-cover" onError={() => setFailed(true)} />
       ) : (
