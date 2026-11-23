@@ -92,6 +92,21 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 46    | B-662 | landed (assistant.md folded)               | 8c930686 |
 | 47    | B-666 | landed (needs a hand test)                 | 288e9cbe |
 | 48    | B-675 | landed                                     | 3d8e9cf5 |
+| 49    | B-615 | written (opus)                             |          |
+| 50    | B-717 | written (opus)                             |          |
+| 51    | B-718 | written (opus)                             |          |
+| 52    | B-719 | written (opus)                             |          |
+| 53    | B-706 | written (opus)                             |          |
+| 54    | B-707 | written (opus)                             |          |
+| 55    | B-708 | written (opus)                             |          |
+| 56    | B-709 | written (opus)                             |          |
+| 57    | B-710 | written (opus)                             |          |
+| 58    | B-711 | written (opus)                             |          |
+| 59    | B-712 | written (opus)                             |          |
+| 60    | B-713 | written (opus)                             |          |
+| 61    | B-714 | written (opus)                             |          |
+
+**Wave 12 (slices 49–61, all on opus):** resumed after a rotation; git matched _Status_, no slice in flight, already up to date with dev. **Held for a later wave:** B-689, B-690 and B-715, because member-avatars holds `routes/app/groups/planner/`. New York run of the nine other zone files on b21f66d2: 25 of 93 tests fail. Most hard-code Los Angeles times; B-708's all-day day (Jul 24 for Jul 25) may be a real bug, so each slice decides from evidence.
 
 ## Wave 1
 
@@ -602,3 +617,108 @@ In `useTimelineData.ts`, a repeat jump ignores the old paging only while its mar
 - Accepting a new jump persists the reset bound, limit and marker.
 - Jump to a day, load newer, jump to the same day again and open an entry's edit sheet: the window and scroll stay put.
 - Unit or component test: that sequence. A first jump and plain paging keep their behaviour.
+
+## Wave 12
+
+As before: the item's backlog notes (`pnpm backlog show B-<n>`) carry the file references, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. Stay out of `routes/app/groups/planner/` and member-avatars' other hot files (`pnpm backlog prd list`), and out of `vitest.config.ts` and `scripts/ci/` (test-gates-2).
+
+**The zone slices (53–61)** each own one test file. Run it in both zones: `CARETOOK_TEST_ZONE=America/New_York TZ=America/New_York pnpm exec vitest run --project web:components <file>`, then the same with `America/Los_Angeles`. Find out why each failure happens before changing anything:
+
+- **The test assumes Los Angeles:** make it state its zone or compute its expectation, without weakening what it asserts. Don't change the runner's zone or skip the test.
+- **The app is wrong for a viewer in New York** (a wrong day, time or due state): fix the app in that slice if the fix is small and inside the slice's area, with the test proving it. Otherwise leave the test failing, file a `fixes-bug` item, and say so in the hand-off.
+
+### Slice 49: two connector log_dose calls for one pass merge into one dose (B-615)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`log_dose` in `packages/api/src/connectors/tools/writes.ts` always takes a random id, so two calls for one scheduled dose make two doses, while `give_pass` converges.
+
+- A `log_dose` that resolves to one scheduled slot uses that slot's identity, as `give_pass` does; a repeat for that slot makes no second dose.
+- A dose with no scheduled slot (as needed, or off schedule) keeps today's behaviour.
+- Don't change the upsert's duplicate return or `mayRestoreDose` (slice 52 owns them).
+- Integration test: two calls for one slot leave one dose; two as-needed doses stay two.
+
+### Slice 50: an outdated calendar consent tells the member to reload (B-717)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/calendars.md · Tests: unit, component
+
+A device on an older bundle sends its old consent version and gets `consentOutdated` on every try, while the message suggests agreeing again.
+
+- On this error the settings screen says the wording has changed and offers a reload; agreeing again on the old bundle is no longer the suggested step.
+- The server still refuses an old version and records nothing.
+- Component test in `settings/calendar.browser.test.tsx`: the refusal shows the reload path.
+
+### Slice 51: a skipped or refused dose doesn't ask for an amount (B-718)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md · Tests: unit
+
+In `quickEntry.ts`, the `asksAmount` branch ignores the inherited status, so a dose that wasn't given is blocked until an amount is chosen.
+
+- `asksAmount` applies only to a given dose. `skipped lisinopril 10` and a refused dose record without choosing, and record no guessed amount.
+- `gave lisinopril 10` at 10 mg with a usual 2 tablets still asks (B-662).
+- Unit test in `quickEntry.test.ts`: given, skipped and refused.
+
+### Slice 52: a retried upload can't bring back an undone dose (B-719)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/medications.md · Tests: integration
+
+A restore changes `created_by` and only duplicates are recorded in `dose_duplicate_upload`, so A's retried first upload, or B's restoring upload after a time edit, matches no record and restores a dose someone has since undone.
+
+- A restore records the displaced author and the restoring upload, so a retry of either is recognised and leaves an undone dose undone.
+- A genuine new log of that dose still works as it does today.
+- If this needs a migration, keep it additive.
+- Integration test: A's upload loses its response, B restores, someone deletes, A retries: the dose stays deleted. The same for B's retry after a time edit.
+
+### Slice 53: join test passes in New York (B-706)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md · Tests: component
+
+`apps/web/app/routes/account/join/join.browser.test.tsx`, 1 failure: the signUp payload differs. Follow _The zone slices_.
+
+### Slice 54: staff new-group test passes in New York (B-707)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/admin.md · Tests: component
+
+`apps/web/app/routes/admin/new-group/newGroup.browser.test.tsx`, 1 failure: the posted payload differs. Follow _The zone slices_.
+
+### Slice 55: an event draft keeps its day in New York (B-708)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/appointments.md · Tests: component
+
+`apps/web/app/routes/app/groups/entry/entryDraft.browser.test.tsx`, 3 failures: an all-day draft shows Jul 24 where the test expects the 25th, and two writes never reach the entry URL. Follow _The zone slices_, and establish first whether the all-day day is really wrong for this viewer.
+
+### Slice 56: repeat preview test passes in New York (B-709)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/appointments.md · Tests: component
+
+`apps/web/app/routes/app/groups/entry/entryRepeat.browser.test.tsx`, 1 failure: the preview shows 1:00 PM where the test expects 10:00 AM. Follow _The zone slices_.
+
+### Slice 57: medication schedule says whose times they are in New York (B-710)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: component
+
+`apps/web/app/routes/app/groups/medication/medication.browser.test.tsx`, 2 failures on the "Times are … time" label. Follow _The zone slices_.
+
+### Slice 58: Today's slot states are right in New York (B-711)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: component
+
+`apps/web/app/routes/app/groups/medications/today.browser.test.tsx`, 10 failures: slots read `upcoming` where the test expects `due`. Follow _The zone slices_.
+
+### Slice 59: new-group test passes in New York (B-712)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/care-groups.md · Tests: component
+
+`apps/web/app/routes/app/groups/new/newGroup.browser.test.tsx`, 1 failure: the create payload differs. Follow _The zone slices_.
+
+### Slice 60: care period page test passes in New York (B-713)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/care-periods.md · Tests: component
+
+`apps/web/app/routes/app/groups/period/period.browser.test.tsx`, 3 failures on displayed times (00:15 for 03:15). Follow _The zone slices_.
+
+### Slice 61: care periods list test passes in New York (B-714)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/care-periods.md · Tests: component
+
+`apps/web/app/routes/app/groups/periods/periods.browser.test.tsx`, 3 failures: displayed times, a date-only prefill's instant, and an "until" day. Follow _The zone slices_, and establish first whether the date-only prefill and the "until" day are really wrong for this viewer.
