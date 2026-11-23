@@ -13,7 +13,9 @@
 
 **Rescoped on 2026-11-22** (backlog session, the user's pick) against [test-gates](test-gates-prd.md): the old slices 3 to 10 (machine claim, local flake rule, carried full pass, `Checked:` trailer, landing hold) are dropped; B-518 is rebuilt as slices 3 and 4. The old plan is in git history at 887d44de. The registry row runs **after `test-gates`**, which lands its brake and rapid gate in `land.sh` first.
 
-**Now:** wave 1 landed in dev as 0e38a6e7 through PR #58 (2026-11-22). Waves 2 and 3 not started; a new orchestrator starts from wave 2 once test-gates is done.
+**Landing mode:** run everything through (started by the dispatcher, 2026-11-23): land each green wave, clean up, ask only real questions through `pnpm prd ask`.
+
+**Now:** wave 1 landed in dev as 0e38a6e7 through PR #58 (2026-11-22). test-gates is done. Wave 2 (slice 3, opus) starting 2026-11-23; slice 3 alone changes no behaviour, so waves 2 and 3 may land together as one PR.
 
 **Backlog:** B-503 and B-506 done with wave 1. Claim B-518 when slice 3 starts and `done` it when slice 4 merges. B-504, B-505 and B-517 are dropped; B-516 is landed (its after-notice is wave 1's landed notice; the rest was dropped with the local full check).
 
