@@ -17,7 +17,9 @@
 
 **Now:** wave 1 landed in dev as 0e38a6e7 through PR #58 (2026-11-22). test-gates is done. Slices 3 and 4 merged 2026-11-23 (worktrees stay until the verdict is green); waves 2 and 3 land together as one PR. B-518 stays open until the fix below is in.
 
-**Open, ask a109 (defaults at 02:46 to "Refuse only on a known brake"):** the PRD lets land go unsynced only on a green, file or flake verdict for dev, but test-gates ended automatic dev runs and dev's last 8 commits have none. Slice 4 reads the branch's own gate verdict instead, and a tier `none` branch reads no verdict, so it can land unsynced over a braked dev. **This needs a fix on the answer**, by a fresh opus agent in `.loops/agent-autonomy-4` (slice 4's agent is past its context limit): "known brake" refuses when `pnpm prd ci dev` exits 1 or a live dev-brake notice exists, and proceeds on no verdict; "require a verdict" also refuses on `unknown`.
+Quick check passed on 42b5eba2 (slice 4 merged).
+
+**Ask a109, answered "Refuse only on a known brake":** the PRD lets land go unsynced only on a green, file or flake verdict for dev, but test-gates ended automatic dev runs and dev's last 8 commits have none. So an unsynced landing is refused when dev's tip reads `brake` or a live dev-brake notice exists, and goes ahead on no verdict. Slice 4 as merged reads only the branch's own verdict, so a tier `none` branch can land unsynced over a braked dev. **Fix in flight:** a fresh opus agent in `.loops/agent-autonomy-4` (slice 4's agent passed its context limit). Next: merge it, quick check, wave gate, PR, Codex, land, fold the docs.
 
 **Slice 4's other calls, to fold into the docs:** `--force` and `--fixes` never land unsynced; dev moving during the typecheck is judged once more, then refused; the pre-deployment clause is gone with test-gates' modes (B-531); nothing tests the merged result on dev until someone requests a run, so correct the PRD's "CI's dev run then tests the merged result".
 
