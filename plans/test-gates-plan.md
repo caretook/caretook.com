@@ -13,14 +13,14 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** waves 1 (adce90ee, PR #71) and 2 (5b724350, PR #74) are in dev. Wave 2 landed with `--force --no-review` on the user's word on 2026-11-22: its full check failed once on a harness flake (B-573) and the rerun was stopped; Codex was clean on d9bda4e, and only Markdown changed after it. No browser checks (no app code). Docs folded. **Wave 3 is slices 4 and 10 side by side, then slice 9 (all opus).** Synced with dev on 2026-11-22 (nothing new). Slice 9 was added for B-566, B-567 and B-568, which the user moved here (notice n19). Slice 10 was added for B-572, moved back from test-gates-2 on the user's word (its note); dev 42cba6b8 drops it from that plan, and the next `pnpm prd sync` brings the revert in. Slices 4 (6396b470) and 10 (7484100e) are merged and their worktrees removed. Slice 4's CI proof: flake run 45085948202, narrowed run 45086351881. Slice 9: starting, on opus. **To fold at this wave's landing:** `orchestrator.md` _The check gate_ ("a `package.json` (beyond its `scripts`)"), the same old wording at `scripts/loops/prompt.sh` line 154, and `loop.md` _Which checks a file needs_ (the `- (scripts only)` answer); in `ops/runbook.md` and `machinery.md`, the kinds and `ci run --wait` exit codes (0 green, 1 brake, 2 file, 3 flake, 4 infra, 5 unknown, 64 usage, 75 timeout), the brake list (hand-edited; a line matching no test fails `lists.test.mjs`; its flakes are filed, never quarantined), the quarantine (skipped except in a run's quarantine step), `--files` and `.ci-narrowed.json`. A flake verdict's GitHub run shows `success`: read the verdict, not the colour.
+**Now:** waves 1 (adce90ee, PR #71) and 2 (5b724350, PR #74) are in dev. Wave 2 landed with `--force --no-review` on the user's word on 2026-11-22: its full check failed once on a harness flake (B-573) and the rerun was stopped; Codex was clean on d9bda4e, and only Markdown changed after it. No browser checks (no app code). Docs folded. **Wave 3 is slices 4 and 10 side by side, then slice 9 (all opus).** Synced with dev on 2026-11-22 (nothing new). Slice 9 was added for B-566, B-567 and B-568, which the user moved here (notice n19). Slice 10 was added for B-572, moved back from test-gates-2 on the user's word (its note); dev 42cba6b8 drops it from that plan, and the next `pnpm prd sync` brings the revert in. Slices 4 (6396b470) and 10 (7484100e) are merged and their worktrees removed. Slice 4's CI proof: flake run 45085948202, narrowed run 45086351881. Slice 9 is merged (f285f1a5); its worktree stays until the wave's full check passes, so a failure can go back to it. Synced with dev (e1845b41, ui-kit-3 wave 2 came in). **Next: the wave's full check (`vitest.config.ts` changed), then the PR.** **To fold at this wave's landing:** `orchestrator.md` _The check gate_ ("a `package.json` (beyond its `scripts`)"), the same old wording at `scripts/loops/prompt.sh` line 154, and `loop.md` _Which checks a file needs_ (the `- (scripts only)` answer); in `ops/runbook.md` and `machinery.md`, the kinds and `ci run --wait` exit codes (0 green, 1 brake, 2 file, 3 flake, 4 infra, 5 unknown, 64 usage, 75 timeout), the brake list (hand-edited; a line matching no test fails `lists.test.mjs`; its flakes are filed, never quarantined), the quarantine (skipped except in a run's quarantine step), `--files` and `.ci-narrowed.json`. A flake verdict's GitHub run shows `success`: read the verdict, not the colour.
 
 **For slice 5:** quarantine lines are `<file><TAB><full test name><TAB>B-n`; a flake with `name: null` is a whole-file flake and can't be quarantined by name. The brake list works per file, so an unrelated failure in `packages/api/src/router.int.test.ts` is also a brake (accepted).
 
 **Open issues:**
 
-- CI: `unit` and `integration` are green on 7bd82c6f (runs 45081669282, 45082124113). `components` and `full` were last run on slice 3 and stay red on the failures below until they are fixed; slice 8's fixes have not been through a `full` run.
-- Component failures on Linux, filed under fixes-bug by slice 3 and outside slice 8: B-566 (access-code QR test, no `BarcodeDetector`), B-567 (inScreens first probe reads before the first render; the shard split exposes it, so `components-2` stays red until it is fixed), B-568 (six tests that failed intermittently). B-569 was a duplicate of B-566 and is dropped.
+- CI: `unit` and `integration` are green on 7bd82c6f (runs 45081669282, 45082124113). `components` on slice 9's tip (21533389, run 45088030543) read `file` on one test: B-552 (the print menu race, in fixes-tooling), which failed on the job's rerun too. **Slice 6's wave needs a green `full` run, so B-552 must be fixed or re-measured before wave 5.** The user's note on it says to re-measure after the quarantine lands. Waves 3 and 4 land under today's gate.
+- B-566 and B-567 are fixed. B-568 moved to fixes-tooling and **stays open: six tests in the quarantine name it, and closing it removes them.** Its three provider tests failed again in the quarantine step and look like read-before-render races. Its search speed test is on the brake list, so it isn't quarantined. B-569 was a duplicate of B-566 and is dropped.
 - For slices 4 to 6: job names are now `components-1`, `components-2` and `build`; a verdict from before slice 3 can say `tier: full` with `ranTier: integration`, so the gate compares `ranTier`.
 - "The check lease makes runs beyond the limit of two wait": slice 8 traced it to `stat` junk in `lease_alive` (from the code, race not reproduced); green in every CI run since.
 - Flakes filed in fixes-tooling: B-571 (staging reset test times out) and B-573 (harness "one spec" test; the check's rerun also skips it as an unhandled error). A change only under `scripts/browser-checks/` triggers the harness in `test:tooling` and CI but not in `pnpm prd check`.
@@ -28,18 +28,18 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 - Slice 1's before and after time on a quiet machine is partial: static steps 127 s in series, 79.5 s side by side, at load 8 to 11.
 - B-554 stays in progress until slice 6 merges.
 
-| Slice | Wave | State          | Merge into `prd/test-gates` (slice commits) |
-| ----- | ---- | -------------- | ------------------------------------------- |
-| 1     | 1    | merged (opus)  | 98a36dd4 (5eb596a9)                         |
-| 2     | 1    | merged (opus)  | 34b157fb (80a35650)                         |
-| 3     | 2    | merged (opus)  | 39f87cf0 (f0645753)                         |
-| 4     | 3    | merged (opus)  | 6396b470 (be81f850, e68f8866)               |
-| 5     | 4    | —              | —                                           |
-| 6     | 5    | —              | —                                           |
-| 7     | 5    | —              | —                                           |
-| 8     | 2    | merged (opus)  | ff6ac3c3 (7bd82c6f)                         |
-| 9     | 3    | started (opus) | —                                           |
-| 10    | 3    | merged (opus)  | 7484100e (b5c9c6c6)                         |
+| Slice | Wave | State         | Merge into `prd/test-gates` (slice commits) |
+| ----- | ---- | ------------- | ------------------------------------------- |
+| 1     | 1    | merged (opus) | 98a36dd4 (5eb596a9)                         |
+| 2     | 1    | merged (opus) | 34b157fb (80a35650)                         |
+| 3     | 2    | merged (opus) | 39f87cf0 (f0645753)                         |
+| 4     | 3    | merged (opus) | 6396b470 (be81f850, e68f8866)               |
+| 5     | 4    | —             | —                                           |
+| 6     | 5    | —             | —                                           |
+| 7     | 5    | —             | —                                           |
+| 8     | 2    | merged (opus) | ff6ac3c3 (7bd82c6f)                         |
+| 9     | 3    | merged (opus) | f285f1a5 (3b4428f0, 3b752d2e, 21533389)     |
+| 10    | 3    | merged (opus) | 7484100e (b5c9c6c6)                         |
 
 **Backlog:**
 
