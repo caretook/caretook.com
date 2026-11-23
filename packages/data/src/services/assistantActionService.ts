@@ -1,6 +1,7 @@
 import type {
   AssistantAction,
   ConditionAction,
+  DoseSlot,
   DueDose,
   DueMedication,
   EntryEditAction,
@@ -94,6 +95,8 @@ export type RunResult = {
   ids: string[];
   /** Each action's entries (an `addTodo`'s todo), in the actions' order. */
   byAction: string[][];
+  /** Of `ids`, the doses already logged for their slot: a repeat `logDose` wrote nothing. */
+  alreadyLogged: string[];
 };
 
 type Issue = { path: string; message: string };
@@ -116,6 +119,8 @@ type EntryPlan = {
   document?: { text: string | null; mentions: NoteMention[] };
   providerIds: string[];
 };
+/** A repeat `logDose`: the slot's dose already there, written again by nobody. */
+type LoggedDose = { type: "logged"; id: string };
 type EditPlan =
   | { type: "append"; entryId: string; lines: NoteSectionLine[] }
   | { type: "update"; entryId: string; patch: TimelineEntryUpdateInput };
@@ -125,7 +130,7 @@ type ConditionPlan =
   | { type: "resolveCondition"; id: string };
 type TodoPlan = Parameters<typeof todoService.create>[1];
 type Plan =
-  | { index: number; rows: EntryPlan[] }
+  | { index: number; rows: (EntryPlan | LoggedDose)[] }
   | { index: number; todo: TodoPlan }
   | { index: number; edit: EditPlan }
   | { index: number; condition: ConditionPlan };
@@ -342,6 +347,86 @@ const slotDoseId = async (
   return slotId;
 };
 
+type SlotName = { passId: string | null; scheduledFor: string };
+
+/**
+ * The scheduled slot a `logDose` is for, as a named dose finds its own: the
+ * medication's nearest slot within the window, answered or not. With one, the
+ * dose names it and takes its id (`doseSlotIdFor`), so a repeat of the same
+ * answer is the dose already there (`logged`); a row deleted from that id (an
+ * Undo) leaves a new dose a random id. Null for no slot (as needed, or off
+ * schedule): the dose stays as it came. The id's lock is taken before the doses
+ * are read and held to the end of the transaction, so two simultaneous calls
+ * make one dose.
+ */
+const scheduledDose = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  setting: Setting,
+  medication: DueMedication,
+  action: Extract<AssistantAction, { type: "logDose" }>,
+): Promise<{ logged: string } | { id: string; named: SlotName } | null | AppError> => {
+  const { groupId, timeZone, usedDoseIds } = setting;
+  if (medication.schedule.type !== "scheduled") return null;
+  const when = new Date(action.occurredAt);
+  const filter = { groupId: { type: "eq" as const, value: groupId } };
+  const passes = await medicationPassModel.list({
+    ...ctx,
+    tx,
+    filter,
+    includeDeleted: true,
+    paginate: { page: 1, limit: 100 },
+  });
+  if (isError(passes)) return passes;
+  const today = dayInZone(when, timeZone);
+  const changes = await timelineEntryService.scheduleChanges(
+    { ...ctx, tx },
+    { groupId, from: startOfDay(addDays(today, -2), timeZone).toISOString() },
+  );
+  if (isError(changes)) return changes;
+  const slotsWith = (doses: readonly DueDose[]) =>
+    dueDoses({
+      medications: [medication],
+      passes: passes.data,
+      doses,
+      changes,
+      now: when,
+      timeZone,
+    });
+
+  const schedule = slotsWith([]);
+  const off = (at: string) => Math.abs(new Date(at).getTime() - when.getTime());
+  const slot = schedule.matched
+    .filter((s) => off(s.at) <= schedule.windowMinutes * 60_000)
+    .reduce<DoseSlot | null>((best, s) => (!best || off(s.at) < off(best.at) ? s : best), null);
+  if (!slot) return null;
+
+  const named: SlotName = { passId: slot.passId, scheduledFor: slot.time };
+  const passTime = passes.data.find((p) => p.id === slot.passId && !p.deletedAt)?.time;
+  const slotId = doseSlotIdFor(
+    { medicationId: medication.id, status: action.status, occurredAt: when, ...named },
+    { timeZone, passTime },
+  )!;
+  if (usedDoseIds.has(slotId)) return { logged: slotId };
+  const locked = await timelineEntryModel.lockId(slotId, tx);
+  if (isError(locked)) return locked;
+
+  const doses = await dosesSince(ctx, tx, groupId, startOfDay(addDays(today, -2), timeZone).toISOString());
+  if (isError(doses)) return doses;
+  const answer = slotsWith(doses).matched.find((s) => s.day === slot.day && s.time === slot.time)?.dose;
+  if (answer?.details.status === action.status) return { logged: answer.id };
+  const taken = await timelineEntryModel.getById(slotId, {
+    authUser: SYSTEM_USER,
+    tx,
+    includeDeleted: true,
+  });
+  if (isError(taken)) return taken;
+  if (taken && !taken.deletedAt) return { logged: slotId };
+  if (taken) return { id: crypto.randomUUID(), named };
+  usedDoseIds.add(slotId);
+  return { id: slotId, named };
+};
+
 /** The group's live doses from `from` on, as the due-doses core reads them. */
 const dosesSince = async (ctx: ServiceContext, tx: Tx, groupId: string, from: string) => {
   const doses: DueDose[] = [];
@@ -498,7 +583,7 @@ const planAction = async (
   tx: Tx,
   setting: Setting,
   input: unknown,
-): Promise<EntryPlan[] | TodoPlan | EditPlan | ConditionPlan | AppError> => {
+): Promise<(EntryPlan | LoggedDose)[] | TodoPlan | EditPlan | ConditionPlan | AppError> => {
   const parsed = runnableActionZSchema.safeParse(input);
   if (!parsed.success) return invalid(issuesOf(parsed.error));
   const action = parsed.data;
@@ -527,6 +612,30 @@ const planAction = async (
   if (action.type === "logDose") {
     const medication = await currentMedication(ctx, tx, groupId, action.medicationId);
     if (isError(medication)) return medication;
+    if (content.data.kind !== "dose") return invalid([{ path: "type", message: "Not a dose." }]);
+    const planned = await scheduledDose(
+      ctx,
+      tx,
+      setting,
+      { ...medication, createdAt: medication.createdAt ? toIso(medication.createdAt) : null },
+      action,
+    );
+    if (isError(planned)) return planned;
+    if (planned && "logged" in planned) return [{ type: "logged", id: planned.logged }];
+    if (planned)
+      return [
+        {
+          type: "entry",
+          input: {
+            id: planned.id,
+            groupId,
+            recipientId,
+            ...content.data,
+            details: { ...content.data.details, ...planned.named },
+          },
+          providerIds: [],
+        },
+      ];
   }
   const providerIds =
     action.type === "addEvent" || action.type === "addNote" ? [...new Set(action.providerIds)] : [];
@@ -608,7 +717,7 @@ export const run = (
     });
     if (isError(recipient)) return recipient;
     if (!recipient) return at(newError({ code: "timelineEntryService:noRecipient" }), null);
-    if (!actions.length) return { ids: [], byAction: [] };
+    if (!actions.length) return { ids: [], byAction: [], alreadyLogged: [] };
 
     const setting: Setting = {
       groupId,
@@ -633,6 +742,7 @@ export const run = (
     }
 
     const byAction: string[][] = [];
+    const alreadyLogged: string[] = [];
     for (const plan of plans) {
       if ("edit" in plan) {
         const id = await writeEdit(inTx, setting, plan.edit);
@@ -655,11 +765,16 @@ export const run = (
       }
       const ids: string[] = [];
       for (const row of plan.rows) {
+        if (row.type === "logged") {
+          alreadyLogged.push(row.id);
+          ids.push(row.id);
+          continue;
+        }
         const id = await writeEntry(inTx, row, via);
         if (isError(id)) return at(id, plan.index);
         ids.push(id);
       }
       byAction.push(ids);
     }
-    return { ids: byAction.flat(), byAction };
+    return { ids: byAction.flat(), byAction, alreadyLogged };
   }, ctx);

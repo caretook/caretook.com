@@ -187,6 +187,94 @@ describe("/mcp write tools", () => {
     expect(doses).toHaveLength(1);
   });
 
+  it("two log_dose calls for one slot leave one dose, and log_dose after give_pass adds none", async () => {
+    const w = await world();
+    const token = w.writer.tokens.access_token;
+    // A slot at this minute, so it is on today's schedule at any hour the tests run.
+    const time = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "America/Los_Angeles",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).format(new Date());
+    const medication = ok(
+      await medicationService.create(
+        w.owner.ctx,
+        { groupId: w.group.id, name: "Lisinopril", schedule: { type: "scheduled", slots: [{ time }] } },
+        { changedAt: minutesAgo(3 * 24 * 60) },
+      ),
+    )!;
+    const dosesOf = async (id: string) =>
+      (await w.groupEntries()).filter(
+        (e) => e.kind === "dose" && (e.details as { medicationId: string }).medicationId === id,
+      );
+    const call = { medicationId: medication.id, status: "given" };
+
+    const first = await tool(token, "log_dose", call);
+    expect(first.isError).toBeUndefined();
+    const again = await tool(token, "log_dose", call);
+    expect(again.isError).toBeUndefined();
+    expect(again.structuredContent.entryIds).toEqual(first.structuredContent.entryIds);
+    expect(textOf(again)).toMatch(/^Already logged, nothing added: /);
+    const doses = await dosesOf(medication.id);
+    expect(doses).toHaveLength(1);
+    expect(doses[0]!.details).toMatchObject({ scheduledFor: time });
+    expect(doses[0]!.id).toBe(
+      doseSlotIdFor(
+        {
+          medicationId: medication.id,
+          status: "given",
+          scheduledFor: time,
+          occurredAt: doses[0]!.occurredAt,
+        },
+        { timeZone: doses[0]!.timeZone },
+      ),
+    );
+
+    // A different answer for the slot stays its own row, and its repeat merges too.
+    const skipped = { medicationId: medication.id, status: "skipped" };
+    await tool(token, "log_dose", skipped);
+    await tool(token, "log_dose", skipped);
+    expect(await dosesOf(medication.id)).toHaveLength(2);
+
+    // A round's dose answers its slot, so a log_dose for it adds nothing.
+    const round = ok(
+      await medicationPassService.create(w.owner.ctx, { groupId: w.group.id, name: "This minute", time }),
+    )!;
+    const inRound = ok(
+      await medicationService.create(
+        w.owner.ctx,
+        {
+          groupId: w.group.id,
+          name: "Atorvastatin",
+          schedule: { type: "scheduled", slots: [{ passId: round.id }] },
+        },
+        { changedAt: minutesAgo(3 * 24 * 60) },
+      ),
+    )!;
+    const pass = await tool(token, "give_pass", { passId: round.id });
+    expect(pass.isError).toBeUndefined();
+    const repeat = await tool(token, "log_dose", { medicationId: inRound.id, status: "given" });
+    expect(repeat.structuredContent.entryIds).toEqual(pass.structuredContent.entryIds);
+    expect(await dosesOf(inRound.id)).toHaveLength(1);
+  });
+
+  it("two as-needed log_dose calls stay two doses", async () => {
+    const w = await world();
+    const token = w.writer.tokens.access_token;
+    const call = { medicationId: w.ibuprofen.id, status: "given" };
+
+    const first = await tool(token, "log_dose", call);
+    const second = await tool(token, "log_dose", call);
+
+    expect(second.structuredContent.entryIds).not.toEqual(first.structuredContent.entryIds);
+    expect(textOf(second)).toMatch(/^Logged: /);
+    const doses = (await w.groupEntries()).filter(
+      (e) => e.kind === "dose" && (e.details as { medicationId: string }).medicationId === w.ibuprofen.id,
+    );
+    expect(doses).toHaveLength(2);
+  });
+
   it("add a note, an event with its provider, and a todo by its assignee's name", async () => {
     const w = await world();
     const token = w.writer.tokens.access_token;
