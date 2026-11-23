@@ -7,9 +7,9 @@
 | Slice | Wave | State                    | Merge into `prd/ui-kit-4` (slice commits) |
 | ----- | ---- | ------------------------ | ----------------------------------------- |
 | 1     | 1    | merged, torn down (opus) | 6814c3dc (7acd4f33)                       |
-| 2     | 2    | merged, worktree kept    | 0037ec4a (2dd856f1, b0f05dfb, 8d500bbf)   |
-| 3     | 2    | merged, worktree kept    | ac30a9c7 (d5bb6112, b5f66807, a8d0b74a)   |
-| 4     | 2    | merged, worktree kept    | 70904d83 (9dd63d03, 8de6ee85)             |
+| 2     | 2    | merged, torn down (opus) | 0037ec4a (2dd856f1, b0f05dfb, 8d500bbf)   |
+| 3     | 2    | merged, torn down (opus) | ac30a9c7 (d5bb6112, b5f66807, a8d0b74a)   |
+| 4     | 2    | merged, torn down (opus) | 70904d83 (9dd63d03, 8de6ee85)             |
 | 5     | 3    | not started              |                                           |
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`.
@@ -20,7 +20,7 @@
 
 **Slice 2 (opus, merged):** the worktree stays until the wave's full check passes, so a failure can go back to its agent; then `pnpm prd rm ui-kit-4-2`. Only `medicationForm` and `today` component tests ran. The full check must cover `entry`, `entryDraft` (`All day` is now `role="switch"`), `plannerEvents`, `plannerSeries` (`RescheduleSheet`), `timelineQuickEntryPasses` (`PassCard`, `DoseSlotRow`; a closed list is `Collapse`, `visibility: hidden`) and `print.browser.test`. To fold at landing: `docs/domain/medications.md` _Add and edit_, "Prescription details" is a `Chevron` and `Collapse` toggle, no longer `<details>`; `docs/domain/ui-kit.md` `Menu` contract, "until `ui-kit-4`" becomes `ui-kit-5`.
 
-**Wave 2 gate (in progress):** slices 2, 3, 4 merged; the only conflicts were the guard list's adjacent group deletions (both groups dropped). Next: `pnpm prd sync`, the full `pnpm prd check` (a conflict was resolved in code), `pnpm prd browser --changed --base dev` (never `--suite` without asking), PR, CI verdict if `land` needs one, and land once test-gates lifts the hold. Keep worktrees `ui-kit-4-2`, `-3`, `-4` until the full check passes, then `pnpm prd rm` each. B-448 is done at that point; B-398 stays open for slice 5.
+**Wave 2 gate:** slices 2, 3, 4 merged; the only conflicts were the guard list's adjacent group deletions (both groups dropped). Full `pnpm prd check` passed on 9b5727f4 (596 files, 6598 tests, 5 skipped), which includes test-gates wave 5, so the landing hold is over. `prd browser --changed` lists no browser checks. B-448 done; B-398 stays open for slice 5. **The user's word (2026-11-22): "Full local check will suffice. Don't wait for CI."** Taken for wave 2 only: land with `--force`, and the report says CI didn't run. Next: docs folded, PR, Codex review, land, then rotate for wave 3.
 
 **Slice 3 (opus, merged):** the full check must cover `provider`, `providers`, `period`, `providerBands`, `periodBands`, `linkedLoading`, `providerConditions`, `providerMedications`, and the shared parts' consumers `contact`, `memberSharing`, `profile`, `emergency`, `entry`, `planner`, `easyRolePages`. To fold at landing: `ui-kit.md`, `ListRow` has no `href` or `state` (such rows stay `List` plus a hand-written link) and `FormFooter` is only for real forms; `providers.md`, contact actions are `Button href` and the form's Delete sits beside `FormFooter`; `care-periods.md`, "Date only" is a `CheckField`. Worth trying by hand: the provider import sheet (tapping a row's padding no longer ticks it).
 
