@@ -16,7 +16,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 6 (slices 32–34, B-644, B-643, B-641, all on opus) landed in dev through PR #105 as a235304c** (2026-11-23): `integration` CI green on d7dab0c5 (run 45147868591), quick check and Codex clean on d7dab0c5; `browser --changed` needs none. To-test: `to-test/2026-11-23-0442-fixes-bug.md`. Docs folded (`assistant.md`, at its 10 KB budget: trim when adding). Slice worktrees removed.
 
-**Wave 7 (slices 35–37, B-648, B-647, B-646, all on opus) in progress** (2026-11-23), run one after another because they share the quick-entry files. Synced with dev at 3d54d7a1. **Held:** B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`), B-620 and B-631 (ui-kit-5 holds `routes/app/groups/timeline/`; B-620's fix is user-approved, see its note). Recheck `pnpm backlog prd list` at the next wave. **Next wave also:** B-651 (a decimal at the strength overstates the dose, found in slice 35). **At landing:** `assistant.md`'s Doses line (at its 10 KB budget) should cover the bare `1/2` as well as `1/2 mg`; its time-phrase line should say a part of day also follows a coming weekday on a request, and that a request with a coming weekday reads ahead (`call pharmacy friday` is now a todo; slice 36 changed the tasks-2 test that pinned otherwise, which the docs' "a time ahead is a todo" rule supports).
+**Wave 7 (slices 35–37, B-648, B-647, B-646, all on opus) in progress** (2026-11-23), run one after another because they share the quick-entry files. Synced with dev at 3d54d7a1. **Held:** B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`), B-620 and B-631 (ui-kit-5 holds `routes/app/groups/timeline/`; B-620's fix is user-approved, see its note). Recheck `pnpm backlog prd list` at the next wave. **Next wave also:** B-651 (a decimal at the strength overstates the dose, found in slice 35) and B-652 (`gave the 2nd at 2pm` still takes a day, found in slice 37). **At landing:** `assistant.md`'s Doses line (at its 10 KB budget) should cover the bare `1/2` as well as `1/2 mg`; its time-phrase line should say a part of day also follows a coming weekday on a request, and that a request with a coming weekday reads ahead (`call pharmacy friday` is now a todo; slice 36 changed the tasks-2 test that pinned otherwise, which the docs' "a time ahead is a todo" rule supports).
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -57,8 +57,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 33    | B-643 | landed                                     | ce9c55a2 |
 | 34    | B-641 | landed                                     | 501a58bf |
 | 35    | B-648 | merged (opus; quick check on 6b75cb73)     | 11820cae |
-| 36    | B-647 | merged (opus; quick check running)         | 3e6adea0 |
-| 37    | B-646 | started (opus)                             |          |
+| 36    | B-647 | merged (opus; quick check on 3edc9d11)     | 3e6adea0 |
+| 37    | B-646 | merged (opus; wave gate next)              | ce4d22b1 |
 
 ## Wave 1
 
