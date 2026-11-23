@@ -1,5 +1,7 @@
 // Connecting a member's own AI assistant to one care group (connectors PRD):
 // connectorGrantService, the group switch and /mcp.
+import { CONNECTOR_READ_ONLY_BY_OWNER_LABEL } from "../db/schema/connectors/connectorRules";
+
 export const CONNECTORS_ERRORS = {
   "connectorGrantService:disabled": {
     message: "This care group doesn't allow assistants. Ask an owner to turn Assistants on.",
@@ -11,6 +13,10 @@ export const CONNECTORS_ERRORS = {
   },
   "connectorGrantService:scopeNotAllowed": {
     message: "Your role in this care group can connect an assistant for reading only",
+    statusCode: 403,
+  },
+  "connectorGrantService:groupReadOnly": {
+    message: `${CONNECTOR_READ_ONLY_BY_OWNER_LABEL}. An assistant can connect to this care group to read only.`,
     statusCode: 403,
   },
   "connectorGrantService:invalid": {
@@ -46,7 +52,7 @@ export const CONNECTORS_ERRORS = {
   },
   "assistantRequestModel:lockMembership": { message: "Failed to look up the membership" },
   "careGroupService:connectorsOwnerOnly": {
-    message: "Only an owner can turn assistants on or off",
+    message: "Only an owner can change this care group's Assistants settings",
     statusCode: 403,
   },
   // assistantActionService.run: an action the batch can't carry out. `meta.index` names it.

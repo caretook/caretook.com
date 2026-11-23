@@ -11,6 +11,7 @@ import {
   connectorClientName,
   effectiveScope,
   isConnectorScope,
+  readOnlyByOwner,
   scopesForRole,
 } from "../db/schema";
 import { isError, newError } from "../errors";
@@ -98,6 +99,8 @@ export const grant = (
     if (!group.connectorsEnabled) return newError({ code: "connectorGrantService:disabled" });
     if (!scopesForRole(role).includes(scope))
       return newError({ code: "connectorGrantService:scopeNotAllowed" });
+    if (!scopesForRole(role, group.connectorsReadOnly).includes(scope))
+      return newError({ code: "connectorGrantService:groupReadOnly" });
 
     const client = await connectorGrantModel.getClient(clientId, tx);
     if (isError(client)) return client;
@@ -148,6 +151,8 @@ export type VerifiedConnector = {
   groupId: string;
   role: GroupRoleName;
   scope: ConnectorScope;
+  /** The group's read-only setting is what stops this connection writing. */
+  readOnlyByOwner: boolean;
   grantId: string;
   clientName: string;
 };
@@ -156,8 +161,8 @@ export type VerifiedConnector = {
  * The only way into /mcp. Validates `accessToken` through the plugin
  * (`validate`), loads its live grant, then rechecks on every call that the
  * account is enabled, the member still belongs to the group, the group's
- * switch is on, and narrows the scope to the member's current role and the
- * token's own scopes. Stamps `last_used_at` (at most once a minute). Every
+ * switch is on, and narrows the scope to the member's current role, the
+ * group's read-only setting and the token's own scopes. Stamps `last_used_at` (at most once a minute). Every
  * refusal is `invalidToken`: the assistant has to reconnect.
  */
 export const verify = async (accessToken: string, validate: ValidateToken) => {
@@ -180,10 +185,10 @@ export const verify = async (accessToken: string, validate: ValidateToken) => {
   if (isError(group)) return group;
   if (!group?.connectorsEnabled) return refused();
 
-  const byRole = effectiveScope(found.scope, role);
-  if (!role || !byRole) return refused();
-  const scope =
-    byRole === "readWrite" && token.scopes.includes(CONNECTOR_OAUTH_SCOPES.write) ? "readWrite" : "read";
+  const allowed = effectiveScope(found.scope, role, group.connectorsReadOnly);
+  if (!role || !allowed) return refused();
+  const tokenCanWrite = token.scopes.includes(CONNECTOR_OAUTH_SCOPES.write);
+  const scope = allowed === "readWrite" && tokenCanWrite ? "readWrite" : "read";
 
   const touched = await connectorGrantModel.touch(found.id);
   if (touched) return touched;
@@ -193,6 +198,7 @@ export const verify = async (accessToken: string, validate: ValidateToken) => {
     groupId: found.groupId,
     role,
     scope,
+    readOnlyByOwner: readOnlyByOwner(found.scope, role, group.connectorsReadOnly, tokenCanWrite),
     grantId: found.id,
     clientName: found.clientName,
   } satisfies VerifiedConnector;
@@ -218,6 +224,29 @@ export const revoke = (ctx: ServiceContext, grantId: string) =>
     return toView(revoked);
   }, ctx);
 
+/** A connection as the lists show it: whether the group's owner is why it can only read. */
+export type ConnectorConnectionView = ConnectorGrantView & { readOnlyByOwner: boolean };
+
+/** Adds `readOnlyByOwner` from each grant, its member's current role and its group's setting. */
+const withReadOnlyByOwner = async (ctx: ServiceContext, grants: readonly ConnectorGrant[]) => {
+  const readOnly = new Map<string, boolean>();
+  const views: ConnectorConnectionView[] = [];
+  for (const found of grants) {
+    if (!readOnly.has(found.groupId)) {
+      const group = await careGroupModel.getById(found.groupId, { authUser: SYSTEM_USER, tx: ctx.tx });
+      if (isError(group)) return group;
+      readOnly.set(found.groupId, group?.connectorsReadOnly ?? false);
+    }
+    const role = await careGroupMemberModel.getRole(found.groupId, found.userId, { tx: ctx.tx });
+    if (isError(role)) return role;
+    views.push({
+      ...toView(found),
+      readOnlyByOwner: readOnlyByOwner(found.scope, role, readOnly.get(found.groupId) ?? false),
+    });
+  }
+  return views;
+};
+
 /** The actor's live connections, every group (Settings → Devices). */
 export const listMine = async (ctx: ServiceContext) => {
   if (!ctx.authUser) return newError({ code: "permissions:unauthenticated" });
@@ -227,7 +256,7 @@ export const listMine = async (ctx: ServiceContext) => {
     orderBy: [{ field: "consentedAt", direction: "desc" }],
   });
   if (isError(res)) return res;
-  return res.data.map(toView);
+  return withReadOnlyByOwner(ctx, res.data);
 };
 
 /** Every member's live connections to `groupId`: its owners and admins only (the Assistants page). */
@@ -247,7 +276,7 @@ export const listForGroup = async (ctx: ServiceContext, groupId: string) => {
     orderBy: [{ field: "consentedAt", direction: "desc" }],
   });
   if (isError(res)) return res;
-  return res.data.map(toView);
+  return withReadOnlyByOwner(ctx, res.data);
 };
 
 /**

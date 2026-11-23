@@ -116,7 +116,8 @@ export const careGroup = {
    * value. Other members get a 403, non-members a 404. The Assistants switch
    * (`connectorsEnabled`, connectors) is owners' only (an admin gets a 403);
    * turning it off disconnects every member's assistant, and turning it on
-   * reconnects none.
+   * reconnects none. Read only (`connectorsReadOnly`) is owners' only too
+   * and disconnects no one.
    */
   update: authedProcedure
     .input(
@@ -124,6 +125,7 @@ export const careGroup = {
         groupId: id,
         easyTiles: easyTilesZSchema.nullable().optional(),
         connectorsEnabled: z.boolean().optional(),
+        connectorsReadOnly: z.boolean().optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -133,6 +135,7 @@ export const careGroup = {
         ...(input.name !== undefined && { name: input.name }),
         ...(input.easyTiles !== undefined && { easyTiles: input.easyTiles }),
         ...(input.connectorsEnabled !== undefined && { connectorsEnabled: input.connectorsEnabled }),
+        ...(input.connectorsReadOnly !== undefined && { connectorsReadOnly: input.connectorsReadOnly }),
       };
       if (Object.keys(data).length === 0)
         return { id: group.id, name: group.name, easyTiles: group.easyTiles };
