@@ -18,7 +18,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 7 (slices 35–37, B-648, B-647, B-646, all on opus) landed in dev through PR #108 as bdff2e8** (2026-11-23): `integration` CI on 943a1b2c was `flake` (run 45155090185; only `scripts/loops/lease.test.mjs`, not this branch's, filed as B-654), quick check and Codex clean on 943a1b2c; `browser --changed` needs none. To-test: `to-test/2026-11-23-0529-fixes-bug.md`. Docs folded (`assistant.md`, at its 10 KB budget: trim when adding). Slice worktrees removed.
 
-**Hand-over (after the wave 7 landing; no slice in flight).** **Next wave:** `pnpm prd sync`, ingest, then plan B-651 (a decimal at the strength overstates the dose: first, it's a dose-accuracy risk) and B-652 (`gave the 2nd at 2pm` still takes a day); both share the quick-entry files, so chain them. **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (ui-kit-5 holds `routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
+**Wave 8 (slices 38–39, B-651, B-652, both on opus) is running** (2026-11-23), one after the other: slice 39 starts when 38 is merged. Synced with dev at b5f7b685 (nothing to merge). The landing also carries wave 7's docs commit. **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (ui-kit-5 holds `routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -61,6 +61,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 35    | B-648 | landed                                     | 11820cae |
 | 36    | B-647 | landed                                     | 3e6adea0 |
 | 37    | B-646 | landed                                     | ce4d22b1 |
+| 38    | B-651 | started (opus)                             | —        |
+| 39    | B-652 | waiting on 38 (opus)                       | —        |
 
 ## Wave 1
 
@@ -432,4 +434,29 @@ Blocked by slice 36 (same files). An ordinal at the line's end returns early as 
 
 - `gave a 2nd` and `a 2nd at the clinic` get no day, so they log now.
 - `dr lee the 2nd` and `dr lee the 2nd at the clinic` stay a day.
+- Unit tests: one row for each line above.
+
+## Wave 8
+
+As before: the item's backlog notes (`pnpm backlog show B-<n>`) carry the file references, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. Running topics hold `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/assistantActionService.ts`, `apps/web/app/components/quick-entry/` and `apps/web/app/routes/app/groups/timeline/`: no slice here edits them. Both slices share the quick-entry files in `packages/data/src/db/schema/assistant/`, so they run one after the other.
+
+### Slice 38: a decimal at the strength doesn't overstate the dose (B-651)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/medications.md · Tests: unit
+
+`gave lorazepam 0.5` at a 0.5 mg strength takes the usual dose whatever it is, so a usual `2 tablets` records 2 tablets. Slice 35 fixed the same case for a bare fraction (`amountAtStrength` in `quickEntry.ts`); use its rule.
+
+- With a usual `2 tablets`, the line keeps the typed amount and has no date.
+- With a usual dose of one unit or the same measure (`1 tablet`, `0.5 mg`), the line still records the usual dose.
+- Unit tests: one row for each line above.
+
+### Slice 39: a counted ordinal before a clock time stays undated (B-652)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md · Tests: unit
+
+Blocked by slice 38 (same files). In `ordinalIsADay` (`quickEntryTime.ts`), a clock time after the ordinal marks a day before the counted-word check runs.
+
+- `gave the 2nd at 2pm` gets no day of the month.
+- `a 2nd at 2pm` stays undated.
+- `dr lee the 2nd at 2pm` stays the 2nd at 2pm.
 - Unit tests: one row for each line above.
