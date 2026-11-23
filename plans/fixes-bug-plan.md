@@ -92,19 +92,19 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 46    | B-662 | landed (assistant.md folded)               | 8c930686 |
 | 47    | B-666 | landed (needs a hand test)                 | 288e9cbe |
 | 48    | B-675 | landed                                     | 3d8e9cf5 |
-| 49    | B-615 | written (opus)                             |          |
-| 50    | B-717 | written (opus)                             |          |
-| 51    | B-718 | written (opus)                             |          |
-| 52    | B-719 | written (opus)                             |          |
-| 53    | B-706 | written (opus)                             |          |
-| 54    | B-707 | written (opus)                             |          |
-| 55    | B-708 | written (opus)                             |          |
-| 56    | B-709 | written (opus)                             |          |
-| 57    | B-710 | written (opus)                             |          |
-| 58    | B-711 | written (opus)                             |          |
-| 59    | B-712 | written (opus)                             |          |
-| 60    | B-713 | written (opus)                             |          |
-| 61    | B-714 | written (opus)                             |          |
+| 49    | B-615 | started (opus)                             |          |
+| 50    | B-717 | started (opus)                             |          |
+| 51    | B-718 | started (opus)                             |          |
+| 52    | B-719 | started (opus)                             |          |
+| 53    | B-706 | started (opus)                             |          |
+| 54    | B-707 | started (opus)                             |          |
+| 55    | B-708 | started (opus)                             |          |
+| 56    | B-709 | started (opus)                             |          |
+| 57    | B-710 | started (opus)                             |          |
+| 58    | B-711 | started (opus)                             |          |
+| 59    | B-712 | started (opus)                             |          |
+| 60    | B-713 | started (opus)                             |          |
+| 61    | B-714 | started (opus)                             |          |
 
 **Wave 12 (slices 49–61, all on opus):** resumed after a rotation; git matched _Status_, no slice in flight, already up to date with dev. **Held for a later wave:** B-689, B-690 and B-715, because member-avatars holds `routes/app/groups/planner/`. New York run of the nine other zone files on b21f66d2: 25 of 93 tests fail. Most hard-code Los Angeles times; B-708's all-day day (Jul 24 for Jul 25) may be a real bug, so each slice decides from evidence.
 
