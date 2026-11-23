@@ -5,7 +5,9 @@
 # The tier picks the jobs, each tier including the ones before it
 # (scripts/ci/tiers.mjs): static, unit, integration, components, and full
 # (the build job). The last job writes the verdict and uploads it as the
-# `verdict` artifact, kept 7 days.
+# `verdict` artifact, kept 7 days. A test step that fails reruns its failed files
+# once (scripts/ci/test-job.mjs); a quarantine step runs the quarantined tests and
+# can't fail the run. A commit carrying .ci-narrowed.json runs only its files' jobs.
 #
 # Secrets: none. The test env is fictional and generated per job
 # (scripts/ci/env.mjs). The repo is public, so run logs are public.
@@ -42,6 +44,7 @@ jobs:
       integration: ${{ steps.tier.outputs.integration }}
       components: ${{ steps.tier.outputs.components }}
       full: ${{ steps.tier.outputs.full }}
+      components2: ${{ steps.tier.outputs.components2 }}
       pg_password: ${{ steps.password.outputs.pg_password }}
     steps:
       - id: checkout
@@ -70,6 +73,8 @@ jobs:
     if: ${{ needs.plan.outputs.static == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      started: ${{ steps.started.outputs.started }}
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -81,6 +86,9 @@ jobs:
       - id: env
         name: Fictional env
         run: node scripts/ci/env.mjs >> "$GITHUB_ENV"
+      - id: started
+        name: Setup finished
+        run: echo "started=true" >> "$GITHUB_OUTPUT"
       - id: format
         name: Format
         run: pnpm format:check
@@ -130,7 +138,17 @@ jobs:
         env:
           CARETOOK_LEASES: ""
         run: >-
-          pnpm exec vitest run --project data:unit --project web:unit --project notifications:unit
+          node scripts/ci/test-job.mjs --project data:unit --project web:unit --project notifications:unit
+          --project server:unit --project scripts:unit --project tooling:unit --reporter=default
+          --reporter=json --outputFile.json=ci-results/unit.json
+      - id: quarantine
+        name: Quarantined tests (can't fail the run)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          CARETOOK_LEASES: ""
+        run: >-
+          node scripts/ci/test-job.mjs --quarantine --project data:unit --project web:unit --project notifications:unit
           --project server:unit --project scripts:unit --project tooling:unit --reporter=default
           --reporter=json --outputFile.json=ci-results/unit.json
       - id: report
@@ -181,7 +199,7 @@ jobs:
       - id: test
         name: Integration tests
         run: >-
-          pnpm exec vitest run --project integration --reporter=default
+          node scripts/ci/test-job.mjs --project integration --reporter=default
           --reporter=json --outputFile.json=ci-results/integration.json
       # Here, not in the unit job: it launches the real Playwright runner and
       # shell scripts, and took most of that job's time.
@@ -191,7 +209,23 @@ jobs:
         env:
           CARETOOK_LEASES: ""
         run: >-
-          pnpm exec vitest run --project tooling:browser
+          node scripts/ci/test-job.mjs --project tooling:browser
+          --reporter=default --reporter=json --outputFile.json=ci-results/browser-tooling.json
+      - id: quarantine
+        name: Quarantined tests (can't fail the run)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: >-
+          node scripts/ci/test-job.mjs --quarantine --project integration --reporter=default
+          --reporter=json --outputFile.json=ci-results/integration.json
+      - id: quarantine-browser
+        name: Quarantined tests (can't fail the run)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          CARETOOK_LEASES: ""
+        run: >-
+          node scripts/ci/test-job.mjs --quarantine --project tooling:browser
           --reporter=default --reporter=json --outputFile.json=ci-results/browser-tooling.json
       - id: report
         name: Report the failures
@@ -227,7 +261,14 @@ jobs:
       - id: test
         name: Component tests (shard 1 of 2)
         run: >-
-          pnpm exec vitest run --project web:components --shard=1/2 --reporter=default
+          node scripts/ci/test-job.mjs --project web:components --shard=1/2 --reporter=default
+          --reporter=json --outputFile.json=ci-results/components-1.json
+      - id: quarantine
+        name: Quarantined tests (can't fail the run)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: >-
+          node scripts/ci/test-job.mjs --quarantine --project web:components --reporter=default
           --reporter=json --outputFile.json=ci-results/components-1.json
       - id: report
         name: Report the failures
@@ -237,7 +278,7 @@ jobs:
   components-2:
     needs:
       - plan
-    if: ${{ needs.plan.outputs.components == 'true' }}
+    if: ${{ needs.plan.outputs.components2 == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
@@ -259,7 +300,7 @@ jobs:
       - id: test
         name: Component tests (shard 2 of 2)
         run: >-
-          pnpm exec vitest run --project web:components --shard=2/2 --reporter=default
+          node scripts/ci/test-job.mjs --project web:components --shard=2/2 --reporter=default
           --reporter=json --outputFile.json=ci-results/components-2.json
       - id: report
         name: Report the failures
@@ -272,6 +313,8 @@ jobs:
     if: ${{ needs.plan.outputs.full == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      started: ${{ steps.started.outputs.started }}
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -283,6 +326,9 @@ jobs:
       - id: env
         name: Fictional build env
         run: node scripts/ci/env.mjs build >> "$GITHUB_ENV"
+      - id: started
+        name: Setup finished
+        run: echo "started=true" >> "$GITHUB_OUTPUT"
       - id: budget
         name: Web build and bundle budget
         run: pnpm build:budget

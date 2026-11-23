@@ -62,7 +62,7 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 - **Full:** `pnpm prd check` (`pnpm check`, then `pnpm build:budget`: the entry and `/app` shell chunk ceilings in `scripts/build/budget.json`) passed on the tip.
 - **Quick:** `pnpm prd check --quick "<why>"` passed on the tip: static, all unit tests, the integration tests related to the diff since the last full pass, and the diff's own component tests. On `slice/` it's the **slice check**: no related tests or full.
 
-The plan is `check-plan.mjs` (pure, tested): a quick check on a diff touching a migration, seeds, `sync-config.yaml`, the lockfile, a `package.json` or `vitest.config.ts` runs full and records `full`; `pnpm test:tooling` joins either when the diff touches the tooling. Loops hand off on the slice check; **wave gates are quick, and the full check runs once per landing**, on the wave's tip before its PR: the other component tests' first run; send failures to its agent.
+The plan is `check-plan.mjs` (pure, tested): a quick check on a diff touching a migration, seeds, `sync-config.yaml`, the lockfile, a `package.json` beyond `scripts` or `vitest.config.ts` runs full and records `full`; `pnpm test:tooling` joins either when the diff touches the tooling. Loops hand off on the slice check; **wave gates are quick, and the full check runs once per landing**, on the wave's tip before its PR: the other component tests' first run; send failures to its agent.
 
 Quick is enough on top of a full pass for a conflict-free `pnpm prd sync` whose sides share no file, or a hotfix. Run full when a conflict was resolved in code, when both sides changed a shared registry or hot file, or when unsure. Quick passes keep the last full pass as their base.
 
