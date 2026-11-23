@@ -533,6 +533,32 @@ export const update = (
     return queued ?? updated[0] ?? null;
   }, ctx);
 
+/** The actor's id when they may log this dose in the group (an Easy helper too); else null. */
+const doseUploader = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  groupId: string,
+  fields: Parameters<typeof canLogEntry>[2],
+) => {
+  if (!ctx.authUser || isSystemUser(ctx.authUser)) return null;
+  const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id, { tx });
+  if (isError(role)) return role;
+  return canLogEntry(role, "dose", fields) ? ctx.authUser.id : null;
+};
+
+/**
+ * Whether an upload brings this deleted dose back: not when the uploader
+ * deleted it, and not when it is their own dose replayed (same author, same
+ * time). The same author at another time is their other device's tap.
+ */
+const mayRestoreDose = (
+  row: Pick<TimelineEntry, "createdBy" | "updatedBy" | "occurredAt">,
+  uploader: string,
+  occurredAt: string,
+) =>
+  row.updatedBy !== uploader &&
+  !(row.createdBy === uploader && new Date(row.occurredAt).getTime() === new Date(occurredAt).getTime());
+
 /**
  * Create the entry with this id, or bring the existing one up to date: what
  * PowerSync's upload queue sends for a row a device created. Safe to replay:
@@ -542,6 +568,10 @@ export const update = (
  * - An existing id is an `update` of its content, by the same rules. Its
  *   group, recipient and kind must match: they never change.
  * - A deleted entry stays deleted (a delete wins over a late edit).
+ * - A dose shares its id with the same answer for the same slot, so for
+ *   anyone who may log one: onto a live row another member created, the first
+ *   upload stands and nothing changes; onto a row another member deleted, it
+ *   comes back as the uploader's, unless this is their own dose replayed.
  * - An id that exists but the actor can't see is refused, without saying
  *   whether it exists.
  * - A medication change is never created or edited here: one that exists
@@ -592,6 +622,37 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
       (recipientId !== undefined && visible.recipientId !== recipientId)
     )
       return newError({ code: "timelineEntryService:immutable" });
+    // Doses share an id per slot, so these run before the update permission:
+    // an Easy helper can't update another member's row, but may log this dose.
+    if (visible.kind === "dose") {
+      const uploader = await doseUploader(ctx, tx, groupId, scheduling);
+      if (isError(uploader)) return uploader;
+      if (uploader) {
+        if (!visible.deletedAt && visible.createdBy !== uploader) return visible;
+        if (visible.deletedAt && mayRestoreDose(visible, uploader, occurredAt)) {
+          const future = refuseFuture(kind, occurredAt);
+          if (future) return future;
+          const medication = await checkDoseMedication(ctx, tx, groupId, details);
+          if (medication) return medication;
+          const restored = await timelineEntryModel.restore(
+            id,
+            {
+              title: title ?? null,
+              body: body ?? null,
+              occurredAt,
+              timeZone,
+              details: details ?? null,
+              ...schedulingColumns(parsed.data),
+              cancelledBy: null,
+            },
+            { ...ctx, tx },
+          );
+          if (isError(restored)) return restored;
+          const queued = await enqueueCalendarPush(tx, { entryId: id }, "entry");
+          return queued ?? restored;
+        }
+      }
+    }
     if (visible.deletedAt) return visible;
     // A device's copy of a change entry the service already wrote with the
     // medication: the service's stands.

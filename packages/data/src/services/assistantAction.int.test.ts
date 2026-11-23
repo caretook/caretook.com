@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { buildNoteDoc } from "../db/schema";
+import { addDays, buildNoteDoc, dayInZone, doseSlotIdFor, passRoundId } from "../db/schema";
 import { createGroup, createUser, createWorld, ok, typeParagraph } from "../../test/fixtures";
 import { getDb } from "../db";
 import {
@@ -350,6 +350,98 @@ describe("assistantActionService.run", () => {
     ok(await todoService.update(u.caretaker.ctx, todoId, { title: "Book a taxi" }));
     const todo = ok(await todoService.getById(u.viewer.ctx, todoId));
     expect(todo).toMatchObject({ title: "Book a taxi", via: VIA, groupId: group.id });
+  });
+});
+
+describe("assistantActionService.run: dose ids", () => {
+  const doseRows = async (entriesOf: () => Promise<(typeof timelineEntrySchema.$inferSelect)[]>) =>
+    (await entriesOf()).filter((e) => e.kind === "dose");
+  const detailsOf = (row: { details: unknown }) =>
+    row.details as { medicationId: string; status: "given"; passId: string; passLogId: string };
+
+  it("gives a pass's doses their slot ids and one derived round", async () => {
+    const { recipient, evening, addMedication, run, entriesOf } = await setup();
+    await addMedication("Metformin");
+    await addMedication("Lisinopril");
+    const occurredAt = minutesAgo(0);
+
+    ok(await run("caretaker", [{ type: "givePass", passId: evening.id, occurredAt }]));
+
+    const rows = await doseRows(entriesOf);
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      const details = detailsOf(row);
+      expect(row.id).toBe(
+        doseSlotIdFor(
+          { ...details, scheduledFor: evening.time, occurredAt },
+          { timeZone: recipient.timeZone, passTime: evening.time },
+        ),
+      );
+    }
+    const rounds = new Set(rows.map((row) => detailsOf(row).passLogId));
+    expect(rounds.size).toBe(1);
+    const today = dayInZone(new Date(occurredAt), recipient.timeZone);
+    expect(
+      [addDays(today, -1), today, addDays(today, 1)].map((d) => passRoundId(`pass:${evening.id}`, d)),
+    ).toContain([...rounds][0]);
+  });
+
+  it("doesn't double a slot when a pass is given twice", async () => {
+    const { evening, addMedication, run, entriesOf } = await setup();
+    await addMedication("Metformin");
+    ok(await run("caretaker", [{ type: "givePass", passId: evening.id, occurredAt: minutesAgo(0) }]));
+
+    const again = await run("admin", [{ type: "givePass", passId: evening.id, occurredAt: minutesAgo(0) }]);
+
+    expect(refusal(again).code).toBe("assistantActionService:nothingLeft");
+    expect(await doseRows(entriesOf)).toHaveLength(1);
+  });
+
+  it("takes a random id when the slot's id is on a deleted row", async () => {
+    const { u, evening, addMedication, run, entriesOf } = await setup();
+    await addMedication("Metformin");
+    const first = ok(
+      await run("caretaker", [{ type: "givePass", passId: evening.id, occurredAt: minutesAgo(0) }]),
+    );
+    ok(await timelineEntryService.remove(u.caretaker.ctx, first.ids[0]!));
+
+    const second = ok(
+      await run("caretaker", [{ type: "givePass", passId: evening.id, occurredAt: minutesAgo(0) }]),
+    );
+
+    expect(second.ids[0]).not.toBe(first.ids[0]);
+    const rows = await doseRows(entriesOf);
+    expect(rows.filter((row) => !row.deletedAt).map((row) => row.id)).toEqual(second.ids);
+  });
+
+  it("gives two passes of one batch separate rows", async () => {
+    const { evening, addMedication, run, entriesOf } = await setup();
+    await addMedication("Metformin");
+    const occurredAt = minutesAgo(0);
+
+    const res = ok(
+      await run("caretaker", [
+        { type: "givePass", passId: evening.id, occurredAt },
+        { type: "givePass", passId: evening.id, occurredAt },
+      ]),
+    );
+
+    expect(new Set(res.ids).size).toBe(2);
+    expect(await doseRows(entriesOf)).toHaveLength(2);
+  });
+
+  it("leaves a dose naming no slot on a random id", async () => {
+    const { addMedication, run, entriesOf, recipient } = await setup();
+    const metformin = await addMedication("Metformin");
+    const occurredAt = minutesAgo(1);
+    const res = ok(
+      await run("caretaker", [{ type: "logDose", medicationId: metformin.id, status: "given", occurredAt }]),
+    );
+    const [row] = await doseRows(entriesOf);
+    expect(row!.id).toBe(res.ids[0]);
+    expect(
+      doseSlotIdFor({ ...detailsOf(row!), passId: null, occurredAt }, { timeZone: recipient.timeZone }),
+    ).toBeNull();
   });
 });
 
