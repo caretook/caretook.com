@@ -8,7 +8,7 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 | ---------------------------------------------- | ---- | ------------------------- | -------- |
 | 1. The browser suite runs in CI                | 1    | landed 06309608 (PR #118) | e3169ce8 |
 | 2. Browser results, reruns and flakes          | 2    | landed b55e4413 (PR #120) | 186a23c3 |
-| 3. A release candidate                         | 3    | not started               |          |
+| 3. A release candidate                         | 3    | started (opus)            |          |
 | 4. Promotion refuses what isn't passing        | 3    | not started               |          |
 | 5. The release tier                            | 4    | not started               |          |
 | 6. The required check on main and its override | 5    | not started               |          |
@@ -17,7 +17,7 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 
 **Now:** wave 2 landed in `dev` as b55e4413 through PR #120 (Codex clean on 28d79ca0, `candidate` run 45201998537 green on ab503425, 11 of 11 browser checks; forced-flake proof run 45198526790 read `flake`). Slice 2's worktree is removed and the runbook has the browser verdict rules. B-532 (the staging candidate) stays open for slices 3 and 4, B-533 (the staging to main gate) for 5 and 6. Report filed.
 
-**Next:** rotate, then start wave 3 (slice 3, then slice 4 on top of it, both on opus): `pnpm prd sync`, backlog ingest and list, and a new CI approval ask before the first run.
+**Next:** wave 3 is running. Synced with `dev` (only backlog commits were newer), backlog ingested, nothing new for this topic. Slice 3's worktree is made and its agent (opus) is building with a hard stop before any real CI run, candidate cut or staging PR. The wave 3 CI approval ask is being filed. Slice 4 (opus) starts once slice 3 is merged.
 
 **For slice 4:** the gate must refuse a `flake` when any `flaky[].brake` is true; slice 2 only sets the flag. **For slice 5:** reuse `runBrowserJob` and `summarizeBrowser` for repeat runs.
 
