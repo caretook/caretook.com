@@ -4,6 +4,7 @@ import { page, userEvent } from "vitest/browser";
 
 import { ratio, rgba, surfaceOf } from "../../../test/contrast";
 import { renderInRouter } from "../../../test/device";
+import { found } from "../../../test/found";
 import { EmptyState } from "./index";
 
 describe("EmptyState", () => {
@@ -47,13 +48,13 @@ describe("EmptyState", () => {
       );
       const line = page.getByText("No providers yet.");
       await expect.element(line).toBeVisible();
-      const circle = document.querySelector<HTMLElement>("[data-icon-chip]");
-      expect(circle?.getAttribute("aria-hidden")).toBe("true");
-      expect(circle!.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+      const circle = await found(() => document.querySelector<HTMLElement>("[data-icon-chip]"));
+      expect(circle.getAttribute("aria-hidden")).toBe("true");
+      expect(circle.getBoundingClientRect().bottom).toBeLessThanOrEqual(
         line.element().getBoundingClientRect().top,
       );
-      const icon = circle!.querySelector("svg")!;
-      expect(ratio(rgba(getComputedStyle(icon).color), surfaceOf(circle!))).toBeGreaterThanOrEqual(3);
+      const icon = await found(() => circle.querySelector("svg"));
+      expect(ratio(rgba(getComputedStyle(icon).color), surfaceOf(circle))).toBeGreaterThanOrEqual(3);
     },
   );
 
