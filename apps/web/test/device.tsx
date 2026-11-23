@@ -15,6 +15,7 @@ import * as appLayout from "~/routes/app/layout/route";
 import * as groupLayout from "~/routes/app/groups/layout/route";
 import { openTestDatabase, queuedWrites, setConnected, settle, syncDown, syncRemove } from "./database";
 import { flattenFixtures, fx, TEST_GROUP, TEST_USER } from "./fixtures";
+import { waitUntil } from "./found";
 
 // The test device: a screen rendered as it runs on a phone, with the real
 // route modules (middleware, loaders, actions, components), the real live
@@ -133,9 +134,11 @@ export type DeviceOptions = {
    */
   api?: Record<string, (input: unknown) => unknown>;
   /**
-   * Wait for the first screen to settle before returning (default true):
-   * every live query has reported and the DOM is still for a frame. False
-   * returns as soon as React has rendered, for a test of what shows first.
+   * Wait for the first screen before returning (default true): the route's
+   * loaders have finished and it has mounted (or errored; a load that never
+   * finishes stops waiting at `WAIT_TIMEOUT`), every live query has reported
+   * and the DOM is still for a frame. False returns as soon as React has
+   * rendered, for a test of what shows first.
    */
   settle?: boolean;
   /**
@@ -216,6 +219,20 @@ function LocationProbe() {
   return null;
 }
 
+/** Routes showing their fallback: the router's first load (every loader) hasn't finished. */
+let routesLoading = 0;
+
+/** Renders nothing, as a route with no fallback does, and counts while the first load runs. */
+function FirstLoad() {
+  useLayoutEffect(() => {
+    routesLoading++;
+    return () => {
+      routesLoading--;
+    };
+  }, []);
+  return null;
+}
+
 type StubRoute = Parameters<typeof createRoutesStub>[0][number];
 
 /** A server-only export the test didn't stand in for: fail loudly, naming the route. */
@@ -255,6 +272,7 @@ const toStub = (route: DeviceRoute): StubRoute => ({
   id: route.id ?? route.path,
   path: route.path,
   Component: route.module.default,
+  HydrateFallback: FirstLoad,
   ErrorBoundary: route.module.ErrorBoundary,
   loader: stubLoader(route),
   action: stubAction(route),
@@ -343,6 +361,7 @@ export const renderWithDevice = async (options: DeviceOptions): Promise<Device> 
         middleware: [({ context: ctx }, next) => (ctx.set(sessionContext, { user, db }), next())],
         loader: () => ({ user }),
         Component: withProbe(options.frame ? (appLayout.default as RouteModule["default"]) : null),
+        HydrateFallback: FirstLoad,
         ErrorBoundary: appLayout.ErrorBoundary,
         children: [
           ...inApp,
@@ -369,7 +388,12 @@ export const renderWithDevice = async (options: DeviceOptions): Promise<Device> 
   };
   if (options.search) await searchIndexSettled();
   const screen = await render(<Stub initialEntries={[url]} />);
-  if (options.settle ?? true) await settled();
+  if (options.settle ?? true) {
+    // Loaders read the device before the route mounts, and settle can go quiet in between. A load that
+    // never finishes isn't this wait's failure: carry on, and the test's own read reports it.
+    await waitUntil(() => routesLoading === 0, "the route to mount").catch(() => undefined);
+    await settled();
+  }
 
   return {
     screen,

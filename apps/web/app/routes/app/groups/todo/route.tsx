@@ -4,10 +4,10 @@ import type { ActionResult } from "~/lib/core/api";
 
 import { canCompleteTodo } from "@caretook/data/schema";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { useTodoTick } from "~/components/todos";
-import { BackLink, Page, Section } from "~/components/ui";
+import { BackLink, Message, Notice, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
@@ -133,12 +133,13 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
 
       {deleted ? (
         <Section>
-          <div role="alert" className="alert" data-todo-deleted>
-            <span>This todo was deleted.</span>
-            <Link to={listUrl} className="btn btn-sm">
-              Back to {listLabel.toLowerCase()}
-            </Link>
-          </div>
+          <Notice
+            tone="error"
+            action={{ label: `Back to ${listLabel.toLowerCase()}`, to: listUrl }}
+            data-todo-deleted=""
+          >
+            This todo was deleted.
+          </Notice>
         </Section>
       ) : (
         <>
@@ -173,11 +174,7 @@ function TodoPage({ loaderData, params }: Route.ComponentProps) {
                 : "Shared with the care group. You can view these notes."
             }
           >
-            {saveError && (
-              <p role="alert" className="text-error text-sm">
-                {saveError}
-              </p>
-            )}
+            {saveError && <Message tone="error">{saveError}</Message>}
             <LiveNotesEditor
               key={todoId}
               label={`Notes on ${todo.title}`}

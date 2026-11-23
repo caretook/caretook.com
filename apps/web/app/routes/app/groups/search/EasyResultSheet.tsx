@@ -23,7 +23,7 @@ export type EasyOpened =
 function Fact({ label, line, children }: { label: string; line: string; children: ReactNode }) {
   return (
     <div data-easy-fact={line}>
-      <dt className="text-base-content/70 text-sm">{label}</dt>
+      <dt className="text-muted text-sm">{label}</dt>
       <dd className="font-medium break-words whitespace-pre-line">{children}</dd>
     </div>
   );

@@ -11,7 +11,7 @@ import { CircleCheck, ClipboardPlus, ListTodo, Pill } from "lucide-react";
 import { Link } from "react-router";
 import { EntryBody, KindIcon } from "~/components/entry";
 import { ProviderTypeIcon } from "~/components/providers";
-import { Highlight } from "~/components/ui";
+import { Badge, Highlight, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { entryOpen, SHEET_LINK_STATE } from "~/lib/timeline/entryOpen";
@@ -72,7 +72,7 @@ const Marked = ({ text, search }: { text: string; search: ParsedSearch }) => (
 function NotesSnippet({ snippet }: { snippet: Snippet | null }) {
   if (!snippet) return null;
   return (
-    <p className="text-base-content/80 text-sm break-words" data-snippet>
+    <p className="text-muted text-sm break-words" data-snippet>
       <span className="sr-only">From the notes: </span>
       <Highlight text={snippet.text} ranges={snippet.ranges} />
     </p>
@@ -127,7 +127,7 @@ export function EntryResultItem({
         providers={entry.providers}
         search={search}
         footer={
-          <p className="text-base-content/60 mt-0.5 text-xs">
+          <p className="text-faint mt-0.5 text-xs">
             <time dateTime={entry.occurredAt}>
               {day}, {time}
             </time>{" "}
@@ -175,17 +175,17 @@ export function ProviderResultItem({
           <OpenName
             to={appUrls.provider(provider.groupId, provider.id)}
             onOpen={onOpen}
-            className={`truncate font-medium ${STRETCHED} ${past ? "text-base-content/70" : ""}`}
+            className={`truncate font-medium ${STRETCHED} ${past ? "text-muted" : ""}`}
           >
             <Marked text={provider.name} search={search} />
           </OpenName>
           {past && (
-            <span className="badge badge-ghost badge-sm shrink-0" data-marker>
+            <Badge tone={STATUS_TONE.past} className="shrink-0" data-marker="">
               Past
-            </span>
+            </Badge>
           )}
         </p>
-        <p className="text-base-content/70 truncate text-sm">
+        <p className="text-muted truncate text-sm">
           <Marked text={line} search={search} />
         </p>
         <NotesSnippet snippet={snippet} />
@@ -227,7 +227,7 @@ export function MedicationResultItem({
     >
       <span
         aria-hidden="true"
-        className={`grid size-8 shrink-0 place-items-center rounded-full ${stopped ? "bg-base-200 text-base-content/60" : "bg-primary/15 text-primary"}`}
+        className={`grid size-8 shrink-0 place-items-center rounded-full ${stopped ? "bg-base-200 text-faint" : "bg-primary/15 text-primary"}`}
       >
         <Pill className="size-4" />
       </span>
@@ -236,17 +236,17 @@ export function MedicationResultItem({
           <OpenName
             to={appUrls.medication(medication.groupId, medication.id)}
             onOpen={onOpen}
-            className={`font-medium wrap-break-word ${STRETCHED} ${stopped ? "text-base-content/70" : ""}`}
+            className={`font-medium wrap-break-word ${STRETCHED} ${stopped ? "text-muted" : ""}`}
           >
             <Marked text={title} search={search} />
           </OpenName>
           {stopped && (
-            <span className="badge badge-ghost badge-sm shrink-0" data-marker>
+            <Badge tone={STATUS_TONE.past} className="shrink-0" data-marker="">
               {STATUS_LABELS[medication.status]}
-            </span>
+            </Badge>
           )}
         </p>
-        <p className="text-base-content/70 text-sm">
+        <p className="text-muted text-sm">
           <Marked text={summary} search={search} />
         </p>
         <NotesSnippet snippet={snippet} />
@@ -287,7 +287,7 @@ export function TodoResultItem({
     >
       <span
         aria-hidden="true"
-        className={`grid size-8 shrink-0 place-items-center rounded-full ${done ? "bg-base-200 text-base-content/60" : "bg-primary/15 text-primary"}`}
+        className={`grid size-8 shrink-0 place-items-center rounded-full ${done ? "bg-base-200 text-faint" : "bg-primary/15 text-primary"}`}
       >
         <Icon className="size-4" />
       </span>
@@ -295,17 +295,17 @@ export function TodoResultItem({
         <p className="flex min-w-0 items-center gap-1.5">
           <Link
             to={appUrls.todo(todo.groupId, todo.id)}
-            className={`font-medium wrap-break-word ${STRETCHED} ${done ? "text-base-content/70" : ""}`}
+            className={`font-medium wrap-break-word ${STRETCHED} ${done ? "text-muted" : ""}`}
           >
             <Marked text={todo.title} search={search} />
           </Link>
           {done && (
-            <span className="badge badge-ghost badge-sm shrink-0" data-marker>
+            <Badge tone={STATUS_TONE.done} className="shrink-0" data-marker="">
               Done
-            </span>
+            </Badge>
           )}
         </p>
-        {due && <p className="text-base-content/70 text-sm">{due}</p>}
+        {due && <p className="text-muted text-sm">{due}</p>}
         <NotesSnippet snippet={snippet} />
       </div>
     </li>
@@ -338,7 +338,7 @@ export function ConditionResultItem({
     >
       <span
         aria-hidden="true"
-        className={`grid size-8 shrink-0 place-items-center rounded-full ${resolved ? "bg-base-200 text-base-content/60" : "bg-info/15 text-info"}`}
+        className={`grid size-8 shrink-0 place-items-center rounded-full ${resolved ? "bg-base-200 text-faint" : "bg-info/15 text-info"}`}
       >
         <ClipboardPlus className="size-4" />
       </span>
@@ -348,18 +348,18 @@ export function ConditionResultItem({
             to={appUrls.condition(condition.groupId, condition.id)}
             state={PROFILE_SHEET_STATE}
             onOpen={onOpen}
-            className={`font-medium wrap-break-word ${STRETCHED} ${resolved ? "text-base-content/70" : ""}`}
+            className={`font-medium wrap-break-word ${STRETCHED} ${resolved ? "text-muted" : ""}`}
           >
             <Marked text={condition.name} search={search} />
           </OpenName>
           {resolved && (
-            <span className="badge badge-ghost badge-sm shrink-0" data-marker>
+            <Badge tone={STATUS_TONE.past} className="shrink-0" data-marker="">
               {CONDITION_STATUS_LABELS.resolved}
-            </span>
+            </Badge>
           )}
         </p>
         {line && (
-          <p className="text-base-content/70 text-sm break-words">
+          <p className="text-muted text-sm break-words">
             <Marked text={line} search={search} />
           </p>
         )}

@@ -3,7 +3,7 @@ import type { LocalTodo, TodoLink } from "~/lib/todos/todos.sync";
 import { canCompleteTodo, todoState } from "@caretook/data/schema";
 import { Plus, UserRound } from "lucide-react";
 import { Link } from "react-router";
-import { Section } from "~/components/ui";
+import { Badge, Button, Message, Section, TITLE_SECTION } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { linkOf } from "~/lib/todos/todos.sync";
@@ -40,17 +40,18 @@ export function LinkedTodos({
   if (!shown && !group.canWrite) return null;
 
   const add = group.canWrite && (
-    <Link
+    <Button
       to={appUrls.newTodo(group.id, { [field]: id })}
       // Closing the sheet comes back here.
       state={TODO_SHEET_STATE}
       prefetch="render"
-      className="btn btn-ghost btn-sm gap-1"
-      data-linked-todos-add
+      variant="ghost"
+      size="sm"
+      icon={Plus}
+      data-linked-todos-add=""
     >
-      <Plus className="size-4" aria-hidden="true" />
       Add todo
-    </Link>
+    </Button>
   );
   if (!shown)
     return band ? <Section className={className}>{add}</Section> : <div className={className}>{add}</div>;
@@ -95,19 +96,16 @@ export function LinkedTodos({
                     {todo.title}
                   </Link>
                   <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-                    <span
-                      className={state === "overdue" ? "text-error" : "text-base-content/70"}
-                      data-todo-due
-                    >
+                    <span className={state === "overdue" ? "text-error-ink" : "text-muted"} data-todo-due>
                       {dueText(todo, now, timeZone)}
                     </span>
-                    <span
-                      className="badge badge-ghost badge-sm gap-1 whitespace-nowrap"
+                    <Badge
+                      icon={assignee.type === "name" ? UserRound : undefined}
+                      className="whitespace-nowrap"
                       data-todo-assignee={assignee.type}
                     >
-                      {assignee.type === "name" && <UserRound className="size-3" aria-hidden="true" />}
                       {assignee.label}
-                    </span>
+                    </Badge>
                   </p>
                 </div>
               </li>
@@ -116,7 +114,7 @@ export function LinkedTodos({
         </ul>
       )}
       <TodoUndoStatus groupId={group.id} />
-      {error && <p className="text-error text-sm">{error}</p>}
+      {error && <Message tone="error">{error}</Message>}
     </>
   );
   if (band) {
@@ -129,7 +127,7 @@ export function LinkedTodos({
   return (
     <section aria-labelledby={`linked-todos-${id}`} className={`space-y-2 ${className}`} data-linked-todos="">
       <div className="flex items-center justify-between gap-2">
-        <h2 id={`linked-todos-${id}`} className="font-semibold">
+        <h2 id={`linked-todos-${id}`} className={TITLE_SECTION}>
           Todos
         </h2>
         {add}
