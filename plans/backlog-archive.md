@@ -279,6 +279,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-293 | change | landed | sync-safety | prd/sync-safety | One generic soft-delete table handler in sync.ts in place of nine copied ones (they have already drifted) |
 | B-297 | bug | landed | dose-accuracy | prd/dose-accuracy | A surplus dose marks the next day's slot as given: two caregivers both tapping Given for one pass makes tomorrow's dose read done |
 | B-298 | change | landed | dose-accuracy | prd/dose-accuracy | Deterministic dose ids per medication, day and slot, so two devices logging the same pass converge on one row |
+| B-299 | bug | landed | dose-accuracy | prd/dose-accuracy | Visit prep's 'Missed doses' reads history through today's schedule: a schedule change shows phantom misses back to the last visit |
 | B-300 | bug | staging | quick-entry-2 | prd/quick-entry-2 | Quick entry logs negated doses as given: 'did not give metoprolol', 'metoprolol not given', 'couldn't give…' all record a given dose at 0.9 confidence |
 | B-301 | bug | staging | quick-entry-2 | prd/quick-entry-2 | Quick entry discards a typed count and records the usual dose: 'gave 3 tylenol' records '2 tabs' with '3' in the note; 'gave half a tylenol' too |
 | B-302 | bug | staging | quick-entry-2 | prd/quick-entry-2 | Quick entry gives silently wrong times: 'sat up in chair' is last Saturday, '2nd tylenol' is Nov 2, '11/25 at 2pm' is tomorrow, 'dr alvarez at 2' is 2 AM, 'pain 8 a bit better' is 8:00 AM |
@@ -400,6 +401,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-529 | chore | staging | test-gates | prd/test-gates | Dev red, by kind after one CI rerun of the failed tests: brake (build, typecheck, lint, or a sync, offline, RBAC, privacy, migration or seed test: other landings wait, only the fix lands); file (a real failure in one area: a fixes-bug item against the landing); flake (passes on rerun: quarantined, filed to fixes-tooling) |
 | B-530 | chore | staging | test-gates | prd/test-gates | Flake quarantine: CI runs quarantined tests without failing on them; each entry names its fixes-tooling item and leaves the list when the item is done |
 | B-531 | chore | dropped | test-gates |  | Test-gate modes: rapid (the default) and pre-deployment (the dispatcher runs only launch-blocking topics, landings wait for dev green in CI, the candidate takes only fixes); one command sets the mode and every tool reads it |
+| B-532 | chore | landed | test-gates-2 | prd/test-gates-2 | Staging candidate: cut a release candidate branch from a green dev commit and open the PR into staging from it; CI runs the lean browser suite on the Docker stack against that fixed commit; only fixes go onto it |
 | B-534 | bug | landed | fixes-tooling | prd/fixes-tooling | Tooling tests that call new.sh without CARETOOK_LOAD_GATE=off wait on the real machine's load gate (15 s polls up to 600 s) and time out under load; also registry.cli.test.mjs 'doctor reports…' and rotate.test.mjs 'sets done only for a merged branch…' timed out at 20 s once under load |
 | B-535 | change | landed | fixes-ui | prd/fixes-ui | Hour-first time picker: defaults to the current hour at :00, minutes in 15-minute steps (00/15/30/45), works on phones; for medication dose times, pass time, todo due time, series edit times and event/appointment Starts/Ends |
 | B-536 | bug | landed | fixes-ui | prd/fixes-ui | Danger text fails 4.5:1 in light: Menu's danger item and buttonClass's dangerQuiet use text-error (about 2.9:1); DateTimeField's placeholder segments at 60% opacity are a little under 4.5:1 on the light field fill |
@@ -415,6 +417,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-554 | change | landed | test-gates | prd/test-gates | CI runs only on request: the orchestrator asks for a tier (static, unit, integration, components, full) on any branch, and the landing gate checks for a green run of the tier it declared; no automatic run on a PR or a push |
 | B-555 | chore | landed | test-gates | prd/test-gates | The check log records which step failed and which test files, and a check has a time limit (four quick runs hung 28 to 93 minutes; the log keeps only the exit code) |
 | B-556 | chore | landed | test-gates | prd/test-gates | Faster static steps in a check: typecheck, lint and format take 2.2 minutes run one after another on a quiet machine (lint 79 s, typecheck 38 s, format 15 s), most of the new slice check's 2.5 minutes |
+| B-557 | feature | landed | timeline-jump | prd/timeline-jump | quick date jump on timeline via date picker AND quick entry |
 | B-558 | feature | landed | assistant-access | prd/assistant-access | Assistants settings needs to allow owner to enable read/write or stick to read only for group… |
 | B-559 | bug | landed | test-gates | prd/test-gates | Tooling scripts break on Linux: BSD 'stat -f %m' succeeds under GNU stat, so watchdog caps and silence limits never fire |
 | B-566 | bug | staging | test-gates | prd/test-gates | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
@@ -442,6 +445,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-605 | bug | landed | fixes-bug | prd/fixes-bug | PageUp and PageDown on a date field's hour still wrap inside AM/PM, so 11 AM can page to 12 AM |
 | B-607 | bug | landed | test-gates | prd/test-gates | Component test harness: settle can return before the page mounts, so a test reading right after open can get nothing |
 | B-610 | bug | landed | fixes-tooling |  | CI flake, fix first in fixes-tooling: resetStaging.int.test.ts fails by test and as a whole file |
+| B-611 | bug | landed | dose-accuracy | prd/dose-accuracy | A schedule change across midnight drops a dose's slot name in visit prep: a 23:30 dose given at 00:10 answers today's new 00:30 slot, and last night reads missed |
 | B-612 | chore | landed | test-gates | prd/test-gates | Raise the default PRD cap from 3 to 4: dispatcher, prd start and status agree without an env var |
 | B-622 | bug | dropped | fixes-tooling |  | CI flake: packages/data/src/db/resetStaging.int.test.ts |
 | B-628 | bug | landed | fixes-bug | prd/fixes-bug | Saving preferences reads then writes without a lock, so two simultaneous requests can lose a change such as a setup card dismissal |
@@ -458,6 +462,9 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-651 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry: a decimal at the strength overstates the dose: 'gave lorazepam 0.5' at 0.5 mg with a usual '2 tablets' records 2 tablets |
 | B-652 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry: a counted ordinal before a clock time still takes a day: 'gave the 2nd at 2pm' reads as the 2nd of the month at 2pm |
 | B-655 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry: a counted ordinal before a part of day may still take a day: 'gave the 2nd at night', 'gave the 2nd in the morning' |
+| B-661 | bug | landed | fixes-tooling | prd/test-gates-2 | roundtrip's 2-second add budget fails on the CI runner |
+| B-671 | change | dropped | onboarding-2 |  | New groups default to No known allergies |
+| B-703 | bug | dropped | fixes-tooling |  | Addressed: stray browser-test processes from the old connectors-1 worktree stopped |
 
 ## Items
 
@@ -3496,6 +3503,16 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-22 (prd/dose-accuracy): Codex on PR #91 (P1, verified): after wave 2, a member's offline dose that shares a slot id with a row another member logged and undid is dropped on upload, because upsert returns the deleted row (timelineEntryService.ts:595). Slice 3's restore rule fixes exactly this; its acceptance test covers it. Don't promote dev to staging between wave 2 and slice 3.
 - 2026-11-22 (prd/dose-accuracy): Codex on PR #91 (P2, verified): an Easy helper's upload onto a slot-id row another member created reaches update, where mayChange refuses it (helpers change only their own entries), so the helper's dose is recorded as an unsaved change. Slice 3 must apply its first-upload and restore rules BEFORE the update permission check, allow them for every logger (LOGGERS, Easy helpers included) without widening update, still refuse viewers, and add integration tests for an Easy helper on both paths.
 
+### B-299 · bug · Visit prep's 'Missed doses' reads history through today's schedule: a schedule change shows phantom misses back to the last visit
+
+- status: landed
+- prd: dose-accuracy
+- owner: prd/dose-accuracy
+- commit: 788a5315
+
+- 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. dueDoses.ts:289-326 (the comment admits it), lib/appointments/visitPrep.ts:320. Also: a pass moved by more than 2 h unmatches earlier doses logged without passId; a medication added at 15:00 shows its 08:00 slot overdue. Fix idea: expand slots per schedule epoch from the medicationChange entries.
+- 2026-11-21 (plan/dose-accuracy): Planned in plans/dose-accuracy-prd.md and -plan.md (2026-11-21): B-297 is slice 1, B-298 slices 2 and 3, B-299 slices 4 and 5.
+
 ### B-300 · bug · Quick entry logs negated doses as given: 'did not give metoprolol', 'metoprolol not given', 'couldn't give…' all record a given dose at 0.9 confidence
 
 - status: staging
@@ -4781,6 +4798,17 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-22 (plan/test-gates): Planned in plans/test-gates-prd.md and plans/test-gates-plan.md (6 slices, 5 waves; 2026-11-22).
 - 2026-11-22 (Robert Bo Davis): Dropped on the user's word, 2026-11-22: the modes assumed automatic CI runs, which the test-gates replan removed. The orchestrator's declared tier and the dev to staging gate replace them.
 
+### B-532 · chore · Staging candidate: cut a release candidate branch from a green dev commit and open the PR into staging from it; CI runs the lean browser suite on the Docker stack against that fixed commit; only fixes go onto it
+
+- status: landed
+- prd: test-gates-2
+- owner: prd/test-gates-2
+- commit: 25523b82
+
+- 2026-11-22 (Robert Bo Davis): From the 2026-11-22 backlog session: the user's test-gate tiers and modes; being planned inline. User chose a candidate branch over freezing dev.
+- 2026-11-22 (plan/test-gates): Follow-on topic test-gates-2 (cut from test-gates on 2026-11-22; see plans/test-gates-prd.md, Solution tiers 3-4).
+- 2026-11-22 (plan/test-gates-2): Planned 2026-11-22 in plans/test-gates-2-plan.md (slices 1-4). Candidate branch with a merge -s ours of staging; the tool gates promotion and a hand merge is the user's override.
+
 ### B-534 · bug · Tooling tests that call new.sh without CARETOOK_LOAD_GATE=off wait on the real machine's load gate (15 s polls up to 600 s) and time out under load; also registry.cli.test.mjs 'doctor reports…' and rotate.test.mjs 'sets done only for a merged branch…' timed out at 20 s once under load
 
 - status: landed
@@ -4927,6 +4955,17 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - commit: 1459d262
 
 - 2026-11-22 (Robert Bo Davis): From the 2026-11-22 quick-check triage with the user (check log: 111 quick runs, median 7.9 min, 30 failed). Lint and typecheck both run typegen, so they cannot simply run side by side; ESLint's cache is unsafe with type-aware rules. Measure before choosing.
+
+### B-557 · feature · quick date jump on timeline via date picker AND quick entry
+
+- status: landed
+- prd: timeline-jump
+- owner: prd/timeline-jump
+- commit: 2bca1eb8
+
+- 2026-11-22 (Robert Bo Davis): Decided with the user 2026-11-22: jumping scrolls the continuous timeline to that day, with a Back to today control. An empty day lands on the nearest earlier day with entries and says so. Quick entry jumps only on an explicit phrase (go to Nov 3, jump to last Tuesday, show yesterday), giving a Go to card that navigates and saves nothing. The picker allows past dates through today. Note: the timeline loads by growing a limit on scroll, so a far jump needs a plan for loading that day.
+- 2026-11-22 (Robert Bo Davis): Triaged to timeline-jump: a timeline feature with its own loading question; after quick-entry-2 because both change the quick entry parser.
+- 2026-11-22 (plan/timeline-jump): Planned in plans/timeline-jump-prd.md: a bounded ?day= window with paging both ways, a toolbar picker, and a whole-line Go to card in quick entry; four slices.
 
 ### B-558 · feature · Assistants settings needs to allow owner to enable read/write or stick to read only for group…
 
@@ -5199,6 +5238,15 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-23 (Robert Bo Davis): Correction to the fixes-tooling wave order of 2026-11-23: this staging reset fix keeps the user's fix-first priority. It goes first in fixes-tooling's next wave, ahead of B-600, unless a hotfix takes it sooner.
 - 2026-11-23 (Robert Bo Davis): Fixed by hotfix reset-staging-flake (3c20ff07, 2026-11-23). Cause: search.int.test.ts leaves 10,000 entries in its worker database, so this file's cleanup wipe took 11 to 14 s under load, past Vitest's 10 s hook limit. Reproduced by running the two files on one worker; the cleanup and test now get 60 s. Named tests, lint and typecheck passed; landed --force locally on the user's word, with no full check or CI run. The wipe test is still in scripts/ci/quarantine.txt: take it out once a CI run shows it green.
 
+### B-611 · bug · A schedule change across midnight drops a dose's slot name in visit prep: a 23:30 dose given at 00:10 answers today's new 00:30 slot, and last night reads missed
+
+- status: landed
+- prd: dose-accuracy
+- owner: prd/dose-accuracy
+- commit: 788a5315
+
+- 2026-11-22 (prd/dose-accuracy): Codex on PR #91 (P2), verified by reading scheduleHistory.doseName: it checks only the schedule of the day given, so a name valid for yesterday's slot within the two-hour window becomes unnamed. Fix: keep the name when it identifies a historical slot within the window.
+
 ### B-612 · chore · Raise the default PRD cap from 3 to 4: dispatcher, prd start and status agree without an env var
 
 - status: landed
@@ -5345,3 +5393,35 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - commit: 487cb235
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 39 (B-652) hand-off, read from ordinalIsADay in quickEntryTime.ts and not run: the part-of-day branches run without the counted-word check. Confirm with a test first.
+
+### B-661 · bug · roundtrip's 2-second add budget fails on the CI runner
+
+- status: landed
+- prd: fixes-tooling
+- owner: prd/test-gates-2
+- commit: 39412b40
+
+- 2026-11-23 (slice/test-gates-2/1): Candidate run https://github.com/caretook/caretook.com/actions/runs/45181714693 (commit 7626dfb3): roundtrip failed at 'add: shows on this device at once' with 2353 ms against a 2000 ms limit (roundtrip.spec.mjs:211). The timer starts before the add menu opens and stops when the row shows, so it covers driving the sheet as well as the local write. One sample, runner load about 2.7; the cause is likely runner speed but is not proven, and a job setup cause is not ruled out. The check stops at this step, so the rest of roundtrip (edit, delete, offline, refused uploads, viewer, sync matrix) has not run on Linux. browser.sh did not retry it because the message doesn't look like contention. Budget left unchanged. Next: rerun to see whether it repeats and measure the local write alone.
+- 2026-11-23 (slice/test-gates-2/1): Failed again at the same step: run https://github.com/caretook/caretook.com/actions/runs/45181714693 (2353 ms) and run https://github.com/caretook/caretook.com/actions/runs/45187414322 (2779 ms). Fix on slice/test-gates-2/1: the clock now runs from pressing submit until the row shows, instead of from before the add menu opened. Budget (2000 ms) and assertion unchanged. Not yet proven: needs a new candidate run. If it still fails, the local write itself is slow.
+
+### B-671 · change · New groups default to No known allergies
+
+- status: dropped
+- prd: onboarding-2
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User request 2026-11-23: new groups should default to "No known allergies". Today a new recipient has no_known_allergies_at null, shown as "Allergies not recorded". Adding an allergy already clears the flag (recipientAllergyService, allergies.sync.ts). Effects to handle: (1) the flag is shown as a recorded fact on the Medications region, printed sheets, the emergency sheet (emergencyPrintSheet.ts) and the connector recipient_profile tool (noKnownAllergies), so a default would state it for a recipient nobody has asked about; PrintAllergies exists so an empty block is never read as none. (2) gettingStarted.sync.ts counts the flag as the allergy/condition step done, so a default ticks it for every new group. Open with the user: true stored default, or preselected in the onboarding profile basics step (B-670) and saved on confirm. Triaged to onboarding-2 because it shapes that step.
+- 2026-11-23 (Robert Bo Davis): Dropped at the user's request, 2026-11-23: new groups will not default to No known allergies.
+
+### B-703 · bug · Addressed: stray browser-test processes from the old connectors-1 worktree stopped
+
+- status: dropped
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-23 (prd/fixes-bug): Seen 2026-11-23 12:06 by the fixes-bug orchestrator: pids 8558 and 8560, elapsed 2d 21h47m, command scripts/loops/browser.sh --no-retry from .loops/connectors-1. Not touched and not diagnosed: whether they are stuck, hold a lease or add load is unchecked. To do: confirm they are orphaned, stop them if so, and see why a browser run can outlive its worktree's session.
+- 2026-11-23 (Robert Bo Davis): Backlog session, 2026-11-23, read-only: these are leftovers of the test fixture in scripts/loops/browser.test.mjs, not a real browser run. Their working directory is a deleted temp repo (browser-test-pV221s) running a fixture named silent. Five processes in group 77412: 8558, 8559 tee, 8560, 8561 awk, 8563 node (8558 and 8563 orphaned). No browser lease is held. Nothing stopped; stopping them waits on the user. Open question: how the test can leave its process group behind when it is interrupted.
+- 2026-11-23 (Robert Bo Davis): Stopped on the user's word, 2026-11-23: all five processes of group 77412 exited on SIGTERM. Item stays open for the cause: how browser.test.mjs can leave its process group behind when interrupted.
+- 2026-11-23 (Robert Bo Davis): Addressed 2026-11-23: all five processes of group 77412 are stopped, rechecked with ps, none remain. No fix was needed in app code. The remaining question, why an interrupted test leaves them behind, moved to its own item in fixes-tooling.
