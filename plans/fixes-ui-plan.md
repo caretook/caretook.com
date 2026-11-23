@@ -6,7 +6,7 @@ Small UI fixes: look, layout, wording and flow. There is no PRD: this plan is th
 
 Landing mode: **run everything through** (started run-through, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports only through `pnpm prd ask`.
 
-Wave 1: slices 1–9, written 2026-11-22. Models: opus for all. Slice 2 waits for 1, slice 7 for 6 (same files); the rest start at once. Slices 1 to 6 are merged. Slice 7 is started. Slice 8 is handed off and merges after 7. Slice 9 is running. At landing: replace "Show past (N)" and `?past=1` in `docs/domain/providers.md` (past providers always list); update the day header wording in `docs/domain/timeline.md` and `docs/domain/care-periods.md` (+ at the far right, Change is an icon button); watch the `timelineHeader`, `timelineEasy`, `timelineLayout`, `timelineSummaries`, `timelineScroll`, `entry` and `ui/inScreens` component tests in the full check (slice 4 changed the header DOM).
+Wave 1: slices 1–9, written 2026-11-22. Models: opus for all. Slice 2 waits for 1, slice 7 for 6 (same files); the rest start at once. Slices 1 to 6 are merged. Slice 7 is started. Slices 8 and 9 are handed off and merge after 7. The full check must cover `linkedTodos.browser.test.tsx` and `provider.browser.test.tsx` (slice 9 changed their code). At landing: replace "Show past (N)" and `?past=1` in `docs/domain/providers.md` (past providers always list); update the day header wording in `docs/domain/timeline.md` and `docs/domain/care-periods.md` (+ at the far right, Change is an icon button); watch the `timelineHeader`, `timelineEasy`, `timelineLayout`, `timelineSummaries`, `timelineScroll`, `entry` and `ui/inScreens` component tests in the full check (slice 4 changed the header DOM).
 
 Left for a later wave: B-316 (unsaved-changes guard), B-535 (hour-first time picker), B-536 (danger text contrast) and B-537 (Event wording) touch ui-kit-3's hot files (`components/ui/`, `lib/timeline/entryDisplay.ts`, `lib/app-shell/`, `routes/dev/ui/`). B-325 (native safe area and cold start) waits for the Capacitor work, as its triage says.
 
@@ -20,7 +20,7 @@ Left for a later wave: B-316 (unsaved-changes guard), B-535 (hour-first time pic
 | 6     | B-413 | merged (opus)       | 13ac9f5a |
 | 7     | B-422 | started (opus)      | —        |
 | 8     | B-421 | handed off 9709e003 | —        |
-| 9     | B-319 | started (opus)      | —        |
+| 9     | B-319 | handed off dccaafca | —        |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
