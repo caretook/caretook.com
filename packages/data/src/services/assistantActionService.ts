@@ -258,6 +258,15 @@ const passDoses = async (
   const from = startOfDay(addDays(dayInZone(when, timeZone), -1), timeZone).toISOString();
   const doses = await dosesSince(ctx, tx, groupId, from);
   if (isError(doses)) return doses;
+  // From two days back, the first day the matching reaches.
+  const changes = await timelineEntryService.scheduleChanges(
+    { ...ctx, tx },
+    {
+      groupId,
+      from: startOfDay(addDays(dayInZone(when, timeZone), -2), timeZone).toISOString(),
+    },
+  );
+  if (isError(changes)) return changes;
 
   const due = dueDoses({
     medications: medications.data.map((m): DueMedication => ({
@@ -266,6 +275,7 @@ const passDoses = async (
     })),
     passes: passes.data,
     doses,
+    changes,
     now: when,
     timeZone,
   });
