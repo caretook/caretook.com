@@ -6,7 +6,7 @@ import type { VocabularyMatch, VocabularyRole } from "./quickEntryVocabulary";
 import type { UnitChoices, UnitFor, VitalFieldSpec, VitalReading, VitalType } from "../timeline/vitals";
 
 import { DEVICE_FUTURE_SKEW_MS, FUTURE_DATE_MESSAGE, localDate } from "../core/entryTiming";
-import { findTime, resolveTime, saysFuture, wallTime } from "./quickEntryTime";
+import { findTime, periodUnderway, resolveTime, saysFuture, wallTime } from "./quickEntryTime";
 import { findVocabulary, vocabularyWord } from "./quickEntryVocabulary";
 import { foldSearchText } from "../search/search";
 import { TODO_LIMITS } from "../todos/todo";
@@ -884,7 +884,10 @@ const matchProviders = (context: QuickEntryContext, tokens: readonly Token[], id
 
 type PartTime = {
   spec: TimeSpec | null;
+  /** Read back, for what happened: now when the period said has begun but its usual hour hasn't come. */
   past: ResolvedTime;
+  /** Read back at the period's usual hour, even ahead: how `noteAhead` tells a plan from a log. */
+  usual: ResolvedTime;
   future: ResolvedTime;
 };
 
@@ -893,7 +896,14 @@ const timeOf = (spec: TimeSpec | null, context: QuickEntryContext): PartTime => 
     spec
       ? resolveTime(spec, { now: context.now, timeZone: context.timeZone, direction })
       : { at: context.now, allDay: false };
-  return { spec, past: resolve("past"), future: resolve("future") };
+  const usual = resolve("past");
+  const underway = !!spec && periodUnderway(spec, context);
+  return {
+    spec,
+    past: underway ? { at: context.now, allDay: false } : usual,
+    usual,
+    future: resolve("future"),
+  };
 };
 
 const futureWarning = (at: Date, context: QuickEntryContext): QuickEntryWarning[] =>
@@ -1612,7 +1622,7 @@ const mentionedText = (s: PartState) => {
 const noteAhead = (s: PartState) => {
   if (!s.time.spec) return false;
   const forward = saysFuture(s.time.spec) || (hasRole(s, "appointmentWord") && !hasRole(s, "visitVerb"));
-  const at = forward ? s.time.future.at : s.time.past.at;
+  const at = forward ? s.time.future.at : s.time.usual.at;
   return at.getTime() > s.context.now.getTime() + DEVICE_FUTURE_SKEW_MS;
 };
 
