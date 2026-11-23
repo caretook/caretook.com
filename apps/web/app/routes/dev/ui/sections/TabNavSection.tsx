@@ -48,6 +48,15 @@ export function TabNavSection() {
           )}
         />
       </Example>
+      <Example label="In a section's accent, with a count">
+        <TabNav
+          label="Medications, in teal"
+          accent="teal"
+          tabs={tabsFor("accent", search, MEDICATIONS).map((tab, i) =>
+            i === 1 ? { ...tab, count: 12 } : tab,
+          )}
+        />
+      </Example>
       <Example label="Many tabs at phone width (scrolls sideways)">
         <div className="w-full max-w-[420px]">
           <TabNav label="Many sections" tabs={tabsFor("many", search, MANY)} />

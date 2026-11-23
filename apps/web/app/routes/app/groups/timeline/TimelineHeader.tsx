@@ -1,6 +1,7 @@
 import type { EasyModeState } from "~/lib/assistant/useEasyMode";
 
 import { PageHeader } from "~/components/ui";
+import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { EasyModeToggle } from "./EasyModeToggle";
 
 /**
@@ -11,5 +12,11 @@ import { EasyModeToggle } from "./EasyModeToggle";
  * trailing control), and the + menu is on each day's heading (`DayHeader`).
  */
 export function TimelineHeader({ easyMode }: { easyMode: EasyModeState }) {
-  return <PageHeader title="Timeline" actions={<EasyModeToggle mode={easyMode} />} />;
+  return (
+    <PageHeader
+      title="Timeline"
+      actions={<EasyModeToggle mode={easyMode} />}
+      {...sectionAccent("timeline", { easy: easyMode.easy })}
+    />
+  );
 }

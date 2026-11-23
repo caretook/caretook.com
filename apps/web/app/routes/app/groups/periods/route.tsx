@@ -7,6 +7,7 @@ import { useMemo } from "react";
 import { Outlet } from "react-router";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { PERIOD_SHEET_STATE, onlyPeriodSheetChanged } from "~/lib/care-periods/periodSheets";
 import { sessionContext } from "~/lib/auth/session";
 import { useLiveQuery } from "~/lib/sync";
@@ -64,6 +65,7 @@ export default function Periods({ loaderData, params }: Route.ComponentProps) {
     <Page>
       <PageHeader
         title="Care periods"
+        {...sectionAccent("periods", { easy: group.easyRole })}
         description={
           <>
             Where {group.recipient?.displayName || group.displayName}’s care has been
