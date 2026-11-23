@@ -8,7 +8,7 @@
 
 **Resumed 2026-11-22:** Status reconciled with git (head a593f23d, no slice worktrees or branches, PR #79 open, both threads unresolved). Step 1 is done: the opus fix agent committed both fixes as 993e7eb5 (532 parser and time rows pass, no existing row changed). Steps 2 and 3 are done (quick check passed on e6e33d31, pushed, both threads answered and resolved).
 
-**Codex round 2 (on e6e33d31), both reproduced against dev and both new regressions that save a wrong record, so an opus fix agent is on them; if no fix commit follows this line, respawn it:**
+**Codex round 2 (on e6e33d31), both reproduced against dev and both new regressions that save a wrong record, fixed by an opus agent in e4fde503 (fractions) and b906df77 (application sites), 593 assistant rows pass; next is sync, quick check, push. Known limit: a brand right after a site word ("Switch to Voltaren") no longer counts as a name:**
 
 - **A fraction beside a medication is an amount, not a date** (threads `PRRT_kwDOVx-WLM66quBS`, `quBW`, `quBY`, one finding posted three times): "gave 3/8 tylenol" saves 1 tablet dated March 8; dev kept today with "3/8" in the note. "bp 12/8" and "pain 5/5" stay with B-578.
 - **An application site isn't a medication's name** (thread `PRRT_kwDOVx-WLM66quBc`): with directions "Apply to knee twice daily", "knee 3" saves a dose and "knee 3/10" a note; dev read both as a Knee symptom, severity 3.
