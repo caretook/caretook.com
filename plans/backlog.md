@@ -207,7 +207,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-383 | bug | triaged | sync-safety-2 |  | Repeating todos: reopen finds the successor by dueOn > the reopened todo's due day (todoService laterInChain, and the device's), so a successor rescheduled to the same day or earlier is missed and both rows stay open and repeating |
 | B-384 | bug | triaged | sync-safety-2 |  | Repeating todos: two concurrent completions of the same todo with doneAt on different recipient days both read doneAt null and each insert a different next occurrence; lock and reread the row (or a conditional transition) so only the winner makes the next (todoService.complete) |
 | B-387 | bug | triaged | sync-safety-2 |  | Repeating todos: a stopped chain (successor explicitly deleted) comes back when an offline writer ticks a stale copy of the original: complete leaves it done, but the twin of the next day finds no open row and upsertOccurrence creates it as if from a skip; tell an authorised skip from a stale completion twin |
-| B-398 | change | in-progress | ui-kit-4 | prd/ui-kit-4 | Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame |
+| B-398 | change | ready | ui-kit-4 | prd/ui-kit-4 | Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame |
 | B-404 | feature | triaged | staging-ship |  | One command to ship dev to staging: push dev, open the dev into staging PR, wait for Codex's review, triage its findings into the backlog (verified against the code, duplicates noted on the existing item), merge the PR when nothing is a blocker, and notify the user only when something is |
 | B-406 | feature | triaged | inbox-agent |  | Set priority in the inbox, not the backlog: the user orders a short 'Next up' list in plans/inbox.md (plain lines, no ids or fields) and the dispatcher reads it as the order to plan and run, keeping the PRD table's row order in step; the user opens the backlog only when an agent asks |
 | B-407 | feature | triaged | self-recovery |  | Recover by itself and land safely: a launchd job runs pnpm prd recover --wait at login and when work is recorded as running but no session is alive; the dispatcher slows down before a usage limit (starts no slice or planner, drains); a landing or migration cut off halfway leaves a step-in-progress marker so the resumed session finishes or undoes it |
@@ -333,7 +333,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-609 | chore | triaged | fixes-tooling |  | Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh |
 | B-610 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/db/resetStaging.int.test.ts: resetStaging wipes everything but real sign-ins, reseeds, and … |
 | B-611 | bug | triaged | dose-accuracy |  | A schedule change across midnight drops a dose's slot name in visit prep: a 23:30 dose given at 00:10 answers today's new 00:30 slot, and last night reads missed |
-| B-612 | chore | in-progress | test-gates | prd/test-gates | Raise the default PRD cap from 3 to 4: dispatcher, prd start and status agree without an env var |
+| B-612 | chore | ready | test-gates | prd/test-gates | Raise the default PRD cap from 3 to 4: dispatcher, prd start and status agree without an env var |
 | B-613 | change | triaged | fixes-ui |  | Motion tuning: Today card slides open and shut, sheets fade only, overlays at 240 ms |
 | B-614 | bug | triaged | dose-accuracy |  | An offline log-then-Undo can delete another member's dose: the PUT is a no-op on their row, then the PATCH of deleted_at removes it (a PUT already carrying deleted_at does the same) |
 | B-615 | bug | triaged | fixes-bug |  | Connector log_dose names no slot, so two log_dose calls for one pass never merge into one dose; only give_pass converges |
@@ -1297,10 +1297,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-398 · change · Sweep every remaining area onto the UI kit primitives, one area per slice: medications; providers, profile forms and care periods; the Planner, to-dos and search; the timeline, entries and quick entry; admin, account, connectors, marketing and the app frame
 
-- status: in-progress
+- status: ready
 - prd: ui-kit-4
 - owner: prd/ui-kit-4
-- commit:
+- commit: 6e76e033
 
 - 2026-11-21 (plan/ui-kit): From the ui-kit plan (2026-11-21): ui-kit builds the primitives and adopts them in settings, sign-in and the five detail pages; this is the rest (about 200 files: btn, alert, card, list, badge, checkbox and toggle class strings, Field control classes, the text opacities and link styles from B-267). Ends with the guard (B-269) so it stays swept.
 - 2026-11-21 (plan/ui-kit): Also left for this sweep: the remaining 'No … yet.' lines and MedicationSheet's local Empty, the timeline's four skeleton files, the 15 Cancel and Save footers in sheets, section h2/h3 headings outside the detail pages, home's h1, the timeline and entry pages' containers, and icon sizes. /admin keeps its own heading sizes (a deliberate narrowing of B-263).
@@ -2564,10 +2564,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-612 · chore · Raise the default PRD cap from 3 to 4: dispatcher, prd start and status agree without an env var
 
-- status: in-progress
+- status: ready
 - prd: test-gates
 - owner: prd/test-gates
-- commit:
+- commit: 411fb7a9
 
 - 2026-11-23 (Robert Bo Davis): User's decision 2026-11-23, since testing moved to CI. Change the default in scripts/loops/lib.sh (max_prds), dispatch.mjs and dispatch-pick.mjs (DEFAULT_CAPS), keeping CARETOOK_MAX_PRDS as the override; update tests and docs/orchestration.md, machinery.md and AGENTS-level mentions of three PRDs. The running dispatcher needs a restart to pick it up.
 - 2026-11-23 (prd/test-gates): test-gates slice 13, wave 7, after wave 6 lands. Scope from the backlog session: default cap 4 in lib.sh, dispatch.mjs, dispatch-pick.mjs; CARETOOK_MAX_PRDS stays the override; check and browser leases stay 2, load gate unchanged. The running dispatcher keeps the old default until the user restarts it.
