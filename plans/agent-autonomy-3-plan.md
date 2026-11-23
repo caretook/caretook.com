@@ -8,7 +8,7 @@
 | ----- | ---- | ------------------------------- | ------------------------------------------------- |
 | 1     | 1    | merged, worktree removed (opus) | f84b26e1 (be4214ea)                               |
 | 2     | 2    | started, agent spawned (opus)   | —                                                 |
-| 3     | 2    | started, agent spawned (opus)   | —                                                 |
+| 3     | 2    | handed off, not merged (opus)   | — (5774aa8e, 8845635d)                            |
 | 4     | 2    | started, agent spawned (opus)   | —                                                 |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up. Questions go through `pnpm prd ask`, never the terminal.
@@ -26,6 +26,14 @@
 - Slice 4: plan verdicts are `go` or `send-back`. A land `no` or plan `send-back` used for an ask is bound only by topic, age and single use.
 
 **Wave 1:** landed in dev as ed73b3a3 through PR #103 (Codex clean on 84079b2, tier `none`), report filed, machinery doc folded. **Wave 2 is running:** synced with dev (up to date at 2b318f84), B-512 and B-513 claimed, worktrees `agent-autonomy-3-2`, `-3`, `-4` made and one opus agent spawned for each. Next: merge hand-offs in plan order (2, 3, 4), quick check after each. B-511 stays in progress until slice 2 merges.
+
+**From slice 3's hand-off (quick check passed on 8845635d), to do at merge or landing:**
+
+- `default_rule` in `prompt.sh` (slice 2's paragraph) still says "a forced push or landing": make it "a forced push", with the two exact-string assertions in `prompt.test.mjs`.
+- `docs/agents/machinery.md`, _Landing reports_, is stale ("Never with `--force`/`--fixes`"): fold in with `--skeptic`/`--by-user`. `--force --by-user` can now land an unsynced tip (still needs dev-brought's safe verdict and the merge typecheck).
+- Pre-deployment mode no longer exists (test-gates dropped the modes), so that criterion is not applicable.
+- Say in the landing report: the "Try it" ran `land.sh` in a throwaway repo only, so whether agent permission rules block `pnpm prd land --force` from a session is still unknown.
+- Possible follow-up: an unreadable GitHub counts as "no known brake" for a skeptic's `--force`, matching `unsynced_dev_brake`; a go could fail closed there.
 
 Fold into the docs at landing (the PRD's _Docs at landing_): wave 1, [machinery](../docs/agents/machinery.md) (the store and the brief); wave 2, machinery, [orchestrator](../docs/agents/orchestrator.md), [planner](../docs/agents/planner.md), [preferences](../docs/agents/preferences.md), [backlog](../docs/agents/backlog.md). Trim at least what you fold in.
 
