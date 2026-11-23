@@ -35,11 +35,14 @@ const CHOICES = [
 let doses: PassLogDose[] = [];
 let refused: ReadonlySet<string> = new Set();
 let refusals = 0;
+// The log sorts by time, then name: an added dose can land above the others.
+let addsFirst = false;
 
 beforeEach(() => {
   doses = [dose(FIRST, "med-a", "Fictional A")];
   refused = new Set();
   refusals = 0;
+  addsFirst = false;
 });
 
 async function stubAction({ request }: { request: Request }) {
@@ -49,7 +52,10 @@ async function stubAction({ request }: { request: Request }) {
     refusals += 1;
     return { ok: false, error: REFUSAL, issues: [] };
   }
-  if (intent === "add") doses = [...doses, dose(SECOND, "med-b", "Fictional B")];
+  if (intent === "add") {
+    const added = dose(SECOND, "med-b", "Fictional B");
+    doses = addsFirst ? [added, ...doses] : [...doses, added];
+  }
   if (intent === "delete") doses = [];
   return { ok: true };
 }
@@ -163,6 +169,60 @@ describe("a refused action outside the submitted form", () => {
     await deleteLog();
     await refusalShown();
     await backAsksAndKeeps();
+  });
+});
+
+describe("a successful add keeps the sheet open (B-657)", () => {
+  const added = () => found(() => document.querySelector(`[data-pass-dose="${SECOND}"]`));
+
+  test("Back after it asks and keeps the unsaved edits", async () => {
+    await openSheet();
+    await edit();
+    await add();
+    await added();
+    await backAsksAndKeeps();
+  });
+
+  test("Back still asks when the added dose lands above the edited one", async () => {
+    addsFirst = true;
+    await openSheet();
+    await edit();
+    await add();
+    await added();
+    await backAsksAndKeeps();
+  });
+
+  test("Back with no edits leaves, wherever the added dose lands", async () => {
+    addsFirst = true;
+    await openSheet();
+    await add();
+    await added();
+    await backLeaves();
+  });
+
+  test("a save after it closes without asking", async () => {
+    await openSheet();
+    await edit();
+    await add();
+    await added();
+    await userEvent.click(page.getByRole("button", { name: "Save changes" }));
+    await expect.poll(() => where).toBe("/");
+    await expect.poll(() => document.querySelector('[data-sheet="overlay"]')).toBeNull();
+    expect(asked()).toBe(false);
+  });
+
+  test("a second refusal in the same words is a new alert", async () => {
+    refused = new Set(["add"]);
+    await openSheet();
+    await add();
+    await refusalShown();
+    const first = document.querySelector('[role="alert"]');
+    await add();
+    await expect.poll(() => refusals).toBe(2);
+    await refusalShown();
+    const second = document.querySelector('[role="alert"]');
+    expect(second).not.toBe(first);
+    expect(first?.isConnected).toBe(false);
   });
 });
 
