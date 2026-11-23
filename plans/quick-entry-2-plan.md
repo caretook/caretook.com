@@ -6,6 +6,8 @@
 
 **Where it stands (hand-over, 2026-11-22):** both waves are merged, synced and in PR #79 (reviewed head eaeefffe; full check passed on 1f5ba799, quick check on eaeefffe, docs folded). **Not landed:** Codex found two P2s, both reproduced on the parser and both new regressions that save a wrong medication record, so they are fixed before landing (critical for this PRD). No slice is in flight.
 
+**Resumed 2026-11-22:** Status reconciled with git (head a593f23d, no slice worktrees or branches, PR #79 open, both threads unresolved). Step 1's opus fix agent is being spawned, working directly on `prd/quick-entry-2`; if no fix commit follows this line, respawn it.
+
 **Next, in order:**
 
 1. Spawn one opus fix agent on `prd/quick-entry-2` (`packages/data/src/db/schema/assistant/quickEntry.ts` and `quickEntry.test.ts`) for both fixes below, with test rows. Export `PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"` and run checks with `NODE_OPTIONS=--max-old-space-size=6144`.
