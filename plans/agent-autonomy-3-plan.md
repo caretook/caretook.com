@@ -4,12 +4,12 @@
 
 ## Status
 
-| Slice | Wave | State                                                                     | Merge into `prd/agent-autonomy-3` (slice commits) |
-| ----- | ---- | ------------------------------------------------------------------------- | ------------------------------------------------- |
-| 1     | 1    | merged, quick check running; worktree kept until the wave is green (opus) | f84b26e1 (be4214ea)                               |
-| 2     | 2    | —                                                                         | —                                                 |
-| 3     | 2    | —                                                                         | —                                                 |
-| 4     | 2    | —                                                                         | —                                                 |
+| Slice | Wave | State                           | Merge into `prd/agent-autonomy-3` (slice commits) |
+| ----- | ---- | ------------------------------- | ------------------------------------------------- |
+| 1     | 1    | merged, worktree removed (opus) | f84b26e1 (be4214ea)                               |
+| 2     | 2    | —                               | —                                                 |
+| 3     | 2    | —                               | —                                                 |
+| 4     | 2    | —                               | —                                                 |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up. Questions go through `pnpm prd ask`, never the terminal.
 
@@ -25,7 +25,7 @@
 - Slice 3: land verdicts need the full 40-character tip and an action of `force`, `no-review` or `decline <thread>`. They aren't spent, so a retry on the same tip works: use `checkRecord`, not `useRecord`.
 - Slice 4: plan verdicts are `go` or `send-back`. A land `no` or plan `send-back` used for an ask is bound only by topic, age and single use.
 
-**Wave 1:** quick check passed on 518e25b4; proposed tier `none` (tooling and docs), so no CI run. Synced with `dev` (23e157a8), machinery doc folded in. Next: quick check, PR, Codex review, land.
+**Wave 1:** quick check passed on the synced tip; tier `none` (tooling and docs), no CI run. PR #103, Codex clean on 32515ef; this docs-only trim (machinery was 18 bytes over budget) needs its verdict again. Next: land, then file the report and rotate. Wave 2 (slices 2, 3, 4) starts in the next session.
 
 Fold into the docs at landing (the PRD's _Docs at landing_): wave 1, [machinery](../docs/agents/machinery.md) (the store and the brief); wave 2, machinery, [orchestrator](../docs/agents/orchestrator.md), [planner](../docs/agents/planner.md), [preferences](../docs/agents/preferences.md), [backlog](../docs/agents/backlog.md). Trim at least what you fold in.
 
