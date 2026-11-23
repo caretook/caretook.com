@@ -1,7 +1,9 @@
 import { ORPCError } from "@orpc/server";
 import {
+  mergeSetupDismissed,
   resolveDaySummaryMode,
   resolveEasyModeSetting,
+  resolveSetupDismissed,
   resolveTimelineView,
   resolveUnits,
   userPreferencesZSchema,
@@ -29,6 +31,7 @@ export const me = {
       timelineView: resolveTimelineView(user.preferences),
       easyMode: resolveEasyModeSetting(user.preferences),
       daySummary: resolveDaySummaryMode(user.preferences),
+      setupDismissed: resolveSetupDismissed(user.preferences),
     };
   }),
 
@@ -41,6 +44,10 @@ export const me = {
       ...user.preferences,
       ...input,
       units: { ...user.preferences.units, ...input.units },
+      // Added to, never replaced: another device may have dismissed a different group.
+      ...(input.setupDismissed && {
+        setupDismissed: mergeSetupDismissed(user.preferences.setupDismissed, input.setupDismissed),
+      }),
     };
     unwrap(await userService.update(context, { filter: self, data: { preferences } }));
     return {

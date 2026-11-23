@@ -17,6 +17,8 @@ export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
   { rel: "icon", href: "/icons/icon-32.png", type: "image/png", sizes: "32x32" },
   { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
+  // Installable from any page, marketing or app (onboarding slice 2).
+  { rel: "manifest", href: "/site.webmanifest" },
 ];
 
 // Staging's builds ask search engines to stay away from every page (hosting slice 1).
@@ -33,6 +35,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        {/* Here, not in `meta`: a route's own meta replaces root's. */}
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="Caretook" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         {ROBOTS && <meta name={ROBOTS.name} content={ROBOTS.content} />}
         {/* The CSP for pages served as files (prerendered, native); before any script. */}
         {policy && <meta httpEquiv="Content-Security-Policy" content={policy} />}

@@ -138,6 +138,7 @@ describe("sign-up switches", () => {
       email,
       password: PASSWORD,
       group: { recipientName: "Rose Example" },
+      legal: true,
     });
 
   it("refuses access-code sign-up while it's off, creating nothing, and works again once on", async () => {

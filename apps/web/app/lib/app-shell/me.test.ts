@@ -5,7 +5,8 @@ import { appUrls } from "./appUrls";
 const api = vi.hoisted(() => ({ get: vi.fn(), updatePreferences: vi.fn() }));
 vi.mock("../core/rpc", () => ({ rpc: { me: api } }));
 
-const { forgetSettings, loadSettings, saveSettings, subscribeSettings } = await import("./me");
+const { cachedSettings, forgetSettings, loadSettings, saveSettings, subscribeSettings } =
+  await import("./me");
 
 const USER = "u1";
 const request = new Request(`http://localhost${appUrls.timeline("g")}`);
@@ -172,6 +173,28 @@ describe("loadSettings", () => {
     api.updatePreferences.mockRejectedValue(new ORPCError("UNAUTHORIZED"));
     await expect(loadSettings(request, USER)).rejects.toBeInstanceOf(Response);
     expect(pending()).toEqual({ timelineView: "cards" });
+  });
+});
+
+describe("dismissed setup cards", () => {
+  const [A, B] = ["group-a", "group-b"];
+
+  it("adds to the list offline, and sends only what's still pending", async () => {
+    api.updatePreferences.mockRejectedValue(offline());
+    await saveSettings(USER, { setupDismissed: [A] });
+    await saveSettings(USER, { setupDismissed: [B] });
+    expect(pending()).toEqual({ setupDismissed: [A, B] });
+    expect(cachedSettings(USER).setupDismissed).toEqual([A, B]);
+
+    api.updatePreferences.mockResolvedValue({});
+    await saveSettings(USER, { setupDismissed: [A] });
+    expect(pending()).toEqual({ setupDismissed: [B] });
+  });
+
+  it("keeps a pending dismissal on top of the server's list", () => {
+    store.set(`caretook:settings:${USER}`, JSON.stringify({ setupDismissed: [A] }));
+    store.set(`caretook:settings-pending:${USER}`, JSON.stringify({ setupDismissed: [B] }));
+    expect(cachedSettings(USER).setupDismissed).toEqual([A, B]);
   });
 });
 

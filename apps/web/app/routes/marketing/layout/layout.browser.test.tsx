@@ -3,7 +3,7 @@ import { userEvent } from "vitest/browser";
 import { openMarketing, SITE_URL } from "../marketingWorld";
 import * as home from "../home/route";
 import { MARKETING_LINKS } from "../site/pages";
-import * as layout from "./route";
+import * as layoutRoute from "./route";
 
 // The marketing frame on one device (moved down from marketing.spec.mjs): the
 // landmarks, the skip link, the header at both widths, the phone menu and the
@@ -108,7 +108,7 @@ describe("the marketing frame", () => {
 });
 
 describe("home's head", () => {
-  test("its canonical URL is the site root, with the Organization JSON-LD; the layout links the manifest", () => {
+  test("its canonical URL is the site root, with the Organization JSON-LD; the layout leaves the manifest to root", () => {
     const tags = home.meta({ matches: [{ loaderData: { siteUrl: SITE_URL } }] } as never) as Record<
       string,
       unknown
@@ -117,6 +117,6 @@ describe("home's head", () => {
     expect(tags.find((t) => t.property === "og:url")?.content).toBe(`${SITE_URL}/`);
     const ld = tags.flatMap((t) => ("script:ld+json" in t ? [t["script:ld+json"]] : []));
     expect(ld).toEqual([expect.objectContaining({ "@type": "Organization", name: "Caretook" })]);
-    expect(layout.links()).toContainEqual({ rel: "manifest", href: "/site.webmanifest" });
+    expect("links" in layoutRoute).toBe(false);
   });
 });
