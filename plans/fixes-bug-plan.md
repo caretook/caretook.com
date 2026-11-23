@@ -32,6 +32,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **After wave 10:** B-616 moved to dose-accuracy slice 6 (recorded in the backlog on the user's word): dropped from this plan. **B-615** goes in wave 11: dose-accuracy's wave 4 landed as 30b6685a, and its orchestrator cleared `assistantActionService.ts` and `timelineEntryService.ts` for it, but asks that no one touch the `timelineEntryService` upsert until its wave 5 lands (it will message). Also waiting for wave 11: B-656 and B-657.
 
+**Wave 11 (slices 43–48, B-656, B-657, B-659, B-662, B-666, B-675, all on opus):** resumed after an interruption; git matched this Status, no slice in flight, already synced with dev (fa432c69). **Held for a later wave:** B-615 (dose-accuracy's wave 5 is still changing the `timelineEntryService` upsert; it will message), B-689 and B-690 (member-avatars holds `routes/app/groups/planner/`). At landing, fold the B-659 consent rule into `calendars.md` and B-656 into `care-periods.md`; `calendars.md` is near its 10 KB budget, so trim when adding.
+
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
 | Slice | Item  | State                                      | Merge    |
@@ -78,6 +80,12 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 40    | B-655 | landed                                     | 487cb235 |
 | 41    | B-620 | landed (care-periods.md folded)            | ab9dcfae |
 | 42    | B-631 | landed                                     | 2a479df8 |
+| 43    | B-656 | planned                                    |          |
+| 44    | B-657 | planned                                    |          |
+| 45    | B-659 | planned                                    |          |
+| 46    | B-662 | planned                                    |          |
+| 47    | B-666 | planned                                    |          |
+| 48    | B-675 | planned                                    |          |
 
 ## Wave 1
 
@@ -518,3 +526,73 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: compon
 - A successful save, add or delete still leaves without a prompt.
 - The 300 ms window in the item's second note is out of scope unless the tests above need it: name anything you find there in the hand-off.
 - Component tests: one for each line above, beside `sheetGuard.browser.test.tsx`.
+
+## Wave 11
+
+As before: the item's backlog notes (`pnpm backlog show B-<n>`) carry the file references, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. Running topics hold `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/assistantActionService.ts`, `apps/web/app/routes/app/groups/planner/`, `timeline/TimelineEntryRow.tsx`, `timeline/PassLogItem.tsx`, `timeline/TimelineFilters.tsx`, `apps/web/app/lib/sync/schema.ts` and `packages/data/src/errors/constants.ts`: no slice here edits them. If a fix can't avoid one, stop and say so in the hand-off.
+
+### Slice 43: a header before a period's first day shows no day number (B-656)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/care-periods.md, docs/domain/timeline.md · Tests: unit, component
+
+With the recipient in New York, a viewer in Los Angeles and a period starting 00:30 Eastern, the viewer's header for the date before the start and the header for the start date both read day 1, because `periodDayOn` has a minimum of 1.
+
+- A header whose `dayKey` is before the period's start date in the recipient's zone shows the period without a day number. The start date stays day 1.
+- Other uses of the day count keep their current text.
+- Unit tests: the count on the date before the start, on the start date and on the day after.
+- Component test: the reported case shows no number on the earlier header and day 1 on the start date.
+
+### Slice 44: Back asks after a successful add that keeps the sheet open (B-657)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: component
+
+The add's submit keeps `useSheetChanges`' no-prompt bypass though the sheet stays open, so Back loses unsaved dose edits.
+
+- After a successful Add a medication in the pass log with unsaved dose edits, the sheet stays open and Back asks before discarding.
+- A save that closes the sheet still leaves without a prompt.
+- A second refusal with the same text is still announced in `PassLogForm`. Name any other sheet with a side action that needs the same remount in the hand-off, and don't change it.
+- Component tests: one for each line above, beside `sheetGuard.browser.test.tsx`.
+
+### Slice 45: a consent records the wording the member saw (B-659)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/calendars.md, docs/domain/api.md · Tests: unit, integration, component
+
+`update({ detailsConsent: true })` stamps the server's current `DETAILS_CONSENT_VERSION`, so a consent queued offline before a wording bump records a version the member never saw.
+
+- Turning consent on sends the version the device displayed, in the request and in the persisted pending change.
+- The server records consent only when that version is the current one. An outdated or missing version records nothing and returns a typed error from `errors/calendars.ts`.
+- A pending change with an outdated or missing version, including one saved before this fix, is dropped on replay. The member sees the current wording and can agree again, and details stay off until then.
+- Turning consent off needs no version and always works.
+- Integration tests: current, outdated and missing version, and turning off. Unit test: the replay. Component test: the refused replay leaves the switch off with the current wording shown.
+
+### Slice 46: quick entry asks for the amount when a bare number is the strength (B-662)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md · Tests: unit, component
+
+The user decided: when a bare number matches the strength and the usual dose is more than one unit, the caretaker chooses the amount instead of a guess. `gave lisinopril 10` at 10 mg with a usual 2 tablets records 2 tablets today.
+
+- That case records no dose until the caretaker chooses. Use the way quick entry already asks for a missing detail; if there is none, open the dose's form with the amount empty and name that in the hand-off.
+- A usual dose of one unit still records directly (B-651), and every other row in the B-648 and B-651 tests keeps its result.
+- Replace the test named `a whole number at the strength still names it: the usual dose (B-648)`.
+- Unit tests: 10 at 10 mg with a usual 2 tablets, with a usual 1 tablet, and with no usual dose. Component test: the caretaker is asked and the chosen amount is what's recorded.
+
+### Slice 47: signing up offers to save the password (B-666)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/auth.md, docs/domain/care-groups.md · Tests: component
+
+The cause isn't confirmed. The suspects are the email field's `autoComplete="email"` and a fetch submit that swaps the step without a navigation. The join and invite sign-ups have the same shape.
+
+- On both forms, the email field is `autoComplete="username"`, the password stays `new-password`, and both are in one `<form>` with a real submit button.
+- After a successful sign-up, the page changes in a way password managers detect, using the router's navigation if the step swap can't. Don't change what the member sees next.
+- Component tests: the field attributes on both forms and the step after success.
+- An agent can't drive a real password manager. Say in the hand-off that this needs a hand test, and name the browser steps.
+
+### Slice 48: a repeated day jump keeps its reset after a sheet opens (B-675)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md · Tests: unit, component
+
+In `useTimelineData.ts`, a repeat jump ignores the old paging only while its marker is present and never saves the reset. A sheet link replaces the location state, so the old `before` and `limit` return under the sheet.
+
+- Accepting a new jump persists the reset bound, limit and marker.
+- Jump to a day, load newer, jump to the same day again and open an entry's edit sheet: the window and scroll stay put.
+- Unit or component test: that sequence. A first jump and plain paging keep their behaviour.
