@@ -16,7 +16,7 @@ export const AUTH_PERMISSIONS = {
   userSchema: {
     ownerField: "id",
     // Co-members of a care group can read each other's public profile only:
-    // id, name and image. Email, role and preferences stay with the user and
+    // id, name, image and avatar. Email, role and preferences stay with the user and
     // staff; services that must email a co-member read the row as the system.
     groupUserField: "id",
     // Accounts are created by the auth flow (running as SYSTEM_USER) or by staff.

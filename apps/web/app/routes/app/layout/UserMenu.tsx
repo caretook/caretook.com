@@ -9,6 +9,7 @@ import { useSubmit } from "react-router";
 import { Menu, SEPARATOR, UserAvatar } from "~/components/ui";
 import { adminLink } from "~/lib/admin/adminLink";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { useMyAvatar } from "~/lib/app-shell/myAvatar";
 import { readTheme, setTheme } from "~/lib/app-shell/theme";
 
 const THEME_ITEMS = [
@@ -36,6 +37,7 @@ export function UserMenu({
   severalGroups?: boolean;
 }) {
   const submit = useSubmit();
+  const look = useMyAvatar(user.id);
   const who = user.name || user.email;
   const admin = adminLink(user.role, import.meta.env.VITE_API_ORIGIN);
   // Only read when the menu renders on the client (the popover is closed during SSR).
@@ -79,7 +81,7 @@ export function UserMenu({
           signOut,
         ]}
       >
-        <UserAvatar name={user.name} email={user.email} image={user.image} size="md" />
+        <UserAvatar name={user.name} email={user.email} image={user.image} look={look} size="md" />
       </Menu>
     );
 
@@ -135,7 +137,7 @@ export function UserMenu({
         signOut,
       ]}
     >
-      <UserAvatar name={user.name} email={user.email} image={user.image} size="md" />
+      <UserAvatar name={user.name} email={user.email} image={user.image} look={look} size="md" />
     </Menu>
   );
 }
