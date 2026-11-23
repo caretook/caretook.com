@@ -148,7 +148,7 @@ export function DateTimeField({
             {(segment) => (
               <DateSegment
                 segment={segment}
-                className={`rounded tabular-nums outline-none data-[focused]:bg-primary data-[focused]:text-primary-content data-[placeholder]:opacity-60 ${segment.type === "literal" ? "" : "px-0.5"}`}
+                className={`rounded tabular-nums outline-none data-[focused]:bg-primary data-[focused]:text-primary-content data-[placeholder]:text-faint ${segment.type === "literal" ? "" : "px-0.5"}`}
               />
             )}
           </DateInput>
