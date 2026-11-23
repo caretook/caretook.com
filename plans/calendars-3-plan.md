@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** planned and **held** (flag `hold`): two skeptic passes sent it back, and the user chose to apply their fixes and land it held (ask a138). No slice started. To lift it: `pnpm backlog prd set calendars-3 flags=-`.
+**Where it stands:** planned and **held** (flag `hold`): two skeptic passes sent it back, and the user chose to apply their fixes and land it held (ask a138). No slice started. To lift it: `pnpm backlog prd set calendars-3 flags=—`.
 
 **Open:** after landing, the user sets the two push keys on staging, then hand-tests on a real Android phone and an installed iPhone app: a push arrives, shows no name, a tap opens the item, and signing out while offline stops later pushes (`unsubscribe()` offline is unverified on real browsers).
 
