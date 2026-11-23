@@ -6,7 +6,7 @@ Small UI fixes: look, layout, wording and flow. There is no PRD: this plan is th
 
 Landing mode: **run everything through** (started run-through, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports only through `pnpm prd ask`.
 
-Wave 1: slices 1–9, written 2026-11-22. Models: opus for all. Slice 2 waits for 1, slice 7 for 6 (same files); the rest start at once. Slices 1 and 2 are merged. Slices 4 and 5 are handed off and wait for slice 3 to merge first. Slices 3, 6, 8 and 9 are running; 7 is not started. At landing: update the day header wording in `docs/domain/timeline.md` and `docs/domain/care-periods.md` (+ at the far right, Change is an icon button); watch the `timelineHeader`, `timelineEasy`, `timelineLayout`, `timelineSummaries`, `timelineScroll`, `entry` and `ui/inScreens` component tests in the full check (slice 4 changed the header DOM).
+Wave 1: slices 1–9, written 2026-11-22. Models: opus for all. Slice 2 waits for 1, slice 7 for 6 (same files); the rest start at once. Slices 1 and 2 are merged. Slices 4, 5 and 6 are handed off and wait for slice 3 to merge first. Slices 3, 8 and 9 are running; 7 starts once 6 is merged. At landing: replace "Show past (N)" and `?past=1` in `docs/domain/providers.md` (past providers always list); update the day header wording in `docs/domain/timeline.md` and `docs/domain/care-periods.md` (+ at the far right, Change is an icon button); watch the `timelineHeader`, `timelineEasy`, `timelineLayout`, `timelineSummaries`, `timelineScroll`, `entry` and `ui/inScreens` component tests in the full check (slice 4 changed the header DOM).
 
 Left for a later wave: B-316 (unsaved-changes guard), B-535 (hour-first time picker), B-536 (danger text contrast) and B-537 (Event wording) touch ui-kit-3's hot files (`components/ui/`, `lib/timeline/entryDisplay.ts`, `lib/app-shell/`, `routes/dev/ui/`). B-325 (native safe area and cold start) waits for the Capacitor work, as its triage says.
 
@@ -17,7 +17,7 @@ Left for a later wave: B-316 (unsaved-changes guard), B-535 (hour-first time pic
 | 3     | B-538 | started (opus)      | —        |
 | 4     | B-412 | handed off e0fd0647 | —        |
 | 5     | B-519 | handed off b1be7664 | —        |
-| 6     | B-413 | started (opus)      | —        |
+| 6     | B-413 | handed off e36150f8 | —        |
 | 7     | B-422 | written             | —        |
 | 8     | B-421 | started (opus)      | —        |
 | 9     | B-319 | started (opus)      | —        |
