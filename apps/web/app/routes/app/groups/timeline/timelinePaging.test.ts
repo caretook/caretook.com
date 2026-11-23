@@ -55,6 +55,16 @@ describe("the timeline's kept window", () => {
     expect(startPaging("u1", "g1", HERE)).toEqual({ limit: RESTORE_CAP });
   });
 
+  it("keeps a jump's moved bound, and a bound that reached the ordinary history", () => {
+    const before = "2026-11-04T08:00:00.000Z";
+    keepPaging("u1", "g1", { ...kept(3 * PAGE_SIZE), before });
+    expect(startPaging("u1", "g1", HERE)).toEqual({ limit: 3 * PAGE_SIZE, before, rows: ROWS });
+    keepPaging("u1", "g1", { ...kept(40 * PAGE_SIZE), before });
+    expect(startPaging("u1", "g1", HERE)).toEqual({ limit: RESTORE_CAP, before });
+    keepPaging("u1", "g1", { ...kept(3 * PAGE_SIZE), before: null });
+    expect(startPaging("u1", "g1", HERE).before).toBeNull();
+  });
+
   it("sign-out forgets it (the tile cache is cleared)", () => {
     keepPaging("u1", "g1", kept(3 * PAGE_SIZE));
     clearRemembered();

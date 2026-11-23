@@ -3,6 +3,7 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { ActionResult } from "~/lib/core/api";
 import type { TimelineOutlet } from "./sheet";
 
+import { dayInZone } from "@caretook/data/schema";
 import { useRef } from "react";
 import { Outlet, PrefetchPageLinks } from "react-router";
 import { Page } from "~/components/ui";
@@ -14,7 +15,9 @@ import { loadSettings, useMySettings } from "~/lib/app-shell/me";
 import { sessionContext } from "~/lib/auth/session";
 import { loadSearchPeriods, searchPeriodRange } from "~/lib/care-periods/periodSearch.sync";
 import { removeEntry } from "~/lib/timeline/timeline.sync";
-import { parseFilters } from "~/lib/timeline/timelineFilters";
+import { parseFilters, readDay } from "~/lib/timeline/timelineFilters";
+import { jumpBound } from "~/lib/timeline/timelineJump";
+import { localTimeZone } from "~/lib/core/format";
 import { AddedMedicationToast } from "./AddedMedicationToast";
 import { GettingStartedCard } from "./GettingStartedCard";
 import { LiveNowBanner } from "./LiveNowBanner";
@@ -65,7 +68,13 @@ export function meta({ loaderData }: Route.MetaArgs) {
 export async function clientLoader({ request, params, context }: Route.ClientLoaderArgs) {
   const group = getGroup(context);
   const { db } = context.get(sessionContext);
-  const filters = parseFilters(new URL(request.url).search);
+  const { search: urlSearch } = new URL(request.url);
+  const filters = parseFilters(urlSearch);
+  // A jump (`?day=`) is the viewer's day; its window ends where the next day starts.
+  const now = new Date();
+  const zone = localTimeZone();
+  const day = readDay(urlSearch, dayInZone(now, zone));
+  const before = day ? jumpBound(day, zone, now) : null;
   const [status, searchPeriods] = await Promise.all([
     filters.q ? settledSearchIndexStatus() : Promise.resolve("ready" as const),
     filters.q ? loadSearchPeriods(db, params.groupId) : NO_SEARCH_PERIODS,
@@ -73,15 +82,23 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
   const range = searchPeriodRange(searchPeriods, filters.period);
   const { match } = timelineSearch(params.groupId, filters.q, status, range);
   const [rows, settings] = await Promise.all([
-    loadTimelineRows(db, params.groupId, {
-      kind: filters.kind,
-      author: filters.author,
-      vital: filters.vital,
-      match,
-    }),
+    loadTimelineRows(
+      db,
+      params.groupId,
+      { kind: filters.kind, author: filters.author, vital: filters.vital, match },
+      before,
+    ),
     loadSettings(request, db.userId),
   ]);
-  return { userId: db.userId, title: pageTitle(group.name), ...filters, searchPeriods, ...rows, ...settings };
+  return {
+    userId: db.userId,
+    title: pageTitle(group.name),
+    ...filters,
+    day,
+    searchPeriods,
+    ...rows,
+    ...settings,
+  };
 }
 
 /**
@@ -116,7 +133,7 @@ export function shouldRevalidate({
 }
 
 export default function Timeline({ loaderData, params }: Route.ComponentProps) {
-  const { userId, kind, author, q, vital } = loaderData;
+  const { userId, kind, author, q, vital, day } = loaderData;
   const { groupId } = params;
   // The loader's settings come from the cache; a background refresh publishes any change.
   const settings = useMySettings(userId, loaderData);
@@ -127,7 +144,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const period = usePeriodSearch(groupId, loaderData.period, loaderData.searchPeriods);
   const search = timelineSearch(groupId, q, useSearchIndexStatus(), period.range);
   const filters = { kind, author, vital, match: search.match };
-  const data = useTimelineData({ groupId, userId, filters, initial: loaderData });
+  const data = useTimelineData({ groupId, userId, filters, day, initial: loaderData });
   const [view, setView] = useTimelineView(userId, settings.timelineView);
   const [summaryMode, setSummaryMode] = useDaySummaryMode(userId, settings.daySummary);
   // The empty Today's "Add an entry": the quick-entry field, in view and focused (a phone's keyboard comes up).

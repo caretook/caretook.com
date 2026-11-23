@@ -12,7 +12,7 @@ import {
   withoutSheetParams,
 } from "../../../../lib/timeline/urls";
 import { canHaveNoteDocument, isSystemWrittenKind, scheduleTimeZSchema } from "@caretook/data/schema";
-import { parseFilters } from "../../../../lib/timeline/timelineFilters";
+import { DAY_PARAM, parseFilters } from "../../../../lib/timeline/timelineFilters";
 
 // The timeline's sheet routes (`timeline/new/:kind`, `timeline/new/dose`, `timeline/:entryId/edit`): which sheet a URL
 // opens, or where it goes instead. Pure, so web:unit tests it; the routes'
@@ -138,5 +138,6 @@ export const onlySheetChanged = (groupId: string, current: URL, next: URL) => {
   if (current.pathname === next.pathname) return false;
   if (!within(current.pathname, base) || !within(next.pathname, base)) return false;
   const [a, b] = [parseFilters(current.search), parseFilters(next.search)];
-  return a.kind === b.kind && a.author === b.author && a.vital === b.vital;
+  const dayOf = (url: URL) => url.searchParams.get(DAY_PARAM);
+  return a.kind === b.kind && a.author === b.author && a.vital === b.vital && dayOf(current) === dayOf(next);
 };

@@ -36,6 +36,8 @@ export const AUTHOR_PARAM = "author";
 export const QUERY_PARAM = "q";
 export const VITAL_PARAM = "vital";
 export const PERIOD_PARAM = "period";
+/** A jump to one day (`?day=YYYY-MM-DD`, the viewer's): read by `readDay`, not a filter. */
+export const DAY_PARAM = "day";
 
 /**
  * The kinds the timeline lists and filters by. A kind left out of here is
@@ -96,6 +98,8 @@ const withFilters = (search: string, next: TimelineFilters) => {
   params.delete(QUERY_PARAM);
   params.delete(VITAL_PARAM);
   params.delete(PERIOD_PARAM);
+  // Any filter change starts again from the newest entry.
+  params.delete(DAY_PARAM);
   const out = new URLSearchParams();
   if (next.kind) out.set(KIND_PARAM, next.kind);
   if (next.author) out.set(AUTHOR_PARAM, next.author);
@@ -165,3 +169,38 @@ export const setPeriod = (search: string, period: string) =>
 
 /** The search over every date again; the search and the other filters stay. */
 export const clearPeriod = (search: string) => change(search, { period: null });
+
+/** A real calendar day written `YYYY-MM-DD` ("2026-02-30" isn't). */
+const isCalendarDay = (value: string | null): value is string => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+};
+
+/**
+ * The day the timeline is jumped to, or null. A malformed or impossible date
+ * reads as no jump, as does a day after `today` (the viewer's) or a `?day=`
+ * beside a search, since a jump ends a search.
+ */
+export const readDay = (search: string, today: string) => {
+  const params = new URLSearchParams(search);
+  const day = params.get(DAY_PARAM);
+  return isCalendarDay(day) && day <= today && !normalizeQuery(params.get(QUERY_PARAM)) ? day : null;
+};
+
+/** Jump to `day`: the kind, author and vital filters stay, the search and its period end. An invalid day changes nothing. */
+export const setDay = (search: string, day: string) => {
+  if (!isCalendarDay(day)) return search;
+  const params = new URLSearchParams(withFilters(search, { ...parseFilters(search), q: "", period: null }));
+  params.set(DAY_PARAM, day);
+  return `?${params.toString()}`;
+};
+
+/** Back to the newest entries; the filters stay. */
+export const clearDay = (search: string) => {
+  const params = new URLSearchParams(search);
+  if (!params.has(DAY_PARAM)) return search;
+  params.delete(DAY_PARAM);
+  const text = params.toString();
+  return text ? `?${text}` : "";
+};
