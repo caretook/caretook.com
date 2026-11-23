@@ -6,14 +6,16 @@
 
 **Landing mode: run everything through** (started run-through; ask only real questions, through `pnpm prd ask`). The PRD lands once, after wave 2.
 
-Wave 1: slice 1 (agent on opus) handed off at `731544d0` and merged as `1cfac27b`; quick check passed on `b64426da`. Wave 1's CI run (`components`, the proposed tier) requested; wave 2 starts on its green verdict. Its worktree stays until the wave's CI verdict is green. Slices 2, 3 and 4 are unblocked.
+Wave 1: slice 1 (agent on opus) handed off at `731544d0` and merged as `1cfac27b`; quick check passed on `b64426da`. Wave 1's CI run (`components`, run 45189225129 on `43161185`) came back `flake`: the only blocking failure is the search speed test on the brake list, in a file this branch doesn't touch. Slice 1's worktree stays until a clean verdict.
 
-| Slice | Wave | State  | Merge into `prd/timeline-jump` (slice commits)  |
-| ----- | ---- | ------ | ----------------------------------------------- |
-| 1     | 1    | merged | `1cfac27b` (`6999da53`, `9db57b09`, `731544d0`) |
-| 2     | 2    | ready  | —                                               |
-| 3     | 2    | ready  | —                                               |
-| 4     | 2    | ready  | —                                               |
+Wave 2 running: slices 2, 3 and 4 started 2026-11-23 from `43161185`, worktrees `.loops/timeline-jump-{2,3,4}`, one agent each on opus. Its worktree stays until the wave's CI verdict is green. Slices 2, 3 and 4 are unblocked.
+
+| Slice | Wave | State       | Merge into `prd/timeline-jump` (slice commits)  |
+| ----- | ---- | ----------- | ----------------------------------------------- |
+| 1     | 1    | merged      | `1cfac27b` (`6999da53`, `9db57b09`, `731544d0`) |
+| 2     | 2    | in progress | —                                               |
+| 3     | 2    | in progress | —                                               |
+| 4     | 2    | in progress | —                                               |
 
 **Backlog:** B-557 (quick date jump on the timeline) claimed by `prd/timeline-jump`; run `pnpm backlog done B-557` when the last slice merges. No other items belong to this topic.
 
