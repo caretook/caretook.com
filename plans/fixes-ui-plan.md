@@ -14,7 +14,7 @@ Left for later: B-325 (native safe area and cold start) waits for the Capacitor 
 
 At wave 2 landing: fold the Event wording into `appointments.md`, `todos.md` and `timeline.md` (they still say a title-less item reads Appointment, and that `scopeQuestion` always says appointment). Slice 12 changes `calendarText`, so the landing report must say what that does to events already pushed to Google.
 
-Slice 13: its first agent stopped at the context limit (ac380f34, clean tree). Open: the end-time test in `entry.browser.test.tsx` times out at line 632 (cause unknown), and the slice check has not passed. Optional times (todo due, series Ends) stay empty by default; required ones default to the current hour.
+Slice 13 decisions: optional times (todo due, series Ends) stay empty by default; required ones default to the current hour at :00.
 
 Notes for the next wave:
 
@@ -22,22 +22,22 @@ Notes for the next wave:
 - A print-menu test can fail in a full run and pass alone (B-552, the known race).
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                    | Merge    |
-| ----- | ----- | ---------------------------------------- | -------- |
-| 1     | B-256 | merged (opus)                            | b5373bc9 |
-| 2     | B-416 | merged (opus)                            | f6f40e4f |
-| 3     | B-538 | merged (opus)                            | 439b6571 |
-| 4     | B-412 | merged (opus)                            | 91aced06 |
-| 5     | B-519 | merged (opus)                            | b2aa214a |
-| 6     | B-413 | merged (opus)                            | 13ac9f5a |
-| 7     | B-422 | merged (opus)                            | 8834115b |
-| 8     | B-421 | merged (opus)                            | fc5dbe18 |
-| 9     | B-319 | merged (opus)                            | 488e09bf |
-| 10    | B-536 | merged (sonnet)                          | c9c510cf |
-| 11    | B-575 | merged (sonnet)                          | 123f2b24 |
-| 12    | B-537 | merged (opus)                            | 5566480a |
-| 13    | B-535 | in flight, continuing at ac380f34 (opus) | -        |
-| 14    | B-316 | blocked by 13 (opus)                     | -        |
+| Slice | Item  | State            | Merge    |
+| ----- | ----- | ---------------- | -------- |
+| 1     | B-256 | merged (opus)    | b5373bc9 |
+| 2     | B-416 | merged (opus)    | f6f40e4f |
+| 3     | B-538 | merged (opus)    | 439b6571 |
+| 4     | B-412 | merged (opus)    | 91aced06 |
+| 5     | B-519 | merged (opus)    | b2aa214a |
+| 6     | B-413 | merged (opus)    | 13ac9f5a |
+| 7     | B-422 | merged (opus)    | 8834115b |
+| 8     | B-421 | merged (opus)    | fc5dbe18 |
+| 9     | B-319 | merged (opus)    | 488e09bf |
+| 10    | B-536 | merged (sonnet)  | c9c510cf |
+| 11    | B-575 | merged (sonnet)  | 123f2b24 |
+| 12    | B-537 | merged (opus)    | 5566480a |
+| 13    | B-535 | merged (opus)    | 1dc972d8 |
+| 14    | B-316 | in flight (opus) | -        |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
