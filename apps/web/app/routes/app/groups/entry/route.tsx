@@ -20,6 +20,7 @@ import { EntryCancelledBanner } from "./EntryCancelledBanner";
 import { EntryPageHeader } from "./EntryPageHeader";
 import { EntryPrintView } from "./EntryPrintView";
 import { EntryVisitPrep } from "./EntryVisitPrep";
+import { entryTiming } from "~/lib/appointments/upcoming";
 import { entryHeading, titleState, withEventDraft } from "./entryPage";
 import { loadEntry } from "./loadEntry";
 import { useEntryMentions } from "./useEntryMentions";
@@ -91,7 +92,10 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
   const mentions = useEntryMentions({ groupId, entryId: entry.id, ensureStored: live.ensureStored });
 
   const label = KIND_META[entry.kind].label;
-  const heading = entryHeading(label, entry.title, live.isNew && !live.stored);
+  // When it was opened is enough: the heading only names an unnamed event's side of now.
+  const [openedAt] = useState(() => new Date());
+  const timing = entry.kind === "event" ? entryTiming(entry, openedAt) : undefined;
+  const heading = entryHeading(label, entry.title, live.isNew && !live.stored, timing);
   const title = titleState({ kind: entry.kind, title: entry.title, saved: live.stored, canWrite, deleted });
 
   return (

@@ -145,7 +145,7 @@ describe("the scope dialog in Upcoming", () => {
     await openPlanner({ extra: SERIES });
     await rowMenu(FRI_20.id);
     await userEvent.click(menuItem("Delete"));
-    const dialog = page.getByRole("dialog", { name: "Delete a repeating appointment" });
+    const dialog = page.getByRole("dialog", { name: "Delete a repeating event" });
     await expect.element(dialog).toBeVisible();
     await expect.element(dialog).toHaveAccessibleDescription(/Delete only this visit/);
     await expect.poll(() => look("Only this visit").background).toBe(token("bg-error", "backgroundColor"));
@@ -155,9 +155,9 @@ describe("the scope dialog in Upcoming", () => {
 
     await rowMenu(FRI_20.id);
     await userEvent.click(menuItem("Edit"));
-    await expect.element(page.getByRole("dialog", { name: "Change a repeating appointment" })).toBeVisible();
+    await expect.element(page.getByRole("dialog", { name: "Change a repeating event" })).toBeVisible();
     // The pointer is still where Edit was, now over this button: rest it on the title to read the unhovered tone.
-    await userEvent.hover(page.getByRole("heading", { name: "Change a repeating appointment" }));
+    await userEvent.hover(page.getByRole("heading", { name: "Change a repeating event" }));
     await expect.poll(() => look("Only this visit").background).toBe(token("bg-primary", "backgroundColor"));
     expect(look("This and later visits").color).not.toBe(token("text-error", "color"));
   });
@@ -308,7 +308,7 @@ describe("on a visit's page", () => {
     await userEvent.fill(title, "Dialysis, chair 4");
     await userEvent.keyboard("{Enter}");
     await found(SCOPE);
-    await expect.poll(() => SCOPE()?.textContent).toContain("Change a repeating appointment");
+    await expect.poll(() => SCOPE()?.textContent).toContain("Change a repeating event");
     await userEvent.click(dialogButton("Cancel"));
     await expect.poll(() => TITLE()?.value).toBe("Dialysis");
     expect(await device.queued()).toEqual([]);

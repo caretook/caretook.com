@@ -654,6 +654,16 @@ describe("appointments", () => {
     expect(MAP()).toBeTruthy();
   });
 
+  for (const [name, when, heading] of [
+    ["ahead", () => at(ahead()), "Upcoming event"],
+    ["past", () => hoursAgo(3), "Past event"],
+  ] as const)
+    test(`an unnamed event ${name} is headed "${heading}"`, async () => {
+      const unnamed = fx.event({ title: "Event", occurredAt: when(), text: "" });
+      await open(entryPath(unnamed.id), { role: "viewer", fixtures: [base(), unnamed] });
+      await waitUntil(() => document.querySelector("h1")?.textContent === heading, heading);
+    });
+
   test("a viewer sees no place row when there's none", async () => {
     const appt = fx.event({ title: "Cardiology", occurredAt: at(ahead()), text: "" });
     await open(entryPath(appt.id), { role: "viewer", fixtures: [base(), appt] });

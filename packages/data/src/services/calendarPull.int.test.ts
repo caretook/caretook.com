@@ -271,7 +271,7 @@ describe("pulling", () => {
     // The push tagged Google's event (its id kept) with our uid, in generic words.
     const tagged = google.event(conn.calendarId, made.id)!;
     expect(tagged.privateProperties[UID_PROPERTY]).toBe(`entry:${entryId}`);
-    expect(tagged.summary).toBe("Appointment for Pat Example");
+    expect(tagged.summary).toBe("Event for Pat Example");
     expect(google.events(conn.calendarId)).toHaveLength(3);
     // And it isn't taken in twice.
     expect(await pull(conn)).toMatchObject({ applied: 0 });

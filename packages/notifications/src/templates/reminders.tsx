@@ -12,7 +12,7 @@ import { ButtonLink, EmailLayout, Muted, Paragraph } from "./layout";
 // Reminder emails (appointments-2 slice 6): an appointment or reminder
 // coming up (`appointmentReminder`) and a todo due (`todoDue`), sent by the
 // calendar cron's reminder sweep. The wording comes from `calendarText`:
-// generic by default ("Appointment for Pat", the time and a link back), with
+// generic by default ("Event for Pat", the time and a link back), with
 // the title, place and providers only when the member consented and the
 // owners allow it. No note content ever. Each carries a one-click
 // unsubscribe link and `List-Unsubscribe` (RFC 8058), which turn reminders
@@ -44,7 +44,7 @@ const unsubscribeHeaders = (
 const textZ = (max: number) => z.string().trim().min(1).max(max);
 
 const reminderDataZ = z.object({
-  /** calendarText's summary: "Appointment for Pat", or with details "Appointment for Pat: Dialysis". */
+  /** calendarText's summary: "Event for Pat", or with details "Event for Pat: Dialysis". */
   summary: textZ(300),
   /** When, in the member's zone: "Thu 19 Nov · 9:00–10:00". */
   when: textZ(120),

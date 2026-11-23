@@ -77,7 +77,7 @@ export const tabSearch = (search: string, tab: "planner" | "past") => {
 
 /** What an empty Upcoming list says, naming what is on. */
 export const emptyUpcomingText = (show: UpcomingShow, authorName?: string | null) => {
-  const what = show === "event" ? "appointments" : show === "todos" ? "todos" : "appointments or todos";
+  const what = show === "event" ? "events" : show === "todos" ? "todos" : "events or todos";
   return authorName ? `No upcoming ${what} by ${authorName}.` : `No upcoming ${what}.`;
 };
 
