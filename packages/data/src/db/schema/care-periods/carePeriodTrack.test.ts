@@ -155,9 +155,18 @@ describe("periodDayOn", () => {
     expect(periodDayOn("2027-06-04T09:30:00.000Z", "2027-06-04", HONOLULU)).toBe(2);
   });
 
-  it("is never below 1, for a day before the start's date", () => {
-    expect(periodDayOn(start, "2027-06-02", HONOLULU)).toBe(1);
-    expect(periodDayOn(start, "2027-05-01", HONOLULU)).toBe(1);
+  it("has no number for a day before the start's date", () => {
+    expect(periodDayOn(start, "2027-06-02", HONOLULU)).toBeNull();
+    expect(periodDayOn(start, "2027-05-01", HONOLULU)).toBeNull();
+  });
+
+  it("counts none, 1, 2 across a start just after midnight in the recipient's zone", () => {
+    // 00:30 on Jun 9 in New York, still 21:30 on Jun 8 for a viewer in Los Angeles.
+    const justAfterMidnight = "2027-06-09T04:30:00.000Z";
+    const NEW_YORK = "America/New_York";
+    expect(periodDayOn(justAfterMidnight, "2027-06-08", NEW_YORK)).toBeNull();
+    expect(periodDayOn(justAfterMidnight, "2027-06-09", NEW_YORK)).toBe(1);
+    expect(periodDayOn(justAfterMidnight, "2027-06-10", NEW_YORK)).toBe(2);
   });
 
   it("counts calendar days across a DST change", () => {
