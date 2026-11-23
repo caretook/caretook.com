@@ -100,11 +100,12 @@ Stack: no · Reads: docs/agents/backlog.md, docs/agents/machinery.md, docs/agent
 
 **User stories:** US 1, 5, 6, 7, 12.
 
-**Build:** first, on a real interactive session, check that a settings file with `fastMode` turns fast mode on through `--settings` alongside the context hook. If it doesn't, stop and ask the user; never change their global settings. Then `pnpm prd prompt inbox` and `pnpm prd inbox [--model <m>]` (Opus in fast mode by default; a session named `inbox`, in the main checkout's directory, on Remote Control, through `session.sh --kind inbox`), listed in `pnpm prd help`. The prompt follows the PRD's _The inbox session_. The role doc `docs/agents/inbox.md` and its _Area index_ entry.
+**Build:** first, on a real interactive session, check that a settings file with `fastMode` turns fast mode on through `--settings` alongside the context hook. If it doesn't, stop and ask the user; never change their global settings. On the same real session, check the bare start: opened in a small directory outside the repository, it loads neither AGENTS.md nor the project's memory, and the inbox commands work by the main checkout's path. If either fails, stop and ask. Then `pnpm prd prompt inbox` and `pnpm prd inbox [--model <m>]` (Opus in fast mode by default; a session named `inbox`, in that directory, which it creates, on Remote Control, through `session.sh --kind inbox`), listed in `pnpm prd help`. The prompt follows the PRD's _The inbox session_: self-contained and short, with no doc to read and no opening poll. The role doc `docs/agents/inbox.md` (for people and maintainers; the session never reads it) and its _Area index_ entry.
 
 **Acceptance criteria:**
 
-- Prompt tests: the inbox prompt names the commands it may run and what it must not do, runs with no topic, and sends a priority request to the backlog session with no write.
+- Prompt tests: the inbox prompt names the commands it may run and what it must not do, runs with no topic, sends a priority request to the backlog session with no write, tells the session to read no doc and to open no poll, and stays under a small fixed size.
+- `pnpm prd inbox` starts the session in a directory outside the repository, creating it if needed. The hand-off records that a real session loaded neither AGENTS.md nor the project's memory.
 - `pnpm prd inbox` builds the command line with the model, the name and one settings file holding both the hook and `fastMode` (tested with the stand-in `claude`); `--model` overrides Opus.
 - An unknown kind still fails with the list of kinds, `inbox` among them. `pnpm prd help` lists `inbox`.
 - The hand-off records whether fast mode was confirmed on a real session.
@@ -118,12 +119,12 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/backlog.md · Tests: u
 
 **User stories:** US 8, 9.
 
-**Build:** `inbox` joins `KEPT_KINDS`, `open-session.mjs`'s main-checkout prompts and `rotate --self`, keeping its model and fast mode; the inbox prompt gains the hand-off paragraph. The dispatcher runs the pickup every five minutes (`CARETOOK_PICKUP_EVERY`).
+**Build:** `inbox` joins `KEPT_KINDS`, `open-session.mjs`'s session prompts and `rotate --self`, keeping its model, fast mode and bare directory; the inbox prompt gains a short hand-off line. The dispatcher runs the pickup every five minutes (`CARETOOK_PICKUP_EVERY`).
 
 **Acceptance criteria:**
 
 - Dispatcher tests with a fake clock: a dead inbox session is reopened outside the PRD slots; quick deaths stop and ask as for the backlog session; the pickup runs once per period, not per tick; a failed pickup logs one line and the tick still picks.
-- A rotation or reopen keeps the model and the fast setting.
+- A rotation or reopen keeps the model, the fast setting and the bare directory.
 - `--dry-run` writes and opens nothing. The pure pick's tests are unchanged.
 - `pnpm test:tooling` passes.
 
@@ -135,7 +136,7 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/orchestrator.md, docs/
 
 **User stories:** US 10.
 
-**Build:** `pnpm prd bye` as the PRD's _Bye_ says, and one line in every role's prompt and doc: a message of just 'bye' runs it. Each role doc names its own extra checks.
+**Build:** `pnpm prd bye` as the PRD's _Bye_ says, and one line in every role's prompt and doc: a message of just 'bye' runs it. Each role doc names its own extra checks; the inbox session's are in its prompt, which stays short.
 
 **Acceptance criteria:**
 

@@ -7,11 +7,12 @@ import type { EntryRow, LocalQuery } from "../timeline/timeline.sync";
 import { useMemo } from "react";
 import { dueDoses } from "./dueDoses";
 import { addDays, dayInZone, startOfDay } from "../core/zonedDay";
+import { scheduleChangesQuery } from "../appointments/visitPrep.sync";
 import { useNow } from "../live-notes/editors.sync";
 import { useRememberedQuery } from "../sync/useRememberedQuery";
 import { passesQuery, toPasses } from "./medicationPasses.sync";
 import { isDoseEntry, recipientQuery, toMedicationEntries, toMedications } from "./medications.sync";
-import { readRows, toLocalTimestamp } from "../timeline/timeline.sync";
+import { readRows, toLocalTimestamp, toTimelineEntries } from "../timeline/timeline.sync";
 
 // What's due today on this device: the group's current medications, its
 // doses since yesterday began, and the recipient's zone, read locally (so it
@@ -42,6 +43,13 @@ export const dosesSinceQuery = (groupId: string, from: Date): LocalQuery => ({
 export const yesterdayStart = (now: Date, timeZone: string) =>
   startOfDay(addDays(dayInZone(now, timeZone), -1), timeZone);
 
+/**
+ * Where the schedule history `dueDoses` reads starts: the first day matching
+ * reaches, two days back. Later changes are undone to read each day.
+ */
+export const dueChangesFrom = (now: Date, timeZone: string) =>
+  startOfDay(addDays(dayInZone(now, timeZone), -2), timeZone);
+
 const FALLBACK_ZONE = "UTC";
 
 export type DueDosesRows = {
@@ -49,6 +57,8 @@ export type DueDosesRows = {
   /** The group's passes, deleted ones too (a schedule naming one keeps its time). */
   passes: PassRow[];
   doses: EntryRow[];
+  /** The group's medication change entries since `dueChangesFrom`, deleted ones too. */
+  changes: EntryRow[];
   recipient: RecipientRow[];
 };
 
@@ -65,8 +75,12 @@ export async function loadDueDoses(db: SyncDb, groupId: string): Promise<DueDose
     readRows<PassRow>(db, duePassesQuery(groupId)),
   ]);
   const zone = recipient[0]?.time_zone || FALLBACK_ZONE;
-  const doses = await readRows<EntryRow>(db, dosesSinceQuery(groupId, yesterdayStart(new Date(), zone)));
-  return { medications, passes, doses, recipient };
+  const now = new Date();
+  const [doses, changes] = await Promise.all([
+    readRows<EntryRow>(db, dosesSinceQuery(groupId, yesterdayStart(now, zone))),
+    readRows<EntryRow>(db, scheduleChangesQuery(groupId, dueChangesFrom(now, zone))),
+  ]);
+  return { medications, passes, doses, changes, recipient };
 }
 
 /** The pure part: rows in, `dueDoses` out. */
@@ -75,6 +89,7 @@ export const toDueDoses = (rows: DueDosesRows, now: Date): DueDoses =>
     medications: toMedications(rows.medications),
     passes: toPasses(rows.passes),
     doses: toMedicationEntries(rows.doses).filter(isDoseEntry),
+    changes: toTimelineEntries(rows.changes),
     now,
     timeZone: rows.recipient[0]?.time_zone || FALLBACK_ZONE,
   });
@@ -118,18 +133,31 @@ export function useDueDoses(groupId: string, initial?: DueDosesRows) {
     dosesSinceQuery(groupId, from),
     initial?.doses,
   );
+  const changesFrom = useMemo(() => startOfDay(addDays(day, -2), zone), [day, zone]);
+  const changes = useRememberedQuery<EntryRow>(
+    { groupId, name: "dueDoses:changes" },
+    scheduleChangesQuery(groupId, changesFrom),
+    initial?.changes,
+  );
 
-  const rows = [recipient, medications, passRows, doses];
+  const rows = [recipient, medications, passRows, doses, changes];
   const medicationValue = medications.value ?? NO_ROWS;
   const doseValue = doses.value ?? NO_ROWS;
+  const changeValue = changes.value ?? NO_ROWS;
   const recipientValue = recipient.value ?? NO_ROWS;
   const due = useMemo(
     () =>
       toDueDoses(
-        { medications: medicationValue, passes: passValue, doses: doseValue, recipient: recipientValue },
+        {
+          medications: medicationValue,
+          passes: passValue,
+          doses: doseValue,
+          changes: changeValue,
+          recipient: recipientValue,
+        },
         new Date(now),
       ),
-    [medicationValue, passValue, doseValue, recipientValue, now],
+    [medicationValue, passValue, doseValue, changeValue, recipientValue, now],
   );
   // Nothing is known until every query has an answer: before then, every
   // slot would read as unanswered.
