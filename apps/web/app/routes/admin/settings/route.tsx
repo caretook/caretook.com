@@ -1,3 +1,4 @@
+import { AdminCard } from "../AdminCard";
 import type { Route } from "./+types/route";
 import type { AdminActionResult } from "../adminForms";
 
@@ -48,32 +49,27 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   const { settings, canWrite } = loaderData;
   const byKey = new Map(settings.map((s) => [s.key, s]));
   return (
-    <section className="card bg-base-100 shadow-sm" aria-labelledby="settings">
-      <div className="card-body gap-4">
-        <h1 id="settings" className="card-title">
-          Settings
-        </h1>
-        <p className="text-base-content/70 text-sm">
-          {canWrite
-            ? "Changes take effect within a minute, and each one is in the audit log with its reason."
-            : "Only admins can change these."}
-        </p>
-        <ul className="space-y-4" data-settings="">
-          {APP_SETTING_KEYS.map((key) => {
-            const setting = byKey.get(key);
-            if (!setting) return null;
-            return (
-              <li key={key}>
-                <SettingCard
-                  setting={setting}
-                  canWrite={canWrite}
-                  result={actionData?.key === key ? actionData : undefined}
-                />
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    </section>
+    <AdminCard id="settings" level={1} title="Settings">
+      <p className="text-muted text-sm">
+        {canWrite
+          ? "Changes take effect within a minute, and each one is in the audit log with its reason."
+          : "Only admins can change these."}
+      </p>
+      <ul className="space-y-4" data-settings="">
+        {APP_SETTING_KEYS.map((key) => {
+          const setting = byKey.get(key);
+          if (!setting) return null;
+          return (
+            <li key={key}>
+              <SettingCard
+                setting={setting}
+                canWrite={canWrite}
+                result={actionData?.key === key ? actionData : undefined}
+              />
+            </li>
+          );
+        })}
+      </ul>
+    </AdminCard>
   );
 }

@@ -1,6 +1,7 @@
 import type { UnitChoices, VitalReading, VitalType } from "@caretook/data/schema";
 import type { FieldIssue } from "~/lib/core/api";
 
+import { Message } from "~/components/ui";
 import { readingsIssue } from "./formIssues";
 import { VitalReadingRow } from "./VitalReadingRow";
 import { VitalTypeMenu } from "./VitalTypeMenu";
@@ -42,14 +43,10 @@ export function VitalReadingsFields({
         />
       ))}
 
-      {listIssue && <p className="text-error text-sm">{listIssue}</p>}
+      {listIssue && <Message tone="error">{listIssue}</Message>}
 
       {!fixed && (
-        <VitalTypeMenu
-          className="btn btn-sm btn-ghost"
-          exclude={types}
-          onSelect={(t) => onChange([...types, t])}
-        >
+        <VitalTypeMenu variant="ghost" size="sm" exclude={types} onSelect={(t) => onChange([...types, t])}>
           + Add a reading
         </VitalTypeMenu>
       )}

@@ -10,7 +10,7 @@ import {
 } from "@caretook/data/schema";
 import { ORPCError } from "@orpc/client";
 import { Form, Link, redirect, useNavigation } from "react-router";
-import { Button, CheckField, Field } from "~/components/ui/plain";
+import { Button, CheckField, Field, LINK } from "~/components/ui/plain";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { authClient } from "~/lib/auth/auth-client";
@@ -229,7 +229,7 @@ export default function Invite({ loaderData, actionData }: Route.ComponentProps)
     <AuthCard title={inviteTitle(view.invite)}>
       <div className="space-y-1 text-sm">
         <p>{invitedLine(view.invite)}</p>
-        <p className="text-base-content/70">{roleMeaning(view.invite.role)}</p>
+        <p className="text-muted">{roleMeaning(view.invite.role)}</p>
       </div>
       {view.view === "signUp" ? (
         <SignUpForm
@@ -256,8 +256,6 @@ const pick = (data: ActionData | undefined, intent: string) =>
   data?.intent === intent ? data.error : undefined;
 const pickLegal = (data: ActionData | undefined, intent: string) =>
   data?.intent === intent ? data.legalIssue : undefined;
-
-const INPUT = "input w-full";
 
 function LegalBox({ error }: { error?: string }) {
   return (
@@ -290,25 +288,16 @@ function SignUpForm({
       <Form method="post" onSubmit={submitOnce} className="space-y-1" data-invite-form="signUp">
         <input type="hidden" name="intent" value="signUp" />
         {isLink(invite) ? (
-          <Field label="Email" help="We'll email you a link to confirm it.">
+          <Field kind="input" label="Email" help="We'll email you a link to confirm it.">
             {(control) => (
-              <input
-                {...control}
-                className={INPUT}
-                type="email"
-                name="email"
-                autoComplete="email"
-                maxLength={254}
-                required
-              />
+              <input {...control} type="email" name="email" autoComplete="email" maxLength={254} required />
             )}
           </Field>
         ) : (
-          <Field label="Email" help="The invitation is for this address.">
+          <Field kind="input" label="Email" help="The invitation is for this address.">
             {(control) => (
               <input
                 {...control}
-                className={INPUT}
                 type="email"
                 name="email"
                 value={invite.email ?? ""}
@@ -318,16 +307,13 @@ function SignUpForm({
             )}
           </Field>
         )}
-        <Field label="Your name">
-          {(control) => (
-            <input {...control} className={INPUT} name="name" autoComplete="name" maxLength={100} required />
-          )}
+        <Field kind="input" label="Your name">
+          {(control) => <input {...control} name="name" autoComplete="name" maxLength={100} required />}
         </Field>
-        <Field label="Password" help="At least 12 characters.">
+        <Field kind="input" label="Password" help="At least 12 characters.">
           {(control) => (
             <input
               {...control}
-              className={INPUT}
               type="password"
               name="password"
               autoComplete="new-password"
@@ -336,16 +322,9 @@ function SignUpForm({
             />
           )}
         </Field>
-        <Field label="Password again">
+        <Field kind="input" label="Password again">
           {(control) => (
-            <input
-              {...control}
-              className={INPUT}
-              type="password"
-              name="confirm"
-              autoComplete="new-password"
-              required
-            />
+            <input {...control} type="password" name="confirm" autoComplete="new-password" required />
           )}
         </Field>
         <LegalBox error={legalIssue} />
@@ -363,7 +342,7 @@ function SignUpForm({
       </Form>
       <p className="text-center text-sm">
         Already have a Caretook account?{" "}
-        <Link to={accountUrls.signIn("password", accountUrls.invite(token))} className="link">
+        <Link to={accountUrls.signIn("password", accountUrls.invite(token))} className={LINK}>
           Sign in
         </Link>
       </p>
@@ -397,16 +376,11 @@ function ConsentForm({
         </ul>
       </div>
       {isLink(invite) ? (
-        <p className="text-base-content/70 text-sm">{LINK_APPROVAL_NOTE}</p>
+        <p className="text-muted text-sm">{LINK_APPROVAL_NOTE}</p>
       ) : (
-        <p className="text-base-content/70 text-sm">
-          The person who invited you confirmed: “{ATTESTATION_TEXT}”
-        </p>
+        <p className="text-muted text-sm">The person who invited you confirmed: “{ATTESTATION_TEXT}”</p>
       )}
-      <label className="flex items-start gap-3 text-sm">
-        <input type="checkbox" name="consent" className="checkbox mt-0.5" required />
-        <span>{CONSENT_TEXT}</span>
-      </label>
+      <CheckField className="text-sm" name="consent" required label={CONSENT_TEXT} />
       {(legalNeeded || legalIssue) && <LegalBox error={legalIssue} />}
       {error && <ErrorMessage>{error}</ErrorMessage>}
       <Button type="submit" variant="primary" block busy={busy}>

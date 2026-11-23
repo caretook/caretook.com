@@ -1,5 +1,5 @@
 import { UserPlus } from "lucide-react";
-import { Link } from "react-router";
+import { Button, Card } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
@@ -24,24 +24,20 @@ export function InviteSomeoneCard({ className = "" }: { className?: string }) {
   const [row] = useLiveQuery<{ others: number }>(query.sql, query.params, UNKNOWN);
   if (!role || !MANAGERS.includes(role) || (row?.others ?? -1) !== 0) return null;
   return (
-    <section
-      className={`card bg-base-100 border-base-300 border ${className}`}
-      aria-labelledby="invite-someone"
-      data-invite-card=""
-    >
-      <div className="card-body gap-2 p-4">
-        <h2 id="invite-someone" className="card-title text-base">
-          Invite someone
-        </h2>
-        <p className="text-base-content/70 text-sm">
-          You're the only one in {displayName ? `${displayName}'s` : "this"} care group. Invite family and
-          helpers so you can share what's going on.
-        </p>
-        <Link to={appUrls.groupSettings(id, "members")} className="btn btn-primary btn-sm w-fit">
-          <UserPlus aria-hidden="true" className="size-4" />
-          Invite someone
-        </Link>
-      </div>
-    </section>
+    <Card title="Invite someone" headingId="invite-someone" className={className} data-invite-card="">
+      <p className="text-muted text-sm">
+        You're the only one in {displayName ? `${displayName}'s` : "this"} care group. Invite family and
+        helpers so you can share what's going on.
+      </p>
+      <Button
+        to={appUrls.groupSettings(id, "members")}
+        variant="primary"
+        size="sm"
+        icon={UserPlus}
+        className="w-fit"
+      >
+        Invite someone
+      </Button>
+    </Card>
   );
 }

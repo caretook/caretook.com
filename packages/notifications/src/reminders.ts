@@ -121,6 +121,7 @@ export const sweepReminders = async (
             to: member.email,
             data: reminderEmailData(send, level, unsubscribe),
             idempotencyKey: send.key,
+            expiresAt: send.expiresAt,
             tx,
           });
           if (isError(queued)) {

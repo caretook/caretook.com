@@ -32,6 +32,7 @@ const defaults = (role: GroupRole, v: Partial<CalendarSettings> = {}): CalendarS
   detailsConsent: false,
   detailsConsentAt: null,
   detailsConsentVersion: null,
+  detailsConsentStale: false,
   groupAllowsDetails: true,
   shareLevel: "generic",
   feed: { active: false, rotatedAt: null },
@@ -138,5 +139,39 @@ describe("the Reminders card", () => {
     await found(() => card()?.querySelector("[data-reminders-unknown]"));
     await expect.poll(() => card()?.textContent).toContain("Needs a connection to show your reminders.");
     await expect.poll(() => card()?.querySelector("[data-reminders-on]")).toBeNull();
+  });
+});
+
+describe("the Details card's consent wording", () => {
+  const detailsSwitch = () => page.getByRole("switch", { name: "Include titles, places and providers" });
+  const staleLine = () => document.querySelector("main [data-details-stale]");
+
+  test("a member who agreed to an older wording sees it off, and agrees again", async () => {
+    const server = calendarServer("caretaker", {
+      detailsConsentAt: "2026-03-02T18:00:00.000Z",
+      detailsConsentVersion: "2020-01-01",
+      detailsConsentStale: true,
+    });
+    await open({ api: server.api });
+    await expect.element(detailsSwitch()).not.toBeChecked();
+    await expect
+      .element(
+        page.getByText(
+          "The wording has changed since you agreed on 2 Mar 2026. Turn this on to agree again.",
+        ),
+      )
+      .toBeVisible();
+
+    await userEvent.click(detailsSwitch());
+    await expect.poll(() => updates(server)).toEqual([{ groupId: TEST_GROUP.id, detailsConsent: true }]);
+    await expect.element(detailsSwitch()).toBeChecked();
+    await expect.poll(staleLine).toBeNull();
+  });
+
+  test("a member who never agreed sees no line", async () => {
+    const server = calendarServer("caretaker");
+    await open({ api: server.api });
+    await expect.element(detailsSwitch()).not.toBeChecked();
+    await expect.poll(staleLine).toBeNull();
   });
 });

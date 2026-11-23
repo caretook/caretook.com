@@ -19,8 +19,9 @@ export type RepeatFreq = (typeof REPEAT_FREQS)[number];
 export const MONTH_WEEKS = [1, 2, 3, 4, 5, -1] as const;
 export type MonthWeek = (typeof MONTH_WEEKS)[number];
 
-/** A monthly rule: on a date (the 15th), or on the nth weekday (the 2nd Tuesday). */
-export type MonthlyBy = { by: "date"; day: number } | { by: "weekday"; nth: MonthWeek; weekday: Weekday };
+/** A monthly rule: on a date (the 15th), on the nth weekday (the 2nd Tuesday), or on the month's last day. */
+export type MonthlyBy =
+  { by: "date"; day: number } | { by: "weekday"; nth: MonthWeek; weekday: Weekday } | { by: "lastDay" };
 
 /** When a series ends: never, on a local date (inclusive), or after a number of visits. */
 export type RepeatEnd = { type: "never" } | { type: "on"; until: string } | { type: "after"; count: number };
@@ -31,7 +32,7 @@ export type RepeatRule = {
   interval: number;
   /** Weekly: the days, at least one (in `WEEKDAYS` order). Empty otherwise. */
   weekdays: Weekday[];
-  /** Monthly: on a date or an nth weekday. Null otherwise. */
+  /** Monthly: on a date, an nth weekday or the last day. Null otherwise. */
   monthly: MonthlyBy | null;
   end: RepeatEnd;
 };
@@ -69,6 +70,7 @@ export const ruleText = (rule: RepeatRule) => {
   const parts = [`FREQ=${rule.freq.toUpperCase()}`, `INTERVAL=${rule.interval}`];
   if (rule.freq === "weekly") parts.push(`BYDAY=${sortedDays(rule.weekdays).join(",")}`);
   if (rule.freq === "monthly" && rule.monthly?.by === "date") parts.push(`BYMONTHDAY=${rule.monthly.day}`);
+  if (rule.freq === "monthly" && rule.monthly?.by === "lastDay") parts.push("BYMONTHDAY=-1");
   if (rule.freq === "monthly" && rule.monthly?.by === "weekday")
     parts.push(`BYDAY=${rule.monthly.nth}${rule.monthly.weekday}`);
   if (rule.end.type === "after") parts.push(`COUNT=${rule.end.count}`);
@@ -88,8 +90,8 @@ const intIn = (value: string | undefined, min: number, max: number) => {
 /**
  * RRULE text → the structured rule, or why it isn't one Caretook writes:
  * FREQ DAILY, WEEKLY or MONTHLY; INTERVAL; BYDAY (weekly: plain days;
- * monthly: one day with an ordinal); BYMONTHDAY (monthly); COUNT or UNTIL
- * (a date), never both. Anything else is refused.
+ * monthly: one day with an ordinal); BYMONTHDAY (monthly: 1 to 31, or -1 for
+ * the last day); COUNT or UNTIL (a date), never both. Anything else is refused.
  */
 export const parseRule = (
   text: string,
@@ -147,9 +149,11 @@ export const parseRule = (
     };
   }
 
-  // Monthly: a date, or one weekday with its week.
+  // Monthly: a date, the last day, or one weekday with its week.
   if ((byDay === undefined) === (byMonthDay === undefined))
     return fail("Choose a date or a weekday in the month");
+  if (byMonthDay === "-1")
+    return { ok: true, rule: { ...base, freq: "monthly", weekdays: [], monthly: { by: "lastDay" } } };
   if (byMonthDay !== undefined) {
     const day = intIn(byMonthDay, 1, 31);
     if (day === null) return fail("Choose a date from 1 to 31");
@@ -225,11 +229,13 @@ export const repeatPattern = (rule: RepeatRule) => {
     return rule.interval === 1 ? `Every ${days}` : `Every ${rule.interval} weeks on ${days}`;
   }
   const on =
-    rule.monthly?.by === "date"
-      ? `the ${ordinal(rule.monthly.day)}`
-      : rule.monthly
-        ? `the ${WEEK_WORDS[rule.monthly.nth]} ${DAY_NAMES[rule.monthly.weekday].long}`
-        : "";
+    rule.monthly?.by === "lastDay"
+      ? "the last day"
+      : rule.monthly?.by === "date"
+        ? `the ${ordinal(rule.monthly.day)}`
+        : rule.monthly
+          ? `the ${WEEK_WORDS[rule.monthly.nth]} ${DAY_NAMES[rule.monthly.weekday].long}`
+          : "";
   return `${every(rule.interval, "month", "Monthly")} on ${on}`;
 };
 

@@ -4,7 +4,7 @@ import { DETAILS_CONSENT_TEXT } from "@caretook/data/schema";
 import { SettingsCard } from "~/components/settings";
 import { ToggleField } from "~/components/ui";
 import { CalendarSaveLine } from "./CalendarSaveLine";
-import { detailsCardState, detailsExplained } from "./calendarPage";
+import { detailsCardState, detailsExplained, detailsStaleNote } from "./calendarPage";
 import { useCalendarSave } from "./useCalendarSave";
 
 const agreedOn = (iso: string) =>
@@ -47,6 +47,11 @@ export function DetailsCard({
           {state.note && (
             <p className="text-sm" data-details-forbidden="">
               {state.note}
+            </p>
+          )}
+          {state.stale && settings?.detailsConsentAt && (
+            <p className="text-sm" data-details-stale="">
+              {detailsStaleNote(agreedOn(settings.detailsConsentAt))}
             </p>
           )}
           {state.on && settings?.detailsConsentAt && (

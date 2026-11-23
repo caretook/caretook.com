@@ -55,6 +55,33 @@ describe("nextDueDay", () => {
     expect(nextDueDay(lastFriday, "2026-11-27", "2026-12-25", "2026-12-26")).toBe("2027-01-29");
   });
 
+  it("monthly on the last day: each next day is its month's last, through a leap February", () => {
+    const rule = "FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1";
+    const next = (due: string) => nextDueDay(rule, "2028-01-31", due, due);
+    expect(next("2028-01-31")).toBe("2028-02-29");
+    expect(next("2028-02-29")).toBe("2028-03-31");
+    expect(next("2028-03-31")).toBe("2028-04-30");
+    expect(next("2028-04-30")).toBe("2028-05-31");
+    expect(nextDueDay(rule, "2027-01-31", "2027-01-31", "2027-01-31")).toBe("2027-02-28");
+  });
+
+  it("the last day every 2 months, with a count and with an end date", () => {
+    const everyTwo = "FREQ=MONTHLY;INTERVAL=2;BYMONTHDAY=-1";
+    expect(nextDueDay(everyTwo, "2028-01-31", "2028-01-31", "2028-01-31")).toBe("2028-03-31");
+    const twice = "FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1;COUNT=2";
+    expect(nextDueDay(twice, "2028-01-31", "2028-01-31", "2028-01-31")).toBe("2028-02-29");
+    expect(nextDueDay(twice, "2028-01-31", "2028-02-29", "2028-02-29")).toBeNull();
+    const until = "FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1;UNTIL=20280229";
+    expect(nextDueDay(until, "2028-01-31", "2028-01-31", "2028-01-31")).toBe("2028-02-29");
+    expect(nextDueDay(until, "2028-01-31", "2028-02-29", "2028-02-29")).toBeNull();
+  });
+
+  it("on the 31st still skips shorter months", () => {
+    const rule = "FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=31";
+    expect(nextDueDay(rule, "2028-01-31", "2028-01-31", "2028-01-31")).toBe("2028-03-31");
+    expect(nextDueDay(rule, "2028-01-31", "2028-03-31", "2028-03-31")).toBe("2028-05-31");
+  });
+
   it("daily, every N days", () => {
     expect(nextDueDay("FREQ=DAILY;INTERVAL=1", "2026-11-16", "2026-11-18", "2026-11-18")).toBe("2026-11-19");
     expect(nextDueDay("FREQ=DAILY;INTERVAL=3", "2026-11-16", "2026-11-16", "2026-11-17")).toBe("2026-11-19");

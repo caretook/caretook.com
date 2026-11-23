@@ -79,3 +79,9 @@ export { IconChip } from "./IconChip";
 export type { IconChipLook, IconChipSize } from "./IconChip";
 // fixes-ui (slice 13): the hour-first time picker.
 export { TimeSelect } from "./TimeSelect";
+// ui-kit-5 (slice 1): the count on a filter button.
+export { COUNT_BADGE } from "./styles";
+// ui-kit-5 (slice 2): radios that look like buttons.
+export { CHOICE_BUTTON, CHOICE_TILE } from "./styles";
+// ui-kit-5 (slice 7): a navigation bar's link.
+export { navLinkClass } from "./styles";

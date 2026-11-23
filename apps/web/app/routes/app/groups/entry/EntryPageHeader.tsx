@@ -12,7 +12,7 @@ import {
   useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
-import { ConfirmDialog, ViaTag } from "~/components/ui";
+import { ConfirmDialog, Message, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { canRemind } from "~/lib/calendars/remindMe";
 import { canReschedule } from "~/lib/appointments/eventReschedule";
@@ -222,11 +222,7 @@ export function EntryPageHeader({
         onChoose={live.chooseScope}
         onClose={() => live.chooseScope(null)}
       />
-      {scope.error && (
-        <p role="alert" className="text-error text-sm">
-          {scope.error}
-        </p>
-      )}
+      {scope.error && <Message tone="error">{scope.error}</Message>}
     </>
   );
 }

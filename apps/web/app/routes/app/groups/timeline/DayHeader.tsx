@@ -4,7 +4,7 @@ import type { TimelinePeriods } from "./timelinePeriods";
 import { periodAt, periodDay } from "@caretook/data/schema";
 import { ArrowRightLeft } from "lucide-react";
 import { Link } from "react-router";
-import { Button } from "~/components/ui";
+import { Button, ICON, ICON_LG } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { localTimeZone } from "~/lib/core/format";
 import { useGroup } from "~/lib/app-shell/group";
@@ -111,10 +111,10 @@ function DayPeriod({
   const text = currentLineText(period, { day: periodDay(span.startsAt, at, timeZone) });
   return (
     <p
-      className={`text-base-content/70 flex min-w-0 items-center gap-1.5 font-normal ${easy ? "text-base" : "text-sm"}`}
+      className={`text-muted flex min-w-0 items-center gap-1.5 font-normal ${easy ? "text-base" : "text-sm"}`}
       data-period-line={period.id}
     >
-      <Icon className={easy ? "size-5 shrink-0" : "size-4 shrink-0"} aria-hidden="true" />
+      <Icon className={`${easy ? ICON_LG : ICON} shrink-0`} aria-hidden="true" />
       <Link
         to={appUrls.period(groupId, period.id)}
         className="link-hover min-w-0 break-words"

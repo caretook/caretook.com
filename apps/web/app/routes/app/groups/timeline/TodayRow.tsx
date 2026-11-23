@@ -5,6 +5,7 @@ import type { TodayStatus } from "./todayStatus";
 import { BellRing, ChevronRight, OctagonAlert, TriangleAlert } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router";
+import { ICON, ICON_SM, Skeleton } from "~/components/ui";
 import { STALE } from "./layout";
 
 /**
@@ -15,24 +16,23 @@ export const STATUS_LOOK: Record<
   Exclude<TodayStatus, "neutral">,
   { row: string; icon: string; Icon: LucideIcon; label: string }
 > = {
-  error: { row: "bg-error/10", icon: "text-error", Icon: OctagonAlert, label: "Urgent" },
-  warning: { row: "bg-warning/10", icon: "text-warning", Icon: TriangleAlert, label: "Needs attention" },
-  info: { row: "bg-info/10", icon: "text-info", Icon: BellRing, label: "Coming up soon" },
+  error: { row: "bg-error/10", icon: "text-error-ink", Icon: OctagonAlert, label: "Urgent" },
+  warning: { row: "bg-warning/10", icon: "text-warning-ink", Icon: TriangleAlert, label: "Needs attention" },
+  info: { row: "bg-info/10", icon: "text-info-ink", Icon: BellRing, label: "Coming up soon" },
 };
 
 /** The card's rows are this tall at least, and so is a row's skeleton (nothing moves when it answers). */
 const ROW_HEIGHT = "min-h-9";
 
 /** The row's end, See all or Show all: the same quiet link look. */
-const END_LOOK =
-  "link-hover text-base-content/70 inline-flex shrink-0 items-center text-xs whitespace-nowrap";
+const END_LOOK = "link-hover text-muted inline-flex shrink-0 items-center text-xs whitespace-nowrap";
 
 /** A row's place while nothing is known yet (a first visit this session). */
 export function TodayRowSkeleton({ row }: { row: string }) {
   return (
     <li aria-hidden="true" data-today-skeleton={row}>
       <div className={`${ROW_HEIGHT} flex items-center px-3`}>
-        <span className="skeleton h-4 w-2/3" />
+        <Skeleton lines={1} className="w-2/3" />
       </div>
     </li>
   );
@@ -52,7 +52,7 @@ export function TodayRow({
   row,
   status,
   Icon,
-  iconClass = "text-base-content/70",
+  iconClass = "text-muted",
   action,
   below,
   stale = false,
@@ -117,7 +117,7 @@ export function TodayRow({
     >
       <div className={`${ROW_HEIGHT} flex items-center gap-2 px-3 text-sm`}>
         <Shown
-          className={`size-4 shrink-0 ${look?.icon ?? iconClass}`}
+          className={`${ICON} shrink-0 ${look?.icon ?? iconClass}`}
           aria-hidden="true"
           data-status-icon={look ? status : undefined}
         />
@@ -151,7 +151,7 @@ export function TodayRow({
         ) : (
           <Link to={end.seeAll} className={END_LOOK} aria-label={end.seeAllLabel} data-see-all>
             See all
-            <ChevronRight className="size-3.5" aria-hidden="true" />
+            <ChevronRight className={ICON_SM} aria-hidden="true" />
           </Link>
         )}
       </div>

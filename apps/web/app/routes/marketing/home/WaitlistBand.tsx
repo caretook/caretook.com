@@ -5,7 +5,7 @@ import { formString } from "~/lib/core/form";
 import { rpc } from "~/lib/core/rpc";
 import { waitlistSource } from "../sections/forms";
 import { PublicFormFrame, SelectField, SubmitButton, TextField, usePublicForm } from "../sections/PublicForm";
-import { CtaLink } from "../sections/Sections";
+import { CTA_ON_ACCENT, CtaLink } from "../sections/Sections";
 
 const CARING_FOR_OPTIONS = CARING_FOR.map((value) => ({ value, label: CARING_FOR_LABELS[value] }));
 
@@ -40,7 +40,7 @@ export function WaitlistBand({ content }: { content: WaitlistBandContent }) {
           <p className="mt-3 leading-relaxed">{content.body}</p>
           <div className="mt-6 flex flex-wrap gap-3">
             {content.actions.map((cta) => (
-              <CtaLink key={cta.href} cta={cta} className="btn btn-lg bg-base-100 text-base-content" />
+              <CtaLink key={cta.href} cta={cta} className={CTA_ON_ACCENT} />
             ))}
           </div>
         </div>

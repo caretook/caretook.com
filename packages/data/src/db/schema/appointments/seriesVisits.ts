@@ -71,6 +71,7 @@ export const rruleOptions = (rule: RepeatRule, startsOn: string): Partial<Option
   dtstart: floating(startsOn),
   ...(rule.freq === "weekly" && { byweekday: rule.weekdays.map((d) => RRULE_DAYS[d]) }),
   ...(rule.monthly?.by === "date" && { bymonthday: [rule.monthly.day] }),
+  ...(rule.monthly?.by === "lastDay" && { bymonthday: [-1] }),
   ...(rule.monthly?.by === "weekday" && {
     byweekday: [RRULE_DAYS[rule.monthly.weekday].nth(rule.monthly.nth)],
   }),

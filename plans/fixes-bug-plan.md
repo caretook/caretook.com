@@ -14,7 +14,13 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 5 (slices 28–31, B-628, B-632, B-634, B-635, all on opus) landed in dev through PR #102 as a04034ec** (2026-11-23): `integration` CI green on de1b975c (run 45140076884), quick check on 039ea84f, Codex clean on 039ea84f; `browser --changed` needs none. To-test: `to-test/2026-11-23-0359-fixes-bug.md`. Docs folded (`assistant.md`, exactly at its 10 KB budget: trim when adding). Slice worktrees removed. Known limit left as is: `finished 2nd at the race` reads as a day.
 
-**Wave 6 (slices 32–34, B-644, B-643, B-641, all on opus), planned 2026-11-23 after a sync (already up to date with dev):** chained, one at a time, because they share the quick-entry files. **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (`routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
+**Wave 6 (slices 32–34, B-644, B-643, B-641, all on opus) landed in dev through PR #105 as a235304c** (2026-11-23): `integration` CI green on d7dab0c5 (run 45147868591), quick check and Codex clean on d7dab0c5; `browser --changed` needs none. To-test: `to-test/2026-11-23-0442-fixes-bug.md`. Docs folded (`assistant.md`, at its 10 KB budget: trim when adding). Slice worktrees removed.
+
+**Wave 7 (slices 35–37, B-648, B-647, B-646, all on opus) landed in dev through PR #108 as bdff2e8** (2026-11-23): `integration` CI on 943a1b2c was `flake` (run 45155090185; only `scripts/loops/lease.test.mjs`, not this branch's, filed as B-654), quick check and Codex clean on 943a1b2c; `browser --changed` needs none. To-test: `to-test/2026-11-23-0529-fixes-bug.md`. Docs folded (`assistant.md`, at its 10 KB budget: trim when adding). Slice worktrees removed.
+
+**Wave 8 (slices 38–39, B-651, B-652, both on opus) landed in dev through PR #109 as c1c5b0bf** (2026-11-23): `integration` CI on 53ab862c was `flake` (run 45159391173; only `scripts/loops/lease.test.mjs`, not this branch's, noted on B-654), quick check on 53ab862c, Codex clean on b29e187; `browser --changed` needs none. To-test: `to-test/2026-11-23-0558-fixes-bug.md`. Docs folded (`assistant.md`, exactly at its 10 KB budget: trim when adding). Slice worktrees removed.
+
+**Wave 9 (slice 40, B-655, on opus) merged as 487cb235**; quick check and `integration` CI green on 3e2be7fa (run 45163213159); `browser --changed` needs none; slice worktree removed. No doc fold: `assistant.md` already states the rule. Next: PR, Codex, land. **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (ui-kit-5 holds `routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -51,9 +57,15 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 29    | B-632 | landed                                     | 82eebf78 |
 | 30    | B-634 | landed                                     | c2c53eee |
 | 31    | B-635 | landed                                     | b1cf109f |
-| 32    | B-644 | merged (keeps worktree until wave green)   | a4252709 |
-| 33    | B-643 | merged (keeps worktree until wave green)   | ce9c55a2 |
-| 34    | B-641 | merged (keeps worktree until wave green)   | 501a58bf |
+| 32    | B-644 | landed                                     | a4252709 |
+| 33    | B-643 | landed                                     | ce9c55a2 |
+| 34    | B-641 | landed                                     | 501a58bf |
+| 35    | B-648 | landed                                     | 11820cae |
+| 36    | B-647 | landed                                     | 3e6adea0 |
+| 37    | B-646 | landed                                     | ce4d22b1 |
+| 38    | B-651 | landed                                     | a447334a |
+| 39    | B-652 | landed                                     | 7be34f48 |
+| 40    | B-655 | merged                                     | 487cb235 |
 
 ## Wave 1
 
@@ -390,3 +402,79 @@ Blocked by slice 33 (same files). `gave lorazepam 1/2 mg` at a 0.5 mg strength m
 
 - If it's wrong: the line records the usual dose, with no date. `gave lorazepam 1/2` keeps working as it does now.
 - Unit test: that line at a 0.5 mg strength, kept whichever way the confirmation goes.
+
+## Wave 7
+
+As before: the item's backlog notes (`pnpm backlog show B-<n>`) carry the file references, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. Running topics hold `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/assistantActionService.ts`, `apps/web/app/components/quick-entry/` and `apps/web/app/routes/app/groups/timeline/`: no slice here edits them. All three slices share the quick-entry files in `packages/data/src/db/schema/assistant/`, so they run one after another.
+
+### Slice 35: a bare fraction at the strength doesn't overstate the dose (B-648)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/medications.md · Tests: unit
+
+`gave lorazepam 1/2` at a 0.5 mg strength takes the usual dose whatever it is, so a usual `2 tablets` records 2 tablets. Slice 34 fixed the same case for `1/2 mg`; use its rule.
+
+- With a usual `2 tablets`, the line keeps the typed amount and has no date.
+- With a usual dose of one unit or the same measure (`1 tablet`, `0.5 mg`), the line still records the usual dose.
+- Unit tests: one row for each line above.
+
+### Slice 36: a request with a later day is a todo with its part of day (B-647)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/todos.md · Tests: unit
+
+Blocked by slice 35 (same files). The part of day is read only after `tomorrow`, and a bare weekday reads back.
+
+- `pick up walker next friday morning` is a todo due that Friday with the morning's due time, and `morning` leaves the title.
+- `check bp 120/80 friday` leads with a todo due the coming Friday.
+- A report stays as it is: `bp 120/80 friday` still reads back to the last Friday.
+- `call dr lee tomorrow morning` stays an event first at 08:00; pin it.
+- Unit tests: one row for each line above.
+
+### Slice 37: a counted ordinal with no place stays undated (B-646)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md · Tests: unit
+
+Blocked by slice 36 (same files). An ordinal at the line's end returns early as a day, and with no verb before the article nothing marks it as a count.
+
+- `gave a 2nd` and `a 2nd at the clinic` get no day, so they log now.
+- `dr lee the 2nd` and `dr lee the 2nd at the clinic` stay a day.
+- Unit tests: one row for each line above.
+
+## Wave 8
+
+As before: the item's backlog notes (`pnpm backlog show B-<n>`) carry the file references, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. Running topics hold `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/assistantActionService.ts`, `apps/web/app/components/quick-entry/` and `apps/web/app/routes/app/groups/timeline/`: no slice here edits them. Both slices share the quick-entry files in `packages/data/src/db/schema/assistant/`, so they run one after the other.
+
+### Slice 38: a decimal at the strength doesn't overstate the dose (B-651)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/medications.md · Tests: unit
+
+`gave lorazepam 0.5` at a 0.5 mg strength takes the usual dose whatever it is, so a usual `2 tablets` records 2 tablets. Slice 35 fixed the same case for a bare fraction (`amountAtStrength` in `quickEntry.ts`); use its rule.
+
+- With a usual `2 tablets`, the line keeps the typed amount and has no date.
+- With a usual dose of one unit or the same measure (`1 tablet`, `0.5 mg`), the line still records the usual dose.
+- Unit tests: one row for each line above.
+
+### Slice 39: a counted ordinal before a clock time stays undated (B-652)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md · Tests: unit
+
+Blocked by slice 38 (same files). In `ordinalIsADay` (`quickEntryTime.ts`), a clock time after the ordinal marks a day before the counted-word check runs.
+
+- `gave the 2nd at 2pm` gets no day of the month.
+- `a 2nd at 2pm` stays undated.
+- `dr lee the 2nd at 2pm` stays the 2nd at 2pm.
+- Unit tests: one row for each line above.
+
+## Wave 9
+
+As before: the item's backlog notes (`pnpm backlog show B-<n>`) carry the file references, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. Running topics hold `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/assistantActionService.ts`, `apps/web/app/components/quick-entry/` and `apps/web/app/routes/app/groups/timeline/`: no slice here edits them.
+
+### Slice 40: a counted ordinal before a part of day stays undated (B-655)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md · Tests: unit
+
+In `ordinalIsADay` (`quickEntryTime.ts`), the part-of-day branches may run without the counted-word check that slice 39 added for a clock time. This was read from the code and not run.
+
+- `gave the 2nd at night` and `gave the 2nd in the morning` get no day of the month.
+- `a 2nd in the morning` stays undated.
+- `dr lee the 2nd in the morning` and `dr lee the 2nd at night` stay on the 2nd.
+- Unit tests: one row for each line above.

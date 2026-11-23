@@ -2,7 +2,7 @@ import type { ActionPreview } from "~/lib/assistant/quickEntryPreview";
 import type { QuickEntryCard as Card } from "./quickEntryCards";
 
 import { ListTodo, X } from "lucide-react";
-import { ChipGroup, IconButton, IconChip } from "~/components/ui";
+import { Badge, Button, ChipGroup, IconButton, IconChip } from "~/components/ui";
 import { KIND_META, TODO_CHIP } from "~/lib/timeline/entryDisplay";
 
 /**
@@ -43,21 +43,19 @@ export function QuickEntryCard({
         <IconChip icon={Icon} accent={accent} look={look} shape="rounded" />
         <div className="min-w-0 flex-1">
           <p id={headingId} className="text-sm">
-            <span className="badge badge-neutral badge-sm font-semibold" data-quick-kind>
-              {label}
-            </span>
-            <span className="text-base-content/70"> · {preview.when}</span>
+            <Badge data-quick-kind="">{label}</Badge>
+            <span className="text-muted"> · {preview.when}</span>
           </p>
           <p className="font-medium break-words" data-quick-title>
             {preview.title}
           </p>
           {preview.detail && (
-            <p className="text-base-content/80 text-sm break-words" data-quick-detail>
+            <p className="text-muted text-sm break-words" data-quick-detail>
               {preview.detail}
             </p>
           )}
           {draftLine && (
-            <p className="text-base-content/70 text-sm break-words" data-quick-opens-draft>
+            <p className="text-muted text-sm break-words" data-quick-opens-draft>
               {draftLine}
             </p>
           )}
@@ -66,7 +64,7 @@ export function QuickEntryCard({
       </div>
 
       {(card.blocking.length > 0 || error) && (
-        <ul className="text-error mt-2 space-y-0.5 text-sm" data-quick-blocking>
+        <ul className="text-error-ink mt-2 space-y-0.5 text-sm" data-quick-blocking>
           {[...card.blocking, ...(error ? [error] : [])].map((m) => (
             <li key={m}>{m}</li>
           ))}
@@ -91,14 +89,15 @@ export function QuickEntryCard({
             }))}
           />
         )}
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm ms-auto"
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ms-auto"
           onClick={onEdit}
           aria-label={`Edit "${card.text}"`}
         >
           Edit
-        </button>
+        </Button>
       </div>
     </li>
   );

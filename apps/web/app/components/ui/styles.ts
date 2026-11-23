@@ -38,3 +38,12 @@ export const LINK = "link text-primary-ink";
 export const ICON_SM = "size-3.5";
 export const ICON = "size-4";
 export const ICON_LG = "size-5";
+// ui-kit-5 (slice 1): the count on a filter button, at its corner.
+export const COUNT_BADGE = "badge badge-neutral badge-xs absolute -top-1 -right-1 min-w-4 px-1 font-semibold";
+// ui-kit-5 (slice 2): a native radio that looks like a button, joined in a row (`ChoiceGroup`, the
+// entry kind picker), and a radio's label as a tall outlined tile (the feelings scale).
+export const CHOICE_BUTTON = `join-item ${buttonClass({ size: "sm" })}`;
+export const CHOICE_TILE = `${buttonClass()} btn-outline has-checked:btn-primary has-focus-visible:outline-2 has-focus-visible:outline-offset-2`;
+// ui-kit-5 (slice 7): a link in a navigation bar, which is not a `Button` (the header's sections).
+export const navLinkClass = (current: boolean) =>
+  `${buttonClass({ variant: "ghost", size: "sm" })} gap-1.5 ${current ? "btn-active" : ""}`.trim();

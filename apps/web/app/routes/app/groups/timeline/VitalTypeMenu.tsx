@@ -1,5 +1,6 @@
 import type { VitalType } from "@caretook/data/schema";
 import type { ReactNode } from "react";
+import type { ButtonSize, ButtonVariant } from "~/components/ui";
 
 import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { Menu } from "~/components/ui";
@@ -11,12 +12,17 @@ import { Menu } from "~/components/ui";
  */
 export function VitalTypeMenu({
   children,
+  variant,
+  size,
   className,
   exclude = [],
   onSelect,
 }: {
   children: ReactNode;
-  className: string;
+  variant: ButtonVariant;
+  size: ButtonSize;
+  /** Outer classes for the trigger. */
+  className?: string;
   exclude?: VitalType[];
   onSelect: (type: VitalType) => void;
 }) {
@@ -24,6 +30,8 @@ export function VitalTypeMenu({
   return (
     <Menu
       menuLabel="Vital type"
+      variant={variant}
+      size={size}
       className={className}
       isDisabled={types.length === 0}
       placement="bottom start"

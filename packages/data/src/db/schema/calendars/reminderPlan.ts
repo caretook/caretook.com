@@ -86,6 +86,8 @@ export type ReminderSend = {
   lead: ReminderLead;
   /** When it's due, ISO. */
   sendAt: string;
+  /** When it's no use any more, ISO: it must not be delivered from then on. */
+  expiresAt: string;
   /** The member's zone, for the times in the message. */
   timeZone: string;
 };
@@ -176,6 +178,7 @@ export const planReminders = ({
         item,
         lead: effective,
         sendAt: new Date(at).toISOString(),
+        expiresAt: new Date(tooLateAt(item)).toISOString(),
         timeZone: member.timeZone,
       });
     }

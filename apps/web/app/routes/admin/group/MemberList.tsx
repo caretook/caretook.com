@@ -2,7 +2,7 @@ import type { MemberAction } from "../groupDisplay";
 
 import { useState } from "react";
 import { Link, useNavigation, useSubmit } from "react-router";
-import { ConfirmDialog, Field } from "~/components/ui";
+import { Badge, Button, ConfirmDialog, Field, LINK, List, ListRow } from "~/components/ui";
 import { adminUrls } from "../adminUrls";
 import { changeRoleOptions, dayText, memberActionText, personLabel, sortGroupMembers } from "../groupDisplay";
 import { groupRoleLabel } from "@caretook/data/permissions";
@@ -37,26 +37,26 @@ export function MemberList({
   const busy = useNavigation().state !== "idle";
   return (
     <>
-      <ul className="divide-base-300 divide-y" data-admin-members="">
+      <List data-admin-members="">
         {sortGroupMembers(members).map((m) => (
-          <li
+          <ListRow
             key={m.userId}
-            className="flex flex-wrap items-start justify-between gap-2 py-3 text-sm"
+            className="flex flex-wrap items-start justify-between gap-2 text-sm"
             data-admin-member={m.email}
             data-role={m.role}
           >
             <div className="min-w-0 space-y-0.5">
-              <Link to={adminUrls.user(m.userId)} className="link font-medium break-all">
+              <Link to={adminUrls.user(m.userId)} className={`${LINK} font-medium break-all`}>
                 {personLabel(m)}
               </Link>
               <p>
-                <span className="badge badge-sm badge-ghost">{groupRoleLabel(m.role)}</span>
+                <Badge>{groupRoleLabel(m.role)}</Badge>
               </p>
-              <p className="text-base-content/70 text-xs">
+              <p className="text-muted text-xs">
                 {m.invitedBy ? (
                   <>
                     Invited by{" "}
-                    <Link to={adminUrls.user(m.invitedBy.id)} className="link">
+                    <Link to={adminUrls.user(m.invitedBy.id)} className={LINK}>
                       {personLabel(m.invitedBy)}
                     </Link>
                     {" · "}
@@ -68,36 +68,34 @@ export function MemberList({
             {canManage && (
               <div className="flex flex-wrap gap-1">
                 {m.role !== "owner" && (
-                  <button
-                    type="button"
-                    className="btn btn-sm"
+                  <Button
+                    size="sm"
                     disabled={busy}
                     onClick={() => setPending({ action: "promoteOwner", member: m })}
                   >
                     Make owner<span className="sr-only"> {m.email}</span>
-                  </button>
+                  </Button>
                 )}
-                <button
-                  type="button"
-                  className="btn btn-sm"
+                <Button
+                  size="sm"
                   disabled={busy}
                   onClick={() => setPending({ action: "changeRole", member: m })}
                 >
                   Change role<span className="sr-only"> {m.email}</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost text-error"
+                </Button>
+                <Button
+                  size="sm"
+                  variant="dangerQuiet"
                   disabled={busy}
                   onClick={() => setPending({ action: "removeMember", member: m })}
                 >
                   Remove<span className="sr-only"> {m.email}</span>
-                </button>
+                </Button>
               </div>
             )}
-          </li>
+          </ListRow>
         ))}
-      </ul>
+      </List>
       {pending && (
         <MemberActionDialog
           key={`${pending.action}:${pending.member.userId}`}
@@ -146,15 +144,9 @@ function MemberActionDialog({
     >
       <div data-member-dialog={action}>
         {action === "changeRole" && (
-          <Field label="New role">
+          <Field kind="select" label="New role">
             {(control) => (
-              <select
-                {...control}
-                name="role"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="select w-full"
-              >
+              <select {...control} name="role" value={role} onChange={(e) => setRole(e.target.value)}>
                 {options.map((r) => (
                   <option key={r} value={r}>
                     {groupRoleLabel(r)}
@@ -164,7 +156,7 @@ function MemberActionDialog({
             )}
           </Field>
         )}
-        <Field label="Reason" help="Recorded in the audit log.">
+        <Field kind="textarea" label="Reason" help="Recorded in the audit log.">
           {(control) => (
             <textarea
               {...control}
@@ -173,7 +165,6 @@ function MemberActionDialog({
               onChange={(e) => setReason(e.target.value)}
               maxLength={STAFF_REASON_MAX}
               rows={3}
-              className="textarea w-full"
               required
             />
           )}

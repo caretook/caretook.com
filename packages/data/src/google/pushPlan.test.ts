@@ -42,7 +42,7 @@ describe("toGoogleEvent", () => {
       id: googleEventId("entry:e1"),
       summary: "Event for Pat",
       description:
-        "Thu 19 Nov · 9:00–10:00\nOpen in Caretook: https://caretook.example/app/groups/g1/entries/e1",
+        "Thu, Nov 19 · 9:00–10:00 AM PST\nOpen in Caretook: https://caretook.example/app/groups/g1/entries/e1",
       location: null,
       start: { dateTime: "2026-11-19T17:00:00.000Z", timeZone: LA },
       end: { dateTime: "2026-11-19T18:00:00.000Z", timeZone: LA },

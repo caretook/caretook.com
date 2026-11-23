@@ -43,7 +43,7 @@ export function MentionChip({ node }: ReactNodeViewProps) {
           {name}
         </Link>
       ) : (
-        <span className="bg-base-200 text-base-content/50 rounded px-1">{name}</span>
+        <span className="bg-base-200 text-faint rounded px-1">{name}</span>
       )}
     </NodeViewWrapper>
   );

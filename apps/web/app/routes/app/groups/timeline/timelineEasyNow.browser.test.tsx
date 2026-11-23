@@ -184,7 +184,8 @@ describe("the next appointment opens the next five upcoming items", () => {
     // The next appointment: the soonest timed entry.
     expect(toggle().element().textContent).toMatch(/^Next: Call about the walker · .* · \+5 more$/);
     await expect.element(toggle()).toHaveAttribute("aria-expanded", "false");
-    expect(list()?.hidden).toBe(true);
+    expect(list()?.hasAttribute("data-open")).toBe(false);
+    // Nothing mounts (and no query runs) before the first open.
     expect(items()).toHaveLength(0);
 
     await userEvent.click(toggle());
@@ -192,7 +193,8 @@ describe("the next appointment opens the next five upcoming items", () => {
     await expect.element(toggle()).toHaveAttribute("aria-expanded", "true");
     expect(toggle().element().getAttribute("aria-controls")).toBe(list()!.id);
     await waitUntil(() => items().length > 0, "the list");
-    expect(list()?.hidden).toBe(false);
+    expect(list()?.hasAttribute("data-open")).toBe(true);
+    expect(list()?.inert).toBe(false);
     expect(titles()).toEqual([
       "Fax the form",
       "Call about the walker",
@@ -204,15 +206,16 @@ describe("the next appointment opens the next five upcoming items", () => {
     expect(items()[0]?.textContent).toContain("Due today");
     expect(items()[2]?.textContent).toMatch(/^Visit with Dr\. Lark.+\d:\d\d [AP]M$/);
 
-    // A second tap closes it.
+    // A second tap closes it: the list stays mounted, out of the tab order.
     await userEvent.click(toggle());
     await expect.element(toggle()).toHaveAttribute("aria-expanded", "false");
-    expect(list()?.hidden).toBe(true);
-    expect(items()).toHaveLength(0);
+    expect(list()?.hasAttribute("data-open")).toBe(false);
+    expect(list()?.inert).toBe(true);
+    expect(items()).toHaveLength(5);
 
     // Open again: See all goes to the Planner.
     await userEvent.click(toggle());
-    await waitUntil(() => items().length === 5, "the list again");
+    await expect.poll(() => list()?.inert).toBe(false);
     await userEvent.click(page.getByRole("link", { name: "See all" }).last());
     await expect.element(page.getByRole("heading", { name: "Planner page" })).toBeVisible();
     expect(device.location()).toBe(appUrls.planner(TEST_GROUP.id));

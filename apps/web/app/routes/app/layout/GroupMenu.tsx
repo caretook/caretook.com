@@ -76,7 +76,9 @@ export function GroupMenu({ groupId }: { groupId: string }) {
     <Menu
       label={periodLabel ? `${name}, ${periodLabel}: switch care group` : `${name}: switch care group`}
       menuLabel="Care groups"
-      className="btn btn-ghost btn-sm min-w-0 gap-1 px-2 font-semibold"
+      variant="ghost"
+      size="sm"
+      className="min-w-0 gap-1 px-2 font-semibold"
       placement="bottom start"
       width="lg"
       items={[

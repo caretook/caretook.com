@@ -25,6 +25,7 @@ const TONE: Record<MessageTone, { box: string; icon: LucideIcon }> = {
  */
 export function Notice({
   tone = "info",
+  role,
   icon,
   action,
   children,
@@ -32,6 +33,8 @@ export function Notice({
   ...data
 }: {
   tone?: MessageTone;
+  /** The live-region role, when it must differ from the tone's (a warning that blocks a save). */
+  role?: "alert" | "status";
   /** Replaces the tone's icon (decorative: the text says what it is). */
   icon?: LucideIcon;
   action?: NoticeAction;
@@ -45,7 +48,7 @@ export function Notice({
   return (
     <div
       {...data}
-      role={toneRole(tone)}
+      role={role ?? toneRole(tone)}
       className={`alert alert-soft ${TONE[tone].box} items-start text-sm ${className}`.trim()}
     >
       <Icon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
