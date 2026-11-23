@@ -5,6 +5,7 @@ import { todoOrder } from "@caretook/data/schema";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { useGroup } from "~/lib/app-shell/group";
 import { useLiveQuery } from "~/lib/sync";
+import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { useNow } from "~/lib/live-notes/editors.sync";
 import { linkedTodosQuery, toTodos } from "~/lib/todos/todos.sync";
 import { membersQuery } from "~/lib/timeline/timeline.sync";
@@ -21,7 +22,8 @@ const noOffers = () => NO_OFFERS;
  * once a minute; members' names for the assignee ("you" for me). `shown`
  * is whether the list is up: while there are open todos, or while Undo is
  * offered for a tick made here (`ticked`; so ticking the last one still
- * offers it).
+ * offers it). The todos wait for the members' first answer, so an assignee
+ * is never "Former member" just because the names haven't loaded.
  */
 export function useLinkedTodos(link: TodoLink) {
   const group = useGroup();
@@ -29,10 +31,12 @@ export function useLinkedTodos(link: TodoLink) {
   const now = useNow(60_000);
   const query = linkedTodosQuery(group.id, link);
   const rows = useLiveQuery<TodoRow>(query.sql, query.params, NO_TODOS);
-  const todos = useMemo(() => todoOrder(toTodos(rows), now, timeZone), [rows, now, timeZone]);
-
   const mq = membersQuery(group.id);
-  const members = useLiveQuery<MemberRow>(mq.sql, mq.params, NO_MEMBERS);
+  const { rows: members, fresh: membersAnswered } = useLiveRows<MemberRow>(mq.sql, mq.params, NO_MEMBERS);
+  const todos = useMemo(
+    () => (membersAnswered ? todoOrder(toTodos(rows), now, timeZone) : []),
+    [membersAnswered, rows, now, timeZone],
+  );
   const nameOf = useCallback(
     (userId: string) =>
       userId === group.userId ? "you" : (members.find((m) => m.user_id === userId)?.name ?? "Former member"),
