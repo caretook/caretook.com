@@ -4,13 +4,19 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/ui-kit-4` (slice commits) |
-| ----- | ---- | ----------- | ----------------------------------------- |
-| 1     | 1    | not started |                                           |
-| 2     | 2    | not started |                                           |
-| 3     | 2    | not started |                                           |
-| 4     | 2    | not started |                                           |
-| 5     | 3    | not started |                                           |
+| Slice | Wave | State                    | Merge into `prd/ui-kit-4` (slice commits) |
+| ----- | ---- | ------------------------ | ----------------------------------------- |
+| 1     | 1    | merged, torn down (opus) | 6814c3dc (7acd4f33)                       |
+| 2     | 2    | not started              |                                           |
+| 3     | 2    | not started              |                                           |
+| 4     | 2    | not started              |                                           |
+| 5     | 3    | not started              |                                           |
+
+**Landing mode:** run everything through (started by the dispatcher, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`.
+
+**Now:** wave 1 at its gate: slice 1 merged, B-269 ready. Synced; quick check passed on af3dd985 (the wave changes only lint tooling, no app code); no browser checks needed; guard folded into the components and ui-kit docs. Next: PR, Codex, land, rotate. No new backlog items for this topic at the wave 1 boundary; `backlog doctor`'s two findings (B-548, B-549 inbox titles) aren't this topic's.
+
+**For wave 2 (from slice 1):** the guard's lists are in `scripts/eslint/kit-guard.mjs`. The print routes stay on the not-swept list because each holds an on-screen Print button: slices 2 and 4 sweep them. A listed path that no longer exists fails a test, so slice 4's renames must update their lines.
 
 **Start conditions:** `ui-kit-3` is in `dev` (done). Never beside a running `fixes-ui` wave on the same screens (the hot files enforce it). Sync before each wave.
 

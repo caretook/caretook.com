@@ -4,7 +4,7 @@ The `ui/` primitives' contracts; layout, rules and tests are in [components](com
 
 ## What's in it
 
-- **Primitives** (the `ui` index) import nothing from feature folders; **only `ui/` imports `react-aria-components`**.
+- **Primitives** (the `ui` index) import nothing from feature folders; **only `ui/` imports React Aria** (lint).
 - `ui/tooltip/` and `ui/date/` (`DateTimeField`; hour arrows cross AM/PM) have their own indexes, to stay off other pages.
 - **`ui/plain`**, the light entry: everything without React Aria. Light pages (sign-in, the account forms, `/connect`, marketing) import from it, never from `ui` (its chunk carries React Aria); `ui/plain/plain.test.ts` fails on any React Aria import it reaches.
 - **Append-only:** the `ui` and `ui/plain` indexes, `ui/styles.ts` and the gallery registry take new lines at the end only.
