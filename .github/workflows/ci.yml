@@ -385,5 +385,7 @@ jobs:
         with:
           name: verdict
           path: ci-results/verdict.json
+          # A rerun of the failed jobs writes a new verdict over the old one.
+          overwrite: true
           retention-days: 7
           if-no-files-found: error
