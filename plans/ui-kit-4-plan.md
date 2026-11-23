@@ -4,13 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/ui-kit-4` (slice commits) |
-| ----- | ---- | ----------- | ----------------------------------------- |
-| 1     | 1    | not started |                                           |
-| 2     | 2    | not started |                                           |
-| 3     | 2    | not started |                                           |
-| 4     | 2    | not started |                                           |
-| 5     | 3    | not started |                                           |
+| Slice | Wave | State                                                    | Merge into `prd/ui-kit-4` (slice commits) |
+| ----- | ---- | -------------------------------------------------------- | ----------------------------------------- |
+| 1     | 1    | in progress (worktree `ui-kit-4-1`, agent spawned, opus) |                                           |
+| 2     | 2    | not started                                              |                                           |
+| 3     | 2    | not started                                              |                                           |
+| 4     | 2    | not started                                              |                                           |
+| 5     | 3    | not started                                              |                                           |
+
+**Landing mode:** run everything through (started by the dispatcher, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`.
+
+**Now:** wave 1. B-269 claimed. No new backlog items for this topic at the wave 1 boundary; `backlog doctor`'s two findings (B-548, B-549 inbox titles) aren't this topic's.
 
 **Start conditions:** `ui-kit-3` is in `dev` (done). Never beside a running `fixes-ui` wave on the same screens (the hot files enforce it). Sync before each wave.
 
