@@ -26,7 +26,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Waiting (2026-11-23, resumed after an interruption; git matched this Status).** Synced with dev, inbox empty, no slice in flight, no wave 10 yet. All four waiting items are still held: B-615 (`assistantActionService.ts`) and B-616 (`timelineEntryService.ts`) by dose-accuracy, on its wave 4; B-620 (`timeline/DayHeader.tsx`) and B-631 (`timeline/pass/PassLogForm.tsx`) by ui-kit-5, on its wave 3. Both orchestrators were asked to message this session when they land, and a background watch exits when either row leaves `running`. **Next:** when one clears, `pnpm prd sync`, ingest, and write wave 10 from the items it freed. **Order from dose-accuracy's orchestrator:** B-615 can go once its wave 4 lands; B-616 waits for its wave 5 (slice 6, B-614 and B-627), which changes the same dose upsert in `timelineEntryService.ts`. It will message at both landings; its row stays `running` until then, so the watch won't fire for wave 4.
 
-**Wave 10 (slices 41–42, B-620, B-631, both on opus):** ui-kit-5's last wave landed as a5ec12da, which frees the timeline files; synced as 7f2e8685. B-615 and B-616 stay held as above.
+**Wave 10 (slices 41–42, B-620, B-631, both on opus):** ui-kit-5's last wave landed as a5ec12da, which frees the timeline files; synced as 7f2e8685. B-615 and B-616 stay held as above. Slice 41 merged (slice check passed on c957fd24); its worktree stays until the wave is green. At landing, fold into `docs/domain/care-periods.md`: a day header counts to its own viewer-zone date. New item B-656 (a period starting just after midnight in the recipient's zone shows day 1 on two headers for a viewer behind that zone) waits for a later wave.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -72,7 +72,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 38    | B-651 | landed                                     | a447334a |
 | 39    | B-652 | landed                                     | 7be34f48 |
 | 40    | B-655 | landed                                     | 487cb235 |
-| 41    | B-620 | started (opus)                             |          |
+| 41    | B-620 | merged (opus; care-periods.md at landing)  | ab9dcfae |
 | 42    | B-631 | started (opus)                             |          |
 
 ## Wave 1
