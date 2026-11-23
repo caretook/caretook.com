@@ -20,7 +20,15 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 8 (slices 38–39, B-651, B-652, both on opus) landed in dev through PR #109 as c1c5b0bf** (2026-11-23): `integration` CI on 53ab862c was `flake` (run 45159391173; only `scripts/loops/lease.test.mjs`, not this branch's, noted on B-654), quick check on 53ab862c, Codex clean on b29e187; `browser --changed` needs none. To-test: `to-test/2026-11-23-0558-fixes-bug.md`. Docs folded (`assistant.md`, exactly at its 10 KB budget: trim when adding). Slice worktrees removed.
 
-**Wave 9 (slice 40, B-655, on opus) merged as 487cb235**; quick check and `integration` CI green on 3e2be7fa (run 45163213159); `browser --changed` needs none; slice worktree removed. No doc fold: `assistant.md` already states the rule. Next: PR, Codex, land. **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (ui-kit-5 holds `routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
+**Wave 9 (slice 40, B-655, on opus) landed in dev through PR #111 as ce672f1a** (2026-11-23): `integration` CI green on 221fc48b (run 45165557565; `lease.test.mjs` quarantined and passed), quick check and Codex clean on 221fc48; `browser --changed` needs none. To-test: `to-test/2026-11-23-0633-fixes-bug.md`. No doc fold: `assistant.md` already states the rule. Slice worktree removed.
+
+**Hand-over (after the wave 9 landing; no slice in flight).** **Next wave:** `pnpm prd sync`, ingest, then plan any new triaged item. **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (ui-kit-5 holds `routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
+
+**Waiting (2026-11-23, resumed after an interruption; git matched this Status).** Synced with dev, inbox empty, no slice in flight, no wave 10 yet. All four waiting items are still held: B-615 (`assistantActionService.ts`) and B-616 (`timelineEntryService.ts`) by dose-accuracy, on its wave 4; B-620 (`timeline/DayHeader.tsx`) and B-631 (`timeline/pass/PassLogForm.tsx`) by ui-kit-5, on its wave 3. Both orchestrators were asked to message this session when they land, and a background watch exits when either row leaves `running`. **Next:** when one clears, `pnpm prd sync`, ingest, and write wave 10 from the items it freed. **Order from dose-accuracy's orchestrator:** B-615 can go once its wave 4 lands; B-616 waits for its wave 5 (slice 6, B-614 and B-627), which changes the same dose upsert in `timelineEntryService.ts`. It will message at both landings; its row stays `running` until then, so the watch won't fire for wave 4.
+
+**Wave 10 (slices 41–42, B-620, B-631, both on opus):** ui-kit-5's last wave landed as a5ec12da, which frees the timeline files; synced as 7f2e8685. B-615 and B-616 stay held as above. Slice 41 merged (slice check passed on c957fd24); its worktree stays until the wave is green. At landing, fold into `docs/domain/care-periods.md`: a day header counts to its own viewer-zone date. New item B-656 (a period starting just after midnight in the recipient's zone shows day 1 on two headers for a viewer behind that zone) waits for a later wave. Slice 42 merged (slice check passed on 09f40ff6); its worktree stays until the wave is green. New item B-657 (after a successful Add a medication, Back loses unsaved dose edits without asking) waits for a later wave. Synced as 7ab994fc (brings migrations 0039 and 0040; database reset): quick check passed, `components` CI green (run 45221463090). Slice worktrees removed; `care-periods.md` folded. `browser --changed --base dev` (roundtrip, ui) passed on c617e7f5 (don't rerun). Synced again as c3d6f826 (dose-accuracy wave 4, no migration): quick check passed, `components` CI green (run 45227226270). **PR #124 is open. Rotated here for context (no slice in flight). Next:** `pnpm prd review fixes-bug --wait` in the background, triage, then `pnpm prd land fixes-bug --tier components -m "fix(fixes-bug): day headers never repeat a care period day, Back asks after a refused action (B-620, B-631)"`. No Status commit between the review and the landing: it moves the PR's head. Land's report names Codex's verdict; the report text covers B-620, B-631 and the follow-ups B-656, B-657. The tier command reads files from stdin: `git diff --name-only dev...HEAD | node scripts/loops/check-plan.mjs --propose --repo "$PWD" --base dev --head HEAD`.
+
+**After wave 10:** B-616 moved to dose-accuracy slice 6 (recorded in the backlog on the user's word): dropped from this plan. **B-615** goes in wave 11: dose-accuracy's wave 4 landed as 30b6685a, and its orchestrator cleared `assistantActionService.ts` and `timelineEntryService.ts` for it, but asks that no one touch the `timelineEntryService` upsert until its wave 5 lands (it will message). Also waiting for wave 11: B-656 and B-657.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -65,7 +73,9 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 37    | B-646 | landed                                     | ce4d22b1 |
 | 38    | B-651 | landed                                     | a447334a |
 | 39    | B-652 | landed                                     | 7be34f48 |
-| 40    | B-655 | merged                                     | 487cb235 |
+| 40    | B-655 | landed                                     | 487cb235 |
+| 41    | B-620 | merged (opus; care-periods.md at landing)  | ab9dcfae |
+| 42    | B-631 | merged (opus)                              | 2a479df8 |
 
 ## Wave 1
 
@@ -478,3 +488,31 @@ In `ordinalIsADay` (`quickEntryTime.ts`), the part-of-day branches may run witho
 - `a 2nd in the morning` stays undated.
 - `dr lee the 2nd in the morning` and `dr lee the 2nd at night` stay on the 2nd.
 - Unit tests: one row for each line above.
+
+## Wave 10
+
+As before: the item's backlog notes (`pnpm backlog show B-<n>`) carry the file references, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. dose-accuracy holds `packages/data/src/services/timelineEntryService.ts` and `assistantActionService.ts`: no slice here edits them. ui-kit-5 changed `Menu`: it always applies a `buttonClass` look, and its `className` is outer classes only.
+
+### Slice 41: consecutive day headers never repeat a care period day (B-620)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/care-periods.md, docs/domain/timeline.md · Tests: unit, component
+
+`DayHeader` splits days in the viewer's zone (`dayKey`), but `DayPeriod` counts `periodDay` in the recipient's zone from a moment (now for Today, the newest row for a past day). Just after midnight Eastern with a Los Angeles recipient, Today and Yesterday both read `At home · day 6`. The user approved this fix: a day header counts from its own date.
+
+- A day header's number is the period's start date in the recipient's zone to the header's `dayKey`, plus 1, minimum 1, so consecutive headers always differ by one.
+- The period's page, the periods list and other "current" lines keep `periodDay` in the recipient's zone. Today's header reading one day ahead of them for a few hours around midnight is accepted.
+- Check which period a header shows (`periodAt`) for the same offset. Fix it only if a test shows the wrong period; otherwise say what you found in the hand-off.
+- Unit tests: the new day count, with the viewer and recipient in different zones, on both sides of midnight, and on the period's first day (never below 1).
+- Component test: Today and Yesterday headers show consecutive numbers in the reported case.
+
+### Slice 42: Back asks again after a refused action outside the form (B-631)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: component
+
+`useSheetChanges` ends its no-prompt bypass only for errors inside the submitted form. `PassLogForm` shows a refused Add a medication outside that small form, and the confirm path of a refused delete keeps the bypass, so Back can then lose the edits without asking. This was read from the code and not run.
+
+- After a refused Add a medication in the pass log, Back with unsaved edits asks before discarding.
+- After a refused delete from its confirm, Back with unsaved edits asks before discarding.
+- A successful save, add or delete still leaves without a prompt.
+- The 300 ms window in the item's second note is out of scope unless the tests above need it: name anything you find there in the hand-off.
+- Component tests: one for each line above, beside `sheetGuard.browser.test.tsx`.
