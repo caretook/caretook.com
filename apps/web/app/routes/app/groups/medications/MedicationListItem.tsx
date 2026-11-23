@@ -13,7 +13,7 @@ import {
 } from "~/lib/medications/medicationDisplay";
 
 /**
- * A medication in the list: its name and strength, a badge with its type
+ * A medication in the list: its name and strength, a badge with its type at the row's right edge
  * (none when it isn't set), its form, dose and schedule, and why it's taken; a stopped one also says how and when. The
  * name is a link stretched over the row, so a tap anywhere opens its page.
  */
@@ -38,17 +38,17 @@ export function MedicationListItem({
         <Pill className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="min-w-0">
+        <p className="flex min-w-0 items-start justify-between gap-2">
           <Link
             to={appUrls.medication(medication.groupId, medication.id)}
-            className={`font-medium wrap-break-word outline-none before:absolute before:inset-0 focus-visible:before:outline-2 focus-visible:before:-outline-offset-2 ${stopped ? "text-base-content/70" : ""}`}
+            className={`min-w-0 font-medium wrap-break-word outline-none before:absolute before:inset-0 focus-visible:before:outline-2 focus-visible:before:-outline-offset-2 ${stopped ? "text-base-content/70" : ""}`}
             data-medication-name
           >
             {medicationTitle(medication)}
           </Link>
           {badge && medication.type && (
             <span
-              className="badge badge-ghost badge-sm ms-2 align-middle"
+              className="badge badge-ghost badge-sm mt-0.5 shrink-0"
               title={MEDICATION_TYPE_LABELS[medication.type]}
               data-medication-type={medication.type}
             >
