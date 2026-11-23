@@ -955,7 +955,7 @@ type PartState = {
 
 const roleIdx = (s: PartState, ...roles: VocabularyRole[]) =>
   s.vocab.filter((m) => roles.includes(m.entry.role)).flatMap((m) => m.used);
-const hasRole = (s: PartState, ...roles: VocabularyRole[]) =>
+const hasRole = (s: Pick<PartState, "vocab">, ...roles: VocabularyRole[]) =>
   s.vocab.some((m) => roles.includes(m.entry.role));
 
 /**
@@ -1709,7 +1709,7 @@ const mentionedText = (s: PartState) => {
  * Whether the line opens by asking for something to be done ("call the
  * pharmacy", "remember to …") and nothing in it reports what happened.
  */
-const asksForAction = (s: PartState) =>
+const asksForAction = (s: Pick<PartState, "vocab" | "free">) =>
   s.vocab.some(
     (m) => m.used[0] === s.free[0] && (m.entry.role === "requestVerb" || m.entry.role === "requestLead"),
   ) && !hasRole(s, "reportWord", "visitVerb", "contactVerb");
@@ -1731,12 +1731,11 @@ const noteAhead = (s: PartState) => {
 };
 
 /**
- * Whether the line asks for something at a part of day still ahead ("check bp
- * 120/80 in the morning", "ask about pain tonight"): its measurement or
- * complaint is what to ask about, not a report, so the todo comes before them.
+ * Whether the line asks for something at a time still ahead ("check bp 120/80
+ * tomorrow", "ask about pain tonight"): its measurement or complaint is what
+ * to ask about, not a report, so the todo comes before them.
  */
-const requestsAhead = (s: PartState, ahead: boolean) =>
-  ahead && !!s.time.spec && "period" in s.time.spec && !!s.time.spec.period && asksForAction(s);
+const requestsAhead = (s: PartState, ahead: boolean) => ahead && asksForAction(s);
 
 /** Below a todo and its note: a vital or symptom on a line that only asks for one. */
 const ASKED_FOR_CONFIDENCE = 0.3;
@@ -2081,21 +2080,27 @@ const parsePart = (
   const readsAmounts = forced === null || forced === "dose";
   // So is a measurement's value or a member's "sat", unless the line was asked to be something with a day.
   const readsValues = forced !== "event" && forced !== "todo";
-  const time = findTime(
-    tokens.map((t, i) =>
-      (readsAmounts &&
-        (isFractionAmount(tokens, context.medications, i, forced === "dose") ||
-          isFractionAfterName(tokens, context.medications, i, forced === "dose", previousDose))) ||
-      (readsValues && (isMeasurementValue(tokens, i) || isSatAfterMember(tokens, context, i)))
-        ? ""
-        : t.w,
-    ),
+  const timeWords = tokens.map((t, i) =>
+    (readsAmounts &&
+      (isFractionAmount(tokens, context.medications, i, forced === "dose") ||
+        isFractionAfterName(tokens, context.medications, i, forced === "dose", previousDose))) ||
+    (readsValues && (isMeasurementValue(tokens, i) || isSatAfterMember(tokens, context, i)))
+      ? ""
+      : t.w,
   );
-  const free = tokens.map((_, i) => i).filter((i) => !time?.used.has(i));
-  const vocab = findVocabulary(
-    tokens.map((t) => vocabularyWord(t.w)),
-    (i) => free.includes(i),
-  );
+  const wordsLeft = (found: ReturnType<typeof findTime>) => {
+    const free = tokens.map((_, i) => i).filter((i) => !found?.used.has(i));
+    const vocab = findVocabulary(
+      tokens.map((t) => vocabularyWord(t.w)),
+      (i) => free.includes(i),
+    );
+    return { free, vocab };
+  };
+  // "tomorrow morning" is a part of day on a request; a report or event keeps its day.
+  const requested =
+    forced === null || forced === "todo" ? findTime(timeWords, { periodAfterTomorrow: true }) : null;
+  const time = requested && asksForAction(wordsLeft(requested)) ? requested : findTime(timeWords);
+  const { free, vocab } = wordsLeft(time);
   const providers = matchProviders(context, tokens, free);
   const verb = vocab.some((m) => ["visitVerb", "contactVerb", "noteIncident"].includes(m.entry.role));
   const s: PartState = {
