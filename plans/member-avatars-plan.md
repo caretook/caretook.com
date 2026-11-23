@@ -13,7 +13,9 @@
 
 **Landing mode:** run everything through (started run-through). Land each green wave, clean up, and ask only real questions through `pnpm prd ask`.
 
-**Now (2026-11-23):** wave 1 landed as a3e635e2 (PR #125). Wave 2 landed in `dev` as b1ee1d19 through PR #128, at tier `components` (CI run 45245508309 green on 38582b4d), with the browser suite 11 of 11. Codex did not review either wave (out of credits, `--no-review`). Report a156 is filed. **Wave 3 is running:** backlog ingested (nothing new for this topic), `pnpm prd sync` needed no merge, and slice 3 started from 07a45e70 on opus. **Next:** review its hand-off, merge, quick check, then the wave's CI run. B-593 stays claimed until slice 4 merges.
+**Now (2026-11-23):** wave 1 landed as a3e635e2 (PR #125). Wave 2 landed in `dev` as b1ee1d19 through PR #128, at tier `components` (CI run 45245508309 green on 38582b4d), with the browser suite 11 of 11. Codex did not review either wave (out of credits, `--no-review`). Report a156 is filed. **Wave 3 is running:** backlog ingested (nothing new for this topic), `pnpm prd sync` needed no merge, and slice 3 started from 07a45e70 on opus. **Next:** review its hand-off, merge, then the wave's CI run. B-593 stays claimed until slice 4 merges.
+
+**No local quick check when CI will run (the user, 2026-11-23):** after a merge or dev sync, go straight to `pnpm prd ci run`. The slice agent's own check on its branch stays.
 
 **Rechecks:** the user's "skip rechecks after a clean dev sync" covered wave 1 only. Later waves recheck after each dev sync unless the user repeats it.
 
