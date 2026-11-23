@@ -147,7 +147,7 @@ describe("periodDayOn", () => {
     const beforeKey = new Date(before).toLocaleDateString("en-CA", { timeZone: LA });
     const afterKey = new Date(after).toLocaleDateString("en-CA", { timeZone: LA });
     expect([beforeKey, afterKey]).toEqual(["2027-06-08", "2027-06-09"]);
-    expect(periodDayOn(start, afterKey, HONOLULU)).toBe(periodDayOn(start, beforeKey, HONOLULU) + 1);
+    expect(periodDayOn(start, afterKey, HONOLULU)).toBe(periodDayOn(start, beforeKey, HONOLULU)! + 1);
   });
 
   it("reads the start's date in the recipient's zone, not the viewer's", () => {
