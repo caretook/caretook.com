@@ -43,6 +43,8 @@ export function PassLogForm({
   const adder = useFetcher<{ ok: boolean; error?: string }>();
   const remover = useFetcher<{ ok: boolean; error?: string }>();
   const [confirming, setConfirming] = useState(false);
+  // Each try's refusal is a new alert, even in the same words: it's how the sheet's guard sees it.
+  const [sideTry, setSideTry] = useState(0);
   const addable = addableMedications(choices, doses);
   const [adding, setAdding] = useState("");
   const toAdd = addable.find((c) => c.id === adding) ?? addable[0];
@@ -119,7 +121,12 @@ export function PassLogForm({
       </Form>
 
       {toAdd && (
-        <adder.Form method="post" className="flex items-end gap-2" data-pass-log-add>
+        <adder.Form
+          method="post"
+          className="flex items-end gap-2"
+          data-pass-log-add
+          onSubmit={() => setSideTry((n) => n + 1)}
+        >
           <input type="hidden" name="intent" value="add" />
           <input type="hidden" name="amount" value={toAdd.dose ?? ""} />
           <Field label="Add a medication" kind="select" className="min-w-0 flex-1">
@@ -144,7 +151,11 @@ export function PassLogForm({
         </adder.Form>
       )}
 
-      {sideError && <Message tone="error">{sideError}</Message>}
+      {sideError && (
+        <Message key={sideTry} tone="error">
+          {sideError}
+        </Message>
+      )}
 
       <Button
         variant="dangerQuiet"
@@ -162,6 +173,7 @@ export function PassLogForm({
         onClose={() => setConfirming(false)}
         onConfirm={() => {
           setConfirming(false);
+          setSideTry((n) => n + 1);
           void remover.submit({ intent: "delete" }, { method: "post" });
         }}
       />
