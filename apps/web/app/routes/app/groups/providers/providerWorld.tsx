@@ -182,7 +182,6 @@ export const listNames = (label: "Current providers" | "Past providers") =>
     (n) => n.textContent.trim(),
   );
 export const SEARCH = () => document.querySelector<HTMLInputElement>('main input[type="search"]');
-export const SHOW_PAST = () => document.querySelector<HTMLAnchorElement>("main [data-show-past]");
 /** The "Filters on" chips' labels (without their ✕). */
 export const filterChips = () =>
   [...document.querySelectorAll<HTMLElement>('main nav[aria-label="Filters on"] a')].map((a) =>

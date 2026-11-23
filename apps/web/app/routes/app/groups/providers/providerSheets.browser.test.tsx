@@ -34,7 +34,6 @@ import {
   PROVIDERS_URL,
   providerUrl,
   SHEET,
-  SHOW_PAST,
   submit,
   WESTSIDE,
 } from "./providerWorld";
@@ -217,7 +216,7 @@ describe("editing a provider", () => {
     address: "9 Elm Lane\nSpringfield",
   });
 
-  test("a deep link to …/:id/edit opens the sheet filled in; primary and past save together: it moves behind “Show past”, under Past providers", async () => {
+  test("a deep link to …/:id/edit opens the sheet filled in; primary and past save together: it moves under Past providers", async () => {
     const device = await open({ url: `${PROVIDERS_URL}/${BROOKS.id}/edit`, fixtures: [directory(), BROOKS] });
     await waitUntil(() => !!FORM(), "the edit sheet");
     expect(document.querySelector<HTMLElement>("[role=dialog] :is(h2, h3)")?.textContent).toBe(
@@ -239,8 +238,6 @@ describe("editing a provider", () => {
     expect((await stored(device, BROOKS.id))?.is_primary).toBe(1);
     await device.settle();
     expect(listNames("Current providers")).not.toContain("Dr. Nadia Brooks");
-    expect(SHOW_PAST()?.textContent.trim()).toBe("Show past (2)");
-    await userEvent.click(await found(SHOW_PAST));
     await expect.poll(() => listNames("Past providers")).toContain("Dr. Nadia Brooks");
   });
 

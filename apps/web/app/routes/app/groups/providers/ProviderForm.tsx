@@ -208,7 +208,7 @@ export function ProviderForm({
           <span>
             Past
             <span className="text-base-content/70 block text-sm">
-              No longer seen; listed behind “Show past”
+              No longer seen; listed under Past providers
             </span>
           </span>
         </label>

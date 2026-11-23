@@ -130,6 +130,28 @@ describe("the page", () => {
       .toBeVisible();
   });
 
+  test("a provider with a number, an email and an address: each is a working link on the page (B-422)", async () => {
+    const reachable = fx.provider({
+      name: "Dr. Priya Raman",
+      phones: [{ label: "Office", number: "(555) 010-4400" }],
+      email: "p.raman@example.test",
+      address: "48 Orchard Lane\nSpringfield, CA 90000",
+    });
+    await open(providerUrl(reachable.id), { fixtures: [directory(), SAM, secondGroup(), reachable] });
+    await expect.poll(() => contactLinks().length).toBe(3);
+    expect(contactLinks()).toEqual([
+      ["call", "tel:5550104400"],
+      ["email", "mailto:p.raman@example.test"],
+      [
+        "map",
+        "https://www.google.com/maps/search/?api=1&query=48%20Orchard%20Lane%2C%20Springfield%2C%20CA%2090000",
+      ],
+    ]);
+    const map = document.querySelector<HTMLAnchorElement>('main [data-contact-list] a[data-action="map"]');
+    expect(map?.target).toBe("_blank");
+    expect(map?.rel).toBe("noopener noreferrer");
+  });
+
   test("Edit opens the directory's sheet, filled in; Cancel goes back to the page", async () => {
     const device = await open(providerUrl(WESTSIDE.id));
     await userEvent.click(getByCss("main header a[data-edit-provider]"));

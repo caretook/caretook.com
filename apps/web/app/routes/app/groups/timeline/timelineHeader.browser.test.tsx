@@ -122,6 +122,15 @@ describe("the Easy mode button", () => {
     expect(b.top).toBeLessThan(h1.bottom);
     expect(b.right).toBeLessThanOrEqual(360);
   });
+
+  test("at phone width the button and the title share a vertical center, within 1 px", async () => {
+    await openTimeline({ role: "caretaker", width: 360 });
+    await ready();
+    const button = await found(easyButton);
+    const center = (r: DOMRect) => r.top + r.height / 2;
+    const h1 = document.querySelector("main h1")!.getBoundingClientRect();
+    expect(Math.abs(center(button.getBoundingClientRect()) - center(h1))).toBeLessThanOrEqual(1);
+  });
 });
 
 describe("the toolbar", () => {
@@ -174,8 +183,10 @@ describe("the + menu", () => {
     for (const header of headers) {
       const label = header.querySelector("h3")!.textContent;
       expect(plusOf(header)?.getAttribute("aria-label")).toBe(`Add to ${label}`);
-      // Beside the heading, in the sticky header.
-      expect(plusOf(header)?.parentElement).toBe(header.querySelector("h3")!.parentElement);
+      // In the day's actions, on the heading's row of the sticky header, and last (the far right).
+      const actions = header.querySelector("[data-day-actions]")!;
+      expect(actions.parentElement).toBe(header.querySelector("h3")!.parentElement);
+      expect(actions.lastElementChild?.contains(plusOf(header))).toBe(true);
     }
     expect(headers[0] && plusOf(headers[0])?.getAttribute("aria-label")).toBe("Add to Today");
     expect(headers[1] && plusOf(headers[1])?.getAttribute("aria-label")).toBe("Add to Yesterday");

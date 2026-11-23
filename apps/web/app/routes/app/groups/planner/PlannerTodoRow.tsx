@@ -13,8 +13,8 @@ import { assigneeLabel, dueText } from "~/lib/todos/todoDisplay";
  * One open dated todo on the Planner tab: its tick (for whoever may complete it:
  * writers, or the viewer it's assigned to; a todo icon otherwise), its time
  * (the due time, wall-clock in the recipient's zone, "All day", or
- * "Overdue"), the title, the due line when it's overdue, and the assignee.
- * The row opens the todo's page. Ticking completes it (Undo in the list's
+ * "Overdue") with the assignee under it, the title, and the due line when
+ * it's overdue. The row opens the todo's page. Ticking completes it (Undo in the list's
  * `TodoUndoStatus`), and it drops out. It's never an entry.
  */
 export function PlannerTodoRow({
@@ -64,30 +64,33 @@ export function PlannerTodoRow({
       ) : (
         <ListTodo className="text-base-content/70 mt-0.5 size-5 shrink-0" aria-hidden="true" />
       )}
-      <span
-        className={`w-[5.5rem] shrink-0 pt-0.5 text-sm tabular-nums ${overdue ? "text-error font-semibold" : "text-base-content/70"}`}
-        data-when
-      >
-        {when}
-      </span>
+      <div className="flex w-[5.5rem] shrink-0 flex-col items-start gap-1" data-when-column>
+        <span
+          className={`pt-0.5 text-sm tabular-nums ${overdue ? "text-error font-semibold" : "text-base-content/70"}`}
+          data-when
+        >
+          {when}
+        </span>
+        {/* A long name wraps inside the narrow column rather than running into the title. */}
+        <span
+          className="badge badge-ghost badge-sm h-auto max-w-full gap-1 py-0.5"
+          data-todo-assignee={assignee.type}
+        >
+          {assignee.type === "name" && <UserRound className="size-3 shrink-0" aria-hidden="true" />}
+          <span className="min-w-0 break-words">{assignee.label}</span>
+        </span>
+      </div>
       <div className="min-w-0 flex-1 pt-0.5">
         <p className="font-medium break-words" data-todo-title>
           {title}
         </p>
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm empty:hidden">
           {overdue && due && (
             <span className="text-error" data-todo-due>
               {due}
             </span>
           )}
           <TodoRepeatMark todo={todo} className="text-base-content/70" />
-          <span
-            className="badge badge-ghost badge-sm gap-1 whitespace-nowrap"
-            data-todo-assignee={assignee.type}
-          >
-            {assignee.type === "name" && <UserRound className="size-3" aria-hidden="true" />}
-            {assignee.label}
-          </span>
         </p>
         {tick.error && (
           <p className="text-error relative z-10 text-sm" role="alert">

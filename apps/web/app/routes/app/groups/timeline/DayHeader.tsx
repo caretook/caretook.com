@@ -2,7 +2,9 @@ import type { ReactNode } from "react";
 import type { TimelinePeriods } from "./timelinePeriods";
 
 import { periodAt, periodDay } from "@caretook/data/schema";
+import { ArrowRightLeft } from "lucide-react";
 import { Link } from "react-router";
+import { Button } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { localTimeZone } from "~/lib/core/format";
 import { useGroup } from "~/lib/app-shell/group";
@@ -14,9 +16,9 @@ import { dayKeyIn } from "./timelineDays";
 
 /**
  * A day section's sticky header: the day's heading ("Today", "Monday, Nov
- * 16") with, for writers, its + menu (`QuickAddMenu`: adds start on that
- * day), and beside them the care period that covers the day (`DayPeriod`).
- * The heading names the section (`day-<key>`); the period isn't part of it.
+ * 16") on the left; on the right the care period that covers the day
+ * (`DayPeriod`) and, last, the writers' + menu (`QuickAddMenu`: adds start on
+ * that day). The heading names the section (`day-<key>`); the period isn't part of it.
  * Under them, `summary` (the day's `DaySummaryLine`), so it stays pinned with
  * its date while the day scrolls by. Easy mode shows the period too, in
  * larger type and without Change.
@@ -46,18 +48,19 @@ export function DayHeader({
   return (
     <div className="day-band text-base-content sticky top-0 z-10 px-3 py-2" data-day-header="">
       <div className="flex flex-wrap items-center justify-between gap-x-3">
-        <div className="flex items-center gap-2">
-          {/* Large enough to balance the + button beside it. */}
-          <h3 id={`day-${dayKey}`} className="text-lg font-semibold lg:text-xl">
-            {label}
-          </h3>
+        {/* Large enough to balance the + button across from it. */}
+        <h3 id={`day-${dayKey}`} className="text-lg font-semibold lg:text-xl">
+          {label}
+        </h3>
+        {/* One group, so a long period wraps with the + and the + stays at the far right. */}
+        <div className="ms-auto flex min-w-0 items-center gap-2" data-day-actions>
+          {today ? (
+            <TodayPeriod groupId={groupId} periods={periods} easy={easy} />
+          ) : (
+            newestAt && <DayPeriod groupId={groupId} periods={periods} at={newestAt} easy={easy} />
+          )}
           {canWrite && !easy && <QuickAddMenu groupId={groupId} dayKey={dayKey} label={label} />}
         </div>
-        {today ? (
-          <TodayPeriod groupId={groupId} periods={periods} easy={easy} />
-        ) : (
-          newestAt && <DayPeriod groupId={groupId} periods={periods} at={newestAt} easy={easy} />
-        )}
       </div>
       {summary}
     </div>
@@ -120,17 +123,18 @@ function DayPeriod({
         {text}
       </Link>
       {change && group.canWrite && (
-        <Link
+        <Button
           to={appUrls.newPeriod(groupId)}
           state={PERIOD_SHEET_STATE}
           // Loaded ahead, so the sheet opens offline too.
           prefetch="render"
-          className="btn btn-ghost btn-xs text-base-content/70 shrink-0"
-          aria-label="Change care period"
-          data-period-change
-        >
-          Change
-        </Link>
+          variant="ghost"
+          size="sm"
+          icon={ArrowRightLeft}
+          label="Change care period"
+          className="-my-1 shrink-0"
+          data-period-change=""
+        />
       )}
     </p>
   );

@@ -13,6 +13,7 @@ import {
   EYES_OLD,
   HEARING,
   HOSPICE,
+  itemEl,
   laTime,
   listed,
   NOW,
@@ -34,8 +35,8 @@ import * as pastRoute from "./past/route";
 import * as plannerRoute from "./route";
 
 // The Planner on the test device (from upcoming.mjs; the section current in
-// the tab bar and the header is frame.browser.test.tsx's): the shared header on its two tabs (the heading,
-// the tabs, the Add menu), Upcoming | Past, the Filter menu, the Planner tab's list (order, days, Now, all
+// the tab bar and the header is frame.browser.test.tsx's): the shared header on its three tabs (the heading,
+// Upcoming, Past and Todos, the Add menu), the Filter menu, the Upcoming tab's list (order, days, Now, all
 // day, ranges, cancelled and rescheduled, call and map),
 // the kind and author filters in the URL, the Past tab (newest first,
 // cancelled ones, paging), items leaving as their time passes, no due doses
@@ -60,12 +61,6 @@ const choose = async (option: string) => {
   await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
 };
 const TABS = 'main nav[aria-label="Planner or todos"]';
-const VIEWS = 'main nav[aria-label="Upcoming or past"]';
-/** The Upcoming | Past chip, by its label. */
-const view = (label: string) =>
-  [...document.querySelectorAll<HTMLAnchorElement>(`${VIEWS} a`)].find(
-    (a) => a.textContent?.trim() === label,
-  )!;
 const tab = (label: string) =>
   [...document.querySelectorAll<HTMLAnchorElement>(`${TABS} a`)].find(
     (a) => a.textContent?.trim() === label,
@@ -86,27 +81,42 @@ afterEach(() => {
 
 describe("the header", () => {
   const G = `/app/groups/${TEST_GROUP.id}`;
-  test("two tabs, Planner and Todos: each current on its own page, and Planner stays current on Past", async () => {
+  test("three tabs, Upcoming, Past and Todos: each current on its own page, and the old chips are gone", async () => {
     const device = await openPlanner();
     const expected = (current: string) =>
       [
-        ["Planner", `${G}/planner`],
+        ["Upcoming", `${G}/planner`],
+        ["Past", `${G}/planner/past`],
         ["Todos", `${G}/todos`],
       ].map(([name, href]) => [name, href, name === current ? "page" : null]);
     expect(pageHeader()).toEqual({ h1: "Planner", namesRecipient: false, viewerNote: false });
-    expect(tabs()).toEqual(expected("Planner"));
+    expect(tabs()).toEqual(expected("Upcoming"));
+    expect(page.getByRole("navigation", { name: "Upcoming or past" }).query()).toBeNull();
+
+    await userEvent.click(tab("Past"));
+    await expect.poll(() => device.location()).toBe(PAST_URL);
+    await expect.poll(() => tabs()).toEqual(expected("Past"));
+    expect(page.getByRole("navigation", { name: "Upcoming or past" }).query()).toBeNull();
+    expect(pageHeader()).toEqual({ h1: "Planner", namesRecipient: false, viewerNote: false });
 
     await userEvent.click(tab("Todos"));
     await expect.poll(() => device.location()).toBe(TODOS_URL);
     await expect.poll(() => tabs()).toEqual(expected("Todos"));
     expect(pageHeader()).toEqual({ h1: "Planner", namesRecipient: false, viewerNote: false });
 
-    await userEvent.click(tab("Planner"));
+    await userEvent.click(tab("Upcoming"));
     await expect.poll(() => device.location()).toBe(PLANNER_URL);
-    await userEvent.click(view("Past"));
+    await expect.poll(() => tabs()).toEqual(expected("Upcoming"));
+  });
+
+  test("Past, then Todos, then back lands on Past", async () => {
+    const device = await openPlanner({ url: PAST_URL });
+    await userEvent.click(tab("Todos"));
+    await expect.poll(() => device.location()).toBe(TODOS_URL);
+    await userEvent.click(tab("Past"));
     await expect.poll(() => device.location()).toBe(PAST_URL);
-    await expect.poll(() => tabs()).toEqual(expected("Planner"));
-    expect(pageHeader()).toEqual({ h1: "Planner", namesRecipient: false, viewerNote: false });
+    await expect.poll(() => tab("Past").getAttribute("aria-current")).toBe("page");
+    await expect.element(page.getByText("Hearing test")).toBeInTheDocument();
   });
 
   test("the page titles: Planner, Todos and Past", () => {
@@ -118,16 +128,16 @@ describe("the header", () => {
     ]);
   });
 
-  test("the tabs carry what each reads: Planner what it shows and the author, Todos its chip; Upcoming | Past carry the author", async () => {
+  test("the tabs carry what each reads: Upcoming what it shows and the author, Past the author, Todos its chip", async () => {
     await openPlanner({ url: `${PLANNER_URL}?kind=event&author=${SAM.id}` });
-    expect(tab("Planner").getAttribute("href")).toBe(`${PLANNER_URL}?kind=event&author=${SAM.id}`);
-    expect(view("Past").getAttribute("href")).toBe(`${PAST_URL}?author=${SAM.id}`);
+    expect(tab("Upcoming").getAttribute("href")).toBe(`${PLANNER_URL}?kind=event&author=${SAM.id}`);
+    expect(tab("Past").getAttribute("href")).toBe(`${PAST_URL}?author=${SAM.id}`);
     expect(tab("Todos").getAttribute("href")).toBe(TODOS_URL);
     await userEvent.click(tab("Todos"));
     await userEvent.click(page.getByRole("button", { name: /^Filter(, \d+ on)?$/ }));
     await userEvent.click(page.getByRole("menuitemradio", { name: "Mine", exact: true }));
     await expect.poll(() => tab("Todos").getAttribute("href")).toBe(`${TODOS_URL}?who=mine`);
-    expect(tab("Planner").getAttribute("href")).toBe(PLANNER_URL);
+    expect(tab("Upcoming").getAttribute("href")).toBe(PLANNER_URL);
   });
 });
 describe("the list", () => {
@@ -192,6 +202,51 @@ describe("the list", () => {
     expect(rowOf(RIDE.id)?.actions).toEqual([]);
   });
 
+  test("the owner's initials sit under the time and actions, as a filter above the row's link", async () => {
+    await openPlanner();
+    const column = itemEl(CARDIOLOGY.id)?.querySelector<HTMLElement>("[data-when-column]");
+    const pill = column?.querySelector<HTMLElement>("[data-author]");
+    const box = pill?.getBoundingClientRect();
+    const actions = column?.querySelector("[data-contact-actions]")?.getBoundingClientRect();
+    expect(box?.top).toBeGreaterThanOrEqual(actions?.bottom ?? Infinity);
+    expect(box?.right).toBeLessThanOrEqual(column?.getBoundingClientRect().right ?? 0);
+    // On top at its centre: the tap reaches the filter, not the row's link.
+    const hit = document.elementFromPoint((box?.left ?? 0) + 12, (box?.top ?? 0) + 12);
+    expect(hit?.closest("[data-author]")).toBe(pill);
+  });
+
+  test("an easy role's initials sit in the same column, with no filter: a tap there opens the row", async () => {
+    await openPlanner({ role: "easy_viewer" });
+    const row = itemEl(CARDIOLOGY.id);
+    const pill = row?.querySelector<HTMLElement>("[data-when-column] [data-author]");
+    expect(pill?.tagName).toBe("SPAN");
+    const box = pill?.getBoundingClientRect();
+    const hit = document.elementFromPoint((box?.left ?? 0) + 12, (box?.top ?? 0) + 12);
+    expect(hit?.getAttribute("href")).toBe(`/app/groups/${TEST_GROUP.id}/entries/${CARDIOLOGY.id}`);
+  });
+
+  test("a row's call and map sit under its time, still tappable; a row without them has no gap there", async () => {
+    await openPlanner();
+    const column = (id: string) => itemEl(id)?.querySelector<HTMLElement>("[data-when-column]");
+    const withActions = column(CARDIOLOGY.id);
+    const time = withActions?.querySelector("[data-when]")?.getBoundingClientRect();
+    const actions = withActions?.querySelector("[data-contact-actions]")?.getBoundingClientRect();
+    expect(actions?.top).toBeGreaterThanOrEqual(time?.bottom ?? Infinity);
+    expect(actions?.right).toBeLessThanOrEqual(withActions?.getBoundingClientRect().right ?? 0);
+
+    const call = withActions?.querySelector<HTMLElement>('[data-action="call"]');
+    const box = call?.getBoundingClientRect();
+    const hit = document.elementFromPoint((box?.x ?? 0) + 8, (box?.y ?? 0) + 8);
+    expect(call?.contains(hit)).toBe(true);
+
+    const bare = column(RIDE.id);
+    expect(bare?.querySelector("[data-contact-actions]")).toBeNull();
+    // Only the column's gap-1 between the time and the owner's initials.
+    const bareTime = bare?.querySelector("[data-when]")?.getBoundingClientRect();
+    const barePill = bare?.querySelector("[data-author]")?.getBoundingClientRect();
+    expect((barePill?.top ?? 0) - (bareTime?.bottom ?? 0)).toBeCloseTo(4, 0);
+  });
+
   test("an item leaves the Planner tab once its end (in progress) or its start passes, without a reload", async () => {
     const device = await openPlanner();
     const mounted = document.querySelector("main[data-planner]");
@@ -230,8 +285,8 @@ describe("adding", () => {
   });
 
   for (const [name, tabName, url] of [
-    ["Planner", "Planner", () => PLANNER_URL],
-    ["Past", "Planner", () => PAST_URL],
+    ["Upcoming", "Upcoming", () => PLANNER_URL],
+    ["Past", "Past", () => PAST_URL],
     ["Todos", "Todos", () => TODOS_URL],
   ] as const)
     test(`on ${name}: Todo opens the add sheet, and Cancel comes back to ${name}`, async () => {
@@ -255,9 +310,7 @@ describe("adding", () => {
     await userEvent.click(tab("Todos"));
     await expect.poll(() => device.location()).toBe(TODOS_URL);
     expect(addButton().query()).toBeNull();
-    await userEvent.click(tab("Planner"));
-    await expect.poll(() => view("Past")).toBeTruthy();
-    await userEvent.click(view("Past"));
+    await userEvent.click(tab("Past"));
     await expect.poll(() => device.location()).toBe(PAST_URL);
     expect(addButton().query()).toBeNull();
     expect(device.location()).toBe(PAST_URL);
@@ -272,18 +325,15 @@ describe("filters", () => {
     });
   const todoRows = () => document.querySelectorAll("main [data-planner-todo]").length;
 
-  test("Upcoming | Past at the left of the row (Upcoming current), the Filter button at its right end, no chip row while All", async () => {
+  test("on Upcoming the Filter button sits beside the tabs, with no chip row while All", async () => {
     await openPlanner();
-    expect(
-      [...document.querySelectorAll(`${VIEWS} a`)].map((a) => [
-        a.textContent?.trim(),
-        a.getAttribute("aria-current"),
-      ]),
-    ).toEqual([
-      ["Upcoming", "true"],
-      ["Past", null],
-    ]);
     await expect.element(filterButton()).toHaveAccessibleName("Filter");
+    const bar = document.querySelector<HTMLElement>(TABS)!.getBoundingClientRect();
+    const button = filterButton().element().getBoundingClientRect();
+    expect(button.left).toBeGreaterThanOrEqual(bar.right);
+    expect(button.top).toBeLessThan(bar.bottom);
+    expect(button.bottom).toBeGreaterThan(bar.top);
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
     expect(document.querySelector('main nav[aria-label="Filters on"]')).toBeNull();
     expect(document.querySelector('main nav[aria-label="Show items"]')).toBeNull();
   });
@@ -344,13 +394,13 @@ describe("filters", () => {
     expect(filterChips()).toEqual(["Events", "By Sam Okafor"]);
 
     // Past keeps the author, drops the rest: no Filter button, only the author chip.
-    await userEvent.click(view("Past"));
+    await userEvent.click(tab("Past"));
     await expect.poll(() => device.location()).toBe(`${PAST_URL}?author=${SAM.id}`);
     await expect.element(by).toBeVisible();
     expect(filterChips()).toEqual(["By Sam Okafor"]);
     expect(filterButton().query()).toBeNull();
     // Back to Upcoming: the author stays, the show choice is reset.
-    await userEvent.click(view("Upcoming"));
+    await userEvent.click(tab("Upcoming"));
     await expect.poll(() => device.location()).toBe(`${PLANNER_URL}?author=${SAM.id}`);
 
     await userEvent.click(page.getByRole("link", { name: "By Sam Okafor: clear this filter" }));
@@ -360,14 +410,13 @@ describe("filters", () => {
 });
 
 describe("the Past tab", () => {
-  test("from the Planner tab: past events only, newest first, cancelled ones included, no notes; the Past tab current", async () => {
+  test("from the Upcoming tab: past events only, newest first, cancelled ones included, no notes; the Past tab current", async () => {
     const device = await openPlanner();
-    await userEvent.click(view("Past"));
+    await userEvent.click(tab("Past"));
     await expect.poll(() => device.location()).toBe(PAST_URL);
     await expect.element(page.getByText("Hearing test")).toBeInTheDocument();
-    expect(view("Past").getAttribute("aria-current")).toBe("true");
-    expect(view("Upcoming").getAttribute("aria-current")).toBeNull();
-    expect(tab("Planner").getAttribute("aria-current")).toBe("page");
+    expect(tab("Past").getAttribute("aria-current")).toBe("page");
+    expect(tab("Upcoming").getAttribute("aria-current")).toBeNull();
     expect(filterButton().query()).toBeNull();
     const rows = listed();
     expect(rows.slice(0, 3).map((r) => r.id)).toEqual([BLOOD_DRAW.id, HEARING.id, PODIATRY.id]);
@@ -441,7 +490,7 @@ describe("a stored future note", () => {
 });
 
 describe("the page title", () => {
-  test("is one h1, Planner, on both tabs", async () => {
+  test("is one h1, Planner, on its tabs", async () => {
     await openPlanner();
     await expect.poll(() => document.querySelector("main h1")?.textContent).toBe("Planner");
     expect(document.querySelectorAll("h1")).toHaveLength(1);
