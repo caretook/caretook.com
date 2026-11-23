@@ -207,6 +207,28 @@ describe("sweepReminders", { timeout: 30_000 }, () => {
     expect(forbidden?.subject).not.toContain("Dialysis");
   });
 
+  it("is generic when the consent wording changed, until the member agrees again", async () => {
+    const { ana, group, remindersOn, addAppointment } = await setup();
+    await remindersOn(ana, { reminderLeads: [60], detailsConsent: true });
+    const visit = await addAppointment();
+    await getDb()
+      .update(memberCalendarSettingSchema)
+      .set({ detailsConsentVersion: "2020-01-01" })
+      .where(eq(memberCalendarSettingSchema.userId, ana.user.id));
+
+    const [stale] = to((await sweep(HOUR_BEFORE)).sent, ana.user.email);
+    for (const part of [stale!.subject, stale!.text, stale!.html]) {
+      expect(part).not.toContain("Dialysis");
+      expect(part).not.toContain("Riverside");
+    }
+
+    ok(await calendarSettingService.update(ana.ctx, group.id, { detailsConsent: true }));
+    const moved = plus(NINE, 30);
+    ok(await timelineEntryService.update(ana.ctx, visit.id, { occurredAt: moved.toISOString() }));
+    const [agreed] = to((await sweep(plus(moved, -60))).sent, ana.user.email);
+    expect(agreed?.subject).toContain("Event for Pat Example: Dialysis");
+  });
+
   it("sends nothing for a stored future note", async () => {
     const { ana, group, recipient, remindersOn } = await setup();
     await remindersOn(ana, { reminderLeads: [60] });
