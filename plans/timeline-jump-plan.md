@@ -4,16 +4,20 @@
 
 ## Status
 
-Not started.
+**Landing mode: run everything through** (started run-through; ask only real questions, through `pnpm prd ask`). The PRD lands once, after wave 2.
 
-| Slice | Wave | State | Merge into `prd/timeline-jump` (slice commits) |
-| ----- | ---- | ----- | ---------------------------------------------- |
-| 1     | 1    | ready | —                                              |
-| 2     | 2    | ready | —                                              |
-| 3     | 2    | ready | —                                              |
-| 4     | 2    | ready | —                                              |
+Wave 1 running: slice 1 started 2026-11-23 from `b580a458`, worktree `.loops/timeline-jump-1`, agent on opus. Slices 2, 3 and 4 wait for slice 1's merge.
 
-**Backlog:** claim B-557 when slice 1 starts; run `pnpm backlog done B-557` when the last slice merges.
+| Slice | Wave | State       | Merge into `prd/timeline-jump` (slice commits) |
+| ----- | ---- | ----------- | ---------------------------------------------- |
+| 1     | 1    | in progress | —                                              |
+| 2     | 2    | blocked (1) | —                                              |
+| 3     | 2    | blocked (1) | —                                              |
+| 4     | 2    | blocked (1) | —                                              |
+
+**Backlog:** B-557 (quick date jump on the timeline) claimed by `prd/timeline-jump`; run `pnpm backlog done B-557` when the last slice merges. No other items belong to this topic.
+
+**Open issues:** none. `pnpm backlog doctor` reports three findings on other topics' items (B-548, B-549, B-568), left alone.
 
 ## Architectural decisions
 
