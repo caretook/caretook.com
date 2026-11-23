@@ -56,6 +56,7 @@ describe("auth", () => {
       email: owner.user.email,
       name: "owner",
       image: null,
+      avatar: { color: null, icon: null },
       groupRoles: { [group.id]: "owner" },
       preferences: {},
       units: DEFAULT_UNITS,

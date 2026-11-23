@@ -119,7 +119,7 @@ describe("syncedColumns", () => {
     );
     const tables = schemaTables();
     const grants = Object.fromEntries(syncedColumns(config, tables).map((g) => [g.table, g.columns]));
-    expect(grants.user).toEqual(["id", "name", "image"]);
+    expect(grants.user).toEqual(["id", "name", "image", "avatar_color", "avatar_icon"]);
     expect(grants.timeline_entry).toContain("group_id");
     // Never synced: account tables, invites, the audit log.
     for (const table of [

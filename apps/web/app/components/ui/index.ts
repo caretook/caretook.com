@@ -85,3 +85,5 @@ export { COUNT_BADGE } from "./styles";
 export { CHOICE_BUTTON, CHOICE_TILE } from "./styles";
 // ui-kit-5 (slice 7): a navigation bar's link.
 export { navLinkClass } from "./styles";
+// member-avatars (slice 1): the chosen colors' classes and the icons' glyphs.
+export { avatarColorClass, avatarIconGlyph } from "./avatarLook";

@@ -813,6 +813,25 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     // 7. Tidy up, then sign-out wipes the device.
     psql(`UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' = '${offName}'`);
     await wf(A, `!${rowWith(offName)}`, 15_000);
+
+    // 6z. One member chooses an avatar; the other's device receives the two ids.
+    await A.goto("/app/settings/account");
+    await A.getByRole("radiogroup", { name: "Color" })
+      .getByRole("radio", { name: "Jade" })
+      .check({ force: true });
+    await A.getByRole("radiogroup", { name: "Icon" })
+      .getByRole("radio", { name: "Bird" })
+      .check({ force: true });
+    await A.getByRole("button", { name: "Save" }).click();
+    await A.getByText("Saved.").waitFor();
+    const look = await until(async () => {
+      const [row] = await localRows(B, `SELECT avatar_color, avatar_icon FROM "user" WHERE id = ?`, [
+        memberId,
+      ]);
+      return row?.avatar_color === "jade" && row?.avatar_icon === "bird" ? row : null;
+    });
+    await check("avatar: the other member's device receives the choice", !!look, JSON.stringify(look));
+
     await signOut(A);
     await wf(A, `location.pathname === "/sign-in"`, 15_000);
     // The file stays, vacuumed: none of the care data is left in its bytes.
@@ -835,6 +854,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
   } finally {
     try {
       if (viewerTodo) psql(reopenViewerTodoSql);
+      psql(`UPDATE "user" SET avatar_color = NULL, avatar_icon = NULL WHERE id = '${memberId}'`);
       psql(
         `UPDATE timeline_entry SET deleted_at = now() WHERE details->>'name' LIKE '${tag}%' AND deleted_at IS NULL`,
       );

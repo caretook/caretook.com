@@ -1,5 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import {
+  avatarChoiceZSchema,
+  readAvatarChoice,
   resolveDaySummaryMode,
   resolveEasyModeSetting,
   resolveSetupDismissed,
@@ -23,6 +25,8 @@ export const me = {
       email: user.email,
       name: user.name,
       image: user.image,
+      /** Your avatar choice; an id this version doesn't know reads as unset. */
+      avatar: readAvatarChoice({ color: user.avatarColor, icon: user.avatarIcon }),
       groupRoles: context.authUser.groupRoles ?? {},
       preferences: user.preferences,
       /** Display units with defaults filled in: what screens should use. */
@@ -45,6 +49,13 @@ export const me = {
       easyMode: resolveEasyModeSetting(preferences),
       daySummary: resolveDaySummaryMode(preferences),
     };
+  }),
+
+  /** Set or clear your own avatar: both ids are sent, and null is the default. */
+  setAvatar: authedProcedure.input(avatarChoiceZSchema).handler(async ({ context, input }) => {
+    const avatar = unwrap(await userService.updateOwnAvatar(context, input));
+    if (!avatar) throw new ORPCError("UNAUTHORIZED");
+    return { avatar };
   }),
 
   /** Your own contact details (profiles/profiles.ts). */
