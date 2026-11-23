@@ -33,7 +33,7 @@ export function shouldRevalidate({ formMethod, defaultShouldRevalidate }: Should
 export default function EmergencySheet({ loaderData, params }: Route.ComponentProps) {
   const close = useCloseProfileSheet(params.groupId);
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title="Emergency contacts">
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title="Emergency contacts">
       <EmergencyForm
         members={loaderData.members}
         outside={loaderData.outside}

@@ -32,13 +32,13 @@ const item = (v: Partial<CalendarItem> = {}): CalendarItem => ({
 describe("calendarText, generic", () => {
   it("says what it is, for whom, when, and links back: nothing else", () => {
     expect(calendarText(item(), "generic")).toEqual({
-      summary: "Appointment for Pat",
+      summary: "Event for Pat",
       when: "Thu 19 Nov · 9:00–10:00",
       location: null,
       description:
         "Thu 19 Nov · 9:00–10:00\nOpen in Caretook: https://caretook.example/app/groups/g1/entries/e1",
     });
-    expect(calendarText(item({ kind: "appointment" }), "generic").summary).toBe("Appointment for Pat");
+    expect(calendarText(item({ kind: "appointment" }), "generic").summary).toBe("Event for Pat");
     expect(JSON.stringify(CALENDAR_ITEM_KINDS)).not.toMatch(/reminder/i);
     expect(calendarText(item({ kind: "todo" }), "generic").summary).toBe("Todo for Pat");
   });
@@ -96,7 +96,7 @@ describe("calendarText, details", () => {
 
   it("adds the title, place and providers' names", () => {
     expect(calendarText(item(), "details")).toEqual({
-      summary: "Appointment for Pat: Dialysis",
+      summary: "Event for Pat: Dialysis",
       when: "Thu 19 Nov · 9:00–10:00",
       location: "Riverside Clinic, 12 Elm St",
       description:
@@ -106,7 +106,7 @@ describe("calendarText, details", () => {
 
   it("stays generic where there's nothing to add", () => {
     const bare = calendarText(item({ title: null, place: null, providers: [] }), "details");
-    expect(bare.summary).toBe("Appointment for Pat");
+    expect(bare.summary).toBe("Event for Pat");
     expect(bare.location).toBeNull();
     expect(bare.description).not.toContain("With");
   });
@@ -114,11 +114,9 @@ describe("calendarText, details", () => {
 
 describe("calendarText, status and time", () => {
   it("marks a cancelled appointment", () => {
-    expect(calendarText(item({ status: "cancelled" }), "generic").summary).toBe(
-      "Cancelled: Appointment for Pat",
-    );
+    expect(calendarText(item({ status: "cancelled" }), "generic").summary).toBe("Cancelled: Event for Pat");
     expect(calendarText(item({ status: "cancelled" }), "details").summary).toBe(
-      "Cancelled: Appointment for Pat: Dialysis",
+      "Cancelled: Event for Pat: Dialysis",
     );
   });
 

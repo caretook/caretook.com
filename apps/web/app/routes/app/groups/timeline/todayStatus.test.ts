@@ -135,13 +135,13 @@ describe("todaySummary", () => {
         medications: "20:00",
         todos: 3,
       }),
-    ).toEqual({ overdue: "3 overdue", soon: "3 due soon", rest: "BP 130/85 mmHg · 1 appt · 1 todo today" });
+    ).toEqual({ overdue: "3 overdue", soon: "3 due soon", rest: "BP 130/85 mmHg · 1 event · 1 todo today" });
   });
   it("nothing overdue or soon: the rest alone, with plurals and the next pass's time", () => {
     expect(todaySummary({ counts: none, appointments: 3, medications: "20:00", todos: 2 })).toEqual({
       overdue: null,
       soon: null,
-      rest: "3 appts · Meds 20:00 · 2 todos today",
+      rest: "3 events · Meds 20:00 · 2 todos today",
     });
     expect(todaySummary({ counts: none })).toEqual({ overdue: null, soon: null, rest: "" });
   });

@@ -5,6 +5,14 @@ import { describe, expect, it } from "vitest";
 import { entryHeading, showTitleChips, titleState, withEventDraft } from "./entryPage";
 
 describe("entryHeading", () => {
+  it("says when a saved, unnamed event is, and keeps a name, a draft and an event in progress", () => {
+    expect(entryHeading("Event", "Event", false, "upcoming")).toBe("Upcoming event");
+    expect(entryHeading("Event", "", false, "past")).toBe("Past event");
+    expect(entryHeading("Event", "Event", false, "now")).toBe("Event");
+    expect(entryHeading("Event", "Cardiology", false, "upcoming")).toBe("Cardiology");
+    expect(entryHeading("Event", null, true, "upcoming")).toBe("New event");
+  });
+
   it("is the title when there is one", () => {
     expect(entryHeading("Note", "Morning", true)).toBe("Morning");
     expect(entryHeading("Event", "Physical therapy", false)).toBe("Physical therapy");

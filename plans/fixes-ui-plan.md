@@ -6,32 +6,44 @@ Small UI fixes: look, layout, wording and flow. There is no PRD: this plan is th
 
 Landing mode: **run everything through** (started run-through, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports only through `pnpm prd ask`.
 
-Wave 1: slices 1–9, written 2026-11-22. Models: opus for all.
+Wave 1: slices 1–9 (opus), **landed in dev as bb1133e0 through PR #78** (2026-11-22). Codex clean on 19a195c; full check passed on 887736df; report filed. No slice is in flight.
 
-All nine slices are merged and dev is synced (919126cb). No slice is in flight. Browser: `--changed --base dev` names none; `--suite` not run (the user's rule: ask first).
+Wave 2: slices 10–14, written 2026-11-22 after a clean sync (dev had only wave 1's landing and backlog commits). Running topics are test-gates and quick-entry-2; no slice touches their hot files. Slices 10, 11 and 12 started 2026-11-22 (worktrees made, agents spawned); 13 after 10 is merged; 14 after 13 is merged. Models: sonnet for 10 and 11 (edits spelled out), opus for 12, 13 and 14. `pnpm backlog doctor` reports two old inbox-tag findings (B-548, B-549), neither in this topic.
 
-**Resume here (wave 1 gate, rotated for context):** reconciled with git on takeover (no slice worktrees). The lint crash is not load: ESLint passes 4 GB, CI sets 6 GB, so run `NODE_OPTIONS=--max-old-space-size=6144 pnpm prd check` until B-576 (local lint runs out of memory) is fixed. With it, lint and typecheck passed on 7c90a0e4 and 2 of 5919 tests failed, both again alone: `plannerSeries` (scope dialog's Edit button colour) and `timelineHeader` (the + is no longer the heading's sibling, from slice 4). Dev synced with ui-kit-3's last wave (30cb7855; conflicts in `PlannerHeader`, `DirectoryResults`, `TimelineHeader` resolved keeping both sides), so the next check must be full. An opus fix agent fixed both tests (26efde5e, tests only: a stale layout assertion, and the pointer left hovering the dialog button). Full check **passed on 887736df** (6 GB heap; one print-menu test failed in the full run and passed alone, the known race B-552). Docs folded. Next: step 4.
+Left for later: B-325 (native safe area and cold start) waits for the Capacitor work, as its triage says.
 
-1. The full check on d4bdb178 did **not** pass: ESLint died with "JavaScript heap out of memory" (exit 134) at load about 16. Format had passed; typecheck status is in no later step, and no test ran. Slice 7 hit the same crash at load about 20 and passed once the 5-minute load was under 16. Wait for load under 16, rerun `pnpm prd check` once. If it crashes again on a quiet machine, it is not load: find out why (dev's ui-kit-3 sync is new) and file it in fixes-tooling, or ask.
-2. Send any component test failure to a fix agent. Watch `timelineHeader`, `timelineEasy`, `timelineLayout`, `timelineSummaries`, `timelineScroll`, `entry`, `ui/inScreens` (slice 4 changed the day header's DOM), `linkedTodos` and `provider` (slice 9), `todos` and `easyRolePages` (slice 3).
-3. Fold the docs (all near the 10 KB budget: trim what you add). `providers.md`: past providers always list under their label (no "Show past", no `?past=1`); rows carry no contact details and open the provider page, which has the contact links. `timeline.md`: the + is at the far right of the day header. `care-periods.md`: the period sits right, before the +; Change is an icon button. `appointments.md`: `TabNav` is Upcoming | Past | Todos, `PlannerFilterRow` is gone, Filter sits beside the tabs on Upcoming; call, map and author sit under the time in `[data-when-column]`. `todos.md` if it places the Planner row's assignee.
-4. `pnpm prd serve --restart`, `pnpm prd pr fixes-ui`, `pnpm prd review fixes-ui --wait` in the background, triage, land, file the report with `pnpm prd ask --report`, then rotate for wave 2.
+At wave 2 landing: fold the Event wording into `appointments.md`, `todos.md` and `timeline.md` (they still say a title-less item reads Appointment, and that `scopeQuestion` always says appointment). Slice 12 changes `calendarText`, so the landing report must say what that does to events already pushed to Google.
 
-Small follow-ups: B-575 (Planner tabs' accessible name) is filed. Stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows. Wave 2 candidates once ui-kit-3 is done: B-316, B-535, B-536, B-537, B-575.
+Slice 13 decisions: optional times (todo due, series Ends) stay empty by default; required ones default to the current hour at :00.
 
-Left for a later wave: B-316 (unsaved-changes guard), B-535 (hour-first time picker), B-536 (danger text contrast) and B-537 (Event wording) touch ui-kit-3's hot files (`components/ui/`, `lib/timeline/entryDisplay.ts`, `lib/app-shell/`, `routes/dev/ui/`). B-325 (native safe area and cold start) waits for the Capacitor work, as its triage says.
+Slice 14 gaps to file as follow-ups once the wave is green: a sync after the first touch can read as a change; Back after a failed save does not ask until the next touch; a record deleted elsewhere can prompt; Back with an unguarded sheet on top of a changed one does not ask; Discard under reduced motion has no test; `InviteSheet`, `InviteLinks`, provider import, `RepeatSheet` and `VisitPrepSheet` are unguarded. Wave gate: full check on the tip, then `pnpm prd browser --changed --base dev` (the user asks to be asked before any `--suite`).
 
-| Slice | Item  | State         | Merge    |
-| ----- | ----- | ------------- | -------- |
-| 1     | B-256 | merged (opus) | b5373bc9 |
-| 2     | B-416 | merged (opus) | f6f40e4f |
-| 3     | B-538 | merged (opus) | 439b6571 |
-| 4     | B-412 | merged (opus) | 91aced06 |
-| 5     | B-519 | merged (opus) | b2aa214a |
-| 6     | B-413 | merged (opus) | 13ac9f5a |
-| 7     | B-422 | merged (opus) | 8834115b |
-| 8     | B-421 | merged (opus) | fc5dbe18 |
-| 9     | B-319 | merged (opus) | 488e09bf |
+**Latest (wave 2):** full check passed on 3c76e5ec; after syncing dev's assistant-access migration, quick check and `roundtrip`, `first-sync`, `ui` passed on 01b907f4. PR #84 open. Codex round 1: one P2 (Back right after a failed save skips the prompt), verified and tracked as B-601. Slice 14's gaps are filed as B-601, B-602, B-603 and B-604. Docs folded. Next: `review --again` until clean, land, `pnpm backlog done B-552`, report, rotate.
+
+**Earlier hand-over (wave 2 gate):** all of slices 10–14 are merged and no slice is in flight. The user said to apply the B-552 print-test fix: done in df2ff0d5, 5 of 5 alone. The last full check (ff19deb0) failed on 4 tests; 3 were fixed by going through Discard and the fourth is B-552. The rerun was stopped for this fix, so **no full check has passed on the tip**. Resumed 2026-11-22: Status reconciled with git, synced with dev as 1b5dc09c (docs and plans only), full check started once the 5-minute load is under 16. Next: if no check is running, `NODE_OPTIONS=--max-old-space-size=6144 pnpm prd check` in the background, then `pnpm prd wait check`; `pnpm prd serve --restart`; `pnpm prd browser --changed --base dev` (no `--suite` without asking the user); `pnpm prd pr fixes-ui`; `pnpm prd review fixes-ui --wait`; land; `pnpm backlog done B-552`. Fold docs at landing. File slice 14's gaps below as follow-ups. The landing report must say: existing Google events are rewritten once on their next sync ("Appointment for" becomes "Event for"); B-583 (connector wording) awaits the user; B-585 is the 11 AM hour-step wrap.
+
+Notes for the next wave:
+
+- Until B-576 (local lint runs out of memory) is fixed, run checks and landings with `NODE_OPTIONS=--max-old-space-size=6144`; lint passes Node's 4 GB default even on a quiet machine.
+- A print-menu test can fail in a full run and pass alone (B-552, the known race).
+- Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
+
+| Slice | Item  | State           | Merge    |
+| ----- | ----- | --------------- | -------- |
+| 1     | B-256 | merged (opus)   | b5373bc9 |
+| 2     | B-416 | merged (opus)   | f6f40e4f |
+| 3     | B-538 | merged (opus)   | 439b6571 |
+| 4     | B-412 | merged (opus)   | 91aced06 |
+| 5     | B-519 | merged (opus)   | b2aa214a |
+| 6     | B-413 | merged (opus)   | 13ac9f5a |
+| 7     | B-422 | merged (opus)   | 8834115b |
+| 8     | B-421 | merged (opus)   | fc5dbe18 |
+| 9     | B-319 | merged (opus)   | 488e09bf |
+| 10    | B-536 | merged (sonnet) | c9c510cf |
+| 11    | B-575 | merged (sonnet) | 123f2b24 |
+| 12    | B-537 | merged (opus)   | 5566480a |
+| 13    | B-535 | merged (opus)   | 1dc972d8 |
+| 14    | B-316 | merged (opus)   | 3c7a6607 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -155,3 +167,81 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 
 - [ ] Component test: before the first answer, neither "No notes or events yet" nor "Former member" shows.
 - [ ] Component test: after an empty answer the empty state shows, and after a real answer the real name shows.
+
+## Wave 2 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency, and no edits under `components/quick-entry/` or `routes/app/groups/timeline/timelineQuickEntry*` (quick-entry-2 is running) or the test-gates hot files. Loops don't edit `docs/`; the orchestrator folds wording and decisions in at landing. If a fix can't be done within this, stop and say so in the hand-off.
+
+## Slice 10: Danger text meets 4.5:1 in light (B-536)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: component
+
+**Problem.** Menu's danger item and `buttonClass`'s `dangerQuiet` use `text-error` (about 2.9:1 in light). `DateTimeField`'s placeholder segments, at 60% opacity, are a little under 4.5:1 on the light field fill.
+
+**Build.** Use `text-error-ink` in `components/ui/Menu.tsx` and `components/ui/buttonClass.ts`. Lift the placeholder segments in `components/ui/date/DateTimeField.tsx` to the `text-faint` tone.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a danger menu item and a `dangerQuiet` button carry `text-error-ink`, not `text-error`.
+- [ ] Component test: a `DateTimeField` placeholder segment uses the `text-faint` tone.
+
+## Slice 11: Planner tabs are named for what they hold (B-575)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md · Tests: component
+
+**Problem.** The Planner tabs' nav is still labelled "Planner or todos", but its tabs are Upcoming, Past and Todos.
+
+**Build.** Change the label in `routes/app/groups/planner/PlannerHeader.tsx` to "Upcoming, past or todos". Update every selector that names it: `planner.browser.test.tsx`, `todos.browser.test.tsx`, `sectionAccents.browser.test.tsx`, `easyRolePages.browser.test.tsx` and `scripts/browser-checks/roundtrip.spec.mjs`.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the Planner's tab nav is found by the name "Upcoming, past or todos".
+- [ ] No "Planner or todos" remains in the repo outside `plans/` and the backlog.
+
+## Slice 12: One word in the app: Event (B-537)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/appointments.md, docs/domain/todos.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** The Planner says "Appointment" where the Timeline says "Event", for the same thing.
+
+**Build.** Wording only: the stored kind stays `event`; ids, routes, table names, code identifiers and URLs stay as they are. Rename visible text to Event in the Planner Add menu and Show filter (`PlannerHeader.tsx`, `upcomingFilters.ts`), `ProviderVisitPrep.tsx`, `TodoLinkFields.tsx`, `todo/TodoLinks.tsx`, the Today card and its status text, `EasyNow`, `FeedCard.tsx`, `calendarPage.ts`, `reminderChoices.ts`, visit prep copy and the `routes/dev/ui/` samples. Use "Upcoming event" or "Past event" only on the entry page heading (`entryHeading` in `entryPage.ts`), the Today card's next line and the todo form's picker. Leave marketing pages and health-data-privacy text alone. If the calendar's generic "Appointment for …" text is also produced on the server, change it there too and say so in the hand-off.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the Planner Add menu offers "Event" and no "Appointment".
+- [ ] Component test: the entry heading reads "Upcoming event" or "Past event" by timing, and the todo picker's placeholder says events.
+- [ ] A search of visible strings outside marketing and privacy text finds no "Appointment"; the hand-off lists any kept on purpose.
+
+## Slice 13: Hour-first time picker (B-535)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/components.md, docs/domain/medications.md, docs/domain/appointments.md · Tests: component
+
+**Blocked by:** slice 10.
+
+**Problem.** Nearly every time entered is on the hour, but the native time input takes fiddling, and the iPhone wheel ignores `step`.
+
+**Build.** Add a small shared picker in `components/ui/`: an hour select and a 00/15/30/45 minute select, on native `<select>`s so it works on phones. A new value defaults to the current hour at :00. A saved off-grid time such as 08:10 stays intact and shows as an extra minute option. Use it for medication dose times (`medications/ScheduleFields.tsx`), pass time (`passes/PassForm.tsx`), todo due time (`todos/TodoForm.tsx`) and series edit times (`components/repeat/SeriesEditSheet.tsx`). Give event Starts and Ends (`components/schedule/ScheduleFields.tsx`, so scheduling and `RescheduleSheet` too) the same default and 15-minute minutes. The logs (`DoseForm`, `EntryForm`, `PassLogForm`), `PeriodForm` and `VisitPrepSheet` keep the current minute.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a new picker shows the current hour at :00 and offers 00, 15, 30 and 45.
+- [ ] Component test: a saved 08:10 shows and submits as 08:10 until changed.
+- [ ] Component test: each named form submits the same time format it did before.
+- [ ] Component test: a log form still defaults to the current minute.
+
+## Slice 14: Unsaved changes aren't lost by accident (B-316)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/components.md · Tests: component
+
+**Blocked by:** slice 13.
+
+**Problem.** A click outside, Escape or Back silently discards a half-filled sheet, such as a medication, emergency or provider form.
+
+**Build.** Give `components/ui/Sheet.tsx` an opt-in unsaved-changes guard, working with the navigation hold in `useSheetExit.tsx`. When the form differs from its starting values, a click outside, Escape, Close or Back opens the kit's `ConfirmDialog` ("Discard changes?", with Keep editing and Discard). An unchanged form closes as it does today, and a successful save never prompts. Wire it into every sheet that edits data, including medications, passes, allergies, periods, profile sections, conditions, providers, timeline entries, doses and todos. Leave read-only and filter sheets alone. Quick entry stays out of scope.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a changed form asks before closing on Escape, a click outside, Close and Back; Keep editing keeps the values, Discard closes.
+- [ ] Component test: an unchanged form closes without asking.
+- [ ] Component test: saving a changed form closes without asking.
+- [ ] Component test: the sheet's exit motion and focus return still work after Discard.

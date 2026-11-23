@@ -11,7 +11,7 @@ import { TodoRepeatMark } from "~/components/todos";
 import { Chevron } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formatAgo } from "~/lib/core/format";
-import { nextStripText, upcomingTitle } from "~/lib/appointments/upcomingLabels";
+import { nextEventTitle, nextStripText } from "~/lib/appointments/upcomingLabels";
 import { todoStripText, todoStripWho } from "~/lib/todos/todoStrip";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { COLUMN_CAP } from "./layout";
@@ -56,7 +56,7 @@ function SummaryLine({ summary: { overdue, soon, rest } }: { summary: TodaySumma
  * status (`todayStatus`) and ending in "See all ›" to its full view (the
  * vitals row instead shows all its readings in place when they don't fit,
  * B-186). Its header collapses it to one line ("3 overdue · 2 due soon · BP
- * 130/85 mmHg · 1 appt"): collapsed on every load, a tap opening it for the
+ * 130/85 mmHg · 1 event"): collapsed on every load, a tap opening it for the
  * page view. Viewers see it too (without Given all). The whole card hides
  * once every row is known to be empty.
  */
@@ -79,7 +79,8 @@ export function TodayCard({
   const today = useTodayCard({ groupId, latestVitals, next, units });
   if (today.empty) return null;
   const { collapsed, status, todos } = today;
-  const nextText = nextStripText(next, now);
+  const nextTitle = (entry: Parameters<typeof nextEventTitle>[0]) => nextEventTitle(entry, now);
+  const nextText = nextStripText(next, now, {}, nextTitle);
   const todo = todos.strip && { ...todoStripText(todos.strip), strip: todos.strip };
 
   return (
@@ -139,7 +140,7 @@ export function TodayCard({
             <Link
               to={appUrls.entry(groupId, next.next.id)}
               className="link-hover"
-              aria-label={`${nextText}: open ${upcomingTitle(next.next)}`}
+              aria-label={`${nextText}: open ${nextTitle(next.next)}`}
               data-next={next.next.id}
             >
               {nextText}

@@ -63,7 +63,7 @@ export default function NewEntrySheet({ loaderData, params }: Route.ComponentPro
         ? VITALS[loaderData.vitalType].label
         : "Add a reading";
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title={title}>
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title={title}>
       <EntryForm
         // A new URL is a new form (empty, "When" set to now).
         key={`${loaderData.kind}${search}`}

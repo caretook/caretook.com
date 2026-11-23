@@ -50,7 +50,7 @@ describe("detailsCardState", () => {
 describe("detailsExplained", () => {
   it("names the recipient in the generic wording", () => {
     expect(detailsExplained("Pat")).toBe(
-      'Emails, your calendar feed and Google Calendar say only "Appointment for Pat", the time and a link back to Caretook.',
+      'Emails, your calendar feed and Google Calendar say only "Event for Pat", the time and a link back to Caretook.',
     );
   });
 });

@@ -24,7 +24,7 @@ export const TODOS_ERRORS = {
     statusCode: 400,
   },
   "todoService:badLink": {
-    message: "A linked provider, medication or appointment must be in this care group",
+    message: "A linked provider, medication or event must be in this care group",
     statusCode: 400,
   },
   "todoService:notAnOccurrence": {

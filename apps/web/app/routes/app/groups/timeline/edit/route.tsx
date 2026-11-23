@@ -92,6 +92,7 @@ export default function EditEntrySheet({ loaderData, params }: Route.ComponentPr
 
   return (
     <Sheet
+      guardChanges
       isOpen={!gone}
       onOpenChange={(open) => !open && close()}
       title={`Edit ${KIND_META[entry.kind].label.toLowerCase()}`}

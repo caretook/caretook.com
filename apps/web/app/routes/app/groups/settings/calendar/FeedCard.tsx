@@ -11,13 +11,13 @@ import { feedLinks } from "~/lib/calendars/feedLinks";
 import { copyLinkText } from "../members/linkRules";
 
 export const FEED_EXPLAINED =
-  "A private link that shows this group's appointments and todos with a due day in your own calendar app (Apple, Google, Outlook), from 90 days back to 90 days ahead.";
+  "A private link that shows this group's events and todos with a due day in your own calendar app (Apple, Google, Outlook), from 90 days back to 90 days ahead.";
 
 export const FEED_SECRET =
   "Anyone with the link can see the calendar, so keep it private. It's shown only now: if you lose it, regenerate one.";
 
 export const FEED_SAYS = {
-  generic: 'It says only "Appointment for …", the time and a link back to Caretook.',
+  generic: 'It says only "Event for …", the time and a link back to Caretook.',
   details: "It includes titles, places and providers, as you chose under Details outside Caretook.",
 } as const;
 

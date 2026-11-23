@@ -59,8 +59,8 @@ export function ProviderVisitPrep({
         <ConfirmDialog
           open={offer}
           title={`No visit with ${providerName} coming up`}
-          message="Add the appointment first: pick its day, then prepare for it from its page."
-          confirmLabel="Add an appointment"
+          message="Add the event first: pick its day, then prepare for it from its page."
+          confirmLabel="Add an event"
           onClose={() => setOffer(false)}
           onConfirm={() => {
             setOffer(false);

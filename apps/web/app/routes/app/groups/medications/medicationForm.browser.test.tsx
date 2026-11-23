@@ -31,6 +31,8 @@ import {
   world,
   openAddMedication,
 } from "./medicationWorld";
+import { pickTime } from "../../../../../test/timeSelect";
+import { currentHourTime } from "~/lib/core/timeOfDay";
 
 // Adding, editing, stopping, restarting and deleting a medication
 // (medications.mjs's add, edit, status, offline form and viewer form steps):
@@ -132,8 +134,8 @@ describe("adding", () => {
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await waitUntil(() => times().length === 2, "two times");
-    await userEvent.fill(await found(() => times()[0]), "08:00");
-    await userEvent.fill(await found(() => times()[1]), "08:00");
+    await pickTime(() => times()[0], "08:00");
+    await pickTime(() => times()[1], "08:00");
     await userEvent.click(submit());
     await expect.poll(() => errorOf("name")).toBe("Enter a name");
     expect(TIMES_ERROR()).toBe("List each time once");
@@ -147,6 +149,15 @@ describe("adding", () => {
     await expect.poll(() => errorOf("maxPerDay")).toBe("At most 24 a day");
   });
 
+  test("a new time row starts at the current hour in the recipient's zone, not the device's", async () => {
+    await open(`${LIST}/new`, { fixtures: [fx.recipient({ timeZone: "Asia/Tokyo" })] });
+    await waitUntil(() => times().length === 1, "the first row");
+    await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
+    await waitUntil(() => times().length === 2, "the new row");
+    expect(times()[0]?.value).toBe("08:00");
+    expect(times()[1]?.value).toBe(currentHourTime("Asia/Tokyo"));
+  });
+
   test("saving with a new prescriber closes the sheet and lists it at once; the prescriber, the medication and its Started entry are one local write, queued in that order", async () => {
     const device = await open(LIST);
     await openAddSheet();
@@ -154,8 +165,8 @@ describe("adding", () => {
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
     await waitUntil(() => times().length === 2, "two times");
-    await userEvent.fill(await found(() => times()[0]), "20:00");
-    await userEvent.fill(await found(() => times()[1]), "08:00");
+    await pickTime(() => times()[0], "20:00");
+    await pickTime(() => times()[1], "08:00");
     await userEvent.fill(await found(() => field("strength")), "25 mg");
     await userEvent.selectOptions(await found(() => field<HTMLSelectElement>("form")), "tablet");
     await userEvent.fill(await found(() => field("dose")), "1 tablet");

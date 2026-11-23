@@ -50,13 +50,18 @@ export const atTimeOfDay = (
 
 /**
  * Turn all day on or off. On: the start moves to the start of its day in
- * the entry's zone and the end goes. Off: it starts at 9:00 that day.
+ * the entry's zone and the end goes. Off: it starts at `start` that day (9:00 by default).
  */
-export const withAllDay = (schedule: Schedule, allDay: boolean, timeZone: string): Schedule => {
+export const withAllDay = (
+  schedule: Schedule,
+  allDay: boolean,
+  timeZone: string,
+  start: { hour: number; minute: number } = DEFAULT_START,
+): Schedule => {
   if (allDay === schedule.allDay) return schedule;
   return allDay
     ? { occurredAt: startOfDay(schedule.occurredAt, timeZone), endsAt: null, allDay: true }
-    : { occurredAt: atTimeOfDay(schedule.occurredAt, timeZone, DEFAULT_START), endsAt: null, allDay: false };
+    : { occurredAt: atTimeOfDay(schedule.occurredAt, timeZone, start), endsAt: null, allDay: false };
 };
 
 /** A new start (from the field). An all-day item keeps to the start of the day picked. */
