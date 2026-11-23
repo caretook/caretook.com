@@ -10,7 +10,7 @@ Wave 1: slices 1–9, written 2026-11-22. Models: opus for all.
 
 All nine slices are merged and dev is synced (919126cb). No slice is in flight. Browser: `--changed --base dev` names none; `--suite` not run (the user's rule: ask first).
 
-**Resume here (wave 1 gate, rotated for context):**
+**Resume here (wave 1 gate, rotated for context):** reconciled with git on takeover (no slice worktrees, dev has nothing new). Full check rerun started at 5-minute load 12.45.
 
 1. The full check on d4bdb178 did **not** pass: ESLint died with "JavaScript heap out of memory" (exit 134) at load about 16. Format had passed; typecheck status is in no later step, and no test ran. Slice 7 hit the same crash at load about 20 and passed once the 5-minute load was under 16. Wait for load under 16, rerun `pnpm prd check` once. If it crashes again on a quiet machine, it is not load: find out why (dev's ui-kit-3 sync is new) and file it in fixes-tooling, or ask.
 2. Send any component test failure to a fix agent. Watch `timelineHeader`, `timelineEasy`, `timelineLayout`, `timelineSummaries`, `timelineScroll`, `entry`, `ui/inScreens` (slice 4 changed the day header's DOM), `linkedTodos` and `provider` (slice 9), `todos` and `easyRolePages` (slice 3).
