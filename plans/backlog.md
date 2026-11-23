@@ -253,7 +253,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-515 | feature | triaged | inbox-agent |  | Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too |
 | B-525 | bug | triaged | fixes-tooling |  | Asks: two processes taking over a dead holder's ask lock can both remove it, so one deletes the other's fresh lock and an answer and a default overlap (asks.mjs withAskLock) |
 | B-526 | bug | triaged | fixes-tooling |  | Notices: two concurrent posts can lower the .seq high-water mark (check-then-rename), so after both expire a notice id is reused and a late notices --done withdraws a newer notice (notices.mjs createNotice) |
-| B-532 | chore | in-progress | test-gates-2 | prd/test-gates-2 | Staging candidate: cut a release candidate branch from a green dev commit and open the PR into staging from it; CI runs the lean browser suite on the Docker stack against that fixed commit; only fixes go onto it |
+| B-532 | chore | ready | test-gates-2 | prd/test-gates-2 | Staging candidate: cut a release candidate branch from a green dev commit and open the PR into staging from it; CI runs the lean browser suite on the Docker stack against that fixed commit; only fixes go onto it |
 | B-533 | chore | in-progress | test-gates-2 | prd/test-gates-2 | staging to main gate: CI runs the full browser suite, a second time zone and repeated runs to catch flakes; a required status check on main always, on staging only in pre-deployment mode |
 | B-542 | chore | triaged | fixes-tooling |  | Unit-test projects run at Vitest's default workers (cores - 1, 9 here): two overlapping checks run ~18 test processes on 10 cores, the load behind the under-load timeouts; cap the unit group at about 4 (or half the cores) and time it against check-times |
 | B-543 | question | triaged | orchestration-split |  | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
@@ -333,7 +333,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-667 | chore | triaged | fixes-tooling |  | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
 | B-668 | change | triaged | fixes-ui |  | Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus |
 | B-669 | feature | triaged | onboarding-2 |  | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
-| B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a Later exit and a Want help onboarding? toast |
+| B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast |
 | B-671 | change | triaged | onboarding-2 |  | New groups default to No known allergies |
 | B-672 | feature | triaged | fixes-ui |  | Add an allergy: suggest substances and reactions as you type, like conditions |
 | B-673 | feature | triaged | fixes-ui |  | Add a medication: suggest common medication names as you type, like conditions |
@@ -347,6 +347,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-681 | bug | triaged | test-gates-2 |  | Promotion prints a passing flake's tests but doesn't file them in the backlog |
 | B-682 | change | triaged | fixes-ui |  | Planner: remove the icons from the empty lists on all tabs |
 | B-683 | change | triaged | fixes-ui |  | Tab selector and phone bottom menu: the current tab highlights its whole section instead of a rounded button |
+| B-684 | change | triaged | fixes-ui |  | Forms everywhere: a colored asterisk (*) marks required fields, and the optional labels go |
+| B-685 | change | triaged | fixes-ui |  | Care period form: show the Where is care now? options in a simple two-column grid |
+| B-686 | change | triaged | fixes-ui |  | Add a provider: phone type is a dropdown of common types, with Custom for typing your own |
+| B-687 | change | triaged | fixes-ui |  | Add a provider: saving opens the new provider's page instead of returning to the list |
+| B-688 | change | triaged | fixes-ui |  | Add a medication: saving opens the new medication's page instead of returning to the list |
+| B-689 | bug | triaged | fixes-bug |  | Planner: adding a todo from Upcoming or Past doesn't reliably land on the Todos tab |
+| B-690 | bug | triaged | fixes-bug |  | Planner events return to the Planner: a new event to Upcoming or Past by its time, an opened event to where it was opened |
+| B-691 | bug | triaged | fixes-ui |  | Event time picker: the calendar spills outside its overlay instead of sitting inside it |
+| B-692 | change | triaged | fixes-ui |  | New event: after picking the date, focus moves to the title, which prompts Enter a title to save |
+| B-693 | change | triaged | fixes-ui |  | New events and notes: the first save shows a saved toast (after the shared toast system) |
+| B-694 | change | triaged | fixes-ui |  | Complex create forms: core fields first, the rest under an Advanced options section |
 
 ## Items
 
@@ -1825,10 +1836,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-532 · chore · Staging candidate: cut a release candidate branch from a green dev commit and open the PR into staging from it; CI runs the lean browser suite on the Docker stack against that fixed commit; only fixes go onto it
 
-- status: in-progress
+- status: ready
 - prd: test-gates-2
 - owner: prd/test-gates-2
-- commit:
+- commit: 25523b82
 
 - 2026-11-22 (Robert Bo Davis): From the 2026-11-22 backlog session: the user's test-gate tiers and modes; being planned inline. User chose a candidate branch over freezing dev.
 - 2026-11-22 (plan/test-gates): Follow-on topic test-gates-2 (cut from test-gates on 2026-11-22; see plans/test-gates-prd.md, Solution tiers 3-4).
@@ -2629,7 +2640,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-23 (Robert Bo Davis): From the user, 2026-11-23: wants to make heavy use of toasts; agreed no new dependency. First slice of onboarding-2; B-665 (Invite someone toast) builds on it. Use react-aria-components 1.22.1's toast (UNSTABLE_ToastRegion, UNSTABLE_ToastList, UNSTABLE_Toast, UNSTABLE_ToastQueue) only inside ui/, wrapped by the existing ui/Toast, with daisyUI styling. The UNSTABLE_ exports may change on upgrade, so screens must never import them. Needs: a queue so toasts don't overlap, optional action, dismiss, Undo, caller-set timing, reduced motion. Migrate UpdateNotice and AddedMedicationToast. Prove it first on a real phone, above the tab bar and with the keyboard open (see B-664); if it falls short, extend our own component rather than add a library. Usage rules for components.md: toasts for finished actions, Undo, background news and one-time nudges. Not for errors to fix, medically important information, the only path to an action, or the only signal of unsynced changes. Don't sweep the inline Message uses; move one only where a toast is clearly better.
 
-### B-670 · feature · Onboarding on its own pages with inline forms, providers first, a Later exit and a Want help onboarding? toast
+### B-670 · feature · Onboarding on its own pages with inline forms, providers first, a care period step, a Later exit and a Want help onboarding? toast
 
 - status: triaged
 - prd: onboarding-2
@@ -2645,6 +2656,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23, settles the nudge timing. The nudges start once the creator finishes the page flow or picks Later. One toast at a time, at most one per hour on login-plus-hourly while the app has attention, in this order: Want help onboarding?, first entry, invite. 'Don't ask again' retires that toast for this group and moves to the next one after a small wait, rather than at the next hourly slot (default 30 seconds, a named constant; the user said only 'a small wait'). Once all three are finished or retired, no more onboarding toasts for the group.
 - 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: connect an AI assistant is the final toast nudge. Order is now: Want help onboarding?, first entry, invite, connect assistant. Same rules: one at a time, login plus hourly, Don't ask again moves on after the small wait. Its action opens group settings, Assistants (appUrls.groupSettings(id, 'assistants')). It only points there: the switch stays off by default and the /connect consent stays as is, because connecting shares health data with an outside AI. Finished needs new work: today's connect step is never ticked, and connector_grant is not in the PowerSync sync config, so the device can't see a live grant. The planner should choose how to tell (an online oRPC read of this member's grants for the group, or a synced fact); when it can't be known, as offline, skip the nudge rather than ask someone already connected. Show it only if the creator can still reach the switch (still owner).
 - 2026-11-23 (Robert Bo Davis): 2026-11-23: if B-594 (manage allergies on the Profile page) isn't done when this PRD starts, pull it into onboarding-2 ahead of the pages. The profile basics step should reuse that section, so the allergy form isn't moved twice.
+- 2026-11-23 (Robert Bo Davis): User, 2026-11-23: the care period must be part of the onboarding flow, before the first entry nudge. Default placement, stated to the user: a fourth page step after medications, so the page flow is providers, profile basics, medications, care period, and it comes after providers because a period's place can link to one. 'Want help onboarding?' now covers these four page steps; the nudge order is unchanged and first entry still starts only after the page flow is finished or left with Later. Code read: a new group has no care period (only the period form and seeds create one), so this needs a new hasCarePeriod fact in gettingStarted.ts; care_period is already synced, so it works offline. PeriodForm takes onDone/onCancel but submits through a fetcher to the periods/new route action: confirm it can run inline, including 'Add as a new place'. Start dates can't be in the future. Open for the planner or user: whether the step preselects Home.
 
 ### B-671 · change · New groups default to No known allergies
 
@@ -2769,3 +2781,106 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev: instead of a rounded button for each entry, the entire section should highlight. Assumed target: the shared TabNav (apps/web/app/components/ui/TabNav.tsx), used by Planner, Medications and sign-in. Today the bar is rounded-full with p-1 and gap-1, and each link is its own rounded-full pill. Make it a segmented bar: remove the inset padding, gap and per-link rounding so the current and hover fills reach the section's edges, clipped by the bar's outer shape. Keep section accents, count badges, sideways scrolling, the visible focus ring, and the dark contrast test in TabNav.browser.test.tsx. Update the look described in TabNav's comment and docs/domain/ui-kit.md. Not assumed to include the phone bottom TabBar or desktop SectionNav unless the user says so.
 - 2026-11-23 (Robert Bo Davis): User: the same applies to the mobile menu at the bottom, and only that one, so the desktop SectionNav stays as it is. This replaces the earlier 'not assumed' line for the phone bar. TabBar (apps/web/app/routes/app/layout/SectionNav.tsx): today a rounded-full bar with px-2 and justify-around, each link a size-11 rounded-full circle, the current one solid primary. Make each link an equal flex-1 full-height section with no per-link rounding, the bar clipping the fills to its outer shape (overflow-hidden). Keep the touch targets at least 44px, aria-current, labels, safe-area position and spacer; use an inset focus ring so clipping doesn't hide it. Update TabBar's comment and docs/domain/app-shell.md if it describes the look.
+
+### B-684 · change · Forms everywhere: a colored asterisk (*) marks required fields, and the optional labels go
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: use colored stars on required fields instead of optional labels on optional fields, everywhere. Code read: Field (apps/web/app/components/ui/Field.tsx) has no required prop and no field uses a required attribute today, while about 57 lines contain Optional text: mostly labels like 'Note (optional)', plus help text like 'Optional: Grandma, Dad, a nickname.' and picker labels passed in by callers (ProviderPickerField, ProvidersPickerField, ConditionsField). Some hits are code comments or TimeSelect's optional prop, not labels. Plan: add one required prop to Field and to the group controls that render their own label or legend (ChoiceGroup, pickers, date and time fields), so the star lives in one place. Derive each form's required fields from its Zod schema and service rules rather than guessing, including conditional ones (Other care period needs a label). Remove '(optional)' from labels and reword help text that only says Optional, keeping any useful hint. Accessibility: the star is aria-hidden, the control gets aria-required so screen readers still hear it, and the star's color must meet contrast in light and dark. Use aria-required, not the native required attribute, unless the form sets noValidate, so browser popups don't replace our inline errors. Default color, stated to the user: the theme's error color. Update tests that find fields by '(optional)' names (6 test files) and docs/domain/ui-kit.md. Covers app, sign-in and admin forms. New onboarding forms (B-670) follow the same rule.
+- 2026-11-23 (Robert Bo Davis): User, 2026-11-23: 'stars' means an asterisk. Use the * character after the label, not a star icon. Wherever the earlier note says star, read asterisk.
+
+### B-685 · change · Care period form: show the Where is care now? options in a simple two-column grid
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the 'Where is care' options on the care period form are very cluttered. Code read: PeriodForm (apps/web/app/routes/app/groups/periods/PeriodForm.tsx:93) renders all ten CARE_PERIOD_TYPES (Home, Emergency, Hospital, Rehab, Assisted living, Memory care, Nursing home, Hospice at home, Hospice facility, Other) through ChoiceGroup, a wrapping row of joined buttons meant for one of a few choices. Default fix, stated to the user: a native select labelled 'Where is care now?', following the native-elements-first rule. Keep the type field name and its validation error, the URL prefills, the existing value on edit, and the conditional Label field when Other is chosen. Check it at phone width and update the period tests that pick a type as a radio. The new care period onboarding step (B-670) reuses this form, so it gets the fix too.
+- 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: go with two columns and keep the entry simple. This replaces the native select default. Ten plain text options in two columns of equal width, five rows, at phone and desktop widths: one short label each, no icons or descriptions, with one clear selected state. Keep native radios (name, arrow keys, the radiogroup and its error handling) and the existing prefill, edit value and Other's Label field. Add the layout to ChoiceGroup as a small option or a sibling in ui/, so other ChoiceGroups keep their joined row. Check the longest labels fit at phone width without truncating. Period tests that pick a type as a radio should keep working.
+
+### B-686 · change · Add a provider: phone type is a dropdown of common types, with Custom for typing your own
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the phone number type on Add a provider should be a dropdown with options, plus an extra option that allows free-form text. Code read: the type is a free-text label input in the shared PhoneFields (apps/web/app/components/contact/PhoneFields.tsx:51), used by ProviderForm, RecipientContactForm and the user's ContactForm. Scope, stated to the user: ProviderForm only (add and edit share it), through a prop so the other two forms keep the text input unless the user asks. Default options, from the labels already in seed data: Office, Mobile, Front desk, Nurse line, After hours, Refills, Fax, then Custom, which reveals a text input (phoneLabel limit 40). Use a native select. No migration: phones stay [{ label, number }] and the select still posts one phoneLabel per row, in order, so phonesFromForm and row error mapping keep working. On edit, a stored label matching an option selects it; any other stored label opens Custom with its text, never lost. A blank label must stay possible, since today's label is optional. Check the row at phone width, because the label column is only w-28 and Custom adds an input; move focus to the text input when Custom is chosen. Update the provider form tests.
+
+### B-687 · change · Add a provider: saving opens the new provider's page instead of returning to the list
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: you should land on the newly created provider after creating it. Code read: providers/new/route.tsx clientAction drops the id (returns { ok: true }) and ProviderForm's onDone is the sheet's close, which goes back to the list. createProvider already returns { ok: true, id }, so no data change is needed. Fix: return the id from the action, pass it to the new sheet's onDone, and navigate to appUrls provider(groupId, id) with replace, so Back from the provider goes to the directory rather than reopening a submitted form. Cancel, Escape and a tap outside still close to where the user was. Keep it local and offline: the read must find the row just written, without a server call. ActionResult has no id today, so use a route-local result type or widen it carefully. Edit keeps its current behaviour. ProviderForm stays navigation-free: the inline onboarding provider step (B-670) passes its own onDone and stays in the flow. Update providerSheets.browser.test.tsx.
+
+### B-688 · change · Add a medication: saving opens the new medication's page instead of returning to the list
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: same as B-687 (saving a new provider opens its page): adding a medication should land on the medication, not the list. Code read: medications/new/route.tsx is the add sheet over the Schedule or List tab. Its clientAction has the id from createMedication but returns { ok: true }, and onDone is the sheet's close. The page already exists (appUrls.medication, medications/:medicationId). Fix: return the id, pass it to the new sheet's onDone, and navigate there with replace, so Back from the medication goes to the tab the sheet opened over rather than reopening a submitted form. Cancel, Escape and a tap outside still close to that tab. Keep it local and offline. Edit keeps its behaviour, and MedicationForm stays navigation-free so the inline onboarding step (B-670) passes its own onDone and stays in the flow. Share the ActionResult-with-id approach with B-687. Watch one edge: the action writes the medication, then its conditions; if the conditions step refuses, the medication already exists but the form shows an error, so decide whether that case still lands on the page rather than inviting a duplicate save. Pass log's add flow (see B-657) is a separate path and isn't changed unless it uses this route. Update medicationForm.browser.test.tsx.
+
+### B-689 · bug · Planner: adding a todo from Upcoming or Past doesn't reliably land on the Todos tab
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: sporadically, after adding a todo from the Upcoming or Past tabs, they aren't taken to the Todos tab. Expected: always land on Todos after a save. Not reproduced; code read only. useCloseTodoSheet (routes/app/groups/todos/todoSheet.ts:29) has two outcomes. With TODO_SHEET_STATE, which the Planner's Add menu sets (PlannerHeader.tsx:111), it does navigate(-1), back to the opener tab. Without that state (comment: a bookmark, a reload) it replaces with the Todos list. So the Todos landing is the fallback rather than the designed path, which would explain it appearing only sometimes; confirm which condition drops the state. Fix: the Planner's Add Todo marks its intent (for example a separate field in its link state), and a successful save from it navigates to appUrls.todos(groupId, listSearch(search)) with replace, so Back doesn't reopen the form or bounce oddly. Cancel, Escape and a tap outside still return to the opener tab. Don't change other openers that share this sheet: quick entry's Edit on the timeline, LinkedTodos and a todo's page must keep returning where they were. Check that a kept Todos filter (Mine, Unassigned) doesn't hide the new todo right after landing. Add a browser test from both Upcoming and Past in planner.browser.test.tsx.
+
+### B-690 · bug · Planner events return to the Planner: a new event to Upcoming or Past by its time, an opened event to where it was opened
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23, reported as two bugs with one fix: (1) on completion, adding an event from the Planner goes to the Timeline instead of the Planner; (2) it should go to the tab matching the event's time: Past if it's in the past, Upcoming if it's in the future. Code read, not reproduced: Add > Event (PlannerHeader.tsx:103) opens the full entry page at entries/new?kind=event&when=pick with no link state. That page autosaves and has no Save or Done button, so 'completion' is leaving it, and its only exit is BackLink to={timelineUrl} labelled Timeline (routes/app/groups/entry/route.tsx:103). Fix: mark the Planner as the opener in link state. The first save does navigate(appUrls.entry(...), { replace: true }) in useLiveEntry.ts (lines 199 and 227, one-off and repeating), which drops history state unless it's carried over, so carry it. While that mark is present, the back link reads Planner and goes to appUrls.plannerPast when the event is past, else appUrls.planner, decided when the user leaves so a time edited on the page counts. Use the Planner's own rule, isUpcoming/entryTiming in lib/appointments/upcoming.ts: in progress and today's all-day events count as Upcoming. An abandoned unsaved draft returns to the tab it was opened from. Deleting that event (EntryPageHeader.tsx:146, useLiveEntry.ts:342) should also return to the Planner rather than the Timeline. Entries opened any other way keep the Timeline link. Add browser tests for a past event, a future event, an in-progress event and a time changed before leaving.
+- 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: existing events opened from the Planner should also return to the Planner, specifically to where the event was opened. This extends the item. Two rules: a NEW event added from the Planner goes to Past or Upcoming by its time when leaving. An EXISTING event opened from a Planner row goes back to the tab it was opened from, even if its time was edited so it now belongs on the other tab, with that tab's URL filters kept and its scroll position restored where the router allows. Pass the opener's full URL (path and search) in the row links' history state on Upcoming and Past, and label the back link Planner. Deleting an existing event opened this way also returns to that opener. A reload should keep the return path if history state survives; a direct link or bookmark has no opener and keeps the Timeline link. Add browser tests for opening from Upcoming and from Past with a filter set, including Back after editing the time.
+
+### B-691 · bug · Event time picker: the calendar spills outside its overlay instead of sitting inside it
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev with a screenshot, 2026-11-23 (dark theme, new event page): the calendar is not contained in the date picker overlay. It floats over the Starts panel, wider than it and past its left and bottom edges, covering the fields below. Code read: EntryTimeChip's Popover is a w-72 PopoverPanel, and DateTimeField (components/ui/date/DateTimeField.tsx:194) opens its calendar as a second, nested PopoverPanel placed bottom end, with a w-72 Calendar plus p-3. So the calendar's surface is wider than the outer panel and is positioned independently of it. Fix: when DateTimeField is inside another popover, render the calendar inline in that panel, expanding it below the field, with no second surface. Use an explicit prop or context so fields in sheets and forms keep their current popover. The calendar must fit the panel's content width (w-72 less padding) with 44px-friendly day cells as far as that width allows. Keep calendarOpen on arrival (Add event's pickDay), the first picked day starting at 9:00, the calendar toggle, Esc closing the calendar before the outer panel, and a tap in the calendar not counting as a tap outside. With Starts and Ends, only one calendar is open at a time. The taller panel must stay on screen at phone width and short heights, scrolling inside if needed, with Done reachable. Update the DateTimeField and entry time chip browser tests.
+
+### B-692 · change · New event: after picking the date, focus moves to the title, which prompts Enter a title to save
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the new event flow is confusing. After the date is selected, focus should move to the title, and the title field should be a prompt like 'Enter a title to save', because it isn't clear that it saves on entry. Code read: Add event opens a draft with the time popover and calendar open (pickDay). Picking a day alone never saves a draft (changeSchedule in useLiveEntry.ts). The first save comes from a title (EntryTitle commits on blur or Enter), a suggested title chip, typed notes, a place, or a linked provider. The placeholder is currently just 'Title'. Fix: (1) only on the first day pick of a pickDay draft, close the calendar and time popover, commit the schedule, and focus the title input, overriding the popover's usual focus return to its trigger. Later openings of the time chip behave as usual, and so does typing in the date field, which shouldn't jump focus mid-edit. (2) On an unsaved new event, the placeholder reads 'Enter a title to save'; the accessible name stays Title, and saved unnamed events keep their current placeholder. Keep the suggested title chips, which save when tapped. Trade-off to check: closing the popover skips the time, which stays at the default hour; the time chip remains visible to change it. Check phones: iOS may not open the keyboard for focus set after an async close, so focus within the tap's gesture if possible. Coordinate with B-691 (calendar inside its overlay), which changes the same popover. Update the entry draft browser tests.
+
+### B-693 · change · New events and notes: the first save shows a saved toast (after the shared toast system)
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the first save should probably generate a toast once toasts are in place. Filed apart from B-692 (focus moves to the title) so that fix doesn't wait. BLOCKED BY B-669 (shared toast system), which is in onboarding-2, on hold: don't start this until B-669 has landed. Code read: the first save is the save() path in routes/app/groups/entry/useLiveEntry.ts, one-off and repeating (lines 196 and 220), each followed by a replace navigation from entries/new to entries/:id, so the toast must live in the shared queue and survive that navigation. Show it once, only on a draft's first successful save, whatever triggered it (title, chip, notes, place, provider), and never on later autosaves or a failed save. Default wording 'Event saved'. It's a local write, so it works offline and must not imply it has synced. Scope is new events; the same path saves new notes, which stay silent unless the user asks.
+- 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: new notes get the toast too. This replaces 'new notes stay silent'. Wording by kind: 'Event saved' or 'Note saved'. The same rules apply: once, on a draft's first successful save, whatever triggered it, and never on later autosaves. For notes, the trigger is usually the first typed text, so the toast must not take focus or interrupt typing.
+
+### B-694 · change · Complex create forms: core fields first, the rest under an Advanced options section
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User, hand-testing on dev: new-item forms that are complex should show a core set of required and key optional fields, with the rest in an Advanced options dropdown, so first entry is less confusing. No shared disclosure exists in the app yet (no <details> in app forms): add one to ui/, native <details> first. Default scope, for the user's review: MedicationForm (core: name, type, strength, dose, schedule; advanced: form, directions, why it's taken, started on, refills, Rx number), ProviderForm (core: type, name, phone; advanced: practice, email, address, website, status), ConditionForm (core: name, status; advanced: since, note, diagnosed by, managed by). Short forms stay as they are: todo, care period, timeline entry, allergy. Rules: creating starts collapsed; editing opens the section when any advanced field has a value, so saved data is never hidden; a validation error inside it opens it and focuses the field; values survive collapsing; the discard prompt still counts them. Coordinate with B-684 required asterisks and B-686 provider phone type, same forms.
