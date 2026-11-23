@@ -54,6 +54,7 @@ describe("words that aren't times", () => {
     "the 2nd at 25",
     "gave the 2nd at bedtime",
     "gave the 2nd at home",
+    "gave the 2nd evening",
     "took 2nd at lunch",
     "had her 2nd at the clinic",
     "her 2nd at the clinic",
@@ -115,6 +116,23 @@ describe("the days they must not take away", () => {
   test("a named ordinal before a clock time stays that day", () => {
     expect(specOf("dr lee the 2nd at 2pm")?.day).toEqual({ date: 2 });
     expect(specOf("dr lee the 2nd at 2pm")?.clock).toMatchObject({ hour: 2, meridiem: "pm" });
+  });
+
+  test.each([
+    ["gave the 2nd at night", "night"],
+    ["gave the 2nd in the morning", "morning"],
+    ["a 2nd in the morning", "morning"],
+  ])("%s keeps the part of day and takes no day", (line, period) => {
+    expect(specOf(line)?.day).toBeUndefined();
+    expect(find(line)?.spec).toMatchObject({ period });
+  });
+
+  test.each([
+    ["dr lee the 2nd in the morning", "morning"],
+    ["dr lee the 2nd at night", "night"],
+  ])("%s stays on that day", (line, period) => {
+    expect(specOf(line)?.day).toEqual({ date: 2 });
+    expect(specOf(line)).toMatchObject({ period });
   });
 
   test("a count word still guards an ordinal after 'on'", () => {
