@@ -6,6 +6,7 @@ import { fx, TEST_USER } from "../../../../../test/fixtures";
 import { pageHeader } from "../../../../../test/pageHeader";
 import {
   ADD_PROVIDER,
+  ALVAREZ,
   filterChips,
   chooseFilter,
   CURRENT_NAMES,
@@ -27,8 +28,8 @@ import {
 
 // The provider directory on the test device (providers.mjs's list steps):
 // display order with past providers under their label, search and the type
-// chips in the URL (so a reload keeps them), each row's contact links and
-// their names, nothing wider than a phone, a viewer's view-only list and
+// chips in the URL (so a reload keeps them), each row as one target with no
+// contact links, nothing wider than a phone, a viewer's view-only list and
 // sheet URLs, and a non-member's 404. The device is offline throughout, so
 // all of it is the offline directory too. The order, matching and contact
 // links are pure rules with unit tests (providerDirectory.test.ts,
@@ -132,55 +133,26 @@ describe("the directory", () => {
   });
 });
 
-describe("contact details on each row (B-44)", () => {
-  /** A row's contact links: name (what it does, then the value), href, target, and z-index over the row's open link. */
-  const rowLinks = (name: string) => {
-    const li = [...document.querySelectorAll<HTMLElement>("main li[data-provider-id]")].find(
-      (row) => row.querySelector("[data-provider-name]")?.textContent.trim() === name,
-    )!;
-    return [...li.querySelectorAll<HTMLAnchorElement>("[data-contact-details] a")].map((a) => [
-      a.querySelector(".sr-only")!.textContent + a.querySelector(".truncate")!.textContent,
-      a.getAttribute("href"),
-      a.getAttribute("target"),
-      getComputedStyle(a).zIndex,
-    ]);
-  };
-
-  test("a clinician's numbers dial (an extension after a pause) and her email mails her, each named for what it does", async () => {
+describe("a row is one target (B-422)", () => {
+  test("no row shows contact details or links: its only link is the provider's page", async () => {
     await open();
-    expect(rowLinks("Dr. Elena Alvarez")).toEqual([
-      ["Call Dr. Elena Alvarez, office: (555) 010-2200 x214", "tel:5550102200,214", null, "10"],
-      ["Call Dr. Elena Alvarez, after hours: (555) 010-2299", "tel:5550102299", null, "10"],
-      [
-        "Email Dr. Elena Alvarez: e.alvarez@westsidefamily.example",
-        "mailto:e.alvarez@westsidefamily.example",
-        null,
-        "10",
-      ],
-    ]);
-  });
-
-  test("a practice's row: every number, and its address as a maps link in a new tab", async () => {
-    await open();
-    const links = rowLinks("Westside Family Medicine").map(([name, href, target]) => [
-      name,
-      href!.startsWith("https://www.google.com/maps/") ? "maps" : href,
-      target,
-    ]);
-    expect(links).toEqual([
-      ["Call Westside Family Medicine, front desk: (555) 010-2200", "tel:5550102200", null],
-      ["Call Westside Family Medicine, fax: (555) 010-2201", "tel:5550102201", null],
-      ["Call Westside Family Medicine, nurse line: (555) 010-2210", "tel:5550102210", null],
-      [
-        "Open Westside Family Medicine's address in maps: 1200 Westside Ave, Suite 300, Springfield, CA 90000",
-        "maps",
-        "_blank",
-      ],
-    ]);
+    await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
+    const rows = [...document.querySelectorAll<HTMLElement>("main li[data-provider-id]")];
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect([...row.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([
+        `${PROVIDERS_URL}/${row.dataset.providerId}`,
+      ]);
+    }
+    const alvarez = rows.find((row) => row.dataset.providerId === ALVAREZ.id)!;
+    expect(alvarez.textContent).not.toContain("010-2200");
+    expect(alvarez.textContent).not.toContain("e.alvarez@westsidefamily.example");
+    const westside = rows.find((row) => row.dataset.providerId === WESTSIDE.id)!;
+    expect(westside.textContent).not.toContain("1200 Westside Ave");
   });
 
   test.each(["light", "dark"] as const)(
-    "420 (%s): the details wrap or truncate, with no horizontal overflow",
+    "420 (%s): rows truncate, with no horizontal overflow",
     async (theme) => {
       await open({ theme });
       const page = document.documentElement;

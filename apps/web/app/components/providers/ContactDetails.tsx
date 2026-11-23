@@ -3,11 +3,11 @@ import type { ContactDetail } from "~/lib/providers/contactActions";
 import { ACTION_ICONS, actionLinkProps } from "./ContactActions";
 
 /**
- * A directory row's contact details as visible links: each number with its
- * label, the address (maps) and the email. Each link is named for what it
- * does ("Call Dr. Alvarez, office: (555) 010-2200") and sits above the row's
- * stretched open target (`relative z-10`), so a tap between links still opens
- * the row. Long values truncate rather than widen the row.
+ * A provider's contact details as visible links (Easy mode's search result):
+ * each number with its label, the address (maps) and the email. Each link is
+ * named for what it does ("Call Dr. Alvarez, office: (555) 010-2200") and sits
+ * above any stretched open target around it (`relative z-10`). Long values
+ * truncate rather than widen the row.
  */
 export function ContactDetails({ details, muted = false }: { details: ContactDetail[]; muted?: boolean }) {
   if (details.length === 0) return null;
