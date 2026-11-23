@@ -1,15 +1,14 @@
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { Link } from "react-router";
-import { ContactDetails, ProviderTypeIcon } from "~/components/providers";
+import { ProviderTypeIcon } from "~/components/providers";
 import { appUrls } from "~/lib/app-shell/appUrls";
-import { contactDetails } from "~/lib/providers/contactActions";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 
 /**
- * A provider in the directory: what they are, the badges, and their numbers,
- * address and email as links (B-44). The name is a link stretched over the
- * row, so a tap anywhere else opens their page; the contact links sit above it.
+ * A provider in the directory: what they are and the badges. The name is a
+ * link stretched over the row, so the whole row is one target that opens their
+ * page, where the contact links sit beside the notes (B-422).
  */
 export function ProviderListItem({
   provider,
@@ -41,7 +40,6 @@ export function ProviderListItem({
           {past && <span className="badge badge-ghost badge-sm shrink-0">Past</span>}
         </p>
         <p className="text-base-content/70 truncate text-sm">{details.join(" · ")}</p>
-        <ContactDetails details={contactDetails(provider)} muted={past} />
       </div>
     </li>
   );
