@@ -7,9 +7,9 @@
 | Slice | Wave | State                           | Merge into `prd/agent-autonomy-3` (slice commits) |
 | ----- | ---- | ------------------------------- | ------------------------------------------------- |
 | 1     | 1    | merged, worktree removed (opus) | f84b26e1 (be4214ea)                               |
-| 2     | 2    | —                               | —                                                 |
-| 3     | 2    | —                               | —                                                 |
-| 4     | 2    | —                               | —                                                 |
+| 2     | 2    | started, agent spawned (opus)   | —                                                 |
+| 3     | 2    | started, agent spawned (opus)   | —                                                 |
+| 4     | 2    | started, agent spawned (opus)   | —                                                 |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up. Questions go through `pnpm prd ask`, never the terminal.
 
@@ -25,7 +25,7 @@
 - Slice 3: land verdicts need the full 40-character tip and an action of `force`, `no-review` or `decline <thread>`. They aren't spent, so a retry on the same tip works: use `checkRecord`, not `useRecord`.
 - Slice 4: plan verdicts are `go` or `send-back`. A land `no` or plan `send-back` used for an ask is bound only by topic, age and single use.
 
-**Wave 1:** landed in dev as ed73b3a3 through PR #103 (Codex clean on 84079b2, tier `none`), report filed, machinery doc folded. **Next: wave 2, slices 2, 3 and 4 together** (all ready; slice 1 is merged): `pnpm backlog claim B-512 B-513 --owner prd/agent-autonomy-3`, sync first, opus for each. B-511 stays in progress until slice 2 merges.
+**Wave 1:** landed in dev as ed73b3a3 through PR #103 (Codex clean on 84079b2, tier `none`), report filed, machinery doc folded. **Wave 2 is running:** synced with dev (up to date at 2b318f84), B-512 and B-513 claimed, worktrees `agent-autonomy-3-2`, `-3`, `-4` made and one opus agent spawned for each. Next: merge hand-offs in plan order (2, 3, 4), quick check after each. B-511 stays in progress until slice 2 merges.
 
 Fold into the docs at landing (the PRD's _Docs at landing_): wave 1, [machinery](../docs/agents/machinery.md) (the store and the brief); wave 2, machinery, [orchestrator](../docs/agents/orchestrator.md), [planner](../docs/agents/planner.md), [preferences](../docs/agents/preferences.md), [backlog](../docs/agents/backlog.md). Trim at least what you fold in.
 
