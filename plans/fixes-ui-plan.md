@@ -16,28 +16,30 @@ At wave 2 landing: fold the Event wording into `appointments.md`, `todos.md` and
 
 Slice 13 decisions: optional times (todo due, series Ends) stay empty by default; required ones default to the current hour at :00.
 
+Slice 14 gaps to file as follow-ups once the wave is green: a sync after the first touch can read as a change; Back after a failed save does not ask until the next touch; a record deleted elsewhere can prompt; Back with an unguarded sheet on top of a changed one does not ask; Discard under reduced motion has no test; `InviteSheet`, `InviteLinks`, provider import, `RepeatSheet` and `VisitPrepSheet` are unguarded. Wave gate: full check on the tip, then `pnpm prd browser --changed --base dev` (the user asks to be asked before any `--suite`).
+
 Notes for the next wave:
 
 - Until B-576 (local lint runs out of memory) is fixed, run checks and landings with `NODE_OPTIONS=--max-old-space-size=6144`; lint passes Node's 4 GB default even on a quiet machine.
 - A print-menu test can fail in a full run and pass alone (B-552, the known race).
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State            | Merge    |
-| ----- | ----- | ---------------- | -------- |
-| 1     | B-256 | merged (opus)    | b5373bc9 |
-| 2     | B-416 | merged (opus)    | f6f40e4f |
-| 3     | B-538 | merged (opus)    | 439b6571 |
-| 4     | B-412 | merged (opus)    | 91aced06 |
-| 5     | B-519 | merged (opus)    | b2aa214a |
-| 6     | B-413 | merged (opus)    | 13ac9f5a |
-| 7     | B-422 | merged (opus)    | 8834115b |
-| 8     | B-421 | merged (opus)    | fc5dbe18 |
-| 9     | B-319 | merged (opus)    | 488e09bf |
-| 10    | B-536 | merged (sonnet)  | c9c510cf |
-| 11    | B-575 | merged (sonnet)  | 123f2b24 |
-| 12    | B-537 | merged (opus)    | 5566480a |
-| 13    | B-535 | merged (opus)    | 1dc972d8 |
-| 14    | B-316 | in flight (opus) | -        |
+| Slice | Item  | State                                                    | Merge    |
+| ----- | ----- | -------------------------------------------------------- | -------- |
+| 1     | B-256 | merged (opus)                                            | b5373bc9 |
+| 2     | B-416 | merged (opus)                                            | f6f40e4f |
+| 3     | B-538 | merged (opus)                                            | 439b6571 |
+| 4     | B-412 | merged (opus)                                            | 91aced06 |
+| 5     | B-519 | merged (opus)                                            | b2aa214a |
+| 6     | B-413 | merged (opus)                                            | 13ac9f5a |
+| 7     | B-422 | merged (opus)                                            | 8834115b |
+| 8     | B-421 | merged (opus)                                            | fc5dbe18 |
+| 9     | B-319 | merged (opus)                                            | 488e09bf |
+| 10    | B-536 | merged (sonnet)                                          | c9c510cf |
+| 11    | B-575 | merged (sonnet)                                          | 123f2b24 |
+| 12    | B-537 | merged (opus)                                            | 5566480a |
+| 13    | B-535 | merged (opus)                                            | 1dc972d8 |
+| 14    | B-316 | merged (opus), worktree kept until the full check passes | 3c7a6607 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
