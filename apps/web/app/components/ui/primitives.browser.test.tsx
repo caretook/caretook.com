@@ -679,6 +679,29 @@ describe("DateTimeField", () => {
       expect(segment("day").textContent).toBe("18");
     });
 
+    // A page is two hours. On 18 November 2026: 12 AM is 08:00Z, 12 PM is 20:00Z.
+    test.each([
+      ["PageUp", "10 AM", "2026-11-18T18:00:00.000Z", "2026-11-18T20:00:00.000Z", ["12", "PM"]],
+      ["PageUp", "11 AM", "2026-11-18T19:00:00.000Z", "2026-11-18T21:00:00.000Z", ["1", "PM"]],
+      ["PageDown", "12 PM", "2026-11-18T20:00:00.000Z", "2026-11-18T18:00:00.000Z", ["10", "AM"]],
+      ["PageDown", "1 PM", "2026-11-18T21:00:00.000Z", "2026-11-18T19:00:00.000Z", ["11", "AM"]],
+      ["PageUp", "10 PM", "2026-11-19T06:00:00.000Z", "2026-11-18T08:00:00.000Z", ["12", "AM"]],
+      ["PageUp", "11 PM", "2026-11-19T07:00:00.000Z", "2026-11-18T09:00:00.000Z", ["1", "AM"]],
+      ["PageDown", "12 AM", "2026-11-18T08:00:00.000Z", "2026-11-19T06:00:00.000Z", ["10", "PM"]],
+      ["PageDown", "1 AM", "2026-11-18T09:00:00.000Z", "2026-11-19T07:00:00.000Z", ["11", "PM"]],
+    ])("%s from %s crosses AM/PM on the same date", async (key, _from, iso, expected, time) => {
+      const onChange = await focused(iso);
+      expect(await pressed(onChange, `{${key}}`)).toBe(expected);
+      await expect.poll(shown).toEqual(time);
+      expect(segment("day").textContent).toBe("18");
+    });
+
+    test("a page inside AM or PM still moves two hours", async () => {
+      const onChange = await focused("2026-11-18T17:00:00.000Z");
+      expect(await pressed(onChange, "{PageUp}")).toBe("2026-11-18T19:00:00.000Z");
+      await expect.poll(shown).toEqual(["11", "AM"]);
+    });
+
     test("typing an hour and stepping AM/PM are React Aria's own", async () => {
       const typed = await focused("2026-11-18T19:00:00.000Z");
       expect(await pressed(typed, "3")).toBe("2026-11-18T11:00:00.000Z");
