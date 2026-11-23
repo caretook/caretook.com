@@ -17,16 +17,19 @@ let seq = 0;
 const key = () => `test:${run}:${++seq}`;
 const data = { name: "Avery", message: "Hello" };
 
-const queue = async (opts: { to?: string } = {}) => {
+const queue = async (opts: { to?: string; expiresAt?: string } = {}) => {
   const queued = await notify("testMessage", {
     to: opts.to ?? `ob-${run}@example.com`,
     data,
     idempotencyKey: key(),
+    expiresAt: opts.expiresAt,
     deliver: false,
   });
   if (isError(queued)) throw new Error(String(queued.code));
   return queued.id;
 };
+
+const fromNow = (ms: number) => new Date(Date.now() + ms).toISOString();
 
 const rowOf = async (id: string) => {
   const [row] = await getDb().select().from(outbox).where(eq(outbox.id, id));
@@ -207,6 +210,92 @@ describe("deliverDue", () => {
     const sender = createMemorySender();
     expect(await deliverDue({ sender })).toMatchObject({ claimed: 1, sent: 1 });
     expect(await rowOf(id)).toMatchObject({ status: "sent", attempts: 2 });
+  });
+});
+
+describe("a message's expiry", () => {
+  it("stores it, and none when left out", async () => {
+    const expiresAt = fromNow(3_600_000);
+    const row = await rowOf(await queue({ expiresAt }));
+    expect(new Date(row?.expiresAt ?? 0).toISOString()).toBe(expiresAt);
+    expect((await rowOf(await queue()))?.expiresAt).toBeNull();
+  });
+
+  it("skips a row past its expiry and sends nothing", async () => {
+    const id = await queue({ expiresAt: fromNow(-1_000) });
+    const sender = createMemorySender();
+    expect(await deliverDue({ sender })).toMatchObject({ claimed: 1, sent: 0, skipped: 1, expired: 1 });
+    expect(sender.sent).toHaveLength(0);
+    const row = await rowOf(id);
+    expect(row).toMatchObject({ status: "skipped", lastError: "expired" });
+    expect(row?.sentAt).not.toBeNull();
+    await makeDue([id]);
+    expect(await deliverDue({ sender })).toMatchObject({ claimed: 0 });
+  });
+
+  it("skips a row a crashed sweep left sending, once it has expired", async () => {
+    const id = await queue({ expiresAt: fromNow(-1_000) });
+    await getDb()
+      .update(outbox)
+      .set({ status: "sending", attempts: 1, claimedAt: sql`now() - interval '11 minutes'` })
+      .where(eq(outbox.id, id));
+    const sender = createMemorySender();
+    expect(await deliverDue({ sender })).toMatchObject({ claimed: 1, expired: 1 });
+    expect(sender.sent).toHaveLength(0);
+    expect(await rowOf(id)).toMatchObject({ status: "skipped", lastError: "expired" });
+  });
+
+  it("sends a row whose expiry is still ahead", async () => {
+    const id = await queue({ expiresAt: fromNow(3_600_000) });
+    const sender = createMemorySender();
+    expect(await deliverDue({ sender })).toMatchObject({ sent: 1, expired: 0 });
+    expect(sender.sent).toHaveLength(1);
+    expect(await rowOf(id)).toMatchObject({ status: "sent", lastError: null });
+  });
+
+  it("skips a failed send whose next try would fall after its expiry", async () => {
+    // The first retry waits a minute; this row has thirty seconds left.
+    const id = await queue({ expiresAt: fromNow(30_000) });
+    const failing = createMemorySender({ fail: () => true });
+    expect(await deliverDue({ sender: failing })).toMatchObject({
+      claimed: 1,
+      retried: 0,
+      skipped: 1,
+      expired: 1,
+    });
+    expect(await rowOf(id)).toMatchObject({ status: "skipped", lastError: "expired", attempts: 1 });
+    await makeDue([id]);
+    expect(await deliverDue({ sender: failing })).toMatchObject({ claimed: 0 });
+  });
+
+  it("retries a failed send while the next try is before its expiry", async () => {
+    const expiresAt = fromNow(3_600_000);
+    const id = await queue({ expiresAt });
+    const failing = createMemorySender({ fail: () => true });
+    expect(await deliverDue({ sender: failing })).toMatchObject({ retried: 1, expired: 0 });
+    const row = await rowOf(id);
+    expect(row).toMatchObject({ status: "pending", attempts: 1 });
+    expect(new Date(row?.nextAttemptAt ?? 0).getTime()).toBeLessThan(Date.parse(expiresAt));
+  });
+
+  it("retries a failed send with no expiry as before", async () => {
+    const id = await queue();
+    const failing = createMemorySender({ fail: () => true });
+    expect(await deliverDue({ sender: failing })).toMatchObject({ retried: 1, skipped: 0, expired: 0 });
+    expect(await rowOf(id)).toMatchObject({ status: "pending", attempts: 1 });
+  });
+
+  it("is purged like any other skipped row", async () => {
+    const old = await queue({ expiresAt: fromNow(-1_000) });
+    const recent = await queue({ expiresAt: fromNow(-1_000) });
+    await deliverDue({ ids: [old, recent], sender: createMemorySender() });
+    await getDb()
+      .update(outbox)
+      .set({ sentAt: sql`now() - interval '31 days'` })
+      .where(eq(outbox.id, old));
+    await purgeSent();
+    expect(await rowOf(old)).toBeUndefined();
+    expect(await rowOf(recent)).toMatchObject({ status: "skipped", lastError: "expired" });
   });
 });
 

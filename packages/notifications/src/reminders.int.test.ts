@@ -120,6 +120,19 @@ describe("sweepReminders", { timeout: 30_000 }, () => {
     expect(late).toHaveLength(1);
   });
 
+  it("queues a reminder that expires when its event starts", async () => {
+    const { ana, remindersOn, addAppointment } = await setup();
+    await remindersOn(ana, { reminderLeads: [60] });
+    await addAppointment();
+
+    const res = await sweepReminders(HOUR_BEFORE, { deliver: false });
+    if (isError(res)) throw new Error(String(res.code));
+    const rows = await getDb().select().from(outbox).where(inArray(outbox.id, res.ids));
+    const mine = rows.filter((row) => row.recipient === ana.user.email);
+    expect(mine).toHaveLength(1);
+    expect(new Date(mine[0]?.expiresAt ?? 0).toISOString()).toBe(NINE.toISOString());
+  });
+
   it("sends again when a visit moves, and nothing once it's cancelled", async () => {
     const { ana, remindersOn, addAppointment } = await setup();
     await remindersOn(ana, { reminderLeads: [60] });

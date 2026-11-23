@@ -130,6 +130,35 @@ describe("reminderSendAt", () => {
   });
 });
 
+describe("a send's expiry", () => {
+  const dayItem = { allDay: true, start: "2026-11-19", end: "2026-11-20" };
+  const expiryOf = (it: ReminderItem, at: string, assignees: PlanRemindersArgs["assignees"] = {}) =>
+    plan({ items: [it], assignees, at }).map((send) => send.expiresAt);
+
+  it("is a timed event's start", () => {
+    expect(expiryOf(item(), "2026-11-19T16:00:00.000Z")).toEqual(["2026-11-19T17:00:00.000Z"]);
+  });
+
+  it("is the end of an all-day event's first day, in the event's zone", () => {
+    const days = item({ ...dayItem, end: "2026-11-22" });
+    expect(expiryOf(days, "2026-11-19T02:00:00.000Z")).toEqual(["2026-11-20T08:00:00.000Z"]);
+  });
+
+  it("is a timed todo's due time", () => {
+    const todo = todoItem();
+    expect(expiryOf(todo, "2026-11-19T16:00:00.000Z", { [todo.source.id]: ANA })).toEqual([
+      "2026-11-19T17:00:00.000Z",
+    ]);
+  });
+
+  it("is the end of an all-day todo's due day", () => {
+    const todo = todoItem(dayItem);
+    expect(expiryOf(todo, "2026-11-19T15:00:00.000Z", { [todo.source.id]: ANA })).toEqual([
+      "2026-11-20T08:00:00.000Z",
+    ]);
+  });
+});
+
 describe("planReminders", () => {
   it("sends nothing for a note, even a stored future one (it gives no calendar item)", () => {
     const note = {
