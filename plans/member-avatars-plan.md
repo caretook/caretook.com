@@ -8,17 +8,16 @@
 | ----- | ---- | ----------- | ------------------------------------------------- |
 | 1     | 1    | landed      | 816ac0c5 (aa217ed2, cd475969, 0cd26332, 129dbb45) |
 | 2     | 2    | landed      | a8f52f91 (567e2913), opus                         |
-| 3     | 3    | in progress | worktree member-avatars-3, agent spawned, opus    |
+| 3     | 3    | merged      | 3c244581 (14c5af53), opus                         |
 | 4     | 4    | not started |                                                   |
 
 **Landing mode:** run everything through (started run-through). Land each green wave, clean up, and ask only real questions through `pnpm prd ask`.
 
-**Now (2026-11-23):** wave 1 landed as a3e635e2 (PR #125). Wave 2 landed in `dev` as b1ee1d19 through PR #128, at tier `components` (CI run 45245508309 green on 38582b4d), with the browser suite 11 of 11. Codex did not review either wave (out of credits, `--no-review`). Report a156 is filed. **Wave 3 is running:** backlog ingested (nothing new for this topic), `pnpm prd sync` needed no merge, and slice 3 started from 07a45e70 on opus. **Next:** review its hand-off, merge, then the wave's CI run. B-593 stays claimed until slice 4 merges.
+**Now (2026-11-23):** wave 1 landed as a3e635e2 (PR #125). Wave 2 landed in `dev` as b1ee1d19 through PR #128, at tier `components` (CI run 45245508309 green on 38582b4d), with the browser suite 11 of 11. Codex did not review either wave (out of credits, `--no-review`). Report a156 is filed. **Wave 3:** slice 3 is merged (3c244581) and `dev` is merged in (42926067, which brings migration 0042 from another PRD). Its worktree stays until the verdict is green. **Next:** the wave's CI run, then PR, review, land. B-593 stays claimed until slice 4 merges.
+
+**For slice 4 (from slice 3's hand-off):** use `<MemberAvatar userId name image />` from `components/members`. `KindIcon`, `PlannerHeader` and `TimelineFilters` still use plain `UserAvatar`. `ProfileHeader` does too and isn't in slice 4's list: decide at slice 4. Known limits: past ten members a leaver can move someone on a repeated color to the freed one; avatars can show neutral briefly on entering a group; a quick A to B to A change can briefly show B.
 
 **No local quick check when CI will run (the user, 2026-11-23):** after a merge or dev sync, go straight to `pnpm prd ci run`. The slice agent's own check on its branch stays. Order per wave: merge, `pnpm prd sync`, one CI run on that tip, land on its verdict, with no quick check after the sync. Only docs commits go on top of the green tip, so the verdict still counts.
-
-**Owed to the user:** after the next real merge from `dev` (a `pnpm prd sync` that skips the merge doesn't count), check whether `docs/agents/orchestrator.md` and the orchestrator prompt (`pnpm prd prompt`) still tell orchestrators to run the quick check after merges and syncs, and tell the user either way (in a run-through session, in the landing report through `pnpm prd ask --report`). Delete this line once told.
-
 **Rechecks:** the user's "skip rechecks after a clean dev sync" covered wave 1 only. Later waves recheck after each dev sync unless the user repeats it.
 
 **Docs:** `sync` and `care-groups` are folded for waves 1 and 2 (the device queue is in `sync`). `app-shell` (the picker) and `ui-kit` (`UserAvatar` looks, tokens) are still to fold, at the waves that finish them. Both sit a few bytes under their 10 KB budget, so trim as much as you add.
