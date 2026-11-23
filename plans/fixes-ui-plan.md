@@ -20,22 +20,22 @@ Notes for the next wave:
 - A print-menu test can fail in a full run and pass alone (B-552, the known race).
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                        | Merge    |
-| ----- | ----- | ---------------------------- | -------- |
-| 1     | B-256 | merged (opus)                | b5373bc9 |
-| 2     | B-416 | merged (opus)                | f6f40e4f |
-| 3     | B-538 | merged (opus)                | 439b6571 |
-| 4     | B-412 | merged (opus)                | 91aced06 |
-| 5     | B-519 | merged (opus)                | b2aa214a |
-| 6     | B-413 | merged (opus)                | 13ac9f5a |
-| 7     | B-422 | merged (opus)                | 8834115b |
-| 8     | B-421 | merged (opus)                | fc5dbe18 |
-| 9     | B-319 | merged (opus)                | 488e09bf |
-| 10    | B-536 | in flight (sonnet)           | -        |
-| 11    | B-575 | handed off d7eafff5 (sonnet) | -        |
-| 12    | B-537 | handed off 24050cdf (opus)   | -        |
-| 13    | B-535 | blocked by 10 (opus)         | -        |
-| 14    | B-316 | blocked by 13 (opus)         | -        |
+| Slice | Item  | State                | Merge    |
+| ----- | ----- | -------------------- | -------- |
+| 1     | B-256 | merged (opus)        | b5373bc9 |
+| 2     | B-416 | merged (opus)        | f6f40e4f |
+| 3     | B-538 | merged (opus)        | 439b6571 |
+| 4     | B-412 | merged (opus)        | 91aced06 |
+| 5     | B-519 | merged (opus)        | b2aa214a |
+| 6     | B-413 | merged (opus)        | 13ac9f5a |
+| 7     | B-422 | merged (opus)        | 8834115b |
+| 8     | B-421 | merged (opus)        | fc5dbe18 |
+| 9     | B-319 | merged (opus)        | 488e09bf |
+| 10    | B-536 | merged (sonnet)      | c9c510cf |
+| 11    | B-575 | merged (sonnet)      | 123f2b24 |
+| 12    | B-537 | merged (opus)        | 5566480a |
+| 13    | B-535 | in flight (opus)     | -        |
+| 14    | B-316 | blocked by 13 (opus) | -        |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
