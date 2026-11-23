@@ -30,10 +30,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `dose-accuracy` | — | — | `packages/data/src/db/schema/medications/dueDoses.ts`, `packages/data/src/db/schema/medications/duePasses.ts`, `apps/web/app/lib/medications/medications.sync.ts`, `apps/web/app/lib/medications/dueDoses.sync.ts`, `apps/web/app/lib/appointments/visitPrep`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/assistantActionService.ts`, `packages/api/src/connectors/tools/todaysDoses.ts` | to write (B-297 to B-299), from the 2026-11-21 code review: a dose answers only its own day's slot, deterministic dose ids, visit prep's missed doses per schedule epoch · Hot files: `db/schema/medications/dueDoses.ts`, `medications.sync.ts` (`logDoses`), `visitPrep.ts` |
 | `symptom-catalog` | — | `quick-entry-2`, `dose-accuracy` | `packages/data/src/db/schema/timeline/`, `packages/data/src/services/timelineEntryService.ts`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/routes/app/groups/timeline/SymptomFields.tsx`, `apps/web/app/routes/app/groups/timeline/FeelingFields.tsx`, `apps/web/app/routes/app/groups/timeline/FilterSheet.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/daySummary`, `apps/web/app/lib/appointments/visitPrep`, `apps/web/app/lib/assistant/quickEntryPredictions`, `apps/web/app/components/quick-entry/` | to write (B-549): symptoms as a catalog type with a default set, quick add with a similar-name check, a multi-symptom filter; adds a migration |
 | `tags` | — | `symptom-catalog` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/routes/app/groups/timeline/FilterSheet.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/search/`, `scripts/browser-checks/sync-matrix.mjs` | to write (B-548): group-wide tags on every record, filterable on each list and in search; adds a migration |
-| `onboarding` | — | — | `apps/web/app/routes/account/join/`, `apps/web/app/routes/account/invite/`, `packages/auth/src/tickets.ts`, `packages/api/src/care-groups/`, `packages/data/src/services/careGroupInviteService.ts`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/root.tsx`, `apps/web/public/site.webmanifest`, `apps/web/app/routes/marketing/layout/`, `packages/data/src/db/schema/app-shell/userPreferences.ts`, `apps/web/app/lib/app-shell/me.ts`, `scripts/browser-checks/invites.spec.mjs` | to write (B-31): guided onboarding for new users, the real requirement; a demo group is one idea to refine; may point at the connect guide · Depends on: invites (done) · Hot files: seeds, careGroupService, /app home |
+| `onboarding` | done | — | `apps/web/app/routes/account/join/`, `apps/web/app/routes/account/invite/`, `packages/auth/src/tickets.ts`, `packages/api/src/care-groups/`, `packages/data/src/services/careGroupInviteService.ts`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/root.tsx`, `apps/web/public/site.webmanifest`, `apps/web/app/routes/marketing/layout/`, `packages/data/src/db/schema/app-shell/userPreferences.ts`, `apps/web/app/lib/app-shell/me.ts`, `scripts/browser-checks/invites.spec.mjs` | to write (B-31): guided onboarding for new users, the real requirement; a demo group is one idea to refine; may point at the connect guide · Depends on: invites (done) · Hot files: seeds, careGroupService, /app home |
 | `assistant-access` | done | — | `packages/data/src/db/schema/care-groups/careGroup.ts`, `packages/data/src/db/schema/connectors/connectorRules`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/careGroupService.ts`, `packages/api/src/care-groups/careGroup.ts`, `packages/api/src/connectors/protocol.ts`, `packages/api/src/connectors/connect.ts`, `packages/api/src/connectors/connector.ts`, `packages/api/src/connectors/tools/groupOverview.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/care-groups/assistantsSwitch.sync.ts`, `apps/web/app/routes/app/groups/settings/assistants/`, `apps/web/app/routes/connectors/connect/`, `apps/web/app/routes/app/settings/devices/ConnectedAssistants.tsx` | Owner chooses read/write or read only for a group's assistants (B-558) |
 | `code-health` | — | `check-speed`, `orchestration-2` | `packages/data/src/db/schema/`, `packages/data/src/domain/`, `packages/data/src/services/`, `packages/data/package.json`, `package.json`, `apps/web/package.json`, `apps/web/app/`, `packages/api/src/`, `scripts/loops/lib.sh`, `scripts/loops/lease.sh`, `scripts/loops/land.test.mjs`, `scripts/loops/check-areas.d/`, `scripts/backlog/backlog.mjs`, `scripts/build/` | [PRD](code-health-prd.md), [plan](code-health-plan.md) (B-361, B-365, B-366, B-367): 6 slices, waves (1, 2, 3, 5) → 4 → 6: exact pins and a test refusing ranges, unused exports removed, the backlog lock held once and a knobs page, tests on pr/ready/review/land, pure logic moved to @caretook/data/domain, then every importer switched (slice 6, alone, after simple-mode lands; it touches import lines across apps/web/app and packages/api). No behaviour change, no migration. Follow-ons: code-health-2, code-health-3 |
-| `fixes-bug` | standing | — | `packages/api/src/app-shell/me.ts`, `packages/data/src/db/schema/assistant/quickEntry` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
+| `fixes-bug` | standing | — | `packages/data/src/db/schema/assistant/quickEntry` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety` | — | — | `packages/api/src/sync`, `apps/web/app/lib/sync/`, `apps/web/app/lib/auth/session`, `apps/web/app/routes/sign-out.tsx`, `apps/web/app/routes/app/layout/SyncIndicator.tsx`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `packages/data/src/services/`, `apps/web/app/lib/medications/medications.sync.ts`, `apps/web/app/lib/providers/providers.sync.ts`, `scripts/browser-checks/roundtrip.spec.mjs`, `scripts/browser-checks/signout-wipe.spec.mjs`, `scripts/browser-checks/session-end.spec.mjs` | to write (B-285 to B-296, B-382 to B-384, B-387: repeating-todo upload bugs Codex found, moved from `planner-2`), from the 2026-11-21 code review (findings not re-verified): refused sync changes shown to the user, an upload queue that can't wedge, offline edits that don't revert a co-member's change, replayed PUTs, global client-chosen ids, the sign-out wipe and unsent writes, then the column-agreement test and one generic upload handler · Depends on: (none); `test-health` shares the upload tests (B-371, B-374) · Hot files: `packages/api/src/sync.ts`, `lib/sync/client.ts`, `SyncIndicator`, `session.ts`, `sign-out.tsx`, `medications.sync.ts`, `providers.sync.ts`, the services' `upsert`s |
 | `demo-site` | hold | — | — | Shared demo site with generic logins and nightly reset; separate environment |
@@ -113,7 +113,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
-| B-31 | feature | ready | onboarding | prd/onboarding | Guided onboarding for new users: a first-run flow that walks a new member through setting up and using the app (the real requirement; details to refine) |
+| B-31 | feature | landed | onboarding | prd/onboarding | Guided onboarding for new users: a first-run flow that walks a new member through setting up and using the app (the real requirement; details to refine) |
 | B-33 | plan | triaged | hosting |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
@@ -258,9 +258,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-500 | bug | triaged | fixes-tooling |  | Flaky under load: appointmentSeries.int.test.ts 'writes visits through today + 90 for a series without them' fails in full checks (2 of 7 runs); passes alone |
 | B-501 | bug | triaged | fixes-tooling |  | Flaky under load: recipientCondition.int.test.ts 'refuses viewers, outsiders and staff, and another group's recipient' fails in a full check; passes alone |
 | B-502 | bug | triaged | fixes-tooling |  | Flaky under load: search.int.test.ts 'searches a group of 10,000 entries in under 200 ms' reads 210 ms in a full check; passes alone |
-| B-511 | feature | in-progress | agent-autonomy-3 | prd/agent-autonomy-3 | Skeptic before every ask: a session sends its question, options and evidence to a fresh Fable skeptic first; it decides (reversible, within the rules) or confirms the question is the user's; pnpm prd ask records the verdict |
-| B-512 | feature | in-progress | agent-autonomy-3 | prd/agent-autonomy-3 | Skeptic before risky landings: a Fable skeptic reviews the evidence before land --force, landing on flaky tests (B-505) or declining a Codex finding, and the landing report says what it said |
-| B-513 | change | in-progress | agent-autonomy-3 | prd/agent-autonomy-3 | Opus planners and backlog sessions with a Fable final check: the skeptic pass runs on Fable and may send a plan back; a registry flag (e.g. design) keeps a heavy design topic's planner on Fable |
+| B-511 | feature | ready | agent-autonomy-3 | prd/agent-autonomy-3 | Skeptic before every ask: a session sends its question, options and evidence to a fresh Fable skeptic first; it decides (reversible, within the rules) or confirms the question is the user's; pnpm prd ask records the verdict |
+| B-512 | feature | ready | agent-autonomy-3 | prd/agent-autonomy-3 | Skeptic before risky landings: a Fable skeptic reviews the evidence before land --force, landing on flaky tests (B-505) or declining a Codex finding, and the landing report says what it said |
+| B-513 | change | ready | agent-autonomy-3 | prd/agent-autonomy-3 | Opus planners and backlog sessions with a Fable final check: the skeptic pass runs on Fable and may send a plan back; a registry flag (e.g. design) keeps a heavy design topic's planner on Fable |
 | B-515 | feature | triaged | inbox-agent |  | Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too |
 | B-518 | change | landed | agent-autonomy | prd/agent-autonomy | Land without re-syncing when dev's changes don't touch the branch: land.sh's drift refusal relaxes when dev's new commits share no file with the branch and bring none of the risky files; land still merges dev and typechecks the result, and the landing report says it landed on an unsynced tip |
 | B-525 | bug | triaged | fixes-tooling |  | Asks: two processes taking over a dead holder's ask lock can both remove it, so one deletes the other's fresh lock and an answer and a default overlap (asks.mjs withAskLock) |
@@ -288,7 +288,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-573 | bug | triaged | fixes-tooling |  | Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error |
 | B-574 | bug | triaged | fixes-tooling |  | ESLint aborts with exit 134 in the lint step of a check, seen in two worktrees within a second |
 | B-576 | bug | triaged | fixes-tooling |  | Local pnpm lint runs out of memory at Node's default 4 GB heap: CI sets 6 GB, local checks don't |
-| B-577 | change | triaged | ui-kit-5 |  | Finish the UI kit sweep: timeline, entries and quick entry (TodayRow, PassLogItem, EasyNext, EntryBody, the four skeleton files, containers); admin, account, connectors, marketing and the app frame (home's h1); then empty the guard's not-swept list and drop Menu's bare class-string trigger |
+| B-577 | change | in-progress | ui-kit-5 | prd/ui-kit-5 | Finish the UI kit sweep: timeline, entries and quick entry (TodayRow, PassLogItem, EasyNext, EntryBody, the four skeleton files, containers); admin, account, connectors, marketing and the app frame (home's h1); then empty the guard's not-swept list and drop Menu's bare class-string trigger |
 | B-578 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry reads other slash numbers as dates: 'gave 1/6 tylenol', 'bp 12/8', 'pain 5/5' |
 | B-580 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry dates a line ending in 'sat' to Saturday: 'she sat' |
 | B-581 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry keeps 'call the pharmacy in the morning' at 7:00 as a note, not a todo |
@@ -327,29 +327,33 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-625 | chore | triaged | contract-migrations |  | Drop todo.event_id and its old-client mirror once no device writes it |
 | B-626 | feature | triaged | planner-3 |  | Decide whether a rescheduled event's todos follow it to the new event |
 | B-627 | bug | triaged | dose-accuracy |  | A retried dose upload can undo a later Undo: B's accepted duplicate of A's dose, replayed after A deletes it, restores the dose as B's and marks the slot given again |
-| B-628 | bug | ready | fixes-bug | prd/fixes-bug | Saving preferences reads then writes without a lock, so two simultaneous requests can lose a change such as a setup card dismissal |
+| B-628 | bug | landed | fixes-bug | prd/fixes-bug | Saving preferences reads then writes without a lock, so two simultaneous requests can lose a change such as a setup card dismissal |
 | B-629 | bug | triaged | fixes-ui |  | Dismissing the setup card leaves keyboard focus nowhere, because the button disappears with the card |
 | B-630 | chore | triaged | fixes-nit |  | Two helpers build the legal page links (lib/auth/legalLinks.ts and settings account/legalLinks.ts): fold them into one |
 | B-631 | bug | triaged | fixes-bug |  | Back can still skip the discard prompt after a refused action outside the submitted form: Add a medication in the pass log, or a refused delete |
-| B-632 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry's fraction after a medication misreads a few lines: 'no pain gave tylenol 3/8', 'need to take tylenol 3/8', 'gave lorazepam 1/2' at 0.5 mg |
+| B-632 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry's fraction after a medication misreads a few lines: 'no pain gave tylenol 3/8', 'need to take tylenol 3/8', 'gave lorazepam 1/2' at 0.5 mg |
 | B-633 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
-| B-634 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry gives 'dr lee the 2nd at the clinic' no date: an ordinal before 'at <place>' is not read as a day |
-| B-635 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry's request rule misreads a few lines with a part of day: 'check bp 120/80 in the morning' gets a note dated now and a todo alternative, 'ask about pain in the morning' reads as a symptom first |
+| B-634 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry gives 'dr lee the 2nd at the clinic' no date: an ordinal before 'at <place>' is not read as a day |
+| B-635 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry's request rule misreads a few lines with a part of day: 'check bp 120/80 in the morning' gets a note dated now and a todo alternative, 'ask about pain in the morning' reads as a symptom first |
 | B-636 | change | triaged | fixes-ui |  | Planner todo rows keep the old time column, so they align differently from event cards in the same list |
 | B-637 | chore | triaged | fixes-nit |  | About 20 settings and provider files still use text-base-content opacity classes instead of the UI kit |
 | B-638 | chore | triaged | fixes-tooling |  | No test pins that a waiting join request from an account with no current legal acceptance isn't asked again |
 | B-639 | bug | triaged | fixes-tooling |  | Unsynced landing can miss a brake on a newer origin/dev: land reads the verdict for local dev's tip |
 | B-640 | bug | dropped | fixes-bug |  | Close Better Auth's update-user path so a member can't set an external avatar image |
-| B-641 | bug | triaged | fixes-bug |  | Quick entry: 'gave lorazepam 1/2 mg' at a 0.5 mg strength may not record the usual dose |
+| B-641 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry: 'gave lorazepam 1/2 mg' at a 0.5 mg strength may not record the usual dose |
 | B-642 | bug | triaged | fixes-tooling |  | Connector todays_doses test fails from midnight to 00:10 Los Angeles: its given dose, placed 10 minutes before now, lands on yesterday |
-| B-643 | bug | triaged | fixes-bug |  | Quick entry: a request with a day still leads with a vital or symptom dated ahead: 'check bp 120/80 tomorrow', 'ask about pain tomorrow morning' |
-| B-644 | bug | triaged | fixes-bug |  | Quick entry dates a counted ordinal before a place: 'gave a 2nd at the clinic', 'received the 2nd at the clinic' log on the 2nd instead of now |
+| B-643 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry: a request with a day still leads with a vital or symptom dated ahead: 'check bp 120/80 tomorrow', 'ask about pain tomorrow morning' |
+| B-644 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry dates a counted ordinal before a place: 'gave a 2nd at the clinic', 'received the 2nd at the clinic' log on the 2nd instead of now |
+| B-645 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
+| B-646 | bug | triaged | fixes-bug |  | Quick entry may still date a counted ordinal with no place: 'gave a 2nd' at the end of a line, or 'a 2nd at the clinic' with no verb |
+| B-647 | bug | triaged | fixes-bug |  | Quick entry: a request with a later day misses its part of day or leads with a vital: 'pick up walker next friday morning', 'check bp 120/80 friday' |
+| B-648 | bug | triaged | fixes-bug |  | Quick entry: 'gave lorazepam 1/2' at a 0.5 mg strength with a usual '2 tablets' records 2 tablets, overstating what was typed |
 
 ## Items
 
 ### B-31 · feature · Guided onboarding for new users: a first-run flow that walks a new member through setting up and using the app (the real requirement; details to refine)
 
-- status: ready
+- status: landed
 - prd: onboarding
 - owner: prd/onboarding
 - commit: ab7d3d15
@@ -1874,10 +1878,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-511 · feature · Skeptic before every ask: a session sends its question, options and evidence to a fresh Fable skeptic first; it decides (reversible, within the rules) or confirms the question is the user's; pnpm prd ask records the verdict
 
-- status: in-progress
+- status: ready
 - prd: agent-autonomy-3
 - owner: prd/agent-autonomy-3
-- commit:
+- commit: 46b69b38
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: build the Fable 5.2 skeptic into more of the workflow; Fable reviews in short passes, Opus does the long work. Pairs with B-503 default on silence; a31 and a33 would likely have been decided.
 - 2026-11-22 (plan/agent-autonomy): Moved to agent-autonomy-3 (to write) by agent-autonomy's planner (2026-11-22): filed after that plan landed with six slices; this builds on its defaulting asks (B-503) and flake rule (B-505).
@@ -1886,10 +1890,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-512 · feature · Skeptic before risky landings: a Fable skeptic reviews the evidence before land --force, landing on flaky tests (B-505) or declining a Codex finding, and the landing report says what it said
 
-- status: in-progress
+- status: ready
 - prd: agent-autonomy-3
 - owner: prd/agent-autonomy-3
-- commit:
+- commit: 30befe2f
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: build the Fable 5.2 skeptic into more of the workflow; Fable reviews in short passes, Opus does the long work.
 - 2026-11-22 (plan/agent-autonomy): Moved to agent-autonomy-3 (to write) by agent-autonomy's planner (2026-11-22): filed after that plan landed with six slices; this builds on its defaulting asks (B-503) and flake rule (B-505).
@@ -1899,10 +1903,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-513 · change · Opus planners and backlog sessions with a Fable final check: the skeptic pass runs on Fable and may send a plan back; a registry flag (e.g. design) keeps a heavy design topic's planner on Fable
 
-- status: in-progress
+- status: ready
 - prd: agent-autonomy-3
 - owner: prd/agent-autonomy-3
-- commit:
+- commit: 7b6491b2
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: build the Fable 5.2 skeptic into more of the workflow; Fable reviews in short passes, Opus does the long work. Last 36h: main-checkout Fable sessions read 428M tokens, Fable planners 148M. The default model moved to Opus on dev the same day; this item adds the flag and the send-back rule.
 - 2026-11-22 (plan/agent-autonomy): Moved to agent-autonomy-3 (to write) by agent-autonomy's planner (2026-11-22): filed after that plan landed with six slices; this builds on its defaulting asks (B-503) and flake rule (B-505).
@@ -2198,9 +2202,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-577 · change · Finish the UI kit sweep: timeline, entries and quick entry (TodayRow, PassLogItem, EasyNext, EntryBody, the four skeleton files, containers); admin, account, connectors, marketing and the app frame (home's h1); then empty the guard's not-swept list and drop Menu's bare class-string trigger
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit-5
-- owner:
+- owner: prd/ui-kit-5
 - commit:
 
 - 2026-11-22 (plan/ui-kit-4): Cut from B-398 by the ui-kit-4 plan (2026-11-22): about 300 files is too many for one topic, and quick-entry-2 is running in quick entry. Carries B-398's notes for these areas, including the remaining Cancel and Save footers, No-yet lines, dark-contrast text and icon sizes.
@@ -2590,7 +2594,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-628 · bug · Saving preferences reads then writes without a lock, so two simultaneous requests can lose a change such as a setup card dismissal
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 82eebf78
@@ -2627,7 +2631,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-632 · bug · Quick entry's fraction after a medication misreads a few lines: 'no pain gave tylenol 3/8', 'need to take tylenol 3/8', 'gave lorazepam 1/2' at 0.5 mg
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 82eebf78
@@ -2645,7 +2649,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-634 · bug · Quick entry gives 'dr lee the 2nd at the clinic' no date: an ordinal before 'at <place>' is not read as a day
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: c2c53eee
@@ -2654,7 +2658,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-635 · bug · Quick entry's request rule misreads a few lines with a part of day: 'check bp 120/80 in the morning' gets a note dated now and a todo alternative, 'ask about pain in the morning' reads as a symptom first
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: b1cf109f
@@ -2709,10 +2713,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-641 · bug · Quick entry: 'gave lorazepam 1/2 mg' at a 0.5 mg strength may not record the usual dose
 
-- status: triaged
+- status: ready
 - prd: fixes-bug
-- owner:
-- commit:
+- owner: prd/fixes-bug
+- commit: 501a58bf
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 29 (B-632) hand-off. A test row for this line did not get the usual dose; the row was dropped as outside the plan and the amount it records was not confirmed. Confirm with a test first.
 
@@ -2727,18 +2731,54 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-643 · bug · Quick entry: a request with a day still leads with a vital or symptom dated ahead: 'check bp 120/80 tomorrow', 'ask about pain tomorrow morning'
 
-- status: triaged
+- status: ready
 - prd: fixes-bug
-- owner:
-- commit:
+- owner: prd/fixes-bug
+- commit: ce9c55a2
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 31 (B-635) hand-off, cause not traced. 'ask about pain tomorrow morning' also gets a todo with no due time, so 'morning' isn't read as a part of day there.
 
 ### B-644 · bug · Quick entry dates a counted ordinal before a place: 'gave a 2nd at the clinic', 'received the 2nd at the clinic' log on the 2nd instead of now
 
+- status: ready
+- prd: fixes-bug
+- owner: prd/fixes-bug
+- commit: a4252709
+
+- 2026-11-23 (prd/fixes-bug): Codex P2 on PR #102 (https://github.com/caretook/caretook.com/pull/102#discussion_r4663493513). Confirmed by running findTime: both lines return day {date: 2}; before slice 30 (B-634) they returned no time. Cause: ordinalIsADay in packages/data/src/db/schema/assistant/quickEntryTime.ts skips only 'the' before the ordinal, so 'a' hides 'gave', and COUNTED_AFTER lacks 'received'. Fix: skip articles and widen the report words; keep 'dr lee the 2nd at the clinic' a day.
+
+### B-645 · bug · CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U…
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): [ci-key e2d38cbde9e2] Flaked (passed on its rerun); found by prd/onboarding.
+
+### B-646 · bug · Quick entry may still date a counted ordinal with no place: 'gave a 2nd' at the end of a line, or 'a 2nd at the clinic' with no verb
+
 - status: triaged
 - prd: fixes-bug
 - owner:
 - commit:
 
-- 2026-11-23 (prd/fixes-bug): Codex P2 on PR #102 (https://github.com/caretook/caretook.com/pull/102#discussion_r4663493513). Confirmed by running findTime: both lines return day {date: 2}; before slice 30 (B-634) they returned no time. Cause: ordinalIsADay in packages/data/src/db/schema/assistant/quickEntryTime.ts skips only 'the' before the ordinal, so 'a' hides 'gave', and COUNTED_AFTER lacks 'received'. Fix: skip articles and widen the report words; keep 'dr lee the 2nd at the clinic' a day.
+- 2026-11-23 (prd/fixes-bug): From fixes-bug slice 32 (B-644) hand-off, read from the code and not run: an ordinal at the line's end returns early as a day, and with no verb before the article nothing marks it as a count. Confirm with a test first.
+
+### B-647 · bug · Quick entry: a request with a later day misses its part of day or leads with a vital: 'pick up walker next friday morning', 'check bp 120/80 friday'
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/fixes-bug): From fixes-bug slice 33 (B-643) hand-off: the part of day is read only after 'tomorrow', so 'next friday morning' keeps 'morning' in the title with no due time; a bare weekday reads back, so 'check bp 120/80 friday' isn't ahead and leads with the vital. Also unpinned: 'call dr lee tomorrow morning' stays an event first but is now dated 08:00 rather than all day.
+
+### B-648 · bug · Quick entry: 'gave lorazepam 1/2' at a 0.5 mg strength with a usual '2 tablets' records 2 tablets, overstating what was typed
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/fixes-bug): From fixes-bug slice 34 (B-641) hand-off, read from the code: the bare fraction equal to the strength takes the usual dose whatever it is. The 'mg' form now keeps the typed amount unless the usual dose is one unit or the same measure; the bare form was left as the plan said. Confirm with a test first.

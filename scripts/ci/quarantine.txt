@@ -11,3 +11,4 @@ apps/web/app/routes/app/groups/providers/providers.browser.test.tsx	contact deta
 apps/web/app/routes/app/groups/providers/providers.browser.test.tsx	contact details on each row (B-44) a practice's row: every number, and its address as a maps link in a new tab	B-568
 apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx	back from the entry page Back, then the filter that's on picked again: a dose still names its medication (B-235)	B-568
 apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx	back from the entry page three pages down, an entry's page and Back: all three pages' rows are there at once, and the next page still loads	B-633
+apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the header the tabs carry what each reads: Upcoming what it shows and the author, Past the author, Todos its chip	B-645

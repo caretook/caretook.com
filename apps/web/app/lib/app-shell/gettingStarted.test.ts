@@ -26,11 +26,29 @@ describe("gettingStartedSteps", () => {
     expect(ids("caretaker")).toEqual(["profile", "medication", "entry"]);
   });
 
-  it.each(["viewer", "easy_helper", "easy_viewer", "someone_new"])("gives %s no checklist", (role) => {
-    expect(gettingStartedSteps({ role, facts: ALL })).toBeNull();
+  it.each(["viewer", "easy_helper", "easy_viewer"])("gives %s a welcome and no steps", (role) => {
+    for (const facts of [NONE, ALL]) {
+      const plan = gettingStartedSteps({ role, facts });
+      expect(plan?.kind).toBe("welcome");
+      expect(plan?.steps).toEqual([]);
+    }
   });
 
-  it("gives no checklist without a role", () => {
+  it("offers each welcome only what the role can do", () => {
+    const text = (role: string) => {
+      const plan = gettingStartedSteps({ role, facts: NONE });
+      return plan?.kind === "welcome" ? plan.text : "";
+    };
+    expect(text("easy_helper")).toContain("log");
+    expect(text("viewer")).not.toMatch(/\blog\b|\badd\b/i);
+    expect(text("easy_viewer")).not.toMatch(/\blog\b|\badd\b|medication|provider/i);
+    for (const role of ["viewer", "easy_helper", "easy_viewer"])
+      expect(text(role)).toContain("todos assigned to you");
+  });
+
+  it("gives nothing to an unknown role or none", () => {
+    expect(gettingStartedSteps({ role: "someone_new", facts: ALL })).toBeNull();
+    expect(gettingStartedSteps({ role: "constructor", facts: ALL })).toBeNull();
     expect(gettingStartedSteps({ role: null, facts: ALL })).toBeNull();
   });
 
