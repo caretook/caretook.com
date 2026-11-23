@@ -7,17 +7,26 @@ import { useCallback, useEffect, useRef } from "react";
 // A new value is the person's if it lands during or just after their press,
 // key or edit (anywhere: a picker's own sheet is outside this panel). Any other
 // new value came from a re-render or a sync: it moves the start instead.
+// A field can be the person's work the moment it appears (a tick's hidden input),
+// so only one inside `data-sheet-arrives` (a record added by an action or a sync)
+// starts at the value it came with.
+// `data-sheet-aside` marks what isn't the sheet's edit: its fields aren't read,
+// and a form with it acts at once and leaves the sheet open, so the guard stays on.
 
 /** How long after a press, key or edit a new value still counts as that person's. */
 export const OWN_CHANGE_MS = 300;
 
 const FIELDS = "input, select, textarea, [contenteditable='true']";
 
-/** Each field's value by a stable key; a checkbox or radio is keyed by its value too. */
-export function readFields(root: ParentNode): Map<string, string> {
+/**
+ * Each field's value by a stable key; a checkbox or radio is keyed by its value too.
+ * `within` keeps only the fields inside that selector, with the same keys.
+ */
+export function readFields(root: ParentNode, within?: string): Map<string, string> {
   const fields = new Map<string, string>();
   const seen = new Map<string, number>();
   for (const el of root.querySelectorAll<HTMLElement>(FIELDS)) {
+    if (el.closest("[data-sheet-aside]")) continue;
     const input = el instanceof HTMLInputElement ? el : null;
     const checkable = input?.type === "checkbox" || input?.type === "radio";
     const base = `${el.getAttribute("name") || el.id || "field"}${checkable ? `:${input.value}` : ""}`;
@@ -30,7 +39,7 @@ export function readFields(root: ParentNode): Map<string, string> {
       : el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement
         ? el.value
         : (el.textContent ?? "");
-    fields.set(`${base}#${nth}`, value);
+    if (!within || el.closest(within)) fields.set(`${base}#${nth}`, value);
   }
   return fields;
 }
@@ -87,6 +96,15 @@ function reconcile(tracked: Tracked, mine: boolean) {
     }
   }
   tracked.seen = now;
+}
+
+/** A marked record's field that just arrived starts where it arrived; nothing else is touched. */
+function takeInArrivals(tracked: Tracked) {
+  for (const [key, value] of readFields(tracked.root, "[data-sheet-arrives]")) {
+    if (tracked.seen.has(key)) continue;
+    tracked.start.set(key, value);
+    tracked.seen.set(key, value);
+  }
 }
 
 const ownFields = (fields: Map<string, string>, own: Set<string>) =>
@@ -147,6 +165,7 @@ export function useSheetChanges(
     const leave = (e: Event) => {
       if (!(e.target instanceof Element) || !watched()?.contains(e.target)) return;
       if (e.type !== "submit" && !e.target.closest("[data-form-cancel]")) return;
+      if (e.target.closest("[data-sheet-aside]")) return;
       leaving.current = true;
       const isSubmit = e.type === "submit";
       // The form's own Cancel can't be refused; a confirm's action can.
@@ -167,7 +186,13 @@ export function useSheetChanges(
       ["submit", leave],
     ];
     for (const [type, listener] of listeners) document.addEventListener(type, listener, true);
+    // Runs before any later key or press, so what a person types is never taken for an arrival.
+    const arrivals = new MutationObserver(() => {
+      if (tracked.current && tracked.current.root === watched()) takeInArrivals(tracked.current);
+    });
+    if (panelRef.current) arrivals.observe(panelRef.current, { childList: true, subtree: true });
     return () => {
+      arrivals.disconnect();
       for (const [type, listener] of listeners) document.removeEventListener(type, listener, true);
       if (acting.current !== null) clearTimeout(acting.current);
       acting.current = null;

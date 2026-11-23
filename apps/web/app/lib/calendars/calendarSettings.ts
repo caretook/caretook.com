@@ -2,7 +2,7 @@ import type { ReminderLead } from "@caretook/data/schema";
 import type { ApiOutputs } from "../core/rpc";
 
 import { ORPCError } from "@orpc/client";
-import { hasDetailsConsent, shareLevel } from "@caretook/data/schema";
+import { DETAILS_CONSENT_VERSION, hasDetailsConsent, shareLevel } from "@caretook/data/schema";
 import { useSyncExternalStore } from "react";
 import { redirect } from "react-router";
 import { load } from "../core/api";
@@ -26,7 +26,13 @@ export type CalendarChange = {
   remindersOn?: boolean;
   reminderLeads?: ReminderLead[];
   detailsConsent?: boolean;
+  /** The wording's version this device showed when the member turned details on. */
+  detailsConsentVersion?: string;
 };
+
+/** The change for the Details switch: agreeing names the wording on screen, turning off needs none. */
+export const detailsConsentChange = (on: boolean): CalendarChange =>
+  on ? { detailsConsent: true, detailsConsentVersion: DETAILS_CONSENT_VERSION } : { detailsConsent: false };
 
 const PREFIX = "caretook:calendar:";
 const PENDING_PREFIX = "caretook:calendar-pending:";
@@ -75,9 +81,41 @@ export const withChange = (settings: CalendarSettings, change: CalendarChange): 
 export const leftAfterSending = (pending: CalendarChange, sent: CalendarChange): CalendarChange | null => {
   const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
   const left: CalendarChange = { ...pending };
-  for (const field of Object.keys(sent) as (keyof CalendarChange)[])
-    if (same(left[field], sent[field])) delete left[field];
+  if (same(left.remindersOn, sent.remindersOn)) delete left.remindersOn;
+  if (same(left.reminderLeads, sent.reminderLeads)) delete left.reminderLeads;
+  // The consent and its version are one answer: they go together.
+  if (
+    sent.detailsConsent !== undefined &&
+    same(left.detailsConsent, sent.detailsConsent) &&
+    same(left.detailsConsentVersion, sent.detailsConsentVersion)
+  ) {
+    delete left.detailsConsent;
+    delete left.detailsConsentVersion;
+  }
   return Object.keys(left).length ? left : null;
+};
+
+/** `change` without its consent, or null when nothing else is in it. */
+const withoutConsent = (change: CalendarChange): CalendarChange | null => {
+  const { detailsConsent: _consent, detailsConsentVersion: _version, ...rest } = change;
+  return Object.keys(rest).length ? rest : null;
+};
+
+/**
+ * A pending "on" counts only for the wording this app shows now. One saved for
+ * an older wording, or before versions were sent, loses its consent (the
+ * member agrees again); the rest of the change stands.
+ */
+export const withoutOutdatedConsent = (change: CalendarChange): CalendarChange | null =>
+  change.detailsConsent && change.detailsConsentVersion !== DETAILS_CONSENT_VERSION
+    ? withoutConsent(change)
+    : change;
+
+/** A later change on top of what's pending; turning off drops the version of an earlier "on". */
+const mergedChange = (pending: CalendarChange | null, change: CalendarChange): CalendarChange => {
+  const merged = { ...pending, ...change };
+  if (merged.detailsConsent === false) delete merged.detailsConsentVersion;
+  return merged;
 };
 
 /**
@@ -94,7 +132,13 @@ const readCache = (key: string) => {
   const cached = readJson<CalendarSettings>(PREFIX + key);
   return cached && withCurrentConsent(cached);
 };
-const readPending = (key: string) => readJson<CalendarChange>(PENDING_PREFIX + key);
+const readPending = (key: string) => {
+  const stored = readJson<CalendarChange>(PENDING_PREFIX + key);
+  if (!stored) return null;
+  const kept = withoutOutdatedConsent(stored);
+  if (kept !== stored) writeJson(PENDING_PREFIX + key, kept);
+  return kept;
+};
 
 const clearPending = (key: string, sent: CalendarChange) => {
   const pending = readPending(key);
@@ -151,6 +195,10 @@ export const useCalendarSettings = (
 const isNetworkError = (e: unknown) => e instanceof TypeError;
 /** A lost session: keep what's pending for after the next sign-in. */
 const isSignedOut = (e: unknown) => e instanceof ORPCError && e.code === "UNAUTHORIZED";
+/** The server has a newer wording than the one this device showed. */
+const isConsentOutdated = (e: unknown) =>
+  e instanceof ORPCError &&
+  (e.data as { code?: string } | undefined)?.code === "calendarSettingService:consentOutdated";
 
 const cache = (userId: string, groupId: string, settings: CalendarSettings) => {
   writeJson(PREFIX + keyOf(userId, groupId), settings);
@@ -170,7 +218,7 @@ export const saveCalendarSettings = async (
   change: CalendarChange,
 ): Promise<"saved" | "pending"> => {
   const key = keyOf(userId, groupId);
-  writeJson(PENDING_PREFIX + key, { ...readPending(key), ...change });
+  writeJson(PENDING_PREFIX + key, mergedChange(readPending(key), change));
   publish(userId, groupId);
   try {
     const saved = await rpc.calendars.settings.update({ groupId, ...change });
@@ -184,6 +232,25 @@ export const saveCalendarSettings = async (
       publish(userId, groupId);
     }
     throw e;
+  }
+};
+
+/**
+ * Send what's pending. A consent to a wording the server has moved past is
+ * dropped, and the rest of the change is still sent.
+ */
+const sendPending = async (key: string, groupId: string, pending: CalendarChange): Promise<void> => {
+  try {
+    await rpc.calendars.settings.update({ groupId, ...pending });
+    clearPending(key, pending);
+  } catch (e) {
+    if (!isConsentOutdated(e)) throw e;
+    clearPending(key, {
+      detailsConsent: pending.detailsConsent,
+      detailsConsentVersion: pending.detailsConsentVersion,
+    });
+    const rest = withoutConsent(pending);
+    if (rest) await sendPending(key, groupId, rest);
   }
 };
 
@@ -205,8 +272,7 @@ export const loadCalendarSettings = async (
   const pending = readPending(key);
   if (pending) {
     try {
-      await rpc.calendars.settings.update({ groupId, ...pending });
-      clearPending(key, pending);
+      await sendPending(key, groupId, pending);
     } catch (e) {
       if (isNetworkError(e)) return offline();
       if (isSignedOut(e)) throw redirect(signInUrl(request));

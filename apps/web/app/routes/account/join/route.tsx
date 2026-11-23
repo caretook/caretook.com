@@ -185,7 +185,7 @@ function JoinForm({ actionData }: { actionData: ActionData | undefined }) {
             {(control) => <input {...control} name="name" autoComplete="name" maxLength={100} required />}
           </Field>
           <Field kind="input" label="Email" error={issue("email")}>
-            {(control) => <input {...control} type="email" name="email" autoComplete="email" required />}
+            {(control) => <input {...control} type="email" name="email" autoComplete="username" required />}
           </Field>
           <Field kind="input" label="Password" help="At least 12 characters." error={issue("password")}>
             {(control) => (

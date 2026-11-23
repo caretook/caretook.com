@@ -164,7 +164,12 @@ export function useTimelineData({
     // The bound the rows on screen were read with, while a moved window loads.
     from: undefined as string | null | undefined,
   });
-  const current = paging.filterKey === filterKey && !(jumpMark && jumpMark !== paging.mark);
+  const newJump = !!jumpMark && jumpMark !== paging.mark;
+  // Saved, not only ignored: a sheet link replaces the marker, and the old window mustn't return under it.
+  if (newJump) {
+    setPaging({ filterKey, mark: jumpMark, limit: PAGE_SIZE, before: initial.before, from: undefined });
+  }
+  const current = paging.filterKey === filterKey && !newJump;
   const requested = current ? paging.limit : PAGE_SIZE;
   const before = current ? paging.before : initial.before;
   const moving = current && paging.from !== undefined;

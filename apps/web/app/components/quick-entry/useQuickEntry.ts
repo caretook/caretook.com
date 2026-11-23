@@ -245,7 +245,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
       await openDraft(card);
       return;
     }
-    const target = editTarget(action, groupId, search);
+    const target = editTarget(action, groupId, search, card.reading.asksAmount);
     if (target === "saveAndOpen") {
       // A note or event is written on its page: save this card and open it there.
       if (card.blocking.length) return;
