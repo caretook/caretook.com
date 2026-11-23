@@ -102,7 +102,7 @@ Every change is committed straight onto `dev` (only those two files), so every s
 
 4. The orchestrator summarises the plan and the backlog, then asks how to land (before each landing, run everything through, or automatically for the waves or slices you pick) and which slices to run. If a session gets slow or confused, close it and rerun the same command (`pnpm prd start <topic>` reprints it). It picks up from the plan's _Status_ section, which the orchestrator updates at every step (a slice started, handed off or merged, a wave landed), so nothing is lost whenever it stops.
 
-**At most three PRDs run at once.** `pnpm prd start` refuses a fourth (raise `CARETOOK_MAX_PRDS` to override).
+**At most four PRDs run at once.** `pnpm prd start` refuses a fifth (raise `CARETOOK_MAX_PRDS` to override).
 
 **Let the dispatcher run them:** `pnpm prd dispatch` in a tab of its own plans and starts topics in the PRD table's row order as slots free up, never two that share hot files, waits while the machine is busy, and reopens sessions that die. `pnpm prd queue <topic>` moves a topic first; a row's `hold` flag or `pnpm prd dispatch --pause` holds it back, `--dry-run` shows why each topic waits. Its orchestrators land each wave without asking; their questions and reports wait in `pnpm prd asks` (answer with `pnpm prd answer <id> <n>`, [machinery](agents/machinery.md#the-dispatcher)); a recommended one may default after 30 minutes; `pnpm prd notices` lists heads-ups.
 
