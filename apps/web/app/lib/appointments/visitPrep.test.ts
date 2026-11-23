@@ -225,6 +225,88 @@ describe("visitPrepSection", () => {
     );
   });
 
+  it("counts missed doses against each day's schedule: a schedule change, a pass move and a pause", () => {
+    const window: VisitWindow = { from: "2026-11-15T08:00:00Z", to: "2026-11-19T08:00:00Z", lastVisit: null };
+    const taken = (id: string, day: string, utc: string, scheduledFor: string, passId?: string) => ({
+      id: `${id}-${day}`,
+      occurredAt: `${day}T${utc}:00.000Z`,
+      details: { medicationId: id, status: "given" as const, scheduledFor, ...(passId ? { passId } : {}) },
+    });
+    const DAYS = ["2026-11-15", "2026-11-16", "2026-11-17", "2026-11-18"];
+    // An evening slot added on Nov 18 at 10:00: only that day's evening is a miss.
+    const added: PrepMedication = {
+      ...LISINOPRIL,
+      id: "m-add",
+      name: "Added",
+      strength: null,
+      schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
+    };
+    // Morning moved from 08:00 to 11:00 on Nov 17: every dose still counts.
+    const moved: PrepMedication = { ...LISINOPRIL, id: "m-move", name: "Moved", strength: null };
+    // Paused Nov 16 to Nov 18: the two days between aren't missed.
+    const paused: PrepMedication = {
+      ...LISINOPRIL,
+      id: "m-pause",
+      name: "Paused",
+      strength: null,
+      schedule: { type: "scheduled", slots: [{ time: "09:00" }] },
+    };
+    const lines = texts(
+      visitPrepSection(
+        data({
+          medications: [added, moved, paused],
+          passes: [{ id: "pass-am", name: "Morning", time: "11:00", sortOrder: 0 }],
+          doses: [
+            ...DAYS.map((d) => taken("m-add", d, "16:00", "08:00")),
+            ...DAYS.slice(0, 2).map((d) => taken("m-move", d, "16:00", "08:00", "pass-am")),
+            ...DAYS.slice(2).map((d) => taken("m-move", d, "19:00", "11:00", "pass-am")),
+            taken("m-pause", "2026-11-15", "17:00", "09:00"),
+            taken("m-pause", "2026-11-18", "17:00", "09:00"),
+          ],
+          changes: [
+            {
+              id: "c-add",
+              occurredAt: "2026-11-18T18:00:00.000Z",
+              details: {
+                medicationId: "m-add",
+                change: "changed",
+                fields: ["schedule"],
+                before: { schedule: { type: "scheduled", slots: [{ time: "08:00" }] } },
+                after: { schedule: added.schedule },
+              },
+            },
+            {
+              id: "c-move",
+              occurredAt: "2026-11-17T16:30:00.000Z",
+              details: {
+                change: "passMoved",
+                passId: "pass-am",
+                passName: "Morning",
+                beforeTime: "08:00",
+                afterTime: "11:00",
+                medicationIds: ["m-move"],
+              },
+            },
+            {
+              id: "c-stop",
+              occurredAt: "2026-11-16T16:00:00.000Z",
+              details: { medicationId: "m-pause", change: "stopped", stopStatus: "discontinued" },
+            },
+            {
+              id: "c-resume",
+              occurredAt: "2026-11-18T16:00:00.000Z",
+              details: { medicationId: "m-pause", change: "resumed" },
+            },
+          ],
+        }),
+        window,
+      ),
+    );
+    const from = lines.indexOf("Missed doses");
+    expect(lines.slice(from, from + 2)).toEqual(["Missed doses", "Added: 1 missed (of 5)"]);
+    expect(lines.filter((l) => l.startsWith("Moved:") || l.startsWith("Paused:"))).toEqual([]);
+  });
+
   it("lists medication changes in the window and the current medications", () => {
     const lines = texts(
       visitPrepSection(

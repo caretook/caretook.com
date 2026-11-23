@@ -23,7 +23,13 @@ import {
   toDueDoses,
   yesterdayStart,
 } from "../medications/dueDoses.sync";
-import { doseRows, medicationQuery, recipientQuery, toMedication } from "../medications/medications.sync";
+import {
+  claimDoseIds,
+  doseRows,
+  medicationQuery,
+  recipientQuery,
+  toMedication,
+} from "../medications/medications.sync";
 import { toPasses } from "../medications/medicationPasses.sync";
 import { providerQuery, toProvider } from "../providers/providers.sync";
 import { noteDocuments, noteUpdates, todos, timelineEntries, timelineEntryProviders } from "../sync/schema";
@@ -240,6 +246,7 @@ export const runActions = async (
         continue;
       }
       const { entry, more, document, providerIds } = rows;
+      if (entry.kind === "dose") await claimDoseIds(tx, [entry, ...(more ?? [])]);
       await tx.insert(timelineEntries).values(entry);
       for (const row of more ?? []) await tx.insert(timelineEntries).values(row);
       if (document) {

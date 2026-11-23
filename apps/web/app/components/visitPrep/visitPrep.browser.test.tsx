@@ -11,6 +11,8 @@ import { at, fx, hoursAgo, newId, TEST_GROUP, TEST_USER } from "../../../test/fi
 import * as entryRoute from "../../routes/app/groups/entry/route";
 import * as providerRoute from "../../routes/app/groups/provider/route";
 import * as plannerRoute from "../../routes/app/groups/planner/route";
+import { loadVisitPrepData } from "../../lib/appointments/visitPrep.sync";
+import { resolveUnits } from "@caretook/data/schema";
 
 // Visit prep on the test device: "Prepare for this visit" on an upcoming
 // appointment's page, "Prepare for a visit" on a provider's page (their next
@@ -141,6 +143,48 @@ const typedElsewhere = (documentId: string, snapshotText: Y.Doc, words: string):
     },
   };
 };
+
+describe("the loader", () => {
+  test("returns the change entries from the window's start to now, a deleted one included", async () => {
+    const inWindow = fx.medicationChange({
+      medicationId: LISINOPRIL.id,
+      change: "changed",
+      occurredAt: hoursAgo(5 * DAY_H),
+    });
+    const deleted = fx.medicationChange({
+      medicationId: LISINOPRIL.id,
+      change: "changed",
+      occurredAt: hoursAgo(4 * DAY_H),
+      deletedAt: hoursAgo(DAY_H),
+    });
+    const longBefore = fx.medicationChange({
+      medicationId: LISINOPRIL.id,
+      change: "changed",
+      occurredAt: hoursAgo(40 * DAY_H),
+    });
+    const device = await open(entryPath(APPT.id), {
+      role: "caretaker",
+      fixtures: [...world(), inWindow, deleted, longBefore],
+    });
+    const now = new Date();
+    const data = await loadVisitPrepData(device.db, {
+      groupId: GROUP,
+      appointmentId: APPT.id,
+      window: {
+        from: new Date(now.getTime() - 10 * DAY_H * 3_600_000).toISOString(),
+        to: now.toISOString(),
+        lastVisit: null,
+      },
+      units: resolveUnits(null),
+      now,
+    });
+    const ids = data.changes?.map((c) => c.id);
+    expect(ids).toEqual(expect.arrayContaining([inWindow.id, deleted.id]));
+    expect(ids).not.toContain(longBefore.id);
+    // The section's own entries still leave the deleted one out.
+    expect(data.entries.map((e) => e.id)).not.toContain(deleted.id);
+  });
+});
 
 describe("on the appointment's page", () => {
   test("Prepare opens the sheet from the last visit; the preview leaves out empty sections; Insert (offline) puts it on top and queues it", async () => {
