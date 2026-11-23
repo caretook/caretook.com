@@ -2,10 +2,14 @@ import type { RefObject } from "react";
 
 import { useCallback, useEffect, useRef } from "react";
 
-// Whether a person changed a sheet's form. The starting values are read just
-// before their first touch, so what a re-render or a sync put there earlier
-// never counts. Fields are read from the DOM, so every kit control counts,
-// the hidden input behind a `TimeSelect` included.
+// Whether a person changed a sheet's form. Fields are read from the DOM, so
+// every kit control counts, the hidden input behind a `TimeSelect` included.
+// A new value is the person's if it lands during or just after their press,
+// key or edit (anywhere: a picker's own sheet is outside this panel). Any other
+// new value came from a re-render or a sync: it moves the start instead.
+
+/** How long after a press, key or edit a new value still counts as that person's. */
+export const OWN_CHANGE_MS = 300;
 
 const FIELDS = "input, select, textarea, [contenteditable='true']";
 
@@ -42,53 +46,104 @@ export function fieldsDiffer(start: Map<string, string>, now: Map<string, string
 const onSubmitButton = (target: EventTarget | null) =>
   target instanceof Element && target.closest('button[type="submit"]') !== null;
 
+/** A submitted form and the alerts it already showed (a warning being answered, a past refusal). */
+type Submitted = { form: Element; alerts: ReadonlySet<Element> };
+
+const alertsIn = (form: Element) => new Set(form.querySelectorAll('[role="alert"]'));
+
+/** The save didn't go through: a field is marked, or a new alert has something to say. */
+const wasRefused = ({ form, alerts }: Submitted) =>
+  form.querySelector('[aria-invalid="true"]') !== null ||
+  [...alertsIn(form)].some((alert) => !alerts.has(alert) && alert.textContent?.trim());
+
+/** A form's starting values, the values last read, and the fields the person changed. */
+type Tracked = { root: Element; start: Map<string, string>; seen: Map<string, string>; own: Set<string> };
+
+const track = (root: Element): Tracked => {
+  const fields = readFields(root);
+  return { root, start: fields, seen: new Map(fields), own: new Set() };
+};
+
+/** Takes in what changed since the last read, as the person's or as arriving from elsewhere. */
+function reconcile(tracked: Tracked, mine: boolean) {
+  const now = readFields(tracked.root);
+  for (const key of new Set([...tracked.seen.keys(), ...now.keys()])) {
+    if ((tracked.seen.get(key) ?? "") === (now.get(key) ?? "")) continue;
+    if (mine) {
+      tracked.own.add(key);
+    } else {
+      tracked.start.set(key, now.get(key) ?? "");
+      tracked.own.delete(key);
+    }
+  }
+  tracked.seen = now;
+}
+
+const ownFields = (fields: Map<string, string>, own: Set<string>) =>
+  new Map([...fields].filter(([key]) => own.has(key)));
+
 export function useSheetChanges(
   panelRef: RefObject<HTMLElement | null>,
   guard: boolean | string,
   isOpen: boolean,
 ) {
-  const start = useRef<{ root: Element; fields: Map<string, string> } | null>(null);
-  const touched = useRef(false);
+  const tracked = useRef<Tracked | null>(null);
+  // Set from a press, key or edit until `OWN_CHANGE_MS` after the last one.
+  const acting = useRef<ReturnType<typeof setTimeout> | null>(null);
   // A submit or the form's own Cancel: the sheet may close without asking,
-  // until the person does something else (a save that failed).
+  // until the person does something else or the save is refused.
   const leaving = useRef(false);
+  const submitted = useRef<Submitted | null>(null);
 
   const watched = useCallback(() => {
     const panel = panelRef.current;
     return typeof guard === "string" ? (panel?.querySelector(guard) ?? null) : panel;
   }, [panelRef, guard]);
 
-  useEffect(() => {
-    start.current = null;
-    touched.current = false;
-    leaving.current = false;
-    if (guard === false || !isOpen) return;
-    // Where the form starts; a first touch reads it again, past any re-render.
-    const first = watched();
-    if (first) start.current = { root: first, fields: readFields(first) };
-    const inPanel = (e: Event) => e.target instanceof Node && panelRef.current?.contains(e.target) === true;
-    const before = (e: Event) => {
-      if (!inPanel(e)) return;
+  /** The form as it stands, with everything since the last read taken in. */
+  const current = useCallback(
+    (mine: boolean) => {
       const root = watched();
-      if (!root) return;
+      if (!root) return null;
       // A new form (the next add, or another row to edit) starts over.
-      if (start.current?.root !== root) touched.current = false;
-      if (!touched.current) start.current = { root, fields: readFields(root) };
+      if (tracked.current?.root !== root) tracked.current = track(root);
+      else reconcile(tracked.current, mine);
+      return tracked.current;
+    },
+    [watched],
+  );
+
+  useEffect(() => {
+    tracked.current = null;
+    leaving.current = false;
+    submitted.current = null;
+    if (guard === false || !isOpen) return;
+    const first = watched();
+    if (first) tracked.current = track(first);
+    const inPanel = (e: Event) => e.target instanceof Node && panelRef.current?.contains(e.target) === true;
+    const act = (e: Event) => {
+      // An `input` or `change` has already changed the value: it's the person's.
+      current(acting.current !== null || e.type === "input" || e.type === "change");
+      if (acting.current !== null) clearTimeout(acting.current);
+      acting.current = setTimeout(() => {
+        acting.current = null;
+        current(true);
+      }, OWN_CHANGE_MS);
     };
     const touch = (e: Event) => {
-      if (!inPanel(e)) return;
-      // An `input` or `change` has already changed the value: too late to read the start.
-      if (e.type !== "input" && e.type !== "change") before(e);
-      touched.current = true;
-      if (!onSubmitButton(e.target)) leaving.current = false;
+      act(e);
+      if (inPanel(e) && !onSubmitButton(e.target)) leaving.current = false;
     };
     const leave = (e: Event) => {
       if (!(e.target instanceof Element) || !watched()?.contains(e.target)) return;
-      if (e.type === "submit" || e.target.closest("[data-form-cancel]")) leaving.current = true;
+      if (e.type !== "submit" && !e.target.closest("[data-form-cancel]")) return;
+      leaving.current = true;
+      submitted.current = e.type === "submit" ? { form: e.target, alerts: alertsIn(e.target) } : null;
     };
     const listeners: [string, (e: Event) => void][] = [
-      ["focusin", before],
-      ["beforeinput", before],
+      ["beforeinput", act],
+      ["pointerup", act],
+      ["keyup", act],
       ["pointerdown", touch],
       ["keydown", touch],
       ["input", touch],
@@ -99,13 +154,16 @@ export function useSheetChanges(
     for (const [type, listener] of listeners) document.addEventListener(type, listener, true);
     return () => {
       for (const [type, listener] of listeners) document.removeEventListener(type, listener, true);
+      if (acting.current !== null) clearTimeout(acting.current);
+      acting.current = null;
     };
-  }, [panelRef, guard, isOpen, watched]);
+  }, [panelRef, guard, isOpen, watched, current]);
 
   return useCallback(() => {
-    const root = watched();
-    if (guard === false || !root || !touched.current || leaving.current) return false;
-    if (start.current?.root !== root) return false;
-    return fieldsDiffer(start.current.fields, readFields(root));
-  }, [guard, watched]);
+    if (leaving.current && submitted.current && wasRefused(submitted.current)) leaving.current = false;
+    if (guard === false || leaving.current) return false;
+    const form = current(acting.current !== null);
+    if (!form || form.own.size === 0) return false;
+    return fieldsDiffer(ownFields(form.start, form.own), ownFields(form.seen, form.own));
+  }, [guard, current]);
 }

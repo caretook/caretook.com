@@ -24,6 +24,7 @@ import {
 } from "./assistants";
 import { GroupConnections } from "./GroupConnections";
 import { ReadOnlySwitch } from "./ReadOnlySwitch";
+import { useConnectionsFollowReadOnly } from "./useConnectionsFollowReadOnly";
 
 // `…/settings/assistants` (connectors slice 5). Shared by web + native.
 // Whether members may connect their own AI assistant comes from the
@@ -94,6 +95,7 @@ export default function GroupAssistants({ loaderData }: Route.ComponentProps) {
   const group = useGroup();
   const access = assistantsAccess(group.role);
   const { enabled, readOnly } = useAssistantsSetting(group.id, switchRows);
+  useConnectionsFollowReadOnly(readOnly, !!switchRows[0]?.connectors_read_only, connections !== null);
 
   return (
     <SettingsPage

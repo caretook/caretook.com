@@ -1697,14 +1697,25 @@ const mentionedText = (s: PartState) => {
 };
 
 /**
+ * Whether the line opens by asking for something to be done ("call the
+ * pharmacy", "remember to …") and nothing in it reports what happened.
+ */
+const asksForAction = (s: PartState) =>
+  s.vocab.some(
+    (m) => m.used[0] === s.free[0] && (m.entry.role === "requestVerb" || m.entry.role === "requestLead"),
+  ) && !hasRole(s, "reportWord", "visitVerb", "contactVerb");
+
+/**
  * Whether the part says a time ahead for a note: a phrase that points ahead
  * on its own ("tomorrow", "in 2 hours", "next friday"), any time beside an
- * appointment word that isn't a visit ("appt friday 3pm"), or one that, read
- * back as a note's is, is still to come today ("tonight", "this evening").
- * A note can't be ahead, so such a line is a todo.
+ * appointment word that isn't a visit ("appt friday 3pm"), a part of day with
+ * no day on a line asking for something ("call the pharmacy in the morning"),
+ * or one that, read back as a note's is, is still to come today ("tonight",
+ * "this evening"). A note can't be ahead, so such a line is a todo.
  */
 const noteAhead = (s: PartState) => {
   if (!s.time.spec) return false;
+  if ("period" in s.time.spec && s.time.spec.period && !s.time.spec.day && asksForAction(s)) return true;
   const forward = saysFuture(s.time.spec) || (hasRole(s, "appointmentWord") && !hasRole(s, "visitVerb"));
   const at = forward ? s.time.future.at : s.time.usual.at;
   return at.getTime() > s.context.now.getTime() + DEVICE_FUTURE_SKEW_MS;
@@ -1885,6 +1896,11 @@ const DETECTORS: Record<
 /** A proper fraction with a dose-like denominator: "3/8", "1/6", not "4/3" or "3/7". */
 const DOSE_FRACTION = /^([1-9])\/([234568])$/;
 
+const isDoseFraction = (tokens: readonly Token[], i: number) => {
+  const fraction = DOSE_FRACTION.exec(tokens[i]!.w);
+  return !!fraction && Number(fraction[1]) < Number(fraction[2]) && tokens[i - 1]?.w !== "on";
+};
+
 /**
  * Whether the word at `i` is a fraction typed directly before a medication's
  * words ("gave 3/8 tylenol", "3/8 of a tylenol"), so its amount and not a date.
@@ -1898,8 +1914,7 @@ const isFractionAmount = (
   i: number,
   forcedDose: boolean,
 ) => {
-  const fraction = DOSE_FRACTION.exec(tokens[i]!.w);
-  if (!fraction || Number(fraction[1]) >= Number(fraction[2]) || tokens[i - 1]?.w === "on") return false;
+  if (!isDoseFraction(tokens, i)) return false;
   let first = i + 1;
   while (first <= i + 2 && COUNT_LINKS.has(tokens[first]?.w ?? "")) first++;
   let named = first;
@@ -1914,6 +1929,114 @@ const isFractionAmount = (
   );
 };
 
+/**
+ * Whether the word at `i` is a fraction typed directly after a medication's
+ * name on a line that gives it ("gave tylenol 3/8"), so its amount and not a
+ * date. A dose not given has no amount, so there it stays a date ("skipped
+ * tylenol 3/8"), as it does after a count ("gave 2 tylenol 3/8") or a time
+ * unit ("gave tylenol 3/8 days"). Without a verb the line must be only the
+ * name and the fraction, so "refill tylenol 3/8" keeps its date.
+ */
+const isFractionAfterName = (
+  tokens: readonly Token[],
+  medications: readonly QuickEntryMedication[],
+  i: number,
+  forcedDose: boolean,
+  previousDose: DoseStatus | null,
+) => {
+  if (i === 0 || !isDoseFraction(tokens, i)) return false;
+  const next = tokens[i + 1]?.w ?? "";
+  if (NOT_SEVERITY_AFTER.test(next) && !AMOUNT_UNITS.test(next)) return false;
+  const verb = tokens.findIndex((t) => t.w in DOSE_VERBS);
+  const status = verb < 0 ? previousDose : DOSE_VERBS[tokens[verb]!.w]!;
+  if ((status ?? "given") !== "given") return false;
+  const all = tokens.map((_, k) => k);
+  if (verb >= 0 && negationBefore(tokens, all, verb, new Set()) !== undefined) return false;
+  let named = i - 1;
+  while (named > 0 && /^\d/.test(tokens[named]!.w)) named--;
+  return medications.some((m) => {
+    const hasVerb = verb >= 0 || forcedDose;
+    if (!namesMedication(m, tokens, named, { verb: hasVerb })) return false;
+    if (nameNumbers(m, tokens, named, 1, (k) => k < i).length !== i - 1 - named) return false;
+    let start = named;
+    while (start > 0 && namesMedication(m, tokens, start - 1, { verb: hasVerb })) start--;
+    start -= nameNumbers(m, tokens, start, -1, (k) => k >= 0).length;
+    let before = start - 1;
+    while (before >= 0 && COUNT_LINKS.has(tokens[before]!.w)) before--;
+    if (before >= 0 && isCount(countValue(tokens[before]!.w))) return false;
+    return hasVerb || (start === 0 && i === tokens.length - 1);
+  });
+};
+
+/**
+ * Vital keywords whose following slash number is a reading, even a mistyped
+ * one. Not bare "sat" (Saturday), words for what happened on a day ("fever
+ * 12/8", "weighed 12/8"), or the vitals logged as events (bowels, urine, sleep).
+ */
+const MEASURED_VITAL_WORDS = VITAL_WORDS.filter(
+  ([words, type]) =>
+    !["bowelMovement", "urineOutput", "sleep"].includes(type) &&
+    !["sat", "fever", "weighed", "weighs"].includes(words.join(" ")),
+).map(([words]) => words);
+
+/** Symptoms people score: a slash number after one is a score when it's at most n/10. */
+const SCALE_WORDS = new Set([
+  "pain",
+  "ache",
+  "soreness",
+  "headache",
+  "migraine",
+  "nausea",
+  "dizziness",
+  "fatigue",
+  "anxiety",
+  "itching",
+  "swelling",
+  "cramps",
+]);
+
+const MEASUREMENT_LINKS = new Set([":", "=", "-", "is", "was", "of", "level"]);
+
+/**
+ * Whether the slash number at `i` follows a measurement word ("bp 12/8", "pain
+ * is 5/5"), so it's a value and not a date. A year, "on" or an appointment word
+ * in the line keeps the date ("bp 12/8/26", "bp on 12/8", "appt for bp 12/8").
+ */
+const isMeasurementValue = (tokens: readonly Token[], i: number) => {
+  const slash = /^(\d{1,2})\/(\d{1,2})$/.exec(tokens[i]!.w);
+  if (!slash) return false;
+  let last = i - 1;
+  while (last >= 0 && MEASUREMENT_LINKS.has(tokens[last]!.w)) last--;
+  if (last < 0) return false;
+  const measured = SCALE_WORDS.has(tokens[last]!.w)
+    ? Number(slash[1]) <= Number(slash[2]) && Number(slash[2]) <= 10
+    : MEASURED_VITAL_WORDS.some((words) =>
+        words.every((word, k) => tokens[last - words.length + 1 + k]?.w === word),
+      );
+  if (!measured) return false;
+  return !findVocabulary(
+    tokens.map((t) => vocabularyWord(t.w)),
+    () => true,
+  ).some((m) => m.entry.role === "appointmentWord");
+};
+
+/**
+ * Whether the last word is "sat" after a line that is only a member's name
+ * ("Sam sat", "Sam Rivera sat"): the verb, not Saturday. A name a provider also
+ * has keeps the day ("Lee sat" can be a visit with Dr. Lee).
+ */
+const isSatAfterMember = (tokens: readonly Token[], context: QuickEntryContext, i: number) => {
+  if (i === 0 || i !== tokens.length - 1 || tokens[i]!.w !== "sat") return false;
+  const said = tokens.slice(0, i).map((t) => oneWord(t.w));
+  if (context.providers.some((p) => said.some((w) => wordsOf(p.name).includes(w)))) return false;
+  return (context.members ?? []).some((member) => {
+    const name = wordsOf(member.name);
+    return said.length === 1
+      ? said[0] === name[0]
+      : said.length === name.length && said.every((w, k) => w === name[k]);
+  });
+};
+
 const parsePart = (
   text: string,
   context: QuickEntryContext,
@@ -1926,9 +2049,16 @@ const parsePart = (
   const tokens = tokenize(body);
   // A fraction that is a dose's amount is hidden from the date finder; a line forced to another kind keeps it.
   const readsAmounts = forced === null || forced === "dose";
+  // So is a measurement's value or a member's "sat", unless the line was asked to be something with a day.
+  const readsValues = forced !== "event" && forced !== "todo";
   const time = findTime(
     tokens.map((t, i) =>
-      readsAmounts && isFractionAmount(tokens, context.medications, i, forced === "dose") ? "" : t.w,
+      (readsAmounts &&
+        (isFractionAmount(tokens, context.medications, i, forced === "dose") ||
+          isFractionAfterName(tokens, context.medications, i, forced === "dose", previousDose))) ||
+      (readsValues && (isMeasurementValue(tokens, i) || isSatAfterMember(tokens, context, i)))
+        ? ""
+        : t.w,
     ),
   );
   const free = tokens.map((_, i) => i).filter((i) => !time?.used.has(i));
@@ -1937,7 +2067,7 @@ const parsePart = (
     (i) => free.includes(i),
   );
   const providers = matchProviders(context, tokens, free);
-  const verb = vocab.some((m) => m.entry.role !== "appointmentWord" && m.entry.role !== "symptomIncident");
+  const verb = vocab.some((m) => ["visitVerb", "contactVerb", "noteIncident"].includes(m.entry.role));
   const s: PartState = {
     text: body,
     tokens,
