@@ -345,12 +345,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-643 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry: a request with a day still leads with a vital or symptom dated ahead: 'check bp 120/80 tomorrow', 'ask about pain tomorrow morning' |
 | B-644 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry dates a counted ordinal before a place: 'gave a 2nd at the clinic', 'received the 2nd at the clinic' log on the 2nd instead of now |
 | B-645 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
-| B-646 | bug | in-progress | fixes-bug | prd/fixes-bug | Quick entry may still date a counted ordinal with no place: 'gave a 2nd' at the end of a line, or 'a 2nd at the clinic' with no verb |
+| B-646 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry may still date a counted ordinal with no place: 'gave a 2nd' at the end of a line, or 'a 2nd at the clinic' with no verb |
 | B-647 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry: a request with a later day misses its part of day or leads with a vital: 'pick up walker next friday morning', 'check bp 120/80 friday' |
 | B-648 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry: 'gave lorazepam 1/2' at a 0.5 mg strength with a usual '2 tablets' records 2 tablets, overstating what was typed |
 | B-649 | bug | triaged | fixes-tooling |  | A skeptic's --force treats an unreadable GitHub as no known dev brake; it could fail closed |
 | B-650 | bug | triaged | fixes-tooling |  | Unattended planner report's veto line sets flags=hold, dropping a row's design or standing flag |
 | B-651 | bug | triaged | fixes-bug |  | Quick entry: a decimal at the strength overstates the dose: 'gave lorazepam 0.5' at 0.5 mg with a usual '2 tablets' records 2 tablets |
+| B-652 | bug | triaged | fixes-bug |  | Quick entry: a counted ordinal before a clock time still takes a day: 'gave the 2nd at 2pm' reads as the 2nd of the month at 2pm |
 
 ## Items
 
@@ -2761,10 +2762,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-646 · bug · Quick entry may still date a counted ordinal with no place: 'gave a 2nd' at the end of a line, or 'a 2nd at the clinic' with no verb
 
-- status: in-progress
+- status: ready
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: ce4d22b1
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 32 (B-644) hand-off, read from the code and not run: an ordinal at the line's end returns early as a day, and with no verb before the article nothing marks it as a count. Confirm with a test first.
 
@@ -2812,3 +2813,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 35 (B-648) hand-off, read from the code and not run: the bare-fraction rule (amountAtStrength in quickEntry.ts) covers only a fraction, so a decimal equal to the strength still takes the usual dose. Confirm with a test first.
+
+### B-652 · bug · Quick entry: a counted ordinal before a clock time still takes a day: 'gave the 2nd at 2pm' reads as the 2nd of the month at 2pm
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/fixes-bug): From fixes-bug slice 37 (B-646) hand-off: in ordinalIsADay (quickEntryTime.ts) a clock time after the ordinal marks a day before the counted-word check runs. 'a 2nd at 2pm' is already undated. Confirm with a test first.
