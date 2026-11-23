@@ -1,4 +1,4 @@
-import { CalendarPlus, Import, ListTodo, Printer } from "lucide-react";
+import { CalendarCheck, CalendarPlus, Import, ListTodo, Pill, Printer } from "lucide-react";
 import { useState } from "react";
 import { Button, PageHeader } from "~/components/ui";
 import { Example } from "../Example";
@@ -39,6 +39,24 @@ export function PageHeaderSection() {
               { id: "todo", label: "Todo", icon: ListTodo, onAction: () => undefined },
             ],
           }}
+        />
+      </Example>
+      <Example label="With a section's chip">
+        <PageHeader
+          className="w-full"
+          title="Medications"
+          icon={Pill}
+          accent="teal"
+          add={{ label: "Add medication", to: "?add" }}
+        />
+      </Example>
+      <Example label="With a section's chip and a description">
+        <PageHeader
+          className="w-full"
+          title="Planner"
+          description="What’s coming up for Robin"
+          icon={CalendarCheck}
+          accent="orange"
         />
       </Example>
       <Example label="No add control (a viewer)">

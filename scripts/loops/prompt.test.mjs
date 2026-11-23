@@ -108,6 +108,9 @@ describe("orchestrator", () => {
         "After a landing and its docs (not the last one), start no new slice; once the slices in flight are merged, commit _Status_ and run `pnpm prd rotate`; with none in flight, rotate at once.",
       );
       expect(out).toContain("`pnpm prd rotate --mid-wave`");
+      expect(out).toContain("**past the context limit** (160k tokens; a hook reminds you)");
+      expect(out).toContain('`pnpm prd rotate --mid-wave --reason "context"`');
+      expect(out).toContain('`pnpm prd context --keep "<why>"` and write the reason in _Status_');
       expect(out).toContain("only on the user's word");
       expect(out).toMatch(
         /When the last wave has landed, run `pnpm prd rm T`, then `cd \S+ && pnpm prd end`/,
@@ -247,6 +250,15 @@ describe("slice", () => {
   });
 });
 
+describe("waiting on a check", () => {
+  it("orchestrator and slice prompts wait with pnpm prd wait check, never pgrep -f", () => {
+    for (const out of [ok("orchestrator", "T"), ok("slice", "T", "1")]) {
+      expect(out).toContain("`pnpm prd wait check`");
+      expect(out).toContain("never `pgrep -f`");
+    }
+  });
+});
+
 describe("plan and backlog", () => {
   it("are unchanged by the resume work", () => {
     const plan = ok("plan", "T", "B-1", "B-2");
@@ -359,6 +371,26 @@ describe("plan and backlog", () => {
     expect(text).toContain("`pnpm backlog prd set fixes-ui hot=<path prefixes>`");
     expect(text).toContain("Leave for a later wave any fix that would touch a running topic's hot files");
     expect(ok("orchestrator", "T")).not.toContain("hot=<path prefixes>");
+  });
+
+  it("backlog has the hand-off paragraph with both modes", () => {
+    const text = ok("backlog");
+    expect(text).toContain('**When the user says "hand off"**');
+    expect(text).toContain("**A short brief** (recommended");
+    expect(text).toContain("at most about 40 lines");
+    expect(text).toContain("**Nothing** (the new session starts blank)");
+    expect(text).toContain("`pnpm prd rotate --self --brief-path`");
+    expect(text).toContain("`pnpm prd rotate --self --brief <that file>`");
+    expect(text).toContain("for nothing, `pnpm prd rotate --self`");
+  });
+
+  it("backlog has the request paragraph: a brief, the request, the name, and no tab of its own", () => {
+    const text = ok("backlog");
+    expect(text).toContain("**When the user asks for another backlog session for a task**");
+    expect(text).toContain("`pnpm prd session request backlog <name> --brief <file>`");
+    expect(text).toContain("`backlog - <name>`");
+    expect(text).toContain("Never open a tab yourself");
+    expect(text).toContain("`pnpm prd notices`");
   });
 
   it("backlog reads the open asks and the PRD registry, and leads with what waits on the user", () => {

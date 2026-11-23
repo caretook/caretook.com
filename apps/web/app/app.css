@@ -142,15 +142,9 @@ fieldset:disabled :is(.input, .select, .textarea) {
   --tab-bar-content: light-dark(var(--color-neutral-content), var(--color-base-content));
 }
 
-/* Sheet (components/ui): fades in the backdrop, slides the sheet up (only when motion is OK). */
+/* A fade in (`Toast`). */
 @keyframes fade-in {
   from {
-    opacity: 0;
-  }
-}
-@keyframes sheet-in {
-  from {
-    transform: translateY(1.5rem);
     opacity: 0;
   }
 }
@@ -337,8 +331,8 @@ fieldset:disabled :is(.input, .select, .textarea) {
    (`motion-overlay`, `--motion-fast`), toasts (`Toast`, `[data-toast]`) and every native modal
    dialog with its dimming (`.modal`, daisyUI's own 0.3s fade and grow
    re-timed) fade on `--motion`, with no scale. Under "reduce motion"
-   nothing animates and each closes at once. Tooltips and `Sheet` are not
-   here. */
+   nothing animates and each closes at once. Tooltips are not here; `Sheet`
+   has its own rules at the end. */
 @keyframes fade-out {
   to {
     opacity: 0;
@@ -357,6 +351,12 @@ fieldset:disabled :is(.input, .select, .textarea) {
     &[data-entering],
     &[data-exiting] {
       opacity: 0;
+    }
+    /* React Aria's inline hiding until the panel is placed: no fade to it. It
+       cancels such a fade on reveal, and a close waiting on that one would
+       never unmount, leaving an invisible panel that takes taps (B-547). */
+    &[style*="clip-path"] {
+      transition: none;
     }
   }
 }
@@ -388,5 +388,54 @@ fieldset:disabled :is(.input, .select, .textarea) {
   .modal,
   .modal-box {
     transition: none;
+  }
+}
+
+/* Accents (ui-kit-3): six hues for sections and kinds of entry, in the gaps
+   between the status colours (error 13, warning 84, success 163, info 233),
+   so a colour never implies urgency. Each has a solid, a tint and a text
+   colour per theme; the solids share one content colour. Only `ui/accents.ts`
+   names these. */
+@theme inline {
+  --color-hue-content: light-dark(oklch(100% 0 0), oklch(22% 0.02 270));
+  --color-hue-indigo: light-dark(oklch(50% 0.13 277), oklch(76% 0.12 277));
+  --color-hue-indigo-tint: light-dark(oklch(93% 0.04 277), oklch(37% 0.06 277));
+  --color-hue-indigo-ink: light-dark(oklch(42% 0.13 277), oklch(86% 0.09 277));
+  --color-hue-teal: light-dark(oklch(50% 0.09 195), oklch(76% 0.11 195));
+  --color-hue-teal-tint: light-dark(oklch(93% 0.04 195), oklch(37% 0.06 195));
+  --color-hue-teal-ink: light-dark(oklch(42% 0.08 195), oklch(86% 0.09 195));
+  --color-hue-orange: light-dark(oklch(52% 0.14 50), oklch(76% 0.13 50));
+  --color-hue-orange-tint: light-dark(oklch(93% 0.04 50), oklch(37% 0.06 50));
+  --color-hue-orange-ink: light-dark(oklch(42% 0.12 50), oklch(86% 0.09 50));
+  --color-hue-lime: light-dark(oklch(50% 0.12 125), oklch(76% 0.15 125));
+  --color-hue-lime-tint: light-dark(oklch(93% 0.06 125), oklch(37% 0.06 125));
+  --color-hue-lime-ink: light-dark(oklch(42% 0.1 125), oklch(86% 0.12 125));
+  --color-hue-plum: light-dark(oklch(50% 0.14 312), oklch(76% 0.12 312));
+  --color-hue-plum-tint: light-dark(oklch(93% 0.04 312), oklch(37% 0.06 312));
+  --color-hue-plum-ink: light-dark(oklch(42% 0.13 312), oklch(86% 0.09 312));
+  --color-hue-pink: light-dark(oklch(52% 0.16 345), oklch(76% 0.13 345));
+  --color-hue-pink-tint: light-dark(oklch(93% 0.04 345), oklch(37% 0.06 345));
+  --color-hue-pink-ink: light-dark(oklch(42% 0.14 345), oklch(86% 0.09 345));
+}
+
+/* Sheet (ui-kit-3): the overlay fades (the dimming and the sheet with it) and
+   the panel slides, in and out on `--motion`. Transitions, not keyframes (see
+   `motion-overlay`). `data-closing` is `useSheetExit`'s exit, played while the
+   sheet is still open; `data-exiting` is a caller closing it directly. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-sheet="overlay"] {
+    transition: opacity var(--motion) var(--motion-ease);
+  }
+  [data-sheet="panel"] {
+    transition: translate var(--motion) var(--motion-ease);
+  }
+  [data-sheet="overlay"]:is([data-entering], [data-exiting], [data-closing]) {
+    opacity: 0;
+  }
+  [data-sheet="panel"]:is([data-entering], [data-exiting], [data-closing]) {
+    translate: 0 1.5rem;
+  }
+  [data-sheet][data-closing] {
+    pointer-events: none;
   }
 }

@@ -8,7 +8,8 @@
 // and later" split reaching the other member, a read-only viewer, a reschedule's one
 // transaction uploading and reaching the other member, the sync matrix (every
 // synced table's row on both devices: sync-matrix.mjs), an upload refused by
-// permissions (a member demoted while offline), a viewer's todo ticked
+// permissions (a member demoted while offline) and listed under Settings →
+// Changes not saved, a viewer's todo ticked
 // offline and their refused title change, a repeating todo ticked offline
 // bringing one next todo everywhere, and sign-out wiping the
 // device. Every row it writes has this run's tag, so it passes run after run
@@ -696,6 +697,19 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       "refused: the device logged the server's refusal",
       refusals.length > 0,
       `${refusals.length} logged`,
+    );
+    // The refusal is kept and shown (sync-safety, B-285): the header's "N not
+    // saved" opens Settings → Changes not saved, which names the change and why.
+    const notSavedLink = `document.querySelector("header [data-not-saved-link]")`;
+    const refusedLine = `[...document.querySelectorAll("main [data-not-saved] [data-not-saved-text]")].find((p) => p.textContent.includes(${JSON.stringify(refusedTitle)}))`;
+    const linked = await waits(B, notSavedLink, 20_000);
+    if (linked) await press(B, notSavedLink);
+    const listed = linked && (await waits(B, refusedLine, 20_000));
+    const listedText = listed ? await B.evaluate(`${refusedLine}.textContent.trim()`) : "";
+    await check(
+      "refused: the header's “not saved” opens the list, which names the refused change and why",
+      listed && /wasn't saved: \S/.test(listedText),
+      linked ? listedText || "not listed" : "no “not saved” link in the header",
     );
     const restored = await rpc(A, "careGroup/changeRole", {
       groupId: DEV_FAMILY,

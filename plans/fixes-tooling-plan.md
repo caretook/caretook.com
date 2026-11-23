@@ -6,7 +6,15 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions via `pnpm prd ask`).
 
-**Wave 1 (2026-11-22): slices 1–8, all on opus; all merged (tip af134b65), worktrees removed. Synced with dev 95cb7024 (conflicts in the staff and Easy todos tests, from test-health's harness move: kept ours for staff, dev's Undo wait for Easy todos; both files pass 15/15). Full check passed on 80aa5175 (5709/5709, tooling 791/791; the first run failed only resetStaging B-466, passed alone 3/3). Browser --changed: none needed. PR #61 open; docs folded (backlog.md: --archived; machinery.md: tidy ownership and lsof, session --if-pid). Codex review, then land.** Follow-ups filed: B-527 (fixes-bug, Undo writes uncaught), B-534 (tooling tests and the load gate). 56 items wait; this wave takes eight that stay clear of the running topics' hot files (agent-autonomy: most of `scripts/loops/` incl. `lib.sh`, `land*`, `codex-review*`, `prompt.sh`, `prd.sh`, `dispatch*`, `lease*`; test-health: `vitest.config.ts`, `eslint.config.js`, `scripts/eslint/`, `apps/web/test/`). Later waves: the review/codex/land/lib.sh/dispatcher items once agent-autonomy lands; the rest of the load flakes.
+**Hand-off (2026-11-22, after the wave 1 landing; no slices in flight).** Wave 1 (slices 1–8, all opus) landed in dev through PR #61 (dev b0b9a31): full check passed on 80aa5175 (5709/5709, tooling 791/791; the first run failed only resetStaging B-466, passed alone 3/3), quick passed on 3b19210e after a conflict-free dev sync, browser `--changed` none needed. Codex reviewed fb529c4 clean; the docs fold and dev merge after it landed `--no-review` (said in the report). Report: ask a49; to-test `to-test/2026-11-22-1127-fixes-tooling.md`. Docs folded: backlog.md (`--archived`), machinery.md (tidy ownership and lsof, session `--if-pid`). B-458's archived-item fixes (B-205/B-206/B-208/B-88/B-222) are applied. B-460 done with slice 5; B-461 noted as likely the same cause (confirm under load). Follow-ups filed: B-527 (fixes-bug, Undo/Done writes uncaught), B-534 (tooling tests and the load gate).
+
+**Held for test-gates (backlog session, 2026-11-22; row flagged standing,hold).** This session landed wave 2, then ran `pnpm prd rm fixes-tooling` and ended without rotating. The row is released after test-gates lands; the next orchestrator starts wave 3 from the triaged list.
+
+**Hand-off (2026-11-22, wave 2 landing).** Wave 2 (slices 9–16, all opus) merged; dev synced (brought the tedder family seed, switched to `seedPasswordHash` in 1399ff15). Full check passed on 1399ff15 (5722/5722, tooling 811/811). Docs folded (55b318af): machinery.md (`pnpm prd wait`, worker db names, load gate off in `tooling:unit`), data-layer.md (worker names, 10 s test connect, shared seed hash), orchestrator.md (tooling lint), runbook (`DATABASE_CONNECT_TIMEOUT_MS`); loop.md not touched (near budget; the prompts carry `pnpm prd wait check`). Browser: the lean set (the diff touches `package.json` and the pool config). Follow-ups filed: B-544 (fixes-nit, stale `vitest.config.ts:196` comment), B-545 (`rm.sh` reads prd list twice).
+
+**B-547 (dev red, fixed here on the user's word, e0c21bbf):** React Aria hides a popover with inline styles until it is placed, and ui-kit-3's `motion-overlay` fade also ran on that hiding. React Aria cancels the fade when it reveals the panel, so an Escape in that window left the close waiting forever: an invisible calendar stayed in the DOM and took taps. `motion-overlay` now has no transition while that inline hiding is on (`[style*="clip-path"]`; a React Aria upgrade could change it, `overlayMotion.browser.test.tsx` guards it). sync-safety only shifted the timing (no single change pinned). Full check passed on e0c21bbf (5811, tooling 812; the first run failed only the print menu race, filed). The lean browser set passed before this fix (1b120e9c) and was not rerun.
+
+**Wave 3 candidates** (triaged, prd=fixes-tooling): the app-test load flakes B-479, B-480, B-485–B-502 (B-489–B-491 touch `components/ui/`: after ui-kit-3); codex-review B-239–B-244; dispatcher/recover B-452–B-454, B-464, B-465 (B-462 and B-463 moved to self-recovery); B-370, B-375, B-418, B-431, B-432, B-442, B-443, B-446, B-447, B-459, B-461, B-468, B-477, B-525, B-526, B-539, B-545. Run full checks on a quiet machine, under `caffeinate -i`; wait on a check with `pnpm prd wait check`; confirm any failure alone 3x before calling it a flake.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
@@ -20,6 +28,14 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 6     | B-458 | merged (tooling)                                                                              | a8ab24cc |
 | 7     | B-475 | merged (test race, not a timer; Undo catch: B-527 fixes-bug)                                  | cd8cc1f5 |
 | 8     | B-484 | merged (quick passed on slice)                                                                | af134b65 |
+| 9     | B-451 | merged (full passed on slice: package.json; browser not run, no stack)                        | 4adeb2da |
+| 10    | B-445 | merged (quick passed on slice)                                                                | da329245 |
+| 11    | B-534 | merged (full passed on slice)                                                                 | 0d7e9205 |
+| 12    | B-444 | merged (quick passed on slice)                                                                | 9a1479e9 |
+| 13    | B-405 | merged (quick passed on slice)                                                                | 6f8d07be |
+| 14    | B-388 | merged (quick: only resetStaging timed out (fixed by 16))                                     | e962e40d |
+| 15    | B-450 | merged (quick passed on slice)                                                                | d0b0324b |
+| 16    | B-466 | merged (full passed on slice)                                                                 | 3f739326 |
 
 ## Wave 1
 
@@ -98,3 +114,82 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/admin.md, docs/domain/comp
 
 - Drive the end time with a controlled clock (fake timers for the end-time timer only, never a stepped `Date`), or set `endsAt` from after the first render is confirmed, so render time can't eat the window.
 - Component test: the banner shows, then goes at its end time, independent of render duration.
+
+## Wave 2
+
+Same rules as wave 1: for a flake, **first show the cause**, then fix it; a longer timeout alone only when the work is genuinely large and the hand-off says so. Never touch a running topic's hot files (`pnpm backlog prd list`: ui-kit-3's `components/ui/`, `lib/app-shell/`; sync-safety's `packages/api/src/sync`, `apps/web/app/lib/sync/`, `packages/data/src/services/`). Loops never edit `docs/` or AGENTS.md: say in the hand-off what a doc should gain and the orchestrator folds it in.
+
+### Slice 9: tooling-only landings still lint what they change (B-451)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/orchestrator.md, docs/agents/machinery.md · Tests: unit
+
+The check gate's "none needed" (every changed file is Markdown, `scripts/loops/`, `scripts/backlog/` or `.githooks/`) runs no eslint, so a lint error in a tooling `.mjs` reached dev (B-451's note).
+
+- `pnpm test:tooling` (or the step the gate requires for "none needed") also runs eslint and prettier on the changed tooling files (`dev...HEAD`), and fails on an error; keep it fast (only the changed files).
+- Unit test: the planner (`check-plan.mjs` or its neighbour) puts the lint step on a tooling-only diff and leaves it off a Markdown-only one.
+- Slice 12 edits `lib.sh`'s `docs_only`: keep this change out of that function.
+
+### Slice 10: a wait on the check lease that ends (B-445)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/loop.md, docs/agents/machinery.md · Tests: unit
+
+Agents wait on checks with `until ! pgrep -f "prd check"`, which never exits (it matches its own shell and any session whose prompt mentions the command).
+
+- Add a command that blocks until this worktree's check (or a named lease kind's holder for this worktree) is gone, with a timeout and exit 75 on it, e.g. `pnpm prd wait check [--timeout S]`, built on `lease.sh holders`; list it in `pnpm prd help`.
+- Point the slice and orchestrator prompts (`prompt.sh`'s text) at it wherever they tell an agent to wait on a check, and say "never `pgrep -f`". The hand-off names the doc line for loop.md.
+- Unit test: the wait returns once the lease is released, and exits 75 at its timeout while it's held.
+
+### Slice 11: tooling tests don't wait on the real load gate (B-534)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+Tooling tests that run `new.sh` without `CARETOOK_LOAD_GATE=off` poll the real machine's load (15 s, up to 600 s) and time out under load.
+
+- Every tooling test env that runs `new.sh` (or anything that gates on load) sets `CARETOOK_LOAD_GATE=off`; prefer one shared test-env helper over per-file lines. Find them all (grep), list them in the hand-off.
+- Look at `registry.cli.test.mjs` 'doctor reports…' and `rotate.test.mjs` 'sets done only for a merged branch…' (20 s timeouts once under load): show the cause and fix it, or say why the time is genuine.
+- Unit test: a test asserting the gate is off in the shared env (or that `new.sh` under it doesn't poll).
+
+### Slice 12: a code file renamed to .md isn't docs only (B-444)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/orchestrator.md · Tests: unit
+
+`docs_only` in `lib.sh` uses `git diff --name-only`, which shows only a rename's destination, so a `.sh`→`.md` rename counts as docs only.
+
+- Use `--no-renames` (both sides listed) in `docs_only` and the other name-only diffs in `lib.sh` that decide a gate (the exempt check at ~136); keep each change to the diff flags.
+- Unit test (the tooling test that covers `docs_only`): a rename from `.sh` to `.md` is not docs only; a Markdown-only change still is.
+
+### Slice 13: worker databases live in their own namespace (B-405)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+Worker copies are `<base cut to 59>_w<n>`: two long topics share copies, and worktree `foo`'s worker 1 is the base database of a worktree `foo-w1`.
+
+- Give worker copies a name no worktree base can produce and that keeps a short hash of the full base when shortened (within Postgres's 63 bytes); update `testDatabase.ts` (`isOwnDatabase`), `globalSetup.ts`, `test-db.sh` (`list`, `drop`) and tidy's matching (`tidy.mjs`) together. Old-style copies left on the shared Postgres are still recognised by tidy as orphans (or dropped once); say which.
+- Unit tests (`testDatabase.test.ts`, `tidy.test.mjs`): two long bases get distinct worker names; `foo`'s worker can't equal `foo-w1`'s base; a worker of a gone topic is still an orphan.
+
+### Slice 14: the connector integration tests survive 'Connection terminated' (B-388)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/data-layer.md · Tests: integration
+
+`mcpWrites`, `mcp`, `readTools` `.int.test.ts` and `todoRename.int.test.ts` fail under load with 'Connection terminated' (passes alone).
+
+- First find the cause from the code (pool settings, idle or connect timeouts, a client closed while a request is in flight, a test ending before the server's work does, Postgres `max_connections` with 16 workers) and show it, ideally by reproducing it (e.g. a constrained pool or a deliberate slow query). Fix that cause in the test harness or the pool config the tests use (not `vitest.config.ts` without saying why).
+- Integration test: the reproduction passes after the fix; the hand-off shows before/after.
+
+### Slice 15: roles.int.test.ts's summary query is fast (B-450)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/data-layer.md · Tests: integration
+
+`rolesSummary` (`packages/data/src/db/roles/applyRoles.ts`) runs a correlated `NOT EXISTS` between `information_schema.column_privileges` and `role_table_grants` (~2.2 s per role), past the 10 s hook timeout; fixes-bug put a 60 s stopgap in the test.
+
+- Rewrite the summary on `pg_catalog` (or without the correlation) so it returns the same result well under a second per role; then remove the 60 s stopgap if the test runs well inside the defaults.
+- Integration test: the same assertions, with before/after times in the hand-off; any `db:roles`/`db:access` output that uses the summary is unchanged.
+
+### Slice 16: resetStaging's test is fast under load (B-466)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/data-layer.md, ops/runbook.md · Tests: integration
+
+`resetStaging.int.test.ts` 'wipes everything but real sign-ins, reseeds' times out at 30 s under load (3–10 s alone).
+
+- Find where the time goes (time the wipe and each seed step) and cut it: a lighter world for the test (a small seed through the same reset path), batching, or one transaction; the reset's behaviour on staging doesn't change.
+- Integration test: the same assertions, well under the limit (before/after in the hand-off).

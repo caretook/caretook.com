@@ -4,14 +4,15 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 
 import { TodoUndoStatus } from "~/components/todos";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { sessionContext } from "~/lib/auth/session";
 import { loadUpcoming } from "./loadUpcoming";
-import { PlannerFilterRow, PlannerHeader } from "./PlannerHeader";
+import { PlannerHeader } from "./PlannerHeader";
 import { emptyUpcomingText, parseUpcomingFilters } from "./upcomingFilters";
 import { UpcomingList } from "./UpcomingList";
 import { useUpcomingData } from "./useUpcomingData";
 
-// Shared by web + native. The Planner section's Planner tab (Upcoming):
+// Shared by web + native. The Planner section's Upcoming tab:
 // appointments (future events), with due doses and dated
 // todos merged in by day, read from the device's local
 // copy (live, so it works offline and follows other members' changes). What
@@ -48,14 +49,11 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
       {easyRole ? (
         <PageHeader title="Planner" />
       ) : (
-        <>
-          <PlannerHeader />
-          <PlannerFilterRow
-            view="upcoming"
-            show={show}
-            author={author && authorName ? { name: authorName, image: data.imageOf(author) } : null}
-          />
-        </>
+        <PlannerHeader
+          view="upcoming"
+          show={show}
+          author={author && authorName ? { name: authorName, image: data.imageOf(author) } : null}
+        />
       )}
       {/* Undo after ticking a todo in the list. */}
       <TodoUndoStatus groupId={groupId} />
@@ -64,6 +62,7 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
         groupId={groupId}
         label="Upcoming"
         empty={emptyUpcomingText(show, authorName)}
+        emptyMark={show === "all" && !author ? sectionAccent("planner", { easy: easyRole }) : undefined}
         readOnly={easyRole}
       />
     </Page>

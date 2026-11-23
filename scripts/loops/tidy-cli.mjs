@@ -79,6 +79,43 @@ export const unknownProcesses = (
         : `lsof failed, exit ${r.status}${`${r.stderr ?? ""}`.trim() ? `: ${`${r.stderr}`.trim().split("\n")[0]}` : ""}`
   })`;
 
+/**
+ * The ci/ refs on origin, each with its age and whether a run is going. Age is
+ * since its newest run, else its commit if we have it, else unknown (never
+ * removed). An unreachable GitHub lists nothing.
+ */
+export function collectCiRefs(
+  /** @type {string} */ main,
+  /** @type {number} */ now,
+  gh = (/** @type {string[]} */ args) => run("gh", args, { cwd: main, timeout: 15_000 }),
+) {
+  const listed = run("git", ["-C", main, "ls-remote", "origin", "refs/heads/ci/*"], { timeout: 15_000 });
+  if (!listed.ok) return [];
+  return lines(listed.out).flatMap((l) => {
+    const [sha, full = ""] = l.split(/\s+/);
+    const ref = full.replace(/^refs\/heads\//, "");
+    const r = gh(["run", "list", "--branch", ref, "--limit", "5", "--json", "status,createdAt"]);
+    if (!r.ok) return [];
+    /** @type {{ status: string, createdAt: string }[]} */ let runs;
+    try {
+      runs = JSON.parse(r.out || "[]");
+    } catch {
+      return [];
+    }
+    const newest = Math.max(0, ...runs.map((x) => Date.parse(x.createdAt) || 0));
+    const committed = Number(git(main, ["log", "-1", "--format=%ct", sha]).out) * 1000;
+    const since = newest || committed;
+    return [
+      {
+        ref,
+        sha,
+        ageSecs: since ? Math.max(0, Math.round((now - since) / 1000)) : null,
+        running: runs.some((x) => x.status !== "completed"),
+      },
+    ];
+  });
+}
+
 /** The facts tidy() sorts, for the main checkout MAIN. */
 export function collectTidyFacts({
   main = "",
@@ -137,14 +174,15 @@ export function collectTidyFacts({
 
   const sessionsDir = env.CARETOOK_SESSIONS_DIR || join(loops, ".sessions");
   const sessions = readRecords(sessionsDir).map(({ name, record }) => {
-    const m = /^(prd|plan)-(.+)$/.exec(name);
-    const worktree = m ? (m[1] === "prd" ? m[2] : `plan-${m[2]}`) : null;
+    const m = /^(prd|plan|hotfix)-(.+)$/.exec(name);
+    const worktree = m ? (m[1] === "prd" ? m[2] : `${m[1]}-${m[2]}`) : null;
     const w = worktree ? byName.get(worktree) : undefined;
     return {
       name,
       live: isLive(record, processOf(record.pid ?? 0, now), now),
       rotating: !!record.rotating,
       worktree,
+      worktreeless: record.kind === "backlog" || record.kind === "recovery",
       worktreeExists: worktree ? existsSync(join(loops, worktree)) : undefined,
       ...(w ? { branch: w.branch, landed: w.landed } : {}),
       path: join(sessionsDir, `${name}.json`),
@@ -176,6 +214,8 @@ export function collectTidyFacts({
         .filter((r) => !!r)
     : [];
 
+  const ciRefs = remotes.includes("origin") ? collectCiRefs(main, now) : [];
+
   const locks = (base.locks ?? [])
     .filter((l) => ["slot", "lease"].includes(l.kind))
     .map((l) => ({
@@ -191,7 +231,7 @@ export function collectTidyFacts({
   // guess that a topic ending -w<n> fails (B-440).
   const names = worktrees.map((w) => w.name);
   const testDbs = lines(run("bash", [join(HERE, "test-db.sh"), "list"], { cwd: main, env }).out)
-    .map((l) => /^caretook_test_[a-z0-9_]+/.exec(l)?.[0])
+    .map((l) => /^caretook_(test|tw)_[a-z0-9_]+/.exec(l)?.[0])
     .filter((db) => !!db)
     .map((db) => ({ db, worktree: testDbOwner(db, names) }));
 
@@ -239,6 +279,7 @@ export function collectTidyFacts({
     sessions,
     branches,
     staleRemotes,
+    ciRefs,
     locks,
     testDbs,
     volumes,
@@ -284,6 +325,20 @@ function act(/** @type {ReturnType<typeof tidy>["safe"]} */ safe, /** @type {str
             sh(["git", "-C", main, "fetch", "--prune", "--quiet", "origin"]),
           );
         }
+        break;
+      case "ci-ref":
+        // Only while it's still at the commit we saw: a newer request's push stays.
+        step(label, () =>
+          sh([
+            "git",
+            "-C",
+            main,
+            "push",
+            `--force-with-lease=refs/heads/${f.target}:${f.sha ?? ""}`,
+            "origin",
+            `:refs/heads/${f.target}`,
+          ]),
+        );
         break;
       case "volume":
         step(label, () => sh(["docker", "volume", "rm", f.target]));

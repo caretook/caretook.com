@@ -106,7 +106,7 @@ const FRAMES = [
     routes: ACCOUNT_ROUTES,
     index: "/app/settings",
     heading: "Settings",
-    items: ["Units", "Timeline layout", "Account", "Contact details", "Devices"],
+    items: ["Units", "Timeline layout", "Account", "Contact details", "Devices", "Changes not saved"],
     first: ["units", "Units"],
     second: ["timeline", "Timeline layout"],
   },

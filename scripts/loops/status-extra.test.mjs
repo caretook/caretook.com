@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createAsk, settleAsk } from "./asks.mjs";
+import { createRequest } from "./session-requests.mjs";
 import { dispatcherPart, lastEntry, statusParts } from "./status-extra.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
@@ -31,17 +32,46 @@ describe("statusParts", () => {
   });
 
   it("lists sessions (live or ended, age, run-through, managed) and leaves out ended ones over a day old", () => {
-    record("prd-a", { pid: 1, started: ago(3 * H), auto: true, managed: true });
-    record("prd-b", { pid: 2, started: ago(2 * H), rotating: true });
-    record("plan-c", { pid: 3, started: ago(5 * H), ended: ago(H), exit: 0 });
+    record("prd-a", { pid: 1, kind: "prd", started: ago(3 * H), auto: true, managed: true });
+    record("prd-b", { pid: 2, kind: "prd", started: ago(2 * H), rotating: true });
+    record("plan-c", { pid: 3, kind: "plan", started: ago(5 * H), ended: ago(H), exit: 0 });
+    record("backlog", { pid: 4, kind: "backlog", started: ago(H) });
+    record("hotfix-t", { pid: 5, kind: "hotfix", started: ago(H) });
     record("old", { pid: 4, started: ago(60 * H), ended: ago(48 * H), exit: 0 });
     const out = statusParts(sessions, asks, { now: NOW, live: (r) => !r.ended });
     expect(out).toContain("SESSIONS");
-    expect(out).toMatch(/prd-a +live +3h +run-through +managed$/m);
-    expect(out).toMatch(/prd-b +live, rotating +2h +asks first +by hand$/m);
-    expect(out).toMatch(/plan-c +ended +5h +asks first +by hand$/m);
+    expect(out).toMatch(/prd-a +prd +live +3h +run-through +managed +no size yet$/m);
+    expect(out).toMatch(/prd-b +prd +live, rotating +2h +asks first +by hand +no size yet$/m);
+    expect(out).toMatch(/plan-c +plan +ended +5h +asks first +by hand$/m);
+    expect(out).toMatch(/backlog +backlog +live +1h/);
+    expect(out).toMatch(/hotfix-t +hotfix +live +1h/);
     expect(out).not.toContain("old ");
     expect(out).not.toContain("OPEN ASKS");
+  });
+
+  it("shows a live session's size, the over-limit mark and the keep; a stale record is no size", () => {
+    const dir = join(root, "sized", "sessions");
+    const context = join(root, "sized", ".context");
+    mkdirSync(dir, { recursive: true });
+    mkdirSync(context);
+    const started = ago(H);
+    const sized = (name, pid, size) => {
+      writeFileSync(join(dir, `${name}.json`), JSON.stringify({ pid, started }));
+      writeFileSync(join(context, `${name}.json`), JSON.stringify(size));
+    };
+    sized("prd-small", 11, { pid: 11, size: 90_000 });
+    sized("prd-large", 12, { pid: 12, size: 172_400 });
+    sized("prd-kept", 13, {
+      pid: 13,
+      size: 181_000,
+      keep: { reason: "landing under way", until: new Date(NOW + H).toISOString() },
+    });
+    sized("prd-stale", 14, { pid: 99, size: 200_000 });
+    const out = statusParts(dir, join(root, "missing"), { now: NOW, live: () => true });
+    expect(out).toMatch(/prd-small .*by hand +90k$/m);
+    expect(out).toMatch(/prd-large .*by hand +172k OVER$/m);
+    expect(out).toMatch(/prd-kept .*by hand +181k OVER, kept: landing under way$/m);
+    expect(out).toMatch(/prd-stale .*by hand +no size yet$/m);
   });
 
   it("prints the open asks: the count and the oldest with its age", () => {
@@ -98,6 +128,33 @@ describe("statusParts", () => {
       },
     });
     expect(none.stdout).toBe("DISPATCHER: stopped: start it in a tab of its own with pnpm prd dispatch\n\n");
+  });
+
+  it("the CLI prints the pending requests, from beside the sessions folder or the named one", () => {
+    const base = join(root, "requests");
+    const beside = join(base, "sessions");
+    const named = join(base, "named");
+    mkdirSync(beside, { recursive: true });
+    createRequest(join(base, ".requests"), { name: "beside", now: NOW });
+    createRequest(named, { name: "named", now: NOW });
+    const run = (extra) =>
+      spawnSync("node", [join(HERE, "status-extra.mjs")], {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CARETOOK_SESSIONS_DIR: beside,
+          CARETOOK_ASKS_DIR: empty,
+          CARETOOK_DISPATCH_MAIN: empty,
+          CARETOOK_REQUESTS_DIR: "",
+          ...extra,
+        },
+      }).stdout;
+    const byDefault = run({});
+    expect(byDefault).toContain("SESSION REQUESTS: 1 pending");
+    expect(byDefault).toContain("backlog - beside");
+    const override = run({ CARETOOK_REQUESTS_DIR: named });
+    expect(override).toContain("backlog - named");
+    expect(override).not.toContain("backlog - beside");
   });
 });
 

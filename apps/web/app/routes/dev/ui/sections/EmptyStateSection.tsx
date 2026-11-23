@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Stethoscope } from "lucide-react";
 import { EmptyState } from "~/components/ui";
 import { Example } from "../Example";
 
@@ -14,6 +14,11 @@ export function EmptyStateSection() {
         </EmptyState>
         <EmptyState action={{ label: "Invite someone", onAction: () => undefined }}>
           No invites yet.
+        </EmptyState>
+      </Example>
+      <Example label="A section's main list (its icon and accent)">
+        <EmptyState icon={Stethoscope} accent="lime" action={{ label: "Add a provider", to: "/dev/ui" }}>
+          No providers yet.
         </EmptyState>
       </Example>
     </>

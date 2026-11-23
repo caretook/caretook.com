@@ -25,6 +25,7 @@ import {
   providerUpdateZSchema,
 } from "@caretook/data/schema";
 import { eq } from "drizzle-orm";
+import { changedColumns } from "../core/changedColumns";
 import { noteDocuments, providers, timelineEntryProviders } from "../sync/schema";
 import {
   forbidden,
@@ -305,7 +306,11 @@ export const createProvider = async (
   return { ok: true, id: row.id };
 };
 
-/** Edit a provider. The group is fixed; the merged provider must be valid. */
+/**
+ * Edit a provider. The group is fixed; the merged provider must be valid.
+ * Only the columns that changed are written, so an edit that changes nothing
+ * queues nothing.
+ */
 export const updateProvider = async (
   db: SyncDb,
   id: string,
@@ -318,7 +323,7 @@ export const updateProvider = async (
   const shape = providerUpdateZSchema.safeParse(patch);
   if (!shape.success) return invalid(shape.error);
   const defined = Object.fromEntries(Object.entries(shape.data).filter(([, v]) => v !== undefined));
-  const merged = providerContentZSchema.safeParse({
+  const stored = {
     type: existing.type,
     name: existing.name,
     specialty: existing.specialty,
@@ -329,8 +334,8 @@ export const updateProvider = async (
     website: existing.website,
     status: existing.status,
     isPrimary: existing.isPrimary,
-    ...defined,
-  });
+  };
+  const merged = providerContentZSchema.safeParse({ ...stored, ...defined });
   if (!merged.success) return invalid(merged.error);
   if (leavesPracticeTypes(existing.type, merged.data.type)) {
     const [count] = await readRows<{ n: number }>(db, practiceDependentsQuery(existing.groupId, id));
@@ -344,9 +349,13 @@ export const updateProvider = async (
     return badPractice;
   }
 
+  // Only what changed: the phones rewritten unchanged would be re-sent and
+  // overwrite a co-member's newer ones on the server.
+  const changed = changedColumns(contentColumns(stored), contentColumns(merged.data), ["phones"]);
+  if (!Object.keys(changed).length) return { ok: true, id };
   await db.drizzle
     .update(providers)
-    .set({ ...contentColumns(merged.data), updatedAt: nowTimestamp(), updatedBy: db.userId })
+    .set({ ...changed, updatedAt: nowTimestamp(), updatedBy: db.userId })
     .where(eq(providers.id, id));
   return { ok: true, id };
 };

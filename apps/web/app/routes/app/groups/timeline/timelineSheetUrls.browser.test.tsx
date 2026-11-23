@@ -135,7 +135,14 @@ describe("the add sheet", () => {
     const closes: [string, () => Promise<void>][] = [
       ["Back", () => Promise.resolve(back())],
       ["Cancel", () => Promise.resolve(press(sheetButton("Cancel")))],
-      ["Escape", () => userEvent.keyboard("{Escape}")],
+      [
+        "Escape",
+        async () => {
+          // The sheet takes focus just after it appears; an Escape before that reaches nothing.
+          await waitUntil(() => dialog()?.contains(document.activeElement), "focus in the sheet");
+          await userEvent.keyboard("{Escape}");
+        },
+      ],
       [
         "a save",
         async () => {

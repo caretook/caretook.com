@@ -8,11 +8,38 @@ import {
   reportText,
   testDbName,
   testDbOwner,
+  testDbWorkerPrefix,
   tidy,
 } from "./tidy.mjs";
+import { workerDatabaseName } from "../../packages/data/src/db/testDatabase.ts";
 
 const targets = (/** @type {{ target: string }[]} */ list) => list.map((f) => f.target);
 const one = (/** @type {import("./tidy.mjs").TidyFacts} */ facts) => tidy(facts);
+
+describe("ci refs", () => {
+  const ref = { ref: "ci/unit/x", sha: "a".repeat(40), ageSecs: 90_000, running: false };
+
+  it("a ref older than a day with no run going is safe, naming its commit", () => {
+    expect(one({ ciRefs: [ref] }).safe).toEqual([
+      {
+        kind: "ci-ref",
+        target: "ci/unit/x",
+        why: "25 hours old, no run going",
+        how: "git push --delete",
+        sha: ref.sha,
+      },
+    ]);
+  });
+
+  it("a young ref, one with a run going and one of unknown age are left", () => {
+    const ciRefs = [
+      { ...ref, ageSecs: 3600 },
+      { ...ref, running: true },
+      { ...ref, ageSecs: null },
+    ];
+    expect(one({ ciRefs })).toEqual({ safe: [], ask: [], kept: [] });
+  });
+});
 
 describe("worktrees", () => {
   const slice = { name: "t-1", branch: "slice/t/1", merged: true, dirty: false };
@@ -81,6 +108,24 @@ describe("worktrees", () => {
 
 describe("sessions", () => {
   const base = { name: "prd-t", worktree: "t", worktreeExists: true, branch: "prd/t", landed: false };
+
+  it("an ended backlog record with no worktree is safe; a live or rotating one is never touched", () => {
+    const rec = { name: "backlog", worktree: null, worktreeless: true, path: "/s/backlog.json" };
+    expect(one({ sessions: [{ ...rec, live: false }] }).safe).toEqual([
+      {
+        kind: "record",
+        target: "backlog",
+        why: "ended, and it has no worktree",
+        how: "delete the record",
+        path: "/s/backlog.json",
+      },
+    ]);
+    for (const s of [
+      { ...rec, live: true },
+      { ...rec, live: false, rotating: true },
+    ])
+      expect(one({ sessions: [s] })).toEqual({ safe: [], ask: [], kept: [] });
+  });
 
   it("an ended record whose worktree is gone is safe; a live, rotating or still-housed one isn't", () => {
     const { safe, ask } = one({
@@ -185,7 +230,7 @@ describe("leftovers", () => {
   describe("testDbOwner (B-440)", () => {
     const names = ["foo-w2", "bar"];
 
-    it("a live topic ending -w<n> owns its database and its workers' copies", () => {
+    it("a live topic ending -w<n> owns its database and its workers' old-style copies", () => {
       expect(testDbName("foo-w2")).toBe("caretook_test_foo_w2");
       expect(testDbOwner("caretook_test_foo_w2", names)).toBe("foo-w2");
       expect(testDbOwner("caretook_test_foo_w2_w1", names)).toBe("foo-w2");
@@ -206,6 +251,44 @@ describe("leftovers", () => {
       expect(db).toHaveLength(63);
       expect(testDbOwner(db, [long])).toBe(long);
       expect(testDbOwner(`${db.slice(0, 59)}_w4`, [long])).toBe(long);
+    });
+
+    it("matches the integration setup's worker names (B-405)", () => {
+      for (const db of ["caretook_test_foo", `caretook_test_${"y".repeat(49)}`, "caretook"])
+        for (const n of [1, 9, 16]) expect(`${testDbWorkerPrefix(db)}_w${n}`).toBe(workerDatabaseName(db, n));
+    });
+
+    it("a worker copy is its own worktree's, never another worktree's database (B-405)", () => {
+      const copy = workerDatabaseName(testDbName("foo"), 1);
+      expect(copy).not.toBe(testDbName("foo-w1"));
+      expect(testDbOwner(copy, ["foo", "foo-w1"])).toBe("foo");
+      expect(testDbOwner(testDbName("foo-w1"), ["foo", "foo-w1"])).toBe("foo-w1");
+      expect(testDbOwner(workerDatabaseName(testDbName("foo"), 17), ["foo"])).toBeNull();
+    });
+
+    it("two long topics sharing their first characters own distinct copies (B-405)", () => {
+      const a = `t-${"x".repeat(44)}-a`;
+      const b = `t-${"x".repeat(44)}-b`;
+      const copyA = workerDatabaseName(testDbName(a), 3);
+      const copyB = workerDatabaseName(testDbName(b), 3);
+      // Their stems are cut to the same 38 characters; the hash of the full name differs.
+      expect(copyA.slice(0, 50)).toBe(copyB.slice(0, 50));
+      expect(copyA).not.toBe(copyB);
+      expect(copyA.length).toBeLessThanOrEqual(63);
+      expect(testDbOwner(copyA, [a, b])).toBe(a);
+      expect(testDbOwner(copyB, [a, b])).toBe(b);
+    });
+
+    it("a worker copy of a gone topic is an orphan, new style or old (B-405)", () => {
+      const copy = workerDatabaseName(testDbName("gone"), 2);
+      expect(testDbOwner(copy, names)).toBeNull();
+      const { safe } = one({
+        testDbs: [copy, "caretook_test_gone_w2", workerDatabaseName(testDbName("bar"), 2)].map((db) => ({
+          db,
+          worktree: testDbOwner(db, names),
+        })),
+      });
+      expect(targets(safe)).toEqual([copy, "caretook_test_gone_w2"]);
     });
 
     it("tidy keeps what it owns and offers only the orphans", () => {

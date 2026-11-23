@@ -21,6 +21,7 @@ import {
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
 import { and, eq, isNull } from "drizzle-orm";
+import { changedColumns } from "../core/changedColumns";
 import { isEntryKind } from "./entryDisplay";
 import { TIMELINE_KINDS } from "./timelineFilters";
 import { timelineEntries, todos } from "../sync/schema";
@@ -536,7 +537,7 @@ export const updateEntry = async (
 
   const defined = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
   if (detach && entry.seriesId) defined.seriesDetached = true;
-  const merged = timelineEntryContentZSchema.safeParse({
+  const stored = {
     kind: entry.kind,
     title: entry.title,
     body: entry.body,
@@ -552,8 +553,8 @@ export const updateEntry = async (
     seriesId: entry.seriesId,
     seriesDay: entry.seriesDay,
     seriesDetached: entry.seriesDetached,
-    ...defined,
-  });
+  };
+  const merged = timelineEntryContentZSchema.safeParse({ ...stored, ...defined });
   if (!merged.success) return invalid(merged.error);
   if (new Date(merged.data.occurredAt).getTime() !== new Date(entry.occurredAt).getTime()) {
     const future = futureRefusal(entry.kind, merged.data.occurredAt);
@@ -562,9 +563,17 @@ export const updateEntry = async (
   // Who cancelled is shown at once here; the server sets its own copy.
   const cancelledBy = merged.data.cancelledAt ? (entry.cancelledAt ? entry.cancelledBy : db.userId) : null;
 
+  // Only what changed: the details rewritten unchanged would be re-sent and
+  // overwrite a co-member's newer ones on the server.
+  const changed = changedColumns(
+    { ...contentColumns(stored), cancelledBy: entry.cancelledBy },
+    { ...contentColumns(merged.data), cancelledBy },
+    ["details"],
+  );
+  if (!Object.keys(changed).length) return { ok: true };
   await db.drizzle
     .update(timelineEntries)
-    .set({ ...contentColumns(merged.data), cancelledBy, updatedAt: nowTimestamp(), updatedBy: db.userId })
+    .set({ ...changed, updatedAt: nowTimestamp(), updatedBy: db.userId })
     .where(eq(timelineEntries.id, id));
   return { ok: true };
 };

@@ -1,7 +1,9 @@
 import type { LucideIcon } from "lucide-react";
+import type { Accent } from "./accents";
 
 import { useLayoutEffect, useRef } from "react";
 import { Link, useLocation, useNavigation } from "react-router";
+import { accentClass } from "./accents";
 
 export type TabNavTab = {
   label: string;
@@ -55,21 +57,26 @@ const claims = (tab: TabNavTab, pathname: string) => {
  * border in dark), plain labels, the current tab a primary-tinted pill. Full
  * width with equal tabs on phones, fit to its tabs from `sm`; when the tabs
  * don't fit it scrolls sideways (the page doesn't), keeping the current tab
- * in view. `className` is for the outer element only.
+ * in view. `accent` puts the current pill and the counts in a section's
+ * colour instead of primary. `className` is for the outer element only.
  */
 export function TabNav({
   label,
   tabs,
+  accent,
   className = "",
 }: {
   label: string;
   tabs: readonly TabNavTab[];
+  accent?: Accent;
   className?: string;
 }) {
   const { pathname } = useLocation();
   const target = useNavigation().location?.pathname ?? pathname;
   const current = tabs.findIndex((tab) => claims(tab, target));
   const nav = useRef<HTMLElement>(null);
+  const currentPill = accent ? accentClass(accent, "soft") : CURRENT_PILL;
+  const countBadge = accent ? `border-transparent ${accentClass(accent, "solid")}` : "badge-primary";
 
   // Keep the current tab in view when the bar scrolls sideways, without
   // scrolling the page (scrollIntoView would).
@@ -101,13 +108,13 @@ export function TabNav({
             aria-current={isCurrent ? "page" : undefined}
             aria-label={tab.count === undefined ? undefined : `${tab.label}, ${tab.count}`}
             className={`flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-medium whitespace-nowrap transition-colors sm:flex-none ${
-              isCurrent ? CURRENT_PILL : "text-base-content/80 hover:bg-base-200"
+              isCurrent ? currentPill : "text-base-content/80 hover:bg-base-200"
             }`}
           >
             {Icon && <Icon className="size-4 shrink-0" aria-hidden="true" />}
             {tab.label}
             {tab.count !== undefined && (
-              <span aria-hidden="true" className="badge badge-primary badge-sm">
+              <span aria-hidden="true" className={`badge badge-sm ${countBadge}`}>
                 {tab.count}
               </span>
             )}

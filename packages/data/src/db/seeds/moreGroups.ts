@@ -2,7 +2,6 @@ import type { GroupRoleName } from "../../constants/roles";
 import type { MedicationContentInput, ProviderPhone, UserInsert } from "../schema";
 import type { SeedEntry } from "./timelineEntries";
 
-import { hashPassword } from "better-auth/crypto";
 import { inArray } from "drizzle-orm";
 import { SYSTEM_USER } from "../../constants";
 import { getDb } from "../client";
@@ -23,6 +22,7 @@ import {
   timelineEntrySchema,
   userSchema,
 } from "../schema";
+import { seedPasswordHash } from "./accounts";
 import { occurredAtOf, seedContentOf } from "./timelineEntries";
 
 // More care groups and a mix of users, for trying roles by hand (B-90).
@@ -357,7 +357,7 @@ export const seed = async () => {
 
   const password = process.env.SEED_USER_PASSWORD;
   if (password) {
-    const hash = await hashPassword(password);
+    const hash = await seedPasswordHash(password);
     await db
       .insert(accountSchema)
       .values(users.map((u) => ({ userId: u.id, providerId: "credential", accountId: u.id, password: hash })))
@@ -389,30 +389,44 @@ export const seed = async () => {
       )
       .onConflictDoNothing({ target: [careGroupMemberSchema.groupId, careGroupMemberSchema.userId] });
 
-    for (const { row, author, documentText } of rows.entries) {
+    // One statement per table, not per row: a seed run is mostly round trips (B-466).
+    if (rows.entries.length) {
       await db
         .insert(timelineEntrySchema)
-        .values({ ...row, createdAt: row.occurredAt, updatedAt: row.occurredAt, ...by(author) })
+        .values(
+          rows.entries.map(({ row, author }) => ({
+            ...row,
+            createdAt: row.occurredAt,
+            updatedAt: row.occurredAt,
+            ...by(author),
+          })),
+        )
         .onConflictDoNothing({ target: timelineEntrySchema.id });
-      // Notes and events: their text is their live document, already compacted.
-      if (documentText === null) continue;
+    }
+    // Notes and events: their text is their live document, already compacted.
+    const documents = rows.entries.flatMap(({ row, author, documentText }) => {
+      if (documentText === null) return [];
       const doc = noteDocFromText(documentText);
+      const document = {
+        id: row.id,
+        groupId: rows.groupId,
+        subject: "entry" as const,
+        entryId: row.id,
+        snapshot: encodeNoteDoc(doc),
+        text: noteText(doc),
+        editors: { [userId(author)]: row.occurredAt },
+        createdAt: row.occurredAt,
+        updatedAt: row.occurredAt,
+        ...by(author),
+      };
+      doc.destroy();
+      return [document];
+    });
+    if (documents.length) {
       await db
         .insert(noteDocumentSchema)
-        .values({
-          id: row.id,
-          groupId: rows.groupId,
-          subject: "entry",
-          entryId: row.id,
-          snapshot: encodeNoteDoc(doc),
-          text: noteText(doc),
-          editors: { [userId(author)]: row.occurredAt },
-          createdAt: row.occurredAt,
-          updatedAt: row.occurredAt,
-          ...by(author),
-        })
+        .values(documents)
         .onConflictDoNothing({ target: noteDocumentSchema.id });
-      doc.destroy();
     }
 
     await db

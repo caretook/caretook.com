@@ -5,6 +5,7 @@ import {
   maintenanceUrl,
   testDatabase,
   workerDatabase,
+  workerDatabaseName,
   workerDatabaseNames,
 } from "./testDatabase";
 
@@ -73,22 +74,19 @@ describe("workerDatabase", () => {
 
   it("gives each worker id its own database on the same server", () => {
     const names = ["1", "2", "3"].map((id) => nameOf({ ...shared, VITEST_POOL_ID: id }));
-    expect(names).toEqual([
-      "caretook_test_check_speed_4_w1",
-      "caretook_test_check_speed_4_w2",
-      "caretook_test_check_speed_4_w3",
-    ]);
+    // caretook_tw_<stem>_<8 hex of md5("caretook_test_check_speed_4")>_w<n>
+    expect(names).toEqual(names.map((_, i) => workerDatabaseName("caretook_test_check_speed_4", i + 1)));
+    expect(names[0]).toMatch(/^caretook_tw_check_speed_4_[0-9a-f]{8}_w1$/);
+    expect(new Set(names).size).toBe(3);
     const res = workerDatabase({ ...shared, VITEST_POOL_ID: "2" });
-    expect(res.ok && res.url.toString()).toBe(
-      "postgresql://caretook:password@localhost:5436/caretook_test_check_speed_4_w2",
+    expect(res.ok && res.url.toString()).toBe(`postgresql://caretook:password@localhost:5436/${names[1]}`);
+    expect(workerDatabaseNames("caretook_test_x", 3)).toEqual(
+      [1, 2, 3].map((n) => workerDatabaseName("caretook_test_x", n)),
     );
-    expect(workerDatabaseNames("caretook_test_x", 3)).toEqual([
-      "caretook_test_x_w1",
-      "caretook_test_x_w2",
-      "caretook_test_x_w3",
-    ]);
     // The main checkout's own test database gets copies too.
-    expect(nameOf({ DATABASE_URL: url("localhost:5435"), VITEST_POOL_ID: "3" })).toBe("caretook_w3");
+    expect(nameOf({ DATABASE_URL: url("localhost:5435"), VITEST_POOL_ID: "3" })).toMatch(
+      /^caretook_tw_caretook_[0-9a-f]{8}_w3$/,
+    );
   });
 
   it("keeps a long worktree's worker names distinct and within 63 characters", () => {
@@ -109,6 +107,26 @@ describe("workerDatabase", () => {
     ).toBe(names[15]);
   });
 
+  it("gives two long bases that share their first characters distinct worker names (B-405)", () => {
+    const a = `caretook_test_${"x".repeat(48)}a`;
+    const b = `caretook_test_${"x".repeat(48)}b`;
+    const namesA = workerDatabaseNames(a, 16);
+    const namesB = workerDatabaseNames(b, 16);
+    for (const n of namesA) {
+      expect(namesB).not.toContain(n);
+      expect(isOwnDatabase(b, n), n).toBe(false);
+    }
+  });
+
+  it("never names a worker copy like another worktree's base (B-405)", () => {
+    // Worktree foo's worker 1 and worktree foo-w1's database.
+    const copy = workerDatabaseName("caretook_test_foo", 1);
+    expect(copy).not.toBe("caretook_test_foo_w1");
+    expect(isOwnDatabase("caretook_test_foo", "caretook_test_foo_w1")).toBe(false);
+    // No worktree base (caretook_test_…) is ever a worker name.
+    expect(copy).toMatch(/^caretook_tw_/);
+  });
+
   it("with one worker, uses the database itself", () => {
     expect(nameOf({ ...shared, CARETOOK_INT_WORKERS: "1", VITEST_POOL_ID: "1" })).toBe(
       "caretook_test_check_speed_4",
@@ -125,14 +143,16 @@ describe("workerDatabase", () => {
   it("counts only the worktree's own suffixed names as its databases", () => {
     const base = "caretook_test_t_1";
     expect(isOwnDatabase(base, base)).toBe(true);
-    expect(isOwnDatabase(base, "caretook_test_t_1_w3")).toBe(true);
+    expect(isOwnDatabase(base, workerDatabaseName(base, 3))).toBe(true);
+    expect(isOwnDatabase(base, workerDatabaseName(base, 16))).toBe(true);
     for (const other of [
       "caretook_test_t_10",
-      "caretook_test_t_1_w0",
-      "caretook_test_t_1_w17",
-      "caretook_test_t_1_wx",
-      "caretook_test_t_2_w1",
-      "caretook_test_t_1_w1_w1",
+      "caretook_test_t_1_w1",
+      workerDatabaseName(base, 0),
+      workerDatabaseName(base, 17),
+      `${workerDatabaseName(base, 1)}_w1`,
+      workerDatabaseName("caretook_test_t_2", 1),
+      workerDatabaseName("caretook_test_t_10", 1),
       "caretook",
       "postgres",
     ])

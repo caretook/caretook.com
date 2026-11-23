@@ -4,7 +4,7 @@ import type { ButtonLook } from "./buttonClass";
 import type { MenuEntry, MenuItem, NormalizedGroup, NormalizedSection } from "./menuModel";
 
 import { Check } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import {
   Button,
   Header,
@@ -95,6 +95,8 @@ export function Menu({
   [data: `data-${string}`]: string | boolean | undefined;
 }) {
   const navigate = useNavigate();
+  // A sheet opened from an item finds this button to return focus to (the item is gone by then).
+  const triggerKey = useId();
   const hasLook = variant !== undefined || size !== undefined || shape !== undefined;
   const triggerClass = hasLook
     ? `${buttonClass({ variant, size, shape })} ${className ?? ""}`.trim()
@@ -113,6 +115,7 @@ export function Menu({
       <MenuTrigger onOpenChange={(isOpen) => isOpen && setExpanded(new Set())}>
         <Button
           aria-label={label}
+          data-menu-trigger={triggerKey}
           className={triggerClass}
           isDisabled={isDisabled}
           // React Aria drops `title` (it keeps `data-*`): add it to the element it renders.
@@ -126,6 +129,7 @@ export function Menu({
           className={`${SURFACE} motion-overlay ${scrollable ? "max-h-80 overflow-y-auto" : ""}`}
         >
           <AriaMenu
+            data-menu-of={triggerKey}
             aria-label={menuLabel}
             // The trigger labels the menu by itself (`aria-labelledby`, which wins): an own name clears that.
             aria-labelledby={menuLabel ? "" : undefined}

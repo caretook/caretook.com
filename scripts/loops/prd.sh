@@ -60,14 +60,21 @@ pnpm prd <command>
                               --wait probes claude every 10 min; recover --dry-run [--json] only shows what it would do
     down                      before a planned restart: record what's up (the dispatcher too), stop the
                               dispatcher, servers, stacks, the test Postgres
-    open <name> [--print]     reopen a PRD's or planner's session in a new iTerm2 tab: claude --continue when the
-                              worktree has a saved conversation, else a fresh one with the resume prompt
+    open <name> [--print]     reopen a recorded session in a new iTerm2 tab: claude --continue when a PRD, planner
+                              or hotfix worktree has a saved conversation, else a fresh one with the resume prompt;
+                              backlog and recovery sessions (main checkout) always open fresh
                               (--background: iTerm2 stays where it is and the selected tab stays selected)
     end [<name>]              end a recorded session, or with no name the calling shell's own (a finished
                               orchestrator or planner, after pnpm prd rm); its tab closes
+    context [--keep "<why>" | --all [--json]]   this session's context size and the limit; --keep leaves it
+                              alone for 30 minutes; --all lists every live session
     rotate [<topic>] [--mid-wave] [--reason <text>]   replace an orchestrator's session with a fresh one
+    rotate --self [--brief <file>]    replace the calling backlog session (or orchestrator) with a fresh one
                               (resume prompt, same name) from a background tab; refuses an uncommitted plan or
                               slice worktrees (--mid-wave: on the user's word); prints the command without iTerm2
+    session request backlog <name> [--brief <file>] [--model <m>]   ask the dispatcher for another backlog
+                              session, backlog-<name> (Remote Control "backlog - <name>"); the outcome is a notice
+    session requests [--json] the pending requests, and those settled in the last day
 
   Asks (questions and reports for the dev keeper, in the main checkout's .loops/.asks)
     ask --topic <t> --question <text> [--option <a>]… [--recommend <a|n> --defaults|--waits]   file a
@@ -99,19 +106,31 @@ pnpm prd <command>
     serve [name] [--restart|--stop|--built|--dev]   its server in the background (--built: a check build)
     check [--quick "<why>"]   pnpm check (at most two at once machine-wide; CARETOOK_CHECK_SLOTS), timed in
                               .loops/.check-times.log, and record that
-                              this commit passed; --quick: typecheck, lint, format and only the tests
-                              related to the diff since the last full pass (plus the tests that read files by
-                              path), recorded with its reason; a diff touching a migration, seeds, the sync
-                              config, a lockfile, a package.json or the Vitest config makes it a full check;
-                              the tooling tests join when the diff touches the tooling
+                              this commit passed; --quick: typecheck, lint, format, every unit test, and the
+                              integration and component test files the diff adds or edits, recorded with its
+                              reason. On a slice/ branch that is all (the slice check, against its prd/
+                              branch). On a prd/ or hotfix/ branch it adds the integration tests related to
+                              the diff since the last full pass, and a diff touching a migration, seeds, the
+                              sync config, a lockfile, a package.json (beyond its scripts) or the Vitest config makes it a full
+                              check; the tooling tests join when the diff touches the tooling
                               (docs and tooling-only changes need neither: docs/agents/orchestrator.md, _The check gate_)
+    wait [check|browser|<kind>] [--timeout <s>]   block until this worktree's check (or that lease kind's
+                              holder or queued taker here) is gone; exit 75 at the timeout (default 3600 s),
+                              naming it. Wait on a background check with this, never \`pgrep -f\` (it matches itself)
     check --times [--since <date>]   the check log's summary (runs, median and total minutes, failures,
-                              by mode and by PRD); runs no check, works from any checkout
+                              by mode, PRD and step, the ten most-failed test files); runs no check,
+                              works from any checkout
     sync                      merge dev into this PRD branch
     browser <check>           one browser check; at most four run at once machine-wide
     browser --changed         the checks this worktree's changes need (--base REF, --list)
     browser --smoke …         any of these in smoke mode: each check's core path only (after a merge)
     browser --suite           the lean end-to-end set, with a table (--timeout S; one retry on contention)
+
+  CI (runs only on request; nothing starts it on a push to dev, staging or main, or on a PR)
+    ci run <tier> [--ref <branch>] [--files <file>…] [--wait [min]]   push the commit to ci/<tier>/<branch>, which runs that tier (--files: only those test files, a verdict that is never a gate)
+                              (static, unit, integration, components, full; each includes the ones before);
+                              --wait blocks for the verdict (0 green, 1 not green, 75 at the timeout)
+    ci [<branch>]             the latest whole-tier verdict for the branch's tip
 
   Land
     land <topic> [-m subject] [--recheck "<why>"] [--no-review] [--local]
@@ -183,6 +202,12 @@ case $cmd in
   gc) exec "$bin/gc.sh" "$@" ;;
   reclaim) exec "$bin/reclaim.sh" "$@" ;;
   tidy) exec node "$bin/tidy-cli.mjs" "$@" ;;
+  ci) exec node "$bin/../ci/ci.mjs" "$@" ;;
+  wait)
+    kind=check
+    [[ ${1:-} == "" || ${1:-} == -* ]] || { kind=$1; shift; }
+    exec "$bin/lease.sh" wait "$kind" "$@"
+    ;;
   test-db | testdb) exec "$bin/test-db.sh" "$@" ;;
   prompt) exec "$bin/prompt.sh" "$@" ;;
   queue) exec node "$bin/queue.mjs" "$@" ;;
@@ -192,6 +217,12 @@ case $cmd in
   open) exec "$bin/open-session.sh" "$@" ;;
   end) exec "$bin/end-session.sh" "$@" ;;
   rotate) exec "$bin/rotate.sh" "$@" ;;
+  context) exec node "$bin/context.mjs" "$@" ;;
+  session)
+    CARETOOK_REQUESTS_DIR=${CARETOOK_REQUESTS_DIR:-$loops/.requests} \
+      CARETOOK_SESSIONS_DIR=${CARETOOK_SESSIONS_DIR:-$loops/.sessions} \
+      exec node "$bin/session-requests.mjs" "$@"
+    ;;
   review) exec "$bin/review.sh" "$@" ;;
   pr) exec "$bin/pr.sh" "$@" ;;
   dev-sync) (($# <= 1)) || die "dev-sync: at most one branch name"; dev_sync "${1:-}" ;;
@@ -211,7 +242,9 @@ case $cmd in
     model_args=(--model "$model")
     if [[ ${1:-} == "" || ${1:-} == --open ]]; then
       (($# <= 1)) || die "plan: give a topic before other arguments"
-      cd "$main" && exec claude ${model_args[@]+"${model_args[@]}"} --remote-control backlog "$("$bin/prompt.sh" backlog)"
+      wrapper=$(cd "$bin" && pwd)/session.sh
+      cd "$main" && exec "$wrapper" backlog --kind backlog -- \
+        ${model_args[@]+"${model_args[@]}"} --remote-control backlog "$("$bin/prompt.sh" backlog)"
     fi
     topic=$1; shift; open=0 items=()
     for a in "$@"; do
@@ -244,11 +277,13 @@ case $cmd in
     dir=$loops/hotfix-$name
     if [[ -d $dir ]]; then echo "Worktree hotfix-$name already exists at $dir."; else "$bin/new.sh" hotfix "$name"; fi
     if ((open)); then
-      cd "$dir" && exec claude --model "$model" --remote-control "hotfix-$name" "$("$bin/prompt.sh" hotfix "$name" ${fix:+"$fix"})"
+      wrapper=$(cd "$bin" && pwd)/session.sh
+      cd "$dir" && exec "$wrapper" "hotfix-$name" --kind hotfix --topic "$name" -- \
+        --model "$model" --remote-control "hotfix-$name" "$("$bin/prompt.sh" hotfix "$name" ${fix:+"$fix"})"
     fi
     echo
     echo "Start its session in a new terminal (or rerun with --open; or carry on in the one that asked for it):"
-    echo "  cd $dir && claude --model $(printf %q "$model") --remote-control hotfix-$name \"\$(scripts/loops/prompt.sh hotfix $name $(printf %q "${fix:-<the fix>}"))\""
+    echo "  cd $dir && scripts/loops/session.sh hotfix-$name -- --model $(printf %q "$model") --remote-control hotfix-$name \"\$(scripts/loops/prompt.sh hotfix $name $(printf %q "${fix:-<the fix>}"))\""
     ;;
   start)
     topic=${1:?topic}
@@ -285,34 +320,34 @@ case $cmd in
     done
     [[ -z $(git -C "$dir" status --porcelain) ]] || die "commit your changes first: the check is recorded against a commit"
     record=$(checked_file "$dir")
-    if ((quick)); then
-      # The base is the last full pass (or a quick pass's own base) when it's
-      # an ancestor of HEAD, else where the branch left dev.
-      read -r prev mode qbase _ 2>/dev/null < "$record" || true
-      [[ ${mode:-} == quick ]] && prev=$qbase
-      if [[ -n ${prev:-} ]] && git -C "$dir" merge-base --is-ancestor "$prev" HEAD 2>/dev/null; then base=$prev
-      else base=$(git -C "$dir" merge-base "$trunk" HEAD); fi
-    fi
     # The mode comes from the plan (check-plan.mjs): a quick check on a diff that
-    # touches a migration, seeds, the sync config, a lockfile, a package.json or
-    # the Vitest config is a full one, and the tooling tests join when it touches
-    # the tooling.
-    [[ -n ${base:-} ]] || base=$(git -C "$dir" merge-base "$trunk" HEAD)
-    { read -r pmode; read -r preason; read -r ptooling; read -r palways; } < <(
-      git -C "$dir" diff --name-only "$base" HEAD | node "$bin/check-plan.mjs" --mode "$( ((quick)) && echo quick || echo full)")
+    # touches a migration, seeds, the sync config, a lockfile, a package.json
+    # (beyond its scripts) or the Vitest config is a full one, and the tooling tests join when it touches
+    # the tooling. A slice's --quick is the slice check: its own test files only,
+    # never forced to full.
+    asked=full
+    if ((quick)); then
+      asked=quick
+      [[ $(git -C "$dir" branch --show-current) == slice/* ]] && asked=slice
+    fi
+    base=$(check_base "$dir" "$asked")
+    { read -r pmode; read -r preason; read -r ptooling; read -r pown; } < <(
+      git -C "$dir" diff --name-only "$base" HEAD | node "$bin/check-plan.mjs" --mode "$asked" --repo "$dir" --base "$base" --head HEAD)
     rm -f "$record"
     # A check lease (lease.sh; CARETOOK_CHECK_SLOTS, default 2) around it, so a
     # wave of loops finishing together doesn't run every pnpm check at once.
-    if [[ $pmode == quick ]]; then
-      echo "Quick check against ${base:0:7}: typecheck, lint, format, and the tests related to the diff ($why)"
+    if [[ $pmode == slice ]]; then
+      echo "Slice check against ${base:0:7}: typecheck, lint, format, every unit test, and the integration and component tests this diff adds or edits ($why)"
+    elif [[ $pmode == quick ]]; then
+      echo "Quick check against ${base:0:7}: typecheck, lint, format, every unit test, the integration tests related to the diff, and the component tests it adds or edits ($why)"
     elif ((quick)); then
       echo "$preason"; why=""
     fi
-    [[ $ptooling == 1 ]] && echo "The diff touches the tooling: the tooling tests (pnpm test:tooling) join."
+    [[ $ptooling != 0 ]] && echo "The diff touches the tooling: the tooling tests (pnpm test:tooling) join."
     # shellcheck disable=SC2086
     (cd "$dir" && use_node && "$bin/lease.sh" run check --label "pnpm check${pmode:+ ($pmode)}" -- \
-      "$bin/check-run.sh" "$pmode" "${why:-$preason}" -- "$bin/check-body.sh" "$pmode" "$base" "$ptooling" $palways)
-    if [[ $pmode == quick ]]; then
+      "$bin/check-run.sh" "$pmode" "${why:-$preason}" -- "$bin/check-body.sh" "$pmode" "$base" "$ptooling" $pown)
+    if [[ $pmode == quick || $pmode == slice ]]; then
       echo "$(git -C "$dir" rev-parse HEAD) quick $base $why" > "$record"
       echo "quick check passed on $(git -C "$dir" rev-parse --short HEAD) ($(git -C "$dir" branch --show-current)): $why"
     else

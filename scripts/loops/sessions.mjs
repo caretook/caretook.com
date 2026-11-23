@@ -1,6 +1,6 @@
-// Session records: .loops/.sessions/<name>.json, one per orchestrator or
-// planner session started through session.sh (pid, kind, topic, started,
-// command, auto, managed (the dispatcher started it), rotating, and ended and
+// Session records: .loops/.sessions/<name>.json, one per session started
+// through session.sh: an orchestrator, planner, backlog, hotfix or recovery
+// session (pid, kind, topic, started, command, model, auto, managed (the dispatcher started it), rotating, and ended and
 // exit once it has exited). A record
 // stays after its session exits and goes with its worktree (rm.sh), so "no
 // live session" is a pid check.
@@ -33,6 +33,10 @@
 //   node sessions.mjs self [<name>]           the calling session: "<pid> record"
 //                                             when NAME's record is live, else
 //                                             "<pid> ancestor" (exit 1: neither)
+//   node sessions.mjs caller                  the live record of the calling shell's
+//                                             ancestor claude: "<name>\t<kind>\t<pid>\t<topic>"
+//                                             (exit 1, saying why: no ancestor, or
+//                                             it has no live record)
 // The claude name is basename($CARETOOK_CLAUDE_BIN), default claude.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
@@ -51,7 +55,7 @@ export function parseEtime(/** @type {string} */ s) {
 }
 
 /**
- * @typedef {{ pid?: number, kind?: string, topic?: string, started?: string, command?: string,
+ * @typedef {{ pid?: number, kind?: string, topic?: string, started?: string, command?: string, model?: string,
  *   auto?: boolean, managed?: boolean, rotating?: boolean, ended?: string, exit?: number }} SessionRecord
  */
 
@@ -126,7 +130,7 @@ export function processOf(/** @type {number} */ pid, now = Date.now()) {
 
 export const claudeName = () => basename(process.env.CARETOOK_CLAUDE_BIN || "claude");
 
-const defaultDir = () => {
+export const defaultDir = () => {
   if (process.env.CARETOOK_SESSIONS_DIR) return process.env.CARETOOK_SESSIONS_DIR;
   const here = dirname(fileURLToPath(import.meta.url));
   const first = execFileSync("git", ["-C", here, "worktree", "list", "--porcelain"], { encoding: "utf8" })
@@ -272,8 +276,17 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
         }
         break;
       }
+      case "caller": {
+        const p = ancestor(process.pid);
+        if (!p) fail("this shell isn't under a claude process");
+        const proc = processOf(p ?? 0);
+        const hit = readRecords(dir).find(({ record }) => record?.pid === p && isLive(record, proc));
+        if (!hit) fail(`its claude (pid ${p}) has no live session record`);
+        else console.log([hit.name, hit.record?.kind || "unknown", p, hit.record?.topic ?? ""].join("\t"));
+        break;
+      }
       default:
-        fail("usage: sessions.mjs set|get|list|live|ancestor|self …", 2);
+        fail("usage: sessions.mjs set|get|list|live|ancestor|self|caller …", 2);
     }
   } catch (e) {
     fail(e instanceof Error ? e.message : String(e));

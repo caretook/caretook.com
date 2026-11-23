@@ -1,0 +1,389 @@
+# CI (test-gates): runs only when asked. `pnpm prd ci run <tier>` pushes a commit
+# to a `ci/<tier>/<name>` ref, and this workflow runs that commit's checks. No
+# pull request, no push to dev, staging or main, no schedule.
+#
+# The tier picks the jobs, each tier including the ones before it
+# (scripts/ci/tiers.mjs): static, unit, integration, components, and full
+# (the build job). The last job writes the verdict and uploads it as the
+# `verdict` artifact, kept 7 days. A test step that fails reruns its failed files
+# once (scripts/ci/test-job.mjs); a quarantine step runs the quarantined tests and
+# can't fail the run. A commit carrying .ci-narrowed.json runs only its files' jobs.
+#
+# Secrets: none. The test env is fictional and generated per job
+# (scripts/ci/env.mjs). The repo is public, so run logs are public.
+name: CI
+
+on:
+  push:
+    branches:
+      - "ci/**"
+
+permissions:
+  contents: read
+
+# A newer request for the same branch and tier cancels the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CARETOOK_LEASES: "off"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tier: ${{ steps.tier.outputs.tier }}
+      static: ${{ steps.tier.outputs.static }}
+      unit: ${{ steps.tier.outputs.unit }}
+      integration: ${{ steps.tier.outputs.integration }}
+      components: ${{ steps.tier.outputs.components }}
+      full: ${{ steps.tier.outputs.full }}
+      components2: ${{ steps.tier.outputs.components2 }}
+      pg_password: ${{ steps.password.outputs.pg_password }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - id: tier
+        name: Read the tier from the ref
+        env:
+          CI_REF: ${{ github.ref_name }}
+        run: node scripts/ci/tiers.mjs "$CI_REF" | tee -a "$GITHUB_OUTPUT"
+      # The throwaway Postgres's password, generated per run and fictional. Real
+      # password auth: the integration tests assert that Postgres refuses a login.
+      - id: password
+        name: Generate the database password
+        run: echo "pg_password=fictional-$(openssl rand -hex 16)" >> "$GITHUB_OUTPUT"
+
+  static:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.static == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      started: ${{ steps.started.outputs.started }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: setup
+        uses: ./.github/actions/setup
+      - id: env
+        name: Fictional env
+        run: node scripts/ci/env.mjs >> "$GITHUB_ENV"
+      - id: started
+        name: Setup finished
+        run: echo "started=true" >> "$GITHUB_OUTPUT"
+      - id: format
+        name: Format
+        run: pnpm format:check
+      - id: lint
+        name: Lint
+        if: ${{ !cancelled() }}
+        # Type-aware ESLint sits at Node's default heap limit (about 4 GB here).
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: pnpm lint
+      - id: typecheck
+        name: Typecheck
+        if: ${{ !cancelled() }}
+        run: pnpm typecheck
+      - id: docs-budget
+        name: Docs budget (a warning)
+        if: ${{ !cancelled() }}
+        run: pnpm docs:budget
+
+  unit:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.unit == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      failures: ${{ steps.report.outputs.failures }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: setup
+        uses: ./.github/actions/setup
+      - id: env
+        name: Fictional env and a git identity for the tooling tests
+        run: |
+          node scripts/ci/env.mjs >> "$GITHUB_ENV"
+          git config --global user.name "CI"
+          git config --global user.email "ci@example.com"
+          git config --global init.defaultBranch main
+          git switch --create ci-run
+      - id: test
+        name: Unit tests
+        # The lease tests take real leases in their own temp directories.
+        env:
+          CARETOOK_LEASES: ""
+        run: >-
+          node scripts/ci/test-job.mjs --project data:unit --project web:unit --project notifications:unit
+          --project server:unit --project scripts:unit --project tooling:unit --reporter=default
+          --reporter=json --outputFile.json=ci-results/unit.json
+      - id: quarantine
+        name: Quarantined tests (can't fail the run)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          CARETOOK_LEASES: ""
+        run: >-
+          node scripts/ci/test-job.mjs --quarantine --project data:unit --project web:unit --project notifications:unit
+          --project server:unit --project scripts:unit --project tooling:unit --reporter=default
+          --reporter=json --outputFile.json=ci-results/unit.json
+      - id: report
+        name: Report the failures
+        if: ${{ !cancelled() }}
+        run: node scripts/ci/verdict.mjs summarize ci-results/unit.json >> "$GITHUB_OUTPUT"
+
+  integration:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.integration == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      failures: ${{ steps.report.outputs.failures }}
+    services:
+      postgres:
+        image: postgres:18.7-alpine
+        env:
+          POSTGRES_USER: caretook
+          POSTGRES_DB: caretook
+          POSTGRES_PASSWORD: ${{ needs.plan.outputs.pg_password }}
+        ports:
+          - "5435:5432"
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U caretook -d caretook"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: setup
+        uses: ./.github/actions/setup
+      - id: env
+        name: Fictional env and a git identity for the browser tooling test
+        env:
+          CI_PG_PASSWORD: ${{ needs.plan.outputs.pg_password }}
+        run: |
+          node scripts/ci/env.mjs >> "$GITHUB_ENV"
+          git config --global user.name "CI"
+          git config --global user.email "ci@example.com"
+          git config --global init.defaultBranch main
+          git switch --create ci-run
+      - id: test
+        name: Integration tests
+        run: >-
+          node scripts/ci/test-job.mjs --project integration --reporter=default
+          --reporter=json --outputFile.json=ci-results/integration.json
+      # Here, not in the unit job: it launches the real Playwright runner and
+      # shell scripts, and took most of that job's time.
+      - id: browser-tooling
+        name: Browser tooling test
+        if: ${{ !cancelled() }}
+        env:
+          CARETOOK_LEASES: ""
+        run: >-
+          node scripts/ci/test-job.mjs --project tooling:browser
+          --reporter=default --reporter=json --outputFile.json=ci-results/browser-tooling.json
+      - id: quarantine
+        name: Quarantined tests (can't fail the run)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: >-
+          node scripts/ci/test-job.mjs --quarantine --project integration --reporter=default
+          --reporter=json --outputFile.json=ci-results/integration.json
+      - id: quarantine-browser
+        name: Quarantined tests (can't fail the run)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          CARETOOK_LEASES: ""
+        run: >-
+          node scripts/ci/test-job.mjs --quarantine --project tooling:browser
+          --reporter=default --reporter=json --outputFile.json=ci-results/browser-tooling.json
+      - id: report
+        name: Report the failures
+        if: ${{ !cancelled() }}
+        run: >-
+          node scripts/ci/verdict.mjs summarize ci-results/integration.json
+          ci-results/browser-tooling.json >> "$GITHUB_OUTPUT"
+
+  # Two shards: one job took 13 minutes, past the 10-minute limit. Two plain jobs,
+  # not a matrix, because a matrix's jobs share one set of outputs.
+  components-1:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.components == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      failures: ${{ steps.report.outputs.failures }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: setup
+        uses: ./.github/actions/setup
+      - id: env
+        name: Fictional env
+        run: node scripts/ci/env.mjs >> "$GITHUB_ENV"
+      - id: chromium
+        name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - id: test
+        name: Component tests (shard 1 of 2)
+        run: >-
+          node scripts/ci/test-job.mjs --project web:components --shard=1/2 --reporter=default
+          --reporter=json --outputFile.json=ci-results/components-1.json
+      - id: quarantine
+        name: Quarantined tests (can't fail the run)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: >-
+          node scripts/ci/test-job.mjs --quarantine --project web:components --reporter=default
+          --reporter=json --outputFile.json=ci-results/components-1.json
+      - id: report
+        name: Report the failures
+        if: ${{ !cancelled() }}
+        run: node scripts/ci/verdict.mjs summarize ci-results/components-1.json >> "$GITHUB_OUTPUT"
+
+  components-2:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.components2 == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      failures: ${{ steps.report.outputs.failures }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: setup
+        uses: ./.github/actions/setup
+      - id: env
+        name: Fictional env
+        run: node scripts/ci/env.mjs >> "$GITHUB_ENV"
+      - id: chromium
+        name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - id: test
+        name: Component tests (shard 2 of 2)
+        run: >-
+          node scripts/ci/test-job.mjs --project web:components --shard=2/2 --reporter=default
+          --reporter=json --outputFile.json=ci-results/components-2.json
+      - id: report
+        name: Report the failures
+        if: ${{ !cancelled() }}
+        run: node scripts/ci/verdict.mjs summarize ci-results/components-2.json >> "$GITHUB_OUTPUT"
+
+  build:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.full == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      started: ${{ steps.started.outputs.started }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: setup
+        uses: ./.github/actions/setup
+      - id: env
+        name: Fictional build env
+        run: node scripts/ci/env.mjs build >> "$GITHUB_ENV"
+      - id: started
+        name: Setup finished
+        run: echo "started=true" >> "$GITHUB_OUTPUT"
+      - id: budget
+        name: Web build and bundle budget
+        run: pnpm build:budget
+      - id: native
+        name: Native build
+        if: ${{ !cancelled() }}
+        run: pnpm build:native
+      # A production client must not carry the debug handle (B-341).
+      - id: grep
+        name: No caretookSync in the built clients
+        if: ${{ !cancelled() }}
+        run: |
+          for dir in apps/web/build/web/client apps/web/build/native/client; do
+            test -d "$dir" || { echo "no build at $dir"; exit 1; }
+            if grep -rl caretookSync "$dir"; then
+              echo "caretookSync is in the production client at $dir"
+              exit 1
+            fi
+          done
+
+  verdict:
+    needs:
+      - plan
+      - static
+      - unit
+      - integration
+      - components-1
+      - components-2
+      - build
+    # Not on a cancelled run: no artifact reads as unknown on the Mac.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - id: write
+        name: Write the verdict
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
+          CI_TIER: ${{ needs.plan.outputs.tier }}
+          CI_COMMIT: ${{ github.sha }}
+          CI_RUN_ID: ${{ github.run_id }}
+        run: node scripts/ci/verdict.mjs write ci-results/verdict.json
+      - id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verdict
+          path: ci-results/verdict.json
+          retention-days: 7
+          if-no-files-found: error

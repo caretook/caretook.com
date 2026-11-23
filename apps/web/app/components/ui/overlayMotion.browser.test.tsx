@@ -119,6 +119,21 @@ describe("Menu and Popover fade", () => {
     await expect.poll(active).toBe(trigger.element());
   });
 
+  test("held hidden before its reveal, a panel starts no fade (an exit waiting on one would never finish)", () => {
+    // React Aria hides a popover with inline styles until it is placed (on a
+    // touch device, for two frames or more), then cancels any transition on
+    // it. A close in that window would wait on the cancelled fade forever,
+    // leaving an invisible panel that takes taps (B-547).
+    const panel = document.createElement("div");
+    panel.className = "motion-overlay";
+    document.body.append(panel);
+    expect(getComputedStyle(panel).opacity).toBe("1");
+    panel.style.setProperty("opacity", "0");
+    panel.style.setProperty("clip-path", "inset(50%)");
+    expect(panel.getAnimations()).toEqual([]);
+    panel.remove();
+  });
+
   test("with reduced motion, a menu and a popover have no transition or animation and are gone in the next frame", async () => {
     await reduceMotion();
     const { screen } = await renderInRouter(

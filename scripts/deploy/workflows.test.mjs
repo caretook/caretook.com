@@ -4,6 +4,7 @@
 // pinned-versions file, and inputs never reach a shell unquoted. Parsed with
 // the sync config's YAML reader (no YAML dependency), which refuses what it
 // doesn't know, so the workflows stay plain.
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -34,6 +35,7 @@ describe("the deploy workflows", () => {
   it("are all here", () => {
     expect(WORKFLOWS.sort()).toEqual([
       ".github/workflows/admin-grant.yml",
+      ".github/workflows/ci.yml",
       ".github/workflows/db-access.yml",
       ".github/workflows/deploy.yml",
       ".github/workflows/reset-staging.yml",
@@ -63,8 +65,117 @@ describe("the deploy workflows", () => {
     expect(deploy.jobs.deploy.environment).toMatch(/main.*production.*staging/);
   });
 
-  it.each(WORKFLOWS.filter((p) => !p.endsWith("/deploy.yml")))("%s runs only by hand", (path) => {
+  it.each(WORKFLOWS.filter((p) => !/\/(deploy|ci)\.yml$/.test(p)))("%s runs only by hand", (path) => {
     expect(Object.keys(parseYaml(read(path)).on)).toEqual(["workflow_dispatch"]);
+  });
+
+  it("runs CI only on a push to a ci/ ref, reading no secret", () => {
+    const text = read(".github/workflows/ci.yml");
+    const ci = parseYaml(text);
+    expect(Object.keys(ci.on)).toEqual(["push"]);
+    expect(ci.on.push).toEqual({ branches: ["ci/**"] });
+    expect(secretsIn(text)).toEqual([]);
+    expect(text).not.toMatch(/\bsecrets\b(?!: none)/);
+    expect(ci.permissions).toEqual({ contents: "read" });
+    expect(ci.concurrency["cancel-in-progress"]).toBe("true");
+  });
+
+  it("checks CI out by the pushed SHA and keeps the job's token out of the checkout", () => {
+    const ci = parseYaml(read(".github/workflows/ci.yml"));
+    for (const job of Object.values(ci.jobs)) {
+      const checkout = job.steps.find((s) => s.id === "checkout");
+      expect(checkout.with.ref).toBe("${{ github.sha }}");
+      expect(checkout.with["persist-credentials"]).toBe("false");
+    }
+  });
+
+  it("runs the browser tooling project in CI's integration job, not its unit job", () => {
+    const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
+    const unit = jobs.unit.steps.find((s) => s.id === "test").run;
+    expect(unit).toContain("--project tooling:unit");
+    expect(unit).not.toContain("tooling:browser");
+    // The real project split: a pattern Vitest ignores fails here.
+    const list = (project) =>
+      execFileSync("pnpm", ["exec", "vitest", "list", "--filesOnly", "--project", project], {
+        cwd: root,
+        encoding: "utf8",
+      });
+    expect(list("tooling:unit")).not.toContain("loops/browser.test.mjs");
+    expect(list("tooling:unit")).toContain("loops/lease.test.mjs");
+    expect(
+      list("tooling:browser")
+        .trim()
+        .split("\n")
+        .filter((l) => l.includes(".test.")),
+    ).toHaveLength(1);
+    const step = jobs.integration.steps.find((s) => s.id === "browser-tooling");
+    expect(step.run).toContain("--project tooling:browser");
+    expect(step.if).toBe("${{ !cancelled() }}");
+    const report = jobs.integration.steps.find((s) => s.id === "report").run;
+    expect(report).toContain("ci-results/browser-tooling.json");
+  }, 60_000);
+
+  it("gates CI's jobs on the tier and always writes a verdict unless cancelled", () => {
+    const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
+    const tierOf = {
+      static: "static",
+      unit: "unit",
+      integration: "integration",
+      "components-1": "components",
+      "components-2": "components",
+      build: "full",
+    };
+    const tierJobs = Object.keys(tierOf);
+    expect(Object.keys(jobs)).toEqual(["plan", ...tierJobs, "verdict"]);
+    // A narrowed run has one components job, so the second shard has its own switch.
+    const switchOf = { ...tierOf, "components-2": "components2" };
+    for (const name of tierJobs)
+      expect(jobs[name].if).toBe(`\${{ needs.plan.outputs.${switchOf[name]} == 'true' }}`);
+    expect(jobs.verdict.if).toBe("${{ !cancelled() }}");
+    expect(jobs.verdict.needs).toEqual(["plan", ...tierJobs]);
+    const upload = jobs.verdict.steps.at(-1);
+    expect(upload.uses).toMatch(/^actions\/upload-artifact@[0-9a-f]{40}$/);
+    expect(upload.with).toMatchObject({ name: "verdict", "retention-days": "7" });
+    expect(jobs.integration.services.postgres.ports).toEqual(["5435:5432"]);
+  });
+
+  it.each([1, 2])("runs CI's component shard %i in Chromium and reports it", (n) => {
+    const job = parseYaml(read(".github/workflows/ci.yml")).jobs[`components-${n}`];
+    const run = (id) => job.steps.find((s) => s.id === id).run;
+    expect(run("chromium")).toBe("pnpm exec playwright install --with-deps chromium");
+    expect(run("test")).toContain(`--project web:components --shard=${n}/2`);
+    expect(run("test")).toContain(`--outputFile.json=ci-results/components-${n}.json`);
+    expect(run("report")).toContain(`ci-results/components-${n}.json`);
+  });
+
+  it("reruns through the test job, with quarantine steps that can't fail the run", () => {
+    const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
+    for (const name of ["unit", "integration", "components-1", "components-2"])
+      expect(jobs[name].steps.find((s) => s.id === "test").run).toMatch(/^node scripts\/ci\/test-job\.mjs /);
+    for (const [name, id] of [
+      ["unit", "quarantine"],
+      ["integration", "quarantine"],
+      ["integration", "quarantine-browser"],
+      ["components-1", "quarantine"],
+    ]) {
+      const step = jobs[name].steps.find((s) => s.id === id);
+      expect(step.run).toContain("test-job.mjs --quarantine");
+      expect(step["continue-on-error"]).toBe("true");
+    }
+    // One shard runs the quarantined component tests, not both.
+    expect(jobs["components-2"].steps.some((s) => s.id === "quarantine")).toBe(false);
+    for (const name of ["static", "build"]) expect(jobs[name].outputs.started).toContain("steps.started");
+  });
+
+  it("builds both targets in CI's full tier, with no debug handle in either client", () => {
+    const { build } = parseYaml(read(".github/workflows/ci.yml")).jobs;
+    const run = (id) => build.steps.find((s) => s.id === id).run;
+    expect(run("env")).toBe('node scripts/ci/env.mjs build >> "$GITHUB_ENV"');
+    expect(run("budget")).toBe("pnpm build:budget");
+    expect(run("native")).toBe("pnpm build:native");
+    for (const dir of ["apps/web/build/web/client", "apps/web/build/native/client"])
+      expect(run("grep")).toContain(dir);
+    expect(run("grep")).toContain("caretookSync");
   });
 
   it("runs the deploy's steps in order", () => {

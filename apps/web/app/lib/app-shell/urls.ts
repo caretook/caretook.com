@@ -4,7 +4,14 @@ import { HOME, searchString } from "../core/urls";
 export const GROUP_LIST_PARAM = "groups";
 
 /** The account's settings subpages, in list order (`/app/settings/<page>`). */
-export const ACCOUNT_SETTINGS_PAGES = ["units", "timeline", "account", "contact", "devices"] as const;
+export const ACCOUNT_SETTINGS_PAGES = [
+  "units",
+  "timeline",
+  "account",
+  "contact",
+  "devices",
+  "not-saved",
+] as const;
 export type AccountSettingsPage = (typeof ACCOUNT_SETTINGS_PAGES)[number];
 const isAccountSettingsPage = (page: unknown): page is AccountSettingsPage =>
   (ACCOUNT_SETTINGS_PAGES as readonly unknown[]).includes(page);

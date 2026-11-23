@@ -119,6 +119,28 @@ stop_server() {
 # (in the worktree's git dir, so it never shows up as a change).
 checked_file() { echo "$(git -C "$1" rev-parse --absolute-git-dir)/caretook-checked"; }
 
+# check_base DIR ASKED (full|quick|slice) → the commit a check's diff starts from.
+# A slice: where it left its PRD branch. A quick check: the last full pass (or a
+# quick pass's own base) when it's an ancestor of HEAD. Otherwise where the
+# branch left the trunk.
+check_base() {
+  local dir=$1 asked=$2 cur parent prev="" pmode="" qbase="" _rest
+  if [[ $asked == slice ]]; then
+    cur=$(git -C "$dir" branch --show-current); parent=${cur#slice/}; parent=prd/${parent%/*}
+    if git -C "$dir" rev-parse -q --verify "$parent" > /dev/null; then
+      git -C "$dir" merge-base "$parent" HEAD; return
+    fi
+  fi
+  if [[ $asked != full ]]; then
+    read -r prev pmode qbase _rest 2>/dev/null < "$(checked_file "$dir")" || true
+    [[ $pmode == quick ]] && prev=$qbase
+    if [[ -n $prev ]] && git -C "$dir" merge-base --is-ancestor "$prev" HEAD 2>/dev/null; then
+      echo "$prev"; return
+    fi
+  fi
+  git -C "$dir" merge-base "$trunk" HEAD
+}
+
 # The record is one line: `<sha> full`, or `<sha> quick <base> <why>` for a
 # `pnpm prd check --quick` (typecheck, lint, format and the tests related to
 # the diff since <base>). A bare `<sha>` (older records) reads as full.
@@ -133,15 +155,16 @@ exempt_only() {
   local range=$2
   [[ -n ${3:-} ]] && range="$2 $3"
   # shellcheck disable=SC2086
-  [[ -z $(git -C "$1" diff --name-only $range | grep -Ev "$exempt_re") ]]
+  [[ -z $(git -C "$1" diff --name-only --no-renames $range | grep -Ev "$exempt_re") ]]
 }
 
 # docs_only BASE TIP → succeeds when BASE...TIP changes something and every
 # file it changes is Markdown (`*.md` anywhere). Tooling scripts are code: they
-# keep the Codex review. An empty diff is not docs only.
+# keep the Codex review. An empty diff is not docs only. --no-renames lists both
+# sides of a rename, so a code file renamed to .md isn't docs only.
 docs_only() {
   local files
-  files=$(git -C "$main" diff --name-only "$1...$2") || return 1
+  files=$(git -C "$main" diff --name-only --no-renames "$1...$2") || return 1
   [[ -n $files ]] && ! grep -qv '\.md$' <<< "$files"
 }
 
@@ -218,7 +241,23 @@ trunk_drift() {
 fmt_secs() { printf '%dm%02ds' $(($1 / 60)) $(($1 % 60)); }
 
 # load_avg → the 1, 5 and 15 minute load averages.
-load_avg() { sysctl -n vm.loadavg 2>/dev/null | tr -d '{}' | xargs || uptime | sed 's/.*load average[s]*: //'; }
+# One clean line: sysctl on macOS, uptime on Linux (where sysctl prints nothing).
+load_avg() {
+  local l
+  l=$(sysctl -n vm.loadavg 2>/dev/null | tr -d '{}' | xargs) || l=""
+  [[ -n $l ]] || l=$(uptime 2>/dev/null | sed 's/.*load average[s]*: //' | tr -d ',') || l=""
+  echo "$l"
+}
+
+# file_mtime PATH → its modification time (epoch seconds); false when it can't be
+# read. GNU's form first: on Linux, `stat -f %m` prints a `File:` block to stdout
+# before it fails, so only an all-digit answer counts.
+file_mtime() {
+  local t
+  t=$(stat -c %Y "$1" 2>/dev/null) && [[ $t =~ ^[0-9]+$ ]] && { echo "$t"; return 0; }
+  t=$(stat -f %m "$1" 2>/dev/null) && [[ $t =~ ^[0-9]+$ ]] && { echo "$t"; return 0; }
+  return 1
+}
 
 # The load gate (load-gate.mjs decides; busy is the 5-minute load over
 # CARETOOK_LOAD_BUSY, default twice the cores). load_gate → "<busy|ok|off|unread>
@@ -382,7 +421,7 @@ with_backlog_lock() {
   local lock deadline=$((SECONDS + 20)) age status
   lock="$(cd "$main" && cd "$(git rev-parse --git-common-dir)" && pwd)/caretook-backlog.lock"
   until mkdir "$lock" 2>/dev/null; do
-    age=$(($(date +%s) - $(stat -f %m "$lock" 2>/dev/null || stat -c %Y "$lock" 2>/dev/null || date +%s)))
+    age=$(($(date +%s) - $(file_mtime "$lock" || date +%s)))
     if ((age > 30)); then rm -rf "$lock"; continue; fi
     ((SECONDS < deadline)) || die "the backlog is locked ($lock); try again"
     sleep 0.2

@@ -1,6 +1,6 @@
 // The parts `pnpm prd status` prints after the worktree table: the dispatcher
 // (running, paused and why, or stopped, and its log's last entry), the recorded
-// sessions (.loops/.sessions: name, live or ended, age, run-through or not,
+// sessions (.loops/.sessions: name, kind, live or ended, age, run-through or not,
 // managed by the dispatcher or opened by hand) and the open asks (the count,
 // split into questions awaiting an answer, reports and those decided for you;
 // the oldest awaiting one, else the oldest, and its age). The sessions and asks parts print nothing, heading
@@ -11,9 +11,12 @@
 //                              the dispatcher's files are in the main checkout's .loops
 //                              (CARETOOK_DISPATCH_MAIN names another main checkout)
 import { closeSync, existsSync, openSync, readSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { age, awaitsAnswer, listAsks, shorten } from "./asks.mjs";
+import { contextDirOf, sizeNote, sizeRecord } from "./context.mjs";
 import { lockHolder, mainCheckout, pathsOf, readState } from "./dispatch.mjs";
+import { pendingPart } from "./session-requests.mjs";
 import { isLive, processOf, readRecords } from "./sessions.mjs";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -76,21 +79,23 @@ export function statusParts(sessionsDir, asksDir, { now = Date.now(), live } = {
     if (!up && !Number.isNaN(ended) && now - ended > DAY_MS) continue;
     rows.push([
       name,
+      record.kind ?? "?",
       up ? (record.rotating ? "live, rotating" : "live") : "ended",
       Number.isNaN(since) ? "?" : age(record.started, now),
       record.auto ? "run-through" : "asks first",
       record.managed ? "managed" : "by hand",
+      up ? sizeNote(sizeRecord(contextDirOf(sessionsDir), name, record.pid ?? 0), { now }) : "",
     ]);
   }
   if (rows.length) {
-    const w = [0, 1, 2, 3].map((i) => Math.max(...rows.map((r) => r[i].length)));
+    const w = [0, 1, 2, 3, 4].map((i) => Math.max(...rows.map((r) => r[i].length)));
     out.push("SESSIONS (ended over a day ago left out)");
     for (const r of rows)
       out.push(
         `${r
-          .slice(0, 4)
+          .slice(0, 5)
           .map((c, i) => c.padEnd(w[i]))
-          .join("  ")}  ${r[4]}`,
+          .join("  ")}  ${r[5]}${r[6] ? `  ${r[6]}` : ""}`,
       );
     out.push("");
   }
@@ -127,5 +132,11 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   } catch {
     /* no git here: no dispatcher part */
   }
-  process.stdout.write(dispatcher + statusParts(s, a));
+  let requests = "";
+  try {
+    requests = pendingPart(process.env.CARETOOK_REQUESTS_DIR || join(dirname(s), ".requests"));
+  } catch {
+    /* an unreadable store: no requests part */
+  }
+  process.stdout.write(dispatcher + statusParts(s, a) + requests);
 }

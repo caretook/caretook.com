@@ -118,7 +118,8 @@ const makeWorkerDatabases = async (db: Database, workers: number, hint: string) 
 // Runs once per `vitest` run, before any integration file: start from an
 // empty, fully migrated test database (in a worktree, only its own), and with
 // more than one worker (CARETOOK_INT_WORKERS, default 3) a copy of it for
-// each, `<name>_w<n>`, which that worker's files use (setup.ts).
+// each, `caretook_tw_<stem>_<hash>_w<n>` (workerDatabaseName), which that
+// worker's files use (setup.ts).
 export default async function setup() {
   const db = loadTestEnv();
   const workers = intWorkers(process.env.CARETOOK_INT_WORKERS);

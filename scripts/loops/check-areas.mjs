@@ -34,10 +34,12 @@
 //   - the deepest directory default the file sits under;
 //   - anything else gets UNMAPPED_DEFAULT, with a warning to add a rule or a default.
 //
-//   node check-areas.mjs resolve [--root DIR] [--areas DIR] [file…]
+//   node check-areas.mjs resolve [--root DIR] [--areas DIR] [--base REF [--head REF]] [file…]
 //     prints "<file>\t<checks>" per file (files from stdin when none are given):
-//     the checks, "-", "- (deleted)", "- (unit-tested)", "@suite", or
-//     "UNMAPPED <default checks>". A tie exits 2 and names the rules.
+//     the checks, "-", "- (deleted)", "- (unit-tested)", "- (scripts only)",
+//     "@suite", or "UNMAPPED <default checks>". A tie exits 2 and names the rules.
+//     With --base, a package.json whose @suite rule matched but that changed only
+//     its `scripts` (package-diff.mjs; no --head reads the working tree) needs nothing.
 //   node check-areas.mjs lint [--root DIR] [--areas DIR]
 //     checks the rules against `git ls-files`: every tracked file resolves, no
 //     rule or default is dead, no glob is written twice, no tie. Exits 1 with the problems.
@@ -47,6 +49,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { readPackages, scriptsOnlyFiles } from "./package-diff.mjs";
 
 /** The checks a file no rule covers runs, with a warning. */
 export const UNMAPPED_DEFAULT = "sign-in phase2 roundtrip";
@@ -181,16 +184,19 @@ function answer(file, rule, exists) {
  * names, "-", "- (deleted)", "- (unit-tested)", "@suite" or
  * "UNMAPPED <default>". tie, when set, lists the equally specific rules (the
  * first of them still gives the answer). exists(path) says whether a path
- * exists in the tree (for @self and the unit-tested fallback).
+ * exists in the tree (for @self and the unit-tested fallback). scriptsOnly
+ * names the package.json files that changed only their scripts: their @suite
+ * becomes "- (scripts only)".
  */
-export function resolveFile(file, rules, exists) {
+export function resolveFile(file, rules, exists, scriptsOnly = new Set()) {
   if (TEST_FILE.test(file)) return { checks: "-" };
   const found = matching(file, rules);
   if (found.length) {
     const rule = found[0];
     const tied = found.filter((r) => compareSpecificity(r, rule) === 0);
     const tie = tied.length > 1 ? tied : undefined;
-    return { checks: answer(file, rule, exists), rule, tie };
+    const checks = answer(file, rule, exists);
+    return { checks: checks === "@suite" && scriptsOnly.has(file) ? "- (scripts only)" : checks, rule, tie };
   }
   if (
     file.startsWith("apps/web/app/lib/") &&
@@ -249,10 +255,14 @@ function main(argv) {
   const [cmd, ...rest] = argv;
   let root = repoRoot();
   let areas = "";
+  let base = "";
+  let head = "";
   const files = [];
   for (let i = 0; i < rest.length; i++) {
     if (rest[i] === "--root") root = rest[++i];
     else if (rest[i] === "--areas") areas = rest[++i];
+    else if (rest[i] === "--base") base = rest[++i];
+    else if (rest[i] === "--head") head = rest[++i];
     else files.push(rest[i]);
   }
   areas ||= join(root, "scripts/loops/check-areas.d");
@@ -270,9 +280,10 @@ function main(argv) {
           .map((l) => l.trim())
           .filter(Boolean),
       );
+    const scriptsOnly = scriptsOnlyFiles(readPackages(files, { repo: root, base, head }));
     let status = 0;
     for (const file of files) {
-      const { checks, tie } = resolveFile(file, rules, exists);
+      const { checks, tie } = resolveFile(file, rules, exists, scriptsOnly);
       if (tie) {
         console.error(`check-areas: tie for ${file}: ${tie.map(where).join(" = ")} (make one more specific)`);
         status = 2;

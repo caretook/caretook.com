@@ -366,7 +366,7 @@ run_once() {
         sleep "$hang_grace"; touch "$finished"; break
       fi
       if ((now - start >= t)); then touch "$marker"; break; fi
-      last=$(stat -f %m "$log" 2>/dev/null || echo "$start")
+      last=$(file_mtime "$log" || echo "$start")
       ((last < start)) && last=$start
       if ((now - last >= silence)); then touch "$silent"; break; fi
       sleep 1
@@ -495,7 +495,7 @@ if [[ $mode == changed ]]; then
   # One line per file: "<file><TAB><checks>". A tie (two equally specific
   # rules) exits 2 after naming them on stderr: the first still answers.
   rc=0
-  resolved=$(printf '%s\n' "$files" | node "$resolver" resolve --root "$top" --areas "$areas") || rc=$?
+  resolved=$(printf '%s\n' "$files" | node "$resolver" resolve --root "$top" --areas "$areas" --base "$mb" ${head_ref:+--head "$head_ref"}) || rc=$?
   ((rc == 0 || rc == 2)) || die "check-areas.mjs failed (exit $rc)"
   while IFS=$'\t' read -r f c; do
     [[ -z $f ]] && continue

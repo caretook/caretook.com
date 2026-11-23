@@ -1,5 +1,5 @@
 # check-areas: the sync client, first sync, the device schema and the upload
-# switch, which carries every synced write.
+# procedure and its registry, which carry every synced write.
 apps/web/app/lib/sync/firstSync.ts       first-sync
 apps/web/app/lib/sync/client.ts          sign-in first-sync session-end
 apps/web/app/lib/sync/pageCache.ts       sign-in session-end app-shell
@@ -7,6 +7,9 @@ apps/web/app/lib/sync/index.ts           first-sync roundtrip live-notes
 apps/web/app/lib/sync/schema.ts          roundtrip live-notes phase2
 apps/web/app/lib/sync/useLiveRows.ts     phase2
 packages/api/src/sync.ts                 roundtrip live-notes
+packages/api/src/syncRegistry.ts         roundtrip live-notes
+# The connector's upload and its "not saved" records (sync-safety): every synced write.
+apps/web/app/lib/sync/uploader.ts        roundtrip live-notes
 # The tile cache and its hook: unit tests and the timeline's component tests
 # (timeline/timelineRemembered.browser.test.tsx).
 apps/web/app/lib/sync/remembered.ts      -

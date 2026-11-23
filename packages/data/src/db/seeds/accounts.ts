@@ -9,6 +9,23 @@ import { USERS } from "./users";
  * (see .env.example). Hashed with Better Auth's own hasher so sign-in works.
  * Skipped, with a warning, when the variable isn't set.
  */
+/**
+ * The seed's one hash of `password`, shared by every seeded account (they all
+ * have the same password anyway). Better Auth's scrypt is pure JS and
+ * CPU-bound, so hashing once per run, not once per seed file, keeps a whole
+ * seed fast on a busy machine (B-466).
+ */
+const hashes = new Map<string, Promise<string>>();
+export const seedPasswordHash = (password: string) => {
+  let hash = hashes.get(password);
+  if (!hash) {
+    hash = hashPassword(password);
+    hash.catch(() => hashes.delete(password));
+    hashes.set(password, hash);
+  }
+  return hash;
+};
+
 export const seed = async () => {
   const password = process.env.SEED_USER_PASSWORD;
   if (!password) {
@@ -28,7 +45,7 @@ export const seed = async () => {
     );
   if (!users.length) return;
 
-  const hash = await hashPassword(password);
+  const hash = await seedPasswordHash(password);
   await db
     .insert(accountSchema)
     // Better Auth's credential accounts use the user id as accountId.
@@ -67,11 +84,18 @@ export const rotateStagingPasswords = async ({
       ),
     );
 
+  // Seeded accounts share a hash (`seedPasswordHash`): verify each distinct one once.
+  const current = new Map<string, Promise<boolean>>();
+  const isCurrent = (stored: string) => {
+    let ok = current.get(stored);
+    if (!ok) current.set(stored, (ok = verifyPassword({ hash: stored, password })));
+    return ok;
+  };
   let hash: string | undefined;
   let updated = 0;
   for (const account of accounts) {
-    if (account.password && (await verifyPassword({ hash: account.password, password }))) continue;
-    hash ??= await hashPassword(password);
+    if (account.password && (await isCurrent(account.password))) continue;
+    hash ??= await seedPasswordHash(password);
     await db
       .update(accountSchema)
       .set({ password: hash, updatedAt: new Date() })

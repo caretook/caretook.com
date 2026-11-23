@@ -1,7 +1,7 @@
 import type { TimelineEntryKind } from "@caretook/data/schema";
 
 import { Link, useLocation } from "react-router";
-import { UserAvatar } from "~/components/ui";
+import { IconChip, UserAvatar } from "~/components/ui";
 import { Tooltip } from "~/components/ui/tooltip";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { setAuthor, setKind } from "~/lib/timeline/timelineFilters";
@@ -17,17 +17,8 @@ export function KindIcon({
   /** The hover text, when the icon is inside a control that does something. Default: the kind. */
   title?: string;
 }) {
-  const { Icon, iconClass, label } = KIND_META[kind];
-  const box = size === "sm" ? "size-6" : "size-8";
-  return (
-    <span
-      className={`${box} ${iconClass} inline-flex shrink-0 items-center justify-center rounded-full`}
-      aria-hidden="true"
-      title={title ?? label}
-    >
-      <Icon className={size === "sm" ? "size-3.5" : "size-4"} strokeWidth={2.25} />
-    </span>
-  );
+  const { Icon, accent, look, label } = KIND_META[kind];
+  return <IconChip icon={Icon} accent={accent} look={look} size={size} title={title ?? label} />;
 }
 
 /**

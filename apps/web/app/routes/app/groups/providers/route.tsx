@@ -11,6 +11,7 @@ import { Outlet, useLocation } from "react-router";
 import { Button, Page, PageHeader } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { directoryList, parseDirectoryFilters } from "~/lib/providers/providerDirectory";
 import { IMPORT_ACTION } from "~/lib/providers/importWording";
 import { PROVIDER_SHEET_STATE } from "~/lib/providers/providerSheetLink";
@@ -24,9 +25,8 @@ import { onlyProviderSheetChanged } from "./providerSheetGuard";
 
 // Shared by web + native. The group's provider directory, read from the
 // device's local copy (live, so it works offline and follows other members'
-// changes). Search (`?q=`), the type (`?type=`) and past providers (`?past=1`)
-// live in the URL; the list is filtered and ordered on the device
-// (`lib/providers/providerDirectory.ts`).
+// changes). Search (`?q=`) and the type (`?type=`) live in the URL; the list is
+// filtered and ordered on the device (`lib/providers/providerDirectory.ts`).
 
 export const meta = () => [{ title: "Providers · Caretook" }];
 
@@ -89,6 +89,7 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
     <Page>
       <PageHeader
         title="Providers"
+        {...sectionAccent("providers", { easy: group.easyRole })}
         actions={
           canImport && (
             <Button
@@ -124,7 +125,6 @@ export default function Providers({ loaderData, params }: Route.ComponentProps) 
         practiceNames={practiceNames}
         text={text}
         type={filters.type}
-        past={filters.past}
       />
 
       <Outlet context={{ providers } satisfies ProvidersOutlet} />
