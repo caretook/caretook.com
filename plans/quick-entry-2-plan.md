@@ -4,7 +4,9 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-21), not started. Wave 1 can start now.
+**Where it stands:** orchestrator started 2026-11-22. Wave 1 (slices 1, 3, 5) is starting; all slices run on opus.
+
+**Landing mode:** run everything through (start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`). The PRD lands once, after wave 2.
 
 | Slice | Wave | State       | Merge into `prd/quick-entry-2` (slice commits) |
 | ----- | ---- | ----------- | ---------------------------------------------- |
