@@ -45,7 +45,7 @@ export function RecipientContactForm({
         issues={issues}
         labelPlaceholder="Mobile"
       />
-      <Field label="Email" error={emailError}>
+      <Field kind="input" label="Email" error={emailError}>
         {(control) => (
           <input
             {...control}
@@ -54,11 +54,10 @@ export function RecipientContactForm({
             defaultValue={details.email ?? ""}
             maxLength={CONTACT_LIMITS.email}
             autoComplete="off"
-            className={`input w-full ${emailError ? "input-error" : ""}`}
           />
         )}
       </Field>
-      <Field label="Address" error={addressError}>
+      <Field kind="textarea" label="Address" error={addressError}>
         {(control) => (
           <textarea
             {...control}
@@ -67,7 +66,6 @@ export function RecipientContactForm({
             defaultValue={details.address ?? ""}
             maxLength={CONTACT_LIMITS.address + 20}
             autoComplete="off"
-            className={`textarea w-full ${addressError ? "textarea-error" : ""}`}
           />
         )}
       </Field>

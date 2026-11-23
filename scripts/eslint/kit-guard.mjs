@@ -20,19 +20,6 @@ export const KIT_CLASSES_ALLOWED = [
 /** Areas with hits today. A sweep's last step deletes its group; `ui-kit-5` empties the list. */
 /** @type {string[]} */
 export const KIT_CLASSES_NOT_SWEPT = [
-  // Slice 4: the profile.
-  "routes/app/groups/profile/BasicsForm.tsx",
-  "routes/app/groups/profile/ConditionsCard.tsx",
-  "routes/app/groups/profile/DetailsCards.tsx",
-  "routes/app/groups/profile/EmergencyCard.tsx",
-  "routes/app/groups/profile/EmergencyForm.tsx",
-  "routes/app/groups/profile/InsuranceForm.tsx",
-  "routes/app/groups/profile/ProfileHeader.tsx",
-  "routes/app/groups/profile/SheetButtons.tsx",
-  "routes/app/groups/profile/conditions/ConditionDetails.tsx",
-  "routes/app/groups/profile/conditions/ConditionForm.tsx",
-  "routes/app/groups/profile/conditions/ConditionGone.tsx",
-  "routes/app/groups/profile/print/route.tsx",
   // Slice 5: the Planner, to-dos and search.
   "components/repeat/RepeatSheet.tsx",
   "components/repeat/SeriesEditSheet.tsx",
