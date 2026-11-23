@@ -8,8 +8,8 @@
 | ----- | ---- | ------------------------ | ----------------------------------------- |
 | 1     | 1    | merged, torn down (opus) | 6814c3dc (7acd4f33)                       |
 | 2     | 2    | merged, worktree kept    | 0037ec4a (2dd856f1, b0f05dfb, 8d500bbf)   |
-| 3     | 2    | running (opus)           |                                           |
-| 4     | 2    | handed off (opus)        | not merged (9dd63d03, 8de6ee85)           |
+| 3     | 2    | merged, worktree kept    | ac30a9c7 (d5bb6112, b5f66807, a8d0b74a)   |
+| 4     | 2    | merged, worktree kept    | 70904d83 (9dd63d03, 8de6ee85)             |
 | 5     | 3    | not started              |                                           |
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`.
@@ -20,7 +20,11 @@
 
 **Slice 2 (opus, merged):** the worktree stays until the wave's full check passes, so a failure can go back to its agent; then `pnpm prd rm ui-kit-4-2`. Only `medicationForm` and `today` component tests ran. The full check must cover `entry`, `entryDraft` (`All day` is now `role="switch"`), `plannerEvents`, `plannerSeries` (`RescheduleSheet`), `timelineQuickEntryPasses` (`PassCard`, `DoseSlotRow`; a closed list is `Collapse`, `visibility: hidden`) and `print.browser.test`. To fold at landing: `docs/domain/medications.md` _Add and edit_, "Prescription details" is a `Chevron` and `Collapse` toggle, no longer `<details>`; `docs/domain/ui-kit.md` `Menu` contract, "until `ui-kit-4`" becomes `ui-kit-5`.
 
-**Slice 4 hand-off (waits for 3, plan order):** slice check passed on 8de6ee85. Its six profile component test files (`profile`, `profileBands`, `conditions`, `conditionProviders`, `emergency`, `vitalAverages`) were not run: the wave's full check must cover them. To fold at landing, in `docs/domain/profiles.md`: line 19 `**Card and sheets:** ConditionsCard` becomes `**Section and sheets:** ConditionsSection`; line 24 `VitalAveragesCard` becomes `VitalAveragesSection`. Worth noting for slice 5: `ListRow`'s `to` can't carry `state`, `prefetch` or `preventScrollReset`, so condition rows use a raw `li` inside `List`.
+**Wave 2 gate (in progress):** slices 2, 3, 4 merged; the only conflicts were the guard list's adjacent group deletions (both groups dropped). Next: `pnpm prd sync`, the full `pnpm prd check` (a conflict was resolved in code), `pnpm prd browser --changed --base dev` (never `--suite` without asking), PR, CI verdict if `land` needs one, and land once test-gates lifts the hold. Keep worktrees `ui-kit-4-2`, `-3`, `-4` until the full check passes, then `pnpm prd rm` each. B-448 is done at that point; B-398 stays open for slice 5.
+
+**Slice 3 (opus, merged):** the full check must cover `provider`, `providers`, `period`, `providerBands`, `periodBands`, `linkedLoading`, `providerConditions`, `providerMedications`, and the shared parts' consumers `contact`, `memberSharing`, `profile`, `emergency`, `entry`, `planner`, `easyRolePages`. To fold at landing: `ui-kit.md`, `ListRow` has no `href` or `state` (such rows stay `List` plus a hand-written link) and `FormFooter` is only for real forms; `providers.md`, contact actions are `Button href` and the form's Delete sits beside `FormFooter`; `care-periods.md`, "Date only" is a `CheckField`. Worth trying by hand: the provider import sheet (tapping a row's padding no longer ticks it).
+
+**Slice 4 (opus, merged):** slice check passed on 8de6ee85. Its six profile component test files (`profile`, `profileBands`, `conditions`, `conditionProviders`, `emergency`, `vitalAverages`) were not run: the wave's full check must cover them. To fold at landing, in `docs/domain/profiles.md`: line 19 `**Card and sheets:** ConditionsCard` becomes `**Section and sheets:** ConditionsSection`; line 24 `VitalAveragesCard` becomes `VitalAveragesSection`. Worth noting for slice 5: `ListRow`'s `to` can't carry `state`, `prefetch` or `preventScrollReset`, so condition rows use a raw `li` inside `List`.
 
 **For wave 2 (from slice 1):** the guard's lists are in `scripts/eslint/kit-guard.mjs`. The print routes stay on the not-swept list because each holds an on-screen Print button: slices 2 and 4 sweep them. A listed path that no longer exists fails a test, so slice 4's renames must update their lines.
 
