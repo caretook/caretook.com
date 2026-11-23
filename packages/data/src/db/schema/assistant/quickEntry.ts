@@ -1094,10 +1094,17 @@ const DIRECTION_WORDS = new Set(
 );
 
 /**
+ * The place a medication goes in its directions ("to left knee", "under the
+ * tongue"), up to punctuation or a word that starts how or when to take it.
+ */
+const APPLICATION_SITE =
+  /\b(?:to|on|onto|into|in|under|over|around|behind)\b[^,;.\n]*?(?=[,;.\n]|\b(?:once|twice|thrice|daily|nightly|weekly|monthly|hourly|every|times|as|at|before|after|with|without|when|while|until|for|by|then|per)\b|$)/gi;
+
+/**
  * Whether the word at `i` really names this medication, so a number beside it
  * is about the medication: its name, or a brand word in its directions. A
- * symptom, what it is for ("for arthritis"), a word of how to take it, or
- * (without a verb) a short partial name ("arm" for Armour) doesn't.
+ * symptom, what it is for ("for arthritis"), where it goes ("to knee"), a word
+ * of how to take it, or (without a verb) a short partial name ("arm" for Armour) doesn't.
  */
 const namesMedication = (
   med: QuickEntryMedication,
@@ -1111,7 +1118,9 @@ const namesMedication = (
   if (score === 0.8)
     return (
       !DIRECTION_WORDS.has(word) &&
-      wordsOf((med.directions ?? "").replace(/\bfor\b[^,;.]*/gi, " ")).includes(word)
+      wordsOf(
+        (med.directions ?? "").replace(/\bfor\b[^,;.]*/gi, " ").replace(APPLICATION_SITE, " "),
+      ).includes(word)
     );
   if (score >= 0.85 && word.length < 4 && !wordsOf(med.name).includes(word)) return verb;
   return score > 0;

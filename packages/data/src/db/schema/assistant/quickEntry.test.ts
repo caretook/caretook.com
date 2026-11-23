@@ -622,6 +622,53 @@ describe("doses", () => {
     );
   });
 
+  describe("an application site isn't a medication's name (B-301)", () => {
+    const DIC = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const withDirections = (directions: string) => [{ id: DIC, name: "Diclofenac", directions }];
+
+    test.each([
+      ["knee 3", "Apply to knee twice daily", "Knee"],
+      ["knee 3/10", "Apply to knee twice daily", "Knee"],
+      ["knee 3", "Apply to left knee twice daily", "Knee"],
+      ["knee 3", "Apply to the left knee", "Knee"],
+      ["knee 3", "Apply on knee, twice daily", "Knee"],
+      ["shoulder 3", "Rub onto shoulder every morning", "Shoulder"],
+      ["back 3", "Apply over lower back at bedtime", "Back"],
+    ])("%s beside '%s' is a symptom", (line, directions, name) => {
+      const r = top(line, { medications: withDirections(directions) });
+      expect(r.kind).toBe("symptom");
+      expect(action(r)).toMatchObject({ name, severity: 3 });
+    });
+
+    test.each([
+      ["tongue 3", "Dissolve under the tongue as needed"],
+      ["tongue 3", "Place under tongue twice daily"],
+      ["eye 3", "1 drop in each eye twice daily"],
+      ["ear 3", "Apply behind the ear every 3 days"],
+    ])("%s beside '%s' isn't a dose", (line, directions) => {
+      const readings = parse(line, { medications: withDirections(directions) })[0]!.readings;
+      expect(readings.some((r) => r.kind === "dose")).toBe(false);
+    });
+
+    test.each([
+      ["voltaren 2", "Voltaren, apply to knee twice daily"],
+      ["voltaren 2", "Apply Voltaren to knee twice daily"],
+      ["voltaren 2", "Apply to knee twice daily, Voltaren"],
+      ["voltaren 2", "Apply to knee twice daily Voltaren"],
+    ])("%s still names the medication in '%s'", (line, directions) => {
+      expect(action(top(line, { medications: withDirections(directions) }))).toMatchObject({
+        type: "logDose",
+        medicationId: DIC,
+        amount: "2",
+      });
+    });
+
+    test("'gave diclofenac to knee' is a dose", () => {
+      const r = top("gave diclofenac to knee", { medications: withDirections("Apply to knee twice daily") });
+      expect(action(r)).toMatchObject({ type: "logDose", medicationId: DIC });
+    });
+  });
+
   test("a symptom word in a medication's notes doesn't make a symptom a dose", () => {
     expect(parse("pain 4 left knee")[0]!.readings.some((r) => r.kind === "dose")).toBe(false);
   });
