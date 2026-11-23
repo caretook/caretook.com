@@ -39,6 +39,7 @@ import { SectionBandsSection } from "./sections/SectionBandsSection";
 import { TypeSection } from "./sections/TypeSection";
 import { ChoiceDialogSection } from "./sections/ChoiceDialogSection";
 import { MotionSection } from "./sections/MotionSection";
+import { IconChipSection } from "./sections/IconChipSection";
 
 /** One gallery section: a primitive's variants, with fictional data. */
 export type GallerySection = { id: string; title: string; Section: ComponentType };
@@ -88,4 +89,6 @@ export const GALLERY: readonly GallerySection[] = [
   { id: "choice-dialog", title: "ChoiceDialog", Section: ChoiceDialogSection },
   // ui-kit-2 (slice 5): motion.
   { id: "motion", title: "Motion", Section: MotionSection },
+  // ui-kit-3 (slice 2): the accents and the icon chip.
+  { id: "icon-chip", title: "IconChip and the accents", Section: IconChipSection },
 ];
