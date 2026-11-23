@@ -4,28 +4,30 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 
 ## Status
 
-| Slice                                          | Wave | State                        | Merge    |
-| ---------------------------------------------- | ---- | ---------------------------- | -------- |
-| 1. The browser suite runs in CI                | 1    | landed 06309608 (PR #118)    | e3169ce8 |
-| 2. Browser results, reruns and flakes          | 2    | landed b55e4413 (PR #120)    | 186a23c3 |
-| 3. A release candidate                         | 3    | merged (opus), real cut done | 22dc1231 |
-| 4. Promotion refuses what isn't passing        | 3    | merged (opus)                | c9670a4c |
-| 5. The release tier                            | 4    | not started                  |          |
-| 6. The required check on main and its override | 5    | not started                  |          |
+| Slice                                          | Wave | State                     | Merge    |
+| ---------------------------------------------- | ---- | ------------------------- | -------- |
+| 1. The browser suite runs in CI                | 1    | landed 06309608 (PR #118) | e3169ce8 |
+| 2. Browser results, reruns and flakes          | 2    | landed b55e4413 (PR #120) | 186a23c3 |
+| 3. A release candidate                         | 3    | landed ce792df3 (PR #122) | 22dc1231 |
+| 4. Promotion refuses what isn't passing        | 3    | landed ce792df3 (PR #122) | c9670a4c |
+| 5. The release tier                            | 4    | merged (opus)             | 55abe5cd |
+| 6. The required check on main and its override | 5    | not started               |          |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Now:** wave 2 landed in `dev` as b55e4413 through PR #120 (Codex clean on 28d79ca0, `candidate` run 45201998537 green on ab503425, 11 of 11 browser checks; forced-flake proof run 45198526790 read `flake`). Slice 2's worktree is removed and the runbook has the browser verdict rules. B-532 (the staging candidate) stays open for slices 3 and 4, B-533 (the staging to main gate) for 5 and 6. Report filed.
+**Now:** wave 3 landed in `dev` as ce792df3 through PR #122, **without a Codex review (out of credits)**. `full` run 45212045467 green on 25523b82. The real candidate rc/20261123-1613 (PR #121, `candidate` run 45214064116, 11 of 11 browser checks) was closed unmerged with its branches deleted; `staging` stayed at 94b26ec3 and held PR #115 is still open. Slice 3 and 4 worktrees are removed, the docs are folded, B-532 is finished and report a146 is filed. B-533 (the staging to main gate) stays open for slices 5 and 6.
 
-**Next:** wave 3's slices are both merged (3: 22dc1231, quick check passed on 6ff88fcc; 4: c9670a4c, quick check next). Their worktrees stay until the wave's verdict is green. Slice 4's quick check passed on 49b5cb13, and dev is synced (a92d5549). **Ask a144 answered yes by the user:** this wave's CI runs and one real candidate, closed unmerged. Post-sync quick check passed on 25523b82; `full` run 45212045467 is green on it. **The real candidate is proven:** rc/20261123-1613 (c757d8c8, from dev 3d7cffa3), PR #121, `candidate` run 45214064116 green with 11 of 11 browser checks. PR #121 is closed unmerged, its branches are deleted, `staging` is unchanged at 94b26ec3 and PR #115 is still open. Slice 3 and 4 worktrees are removed and B-532 is ready. Wave 3's docs are folded. Now: open the PR, Codex review, land, report, rotate. The real cut first exercises slice 3's `gh` calls, its `ci.mjs` wiring and `--wait`. The candidate rule counts only `rc/*` heads, so held PR #115 (head `dev`) is never touched.
+**Next:** wave 4: slice 5 merged as 55abe5cd (worktree `test-gates-2-5` stays until the wave is green). Its `release` run 45224003205 on ef58007e has a **green verdict** (11 of 11 browser checks, three times, 12 minutes); GitHub shows the run red because the report-only zone jobs fail by design. The merge's quick check passed on a0e9ebf7 (a first try failed once in `scripts/loops/browser.test.mjs` under load 42; it passed 3 of 3 alone). The zone failures are filed once: B-706 to B-715, and the other 7 files on B-372 (`roundtrip`, on the brake list, is among the 17). Synced with `dev` at 623c26b1; quick check passed on 2fbb7670; the wave's `full` run 45233140090 is **green** on 2fbb7670 (two quarantined tests failed, as quarantine allows). Local `--changed` browser checks: 5 of 5, with `phase2` FLAKY at load 60 to 70 (B-716). Slice 5's worktree is removed and the runbook has the release tier. The user said land (2026-11-23). Then: PR, Codex (or exit 4), land with `--tier full`, report, rotate to wave 5, which needs its own CI ask.
 
-**Wave 3 docs to fold at landing:** orchestrator.md: remove _The backstop_ and the interim "request a `full` run" rule; _Branches and protection_: `staging` takes candidates (`rc/*`) through `pnpm prd ci promote`; agents never merge a candidate any other way, and the user's hand merge on GitHub is the override. `ops/runbook.md` lines 105 and 222: "staging takes PRs from `dev`" becomes candidates and promote. `docs/agents/machinery.md` is 10 bytes over budget already, so don't grow it.
+**For slice 6:** call `zone-file` from `pnpm prd ci release`; nothing calls it yet, and it has never run against the real backlog before this wave.
+
+**Docs:** `docs/agents/machinery.md` is 10 bytes over budget already, so don't grow it. `docs/agents/orchestrator.md` has about 35 bytes left.
 
 **Open from slice 4:** B-681 (promotion prints a passing flake's tests but doesn't file them) is proposed for this topic. `gh pr merge` can't pin the base, so staging moving between promote's ancestor check and its merge isn't caught. The real `gh pr merge` and `gh pr view` calls stay unexercised until the user's first real promotion.
 
-**For slice 4:** the gate must refuse a `flake` when any `flaky[].brake` is true; slice 2 only sets the flag. **For slice 5:** reuse `runBrowserJob` and `summarizeBrowser` for repeat runs.
+**For slice 5:** reuse `runBrowserJob` and `summarizeBrowser` for repeat runs. **For slice 6:** reuse `releasePasses(v, tier, sha)` in `scripts/ci/gate.mjs`, which already refuses a `flake` with a brake-list test.
 
-**CI approval:** covered wave 1 only. a134 reads "this topic's runs", but the backlog session relayed the user's narrower word. a140 (the user's yes) covered wave 2's runs only. **Wave 3 has no approval: file a new ask (`--waits`, after a skeptic) before its first run**, including one a slice agent would request. Slice 3 also cuts a real candidate and opens and closes a real PR into staging, so name that in the question. The permission classifier denied agents' `pnpm prd ci run` until the user allowed it; never work around a denial.
+**CI approval:** each wave needs its own. a140 covered wave 2, and a144 (the user's yes) covered wave 3's runs and its one real candidate only. **Wave 4 is approved: a147 (skeptic s13), the user's yes**, for the slice's `release` run, reruns after a fix and the wave's gate run, each `release` run filing at most 10 `fixes-bug` items. It covers no real candidate or promotion, and **wave 5 needs its own ask**. Slice 5 must fit three suite runs past the `browser` job's 35-minute limit. The permission classifier denied agents' `pnpm prd ci run` until the user allowed it; never work around a denial.
 
 **For slice 2 and later:** `pnpm prd ci blame` requests a run on `dev`, so it couldn't place a candidate failure until `dev` had the tier (it does now). The later roundtrip steps passed on Linux, but the refused-upload queue counts are timing-sensitive.
 

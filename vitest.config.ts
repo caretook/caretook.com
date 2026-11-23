@@ -6,6 +6,7 @@ import { defineConfig } from "vitest/config";
 import { deviceCommands } from "./apps/web/test/commands.ts";
 import { intWorkers } from "./packages/data/src/db/testDatabase.ts";
 import { parseQuarantine, quarantineMode } from "./scripts/ci/lists.mjs";
+import { testZone } from "./scripts/ci/zones.mjs";
 
 // Vitest projects:
 //   data:unit    pure functions, no database (packages/data *.test.ts)
@@ -207,7 +208,7 @@ export default defineConfig({
             headless: true,
             // The seeds' zone and an English locale, so times and dates read
             // the same on every machine.
-            provider: playwright({ contextOptions: { timezoneId: "America/Los_Angeles", locale: "en-US" } }),
+            provider: playwright({ contextOptions: { timezoneId: testZone(), locale: "en-US" } }),
             instances: [{ browser: "chromium" }],
             viewport: { width: 420, height: 900 },
             screenshotFailures: false,
