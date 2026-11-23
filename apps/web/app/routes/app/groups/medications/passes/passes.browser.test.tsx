@@ -137,7 +137,7 @@ describe("the tab", () => {
     expect(input("time").value).toBe("08:10");
     await fillForm({ name: "First thing" });
     await expect.poll(() => row("First thing")).toBeTruthy();
-    expect((await stored(device, offGrid.row.id as string))?.time).toBe("08:10");
+    expect((await stored(device, offGrid.row.id))?.time).toBe("08:10");
   });
 
   test("a retime from another device shows without a reload", async () => {
