@@ -151,3 +151,27 @@ describe("the vital type (EntryFilters.vital)", () => {
     );
   });
 });
+
+describe("a jump's bound (historyWindow's before)", () => {
+  const BEFORE = "2026-11-04T08:00:00.000Z";
+
+  it("adds one exclusive upper bound after the cutoff", () => {
+    const window = historyWindow(GROUP, NONE, 30, CUTOFF, BEFORE);
+    expect(one(window.sql)).toContain("OR occurred_at <= ?) AND occurred_at < ? ORDER BY");
+    expect(window.params).toEqual([GROUP, local(CUTOFF), local(BEFORE), 31]);
+  });
+
+  it("no bound is the ordinary history", () => {
+    expect(historyWindow(GROUP, NONE, 30, CUTOFF, null)).toEqual(historyWindow(GROUP, NONE, 30, CUTOFF));
+  });
+
+  it("entries, provider links and medication names read the same window", () => {
+    const window = historyWindow(GROUP, { kind: "dose", author: AUTHOR }, 30, CUTOFF, BEFORE);
+    const links = timelineLinksQuery(GROUP, { kind: "dose", author: AUTHOR }, 30, CUTOFF, BEFORE);
+    const medications = timelineMedicationsQuery(GROUP, { kind: "dose", author: AUTHOR }, 30, CUTOFF, BEFORE);
+    expect(links.sql).toContain(window.sql);
+    expect(links.params).toEqual(window.params);
+    expect(medications.sql).toContain(window.sql);
+    expect(medications.params).toEqual([GROUP, ...window.params]);
+  });
+});

@@ -43,7 +43,8 @@ import { aheadQueries } from "./aheadQueries";
 import { useTimelinePeriods } from "./timelinePeriods";
 import { useHistoryCutoff } from "./useHistoryCutoff";
 import { daySummaryQuery, summariesOff, summarySince } from "./daySummaryRows";
-import { keepPaging, startPaging } from "./timelinePaging";
+import { keepPaging, startPaging, wasKept } from "./timelinePaging";
+import { jumpNotice } from "~/lib/timeline/timelineJump";
 
 // The timeline's data, live: the loader reads the first screenful
 // (`loadTimelineRows`), and live queries here take over from there, so other
@@ -84,6 +85,10 @@ export type TimelineData = {
   summaryEntries: TimelineEntry[] | null;
   /** This mount started from a kept window, rows and all (Back to it: `timelinePaging.ts`). */
   restored: boolean;
+  /** This mount came back to a history entry the timeline has already been on (even at one page). */
+  returning: boolean;
+  /** The day jumped to (`?day=`): whether its window stops short of today, and what the list says about it. */
+  jump: { day: string; bounded: boolean; notice: string | null } | null;
 };
 
 /** A live document's title: its entry's, else its kind ("Note"). */
@@ -104,22 +109,28 @@ export function useTimelineData({
   groupId,
   userId,
   filters,
+  day = null,
   initial,
 }: {
   groupId: string;
   userId: string;
   filters: EntryFilters;
+  /** The day jumped to (`?day=`); the loader's `before` is its window's bound. */
+  day?: string | null;
   initial: TimelineRows;
 }): TimelineData {
-  // The paging belongs to one set of filters (kind, author and search): under any other, it's one page again.
+  const { before } = initial;
+  // The paging belongs to one set of filters (kind, author and search) and one jump: under any other, it's one page again.
   const filterKey = JSON.stringify([
     filters.kind,
     filters.author,
     filters.match ?? null,
     filters.vital ?? null,
+    day,
   ]);
   // Back to this history entry starts from the window kept for it; anything else from one page.
   const { key: locationKey } = useLocation();
+  const [returning] = useState(() => wasKept(userId, groupId, locationKey));
   const [start] = useState(() => ({
     initial,
     ...startPaging<EntryRow, EntryProviderLinkRow, EntryRow, EntryMedicationRow>(userId, groupId, {
@@ -136,7 +147,7 @@ export function useTimelineData({
   // The history ends at a cutoff that moves on once a minute, so items cross
   // from the Today card's appointment into it without new rows.
   const cutoff = useHistoryCutoff(initial.cutoff);
-  const entriesSql = historyQuery(groupId, filters, requested, cutoff);
+  const entriesSql = historyQuery(groupId, filters, requested, cutoff, before);
   const entries = useLiveRows<EntryRow>(
     entriesSql.sql,
     entriesSql.params,
@@ -151,7 +162,7 @@ export function useTimelineData({
   const documentRows = useLiveQuery<NoteDocRow>(documentsSql.sql, documentsSql.params, initial.documentRows);
   const previews = useMemo(() => toPreviews(documentRows), [documentRows]);
   // One query for every loaded entry's links (the same window as the entries), never one per row.
-  const linksSql = timelineLinksQuery(groupId, filters, requested, cutoff);
+  const linksSql = timelineLinksQuery(groupId, filters, requested, cutoff, before);
   const links = useLiveRows<EntryProviderLinkRow>(
     linksSql.sql,
     linksSql.params,
@@ -171,7 +182,14 @@ export function useTimelineData({
   if (fresh && settled !== requested) setSettled(requested);
   const page = pageWindow({ rowCount: entries.rows.length, requested, fresh, settled });
   // Doses and medication changes are named by their medication: one query over the same window.
-  const medications = useTimelineMedications(groupId, filters, requested, cutoff, restored?.medicationRows);
+  const medications = useTimelineMedications(
+    groupId,
+    filters,
+    requested,
+    cutoff,
+    restored?.medicationRows,
+    before,
+  );
   const medicationOf = medications.medicationOf;
   // A schedule change names the passes it touched.
   const passes = useSchedulePasses(groupId);
@@ -199,6 +217,7 @@ export function useTimelineData({
     oldestLoaded: shown.at(-1)?.occurredAt ?? null,
     hasOlder: page.hasOlder,
     filtered: !!(filters.kind || filters.author || filters.match),
+    before,
   });
   const now = new Date(cutoff);
   const zone = localTimeZone();
@@ -209,6 +228,7 @@ export function useTimelineData({
     summarySince(shown.at(-1)?.occurredAt ?? null, cutoff, zone),
     cutoff,
     summariesHidden,
+    before,
   );
   const summaryRows = useLiveQuery<EntryRow>(
     summarySql.sql,
@@ -239,8 +259,10 @@ export function useTimelineData({
     medications.rows,
   ]);
 
+  const days = groupByDay(shown, zone, new Date());
+
   return {
-    days: groupByDay(shown, zone, new Date()),
+    days,
     hasOlder: page.hasOlder,
     loadingOlder: page.loading,
     loadOlder: () => {
@@ -260,5 +282,19 @@ export function useTimelineData({
     markers,
     summaryEntries: summariesHidden ? null : toTimelineEntries(summaryRows),
     restored: !!start.rows,
+    returning,
+    jump: day
+      ? {
+          day,
+          bounded: !!before,
+          notice: before
+            ? jumpNotice({
+                day,
+                shownDay: days[0]?.key ?? null,
+                filtered: !!(filters.kind || filters.author || filters.vital),
+              })
+            : null,
+        }
+      : null,
   };
 }
