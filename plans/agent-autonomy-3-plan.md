@@ -6,7 +6,7 @@
 
 | Slice | Wave | State                                                                     | Merge into `prd/agent-autonomy-3` (slice commits) |
 | ----- | ---- | ------------------------------------------------------------------------- | ------------------------------------------------- |
-| 1     | 1    | started (worktree `.loops/agent-autonomy-3-1`, agent on opus, 2026-11-23) | —                                                 |
+| 1     | 1    | merged, quick check running; worktree kept until the wave is green (opus) | f84b26e1 (be4214ea)                               |
 | 2     | 2    | —                                                                         | —                                                 |
 | 3     | 2    | —                                                                         | —                                                 |
 | 4     | 2    | —                                                                         | —                                                 |
@@ -18,6 +18,13 @@
 **Open issues:** none of ours. `pnpm backlog doctor` reports three findings on other topics (B-548, B-549, B-568), left alone.
 
 **Backlog:** B-511 claimed (slice 1 started); `done` it when slice 2 merges; B-512 with slice 3; B-513 with slice 4.
+
+**From slice 1's hand-off, for wave 2:**
+
+- Slice 2: on `skeptic record`, `--option` is the option chosen and `--offer <a>` (repeated) the question's options; the hash covers the trimmed question and the options in order, so `ask` passes the same ones in the same order. A question with no recommendation counts as `waits`. `useRecord` spends the record before filing, so validate the question first or a failed `createAsk` burns the verdict.
+- Slice 3: land verdicts need the full 40-character tip and an action of `force`, `no-review` or `decline <thread>`. They aren't spent, so a retry on the same tip works: use `checkRecord`, not `useRecord`.
+- Slice 4: plan verdicts are `go` or `send-back`. A land `no` or plan `send-back` used for an ask is bound only by topic, age and single use.
+- Docs: machinery's notes on the store and the brief are still to fold in at wave 1's landing.
 
 Fold into the docs at landing (the PRD's _Docs at landing_): wave 1, [machinery](../docs/agents/machinery.md) (the store and the brief); wave 2, machinery, [orchestrator](../docs/agents/orchestrator.md), [planner](../docs/agents/planner.md), [preferences](../docs/agents/preferences.md), [backlog](../docs/agents/backlog.md). Trim at least what you fold in.
 
