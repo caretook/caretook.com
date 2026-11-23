@@ -22,7 +22,7 @@ Slice 14 gaps to file as follow-ups once the wave is green: a sync after the fir
 
 **Wave 3 (resume here):** slices 15 (B-585), 16 (B-592) and 17 (B-603), written 2026-11-22 after `pnpm prd sync` found dev had only backlog commits. All opus, all independent, none touching the hot files of test-gates or assistant-access. Not started until the table below says so.
 
-Slice 16 handed off on baff1f1e (quick check passed), waiting for slice 15 to merge first. At landing: fold into `appointments.md` that event cards have a footer and `[data-when-column]` now exists only on todo rows. The full check must cover `easyRolePages` and `entryRepeat`, which read these rows and the slice did not run. `PlannerTodoRow` keeps its 5.5rem column, so todo and event rows now align differently in one list: tell the user in the landing report.
+Slices 15 and 16 are merged and their worktrees removed; slice 17 is still running. Neither slice ran `pnpm prd browser --changed`, so the wave gate must. File as a follow-up once green: PageUp and PageDown on the hour still wrap inside AM/PM (slice 15 covers arrow keys only). At landing: fold into `appointments.md` that event cards have a footer and `[data-when-column]` now exists only on todo rows. The full check must cover `easyRolePages`, `entryRepeat` and `entry` (the last steps the hour), which the slices did not run. `PlannerTodoRow` keeps its 5.5rem column, so todo and event rows now align differently in one list: tell the user in the landing report.
 
 Held from wave 3: B-594 (allergies on the Profile page) waits for ui-kit-4's medications and profile sweep, as its triage says (that sweep renames the profile parts); B-583 (connector wording) awaits the user's decision; B-325 (native safe area) waits for Capacitor.
 
@@ -50,8 +50,8 @@ Notes for the next wave:
 | 12    | B-537 | merged (opus)   | 5566480a |
 | 13    | B-535 | merged (opus)   | 1dc972d8 |
 | 14    | B-316 | merged (opus)   | 3c7a6607 |
-| 15    | B-585 | started (opus)  |          |
-| 16    | B-592 | handoff (opus)  |          |
+| 15    | B-585 | merged (opus)   | 52d2e14b |
+| 16    | B-592 | merged (opus)   | 6af2f056 |
 | 17    | B-603 | started (opus)  |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
