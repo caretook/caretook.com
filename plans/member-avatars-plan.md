@@ -17,6 +17,8 @@
 
 **No local quick check when CI will run (the user, 2026-11-23):** after a merge or dev sync, go straight to `pnpm prd ci run`. The slice agent's own check on its branch stays. Order per wave: merge, `pnpm prd sync`, one CI run on that tip, land on its verdict, with no quick check after the sync. Only docs commits go on top of the green tip, so the verdict still counts.
 
+**Owed to the user:** after the next real merge from `dev` (a `pnpm prd sync` that skips the merge doesn't count), check whether `docs/agents/orchestrator.md` and the orchestrator prompt (`pnpm prd prompt`) still tell orchestrators to run the quick check after merges and syncs, and tell the user either way (in a run-through session, in the landing report through `pnpm prd ask --report`). Delete this line once told.
+
 **Rechecks:** the user's "skip rechecks after a clean dev sync" covered wave 1 only. Later waves recheck after each dev sync unless the user repeats it.
 
 **Docs:** `sync` and `care-groups` are folded for waves 1 and 2 (the device queue is in `sync`). `app-shell` (the picker) and `ui-kit` (`UserAvatar` looks, tokens) are still to fold, at the waves that finish them. Both sit a few bytes under their 10 KB budget, so trim as much as you add.
