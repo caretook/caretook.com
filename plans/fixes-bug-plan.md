@@ -42,7 +42,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 24    | B-599 | handed off (ff0d0577), merge in plan order |          |
 | 25    | B-601 | started                                    |          |
 | 26    | B-602 | blocked by 25                              |          |
-| 27    | B-605 | started                                    |          |
+| 27    | B-605 | handed off (f42f5557), merge in plan order |          |
 
 ## Wave 1
 
