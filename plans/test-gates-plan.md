@@ -17,7 +17,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 
 **Wave 4 landed in dev as 2991461a (PR #81; 2026-11-22).** Slice 5 (009275c5, two opus agents, the first hit its context limit). B-529 and B-530 are done. Full check passed on f88e5946, quick recheck on the synced tip e7cf0736; no browser checks (tooling only). f88e5946 gives the local check's ESLint CI's 6 GB heap, after that crash hit 12 recent checks across four PRDs. Real rerun proof: run 45093707597. `ci blame`, `ci file`, `ci status`, the commit status and the infra-rerun loop have run only against fakes and temp repos. Codex found three real blame bugs over three rounds (B-587, B-588, B-589, filed, replied, resolved) and was clean on 5d7f9a7, carried over the dev merge. Docs are folded into `ops/runbook.md`; report filed.
 
-**Now: wave 5 is under way. Slice 11 (the three blame bugs, opus) is started in `.loops/test-gates-11`; B-587, B-588 and B-589 are claimed. It handed off d64c4d14 (not merged); its hand-off named a fourth blame bug, verified in `failsOnDev` and filed as B-590 (a branch's file-level failure reads as dev's when dev fails a named test in that file), sent back to the same agent before the merge. At landing, fold into `ops/runbook.md` line 31: a quarantined test that didn't pass on dev and a named test in a file dev couldn't load stay unknown. Until this lands, comparison runs use dev's `verdict.mjs` with no `quarantineList`, so blame reads such failures as unknown (exit 5). Then slice 6, then slice 7 on top, landed together.** Slice 6's gate must not trust blame before slice 11 is merged: two of the bugs can clear a branch's failure as dev's.
+**Now: wave 5 is under way. Slice 11 (the blame bugs B-587, B-588, B-589 and B-590, the last found in its hand-off) is merged as e7cfad86 and its items are done; its worktree `.loops/test-gates-11` stays until the wave's run is green. Slice 6 is started in `.loops/test-gates-6` (opus; B-528 claimed). At landing, fold into `ops/runbook.md` line 31: a quarantined test that didn't pass on dev and a named test in a file dev couldn't load stay unknown. Until this lands, comparison runs use dev's `verdict.mjs` with no `quarantineList`, so blame reads such failures as unknown (exit 5). Then slice 6, then slice 7 on top, landed together.** Slice 6's gate must not trust blame before slice 11 is merged: two of the bugs can clear a branch's failure as dev's.
 
 **For slice 6:** pass `--base` (dev before the merge) to `ci file`, because after the merge the branch's diff is empty. The commit status is written only by a waiting run (`ci run --wait`, or blame's dev run). Dev-failure filing commits to local dev without a push; only a quarantine write pushes, and a refused push leaves the commit on local dev and exits 5. A brake notice lasts at most 24 hours and is withdrawn only by a later blame that re-tests its key and passes.
 
@@ -41,12 +41,12 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 | 3     | 2    | merged (opus) | 39f87cf0 (f0645753)                         |
 | 4     | 3    | merged (opus) | 6396b470 (be81f850, e68f8866)               |
 | 5     | 4    | merged (opus) | 009275c5 (3a0324bc … 54c05411)              |
-| 6     | 5    | —             | —                                           |
+| 6     | 5    | started (opus) | —                                          |
 | 7     | 5    | —             | —                                           |
 | 8     | 2    | merged (opus) | ff6ac3c3 (7bd82c6f)                         |
 | 9     | 3    | merged (opus) | f285f1a5 (3b4428f0, 3b752d2e, 21533389)     |
 | 10    | 3    | merged (opus) | 7484100e (b5c9c6c6)                         |
-| 11    | 5    | handed off (d64c4d14), back with its agent for B-590 (opus) | —            |
+| 11    | 5    | merged (opus) | e7cfad86 (d64c4d14, 105a9f38)               |
 
 **Backlog:**
 
