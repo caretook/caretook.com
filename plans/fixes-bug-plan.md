@@ -45,8 +45,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 25    | B-601 | landed                                     | efb9d552 |
 | 26    | B-602 | landed                                     | 43e222d4 |
 | 27    | B-605 | landed                                     | 23e69857 |
-| 28    | B-628 | planned                                    |          |
-| 29    | B-632 | planned                                    |          |
+| 28    | B-628 | started (opus)                             |          |
+| 29    | B-632 | started (opus)                             |          |
 | 30    | B-634 | planned (after 29)                         |          |
 | 31    | B-635 | planned (after 30)                         |          |
 
