@@ -63,7 +63,7 @@ A caregiver trusts three things on the medication screens, and each can be wrong
 
 **What's due (the pure module behind Today, the strip, the Dose sheet, visit prep and the connector tools)**
 
-- **Matching.** A dose naming a pass the medication still has, or a time it still has, is a _named_ dose. It answers the open slot with that name nearest to `occurredAt` within the window (two hours); with none there, the open slot with that name on the recipient's day of `occurredAt`; else nothing. Named doses are still placed before unnamed ones, in time order, so the earliest keeps the slot. A dose naming a pass or time the medication no longer has, and an unnamed dose, keep today's rule: the nearest open slot within the window.
+- **Matching.** A dose naming a pass the medication still has, or a time it still has, is a _named_ dose. It looks at the slot with that name nearest to `occurredAt` within the window (two hours): open, it answers it; already answered, it answers nothing (the user's answer, ask a92: a second 23:30 dose at 00:15 must not mark tonight given). With no such slot in the window, the open slot with that name on the recipient's day of `occurredAt`; else nothing. Named doses are still placed before unnamed ones, in time order, so the earliest keeps the slot. A dose naming a pass or time the medication no longer has, and an unnamed dose, keep today's rule: the nearest open slot within the window.
 - **Warnings.** `doseWarnings` looks up the slot the planned dose would answer by the same rule (name and day), so "already given" fires exactly when the dose would be surplus.
 - The range function (`doseSlotsBetween`) uses the same matching, so both leaks close in visit prep too.
 

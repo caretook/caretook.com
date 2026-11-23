@@ -290,6 +290,37 @@ describe("passes", () => {
     expect(queued).toHaveLength(2);
   });
 
+  test("two Given doses on yesterday's slot leave today's due, not given", async () => {
+    const DAY = 24 * 60;
+    const added = clockMoment(-3 * DAY);
+    const med = fx.medication({
+      name: "Xa",
+      strength: "5 mg",
+      dose: "1 tablet",
+      startedOn: added.slice(0, 10),
+      createdAt: added,
+      updatedAt: added,
+      schedule: { type: "scheduled", slots: [{ passId: ROUNDS.id }] },
+    });
+    const yesterdays = [-DAY - 5, -DAY + 10].map((minutes) =>
+      fx.dose({
+        medicationId: med.id,
+        occurredAt: clockMoment(minutes),
+        details: JSON.stringify({
+          medicationId: med.id,
+          status: "given",
+          amount: "1 tablet",
+          scheduledFor: R1,
+          passId: ROUNDS.id,
+        }),
+      }),
+    );
+    await open([ROUNDS, med, ...yesterdays]);
+    await expect.poll(() => cardState(ROUNDS.id)).toBe("due");
+    await expand(ROUNDS.id);
+    expect(slotState(med.id, R1)).toBe("due");
+  });
+
   test("a viewer sees each pass's state, with no Given all, Given or ⋯", async () => {
     await open(passWorld, "viewer");
     expect(cardState(ROUND_2.id)).toBe("due");
