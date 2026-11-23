@@ -216,6 +216,13 @@ describe("the deploy workflows", () => {
     expect(browser.steps.find((s) => s.id === "report").if).toContain("!cancelled()");
   });
 
+  it("runs the check-areas lint in CI's static job", () => {
+    const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
+    const step = jobs.static.steps.find((s) => s.id === "check-areas");
+    expect(step.run).toBe("node scripts/loops/check-areas.mjs lint");
+    expect(step.if).toBe("${{ !cancelled() }}");
+  });
+
   it("gives each release suite run its own job, within one suite's limit", () => {
     const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
     const capS = read("scripts/loops/checks")
