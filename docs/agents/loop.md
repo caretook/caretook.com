@@ -11,7 +11,9 @@ For a slice agent (a loop): one background agent working one slice of a PRD in `
 - Edits to shared files stay small and are listed in the hand-off. Don't edit AGENTS.md or `docs/` (the orchestrator folds at landing), and change the backlog only through `pnpm backlog note`.
 - No new dependencies. All data stays fictional.
 - **Past 175k context** a hook asks you to judge ([the watch](machinery.md#the-context-watch)): continue or hand off, and say which in the hand-off. **Past 300k** hand off now: commit, start no check, name any unfinished fix.
-- **Commit on your branch**, then check (`pnpm prd check` refuses a dirty tree; fix in more commits): Conventional Commits scoped to the topic, with the attribution line. Don't merge, rebase or push any other branch; never set `CARETOOK_ALLOW_PROTECTED`. Delete scratch scripts first.
+- **Commit on your branch**, then check (`pnpm prd check` refuses a dirty tree; fix in more commits): Conventional Commits scoped to the topic, with the attribution line. Don't merge, rebase or push any other branch (but a fix's merge, below); never set `CARETOOK_ALLOW_PROTECTED`. Delete scratch scripts first.
+- **Your hand-off releases your stack** (`pnpm prd stack down`); then wait: the orchestrator may send back a failure from the wave's CI run.
+- **A fix request is only:** `pnpm prd stack up` if the slice uses one; `git merge --no-ff -m "chore(<topic>): merge prd/<topic> for a fix" prd/<topic>`; a new commit; `pnpm prd check --quick "slice fix"`; `stack down`; a new hand-off line.
 
 ## Hand-off
 
@@ -19,7 +21,7 @@ Your final message:
 
 - what was built, grouped by area, with every shared-file edit called out;
 - each acceptance criterion, met or not, with evidence;
-- the `pnpm prd check` output, and `pnpm prd browser --changed`'s ■ lines and table;
+- the `pnpm prd check` output, and the ■ lines of any browser check you ran;
 - anything skipped or surprising that later slices need;
 - the commit SHAs.
 
@@ -33,21 +35,21 @@ Your final message:
 ## Tests
 
 - **Vitest 5 projects** (root `vitest.config.ts`): `data:unit` (`*.test.ts`, no database); `scripts:unit` (sync matrix, check-areas, checks, check-times, deploy, build); `tooling:unit` (loops, backlog, hooks; 20 s timeout; not in `pnpm test`: `pnpm test:tooling`); `tooling:browser` (the browser harness: `pnpm test:browser-harness`; `test:tooling` adds it only for a change to its paths); `integration` (every `*.int.test.ts` on the test Postgres; its globalSetup clears and migrates once per run, refuses any other host or port, and copies the database per worker ([data-layer](../domain/data-layer.md)); tests build their own fixtures, `packages/data/test/fixtures.ts`); `web:unit` (apps/web's pure `app/**/*.test.ts`; no vite.config, so relative imports, not `~/`); `web:components` (`*.browser.test.tsx` in headless Chromium on the test device, under a `browser` lease: [components](../domain/components.md#component-tests)).
-- **Screens get component tests; cross-cutting flows get end-to-end checks.** What one device decides alone (layout, menus, filters, sheets, role rules, focus, keyboard, widths, themes, local writes and the live queries they update) is a component test beside the screen. What needs the real server, sync or a production build is a Playwright check: sign-in and the session, first sync, the sign-out wipe, two devices converging, offline then reconnect, refused uploads, invites and email, the CSP and the check build. A new screen gets component tests; a new check is only for a new flow.
+- **Screens get component tests; cross-cutting flows get end-to-end checks.** What one device decides alone (layout, menus, filters, sheets, role rules, focus, keyboard, widths, themes, local writes and the live queries they update) is a component test beside the screen. What needs the real server, sync or a production build is a Playwright check: sign-in and the session, first sync, the sign-out wipe, two devices converging, offline then reconnect, refused uploads, invites and email, the CSP and the check build.
 - A browser step that asserts pure logic goes once a unit test covers it, and one that asserts one device's screen once a component test does.
 - **Only your own tests.** While building: the test files you add or edit, plus `pnpm prd browser <check>` only for a spec you add or edit. **Before hand-off:** `pnpm prd check --quick "slice hand-off"` (the slice check: static, every unit test, your own integration and component files; never full). Never `--changed` or `--suite` (the orchestrator's). Never rerun a passed check or run two at once in one worktree.
 
 ## Browser checks
 
-`scripts/browser-checks/`: one Playwright Test spec per check (`<check>.spec.mjs`; `checks.test.mjs` wants one per manifest line). `marketing-screenshots.mjs` is a Playwright script outside the manifest, run by hand (`BASE` and `PG_CONTAINER`) against `pnpm prd serve --built`; nothing runs it (B-40). The flows each owns (their screens are component tests):
+`scripts/browser-checks/`: one Playwright Test spec per check (`<check>.spec.mjs`; `checks.test.mjs` wants one per manifest line). `marketing-screenshots.mjs` is outside the manifest, run by hand (`BASE`, `PG_CONTAINER`) against `pnpm prd serve --built` (B-40). The flows each owns (their screens are component tests):
 
 - `sign-in` (one sign-in on a double click); `first-sync` (a sheet URL as a full page, a slow first sync's state, a new group syncing in); `session-end` (another device signing this one out; recent searches and the search index gone); `layout-offline` (an offline layout change reaching the server, another browser's layout winning, sheets offline, and a real reload offline served by the service worker).
 - `roundtrip` (sheet entries converging across two devices, offline then reconnect, the viewer, reschedule, a series and its split, the sync matrix, refused uploads, a connector write via `/mcp` with its tag); `phase2` (the timeline by sync, a server-linked provider, offline filtering); `live-notes` (documents across devices: typing, concurrent edits, offline, shared links).
 - `app-shell` (theme before first paint, sign-out, rename and members across devices, the details stream, `/admin`'s 404s and an audited banner); `invites` (account emails, email and link invites, join requests, access codes, through `/dev/mail.json`); `ui` (production CSS and the CSP: menu and sheet surfaces on a check build); `marketing` (the public site and headers).
 
-- **Run them only through `pnpm prd browser <check> [args…]`** (`browser.sh`), never `node <check>.mjs`. It holds a machine-wide `browser` lease (four at once; waits up to `CARETOOK_BROWSER_WAIT`), uses `.nvmrc`'s Node and the worktree's `.env.loop`, prints the load at start and end, and logs to the worktree's git dir. Run long ones under `caffeinate -i`.
-- **`--changed`** runs what the diff needs (committed since the base, staged, unstaged, untracked), in manifest order, with a table; `--base REF` (default `BASE_BRANCH`, else `origin/dev`), `--head REF`, `--list` (show only). **`--suite`** is the lean set. `--timeout <s>`; `--smoke` (core paths only: tests tagged `@smoke`; others print `SKIP`; hand-offs use full mode); `--verbose`; `--dev` (against the dev server).
-- **It runs on a check build:** a production build with `VITE_CHECK_BUILD=1` (keeps `window.caretookSync` and `window.caretookModules`, which includes `series`), started, swapped in for a dev server, and rebuilt when the app, `public/`, `.env`, a `package.json` or the lockfile is newer. `pnpm prd serve --built` serves one by hand. `NODE_ENV=production`, so Better Auth's rate limits are on (about 3 sign-ins per 10 s per client IP); each fixture device has its own `x-forwarded-for`, so the limits apply per device.
+- **Run them only through `pnpm prd browser <check> [args…]`** (`browser.sh`), never `node <check>.mjs`. It holds a machine-wide `browser` lease (four at once; waits up to `CARETOOK_BROWSER_WAIT`), uses `.nvmrc`'s Node and the worktree's `.env.loop`, and logs to the worktree's git dir. Run long ones under `caffeinate -i`.
+- **`--changed`** runs what the diff needs (committed since the base, staged, unstaged, untracked), in manifest order, with a table; `--base REF` (default `BASE_BRANCH`, else `origin/dev`), `--head REF`, `--list` (show only). **`--suite`** is the lean set. `--timeout <s>`; `--smoke` (only tests tagged `@smoke`); `--verbose`; `--dev` (against the dev server).
+- **It runs on a check build:** a production build with `VITE_CHECK_BUILD=1` (keeps `window.caretookSync` and `window.caretookModules`, which includes `series`), started, swapped in for a dev server, and rebuilt when the app, `public/`, `.env`, a `package.json` or the lockfile is newer. `NODE_ENV=production`, so Better Auth's rate limits are on (about 3 sign-ins per 10 s per client IP); each fixture device has its own `x-forwarded-for`, so the limits apply per device.
 - **Limits, each a TIMEOUT:** silence (`CARETOOK_BROWSER_SILENCE`, 90 s); the cap (`--timeout`, else the manifest's, else 600 s); and for `--suite`/`--changed` the suite cap (`CARETOOK_BROWSER_SUITE_CAP`), past which the rest are `NOT-RUN`.
 - **One automatic retry** when a failure looks like contention (load over 40, a timeout, a 401 or PSYNC_S2101), after waiting up to 5 minutes for the load to drop. A pass on the retry is **FLAKY** (passing, logged in `.loops/.browser-flakes.log`); a FLAKY lean-set step is a bug to file. Anything else is a real failure: debug it, and don't rerun by hand on top.
 - **Output is trimmed** to the ▶ and ■ lines, failures with their diagnostics, FLAKY lines and the table; the full log is named on the ■ line.
@@ -67,7 +69,7 @@ Your final message:
 
 - `scripts/loops/checks` lists every check in suite order: cap, never-exits, and `e2e yes` (in the lean set, which is `--suite`). `checks.test.mjs` keeps it and `check-areas.d/` in step, so a new check adds a line to both.
 - **The sync matrix** (`roundtrip` 6b, `sync-matrix.mjs`): a row per device-schema table, written on one device and seen on the other; `sync-matrix.test.mjs` fails when a synced table has none, so a new synced table adds one. Area checks don't assert "a second device sees X".
-- **Moving a check's screen steps to component tests:** write the tests, delete each covered step (the hand-off maps step → test), keep only the flows; set it `e2e yes` if a flow is left, else delete it and its `check-areas.d/` rules.
+- **Moving a check's screen steps to component tests:** write the tests, delete each covered step, keep only the flows; set it `e2e yes` if a flow is left, else delete it and its `check-areas.d/` rules.
 
 ### Writing a check
 
@@ -79,10 +81,10 @@ Your final message:
 
 ## Gotchas
 
-- The first check after a PowerSync restart can fail on a slow first sync: rerun once before debugging (`pnpm datastore:reset` waits for PowerSync itself).
+- The first check after a PowerSync restart can fail on a slow first sync: rerun once before debugging.
 - On the dev server (`--dev`), a first visit can re-optimize deps and reload mid-check, and a long-running server can serve stale deps after merges ("Invalid hook call"): rerun once, against a fresh server.
 - After a merge or sync that changes seeds or migrations, `pnpm datastore:reset`. Two branches' migrations conflict in drizzle's `meta/`: keep the target's, regenerate yours (`pnpm datastore:generate`), recheck its SQL order.
-- Docker runs out of networks at about 21 ("all predefined address pools have been fully subnetted"), and several `new.sh` at once can fail at migrate ("Connection terminated unexpectedly"): once there's room, rerun `pnpm datastore:start` in the worktree. Never prune other projects' networks.
+- Docker runs out of networks at about 21 ("all predefined address pools have been fully subnetted"), and several `new.sh` at once can fail at migrate: once there's room, rerun `pnpm datastore:start` in the worktree. Never prune other projects' networks.
 - **The dev server on another port:** Better Auth trusts only `BETTER_AUTH_URL` and `AUTH_TRUSTED_ORIGINS`, so set both to its URL (`… pnpm --filter @caretook/web dev --port 5176 --strictPort`), and `PS_JWKS_URL` to match.
 - Type-aware lint needs React Router's generated route types, so `pnpm lint` runs `pnpm typegen` first (a fresh worktree has none; `pnpm build:native` overwrites the web ones). A bare `pnpm exec eslint <files>` doesn't: run `pnpm typegen` first if it reports `no-unsafe-*` in route files.
 - `/app` has its own `ErrorBoundary` (keeps the frame, avoids the root boundary's "script tag" warning). Route discovery is `initial` (`react-router.config.ts`): lazy discovery asks the server for `/__manifest` first and fails offline.
