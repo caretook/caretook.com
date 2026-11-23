@@ -29,6 +29,11 @@ const subscribe = (listener: () => void) => {
 const topmost = () => openSheets.at(-1) ?? null;
 const noSheet = () => null;
 
+/** Each open sheet's "would this lose changes?": a path change takes the sheets under the top one too. */
+const sheetChanges = new Map<string, () => boolean>();
+const changedUnder = (id: string) =>
+  openSheets.some((sheet) => sheet !== id && sheetChanges.get(sheet)?.() === true);
+
 const animates = () => window.matchMedia("(prefers-reduced-motion: no-preference)").matches;
 
 /** The longest transition computed on the panel, in ms. */
@@ -92,16 +97,26 @@ export function useSheetExit({
     setAskingState(next);
   }, []);
   const wouldAsk = useCallback(() => !discarded.current && (latest.current.hasChanges?.() ?? false), []);
+  const leavingLoses = useCallback(
+    () => wouldAsk() || (!discarded.current && changedUnder(id)),
+    [wouldAsk, id],
+  );
 
   useEffect(() => {
     if (!isOpen) return;
+    sheetChanges.set(id, wouldAsk);
     setOpenSheets([...openSheets, id]);
-    return () => setOpenSheets(openSheets.filter((sheet) => sheet !== id));
-  }, [isOpen, id]);
+    return () => {
+      sheetChanges.delete(id);
+      setOpenSheets(openSheets.filter((sheet) => sheet !== id));
+    };
+  }, [isOpen, id, wouldAsk]);
 
   // Opened again after an exit.
   useEffect(() => {
     if (isOpen && phaseRef.current === "gone") setPhase("open");
+    // Closed with no exit (reduced motion), so the phase never left "open".
+    if (!isOpen) discarded.current = false;
     if (!isOpen && askingRef.current) setAsking(false);
   }, [isOpen, setPhase, setAsking]);
 
@@ -141,14 +156,18 @@ export function useSheetExit({
     ({ currentLocation, nextLocation }) =>
       phaseRef.current !== "gone" &&
       currentLocation.pathname !== nextLocation.pathname &&
-      (animates() || wouldAsk()),
-    [wouldAsk],
+      (animates() || leavingLoses()),
+    [leavingLoses],
   );
   const onHeld = useCallback(
     (blocker: Blocker) => {
       held.current = blocker;
-      if (askingRef.current) return;
-      if (phaseRef.current === "open" && wouldAsk()) return setAsking(true);
+      if (askingRef.current) {
+        if (leavingLoses()) return;
+        // What it asked about is gone (the record was deleted elsewhere).
+        setAsking(false);
+      }
+      if (phaseRef.current === "open" && leavingLoses()) return setAsking(true);
       if (!animates()) {
         held.current = null;
         if (blocker.state === "blocked") blocker.proceed();
@@ -156,7 +175,7 @@ export function useSheetExit({
       }
       if (phaseRef.current === "open") setPhase("exiting");
     },
-    [setPhase, setAsking, wouldAsk],
+    [setPhase, setAsking, leavingLoses],
   );
 
   // "Keep editing": the sheet stays and a held navigation is called off.

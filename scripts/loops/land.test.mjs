@@ -2,7 +2,7 @@
 // lands with no Codex verdict, a code diff still needs one. A throwaway repo
 // with these scripts copied in, a bare origin, and a stubbed `gh`; the
 // CARETOOK_PR_THROWAWAY seam stops land before the merge, so nothing is pushed.
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
   chmodSync,
   cpSync,
@@ -18,6 +18,11 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { brakeNotice } from "../ci/blame.mjs";
+import { declinesSince, markLanded } from "./land-skeptic.mjs";
+import { createNotice, withdrawNotice } from "./notices.mjs";
+import { recordVerdict } from "./skeptics.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
 let root, repo;
@@ -239,7 +244,7 @@ describe("land.sh on the PR path", () => {
 
   it("still refuses a code PR without a clean verdict", () => {
     branch({ "docs/x.md": "d", "scripts/loops/t.mjs": "x" });
-    const r = land("--force");
+    const r = land("--force", "--by-user");
     expect(r.status).not.toBe(0);
     expect(r.stderr).toMatch(/Codex's verdict on PR #7 isn't clean/);
   });
@@ -286,7 +291,7 @@ describe("land.sh on the PR path", () => {
   it("lands on a clean verdict carried over a dev merge, pinned to the merged tip", () => {
     const reviewed = reviewedThenSynced();
     const tip = git("rev-parse", "prd/throwaway-x");
-    const r = landWith(reviewedClean(reviewed), "--force");
+    const r = landWith(reviewedClean(reviewed), "--force", "--by-user");
     expect(r.stdout).toContain(`codex: clean on ${tip.slice(0, 7)} (carried from ${reviewed.slice(0, 7)}`);
     expect(r.stdout).toContain(`--match-head-commit ${tip}`);
     expect(r.status).toBe(0);
@@ -297,7 +302,7 @@ describe("land.sh on the PR path", () => {
     git("checkout", "-q", "prd/throwaway-x");
     commit({ "apps/web/b.ts": "3" }, "more work");
     git("checkout", "-q", "dev");
-    const r = landWith(reviewedClean(reviewed), "--force");
+    const r = landWith(reviewedClean(reviewed), "--force", "--by-user");
     expect(r.status).not.toBe(0);
     expect(r.stderr).toMatch(
       /Codex's verdict on PR #7 isn't clean \(codex: stale .*not carried: .* isn't a merge of/,
@@ -345,7 +350,7 @@ describe("land.sh's CI gate", () => {
         "throwaway-x",
         "-m",
         "feat(throwaway-x): t",
-        ...(args.includes("--local") ? [] : ["--no-review"]),
+        ...(args.includes("--local") ? [] : ["--no-review", "--by-user"]),
         ...args,
       ],
       {
@@ -642,7 +647,15 @@ describe("land.sh writes a to-test file", () => {
   const landFor = (mergeFails = false) =>
     spawnSync(
       "bash",
-      ["scripts/loops/land.sh", "throwaway-x", "-m", "feat(throwaway-x): t (B-1)", "--force", "--no-review"],
+      [
+        "scripts/loops/land.sh",
+        "throwaway-x",
+        "-m",
+        "feat(throwaway-x): t (B-1)",
+        "--force",
+        "--no-review",
+        "--by-user",
+      ],
       {
         cwd: repo,
         encoding: "utf8",
@@ -696,7 +709,7 @@ describe("land.sh writes a to-test file", () => {
     git("checkout", "-q", "dev");
     const r = spawnSync(
       "bash",
-      ["scripts/loops/land.sh", "hotfix/throwaway-y", "--local", "--force", "-m", "fix(web): c"],
+      ["scripts/loops/land.sh", "hotfix/throwaway-y", "--local", "--force", "--by-user", "-m", "fix(web): c"],
       { cwd: repo, encoding: "utf8" },
     );
     expect(r.status, r.stderr + r.stdout).toBe(0);
@@ -740,7 +753,10 @@ describe("land.sh posts a landing notice", () => {
       },
     });
   const prdLand = (extra) =>
-    landFor(["throwaway-x", "-m", "feat(throwaway-x): t (B-1)", "--force", "--no-review"], extra);
+    landFor(
+      ["throwaway-x", "-m", "feat(throwaway-x): t (B-1)", "--force", "--no-review", "--by-user"],
+      extra,
+    );
 
   it("posts one for a code landing, with the topic and the commit, for six hours", () => {
     branch({ "apps/web/b.ts": "2" });
@@ -759,7 +775,7 @@ describe("land.sh posts a landing notice", () => {
     git("checkout", "-qb", "hotfix/throwaway-y");
     commit({ "apps/web/c.ts": "3" }, "fix it");
     git("checkout", "-q", "dev");
-    const r = landFor(["hotfix/throwaway-y", "--local", "--force", "-m", "fix(web): c"]);
+    const r = landFor(["hotfix/throwaway-y", "--local", "--force", "--by-user", "-m", "fix(web): c"]);
     expect(r.status, r.stderr + r.stdout).toBe(0);
     expect(notices()).toMatchObject([{ session: "hotfix-throwaway-y", topic: "throwaway-y" }]);
     expect(notices()[0].text).toContain(`as ${git("rev-parse", "--short", "dev")}`);
@@ -783,5 +799,715 @@ describe("land.sh posts a landing notice", () => {
     expect(r.status, r.stderr + r.stdout).toBe(0);
     expect(r.stdout).toContain("Landed prd/throwaway-x");
     expect(r.stderr).toContain("couldn't post the landing notice");
+  });
+});
+
+// The unsynced landing: dev moved on files the branch doesn't touch. A stub
+// `pnpm` logs its steps, and the seam stops the PR path before the merge.
+describe("land.sh on an unsynced tip", () => {
+  const OWN = "scripts/loops/own.sh";
+  const wt = () => join(repo, ".loops", "throwaway-x");
+  const inWt = (...a) => execFileSync("git", ["-C", wt(), ...a], { encoding: "utf8", stdio: "pipe" }).trim();
+  const steps = () =>
+    existsSync(join(root, "pnpm.log")) ? readFileSync(join(root, "pnpm.log"), "utf8").trim().split("\n") : [];
+  const env = () => ({
+    GH_CI: join(root, "gh-ci.mjs"),
+    GH_CI_FIXTURE: join(root, "fixture.json"),
+    CARETOOK_CI_POLL: "0",
+    CARETOOK_LEASE_ROOT: join(root, "leases"),
+    CARETOOK_LEASE_POLL: "1",
+    CARETOOK_NOTICES_DIR: join(root, "notices"),
+    CARETOOK_LOAD_GATE: "off",
+    PNPM_LOG: join(root, "pnpm.log"),
+  });
+  const go = (extra = {}, ...args) => landWith({ ...env(), ...extra }, "--no-review", "--by-user", ...args);
+  const toDev = (files) => {
+    commit(files, "dev work");
+    git("push", "-q", "origin", "dev");
+  };
+  const started = (files = { [OWN]: "own" }) => {
+    branch(files);
+    git("worktree", "add", "-q", wt(), "prd/throwaway-x");
+  };
+  const atTip = () => {
+    expect(inWt("rev-parse", "HEAD")).toBe(git("rev-parse", "prd/throwaway-x"));
+    expect(inWt("status", "--porcelain")).toBe("");
+    expect(
+      existsSync(join(git("rev-parse", "--absolute-git-dir"), "worktrees", "throwaway-x", "MERGE_HEAD")),
+    ).toBe(false);
+  };
+  // A merge a killed landing left: its marker names a pid that isn't running.
+  const leftover = () => {
+    const tip = inWt("rev-parse", "HEAD");
+    const dev = git("rev-parse", "dev");
+    inWt("merge", "--no-commit", "--no-ff", "-q", dev);
+    writeFileSync(
+      join(inWt("rev-parse", "--absolute-git-dir"), "caretook-unsynced-merge"),
+      `${tip} ${dev} 999999\nnever\n`,
+    );
+  };
+
+  beforeEach(() => {
+    writeFileSync(join(root, "gh-ci.mjs"), GH_CI);
+    writeFileSync(join(root, "fixture.json"), JSON.stringify({ byCommit: {} }));
+    writeFileSync(join(repo, ".git", "info", "exclude"), ".loops/\nto-test/\n");
+    writeFileSync(
+      join(root, "bin", "pnpm"),
+      `#!/usr/bin/env bash
+echo "$1" >> "$PNPM_LOG"
+if [[ $1 == typecheck ]]; then
+  [[ -z "\${PNPM_ON_TYPECHECK:-}" ]] || eval "$PNPM_ON_TYPECHECK"
+  [[ -z "\${PNPM_HANG:-}" ]] || { touch "$PNPM_HANG"; sleep 30; }
+  [[ -z "\${PNPM_FAIL:-}" ]] || { echo "a type error" >&2; exit 2; }
+fi
+exit 0
+`,
+    );
+    chmodSync(join(root, "bin", "pnpm"), 0o755);
+  });
+
+  it("lands over drift on other files: typegen then typecheck, the line printed and in --body", () => {
+    started();
+    toDev({ "apps/web/dev.ts": "d" });
+    const r = go();
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(steps()).toEqual(["typegen", "typecheck"]);
+    expect(r.stdout).toContain(
+      "landed on an unsynced tip: `dev` had 1 commit since the last sync, sharing no file with it; only the merged result's typecheck ran",
+    );
+    expect(r.stdout).toMatch(/--body Landed\\? on\\? an\\? unsynced\\? tip:/);
+    atTip();
+  });
+
+  it("counts only the commits that are drift", () => {
+    started();
+    toDev({ "plans/backlog.md": "b" });
+    toDev({ "apps/web/dev.ts": "d" });
+    expect(go().stdout).toContain("`dev` had 1 commit since");
+  });
+
+  it("refuses a shared file", () => {
+    started({ "apps/web/a.ts": "mine", [OWN]: "own" });
+    toDev({ "apps/web/a.ts": "theirs" });
+    const r = go();
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain("has moved since prd/throwaway-x last synced");
+    expect(r.stderr).toContain("changed apps/web/a.ts");
+    expect(steps()).toEqual([]);
+  });
+
+  it.each([
+    ["a migration", "packages/data/src/db/migrations/0001_x.sql"],
+    ["a package.json", "apps/web/package.json"],
+    ["test setup", "packages/data/test/setup.ts"],
+  ])("refuses dev bringing %s, naming it", (_kind, file) => {
+    started();
+    toDev({ [file]: "x" });
+    const r = go();
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain(file);
+    expect(steps()).toEqual([]);
+  });
+
+  it("keeps the drift refusal with --fixes and with CARETOOK_UNSYNCED=off", () => {
+    started();
+    toDev({ "apps/web/dev.ts": "d" });
+    const refused = [go({}, "--fixes", "B-9"), go({ CARETOOK_UNSYNCED: "off" })];
+    for (const r of refused) {
+      expect(r.status).not.toBe(0);
+      expect(r.stderr).toContain("has moved since");
+    }
+    expect(steps()).toEqual([]);
+  });
+
+  describe("on the branch's CI verdict", () => {
+    const TEST = "apps/web/x.test.ts";
+    const failing = { job: "unit", file: TEST, name: "fails" };
+    const verdict = (tip, kind) => ({
+      version: 1,
+      commit: tip,
+      runId: "11",
+      tier: "components",
+      ranTier: "components",
+      kind,
+      flaky: [],
+      brake: { jobs: [], tests: [], files: [] },
+      failed: { tests: [failing], files: [TEST], jobs: ["unit"], unnamedJobs: [] },
+    });
+    const withVerdict = (kind) => {
+      toDev({ [TEST]: "t" });
+      started({ "apps/web/b.ts": "2" });
+      toDev({ "apps/web/dev.ts": "d" });
+      const tip = git("rev-parse", "prd/throwaway-x");
+      writeFileSync(
+        join(root, "fixture.json"),
+        JSON.stringify({
+          byCommit: { [tip]: [{ id: 11, tier: "components", verdict: verdict(tip, kind) }] },
+          devFails: [failing],
+        }),
+      );
+    };
+
+    it("a brake that is all dev's still refuses the unsynced landing", () => {
+      withVerdict("brake");
+      const r = go();
+      expect(r.status, r.stdout + r.stderr).not.toBe(0);
+      expect(r.stderr).toContain("CI reads a brake");
+      expect(steps()).toEqual([]);
+    });
+
+    it("an unknown verdict refuses, and no typecheck runs", () => {
+      withVerdict("something-new");
+      const r = go();
+      expect(r.status).not.toBe(0);
+      expect(steps()).toEqual([]);
+    });
+
+    it("a failure that is all dev's lands unsynced", () => {
+      withVerdict("file");
+      const r = go();
+      expect(r.status, r.stdout + r.stderr).toBe(0);
+      expect(r.stdout).toContain("landed on an unsynced tip");
+    });
+  });
+
+  describe("on a known dev brake", () => {
+    const board = () => join(root, "notices");
+    const failure = { key: "k1", job: "unit", file: "apps/web/x.test.ts", name: "fails" };
+    const ciVerdict = (sha, kind) => ({
+      version: 1,
+      commit: sha,
+      runId: "21",
+      tier: "components",
+      ranTier: "components",
+      kind,
+      flaky: [],
+      brake: { jobs: [], tests: [], files: [] },
+      failed: { tests: [], files: [], jobs: [], unnamedJobs: [] },
+    });
+    const runs = (verdicts) =>
+      writeFileSync(
+        join(root, "fixture.json"),
+        JSON.stringify({
+          byCommit: Object.fromEntries(
+            verdicts.map(([sha, kind], i) => [
+              sha,
+              [{ id: 21 + i, tier: "components", verdict: ciVerdict(sha, kind) }],
+            ]),
+          ),
+        }),
+      );
+    const drifted = (files) => {
+      started(files);
+      toDev({ "apps/web/dev.ts": "d" });
+      return git("rev-parse", "origin/dev");
+    };
+    const refused = (r, why) => {
+      expect(r.status, r.stdout + r.stderr).not.toBe(0);
+      expect(r.stderr).toContain("has moved since");
+      expect(r.stderr).toContain(why);
+      expect(r.stdout).not.toContain("landed on an unsynced tip");
+    };
+    const landed = (r) => {
+      expect(r.status, r.stdout + r.stderr).toBe(0);
+      expect(r.stdout).toContain("landed on an unsynced tip");
+    };
+
+    it("refuses a tier none branch when dev's tip reads brake", () => {
+      runs([[drifted(), "brake"]]);
+      refused(go(), "CI reads a brake on dev's tip");
+      expect(steps()).toEqual([]);
+    });
+
+    it("refuses a Markdown-only branch when dev's tip reads brake", () => {
+      runs([[drifted({ "docs/own.md": "own" }), "brake"]]);
+      refused(go(), "CI reads a brake on dev's tip");
+    });
+
+    it("refuses a tier none branch on a live dev-brake notice with no verdict on the tip", () => {
+      drifted();
+      createNotice(board(), { text: brakeNotice("B-9", failure), session: "ci", minutes: 60 });
+      refused(go(), "a dev-brake notice is live: dev brake B-9");
+      expect(steps()).toEqual([]);
+    });
+
+    it("refuses a gated branch with a clean verdict of its own when dev reads brake", () => {
+      const dev = drifted({ "apps/web/b.ts": "2" });
+      runs([
+        [git("rev-parse", "prd/throwaway-x"), "green"],
+        [dev, "brake"],
+      ]);
+      refused(go(), "CI reads a brake on dev's tip");
+      expect(steps()).toEqual([]);
+    });
+
+    it("reads the tip land measures against, not a local dev ahead of it", () => {
+      const measured = drifted();
+      commit({ "apps/web/local.ts": "l" }, "unpushed dev work");
+      runs([[measured, "brake"]]);
+      refused(go(), `CI reads a brake on dev's tip ${measured.slice(0, 8)}`);
+    });
+
+    it("refuses when a brake appears during the typecheck", () => {
+      drifted();
+      const later = join(root, "later.json");
+      const { id } = createNotice(board(), { text: brakeNotice("B-9", failure), session: "ci" });
+      cpSync(join(board(), `${id}.json`), later);
+      withdrawNotice(board(), id);
+      const r = go({ PNPM_ON_TYPECHECK: `cp "${later}" "${join(board(), `${id}.json`)}"` });
+      refused(r, "a dev-brake notice is live");
+      expect(steps()).toEqual(["typegen", "typecheck"]);
+      atTip();
+    });
+
+    it("lands with no verdict on dev", () => {
+      drifted();
+      landed(go());
+    });
+
+    it.each(["green", "file", "something-new"])("lands when dev's tip reads %s", (kind) => {
+      runs([[drifted(), kind]]);
+      landed(go());
+    });
+
+    it("lands when GitHub can't be reached", () => {
+      drifted();
+      landed(go({ GH_CI: join(root, "no-such-stub.mjs") }));
+    });
+
+    it("lands on an unreadable board, and says so", () => {
+      drifted();
+      writeFileSync(join(root, "a-file"), "x");
+      const r = go({ CARETOOK_NOTICES_DIR: join(root, "a-file", "notices") });
+      landed(r);
+      expect(r.stderr).toContain("couldn't read the dev-brake notices");
+    });
+
+    it("an expired brake notice doesn't refuse", () => {
+      drifted();
+      createNotice(board(), {
+        text: brakeNotice("B-9", failure),
+        session: "ci",
+        minutes: 60,
+        now: Date.now() - 2 * 3600_000,
+      });
+      landed(go());
+    });
+
+    it("a withdrawn brake notice doesn't refuse", () => {
+      drifted();
+      const { id } = createNotice(board(), { text: brakeNotice("B-9", failure), session: "ci" });
+      withdrawNotice(board(), id);
+      landed(go());
+    });
+
+    it("a notice that isn't a brake notice doesn't refuse", () => {
+      drifted();
+      createNotice(board(), { text: "landed prd/x in dev as abc1234: dev brake talk", session: "s" });
+      createNotice(board(), { text: "dev brake B-9 without its key", session: "s" });
+      landed(go());
+    });
+  });
+
+  it("refuses a merge that conflicts and restores the worktree", () => {
+    // No path is on both sides, so only the merge can see it: a directory on
+    // one side and a file on the other.
+    started({ "scripts/loops/thing/one.sh": "1" });
+    toDev({ "scripts/loops/thing": "a file" });
+    const r = go();
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain("conflicts");
+    expect(steps()).toEqual([]);
+    atTip();
+  });
+
+  it("lands nothing on a failing typecheck, and restores the worktree", () => {
+    started();
+    toDev({ "apps/web/dev.ts": "d" });
+    const r = go({ PNPM_FAIL: "1" });
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain("doesn't typecheck");
+    expect(r.stderr).toContain("pnpm prd sync");
+    expect(r.stdout).not.toContain("It would push");
+    atTip();
+  });
+
+  it("restores the worktree after an interrupt", async () => {
+    started();
+    toDev({ "apps/web/dev.ts": "d" });
+    const hung = join(root, "hung");
+    const child = spawn(
+      "bash",
+      ["scripts/loops/land.sh", "throwaway-x", "-m", "docs(throwaway-x): t", "--no-review", "--by-user"],
+      {
+        cwd: repo,
+        stdio: "ignore",
+        env: {
+          ...process.env,
+          ...env(),
+          PATH: `${join(root, "bin")}:${process.env.PATH}`,
+          CARETOOK_PR_THROWAWAY: "1",
+          PR_HEAD: git("rev-parse", "prd/throwaway-x"),
+          PNPM_HANG: hung,
+        },
+      },
+    );
+    const gone = new Promise((done) => child.on("exit", done));
+    await expect.poll(() => existsSync(hung), { timeout: 15_000 }).toBe(true);
+    child.kill("SIGTERM");
+    await gone;
+    await expect
+      .poll(() => existsSync(join(inWt("rev-parse", "--absolute-git-dir"), "caretook-unsynced-merge")), {
+        timeout: 5_000,
+      })
+      .toBe(false);
+    atTip();
+  });
+
+  it("aborts a leftover marked merge at the next land", () => {
+    started();
+    toDev({ "apps/web/dev.ts": "d" });
+    leftover();
+    const r = go();
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain("aborted a temporary merge");
+    atTip();
+  });
+
+  it("aborts a leftover marked merge at the next sync", () => {
+    started();
+    toDev({ "apps/web/dev.ts": "d" });
+    leftover();
+    const r = spawnSync("bash", [join(wt(), "scripts/loops/prd.sh"), "sync"], {
+      cwd: wt(),
+      encoding: "utf8",
+      env: { ...process.env, ...env() },
+    });
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain("aborted a temporary merge");
+    expect(r.stdout).toContain("Merged dev into prd/throwaway-x");
+  });
+
+  it("leaves a merge that isn't the marked one alone", () => {
+    started();
+    toDev({ "apps/web/dev.ts": "d" });
+    leftover();
+    const marker = join(inWt("rev-parse", "--absolute-git-dir"), "caretook-unsynced-merge");
+    writeFileSync(marker, `${"0".repeat(40)} ${"1".repeat(40)} 999999\nnever\n`);
+    const r = go();
+    expect(r.stderr).toContain("isn't the landing's temporary one");
+    expect(r.status).not.toBe(0);
+    expect(existsSync(join(inWt("rev-parse", "--absolute-git-dir"), "MERGE_HEAD"))).toBe(true);
+  });
+
+  it("refuses a worktree holding a browser lease", () => {
+    started();
+    toDev({ "apps/web/dev.ts": "d" });
+    const lease = join(root, "leases", "browser", "1");
+    mkdirSync(lease, { recursive: true });
+    writeFileSync(
+      join(lease, "name"),
+      `kind=browser\nworktree=throwaway-x\ncheck=x\npid=${process.pid}\ncmd=\nstarted=${Math.floor(Date.now() / 1000)}\n`,
+    );
+    const r = go();
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain("holds a check or browser lease");
+    expect(steps()).toEqual([]);
+    atTip();
+  });
+
+  it("refuses a dirty worktree and one that's missing", () => {
+    started();
+    toDev({ "apps/web/dev.ts": "d" });
+    writeFileSync(join(wt(), "stray.txt"), "x");
+    expect(go().stderr).toContain("uncommitted changes");
+    rmSync(join(wt(), "stray.txt"));
+    git("worktree", "remove", "--force", wt());
+    const r = go();
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain("no worktree");
+  });
+
+  it("refuses when dev moves onto a shared file during the typecheck", () => {
+    started();
+    toDev({ "apps/web/dev.ts": "d" });
+    const other = join(root, "other");
+    execFileSync("git", ["clone", "-q", "-b", "dev", join(root, "origin.git"), other]);
+    mkdirSync(join(other, "scripts", "loops"), { recursive: true });
+    writeFileSync(join(other, OWN), "theirs");
+    execFileSync("git", ["-C", other, "add", "-A"]);
+    execFileSync("git", [
+      "-C",
+      other,
+      "-c",
+      "user.email=t@example.com",
+      "-c",
+      "user.name=T",
+      "commit",
+      "-qm",
+      "moved",
+    ]);
+    const r = go({ PNPM_ON_TYPECHECK: `git -C ${other} push -q origin dev` });
+    expect(r.status).not.toBe(0);
+    expect(r.stdout).toContain("judging it once more");
+    expect(r.stderr).toContain(`changed ${OWN}`);
+    atTip();
+  });
+
+  it("typechecks once more when dev moves onto other files, then lands", () => {
+    started();
+    toDev({ "apps/web/dev.ts": "d" });
+    const other = join(root, "other");
+    execFileSync("git", ["clone", "-q", "-b", "dev", join(root, "origin.git"), other]);
+    writeFileSync(join(other, "apps/web/later.ts"), "later");
+    execFileSync("git", ["-C", other, "add", "-A"]);
+    execFileSync("git", [
+      "-C",
+      other,
+      "-c",
+      "user.email=t@example.com",
+      "-c",
+      "user.name=T",
+      "commit",
+      "-qm",
+      "moved",
+    ]);
+    const once = join(root, "once");
+    const r = go({
+      PNPM_ON_TYPECHECK: `[[ -e ${once} ]] || { touch ${once}; git -C ${other} push -q origin dev; }`,
+    });
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(steps()).toEqual(["typegen", "typecheck", "typegen", "typecheck"]);
+    expect(r.stdout).toContain("`dev` had 2 commits since");
+  });
+
+  it("lands a Markdown-only branch with no worktree and no typecheck", () => {
+    branch({ "docs/x.md": "d" });
+    toDev({ "apps/web/dev.ts": "d" });
+    const r = go();
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(steps()).toEqual([]);
+    expect(r.stdout).toContain("Markdown only, so no typecheck ran");
+  });
+
+  it("the local path's merge commit and the to-test file carry the line", () => {
+    git("checkout", "-qb", "hotfix/throwaway-y");
+    commit({ [OWN]: "own" }, "fix it");
+    git("checkout", "-q", "dev");
+    git("worktree", "add", "-q", join(repo, ".loops", "hotfix-throwaway-y"), "hotfix/throwaway-y");
+    commit({ "apps/web/dev.ts": "d" }, "dev work");
+    const r = spawnSync(
+      "bash",
+      ["scripts/loops/land.sh", "hotfix/throwaway-y", "--local", "-m", "fix(web): c"],
+      {
+        cwd: repo,
+        encoding: "utf8",
+        env: { ...process.env, ...env(), PATH: `${join(root, "bin")}:${process.env.PATH}` },
+      },
+    );
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(git("log", "-1", "--format=%s")).toBe("fix(web): c");
+    expect(git("log", "-1", "--format=%b")).toContain(
+      "Landed on an unsynced tip: dev had 1 commit since the last sync, sharing no file with it",
+    );
+    const [file] = readdirSync(join(repo, "to-test"));
+    expect(readFileSync(join(repo, "to-test", file), "utf8")).toContain("landed on an unsynced tip");
+  });
+});
+
+// A skeptic's go in place of the user's word, on real records in a temporary store.
+describe("land.sh's --force and --no-review", () => {
+  const store = () => join(root, "skeptic");
+  let tip;
+  const record = (over = {}) =>
+    recordVerdict(store(), {
+      kind: "land",
+      verdict: "go",
+      why: "the failure is unrelated",
+      topic: "throwaway-x",
+      tip,
+      action: "force",
+      ...over,
+    }).id;
+  const ciEnv = (byCommit = {}) => {
+    writeFileSync(join(root, "gh-ci.mjs"), GH_CI);
+    writeFileSync(join(root, "fixture.json"), JSON.stringify({ byCommit }));
+    return {
+      GH_CI: join(root, "gh-ci.mjs"),
+      GH_CI_FIXTURE: join(root, "fixture.json"),
+      CARETOOK_CI_POLL: "0",
+      CARETOOK_LOAD_GATE: "off",
+      CARETOOK_NOTICES_DIR: join(root, "notices"),
+      CARETOOK_SKEPTIC_DIR: store(),
+    };
+  };
+  const seam = (args, byCommit, extra = {}) => landWith({ ...ciEnv(byCommit), ...extra }, ...args);
+  const brakeOn = (sha) => ({
+    [sha]: [
+      {
+        id: 11,
+        tier: "components",
+        verdict: {
+          version: 1,
+          commit: sha,
+          runId: "11",
+          tier: "components",
+          ranTier: "components",
+          kind: "brake",
+          flaky: [],
+          brake: { jobs: ["unit"], tests: [], files: [] },
+          failed: { tests: [], files: [], jobs: ["unit"] },
+        },
+      },
+    ],
+  });
+  const outOfCredits = {
+    PR_COMMENTS: JSON.stringify([
+      {
+        author: { login: "chatgpt-codex-connector" },
+        body: "You have reached your Codex usage limits for code reviews.",
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z",
+      },
+    ]),
+  };
+  const report = () => {
+    const [file] = readdirSync(join(repo, "to-test"));
+    return readFileSync(join(repo, "to-test", file), "utf8");
+  };
+
+  beforeEach(() => {
+    writeFileSync(join(repo, ".git", "info", "exclude"), ".loops/\nto-test/\n");
+    branch({ "docs/x.md": "d" });
+    tip = git("rev-parse", "prd/throwaway-x");
+  });
+
+  it("--force with neither is refused, naming both", () => {
+    const r = seam(["--force"]);
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain("--skeptic <id>");
+    expect(r.stderr).toContain("--by-user");
+  });
+
+  it("--force lands on a go for the tip, and says whose word it was", () => {
+    const r = seam(["--force", "--skeptic", record()]);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain("--force: skeptic s1 go: the failure is unrelated");
+    const byUser = seam(["--force", "--by-user"]);
+    expect(byUser.status, byUser.stderr).toBe(0);
+    expect(byUser.stdout).toContain("on the user's word");
+  });
+
+  it.each([
+    ["an older tip", () => ({ tip: "0".repeat(40) }), "judged 0000000"],
+    ["another topic", () => ({ topic: "other" }), "is for other"],
+    ["another action", () => ({ action: "no-review" }), 'judged "no-review"'],
+    ["an old record", () => ({ now: Date.now() - 2 * 3600_000 }), "minutes old"],
+    ["a no", () => ({ verdict: "no", why: "a real bug" }), "the skeptic said no: a real bug"],
+  ])("--force is refused on %s", (_name, over, reason) => {
+    const r = seam(["--force", "--skeptic", record(over())]);
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain(reason);
+  });
+
+  it("a no beside a go still refuses", () => {
+    const go = record();
+    const no = record({ verdict: "no", why: "a real bug" });
+    const r = seam(["--force", "--skeptic", go, "--skeptic", no]);
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain("a real bug");
+  });
+
+  it("--skeptic and --by-user need a flag to cover, and not both", () => {
+    expect(seam(["--by-user"]).stderr).toContain("go with --force or --no-review");
+    expect(seam(["--force", "--by-user", "--skeptic", "s1"]).stderr).toContain("not both");
+  });
+
+  describe("--no-review on a code diff", () => {
+    beforeEach(() => {
+      git("checkout", "-q", "prd/throwaway-x");
+      commit({ "scripts/loops/own.sh": "own" }, "code");
+      git("checkout", "-q", "dev");
+      tip = git("rev-parse", "prd/throwaway-x");
+    });
+
+    it("is refused with neither, and on another action's go", () => {
+      for (const args of [["--no-review"], ["--no-review", "--skeptic", record()]]) {
+        const r = seam(args);
+        expect(r.status).not.toBe(0);
+        expect(r.stderr).toContain("--no-review");
+      }
+    });
+
+    it("lands on a go or the user's word", () => {
+      const go = seam(["--no-review", "--skeptic", record({ action: "no-review" })]);
+      expect(go.status, go.stdout + go.stderr).toBe(0);
+      expect(go.stdout).toContain("--no-review: skeptic");
+      const byUser = seam(["--no-review", "--by-user"]);
+      expect(byUser.status, byUser.stderr).toBe(0);
+    });
+
+    it("needs neither when Codex is out of credits", () => {
+      const r = seam(["--no-review"], {}, outOfCredits);
+      expect(r.status, r.stdout + r.stderr).toBe(0);
+      expect(r.stdout).toContain("Codex is out of credits");
+    });
+  });
+
+  describe("where a go doesn't reach", () => {
+    it("a brake on the branch's tip needs --by-user", () => {
+      const refused = seam(["--force", "--skeptic", record()], brakeOn(tip));
+      expect(refused.status).not.toBe(0);
+      expect(refused.stderr).toContain("doesn't cover a brake");
+      const r = seam(["--force", "--by-user"], brakeOn(tip));
+      expect(r.status, r.stderr).toBe(0);
+    });
+
+    it("a brake on dev's tip needs --by-user", () => {
+      const dev = git("rev-parse", "dev");
+      const refused = seam(["--force", "--skeptic", record()], brakeOn(dev));
+      expect(refused.status).not.toBe(0);
+      expect(refused.stderr).toContain("doesn't cover a brake");
+    });
+
+    it("an unsynced tip needs --by-user", () => {
+      commit({ "apps/web/dev.ts": "d" }, "dev work");
+      git("push", "-q", "origin", "dev");
+      const refused = seam(["--force", "--skeptic", record()]);
+      expect(refused.status).not.toBe(0);
+      expect(refused.stderr).toContain("doesn't cover an unsynced tip");
+      const r = seam(["--force", "--by-user"]);
+      expect(r.status, r.stdout + r.stderr).toBe(0);
+      expect(r.stdout).toContain("landed on an unsynced tip");
+    });
+  });
+
+  it("the report has the verdict and the declines since the last landing, once", () => {
+    git("checkout", "-q", "prd/throwaway-x");
+    commit({ "apps/web/b.ts": "2" }, "code");
+    git("checkout", "-q", "dev");
+    tip = git("rev-parse", "prd/throwaway-x");
+    markLanded(store(), "throwaway-x", Date.now() - 60_000);
+    record({ action: "decline T_old", why: "before the last landing", now: Date.now() - 120_000 });
+    record({ action: "decline T_1", why: "the guard is above it" });
+    record({ action: "decline T_2", verdict: "no", why: "a real bug" });
+    const ids = [record(), record({ action: "no-review", why: "Codex is stuck" })];
+    const r = seam(
+      ["--force", "--no-review", "--skeptic", ids[0], "--skeptic", ids[1]],
+      {},
+      {
+        CARETOOK_PR_THROWAWAY: "",
+      },
+    );
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    const text = report();
+    expect(text).toContain("## What the skeptic said");
+    expect(text).toContain("the failure is unrelated");
+    expect(text).toContain("Codex is stuck");
+    expect(text).toContain("declining Codex thread T_1: s");
+    expect(text).toContain("declining Codex thread T_2: s");
+    expect(text).not.toContain("before the last landing");
+    expect(r.stdout).toContain("for the landing and run-through reports");
+    expect(declinesSince(store(), "throwaway-x")).toEqual([]);
   });
 });

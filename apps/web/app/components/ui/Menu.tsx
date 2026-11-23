@@ -45,9 +45,8 @@ const ITEM =
  * `SEPARATOR`s; see `menuModel.ts`.
  *
  * The trigger takes a button's look (`variant`, `size`, `shape`, through
- * `buttonClass`), so it matches the buttons beside it; `className` then adds
- * outer classes. Without a look, `className` is the trigger's whole class
- * string (until the remaining menus move to a look).
+ * `buttonClass`), so it matches the buttons beside it; `className` only adds
+ * outer classes.
  *
  * The menu is named by the button (its `label`, else its text) unless
  * `menuLabel` is given. Link items navigate through React Router, with their
@@ -77,7 +76,7 @@ export function Menu({
   menuLabel?: string;
   /** The button's content (an icon, a name, an avatar). */
   children: ReactNode;
-  /** With a look, outer classes for the button; without one, its whole class string. */
+  /** Outer classes for the button (a margin, `shrink-0`), never its look. */
   className?: string;
   /** The trigger's look, as a `Button`'s. */
   variant?: ButtonLook["variant"];
@@ -97,10 +96,7 @@ export function Menu({
   const navigate = useNavigate();
   // A sheet opened from an item finds this button to return focus to (the item is gone by then).
   const triggerKey = useId();
-  const hasLook = variant !== undefined || size !== undefined || shape !== undefined;
-  const triggerClass = hasLook
-    ? `${buttonClass({ variant, size, shape })} ${className ?? ""}`.trim()
-    : className;
+  const triggerClass = `${buttonClass({ variant, size, shape })} ${className ?? ""}`.trim();
   const entries = useMemo(() => normalizeMenu(items), [items]);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
   const toggle = (id: string) =>

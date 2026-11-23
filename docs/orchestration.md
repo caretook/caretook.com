@@ -104,7 +104,7 @@ Every change is committed straight onto `dev` (only those two files), so every s
 
 **At most four PRDs run at once.** `pnpm prd start` refuses a fifth (raise `CARETOOK_MAX_PRDS` to override).
 
-**Let the dispatcher run them:** `pnpm prd dispatch` in a tab of its own plans and starts topics in the PRD table's row order as slots free up, never two that share hot files, waits while the machine is busy, and reopens sessions that die. `pnpm prd queue <topic>` moves a topic first; a row's `hold` flag or `pnpm prd dispatch --pause` holds it back, `--dry-run` shows why each topic waits. Its orchestrators land each wave without asking; their questions and reports wait in `pnpm prd asks` (answer with `pnpm prd answer <id> <n>`, [machinery](agents/machinery.md#the-dispatcher)); a recommended one may default after 30 minutes; `pnpm prd notices` lists heads-ups.
+**The dispatcher:** `pnpm prd dispatch` plans and starts topics in the PRD table's order as slots free up, never two that share hot files, waits on a busy machine, and reopens sessions that die. `pnpm prd queue <topic>` moves a topic first; a row's `hold` flag or `pnpm prd dispatch --pause` holds it back, `--dry-run` shows why each topic waits. Its orchestrators land each wave without asking; their questions and reports wait in `pnpm prd asks` (answer with `pnpm prd answer <id> <n>`, [machinery](agents/machinery.md#the-dispatcher)); a recommended one may default in 30 minutes; `pnpm prd notices` lists heads-ups. `CARETOOK_UNSYNCED=off` stops unsynced landings.
 
 ### After a restart, a crash or a usage limit
 
@@ -161,7 +161,7 @@ When a whole PRD is done: `pnpm prd rm <topic>` removes its worktree, stack and 
 
 ### Going live
 
-Before the PR to `staging`, run the lean end-to-end set once on `dev` from any synced worktree, on a quiet machine: `caffeinate -i pnpm prd browser --suite` (about 5 minutes). Screens are covered by component tests in `pnpm check`; the lean set covers what needs the server and sync (sign-in, first sync, sign-out, devices converging, offline, invites, the CSP). Open pull requests on GitHub: `dev` → `staging`, then `staging` → `main`. The tracker then shows the items as staging, then live (`pnpm backlog refresh` writes those statuses into the file).
+`staging` takes a release candidate: `pnpm prd ci candidate cut --wait` fixes a `dev` commit on an `rc/*` branch, opens its PR and runs the whole suite and the browser checks in CI; `pnpm prd ci promote` merges it only if that run passes. Merging the PR by hand on GitHub is your override. Then open the pull request `staging` → `main`. The tracker then shows the items as staging, then live (`pnpm backlog refresh` writes those statuses into the file).
 
 ## Commit messages
 

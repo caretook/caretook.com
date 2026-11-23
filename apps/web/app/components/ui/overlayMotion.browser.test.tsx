@@ -81,7 +81,7 @@ const ITEMS = [{ id: "edit", label: "Edit", onAction: () => undefined }];
 describe("Menu and Popover fade", () => {
   test("a menu fades in, and on close stays for its fast fade-out, then leaves the DOM", async () => {
     const { screen } = await renderInRouter(
-      <Menu label="Note actions" className="btn" items={ITEMS}>
+      <Menu label="Note actions" variant="secondary" items={ITEMS}>
         ⋯
       </Menu>,
     );
@@ -138,7 +138,7 @@ describe("Menu and Popover fade", () => {
     await reduceMotion();
     const { screen } = await renderInRouter(
       <>
-        <Menu label="Note actions" className="btn" items={ITEMS}>
+        <Menu label="Note actions" variant="secondary" items={ITEMS}>
           ⋯
         </Menu>
         <Popover label="Change the time" dialogLabel="When" trigger="4:40 PM">
@@ -170,7 +170,7 @@ function ConfirmFromMenu() {
     <>
       <Menu
         label="Actions for Slept well"
-        className="btn"
+        variant="secondary"
         items={[{ id: "delete", label: "Delete", onAction: () => setOpen(true) }]}
       >
         ⋯

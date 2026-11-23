@@ -21,6 +21,11 @@
 // the other: whichever comes first stands and the other reports it. Reading
 // never settles: only a waiting session (`ask --wait`) and the dispatcher's
 // tick call settleAsk.
+//
+// A question that went past a skeptic carries `skeptic: { id, verdict, why }`.
+// One the skeptic decided is filed already settled (`chose`): its answer is the
+// option, `defaulted` is true so it lists and dismisses with the defaulted ones
+// under "decided for you", and it is never pushed.
 import {
   linkSync,
   mkdirSync,
@@ -40,9 +45,11 @@ const ID_FILE = /^a(\d+)\.json$/;
 export const DEFAULT_WAIT_MIN = 30;
 /** The questions that never default: they take --waits. */
 export const NEVER_DEFAULT =
-  "money (a paid service too), data loss or a change to existing data, a live deploy (staging or production), a destructive step (deleting unmerged work, a forced push or landing), a new dependency (AGENTS.md: the user's approval), and compliance";
+  "money (a paid service too), data loss or a change to existing data, a live deploy (staging or production), a destructive step (deleting unmerged work, a forced push), a new dependency (AGENTS.md: the user's approval), and compliance";
 /** How long answering, settling or dismissing waits for another one's lock on the same ask. */
 export const LOCK_WAIT_MS = 5000;
+/** The dispatcher's own sessions: code, so their questions need no skeptic (the honor system). */
+export const DISPATCHER_SESSIONS = ["dispatch", "dispatch-context", "dispatch-keep"];
 /** A lock this old is taken over even if its holder looks alive (a reused pid). */
 const LOCK_STALE_MS = 60_000;
 
@@ -66,12 +73,60 @@ const idNumbers = (dir) => {
   });
 };
 
+// An option given by its text or its 1-based number.
+const pickOption = (options, value) =>
+  /^\d+$/.test(value) && !options.includes(value) ? (options[Number(value) - 1] ?? value) : value;
+
+/**
+ * Throws an AskError unless the ask can be filed, and returns its recommendation
+ * and chosen option as option text. Writes nothing, so a caller can check before
+ * it spends a skeptic's record.
+ */
+export function validateAsk({
+  kind,
+  topic,
+  text,
+  options = [],
+  recommended = null,
+  defaults = false,
+  waitMin = DEFAULT_WAIT_MIN,
+  chose = null,
+}) {
+  if (kind !== "question" && kind !== "report") throw new AskError(`unknown kind ${kind}`);
+  if (!topic) throw new AskError("an ask needs a topic");
+  if (!text?.trim()) throw new AskError(`a ${kind} needs its text`);
+  if (kind === "report" && (options.length || recommended)) throw new AskError("a report has no options");
+  if (new Set(options).size !== options.length) throw new AskError("options must differ");
+  let rec = recommended ?? null;
+  if (rec != null) {
+    // --recommend takes an option's text or its number.
+    rec = pickOption(options, rec);
+    if (!options.includes(rec))
+      throw new AskError(`the recommendation "${recommended}" isn't one of the options`);
+  }
+  if (defaults && kind === "report") throw new AskError("a report has no answer to default to");
+  if (defaults && rec == null)
+    throw new AskError("a question that defaults needs a recommendation (--recommend) to take");
+  if (defaults && !(Number.isFinite(waitMin) && waitMin >= 0))
+    throw new AskError(`the wait before a default is a number of minutes, not ${waitMin}`);
+  let picked = null;
+  if (chose != null) {
+    if (kind !== "question") throw new AskError("only a question can be decided");
+    if (rec != null || defaults) throw new AskError("a decided question has no recommendation or default");
+    picked = pickOption(options, chose);
+    if (!options.includes(picked)) throw new AskError(`the choice "${chose}" isn't one of the options`);
+  }
+  return { recommended: rec, chose: picked };
+}
+
 /**
  * File a question or a report; returns the stored ask.
  * @param {string} dir
  * defaults: the question may take its recommendation after waitMin minutes unanswered.
+ * skeptic: the verdict it went past. chose: the option a skeptic decided (files it settled).
  * @param {{ kind: "question" | "report", topic: string, text: string, session?: string | null,
  *   options?: string[], recommended?: string | null, defaults?: boolean, waitMin?: number,
+ *   skeptic?: { id: string, verdict: string, why: string } | null, chose?: string | null,
  *   now?: number }} ask
  */
 export function createAsk(
@@ -85,26 +140,15 @@ export function createAsk(
     recommended = null,
     defaults = false,
     waitMin = DEFAULT_WAIT_MIN,
+    skeptic = null,
+    chose = null,
     now,
   },
 ) {
-  if (kind !== "question" && kind !== "report") throw new AskError(`unknown kind ${kind}`);
-  if (!topic) throw new AskError("an ask needs a topic");
-  if (!text?.trim()) throw new AskError(`a ${kind} needs its text`);
-  if (kind === "report" && (options.length || recommended)) throw new AskError("a report has no options");
-  if (new Set(options).size !== options.length) throw new AskError("options must differ");
-  let rec = recommended ?? null;
-  if (rec != null) {
-    // --recommend takes an option's text or its number.
-    if (/^\d+$/.test(rec) && !options.includes(rec)) rec = options[Number(rec) - 1] ?? rec;
-    if (!options.includes(rec))
-      throw new AskError(`the recommendation "${recommended}" isn't one of the options`);
-  }
-  if (defaults && kind === "report") throw new AskError("a report has no answer to default to");
-  if (defaults && rec == null)
-    throw new AskError("a question that defaults needs a recommendation (--recommend) to take");
-  if (defaults && !(Number.isFinite(waitMin) && waitMin >= 0))
-    throw new AskError(`the wait before a default is a number of minutes, not ${waitMin}`);
+  const valid = validateAsk({ kind, topic, text, options, recommended, defaults, waitMin, chose });
+  const rec = valid.recommended;
+  if (valid.chose != null && skeptic?.verdict !== "decide")
+    throw new AskError("only a skeptic's decide files a decided question");
   mkdirSync(dir, { recursive: true });
   const at = now ?? Date.now();
   const base = {
@@ -117,11 +161,16 @@ export function createAsk(
     defaults: Boolean(defaults),
     defaultAt: defaults ? nowIso(at + waitMin * 60_000) : null,
     askedAt: nowIso(at),
+    ...(skeptic ? { skeptic } : {}),
   };
+  const settled =
+    valid.chose != null
+      ? { answer: valid.chose, answeredAt: nowIso(at), defaulted: true }
+      : { answer: null, answeredAt: null, defaulted: false };
   let n = Math.max(0, ...idNumbers(dir)) + 1;
   for (;;) {
     const id = `a${n}`;
-    const record = { id, ...base, answer: null, answeredAt: null, defaulted: false, doneAt: null };
+    const record = { id, ...base, ...settled, doneAt: null };
     const tmp = tmpName(dir);
     writeFileSync(tmp, JSON.stringify(record, null, 2) + "\n");
     try {
@@ -254,6 +303,10 @@ export function answerAsk(dir, id, reply, { now, lockWaitMs } = {}) {
       const ask = mustGet(dir, id);
       if (ask.kind !== "question")
         throw new AskError(`${id} is a report: it can't be answered (dismiss it with --done)`);
+      if (ask.defaulted && ask.skeptic?.verdict === "decide")
+        throw new AskError(
+          `${id} was decided by a skeptic: it took "${ask.answer}" (${ask.skeptic.why}), and its session has acted on it, so it can't be answered now. Tell that session if you disagree; dismiss it with pnpm prd asks --done ${id}`,
+        );
       if (ask.defaulted)
         throw new AskError(
           `${id} was decided for you: it took "${ask.answer}" at ${clock(ask.answeredAt)} after no answer, and its session has acted on it, so it can't be answered now. Tell that session if you disagree; dismiss it with pnpm prd asks --done ${id}`,
@@ -370,6 +423,21 @@ export function countdown(ask, now = Date.now()) {
     : `takes "${ask.recommended}": due (still answerable)`;
 }
 
+/** One line on what waits on the user (`pnpm prd asks --short`): open questions oldest first, then counts. */
+export function formatAsksShort(asks, now = Date.now()) {
+  if (!asks.length) return "No open asks.";
+  const decided = asks.filter((a) => a.defaulted).length;
+  const reports = asks.filter((a) => !a.defaulted && a.kind === "report").length;
+  const questions = asks
+    .filter((a) => !a.defaulted && a.kind !== "report")
+    .sort((x, y) => Date.parse(x.askedAt) - Date.parse(y.askedAt))
+    .map((a) => `${a.id} ${a.topic} ${age(a.askedAt, now)}`);
+  const open = questions.length
+    ? `${questions.length} open question${questions.length === 1 ? "" : "s"} (${questions.join(", ")})`
+    : "No open questions";
+  return `${open}, ${reports} report${reports === 1 ? "" : "s"}, ${decided} decided for you.`;
+}
+
 /** The `pnpm prd asks` listing of asks (as listAsks returns them): open ones, then the defaulted. */
 export function formatAsks(asks, now = Date.now()) {
   if (!asks.length) return "No open asks.";
@@ -381,7 +449,11 @@ export function formatAsks(asks, now = Date.now()) {
     a.options.forEach((o, i) =>
       lines.push(`    ${i + 1}. ${o}${o === a.recommended ? "  (recommended)" : ""}`),
     );
-    if (a.defaulted)
+    if (a.defaulted && a.skeptic?.verdict === "decide")
+      lines.push(
+        `    → a skeptic chose "${a.answer}" at ${clock(a.answeredAt)}, ${age(a.answeredAt, now)} ago: ${a.skeptic.why}`,
+      );
+    else if (a.defaulted)
       lines.push(
         `    → took "${a.answer}" at ${clock(a.answeredAt)}, ${age(a.answeredAt, now)} ago, unanswered`,
       );
@@ -390,12 +462,15 @@ export function formatAsks(asks, now = Date.now()) {
   const open = asks.filter((a) => !a.defaulted).map(one);
   const decided = asks.filter((a) => a.defaulted).map(one);
   const parts = [...open];
-  if (decided.length)
+  if (decided.length) {
+    const how = asks.some((a) => a.defaulted && a.skeptic?.verdict === "decide")
+      ? "by a skeptic, or no answer came"
+      : "no answer came";
     parts.push(
-      [
-        `DECIDED FOR YOU (no answer came; dismiss each once read: pnpm prd asks --done <id>)`,
-        ...decided,
-      ].join("\n\n"),
+      [`DECIDED FOR YOU (${how}; dismiss each once read: pnpm prd asks --done <id>)`, ...decided].join(
+        "\n\n",
+      ),
     );
+  }
   return parts.join("\n\n");
 }

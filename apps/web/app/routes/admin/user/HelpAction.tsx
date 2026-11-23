@@ -1,3 +1,4 @@
+import type { ButtonVariant } from "~/components/ui";
 import type { AdminActionResult } from "../adminForms";
 import type { AccountActionIntent } from "./accountActions";
 import type { ActionCopy, HelpIntent } from "./helpActions";
@@ -5,7 +6,7 @@ import type { ActionCopy, HelpIntent } from "./helpActions";
 import { STAFF_REASON_MAX } from "@caretook/data/schema";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import { ConfirmDialog, Field } from "~/components/ui";
+import { Button, ConfirmDialog, Field, Message } from "~/components/ui";
 import { issueFor } from "../adminForms";
 import { HELP_COPY } from "./helpActions";
 
@@ -23,7 +24,7 @@ export function HelpAction({
   values,
   disabled = false,
   label,
-  className = "btn btn-sm",
+  variant,
 }: Target & {
   sessionId?: string;
   /** Extra fields to post (the role being given). */
@@ -31,7 +32,7 @@ export function HelpAction({
   disabled?: boolean;
   /** The button's accessible name, when its text needs more ("Sign out Chrome on macOS"). */
   label?: string;
-  className?: string;
+  variant?: ButtonVariant;
 }) {
   const copy = ownCopy ?? HELP_COPY[intent];
   const fetcher = useFetcher<AdminActionResult>();
@@ -51,10 +52,10 @@ export function HelpAction({
     );
 
   return (
-    <span className="inline-flex flex-col items-start gap-1" data-help-action={intent}>
-      <button
-        type="button"
-        className={className}
+    <div className="inline-flex flex-col items-start gap-1" data-help-action={intent}>
+      <Button
+        size="sm"
+        variant={variant}
         aria-label={label}
         disabled={disabled}
         onClick={() => {
@@ -63,12 +64,8 @@ export function HelpAction({
         }}
       >
         {copy.button}
-      </button>
-      {!open && result?.ok && (
-        <span role="status" className="text-success text-sm">
-          {result.message}
-        </span>
-      )}
+      </Button>
+      {!open && result?.ok && <Message tone="success">{result.message}</Message>}
       <ConfirmDialog
         open={open}
         title={copy.title}
@@ -78,7 +75,12 @@ export function HelpAction({
         onConfirm={confirm}
         onClose={() => setOpened(null)}
       >
-        <Field label="Reason" help="Recorded in the audit log." error={issueFor(fresh, "reason")}>
+        <Field
+          kind="textarea"
+          label="Reason"
+          help="Recorded in the audit log."
+          error={issueFor(fresh, "reason")}
+        >
           {(control) => (
             <textarea
               {...control}
@@ -87,17 +89,16 @@ export function HelpAction({
               onChange={(e) => setReason(e.target.value)}
               maxLength={STAFF_REASON_MAX}
               rows={2}
-              className="textarea w-full"
               required
             />
           )}
         </Field>
         {fresh && !fresh.ok && !issueFor(fresh, "reason") && (
-          <p role="alert" className="text-error mt-2 text-sm">
+          <Message tone="error" className="mt-2">
             {fresh.error}
-          </p>
+          </Message>
         )}
       </ConfirmDialog>
-    </span>
+    </div>
   );
 }

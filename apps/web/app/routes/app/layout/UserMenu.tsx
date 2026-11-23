@@ -57,7 +57,8 @@ export function UserMenu({
       <Menu
         label={`Account menu for ${who}`}
         menuLabel="Account"
-        className="btn btn-ghost btn-circle btn-md"
+        variant="ghost"
+        shape="round"
         width="lg"
         items={[
           {
@@ -86,7 +87,9 @@ export function UserMenu({
     <Menu
       label={`Account menu for ${who}`}
       menuLabel="Account"
-      className="btn btn-ghost btn-circle btn-sm"
+      variant="ghost"
+      size="sm"
+      shape="round"
       width="lg"
       items={[
         {

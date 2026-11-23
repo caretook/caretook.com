@@ -1,8 +1,8 @@
 import type { AuditFilterValues } from "../auditFilters";
 
 import { AUDIT_ACTIONS } from "@caretook/data/schema";
-import { Form, Link } from "react-router";
-import { Field } from "~/components/ui";
+import { Form } from "react-router";
+import { Button, Field } from "~/components/ui";
 import { adminUrls } from "../adminUrls";
 import { actionLabel } from "../auditDisplay";
 import { hasAuditFilters } from "../auditFilters";
@@ -14,9 +14,9 @@ type Actor = { id: string; name: string | null; email: string };
 export function AuditFilterForm({ filter, actors }: { filter: AuditFilterValues; actors: readonly Actor[] }) {
   return (
     <Form method="get" className="grid items-end gap-x-4 sm:grid-cols-3" data-audit-filters="">
-      <Field label="Staff member">
+      <Field kind="select" label="Staff member">
         {(control) => (
-          <select {...control} name="actor" defaultValue={filter.actorId ?? ""} className="select w-full">
+          <select {...control} name="actor" defaultValue={filter.actorId ?? ""}>
             <option value="">Anyone</option>
             {actors.map((a) => (
               <option key={a.id} value={a.id}>
@@ -26,21 +26,14 @@ export function AuditFilterForm({ filter, actors }: { filter: AuditFilterValues;
           </select>
         )}
       </Field>
-      <Field label="Account or group" help="Part of an email, a name, or an id.">
+      <Field kind="input" label="Account or group" help="Part of an email, a name, or an id.">
         {(control) => (
-          <input
-            {...control}
-            type="search"
-            name="target"
-            defaultValue={filter.target}
-            maxLength={254}
-            className="input w-full"
-          />
+          <input {...control} type="search" name="target" defaultValue={filter.target} maxLength={254} />
         )}
       </Field>
-      <Field label="Action">
+      <Field kind="select" label="Action">
         {(control) => (
-          <select {...control} name="action" defaultValue={filter.action ?? ""} className="select w-full">
+          <select {...control} name="action" defaultValue={filter.action ?? ""}>
             <option value="">Any action</option>
             {AUDIT_ACTIONS.map((action) => (
               <option key={action} value={action}>
@@ -50,24 +43,20 @@ export function AuditFilterForm({ filter, actors }: { filter: AuditFilterValues;
           </select>
         )}
       </Field>
-      <Field label="From">
-        {(control) => (
-          <input {...control} type="date" name="from" defaultValue={filter.from} className="input w-full" />
-        )}
+      <Field kind="input" label="From">
+        {(control) => <input {...control} type="date" name="from" defaultValue={filter.from} />}
       </Field>
-      <Field label="To">
-        {(control) => (
-          <input {...control} type="date" name="to" defaultValue={filter.to} className="input w-full" />
-        )}
+      <Field kind="input" label="To">
+        {(control) => <input {...control} type="date" name="to" defaultValue={filter.to} />}
       </Field>
       <div className="flex gap-2 pb-2">
-        <button type="submit" className="btn btn-primary">
+        <Button type="submit" variant="primary">
           Filter
-        </button>
+        </Button>
         {hasAuditFilters(filter) && (
-          <Link to={adminUrls.audit()} className="btn btn-ghost">
+          <Button to={adminUrls.audit()} variant="ghost">
             Clear
-          </Link>
+          </Button>
         )}
       </div>
     </Form>

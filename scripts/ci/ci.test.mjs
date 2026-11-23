@@ -11,6 +11,7 @@ import {
   EXIT,
   exitFor,
   main,
+  forcedFlakeCommit,
   narrowedCommit,
   parseRunArgs,
   requestRun,
@@ -95,6 +96,7 @@ describe("the tiers", () => {
       "ci/integration/slice-test-gates-2",
       "ci/components/slice-test-gates-2",
       "ci/full/slice-test-gates-2",
+      "ci/candidate/slice-test-gates-2",
     ]);
     expect(parseCiRef("ci/unit/slice-t-2")).toEqual({ tier: "unit", name: "slice-t-2" });
     expect(parseCiRef("ci/nope/x")).toBeNull();
@@ -115,6 +117,28 @@ describe("the tiers", () => {
       jobs: ["static", "unit", "integration", "components-1", "components-2", "build"],
       ranTier: "full",
     });
+    expect(jobsFor("candidate")).toEqual({
+      jobs: ["static", "unit", "integration", "components-1", "components-2", "build", "browser"],
+      ranTier: "candidate",
+    });
+  });
+
+  it("start the browser job only on a candidate run", () => {
+    expect(planOutputs("ci/full/x")).toContain("candidate=false");
+    expect(planOutputs("ci/candidate/x")).toContain("candidate=true");
+    expect(planOutputs("ci/candidate/x", ["scripts/ci/ci.test.mjs"])).toContain("candidate=false");
+  });
+
+  it("read a browser suite that failed as file, and one that never started as infra", () => {
+    const needs = Object.fromEntries(
+      ["plan", ...jobsFor("candidate").jobs].map((job) => [job, { result: "success" }]),
+    );
+    const run = { commit: SHA, runId: "1", tier: "candidate" };
+    expect(buildVerdict({ ...run, needs }).kind).toBe("green");
+    const failed = (outputs) => ({ ...needs, browser: { result: "failure", outputs } });
+    const ran = buildVerdict({ ...run, needs: failed({ started: "true" }) });
+    expect(ran).toMatchObject({ kind: "file", failed: { jobs: ["browser"], unnamedJobs: ["browser"] } });
+    expect(buildVerdict({ ...run, needs: failed({}) }).kind).toBe("infra");
   });
 
   it("give the plan job no integration on a unit run", () => {
@@ -125,6 +149,7 @@ describe("the tiers", () => {
       "integration=false",
       "components=false",
       "full=false",
+      "candidate=false",
       "components2=false",
       "narrowed=false",
     ]);
@@ -275,12 +300,14 @@ describe("ci run", () => {
       ref: null,
       waitMin: null,
       files: [],
+      forceFlake: null,
     });
     expect(parseRunArgs(["full", "--ref", "prd/t", "--wait"])).toEqual({
       tier: "full",
       ref: "prd/t",
       waitMin: 30,
       files: [],
+      forceFlake: null,
     });
     expect(parseRunArgs(["unit", "--wait", "5"]).waitMin).toBe(5);
     expect(() => parseRunArgs(["nope"])).toThrow(/needs a tier/);
@@ -462,6 +489,28 @@ describe("a narrowed run", () => {
     );
   });
 
+  it("a proof run adds its marker under .github, on its own ref, and is candidate only", async () => {
+    expect(parseRunArgs(["candidate", "--force-flake", "sign-in"]).forceFlake).toBe("sign-in");
+    expect(() => parseRunArgs(["full", "--force-flake", "sign-in"])).toThrow(/candidate tier/);
+    expect(() => parseRunArgs(["candidate", "--force-flake", "sign-in", "--files", "a.test.ts"])).toThrow(
+      /--files/,
+    );
+    const w = narrowing();
+    const real = w.io.git;
+    /** @type {string[]} */ const mktrees = [];
+    w.io.git = (/** @type {string[]} */ args, /** @type {string=} */ input) => {
+      if (args[0] === "mktree") mktrees.push(input ?? "");
+      if (args[0] === "cat-file") return { ok: true, out: "" };
+      return real(args, input);
+    };
+    expect(forcedFlakeCommit({ sha: SHA, check: "sign-in" }, w.io)).toBe(NARROWED);
+    expect(JSON.parse(w.inputs["hash-object"] ?? "")).toEqual({ check: "sign-in" });
+    expect(w.calls).toContain(`git ls-tree ${SHA}:.github`);
+    expect(mktrees[0]).toContain("100644 blob blob1\tci-force-flake.json");
+    expect(mktrees[1]).toContain("040000 tree tree1\t.github");
+    expect(() => forcedFlakeCommit({ sha: SHA, check: "../x" }, w.io)).toThrow(/no browser check/);
+  });
+
   it("starts only its files' jobs, the components in one", () => {
     expect(narrowedJobs(["a.test.ts", "b.browser.test.tsx"])).toEqual(["unit", "components-1"]);
     expect(narrowedJobs(["scripts/loops/browser.test.mjs"])).toEqual(["integration"]);
@@ -473,6 +522,7 @@ describe("a narrowed run", () => {
       "integration=true",
       "components=false",
       "full=false",
+      "candidate=false",
       "components2=false",
       "narrowed=true",
     ]);

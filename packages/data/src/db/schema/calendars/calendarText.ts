@@ -19,28 +19,47 @@ const dayFormats = new Map<string, Intl.DateTimeFormat>();
 const dayFormat = (timeZone: string) => {
   let format = dayFormats.get(timeZone);
   if (!format) {
-    format = new Intl.DateTimeFormat("en-GB", { timeZone, weekday: "short", day: "numeric", month: "short" });
+    format = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short", month: "short", day: "numeric" });
     dayFormats.set(timeZone, format);
   }
   return format;
 };
 
-/** "2026-11-19" → "Thu 19 Nov". */
+/** "2026-11-19" → "Thu, Nov 19". */
 const dayText = (day: string) => {
   const [y, m, d] = day.split("-").map(Number);
   return dayFormat("UTC").format(new Date(Date.UTC(y!, m! - 1, d)));
 };
 
-/** An instant's wall-clock time in a zone: "9:00", "18:30". */
-const clock = (instant: string, timeZone: string) => {
+const zoneFormats = new Map<string, Intl.DateTimeFormat>();
+/** The zone's short name at an instant: "PST", "PDT", or `Intl`'s "GMT+1" where there's no US one. */
+const zoneName = (instant: string, timeZone: string) => {
+  let format = zoneFormats.get(timeZone);
+  if (!format) {
+    format = new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "short" });
+    zoneFormats.set(timeZone, format);
+  }
+  return format.formatToParts(new Date(instant)).find((part) => part.type === "timeZoneName")!.value;
+};
+
+/** An instant in a zone, in pieces: its day, "9:00", "AM" and "PST". */
+const moment = (instant: string, timeZone: string) => {
   const [h, m] = localTime(instant, timeZone).split(":");
-  return `${Number(h)}:${m}`;
+  const hour = Number(h);
+  return {
+    day: localDate(instant, timeZone),
+    time: `${hour % 12 || 12}:${m}`,
+    period: hour < 12 ? "AM" : "PM",
+    zone: zoneName(instant, timeZone),
+  };
 };
 
 /**
- * When it is, in `timeZone`: "Thu 19 Nov · 9:00–10:00", "Thu 19 Nov · All
- * day", "Thu 19 Nov · 9:00" (a todo: its end is made up, so it
- * isn't shown), or "Thu 19 Nov 22:00 – Fri 20 Nov 1:00" across midnight.
+ * When it is, in `timeZone`: "Thu, Nov 19 · 9:00–10:00 AM PST", "Thu, Nov 19
+ * · 11:30 AM–1:00 PM PST", "Thu, Nov 19 · All day" (no zone), "Thu, Nov 19 ·
+ * 9:00 AM PST" (a todo: its end is made up, so it isn't shown), or "Thu, Nov
+ * 19 10:00 PM – Fri, Nov 20 1:00 AM PST" across midnight. A range across a
+ * clock change names the zone at each end, since one name would misstate one.
  */
 export const calendarWhen = (
   item: Pick<CalendarItem, "kind" | "allDay" | "start" | "end">,
@@ -52,14 +71,20 @@ export const calendarWhen = (
       ? `${dayText(item.start)} · All day`
       : `${dayText(item.start)} – ${dayText(last)} · All day`;
   }
-  const startDay = localDate(item.start, timeZone);
-  const start = clock(item.start, timeZone);
-  if (item.kind !== "appointment") return `${dayText(startDay)} · ${start}`;
-  const endDay = localDate(item.end, timeZone);
-  const end = clock(item.end, timeZone);
-  return endDay === startDay
-    ? `${dayText(startDay)} · ${start}–${end}`
-    : `${dayText(startDay)} ${start} – ${dayText(endDay)} ${end}`;
+  const start = moment(item.start, timeZone);
+  const startAt = `${start.time} ${start.period}`;
+  if (item.kind !== "appointment") return `${dayText(start.day)} · ${startAt} ${start.zone}`;
+  const end = moment(item.end, timeZone);
+  const endAt = `${end.time} ${end.period}`;
+  const sameDay = end.day === start.day;
+  if (end.zone !== start.zone) {
+    return sameDay
+      ? `${dayText(start.day)} · ${startAt} ${start.zone}–${endAt} ${end.zone}`
+      : `${dayText(start.day)} ${startAt} ${start.zone} – ${dayText(end.day)} ${endAt} ${end.zone}`;
+  }
+  if (!sameDay) return `${dayText(start.day)} ${startAt} – ${dayText(end.day)} ${endAt} ${end.zone}`;
+  const range = start.period === end.period ? `${start.time}–${endAt}` : `${startAt}–${endAt}`;
+  return `${dayText(start.day)} · ${range} ${end.zone}`;
 };
 
 export type CalendarText = {

@@ -119,6 +119,7 @@ describe("signing up through a link", () => {
       name: "Robin",
       email,
       password: "a long enough passphrase",
+      legal: true,
     });
     expect(res).toEqual({ email, verified: false });
     const user = await userModel.getWhole({
@@ -133,6 +134,7 @@ describe("signing up through a link", () => {
       name: "Someone else",
       email: s.viewer.user.email,
       password: "a long enough passphrase",
+      legal: true,
     });
     expect(again).toEqual({ email: s.viewer.user.email, verified: false });
   });
@@ -143,7 +145,7 @@ describe("join requests", () => {
     const s = await setup();
     const made = await s.owner.api.invite.createLink({ groupId: s.groupId, role: "viewer" });
     const joiner = await joinerClient("jr-joiner");
-    const res = await joiner.api.invite.accept({ token: made.token, consent: true });
+    const res = await joiner.api.invite.accept({ token: made.token, consent: true, legal: true });
     return { ...s, joiner, res, link: made };
   };
 
@@ -163,7 +165,7 @@ describe("join requests", () => {
     expect(await nothingOr(s.joiner.api.careGroup.members({ groupId: s.groupId }))).toBe(true);
 
     // Asking twice: one request, one email each.
-    await s.joiner.api.invite.accept({ token: s.link.token, consent: true });
+    await s.joiner.api.invite.accept({ token: s.link.token, consent: true, legal: true });
     expect((await mailTo(s.owner.user.email)).filter((m) => m.name === "joinRequested")).toHaveLength(1);
 
     const mine = await s.joiner.api.joinRequest.mine();

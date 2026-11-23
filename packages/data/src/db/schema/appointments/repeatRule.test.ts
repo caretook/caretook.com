@@ -26,6 +26,10 @@ describe("repeatText", () => {
     expect(text("FREQ=MONTHLY;INTERVAL=3;BYMONTHDAY=22", { allDay: true })).toBe(
       "Every 3 months on the 22nd",
     );
+    expect(text("FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1", { allDay: true })).toBe("Monthly on the last day");
+    expect(text("FREQ=MONTHLY;INTERVAL=2;BYMONTHDAY=-1", { startTime: "09:00" })).toBe(
+      "Every 2 months on the last day at 9:00",
+    );
     expect(text("FREQ=DAILY;INTERVAL=3;COUNT=12", { allDay: true })).toBe("Every 3 days · 12 visits");
     expect(text("FREQ=DAILY;INTERVAL=1", { startTime: "07:05" })).toBe("Every day at 7:05");
   });
@@ -50,11 +54,14 @@ describe("parseRule and ruleText", () => {
       "FREQ=DAILY;INTERVAL=2",
       "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,FR;COUNT=12",
       "FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=31",
+      "FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1",
+      "FREQ=MONTHLY;INTERVAL=2;BYMONTHDAY=-1;COUNT=6",
       "FREQ=MONTHLY;INTERVAL=2;BYDAY=-1SU;UNTIL=20271231",
     ]) {
       const parsed = parseRule(rule);
       expect(parsed.ok && ruleText(parsed.rule)).toBe(rule);
     }
+    expect(parseRule("FREQ=MONTHLY;BYMONTHDAY=-1")).toMatchObject({ rule: { monthly: { by: "lastDay" } } });
     const unordered = parseRule("FREQ=WEEKLY;BYDAY=FR,MO");
     expect(unordered.ok && ruleText(unordered.rule)).toBe("FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,FR");
   });
@@ -68,6 +75,9 @@ describe("parseRule and ruleText", () => {
     expect(problem("FREQ=MONTHLY;INTERVAL=1")).toBe("Choose a date or a weekday in the month");
     expect(problem("FREQ=MONTHLY;BYMONTHDAY=3;BYDAY=1MO")).toBe("Choose a date or a weekday in the month");
     expect(problem("FREQ=MONTHLY;BYDAY=6MO")).toBe("Choose a date or a weekday in the month");
+    for (const day of ["-2", "-31", "-01", "0", "32"])
+      expect(problem(`FREQ=MONTHLY;BYMONTHDAY=${day}`)).toBe("Choose a date from 1 to 31");
+    expect(problem("FREQ=WEEKLY;BYDAY=MO;BYMONTHDAY=-1")).toBe("This repeat isn't supported");
     expect(problem("FREQ=DAILY;COUNT=3;UNTIL=20270101")).toBe(
       "End on a date or after a number of visits, not both",
     );

@@ -60,6 +60,7 @@ describe("calendars.settings", () => {
         detailsConsent: false,
         detailsConsentAt: null,
         detailsConsentVersion: null,
+        detailsConsentStale: false,
         groupAllowsDetails: true,
         shareLevel: "generic",
         feed: { active: false, rotatedAt: null },
@@ -142,6 +143,53 @@ describe("calendars.settings", () => {
       detailsConsentAt: null,
       detailsConsentVersion: null,
       shareLevel: "generic",
+    });
+  });
+
+  it("asks again when the wording changed, and records the current version on agreeing", async () => {
+    const { group, api, id } = await setup();
+    await api("caretaker").calendars.settings.update({ groupId: group.id, detailsConsent: true });
+    await api("viewer").calendars.settings.update({ groupId: group.id, detailsConsent: true });
+    const agreedAt = "2026-03-02T18:00:00.000Z";
+    ok(
+      await memberCalendarSettingModel.update({
+        authUser: SYSTEM_USER,
+        filter: { groupId: { type: "eq", value: group.id }, userId: { type: "eq", value: id("caretaker") } },
+        data: { detailsConsentAt: agreedAt, detailsConsentVersion: "2020-01-01" },
+      }),
+    );
+
+    const stale = await api("caretaker").calendars.settings.get({ groupId: group.id });
+    expect(stale).toMatchObject({
+      detailsConsent: false,
+      detailsConsentStale: true,
+      detailsConsentVersion: "2020-01-01",
+      shareLevel: "generic",
+    });
+    expect(new Date(stale.detailsConsentAt!).toISOString()).toBe(agreedAt);
+
+    // Another change is not an agreement.
+    expect(
+      await api("caretaker").calendars.settings.update({ groupId: group.id, remindersOn: true }),
+    ).toMatchObject({ detailsConsent: false, detailsConsentStale: true });
+
+    const again = await api("caretaker").calendars.settings.update({
+      groupId: group.id,
+      detailsConsent: true,
+    });
+    expect(again).toMatchObject({
+      detailsConsent: true,
+      detailsConsentStale: false,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+      shareLevel: "details",
+    });
+    expect(new Date(again.detailsConsentAt!).getTime()).toBeGreaterThan(new Date(agreedAt).getTime());
+
+    // A member on the current wording is unchanged.
+    expect(await api("viewer").calendars.settings.get({ groupId: group.id })).toMatchObject({
+      detailsConsent: true,
+      detailsConsentStale: false,
+      shareLevel: "details",
     });
   });
 

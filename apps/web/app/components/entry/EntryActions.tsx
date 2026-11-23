@@ -95,7 +95,10 @@ export function EntryActions({
     <Menu
       label={label}
       items={items}
-      className="btn btn-ghost btn-sm btn-square relative z-10 -my-1 shrink-0"
+      variant="ghost"
+      size="sm"
+      shape="square"
+      className="relative z-10 -my-1 shrink-0"
     >
       <Ellipsis className="size-4" aria-hidden="true" />
     </Menu>

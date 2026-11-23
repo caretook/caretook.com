@@ -1,5 +1,6 @@
 import type { CalendarSettings } from "./calendarSettings";
 
+import { DETAILS_CONSENT_VERSION } from "@caretook/data/schema";
 import { ORPCError } from "@orpc/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -16,6 +17,7 @@ const {
   loadCalendarSettings,
   saveCalendarSettings,
   withChange,
+  withCurrentConsent,
 } = await import("./calendarSettings");
 
 const USER = "u1";
@@ -50,6 +52,7 @@ const settings = (v: Partial<CalendarSettings> = {}): CalendarSettings => ({
   detailsConsent: false,
   detailsConsentAt: null,
   detailsConsentVersion: null,
+  detailsConsentStale: false,
   groupAllowsDetails: true,
   shareLevel: "generic",
   feed: { active: false, rotatedAt: null },
@@ -61,6 +64,37 @@ beforeEach(() => {
   store.clear();
   api.get.mockReset();
   api.update.mockReset();
+});
+
+describe("withCurrentConsent", () => {
+  const consentAt = "2026-03-02T18:00:00.000Z";
+
+  it("reads a copy cached before the wording changed as out of date", () => {
+    const cached = settings({
+      detailsConsent: true,
+      detailsConsentAt: consentAt,
+      detailsConsentVersion: "2020-01-01",
+      shareLevel: "details",
+    });
+    expect(withCurrentConsent(cached)).toMatchObject({
+      detailsConsent: false,
+      detailsConsentStale: true,
+      shareLevel: "generic",
+      detailsConsentAt: consentAt,
+    });
+  });
+
+  it("leaves a current consent and a member who never agreed alone", () => {
+    const current = settings({
+      detailsConsent: true,
+      detailsConsentAt: consentAt,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+      shareLevel: "details",
+    });
+    expect(withCurrentConsent(current)).toBe(current);
+    const never = settings();
+    expect(withCurrentConsent(never)).toBe(never);
+  });
 });
 
 describe("withChange", () => {
@@ -76,6 +110,24 @@ describe("withChange", () => {
     const agreed = settings({ detailsConsent: true, detailsConsentAt: "2026-11-18T18:00:00.000Z" });
     expect(withChange(agreed, { detailsConsent: true }).detailsConsentAt).toBe(agreed.detailsConsentAt);
     expect(withChange(agreed, { detailsConsent: false }).detailsConsentAt).toBeNull();
+
+    const stale = settings({
+      detailsConsentAt: "2026-03-02T18:00:00.000Z",
+      detailsConsentVersion: "2020-01-01",
+      detailsConsentStale: true,
+    });
+    expect(withChange(stale, { detailsConsent: true })).toMatchObject({
+      detailsConsent: true,
+      detailsConsentStale: false,
+      detailsConsentAt: null,
+      shareLevel: "details",
+    });
+    expect(withChange(stale, { detailsConsent: false })).toMatchObject({
+      detailsConsent: false,
+      detailsConsentStale: false,
+      detailsConsentAt: null,
+    });
+    expect(withChange(stale, { remindersOn: true }).detailsConsentStale).toBe(true);
   });
 });
 

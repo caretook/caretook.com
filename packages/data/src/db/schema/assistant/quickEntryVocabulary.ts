@@ -15,9 +15,19 @@ import { foldSearchText } from "../search/search";
  * - `visitVerb`: with a provider, an event that looks back ("saw Dr. Lee").
  * - `contactVerb`: with a provider, a note that mentions it ("called Dr. Lee").
  * - `appointmentWord`: an event that looks ahead ("appt", "checkup").
+ * - `requestVerb`: opening a line, asks for something to be done ("call the pharmacy").
+ * - `requestLead`: opening a line, the same whatever follows ("remember to …").
+ * - `reportWord`: the line tells what happened, so an opening verb was a noun ("call was fine").
  */
 export type VocabularyRole =
-  "symptomIncident" | "noteIncident" | "visitVerb" | "contactVerb" | "appointmentWord";
+  | "symptomIncident"
+  | "noteIncident"
+  | "visitVerb"
+  | "contactVerb"
+  | "appointmentWord"
+  | "requestVerb"
+  | "requestLead"
+  | "reportWord";
 
 export type VocabularyEntry = {
   /** One or more words, matched folded and in order ("passed out"). */
@@ -30,6 +40,8 @@ export type VocabularyEntry = {
 };
 
 const ASLEEP = ["asleep"];
+/** "call from Dr. Lee" is a call that came in, not one to make. */
+const RECEIVED = ["from"];
 
 export const QUICK_ENTRY_VOCABULARY: readonly VocabularyEntry[] = [
   // Incidents tracked as symptoms.
@@ -84,6 +96,50 @@ export const QUICK_ENTRY_VOCABULARY: readonly VocabularyEntry[] = [
   { phrase: "check-up", role: "appointmentWord" },
   { phrase: "consult", role: "appointmentWord" },
   { phrase: "consultation", role: "appointmentWord" },
+
+  // Asking for something to be done, when it opens the line: with a part of day, a todo.
+  { phrase: "call", role: "requestVerb", unlessNext: RECEIVED },
+  { phrase: "text", role: "requestVerb", unlessNext: RECEIVED },
+  { phrase: "email", role: "requestVerb", unlessNext: RECEIVED },
+  { phrase: "fax", role: "requestVerb" },
+  { phrase: "remind", role: "requestVerb" },
+  { phrase: "ask", role: "requestVerb" },
+  { phrase: "tell", role: "requestVerb" },
+  { phrase: "book", role: "requestVerb" },
+  { phrase: "schedule", role: "requestVerb" },
+  { phrase: "reschedule", role: "requestVerb" },
+  { phrase: "cancel", role: "requestVerb" },
+  { phrase: "confirm", role: "requestVerb" },
+  { phrase: "order", role: "requestVerb" },
+  { phrase: "refill", role: "requestVerb" },
+  { phrase: "renew", role: "requestVerb" },
+  { phrase: "pick up", role: "requestVerb" },
+  { phrase: "drop off", role: "requestVerb" },
+  { phrase: "buy", role: "requestVerb" },
+  { phrase: "bring", role: "requestVerb" },
+  { phrase: "send", role: "requestVerb" },
+  { phrase: "pay", role: "requestVerb" },
+  { phrase: "check", role: "requestVerb" },
+  { phrase: "follow up", role: "requestVerb" },
+  { phrase: "please", role: "requestLead" },
+  { phrase: "need to", role: "requestLead" },
+  { phrase: "i need to", role: "requestLead" },
+  { phrase: "we need to", role: "requestLead" },
+  { phrase: "have to", role: "requestLead" },
+  { phrase: "i have to", role: "requestLead" },
+  { phrase: "we have to", role: "requestLead" },
+  { phrase: "must", role: "requestLead" },
+  { phrase: "remember to", role: "requestLead" },
+  { phrase: "don't forget to", role: "requestLead" },
+
+  // Telling what happened: the line is a report, whatever word opens it.
+  { phrase: "was", role: "reportWord" },
+  { phrase: "were", role: "reportWord" },
+  { phrase: "came", role: "reportWord" },
+  { phrase: "arrived", role: "reportWord" },
+  { phrase: "happened", role: "reportWord" },
+  { phrase: "did", role: "reportWord" },
+  { phrase: "didn't", role: "reportWord" },
 ];
 
 /** A word as the vocabulary compares it: folded, letters and digits only ("E.R." → "er"). */

@@ -12,7 +12,7 @@ const timestampColumn = (name: string) =>
   timestamp(name, { precision: 3, mode: "string", withTimezone: true });
 
 // pending → sending → sent | skipped (not on MAIL_ALLOWLIST outside
-// production, or a suppressed address), or back to pending with a later
+// production, a suppressed address, or past its expiry), or back to pending with a later
 // next_attempt_at after a failed send, and failed after the last attempt. A
 // sent row becomes bounced (a hard bounce) or complained (marked as spam)
 // when Resend's webhook reports it (hosting PRD).
@@ -52,6 +52,9 @@ export const notificationOutboxSchema = pgTable(
     lastError: text("last_error"),
     // The sender's message id (Resend's), when it gives one.
     providerMessageId: text("provider_message_id"),
+    // After this the message is no use (a reminder whose event has started):
+    // it is skipped as `expired`, never sent. Null: it never expires.
+    expiresAt: timestampColumn("expires_at"),
     ...timestamps,
     ...audits,
   },

@@ -4,6 +4,7 @@ import { canCompleteTodo, todoState } from "@caretook/data/schema";
 import { ListChecks } from "lucide-react";
 import { Link } from "react-router";
 import { TodoRepeatMark, TodoTick, TodoUndoStatus, useTodoTick } from "~/components/todos";
+import { ICON_LG, LINK, Message, Skeleton } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { dueText } from "~/lib/todos/todoDisplay";
@@ -28,11 +29,9 @@ export function EasyTodos({ className = "" }: { className?: string }) {
   const { complete, reopen, busy, error } = useTodoTick(group.id);
   if (!ready)
     return (
-      <div
-        className={`skeleton rounded-box h-32 ${className}`}
-        aria-hidden="true"
-        data-easy-skeleton="todos"
-      />
+      <div className={`h-32 ${className}`} aria-hidden="true" data-easy-skeleton="todos">
+        <Skeleton lines={5} />
+      </div>
     );
   if (!shown) return null;
 
@@ -45,7 +44,7 @@ export function EasyTodos({ className = "" }: { className?: string }) {
       data-stale={fresh ? undefined : ""}
     >
       <h2 className={EASY_HEADING}>
-        <ListChecks aria-hidden="true" className="text-primary size-5" />
+        <ListChecks aria-hidden="true" className={`text-primary ${ICON_LG}`} />
         My todos
       </h2>
       {todos.length > 0 && (
@@ -77,7 +76,7 @@ export function EasyTodos({ className = "" }: { className?: string }) {
                     </Link>
                   </p>
                   <p
-                    className={`text-base ${state === "overdue" ? "text-error" : "text-base-content/70"}`}
+                    className={`text-base ${state === "overdue" ? "text-error-ink" : "text-muted"}`}
                     data-todo-due
                   >
                     {dueText(todo, now, timeZone)}
@@ -90,10 +89,12 @@ export function EasyTodos({ className = "" }: { className?: string }) {
         </ul>
       )}
       <TodoUndoStatus groupId={group.id} className="text-base" />
-      {error && <p className="text-error text-base">{error}</p>}
+      <Message tone="error" className="text-base!">
+        {error}
+      </Message>
       {!group.easyRole && (
         <p className="text-xl">
-          <Link to={appUrls.todos(group.id, "?who=mine")} className="link" data-easy-todos-all="">
+          <Link to={appUrls.todos(group.id, "?who=mine")} className={LINK} data-easy-todos-all="">
             {total > todos.length ? `See all ${total} todos` : "See all"}
           </Link>
         </p>

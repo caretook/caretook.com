@@ -133,7 +133,7 @@ describe("the easy view", () => {
     // The box at the normal size, then the search and Filter row, then the rows; no dictation tip on a desktop.
     const box = page.getByRole("textbox", { name: "What happened?" });
     await expect.element(box).toBeVisible();
-    expect(box.element().className).not.toContain("text-xl");
+    expect(getComputedStyle(box.element()).fontSize).toBe("16px");
     const section = document.querySelector("[data-quick-entry]")!;
     const list = document.querySelector("[data-easy-list]")!;
     expect(section.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -144,8 +144,9 @@ describe("the easy view", () => {
     expect(chips.querySelector('button[aria-label="View options"]')).toBeNull();
     expect(chips.nextElementSibling).toBe(list);
     expect(document.querySelector("[data-dictation-hint]")).toBeNull();
-    // No text-2xl heading anywhere in easy mode.
-    expect((await found(easyView)).querySelector(".text-2xl")).toBeNull();
+    // No heading above the page title's size anywhere in easy mode.
+    const headings = (await found(easyView)).querySelectorAll("h1, h2, h3");
+    expect([...headings].every((h) => parseFloat(getComputedStyle(h).fontSize) <= 20)).toBe(true);
 
     // The rows, with the full timeline's ⋯ menus; the kind icon and initials aren't filters.
     await waitUntil(() => rows().length === 2, "the rows");

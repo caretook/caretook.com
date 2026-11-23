@@ -2,8 +2,9 @@ import type { GuideGroup, GuidePlace } from "~/lib/connectors/connectGuide";
 import { AskOwners } from "./ask";
 
 import { Copy, ExternalLink } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import { SettingsCard } from "~/components/settings";
+import { Button, Field, ICON_SM, LINK, Message, TITLE_SUB } from "~/components/ui/plain";
 import {
   CONNECT_CLIENTS,
   COPIED,
@@ -37,7 +38,6 @@ export function ConnectGuide({
   const view = guideView(place, groups, canToggle);
   // Native apps give the web address, not `capacitor://localhost`.
   const url = mcpUrl(import.meta.env.VITE_API_ORIGIN, window.location.origin);
-  const urlId = useId();
   const [copy, setCopy] = useState<CopyState>(null);
   useEffect(() => {
     if (copy !== "copied") return;
@@ -68,38 +68,34 @@ export function ConnectGuide({
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-base-content/70 text-sm">{GUIDE_INTRO}</p>
+          <p className="text-muted text-sm">{GUIDE_INTRO}</p>
           {view.viewerNote && (
             <p className="text-sm" data-guide-note="viewer">
               {view.viewerNote}
             </p>
           )}
           <div className="space-y-2">
-            <label htmlFor={urlId} className="block text-sm font-medium">
-              Address
-            </label>
-            <div className="flex gap-2">
-              <input
-                id={urlId}
-                readOnly
-                value={url}
-                data-guide-url=""
-                onFocus={(e) => e.currentTarget.select()}
-                className="input min-w-0 flex-1 font-normal"
-              />
-              <button type="button" className="btn" onClick={() => void copyUrl()}>
-                <Copy aria-hidden="true" className="size-4" />
-                Copy
-              </button>
-            </div>
-            <div role="status" data-guide-status="" className="text-success text-sm empty:hidden">
+            <Field kind="input" label="Address">
+              {(control) => (
+                <div className="flex gap-2">
+                  <input
+                    {...control}
+                    className={`${control.className} min-w-0 flex-1 font-normal`}
+                    readOnly
+                    value={url}
+                    data-guide-url=""
+                    onFocus={(e) => e.currentTarget.select()}
+                  />
+                  <Button icon={Copy} onClick={() => void copyUrl()}>
+                    Copy
+                  </Button>
+                </div>
+              )}
+            </Field>
+            <Message tone="success" data-guide-status="">
               {copy === "copied" ? COPIED : ""}
-            </div>
-            {copy === "failed" && (
-              <p role="alert" className="text-sm">
-                {COPY_FAILED}
-              </p>
-            )}
+            </Message>
+            {copy === "failed" && <Message tone="error">{COPY_FAILED}</Message>}
           </div>
           {CONNECT_CLIENTS.map((client) => (
             <section
@@ -108,7 +104,7 @@ export function ConnectGuide({
               aria-labelledby={`guide-${client.id}`}
               className="space-y-2"
             >
-              <h3 id={`guide-${client.id}`} className="font-medium">
+              <h3 id={`guide-${client.id}`} className={TITLE_SUB}>
                 {client.name}
               </h3>
               <ol className="list-decimal space-y-1 ps-5 text-sm">
@@ -120,10 +116,10 @@ export function ConnectGuide({
                 href={client.help.href}
                 target="_blank"
                 rel="noreferrer"
-                className="link link-primary inline-flex items-center gap-1 text-sm"
+                className={`${LINK} inline-flex items-center gap-1 text-sm`}
               >
                 {client.help.label}
-                <ExternalLink aria-hidden="true" className="size-3.5" />
+                <ExternalLink aria-hidden="true" className={ICON_SM} />
               </a>
             </section>
           ))}

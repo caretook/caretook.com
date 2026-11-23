@@ -10,11 +10,14 @@ import { useSetupFacts } from "~/lib/app-shell/gettingStarted.sync";
 import { useGroup } from "~/lib/app-shell/group";
 import { saveSettings, useCachedSettings } from "~/lib/app-shell/me";
 import { InviteSomeoneCard } from "./InviteSomeoneCard";
+import { WelcomeCard } from "./WelcomeCard";
 
 // The setup card on a new member's timeline, in the invite card's place while
 // it shows (14 days from joining, until finished or dismissed). Its steps tick
 // themselves off from the group's synced data; the dismissal follows the
-// account across devices through the settings path, offline included.
+// account across devices through the settings path, offline included. A role
+// with no steps gets its welcome instead; the easy view shows either, but has
+// no invite card to fall back to.
 
 const LABELS: Record<SetupStep["id"], string> = {
   profile: "Add allergies or conditions",
@@ -24,7 +27,7 @@ const LABELS: Record<SetupStep["id"], string> = {
   connect: "Connect your AI assistant",
 };
 
-const ROW = "flex min-h-11 items-center gap-2 text-sm";
+const ROW = "flex min-h-11 items-center gap-2";
 
 function StepAction({ step, onAddEntry }: { step: SetupStep; onAddEntry: () => void }) {
   const { id: groupId } = useGroup();
@@ -72,10 +75,18 @@ function StepAction({ step, onAddEntry }: { step: SetupStep; onAddEntry: () => v
   }
 }
 
-function StepRow({ step, onAddEntry }: { step: SetupStep; onAddEntry: () => void }) {
+function StepRow({
+  step,
+  onAddEntry,
+  textSize,
+}: {
+  step: SetupStep;
+  onAddEntry: () => void;
+  textSize: string;
+}) {
   if (step.id === "connect")
     return (
-      <li className={ROW} data-setup-step={step.id}>
+      <li className={`${ROW} ${textSize}`} data-setup-step={step.id}>
         <Sparkles aria-hidden="true" className={`${ICON} text-faint shrink-0`} />
         <StepAction step={step} onAddEntry={onAddEntry} />
       </li>
@@ -83,7 +94,12 @@ function StepRow({ step, onAddEntry }: { step: SetupStep; onAddEntry: () => void
   // The invite step carries the invite card's hook only while there's someone to invite.
   const inviteHook = step.id === "invite" && !step.done ? { "data-invite-card": "" } : {};
   return (
-    <li className={ROW} data-setup-step={step.id} data-done={step.done ? "" : undefined} {...inviteHook}>
+    <li
+      className={`${ROW} ${textSize}`}
+      data-setup-step={step.id}
+      data-done={step.done ? "" : undefined}
+      {...inviteHook}
+    >
       {step.done ? (
         <>
           <CheckCircle2 aria-hidden="true" className={`${ICON} text-success shrink-0`} />
@@ -103,9 +119,12 @@ function StepRow({ step, onAddEntry }: { step: SetupStep; onAddEntry: () => void
 export function GettingStartedCard({
   className = "",
   onAddEntry,
+  easy = false,
 }: {
   className?: string;
   onAddEntry: () => void;
+  /** On the easy timeline: its larger type, and no invite card once this is gone. */
+  easy?: boolean;
 }) {
   const { id, userId, role } = useGroup();
   const { setupDismissed } = useCachedSettings(userId);
@@ -115,29 +134,27 @@ export function GettingStartedCard({
   // Until the device answers, neither card: the invite card mustn't flash first.
   if (!setup) return null;
   const plan = gettingStartedSteps({ role, facts: setup.facts });
-  const shows =
-    plan && !plan.finished && !setupDismissed.includes(id) && inSetupWindow(setup.joinedAt, openedAt);
-  if (!shows) return <InviteSomeoneCard className={className} />;
+  const fallback = easy ? null : <InviteSomeoneCard className={className} />;
+  if (!plan || setupDismissed.includes(id) || !inSetupWindow(setup.joinedAt, openedAt)) return fallback;
+  const dismiss = () => void saveSettings(userId, { setupDismissed: [id] }).catch(() => undefined);
+  if (plan.kind === "welcome")
+    return <WelcomeCard text={plan.text} easy={easy} className={className} onDismiss={dismiss} />;
+  if (plan.finished) return fallback;
+  const textSize = easy ? "text-base" : "text-sm";
   return (
     <Card
       id="getting-started"
       title="Get started"
       className={className}
       data-setup-card=""
-      actions={
-        <IconButton
-          label="Dismiss setup"
-          icon={X}
-          onPress={() => void saveSettings(userId, { setupDismissed: [id] }).catch(() => undefined)}
-        />
-      }
+      actions={<IconButton label="Dismiss setup" icon={X} onPress={dismiss} />}
     >
-      <p className="text-base-content/70 text-sm">
+      <p className={`text-base-content/70 ${textSize}`}>
         {plan.doneCount} of {plan.total} done
       </p>
       <ul>
         {plan.steps.map((step) => (
-          <StepRow key={step.id} step={step} onAddEntry={onAddEntry} />
+          <StepRow key={step.id} step={step} onAddEntry={onAddEntry} textSize={textSize} />
         ))}
       </ul>
     </Card>

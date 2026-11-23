@@ -408,11 +408,17 @@ describe("admin.*", () => {
     if (!token) throw new Error("no invite link");
 
     // The invitee signs up from the link and joins as owner.
-    await anonymous.invite.signUp({ token, name: "New Owner", email: ownerEmail, password: PASSWORD });
+    await anonymous.invite.signUp({
+      token,
+      name: "New Owner",
+      email: ownerEmail,
+      password: PASSWORD,
+      legal: true,
+    });
     const owner = await userByEmail(ownerEmail);
     const joined = await careGroupInviteService.accept(
       { authUser: { id: owner!.id, roleNames: ["member"] } },
-      { token, consent: true },
+      { token, consent: true, legal: true },
     );
     expect(joined).toMatchObject({ groupId, role: "owner" });
   });

@@ -81,7 +81,7 @@ export default function EditTodoSheet({ loaderData, params }: Route.ComponentPro
   }, [gone, close]);
 
   return (
-    <Sheet guardChanges isOpen onOpenChange={(open) => !open && close()} title="Edit todo">
+    <Sheet guardChanges={!gone} isOpen onOpenChange={(open) => !open && close()} title="Edit todo">
       <TodoForm
         key={loaderData.todo.id}
         todo={loaderData.todo}

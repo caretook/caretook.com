@@ -6,6 +6,7 @@ import {
   defaultChoice,
   draftTiming,
   monthlyLabels,
+  monthlyOptions,
   monthWeekOf,
   toggleWeekday,
   weekdayOf,
@@ -67,6 +68,58 @@ describe("repeat choices", () => {
   it("toggle weekdays", () => {
     const choice = toggleWeekday(toggleWeekday(defaultChoice(WED), "MO"), "WE");
     expect(choice.weekdays).toEqual(["MO"]);
+  });
+});
+
+describe("the monthly choices", () => {
+  const labels = (day: string, monthlyBy: "date" | "weekday" | "lastDay" = "date") =>
+    monthlyOptions(day, { monthlyBy }).map((o) => o.label);
+
+  it("on the 31st: the date with its skip note, the weekday and the last day", () => {
+    expect(labels("2027-03-31")).toEqual([
+      "On the 31st (skips shorter months)",
+      "On the last Wednesday",
+      "On the last day",
+    ]);
+  });
+
+  it("on the 30th of a 31-day month: two, with the skip note", () => {
+    expect(labels("2027-03-30")).toEqual(["On the 30th (skips shorter months)", "On the last Tuesday"]);
+  });
+
+  it("on the 30th of a 30-day month, and a leap 29 February, the last day too", () => {
+    expect(labels("2027-04-30").at(-1)).toBe("On the last day");
+    expect(labels("2028-02-29")).toEqual([
+      "On the 29th (skips shorter months)",
+      "On the last Tuesday",
+      "On the last day",
+    ]);
+  });
+
+  it("on 28 February in a common year: the last day, no skip note", () => {
+    expect(labels("2027-02-28")).toEqual(["On the 28th", "On the 4th Sunday", "On the last day"]);
+  });
+
+  it("on the 28th of a longer month, and on the 15th: unchanged", () => {
+    expect(labels("2028-02-28")).toEqual(["On the 28th", "On the 4th Monday"]);
+    expect(labels("2027-03-15")).toEqual(["On the 15th", "On the 3rd Monday"]);
+  });
+
+  it("makes the last-day rule", () => {
+    const choice = {
+      ...defaultChoice("2027-03-31"),
+      preset: "monthly" as const,
+      monthlyBy: "lastDay" as const,
+    };
+    expect(ruleText(choiceRule(choice, "2027-03-31")!)).toBe("FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1");
+  });
+
+  it("a stored last-day rule keeps its choice and its rule when opened on another day", () => {
+    const rule = "FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1";
+    const choice = choiceOfRule(rule, "2027-03-15");
+    expect(choice.monthlyBy).toBe("lastDay");
+    expect(monthlyOptions("2027-03-15", choice).map((o) => o.value)).toEqual(["date", "weekday", "lastDay"]);
+    expect(ruleText(choiceRule(choice, "2027-03-15")!)).toBe(rule);
   });
 });
 

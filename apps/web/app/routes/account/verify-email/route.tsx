@@ -2,7 +2,7 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { Route } from "./+types/route";
 
 import { Form, Link, useNavigation } from "react-router";
-import { Button } from "~/components/ui/plain";
+import { Button, LINK } from "~/components/ui/plain";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { authClient } from "~/lib/auth/auth-client";
 import { authMessages, requestFailure, unreached } from "~/lib/auth/authMessages";
@@ -95,7 +95,7 @@ export default function VerifyEmail({ loaderData, actionData }: Route.ComponentP
         </Button>
       </Form>
       <p className="text-center text-sm">
-        <Link to={accountUrls.signIn("password", next)} className="link">
+        <Link to={accountUrls.signIn("password", next)} className={LINK}>
           Back to sign in
         </Link>
       </p>

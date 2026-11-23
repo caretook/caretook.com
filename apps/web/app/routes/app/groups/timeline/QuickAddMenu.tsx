@@ -5,7 +5,7 @@ import type { SheetKind } from "~/lib/timeline/urls";
 import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { Plus } from "lucide-react";
 import { PrefetchPageLinks, useLocation, useNavigate } from "react-router";
-import { Menu } from "~/components/ui";
+import { ICON, Menu } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { localTimeZone } from "~/lib/core/format";
@@ -59,12 +59,15 @@ export function QuickAddMenu({ groupId, dayKey, label }: { groupId: string; dayK
   return (
     <Menu
       label={`Add to ${label}`}
-      className="btn btn-sm btn-square btn-primary -my-1"
+      variant="primary"
+      size="sm"
+      shape="square"
+      className="-my-1"
       items={items}
       width="md"
       scrollable
     >
-      <Plus className="size-4" aria-hidden="true" />
+      <Plus className={ICON} aria-hidden="true" />
     </Menu>
   );
 }

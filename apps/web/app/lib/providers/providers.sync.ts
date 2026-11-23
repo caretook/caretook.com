@@ -576,7 +576,8 @@ export const timelineLinksQuery = (
   filters: EntryFilters,
   limit: number,
   cutoff: string,
-): LocalQuery => windowLinksQuery(historyWindow(groupId, filters, limit, cutoff));
+  before?: string | null,
+): LocalQuery => windowLinksQuery(historyWindow(groupId, filters, limit, cutoff, before));
 
 /**
  * Import one provider from another of the user's groups (with its practice,

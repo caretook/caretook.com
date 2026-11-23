@@ -45,6 +45,8 @@ export const googleCalendarConnectionSchema = pgTable(
     syncToken: text("sync_token"),
     lastPushedAt: timestampColumn("last_pushed_at"),
     lastPulledAt: timestampColumn("last_pulled_at"),
+    // When the daily catch-up last finished (calendars-2). Apart from the sync token.
+    lastCatchUpAt: timestampColumn("last_catch_up_at"),
     lastError: text("last_error", { enum: GOOGLE_CONNECTION_ERRORS }),
     lastErrorAt: timestampColumn("last_error_at"),
     disconnectedAt: timestampColumn("disconnected_at"),

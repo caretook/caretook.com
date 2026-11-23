@@ -31,9 +31,9 @@ export function VitalField({
 
   if (isChoiceField(field))
     return (
-      <Field label={field.label} error={error}>
+      <Field label={field.label} kind="select" error={error}>
         {(control) => (
-          <select {...control} name={name} className="select w-full" defaultValue={shown}>
+          <select {...control} name={name} defaultValue={shown}>
             <option value="">{field.optional ? "Not noted" : "Choose…"}</option>
             {bristolOptions.map((o) => (
               <option key={o.value} value={o.value}>

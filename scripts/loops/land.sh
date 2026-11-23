@@ -2,8 +2,8 @@
 # Land a PRD, hotfix or planning branch in dev. Run it only on the dev keeper's
 # say-so for that landing.
 #
-#   land.sh <topic> [-m "feat(<topic>): what it adds (B-1, B-2)"] [--tier <t> [--why "<reason>"]] [--fixes B-n,…] [--force] [--no-review] [--local]
-#   land.sh hotfix/<name> --pr|--local [-m "fix(<area>): …"] [--tier <t> [--why "<reason>"]] [--fixes B-n,…] [--force] [--no-review]
+#   land.sh <topic> [-m "feat(<topic>): what it adds (B-1, B-2)"] [--tier <t> [--why "<reason>"]] [--fixes B-n,…] [--force] [--no-review] [--skeptic <id>… | --by-user] [--local]
+#   land.sh hotfix/<name> --pr|--local [-m "fix(<area>): …"] [--tier <t> [--why "<reason>"]] [--fixes B-n,…] [--force] [--no-review] [--skeptic <id>… | --by-user]
 #   land.sh plan/<topic> [-m "docs(<topic>): …"]
 #
 # Two paths:
@@ -22,23 +22,37 @@
 # It refuses unless the branch already contains dev's work (`pnpm prd sync`;
 # backlog-only commits on dev don't count) and, for a prd/ or hotfix/ branch,
 # a CI verdict for its tier (scripts/ci/ci.mjs gate, gate.mjs).
+# The unsynced landing: when dev's commits since the last sync share no file with
+# the branch and bring no risky one (dev-brought.mjs), land typechecks a temporary
+# merge in the branch's worktree (unsynced.sh, in a check lease; none for a
+# Markdown-only diff) and lands the unsynced tip, saying so in the merge body and
+# the report. Never with --fixes, with --force unless --by-user, on the branch's own brake verdict,
+# on a known dev brake (a brake verdict on the tip of dev it measures against, or
+# a live dev-brake notice; no verdict is not a brake), or with
+# CARETOOK_UNSYNCED=off: those keep the drift refusal.
 # --tier <t>: the tier to wait for; the default is what the diff proposes
 # (check-plan.mjs). Below the proposal it needs --why "<reason>", and the report
-# names both; `none` under a real proposal is --force, the user's word. The gate
+# names both; `none` under a real proposal takes --force. The gate
 # runs just before the merge (after every other refusal): it reads a whole-tier
 # verdict for that tier or higher on the tip, or behind only docs and tooling
 # commits, and requests the run when there is none. Green lands; a flake outside
 # the branch's files lands and is filed after the merge; a failure lands only when
 # blame gives all of it to dev, and a dev brake only with --fixes <its item>.
 # Infra and unknown refuse with how to retry; a refusal exits with the verdict's code.
-# --force (the user's word only) skips the check requirement, not the sync, and not the doc budget:
+# --force and --no-review each need a land skeptic's go for this topic, tip and
+# action (--skeptic <id>, repeated for both; land-skeptic.mjs) or the user's word
+# (--by-user). A `no` refuses with its why. On a known brake or an unsynced tip,
+# --force needs --by-user. Codex out of credits lets --no-review through with
+# neither. The to-test file and land's output carry the verdict, and every Codex
+# decline verdict recorded for the topic since its last landing.
+# --force skips the check requirement, not the sync, and not the doc budget:
 # it also refuses (doc-budget.mjs) when the branch grows a doc that is already
 # over its budget, for every kind of branch (a plan branch lands docs).
 # The PR path also refuses unless the PR is open, its head is the branch's
 # local tip, and Codex's verdict on it is clean (pnpm prd review): a clean
 # verdict on an older head carries over plain dev merges that leave the PR's
 # diff alone (codex-review.mjs), and the merge is still pinned to the tip.
-# --no-review skips only the verdict, and only on the user's word. A prd/ branch
+# --no-review skips only the verdict. A prd/ branch
 # whose whole diff is Markdown (lib.sh, docs_only) needs no verdict: it still
 # goes through its open PR, and land says it skipped the verdict.
 #
@@ -57,10 +71,16 @@
 set -euo pipefail
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
+# shellcheck source=unsynced.sh
+source "$(dirname "$0")/unsynced.sh"
 use_node || true
 
 what="" msg="" force="" path="" noreview="" tier="" why="" fixes=""
-proposal="" proposal_why="" tierline="" gate_base="" gate_run="" gate_flakes="" to_test_file=""
+proposal="" proposal_why="" tierline="" gate_base="" gate_run="" gate_flakes="" gate_kind="" to_test_file=""
+unsynced="" unsynced_tc="" unsynced_line="" unsynced_report=""
+skeptics="" byuser="" skeptic_tip="" verdict_lines=""
+ci_bin="$(cd "$(dirname "$0")/.." && pwd)/ci/ci.mjs"
+skeptic_dir=${CARETOOK_SKEPTIC_DIR:-$loops/.skeptic}
 while (($#)); do
   case $1 in
     -m) msg=${2:?-m "subject"}; shift 2 ;;
@@ -81,6 +101,11 @@ while (($#)); do
     --pr) path=pr; shift ;;
     --local) path=local; shift ;;
     --no-review) noreview=1; shift ;;
+    --skeptic)
+      [[ ${2:-} =~ ^s[0-9]+$ ]] || die "--skeptic takes a verdict's id: --skeptic s1"
+      skeptics+=" $2"
+      shift 2 ;;
+    --by-user) byuser=1; shift ;;
     --*) die "unknown option $1" ;;
     *) what=$1; shift ;;
   esac
@@ -104,7 +129,9 @@ case $branch in
     ;;
 esac
 [[ -z $noreview || $path == pr ]] || die "--no-review is for the PR path only"
-[[ -z $tier$why$fixes || -z $force ]] || die "--force skips the gate: drop --tier, --why and --fixes (--force only on the user's word)"
+[[ -z $tier$why$fixes || -z $force ]] || die "--force skips the gate: drop --tier, --why and --fixes"
+[[ -z $skeptics || -z $byuser ]] || die "--skeptic or --by-user, not both"
+[[ -z $skeptics$byuser || -n $force$noreview ]] || die "--skeptic and --by-user go with --force or --no-review"
 [[ -z $tier$why$fixes || $branch != plan/* ]] || die "a plan/ branch has no check gate: drop --tier, --why and --fixes"
 pr_seam "$branch"
 
@@ -112,8 +139,68 @@ git -C "$main" rev-parse --verify --quiet "$branch" >/dev/null || die "no branch
 [[ $(git -C "$main" branch --show-current) == "$trunk" ]] || die "the main checkout isn't on $trunk"
 [[ ! -e $(git -C "$main" rev-parse --absolute-git-dir)/MERGE_HEAD ]] || die "the main checkout is in the middle of a merge"
 (($(git -C "$main" rev-list --count "$drift_ref..$branch") > 0)) || die "nothing to land: $branch has no commits that $drift_ref lacks"
-[[ -z $(trunk_drift "$branch" "$drift_ref") ]] ||
-  die "$drift_ref has moved since $branch last synced: run \`pnpm prd sync\` and \`pnpm prd check\` in $dir first"
+# authorize ACTION TIP → the skeptic's go or the user's word for --ACTION, noted
+# for the report; anything else refuses, naming both ways.
+authorize() {
+  local action=$1 tip=$2 id out args=()
+  if [[ -n $byuser ]]; then
+    verdict_lines+="- \`--$action\`: on the user's word (--by-user)"$'\n'
+    echo "--$action: on the user's word (--by-user)"
+    return 0
+  fi
+  [[ -n $skeptics ]] ||
+    die "--$action needs a skeptic's go (--skeptic <id>: \`pnpm prd prompt skeptic land --evidence <file>\`, then \`pnpm prd skeptic record --kind land --action $action --tip $tip …\`) or the user's word (--by-user)"
+  for id in $skeptics; do args+=(--id "$id"); done
+  out=$(node "$(dirname "$0")/land-skeptic.mjs" check --dir "$skeptic_dir" --topic "$topic" --tip "$tip" --action "$action" "${args[@]}") ||
+    die "--$action refused: $out"
+  verdict_lines+="- \`--$action\`: skeptic $out"$'\n'
+  echo "--$action: skeptic $out"
+}
+# force_brake → why a skeptic's go can't force this landing: a known dev brake,
+# or a brake verdict on the branch's tip. Empty when neither is known.
+force_brake() {
+  local sha out rc=0
+  unsynced_dev_brake "$(git -C "$main" rev-parse "$drift_ref")"
+  if [[ -n $dev_brake ]]; then echo "$dev_brake"; return 0; fi
+  sha=$(git -C "$main" rev-parse "$branch")
+  out=$(cd "$main" && node "$ci_bin" "$sha" 2>/dev/null) || rc=$?
+  if ((rc == 1)) && grep -q "^verdict: brake · [^ ]* · ${sha:0:8} · " <<< "$out"; then
+    echo "CI reads a brake on $branch's tip ${sha:0:8}"
+  fi
+  return 0
+}
+if [[ -n $force ]]; then
+  skeptic_tip=$(git -C "$main" rev-parse "$branch")
+  authorize force "$skeptic_tip"
+  if [[ -z $byuser ]]; then
+    brake=$(force_brake)
+    [[ -z $brake ]] || die "a skeptic's go doesn't cover a brake ($brake): --force --by-user, on the user's word"
+  fi
+fi
+# drift_refusal [WHY] → today's refusal, with why it couldn't land unsynced.
+drift_refusal() {
+  die "$drift_ref has moved since $branch last synced${1:+ ($1)}: run \`pnpm prd sync\` and \`pnpm prd check\` in $dir first"
+}
+# judge_unsynced → the refusals that need no CI: sets unsynced, or refuses.
+judge_unsynced() {
+  local go why
+  [[ ${CARETOOK_UNSYNCED:-} != off ]] || drift_refusal "CARETOOK_UNSYNCED=off"
+  [[ -z $force || -n $byuser ]] || drift_refusal "a skeptic's go doesn't cover an unsynced tip: sync, or --force --by-user on the user's word"
+  [[ -z $fixes ]] || drift_refusal "a landing with --fixes lands only synced"
+  IFS=$'\t' read -r go why _ <<< "$(unsynced_verdict "$drift_ref" "$branch")"
+  [[ $go == go ]] || drift_refusal "$why"
+  if ! docs_only "$drift_ref" "$branch"; then
+    unsynced_tc=1
+    [[ -d $dir ]] || drift_refusal "no worktree to typecheck the merge in"
+    [[ $(git -C "$dir" rev-parse HEAD) == $(git -C "$main" rev-parse "$branch") ]] ||
+      drift_refusal "$dir isn't at $branch's tip"
+    [[ -z $(git -C "$dir" status --porcelain) ]] || drift_refusal "uncommitted changes in $dir"
+  fi
+  unsynced=1
+}
+# A merge a killed landing left would read as uncommitted changes.
+if [[ -d $dir ]]; then unsynced_clear "$dir"; fi
+if [[ -n $(trunk_drift "$branch" "$drift_ref") ]]; then judge_unsynced; fi
 if [[ -d $dir ]]; then
   [[ -z $(git -C "$dir" status --porcelain) ]] || die "uncommitted changes in $dir"
 fi
@@ -124,7 +211,7 @@ if [[ ($branch == prd/* || $branch == hotfix/*) && -z $force ]]; then
   { read -r proposal; read -r proposal_why; read -r tier_status; } <<< "$proposed"
   tier=${tier:-$proposal}
   [[ $tier_status != refused ]] ||
-    die "--tier none skips the gate, and this diff proposes $proposal ($proposal_why): declare a tier, or --force on the user's word"
+    die "--tier none skips the gate, and this diff proposes $proposal ($proposal_why): declare a tier, or --force with a skeptic's go or --by-user"
   [[ $tier_status != below || -n $why ]] ||
     die "--tier $tier is below the proposal, $proposal ($proposal_why): add --why \"<reason>\", or declare $proposal"
   tierline="tier $tier (proposed $proposal: $proposal_why)"
@@ -154,8 +241,69 @@ run_gate() {
     exit "$((code == 0 ? 5 : code))"
   fi
   [[ $(git -C "$main" rev-parse "$branch") == "$tip0" ]] || die "$branch's tip moved during the gate: nothing landed"
+  gate_kind=$kind
   checkline="CI $kind at $ran on ${at:0:7} (run $gate_run)"
   echo "check: $checkline"
+}
+# typecheck_merge DEV → the temporary merge's typecheck, in a check lease taken
+# from the main checkout (so the worktree's own leases can be told apart). TERM
+# and INT reach it: a background job ignores INT, so both go on as TERM.
+typecheck_merge() {
+  local here pid rc=0
+  here=$(cd "$(dirname "$0")" && pwd)
+  (cd "$main" && exec "$here/lease.sh" run check --label "unsynced typecheck of $branch" -- \
+    "$here/unsynced.sh" typecheck "$dir" "$(git -C "$main" rev-parse "$branch")" "$1") &
+  pid=$!
+  trap 'kill -TERM "$pid" 2>/dev/null; wait "$pid" 2>/dev/null; exit 143' TERM INT
+  wait "$pid" || rc=$?
+  trap - TERM INT
+  case $rc in
+    0) ;;
+    3) drift_refusal "the merge with $drift_ref conflicts" ;;
+    4) drift_refusal "the merged result doesn't typecheck" ;;
+    5) drift_refusal "its worktree holds a check or browser lease" ;;
+    6) drift_refusal "$dir isn't clean at $branch's tip" ;;
+    75) drift_refusal "no check lease came free for the typecheck" ;;
+    *) drift_refusal "the typecheck stopped (exit $rc)" ;;
+  esac
+}
+# refuse_dev_brake SHA → the drift refusal when dev is known to be braked.
+refuse_dev_brake() {
+  [[ -z $force ]] || return 0 # --force got here on the user's word
+  unsynced_dev_brake "$1"
+  [[ -z $dev_brake ]] || drift_refusal "$dev_brake"
+}
+# land_unsynced → after the CI gate, before the merge: judge dev and its brake,
+# typecheck, and read both again. If dev moved, do it once more, then refuse.
+land_unsynced() {
+  [[ -n $unsynced ]] || return 0
+  [[ $gate_kind != brake ]] || drift_refusal "CI reads a brake, so it lands only synced"
+  local tip0 pass go now base n ran
+  tip0=$(git -C "$main" rev-parse "$branch")
+  for pass in 1 2; do
+    IFS=$'\t' read -r go now base <<< "$(unsynced_verdict "$drift_ref" "$branch")"
+    [[ $go == go ]] || drift_refusal "$now"
+    refuse_dev_brake "$now"
+    [[ -z $unsynced_tc ]] || typecheck_merge "$now"
+    if [[ $drift_ref == origin/* ]]; then
+      git -C "$main" fetch --quiet origin "$trunk" || drift_refusal "couldn't read origin/$trunk again"
+    fi
+    [[ $(git -C "$main" rev-parse "$drift_ref") != "$now" ]] && {
+      ((pass == 1)) || drift_refusal "it moved again during the typecheck"
+      echo "$drift_ref moved during the typecheck: judging it once more"
+      continue
+    }
+    [[ -z $unsynced_tc ]] || refuse_dev_brake "$now"
+    break
+  done
+  [[ $(git -C "$main" rev-parse "$branch") == "$tip0" ]] || die "$branch's tip moved during the typecheck: nothing landed"
+  n=$(unsynced_commits "$base" "$now")
+  ran="only the merged result's typecheck ran"
+  [[ -n $unsynced_tc ]] || ran="Markdown only, so no typecheck ran"
+  ((n == 1)) && n="1 commit" || n="$n commits"
+  unsynced_line="Landed on an unsynced tip: $trunk had $n since the last sync, sharing no file with it"
+  unsynced_report="landed on an unsynced tip: \`$trunk\` had $n since the last sync, sharing no file with it; $ran"
+  echo "$unsynced_report"
 }
 # flake_args → the `ci file` arguments for this landing. A local landing never
 # pushes: publishing dev stays the keeper's.
@@ -181,7 +329,6 @@ file_flakes() {
   if [[ -n $to_test_file ]]; then echo "- The flakes weren't all filed. Retry: \`$retry\`" >> "$to_test_file"; fi
   return 5
 }
-ci_bin="$(cd "$(dirname "$0")/.." && pwd)/ci/ci.mjs"
 
 [[ -n $msg ]] || msg=$(land_subject "$branch")
 # Decided before the merge, while the diff against dev still exists.
@@ -207,6 +354,7 @@ write_to_test() {
   [[ -z $force ]] || unchecked+=("the check was skipped (--force)")
   [[ -z $noreview ]] || unchecked+=("merged without a clean Codex verdict (--no-review)")
   [[ $path != local ]] || unchecked+=("landed locally: no PR and no Codex review")
+  [[ -z $unsynced_report ]] || unchecked+=("$unsynced_report")
   [[ $checkline != "none needed"* ]] || unchecked+=("no check ran: $checkline")
   unchecked+=("browser checks: land can't see which ran; the landing report says")
   # The topic's plain title: its PRD's (or plan's) first heading, on the branch.
@@ -251,6 +399,12 @@ write_to_test() {
     [[ -z $tierline ]] || echo "- The landing's $tierline."
     printf -- '- %s\n' "${unchecked[@]}"
     echo
+    if [[ -n $verdict_lines ]]; then
+      echo "## What the skeptic said"
+      echo
+      printf '%s' "$verdict_lines"
+      echo
+    fi
     echo "## Follow-ups and still open"
     echo
     echo "${open_items:-- (none)}"
@@ -282,6 +436,24 @@ post_landed() {
     echo "warning: couldn't post the landing notice (ignored)" >&2
   return 0
 }
+# skeptic_report → before the merge: the topic's Codex declines join the verdicts,
+# printed for the run-through report (a Markdown-only landing has no to-test file).
+skeptic_report() {
+  local declines
+  [[ -z $skeptic_tip || $(git -C "$main" rev-parse "$branch") == "$skeptic_tip" ]] ||
+    die "$branch's tip moved after the skeptic's check: nothing landed"
+  declines=$(node "$(dirname "$0")/land-skeptic.mjs" declines --dir "$skeptic_dir" --topic "$topic" 2>/dev/null) || declines=""
+  [[ -z $declines ]] || verdict_lines+=$(sed 's/^/- /' <<< "$declines")$'\n'
+  if [[ -n $verdict_lines ]]; then
+    echo "The skeptic's verdicts, for the landing and run-through reports:"
+    printf '%s' "$verdict_lines"
+  fi
+}
+# mark_landed → the next landing's declines start after this one. Never fails it.
+mark_landed() {
+  node "$(dirname "$0")/land-skeptic.mjs" landed --dir "$skeptic_dir" --topic "$topic" 2>/dev/null ||
+    echo "warning: couldn't mark the landing in the skeptic store (ignored)" >&2
+}
 # next_steps → what the main checkout needs after the landing.
 next_steps() {
   grep -qE '^packages/data/src/db/(migrations|seeds)/' <<< "$changed" &&
@@ -294,9 +466,12 @@ next_steps() {
 
 if [[ $path == local ]]; then
   run_gate
-  git -C "$main" merge --no-ff -m "$msg" "$branch"
+  land_unsynced
+  skeptic_report
+  git -C "$main" merge --no-ff -m "$msg" ${unsynced_line:+-m "$unsynced_line"} "$branch"
   echo
   echo "Landed $branch in $trunk as $(git -C "$main" rev-parse --short HEAD): $msg"
+  mark_landed
   [[ -z $tierline ]] || echo "Landed at $tierline"
   write_to_test || echo "couldn't write the to-test file"
   post_landed || true
@@ -317,18 +492,26 @@ head=$(field headSha) state=$(field state) url=$(field url)
 [[ $head == "$tip" ]] ||
   die "PR #$number's head is ${head:0:7}, not $branch's local tip ${tip:0:7}: push it (\`pnpm prd pr $what\`), let Codex review it (\`pnpm prd review $what --wait\`), then land"
 line=$(node "$(dirname "$0")/codex-review.mjs" --repo="$main" --trunk="$drift_ref" --line <<< "$raw")
-if [[ $state != clean && $branch == prd/* && -z $noreview ]] && docs_only "$drift_ref" "$branch"; then
+if [[ $state != clean && $branch == prd/* ]] && docs_only "$drift_ref" "$branch"; then
   echo "$line: no Codex verdict needed, the diff against $drift_ref is Markdown only (PR #$number is open with the local tip as its head)"
 elif [[ $state != clean ]]; then
   [[ -n $noreview ]] ||
-    die "Codex's verdict on PR #$number isn't clean ($line): \`pnpm prd review $what\`; --no-review only on the user's word"
-  echo "$line: merging without a clean review (--no-review, on the user's word)"
+    die "Codex's verdict on PR #$number isn't clean ($line): \`pnpm prd review $what\`; --no-review needs a skeptic's go (--skeptic <id>) or --by-user"
+  if [[ $state == out-of-credits ]]; then
+    verdict_lines+="- \`--no-review\`: Codex is out of credits, so no skeptic was needed"$'\n'
+  else
+    authorize no-review "$tip"
+  fi
+  echo "$line: merging without a clean review (--no-review)"
 else
   echo "$line"
 fi
 repo=$(gh_repo) || die "gh couldn't name origin's repository"
 merge=(gh pr merge "$number" -R "$repo" --merge --subject "$msg" --match-head-commit "$tip" --delete-branch)
 run_gate
+land_unsynced
+[[ -z $unsynced_line ]] || merge+=(--body "$unsynced_line")
+skeptic_report
 if [[ ${CARETOOK_PR_THROWAWAY:-} == 1 ]]; then
   echo "CARETOOK_PR_THROWAWAY: every refusal passed; stopping before the merge. It would push $trunk, then run:"
   printf ' %q' "${merge[@]}"; echo
@@ -339,6 +522,7 @@ push_trunk
 "${merge[@]}" || die "gh couldn't merge PR #$number ($url): nothing landed; see the PR"
 echo
 echo "Landed $branch in $trunk through PR #$number ($url): $msg"
+mark_landed
 [[ -z $tierline ]] || echo "Landed at $tierline"
 write_to_test "$url" || echo "couldn't write the to-test file"
 post_landed || true

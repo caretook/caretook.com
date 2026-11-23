@@ -9,6 +9,7 @@ import {
   googleCalendarConnectionSchema,
   googleEventLinkSchema,
   googleOauthStateSchema,
+  memberCalendarSettingSchema,
   userSchema,
 } from "../db/schema";
 import { isError } from "../errors";
@@ -23,7 +24,9 @@ import { openGoogleToken } from "../utils/googleToken";
 import * as calendarSettingService from "./calendarSettingService";
 import * as calendarSyncService from "./calendarSyncService";
 import * as careGroupMemberService from "./careGroupMemberService";
+import * as entryProviderService from "./entryProviderService";
 import * as googleConnectionService from "./googleConnectionService";
+import * as providerService from "./providerService";
 import * as todoService from "./todoService";
 import * as timelineEntryService from "./timelineEntryService";
 
@@ -261,6 +264,55 @@ describe("pushing", () => {
     expect(links.map((l) => l.itemUid)).toEqual([`entry:${appointment.id}`]);
   });
 
+  it("pushes a Caretook event 200 days out", async () => {
+    const { owner, caretaker, group } = await setup();
+    const far = ok(
+      await timelineEntryService.create(owner.ctx, {
+        groupId: group.id,
+        kind: "event",
+        title: "Specialist visit",
+        occurredAt: inDays(200),
+        endsAt: inDays(200, 18),
+        timeZone: "America/Los_Angeles",
+        details: null,
+      }),
+    )!;
+    const conn = await connect(caretaker, group.id);
+    expect(google.events(conn.calendarId).map((e) => e.privateProperties[UID_PROPERTY])).toContain(
+      `entry:${far.id}`,
+    );
+  });
+
+  it("names only live providers, at the details level", async () => {
+    const { owner, caretaker, group, appointment } = await setup();
+    const provider = async (name: string) => {
+      const made = ok(
+        await providerService.create(owner.ctx, { groupId: group.id, type: "practice", name }),
+      )!;
+      ok(
+        await entryProviderService.link(owner.ctx, {
+          groupId: group.id,
+          entryId: appointment.id,
+          providerId: made.id,
+        }),
+      );
+      return made;
+    };
+    const gone = await provider("Harbor Cardiology");
+    await provider("Lakeside Nephrology");
+    ok(await providerService.remove(owner.ctx, gone.id));
+    await settled();
+
+    const conn = await connect(caretaker, group.id);
+    ok(await calendarSettingService.update(caretaker.ctx, group.id, { detailsConsent: true }));
+    await settled();
+    const pushed = google
+      .events(conn.calendarId)
+      .find((e) => e.privateProperties[UID_PROPERTY] === `entry:${appointment.id}`)!;
+    expect(pushed.description).toContain("Lakeside Nephrology");
+    expect(JSON.stringify(pushed)).not.toContain("Harbor Cardiology");
+  });
+
   it("rewrites the events when details go on, and back to generic when they go off", async () => {
     const { caretaker, group } = await setup();
     const conn = await connect(caretaker, group.id);
@@ -276,6 +328,29 @@ describe("pushing", () => {
     await settled();
     expect(summaries(conn.calendarId)).toEqual(["Event for Pat Example", "Todo for Pat Example"]);
     expect(JSON.stringify(google.events(conn.calendarId))).not.toMatch(/Dialysis|Riverside|walker/);
+  });
+
+  it("goes generic when the consent wording changed, until the member agrees again", async () => {
+    const { caretaker, group } = await setup();
+    const conn = await connect(caretaker, group.id);
+    ok(await calendarSettingService.update(caretaker.ctx, group.id, { detailsConsent: true }));
+    await settled();
+    expect(summaries(conn.calendarId)).toContain("Event for Pat Example: Dialysis");
+
+    await getDb()
+      .update(memberCalendarSettingSchema)
+      .set({ detailsConsentVersion: "2020-01-01" })
+      .where(eq(memberCalendarSettingSchema.userId, caretaker.user.id));
+    ok(await calendarSyncService.pushConnection(conn, { client: google }));
+    expect(summaries(conn.calendarId)).toEqual(["Event for Pat Example", "Todo for Pat Example"]);
+    expect(JSON.stringify(google.events(conn.calendarId))).not.toMatch(/Dialysis|Riverside|walker/);
+
+    ok(await calendarSettingService.update(caretaker.ctx, group.id, { detailsConsent: true }));
+    await settled();
+    expect(summaries(conn.calendarId)).toEqual([
+      "Event for Pat Example: Dialysis",
+      "Todo for Pat Example: Pick up the walker",
+    ]);
   });
 
   it("goes generic for everyone when the owners forbid details", async () => {

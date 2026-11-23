@@ -32,7 +32,7 @@ pnpm prd <command>
     plan <topic> [--open] [B-n …]   a docs-only worktree for writing a PRD and plan; --open starts its
                               planning session here (it decides, writes both, lands them; few questions)
     plan                      no topic: a backlog and inbox planning session in the main checkout, here
-                              (either form runs on opus; --model <m> runs that one session on model m)
+                              (on opus, a `design` row's planner on Fable; --model <m> runs that one session on model m)
                               (it reads the backlog and helps you decide what's next)
     slice <topic> <n>         a slice's worktree (orchestrators run this); a stack only for Stack: yes
     hotfix <name> [--open] [--model <m>] ["<the fix>"]   a stackless worktree on hotfix/<name> from dev, for a fix
@@ -77,12 +77,14 @@ pnpm prd <command>
     session requests [--json] the pending requests, and those settled in the last day
 
   Asks (questions and reports for the dev keeper, in the main checkout's .loops/.asks)
-    ask --topic <t> --question <text> [--option <a>]… [--recommend <a|n> --defaults|--waits]   file a
-                              question; prints its id and the PushNotification line to send; a macOS
+    ask --topic <t> --question <text> --skeptic <id> [--option <a>]… [--recommend <a|n> --defaults|--waits]
+                              file a question past a skeptic (the dispatcher's own need none); prints its id and the PushNotification line to send; a macOS
                               notification, and \$CARETOOK_ASK_NOTIFY <id> <kind> <topic> <text> when set
                               (failures ignored). With a recommendation, --defaults takes it after
                               \$CARETOOK_ASK_DEFAULT_MIN (30) min unanswered; --waits (money, data, a live
                               deploy, a destructive step, a new dependency, compliance) waits however long
+    ask --decided --skeptic <id> --topic <t> --question <text> --option <a>… --chose <a|n>   file what a
+                              skeptic decided: settled, never pushed, listed under decided for you
     ask --topic <t> --report <text>   file a report (a landed wave, what to try); never pushed (no
                               PushNotification line); the same macOS notification and hook
     ask --wait <id> [--timeout <s>]   print the answer once there is one (exit 0; 75 at the timeout);
@@ -93,13 +95,22 @@ pnpm prd <command>
     answer <id> <n|text>      answer a question by its option's number or in words (wakes its --wait;
                               refused once defaulted)
 
+  Skeptic (a fresh subagent's verdict before an ask or a risky landing, in the main checkout's .loops/.skeptic)
+    prompt skeptic ask|land|plan --evidence <file>   print its brief: the rules and the evidence
+    skeptic record --kind ask|land|plan --verdict <v> --why "<one line>" [--option <a>]
+                              [--question <text> [--offer <a>]… --defaults|--waits]
+                              [--tip <full sha> --action force|no-review|"decline <thread>"]
+                              record its answer (ask: decide, ask; land: go, no; plan: go, send-back);
+                              prints the id; counts for \$CARETOOK_SKEPTIC_MAX_MIN (60) min
+    skeptic [list] [--topic <t>] [--json]   the verdicts, oldest first
+
   Notices (one-way lines for other sessions, in the main checkout's .loops/.notices; nothing waits on them)
     notice "<text>" [--for <min>] [--topic <t>]   post one line (200 characters at most); prints its id;
                               it lives 60 minutes, --for up to 1440 (24 hours)
     notices [--json]          the live ones, oldest first: session, topic, age, time left
     notices --done <id>       withdraw one
                               check, sync, slice, browser, pr, ready and land print other sessions' live
-                              notices first (stderr, five lines at most); status prints them all; a code
+                              notices first (stderr, five lines at most); status prints the count; a code
                               landing posts "landed …: sync at your next wave boundary" for six hours
 
   Inside a worktree (name or topic defaults to the one you're in)
@@ -134,11 +145,13 @@ pnpm prd <command>
 
   Land
     land <topic> [-m subject] [--tier <t> [--why "<reason>"]] [--fixes B-n,…] [--no-review] [--local]
+                              [--force] [--skeptic <id>… | --by-user]
                               merge prd/<topic> into dev (only when the dev keeper says so) through its
                               PR: merged on GitHub once its head is the local tip and Codex's verdict is
                               clean and the CI gate passes, then dev-sync (--tier: the tier to wait for, by
                               default the diff's proposal; below it needs --why; --fixes: the dev brake
-                              this landing fixes; --no-review: skip the verdict, on the user's word only;
+                              this landing fixes; --force (skip the gate) and --no-review (skip the verdict)
+                              need a land skeptic's go for this tip or --by-user; out of credits needs neither;
                               --local: a local merge, the fallback, on their word)
     land hotfix/<name> --pr|--local [-m subject]   a hotfix: ask the user "PR or local?" each time
     land plan/<topic>         a plan branch: always a local merge
@@ -156,6 +169,7 @@ pnpm prd <command>
   prompt orchestrator|plan|slice <topic> [n|--auto]   the first prompt for a session (prompt backlog: no topic)
                      recover: the recovery agent (pnpm prd recover opens it)
                      tidy: the cleanup brief for a cheap session (haiku), repeated with /loop
+                     skeptic ask|land|plan --evidence <file>: the brief for a fresh skeptic
                      orchestrator <topic> --resume [--auto]: take over after an interruption
                      slice <topic> <n> --continue: pick up an interrupted slice
 USAGE
@@ -228,8 +242,8 @@ case $cmd in
   dev-sync) (($# <= 1)) || die "dev-sync: at most one branch name"; dev_sync "${1:-}" ;;
   plan)
     # --model <m> (or --model=<m>), anywhere: this one session's model, passed to claude --model
-    # (default: $agent_model, opus).
-    model=$agent_model rest=()
+    # (default: $agent_model, opus; a topic's planner on Fable when its row is flagged design).
+    model="" rest=()
     while (($#)); do
       case $1 in
         --model) [[ -n ${2:-} && ${2:-} != -* ]] || die "plan: --model needs a model name (e.g. opus)"; model=$2; shift ;;
@@ -239,6 +253,10 @@ case $cmd in
       shift
     done
     set -- ${rest[@]+"${rest[@]}"}
+    if [[ -z $model && -n ${1:-} && $1 != --open ]]; then
+      model=$(node "$bin/planner-model.mjs" "$1" "$main" 2>/dev/null) || model=""
+    fi
+    model=${model:-$agent_model}
     model_args=(--model "$model")
     if [[ ${1:-} == "" || ${1:-} == --open ]]; then
       (($# <= 1)) || die "plan: give a topic before other arguments"
@@ -318,6 +336,9 @@ case $cmd in
       esac
       shift
     done
+    # shellcheck source=unsynced.sh
+    source "$bin/unsynced.sh"
+    unsynced_clear "$dir"
     [[ -z $(git -C "$dir" status --porcelain) ]] || die "commit your changes first: the check is recorded against a commit"
     record=$(checked_file "$dir")
     # The plan (check-plan.mjs) names the diff's own tests, and the tooling tests
@@ -355,6 +376,9 @@ case $cmd in
     name=$(here_name); [[ -n $name ]] || die "run pnpm prd sync inside a PRD's worktree"
     dir=$loops/$name; branch=$(git -C "$dir" branch --show-current)
     [[ $branch == prd/* || $branch == plan/* || $branch == hotfix/* ]] || die "$branch isn't a prd/, plan/ or hotfix/ branch"
+    # shellcheck source=unsynced.sh
+    source "$bin/unsynced.sh"
+    unsynced_clear "$dir"
     if [[ -z $(trunk_drift "$branch") ]]; then
       echo "$branch is up to date with $trunk (only backlog commits are newer, if any)"
     else
@@ -365,12 +389,23 @@ case $cmd in
   ask | asks | answer)
     # The asking session and topic default to the worktree's: plan-<t> → plan-<t>, else prd-<topic>.
     export CARETOOK_ASKS_DIR=${CARETOOK_ASKS_DIR:-$loops/.asks}
+    export CARETOOK_SKEPTIC_DIR=${CARETOOK_SKEPTIC_DIR:-$loops/.skeptic}
     here=$(here_name) here_args=()
     if [[ $cmd == ask && -n $here ]]; then
       if [[ $here == plan-* ]]; then here_args=(--here-topic "${here#plan-}" --here-session "$here")
       else here_topic=$(topic_of "$here"); here_args=(--here-topic "$here_topic" --here-session "prd-$here_topic"); fi
     fi
     exec node "$bin/ask.mjs" "$cmd" "$@" ${here_args[@]+"${here_args[@]}"}
+    ;;
+  skeptic)
+    # The recording session and topic default to the worktree's, as for ask.
+    export CARETOOK_SKEPTIC_DIR=${CARETOOK_SKEPTIC_DIR:-$loops/.skeptic}
+    here=$(here_name) here_args=()
+    if [[ ${1:-} == record && -n $here ]]; then
+      if [[ $here == plan-* ]]; then here_args=(--here-topic "${here#plan-}" --here-session "$here")
+      else here_topic=$(topic_of "$here"); here_args=(--here-topic "$here_topic" --here-session "prd-$here_topic"); fi
+    fi
+    exec node "$bin/skeptic.mjs" "$@" ${here_args[@]+"${here_args[@]}"}
     ;;
   notice | notices)
     # The posting session and topic default to the worktree's, as for ask.

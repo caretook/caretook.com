@@ -1,4 +1,4 @@
-import type { MonthWeek, RepeatFreq, RepeatRule, Weekday } from "@caretook/data/schema";
+import type { MonthlyBy, MonthWeek, RepeatFreq, RepeatRule, Weekday } from "@caretook/data/schema";
 import type { Schedule } from "./entrySchedule";
 
 import {
@@ -44,8 +44,8 @@ export type RepeatChoice = {
   unit: RepeatFreq;
   /** Weekly: the days. */
   weekdays: Weekday[];
-  /** Monthly: on the start's date (the 18th), or its weekday in the month (the 3rd Wednesday). */
-  monthlyBy: "date" | "weekday";
+  /** Monthly: on the start's date (the 18th), its weekday in the month (the 3rd Wednesday), or the last day. */
+  monthlyBy: MonthlyBy["by"];
   /** A stored rule's ordinal and weekday (the last Friday), kept until the monthly choice changes. */
   keptWeekday?: { nth: MonthWeek; weekday: Weekday };
   end: RepeatEndChoice;
@@ -69,12 +69,50 @@ export const monthWeekOf = (day: string): MonthWeek => {
   return nth >= 5 ? -1 : (nth as MonthWeek);
 };
 
-/** The monthly options for a first day: "On the 18th", "On the 3rd Wednesday" (or a stored rule's kept ordinal and weekday). */
+/** Whether a local day is the last of its month. */
+export const isLastDayOfMonth = (day: string) => addDays(day, 1).slice(8, 10) === "01";
+
+/**
+ * The monthly labels for a first day: "On the 18th" ("On the 31st (skips
+ * shorter months)" from the 29th on), "On the 3rd Wednesday" (or a stored
+ * rule's kept ordinal and weekday).
+ */
 export const monthlyLabels = (startsOn: string, kept?: RepeatChoice["keptWeekday"]) => {
   const week = kept?.nth ?? monthWeekOf(startsOn);
+  const date = Number(startsOn.slice(8, 10));
   return {
-    date: `On the ${ordinal(Number(startsOn.slice(8, 10)))}`,
+    date: `On the ${ordinal(date)}${date >= 29 ? " (skips shorter months)" : ""}`,
     weekday: `On the ${week === -1 ? "last" : ordinal(week)} ${weekdayName(kept?.weekday ?? weekdayOf(startsOn))}`,
+  };
+};
+
+/**
+ * The sheet's monthly options: the date, the weekday, and "On the last day"
+ * when the first day is its month's last, or the choice already holds it (a
+ * stored rule opened on another day keeps it).
+ */
+export const monthlyOptions = (
+  startsOn: string,
+  choice: Pick<RepeatChoice, "monthlyBy" | "keptWeekday">,
+): { value: RepeatChoice["monthlyBy"]; label: string }[] => {
+  const labels = monthlyLabels(startsOn, choice.keptWeekday);
+  return [
+    { value: "date", label: labels.date },
+    { value: "weekday", label: labels.weekday },
+    ...(isLastDayOfMonth(startsOn) || choice.monthlyBy === "lastDay"
+      ? [{ value: "lastDay" as const, label: "On the last day" }]
+      : []),
+  ];
+};
+
+/** A monthly choice's rule part, on the first day. */
+const monthlyOf = (choice: RepeatChoice, startsOn: string): MonthlyBy => {
+  if (choice.monthlyBy === "lastDay") return { by: "lastDay" };
+  if (choice.monthlyBy === "date") return { by: "date", day: Number(startsOn.slice(8, 10)) };
+  return {
+    by: "weekday",
+    nth: choice.keptWeekday?.nth ?? monthWeekOf(startsOn),
+    weekday: choice.keptWeekday?.weekday ?? weekdayOf(startsOn),
   };
 };
 
@@ -99,16 +137,7 @@ export const choiceRule = (choice: RepeatChoice, startsOn: string): RepeatRule |
     freq,
     interval,
     weekdays: freq === "weekly" ? WEEKDAYS.filter((d) => choice.weekdays.includes(d)) : [],
-    monthly:
-      freq !== "monthly"
-        ? null
-        : choice.monthlyBy === "date"
-          ? { by: "date", day: Number(startsOn.slice(8, 10)) }
-          : {
-              by: "weekday",
-              nth: choice.keptWeekday?.nth ?? monthWeekOf(startsOn),
-              weekday: choice.keptWeekday?.weekday ?? weekdayOf(startsOn),
-            },
+    monthly: freq === "monthly" ? monthlyOf(choice, startsOn) : null,
     end:
       choice.end === "on"
         ? { type: "on", until: choice.until }

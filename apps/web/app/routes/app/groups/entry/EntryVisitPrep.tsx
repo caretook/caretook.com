@@ -1,6 +1,7 @@
 import type { LiveEntry } from "./useLiveEntry";
 
 import { ClipboardList } from "lucide-react";
+import { Button } from "~/components/ui";
 import { useVisitPrep } from "~/components/visitPrep";
 import { useNow } from "~/lib/live-notes/editors.sync";
 import { isUpcoming } from "~/lib/appointments/upcoming";
@@ -29,15 +30,14 @@ export function EntryVisitPrep({ live, groupId }: { live: LiveEntry; groupId: st
   return (
     <div className="print:hidden">
       {show && (
-        <button
-          type="button"
-          className="btn btn-outline btn-sm gap-1.5"
+        <Button
+          size="sm"
+          icon={ClipboardList}
           data-prepare-visit=""
           onClick={() => prep.ask({ id: entry.id, title: entry.title })}
         >
-          <ClipboardList className="size-4" aria-hidden="true" />
           Prepare for this visit
-        </button>
+        </Button>
       )}
       {prep.sheet}
     </div>

@@ -5,7 +5,7 @@ import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import { Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChipGroup, ChipList, ComboBox } from "~/components/ui";
+import { Button, ChipGroup, ChipList, ComboBox, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { fromGroupOption, fromGroupSections } from "~/lib/providers/fromGroups";
@@ -136,7 +136,7 @@ export function EntryWithRow({
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-base-content/70 text-sm">With</span>
+        <span className="text-muted text-sm">With</span>
         {chips.length > 0 && <ChipList label="Linked providers" chips={chips} />}
         {canWrite &&
           (picking ? (
@@ -151,16 +151,18 @@ export function EntryWithRow({
               />
             </div>
           ) : (
-            <button
+            <Button
               ref={addButton}
-              type="button"
-              className="btn btn-ghost btn-sm border-base-300 rounded-full border border-dashed"
+              variant="ghost"
+              size="sm"
+              shape="pill"
+              icon={Plus}
+              className="border-base-300 border border-dashed"
               onClick={() => setPicking(true)}
-              data-add-provider-link
+              data-add-provider-link=""
             >
-              <Plus className="size-4" aria-hidden="true" />
               {linked.length ? "Add" : "Add a provider"}
-            </button>
+            </Button>
           ))}
       </div>
       {canWrite && !picking && rows !== NOT_READ_YET && linked.length === 0 && (
@@ -171,11 +173,7 @@ export function EntryWithRow({
           onPick={(id) => void link(id)}
         />
       )}
-      {error && (
-        <p role="alert" className="text-error text-sm">
-          {error}
-        </p>
-      )}
+      {error && <Message tone="error">{error}</Message>}
     </div>
   );
 }
@@ -204,7 +202,7 @@ function ProviderSuggestions({
   if (suggested.length === 0) return null;
   return (
     <div className="flex items-center gap-1.5 sm:flex-wrap" data-provider-suggestions>
-      <span className="text-base-content/70 shrink-0 text-sm">Suggested</span>
+      <span className="text-muted shrink-0 text-sm">Suggested</span>
       <ChipGroup
         label="Suggested providers"
         className={PHONE_ROW}

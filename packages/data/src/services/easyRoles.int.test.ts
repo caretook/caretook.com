@@ -569,7 +569,7 @@ describe("assigning the easy roles", () => {
       ok(
         await careGroupInviteService.accept(
           { authUser: { id: joiner.id, roleNames: joiner.roleNames } },
-          { token, consent: true },
+          { token, consent: true, legal: true },
         ),
       );
       expect(await careGroupMemberModel.getRole(w.group.id, joiner.id)).toBe(role);
@@ -582,7 +582,9 @@ describe("assigning the easy roles", () => {
         }),
       );
       const asker = await createUser("asker");
-      const asked = ok(await careGroupInviteService.accept(asker.ctx, { token: link.token, consent: true }));
+      const asked = ok(
+        await careGroupInviteService.accept(asker.ctx, { token: link.token, consent: true, legal: true }),
+      );
       if (asked.status !== "requested") throw new Error("expected a request");
       ok(await joinRequestService.approve(w.u.admin.ctx, asked.requestId));
       expect(await careGroupMemberModel.getRole(w.group.id, asker.user.id)).toBe(role);
