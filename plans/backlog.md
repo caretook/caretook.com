@@ -350,8 +350,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-648 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry: 'gave lorazepam 1/2' at a 0.5 mg strength with a usual '2 tablets' records 2 tablets, overstating what was typed |
 | B-649 | bug | triaged | fixes-tooling |  | A skeptic's --force treats an unreadable GitHub as no known dev brake; it could fail closed |
 | B-650 | bug | triaged | fixes-tooling |  | Unattended planner report's veto line sets flags=hold, dropping a row's design or standing flag |
-| B-651 | bug | triaged | fixes-bug |  | Quick entry: a decimal at the strength overstates the dose: 'gave lorazepam 0.5' at 0.5 mg with a usual '2 tablets' records 2 tablets |
-| B-652 | bug | triaged | fixes-bug |  | Quick entry: a counted ordinal before a clock time still takes a day: 'gave the 2nd at 2pm' reads as the 2nd of the month at 2pm |
+| B-651 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry: a decimal at the strength overstates the dose: 'gave lorazepam 0.5' at 0.5 mg with a usual '2 tablets' records 2 tablets |
+| B-652 | bug | in-progress | fixes-bug | prd/fixes-bug | Quick entry: a counted ordinal before a clock time still takes a day: 'gave the 2nd at 2pm' reads as the 2nd of the month at 2pm |
 | B-653 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once… |
 | B-654 | bug | triaged | fixes-tooling |  | CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai… |
 
@@ -2809,18 +2809,18 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-651 · bug · Quick entry: a decimal at the strength overstates the dose: 'gave lorazepam 0.5' at 0.5 mg with a usual '2 tablets' records 2 tablets
 
-- status: triaged
+- status: ready
 - prd: fixes-bug
-- owner:
-- commit:
+- owner: prd/fixes-bug
+- commit: a447334a
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 35 (B-648) hand-off, read from the code and not run: the bare-fraction rule (amountAtStrength in quickEntry.ts) covers only a fraction, so a decimal equal to the strength still takes the usual dose. Confirm with a test first.
 
 ### B-652 · bug · Quick entry: a counted ordinal before a clock time still takes a day: 'gave the 2nd at 2pm' reads as the 2nd of the month at 2pm
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 37 (B-646) hand-off: in ordinalIsADay (quickEntryTime.ts) a clock time after the ordinal marks a day before the counted-word check runs. 'a 2nd at 2pm' is already undated. Confirm with a test first.
