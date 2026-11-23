@@ -375,6 +375,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-726 | bug | triaged | fixes-bug |  | A retried dose upload can still bring back an undone dose when the dose's time was edited before the restore or delete |
 | B-727 | bug | triaged | fixes-tooling |  | ui browser check: the phone add sheet intermittently measures zero size |
 | B-728 | bug | triaged | fixes-bug |  | Repeat preview pairs the recipient's day with the viewer's time: a Wed 10 PM Los Angeles visit reads 'Wed, 1:00 AM' in New York, really Thu |
+| B-729 | bug | triaged | fixes-bug |  | CI: packages/api/src/syncMedications.int.test.ts: sync.upload: two members' doses for one slot keeps Given and Skipped … |
 
 ## Items
 
@@ -3060,3 +3061,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 56 (B-709) hand-off. visitLabel in apps/web/app/components/repeat/RepeatField.tsx. Confirmed by reproducing the label logic in Node under TZ=America/New_York, not on the screen. The fix needs a choice: show the viewer's day, or show both day and time in the recipient's zone.
+
+### B-729 · bug · CI: packages/api/src/syncMedications.int.test.ts: sync.upload: two members' doses for one slot keeps Given and Skipped …
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): [ci-key cf23e37e260d] Fails on dev too (a brake); found by prd/inbox-agent in https://github.com/caretook/caretook.com/actions/runs/45259169004.
