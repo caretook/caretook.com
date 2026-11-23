@@ -277,7 +277,77 @@ const DOSE_VERBS: Record<string, DoseStatus> = {
   declined: "refused",
   rejected: "refused",
 };
-const REFUSING = new Set(["wouldnt", "wouldn't", "wont", "won't", "didnt", "didn't"]);
+const REFUSING = new Set(["wouldnt", "wont", "didnt"]);
+
+/** Words that say something didn't happen, compared with the apostrophe removed (phones type a curly one). */
+const NEGATING = new Set([
+  "not",
+  "never",
+  "no",
+  "cannot",
+  "unable",
+  "forgot",
+  "didnt",
+  "dont",
+  "doesnt",
+  "couldnt",
+  "cant",
+  "wasnt",
+  "werent",
+  "isnt",
+  "hasnt",
+  "havent",
+  "hadnt",
+  "wouldnt",
+  "wont",
+]);
+const withoutApostrophe = (w: string) => w.replace(/['’]/g, "");
+const isNegating = (w: string) => NEGATING.has(withoutApostrophe(w));
+
+/** Helpers around a negating word that belong to it, not to a dose's note: "did not", "forgot to". */
+const NEGATION_LEADS = new Set([
+  "did",
+  "do",
+  "does",
+  "could",
+  "can",
+  "would",
+  "was",
+  "were",
+  "is",
+  "has",
+  "have",
+  "had",
+]);
+const NEGATION_LINKS = new Set(["to", "be", "been", "being", "was", "get", "able", "ever"]);
+
+/**
+ * The negating word that decides for the verb at `verb`: the nearest within
+ * three words before it, not counting the words in `names` (a medication's
+ * name can be long). A negating word after the verb is ordinary text.
+ */
+const negationBefore = (
+  tokens: readonly Token[],
+  free: readonly number[],
+  verb: number,
+  names: ReadonlySet<number>,
+) =>
+  free
+    .filter((i) => i < verb && !names.has(i))
+    .slice(-3)
+    .filter((i) => isNegating(tokens[i]!.w))
+    .at(-1);
+
+/** The words a negated verb claims: the negating word, its helpers and the verb. */
+const negationWords = (tokens: readonly Token[], free: readonly number[], negation: number, verb: number) => {
+  const lead = free[free.indexOf(negation) - 1];
+  return [
+    ...(lead !== undefined && lead === negation - 1 && NEGATION_LEADS.has(tokens[lead]!.w) ? [lead] : []),
+    negation,
+    ...free.filter((i) => i > negation && i < verb && NEGATION_LINKS.has(tokens[i]!.w)),
+    verb,
+  ];
+};
 
 /** Words that mean "the medications due" rather than naming one: "gave meds", "gave all". */
 const GENERIC_MEDS_WORDS = [
@@ -928,11 +998,19 @@ const PRONOUNS = new Set(["her", "his", "him", "them", "their", "the", "a", "an"
 
 const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   let status: DoseStatus | null = null;
+  let negated = false;
   const verbUsed: number[] = [];
+  const nameWords = new Set(
+    matchMedications(
+      s.context,
+      s.tokens,
+      s.free.filter((i) => !isNegating(s.tokens[i]!.w) && !(s.tokens[i]!.w in DOSE_VERBS)),
+    ).flatMap((m) => m.used),
+  );
   for (const i of s.free) {
     const w = s.tokens[i]!.w;
     if (
-      REFUSING.has(w) ||
+      REFUSING.has(withoutApostrophe(w)) ||
       (w === "did" && s.tokens[i + 1]?.w === "not") ||
       (w === "would" && s.tokens[i + 1]?.w === "not")
     ) {
@@ -946,11 +1024,24 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
       }
     }
     if (w in DOSE_VERBS) {
-      status = DOSE_VERBS[w]!;
-      verbUsed.push(i);
+      const negation = negationBefore(s.tokens, s.free, i, nameWords);
+      if (negation === undefined) {
+        status = DOSE_VERBS[w]!;
+        verbUsed.push(i);
+      } else {
+        // "didn't skip" is too unclear to log: the part stays a note.
+        if (DOSE_VERBS[w] !== "given") return [];
+        status = "skipped";
+        negated = true;
+        verbUsed.push(...negationWords(s.tokens, s.free, negation, i));
+      }
       break;
     }
   }
+  // "gave tylenol and not metoprolol": the negating word opens a part with no verb.
+  const opener = s.free[0];
+  const carriedNegation = !status && opener !== undefined && isNegating(s.tokens[opener]!.w);
+  if (carriedNegation) verbUsed.push(opener);
   const rest = s.free.filter((i) => !verbUsed.includes(i));
   const amountUsed = findAmount(s.tokens, rest);
   const nameIdx = rest.filter((i) => !amountUsed.includes(i) && !DOSE_FILLER.has(s.tokens[i]!.w));
@@ -958,9 +1049,11 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   if (!matches.length) return [];
   // Without a verb of its own, only a medication's name counts (not its notes).
   if (!status && !forced && matches[0]!.score < 0.85) return [];
-  const inherited = status ?? s.previousDose;
   // A line that is only a medication's name (and maybe an amount) is a dose too.
   const nameOnly = matches[0]!.score >= 0.85 && nameIdx.every((i) => matches[0]!.used.includes(i));
+  // Only a carried "given" can be negated, and only over a bare name ("no lisinopril side effects" is a note).
+  if (carriedNegation && (!nameOnly || (s.previousDose ?? (forced ? "given" : null)) !== "given")) return [];
+  const inherited = carriedNegation ? "skipped" : (status ?? s.previousDose);
   if (!inherited && !forced && !nameOnly) return [];
   for (const i of [...verbUsed, ...amountUsed, ...matches[0]!.used]) s.claimed.add(i);
   const at = s.time.past.at;
@@ -972,7 +1065,17 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
       PRONOUNS,
     );
     const note = meaningful(s.tokens, noteIdx, DOSE_FILLER) ? truncate(rawOf(s.tokens, noteIdx), 500) : null;
-    const base = status ? 0.9 : s.previousDose ? 0.8 : forced ? 0.9 : 0.6;
+    const base = negated
+      ? 0.85
+      : carriedNegation
+        ? 0.75
+        : status
+          ? 0.9
+          : s.previousDose
+            ? 0.8
+            : forced
+              ? 0.9
+              : 0.6;
     return reading(
       "dose",
       {
@@ -1000,11 +1103,12 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
 const passReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   const passes = s.context.passes ?? [];
   if (!passes.length) return [];
+  // Given all is the worst wrong reading: any negating word in the part rules it out.
+  if (s.tokens.some((t) => isNegating(t.w))) return [];
   let status: DoseStatus | null = null;
   let verb = -1;
   for (const i of s.free) {
     const w = s.tokens[i]!.w;
-    if (REFUSING.has(w) || w === "not") return [];
     if (w in DOSE_VERBS) {
       status = DOSE_VERBS[w]!;
       verb = i;
