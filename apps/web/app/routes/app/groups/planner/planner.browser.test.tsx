@@ -13,6 +13,7 @@ import {
   EYES_OLD,
   HEARING,
   HOSPICE,
+  itemEl,
   laTime,
   listed,
   NOW,
@@ -190,6 +191,27 @@ describe("the list", () => {
       expect.objectContaining({ kind: "call", href: "tel:+15550105500" }),
     ]);
     expect(rowOf(RIDE.id)?.actions).toEqual([]);
+  });
+
+  test("a row's call and map sit under its time, still tappable; a row without them has no gap there", async () => {
+    await openPlanner();
+    const column = (id: string) => itemEl(id)?.querySelector<HTMLElement>("[data-when-column]");
+    const withActions = column(CARDIOLOGY.id);
+    const time = withActions?.querySelector("[data-when]")?.getBoundingClientRect();
+    const actions = withActions?.querySelector("[data-contact-actions]")?.getBoundingClientRect();
+    expect(actions?.top).toBeGreaterThanOrEqual(time?.bottom ?? Infinity);
+    expect(actions?.right).toBeLessThanOrEqual(withActions?.getBoundingClientRect().right ?? 0);
+
+    const call = withActions?.querySelector<HTMLElement>('[data-action="call"]');
+    const box = call?.getBoundingClientRect();
+    const hit = document.elementFromPoint((box?.x ?? 0) + 8, (box?.y ?? 0) + 8);
+    expect(call?.contains(hit)).toBe(true);
+
+    const bare = column(RIDE.id);
+    expect(bare?.querySelector("[data-contact-actions]")).toBeNull();
+    expect(bare?.getBoundingClientRect().height).toBe(
+      bare?.querySelector("[data-when]")?.getBoundingClientRect().height,
+    );
   });
 
   test("an item leaves the Planner tab once its end (in progress) or its start passes, without a reload", async () => {

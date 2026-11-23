@@ -25,10 +25,10 @@ const breakable = (text: string) => text.replace("–", "–​");
 
 /**
  * One upcoming (or past) item as a row: kind icon (a filter), its time
- * ("10:30 AM–11:15 AM", "All day", or "Now · until 11:15 AM"), the entry's
- * body with its "with …" line, its place, "Cancelled" (struck through), the
- * call and map actions, the author's initials (a filter) and, for writers,
- * the ⋯ menu (`menu`). The whole row opens the entry's page. `readOnly`
+ * ("10:30 AM–11:15 AM", "All day", or "Now · until 11:15 AM") with the call
+ * and map actions under it, the entry's body with its "with …" line, its
+ * place, "Cancelled" (struck through), the author's initials (a filter) and,
+ * for writers, the ⋯ menu (`menu`). The whole row opens the entry's page. `readOnly`
  * (the easy roles' Planner) shows the kind and initials without their
  * filter links.
  */
@@ -77,14 +77,17 @@ export function UpcomingRow({
         aria-label={`Open ${upcomingTitle(entry)}, ${when}${cancelled ? `, ${cancelled.toLowerCase()}` : ""}`}
       />
       {readOnly ? <KindIcon kind={entry.kind} size="sm" /> : <KindFilterLink kind={entry.kind} size="sm" />}
-      <time
-        dateTime={entry.occurredAt}
-        className={`w-[5.5rem] shrink-0 pt-0.5 text-sm tabular-nums ${inProgress ? "text-primary font-semibold" : "text-base-content/70"}`}
-        data-when
-      >
-        {breakable(when)}
-        {entry.seriesId && <RepeatMark seriesId={entry.seriesId} className="flex" />}
-      </time>
+      <div className="flex w-[5.5rem] shrink-0 flex-col items-start gap-1" data-when-column>
+        <time
+          dateTime={entry.occurredAt}
+          className={`pt-0.5 text-sm tabular-nums ${inProgress ? "text-primary font-semibold" : "text-base-content/70"}`}
+          data-when
+        >
+          {breakable(when)}
+          {entry.seriesId && <RepeatMark seriesId={entry.seriesId} className="flex" />}
+        </time>
+        <ContactActions actions={actions} />
+      </div>
       <div className="min-w-0 flex-1 pt-0.5">
         <EntryBody
           entry={entry}
@@ -120,7 +123,6 @@ export function UpcomingRow({
           </p>
         )}
       </div>
-      <ContactActions actions={actions} />
       {readOnly ? (
         <span
           className="bg-base-200 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
