@@ -12,7 +12,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 4 (slices 19–27, B-527, B-578, B-580, B-581, B-591, B-599, B-601, B-602, B-605, all on opus) landed in dev through PR #100 as b97b5d69** (2026-11-23): `components` CI green on 336578d3 (run 45131667111), Codex clean, browser `roundtrip` and `ui` passed; lean `--suite` not run (the user's standing rule: ask first). To-test: `to-test/2026-11-23-0247-fixes-bug.md`. Docs folded (assistant, ui-kit, todos, connectors; all at the 10 KB line, trim when adding). Slice worktrees removed.
 
-**Wave 5 (slices 28–31, B-628, B-632, B-634, B-635, all on opus) is planned** (2026-11-23). Slices 29–31 chain on the quick-entry files; 28 runs beside 29. **Held:** B-615 and B-616 while dose-accuracy holds `timelineEntryService.ts` and `assistantActionService.ts`; B-620 and B-631 while onboarding holds `routes/app/groups/timeline/` (B-620's fix is user-approved, see its note; B-631 names `PassLogForm` there). Recheck `pnpm backlog prd list` at the next wave. **New for a later wave:** B-641 (`gave lorazepam 1/2 mg` at 0.5 mg may not record the usual dose; from slice 29, unconfirmed). Slices 28–30 are merged, keeping their worktrees until the wave's CI verdict is green; quick check passed on 7ba37184 (28 and 29). **At landing:** `docs/domain/assistant.md` must add "or at a place" to when an ordinal is a day (B-634). Known limit left as is: `finished 2nd at the race` reads as a day.
+**Wave 5 (slices 28–31, B-628, B-632, B-634, B-635, all on opus) is planned** (2026-11-23). Slices 29–31 chain on the quick-entry files; 28 runs beside 29. **Held:** B-615 and B-616 while dose-accuracy holds `timelineEntryService.ts` and `assistantActionService.ts`; B-620 and B-631 while onboarding holds `routes/app/groups/timeline/` (B-620's fix is user-approved, see its note; B-631 names `PassLogForm` there). Recheck `pnpm backlog prd list` at the next wave. **New for a later wave:** B-641 (`gave lorazepam 1/2 mg` at 0.5 mg may not record the usual dose; from slice 29, unconfirmed). B-643 (a request with a day still leads with a vital or symptom) is also for a later wave; B-642 (the `todays_doses` test fails from 00:00 to 00:10 Los Angeles) is in fixes-tooling. Slices 28–31 are merged, keeping their worktrees until the wave's CI verdict is green; quick check passed on 14c6c096 (28–30). **Next:** sync, quick check, CI at the proposed tier, PR, Codex. **At landing:** `docs/domain/assistant.md` must add "or at a place" to when an ordinal is a day (B-634) and that a request's part of day ranks the todo above a vital or symptom (B-635). Known limit left as is: `finished 2nd at the race` reads as a day.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -48,7 +48,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 28    | B-628 | merged                                     | 46f779de |
 | 29    | B-632 | merged                                     | 82eebf78 |
 | 30    | B-634 | merged                                     | c2c53eee |
-| 31    | B-635 | started (opus)                             |          |
+| 31    | B-635 | merged                                     | b1cf109f |
 
 ## Wave 1
 
