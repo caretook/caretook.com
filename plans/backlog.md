@@ -328,7 +328,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-604 | chore | triaged | fixes-tooling |  | Test Discard under reduced motion in the sheet guard |
 | B-605 | bug | triaged | fixes-bug |  | PageUp and PageDown on a date field's hour still wrap inside AM/PM, so 11 AM can page to 12 AM |
 | B-606 | feature | inbox |  |  | Highlight a double dose on a next-dose-due notification |
-| B-607 | bug | triaged | test-gates |  | Component test harness: settle can return before the page mounts, so a test reading right after open can get nothing |
+| B-607 | bug | in-progress | test-gates | prd/test-gates | Component test harness: settle can return before the page mounts, so a test reading right after open can get nothing |
 | B-608 | chore | triaged | fixes-tooling |  | Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check |
 | B-609 | chore | triaged | fixes-tooling |  | Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh |
 | B-610 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/db/resetStaging.int.test.ts: resetStaging wipes everything but real sign-ins, reseeds, and … |
@@ -2503,9 +2503,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-607 · bug · Component test harness: settle can return before the page mounts, so a test reading right after open can get nothing
 
-- status: triaged
+- status: in-progress
 - prd: test-gates
-- owner:
+- owner: prd/test-gates
 - commit:
 
 - 2026-11-22 (prd/test-gates): Found by test-gates wave 5: entryRepeat.browser.test.tsx failed on CI runs 45108684442 and 45109646741 and was fixed in the test only. renderWithDevice's settle can go quiet while route loaders read the device; plannerWorld.ts already waits for main first.
