@@ -15,7 +15,7 @@ import {
   useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
-import { ConfirmDialog, EmptyState } from "~/components/ui";
+import { ConfirmDialog, EmptyState, Message, TITLE_SECTION } from "~/components/ui";
 import { useVisitPrep } from "~/components/visitPrep";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { canRemind } from "~/lib/calendars/remindMe";
@@ -133,9 +133,7 @@ export function UpcomingList({
         {label}
       </h2>
       {(removeError || cancelling.error || scope.error) && (
-        <p role="alert" className="text-error text-sm">
-          {removeError ?? cancelling.error ?? scope.error}
-        </p>
+        <Message tone="error">{removeError ?? cancelling.error ?? scope.error}</Message>
       )}
       {data.sections.length === 0 &&
         (emptyMark ? (
@@ -143,15 +141,13 @@ export function UpcomingList({
             {empty}
           </EmptyState>
         ) : (
-          <p className="text-base-content/70" data-empty>
-            {empty}
-          </p>
+          <EmptyState data-empty="">{empty}</EmptyState>
         ))}
       {data.sections.map((section) => (
         <section key={section.key} aria-labelledby={`day-${section.key}`} data-day={section.key}>
           <h3
             id={`day-${section.key}`}
-            className="bg-base-200/95 text-base-content sticky top-0 z-10 -mx-1 px-1 py-2 text-base font-semibold backdrop-blur lg:text-lg"
+            className={`${TITLE_SECTION} bg-base-200/95 text-base-content sticky top-0 z-10 -mx-1 px-1 py-2 backdrop-blur lg:text-lg`}
           >
             {section.label}
           </h3>

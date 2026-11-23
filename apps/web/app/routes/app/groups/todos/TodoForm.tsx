@@ -7,7 +7,7 @@ import type { LocalTodo } from "~/lib/todos/todos.sync";
 import { TODO_LIMITS } from "@caretook/data/schema";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
-import { Field, TimeSelect } from "~/components/ui";
+import { Field, FormFooter, Message, TimeSelect } from "~/components/ui";
 import { AssigneeField } from "./AssigneeField";
 import { TodoLinkFields } from "./TodoLinkFields";
 import { FIELD, initialRepeat, isFieldIssue, repeatOnDay } from "./todoFormData";
@@ -106,12 +106,11 @@ export function TodoForm({
 
   return (
     <fetcher.Form method="post" ref={formRef} className="space-y-1" noValidate data-todo-form>
-      <Field label="Todo" error={issueFor(issues, FIELD.title)}>
+      <Field label="Todo" kind="input" error={issueFor(issues, FIELD.title)}>
         {(control) => (
           <input
             {...control}
             name={FIELD.title}
-            className="input w-full"
             maxLength={TODO_LIMITS.title}
             defaultValue={todo?.title ?? prefill?.title ?? ""}
             placeholder="e.g. Call the pharmacy"
@@ -134,13 +133,12 @@ export function TodoForm({
       />
 
       <div className="grid gap-x-3 sm:grid-cols-2">
-        <Field label="Due (optional)" error={issueFor(issues, FIELD.dueOn)}>
+        <Field label="Due (optional)" kind="input" error={issueFor(issues, FIELD.dueOn)}>
           {(control) => (
             <input
               {...control}
               type="date"
               name={FIELD.dueOn}
-              className="input w-full"
               value={day}
               onChange={(e) => {
                 const next = e.currentTarget.value;
@@ -185,19 +183,17 @@ export function TodoForm({
       />
 
       {general && (
-        <p role="alert" className="text-error text-sm" data-form-error>
+        <Message tone="error" data-form-error="">
           {general}
-        </p>
+        </Message>
       )}
 
-      <div className="flex flex-wrap items-center justify-end gap-2 pt-3">
-        <button data-form-cancel="" type="button" className="btn btn-ghost" onClick={onCancel}>
-          Cancel
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={busy}>
-          {todo ? "Save" : "Add todo"}
-        </button>
-      </div>
+      <FormFooter
+        submitLabel={todo ? "Save" : "Add todo"}
+        busy={busy}
+        cancel={{ label: "Cancel", onCancel }}
+        className="pt-3"
+      />
     </fetcher.Form>
   );
 }
