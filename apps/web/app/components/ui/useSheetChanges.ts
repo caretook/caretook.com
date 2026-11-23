@@ -6,8 +6,10 @@ import { useCallback, useEffect, useRef } from "react";
 // every kit control counts, the hidden input behind a `TimeSelect` included.
 // A new value is the person's if it lands during or just after their press,
 // key or edit (anywhere: a picker's own sheet is outside this panel). Any other
-// new value came from a re-render or a sync: it moves the start instead. A field
-// that arrives (a dose added on any device) starts at the value it came with.
+// new value came from a re-render or a sync: it moves the start instead.
+// A field can be the person's work the moment it appears (a tick's hidden input),
+// so only one inside `data-sheet-arrives` (a record added by an action or a sync)
+// starts at the value it came with.
 // `data-sheet-aside` marks what isn't the sheet's edit: its fields aren't read,
 // and a form with it acts at once and leaves the sheet open, so the guard stays on.
 
@@ -16,8 +18,11 @@ export const OWN_CHANGE_MS = 300;
 
 const FIELDS = "input, select, textarea, [contenteditable='true']";
 
-/** Each field's value by a stable key; a checkbox or radio is keyed by its value too. */
-export function readFields(root: ParentNode): Map<string, string> {
+/**
+ * Each field's value by a stable key; a checkbox or radio is keyed by its value too.
+ * `within` keeps only the fields inside that selector, with the same keys.
+ */
+export function readFields(root: ParentNode, within?: string): Map<string, string> {
   const fields = new Map<string, string>();
   const seen = new Map<string, number>();
   for (const el of root.querySelectorAll<HTMLElement>(FIELDS)) {
@@ -34,7 +39,7 @@ export function readFields(root: ParentNode): Map<string, string> {
       : el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement
         ? el.value
         : (el.textContent ?? "");
-    fields.set(`${base}#${nth}`, value);
+    if (!within || el.closest(within)) fields.set(`${base}#${nth}`, value);
   }
   return fields;
 }
@@ -93,9 +98,9 @@ function reconcile(tracked: Tracked, mine: boolean) {
   tracked.seen = now;
 }
 
-/** A field that just arrived starts where it arrived; nothing else is touched. */
+/** A marked record's field that just arrived starts where it arrived; nothing else is touched. */
 function takeInArrivals(tracked: Tracked) {
-  for (const [key, value] of readFields(tracked.root)) {
+  for (const [key, value] of readFields(tracked.root, "[data-sheet-arrives]")) {
     if (tracked.seen.has(key)) continue;
     tracked.start.set(key, value);
     tracked.seen.set(key, value);
