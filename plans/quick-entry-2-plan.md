@@ -8,13 +8,15 @@
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`). The PRD lands once, after wave 2.
 
-| Slice | Wave | State                                      | Merge into `prd/quick-entry-2` (slice commits) |
-| ----- | ---- | ------------------------------------------ | ---------------------------------------------- |
-| 1     | 1    | started, opus (worktree `quick-entry-2-1`) |                                                |
-| 2     | 2    | not started                                |                                                |
-| 3     | 1    | started, opus (worktree `quick-entry-2-3`) |                                                |
-| 4     | 2    | not started                                |                                                |
-| 5     | 1    | started, opus (worktree `quick-entry-2-5`) |                                                |
+| Slice | Wave | State                                                     | Merge into `prd/quick-entry-2` (slice commits) |
+| ----- | ---- | --------------------------------------------------------- | ---------------------------------------------- |
+| 1     | 1    | started, opus (worktree `quick-entry-2-1`)                |                                                |
+| 2     | 2    | not started                                               |                                                |
+| 3     | 1    | started, opus (worktree `quick-entry-2-3`)                |                                                |
+| 4     | 2    | not started                                               |                                                |
+| 5     | 1    | handed off, reviewed, awaiting merge after 1 and 3 (opus) | slice commit 42d56eb5; slice check passed      |
+
+**For the gate and docs (slice 5):** the other quick entry component tests render this box and haven't run on it (`timelineQuickEntrySuggestions`, `Passes`, `Todos`, the easy-mode files); the full check covers them. Fold the pruning and Clear rules into the assistant doc at landing.
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 
