@@ -143,10 +143,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-296 | bug | triaged | sync-safety-2 |  | A tab left open while another tab switches user keeps the old user id, and its next navigation clears the new user's local database |
 | B-299 | bug | ready | dose-accuracy | prd/dose-accuracy | Visit prep's 'Missed doses' reads history through today's schedule: a schedule change shows phantom misses back to the last visit |
 | B-304 | bug | landed | calendars-2 | prd/calendars-2 | Deleting an old event in Google Calendar rewrites past Caretook records: soft-deletes a past reminder note, cancels a past appointment, marks a todo done for the group |
-| B-305 | bug | triaged | calendars-2 |  | Events made in Google more than 90 days out never arrive: ignored as outsideWindow, the sync token advances, nothing revisits them |
+| B-305 | bug | in-progress | calendars-2 | prd/calendars-2 | Events made in Google more than 90 days out never arrive: ignored as outsideWindow, the sync token advances, nothing revisits them |
 | B-306 | bug | landed | calendars-2 | prd/calendars-2 | A reminder email can arrive after its appointment: about 2 h of retry backoff, no expiry, text rendered at queue time |
-| B-307 | bug | triaged | calendars-2 |  | Google Calendar pushes still name soft-deleted providers (reminders filter them) |
-| B-308 | bug | triaged | calendars-2 |  | The details-consent version is stored but never compared, so bumping DETAILS_CONSENT_VERSION re-asks nobody |
+| B-307 | bug | ready | calendars-2 | prd/calendars-2 | Google Calendar pushes still name soft-deleted providers (reminders filter them) |
+| B-308 | bug | ready | calendars-2 | prd/calendars-2 | The details-consent version is stored but never compared, so bumping DETAILS_CONSENT_VERSION re-asks nobody |
 | B-309 | change | landed | calendars-2 | prd/calendars-2 | Reminder emails show times in the recipient's zone with no zone label, 24-hour en-GB format; and 'monthly on the 29th–31st' silently skips short months (no 'last day' option) |
 | B-311 | bug | triaged | fixes-perf |  | The series top-up reads every live series every minute and rewrites topped_up_through daily even on ended series (re-syncing them to every device) |
 | B-313 | bug | triaged | fixes-perf |  | Timeline and Planner load and watch every note document in the group (snapshot, text, pending updates) to preview 30 rows, rerunning on each co-member keystroke |
@@ -358,6 +358,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-656 | bug | triaged | fixes-bug |  | Timeline: a period starting just after midnight in the recipient's zone shows day 1 on two headers for a viewer behind that zone |
 | B-657 | bug | triaged | fixes-bug |  | Pass log: after a successful Add a medication with unsaved dose edits, the sheet stays open and Back leaves without asking, losing the edits |
 | B-658 | bug | triaged | fixes-tooling |  | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
+| B-659 | bug | triaged | fixes-bug |  | A consent turned on offline before a wording bump and sent after it records the new version, though the member saw the older wording |
+| B-660 | chore | triaged | fixes-tooling |  | CI verdicts keep each failed test's failure message, so a one-off flake shows which limit or timeout broke |
 
 ## Items
 
@@ -688,9 +690,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-305 · bug · Events made in Google more than 90 days out never arrive: ignored as outsideWindow, the sync token advances, nothing revisits them
 
-- status: triaged
+- status: in-progress
 - prd: calendars-2
-- owner:
+- owner: prd/calendars-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. pullPlan.ts:150-154,185; calendarPullService.ts:277-311. Plausible and untested against Google: a recurring Google event becomes about 90 days of one-off appointments, then stops (real.ts:118-121).
@@ -708,20 +710,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-307 · bug · Google Calendar pushes still name soft-deleted providers (reminders filter them)
 
-- status: triaged
+- status: ready
 - prd: calendars-2
-- owner:
-- commit:
+- owner: prd/calendars-2
+- commit: b09b2ed7
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. calendarSyncService.ts:200-206. Low.
 - 2026-11-21 (plan/calendars-2): Planned in calendars-2 (plans/calendars-2-prd.md, 2026-11-21): B-304 slice 1, B-305 slices 2 and 7, B-306 slice 3, B-307 slice 2, B-308 slice 4, B-309 slices 5 and 6. The planner read the code for each.
 
 ### B-308 · bug · The details-consent version is stored but never compared, so bumping DETAILS_CONSENT_VERSION re-asks nobody
 
-- status: triaged
+- status: ready
 - prd: calendars-2
-- owner:
-- commit:
+- owner: prd/calendars-2
+- commit: 361a7814
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. Every reader uses !!detailsConsentAt. Design finding.
 - 2026-11-21 (plan/calendars-2): Planned in calendars-2 (plans/calendars-2-prd.md, 2026-11-21): B-304 slice 1, B-305 slices 2 and 7, B-306 slice 3, B-307 slice 2, B-308 slice 4, B-309 slices 5 and 6. The planner read the code for each.
@@ -1770,6 +1772,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: the same search speed test. Fix once and close both.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 4 (known flakes by cause). One fix per shared cause: B-610 with B-571, B-619 with B-492, and B-624 with B-446 and B-573.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, stress run, no fix made (the user's call): 24 of 24 runs passed at 5-minute load about 18 to 25 on the Mac. Slowest query 18.7 ms (limit 50), slowest rebuild 132 ms (limit 2,000), lock wait at most 2 ms. Not reproduced, and CI run 45117253571 kept no failing number, so the limits stay. Next failure: read the number from the CI verdict once it keeps failure messages (see the new item), then decide.
 
 ### B-493 · bug · Flaky under load: entryMentions.browser.test.tsx 'a viewer sees mentions as links to the provider's page… and gets no popup' fails in a full check; passes alone
 
@@ -2531,6 +2534,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: the same search speed test. Fix once and close both.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 4 (known flakes by cause). One fix per shared cause: B-610 with B-571, B-619 with B-492, and B-624 with B-446 and B-573.
 - 2026-11-23 (Robert Bo Davis): Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/onboarding.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, stress run, no fix made (the user's call): 24 of 24 runs passed at 5-minute load about 18 to 25 on the Mac. Slowest query 18.7 ms (limit 50), slowest rebuild 132 ms (limit 2,000), lock wait at most 2 ms. Not reproduced, and CI run 45117253571 kept no failing number, so the limits stay. Next failure: read the number from the CI verdict once it keeps failure messages (see the new item), then decide.
 
 ### B-620 · bug · Timeline day headers repeat a care period day number when the viewer and recipient are in different time zones
 
@@ -2884,3 +2888,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): [ci-key 81e93b941241] Flaked (passed on its rerun); found by prd/calendars-2.
+
+### B-659 · bug · A consent turned on offline before a wording bump and sent after it records the new version, though the member saw the older wording
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/calendars-2): From calendars-2 slice 4 (B-308). update({ detailsConsent: true }) stamps the server's current DETAILS_CONSENT_VERSION, not the version the device showed. Needs a bump landing inside one offline window. Fix idea: the device sends the version it displayed and the server refuses or leaves it stale on a mismatch.
+
+### B-660 · chore · CI verdicts keep each failed test's failure message, so a one-off flake shows which limit or timeout broke
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): From the search speed flake (B-619, B-492): the verdict artifact names the failing test only, so run 45117253571 left no number to diagnose. The search test's assertion already carries its timings in the message. Likely in scripts/ci/test-job.mjs and verdict.mjs.
