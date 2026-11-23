@@ -193,6 +193,23 @@ describe("the due pass as one tap", () => {
 });
 
 describe("the runner", () => {
+  test("a pass's doses take slot ids (UUID v5) in one derived round", async () => {
+    const device = await open();
+    const now = new Date().toISOString();
+    const result = await runActions(device.db, TEST_GROUP.id, [
+      { type: "givePass", passId: EVENING.id, occurredAt: now },
+    ]);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.ids).toHaveLength(2);
+    expect(result.ids.every((id) => id[14] === "5")).toBe(true);
+    const rounds = await device.query<{ round: string }>(
+      "SELECT json_extract(details, '$.passLogId') AS round FROM timeline_entry WHERE kind = 'dose'",
+    );
+    expect(new Set(rounds.map((r) => r.round)).size).toBe(1);
+    expect(rounds[0]?.round?.[14]).toBe("5");
+  });
+
   test("a pass with nothing left to give refuses the whole batch, naming it", async () => {
     const device = await open();
     const now = new Date().toISOString();

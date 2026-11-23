@@ -3,6 +3,7 @@ import type {
   MedicationStatus,
   NoteSectionLine,
   PeriodSpan,
+  ScheduleChange,
   TrackPeriod,
   TimelineEntryDetails,
   UnitChoices,
@@ -121,6 +122,8 @@ export type VisitPrepData = {
   passes: readonly SchedulePass[];
   /** The doses (not deleted) logged in the window, for missed doses. Left out: no missed-dose section. */
   doses?: readonly DueDose[];
+  /** The group's medication change entries over the window, deleted ones too: each day's own schedule. */
+  changes?: readonly ScheduleChange[];
   /** The care period track. */
   periods: readonly PeriodSpan<PrepPeriod>[];
   /** Provider id → name, for care periods' places. */
@@ -312,7 +315,7 @@ const currentMedicationLines = (data: VisitPrepData) =>
 /**
  * Missed doses in the window, per medication, most first: "Metformin 500 mg:
  * 3 missed, 1 refused (of 28)". Missed is a scheduled slot nothing answered
- * by the end of its day (`doseSlotsBetween`, the slot rules of what's due);
+ * by the end of its day, against the schedule of that day (`doseSlotsBetween`);
  * skipped and refused are as logged. Today's slots still open don't count.
  */
 const missedDoseLines = (window: VisitWindow, data: VisitPrepData) => {
@@ -321,6 +324,7 @@ const missedDoseLines = (window: VisitWindow, data: VisitPrepData) => {
     medications: data.medications,
     passes: data.passes,
     doses: data.doses,
+    changes: data.changes,
     from: window.from,
     to: window.to,
     timeZone: data.timeZone,
