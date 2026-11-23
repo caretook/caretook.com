@@ -6,7 +6,7 @@ import { Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { formatDay, formatTime } from "~/lib/core/format";
-import { useLiveQuery } from "~/lib/sync";
+import { useLiveRows } from "~/lib/sync/useLiveRows";
 import { providerEntriesQuery } from "~/lib/providers/providers.sync";
 import { toTimelineEntries } from "~/lib/timeline/timeline.sync";
 
@@ -14,19 +14,22 @@ const NO_ROWS: EntryRow[] = [];
 
 /**
  * Every note and event linked to the provider, newest first, live (links
- * made on another device show without a reload). Each opens its entry.
+ * made on another device show without a reload). Each opens its entry. The
+ * empty line waits for the query's first answer (`fresh`).
  */
 export function LinkedEntries({ groupId, providerId }: { groupId: string; providerId: string }) {
   const query = providerEntriesQuery(providerId);
-  const rows = useLiveQuery<EntryRow>(query.sql, query.params, NO_ROWS);
+  const { rows, fresh } = useLiveRows<EntryRow>(query.sql, query.params, NO_ROWS);
   const entries = toTimelineEntries(rows);
 
   return (
     <Section title="Linked entries" id="linked-entries" data-linked-entries="">
       {entries.length === 0 ? (
-        <p className="text-base-content/70 text-sm">
-          No notes or events yet. Link this provider from a note or event's With row.
-        </p>
+        fresh && (
+          <p className="text-base-content/70 text-sm">
+            No notes or events yet. Link this provider from a note or event's With row.
+          </p>
+        )
       ) : (
         <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border">
           {entries.map((entry) => (
