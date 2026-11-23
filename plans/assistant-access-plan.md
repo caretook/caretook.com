@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** wave 1 landed in `dev` as b8a4e8f0 through PR #83 (2026-11-22). Full check passed on b76d5901; Codex clean on 89882c7c after one P2, tracked on B-558 and fixed by slice 3. Browser checks skipped for wave 1 on the user's word (no screens changed). Its docs are folded on this branch and land with wave 2. **Wave 2 is merged into this branch (tip of the merges febc5386), worktrees removed. Next: sync, browser checks, full check, PR, Codex, land.** The `sync-config.yaml` change makes `browser --changed` expand to the whole lean set: list first, and ask before running it.
+**Where it stands:** wave 1 landed in `dev` as b8a4e8f0 through PR #83 (2026-11-22). Full check passed on b76d5901; Codex clean on 89882c7c after one P2, tracked on B-558 and fixed by slice 3. Browser checks skipped for wave 1 on the user's word (no screens changed). Its docs are folded on this branch and land with wave 2. **Wave 2 is merged into this branch (tip of the merges febc5386), worktrees removed.** Full check passed on 08cd25ed. Browser checks skipped for wave 2 on the user's word (ask a89, "Skip it"). Dev synced conflict-free at 45179fed, sharing no file. **Next: quick check on the tip, PR, Codex, land.**
 
 **For wave 2 (from slice 1's hand-off):** slice 2 adds the column to `sync-config.yaml` and the device schema and uses `CONNECTOR_READ_ONLY_BY_OWNER_LABEL`. Slice 3 changes `loadConnectPage` to `scopesForRole(role, group.connectorsReadOnly)`; until then Connect on a read-only group shows the `groupReadOnly` refusal. Migration `0037` is regenerated if another PRD lands one first.
 
