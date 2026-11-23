@@ -19,7 +19,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 
 **Open issues:**
 
-- Filed in fixes-tooling: B-609 (stale check-gate text: `prd.sh` help, the hotfix prompt, the PR body and `ready`, dead `checked_ok`), B-610 (`resetStaging` flake, quarantined), B-568 (six quarantined tests), B-571, B-573, and the context-limit items B-595 to B-598.
+- Filed in fixes-tooling: B-609 (stale check-gate text: `prd.sh` help, the hotfix prompt, the PR body and `ready`, dead `checked_ok`), B-610 (`resetStaging` flake, quarantined), B-568 (six quarantined tests), B-571, B-573, the context-limit items B-595 to B-598, B-623 (the check's "unhandled error" grep matches a passing test's title, so tooling failures never rerun) and B-624 (`browser.test.mjs` "passes a clean spec" fails under load; passed alone 3 of 3).
 - `ci blame`'s file, status and infra-rerun paths have run mostly against fakes. The `ci/` ref deletion in `pnpm prd tidy` has not run against a real old ref.
 - Slice 7 limits: "no rotation during a fix" and "a hand-off leaves no stack up" are prompt-only; a leftover `ci/` ref with no run blocks `rotate` until removed or `--mid-wave`; `gc`'s run-out hold has no `gc`-level test; `pnpm prd rm` doesn't check the hold.
 - A flake verdict's GitHub run shows `success`: read the verdict, not the colour.
