@@ -18,6 +18,7 @@ import { getLinkLimits, signupRefusal } from "./appSettingService";
 import * as careGroupMemberService from "./careGroupMemberService";
 import { groupDisplayName } from "./groupNames";
 import * as joinRequestService from "./joinRequestService";
+import * as legalAcceptanceService from "./legalAcceptanceService";
 
 export { groupDisplayName };
 
@@ -388,30 +389,47 @@ const joined = (groupId: string, role: GroupRoleName): AcceptResult => ({
 });
 
 /**
+ * Before a new join or join request: an account with a current acceptance
+ * passes and writes nothing; without one, `legal` records it in this
+ * transaction, and its absence is `legalRequired`.
+ */
+const ensureLegal = async (userId: string, legal: boolean | undefined, tx: Tx) => {
+  const current = await legalAcceptanceService.hasCurrent(userId, tx);
+  if (isError(current)) return current;
+  if (current) return null;
+  if (!legal) return newError({ code: "careGroupInviteService:legalRequired" });
+  const recorded = await legalAcceptanceService.record(tx, { userId, source: "invite_accept" });
+  return isError(recorded) ? recorded : null;
+};
+
+/**
  * Using a link: a member already is one; anyone else gets a pending join
  * request (one per person: asking again returns it), which an owner or admin
- * approves. Until then they see nothing of the group.
+ * approves. Until then they see nothing of the group. Only a new request
+ * asks for the legal acceptance.
  */
 const askWithLink = async (
   invite: CareGroupInviteModel,
   userId: string,
+  legal: boolean | undefined,
   tx: Tx,
   mail: JoinMailer | undefined,
 ): Promise<AcceptResult | AppError> => {
   const current = await careGroupMemberModel.getRole(invite.groupId, userId, { tx });
   if (isError(current)) return current;
   if (current) return joined(invite.groupId, current);
+  // A request already waiting is still waiting, even once the link has closed.
+  const waiting = await joinRequestService.requestWithLink({ invite, userId }, tx, mail, {
+    existingOnly: true,
+  });
+  if (isError(waiting)) return waiting;
+  if (waiting) return requested(waiting.request);
   const state = inviteState({ invite });
   const closed = await kindRefusal(invite);
-  if (state !== "usable" || closed) {
-    // A request already waiting is still waiting, even once the link has closed.
-    const asked = await joinRequestService.requestWithLink({ invite, userId }, tx, mail, {
-      existingOnly: true,
-    });
-    if (isError(asked)) return asked;
-    if (asked) return requested(asked.request);
-    return closed ?? newError({ code: "careGroupInviteService:unusable", meta: { state } });
-  }
+  if (closed) return closed;
+  if (state !== "usable") return newError({ code: "careGroupInviteService:unusable", meta: { state } });
+  const refused = await ensureLegal(userId, legal, tx);
+  if (refused) return refused;
   const asked = await joinRequestService.requestWithLink({ invite, userId }, tx, mail);
   if (isError(asked)) return asked;
   if (!asked) return newError({ code: "careGroupInviteService:notFound" });
@@ -433,11 +451,12 @@ const requested = (request: { id: string; groupId: string; role: GroupRoleName }
  * consent row, the email marked verified (accepting proves the address), and
  * the invite accepted. Accepting again returns the same result. For a link,
  * it asks to join instead (`askWithLink`), emailing owners and admins
- * through `joinMail`.
+ * through `joinMail`. An account without a current legal acceptance must
+ * give `legal`, recorded in the same transaction (`legalRequired` otherwise).
  */
 export const accept = (
   ctx: ServiceContext,
-  { token, consent }: { token: string; consent: boolean },
+  { token, consent, legal }: { token: string; consent: boolean; legal?: boolean },
   opts: { joinMail?: JoinMailer } = {},
 ) =>
   withTransaction(async (tx) => {
@@ -448,7 +467,7 @@ export const accept = (
     const invite = await careGroupInviteModel.getByToken(token, { tx, lock: true });
     if (isError(invite)) return invite;
     if (!invite) return newError({ code: "careGroupInviteService:notFound" });
-    if (invite.kind === "link") return askWithLink(invite, userId, tx, opts.joinMail);
+    if (invite.kind === "link") return askWithLink(invite, userId, legal, tx, opts.joinMail);
 
     const user = await userModel.getWholeById(userId, system(tx));
     if (isError(user)) return user;
@@ -466,6 +485,8 @@ export const accept = (
     if (state !== "usable") return newError({ code: "careGroupInviteService:unusable", meta: { state } });
     const closed = await kindRefusal(invite);
     if (closed) return closed;
+    const refused = await ensureLegal(userId, legal, tx);
+    if (refused) return refused;
 
     if (!current) {
       const member = await careGroupMemberService.create(system(tx), {
