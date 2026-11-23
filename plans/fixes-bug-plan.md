@@ -81,10 +81,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 41    | B-620 | landed (care-periods.md folded)            | ab9dcfae |
 | 42    | B-631 | landed                                     | 2a479df8 |
 | 43    | B-656 | started (opus)                             |          |
-| 44    | B-657 | started (opus)                             |          |
+| 44    | B-657 | handed off (7f49862b)                      |          |
 | 45    | B-659 | started (opus)                             |          |
 | 46    | B-662 | started (opus)                             |          |
-| 47    | B-666 | started (opus)                             |          |
+| 47    | B-666 | handed off (e133139d)                      |          |
 | 48    | B-675 | started (opus)                             |          |
 
 ## Wave 1
