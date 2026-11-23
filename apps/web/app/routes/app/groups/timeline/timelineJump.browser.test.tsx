@@ -114,9 +114,10 @@ describe("opening the timeline on a day", () => {
     await openTimeline({ fixtures: farWorld(), query: `?day=${key(400)}` });
     await waitUntil(() => !!notice());
     expect(notice()).toMatch(/^No entries on or before /);
-    expect(rows()).toHaveLength(0);
-    expect(headings()).not.toContain("Today");
-    expect(document.querySelector("[data-empty-today]")).toBeNull();
+    // The oldest day loads on its own, under the notice (timelineJumpPaging has the rest).
+    const oldest = await found(() => document.getElementById(`day-${key(50)}`));
+    const shown = document.querySelector("[data-jump-notice]")!;
+    expect(shown.compareDocumentPosition(oldest) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(backToToday()).toBeTruthy();
   });
 

@@ -36,6 +36,7 @@ import { appUrls } from "~/lib/app-shell/appUrls";
 import { BackToToday } from "./BackToToday";
 import { DayHeader } from "./DayHeader";
 import { foldPassLogs } from "./dayItems";
+import { NewerEntries } from "./NewerEntries";
 import { PassLogItem } from "./PassLogItem";
 import { PeriodMarkerItem } from "./PeriodMarkerItem";
 import { COLUMN_CAP, ROWS_BOX } from "./layout";
@@ -125,6 +126,7 @@ export function TimelineEntryList({
     | "restored"
     | "returning"
     | "jump"
+    | "newer"
   >;
   view: TimelineView;
   units: UnitChoices;
@@ -209,6 +211,13 @@ export function TimelineEntryList({
     });
     return () => cancelAnimationFrame(frame);
   }, [drawAll]);
+  // So are days added above a jump's window: drawn once, so no estimated height moves the page.
+  const windowBound = data.jump?.before ?? null;
+  const [drawnBound, setDrawnBound] = useState(windowBound);
+  if (drawnBound !== windowBound) {
+    setDrawnBound(windowBound);
+    setDrawAll(true);
+  }
   const settled = drawAll ? NO_SETTLED : settledDays(sections);
   // Each day's summary line (none while a filter or search is on: `summaryEntries` is null then; none when they're off).
   const summaries =
@@ -234,7 +243,7 @@ export function TimelineEntryList({
     if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "start" });
   }, [filterKey]);
   // A jump lands on its day (only a jump: sheets and Back keep the scroll).
-  useJumpLanding(list, !!data.jump, data.returning);
+  const landed = useJumpLanding(list, !!data.jump, data.returning);
 
   const emptyText = emptyTimelineText(kind, author && data.nameOf(author), searching.q, vital);
   const announcement = searchAnnouncement({
@@ -286,12 +295,19 @@ export function TimelineEntryList({
     );
   };
 
+  // Beside the day it's about, so newer days loaded above don't come between them.
+  const jumpNotice = data.jump?.notice && (
+    <Notice tone="info" role="status" data-jump-notice="">
+      {data.jump.notice}
+    </Notice>
+  );
+
   return (
     <>
       <section
         ref={list}
         aria-labelledby="timeline-heading"
-        className={`space-y-4 ${COLUMN_CAP} ${data.jump ? "pb-16" : ""}`}
+        className={`space-y-4 ${COLUMN_CAP} ${data.jump ? "pb-16" : ""} ${data.jump?.bounded ? "[overflow-anchor:none]" : ""}`}
         data-easy-list={easy ? "" : undefined}
       >
         <h2 id="timeline-heading" className="sr-only">
@@ -304,13 +320,13 @@ export function TimelineEntryList({
         <p role="status" className="sr-only" data-search-status>
           {announcement}
         </p>
-        {data.jump?.notice && (
-          <Notice tone="info" role="status" data-jump-notice="">
-            {data.jump.notice}
-          </Notice>
+        {data.jump && (
+          <NewerEntries newer={data.newer} armed={landed} empty={data.days.length === 0} list={list} />
         )}
+        {!sections.some((day) => day.key === data.jump?.noticeDay) && jumpNotice}
         {sections.map((day) => (
           <section key={day.key} aria-labelledby={`day-${day.key}`}>
+            {day.key === data.jump?.noticeDay && <div className="mb-4">{jumpNotice}</div>}
             <DayHeader
               dayKey={day.key}
               label={day.label}
