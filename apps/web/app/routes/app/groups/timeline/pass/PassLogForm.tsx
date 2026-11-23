@@ -62,6 +62,7 @@ export function PassLogForm({
             key={dose.id}
             className="rounded-box border-base-300 space-y-1 border p-3"
             data-pass-dose={dose.id}
+            data-sheet-arrives=""
           >
             <legend className="px-1 font-semibold">{dose.medicationName}</legend>
             <input type="hidden" name={DOSE_IDS_FIELD} value={dose.id} data-sheet-aside="" />
