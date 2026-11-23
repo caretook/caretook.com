@@ -420,10 +420,17 @@ describe("doses", () => {
         expect(symptoms("tylenol 2 at 8", medications)).toEqual([]);
       });
 
-      test.each(["tylenol 500", "gave tylenol 25"])("%s keeps the usual dose", (line) => {
-        const r = top(line, over(medications));
+      test("gave tylenol 25 keeps the usual dose", () => {
+        const r = top("gave tylenol 25", over(medications));
         expect(r.kind).toBe("dose");
         expect(action(r)).toMatchObject({ medicationId, amount: "2 tablets" });
+      });
+
+      test("tylenol 500 at the strength asks for the amount (B-662)", () => {
+        const r = top("tylenol 500", over(medications));
+        expect(r.kind).toBe("dose");
+        expect(r.asksAmount).toBe(true);
+        expect(action(r)).toMatchObject({ medicationId, amount: null });
       });
 
       test("didn't give 2 tylenol is skipped with the amount", () => {
@@ -740,11 +747,41 @@ describe("doses", () => {
           expect(when(r)).toBe(NOW.toISOString());
         });
 
-        test("a whole number at the strength still names it: the usual dose (B-648)", () => {
-          const r = top("gave lisinopril 10", {
-            medications: [{ id: LIS, name: "Lisinopril", strength: "10 mg", dose: "2 tablets" }],
+        describe("a whole number at the strength (B-662)", () => {
+          const lisinopril = (dose: string | null) => ({
+            medications: [{ id: LIS, name: "Lisinopril", strength: "10 mg", dose }],
           });
-          expect(action(r)).toMatchObject({ type: "logDose", amount: "2 tablets", note: null });
+
+          test("with a usual 2 tablets, it asks: blocked, recording no amount, offering both", () => {
+            const { readings } = parse("gave lisinopril 10", lisinopril("2 tablets"))[0]!;
+            const [ask, ...rest] = readings;
+            expect(ask!.asksAmount).toBe(true);
+            expect(action(ask!)).toMatchObject({ type: "logDose", medicationId: LIS, amount: null });
+            expect(ask!.warnings.some((w) => w.blocking)).toBe(true);
+            const choices = rest.filter((r) => r.amountChoice);
+            expect(choices.map((r) => r.amountChoice)).toEqual(["1 tablet", "2 tablets"]);
+            expect(choices.map((r) => action(r))).toMatchObject([
+              { amount: "1 tablet" },
+              { amount: "2 tablets" },
+            ]);
+            expect(choices.every((r) => r.warnings.every((w) => !w.blocking))).toBe(true);
+          });
+
+          test.each([
+            ["a usual 1 tablet", "1 tablet", "1 tablet"],
+            ["no usual dose", null, null],
+            ["a usual measure", "10 mg", "10 mg"],
+          ])("with %s, it records directly", (_, dose, amount) => {
+            const r = top("gave lisinopril 10", lisinopril(dose));
+            expect(r.asksAmount).toBeUndefined();
+            expect(action(r)).toMatchObject({ type: "logDose", amount, note: null });
+          });
+
+          test("a count typed too is the amount, with nothing to ask", () => {
+            const r = top("gave 2 lisinopril 10", lisinopril("2 tablets"));
+            expect(r.asksAmount).toBeUndefined();
+            expect(action(r)).toMatchObject({ amount: "2 tablets" });
+          });
         });
 
         test("a fraction that isn't the strength is still the amount", () => {

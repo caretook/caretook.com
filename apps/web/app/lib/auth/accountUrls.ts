@@ -34,6 +34,8 @@ export const accountUrls = {
   resetPassword: () => "/reset-password",
   /** An invite link's page (the token is base64url, so it needs no escaping). */
   invite: (token: string) => `/invite/${encodeURIComponent(token)}`,
+  /** The same page right after signing up on it; only the URL differs (B-666). */
+  inviteSignedUp: (token: string) => `/invite/${encodeURIComponent(token)}?signedUp=1`,
   /** A staff access code's page (`/join/CARE-…`): an account and a new care group. */
   join: (code: string) => `/join/${encodeURIComponent(code)}`,
   verifyEmail: (email?: string | null, next?: string | null) =>

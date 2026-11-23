@@ -15,12 +15,15 @@ export const TIERS = /** @type {const} */ ([
   "components",
   "full",
   "candidate",
+  "release",
 ]);
 
 /**
  * The jobs each tier adds. The component tests are two shards, since one job ran
  * past the 10-minute limit (13 minutes); `full` adds the build job and
- * `candidate` the browser suite on the Docker stack.
+ * `candidate` the browser suite on the Docker stack. `release` adds two more suite
+ * runs and the second zone. Each suite run is its own job: one job's 35-minute limit
+ * holds one suite (its caps total about 26 minutes).
  */
 export const TIER_JOBS = /** @type {const} */ ({
   static: ["static"],
@@ -29,6 +32,7 @@ export const TIER_JOBS = /** @type {const} */ ({
   components: ["components-1", "components-2"],
   full: ["build"],
   candidate: ["browser"],
+  release: ["browser-2", "browser-3", "zone-components-1", "zone-components-2", "zone-browser"],
 });
 
 /** @param {string} tier */
@@ -140,6 +144,7 @@ export function planOutputs(ref, narrowed = null) {
       `components=${jobs.includes("components-1")}`,
       "full=false",
       "candidate=false",
+      "release=false",
       "components2=false",
       "narrowed=true",
     ];

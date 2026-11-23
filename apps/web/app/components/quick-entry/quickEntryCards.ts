@@ -41,6 +41,11 @@ export const partKey = (index: number, part: QuickEntryPart) => `${index}:${part
 export const makeItLabel = (label: string) =>
   `Make it ${/^[aeiou]/i.test(label) ? "an" : "a"} ${label.toLowerCase()}`;
 
+const medicationOf = (reading: QuickEntryReading) => {
+  const action = reading.actions[0];
+  return action?.type === "logDose" ? action.medicationId : null;
+};
+
 export const buildCards = (
   parts: readonly QuickEntryPart[],
   { chosen, removed }: { chosen: ReadonlyMap<string, number>; removed: ReadonlySet<string> },
@@ -58,9 +63,14 @@ export const buildCards = (
         text: part.text,
         reading,
         index,
-        alternatives: part.readings.flatMap((r, k) =>
-          k !== index && r.kind === reading.kind ? [{ index: k, label: `${titleOf(r)} instead` }] : [],
-        ),
+        alternatives: part.readings.flatMap((r, k) => {
+          if (k === index || r.kind !== reading.kind) return [];
+          // A dose that asks its amount offers the amounts, by name, only on its own medication's card.
+          const sameMedication = medicationOf(r) === medicationOf(reading);
+          if (r.amountChoice) return sameMedication ? [{ index: k, label: r.amountChoice }] : [];
+          if (r.asksAmount && sameMedication) return [];
+          return [{ index: k, label: `${titleOf(r)} instead` }];
+        }),
         kindChoices: part.readings.flatMap((r, k) =>
           r.kind !== reading.kind && part.readings.findIndex((o) => o.kind === r.kind) === k
             ? [{ index: k, kind: r.kind, label: makeItLabel(r.label) }]
@@ -151,6 +161,8 @@ export const editTarget = (
   action: AssistantAction,
   groupId: string,
   search?: string,
+  /** The line couldn't tell the amount: the Dose sheet starts empty, not on the usual dose. */
+  asksAmount = false,
 ): { to: string; state: Record<string, unknown> } | "saveAndOpen" => {
   const state = (draft: EntryDraft | DoseDraft) => ({ ...SHEET_LINK_STATE, [QUICK_ENTRY_DRAFT]: draft });
   switch (action.type) {
@@ -179,7 +191,7 @@ export const editTarget = (
         to: appUrls.newDose(groupId, { medicationId: action.medicationId, search }),
         state: state({
           status: action.status,
-          amount: action.amount ?? null,
+          amount: asksAmount ? "" : (action.amount ?? null),
           note: action.note ?? null,
           occurredAt: action.occurredAt,
         }),

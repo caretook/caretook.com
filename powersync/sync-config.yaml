@@ -163,12 +163,12 @@ streams:
         created_at, created_by, updated_by
         FROM care_recipient_details WHERE group_id IN writer_groups
 
-  # Co-members' public profiles (name and picture) for author names.
+  # Co-members' public profiles (name, picture and avatar choice) for author names.
   member_profiles:
     auto_subscribe: true
     with:
       my_groups: SELECT group_id FROM care_group_member WHERE user_id = auth.user_id()
     query: >-
-      SELECT "user".id, "user".name, "user".image FROM "user"
+      SELECT "user".id, "user".name, "user".image, "user".avatar_color, "user".avatar_icon FROM "user"
       INNER JOIN care_group_member ON care_group_member.user_id = "user".id
       WHERE care_group_member.group_id IN my_groups

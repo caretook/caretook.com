@@ -7,7 +7,10 @@
 //   node scripts/ci/env.mjs >> "$GITHUB_ENV"         the test jobs
 //   node scripts/ci/env.mjs build >> "$GITHUB_ENV"   the build job
 //   node scripts/ci/env.mjs browser >> "$GITHUB_ENV" the browser job
+//   node scripts/ci/env.mjs zone >> "$GITHUB_ENV"    moves a job to the second zone
 import { randomBytes } from "node:crypto";
+
+import { PRIMARY_ZONE, secondZoneEnv } from "./zones.mjs";
 
 /** The Postgres service's port: the integration tests' test port. */
 export const CI_PG_PORT = "5435";
@@ -69,7 +72,7 @@ export function ciBuildEnv(...args) {
 }
 
 /** The zone CI's server and runner use: the one the browser contexts pin. */
-export const CI_ZONE = "America/Los_Angeles";
+export const CI_ZONE = PRIMARY_ZONE;
 
 /** The browser job's Compose project, and so its Postgres container's name. */
 export const CI_STACK = "caretook-ci";
@@ -111,7 +114,7 @@ export function ciBrowserEnv(...args) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const makers = { build: ciBuildEnv, browser: ciBrowserEnv };
+  const makers = { build: ciBuildEnv, browser: ciBrowserEnv, zone: secondZoneEnv };
   const env = (makers[/** @type {keyof typeof makers} */ (process.argv[2])] ?? ciEnv)();
   for (const [name, value] of Object.entries(env)) console.log(`${name}=${value}`);
 }

@@ -102,7 +102,7 @@ export const EASY_ROLES: readonly GroupRoleName[] = EASY_ROLE_NAMES;
 export const OWN_ROW_LOGGERS: readonly GroupRoleName[] = LOGGERS.filter((role) => !WRITERS.includes(role));
 
 /** What a co-member may read of another member's `user` row. */
-export const PUBLIC_PROFILE_FIELDS = ["id", "name", "image"] as const;
+export const PUBLIC_PROFILE_FIELDS = ["id", "name", "image", "avatarColor", "avatarIcon"] as const;
 
 export const SYSTEM_ONLY_ENTRY = {
   ...NO_ACCESS,

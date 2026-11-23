@@ -15,7 +15,13 @@ import {
   timelineEntryModel,
   timelineEntryService,
 } from "@caretook/data";
-import { addDays, dayInZone, memberCalendarSettingSchema, zonedInstant } from "@caretook/data/schema";
+import {
+  addDays,
+  dayInZone,
+  DETAILS_CONSENT_VERSION,
+  memberCalendarSettingSchema,
+  zonedInstant,
+} from "@caretook/data/schema";
 import { randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -186,7 +192,12 @@ describe("sweepReminders", { timeout: 30_000 }, () => {
     expect(generic!.headers).toMatchObject({ "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" });
 
     // With consent: the title, place and provider.
-    ok(await calendarSettingService.update(ana.ctx, group.id, { detailsConsent: true }));
+    ok(
+      await calendarSettingService.update(ana.ctx, group.id, {
+        detailsConsent: true,
+        detailsConsentVersion: DETAILS_CONSENT_VERSION,
+      }),
+    );
     const moved = plus(NINE, 30);
     ok(await timelineEntryService.update(ana.ctx, visit.id, { occurredAt: moved.toISOString() }));
     const [detailed] = to((await sweep(plus(moved, -60))).sent, ana.user.email);
@@ -209,7 +220,11 @@ describe("sweepReminders", { timeout: 30_000 }, () => {
 
   it("is generic when the consent wording changed, until the member agrees again", async () => {
     const { ana, group, remindersOn, addAppointment } = await setup();
-    await remindersOn(ana, { reminderLeads: [60], detailsConsent: true });
+    await remindersOn(ana, {
+      reminderLeads: [60],
+      detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
     const visit = await addAppointment();
     await getDb()
       .update(memberCalendarSettingSchema)
@@ -222,7 +237,12 @@ describe("sweepReminders", { timeout: 30_000 }, () => {
       expect(part).not.toContain("Riverside");
     }
 
-    ok(await calendarSettingService.update(ana.ctx, group.id, { detailsConsent: true }));
+    ok(
+      await calendarSettingService.update(ana.ctx, group.id, {
+        detailsConsent: true,
+        detailsConsentVersion: DETAILS_CONSENT_VERSION,
+      }),
+    );
     const moved = plus(NINE, 30);
     ok(await timelineEntryService.update(ana.ctx, visit.id, { occurredAt: moved.toISOString() }));
     const [agreed] = to((await sweep(plus(moved, -60))).sent, ana.user.email);

@@ -138,6 +138,20 @@ describe("/join/:code", () => {
     ]);
   });
 
+  test("a password manager can read the form: username, new password, one form, a real submit (B-666)", async () => {
+    await open(usable);
+    await expect.element(field("Email")).toHaveAttribute("autocomplete", "username");
+    await expect.element(field("Password")).toHaveAttribute("autocomplete", "new-password");
+    await expect.element(field("Password again")).toHaveAttribute("autocomplete", "new-password");
+    await fillAccount();
+    await expect.element(heading()).toHaveTextContent("Who do you care for?");
+    const form = document.querySelector("[data-join-form]");
+    for (const name of ["email", "password", "confirm"]) {
+      expect(form?.querySelector(`input[name="${name}"]`)).not.toBeNull();
+    }
+    expect(form?.querySelector('button[type="submit"]')?.textContent).toContain("Create care group");
+  });
+
   test("passwords that don't match are refused on the account step, before any call", async () => {
     const calls = apiCalls();
     await open(calls.record({ ...usable, "accessCode.signUp": () => ({ email: "x@example.com" }) }));

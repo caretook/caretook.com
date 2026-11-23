@@ -104,6 +104,10 @@ export type QuickEntryReading = {
   /** 0–1; readings are sorted by it, best first. */
   confidence: number;
   warnings: QuickEntryWarning[];
+  /** A dose whose amount the line can't tell: blocked until one of its `amountChoice` readings is picked. */
+  asksAmount?: boolean;
+  /** One answer to `asksAmount`, as its chip says it ("2 tablets"). */
+  amountChoice?: string;
 };
 
 export type QuickEntryPart = { text: string; readings: QuickEntryReading[] };
@@ -1082,6 +1086,10 @@ const countedAmount = (word: string, value: number, dose: string | null | undefi
   return `${word} ${value <= 1 ? unit.one : unit.many}`;
 };
 
+/** Whether the usual dose is more than one counted unit ("2 tablets", not "1 tablet" or "500 mg"). */
+const isSeveralUnits = (dose: string | null | undefined) =>
+  !!usualUnit(dose) && (countValue(dose!.trim().split(/\s+/)[0]!.toLowerCase()) ?? 0) > 1;
+
 const MEASURE = /^(\d+(?:\.\d+)?)\s*([a-z]+)$/i;
 
 /**
@@ -1203,6 +1211,7 @@ const typedBeside = (
   let count: { used: number[]; amount: string } | null = null;
   const strength: number[] = [];
   let partAmount: string | null = null;
+  let wholeAtStrength = false;
   const counted = (k: number, word: string, links: number[]) => {
     const value = countValue(word);
     if (!count && isCount(value))
@@ -1228,9 +1237,15 @@ const typedBeside = (
     } else if (/^\d/.test(w) && strengths.includes(countValue(w) ?? NaN)) {
       strength.push(k);
       if (wantCount && /[./]/.test(w)) partAmount ??= amountAtStrength(w, m.item);
+      else if (wantCount) wholeAtStrength = true;
     } else if (wantCount) counted(k, w, []);
   }
-  return { count: count as { used: number[]; amount: string } | null, strength, partAmount };
+  return {
+    count: count as { used: number[]; amount: string } | null,
+    strength,
+    partAmount,
+    wholeAtStrength,
+  };
 };
 
 /**
@@ -1341,7 +1356,7 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   if (!inherited && !forced && !nameOnly) return [];
   for (const i of [...verbUsed, ...amountUsed, ...matches[0]!.used, ...typedUsed(0)]) s.claimed.add(i);
   const at = s.time.past.at;
-  return matches.map((m, rank) => {
+  return matches.flatMap((m, rank) => {
     const amount = amountUsed.length ? typedAmount(s.tokens, amountUsed, m.item) : null;
     const noteIdx = stripLeading(
       s.tokens,
@@ -1360,19 +1375,38 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
             : forced
               ? 0.9
               : 0.6;
-    return reading(
-      "dose",
-      {
-        type: "logDose",
-        medicationId: m.item.id,
-        status: inherited ?? "given",
-        amount: amount ?? typed[rank]!.count?.amount ?? typed[rank]!.partAmount ?? m.item.dose ?? null,
-        note,
-        occurredAt: at.toISOString(),
-      },
-      (forced ? 1 : base * m.score) - rank * 0.01,
-      futureWarning(at, s.context),
-    );
+    const confidence = (forced ? 1 : base * m.score) - rank * 0.01;
+    const doseOf = (recorded: string | null, score: number, warnings: QuickEntryWarning[]) =>
+      reading(
+        "dose",
+        {
+          type: "logDose",
+          medicationId: m.item.id,
+          status: inherited ?? "given",
+          amount: recorded,
+          note,
+          occurredAt: at.toISOString(),
+        },
+        score,
+        warnings,
+      );
+    const said = amount ?? typed[rank]!.count?.amount ?? typed[rank]!.partAmount;
+    // "lisinopril 10" at 10 mg with a usual 2 tablets: one tablet or the usual two? The caretaker says.
+    if (!said && typed[rank]!.wholeAtStrength && isSeveralUnits(m.item.dose)) {
+      const usual = m.item.dose!.trim();
+      const message = `Choose the amount: ${m.item.strength} is the strength, and the usual dose is ${usual}.`;
+      return [
+        {
+          ...doseOf(null, confidence, [...futureWarning(at, s.context), { message, blocking: true }]),
+          asksAmount: true,
+        },
+        ...[countedAmount("1", 1, usual), usual].map((choice, i) => ({
+          ...doseOf(choice, confidence - (i + 1) * 0.001, futureWarning(at, s.context)),
+          amountChoice: choice,
+        })),
+      ];
+    }
+    return [doseOf(said ?? m.item.dose ?? null, confidence, futureWarning(at, s.context))];
   });
 };
 
