@@ -4,21 +4,21 @@
 
 ## Status
 
-| Slice | Title                                         | Wave | State          | Merge    |
-| ----- | --------------------------------------------- | ---- | -------------- | -------- |
-| 1     | Timeline list and Today, guard list regrouped | 1    | landed (opus)  | 052389e8 |
-| 2     | Timeline forms and sheets                     | 2    | landed (opus)  | 85bcc859 |
-| 3     | Easy view and quick entry                     | 2    | landed (opus)  | 0e7f842f |
-| 4     | Entries and the notes editor                  | 2    | landed (opus)  | 01a9b113 |
-| 5     | Admin                                         | 2    | landed (opus)  | a9b7f208 |
-| 6     | Account, connectors and marketing             | 2    | landed (opus)  | 2f650721 |
-| 7     | The frame, home, and closing the guard        | 3    | started (opus) |          |
+| Slice | Title                                         | Wave | State         | Merge    |
+| ----- | --------------------------------------------- | ---- | ------------- | -------- |
+| 1     | Timeline list and Today, guard list regrouped | 1    | landed (opus) | 052389e8 |
+| 2     | Timeline forms and sheets                     | 2    | landed (opus) | 85bcc859 |
+| 3     | Easy view and quick entry                     | 2    | landed (opus) | 0e7f842f |
+| 4     | Entries and the notes editor                  | 2    | landed (opus) | 01a9b113 |
+| 5     | Admin                                         | 2    | landed (opus) | a9b7f208 |
+| 6     | Account, connectors and marketing             | 2    | landed (opus) | 2f650721 |
+| 7     | The frame, home, and closing the guard        | 3    | merged (opus) | 9cb93892 |
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** wave 2 (slices 2 to 6) landed in dev as 5f4ca971 through PR #110: Codex clean on c1cb1c4c, full CI green (run 45162901683), browser checks passed once each on e61861bd (roundtrip, live-notes, sign-in, first-sync, session-end, invites, ui, marketing). One quarantined emergency-sheet test failed in that run after passing on a9fd0459; this wave changed no profile file. Report filed; slice worktrees removed; `ui-kit.md` folded. Wave 3: backlog ingested (nothing new for this topic), branch current with dev, slice 7 worktree `ui-kit-5-7` made and its opus agent spawned. On a crash, respawn it with `pnpm prd prompt slice ui-kit-5 7 --continue`. `Popover` keeps its bare class string; only `Menu`'s goes in slice 7. Browser checks at gates: the changed ones only (`pnpm prd browser --changed --base dev --list`, one name per call). No Status commit between `pr` and `land`.
+**Now:** wave 2 (slices 2 to 6) landed in dev as 5f4ca971 through PR #110: Codex clean on c1cb1c4c, full CI green (run 45162901683), browser checks passed once each on e61861bd (roundtrip, live-notes, sign-in, first-sync, session-end, invites, ui, marketing). One quarantined emergency-sheet test failed in that run after passing on a9fd0459; this wave changed no profile file. Report filed; slice worktrees removed; `ui-kit.md` folded. Wave 3: backlog ingested (nothing new for this topic), branch current with dev, slice 7 handed off (8d597f2e) and merged as 9cb93892; its worktree stays until the wave's verdict is green. Next: quick check, CI tier, changed browser checks, PR, Codex, land. At landing fold into docs: `components.md` drops the `KIT_CLASSES_NOT_SWEPT` sentence; `ui-kit.md` says `Menu`'s trigger always goes through `buttonClass` (default look when none is given), `className` is outer classes only, and adds `navLinkClass`. The frame and home component tests were not run by the slice: the CI tier must cover `frame`, `groupMenuPeriod`, `sectionNavPending`, `staff`, `pendingRequests`, `newGroup`, `notSaved`. `Popover` keeps its bare class string; only `Menu`'s goes in slice 7. Browser checks at gates: the changed ones only (`pnpm prd browser --changed --base dev --list`, one name per call). No Status commit between `pr` and `land`.
 
-**Backlog:** B-577 claimed by prd/ui-kit-5. It is done when slice 7 merges.
+**Backlog:** B-577 marked done at slice 7's merge.
 
 ## Durable decisions
 
