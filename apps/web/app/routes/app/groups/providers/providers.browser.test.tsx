@@ -22,12 +22,11 @@ import {
   SECOND_GROUP,
   secondGroup,
   SHEET,
-  SHOW_PAST,
   WESTSIDE,
 } from "./providerWorld";
 
 // The provider directory on the test device (providers.mjs's list steps):
-// display order with past providers behind "Show past", search and the type
+// display order with past providers under their label, search and the type
 // chips in the URL (so a reload keeps them), each row's contact links and
 // their names, nothing wider than a phone, a viewer's view-only list and
 // sheet URLs, and a non-member's 404. The device is offline throughout, so
@@ -43,17 +42,22 @@ const params = (device: { location: () => string }) =>
   Object.fromEntries(new URLSearchParams(device.location().split("?")[1] ?? ""));
 
 describe("the directory", () => {
-  test("lists primary first, then current by name; past providers wait behind “Show past (1)”, then list below (?past=1)", async () => {
-    const device = await open();
+  test("lists primary first, then current by name; past providers show below under their label, with no expand step", async () => {
+    await open();
     await expect.poll(() => document.querySelector<HTMLElement>("main h1")?.textContent).toBe("Providers");
     await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
-    await expect.poll(() => listNames("Past providers")).toEqual([]);
-    await expect.poll(() => SHOW_PAST()?.textContent.trim()).toBe("Show past (1)");
-
-    await userEvent.click(await found(SHOW_PAST));
     await expect.poll(() => listNames("Past providers")).toEqual(["Dr. Alan Whitford"]);
-    await expect.poll(() => params(device)).toEqual({ past: "1" });
-    await expect.poll(() => listNames("Current providers")).toEqual(CURRENT_NAMES);
+    await expect.element(page.getByRole("heading", { name: "Past providers" })).toBeVisible();
+    expect(page.getByRole("link", { name: /(Show|Hide) past/ }).query()).toBeNull();
+  });
+
+  test("a search matching only a past provider shows that provider, with no empty message", async () => {
+    const device = await open();
+    await userEvent.type(await found(SEARCH), "ortho");
+    await expect.poll(() => listNames("Past providers")).toEqual(["Dr. Alan Whitford"]);
+    await expect.poll(() => listNames("Current providers")).toEqual([]);
+    await expect.poll(() => params(device).q).toBe("ortho");
+    expect(document.querySelector("main [data-empty]")).toBeNull();
   });
 
   test("search by specialty filters as you type and goes in the URL; a reload (a fresh load of that URL) keeps the box and the list", async () => {

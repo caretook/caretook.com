@@ -2,10 +2,9 @@ import type { ProviderStatus, ProviderType } from "@caretook/data/schema";
 
 import { PROVIDER_TYPES } from "@caretook/data/schema";
 
-// The provider directory's list: its filters in the URL (`?q=`, `?type=`,
-// `?past=1`), the display order, and search matching. Pure: no React or
-// database here; the list, and later the With picker, use it, and web:unit
-// tests it.
+// The provider directory's list: its filters in the URL (`?q=`, `?type=`),
+// the display order, and search matching. Pure: no React or database here;
+// the list, and later the With picker, use it, and web:unit tests it.
 //
 // Like `timelineFilters`: unknown values read as "no filter", a change that
 // changes nothing returns the search as it was, and parameters this module
@@ -16,13 +15,10 @@ export type DirectoryFilters = {
   q: string;
   /** One type of provider, or null for every type. */
   type: ProviderType | null;
-  /** Whether past providers are listed (at the bottom). */
-  past: boolean;
 };
 
 export const QUERY_PARAM = "q";
 export const TYPE_PARAM = "type";
-export const PAST_PARAM = "past";
 
 /** How each type is named on screen. */
 export const PROVIDER_TYPE_META: Record<ProviderType, { label: string; plural: string }> = {
@@ -42,18 +38,16 @@ export const parseDirectoryFilters = (search: string): DirectoryFilters => {
   return {
     q: (params.get(QUERY_PARAM) ?? "").trim(),
     type: isProviderType(type) ? type : null,
-    past: params.get(PAST_PARAM) === "1",
   };
 };
 
-/** `search` with the filters replaced: q, type, past, then whatever else was there. */
+/** `search` with the filters replaced: q, type, then whatever else was there. */
 const withFilters = (search: string, next: DirectoryFilters) => {
   const params = new URLSearchParams(search);
-  for (const key of [QUERY_PARAM, TYPE_PARAM, PAST_PARAM]) params.delete(key);
+  for (const key of [QUERY_PARAM, TYPE_PARAM]) params.delete(key);
   const out = new URLSearchParams();
   if (next.q) out.set(QUERY_PARAM, next.q);
   if (next.type) out.set(TYPE_PARAM, next.type);
-  if (next.past) out.set(PAST_PARAM, "1");
   for (const [key, value] of params) out.append(key, value);
   const text = out.toString();
   return text ? `?${text}` : "";
@@ -62,7 +56,7 @@ const withFilters = (search: string, next: DirectoryFilters) => {
 const change = (search: string, patch: Partial<DirectoryFilters>) => {
   const current = parseDirectoryFilters(search);
   const next = { ...current, ...patch };
-  if (next.q === current.q && next.type === current.type && next.past === current.past) return search;
+  if (next.q === current.q && next.type === current.type) return search;
   return withFilters(search, next);
 };
 
@@ -75,9 +69,6 @@ export const setType = (search: string, type: ProviderType) =>
 
 /** Every type again. */
 export const clearType = (search: string) => change(search, { type: null });
-
-/** List past providers too, or not. */
-export const setPast = (search: string, past: boolean) => change(search, { past });
 
 // ---------------------------------------------------------------------------
 // Order and matching
@@ -126,18 +117,17 @@ export const matchesQuery = (provider: ListedProvider, tokens: string[], practic
 export type DirectoryList<P extends ListedProvider> = {
   /** Current providers that match, primary first. */
   current: P[];
-  /** Past providers that match: listed only with `?past=1`. */
+  /** Past providers that match, listed under the current ones. */
   past: P[];
 };
 
 /**
  * The list for these filters: the providers that match the type and search,
- * in display order, split into current and past. Past ones are counted even
- * when hidden, so "Show past" can say how many match.
+ * in display order, split into current and past.
  */
 export const directoryList = <P extends ListedProvider>(
   providers: readonly P[],
-  filters: Pick<DirectoryFilters, "q" | "type">,
+  filters: DirectoryFilters,
 ): DirectoryList<P> => {
   const names = new Map(providers.map((p) => [p.id, p.name]));
   const tokens = queryTokens(filters.q);
