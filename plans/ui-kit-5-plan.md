@@ -4,19 +4,21 @@
 
 ## Status
 
-| Slice | Title                                         | Wave | State              | Merge |
-| ----- | --------------------------------------------- | ---- | ------------------ | ----- |
-| 1     | Timeline list and Today, guard list regrouped | 1    | in progress (opus) |       |
-| 2     | Timeline forms and sheets                     | 2    | not started        |       |
-| 3     | Easy view and quick entry                     | 2    | not started        |       |
-| 4     | Entries and the notes editor                  | 2    | not started        |       |
-| 5     | Admin                                         | 2    | not started        |       |
-| 6     | Account, connectors and marketing             | 2    | not started        |       |
-| 7     | The frame, home, and closing the guard        | 3    | not started        |       |
+| Slice | Title                                         | Wave | State         | Merge    |
+| ----- | --------------------------------------------- | ---- | ------------- | -------- |
+| 1     | Timeline list and Today, guard list regrouped | 1    | merged (opus) | 052389e8 |
+| 2     | Timeline forms and sheets                     | 2    | not started   |          |
+| 3     | Easy view and quick entry                     | 2    | not started   |          |
+| 4     | Entries and the notes editor                  | 2    | not started   |          |
+| 5     | Admin                                         | 2    | not started   |          |
+| 6     | Account, connectors and marketing             | 2    | not started   |          |
+| 7     | The frame, home, and closing the guard        | 3    | not started   |          |
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** wave 1. Synced with `dev` at 771bfb6d. Slice 1: worktree `.loops/ui-kit-5-1` made, agent spawned on opus, working. Next: review its hand-off, merge, quick check, then the wave CI run.
+**Now:** wave 1. Slice 1 merged as 052389e8 (hand-off 543eb553); its worktree stays until the wave is green. Next: quick check, then the wave CI run.
+
+**For the landing docs (ui-kit.md):** the new `warning` button variant, `COUNT_BADGE`, the timeline no longer an exception to `Page`, and overdue Given all using solid `danger` (the doc reserves it for confirms, so add the exception or change the look). Slice 3 uses `variant="warning"` for `EasyNow`'s Given all.
 
 **Backlog:** B-577 claimed by prd/ui-kit-5. It is done when slice 7 merges.
 
