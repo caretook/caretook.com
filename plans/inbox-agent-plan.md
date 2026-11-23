@@ -21,7 +21,9 @@
 
 **Slice 2 notes for later:** the look-alike threshold (Dice 0.6, at least two shared words) was tested only on fictional titles, so its noise on the real backlog is unmeasured. `tidy --yes` exits 1 if the archive step fails (main checkout mid-merge or off `dev`); its other removals still run. Slice 3 changes the same `scripts/backlog/backlog.mjs`.
 
-**Wave 1 gate:** green on `e8f0e2a0` (`pnpm test:tooling`: 1,734 passed, 1 skipped; `pnpm exec eslint scripts` clean). `pnpm prd sync` needed no merge. Slice worktrees removed. Docs folded (machinery, backlog). Next: PR, Codex review, land, rotate.
+**Wave 1 gate:** green on `e8f0e2a0` (`pnpm test:tooling`: 1,734 passed, 1 skipped; `pnpm exec eslint scripts` clean). `pnpm prd sync` needed no merge. Slice worktrees removed. Docs folded (machinery, backlog). PR #134 is open at `35f04825`. Codex is out of credits, so land with `--no-review` and say so in the report.
+
+**Blocked (open issue):** the landing's integration tier (`scripts/loops/lib.sh` counts as the browser harness) was refused by a brake on `dev`: B-729 (two members' doses for one slot, `packages/api/src/syncMedications.int.test.ts`), filed to `fixes-bug`. It fails on `dev` without this branch (run 45259937817), and nothing landed. Asked the `fixes-bug` orchestrator to message when the fix is in `dev`; a background check watches B-729. Then: `pnpm prd sync --force`, `pnpm prd land inbox-agent --no-review -m "feat(inbox-agent): a pickup that never stops on the inbox, look-alikes before filing, archiving by tidy (B-425, B-435, B-474)"`, the landing report, rotate. Don't start wave 2 before this lands.
 
 **Backlog:** claim B-425 and B-474 when slice 1 starts, `done` B-474 when slice 3 merges and B-425 when slice 4 merges; B-435 when slice 2 starts, `done` when slice 3 merges; B-515 when slice 5 starts, `done` when it merges; B-551 when slice 6 starts, `done` when it merges.
 
