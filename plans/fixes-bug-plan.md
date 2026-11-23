@@ -38,6 +38,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 11 landing (resumed after a rotation; git matched this Status).** Slices 43-48 are merged and their worktrees and branches are already gone. Synced with dev as 481a2563 (brings app code and migration 0042), so the verdict on 89125c4c no longer covers the tip: `components` CI requested on the synced tip, no quick check (the user's word). **Next:** on green, `pnpm datastore:migrate` (never reset), `pnpm prd serve --restart`, `pnpm prd browser --changed --base dev`, fold docs (care-periods, calendars, assistant), `pnpm prd pr fixes-bug`, review, land `--tier components`. **Done since:** migrated (0042), docs folded (42db5f13), `browser --changed --base dev` passed (sign-in, session-end, invites, ui; `roundtrip` after a PowerSync restart: don't rerun). `roundtrip` first failed 4 times on the avatar step because this stack's PowerSync still had the sync config from before a dev sync. **`components` CI green on 9f3264ca (run 45248060450; one quarantined failure, a Planner test this branch doesn't touch).** PR opened next, then `pnpm prd review fixes-bug --wait`, then `pnpm prd land fixes-bug --tier components -m "fix(fixes-bug): six bug fixes across timeline, sheets, consent, quick entry and sign-up (B-656, B-657, B-659, B-662, B-666, B-675)"`. No Status commit between the review and the landing: it moves the PR's head. The report names the B-666 hand test and B-717, B-718.
 
+**Wave 11 landed in dev through PR #131 as ae42c519** (2026-11-23): `components` CI green on 9f3264ca (run 45248060450). **Codex did not review it** (out of credits, `--no-review`). To-test: `to-test/2026-11-23-1432-fixes-bug.md`. Docs folded (care-periods, calendars, assistant; the last two at their 10 KB budget: trim when adding). **Next session:** `pnpm prd sync`, ingest, recheck hot files (`pnpm backlog prd list`), then write wave 12 from the triaged items: B-615 (stay off the upsert's duplicate return and `mayRestoreDose`), B-689, B-690, B-717, B-718, B-719 and the America/New_York component test failures B-706 to B-715.
+
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
 | Slice | Item  | State                                      | Merge    |
@@ -84,12 +86,12 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 40    | B-655 | landed                                     | 487cb235 |
 | 41    | B-620 | landed (care-periods.md folded)            | ab9dcfae |
 | 42    | B-631 | landed                                     | 2a479df8 |
-| 43    | B-656 | merged (roundtrip at landing)              | a449f67c |
-| 44    | B-657 | merged, CI fix merged                      | 990dd9bc |
-| 45    | B-659 | merged (calendars.md at landing)           | 0a8ccfcc |
-| 46    | B-662 | merged (assistant.md at landing)           | 8c930686 |
-| 47    | B-666 | merged (needs a hand test)                 | 288e9cbe |
-| 48    | B-675 | merged                                     | 3d8e9cf5 |
+| 43    | B-656 | landed (care-periods.md folded)            | a449f67c |
+| 44    | B-657 | landed (with its CI fix)                   | 990dd9bc |
+| 45    | B-659 | landed (calendars.md folded)               | 0a8ccfcc |
+| 46    | B-662 | landed (assistant.md folded)               | 8c930686 |
+| 47    | B-666 | landed (needs a hand test)                 | 288e9cbe |
+| 48    | B-675 | landed                                     | 3d8e9cf5 |
 
 ## Wave 1
 
