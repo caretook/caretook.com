@@ -342,13 +342,11 @@ const ordinalIsADay = (words: readonly string[], at: number, afterOn: boolean) =
  * The time phrase among `words` (lowercase, punctuation trimmed), if any:
  * the first of each part (a day, a time of day, minutes ago or ahead) is
  * kept, and the words they took are reported so the parser skips them. With
- * `periodAfterTomorrow`, a bare part of day after "tomorrow" is that part of
- * the day ("tomorrow morning"); only a line asking for something reads it so.
+ * `periodAfterDay`, a bare part of day after "tomorrow" or a weekday not
+ * marked "last" is that part of the day ("tomorrow morning", "next friday
+ * morning"); only a line asking for something reads it so.
  */
-export const findTime = (
-  words: readonly string[],
-  { periodAfterTomorrow = false } = {},
-): FoundTime | null => {
+export const findTime = (words: readonly string[], { periodAfterDay = false } = {}): FoundTime | null => {
   const used = new Set<number>();
   let day: DaySpec | undefined;
   let clock: Clock | undefined;
@@ -356,6 +354,12 @@ export const findTime = (
   let relativeMinutes: number | undefined;
   const take = (from: number, length: number) => {
     for (let k = from; k < from + length; k++) used.add(k);
+  };
+  const takePeriodAt = (j: number) => {
+    const word = words[j];
+    if (!periodAfterDay || period || !word || !PERIOD_WORDS.has(word)) return;
+    period = word as Period;
+    take(j, 1);
   };
 
   for (let i = 0; i < words.length; i++) {
@@ -417,10 +421,7 @@ export const findTime = (
       if (["tomorrow", "tmrw", "tmr", "tomorow"].includes(word)) {
         day = { offset: 1 };
         take(i, 1);
-        if (periodAfterTomorrow && !period && next && PERIOD_WORDS.has(next)) {
-          period = next as Period;
-          take(i + 1, 1);
-        }
+        takePeriodAt(i + 1);
         continue;
       }
       if (["yesterday", "yday", "yest"].includes(word)) {
@@ -445,6 +446,7 @@ export const findTime = (
       if (dayWord && dayWord in WEEKDAYS && !notAWeekday(words, modifier ? i + 1 : i)) {
         day = { weekday: WEEKDAYS[dayWord]!, ...(modifier && { modifier }) };
         take(i, modifier ? 2 : 1);
+        if (modifier !== "last") takePeriodAt(i + (modifier ? 2 : 1));
         continue;
       }
       // "nov 20", "november 20th", "20 nov"
