@@ -1085,11 +1085,23 @@ const countedAmount = (word: string, value: number, dose: string | null | undefi
 const MEASURE = /^(\d+(?:\.\d+)?)\s*([a-z]+)$/i;
 
 /**
- * The amount typed with a unit. A fraction that is exactly the strength ("1/2
- * mg" at 0.5 mg) names one unit of it, so it records the usual dose when that
- * is one unit or the same measure. A usual "2 tablets" would double what was
- * typed, so there the typed amount stands.
+ * What a fraction that is exactly the strength records. It names one unit of
+ * the medication, so the usual dose when that is one unit or the same measure.
+ * A usual "2 tablets" would double what was typed, so there the typed amount stands.
  */
+const amountAtStrength = (typed: string, med: QuickEntryMedication) => {
+  const strength = MEASURE.exec(med.strength?.trim() ?? "");
+  const dose = med.dose?.trim() ?? "";
+  const measure = MEASURE.exec(dose);
+  const sameMeasure =
+    !!strength &&
+    !!measure &&
+    Number(measure[1]) === Number(strength[1]) &&
+    measure[2]!.toLowerCase() === strength[2]!.toLowerCase();
+  return sameMeasure || (/^(?:1|one|an?)\s/i.test(dose) && usualUnit(dose)) ? dose : typed;
+};
+
+/** The amount typed with a unit; a fraction at the strength ("1/2 mg" at 0.5 mg) reads as `amountAtStrength`. */
 const typedAmount = (tokens: readonly Token[], used: readonly number[], med: QuickEntryMedication) => {
   const raw = rawOf(tokens, used);
   const [word, unit] = used.map((i) => tokens[i]!.w);
@@ -1097,11 +1109,7 @@ const typedAmount = (tokens: readonly Token[], used: readonly number[], med: Qui
   const strength = MEASURE.exec(med.strength?.trim() ?? "");
   if (!strength || Number(strength[1]) !== countValue(word!) || strength[2]!.toLowerCase() !== unit)
     return raw;
-  const dose = med.dose?.trim() ?? "";
-  const measure = MEASURE.exec(dose);
-  const sameMeasure =
-    !!measure && Number(measure[1]) === Number(strength[1]) && measure[2]!.toLowerCase() === unit;
-  return sameMeasure || (/^(?:1|one|an?)\s/i.test(dose) && usualUnit(dose)) ? dose : raw;
+  return amountAtStrength(raw, med);
 };
 
 /** Words in directions that describe how to take a medication; only another word there can be a brand. */
@@ -1194,6 +1202,7 @@ const typedBeside = (
   const strengths = (m.item.strength?.match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
   let count: { used: number[]; amount: string } | null = null;
   const strength: number[] = [];
+  let fractionAmount: string | null = null;
   const counted = (k: number, word: string, links: number[]) => {
     const value = countValue(word);
     if (!count && isCount(value))
@@ -1216,10 +1225,12 @@ const typedBeside = (
     const times = /^[x×](\d+(?:\.\d+)?)$/.exec(w);
     if (times) {
       if (wantCount) counted(k, times[1]!, []);
-    } else if (/^\d/.test(w) && strengths.includes(countValue(w) ?? NaN)) strength.push(k);
-    else if (wantCount) counted(k, w, []);
+    } else if (/^\d/.test(w) && strengths.includes(countValue(w) ?? NaN)) {
+      strength.push(k);
+      if (wantCount && w.includes("/")) fractionAmount ??= amountAtStrength(w, m.item);
+    } else if (wantCount) counted(k, w, []);
   }
-  return { count: count as { used: number[]; amount: string } | null, strength };
+  return { count: count as { used: number[]; amount: string } | null, strength, fractionAmount };
 };
 
 /**
@@ -1355,7 +1366,7 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
         type: "logDose",
         medicationId: m.item.id,
         status: inherited ?? "given",
-        amount: amount ?? typed[rank]!.count?.amount ?? m.item.dose ?? null,
+        amount: amount ?? typed[rank]!.count?.amount ?? typed[rank]!.fractionAmount ?? m.item.dose ?? null,
         note,
         occurredAt: at.toISOString(),
       },
