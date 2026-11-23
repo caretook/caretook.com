@@ -127,8 +127,10 @@ describe("the deploy workflows", () => {
     };
     const tierJobs = Object.keys(tierOf);
     expect(Object.keys(jobs)).toEqual(["plan", ...tierJobs, "verdict"]);
+    // A narrowed run has one components job, so the second shard has its own switch.
+    const switchOf = { ...tierOf, "components-2": "components2" };
     for (const name of tierJobs)
-      expect(jobs[name].if).toBe(`\${{ needs.plan.outputs.${tierOf[name]} == 'true' }}`);
+      expect(jobs[name].if).toBe(`\${{ needs.plan.outputs.${switchOf[name]} == 'true' }}`);
     expect(jobs.verdict.if).toBe("${{ !cancelled() }}");
     expect(jobs.verdict.needs).toEqual(["plan", ...tierJobs]);
     const upload = jobs.verdict.steps.at(-1);
@@ -144,6 +146,25 @@ describe("the deploy workflows", () => {
     expect(run("test")).toContain(`--project web:components --shard=${n}/2`);
     expect(run("test")).toContain(`--outputFile.json=ci-results/components-${n}.json`);
     expect(run("report")).toContain(`ci-results/components-${n}.json`);
+  });
+
+  it("reruns through the test job, with quarantine steps that can't fail the run", () => {
+    const { jobs } = parseYaml(read(".github/workflows/ci.yml"));
+    for (const name of ["unit", "integration", "components-1", "components-2"])
+      expect(jobs[name].steps.find((s) => s.id === "test").run).toMatch(/^node scripts\/ci\/test-job\.mjs /);
+    for (const [name, id] of [
+      ["unit", "quarantine"],
+      ["integration", "quarantine"],
+      ["integration", "quarantine-browser"],
+      ["components-1", "quarantine"],
+    ]) {
+      const step = jobs[name].steps.find((s) => s.id === id);
+      expect(step.run).toContain("test-job.mjs --quarantine");
+      expect(step["continue-on-error"]).toBe("true");
+    }
+    // One shard runs the quarantined component tests, not both.
+    expect(jobs["components-2"].steps.some((s) => s.id === "quarantine")).toBe(false);
+    for (const name of ["static", "build"]) expect(jobs[name].outputs.started).toContain("steps.started");
   });
 
   it("builds both targets in CI's full tier, with no debug handle in either client", () => {

@@ -1,9 +1,11 @@
+import { readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { fileURLToPath } from "node:url";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 import { deviceCommands } from "./apps/web/test/commands.ts";
 import { intWorkers } from "./packages/data/src/db/testDatabase.ts";
+import { parseQuarantine, quarantineMode } from "./scripts/ci/lists.mjs";
 
 // Vitest projects:
 //   data:unit    pure functions, no database (packages/data *.test.ts)
@@ -48,6 +50,23 @@ const browserPort = await freePort();
 // Integration workers, each on its own database (packages/data/test/globalSetup.ts).
 const integrationWorkers = intWorkers(process.env.CARETOOK_INT_WORKERS);
 if (integrationWorkers === undefined) throw new Error("CARETOOK_INT_WORKERS must be a number from 1 to 16");
+
+// Quarantined tests are skipped in every project (scripts/ci/quarantine.txt), or
+// alone are run under CARETOOK_QUARANTINE=run. Handed over by `provide` so the
+// setup also works in the browser project, which can't read the disk.
+const quarantineSetup = fileURLToPath(new URL("./scripts/ci/quarantine-setup.mjs", import.meta.url));
+const caretookQuarantine = {
+  entries: parseQuarantine(readFileSync(new URL("./scripts/ci/quarantine.txt", import.meta.url), "utf8")),
+  mode: quarantineMode(),
+};
+const withQuarantine = <P extends { test: { setupFiles?: string[] } }>(project: P) => ({
+  ...project,
+  test: {
+    ...project.test,
+    setupFiles: [quarantineSetup, ...(project.test.setupFiles ?? [])],
+    provide: { caretookQuarantine },
+  },
+});
 
 export default defineConfig({
   test: {
@@ -217,6 +236,6 @@ export default defineConfig({
           sequence: { groupOrder: 2 },
         },
       },
-    ],
+    ].map(withQuarantine),
   },
 });
