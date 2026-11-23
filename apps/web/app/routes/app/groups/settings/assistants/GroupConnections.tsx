@@ -8,7 +8,7 @@ import { SettingsCard } from "~/components/settings";
 import { Button, ConfirmDialog, EmptyState, List, ListRow, Message } from "~/components/ui";
 import { formatAgo } from "~/lib/core/format";
 import { memberName } from "../groupSettings";
-import { scopeLabel } from "./assistants";
+import { connectionScopeLabel } from "./assistants";
 
 /** Every member's connected assistants (owners and admins, online), each with Disconnect behind a confirm. */
 export function GroupConnections({ connections }: { connections: GroupConnection[] }) {
@@ -54,7 +54,7 @@ export function GroupConnections({ connections }: { connections: GroupConnection
                     {who(c)} · {c.clientName}
                   </p>
                   <p className="text-muted text-sm">
-                    {scopeLabel(c.scope)} · Connected {formatAgo(c.consentedAt)} ·{" "}
+                    {connectionScopeLabel(c)} · Connected {formatAgo(c.consentedAt)} ·{" "}
                     {c.lastUsedAt ? `Last used ${formatAgo(c.lastUsedAt)}` : "Not used yet"}
                   </p>
                 </div>

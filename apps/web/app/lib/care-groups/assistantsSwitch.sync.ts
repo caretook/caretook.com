@@ -8,24 +8,28 @@ import { readRows } from "../timeline/timeline.sync";
 // The owners' Assistants switch on the device (connectors PRD):
 // `care_group.connectors_enabled`, synced, so group settings → Assistants
 // shows it offline and follows another owner's change. Only owners change
-// it, online, through `careGroup.update`.
+// it, online, through `careGroup.update`. `connectors_read_only` is their
+// read-only choice (assistant-access), read and changed the same way.
 
-export type AssistantsSwitchRow = { connectors_enabled: number | null };
+export type AssistantsSwitchRow = {
+  connectors_enabled: number | null;
+  connectors_read_only: number | null;
+};
 
 export const assistantsSwitchQuery = (groupId: string): LocalQuery => ({
-  sql: `SELECT connectors_enabled FROM care_group WHERE id = ? LIMIT 1`,
+  sql: `SELECT connectors_enabled, connectors_read_only FROM care_group WHERE id = ? LIMIT 1`,
   params: [groupId],
 });
 
-/** The switch's rows now (a loader's start for `useAssistantsEnabled`). */
+/** The switch's rows now (a loader's start for `useAssistantsSetting`). */
 export const loadAssistantsSwitch = (db: SyncDb, groupId: string) =>
   readRows<AssistantsSwitchRow>(db, assistantsSwitchQuery(groupId));
 
-/** Whether the group allows assistants, live; off until it has synced. */
-export function useAssistantsEnabled(groupId: string, initial: AssistantsSwitchRow[]) {
+/** Whether the group allows assistants and whether they only read, live; off until it has synced. */
+export function useAssistantsSetting(groupId: string, initial: AssistantsSwitchRow[]) {
   const q = assistantsSwitchQuery(groupId);
   const rows = useLiveQuery<AssistantsSwitchRow>(q.sql, q.params, initial);
-  return !!rows[0]?.connectors_enabled;
+  return { enabled: !!rows[0]?.connectors_enabled, readOnly: !!rows[0]?.connectors_read_only };
 }
 
 export type MyAssistantsGroupRow = { role: string | null; connectors_enabled: number | null };

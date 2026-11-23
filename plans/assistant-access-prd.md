@@ -1,6 +1,6 @@
 # PRD: Assistant access (an owner's read-only choice for a group's assistants)
 
-Backlog item B-558. Topic `assistant-access`.
+Backlog item B-558. Topic `assistant-access`. **Done:** its rules are in [connectors](../docs/domain/connectors.md) and [care-groups](../docs/domain/care-groups.md).
 
 ## Decisions
 

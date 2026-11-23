@@ -2,6 +2,7 @@ import type { DeviceRoute } from "../../../../../test/device";
 
 import type { GroupRole } from "../../../../../test/fixtures";
 
+import { CONNECTOR_READ_ONLY_BY_OWNER_LABEL } from "@caretook/data/schema";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import * as settingsLayout from "../layout/route";
@@ -46,6 +47,7 @@ type Connection = {
   scope: "read" | "readWrite";
   consentedAt: string;
   lastUsedAt: string | null;
+  readOnlyByOwner: boolean;
 };
 
 const ago = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
@@ -264,6 +266,7 @@ const connection = (
   scope: "readWrite",
   consentedAt: ago(3 * 24 * 60),
   lastUsedAt: ago(30),
+  readOnlyByOwner: false,
   ...v,
 });
 
@@ -297,6 +300,16 @@ describe("the Devices page's connected assistants", () => {
     const devicesList = document.querySelector("ul[data-devices]")!;
     const card = assistants().element();
     expect(devicesList.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  test("a connection the group's owner set to read only says so; a plain read grant doesn't", async () => {
+    const held = connection("c3", "Claude", "Grandma June", { readOnlyByOwner: true });
+    await open(authServer([THIS], THIS.id, [held, CHATGPT]));
+    await expect.poll(connectionRows).toHaveLength(2);
+    const [claude, chatgpt] = connectionRows();
+    expect(claude).toContain(`${CONNECTOR_READ_ONLY_BY_OWNER_LABEL} · Connected`);
+    expect(chatgpt).toMatch(/Read only · Connected/);
+    expect(chatgpt).not.toContain(CONNECTOR_READ_ONLY_BY_OWNER_LABEL);
   });
 
   test("none yet says so", async () => {

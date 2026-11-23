@@ -1,7 +1,7 @@
 import type { ConnectorScope } from "@caretook/data/schema";
 import type { DevicesActionResult, MyConnection } from "./route";
 
-import { CONNECTOR_SCOPE_LABELS } from "@caretook/data/schema";
+import { CONNECTOR_READ_ONLY_BY_OWNER_LABEL, CONNECTOR_SCOPE_LABELS } from "@caretook/data/schema";
 import { Bot } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
@@ -59,7 +59,8 @@ export function ConnectedAssistants({ connections }: { connections: MyConnection
                     {c.clientName} · {groupOf(c)}
                   </p>
                   <p className="text-muted text-sm">
-                    {scopeLabel(c.scope)} · Connected {formatAgo(c.consentedAt)} ·{" "}
+                    {c.readOnlyByOwner ? CONNECTOR_READ_ONLY_BY_OWNER_LABEL : scopeLabel(c.scope)} · Connected{" "}
+                    {formatAgo(c.consentedAt)} ·{" "}
                     {c.lastUsedAt ? `Last used ${formatAgo(c.lastUsedAt)}` : "Not used yet"}
                   </p>
                 </div>

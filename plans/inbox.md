@@ -6,12 +6,6 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Bugs/Nits
 
-- call and directions icons on planner schedule should be below the time, not beside the title/description to free up space on mobile. (B-256)
-- plus button on timeline day header should be on far right so all actions are on right. Care period can swap with it. change link which adds care period can be an icon button. (B-412)
-- don't collapse past providers on list providers page, it breaks search and isn't needed. This list will never be THAT long. (B-413)
-- owner pill on planner/planner list should be below time/date field. Too busy under title. (B-416)
-- type pill on medication list items should float right. (B-421)
-
 ## Change requests
 
 ## Feature requests
@@ -22,7 +16,6 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - ability to upload photos of patient drivers license, insurance card, DNR, etc. (B-56)
 - react-i18next or some other internationalization library to support multiple languages for all text in the app. (B-209)
 - We are getting close to feature complete. We need another marketing content pass that updates copy and layout to reflect the new features. Also improve ui to meet modern design standards. NO SCREENSHOTS yet. No videos. (B-417)
-- In providers list page, contact links in rows make it too hard to know what to click. Make those clickable in the details sheet and remove the information from the rows. Most of the time we want notes open during contact anyway. (B-422)
 - Tags on everything so users can organize data how they want. (B-548)
 - Symomtons need to be repeatble and filterable need multi filter. (B-549)
 - nested todos (B-550)

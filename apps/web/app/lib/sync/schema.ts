@@ -18,6 +18,8 @@ export const careGroups = sqliteTable("care_group", {
   connectorsEnabled: integer("connectors_enabled"),
   // The owners' "Details outside Caretook" switch (appointments-2; 1 or 0): whether members may opt in to details.
   detailsOutsideAllowed: integer("details_outside_allowed"),
+  // The owners' read-only choice for assistants (assistant-access; 1 or 0). Synced, never uploaded.
+  connectorsReadOnly: integer("connectors_read_only"),
 });
 
 export const careGroupMembers = sqliteTable(
