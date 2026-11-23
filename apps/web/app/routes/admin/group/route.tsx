@@ -1,3 +1,5 @@
+import { BackLink, EmptyState, LINK, Notice } from "~/components/ui";
+import { AdminCard } from "../AdminCard";
 import type { Route } from "./+types/route";
 import type { StaffSettableGroupRole } from "@caretook/data/schema";
 import type { AdminActionResult } from "../adminForms";
@@ -84,79 +86,60 @@ export default function Group({ loaderData, actionData }: Route.ComponentProps) 
   const owners = group.members.filter((m) => m.role === "owner").length;
   return (
     <>
-      <section className="card bg-base-100 shadow-sm" aria-labelledby="group" data-admin-group={group.id}>
-        <div className="card-body gap-3">
-          <Link to={adminUrls.groups()} className="link text-sm">
-            All groups
-          </Link>
-          <h1 id="group" className="card-title">
-            {group.name}
-          </h1>
-          {owners === 0 && (
-            <p className="alert alert-warning alert-soft text-sm" data-no-owner="">
-              This group has no owner, so nobody can manage it.
-              {canManage && " Make a member an owner, or invite one."}
-            </p>
-          )}
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm" data-group-facts="">
-            <dt className="text-base-content/70">Care recipient</dt>
-            <dd>{recipientLabel(group)}</dd>
-            <dt className="text-base-content/70">Created</dt>
-            <dd>{dayText(group.createdAt)}</dd>
-            <dt className="text-base-content/70">Last activity</dt>
-            <dd data-last-activity="">{dayText(group.lastActivityAt)}</dd>
-            <dt className="text-base-content/70">Holds</dt>
-            <dd data-counts="">
-              {countText(group.counts.entries, "entry", "entries")},{" "}
-              {countText(group.counts.providers, "provider", "providers")},{" "}
-              {countText(group.counts.medications, "medication", "medications")}
-            </dd>
-          </dl>
-          <p className="text-base-content/70 text-xs">
-            Staff never see a group's care data, only these counts.
-          </p>
-        </div>
-      </section>
+      <BackLink to={adminUrls.groups()} label="All groups" />
+      <AdminCard id="group" level={1} title={group.name} data-admin-group={group.id}>
+        {owners === 0 && (
+          <Notice tone="warning" data-no-owner="">
+            This group has no owner, so nobody can manage it.
+            {canManage && " Make a member an owner, or invite one."}
+          </Notice>
+        )}
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm" data-group-facts="">
+          <dt className="text-muted">Care recipient</dt>
+          <dd>{recipientLabel(group)}</dd>
+          <dt className="text-muted">Created</dt>
+          <dd>{dayText(group.createdAt)}</dd>
+          <dt className="text-muted">Last activity</dt>
+          <dd data-last-activity="">{dayText(group.lastActivityAt)}</dd>
+          <dt className="text-muted">Holds</dt>
+          <dd data-counts="">
+            {countText(group.counts.entries, "entry", "entries")},{" "}
+            {countText(group.counts.providers, "provider", "providers")},{" "}
+            {countText(group.counts.medications, "medication", "medications")}
+          </dd>
+        </dl>
+        <p className="text-muted text-xs">Staff never see a group's care data, only these counts.</p>
+      </AdminCard>
 
       {actionData &&
         (actionData.ok ? (
-          <p role="status" className="alert alert-success alert-soft text-sm" data-admin-result="ok">
+          <Notice tone="success" data-admin-result="ok">
             {actionData.message}
-          </p>
+          </Notice>
         ) : (
-          <p role="alert" className="alert alert-error alert-soft text-sm" data-admin-result="error">
+          <Notice tone="error" data-admin-result="error">
             {actionData.issues.length ? actionData.issues.map((i) => i.message).join(" ") : actionData.error}
-          </p>
+          </Notice>
         ))}
 
-      <section className="card bg-base-100 shadow-sm" aria-labelledby="members">
-        <div className="card-body gap-2">
-          <h2 id="members" className="card-title">
-            Members
-          </h2>
-          {group.members.length === 0 ? (
-            <p className="text-sm">No members.</p>
-          ) : (
-            <MemberList members={group.members} groupName={group.name} canManage={canManage} />
-          )}
-        </div>
-      </section>
+      <AdminCard id="members" title="Members">
+        {group.members.length === 0 ? (
+          <EmptyState>No members.</EmptyState>
+        ) : (
+          <MemberList members={group.members} groupName={group.name} canManage={canManage} />
+        )}
+      </AdminCard>
 
       {canManage && <InviteOwnerForm result={actionData} />}
 
-      <section className="card bg-base-100 shadow-sm" aria-labelledby="group-audit">
-        <div className="card-body gap-2">
-          <h2 id="group-audit" className="card-title">
-            Staff activity
-          </h2>
-          {audit.length === 0 ? <p className="text-sm">Nothing yet.</p> : <AuditEntryList entries={audit} />}
-          {auditCount > audit.length && (
-            <Link to={adminUrls.audit(auditSearch({ target: group.id }))} className="link text-sm">
-              All {auditCount.toLocaleString("en-US")} entries in the audit log
-            </Link>
-          )}
-        </div>
-      </section>
+      <AdminCard id="group-audit" title="Staff activity">
+        {audit.length === 0 ? <EmptyState>Nothing yet.</EmptyState> : <AuditEntryList entries={audit} />}
+        {auditCount > audit.length && (
+          <Link to={adminUrls.audit(auditSearch({ target: group.id }))} className={`${LINK} text-sm`}>
+            All {auditCount.toLocaleString("en-US")} entries in the audit log
+          </Link>
+        )}
+      </AdminCard>
     </>
   );
 }

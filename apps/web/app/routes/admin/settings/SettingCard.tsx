@@ -5,7 +5,7 @@ import { ANNOUNCEMENT_MAX, ANNOUNCEMENT_TONES, APP_SETTINGS } from "@caretook/da
 import { useState } from "react";
 import { Form, useNavigation } from "react-router";
 import { AnnouncementBanner } from "~/components/shell";
-import { ChoiceGroup, Field } from "~/components/ui";
+import { ChoiceGroup, Field, FormFooter, Message, Notice } from "~/components/ui";
 import { issueFor } from "../adminForms";
 import { localInputFromUtc, SETTING_FORMS, settingValueText } from "./settingForms";
 
@@ -53,18 +53,18 @@ export function SettingCard({
       <h2 id={headingId} className="font-semibold">
         {spec.label}
       </h2>
-      <p className="text-base-content/70 text-sm">{spec.help}</p>
+      <p className="text-muted text-sm">{spec.help}</p>
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 text-sm">
-        <dt className="text-base-content/70">Now</dt>
+        <dt className="text-muted">Now</dt>
         <dd data-setting-value="">{settingValueText(key, value)}</dd>
-        <dt className="text-base-content/70">Default</dt>
+        <dt className="text-muted">Default</dt>
         <dd>
           {spec.defaultText}
           {setting.isDefault ? " (in use)" : ""}
         </dd>
         {setting.updatedAt && (
           <>
-            <dt className="text-base-content/70">Changed</dt>
+            <dt className="text-muted">Changed</dt>
             <dd>{changedOn(setting.updatedAt)}</dd>
           </>
         )}
@@ -102,7 +102,7 @@ function SettingForm({
         />
       )}
       {form === "number" && (
-        <Field label="Change to" error={issue("value")}>
+        <Field kind="input" label="Change to" error={issue("value")}>
           {(control) => (
             <input
               {...control}
@@ -111,7 +111,7 @@ function SettingForm({
               inputMode="numeric"
               min={1}
               defaultValue={String(value)}
-              className="input w-full max-w-40"
+              className={`${control.className} max-w-40`}
               required
             />
           )}
@@ -119,6 +119,7 @@ function SettingForm({
       )}
       {form === "list" && (
         <Field
+          kind="textarea"
           label="Change to"
           help="One address or @domain per line. Empty: use MAIL_ALLOWLIST."
           error={issue("value")}
@@ -129,28 +130,22 @@ function SettingForm({
               name="value"
               rows={3}
               defaultValue={Array.isArray(value) ? (value as string[]).join("\n") : ""}
-              className="textarea w-full"
             />
           )}
         </Field>
       )}
       {form === "announcement" && <AnnouncementFields value={value as Announcement | null} issue={issue} />}
-      <Field label="Reason" help="Why you're changing it. Goes in the audit log." error={issue("reason")}>
-        {(control) => <input {...control} name="reason" className="input w-full" maxLength={500} required />}
+      <Field
+        kind="input"
+        label="Reason"
+        help="Why you're changing it. Goes in the audit log."
+        error={issue("reason")}
+      >
+        {(control) => <input {...control} name="reason" maxLength={500} required />}
       </Field>
-      {result && !result.ok && !result.issues.length && (
-        <p role="alert" className="text-error text-sm">
-          {result.error}
-        </p>
-      )}
-      {result?.ok && (
-        <p role="status" className="alert alert-success alert-soft text-sm">
-          {result.message}
-        </p>
-      )}
-      <button type="submit" className="btn btn-primary btn-sm mt-1" disabled={busy}>
-        {busy ? "Saving…" : "Save"}
-      </button>
+      {result && !result.ok && !result.issues.length && <Message tone="error">{result.error}</Message>}
+      {result?.ok && <Notice tone="success">{result.message}</Notice>}
+      <FormFooter align="start" submitLabel="Save" busy={busy} busyLabel="Saving…" />
     </Form>
   );
 }
@@ -166,7 +161,7 @@ function AnnouncementFields({
   const [tone, setTone] = useState<AnnouncementTone>(value?.tone ?? "info");
   return (
     <>
-      <Field label="Text" help="Empty clears the announcement." error={issue("text")}>
+      <Field kind="textarea" label="Text" help="Empty clears the announcement." error={issue("text")}>
         {(control) => (
           <textarea
             {...control}
@@ -175,7 +170,6 @@ function AnnouncementFields({
             maxLength={ANNOUNCEMENT_MAX}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className="textarea w-full"
           />
         )}
       </Field>
@@ -194,17 +188,17 @@ function AnnouncementFields({
             <AnnouncementBanner text={text.trim()} tone={tone} />
           </div>
         ) : (
-          <p className="text-base-content/70 text-sm">No banner: saving clears it.</p>
+          <p className="text-muted text-sm">No banner: saving clears it.</p>
         )}
       </div>
-      <Field label="Ends (UTC)" help="Optional. It stops showing then." error={issue("endsAt")}>
+      <Field kind="input" label="Ends (UTC)" help="Optional. It stops showing then." error={issue("endsAt")}>
         {(control) => (
           <input
             {...control}
             name="endsAt"
             type="datetime-local"
             defaultValue={localInputFromUtc(value?.endsAt)}
-            className="input w-full max-w-64"
+            className={`${control.className} max-w-64`}
           />
         )}
       </Field>
