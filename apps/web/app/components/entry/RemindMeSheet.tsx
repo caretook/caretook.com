@@ -88,7 +88,7 @@ export function RemindMeSheet({
 
   const ready = typeof loaded === "object";
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && onClose()} title={`Remind me: ${title}`}>
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && onClose()} title={`Remind me: ${title}`}>
       {loaded === "offline" ? (
         <p data-remind-offline="" role="status">
           {REMIND_OFFLINE}

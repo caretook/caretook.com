@@ -87,7 +87,7 @@ export function SeriesEditSheet({
   };
 
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && onClose()} title="Edit this and later visits">
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && onClose()} title="Edit this and later visits">
       <form
         className="space-y-4"
         data-series-edit
@@ -165,7 +165,7 @@ export function SeriesEditSheet({
           </p>
         )}
         <div className="flex justify-end gap-2">
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
+          <button data-form-cancel="" type="button" className="btn btn-ghost" onClick={onClose}>
             Cancel
           </button>
           <button type="submit" className="btn btn-primary">

@@ -80,7 +80,12 @@ export default function AllergiesSheet({ loaderData, params }: Route.ComponentPr
   const who = recipient?.displayName;
 
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title={who ? `${who}'s allergies` : "Allergies"}>
+    <Sheet
+      guardChanges="[data-allergy-form]"
+      isOpen
+      onOpenChange={(open) => !open && close()}
+      title={who ? `${who}'s allergies` : "Allergies"}
+    >
       <div className="space-y-5" data-allergies-sheet>
         <AllergyList state={state} onEdit={setEditing} />
         <section aria-labelledby="allergy-form-heading" className="space-y-1">

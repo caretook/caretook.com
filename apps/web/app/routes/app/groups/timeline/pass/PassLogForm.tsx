@@ -110,7 +110,7 @@ export function PassLogForm({
           <button type="submit" className="btn btn-primary" disabled={busy}>
             {busy ? "Saving…" : "Save changes"}
           </button>
-          <button type="button" className="btn btn-ghost" onClick={onCancel}>
+          <button data-form-cancel="" type="button" className="btn btn-ghost" onClick={onCancel}>
             Cancel
           </button>
         </div>
