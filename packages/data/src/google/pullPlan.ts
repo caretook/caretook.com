@@ -12,18 +12,21 @@ import { UID_PROPERTY } from "./client";
 // - **Our echo** (the etag we stored at the push), or an event whose times
 //   already match the item: ignore. Only times come back; a title, place or
 //   description edited in Google is left as it is (out of scope).
+// - **A delete of anything that has started** (an event or a todo, in a
+//   repeat or not; an all-day one from the start of its day): ignored, for
+//   every role. Tidying a calendar never rewrites the record, and the event
+//   stays deleted in Google unless the item later changes in Caretook.
 // - **An appointment:** a time change updates its start, end and all-day; a
-//   delete cancels it. On a series visit the change is "Only this visit" (it
-//   detaches); a visit that has already started is never rewritten.
-// - **A todo:** a time change moves its due day and time; a delete marks it done.
+//   delete of an upcoming one cancels it. On a series visit the change is
+//   "Only this visit" (it detaches); a visit that has already started keeps
+//   its time.
+// - **A todo:** a time change moves its due day and time. A delete never
+//   completes it: an upcoming todo's event comes back at the next push.
 // - **A new event without our uid** (made in Google, in the window): a new
 //   appointment with Google's summary as its title. The next push tags it,
 //   at the member's share level (generic by default).
 // - **What the member's role can't do** (a viewer's edit): `overwrite`, and
 //   the next push puts our version back (a viewer's new event is removed).
-//   A viewer's deleted todo is still offered as `completeTodo`: the service
-//   lets them tick a todo assigned to them, and anything it refuses becomes
-//   an overwrite too.
 
 /** What a pull knows of a pushed event (a `google_event_link`). */
 export type PullLink = { itemUid: string; googleEventId: string; etag: string | null };
@@ -40,12 +43,11 @@ export type EntryTimePatch = {
 export type GoogleChangeAction =
   | {
       type: "ignore";
-      reason: "echo" | "unchanged" | "gone" | "alreadyCancelled" | "untimed" | "outsideWindow";
+      reason: "echo" | "unchanged" | "gone" | "alreadyCancelled" | "untimed" | "outsideWindow" | "started";
     }
   | { type: "updateEntry"; entryId: string; patch: EntryTimePatch }
   | { type: "cancelEntry"; entryId: string; seriesDetached: boolean }
   | { type: "updateTodo"; todoId: string; dueOn: string; dueTime: string | null }
-  | { type: "completeTodo"; todoId: string }
   | {
       type: "createAppointment";
       googleEventId: string;
@@ -55,7 +57,7 @@ export type GoogleChangeAction =
       allDay: boolean;
       timeZone: string;
     }
-  | { type: "overwrite"; reason: "role" | "pastVisit" };
+  | { type: "overwrite"; reason: "role" | "pastVisit" | "todoDelete" };
 
 /** The title a Google-made event takes when it has none. */
 export const UNTITLED_APPOINTMENT = "Event";
@@ -194,9 +196,9 @@ export const interpretGoogleChange = ({
 
   const { id } = item.source;
   if (deleted) {
-    if (item.kind === "todo") return { type: "completeTodo", todoId: id };
+    if (started(item, now)) return { type: "ignore", reason: "started" };
+    if (item.kind === "todo") return { type: "overwrite", reason: "todoDelete" };
     if (!writer) return { type: "overwrite", reason: "role" };
-    if (item.series && started(item, now)) return { type: "overwrite", reason: "pastVisit" };
     if (item.status === "cancelled") return { type: "ignore", reason: "alreadyCancelled" };
     return { type: "cancelEntry", entryId: id, seriesDetached: !!item.series && !item.series.detached };
   }
