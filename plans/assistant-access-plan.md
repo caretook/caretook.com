@@ -12,11 +12,11 @@
 
 **Models:** slice 1 opus (migration, permissions, `/mcp` gate); slices 2 and 3 opus (sync column and screens with role logic).
 
-| Slice | Wave | State   | Merge into `prd/assistant-access` (slice commits) |
-| ----- | ---- | ------- | ------------------------------------------------- |
-| 1     | 1    | merged  | c4956606 (eecc474f, af69bd00)                     |
-| 2     | 2    | started |                                                   |
-| 3     | 2    | started |                                                   |
+| Slice | Wave | State                                                   | Merge into `prd/assistant-access` (slice commits) |
+| ----- | ---- | ------------------------------------------------------- | ------------------------------------------------- |
+| 1     | 1    | merged                                                  | c4956606 (eecc474f, af69bd00)                     |
+| 2     | 2    | started                                                 |                                                   |
+| 3     | 2    | handed off, waits for slice 2 to merge first (15c46b76) |                                                   |
 
 **Backlog:** slice 1 claims B-558; run `pnpm backlog done` on it when slice 3's wave has merged.
 
