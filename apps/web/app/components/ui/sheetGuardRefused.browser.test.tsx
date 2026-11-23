@@ -1,12 +1,13 @@
-import type { DoseDetails } from "@caretook/data/schema";
+import type { ReactNode } from "react";
 import type { PassLogDose } from "~/routes/app/groups/timeline/pass/PassLogForm";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { createRoutesStub, useLoaderData, useLocation, useNavigate } from "react-router";
 import { beforeEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 
+import { formString } from "~/lib/core/form";
 import { PassLogForm } from "~/routes/app/groups/timeline/pass/PassLogForm";
 import { found } from "../../../test/found";
 import { Sheet } from "./index";
@@ -24,7 +25,7 @@ const dose = (id: string, medicationId: string, medicationName: string): PassLog
   id,
   occurredAt: "2026-03-02T09:00:00.000Z",
   medicationName,
-  details: { medicationId, status: "given", amount: "1 tablet" } as DoseDetails,
+  details: { medicationId, status: "given", amount: "1 tablet" },
 });
 const CHOICES = [
   { id: "med-a", name: "Fictional A", strength: "5 mg", dose: "1 tablet" },
@@ -43,7 +44,7 @@ beforeEach(() => {
 
 async function stubAction({ request }: { request: Request }) {
   const form = await request.formData();
-  const intent = String(form.get("intent"));
+  const intent = formString(form, "intent");
   if (refused.has(intent)) {
     refusals += 1;
     return { ok: false, error: REFUSAL, issues: [] };
@@ -72,8 +73,11 @@ function PassSheet() {
 }
 
 let where = "";
-function Probe({ children }: { children?: React.ReactNode }) {
-  where = useLocation().pathname;
+function Probe({ children }: { children?: ReactNode }) {
+  const { pathname } = useLocation();
+  useLayoutEffect(() => {
+    where = pathname;
+  }, [pathname]);
   return children;
 }
 
