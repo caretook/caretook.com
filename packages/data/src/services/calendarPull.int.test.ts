@@ -426,6 +426,150 @@ describe("the Google horizon", () => {
   });
 });
 
+describe("the daily catch-up", () => {
+  // Pushes started after a commit use the real clock, so each story starts in
+  // the past and its catch-up runs at about the real now.
+  const hoursAfter = (at: Date, hours: number) => new Date(at.getTime() + hours * HOUR);
+  const makeAt = (conn: GoogleCalendarConnection, summary: string, iso: string, recurring = false) =>
+    google.user.create(conn.calendarId, {
+      summary,
+      start: timed(iso),
+      end: timed(plusHours(iso, 1)),
+      recurring,
+    });
+  const linkOf = async (conn: GoogleCalendarConnection, eventId: string) => {
+    const [row] = await getDb()
+      .select()
+      .from(googleEventLinkSchema)
+      .where(
+        and(
+          eq(googleEventLinkSchema.connectionId, conn.id),
+          eq(googleEventLinkSchema.googleEventId, eventId),
+        ),
+      );
+    return row;
+  };
+  const entriesTitled = (groupId: string, title: string) =>
+    getDb()
+      .select()
+      .from(timelineEntrySchema)
+      .where(and(eq(timelineEntrySchema.groupId, groupId), eq(timelineEntrySchema.title, title)));
+  const dueNow = (conn: GoogleCalendarConnection) =>
+    getDb()
+      .update(googleCalendarConnectionSchema)
+      .set({ lastCatchUpAt: null })
+      .where(eq(googleCalendarConnectionSchema.id, conn.id));
+
+  it("takes an event once it comes inside the horizon, once, and lists at most daily", async () => {
+    const { caretaker, group } = await setup();
+    const conn = await connect(caretaker, group.id);
+    const first = new Date(Date.now() - 40 * DAY);
+    const made = makeAt(conn, "Far-off scan", new Date(first.getTime() + 400 * DAY).toISOString());
+
+    expect(await pull(conn, first)).toMatchObject({ applied: 0 });
+    expect(await linkOf(conn, made.id)).toBeUndefined();
+    expect(ms((await connectionRow(conn.id)).lastCatchUpAt)).toBe(first.getTime());
+
+    const later = new Date();
+    expect(await pull(conn, later)).toMatchObject({ applied: 1 });
+    const linked = await linkOf(conn, made.id);
+    expect(linked?.itemUid).toMatch(/^entry:/);
+    expect(await entriesTitled(group.id, "Far-off scan")).toHaveLength(1);
+
+    const lists = google.calls.listWindow;
+    expect(await pull(conn, hoursAfter(later, 1))).toMatchObject({ applied: 0 });
+    expect(google.calls.listWindow).toBe(lists);
+
+    expect(await pull(conn, hoursAfter(later, 25))).toMatchObject({ applied: 0 });
+    expect(google.calls.listWindow).toBe(lists + 1);
+    expect(await entriesTitled(group.id, "Far-off scan")).toHaveLength(1);
+  });
+
+  it("takes a weekly Google repeat only inside 90 days, and one more a week later", async () => {
+    const { caretaker, group } = await setup();
+    const conn = await connect(caretaker, group.id);
+    const first = new Date(Date.now() - 7 * DAY);
+    // Weekly from day 5: days 82 and 89 are inside 90, day 96 is inside only after a week.
+    const days = Array.from({ length: 14 }, (_, week) => 5 + week * 7);
+    for (const day of days)
+      makeAt(conn, "Weekly infusion", new Date(first.getTime() + day * DAY).toISOString(), true);
+
+    await pull(conn, first);
+    expect(await entriesTitled(group.id, "Weekly infusion")).toHaveLength(days.filter((d) => d < 90).length);
+    await pull(conn, new Date());
+    expect(await entriesTitled(group.id, "Weekly infusion")).toHaveLength(days.filter((d) => d < 97).length);
+  });
+
+  it("leaves a linked event's item and the sync token alone", async () => {
+    const { caretaker, group, appointment } = await setup();
+    const conn = await connect(caretaker, group.id);
+    await pull(conn);
+    const start = plusHours(appointment.occurredAt, 2);
+    google.user.move(
+      conn.calendarId,
+      googleEventId(`entry:${appointment.id}`),
+      timed(start),
+      timed(plusHours(start, 1)),
+    );
+    // The change list has already passed this move, so only the catch-up could see it.
+    const session = ok(
+      await google.refresh(openGoogleToken((await connectionRow(conn.id)).refreshTokenSealed!, conn.id)!),
+    );
+    const current = ok(await session.listChanges(conn.calendarId, null));
+    if (current.fullSyncRequired) throw new Error("expected a token");
+    await getDb()
+      .update(googleCalendarConnectionSchema)
+      .set({ syncToken: current.syncToken, lastCatchUpAt: null })
+      .where(eq(googleCalendarConnectionSchema.id, conn.id));
+
+    const lists = google.calls.listWindow;
+    expect(await pull(conn)).toMatchObject({ applied: 0, overwritten: 0 });
+    expect(google.calls.listWindow).toBe(lists + 1);
+    expect(ms((await entryRow(appointment.id)).occurredAt)).toBe(ms(appointment.occurredAt));
+    expect((await connectionRow(conn.id)).syncToken).toBe(current.syncToken);
+  });
+
+  it("overwrites a viewer's unlinked event, as a pull does", async () => {
+    const { viewer, group } = await setup();
+    const conn = await connect(viewer, group.id);
+    const first = new Date(Date.now() - 40 * DAY);
+    const made = makeAt(conn, "Viewer's far event", new Date(first.getTime() + 400 * DAY).toISOString());
+    expect(await pull(conn, first)).toMatchObject({ overwritten: 0 });
+
+    expect(await pull(conn, new Date())).toMatchObject({ applied: 0, overwritten: 1 });
+    expect(google.event(conn.calendarId, made.id)!.status).toBe("cancelled");
+    expect(await entriesTitled(group.id, "Viewer's far event")).toHaveLength(0);
+  });
+
+  it("keeps the pull's changes and token when the window list fails, and runs again next pull", async () => {
+    const { caretaker, group, appointment } = await setup();
+    const conn = await connect(caretaker, group.id);
+    await pull(conn);
+    await dueNow(conn);
+    const start = plusHours(appointment.occurredAt, 1);
+    google.user.move(
+      conn.calendarId,
+      googleEventId(`entry:${appointment.id}`),
+      timed(start),
+      timed(plusHours(start, 1)),
+    );
+    const before = (await connectionRow(conn.id)).syncToken;
+    google.failCalls(true, "listWindow");
+    expect(await pull(conn)).toMatchObject({ status: "pulled", applied: 1 });
+    google.failCalls(false, "listWindow");
+
+    const after = await connectionRow(conn.id);
+    expect(ms((await entryRow(appointment.id)).occurredAt)).toBe(ms(start));
+    expect(after.syncToken).not.toBe(before);
+    expect(after.lastCatchUpAt).toBeNull();
+
+    const lists = google.calls.listWindow;
+    await pull(conn);
+    expect(google.calls.listWindow).toBe(lists + 1);
+    expect((await connectionRow(conn.id)).lastCatchUpAt).not.toBeNull();
+  });
+});
+
 describe("what the member can't do", () => {
   it("puts a viewer's move back on the next push, and removes their new event", async () => {
     const { viewer, group, appointment } = await setup();
