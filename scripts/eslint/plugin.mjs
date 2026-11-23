@@ -3,6 +3,9 @@
 // B-275, B-276). eslint.config.js turns them on for apps/web's component tests, apps/web/test/ and the
 // `*World.tsx` files. A real exception carries
 // `// eslint-disable-next-line caretook/<rule> -- <reason>`. Tests: rules.test.mjs.
+// The kit's guard (`no-kit-classes`, `kitGuard`) runs on the web app's source; its lists: kit-guard.mjs.
+
+import { isKitClassExempt } from "./kit-guard.mjs";
 
 /** @typedef {import("eslint").Rule.RuleModule} RuleModule */
 /** @typedef {import("estree").Node} Node */
@@ -219,14 +222,183 @@ const noFixedSleep = {
   },
 };
 
+/** A word that says a several-word string is classes rather than prose. */
+const UTILITY_WORDS = new Set(
+  "absolute block border collapse contents fixed flex grid grow hidden inline invisible italic relative rounded shadow shrink static sticky truncate underline uppercase visible".split(
+    " ",
+  ),
+);
+const CLASS_TOKEN = /^[!a-z0-9\0:_/.%#&=,*>~+()[\]-]+$/;
+const BARE_KIT_WORD = new Set(["card", "badge", "alert"]);
+
+/** A class token without its variants (`sm:`, `hover:`) and `!` marks. */
+const baseToken = (/** @type {string} */ token) =>
+  token.slice(token.lastIndexOf(":") + 1).replace(/^!|!$/g, "");
+
+/**
+ * The kit classes in a string. `btn` and any `btn-*`, `badge-*`, `card-*`, `alert-*` always count; a
+ * bare `card`, `badge` or `alert` only in a class value, or beside a word that only a class list has
+ * (so "insurance card" and `role="alert"` pass). A template's `${}` is a NUL.
+ * @param {string} text
+ * @param {boolean} inClassValue
+ */
+export function kitClassHits(text, inClassValue) {
+  const tokens = text.split(/\s+/).filter(Boolean);
+  const classList =
+    inClassValue ||
+    (tokens.length > 1 &&
+      tokens.every((t) => CLASS_TOKEN.test(t)) &&
+      tokens.some(
+        (t) => !BARE_KIT_WORD.has(t) && (/[a-z][-:/]|\d/.test(t) || UTILITY_WORDS.has(baseToken(t))),
+      ));
+  return tokens.filter((token) => {
+    const base = baseToken(token);
+    return base === "btn" || /^(btn|badge|card|alert)-./.test(base) || (classList && BARE_KIT_WORD.has(base));
+  });
+}
+
+const isClassName = (/** @type {any} */ node) =>
+  (node?.type === "Identifier" || node?.type === "JSXIdentifier") && /classname$/i.test(node.name);
+
+/**
+ * Whether a string sits in a class value: a `className` attribute, property, variable or default,
+ * through conditionals' branches, `+`, arrays and `.join`. A condition, a comparison, an index or a
+ * call's argument is data.
+ * @param {any} node
+ */
+function inClassValue(node) {
+  for (let child = node, parent = node.parent; parent; child = parent, parent = parent.parent) {
+    switch (parent.type) {
+      case "JSXAttribute":
+        return isClassName(parent.name);
+      case "VariableDeclarator":
+        return isClassName(parent.id);
+      case "AssignmentPattern":
+        if (parent.left === child) return false;
+        if (isClassName(parent.left)) return true;
+        break;
+      case "Property":
+        if (parent.key === child) return false;
+        if (!parent.computed && isClassName(parent.key)) return true;
+        break;
+      case "ConditionalExpression":
+        if (parent.test === child) return false;
+        break;
+      case "BinaryExpression":
+        if (parent.operator !== "+") return false;
+        break;
+      case "MemberExpression":
+        if (parent.object !== child || parent.property.name !== "join") return false;
+        break;
+      case "CallExpression":
+        if (parent.callee !== child) return false;
+        break;
+      case "JSXExpressionContainer":
+      case "LogicalExpression":
+      case "ArrayExpression":
+      case "ObjectExpression":
+      case "TemplateLiteral":
+      case "ArrowFunctionExpression":
+      case "TSAsExpression":
+      case "TSSatisfiesExpression":
+        break;
+      default:
+        return false;
+    }
+  }
+  return false;
+}
+
+/** A module path or a type: never a class string. */
+const isNotAValue = (/** @type {any} */ node) =>
+  [
+    "ImportDeclaration",
+    "ExportNamedDeclaration",
+    "ExportAllDeclaration",
+    "ImportExpression",
+    "TSLiteralType",
+  ].includes(node.parent?.type);
+
+/** @type {RuleModule} */
+const noKitClasses = {
+  meta: {
+    type: "suggestion",
+    docs: {
+      description:
+        "No hand-written btn, card, badge or alert classes outside the kit (lists: scripts/eslint/kit-guard.mjs).",
+    },
+    schema: [],
+    messages: {
+      kitClass:
+        "`{{ tokens }}` is the kit's look: use its Button, Card, Badge, Message or Notice (docs/domain/ui-kit.md, Which to use).",
+    },
+  },
+  create(context) {
+    if (isKitClassExempt(context.filename)) return {};
+    const check = (/** @type {any} */ node, /** @type {string} */ text) => {
+      if (isNotAValue(node)) return;
+      const tokens = kitClassHits(text, inClassValue(node));
+      if (tokens.length > 0) {
+        const shown = tokens.join(" ").replaceAll("\0", "${}");
+        context.report({ node, messageId: "kitClass", data: { tokens: shown } });
+      }
+    };
+    return {
+      Literal(node) {
+        if (typeof node.value === "string") check(node, node.value);
+      },
+      TemplateLiteral(node) {
+        check(node, node.quasis.map((q) => q.value.cooked ?? q.value.raw).join("\0"));
+      },
+    };
+  },
+};
+
 export const rules = {
   "no-call-timeout": noCallTimeout,
   "no-non-null-user-event": noNonNullUserEvent,
   "no-non-null-in-expect": noNonNullInExpect,
   "no-fixed-sleep": noFixedSleep,
+  "no-kit-classes": noKitClasses,
 };
 
 /** @type {import("eslint").ESLint.Plugin} */
 const plugin = { meta: { name: "caretook" }, rules };
+
+/** React Aria stays inside `ui/`, and kit classes stay out of swept areas. For eslint.config.js. */
+export const kitGuard = [
+  {
+    files: ["apps/web/app/**/*.{ts,tsx}"],
+    ignores: ["**/*.test.{ts,tsx}", "**/*World.tsx"],
+    plugins: { caretook: plugin },
+    rules: { "caretook/no-kit-classes": "error" },
+  },
+  {
+    files: ["apps/web/app/**/*.{ts,tsx}"],
+    ignores: ["apps/web/app/components/ui/**", "**/*.test.{ts,tsx}", "**/*World.tsx"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "react-aria",
+                "react-aria/*",
+                "react-aria-components",
+                "react-aria-components/*",
+                "react-stately",
+                "react-stately/*",
+                "@react-aria/*",
+                "@react-stately/*",
+              ],
+              message: "Only components/ui imports React Aria: use the kit (docs/domain/ui-kit.md).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+];
 
 export default plugin;

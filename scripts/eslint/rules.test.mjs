@@ -1,7 +1,11 @@
+import { existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Linter, RuleTester } from "eslint";
 import tseslint from "typescript-eslint";
 import { afterAll, describe, expect, it, test } from "vitest";
-import plugin, { rules } from "./plugin.mjs";
+import { KIT_CLASSES_ALLOWED, KIT_CLASSES_NOT_SWEPT } from "./kit-guard.mjs";
+import plugin, { kitGuard, rules } from "./plugin.mjs";
 
 // The harness's lint rules (plugin.mjs), on TypeScript test snippets.
 
@@ -11,7 +15,9 @@ RuleTester.it = it;
 RuleTester.itOnly = it.only;
 
 const languageOptions = { parser: tseslint.parser, ecmaVersion: 2024, sourceType: "module" };
-const tester = new RuleTester({ languageOptions });
+const tester = new RuleTester({
+  languageOptions: { ...languageOptions, parserOptions: { ecmaFeatures: { jsx: true } } },
+});
 
 tester.run("no-call-timeout", rules["no-call-timeout"], {
   valid: [
@@ -156,4 +162,116 @@ describe("the disable comment", () => {
       ).toEqual([]);
     });
   }
+});
+
+const SWEPT = "apps/web/app/routes/app/groups/swept/Screen.tsx";
+const kitHit = (code) => ({ code, filename: SWEPT, errors: [{ messageId: "kitClass" }] });
+const kitPass = (code) => ({ code, filename: SWEPT });
+
+tester.run("no-kit-classes", rules["no-kit-classes"], {
+  valid: [
+    // Data and words that only look like a class.
+    kitPass('<p role="alert">Saved</p>;'),
+    kitPass('const row = { id: "card", title: "Card" };'),
+    kitPass('const tone = kind === "alert" ? "error" : "info";'),
+    kitPass('<p className={kind === "card" ? "p-2" : "p-4"} />;'),
+    kitPass('<p className={names["badge"]} />;'),
+    kitPass('<p className={classFor("card")} />;'),
+    kitPass('<p className="discard scorecard flashcard" />;'),
+    kitPass('const label = "Insurance card on file";'),
+    kitPass('const label = "the wallet card";'),
+    kitPass("const count = `${n} card`;"),
+    kitPass('type Look = "btn-primary" | "card";'),
+    kitPass('import x from "card-utils";'),
+    // The lists.
+    { code: '<a className="btn btn-primary" />;', filename: "apps/web/app/components/ui/Button.tsx" },
+    { code: '<a className="btn" />;', filename: "apps/web/app/routes/marketing/home/route.tsx" },
+    { code: '<a className="btn" />;', filename: "apps/web/app/routes/dev/ui/sections/CardSection.tsx" },
+    {
+      code: '<p className="badge" />;',
+      filename: "apps/web/app/routes/app/groups/medications/print/MedicationSheet.tsx",
+    },
+    { code: '<a className="btn" />;', filename: `apps/web/app/${KIT_CLASSES_NOT_SWEPT[0]}` },
+  ],
+  invalid: [
+    kitHit('<a className="btn" />;'),
+    kitHit('<p className="card" />;'),
+    kitHit('<p className="badge" />;'),
+    kitHit('<p className="alert" />;'),
+    // Modifiers, with a variant or an important mark.
+    kitHit('<a className="mt-2 btn-ghost" />;'),
+    kitHit('<a className="sm:btn-sm" />;'),
+    kitHit('<a className="has-checked:btn-primary" />;'),
+    kitHit('<a className="!btn-primary" />;'),
+    kitHit('<p className="card-body" />;'),
+    kitHit('<p className="badge-warning" />;'),
+    kitHit('<p className="alert-soft" />;'),
+    // Templates.
+    kitHit("<a className={`btn ${size}`} />;"),
+    kitHit("<a className={`btn-${size}`} />;"),
+    kitHit("<p className={`card ${extra}`} />;"),
+    // Conditionals, arrays, joins.
+    kitHit('<a className={on ? "btn" : "link"} />;'),
+    kitHit('<p className={on && "badge"} />;'),
+    kitHit('<p className={["card", extra].join(" ")} />;'),
+    // Constants, object maps, default parameters, a className prop.
+    kitHit('const LOOK = "btn btn-sm";'),
+    kitHit('const LOOK = "card bg-base-100";'),
+    kitHit('const LOOK = "alert shadow";'),
+    kitHit('const TONES = { warn: "badge-warning" };'),
+    kitHit('function Chip({ look = "btn-xs" }) { return look; }'),
+    kitHit('function Box({ className = "card" }) { return className; }'),
+    kitHit('const props = { className: "alert" };'),
+    // A file on neither list.
+    {
+      ...kitHit('<a className="btn" />;'),
+      filename: "apps/web/app/routes/app/groups/medications/print/week/New.tsx",
+    },
+  ],
+});
+
+describe("the kit's guard", () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+  const config = [{ files: ["**/*.{ts,tsx}"], languageOptions }, ...kitGuard];
+  const lint = (code, file) =>
+    new Linter({ cwd: root }).verify(code, config, resolve(root, file)).map((m) => m.ruleId);
+  const OUTSIDE = "apps/web/app/routes/app/groups/swept/screen.ts";
+  const INSIDE = "apps/web/app/components/ui/Thing.ts";
+
+  for (const from of [
+    "react-aria-components",
+    "react-aria",
+    "react-stately",
+    "@react-aria/focus",
+    "@react-stately/overlays",
+  ]) {
+    test(`${from}: refused outside ui/, allowed inside it`, () => {
+      const code = `import { x } from "${from}"; export { x };`;
+      expect(lint(code, OUTSIDE)).toEqual(["no-restricted-imports"]);
+      expect(lint(code, INSIDE)).toEqual([]);
+    });
+  }
+
+  test("a type import and a re-export are refused too", () => {
+    expect(lint('import type { X } from "react-aria"; export type { X };', OUTSIDE)).toEqual([
+      "no-restricted-imports",
+    ]);
+    expect(lint('export { x } from "react-aria-components";', OUTSIDE)).toEqual(["no-restricted-imports"]);
+  });
+
+  test("@internationalized/date passes anywhere", () => {
+    expect(lint('import { x } from "@internationalized/date"; export { x };', OUTSIDE)).toEqual([]);
+  });
+
+  test("test files are outside the guard", () => {
+    const code = 'import { x } from "react-aria"; export const look = ["btn", x];';
+    expect(lint(code, "apps/web/app/routes/app/groups/swept/screen.test.ts")).toEqual([]);
+  });
+
+  test("every listed path exists, and no path is on both lists", () => {
+    const app = (path) => resolve(root, "apps/web/app", path);
+    expect([...KIT_CLASSES_ALLOWED, ...KIT_CLASSES_NOT_SWEPT].filter((p) => !existsSync(app(p)))).toEqual([]);
+    expect(KIT_CLASSES_NOT_SWEPT.filter((p) => KIT_CLASSES_ALLOWED.includes(p))).toEqual([]);
+    expect(new Set(KIT_CLASSES_NOT_SWEPT).size).toBe(KIT_CLASSES_NOT_SWEPT.length);
+  });
 });
