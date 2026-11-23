@@ -151,7 +151,8 @@ export function useSheetExit({
       if (phaseRef.current === "open" && wouldAsk()) return setAsking(true);
       if (!animates()) {
         held.current = null;
-        return blocker.proceed();
+        if (blocker.state === "blocked") blocker.proceed();
+        return;
       }
       if (phaseRef.current === "open") setPhase("exiting");
     },

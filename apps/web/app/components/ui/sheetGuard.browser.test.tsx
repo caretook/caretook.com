@@ -72,7 +72,7 @@ const WAYS = [
     act: async () =>
       userEvent.click(page.elementLocator(await found(() => overlay())), { position: { x: 4, y: 4 } }),
   },
-  { way: "Back", act: async () => pressBack() },
+  { way: "Back", act: () => Promise.resolve(pressBack()) },
 ] as const;
 
 describe.each(WAYS)("$way", ({ act }) => {

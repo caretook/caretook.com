@@ -51,7 +51,6 @@ export function AllergyForm({
 
   return (
     <fetcher.Form
-      data-allergy-form=""
       method="post"
       ref={formRef}
       className="space-y-1"
