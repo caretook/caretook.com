@@ -21,7 +21,7 @@ import {
   useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
-import { ConfirmDialog, EmptyState } from "~/components/ui";
+import { ConfirmDialog, EmptyState, Message } from "~/components/ui";
 import { canReschedule } from "~/lib/appointments/eventReschedule";
 import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { canRemind } from "~/lib/calendars/remindMe";
@@ -290,9 +290,7 @@ export function TimelineEntryList({
           Timeline
         </h2>
         {(removal.error || cancelling.error || scope.error) && (
-          <p role="alert" className="text-error text-sm">
-            {removal.error ?? cancelling.error ?? scope.error}
-          </p>
+          <Message tone="error">{removal.error ?? cancelling.error ?? scope.error}</Message>
         )}
         {/* Always there, so a search's first result is announced too. */}
         <p role="status" className="sr-only" data-search-status>
@@ -357,9 +355,7 @@ export function TimelineEntryList({
               {emptyText}
             </EmptyState>
           ) : (
-            <p className="text-base-content/70" data-empty>
-              {searchStateText(searching.state) ?? emptyText}
-            </p>
+            <EmptyState data-empty="">{searchStateText(searching.state) ?? emptyText}</EmptyState>
           ))}
         {adding && <QuickAddPrefetch groupId={groupId} />}
 
@@ -393,28 +389,11 @@ export function TimelineEntryList({
  * the section's icon sits above the line.
  */
 function EmptyToday({ onAddEntry, mark }: { onAddEntry?: () => void; mark?: SectionAccent }) {
-  if (mark)
-    return (
-      <div className={`mt-2 px-3 py-3 ${ROWS_BOX}`} data-empty-today>
-        <EmptyState
-          {...mark}
-          action={onAddEntry ? { label: "Add an entry", onAction: onAddEntry } : undefined}
-        >
-          {EMPTY_TODAY_TEXT}
-        </EmptyState>
-      </div>
-    );
   return (
-    <div
-      className={`mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3 ${ROWS_BOX}`}
-      data-empty-today
-    >
-      <p className="text-base-content/70">{EMPTY_TODAY_TEXT}</p>
-      {onAddEntry && (
-        <button type="button" className="btn btn-sm btn-outline" onClick={onAddEntry}>
-          Add an entry
-        </button>
-      )}
+    <div className={`mt-2 px-3 py-3 ${ROWS_BOX}`} data-empty-today>
+      <EmptyState {...mark} action={onAddEntry ? { label: "Add an entry", onAction: onAddEntry } : undefined}>
+        {EMPTY_TODAY_TEXT}
+      </EmptyState>
     </div>
   );
 }

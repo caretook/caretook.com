@@ -53,11 +53,28 @@ describe("pass logs", () => {
     expect(tagged()).toBe(1);
     await expect.poll(() => row()?.querySelector('a[aria-label^="Edit Morning log"]')).toBeTruthy();
     await userEvent.click(await found(() => row()?.querySelector("[data-pass-log-toggle]")));
-    await waitUntil(() => !row()!.querySelector<HTMLElement>("[data-pass-log-doses]")!.hidden);
+    await waitUntil(() => row()?.querySelector("[data-pass-log-doses]")?.hasAttribute("data-open") === true);
     await expect.poll(() => row()?.querySelectorAll("[data-pass-log-doses] li").length).toBe(2);
     await setView("Cards");
     await waitUntil(() => text() === "Morning: 1 given, 1 refused");
     expect(tagged()).toBe(1);
+  });
+
+  test("the doses are a Collapse: closed, out of the tab order; the toggle controls the region", async () => {
+    await openTimeline({ fixtures: round() });
+    const toggle = await found(() => row()?.querySelector<HTMLElement>("[data-pass-log-toggle]"));
+    const region = await found(() => row()?.querySelector<HTMLElement>("[data-pass-log-doses]"));
+    expect(toggle.getAttribute("aria-controls")).toBe(region.id);
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(region.inert).toBe(true);
+    expect(region.hasAttribute("data-open")).toBe(false);
+    await userEvent.click(toggle);
+    await waitUntil(() => region.hasAttribute("data-open"));
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(region.inert).toBe(false);
+    await userEvent.click(toggle);
+    await waitUntil(() => !region.hasAttribute("data-open"));
+    expect(region.inert).toBe(true);
   });
 
   test("viewer: the pass row with its toggle, and no pass sheet", async () => {

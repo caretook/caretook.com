@@ -5,8 +5,8 @@ import type { PeriodChoice } from "~/lib/care-periods/periodSearch";
 
 import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { useId } from "react";
-import { Link, useLocation } from "react-router";
-import { ChipGroup, Sheet } from "~/components/ui";
+import { useLocation } from "react-router";
+import { Button, ChipGroup, Sheet, TITLE_SUB } from "~/components/ui";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import {
   clearAuthor,
@@ -117,17 +117,18 @@ export function FilterSheet({
           </Section>
         )}
         <div className="flex justify-end gap-2 pt-2">
-          <Link
+          <Button
             {...links}
             to={{ search: clearKind(clearAuthor(clearPeriod(search))) }}
-            className="btn btn-ghost btn-sm"
-            data-filter-clear
+            variant="ghost"
+            size="sm"
+            data-filter-clear=""
           >
             Clear
-          </Link>
-          <button type="button" className="btn btn-primary btn-sm" onClick={onClose}>
+          </Button>
+          <Button variant="primary" size="sm" onClick={onClose}>
             Done
-          </button>
+          </Button>
         </div>
       </div>
     </Sheet>
@@ -139,7 +140,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   const id = useId();
   return (
     <section aria-labelledby={id}>
-      <h4 id={id} className="text-base-content/70 mb-1.5 text-sm font-medium">
+      <h4 id={id} className={`${TITLE_SUB} text-muted mb-1.5`}>
         {title}
       </h4>
       {children}
