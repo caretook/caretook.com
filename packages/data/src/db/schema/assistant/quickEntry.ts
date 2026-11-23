@@ -1914,6 +1914,58 @@ const isFractionAmount = (
   );
 };
 
+/**
+ * Vital keywords whose following slash number is a reading, even a mistyped
+ * one. Not bare "sat" (Saturday), words for what happened on a day ("fever
+ * 12/8", "weighed 12/8"), or the vitals logged as events (bowels, urine, sleep).
+ */
+const MEASURED_VITAL_WORDS = VITAL_WORDS.filter(
+  ([words, type]) =>
+    !["bowelMovement", "urineOutput", "sleep"].includes(type) &&
+    !["sat", "fever", "weighed", "weighs"].includes(words.join(" ")),
+).map(([words]) => words);
+
+/** Symptoms people score: a slash number after one is a score when it's at most n/10. */
+const SCALE_WORDS = new Set([
+  "pain",
+  "ache",
+  "soreness",
+  "headache",
+  "migraine",
+  "nausea",
+  "dizziness",
+  "fatigue",
+  "anxiety",
+  "itching",
+  "swelling",
+  "cramps",
+]);
+
+const MEASUREMENT_LINKS = new Set([":", "=", "-", "is", "was", "of", "level"]);
+
+/**
+ * Whether the slash number at `i` follows a measurement word ("bp 12/8", "pain
+ * is 5/5"), so it's a value and not a date. A year, "on" or an appointment word
+ * in the line keeps the date ("bp 12/8/26", "bp on 12/8", "appt for bp 12/8").
+ */
+const isMeasurementValue = (tokens: readonly Token[], i: number) => {
+  const slash = /^(\d{1,2})\/(\d{1,2})$/.exec(tokens[i]!.w);
+  if (!slash) return false;
+  let last = i - 1;
+  while (last >= 0 && MEASUREMENT_LINKS.has(tokens[last]!.w)) last--;
+  if (last < 0) return false;
+  const measured = SCALE_WORDS.has(tokens[last]!.w)
+    ? Number(slash[1]) <= Number(slash[2]) && Number(slash[2]) <= 10
+    : MEASURED_VITAL_WORDS.some((words) =>
+        words.every((word, k) => tokens[last - words.length + 1 + k]?.w === word),
+      );
+  if (!measured) return false;
+  return !findVocabulary(
+    tokens.map((t) => vocabularyWord(t.w)),
+    () => true,
+  ).some((m) => m.entry.role === "appointmentWord");
+};
+
 const parsePart = (
   text: string,
   context: QuickEntryContext,
@@ -1926,9 +1978,14 @@ const parsePart = (
   const tokens = tokenize(body);
   // A fraction that is a dose's amount is hidden from the date finder; a line forced to another kind keeps it.
   const readsAmounts = forced === null || forced === "dose";
+  // So is a measurement's value, unless the line was asked to be something with a day.
+  const readsValues = forced !== "event" && forced !== "todo";
   const time = findTime(
     tokens.map((t, i) =>
-      readsAmounts && isFractionAmount(tokens, context.medications, i, forced === "dose") ? "" : t.w,
+      (readsAmounts && isFractionAmount(tokens, context.medications, i, forced === "dose")) ||
+      (readsValues && isMeasurementValue(tokens, i))
+        ? ""
+        : t.w,
     ),
   );
   const free = tokens.map((_, i) => i).filter((i) => !time?.used.has(i));

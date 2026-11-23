@@ -622,6 +622,64 @@ describe("doses", () => {
     );
   });
 
+  describe("a slash number after a measurement word isn't a date (B-578)", () => {
+    const dated = (line: string) =>
+      parse(line)[0]!.readings.some((r) => {
+        const a = action(r);
+        return JSON.stringify(a).includes("-12-08") || JSON.stringify(a).includes("-05-05");
+      });
+
+    test.each([
+      "bp 12/8",
+      "blood pressure 12/8",
+      "bp: 12/8",
+      "hr 12/8",
+      "temp 12/8",
+      "o2 sat 12/8",
+      "weight 12/8",
+      "sugar 12/8",
+      "pain 5/5",
+      "pain is 5/5",
+      "pain level 5/5",
+      "nausea 5/5",
+      "n: bp 12/8",
+    ])("%s gets no date", (line) => {
+      expect(dated(line)).toBe(false);
+    });
+
+    test.each([
+      "appt 12/8",
+      "on 12/8",
+      "bp on 12/8",
+      "bp 12/8/26",
+      "appt for bp 12/8",
+      "e: bp 12/8",
+      "todo: weight 12/8",
+      "sat 12/8",
+      "fever 12/8",
+      "weighed 12/8",
+      "bm 12/8",
+      "slept 12/8",
+      "pain 12/8",
+      "dr lee 12/8",
+    ])("%s keeps its date", (line) => {
+      expect(dated(line)).toBe(true);
+    });
+
+    test("a date after a whole reading still dates it", () => {
+      const r = top("bp 130/85 12/8");
+      expect(action(r)).toMatchObject({ type: "logVital" });
+      expect(when(r)).toContain("-12-08");
+    });
+
+    test("gave 1/6 tylenol stays an amount", () => {
+      const medications = [{ id: APAP, name: "Tylenol", dose: "1 tablet" }];
+      const r = top("gave 1/6 tylenol", { medications });
+      expect(action(r)).toMatchObject({ amount: "1/6 tablet" });
+      expect(when(r)).toBe(NOW.toISOString());
+    });
+  });
+
   describe("an application site isn't a medication's name (B-301)", () => {
     const DIC = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
     const withDirections = (directions: string) => [{ id: DIC, name: "Diclofenac", directions }];
