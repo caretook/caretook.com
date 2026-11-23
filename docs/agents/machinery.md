@@ -74,7 +74,7 @@ The scripts behind `pnpm prd` (`scripts/loops/`): worktrees and leases, recorded
 ## The notice board
 
 - One-way and advisory (`notices.mjs`, `notice.mjs`): `.loops/.notices/<id>.json` in the main checkout (`CARETOOK_NOTICES_DIR`), ids `n1`, `n2`… never reused. `pnpm prd notice "<text>" [--for <min>] [--topic <t>]` (one line, 200 characters; 60 minutes, 24 hours at most), `pnpm prd notices [--json]`, `notices --done <id>`.
-- `check`, `sync`, `slice`, `browser`, `pr`, `ready` and `land` print other sessions' live notices first (five lines at most); `pnpm prd status` prints all. Notices never block.
+- `check`, `sync`, `slice`, `browser`, `pr`, `ready` and `land` print other sessions' live notices first (five lines at most); `pnpm prd status` prints their count and `pnpm prd notices` lists them. Notices never block.
 - A code landing posts a "sync at your next wave boundary" notice for six hours.
 
 ## Landing reports

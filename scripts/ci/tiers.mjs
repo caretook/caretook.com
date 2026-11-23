@@ -8,11 +8,19 @@
 //   Runs on the bare runner's Node before any install: Node's own modules only.
 import { existsSync, readFileSync } from "node:fs";
 
-export const TIERS = /** @type {const} */ (["static", "unit", "integration", "components", "full"]);
+export const TIERS = /** @type {const} */ ([
+  "static",
+  "unit",
+  "integration",
+  "components",
+  "full",
+  "candidate",
+]);
 
 /**
  * The jobs each tier adds. The component tests are two shards, since one job ran
- * past the 10-minute limit (13 minutes); `full` adds the build job.
+ * past the 10-minute limit (13 minutes); `full` adds the build job and
+ * `candidate` the browser suite on the Docker stack.
  */
 export const TIER_JOBS = /** @type {const} */ ({
   static: ["static"],
@@ -20,6 +28,7 @@ export const TIER_JOBS = /** @type {const} */ ({
   integration: ["integration"],
   components: ["components-1", "components-2"],
   full: ["build"],
+  candidate: ["browser"],
 });
 
 /** @param {string} tier */
@@ -115,6 +124,7 @@ export function planOutputs(ref, narrowed = null) {
       `integration=${jobs.includes("integration")}`,
       `components=${jobs.includes("components-1")}`,
       "full=false",
+      "candidate=false",
       "components2=false",
       "narrowed=true",
     ];

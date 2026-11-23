@@ -80,13 +80,21 @@ const NAME = `document.querySelector('[role=dialog] input[name="symptomName"]')`
 const SUBMIT = `document.querySelector('[role=dialog] button[type="submit"]')`;
 const SHEET = `document.querySelector("[role=dialog]")`;
 
-/** Add a symptom through the sheet. */
-async function addSymptom(page, name) {
+/**
+ * Add a symptom through the sheet. With `shown` (an expression), returns the ms
+ * from pressing submit until it holds, whether or not the sheet has closed yet.
+ */
+async function addSymptom(page, name, shown) {
   await addToTimeline(page, "Symptom");
   await wf(page, NAME);
   await page.locator('[role=dialog] input[name="symptomName"]').fill(name);
+  const submitted = Date.now();
   await press(page, SUBMIT);
-  await wf(page, `!${SHEET}`);
+  const [shownMs] = await Promise.all([
+    shown ? wf(page, shown).then(() => Date.now() - submitted) : undefined,
+    wf(page, `!${SHEET}`),
+  ]);
+  return shownMs;
 }
 async function timeUntil(page, expr, ms = 20_000) {
   const t0 = Date.now();
@@ -203,10 +211,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
 
     // 1. Add on A, appears on B, stored as A.
     const name = `${tag} knee pain`;
-    const t0 = Date.now();
-    await addSymptom(A, name);
-    await wf(A, rowWith(name));
-    const localMs = Date.now() - t0;
+    const localMs = await addSymptom(A, name, rowWith(name));
     const remoteMs = await timeUntil(B, rowWith(name));
     await check("add: shows on this device at once", localMs < 2000, `${localMs} ms`);
     await check("add: reaches the other member", true, `${remoteMs + localMs} ms after submit`);
