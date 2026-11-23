@@ -133,30 +133,32 @@ export function QuickEntryBox({
           {QUICK_ENTRY_RULES}
         </p>
         {count > 0 && (
-          <>
-            <ul aria-label="To save" className="space-y-2" data-quick-cards>
-              {q.cards.map((card) => (
-                <QuickEntryCard
-                  key={card.key}
-                  card={card}
-                  preview={q.preview(card.reading)}
-                  draftLine={q.draftLine(card)}
-                  error={q.errors.get(card.key)}
-                  onChoose={(index) => q.choose(card, index)}
-                  onEdit={() => void q.edit(card)}
-                  onRemove={() => q.remove(card)}
-                />
-              ))}
-            </ul>
-            <div className="flex items-center gap-2">
+          <ul aria-label="To save" className="space-y-2" data-quick-cards>
+            {q.cards.map((card) => (
+              <QuickEntryCard
+                key={card.key}
+                card={card}
+                preview={q.preview(card.reading)}
+                draftLine={q.draftLine(card)}
+                error={q.errors.get(card.key)}
+                onChoose={(index) => q.choose(card, index)}
+                onEdit={() => void q.edit(card)}
+                onRemove={() => q.remove(card)}
+              />
+            ))}
+          </ul>
+        )}
+        {!empty && (
+          <div className="flex items-center gap-2">
+            {count > 0 && (
               <button type="submit" className={`btn btn-primary ${BUTTON_SIZE[size]}`} disabled={!q.canSave}>
                 {q.busy ? "Saving…" : count === 1 ? "Save" : `Save all ${count}`}
               </button>
-              <button type="button" className={`btn btn-ghost ${BUTTON_SIZE[size]}`} onClick={q.clear}>
-                Clear
-              </button>
-            </div>
-          </>
+            )}
+            <button type="button" className={`btn btn-ghost ${BUTTON_SIZE[size]}`} onClick={q.clear}>
+              Clear
+            </button>
+          </div>
         )}
       </form>
       <PassUndoStatus groupId={groupId} place={QUICK_ENTRY_UNDO} className="empty:hidden" />
