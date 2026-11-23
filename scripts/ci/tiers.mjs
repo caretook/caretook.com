@@ -46,13 +46,27 @@ export function jobsFor(tier) {
 
 /** The file list a narrowed run's throwaway commit adds, at the repo root. */
 export const NARROWED_FILE = ".ci-narrowed.json";
+/**
+ * The marker of a proof run (`ci run candidate --force-flake <check>`), only ever
+ * in that run's throwaway commit: its check fails once. Its verdict is never a gate.
+ * Under .github/, which check-areas already covers: the run's own lint test reads
+ * every tracked file, and a new root file would fail it.
+ */
+export const FORCED_FLAKE_FILE = ".github/ci-force-flake.json";
+
+const BROWSER_CHECKS = "scripts/browser-checks/";
+/** A browser check's spec: its identity in a verdict, the brake list and a filing. */
+export const browserCheckFile = (/** @type {string} */ check) => `${BROWSER_CHECKS}${check}.spec.mjs`;
+export const isBrowserCheckFile = (/** @type {string} */ file) =>
+  file.startsWith(BROWSER_CHECKS) && file.endsWith(".spec.mjs");
 
 /**
  * Which step runs a test file: `unit`, `integration`, `browser-tooling` (in the
- * integration job) or `components`.
+ * integration job), `components` or `browser` (a browser check's spec).
  * @param {string} file
  */
 export function fileGroup(file) {
+  if (isBrowserCheckFile(file)) return "browser";
   if (file === "scripts/loops/browser.test.mjs") return "browser-tooling";
   if (file.endsWith(".int.test.ts")) return "integration";
   if (file.endsWith(".browser.test.tsx")) return "components";
@@ -64,6 +78,7 @@ const GROUP_TIER = /** @type {const} */ ({
   integration: "integration",
   "browser-tooling": "integration",
   components: "components",
+  browser: "candidate",
 });
 
 /**

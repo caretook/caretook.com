@@ -197,6 +197,7 @@ describe("the deploy workflows", () => {
       "powersync",
       "started",
       "suite",
+      "report",
       "logs",
     ]);
     const run = (id) => browser.steps.find((s) => s.id === id).run;
@@ -204,7 +205,10 @@ describe("the deploy workflows", () => {
     expect(run("stack")).toBe("pnpm datastore:up");
     expect(run("serve")).toContain("NODE_ENV=production");
     expect(run("serve")).toContain("host-headers.mjs");
-    expect(run("suite")).toBe('bash "$GITHUB_WORKSPACE/scripts/loops/browser.sh" --suite');
+    expect(run("suite")).toBe("node scripts/ci/browser-job.mjs");
+    expect(run("report")).toBe('node scripts/ci/browser-job.mjs report >> "$GITHUB_OUTPUT"');
+    expect(browser.outputs.failures).toBe("${{ steps.report.outputs.failures }}");
+    expect(browser.steps.find((s) => s.id === "report").if).toContain("!cancelled()");
   });
 
   it("runs the deploy's steps in order", () => {
