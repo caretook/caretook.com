@@ -1,6 +1,7 @@
 import type { SyncDb } from "./index";
 import type { UploadCall, UploadInput, UploadResult } from "./uploader";
 
+import { OWN_DOSE_COPY_METADATA } from "@caretook/data/schema";
 import { afterEach, describe, expect, test } from "vitest";
 import { closeSync, installTestDatabase } from "./index";
 import { uploadQueued } from "./uploader";
@@ -54,6 +55,40 @@ const recorded = (d: SyncDb) =>
 
 const ENTRY = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c1a01";
 const MEDICATION = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c1b01";
+
+describe("uploadQueued: a dose's own copy (B-614)", () => {
+  const DOSE = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c1c01";
+  const OTHER_MEMBER = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c1d01";
+
+  const undoDoseWrittenBy = async (d: SyncDb, author: string) => {
+    await syncDown(
+      d,
+      flattenFixtures([
+        fx.group(),
+        fx.recipient(),
+        fx.dose({ id: DOSE, medicationId: MEDICATION, createdBy: author }),
+      ]),
+    );
+    await d.powersync.execute(
+      "UPDATE timeline_entry SET deleted_at = ?, updated_at = ?, updated_by = ? WHERE id = ?",
+      ["2027-06-09T12:00:00.000000Z", "2027-06-09T12:00:00.000000Z", TEST_USER.id, DOSE],
+    );
+    const { call, sent } = server((op) => ({ id: op.id, status: "applied" }));
+    await uploadQueued(d.powersync, call);
+    return sent[0]!.ops[0]!;
+  };
+
+  test("flags a PATCH of a dose the device holds as this member's", async () => {
+    const op = await undoDoseWrittenBy(await open(), TEST_USER.id);
+    expect(op).toMatchObject({ op: "PATCH", metadata: OWN_DOSE_COPY_METADATA });
+  });
+
+  test("leaves a deliberate change of another member's dose unflagged", async () => {
+    const op = await undoDoseWrittenBy(await open(), OTHER_MEMBER);
+    expect(op.op).toBe("PATCH");
+    expect(op.metadata).toBeUndefined();
+  });
+});
 
 describe("uploadQueued", () => {
   test("records a refused op with its data, code, issues and label, and acknowledges the whole batch", async () => {

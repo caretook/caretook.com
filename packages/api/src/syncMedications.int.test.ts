@@ -6,6 +6,7 @@ import {
   medicationChangeId,
   medicationService,
   noteDocumentService,
+  OWN_DOSE_COPY_METADATA,
   providerService,
   timelineEntryService,
 } from "@caretook/data";
@@ -731,6 +732,93 @@ describe("sync.upload: two members' doses for one slot", () => {
       createdBy: caretaker.user.id,
       details: { note: "from the first phone" },
     });
+  });
+
+  const undoPatch = (id: string, by: string, metadata?: string) => ({
+    op: "PATCH" as const,
+    table: "timeline_entry",
+    id,
+    data: { deleted_at: sqliteTime(0), updated_at: sqliteTime(0), updated_by: by },
+    ...(metadata ? { metadata } : {}),
+  });
+
+  it("keeps A's dose when B's offline log and Undo upload as a PUT and a flagged PATCH", async () => {
+    const { put, doses, owner, caretaker } = await doseSetup();
+    const first = put("given", sqliteTime(-60_000), "A's dose");
+    await upload(caretaker.api, [first]);
+
+    const results = await upload(owner.api, [
+      { ...put("given", first.data.occurred_at, "B's tap"), id: first.id },
+      undoPatch(first.id, owner.user.id, OWN_DOSE_COPY_METADATA),
+    ]);
+
+    expect(results.map((r) => r.status)).toEqual(["applied", "applied"]);
+    expect(await doses()).toMatchObject([
+      { id: first.id, createdBy: caretaker.user.id, deletedAt: null, details: { note: "A's dose" } },
+    ]);
+  });
+
+  it("keeps A's dose when B's log and Undo upload as one PUT with deleted_at", async () => {
+    const { put, doses, owner, caretaker } = await doseSetup();
+    const first = put("given", sqliteTime(-60_000), "A's dose");
+    await upload(caretaker.api, [first]);
+    const undone = { ...put("given", first.data.occurred_at, "B's tap"), id: first.id };
+
+    const results = await upload(owner.api, [
+      { ...undone, data: { ...undone.data, deleted_at: sqliteTime(0) } },
+    ]);
+
+    expect(results).toEqual([{ id: first.id, status: "applied" }]);
+    expect(await doses()).toMatchObject([
+      { id: first.id, createdBy: caretaker.user.id, deletedAt: null, details: { note: "A's dose" } },
+    ]);
+  });
+
+  it("leaves A's row alone on B's offline edit after a duplicate PUT", async () => {
+    const { put, doses, owner, caretaker } = await doseSetup();
+    const first = put("given", sqliteTime(-60_000), "A's dose");
+    await upload(caretaker.api, [first]);
+    const edited = JSON.stringify({ ...JSON.parse(first.data.details), note: "B's edit" });
+
+    const results = await upload(owner.api, [
+      { ...put("given", first.data.occurred_at, "B's tap"), id: first.id },
+      {
+        op: "PATCH" as const,
+        table: "timeline_entry",
+        id: first.id,
+        data: { details: edited, updated_at: sqliteTime(0), updated_by: owner.user.id },
+        metadata: OWN_DOSE_COPY_METADATA,
+      },
+    ]);
+
+    expect(results.map((r) => r.status)).toEqual(["applied", "applied"]);
+    expect((await doses())[0]).toMatchObject({ createdBy: caretaker.user.id, details: { note: "A's dose" } });
+  });
+
+  it("removes the shared dose on a deliberate Undo of a row synced to the device", async () => {
+    const { put, doses, owner, caretaker } = await doseSetup();
+    const first = put("given", sqliteTime(-60_000), "A's dose");
+    await upload(caretaker.api, [first]);
+
+    expect(await upload(owner.api, [undoPatch(first.id, owner.user.id)])).toEqual([
+      { id: first.id, status: "applied" },
+    ]);
+
+    expect(await doses()).toEqual([]);
+  });
+
+  it("lets two simultaneous first uploads of one id both succeed, leaving one row", async () => {
+    const { put, doses, owner, caretaker } = await doseSetup();
+    const first = put("given", sqliteTime(-60_000), "one phone");
+    const second = { ...put("given", first.data.occurred_at, "other phone"), id: first.id };
+
+    const results = await Promise.all([upload(caretaker.api, [first]), upload(owner.api, [second])]);
+
+    expect(results.flat().map((r) => r.status)).toEqual(["applied", "applied"]);
+    const rows = await doses();
+    expect(rows).toHaveLength(1);
+    const winner = rows[0]!.createdBy === caretaker.user.id ? "one phone" : "other phone";
+    expect(rows[0]).toMatchObject({ details: { note: winner } });
   });
 
   it("keeps Given and Skipped as two rows, and the earlier reads the slot", async () => {

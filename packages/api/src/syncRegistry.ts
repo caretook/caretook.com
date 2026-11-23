@@ -11,6 +11,7 @@ import {
   medicationService,
   newError,
   noteDocumentService,
+  OWN_DOSE_COPY_METADATA,
   providerService,
   recipientAllergyService,
   recipientConditionService,
@@ -238,18 +239,42 @@ const softDelete = (spec: SoftDeleteSpec): UploadEntry => {
 /** `recipient_id` left out is the group's recipient. */
 const GROUP_RECIPIENT = { group_id: text, recipient_id: (v: unknown) => text(v) ?? undefined };
 
+const TIMELINE_CONTENT: ColumnMap = {
+  ...each("title body time_zone place cancel_reason rescheduled_to series_id series_day", text),
+  ...each("occurred_at ends_at cancelled_at", timestamp),
+  ...each("all_day series_detached", flag),
+  details: json,
+};
+
 const timelineEntry = softDelete({
   service: timelineEntryService,
   errors: "timelineEntryService",
   fixed: { ...GROUP_RECIPIENT, kind: text },
-  content: {
-    ...each("title body time_zone place cancel_reason rescheduled_to series_id series_day", text),
-    ...each("occurred_at ends_at cancelled_at", timestamp),
-    ...each("all_day series_detached", flag),
-    details: json,
-  },
+  content: TIMELINE_CONTENT,
   // The service sets `cancelled_by`, like the audit columns. `via` syncs down only (connectors).
   serverSet: ["cancelled_by", "via"],
+  // A dose logged and undone before it uploaded, onto another member's row:
+  // their dose stands, live or deleted (B-614).
+  put: async (ctx, op, input) => {
+    if (op.data?.deleted_at) {
+      const theirs = await timelineEntryService.anotherMembersDose(ctx, op.id);
+      if (isError(theirs)) return theirs;
+      if (theirs?.groupId === input.groupId) return null;
+    }
+    return timelineEntryService.upsert(ctx, input as never);
+  },
+  patch: async (ctx, op, { remove, update }) => {
+    const data = op.data ?? {};
+    // The device's edit or Undo of its own copy, whose PUT was a duplicate (B-614).
+    if (op.metadata === OWN_DOSE_COPY_METADATA) {
+      const theirs = await timelineEntryService.anotherMembersDose(ctx, op.id);
+      if (isError(theirs)) return theirs;
+      if (theirs) return applied;
+    }
+    if (data.deleted_at) return remove(ctx, op.id);
+    const content = mapped(TIMELINE_CONTENT, data);
+    return Object.keys(content).length === 0 ? applied : update(ctx, op, content);
+  },
 });
 
 const provider = softDelete({
