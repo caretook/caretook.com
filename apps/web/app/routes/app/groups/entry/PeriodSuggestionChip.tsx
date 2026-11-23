@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Button } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { periodTypeMeta, suggestionText } from "~/lib/care-periods/periodDisplay";
 import { PERIOD_SHEET_STATE } from "~/lib/care-periods/periodSheets";
@@ -29,7 +29,7 @@ export function PeriodSuggestionChip({
   if (!suggestion) return null;
   const Icon = periodTypeMeta(suggestion.type).icon;
   return (
-    <Link
+    <Button
       to={appUrls.newPeriod(groupId, {
         type: suggestion.type,
         startedAt: suggestion.startsAt,
@@ -39,11 +39,14 @@ export function PeriodSuggestionChip({
       state={PERIOD_SHEET_STATE}
       // The sheet's modules load now, so it opens offline after a full load.
       prefetch="render"
-      className="btn btn-sm btn-soft btn-primary rounded-full"
+      variant="ghost"
+      size="sm"
+      shape="pill"
+      icon={Icon}
+      className="bg-primary/10 text-primary-ink"
       data-period-suggestion={suggestion.type}
     >
-      <Icon className="size-4" aria-hidden="true" />
       {suggestionText(suggestion.type)}
-    </Link>
+    </Button>
   );
 }

@@ -9,6 +9,7 @@ import { useGroup } from "~/lib/app-shell/group";
 import { defaultChoice, draftTiming } from "~/lib/appointments/repeatChoice";
 import { seriesQuery, toRepeatInput } from "~/lib/appointments/series.sync";
 import { useLiveQuery } from "~/lib/sync";
+import { ENTRY_CHIP } from "./entryPage";
 
 // The field's preview needs rrule: its folder loads only when Repeat opens.
 const RepeatSheet = lazy(() => import("~/components/repeat").then((m) => ({ default: m.RepeatSheet })));
@@ -34,7 +35,7 @@ export function EntryRepeat({ live }: { live: LiveEntry }) {
   if (entry.seriesId) {
     const series = toRepeatInput(rows[0]);
     return (
-      <p className="text-base-content/70 flex items-center gap-1 text-sm" data-repeat-text>
+      <p className="text-muted flex items-center gap-1 text-sm" data-repeat-text>
         <RepeatMark seriesId={entry.seriesId} />
         <span>{series ? repeatText(series) : "Repeats"}</span>
       </p>
@@ -55,7 +56,7 @@ export function EntryRepeat({ live }: { live: LiveEntry }) {
     <>
       <button
         type="button"
-        className="badge badge-ghost hover:bg-base-300 h-auto cursor-pointer gap-1 py-0.5"
+        className={ENTRY_CHIP}
         aria-label={`Repeat: ${label}`}
         onClick={() => setOpen(true)}
         data-repeat-button
