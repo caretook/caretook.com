@@ -17,10 +17,11 @@
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 
-| Item                                     | Slices                    |
-| ---------------------------------------- | ------------------------- |
-| B-245 entries and todos, many to many    | 1, 2, 3, 4, and part of 6 |
-| B-254 quick entry makes a repeating todo | 5, 6                      |
+| Item                                        | Slices                    |
+| ------------------------------------------- | ------------------------- |
+| B-245 entries and todos, many to many       | 1, 2, 3, 4, and part of 6 |
+| B-626 a rescheduled event's todos follow it | 2                         |
+| B-254 quick entry makes a repeating todo    | 5, 6                      |
 
 ## Architectural decisions
 
@@ -83,11 +84,11 @@ Stack: yes · Reads: docs/domain/data-layer.md, docs/domain/sync.md, docs/domain
 
 Stack: yes · Reads: docs/domain/todos.md, docs/domain/appointments.md, docs/domain/components.md · Tests: unit, component, e2e:roundtrip
 
-**Backlog:** B-245. **User stories:** 8, 14, 16.
+**Backlog:** B-245, B-626. **User stories:** 8, 14, 16, 25.
 
 **What to build**
 
-Nothing looks different; the device's readers and writers of a todo's event move to link rows: the series touched check and delete, the device's entry removal, device todo queries, `LinkedTodos`, the todo page's links and loader, the form's event picker on create, and the device's touched check on reopen. `updateTodo` stops carrying `eventId`, so saving the edit form leaves links alone. `todos/new` gains the `entryId` prefill for any live note or event, saving the todo and its link in one local transaction; the old `eventId` URL still works.
+Rescheduling with the old event kept as cancelled moves its todo links to the new event, done todos included, in the same local transaction. Otherwise nothing looks different; the device's readers and writers of a todo's event move to link rows: the series touched check and delete, the device's entry removal, device todo queries, `LinkedTodos`, the todo page's links and loader, the form's event picker on create, and the device's touched check on reopen. `updateTodo` stops carrying `eventId`, so saving the edit form leaves links alone. `todos/new` gains the `entryId` prefill for any live note or event, saving the todo and its link in one local transaction; the old `eventId` URL still works.
 
 **Acceptance criteria**
 
@@ -96,7 +97,8 @@ Nothing looks different; the device's readers and writers of a todo's event move
 - [ ] Component: editing a backfilled todo's title keeps its link, and uploads no `event_id` change.
 - [ ] Component: `todos/new` with a note's `entryId` saves a linked todo; an id that isn't a live note or event is ignored.
 - [ ] Device tests: a series edit keeps a visit with a linked todo; reopening keeps a linked next occurrence.
-- [ ] A rescheduled event's todos stay on the cancelled event, pinned by a test.
+- [ ] Device tests: a reschedule that keeps the old event moves its open and done todos to the new event, offline too, and the cancelled event lists none; a series visit moved on its own does the same; a plain time change keeps its links.
+- [ ] Integration (upload): the moved links' DELETE and PUT leave one link on the new event and clear a matching `todo.event_id`.
 
 **Blocked by:** 1. **Blocks:** 3, 4.
 
