@@ -101,9 +101,25 @@ describe("a narrowed step", () => {
     expect(f.runs).toEqual([]);
   });
 
-  it("runs no quarantine", () => {
+  it("runs the quarantined tests of its own named files, and no others (B-587)", () => {
     const f = fake({
-      texts: { ".ci-narrowed.json": narrowed, "scripts/ci/quarantine.txt": "a.test.ts\tn\tB-1\n" },
+      codes: [1],
+      texts: {
+        ".ci-narrowed.json": narrowed,
+        "scripts/ci/quarantine.txt": "a.test.ts\tn\tB-1\nc.test.ts\tm\tB-2\nb.int.test.ts\to\tB-3\n",
+      },
+    });
+    expect(runQuarantine(ARGS, f.io)).toBe(0);
+    expect(f.runs).toHaveLength(1);
+    expect(f.runs[0]?.env).toEqual({ CARETOOK_QUARANTINE: "run" });
+    expect(f.runs[0]?.args.at(-1)).toBe("a.test.ts");
+    expect(f.runs[0]?.args).not.toContain("c.test.ts");
+    expect(f.runs[0]?.args).not.toContain("b.int.test.ts");
+  });
+
+  it("runs no quarantine when none of its named files has an entry", () => {
+    const f = fake({
+      texts: { ".ci-narrowed.json": narrowed, "scripts/ci/quarantine.txt": "c.test.ts\tn\tB-1\n" },
     });
     expect(runQuarantine(ARGS, f.io)).toBe(0);
     expect(f.runs).toEqual([]);

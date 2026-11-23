@@ -167,7 +167,7 @@ export function buildVerdict({ commit, runId, tier, needs, brakes = [], quaranti
   /** @type {{ job: string, file: string, name: string, status: string }[]} */ const quarantined = [];
   let truncated = false;
   let reran = false;
-  let unnamedFailure = false;
+  /** @type {string[]} */ const unnamedJobs = [];
 
   if (needs.plan?.result !== "success") {
     failedJobs.add("plan");
@@ -232,7 +232,7 @@ export function buildVerdict({ commit, runId, tier, needs, brakes = [], quaranti
     // Failed, but only on tests the quarantine covers.
     if (hadQuarantined && summary?.reported) continue;
     failedJobs.add(job);
-    if (summary?.reported && summary.total > 0) unnamedFailure = true;
+    if (summary?.reported && summary.total > 0) unnamedJobs.push(job);
     else infraJobs.push(job);
   }
 
@@ -243,7 +243,7 @@ export function buildVerdict({ commit, runId, tier, needs, brakes = [], quaranti
       ? "brake"
       : infraJobs.length
         ? "infra"
-        : afterTests.length || afterFiles.length || unnamedFailure
+        : afterTests.length || afterFiles.length || unnamedJobs.length
           ? "file"
           : flaky.length
             ? "flake"
@@ -259,12 +259,14 @@ export function buildVerdict({ commit, runId, tier, needs, brakes = [], quaranti
     narrowed: !!narrowed,
     narrowedFiles: narrowed?.files ?? [],
     kind,
-    failed: { jobs: [...failedJobs], files: [...new Set(files)], tests, truncated },
+    failed: { jobs: [...failedJobs], files: [...new Set(files)], tests, truncated, unnamedJobs },
     afterRerun: reran ? { files: [...new Set(afterFiles)], tests: afterTests } : null,
     flaky,
     brake: { jobs: brakeJobs, tests: brakeTests, files: [...new Set(brakeFiles)] },
     infra: { jobs: infraJobs },
     quarantined,
+    // What this commit skips: blame can't read a skipped test as passing.
+    quarantineList: entries.map(({ file, name }) => ({ file, name })),
   };
 }
 

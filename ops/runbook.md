@@ -27,6 +27,10 @@ How staging and production are set up, deployed, rotated and recovered. Written 
   - `scripts/ci/brake-list.txt` (edited by hand; a line matching no test fails `lists.test.mjs`) names the tests whose failure is a brake. Its flakes are filed and never quarantined.
   - `scripts/ci/quarantine.txt` (`<file><TAB><full test name><TAB>B-n`) is skipped everywhere except a run's quarantine step, which can't fail the run. Closing an entry's item removes the entry.
   - `--files …` narrows a run: a throwaway commit adds `.ci-narrowed.json` on its own `ci/` ref, and its verdict never counts as the branch's.
+  - An infra verdict is rerun once, and a rerun replaces the `verdict` artifact. A waiting whole-tier run writes the commit status `caretook-ci/<tier>`. `pnpm prd status` shows each branch's verdict, cached in the main checkout's `.loops/.ci-status/`.
+  - `pnpm prd ci blame` compares a `file` or `brake` verdict with dev's tip and exits 0 all dev's, 2 some the branch's, 5 unknown (an infra, truncated or flaky dev result, a quarantined test that didn't pass on dev, or a named test in a file dev couldn't load stays unknown). `pnpm prd ci file` files flakes.
+  - Filing keeps a `[ci-key <key>]` in the item's first note. `backlog ci-file` is one locked commit, never amended, pushed without force. A dev brake posts one notice, withdrawn by a later blame that passes its key. Done items' quarantine entries leave on any write and in `pnpm prd tidy`.
+  - A dev commit changing only the brake list or the quarantine isn't drift and keeps a check pass; a branch changing only a list still needs a check.
 - Vercel's own Git deploys are off (`apps/web/vercel.json`: `git.deploymentEnabled: false`). The Action is the only way code goes live. There are no per-PR previews.
 - Tool versions: the Vercel and PowerSync CLIs are pinned in `.github/cli-versions.env` and run through `pnpm dlx`. Node comes from `.nvmrc`, pnpm from `package.json`'s `packageManager`.
 
