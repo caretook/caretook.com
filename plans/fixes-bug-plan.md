@@ -14,7 +14,9 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 5 (slices 28–31, B-628, B-632, B-634, B-635, all on opus) landed in dev through PR #102 as a04034ec** (2026-11-23): `integration` CI green on de1b975c (run 45140076884), quick check on 039ea84f, Codex clean on 039ea84f; `browser --changed` needs none. To-test: `to-test/2026-11-23-0359-fixes-bug.md`. Docs folded (`assistant.md`, exactly at its 10 KB budget: trim when adding). Slice worktrees removed. Known limit left as is: `finished 2nd at the race` reads as a day.
 
-**Wave 6 (slices 32–34, B-644, B-643, B-641, all on opus), planned 2026-11-23 after a sync (already up to date with dev):** chained, one at a time, because they share the quick-entry files. **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (`routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
+**Wave 6 (slices 32–34, B-644, B-643, B-641, all on opus) landed in dev through PR #105 as a235304c** (2026-11-23): `integration` CI green on d7dab0c5 (run 45147868591), quick check and Codex clean on d7dab0c5; `browser --changed` needs none. To-test: `to-test/2026-11-23-0442-fixes-bug.md`. Docs folded (`assistant.md`, at its 10 KB budget: trim when adding). Slice worktrees removed.
+
+**Hand-over (after the wave 6 landing; no slice in flight).** **Next wave:** `pnpm prd sync`, ingest, then plan B-648 (bare `gave lorazepam 1/2` with a usual 2 tablets overstates the dose: first, it's a dose-accuracy risk), B-647 (a request with a later day) and B-646 (a counted ordinal with no place); all three share the quick-entry files, so chain them. Onboarding has finished, so B-620 and B-631 may be free. **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (`routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -51,9 +53,9 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 29    | B-632 | landed                                     | 82eebf78 |
 | 30    | B-634 | landed                                     | c2c53eee |
 | 31    | B-635 | landed                                     | b1cf109f |
-| 32    | B-644 | merged (keeps worktree until wave green)   | a4252709 |
-| 33    | B-643 | merged (keeps worktree until wave green)   | ce9c55a2 |
-| 34    | B-641 | merged (keeps worktree until wave green)   | 501a58bf |
+| 32    | B-644 | landed                                     | a4252709 |
+| 33    | B-643 | landed                                     | ce9c55a2 |
+| 34    | B-641 | landed                                     | 501a58bf |
 
 ## Wave 1
 
