@@ -9,13 +9,15 @@
 | 1     | 1    | landed      | 816ac0c5 (aa217ed2, cd475969, 0cd26332, 129dbb45) |
 | 2     | 2    | landed      | a8f52f91 (567e2913), opus                         |
 | 3     | 3    | landed      | 3c244581 (14c5af53), opus                         |
-| 4     | 4    | not started |                                                   |
+| 4     | 4    | in progress | worktree `member-avatars-4`, agent on opus        |
 
 **Landing mode:** run everything through (started run-through). Land each green wave, clean up, and ask only real questions through `pnpm prd ask`.
 
 **Now (2026-11-23):** wave 1 landed as a3e635e2 (PR #125). Wave 2 landed in `dev` as b1ee1d19 through PR #128, at tier `components` (CI run 45245508309 green on 38582b4d), with the browser suite 11 of 11. Codex did not review either wave (out of credits, `--no-review`). Report a156 is filed. **Wave 3 landed** in `dev` as 358a209d through PR #133, at tier `components` (CI run 45254180107 green on af94450a). Codex did not review it (out of credits, `--no-review`). Browser checks for the diff: live-notes, app-shell and first-sync passed; `ui` failed once (the phone add sheet measured zero size), then passed 3 of 3 alone, filed as B-727 (ui browser check: the phone add sheet intermittently measures zero size), cause unknown. No slice is in flight and no slice worktree is left. **Next: wave 4:** `pnpm backlog ingest`, `list`, `pnpm prd sync`, then start slice 4 on opus. B-593 stays claimed until slice 4 merges.
 
-**For slice 4 (from slice 3's hand-off):** use `<MemberAvatar userId name image />` from `components/members`. `KindIcon`, `PlannerHeader` and `TimelineFilters` still use plain `UserAvatar`. `ProfileHeader` does too and isn't in slice 4's list: decide at slice 4. Known limits: past ten members a leaver can move someone on a repeated color to the freed one; avatars can show neutral briefly on entering a group; a quick A to B to A change can briefly show B.
+**Wave 4 (resumed 2026-11-23 after an interruption):** _Status_ matched git. Backlog ingest had nothing new, no new item belongs here, and `pnpm prd sync` found only backlog commits on `dev`. Slice 4 started from 0a2b59fc on opus.
+
+**For slice 4 (from slice 3's hand-off):** use `<MemberAvatar userId name image />` from `components/members`. `KindIcon`, `PlannerHeader` and `TimelineFilters` still use plain `UserAvatar`. `ProfileHeader` stays plain (decided at slice 4): it shows the care recipient, who is not a member and has no look. Known limits: past ten members a leaver can move someone on a repeated color to the freed one; avatars can show neutral briefly on entering a group; a quick A to B to A change can briefly show B.
 
 **No local quick check when CI will run (the user, 2026-11-23):** after a merge or dev sync, go straight to `pnpm prd ci run`. The slice agent's own check on its branch stays. Order per wave: merge, `pnpm prd sync`, one CI run on that tip, land on its verdict, with no quick check after the sync. Only docs commits go on top of the green tip, so the verdict still counts.
 **Rechecks:** the user's "skip rechecks after a clean dev sync" covered wave 1 only. Later waves recheck after each dev sync unless the user repeats it.
