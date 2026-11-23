@@ -1,6 +1,10 @@
 import { describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
-import { at, fx } from "../../../../../test/fixtures";
+import { at, fx, TEST_GROUP } from "../../../../../test/fixtures";
+import { timelineMedicationsQuery } from "~/lib/medications/medicationTimeline.sync";
+import { timelineLinksQuery } from "~/lib/providers/providers.sync";
+import { historyQuery } from "~/lib/timeline/timeline.sync";
+import { jumpBound } from "~/lib/timeline/timelineJump";
 import { dayKeyIn } from "./timelineDays";
 import { button, frames, openTimeline, rows, rowWith, tapAt, TIMELINE_URL, world } from "./timelineWorld";
 import { found, stopsMoving, waitUntil } from "../../../../../test/found";
@@ -32,6 +36,46 @@ const farWorld = () => [
 ];
 
 describe("opening the timeline on a day", () => {
+  test("the bounded window holds the day's last moment, not the next day's first, for entries, links and medications", async () => {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const before = jumpBound(key(40), zone, new Date())!;
+    const edge = new Date(before).getTime();
+    const provider = fx.provider({ name: "Dr. Edge" });
+    const [inMed, outMed] = [fx.medication({ name: "Inside" }), fx.medication({ name: "Outside" })];
+    const inEvent = fx.event({ title: "Last moment", occurredAt: at(new Date(edge - 1)) });
+    const outEvent = fx.event({ title: "Next day", occurredAt: at(new Date(edge)) });
+    const inDose = fx.dose({ medicationId: inMed.id, occurredAt: at(new Date(edge - 1)) });
+    const outDose = fx.dose({ medicationId: outMed.id, occurredAt: at(new Date(edge)) });
+    const device = await openTimeline({
+      fixtures: [
+        provider,
+        inMed,
+        outMed,
+        inEvent,
+        outEvent,
+        inDose,
+        outDose,
+        fx.link(inEvent.id, provider.id),
+        fx.link(outEvent.id, provider.id),
+      ],
+      query: `?day=${key(40)}`,
+    });
+    await waitUntil(() => rows().length > 0);
+    const filters = { kind: null, author: null };
+    const cutoff = new Date().toISOString();
+    const read = <T,>({ sql, params }: { sql: string; params: unknown[] }) => device.query<T>(sql, params);
+    const entries = await read<{ id: string }>(historyQuery(TEST_GROUP.id, filters, 30, cutoff, before));
+    const links = await read<{ entry_id: string }>(
+      timelineLinksQuery(TEST_GROUP.id, filters, 30, cutoff, before),
+    );
+    const medications = await read<{ id: string }>(
+      timelineMedicationsQuery(TEST_GROUP.id, filters, 30, cutoff, before),
+    );
+    expect(entries.map((e) => e.id).sort()).toEqual([inEvent.id, inDose.id].sort());
+    expect(links.map((l) => l.entry_id)).toEqual([inEvent.id]);
+    expect(medications.map((m) => m.id)).toEqual([inMed.id]);
+  });
+
   test("a far day comes first, with no newer rows, no Today heading, and no notice", async () => {
     await openTimeline({ fixtures: farWorld(), query: `?day=${key(40)}` });
     await waitUntil(() => rows().length > 0);
