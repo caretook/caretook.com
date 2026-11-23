@@ -14,7 +14,7 @@ Wave 2 running: slices 2, 3 and 4 started 2026-11-23 from `43161185`, worktrees 
 | ----- | ---- | ---------- | ----------------------------------------------- |
 | 1     | 1    | merged     | `1cfac27b` (`6999da53`, `9db57b09`, `731544d0`) |
 | 2     | 2    | merged     | `03cc1b86` (tip `cf9dd5aa`)                     |
-| 3     | 2    | handed off | —                                               |
+| 3     | 2    | merged     | `14834355` (tip `a3ae6704`)                     |
 | 4     | 2    | handed off | —                                               |
 
 **Backlog:** B-557 (quick date jump on the timeline) claimed by `prd/timeline-jump`; run `pnpm backlog done B-557` when the last slice merges. No other items belong to this topic.
