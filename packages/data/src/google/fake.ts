@@ -29,8 +29,8 @@ export type FakeGoogleCalendar = GoogleCalendarClient & {
   grant: (opts?: { refreshToken?: string | null; scope?: string }) => string;
   /** The member removes Caretook's access in their Google account. */
   revokeAccess: (refreshToken: string) => void;
-  /** Make the next calls fail as if Google were down (`googleCalendar:failed`), or stop. */
-  failCalls: (on: boolean) => void;
+  /** Make the next calls (or only `listWindow`) fail as if Google were down (`googleCalendar:failed`), or stop. */
+  failCalls: (on: boolean, only?: "listWindow") => void;
   /** Google forgets the sync tokens it gave (the next `listChanges` with one needs a full sync). */
   expireSyncTokens: () => void;
   calendars: () => { id: string; summary: string; timeZone: string }[];
@@ -40,7 +40,7 @@ export type FakeGoogleCalendar = GoogleCalendarClient & {
   event: (calendarId: string, eventId: string) => GoogleEvent | null;
   /** Calls made, by method. */
   calls: Record<
-    "createCalendar" | "upsertEvent" | "deleteEvent" | "listChanges" | "revoke" | "refresh",
+    "createCalendar" | "upsertEvent" | "deleteEvent" | "listChanges" | "listWindow" | "revoke" | "refresh",
     number
   >;
   revoked: () => string[];
@@ -71,6 +71,7 @@ export const fakeGoogleCalendar = (): FakeGoogleCalendar => {
   let seq = 0;
   let syncEpoch = 0;
   let failing = false;
+  let failingWindow = false;
   const codes = new Map<string, { refreshToken: string | null; scope: string; verifier?: string }>();
   const live = new Set<string>();
   const revokedTokens: string[] = [];
@@ -80,6 +81,7 @@ export const fakeGoogleCalendar = (): FakeGoogleCalendar => {
     upsertEvent: 0,
     deleteEvent: 0,
     listChanges: 0,
+    listWindow: 0,
     revoke: 0,
     refresh: 0,
   };
@@ -170,6 +172,24 @@ export const fakeGoogleCalendar = (): FakeGoogleCalendar => {
           .map(view);
         return { events, syncToken: `sync-${syncEpoch}-${seq}` };
       }),
+      listWindow: later((calendarId, from, to) => {
+        calls.listWindow++;
+        const refused = failingWindow ? down() : guard();
+        if (refused) return refused;
+        const calendar = calendarFor(refreshToken, calendarId);
+        if (!calendar) return newError({ code: "googleCalendar:notFound", meta: { status: 404 } });
+        // As Google's timeMin and timeMax: exclusive bounds on the end and the start.
+        return [...calendar.events.values()]
+          .filter(
+            (e) =>
+              e.status !== "cancelled" &&
+              !!e.start &&
+              Date.parse(startKey(e.end ?? e.start)) > from.getTime() &&
+              Date.parse(startKey(e.start)) < to.getTime(),
+          )
+          .sort((a, b) => startKey(a.start).localeCompare(startKey(b.start)) || a.id.localeCompare(b.id))
+          .map(view);
+      }),
     };
   };
 
@@ -221,8 +241,9 @@ export const fakeGoogleCalendar = (): FakeGoogleCalendar => {
     revokeAccess: (refreshToken) => {
       live.delete(refreshToken);
     },
-    failCalls: (on) => {
-      failing = on;
+    failCalls: (on, only) => {
+      if (only) failingWindow = on;
+      else failing = on;
     },
     expireSyncTokens: () => {
       syncEpoch++;

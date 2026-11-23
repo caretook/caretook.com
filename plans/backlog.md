@@ -39,7 +39,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `demo-site` | hold | — | — | Shared demo site with generic logins and nightly reset; separate environment |
 | `planner-3` | — | `simple-mode` | `packages/data/src/db/schema/todos/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/todos.ts`, `packages/data/src/services/entryTodoService.ts`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `packages/api/src/connectors/tools/listTodos.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/todos/`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/appointments/`, `apps/web/app/lib/assistant/quickEntry.sync.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `scripts/browser-checks/sync-matrix.mjs` | Replanned 2026-11-23: entries and todos many to many (B-245) and quick entry repeats (B-254). |
 | `todo-subtasks` | — | `planner-3` | — | to write (B-550): nested todos, 3 levels in code, parent auto-completes |
-| `calendars-2` | — | — | `packages/data/src/google/`, `packages/data/src/services/calendar`, `packages/data/src/db/schema/calendars/`, `packages/data/src/db/schema/notifications/`, `packages/data/src/db/schema/appointments/repeatRule`, `packages/data/src/db/schema/appointments/seriesVisits`, `packages/notifications/`, `apps/web/app/lib/appointments/repeatChoice`, `apps/web/app/lib/calendars/`, `apps/web/app/components/repeat/`, `apps/web/app/routes/app/groups/settings/calendar/` | [PRD](calendars-2-prd.md), [plan](calendars-2-plan.md) (B-304 to B-309): 7 slices, waves (1, 3, 5, 6) → (2, 4) → 7: Google deletes leave started items and todos alone; Google sync looks a year ahead with a daily catch-up; reminders expire at the event's start; deleted providers leave pushes; a stale consent goes generic and asks again; times name their zone; monthly on the last day. Two additive migrations (waves 1 and 3), no deps, no stack. Push notifications (B-377) are calendars-3 |
+| `calendars-2` | done | — | `packages/data/src/google/`, `packages/data/src/services/calendar`, `packages/data/src/db/schema/calendars/`, `packages/data/src/db/schema/notifications/`, `packages/data/src/db/schema/appointments/repeatRule`, `packages/data/src/db/schema/appointments/seriesVisits`, `packages/notifications/`, `apps/web/app/lib/appointments/repeatChoice`, `apps/web/app/lib/calendars/`, `apps/web/app/components/repeat/`, `apps/web/app/routes/app/groups/settings/calendar/` | [PRD](calendars-2-prd.md), [plan](calendars-2-plan.md) (B-304 to B-309): 7 slices, waves (1, 3, 5, 6) → (2, 4) → 7: Google deletes leave started items and todos alone; Google sync looks a year ahead with a daily catch-up; reminders expire at the event's start; deleted providers leave pushes; a stale consent goes generic and asks again; times name their zone; monthly on the last day. Two additive migrations (waves 1 and 3), no deps, no stack. Push notifications (B-377) are calendars-3 |
 | `fixes-perf` | standing | — | — | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
 | `fixes-nit` | standing | — | — | plan: plans/fixes-nit-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety-2` | — | `sync-safety` | `packages/api/src/sync`, `apps/web/app/lib/sync/`, `packages/data/src/services/`, `apps/web/app/lib/todos/` | Released 2026-11-23 by the user. to write (B-294 to B-296, B-382 to B-384, B-387): cut from sync-safety by its planner, 2026-11-21: device transactions applied atomically, device clocks on change entries, the stale tab, and the repeating-todo races |
@@ -143,7 +143,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-296 | bug | triaged | sync-safety-2 |  | A tab left open while another tab switches user keeps the old user id, and its next navigation clears the new user's local database |
 | B-299 | bug | ready | dose-accuracy | prd/dose-accuracy | Visit prep's 'Missed doses' reads history through today's schedule: a schedule change shows phantom misses back to the last visit |
 | B-304 | bug | landed | calendars-2 | prd/calendars-2 | Deleting an old event in Google Calendar rewrites past Caretook records: soft-deletes a past reminder note, cancels a past appointment, marks a todo done for the group |
-| B-305 | bug | ready | calendars-2 | prd/calendars-2 | Events made in Google more than 90 days out never arrive: ignored as outsideWindow, the sync token advances, nothing revisits them |
+| B-305 | bug | landed | calendars-2 | prd/calendars-2 | Events made in Google more than 90 days out never arrive: ignored as outsideWindow, the sync token advances, nothing revisits them |
 | B-306 | bug | landed | calendars-2 | prd/calendars-2 | A reminder email can arrive after its appointment: about 2 h of retry backoff, no expiry, text rendered at queue time |
 | B-307 | bug | landed | calendars-2 | prd/calendars-2 | Google Calendar pushes still name soft-deleted providers (reminders filter them) |
 | B-308 | bug | landed | calendars-2 | prd/calendars-2 | The details-consent version is stored but never compared, so bumping DETAILS_CONSENT_VERSION re-asks nobody |
@@ -276,7 +276,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-549 | feature | triaged | symptom-catalog |  | Symptoms become a catalog type: a default set for every group, writers add new ones quickly with a similar-name check; filter the timeline by several symptoms at once |
 | B-550 | feature | triaged | todo-subtasks |  | Nested todos: subtasks up to 3 levels deep, a parent completes when its last subtask is done |
 | B-551 | feature | triaged | inbox-agent |  | 'bye' for every agent role: a message of just 'bye' runs a handover check; nothing left means the session closes itself, otherwise it asks the user what to do with what's left |
-| B-557 | feature | triaged | timeline-jump |  | quick date jump on timeline via date picker AND quick entry |
+| B-557 | feature | in-progress | timeline-jump | prd/timeline-jump | quick date jump on timeline via date picker AND quick entry |
 | B-560 | feature | triaged | self-recovery-2 |  | A cost record: tokens by model per PRD and slice, from session and subagent transcripts, in pnpm prd cost |
 | B-561 | feature | triaged | demo-site |  | Shared demo site: demo.caretook.com with a fictional care group, generic logins and a nightly reset, to link from invites |
 | B-562 | change | triaged | data-rights |  | Notice before a material change to the legal pages: the privacy policy promises notice and consent where required, and nothing does this yet |
@@ -691,7 +691,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-305 · bug · Events made in Google more than 90 days out never arrive: ignored as outsideWindow, the sync token advances, nothing revisits them
 
-- status: ready
+- status: landed
 - prd: calendars-2
 - owner: prd/calendars-2
 - commit: c3f79b28
@@ -2094,9 +2094,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-557 · feature · quick date jump on timeline via date picker AND quick entry
 
-- status: triaged
+- status: in-progress
 - prd: timeline-jump
-- owner:
+- owner: prd/timeline-jump
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): Decided with the user 2026-11-22: jumping scrolls the continuous timeline to that day, with a Back to today control. An empty day lands on the nearest earlier day with entries and says so. Quick entry jumps only on an explicit phrase (go to Nov 3, jump to last Tuesday, show yesterday), giving a Go to card that navigates and saves nothing. The picker allows past dates through today. Note: the timeline loads by growing a limit on scroll, so a far jump needs a plan for loading that day.
@@ -2922,3 +2922,4 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (slice/test-gates-2/1): Candidate run https://github.com/caretook/caretook.com/actions/runs/45181714693 (commit 7626dfb3): roundtrip failed at 'add: shows on this device at once' with 2353 ms against a 2000 ms limit (roundtrip.spec.mjs:211). The timer starts before the add menu opens and stops when the row shows, so it covers driving the sheet as well as the local write. One sample, runner load about 2.7; the cause is likely runner speed but is not proven, and a job setup cause is not ruled out. The check stops at this step, so the rest of roundtrip (edit, delete, offline, refused uploads, viewer, sync matrix) has not run on Linux. browser.sh did not retry it because the message doesn't look like contention. Budget left unchanged. Next: rerun to see whether it repeats and measure the local write alone.
+- 2026-11-23 (slice/test-gates-2/1): Failed again at the same step: run https://github.com/caretook/caretook.com/actions/runs/45181714693 (2353 ms) and run https://github.com/caretook/caretook.com/actions/runs/45187414322 (2779 ms). Fix on slice/test-gates-2/1: the clock now runs from pressing submit until the row shows, instead of from before the add menu opened. Budget (2000 ms) and assertion unchanged. Not yet proven: needs a new candidate run. If it still fails, the local write itself is slow.
