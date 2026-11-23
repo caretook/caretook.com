@@ -323,7 +323,7 @@ describe("who's writing", () => {
     await waitUntil(() => AVATARS().length === 1, "avatars");
     // The viewer is the signed-in user here, so only Sam shows.
     expect(AVATARS().map((el) => el.dataset.person)).toEqual([SAM.id]);
-    await expect.poll(() => HEADER()?.textContent).toContain("Event");
+    await expect.poll(() => HEADER()?.textContent).toContain("Past event");
     await expect.poll(() => EDITOR()?.getAttribute("contenteditable")).toBe("false");
     expect([
       !!TITLE(),
