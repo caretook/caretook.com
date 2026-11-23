@@ -259,8 +259,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-501 | bug | triaged | fixes-tooling |  | Flaky under load: recipientCondition.int.test.ts 'refuses viewers, outsiders and staff, and another group's recipient' fails in a full check; passes alone |
 | B-502 | bug | triaged | fixes-tooling |  | Flaky under load: search.int.test.ts 'searches a group of 10,000 entries in under 200 ms' reads 210 ms in a full check; passes alone |
 | B-511 | feature | in-progress | agent-autonomy-3 | prd/agent-autonomy-3 | Skeptic before every ask: a session sends its question, options and evidence to a fresh Fable skeptic first; it decides (reversible, within the rules) or confirms the question is the user's; pnpm prd ask records the verdict |
-| B-512 | feature | triaged | agent-autonomy-3 |  | Skeptic before risky landings: a Fable skeptic reviews the evidence before land --force, landing on flaky tests (B-505) or declining a Codex finding, and the landing report says what it said |
-| B-513 | change | triaged | agent-autonomy-3 |  | Opus planners and backlog sessions with a Fable final check: the skeptic pass runs on Fable and may send a plan back; a registry flag (e.g. design) keeps a heavy design topic's planner on Fable |
+| B-512 | feature | in-progress | agent-autonomy-3 | prd/agent-autonomy-3 | Skeptic before risky landings: a Fable skeptic reviews the evidence before land --force, landing on flaky tests (B-505) or declining a Codex finding, and the landing report says what it said |
+| B-513 | change | in-progress | agent-autonomy-3 | prd/agent-autonomy-3 | Opus planners and backlog sessions with a Fable final check: the skeptic pass runs on Fable and may send a plan back; a registry flag (e.g. design) keeps a heavy design topic's planner on Fable |
 | B-515 | feature | triaged | inbox-agent |  | Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too |
 | B-518 | change | landed | agent-autonomy | prd/agent-autonomy | Land without re-syncing when dev's changes don't touch the branch: land.sh's drift refusal relaxes when dev's new commits share no file with the branch and bring none of the risky files; land still merges dev and typechecks the result, and the landing report says it landed on an unsynced tip |
 | B-525 | bug | triaged | fixes-tooling |  | Asks: two processes taking over a dead holder's ask lock can both remove it, so one deletes the other's fresh lock and an answer and a default overlap (asks.mjs withAskLock) |
@@ -1886,9 +1886,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-512 · feature · Skeptic before risky landings: a Fable skeptic reviews the evidence before land --force, landing on flaky tests (B-505) or declining a Codex finding, and the landing report says what it said
 
-- status: triaged
+- status: in-progress
 - prd: agent-autonomy-3
-- owner:
+- owner: prd/agent-autonomy-3
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: build the Fable 5.2 skeptic into more of the workflow; Fable reviews in short passes, Opus does the long work.
@@ -1899,9 +1899,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-513 · change · Opus planners and backlog sessions with a Fable final check: the skeptic pass runs on Fable and may send a plan back; a registry flag (e.g. design) keeps a heavy design topic's planner on Fable
 
-- status: triaged
+- status: in-progress
 - prd: agent-autonomy-3
-- owner:
+- owner: prd/agent-autonomy-3
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: build the Fable 5.2 skeptic into more of the workflow; Fable reviews in short passes, Opus does the long work. Last 36h: main-checkout Fable sessions read 428M tokens, Fable planners 148M. The default model moved to Opus on dev the same day; this item adds the flag and the send-back rule.
