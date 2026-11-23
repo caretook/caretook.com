@@ -38,6 +38,8 @@ const server = (start: { color: string | null; icon: string | null }) => {
 const preview = () => getByCss("[data-avatar-preview]");
 const radio = (group: string, name: string) =>
   page.getByRole("radiogroup", { name: group }).getByRole("radio", { name, exact: true });
+// The radio is visually hidden and its swatch sits over it: a tap lands on the swatch.
+const choose = (group: string, name: string) => userEvent.click(radio(group, name), { force: true });
 const save = () => userEvent.click(page.getByRole("button", { name: "Save" }));
 
 beforeEach(() => forgetMyAvatar());
@@ -46,8 +48,8 @@ describe("the Avatar card", () => {
   test("previews a choice before saving, then saves both ids", async () => {
     const { calls, api, stored } = server({ color: null, icon: null });
     await renderWithDevice({ route: ROUTES, url: "/app/settings/account", api, connected: true });
-    await userEvent.click(radio("Color", "Jade"));
-    await userEvent.click(radio("Icon", "Bird"));
+    await choose("Color", "Jade");
+    await choose("Icon", "Bird");
     await expect.element(preview()).toHaveAttribute("data-avatar-color", "jade");
     await expect.element(preview()).toHaveAttribute("data-avatar-icon", "bird");
     expect(calls.of("me.setAvatar")).toEqual([]);
@@ -62,8 +64,8 @@ describe("the Avatar card", () => {
     const { calls, api } = server({ color: "sky", icon: "cat" });
     await renderWithDevice({ route: ROUTES, url: "/app/settings/account", api, connected: true });
     await expect.element(radio("Color", "Sky")).toBeChecked();
-    await userEvent.click(radio("Color", "Default"));
-    await userEvent.click(radio("Icon", "Default"));
+    await choose("Color", "Default");
+    await choose("Icon", "Default");
     await save();
     await expect.element(page.getByText("Saved.")).toBeVisible();
     expect(calls.of("me.setAvatar")).toEqual([{ color: null, icon: null }]);
@@ -74,7 +76,7 @@ describe("the Avatar card", () => {
     const { api } = server({ color: null, icon: null });
     api["me.setAvatar"] = () => refusal("permissions:unauthorized");
     await renderWithDevice({ route: ROUTES, url: "/app/settings/account", api, connected: true });
-    await userEvent.click(radio("Color", "Rose"));
+    await choose("Color", "Rose");
     await save();
     await expect.element(page.getByRole("alert")).toBeVisible();
     await expect.element(preview()).toHaveAttribute("data-avatar-color", "rose");
