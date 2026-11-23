@@ -10,7 +10,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 3 (slice 18, B-510) landed in dev through PR #57** (2026-11-22). `pnpm prd check` takes no reason (only `--quick` does).
 
-**Wave 4 (this session, 2026-11-23): slices 19–27, all on opus.** Synced with dev at 1cee1cac. Merged: 19, 20, 24, 25, 27 (keep their worktrees until the wave is green); quick check passed on 468282b1. Started next: 21, 26. Chains on shared files: 20 → 21 → 22 → 23 (quick entry), 25 → 26 (sheet changes). **Held for a later wave:** B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts` and `assistantActionService.ts`), B-620 (onboarding holds `routes/app/groups/timeline/`; the user approved its fix, see the item's note).
+**Wave 4 (this session, 2026-11-23): slices 19–27, all on opus.** Synced with dev at 1cee1cac. Merged: 19, 20, 24, 25, 27 (keep their worktrees until the wave is green); quick check passed on 468282b1. Merged too: 21. Running: 22, 26. Chains on shared files: 20 → 21 → 22 → 23 (quick entry), 25 → 26 (sheet changes). **Held for a later wave:** B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts` and `assistantActionService.ts`), B-620 (onboarding holds `routes/app/groups/timeline/`; the user approved its fix, see the item's note).
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -36,8 +36,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 18    | B-510 | landed                                     | 5d096ce3 |
 | 19    | B-527 | merged                                     | 04f5e825 |
 | 20    | B-578 | merged                                     | 5d7cfdcf |
-| 21    | B-591 | started                                    |          |
-| 22    | B-580 | blocked by 21                              |          |
+| 21    | B-591 | merged                                     | c177aa58 |
+| 22    | B-580 | started                                    |          |
 | 23    | B-581 | blocked by 22                              |          |
 | 24    | B-599 | merged                                     | f8c90c02 |
 | 25    | B-601 | merged                                     | efb9d552 |
