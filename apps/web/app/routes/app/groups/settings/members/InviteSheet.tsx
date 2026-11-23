@@ -62,29 +62,45 @@ export function InviteButton({
         </p>
       )}
       {sentTo && !open && <Notice tone="success">Invitation sent to {sentTo}.</Notice>}
-      <Sheet isOpen={open} onOpenChange={setOpen} title="Invite by email">
-        <fetcher.Form method="post" className="space-y-2" data-invite-sheet="">
-          <input type="hidden" name="intent" value="invite" />
-          <p className="text-base-content/70 text-sm">
-            We'll email them a link that works for 7 days, with that address only.
-          </p>
-          <Field kind="input" label="Email" error={issue("email")}>
-            {(control) => <input {...control} type="email" name="email" autoComplete="off" required />}
-          </Field>
-          <Field kind="select" label="Role" help={roleDescription(role)} error={issue("role")}>
-            {(control) => (
-              <select {...control} name="role" value={role} onChange={(event) => setRole(event.target.value)}>
-                <RoleOptions roles={roles} />
-              </select>
-            )}
-          </Field>
-          <CheckField label={ATTESTATION_TEXT} name="attested" required error={issue("attested")} />
-          {result && !result.ok && !result.issues.length && <Message tone="error">{result.error}</Message>}
-          <Button type="submit" variant="primary" block busy={busy} busyLabel="Sending…">
-            Send invitation
-          </Button>
-        </fetcher.Form>
-      </Sheet>
+      {open && (
+        <Sheet
+          guardChanges
+          isOpen
+          onOpenChange={(next) => {
+            setOpen(next);
+            // A discarded role doesn't come back with the next open.
+            if (!next) setRole("caretaker");
+          }}
+          title="Invite by email"
+        >
+          <fetcher.Form method="post" className="space-y-2" data-invite-sheet="">
+            <input type="hidden" name="intent" value="invite" />
+            <p className="text-base-content/70 text-sm">
+              We'll email them a link that works for 7 days, with that address only.
+            </p>
+            <Field kind="input" label="Email" error={issue("email")}>
+              {(control) => <input {...control} type="email" name="email" autoComplete="off" required />}
+            </Field>
+            <Field kind="select" label="Role" help={roleDescription(role)} error={issue("role")}>
+              {(control) => (
+                <select
+                  {...control}
+                  name="role"
+                  value={role}
+                  onChange={(event) => setRole(event.target.value)}
+                >
+                  <RoleOptions roles={roles} />
+                </select>
+              )}
+            </Field>
+            <CheckField label={ATTESTATION_TEXT} name="attested" required error={issue("attested")} />
+            {result && !result.ok && !result.issues.length && <Message tone="error">{result.error}</Message>}
+            <Button type="submit" variant="primary" block busy={busy} busyLabel="Sending…">
+              Send invitation
+            </Button>
+          </fetcher.Form>
+        </Sheet>
+      )}
     </div>
   );
 }

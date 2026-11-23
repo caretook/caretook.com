@@ -88,63 +88,79 @@ export function CreateLinkButton({
       {created && !open && (
         <Notice tone="success">Link created. Copy or share it from Invite links below.</Notice>
       )}
-      <Sheet isOpen={open} onOpenChange={setOpen} title="Create an invite link">
-        <fetcher.Form method="post" className="space-y-2" data-link-sheet="">
-          <input type="hidden" name="intent" value="createLink" />
-          <p className="text-base-content/70 text-sm">
-            Anyone with the link can ask to join. You or another owner or admin approves each request, and
-            they see nothing until then.
-          </p>
-          <Field kind="select" label="Role" help={roleDescription(role)} error={issue("role")}>
-            {(control) => (
-              <select {...control} name="role" value={role} onChange={(event) => setRole(event.target.value)}>
-                <RoleOptions roles={roles} />
-              </select>
-            )}
-          </Field>
-          <Field
-            kind="input"
-            label="Works for (days)"
-            help={`${LINK_TTL_MIN_DAYS} to ${limits.maxDays} days.`}
-            error={issue("expiresInDays")}
-          >
-            {(control) => (
-              <input
-                {...control}
-                type="number"
-                inputMode="numeric"
-                name="expiresInDays"
-                min={LINK_TTL_MIN_DAYS}
-                max={limits.maxDays}
-                defaultValue={limits.defaultDays}
-                required
-              />
-            )}
-          </Field>
-          <Field
-            kind="input"
-            label="Most people who can use it"
-            help="Leave empty for no limit."
-            error={issue("maxUses")}
-          >
-            {(control) => (
-              <input
-                {...control}
-                type="number"
-                inputMode="numeric"
-                name="maxUses"
-                min={1}
-                max={limits.maxUses}
-                placeholder="No limit"
-              />
-            )}
-          </Field>
-          {result && !result.ok && !result.issues.length && <Message tone="error">{result.error}</Message>}
-          <Button type="submit" variant="primary" block busy={busy} busyLabel="Creating…">
-            Create link
-          </Button>
-        </fetcher.Form>
-      </Sheet>
+      {open && (
+        <Sheet
+          guardChanges
+          isOpen
+          onOpenChange={(next) => {
+            setOpen(next);
+            // A discarded role doesn't come back with the next open.
+            if (!next) setRole("viewer");
+          }}
+          title="Create an invite link"
+        >
+          <fetcher.Form method="post" className="space-y-2" data-link-sheet="">
+            <input type="hidden" name="intent" value="createLink" />
+            <p className="text-base-content/70 text-sm">
+              Anyone with the link can ask to join. You or another owner or admin approves each request, and
+              they see nothing until then.
+            </p>
+            <Field kind="select" label="Role" help={roleDescription(role)} error={issue("role")}>
+              {(control) => (
+                <select
+                  {...control}
+                  name="role"
+                  value={role}
+                  onChange={(event) => setRole(event.target.value)}
+                >
+                  <RoleOptions roles={roles} />
+                </select>
+              )}
+            </Field>
+            <Field
+              kind="input"
+              label="Works for (days)"
+              help={`${LINK_TTL_MIN_DAYS} to ${limits.maxDays} days.`}
+              error={issue("expiresInDays")}
+            >
+              {(control) => (
+                <input
+                  {...control}
+                  type="number"
+                  inputMode="numeric"
+                  name="expiresInDays"
+                  min={LINK_TTL_MIN_DAYS}
+                  max={limits.maxDays}
+                  defaultValue={limits.defaultDays}
+                  required
+                />
+              )}
+            </Field>
+            <Field
+              kind="input"
+              label="Most people who can use it"
+              help="Leave empty for no limit."
+              error={issue("maxUses")}
+            >
+              {(control) => (
+                <input
+                  {...control}
+                  type="number"
+                  inputMode="numeric"
+                  name="maxUses"
+                  min={1}
+                  max={limits.maxUses}
+                  placeholder="No limit"
+                />
+              )}
+            </Field>
+            {result && !result.ok && !result.issues.length && <Message tone="error">{result.error}</Message>}
+            <Button type="submit" variant="primary" block busy={busy} busyLabel="Creating…">
+              Create link
+            </Button>
+          </fetcher.Form>
+        </Sheet>
+      )}
     </div>
   );
 }
