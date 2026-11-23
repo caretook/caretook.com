@@ -14,7 +14,7 @@
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`.
 
-**Now:** wave 1 at its gate: slice 1 merged, B-269 ready. Next: sync, quick check (the wave changes only lint tooling, no app code), PR, Codex, land, docs, rotate. No new backlog items for this topic at the wave 1 boundary; `backlog doctor`'s two findings (B-548, B-549 inbox titles) aren't this topic's.
+**Now:** wave 1 at its gate: slice 1 merged, B-269 ready. Synced; quick check passed on af3dd985 (the wave changes only lint tooling, no app code); no browser checks needed; guard folded into the components and ui-kit docs. Next: PR, Codex, land, rotate. No new backlog items for this topic at the wave 1 boundary; `backlog doctor`'s two findings (B-548, B-549 inbox titles) aren't this topic's.
 
 **For wave 2 (from slice 1):** the guard's lists are in `scripts/eslint/kit-guard.mjs`. The print routes stay on the not-swept list because each holds an on-screen Print button: slices 2 and 4 sweep them. A listed path that no longer exists fails a test, so slice 4's renames must update their lines.
 
