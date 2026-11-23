@@ -6,7 +6,14 @@
 
 **Where it stands (hand-over, 2026-11-22):** both waves are merged, synced and in PR #79 (reviewed head eaeefffe; full check passed on 1f5ba799, quick check on eaeefffe, docs folded). **Not landed:** Codex found two P2s, both reproduced on the parser and both new regressions that save a wrong medication record, so they are fixed before landing (critical for this PRD). No slice is in flight.
 
-**Resumed 2026-11-22:** Status reconciled with git (head a593f23d, no slice worktrees or branches, PR #79 open, both threads unresolved). Step 1 is done: the opus fix agent committed both fixes as 993e7eb5 (532 parser and time rows pass, no existing row changed). Now at step 2, the quick check. Known limits, left on purpose: "no relief after metformin given" and "tylenol no pain given" stay skipped (the safer wrong reading); "vitamin 3" for "Vitamin D 3" still reads as a count.
+**Resumed 2026-11-22:** Status reconciled with git (head a593f23d, no slice worktrees or branches, PR #79 open, both threads unresolved). Step 1 is done: the opus fix agent committed both fixes as 993e7eb5 (532 parser and time rows pass, no existing row changed). Steps 2 and 3 are done (quick check passed on e6e33d31, pushed, both threads answered and resolved).
+
+**Codex round 2 (on e6e33d31), both reproduced against dev and both new regressions that save a wrong record, so an opus fix agent is on them; if no fix commit follows this line, respawn it:**
+
+- **A fraction beside a medication is an amount, not a date** (threads `PRRT_kwDOVx-WLM66quBS`, `quBW`, `quBY`, one finding posted three times): "gave 3/8 tylenol" saves 1 tablet dated March 8; dev kept today with "3/8" in the note. "bp 12/8" and "pain 5/5" stay with B-578.
+- **An application site isn't a medication's name** (thread `PRRT_kwDOVx-WLM66quBc`): with directions "Apply to knee twice daily", "knee 3" saves a dose and "knee 3/10" a note; dev read both as a Knee symptom, severity 3.
+
+After the fix: quick check, `pnpm prd pr`, reply and resolve all four threads, `--wait`, then step 4. This is review round 2 of about 3; after round 3, ask the user. Known limits, left on purpose: "no relief after metformin given" and "tylenol no pain given" stay skipped (the safer wrong reading); "vitamin 3" for "Vitamin D 3" still reads as a count.
 
 **Next, in order:**
 
