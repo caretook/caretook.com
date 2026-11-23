@@ -15,7 +15,7 @@
 | 3     | 1    | opus  | started (worktree, agent spawned)          |                                              |
 | 4     | 2    |       | not started                                |                                              |
 | 5     | 1    | opus  | handed off, reviewed; merges after 1 and 3 | (`c58aee87`)                                 |
-| 6     | 1    | opus  | started (worktree, agent spawned)          |                                              |
+| 6     | 1    | opus  | handed off, reviewed; merges after 5       | (`6914d97b`, `e82f69c0`)                     |
 | 7     | 3    |       | not started                                |                                              |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
