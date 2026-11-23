@@ -21,8 +21,9 @@ import {
 } from "./medicationWorld";
 
 // Today on the Schedule tab (medications.mjs's Today, pass
-// slot and Given all steps), on a fixed clock: 10:00 on Wednesday Jun 9 2027 in
-// Los Angeles, the recipient's zone and the test browser's. Times of their
+// slot and Given all steps), on a fixed clock: 10:00 on Wednesday Jun 9 2027 on
+// the device, with the recipient in the device's zone (whichever the run uses),
+// so her slots read as the clock does. Times of their
 // own and passes a few minutes back are due; one tap logs Given, the ⋯ marks
 // Skipped or Refused with a note, an as-needed medication past its maximum
 // asks first; Given all logs a pass's open medications in one round with
@@ -32,6 +33,9 @@ import {
 // duePasses.test.ts's; a round's upload is syncMedications.int.test.ts's.
 
 const SAM = fx.person({ name: "Sam Okafor", role: "caretaker" });
+
+/** The recipient, where the device is: `CLOCK` and `clockAt` are the device's 10:00. */
+const RECIPIENT_HERE = fx.recipient({ timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
 
 /** Donepezil at two times of its own, both due (6 and 3 minutes back). */
 const T1 = clockAt(-6);
@@ -81,7 +85,7 @@ const open = async (fixtures: Fixture[], role: "owner" | "caretaker" | "viewer" 
     route: MEDICATION_ROUTES,
     url: SCHEDULE,
     role,
-    fixtures: [SAM, fixtures],
+    fixtures: [SAM, RECIPIENT_HERE, fixtures],
   });
   await expect.poll(() => TODAY()?.querySelector("[data-slot], [data-as-needed]")).toBeTruthy();
   return device;
@@ -141,18 +145,19 @@ describe("times of their own", () => {
     ]);
   });
 
-  test("with the recipient in New York, her slots are read in her zone, and Today says whose times they are", async () => {
-    // 13:00 in New York is 10:00 here: a slot at 12:57 New York time is due now.
-    const NY = fx.medication({
+  test("with the recipient in another zone, her slots are read in her zone, and Today says whose times they are", async () => {
+    // Noon in Chicago, a zone apart from either test zone: a slot at 11:57 her time is due now.
+    fixClock(new Date("2027-06-09T17:00:00Z"));
+    const CHICAGO = fx.medication({
       name: "Donepezil",
       strength: "5 mg",
-      schedule: { type: "scheduled", slots: [{ time: "12:57" }, { time: T1 }] },
+      schedule: { type: "scheduled", slots: [{ time: "11:57" }, { time: T1 }] },
     });
-    await open([fx.recipient({ timeZone: "America/New_York" }), NY]);
-    expect(slotState(NY.id, "12:57")).toBe("due");
-    // 09:54 New York time was three hours ago here: overdue.
-    expect(slotState(NY.id, T1)).toBe("overdue");
-    await expect.poll(() => TODAY()?.textContent).toContain("Times are New York time");
+    await open([fx.recipient({ timeZone: "America/Chicago" }), CHICAGO]);
+    expect(slotState(CHICAGO.id, "11:57")).toBe("due");
+    // 09:54 her time was two hours ago: overdue.
+    expect(slotState(CHICAGO.id, T1)).toBe("overdue");
+    await expect.poll(() => TODAY()?.textContent).toContain("Times are Chicago time");
   });
 
   test("a viewer sees Today and each slot's state, with no logging controls", async () => {
