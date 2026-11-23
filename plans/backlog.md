@@ -323,7 +323,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-658 | bug | triaged | fixes-tooling |  | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
 | B-659 | bug | triaged | fixes-bug |  | A consent turned on offline before a wording bump and sent after it records the new version, though the member saw the older wording |
 | B-660 | chore | triaged | fixes-tooling |  | CI verdicts keep each failed test's failure message, so a one-off flake shows which limit or timeout broke |
-| B-661 | bug | triaged | fixes-tooling |  | roundtrip's 2-second add budget fails on the CI runner |
+| B-661 | bug | landed | fixes-tooling | prd/test-gates-2 | roundtrip's 2-second add budget fails on the CI runner |
 
 ## Items
 
@@ -2516,10 +2516,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-661 · bug · roundtrip's 2-second add budget fails on the CI runner
 
-- status: triaged
+- status: landed
 - prd: fixes-tooling
-- owner:
-- commit:
+- owner: prd/test-gates-2
+- commit: 39412b40
 
 - 2026-11-23 (slice/test-gates-2/1): Candidate run https://github.com/caretook/caretook.com/actions/runs/45181714693 (commit 7626dfb3): roundtrip failed at 'add: shows on this device at once' with 2353 ms against a 2000 ms limit (roundtrip.spec.mjs:211). The timer starts before the add menu opens and stops when the row shows, so it covers driving the sheet as well as the local write. One sample, runner load about 2.7; the cause is likely runner speed but is not proven, and a job setup cause is not ruled out. The check stops at this step, so the rest of roundtrip (edit, delete, offline, refused uploads, viewer, sync matrix) has not run on Linux. browser.sh did not retry it because the message doesn't look like contention. Budget left unchanged. Next: rerun to see whether it repeats and measure the local write alone.
 - 2026-11-23 (slice/test-gates-2/1): Failed again at the same step: run https://github.com/caretook/caretook.com/actions/runs/45181714693 (2353 ms) and run https://github.com/caretook/caretook.com/actions/runs/45187414322 (2779 ms). Fix on slice/test-gates-2/1: the clock now runs from pressing submit until the row shows, instead of from before the add menu opened. Budget (2000 ms) and assertion unchanged. Not yet proven: needs a new candidate run. If it still fails, the local write itself is slow.
