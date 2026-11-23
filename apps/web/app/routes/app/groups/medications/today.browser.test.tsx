@@ -186,6 +186,25 @@ describe("as needed", () => {
 describe("passes", () => {
   const passWorld = [ROUNDS, ROUND_2, XA, YB, ZC, WD];
 
+  test("a pass's expander shows and hides its medications, and says which it is", async () => {
+    await open(passWorld);
+    const button = await found(() => card(ROUNDS.id)?.querySelector<HTMLElement>("[data-pass-expand]"));
+    const row = () => slot(XA.id, R1, card(ROUNDS.id));
+    const shown = () => row()?.checkVisibility({ visibilityProperty: true });
+    const region = document.getElementById(button.getAttribute("aria-controls") ?? "");
+    expect(region?.contains(row() ?? null)).toBe(true);
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(shown()).toBe(false);
+
+    await userEvent.click(button);
+    await expect.poll(() => button.getAttribute("aria-expanded")).toBe("true");
+    await expect.poll(shown).toBe(true);
+
+    await userEvent.click(button);
+    await expect.poll(() => button.getAttribute("aria-expanded")).toBe("false");
+    await expect.poll(shown).toBe(false);
+  });
+
   test("Today groups by pass: its name, Due and Given all for writers; a slot in it shows the pass's amount", async () => {
     await open(passWorld);
     expect(cardState(ROUNDS.id)).toBe("due");

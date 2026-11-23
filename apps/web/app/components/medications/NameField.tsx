@@ -41,13 +41,12 @@ export function NameField({
 
   return (
     <div>
-      <Field label="Name" error={error} warning={warning}>
+      <Field label="Name" error={error} warning={warning} kind="input">
         {(control) => (
           <input
             {...control}
             ref={input}
             name="name"
-            className="input w-full"
             maxLength={MEDICATION_LIMITS.name}
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -58,7 +57,7 @@ export function NameField({
       </Field>
       {suggestions.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 pt-1" data-name-suggestions>
-          <span className="text-base-content/70 text-sm">Used before</span>
+          <span className="text-muted text-sm">Used before</span>
           <ChipGroup
             label="Names used before"
             actions={suggestions.map((suggestion) => ({

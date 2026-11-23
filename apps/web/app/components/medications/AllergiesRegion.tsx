@@ -1,9 +1,8 @@
 import type { AllergyState } from "~/lib/medications/allergies";
 
 import { ShieldAlert } from "lucide-react";
-import { Link } from "react-router";
 import { allergyText, NO_KNOWN_ALLERGIES, ALLERGIES_NOT_RECORDED } from "~/lib/medications/allergies";
-import { Section } from "~/components/ui";
+import { Button, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { MEDICATION_SHEET_STATE } from "~/lib/medications/medicationSheets";
 
@@ -36,7 +35,7 @@ export function AllergiesRegion({
   const content = (
     <>
       <ShieldAlert
-        className={`mt-0.5 size-5 shrink-0 ${severe ? "text-error" : recorded ? "text-warning" : "text-base-content/60"}`}
+        className={`mt-0.5 size-5 shrink-0 ${severe ? "text-error-ink" : recorded ? "text-warning-ink" : "text-faint"}`}
         aria-hidden="true"
       />
       <p className="min-w-0 flex-1 text-sm wrap-break-word" data-allergies-text>
@@ -53,23 +52,25 @@ export function AllergiesRegion({
         ) : state.kind === "none" ? (
           <span className="font-semibold">{NO_KNOWN_ALLERGIES}</span>
         ) : (
-          <span className="text-base-content/70">{ALLERGIES_NOT_RECORDED}</span>
+          <span className="text-muted">{ALLERGIES_NOT_RECORDED}</span>
         )}
       </p>
       {canWrite && (
-        <Link
+        <Button
           to={appUrls.medicationAllergies(groupId, "list")}
           // Closing the sheet comes back here.
           state={MEDICATION_SHEET_STATE}
           // Loaded ahead, so the sheet opens offline too.
           prefetch="render"
           preventScrollReset
-          className="btn btn-ghost btn-xs shrink-0"
-          data-edit-allergies
+          variant="ghost"
+          size="xs"
+          className="shrink-0"
+          data-edit-allergies=""
         >
           {state.kind === "notRecorded" ? "Add allergies" : "Edit"}
           {state.kind !== "notRecorded" && <span className="sr-only"> allergies</span>}
-        </Link>
+        </Button>
       )}
     </>
   );

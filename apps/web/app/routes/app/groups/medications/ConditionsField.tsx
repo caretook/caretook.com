@@ -1,7 +1,7 @@
 import type { LocalCondition } from "~/lib/profiles/conditions.sync";
 
 import { useId, useMemo, useState } from "react";
-import { ChipList, ComboBox } from "~/components/ui";
+import { ChipList, ComboBox, Message } from "~/components/ui";
 import { conditionChoices, hasConditionChoices } from "~/lib/profiles/medicationConditionChoices";
 import { FIELD } from "./medicationFormData";
 
@@ -78,9 +78,9 @@ export function ConditionsField({
         <input key={id} type="hidden" name={FIELD.conditionId} value={id} />
       ))}
       {error && (
-        <p className="text-error text-sm" role="alert" data-picker-error>
+        <Message tone="error" data-picker-error="">
           {error}
-        </p>
+        </Message>
       )}
     </div>
   );

@@ -8,7 +8,16 @@ import { Ban, CircleCheck, Ellipsis, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { MEDICATION_LIMITS, MEDICATION_STOP_REASONS } from "@caretook/data/schema";
-import { ChoiceGroup, ConfirmDialog, Field, Menu, SEPARATOR } from "~/components/ui";
+import {
+  Button,
+  ChoiceGroup,
+  ConfirmDialog,
+  Field,
+  Menu,
+  Message,
+  SEPARATOR,
+  TITLE_SECTION,
+} from "~/components/ui";
 import { medicationTitle, STOP_REASON_LABELS, stoppedText } from "~/lib/medications/medicationDisplay";
 import { STATUS_FIELD } from "~/lib/medications/medicationStatusForm";
 import { dayInZone } from "~/lib/medications/medications.sync";
@@ -106,13 +115,12 @@ export function MedicationStatusActions({
   ];
 
   const stopDay = (
-    <Field label="Stopped on">
+    <Field label="Stopped on" kind="input">
       {(control) => (
         <input
           {...control}
           type="date"
           name={STATUS_FIELD.stoppedOn}
-          className="input w-full"
           value={stoppedOn}
           onChange={(e) => setStoppedOn(e.target.value)}
         />
@@ -126,53 +134,50 @@ export function MedicationStatusActions({
         <Menu
           label={`Actions for ${title}`}
           items={items}
-          className="btn btn-ghost btn-sm btn-square shrink-0"
+          variant="ghost"
+          size="sm"
+          shape="square"
+          className="shrink-0"
         >
           <Ellipsis className="size-4" aria-hidden="true" />
         </Menu>
       ) : (
         <section aria-labelledby="medication-status-heading" className="space-y-2" data-status-actions>
-          <h3 id="medication-status-heading" className="font-semibold">
+          <h3 id="medication-status-heading" className={TITLE_SECTION}>
             Status
           </h3>
-          <p className="text-base-content/70 text-sm" data-status-now>
+          <p className="text-muted text-sm" data-status-now>
             {stoppedText(medication) ?? "Current: taken now"}
           </p>
           <div className="flex flex-wrap gap-2">
             {current ? (
               <>
-                <button type="button" className="btn btn-sm" onClick={() => open("complete")}>
-                  <CircleCheck className="size-4" aria-hidden="true" />
+                <Button size="sm" icon={CircleCheck} onClick={() => open("complete")}>
                   Mark completed
-                </button>
-                <button type="button" className="btn btn-sm" onClick={() => open("discontinue")}>
-                  <Ban className="size-4" aria-hidden="true" />
+                </Button>
+                <Button size="sm" icon={Ban} onClick={() => open("discontinue")}>
                   Discontinue…
-                </button>
+                </Button>
               </>
             ) : (
-              <button type="button" className="btn btn-sm" disabled={busy} onClick={restart}>
-                <RotateCcw className="size-4" aria-hidden="true" />
+              <Button size="sm" icon={RotateCcw} disabled={busy} onClick={restart}>
                 Restart
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost text-error ml-auto"
+            <Button
+              variant="dangerQuiet"
+              size="sm"
+              icon={Trash2}
+              className="ml-auto"
               onClick={() => open("remove")}
             >
-              <Trash2 className="size-4" aria-hidden="true" />
               Delete medication
-            </button>
+            </Button>
           </div>
         </section>
       )}
 
-      {!shown && otherError && (
-        <p role="alert" className="text-error text-sm">
-          {otherError}
-        </p>
-      )}
+      {!shown && otherError && <Message tone="error">{otherError}</Message>}
 
       <ConfirmDialog
         open={shown === "complete"}
@@ -184,11 +189,7 @@ export function MedicationStatusActions({
         onClose={() => setDialog(null)}
       >
         {stopDay}
-        {otherError && (
-          <p role="alert" className="text-error text-sm">
-            {otherError}
-          </p>
-        )}
+        {otherError && <Message tone="error">{otherError}</Message>}
       </ConfirmDialog>
 
       <ConfirmDialog
@@ -215,12 +216,11 @@ export function MedicationStatusActions({
             onChange={setReason}
             error={reasonError}
           />
-          <Field label="Note (optional)">
+          <Field label="Note (optional)" kind="textarea">
             {(control) => (
               <textarea
                 {...control}
                 name={STATUS_FIELD.stopNote}
-                className="textarea w-full"
                 rows={2}
                 maxLength={MEDICATION_LIMITS.stopNote}
                 value={note}
@@ -229,11 +229,7 @@ export function MedicationStatusActions({
             )}
           </Field>
           {stopDay}
-          {otherError && (
-            <p role="alert" className="text-error text-sm">
-              {otherError}
-            </p>
-          )}
+          {otherError && <Message tone="error">{otherError}</Message>}
         </div>
       </ConfirmDialog>
 
@@ -246,11 +242,7 @@ export function MedicationStatusActions({
         onConfirm={() => submit("remove")}
         onClose={() => setDialog(null)}
       >
-        {otherError && (
-          <p role="alert" className="text-error text-sm">
-            {otherError}
-          </p>
-        )}
+        {otherError && <Message tone="error">{otherError}</Message>}
       </ConfirmDialog>
     </>
   );
