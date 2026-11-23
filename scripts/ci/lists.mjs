@@ -5,12 +5,16 @@
 
 const COMMENT = /^\s*(#|$)/;
 
-/** @param {string} text */
+/**
+ * The list's globs. A `check:<name>` line is a browser check, read as its spec's
+ * path: that is how a verdict names a check.
+ * @param {string} text
+ */
 export const parseBrakeList = (text) =>
   text
     .split("\n")
     .filter((line) => !COMMENT.test(line))
-    .map((line) => line.trim());
+    .map((line) => line.trim().replace(/^check:(.+)$/, "scripts/browser-checks/$1.spec.mjs"));
 
 /**
  * A glob as a regular expression: `*` stays inside a directory, `**` crosses them.

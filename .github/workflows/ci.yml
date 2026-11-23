@@ -6,7 +6,8 @@
 # (scripts/ci/tiers.mjs): static, unit, integration, components, and full
 # (the build job), candidate (the browser suite on the Docker stack). The last job writes the verdict and uploads it as the
 # `verdict` artifact, kept 7 days. A test step that fails reruns its failed files
-# once (scripts/ci/test-job.mjs); a quarantine step runs the quarantined tests and
+# once (scripts/ci/test-job.mjs), and a failed browser check likewise
+# (scripts/ci/browser-job.mjs); a quarantine step runs the quarantined tests and
 # can't fail the run. A commit carrying .ci-narrowed.json runs only its files' jobs.
 #
 # Secrets: none. The test env is fictional and generated per job
@@ -361,6 +362,7 @@ jobs:
     timeout-minutes: 35
     outputs:
       started: ${{ steps.started.outputs.started }}
+      failures: ${{ steps.report.outputs.failures }}
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -410,8 +412,12 @@ jobs:
         run: echo "started=true" >> "$GITHUB_OUTPUT"
       - id: suite
         name: Browser suite
-        # An absolute path: the runner changes directory and then resolves itself from $0.
-        run: bash "$GITHUB_WORKSPACE/scripts/loops/browser.sh" --suite
+        # Runs browser.sh --suite, then reruns each failed check once.
+        run: node scripts/ci/browser-job.mjs
+      - id: report
+        name: Report each check's result
+        if: ${{ !cancelled() && steps.started.outcome == 'success' }}
+        run: node scripts/ci/browser-job.mjs report >> "$GITHUB_OUTPUT"
       - id: logs
         name: Server and PowerSync logs
         if: ${{ failure() }}
