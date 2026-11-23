@@ -6,14 +6,18 @@
 
 | Slice | Wave | State       | Merge into `prd/member-avatars` (slice commits)   |
 | ----- | ---- | ----------- | ------------------------------------------------- |
-| 1     | 1    | merged      | 816ac0c5 (aa217ed2, cd475969, 0cd26332, 129dbb45) |
+| 1     | 1    | landed      | 816ac0c5 (aa217ed2, cd475969, 0cd26332, 129dbb45) |
 | 2     | 2    | not started |                                                   |
 | 3     | 3    | not started |                                                   |
 | 4     | 4    | not started |                                                   |
 
 **Landing mode:** run everything through (started run-through). Land each green wave, clean up, and ask only real questions through `pnpm prd ask`.
 
-**Now (2026-11-23):** wave 1 is green and in review. Slice 1 (opus) is merged and its worktree removed. On the synced tip 00909617: full CI green (run 45231904007), quick check passed, and the 11 browser checks for the diff passed (`--changed --base dev`, no `--suite`). The earlier run on 2415225d was a `flake` in the search timing test, a file this branch doesn't touch. Next: PR, Codex review, land with `--tier full`, fold the docs, rotate. B-593 stays claimed until slice 4 merges. Reviewed: the migration is safe on a fresh database (0005 creates the publication) and `db:roles` keeps the new columns (it derives them from the sync config).
+**Now (2026-11-23):** wave 1 landed in `dev` as a3e635e2 through PR #125, at tier full (CI run 45236725148 green on 835c4e85). Codex did not review it (out of credits, `--no-review`). Report a152 is filed. Slice 1 (opus) has no worktree left. **Next: wave 2:** `pnpm backlog ingest`, `list`, `pnpm prd sync`, then start slice 2 on opus. B-593 stays claimed until slice 4 merges.
+
+**Rechecks:** the user's "skip rechecks after a clean dev sync" covered wave 1 only. Later waves recheck after each dev sync unless the user repeats it.
+
+**Docs:** `sync` and `care-groups` are folded for wave 1. `app-shell` (the picker, device queue) and `ui-kit` (`UserAvatar` looks, tokens) are still to fold, at the waves that finish them. Both sit a few bytes under their 10 KB budget, so trim as much as you add.
 
 **For later slices:** slice 2: `myAvatar.ts` holds the choice in memory and reads `me.get` once per page load, so the header shows the default until it answers and offline after a reload, and saving offline shows an error. Slice 3: an icon-only avatar sits on `bg-primary` until the per-group default exists.
 
