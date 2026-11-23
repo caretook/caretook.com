@@ -21,7 +21,7 @@
 
 **Slice 2 notes for later:** the look-alike threshold (Dice 0.6, at least two shared words) was tested only on fictional titles, so its noise on the real backlog is unmeasured. `tidy --yes` exits 1 if the archive step fails (main checkout mid-merge or off `dev`); its other removals still run. Slice 3 changes the same `scripts/backlog/backlog.mjs`.
 
-**Wave 1 gate:** both slices merged; `pnpm test:tooling` and `pnpm exec eslint scripts` running on the merged tip. Next: sync, PR, Codex review, land.
+**Wave 1 gate:** green on `e8f0e2a0` (`pnpm test:tooling`: 1,734 passed, 1 skipped; `pnpm exec eslint scripts` clean). `pnpm prd sync` needed no merge. Slice worktrees removed. Docs folded (machinery, backlog). Next: PR, Codex review, land, rotate.
 
 **Backlog:** claim B-425 and B-474 when slice 1 starts, `done` B-474 when slice 3 merges and B-425 when slice 4 merges; B-435 when slice 2 starts, `done` when slice 3 merges; B-515 when slice 5 starts, `done` when it merges; B-551 when slice 6 starts, `done` when it merges.
 
