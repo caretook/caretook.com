@@ -2362,6 +2362,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (prd/quick-entry-2): From quick-entry-2 hand-offs, 2026-11-22. Follows the PRD's end-of-line rule. Related: 'dr lee the 2nd at the clinic' gets no date.
+- 2026-11-23 (slice/fixes-bug/22): Slice 22: trailing 'sat' after a pronoun, family word or member name is no longer Saturday. 'dr lee the 2nd at the clinic' still gets no date: that is ordinalIsADay (an ordinal before 'at <place>'), a different rule, not fixed here.
 
 ### B-581 · bug · Quick entry keeps 'call the pharmacy in the morning' at 7:00 as a note, not a todo
 
