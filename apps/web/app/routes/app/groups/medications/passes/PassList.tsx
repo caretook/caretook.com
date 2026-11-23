@@ -5,8 +5,10 @@ import type { LocalMedication } from "~/lib/medications/medications.sync";
 import { ArrowDown, ArrowUp, Clock, Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useFetcher } from "react-router";
-import { ConfirmDialog, Menu, SEPARATOR } from "~/components/ui";
+import { ConfirmDialog, EmptyState, Menu, SEPARATOR } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { useGroup } from "~/lib/app-shell/group";
+import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { clockTime, medicationTitle } from "~/lib/medications/medicationDisplay";
 import { PASS_FIELD } from "./passActions";
 
@@ -32,12 +34,13 @@ export function PassList({
   const fetcher = useFetcher();
   const [deleting, setDeleting] = useState<LocalPass | null>(null);
   const post = (fields: Record<string, string>) => void fetcher.submit(fields, { method: "post" });
+  const { easyRole } = useGroup();
 
   if (!passes.length)
     return (
-      <p className="text-base-content/70 py-6 text-center" data-passes-empty>
+      <EmptyState {...sectionAccent("medications", { easy: easyRole })} data-passes-empty="">
         No passes yet.
-      </p>
+      </EmptyState>
     );
 
   const actions = (pass: LocalPass, index: number): MenuEntry[] => [

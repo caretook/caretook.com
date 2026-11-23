@@ -3,6 +3,9 @@ import type { MedicationList as Listed } from "~/lib/medications/medicationList"
 import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 
+import { EmptyState } from "~/components/ui";
+import { useGroup } from "~/lib/app-shell/group";
+import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { MEDICATION_TYPE_LABELS, STATUS_LABELS } from "~/lib/medications/medicationDisplay";
 import { MedicationListItem } from "./MedicationListItem";
 
@@ -60,6 +63,9 @@ export function MedicationList({
   ]
     .filter(Boolean)
     .join(" ")} medications`.trim();
+  const { easyRole } = useGroup();
+  const filtered = !!text.trim() || !!status || !!type;
+  const emptyMark = filtered ? undefined : sectionAccent("medications", { easy: easyRole });
   return (
     <>
       <p role="status" className="sr-only">
@@ -72,7 +78,11 @@ export function MedicationList({
         </h2>
 
         {total === 0 ? (
-          <p className="text-base-content/70">No medications yet.</p>
+          emptyMark ? (
+            <EmptyState {...emptyMark}>No medications yet.</EmptyState>
+          ) : (
+            <p className="text-base-content/70">No medications yet.</p>
+          )
         ) : (
           shown === 0 && (
             <p className="text-base-content/70" data-empty>

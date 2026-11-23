@@ -1,7 +1,10 @@
+import { Stethoscope } from "lucide-react";
 import { describe, expect, test, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 
+import { ratio, rgba, surfaceOf } from "../../../test/contrast";
 import { renderInRouter } from "../../../test/device";
+import { found } from "../../../test/found";
 import { EmptyState } from "./index";
 
 describe("EmptyState", () => {
@@ -27,5 +30,53 @@ describe("EmptyState", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Invite someone" }));
     expect(onAction).toHaveBeenCalledOnce();
+  });
+
+  test("without an icon there is no circle", async () => {
+    await renderInRouter(<EmptyState>No one is waiting.</EmptyState>);
+    expect(document.querySelector("[data-icon-chip]")).toBeNull();
+  });
+
+  test.each(["light", "dark"] as const)(
+    "in %s the circle is above the line, hidden, its icon 3:1",
+    async (theme) => {
+      await renderInRouter(
+        <EmptyState icon={Stethoscope} accent="lime">
+          No providers yet.
+        </EmptyState>,
+        { theme },
+      );
+      const line = page.getByText("No providers yet.");
+      await expect.element(line).toBeVisible();
+      const circle = await found(() => document.querySelector<HTMLElement>("[data-icon-chip]"));
+      expect(circle.getAttribute("aria-hidden")).toBe("true");
+      expect(circle.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+        line.element().getBoundingClientRect().top,
+      );
+      const icon = await found(() => circle.querySelector("svg"));
+      expect(ratio(rgba(getComputedStyle(icon).color), surfaceOf(circle))).toBeGreaterThanOrEqual(3);
+    },
+  );
+
+  test("with an icon, its action still works as a link and as a button", async () => {
+    const onAction = vi.fn();
+    const { screen, location } = await renderInRouter(
+      <>
+        <EmptyState
+          icon={Stethoscope}
+          accent="lime"
+          action={{ label: "Add a provider", to: "/providers/new" }}
+        >
+          No providers yet.
+        </EmptyState>
+        <EmptyState icon={Stethoscope} accent="lime" action={{ label: "Invite someone", onAction }}>
+          No invites yet.
+        </EmptyState>
+      </>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Invite someone" }));
+    expect(onAction).toHaveBeenCalledOnce();
+    await userEvent.click(screen.getByRole("link", { name: "Add a provider" }));
+    await expect.poll(location).toBe("/providers/new");
   });
 });
