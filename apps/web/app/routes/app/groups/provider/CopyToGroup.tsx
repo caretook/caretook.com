@@ -3,7 +3,7 @@ import type { GroupRow } from "~/lib/timeline/timeline.sync";
 
 import { Copy } from "lucide-react";
 import { useMemo, useState } from "react";
-import { ChoiceGroup, ConfirmDialog } from "~/components/ui";
+import { Button, ChoiceGroup, ConfirmDialog, Message } from "~/components/ui";
 import {
   COPY_ACTION,
   COPY_BUTTON,
@@ -82,15 +82,9 @@ export function CopyToGroup({
 
   return (
     <>
-      <button
-        type="button"
-        className="btn btn-ghost btn-sm gap-1"
-        onClick={() => setOpen(true)}
-        data-copy-provider
-      >
-        <Copy className="size-4" aria-hidden="true" />
+      <Button variant="ghost" size="sm" icon={Copy} onClick={() => setOpen(true)} data-copy-provider="">
         {COPY_ACTION}
-      </button>
+      </Button>
       <ConfirmDialog
         open={open}
         title={copyTitle(provider.name)}
@@ -109,11 +103,7 @@ export function CopyToGroup({
             value={target?.id ?? ""}
             onChange={setChosen}
           />
-          {error && (
-            <p role="alert" className="text-error text-sm">
-              {error}
-            </p>
-          )}
+          {error && <Message tone="error">{error}</Message>}
         </div>
       </ConfirmDialog>
     </>

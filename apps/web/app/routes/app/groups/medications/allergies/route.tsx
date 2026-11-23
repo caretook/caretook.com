@@ -5,7 +5,7 @@ import type { LocalAllergy } from "~/lib/medications/allergies.sync";
 
 import { useCallback, useState } from "react";
 import { redirect } from "react-router";
-import { Sheet } from "~/components/ui";
+import { Button, Sheet, TITLE_SECTION } from "~/components/ui";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { allergiesSheetGuard, sheetTab } from "~/lib/medications/medicationSheets";
 import { sessionContext } from "~/lib/auth/session";
@@ -89,7 +89,7 @@ export default function AllergiesSheet({ loaderData, params }: Route.ComponentPr
       <div className="space-y-5" data-allergies-sheet>
         <AllergyList state={state} onEdit={setEditing} />
         <section aria-labelledby="allergy-form-heading" className="space-y-1">
-          <h3 id="allergy-form-heading" className="font-semibold">
+          <h3 id="allergy-form-heading" className={TITLE_SECTION}>
             {editing ? `Edit ${editing.substance}` : "Add an allergy"}
           </h3>
           {editing ? (
@@ -99,9 +99,9 @@ export default function AllergiesSheet({ loaderData, params }: Route.ComponentPr
           )}
         </section>
         <div className="flex justify-end">
-          <button type="button" className="btn" onClick={() => close()} data-allergies-done>
+          <Button onClick={() => close()} data-allergies-done="">
             Done
-          </button>
+          </Button>
         </div>
       </div>
     </Sheet>

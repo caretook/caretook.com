@@ -4,6 +4,7 @@ import type { Marking } from "~/components/medications";
 import type { PassLike } from "@caretook/data/schema";
 
 import { useMemo, useState } from "react";
+import { List, TITLE_SECTION, TITLE_SUB } from "~/components/ui";
 import { DoseSlotRow, MarkDoseDialog, PassCard, PassUndoStatus } from "~/components/medications";
 import { duePasses, isNamedPass } from "~/lib/medications/duePasses";
 import { clockTime, missedText, scheduleZoneNote } from "~/lib/medications/medicationDisplay";
@@ -61,10 +62,10 @@ export function TodaySection({
   return (
     <section aria-labelledby="today-heading" className="space-y-3" data-today>
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-        <h2 id="today-heading" className="font-semibold">
+        <h2 id="today-heading" className={TITLE_SECTION}>
           Today
         </h2>
-        {zoneNote && <p className="text-base-content/70 text-sm">{zoneNote}</p>}
+        {zoneNote && <p className="text-muted text-sm">{zoneNote}</p>}
       </div>
 
       {canWrite && <PassUndoStatus groupId={groupId} />}
@@ -87,10 +88,10 @@ export function TodaySection({
             className="space-y-1"
             data-slot-time={block.time}
           >
-            <h3 id={`today-${block.time}`} className="text-base-content/70 text-sm font-semibold">
+            <h3 id={`today-${block.time}`} className={`${TITLE_SUB} text-muted`}>
               {clockTime(block.time)}
             </h3>
-            <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y border">
+            <List>
               {block.slots.map((slot) => (
                 <DoseSlotRow
                   key={slot.medication.id}
@@ -102,17 +103,17 @@ export function TodaySection({
                   onMark={(s, status) => setMarking({ slot: s, status })}
                 />
               ))}
-            </ul>
+            </List>
           </section>
         ),
       )}
 
       {due.asNeeded.length > 0 && (
         <section aria-labelledby="today-as-needed" className="space-y-1">
-          <h3 id="today-as-needed" className="text-base-content/70 text-sm font-semibold">
+          <h3 id="today-as-needed" className={`${TITLE_SUB} text-muted`}>
             As needed
           </h3>
-          <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y border">
+          <List>
             {due.asNeeded.map((item) => (
               <AsNeededRow
                 key={item.medication.id}
@@ -122,12 +123,12 @@ export function TodaySection({
                 canWrite={canWrite}
               />
             ))}
-          </ul>
+          </List>
         </section>
       )}
 
       {missed && (
-        <p className="text-base-content/70 text-sm" data-missed>
+        <p className="text-muted text-sm" data-missed>
           {missed}
         </p>
       )}

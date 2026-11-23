@@ -5,7 +5,7 @@ import type { LocalAllergy } from "~/lib/medications/allergies.sync";
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import { ConfirmDialog, IconButton } from "~/components/ui";
+import { Button, ConfirmDialog, IconButton, List, ListRow, Message } from "~/components/ui";
 import { allergyText, NO_KNOWN_ALLERGIES } from "~/lib/medications/allergies";
 import { ALLERGY_FIELD } from "./allergyActions";
 
@@ -29,49 +29,55 @@ export function AllergyList({
   return (
     <div className="space-y-2">
       {state.kind === "recorded" ? (
-        <ul className="divide-base-300 border-base-300 rounded-box divide-y border" data-allergy-list>
+        <List data-allergy-list="">
           {state.allergies.map((allergy) => (
-            <li key={allergy.id} className="flex items-center gap-2 px-3 py-2" data-allergy-row={allergy.id}>
-              <span className="min-w-0 flex-1 wrap-break-word">{allergyText(allergy)}</span>
-              <IconButton label={`Edit ${allergy.substance}`} icon={Pencil} onPress={() => onEdit(allergy)} />
-              <IconButton
-                label={`Remove ${allergy.substance}`}
-                icon={Trash2}
-                onPress={() => setRemoving(allergy)}
-              />
-            </li>
+            <ListRow
+              key={allergy.id}
+              data-allergy-row={allergy.id}
+              trailing={
+                <>
+                  <IconButton
+                    label={`Edit ${allergy.substance}`}
+                    icon={Pencil}
+                    onPress={() => onEdit(allergy)}
+                  />
+                  <IconButton
+                    label={`Remove ${allergy.substance}`}
+                    icon={Trash2}
+                    onPress={() => setRemoving(allergy)}
+                  />
+                </>
+              }
+            >
+              <span className="wrap-break-word">{allergyText(allergy)}</span>
+            </ListRow>
           ))}
-        </ul>
+        </List>
       ) : state.kind === "none" ? (
         <div className="flex items-center justify-between gap-2" data-no-known-allergies>
           <p className="font-semibold">{NO_KNOWN_ALLERGIES}</p>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => post({ [ALLERGY_FIELD.intent]: "noKnown", [ALLERGY_FIELD.on]: "0" })}
-            data-clear-no-known
+            data-clear-no-known=""
           >
             Clear
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-2" data-allergies-not-recorded>
-          <p className="text-base-content/70 text-sm">Nothing recorded yet. Add an allergy below, or:</p>
-          <button
-            type="button"
-            className="btn btn-outline btn-sm"
+          <p className="text-muted text-sm">Nothing recorded yet. Add an allergy below, or:</p>
+          <Button
+            size="sm"
             onClick={() => post({ [ALLERGY_FIELD.intent]: "noKnown", [ALLERGY_FIELD.on]: "1" })}
-            data-record-no-known
+            data-record-no-known=""
           >
             {NO_KNOWN_ALLERGIES}
-          </button>
+          </Button>
         </div>
       )}
-      {refusal && (
-        <p className="text-error text-sm" role="alert">
-          {refusal}
-        </p>
-      )}
+      {refusal && <Message tone="error">{refusal}</Message>}
       <ConfirmDialog
         open={!!removing}
         title={removing ? `Remove ${removing.substance}?` : "Remove allergy?"}

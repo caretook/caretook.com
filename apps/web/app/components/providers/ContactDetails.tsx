@@ -13,7 +13,7 @@ export function ContactDetails({ details, muted = false }: { details: ContactDet
   if (details.length === 0) return null;
   return (
     <ul
-      className={`mt-0.5 flex min-w-0 flex-wrap gap-x-3 text-sm ${muted ? "text-base-content/60" : "text-base-content/80"}`}
+      className={`mt-0.5 flex min-w-0 flex-wrap gap-x-3 text-sm ${muted ? "text-faint" : "text-muted"}`}
       data-contact-details
     >
       {details.map(({ action, text, caption }) => {
@@ -30,7 +30,7 @@ export function ContactDetails({ details, muted = false }: { details: ContactDet
               <span className="sr-only">{action.label}: </span>
               <span className="truncate">{text}</span>
               {caption && (
-                <span aria-hidden="true" className="text-base-content/60 shrink-0 text-xs">
+                <span aria-hidden="true" className="text-faint shrink-0 text-xs">
                   {caption}
                 </span>
               )}

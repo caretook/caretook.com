@@ -6,11 +6,11 @@ import type { MedicationRow } from "~/lib/medications/medications.sync";
 
 import { Pencil } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { AllergiesRegion, MedicationStatusActions } from "~/components/medications";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { LinkedTodos } from "~/components/todos";
-import { BackLink, Page, Section } from "~/components/ui";
+import { BackLink, Button, Message, Notice, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { medicationTitle } from "~/lib/medications/medicationDisplay";
@@ -127,17 +127,18 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
           actions={
             canWrite && (
               <>
-                <Link
+                <Button
                   to={appUrls.editMedication(groupId, medicationId, "list")}
                   // Closing the sheet comes back here.
                   state={MEDICATION_SHEET_STATE}
                   prefetch="render"
-                  className="btn btn-ghost btn-sm gap-1"
-                  data-edit-medication
+                  variant="ghost"
+                  size="sm"
+                  icon={Pencil}
+                  data-edit-medication=""
                 >
-                  <Pencil className="size-4" aria-hidden="true" />
                   Edit
-                </Link>
+                </Button>
                 <MedicationStatusActions
                   medication={medication}
                   recipientTimeZone={loaderData.recipientTimeZone}
@@ -152,12 +153,9 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
 
       {deleted ? (
         <Section>
-          <div role="alert" className="alert">
-            <span>This medication was deleted.</span>
-            <Link to={listUrl} className="btn btn-sm">
-              Back to medications
-            </Link>
-          </div>
+          <Notice tone="error" action={{ label: "Back to medications", to: listUrl }}>
+            This medication was deleted.
+          </Notice>
         </Section>
       ) : (
         <>
@@ -191,11 +189,7 @@ function MedicationPage({ loaderData, params }: Route.ComponentProps) {
                 : "Shared with the care group. You can view these notes."
             }
           >
-            {saveError && (
-              <p role="alert" className="text-error text-sm">
-                {saveError}
-              </p>
-            )}
+            {saveError && <Message tone="error">{saveError}</Message>}
             <LiveNotesEditor
               key={medicationId}
               label={`Notes on ${title}`}

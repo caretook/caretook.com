@@ -1,7 +1,7 @@
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { useId, useMemo, useState } from "react";
-import { ChipList, ComboBox } from "~/components/ui";
+import { ChipList, ComboBox, Message } from "~/components/ui";
 import { FIELD } from "./periodFormData";
 import { canAddPlace, placeChipLabel, placeOptions } from "./periodPlaces";
 
@@ -85,9 +85,9 @@ export function PlacePickerField({
       <input type="hidden" name={FIELD.placeProviderId} value={choice.kind === "existing" ? choice.id : ""} />
       <input type="hidden" name={FIELD.newPlace} value={choice.kind === "new" ? choice.name : ""} />
       {error && (
-        <p className="text-error text-sm" role="alert" data-picker-error>
+        <Message tone="error" data-picker-error="">
           {error}
-        </p>
+        </Message>
       )}
     </div>
   );

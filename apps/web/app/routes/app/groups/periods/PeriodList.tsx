@@ -4,6 +4,7 @@ import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { periodDay, periodLengthDays } from "@caretook/data/schema";
 import { Link } from "react-router";
+import { Badge, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import {
   dayText,
@@ -58,12 +59,12 @@ export function PeriodList({
                   <span className="font-medium" data-period-title>
                     {periodTitle(period)}
                   </span>
-                  {current && <span className="badge badge-primary badge-sm">Now</span>}
+                  {current && <Badge tone={STATUS_TONE.current}>Now</Badge>}
                 </span>
                 {(place || period.placeDetail) && (
-                  <span className="text-base-content/80 block text-sm" data-period-place>
+                  <span className="text-muted block text-sm" data-period-place>
                     {place && (
-                      <span className={place.deletedAt ? "text-base-content/50" : undefined}>
+                      <span className={place.deletedAt ? "text-faint" : undefined}>
                         {place.name}
                         {place.deletedAt && " (removed)"}
                       </span>
@@ -72,7 +73,7 @@ export function PeriodList({
                     {period.placeDetail}
                   </span>
                 )}
-                <span className="text-base-content/70 block text-sm" data-period-dates>
+                <span className="text-muted block text-sm" data-period-dates>
                   {startText(span.startsAt, period.dateOnly, timeZone, now)} –{" "}
                   {untilText(span.endsAt, timeZone, now)}
                   {" · "}
