@@ -288,7 +288,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-573 | bug | triaged | fixes-tooling |  | Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error |
 | B-574 | bug | triaged | fixes-tooling |  | ESLint aborts with exit 134 in the lint step of a check, seen in two worktrees within a second |
 | B-576 | bug | triaged | fixes-tooling |  | Local pnpm lint runs out of memory at Node's default 4 GB heap: CI sets 6 GB, local checks don't |
-| B-577 | change | in-progress | ui-kit-5 | prd/ui-kit-5 | Finish the UI kit sweep: timeline, entries and quick entry (TodayRow, PassLogItem, EasyNext, EntryBody, the four skeleton files, containers); admin, account, connectors, marketing and the app frame (home's h1); then empty the guard's not-swept list and drop Menu's bare class-string trigger |
+| B-577 | change | ready | ui-kit-5 | prd/ui-kit-5 | Finish the UI kit sweep: timeline, entries and quick entry (TodayRow, PassLogItem, EasyNext, EntryBody, the four skeleton files, containers); admin, account, connectors, marketing and the app frame (home's h1); then empty the guard's not-swept list and drop Menu's bare class-string trigger |
 | B-578 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry reads other slash numbers as dates: 'gave 1/6 tylenol', 'bp 12/8', 'pain 5/5' |
 | B-580 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry dates a line ending in 'sat' to Saturday: 'she sat' |
 | B-581 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry keeps 'call the pharmacy in the morning' at 7:00 as a note, not a todo |
@@ -354,7 +354,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-652 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry: a counted ordinal before a clock time still takes a day: 'gave the 2nd at 2pm' reads as the 2nd of the month at 2pm |
 | B-653 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once… |
 | B-654 | bug | triaged | fixes-tooling |  | CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai… |
-| B-655 | bug | in-progress | fixes-bug | prd/fixes-bug | Quick entry: a counted ordinal before a part of day may still take a day: 'gave the 2nd at night', 'gave the 2nd in the morning' |
+| B-655 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry: a counted ordinal before a part of day may still take a day: 'gave the 2nd at night', 'gave the 2nd in the morning' |
 
 ## Items
 
@@ -2209,10 +2209,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-577 · change · Finish the UI kit sweep: timeline, entries and quick entry (TodayRow, PassLogItem, EasyNext, EntryBody, the four skeleton files, containers); admin, account, connectors, marketing and the app frame (home's h1); then empty the guard's not-swept list and drop Menu's bare class-string trigger
 
-- status: in-progress
+- status: ready
 - prd: ui-kit-5
 - owner: prd/ui-kit-5
-- commit:
+- commit: 06b21030
 
 - 2026-11-22 (plan/ui-kit-4): Cut from B-398 by the ui-kit-4 plan (2026-11-22): about 300 files is too many for one topic, and quick-entry-2 is running in quick entry. Carries B-398's notes for these areas, including the remaining Cancel and Save footers, No-yet lines, dark-contrast text and icon sizes.
 - 2026-11-23 (plan/ui-kit-5): ui-kit-5 plan (2026-11-23): seven slices in three waves: timeline list and Today; timeline forms; Easy view and quick entry; entries and notes; admin; account, connectors and marketing; then the frame, home and closing the guard. B-613, B-617 and B-618 keep their parts in fixes-ui.
@@ -2847,9 +2847,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-655 · bug · Quick entry: a counted ordinal before a part of day may still take a day: 'gave the 2nd at night', 'gave the 2nd in the morning'
 
-- status: in-progress
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
-- commit:
+- commit: 487cb235
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 39 (B-652) hand-off, read from ordinalIsADay in quickEntryTime.ts and not run: the part-of-day branches run without the counted-word check. Confirm with a test first.
