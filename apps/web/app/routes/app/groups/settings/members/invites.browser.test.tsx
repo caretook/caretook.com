@@ -139,7 +139,7 @@ describe("the Invite by email sheet", () => {
     await expect
       .element(page.getByRole("status").getByText("Invitation sent to avery.invited@example.com."))
       .toBeVisible();
-    expect(sheet()).toBeNull();
+    await expect.poll(sheet).toBeNull();
     expect(calls.of("invite.createEmail")).toEqual([
       {
         groupId: TEST_GROUP.id,

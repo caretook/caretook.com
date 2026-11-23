@@ -1,12 +1,12 @@
 # The UI kit (`apps/web/app/components/ui/`)
 
-The `ui/` primitives and their contracts: part of the components area ([components](components.md) has its layout, rules and component tests; `check-areas.d/components`).
+The `ui/` primitives' contracts; layout, rules and tests are in [components](components.md).
 
 ## What's in it
 
-- **Primitives** import nothing from feature folders; **only `ui/` imports `react-aria-components`**: `Menu` (with `SEPARATOR`), `FilterMenu` and `FilterMenuChips`, `Sheet`, `Popover`, `PageHeader`, `TabNav`, `ConfirmDialog` (`useShowModal`), `ChoiceDialog`, `Field`, `ChipGroup`, `ChipList`, `UserAvatar`, `AvatarStack`, `IconButton`, `Button`, `FormFooter`, `ChoiceGroup`, `BackLink`, `ComboBox`, `Highlight`, `Toast`, `ViaTag`, `Message`, `Notice`, `EmptyState`, `Loading`, `Skeleton`, `Badge`, `Page`, `Card`, `List`, `ListRow`, `CheckField`, `ToggleField`, `DetailHeader`, `Section`, `Chevron`, `Collapse`.
+- **Primitives** (the `ui` index) import nothing from feature folders; **only `ui/` imports `react-aria-components`**.
 - `ui/tooltip/` and `ui/date/` (`DateTimeField`) have their own indexes, so they stay off other pages.
-- **`ui/plain`**, the light entry: everything without React Aria (`Field`, `FieldControl`, `IconButton`, `ChoiceGroup`, `Button`, `FormFooter`, `TabNav`, `Message`, `Notice`, `EmptyState`, `Loading`, `Skeleton`, `Badge`, `Page`, `Card`, `List`, `CheckField`, `ToggleField`, `DetailHeader`, `Section`, `ChoiceDialog`, `Chevron`, `Collapse`). Light pages (sign-in, the account forms, `/connect`, marketing) import from it, never from `ui` (its chunk carries React Aria); `ui/plain/plain.test.ts` fails on any React Aria import it reaches.
+- **`ui/plain`**, the light entry: everything without React Aria. Light pages (sign-in, the account forms, `/connect`, marketing) import from it, never from `ui` (its chunk carries React Aria); `ui/plain/plain.test.ts` fails on any React Aria import it reaches.
 - **Append-only:** the `ui` and `ui/plain` indexes, `ui/styles.ts` and the gallery registry take new lines at the end only.
 - **The gallery** `/dev/ui` (`routes/dev/ui/`, web only, 404 in production): each primitive in both themes with fictional data, one `sections/` file each, listed in `registry.ts` (and Type). A new primitive adds its section. **Add a primitive only for a repeated pattern.**
 - **Contrast** is measured in component tests with `apps/web/test/contrast.ts` (translucent colours composited).
@@ -25,7 +25,8 @@ The `ui/` primitives and their contracts: part of the components area ([componen
 - `ChoiceDialog` (`open`, `title`, `message`, up to three `choices` `{ id, label, tone, data-* }`, `cancelLabel`, `onChoose(id)`, `onClose`, `data-*` on the dialog): `ConfirmDialog`'s rules; choices stacked full width, then Cancel; `onClose` runs on every close.
 - `PageHeader` `add`: a `label` and a link (`to` and its options), `onPress`, or `items` (`menuLabel`); a primary `sm` icon-only `+`, the header's last control, `actions` before it; `data-*` on it.
 - `Chevron` (`open`, `closed` `right`|`down`; hidden). `Collapse` (`open`, `id`, `axis` `block`|`inline`): closed is inert and hidden but mounted; the caller's toggle keeps `aria-expanded`, `aria-controls`.
-- `Sheet` is full screen below `sm` and a centred modal from `sm`, above the tab bar, and returns focus to its opener.
+- `Sheet` is full screen below `sm` and a centred modal from `sm`, above the tab bar, and returns focus to its opener (opened from a `Menu` item: the menu's button). Close, Escape and a tap outside play the exit (`useSheetExit`), then call `onOpenChange(false)`. The topmost open sheet holds a change of path for the exit; a search or hash change, a submission and reduced motion aren't held, and a held navigation goes at once if the caller closes the sheet. A save plays the exit when its caller navigates; an action that redirects by itself doesn't.
+- **Accents** (`ui/accents.ts`, pure): `ACCENTS` (indigo, teal, orange, lime, plum, pink) and `accentClass(accent | "neutral", "solid" | "soft" | "text")` over the `--color-hue-*` tokens; nothing else names one, and none is a status colour. `IconChip` (`icon`, `accent`, `look`, `size`, `shape`, `label`) is hidden from the accessibility tree unless labelled.
 - `Field` gives its control the `id`, `aria-invalid` and `aria-describedby`, and shows an optional `warning` line (never `aria-invalid`) while there's no error. Ids come from `useId`, so browser checks select inputs by `input[name=…]`.
 - `Field` `kind` (`input`, `select`, `textarea`): the control gets `<kind> w-full`, plus `<kind>-error` with an error (pure `fieldControlClass`); a `className` after the spread replaces it.
 - `CheckField`, `ToggleField` (the input's props plus `label`, `help?`, `error?`): a native checkbox (the toggle `role="switch"`, one size), its label beside it toggling it, help and error as its description (`aria-invalid` on error), `data-*` on the input; an `aria-label` names it instead and hides the visible label.
