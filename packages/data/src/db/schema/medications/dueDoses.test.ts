@@ -463,6 +463,91 @@ describe("doseSlotsBetween (a range of days: visit prep's missed doses)", () => 
     expect(days("g")).toEqual([]);
   });
 
+  it("reads each day through its own schedule: no misses before an added slot", () => {
+    const m = med({
+      id: "a",
+      schedule: { type: "scheduled", slots: [{ time: "08:00" }, { time: "20:00" }] },
+    });
+    const changes = [
+      {
+        id: "c1",
+        occurredAt: "2026-11-18T18:00:00.000Z", // Nov 18, 10:00: the evening slot added
+        details: {
+          medicationId: "a",
+          change: "changed",
+          fields: ["schedule"],
+          before: { schedule: { type: "scheduled", slots: [{ time: "08:00" }] } },
+          after: { schedule: m.schedule },
+        },
+      },
+    ];
+    const doses = ["2026-11-16", "2026-11-17", "2026-11-18"].map((day) =>
+      dose("a", `${day}T16:00:00.000Z`, "given", "08:00"),
+    );
+    const slots = doseSlotsBetween({
+      medications: [m],
+      doses,
+      changes,
+      from: "2026-11-16T08:00:00Z",
+      to: "2026-11-19T08:00:00Z",
+      timeZone: LA,
+    });
+    expect(slots.map((s) => `${s.day} ${s.time} ${s.state}`)).toEqual([
+      "2026-11-16 08:00 given",
+      "2026-11-17 08:00 given",
+      "2026-11-18 08:00 given",
+      "2026-11-18 20:00 missed",
+    ]);
+    expect(missedDoseCounts(slots)).toMatchObject([{ missed: 1, slots: 4 }]);
+  });
+
+  it("doses logged without a pass before a three-hour move still answer their slots, on the day it moved too", () => {
+    const m = med({ id: "a", schedule: { type: "scheduled", slots: [{ passId: MORNING }] } });
+    const changes = [
+      {
+        id: "c1",
+        occurredAt: "2026-11-18T18:00:00.000Z", // Nov 18, 10:00: Morning moved 08:00 to 11:00
+        details: {
+          change: "passMoved",
+          passId: MORNING,
+          passName: "Morning",
+          beforeTime: "08:00",
+          afterTime: "11:00",
+          medicationIds: ["a"],
+        },
+      },
+    ];
+    const doses = ["2026-11-16", "2026-11-17", "2026-11-18"].map((day) =>
+      dose("a", `${day}T16:00:00.000Z`, "given", "08:00"),
+    );
+    const slots = doseSlotsBetween({
+      medications: [m],
+      passes: [{ id: MORNING, time: "11:00" }],
+      doses,
+      changes,
+      from: "2026-11-16T08:00:00Z",
+      to: "2026-11-19T08:00:00Z",
+      timeZone: LA,
+    });
+    expect(slots.map((s) => `${s.day} ${s.time} ${s.state}`)).toEqual([
+      "2026-11-16 08:00 given",
+      "2026-11-17 08:00 given",
+      "2026-11-18 11:00 given",
+    ]);
+  });
+
+  it("with no entries reads exactly as without them", () => {
+    const m = med({ id: "a" });
+    const input = {
+      medications: [m],
+      doses: [],
+      from: "2026-11-16T08:00:00Z",
+      to: "2026-11-19T08:00:00Z",
+      timeZone: LA,
+    };
+    expect(doseSlotsBetween({ ...input, changes: [] })).toEqual(doseSlotsBetween(input));
+  });
+
   it("is empty for a range that ends before it starts", () => {
     expect(between([med({ id: "a" })], [], "2026-11-19T00:00:00Z", "2026-11-18T00:00:00Z")).toEqual([]);
   });
