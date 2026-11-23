@@ -183,8 +183,10 @@ describe("the + menu", () => {
     for (const header of headers) {
       const label = header.querySelector("h3")!.textContent;
       expect(plusOf(header)?.getAttribute("aria-label")).toBe(`Add to ${label}`);
-      // Beside the heading, in the sticky header.
-      expect(plusOf(header)?.parentElement).toBe(header.querySelector("h3")!.parentElement);
+      // In the day's actions, on the heading's row of the sticky header, and last (the far right).
+      const actions = header.querySelector("[data-day-actions]")!;
+      expect(actions.parentElement).toBe(header.querySelector("h3")!.parentElement);
+      expect(actions.lastElementChild?.contains(plusOf(header))).toBe(true);
     }
     expect(headers[0] && plusOf(headers[0])?.getAttribute("aria-label")).toBe("Add to Today");
     expect(headers[1] && plusOf(headers[1])?.getAttribute("aria-label")).toBe("Add to Yesterday");
