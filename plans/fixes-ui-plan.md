@@ -12,6 +12,8 @@ Wave 2: slices 10–14, written 2026-11-22 after a clean sync (dev had only wave
 
 Left for later: B-325 (native safe area and cold start) waits for the Capacitor work, as its triage says.
 
+At wave 2 landing: fold the Event wording into `appointments.md`, `todos.md` and `timeline.md` (they still say a title-less item reads Appointment, and that `scopeQuestion` always says appointment). Slice 12 changes `calendarText`, so the landing report must say what that does to events already pushed to Google.
+
 Notes for the next wave:
 
 - Until B-576 (local lint runs out of memory) is fixed, run checks and landings with `NODE_OPTIONS=--max-old-space-size=6144`; lint passes Node's 4 GB default even on a quiet machine.
@@ -31,7 +33,7 @@ Notes for the next wave:
 | 9     | B-319 | merged (opus)                | 488e09bf |
 | 10    | B-536 | in flight (sonnet)           | -        |
 | 11    | B-575 | handed off d7eafff5 (sonnet) | -        |
-| 12    | B-537 | in flight (opus)             | -        |
+| 12    | B-537 | handed off 24050cdf (opus)   | -        |
 | 13    | B-535 | blocked by 10 (opus)         | -        |
 | 14    | B-316 | blocked by 13 (opus)         | -        |
 
