@@ -38,6 +38,7 @@ export function VisitPrepSheet({
   const insert = async () => {
     if (busy) return;
     setBusy(true);
+    setError(null);
     const problem = await prep.insert();
     setBusy(false);
     if (problem) return setError(problem);

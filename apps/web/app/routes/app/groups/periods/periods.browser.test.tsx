@@ -344,6 +344,15 @@ describe("the edit sheet's URL", () => {
     await device.sync(fx.period({ ...rowOf(REHAB), deletedAt: at() }));
     await expect.poll(() => !SHEET() && device.location()).toBe(PERIODS_URL);
   });
+
+  test("deleted on another device after an edit, the sheet closes without asking (B-602)", async () => {
+    const device = await open({ url: `${PERIODS_URL}/${REHAB.id}/edit` });
+    const label = await found(() => FORM()?.querySelector<HTMLInputElement>('input[name="label"]'));
+    await userEvent.fill(page.elementLocator(label), "Changed here");
+    await device.sync(fx.period({ ...rowOf(REHAB), deletedAt: at() }));
+    await expect.poll(() => !SHEET() && device.location()).toBe(PERIODS_URL);
+    expect(document.querySelector("dialog[open]")).toBeNull();
+  });
 });
 
 /** A fixture's row back as builder values (camelCase), to sync a changed copy. */

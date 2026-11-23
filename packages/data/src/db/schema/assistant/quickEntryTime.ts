@@ -273,11 +273,15 @@ const inThePeriod = (words: readonly string[], j: number) =>
 /** "sat" and "sun" are also ordinary words; one of these leading words makes them the day. */
 const AMBIGUOUS_DAYS = new Set(["sat", "sun"]);
 const DAY_LEADS = new Set(["on", "last", "next", "this"]);
+/** Who "sat" as a verb: a subject pronoun anywhere, a family word opening the line ("my mom sat"). */
+const SAT_PRONOUNS = new Set(["i", "she", "he", "we", "they"]);
+const SAT_FAMILY = new Set(["mom", "mum", "dad", "grandma", "grandpa", "husband", "wife", "son", "daughter"]);
 
 /**
  * "o2 sat 95" is oxygen, not Saturday: a short weekday before a bare number, or
  * after "o2", isn't one. "sat up in chair" and "in the sun" aren't days either:
- * "sat" and "sun" need a leading word, a time after them, or the end of the line.
+ * "sat" and "sun" need a leading word, a time after them, or the end of the line,
+ * and a last "sat" after its subject ("she sat", "mom sat") is the verb.
  */
 const notAWeekday = (words: readonly string[], i: number) => {
   const word = words[i]!;
@@ -287,7 +291,12 @@ const notAWeekday = (words: readonly string[], i: number) => {
   const next = words[i + 1] ?? "";
   if (/^\d+(\.\d+)?%?$/.test(next) && !meridiemOf(words[i + 2])) return true;
   if (!AMBIGUOUS_DAYS.has(word) || DAY_LEADS.has(before)) return false;
-  if (i === words.length - 1) return before === "the";
+  if (i === words.length - 1) {
+    if (before === "the") return true;
+    if (word !== "sat") return false;
+    const opensLine = i === 1 || (i === 2 && words[0] === "my");
+    return SAT_PRONOUNS.has(before) || (opensLine && SAT_FAMILY.has(before));
+  }
   return !clockFollows(words, i + 1) && !PERIOD_WORDS.has(next) && !inThePeriod(words, i + 1);
 };
 

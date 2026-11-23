@@ -35,7 +35,9 @@ function findOpener() {
  *
  * `guardChanges` (a sheet that edits data): once its form differs from where
  * it started, Close, Escape, a tap outside and Back ask "Discard changes?"
- * first. A save and the form's own Cancel don't ask.
+ * first. A save and the form's own Cancel don't ask, nor does a value a sync
+ * put there. Back from a sheet on top asks for a changed one under it. A
+ * caller whose record was deleted elsewhere passes `false` before closing.
  */
 export function Sheet({
   isOpen,
@@ -100,7 +102,8 @@ export function Sheet({
                 <IconButton label="Close" icon={X} onPress={close} />
               </div>
               {children}
-              {guardChanges !== false && (
+              {/* An unguarded sheet asks too, for a changed sheet under it that Back would close. */}
+              {(guardChanges !== false || asking) && (
                 <ConfirmDialog
                   open={asking}
                   title="Discard changes?"

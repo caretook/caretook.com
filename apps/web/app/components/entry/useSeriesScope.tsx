@@ -122,6 +122,7 @@ export function useSeriesScope(enabled: boolean) {
               onClose={() => setEditing(null)}
               onSave={(change) => {
                 const current = editing;
+                setEditing({ ...current, error: null });
                 void run(current.entry, change, current.ask).then((res) =>
                   res.ok ? setEditing(null) : setEditing({ ...current, error: res.error }),
                 );
