@@ -24,6 +24,7 @@ import { duringChipName, duringText } from "~/lib/care-periods/periodSearch";
 import { recordSearch } from "~/lib/search/recentSearches";
 import { clearAuthor, clearKind, clearPeriod, clearQuery, clearVital } from "~/lib/timeline/timelineFilters";
 import { FilterSheet } from "./FilterSheet";
+import { TimelineDayPicker } from "./TimelineDayPicker";
 import { useSearchField } from "./useSearchField";
 
 const X_ICON = <X className={ICON_SM} aria-hidden="true" />;
@@ -31,7 +32,8 @@ const X_ICON = <X className={ICON_SM} aria-hidden="true" />;
 /**
  * The filter row: the search magnifier, then one icon-only Filter button
  * (its badge the count of filters on: kind, vital type, author, period;
- * named "Filter" or "Filter, N on"), which opens `FilterSheet`, then the
+ * named "Filter" or "Filter, N on"), which opens `FilterSheet`, the date
+ * button (`TimelineDayPicker`), then the
  * optional `trailing` control at the row's right end (the full timeline's
  * View options; drawn as `TOOL_CIRCLE`, from `ui/`). All three are one size of circle. Under them, each filter on is a removable chip (a link that
  * clears only it, so the URL keeps the rest; see
@@ -151,6 +153,7 @@ export function FilterChips({
             </span>
           )}
         </Button>
+        <TimelineDayPicker label="Go to a day" />
         <Collapse open={field.open} axis="inline" id={fieldId} className="min-w-0 flex-1">
           <Field label="Search entries" labelHidden>
             {(control) => (
