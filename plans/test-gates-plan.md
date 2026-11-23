@@ -15,7 +15,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 
 **Done:** waves 1 to 6 are in dev (adce90ee PR #71, 5b724350 PR #74, da93fcfa PR #76, 2991461a PR #81, 3b09844b PR #90, d0fe52d8 PR #93). Wave 6 landed at tier `components` on run 45117253571 (`flake`, filed as B-619, likely a duplicate of B-492), Codex clean. Its docs are folded, its report is filed and worktree `test-gates-12` is gone.
 
-**Now: wave 7 (slice 13, B-612, the default PRD cap from 3 to 4), the last wave. Ready, not started.** The backlog session asked for it on the user's word on 2026-11-23; B-612 is claimed. `pnpm prd slice test-gates 13`, one agent (sonnet only if the edit is purely mechanical; opus when unsure). The diff is tooling, so the proposal should be tier `none` plus `pnpm test:tooling`. fixes-tooling is held until this wave lands. Its landing report must say the running dispatcher keeps the old default until the user restarts it; never restart it. After it: `pnpm prd rm test-gates`, then `cd` to the main checkout and `pnpm prd end`.
+**Now: wave 7 (slice 13, B-612, the default PRD cap from 3 to 4), the last wave. Started: worktree `test-gates-13` made from 4919ee4b, one opus agent spawned.** The backlog session asked for it on the user's word on 2026-11-23; B-612 is claimed. The diff is tooling, so the proposal should be tier `none` plus `pnpm test:tooling`. fixes-tooling is held until this wave lands. Its landing report must say the running dispatcher keeps the old default until the user restarts it; never restart it. After it: `pnpm prd rm test-gates`, then `cd` to the main checkout and `pnpm prd end`.
 
 **Open issues:**
 
@@ -25,21 +25,21 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 - A flake verdict's GitHub run shows `success`: read the verdict, not the colour.
 - `pnpm prd ci <branch>` reads only the exact tip, so it says unknown after a docs commit even though `land` keeps the verdict.
 
-| Slice | Wave | State         | Merge into `prd/test-gates` (slice commits) |
-| ----- | ---- | ------------- | ------------------------------------------- |
-| 1     | 1    | merged (opus) | 98a36dd4 (5eb596a9)                         |
-| 2     | 1    | merged (opus) | 34b157fb (80a35650)                         |
-| 3     | 2    | merged (opus) | 39f87cf0 (f0645753)                         |
-| 4     | 3    | merged (opus) | 6396b470 (be81f850, e68f8866)               |
-| 5     | 4    | merged (opus) | 009275c5 (3a0324bc … 54c05411)              |
-| 6     | 5    | merged (opus) | e82dc279 (64569315 … 68016f5c)              |
-| 7     | 5    | merged (opus) | 490eb14a (e033b8f1, 0da30aed, 6dc62462)     |
-| 8     | 2    | merged (opus) | ff6ac3c3 (7bd82c6f)                         |
-| 9     | 3    | merged (opus) | f285f1a5 (3b4428f0, 3b752d2e, 21533389)     |
-| 10    | 3    | merged (opus) | 7484100e (b5c9c6c6)                         |
-| 11    | 5    | merged (opus) | e7cfad86 (d64c4d14, 105a9f38)               |
-| 12    | 6    | merged (opus) | 6f01c446 (05f8c6ce)                         |
-| 13    | 7    | not started   | —                                           |
+| Slice | Wave | State          | Merge into `prd/test-gates` (slice commits) |
+| ----- | ---- | -------------- | ------------------------------------------- |
+| 1     | 1    | merged (opus)  | 98a36dd4 (5eb596a9)                         |
+| 2     | 1    | merged (opus)  | 34b157fb (80a35650)                         |
+| 3     | 2    | merged (opus)  | 39f87cf0 (f0645753)                         |
+| 4     | 3    | merged (opus)  | 6396b470 (be81f850, e68f8866)               |
+| 5     | 4    | merged (opus)  | 009275c5 (3a0324bc … 54c05411)              |
+| 6     | 5    | merged (opus)  | e82dc279 (64569315 … 68016f5c)              |
+| 7     | 5    | merged (opus)  | 490eb14a (e033b8f1, 0da30aed, 6dc62462)     |
+| 8     | 2    | merged (opus)  | ff6ac3c3 (7bd82c6f)                         |
+| 9     | 3    | merged (opus)  | f285f1a5 (3b4428f0, 3b752d2e, 21533389)     |
+| 10    | 3    | merged (opus)  | 7484100e (b5c9c6c6)                         |
+| 11    | 5    | merged (opus)  | e7cfad86 (d64c4d14, 105a9f38)               |
+| 12    | 6    | merged (opus)  | 6f01c446 (05f8c6ce)                         |
+| 13    | 7    | started (opus) | —                                           |
 
 **Backlog:**
 
