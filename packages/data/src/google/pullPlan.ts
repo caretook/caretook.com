@@ -2,7 +2,7 @@ import type { GroupRoleName } from "../constants/roles";
 import type { CalendarItem } from "../db/schema";
 import type { GoogleEvent, GoogleEventTime } from "./client";
 
-import { calendarWindow, dayStart, isTodoWriter, localDate, localTime } from "../db/schema";
+import { calendarWindow, dayStart, googleWindow, isTodoWriter, localDate, localTime } from "../db/schema";
 import { UID_PROPERTY } from "./client";
 
 // What a change pulled from a member's Google calendar means for Caretook
@@ -22,9 +22,11 @@ import { UID_PROPERTY } from "./client";
 //   its time.
 // - **A todo:** a time change moves its due day and time. A delete never
 //   completes it: an upcoming todo's event comes back at the next push.
-// - **A new event without our uid** (made in Google, in the window): a new
-//   appointment with Google's summary as its title. The next push tags it,
-//   at the member's share level (generic by default).
+// - **A new event without our uid** (made in Google): a new appointment with
+//   Google's summary as its title, when it starts inside the Google horizon
+//   (90 days back to 365 ahead; 90 ahead for an instance of a Google repeat,
+//   so one daily event can't flood the timeline). The next push tags it, at
+//   the member's share level (generic by default).
 // - **What the member's role can't do** (a viewer's edit): `overwrite`, and
 //   the next push puts our version back (a viewer's new event is removed).
 
@@ -147,9 +149,9 @@ const newAppointment = (
   };
 };
 
-/** Whether a Google-made event falls in the calendar window (90 days each way). */
-const inWindow = (start: GoogleEventTime, timeZone: string, now: Date) => {
-  const { from, to } = calendarWindow(now);
+/** Whether a Google-made event starts inside the horizon: `googleWindow`, or `calendarWindow` for a repeat's instance. */
+const inHorizon = (start: GoogleEventTime, recurring: boolean, timeZone: string, now: Date) => {
+  const { from, to } = recurring ? calendarWindow(now) : googleWindow(now);
   const at = "date" in start ? dayStart(start.date, timeZone) : ms(start.dateTime);
   return at >= from.getTime() && at < to.getTime();
 };
@@ -157,7 +159,7 @@ const inWindow = (start: GoogleEventTime, timeZone: string, now: Date) => {
 /**
  * What one changed Google event means. `link` is what we pushed for it (by
  * Google's event id), `item` the Caretook item that link (or the event's
- * uid) names, as it is now in the window (null when deleted, done or out of
+ * uid) names, as it is now in the Google horizon (null when deleted, done or out of
  * it), `role` the connecting member's in the group, `timeZone` the care
  * recipient's (a new event's zone).
  */
@@ -185,7 +187,8 @@ export const interpretGoogleChange = ({
     // Made in Google, then deleted before we saw it.
     if (deleted) return { type: "ignore", reason: "gone" };
     if (!validTime(change.start)) return { type: "ignore", reason: "untimed" };
-    if (!inWindow(change.start, timeZone, now)) return { type: "ignore", reason: "outsideWindow" };
+    if (!inHorizon(change.start, change.recurring, timeZone, now))
+      return { type: "ignore", reason: "outsideWindow" };
     if (!writer) return { type: "overwrite", reason: "role" };
     return newAppointment(change, change.start, change.end, timeZone);
   }

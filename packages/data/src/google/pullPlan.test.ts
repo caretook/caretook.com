@@ -62,6 +62,7 @@ const eventFor = (it: CalendarItem, over: Partial<GoogleEvent> = {}): GoogleEven
   end: it.allDay ? { date: it.end } : { dateTime: it.end, timeZone: LA },
   privateProperties: { [UID_PROPERTY]: it.uid },
   updated: "2026-11-18T17:59:00.000Z",
+  recurring: false,
   ...over,
 });
 
@@ -368,6 +369,7 @@ describe("a new event made in Google", () => {
     end: { dateTime: "2026-11-24T23:00:00.000Z", timeZone: LA },
     privateProperties: {},
     updated: "2026-11-18T17:59:00.000Z",
+    recurring: false,
     ...over,
   });
 
@@ -396,8 +398,62 @@ describe("a new event made in Google", () => {
     });
   });
 
-  it("outside the 90-day window, or without a time, is ignored", () => {
-    const far = made({ start: { date: "2027-06-01" }, end: { date: "2027-06-02" } });
+  const daysOut = (days: number, over: Partial<GoogleEvent> = {}) => {
+    const at = new Date(NOW.getTime() + days * 86_400_000).toISOString();
+    return made({ start: { dateTime: at, timeZone: LA }, end: { dateTime: at, timeZone: LA }, ...over });
+  };
+  const OUTSIDE = { type: "ignore", reason: "outsideWindow" };
+
+  it("200 days out is taken, up to the edge of the 365-day horizon", () => {
+    for (const days of [200, 364])
+      expect(run({ change: daysOut(days), link: null, item: null, role: "owner" })).toMatchObject({
+        type: "createAppointment",
+      });
+    expect(run({ change: daysOut(365), link: null, item: null, role: "owner" })).toEqual(OUTSIDE);
+  });
+
+  it("400 days out, or further back than 90, is ignored", () => {
+    for (const days of [400, -91])
+      expect(run({ change: daysOut(days), link: null, item: null, role: "owner" })).toEqual(OUTSIDE);
+  });
+
+  it("an instance of a Google repeat keeps the 90-day horizon", () => {
+    const instance = (days: number) => daysOut(days, { recurring: true });
+    expect(run({ change: instance(30), link: null, item: null, role: "owner" })).toMatchObject({
+      type: "createAppointment",
+    });
+    for (const days of [90, 200])
+      expect(run({ change: instance(days), link: null, item: null, role: "owner" })).toEqual(OUTSIDE);
+  });
+
+  it("a viewer's far-off event is overwritten; their far-off repeat instance is left for later", () => {
+    expect(run({ change: daysOut(200), link: null, item: null, role: "viewer" })).toEqual({
+      type: "overwrite",
+      reason: "role",
+    });
+    expect(
+      run({ change: daysOut(200, { recurring: true }), link: null, item: null, role: "viewer" }),
+    ).toEqual(OUTSIDE);
+  });
+
+  it("a linked item 200 days out takes a time change", () => {
+    const start = new Date(NOW.getTime() + 200 * 86_400_000).toISOString();
+    const end = new Date(NOW.getTime() + 200 * 86_400_000 + 3_600_000).toISOString();
+    const far = item({ start, end });
+    const movedTo = new Date(NOW.getTime() + 201 * 86_400_000).toISOString();
+    const change = eventFor(far, {
+      start: { dateTime: movedTo, timeZone: LA },
+      end: { dateTime: movedTo, timeZone: LA },
+    });
+    expect(run({ change, link: linkFor(far), item: far, role: "owner" })).toMatchObject({
+      type: "updateEntry",
+      entryId: "e1",
+      patch: { occurredAt: movedTo },
+    });
+  });
+
+  it("outside the horizon, or without a time, is ignored", () => {
+    const far = made({ start: { date: "2027-12-20" }, end: { date: "2027-12-21" } });
     expect(run({ change: far, link: null, item: null, role: "owner" })).toEqual({
       type: "ignore",
       reason: "outsideWindow",

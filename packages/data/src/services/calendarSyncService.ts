@@ -17,11 +17,11 @@ import { afterCommit, dbMayFail, getDb, txOrDb } from "../db";
 import {
   calendarItems,
   calendarSyncJobSchema as job,
-  calendarWindow,
   careGroupSchema,
   careRecipientSchema,
   googleCalendarConnectionSchema as connection,
   googleEventLinkSchema as link,
+  googleWindow,
   memberCalendarSettingSchema,
   providerSchema,
   shareLevel,
@@ -169,9 +169,9 @@ const levelOf = async (conn: GoogleCalendarConnection): Promise<ShareLevel | App
   return shareLevel({ memberConsent: !!row?.consentAt, groupAllowsDetails: !!row?.allowed });
 };
 
-/** A group's calendar items around `now` (the 90-day window each way). */
+/** A group's calendar items for Google, push and pull: `googleWindow` around `now` (90 days back, 365 ahead). */
 export const groupItems = async (groupId: string, now: Date): Promise<CalendarItem[] | AppError> => {
-  const { from, to } = calendarWindow(now);
+  const { from, to } = googleWindow(now);
   const db = getDb();
   // A little wider than the window: an item overlapping its edge counts, and calendarItems decides.
   const after = new Date(from.getTime() - 2 * 86_400_000).toISOString();
@@ -202,8 +202,14 @@ export const groupItems = async (groupId: string, now: Date): Promise<CalendarIt
       ? await db
           .select({ entryId: timelineEntryProviderSchema.entryId, name: providerSchema.name })
           .from(timelineEntryProviderSchema)
-          .innerJoin(providerSchema, eq(providerSchema.id, timelineEntryProviderSchema.providerId))
-          .where(inArray(timelineEntryProviderSchema.entryId, ids))
+          .innerJoin(
+            providerSchema,
+            and(
+              eq(providerSchema.groupId, timelineEntryProviderSchema.groupId),
+              eq(providerSchema.id, timelineEntryProviderSchema.providerId),
+            ),
+          )
+          .where(and(inArray(timelineEntryProviderSchema.entryId, ids), isNull(providerSchema.deletedAt)))
           .orderBy(providerSchema.name)
       : [];
     const todos = await db

@@ -369,6 +369,63 @@ describe("pulling", () => {
   });
 });
 
+describe("the Google horizon", () => {
+  const linkOf = async (conn: GoogleCalendarConnection, googleEventId: string) => {
+    const [row] = await getDb()
+      .select()
+      .from(googleEventLinkSchema)
+      .where(
+        and(
+          eq(googleEventLinkSchema.connectionId, conn.id),
+          eq(googleEventLinkSchema.googleEventId, googleEventId),
+        ),
+      );
+    return row;
+  };
+
+  it("takes an event made in Google 200 days out, a later move of it, and keeps it at the next push", async () => {
+    const { caretaker, group } = await setup();
+    const conn = await connect(caretaker, group.id);
+    await pull(conn);
+    const start = inDays(200, 20);
+    const made = google.user.create(conn.calendarId, {
+      summary: "Knee surgery consult",
+      start: timed(start),
+      end: timed(plusHours(start, 1)),
+    });
+    expect(await pull(conn)).toMatchObject({ applied: 1 });
+    const linked = await linkOf(conn, made.id);
+    const entryId = linked!.itemUid.replace(/^entry:/, "");
+    expect(await entryRow(entryId)).toMatchObject({ kind: "event", title: "Knee surgery consult" });
+
+    const movedTo = inDays(210, 20);
+    google.user.move(conn.calendarId, made.id, timed(movedTo), timed(plusHours(movedTo, 1)));
+    expect(await pull(conn)).toMatchObject({ applied: 1 });
+    expect(ms((await entryRow(entryId)).occurredAt)).toBe(ms(movedTo));
+
+    ok(await calendarSyncService.enqueue(undefined, { connectionId: conn.id }, "daily"));
+    ok(await calendarSyncService.runDue({ client: google }));
+    await settled();
+    expect(google.event(conn.calendarId, made.id)!.status).toBe("confirmed");
+    expect(await linkOf(conn, made.id)).toBeDefined();
+  });
+
+  it("leaves an instance of a Google repeat 200 days out for later", async () => {
+    const { caretaker, group } = await setup();
+    const conn = await connect(caretaker, group.id);
+    await pull(conn);
+    const start = inDays(200, 20);
+    const instance = google.user.create(conn.calendarId, {
+      summary: "Weekly infusion",
+      start: timed(start),
+      end: timed(plusHours(start, 1)),
+      recurring: true,
+    });
+    expect(await pull(conn)).toMatchObject({ applied: 0, overwritten: 0, ignored: 1 });
+    expect(await linkOf(conn, instance.id)).toBeUndefined();
+  });
+});
+
 describe("what the member can't do", () => {
   it("puts a viewer's move back on the next push, and removes their new event", async () => {
     const { viewer, group, appointment } = await setup();
