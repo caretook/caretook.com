@@ -74,7 +74,7 @@ const refusal = (res: unknown) => {
 
 describe("assistantActionService.run", () => {
   it("givePass leaves out a medication added after the pass's time that day", async () => {
-    const { group, recipient, morning, addMedication, run, entriesOf } = await setup();
+    const { recipient, morning, addMedication, run, entriesOf } = await setup();
     const zone = recipient.timeZone ?? "UTC";
     const day = addDays(dayInZone(new Date(), zone), -5);
     const addedAt = zonedInstant(day, "14:59", zone);
