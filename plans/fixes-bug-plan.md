@@ -80,8 +80,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 40    | B-655 | landed                                     | 487cb235 |
 | 41    | B-620 | landed (care-periods.md folded)            | ab9dcfae |
 | 42    | B-631 | landed                                     | 2a479df8 |
-| 43    | B-656 | started (opus)                             |          |
-| 44    | B-657 | handed off (7f49862b)                      |          |
+| 43    | B-656 | merged (roundtrip at landing)              | a449f67c |
+| 44    | B-657 | merged (sheets in components CI)           | 036a9fff |
 | 45    | B-659 | started (opus)                             |          |
 | 46    | B-662 | started (opus)                             |          |
 | 47    | B-666 | handed off (e133139d)                      |          |
