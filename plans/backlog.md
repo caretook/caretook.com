@@ -333,6 +333,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-609 | chore | triaged | fixes-tooling |  | Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh |
 | B-610 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/db/resetStaging.int.test.ts: resetStaging wipes everything but real sign-ins, reseeds, and … |
 | B-611 | bug | triaged | dose-accuracy |  | A schedule change across midnight drops a dose's slot name in visit prep: a 23:30 dose given at 00:10 answers today's new 00:30 slot, and last night reads missed |
+| B-612 | chore | in-progress | test-gates | prd/test-gates | Raise the default PRD cap from 3 to 4: dispatcher, prd start and status agree without an env var |
 
 ## Items
 
@@ -2549,3 +2550,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (prd/dose-accuracy): Codex on PR #91 (P2), verified by reading scheduleHistory.doseName: it checks only the schedule of the day given, so a name valid for yesterday's slot within the two-hour window becomes unnamed. Fix: keep the name when it identifies a historical slot within the window.
+
+### B-612 · chore · Raise the default PRD cap from 3 to 4: dispatcher, prd start and status agree without an env var
+
+- status: in-progress
+- prd: test-gates
+- owner: prd/test-gates
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User's decision 2026-11-23, since testing moved to CI. Change the default in scripts/loops/lib.sh (max_prds), dispatch.mjs and dispatch-pick.mjs (DEFAULT_CAPS), keeping CARETOOK_MAX_PRDS as the override; update tests and docs/orchestration.md, machinery.md and AGENTS-level mentions of three PRDs. The running dispatcher needs a restart to pick it up.
+- 2026-11-23 (prd/test-gates): test-gates slice 13, wave 7, after wave 6 lands. Scope from the backlog session: default cap 4 in lib.sh, dispatch.mjs, dispatch-pick.mjs; CARETOOK_MAX_PRDS stays the override; check and browser leases stay 2, load gate unchanged. The running dispatcher keeps the old default until the user restarts it.
