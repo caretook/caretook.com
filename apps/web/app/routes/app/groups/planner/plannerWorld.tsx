@@ -211,7 +211,7 @@ export const listed = (): ListedRow[] =>
       heading: day.querySelector("h3")!.textContent.trim(),
       id: li.dataset.upcomingItem!,
       text: li.textContent ?? "",
-      when: (li.querySelector("[data-when]")?.textContent ?? "").replace(/\u200b/g, ""),
+      when: li.querySelector("[data-when]")?.textContent ?? "",
       cancelled: li.hasAttribute("data-cancelled"),
       struck: [...li.querySelectorAll("div")].some((d) =>
         getComputedStyle(d).textDecorationLine.includes("line-through"),

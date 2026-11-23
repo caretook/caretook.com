@@ -287,6 +287,18 @@ describe("the scope dialog in Upcoming", () => {
   });
 });
 
+describe("the card's time line", () => {
+  test("the repeat mark sits beside the time, on its one line", async () => {
+    await openPlanner({ extra: SERIES });
+    const row = await found(() => itemEl(MON_23.id));
+    const time = row.querySelector("[data-when]")?.getBoundingClientRect();
+    const mark = row.querySelector("[data-when-line] [data-repeat-mark]")?.getBoundingClientRect();
+    expect(mark?.left).toBeGreaterThanOrEqual(time?.right ?? Infinity);
+    expect(mark?.top).toBeLessThan(time?.bottom ?? 0);
+    expect(mark?.bottom).toBeGreaterThan(time?.top ?? Infinity);
+  });
+});
+
 describe("on the timeline", () => {
   test("an upcoming visit's ⋯ asks; one that has started doesn't (the plain confirm)", async () => {
     await openPlanner({ url: TIMELINE_URL, extra: SERIES });
