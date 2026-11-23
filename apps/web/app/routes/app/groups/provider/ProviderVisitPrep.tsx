@@ -3,7 +3,7 @@ import type { EntryRow } from "~/lib/timeline/timeline.sync";
 import { ClipboardList } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { ConfirmDialog, Section } from "~/components/ui";
+import { Button, ConfirmDialog, Section } from "~/components/ui";
 import { useVisitPrep } from "~/components/visitPrep";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useLiveQuery } from "~/lib/sync";
@@ -41,17 +41,16 @@ export function ProviderVisitPrep({
   return (
     <Section title="Visits" id="visits">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-provider-visit-prep="">
-        <button
-          type="button"
-          className="btn btn-outline btn-sm gap-1.5"
+        <Button
+          size="sm"
+          icon={ClipboardList}
           data-prepare-visit=""
           onClick={() => (next ? prep.ask({ id: next.id, title: next.title }) : setOffer(true))}
         >
-          <ClipboardList className="size-4" aria-hidden="true" />
           Prepare for a visit
-        </button>
+        </Button>
         {next && (
-          <span className="text-base-content/70 text-sm" data-next-visit>
+          <span className="text-muted text-sm" data-next-visit>
             Next: {upcomingTitle({ kind: "event", title: next.title })}, {upcomingWhen(next, new Date(now))}
           </span>
         )}

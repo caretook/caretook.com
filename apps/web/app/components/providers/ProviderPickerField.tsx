@@ -2,7 +2,7 @@ import type { LocalProvider } from "~/lib/providers/providers.sync";
 import type { ProviderFit } from "~/lib/providers/providerPicker";
 
 import { useId, useMemo, useState } from "react";
-import { ChipList, ComboBox } from "~/components/ui";
+import { ChipList, ComboBox, Message } from "~/components/ui";
 import { canAddPicked, chosenLabel, pickerOptions } from "~/lib/providers/providerPicker";
 
 type Choice = { kind: "none" } | { kind: "existing"; id: string } | { kind: "new"; name: string };
@@ -108,9 +108,9 @@ export function ProviderPickerField({
       <input type="hidden" name={name} value={choice.kind === "existing" ? choice.id : ""} />
       <input type="hidden" name={newName} value={choice.kind === "new" ? choice.name : ""} />
       {error && (
-        <p className="text-error text-sm" role="alert" data-picker-error>
+        <Message tone="error" data-picker-error="">
           {error}
-        </p>
+        </Message>
       )}
     </div>
   );

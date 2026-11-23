@@ -4,10 +4,9 @@ import type { ProviderRow } from "~/lib/providers/providers.sync";
 
 import { Pencil } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { LinkedTodos } from "~/components/todos";
-import { BackLink, Page, Section } from "~/components/ui";
+import { BackLink, Button, Message, Notice, Page, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { PROVIDER_SHEET_STATE } from "~/lib/providers/providerSheetLink";
@@ -87,35 +86,31 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
             !deleted && (
               <>
                 <CopyToGroup provider={provider} groupName={displayName} onResult={setCopyStatus} />
-                <Link
+                <Button
                   to={appUrls.editProvider(groupId, providerId)}
                   // Closing the sheet goes back here.
                   state={PROVIDER_SHEET_STATE}
                   prefetch="render"
-                  className="btn btn-ghost btn-sm gap-1"
-                  data-edit-provider
+                  variant="ghost"
+                  size="sm"
+                  icon={Pencil}
+                  data-edit-provider=""
                 >
-                  <Pencil className="size-4" aria-hidden="true" />
                   Edit
-                </Link>
+                </Button>
               </>
             )
           }
         />
 
-        <p role="status" className="text-sm empty:hidden" data-copy-status>
-          {copyStatus}
-        </p>
+        <Message data-copy-status="">{copyStatus}</Message>
       </Section>
 
       {deleted ? (
         <Section>
-          <div role="alert" className="alert">
-            <span>This provider was deleted.</span>
-            <Link to={directoryUrl} className="btn btn-sm">
-              Back to providers
-            </Link>
-          </div>
+          <Notice tone="error" action={{ label: "Back to providers", to: directoryUrl }}>
+            This provider was deleted.
+          </Notice>
         </Section>
       ) : (
         <>
@@ -136,11 +131,7 @@ function ProviderPage({ loaderData, params }: Route.ComponentProps) {
                 : "Shared with the care group. You can view these notes."
             }
           >
-            {saveError && (
-              <p role="alert" className="text-error text-sm">
-                {saveError}
-              </p>
-            )}
+            {saveError && <Message tone="error">{saveError}</Message>}
             <LiveNotesEditor
               key={providerId}
               label={`Notes on ${provider.name}`}

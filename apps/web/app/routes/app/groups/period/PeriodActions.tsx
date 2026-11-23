@@ -2,8 +2,8 @@ import type { ActionResult } from "~/lib/core/api";
 
 import { Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useFetcher } from "react-router";
-import { ConfirmDialog, Menu } from "~/components/ui";
+import { useFetcher } from "react-router";
+import { Button, ConfirmDialog, Menu, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { PERIOD_SHEET_STATE } from "~/lib/care-periods/periodSheets";
 
@@ -38,17 +38,18 @@ export function PeriodActions({
 
   return (
     <>
-      <Link
+      <Button
         to={appUrls.editPeriod(groupId, periodId)}
         // Closing the sheet comes back here.
         state={PERIOD_SHEET_STATE}
         prefetch="render"
-        className="btn btn-ghost btn-sm gap-1"
-        data-edit-period
+        variant="ghost"
+        size="sm"
+        icon={Pencil}
+        data-edit-period=""
       >
-        <Pencil className="size-4" aria-hidden="true" />
         Edit
-      </Link>
+      </Button>
       <Menu
         label={`Actions for ${title}`}
         items={[
@@ -60,15 +61,14 @@ export function PeriodActions({
             onAction: () => setConfirming(true),
           },
         ]}
-        className="btn btn-ghost btn-sm btn-square shrink-0"
+        variant="ghost"
+        size="sm"
+        shape="square"
+        className="shrink-0"
       >
         <Ellipsis className="size-4" aria-hidden="true" />
       </Menu>
-      {result && !result.ok && (
-        <p role="alert" className="text-error text-sm">
-          {result.error}
-        </p>
-      )}
+      {result && !result.ok && <Message tone="error">{result.error}</Message>}
       <ConfirmDialog
         open={confirming}
         title="Delete this care period?"

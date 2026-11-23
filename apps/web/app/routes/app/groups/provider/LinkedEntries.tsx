@@ -2,7 +2,7 @@ import type { EntryRow } from "~/lib/timeline/timeline.sync";
 
 import { Link } from "react-router";
 import { KindIcon } from "~/components/entry";
-import { Section } from "~/components/ui";
+import { EmptyState, List, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { formatDay, formatTime } from "~/lib/core/format";
@@ -26,12 +26,10 @@ export function LinkedEntries({ groupId, providerId }: { groupId: string; provid
     <Section title="Linked entries" id="linked-entries" data-linked-entries="">
       {entries.length === 0 ? (
         fresh && (
-          <p className="text-base-content/70 text-sm">
-            No notes or events yet. Link this provider from a note or event's With row.
-          </p>
+          <EmptyState>No notes or events yet. Link this provider from a note or event's With row.</EmptyState>
         )
       ) : (
-        <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border">
+        <List>
           {entries.map((entry) => (
             <li key={entry.id}>
               <Link
@@ -42,7 +40,7 @@ export function LinkedEntries({ groupId, providerId }: { groupId: string; provid
                 <KindIcon kind={entry.kind} size="sm" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate">{entry.title || KIND_META[entry.kind].label}</span>
-                  <span className="text-base-content/70 block text-sm">
+                  <span className="text-muted block text-sm">
                     <span className="sr-only">{KIND_META[entry.kind].label}, </span>
                     <time dateTime={entry.occurredAt}>
                       {formatDay(entry.occurredAt)}, {formatTime(entry.occurredAt)}
@@ -52,7 +50,7 @@ export function LinkedEntries({ groupId, providerId }: { groupId: string; provid
               </Link>
             </li>
           ))}
-        </ul>
+        </List>
       )}
     </Section>
   );
