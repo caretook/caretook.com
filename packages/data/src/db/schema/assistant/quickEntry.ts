@@ -2009,6 +2009,23 @@ const isMeasurementValue = (tokens: readonly Token[], i: number) => {
   ).some((m) => m.entry.role === "appointmentWord");
 };
 
+/**
+ * Whether the last word is "sat" after a line that is only a member's name
+ * ("Sam sat", "Sam Rivera sat"): the verb, not Saturday. A name a provider also
+ * has keeps the day ("Lee sat" can be a visit with Dr. Lee).
+ */
+const isSatAfterMember = (tokens: readonly Token[], context: QuickEntryContext, i: number) => {
+  if (i === 0 || i !== tokens.length - 1 || tokens[i]!.w !== "sat") return false;
+  const said = tokens.slice(0, i).map((t) => oneWord(t.w));
+  if (context.providers.some((p) => said.some((w) => wordsOf(p.name).includes(w)))) return false;
+  return (context.members ?? []).some((member) => {
+    const name = wordsOf(member.name);
+    return said.length === 1
+      ? said[0] === name[0]
+      : said.length === name.length && said.every((w, k) => w === name[k]);
+  });
+};
+
 const parsePart = (
   text: string,
   context: QuickEntryContext,
@@ -2021,14 +2038,14 @@ const parsePart = (
   const tokens = tokenize(body);
   // A fraction that is a dose's amount is hidden from the date finder; a line forced to another kind keeps it.
   const readsAmounts = forced === null || forced === "dose";
-  // So is a measurement's value, unless the line was asked to be something with a day.
+  // So is a measurement's value or a member's "sat", unless the line was asked to be something with a day.
   const readsValues = forced !== "event" && forced !== "todo";
   const time = findTime(
     tokens.map((t, i) =>
       (readsAmounts &&
         (isFractionAmount(tokens, context.medications, i, forced === "dose") ||
           isFractionAfterName(tokens, context.medications, i, forced === "dose", previousDose))) ||
-      (readsValues && isMeasurementValue(tokens, i))
+      (readsValues && (isMeasurementValue(tokens, i) || isSatAfterMember(tokens, context, i)))
         ? ""
         : t.w,
     ),
