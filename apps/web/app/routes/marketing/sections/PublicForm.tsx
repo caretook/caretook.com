@@ -1,9 +1,11 @@
 import type { FormEvent, ReactNode } from "react";
+import type { FieldControl, FieldKind } from "~/components/ui/plain";
 import type { FieldCopy, FormThanksContent } from "./types";
 import type { FormFailure } from "./forms";
 
 import { HONEYPOT_FIELD } from "@caretook/data/schema";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Button, Field, Notice } from "~/components/ui/plain";
 import { formFailure } from "./forms";
 
 // The marketing site's public forms' shared parts: the submit state (with
@@ -62,39 +64,33 @@ export function usePublicForm(send: (form: FormData, guard: SubmitGuard) => Prom
   };
 }
 
-const CONTROL = "w-full text-lg";
-
 type FieldProps = {
   name: string;
   copy: FieldCopy;
   error?: string;
   required?: boolean;
-  children: (control: { id: string; describedBy: string | undefined; invalid: boolean }) => ReactNode;
 };
 
-/** A label, its control, an optional hint and an error linked to the control. */
-function FieldShell({ name, copy, error, required, children }: FieldProps) {
-  const id = `${useId()}-${name}`;
-  const hintId = copy.hint ? `${id}-hint` : undefined;
-  const errorId = error ? `${id}-error` : undefined;
-  const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
+/** The kit's field at the site's larger text size: a label, its control, a hint and a linked error. */
+function FieldShell({
+  name,
+  copy,
+  error,
+  required,
+  kind,
+  children,
+}: FieldProps & { kind: FieldKind; children: (control: FieldControl) => ReactNode }) {
+  const label = (
+    <>
+      {copy.label}
+      {!required && <span className="text-muted font-normal"> (optional)</span>}
+    </>
+  );
   return (
-    <div className="flex flex-col gap-1.5" data-field={name}>
-      <label htmlFor={id} className="font-medium">
-        {copy.label}
-        {!required && <span className="font-normal text-base-content/70"> (optional)</span>}
-      </label>
-      {children({ id, describedBy, invalid: !!error })}
-      {copy.hint && (
-        <p id={hintId} className="text-base text-base-content/70">
-          {copy.hint}
-        </p>
-      )}
-      {error && (
-        <p id={errorId} className="text-base text-error" data-field-error>
-          {error}
-        </p>
-      )}
+    <div data-field={name}>
+      <Field kind={kind} className="text-base" label={label} help={copy.hint} error={error}>
+        {(control) => children({ ...control, className: `${control.className} text-lg` })}
+      </Field>
     </div>
   );
 }
@@ -104,43 +100,28 @@ export function TextField({
   autoComplete,
   maxLength,
   ...field
-}: Omit<FieldProps, "children"> & { type?: "text" | "email"; autoComplete?: string; maxLength?: number }) {
+}: FieldProps & { type?: "text" | "email"; autoComplete?: string; maxLength?: number }) {
   return (
-    <FieldShell {...field}>
-      {({ id, describedBy, invalid }) => (
+    <FieldShell {...field} kind="input">
+      {(control) => (
         <input
-          id={id}
+          {...control}
           name={field.name}
           type={type}
           required={field.required}
           autoComplete={autoComplete}
           maxLength={maxLength}
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          className={`input ${invalid ? "input-error" : ""} ${CONTROL}`}
         />
       )}
     </FieldShell>
   );
 }
 
-export function TextAreaField({
-  maxLength,
-  ...field
-}: Omit<FieldProps, "children"> & { maxLength?: number }) {
+export function TextAreaField({ maxLength, ...field }: FieldProps & { maxLength?: number }) {
   return (
-    <FieldShell {...field}>
-      {({ id, describedBy, invalid }) => (
-        <textarea
-          id={id}
-          name={field.name}
-          required={field.required}
-          maxLength={maxLength}
-          rows={6}
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          className={`textarea ${invalid ? "textarea-error" : ""} ${CONTROL}`}
-        />
+    <FieldShell {...field} kind="textarea">
+      {(control) => (
+        <textarea {...control} name={field.name} required={field.required} maxLength={maxLength} rows={6} />
       )}
     </FieldShell>
   );
@@ -150,19 +131,11 @@ export function SelectField({
   none,
   options,
   ...field
-}: Omit<FieldProps, "children"> & { none: string; options: { value: string; label: string }[] }) {
+}: FieldProps & { none: string; options: { value: string; label: string }[] }) {
   return (
-    <FieldShell {...field}>
-      {({ id, describedBy, invalid }) => (
-        <select
-          id={id}
-          name={field.name}
-          required={field.required}
-          defaultValue=""
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          className={`select ${invalid ? "select-error" : ""} ${CONTROL}`}
-        >
+    <FieldShell {...field} kind="select">
+      {(control) => (
+        <select {...control} name={field.name} required={field.required} defaultValue="">
           <option value="">{none}</option>
           {options.map((o) => (
             <option key={o.value} value={o.value}>
@@ -218,9 +191,9 @@ export function PublicFormFrame({
       {!form.sent && (
         <form aria-label={label} noValidate onSubmit={form.onSubmit} className="flex flex-col gap-5">
           {form.failure && (
-            <p role="alert" className="alert alert-error alert-soft text-base" data-form-error>
+            <Notice tone="error" data-form-error="">
               {form.failure.message}
-            </p>
+            </Notice>
           )}
           {children}
           <Honeypot />
@@ -240,8 +213,14 @@ export function SubmitButton({
   sendingLabel: string;
 }) {
   return (
-    <button type="submit" className="btn btn-primary btn-lg self-start" aria-disabled={sending || undefined}>
+    <Button
+      type="submit"
+      variant="primary"
+      size="lg"
+      className="self-start"
+      aria-disabled={sending || undefined}
+    >
       {sending ? sendingLabel : label}
-    </button>
+    </Button>
   );
 }

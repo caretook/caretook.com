@@ -68,11 +68,6 @@ export const KIT_CLASSES_NOT_SWEPT = [
   "routes/admin/users/route.tsx",
   "routes/admin/waitlist/WaitlistFilterForm.tsx",
   "routes/admin/waitlist/route.tsx",
-  // ui-kit-5 slice 6: account and connectors.
-  "components/connectors/ConnectGuide.tsx",
-  "components/connectors/ask/AskOwners.tsx",
-  "routes/account/AuthCard.tsx",
-  "routes/connectors/connect/ConnectConsent.tsx",
   // ui-kit-5 slice 7: the frame, home and the new group page.
   "routes/app/groups/new/route.tsx",
   "routes/app/home/NewGroupLink.tsx",

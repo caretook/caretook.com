@@ -1,7 +1,7 @@
 import type { Route } from "./+types/route";
 
 import { Form, Link, useNavigation } from "react-router";
-import { Button, Field } from "~/components/ui/plain";
+import { Button, Field, LINK } from "~/components/ui/plain";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { authClient } from "~/lib/auth/auth-client";
 import {
@@ -80,13 +80,13 @@ export default function ResetPassword({ loaderData, actionData }: Route.Componen
           <input type="hidden" name="intent" value="set" />
           <input type="hidden" name="token" value={token} />
           <Field
+            kind="input"
             label="New password"
             help={`At least ${MIN_PASSWORD_LENGTH} characters. A few words you'll remember work well.`}
           >
             {(control) => (
               <input
                 {...control}
-                className="input w-full"
                 type="password"
                 name="password"
                 autoComplete="new-password"
@@ -95,16 +95,9 @@ export default function ResetPassword({ loaderData, actionData }: Route.Componen
               />
             )}
           </Field>
-          <Field label="Type it again">
+          <Field kind="input" label="Type it again">
             {(control) => (
-              <input
-                {...control}
-                className="input w-full"
-                type="password"
-                name="confirm"
-                autoComplete="new-password"
-                required
-              />
+              <input {...control} type="password" name="confirm" autoComplete="new-password" required />
             )}
           </Field>
           {result && "error" in result && result.error && <ErrorMessage>{result.error}</ErrorMessage>}
@@ -136,7 +129,7 @@ export default function ResetPassword({ loaderData, actionData }: Route.Componen
         </Button>
       </Form>
       <p className="text-center text-sm">
-        <Link to={accountUrls.signIn()} className="link">
+        <Link to={accountUrls.signIn()} className={LINK}>
           Back to sign in
         </Link>
       </p>

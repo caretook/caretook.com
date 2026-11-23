@@ -1,4 +1,5 @@
 import { LEGAL_CHECKBOX_PARTS, LEGAL_DOCUMENTS } from "@caretook/data/schema";
+import { LINK } from "~/components/ui/plain";
 import { legalHref } from "~/lib/auth/legalLinks";
 
 /** The checkbox's sentence. Its links open in a new tab, so the form keeps what was typed. */
@@ -11,7 +12,7 @@ export function LegalAgreement() {
         ) : (
           <a
             key={part.document}
-            className="link"
+            className={LINK}
             href={legalHref(part.document, import.meta.env.VITE_API_ORIGIN)}
             target="_blank"
             rel="noopener noreferrer"
