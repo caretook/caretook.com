@@ -10,14 +10,16 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 | 2. Browser results, reruns and flakes          | 2    | landed b55e4413 (PR #120) | 186a23c3 |
 | 3. A release candidate                         | 3    | landed ce792df3 (PR #122) | 22dc1231 |
 | 4. Promotion refuses what isn't passing        | 3    | landed ce792df3 (PR #122) | c9670a4c |
-| 5. The release tier                            | 4    | in progress (opus)        |          |
+| 5. The release tier                            | 4    | merged (opus)             | 55abe5cd |
 | 6. The required check on main and its override | 5    | not started               |          |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
 **Now:** wave 3 landed in `dev` as ce792df3 through PR #122, **without a Codex review (out of credits)**. `full` run 45212045467 green on 25523b82. The real candidate rc/20261123-1613 (PR #121, `candidate` run 45214064116, 11 of 11 browser checks) was closed unmerged with its branches deleted; `staging` stayed at 94b26ec3 and held PR #115 is still open. Slice 3 and 4 worktrees are removed, the docs are folded, B-532 is finished and report a146 is filed. B-533 (the staging to main gate) stays open for slices 5 and 6.
 
-**Next:** wave 4 is running. `prd/test-gates-2` is synced with `dev` (only backlog commits are newer). Slice 5 has its worktree `test-gates-2-5` and an opus agent, told a147 lifted its stop on CI runs. If that agent is gone, respawn it with `--continue` and repeat a147's limits.
+**Next:** wave 4: slice 5 merged as 55abe5cd (worktree `test-gates-2-5` stays until the wave is green). Its `release` run 45224003205 on ef58007e has a **green verdict** (11 of 11 browser checks, three times, 12 minutes); GitHub shows the run red because the report-only zone jobs fail by design. Then: quick check, file the zone failures once (`pnpm prd ci zone-file slice/test-gates-2/5 --run 45224003205`: 17 files, so 10 items and 7 on B-372; `roundtrip` is among them and is on the brake list), `pnpm prd sync`, the wave's run, PR, land.
+
+**For slice 6:** call `zone-file` from `pnpm prd ci release`; nothing calls it yet, and it has never run against the real backlog before this wave.
 
 **Docs:** `docs/agents/machinery.md` is 10 bytes over budget already, so don't grow it. `docs/agents/orchestrator.md` has about 35 bytes left.
 
