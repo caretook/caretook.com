@@ -134,8 +134,7 @@ describe("reloadToLatest", () => {
     const installing = fakeWorker("installing");
     const container = containerWith(registrationWith({ installing }));
     const done = reloadToLatest(container, reload);
-    await vi.waitFor(() => expect(container.getRegistration).toHaveBeenCalled());
-    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve));
     installing.state = "installed";
     installing.dispatchEvent(new Event("statechange"));
     await done;
@@ -146,7 +145,6 @@ describe("reloadToLatest", () => {
     const reload = vi.fn();
     const installing = fakeWorker("installing");
     const done = reloadToLatest(containerWith(registrationWith({ installing })), reload);
-    await vi.waitFor(() => expect(installing.state).toBe("installing"));
     await new Promise((resolve) => setTimeout(resolve));
     installing.state = "redundant";
     installing.dispatchEvent(new Event("statechange"));
