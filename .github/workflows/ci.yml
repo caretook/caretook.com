@@ -112,6 +112,10 @@ jobs:
         name: Docs budget (a warning)
         if: ${{ !cancelled() }}
         run: pnpm docs:budget
+      - id: check-areas
+        name: Check areas
+        if: ${{ !cancelled() }}
+        run: node scripts/loops/check-areas.mjs lint
 
   unit:
     needs:
