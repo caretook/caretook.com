@@ -6,7 +6,7 @@ import { page, userEvent } from "vitest/browser";
 import { renderInRouter } from "../../../test/device";
 import { found } from "../../../test/found";
 import { pickTime } from "../../../test/timeSelect";
-import { Sheet, TimeSelect } from "./index";
+import { ConfirmDialog, Sheet, TimeSelect } from "./index";
 
 // A sheet that edits data asks before it throws changes away (B-316): any way
 // out but a save or the form's own Cancel, once the form differs from its start.
@@ -23,6 +23,7 @@ function Harness() {
   const navigate = useNavigate();
   // What a sync would do: a new value arriving with no one touching the form.
   const [synced, setSynced] = useState("Fictional start");
+  const [deleting, setDeleting] = useState(false);
   return (
     <>
       <Link to="/sheet">Open the sheet</Link>
@@ -46,7 +47,20 @@ function Harness() {
               Cancel
             </button>
             <button type="submit">Save</button>
+            <button type="button" onClick={() => setDeleting(true)}>
+              Delete
+            </button>
           </form>
+          <ConfirmDialog
+            open={deleting}
+            title="Delete this?"
+            confirmLabel="Yes, delete"
+            onConfirm={() => {
+              setDeleting(false);
+              void navigate("/");
+            }}
+            onClose={() => setDeleting(false)}
+          />
         </Sheet>
       )}
     </>
@@ -136,6 +150,16 @@ describe("leaving on purpose", () => {
     const { location } = await openSheet();
     await userEvent.fill(nameField(), "Changed");
     await userEvent.click(page.getByRole("button", { name: "Save" }));
+    await expect.poll(location).toBe("/");
+    await expect.poll(overlay).toBeNull();
+    expect(asked()).toBe(false);
+  });
+
+  test("a confirmed delete closes a changed form without asking again", async () => {
+    const { location } = await openSheet();
+    await userEvent.fill(nameField(), "Changed");
+    await userEvent.click(page.getByRole("button", { name: "Delete" }));
+    await userEvent.click(page.getByRole("button", { name: "Yes, delete" }));
     await expect.poll(location).toBe("/");
     await expect.poll(overlay).toBeNull();
     expect(asked()).toBe(false);
