@@ -50,7 +50,7 @@ export type FakeGoogleCalendar = GoogleCalendarClient & {
     delete: (calendarId: string, eventId: string) => void;
     create: (
       calendarId: string,
-      event: { summary: string; start: GoogleEventTime; end: GoogleEventTime },
+      event: { summary: string; start: GoogleEventTime; end: GoogleEventTime; recurring?: boolean },
     ) => GoogleEvent;
   };
 };
@@ -136,6 +136,8 @@ export const fakeGoogleCalendar = (): FakeGoogleCalendar => {
           start: event.start,
           end: event.end,
           privateProperties: { ...event.privateProperties },
+          // As in Google, writing to an instance of a repeat leaves it one.
+          recurring: calendar.events.get(event.id)?.recurring ?? false,
         });
         return { id: stored.id, etag: stored.etag };
       }),
@@ -246,7 +248,7 @@ export const fakeGoogleCalendar = (): FakeGoogleCalendar => {
         const { calendar, event } = userEvent(calendarId, eventId);
         store(calendar, { ...event, status: "cancelled" });
       },
-      create: (calendarId, { summary, start, end }) => {
+      create: (calendarId, { summary, start, end, recurring = false }) => {
         const calendar = userCalendar(calendarId);
         return view(
           store(calendar, {
@@ -258,6 +260,7 @@ export const fakeGoogleCalendar = (): FakeGoogleCalendar => {
             start,
             end,
             privateProperties: {},
+            recurring,
           }),
         );
       },

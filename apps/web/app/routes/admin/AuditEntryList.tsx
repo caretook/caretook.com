@@ -1,6 +1,7 @@
 import type { AuditAction, AuditChanges } from "@caretook/data/schema";
 
 import { Link } from "react-router";
+import { LINK } from "~/components/ui";
 import { adminUrls } from "./adminUrls";
 import { actionLabel, actorLabel, auditTime, changeLines, targetLabel } from "./auditDisplay";
 import { auditSearch } from "./auditFilters";
@@ -39,7 +40,7 @@ export function AuditEntryList({ entries }: { entries: readonly AuditEntryView[]
           >
             <div className="flex flex-wrap items-baseline justify-between gap-x-4">
               <span className="font-medium">{actionLabel(entry.action)}</span>
-              <time dateTime={entry.createdAt} className="text-base-content/70 text-xs">
+              <time dateTime={entry.createdAt} className="text-muted text-xs">
                 {auditTime(entry.createdAt)}
               </time>
             </div>
@@ -48,15 +49,15 @@ export function AuditEntryList({ entries }: { entries: readonly AuditEntryView[]
               {target && targetId && (
                 <>
                   {" · "}
-                  <Link className="link" to={adminUrls.audit(auditSearch({ target: targetId }))}>
+                  <Link className={LINK} to={adminUrls.audit(auditSearch({ target: targetId }))}>
                     {target}
                   </Link>
                 </>
               )}
             </p>
-            {entry.reason && <p className="text-base-content/80">Reason: {entry.reason}</p>}
+            {entry.reason && <p className="text-muted">Reason: {entry.reason}</p>}
             {lines.length > 0 && (
-              <ul className="text-base-content/80 font-mono text-xs break-all">
+              <ul className="text-muted font-mono text-xs break-all">
                 {lines.map((line) => (
                   <li key={line}>{line}</li>
                 ))}

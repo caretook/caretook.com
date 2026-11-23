@@ -2,7 +2,7 @@ import type { ReminderLead } from "@caretook/data/schema";
 import type { ApiOutputs } from "../core/rpc";
 
 import { ORPCError } from "@orpc/client";
-import { shareLevel } from "@caretook/data/schema";
+import { hasDetailsConsent, shareLevel } from "@caretook/data/schema";
 import { useSyncExternalStore } from "react";
 import { redirect } from "react-router";
 import { load } from "../core/api";
@@ -55,10 +55,14 @@ export const withChange = (settings: CalendarSettings, change: CalendarChange): 
   const next = { ...settings };
   if (change.remindersOn !== undefined) next.remindersOn = change.remindersOn;
   if (change.reminderLeads !== undefined) next.reminderLeads = change.reminderLeads;
-  if (change.detailsConsent !== undefined && change.detailsConsent !== settings.detailsConsent) {
-    next.detailsConsent = change.detailsConsent;
+  const consentChanges =
+    change.detailsConsent !== undefined &&
+    (change.detailsConsent !== settings.detailsConsent || settings.detailsConsentStale);
+  if (consentChanges) {
+    next.detailsConsent = change.detailsConsent ?? false;
     next.detailsConsentAt = null;
     next.detailsConsentVersion = null;
+    next.detailsConsentStale = false;
   }
   next.shareLevel = shareLevel({
     memberConsent: next.detailsConsent,
@@ -76,7 +80,20 @@ export const leftAfterSending = (pending: CalendarChange, sent: CalendarChange):
   return Object.keys(left).length ? left : null;
 };
 
-const readCache = (key: string) => readJson<CalendarSettings>(PREFIX + key);
+/**
+ * A copy cached before the wording changed still says "on": it reads as the
+ * server now would, so the card is the same offline.
+ */
+export const withCurrentConsent = (cached: CalendarSettings): CalendarSettings => {
+  const { detailsConsent, detailsConsentAt: consentAt, detailsConsentVersion: consentVersion } = cached;
+  if (!detailsConsent || !consentVersion || hasDetailsConsent({ consentAt, consentVersion })) return cached;
+  return { ...cached, detailsConsent: false, detailsConsentStale: true, shareLevel: "generic" };
+};
+
+const readCache = (key: string) => {
+  const cached = readJson<CalendarSettings>(PREFIX + key);
+  return cached && withCurrentConsent(cached);
+};
 const readPending = (key: string) => readJson<CalendarChange>(PENDING_PREFIX + key);
 
 const clearPending = (key: string, sent: CalendarChange) => {

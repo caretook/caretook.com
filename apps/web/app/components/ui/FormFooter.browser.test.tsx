@@ -48,6 +48,14 @@ describe("FormFooter", () => {
     await expect.element(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
   });
 
+  test("size lg makes both buttons large", async () => {
+    const { screen } = await renderInRouter(
+      inForm(<FormFooter size="lg" submitLabel="Save" cancel={{ label: "Cancel", onCancel: () => {} }} />),
+    );
+    await expect.element(screen.getByRole("button", { name: "Save" })).toHaveClass("btn-lg");
+    await expect.element(screen.getByRole("button", { name: "Cancel" })).toHaveClass("btn-lg");
+  });
+
   test("the status slot renders, start-aligned or not", async () => {
     const { screen } = await renderInRouter(
       <>

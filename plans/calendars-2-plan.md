@@ -4,17 +4,23 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-21), not started. Nothing blocks wave 1.
+**Where it stands:** wave 1 (slices 1, 3, 5, 6; B-304, B-306, B-309) landed in `dev` as `1f260992` through PR #113 (2026-11-23), Codex clean, report filed (a129). Full CI verdict `flake` on `4ccc9653`: `usersAdmin.int.test.ts` failed once and passed on retry, not in this branch's files, cause unread, filed as B-658. The lean browser suite was not run (skeptic decided, a128, the user can veto). Slice worktrees removed. Wave 1's docs are folded and committed on this branch; they reach `dev` with wave 2.
 
-| Slice | Wave | State       | Merge into `prd/calendars-2` (slice commits) |
-| ----- | ---- | ----------- | -------------------------------------------- |
-| 1     | 1    | not started |                                              |
-| 2     | 2    | not started |                                              |
-| 3     | 1    | not started |                                              |
-| 4     | 2    | not started |                                              |
-| 5     | 1    | not started |                                              |
-| 6     | 1    | not started |                                              |
-| 7     | 3    | not started |                                              |
+**Next:** wave 2 is running: B-305, B-307, B-308 claimed, worktrees `calendars-2-2` and `calendars-2-4` made from `9cc557d2`, one opus agent on each. Slices 2 and 4 are merged, B-307 and B-308 done, B-305 stays open for slice 7, slice worktrees removed. Quick check passed on `361a7814`. CI `components` run 45179101466: `flake` (only the search speed test, not this branch's files). Browser: `session-end` passed; the lean suite has not run. Wave 2's docs are folded. The lean suite is skipped (skeptic decided, a131, the user can veto). PR #114 is open. Codex round 1: one P2, a consent queued offline is stamped with a newer wording; real, not critical (no bump is pending), tracked as B-659, to fix before the next `DETAILS_CONSENT_VERSION` bump. Next: Codex `--again` until clean, land at tier `components`, report, rotate. B-659 (offline consent across a wording bump) is filed to `fixes-bug`, not this wave. The schema's frozen `index.test.ts` no longer exists (`60f17a4f`), so neither slice has an entry to keep. For the docs: an event moved in Google past 365 days updates in Caretook, its Google event is then deleted by the next push, and it is pushed again when it comes back in range. Shell: start commands with `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`, and tell slice agents the same. `calendars.md` has about 30 bytes of budget left and `appointments.md` about 110, so trim at least what wave 2 folds in.
+
+**Open from wave 1:** hand test against real Google that a deleted upcoming todo's event comes back (`events.update` with `status: "confirmed"`, insert on 404; only the fake client ran it). A device on an older build shows a last-day rule as plain "Repeats" until it updates.
+
+**Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
+
+| Slice | Wave | Model | State       | Merge into `prd/calendars-2` (slice commits) |
+| ----- | ---- | ----- | ----------- | -------------------------------------------- |
+| 1     | 1    | opus  | merged      | `26b3d891` (`4d0bbae3`, `f55df54a`)          |
+| 2     | 2    | opus  | merged      | `1a6ac534` (`8734f860`)                      |
+| 3     | 1    | opus  | merged      | `d65bacf4` (`ad831a51`; migration 0039)      |
+| 4     | 2    | opus  | merged      | `c5ed0364` (`22cb2bb9`)                      |
+| 5     | 1    | opus  | merged      | `4d812bc6` (`c58aee87`)                      |
+| 6     | 1    | opus  | merged      | `6012a222` (`6914d97b`, `e82f69c0`)          |
+| 7     | 3    |       | not started |                                              |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 

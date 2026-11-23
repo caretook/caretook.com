@@ -3,6 +3,7 @@ import type { PeriodMarker } from "~/lib/care-periods/periodMarkers";
 import type { LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 
 import { Link } from "react-router";
+import { ICON_SM } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { markerSentence, markerText, periodTypeMeta } from "~/lib/care-periods/periodDisplay";
 
@@ -39,8 +40,8 @@ export function PeriodMarkerItem({
         aria-label={markerSentence(words, timeZone)}
         className="hover:bg-base-200 focus-visible:outline-primary flex items-center gap-2.5 px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:-outline-offset-2"
       >
-        <span className="bg-base-300/70 text-base-content/80 inline-flex size-6 shrink-0 items-center justify-center rounded-full">
-          <Icon className="size-3.5" strokeWidth={2.25} aria-hidden="true" />
+        <span className="bg-base-300/70 text-muted inline-flex size-6 shrink-0 items-center justify-center rounded-full">
+          <Icon className={ICON_SM} strokeWidth={2.25} aria-hidden="true" />
         </span>
         <span className="min-w-0 break-words" aria-hidden="true">
           {markerText(words, timeZone)}

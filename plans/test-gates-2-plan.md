@@ -4,18 +4,18 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 
 ## Status
 
-| Slice                                          | Wave | State                                         | Merge |
-| ---------------------------------------------- | ---- | --------------------------------------------- | ----- |
-| 1. The browser suite runs in CI                | 1    | handed off 7626dfb3, CI runs denied, unmerged |       |
-| 2. Browser results, reruns and flakes          | 2    | not started                                   |       |
-| 3. A release candidate                         | 3    | not started                                   |       |
-| 4. Promotion refuses what isn't passing        | 3    | not started                                   |       |
-| 5. The release tier                            | 4    | not started                                   |       |
-| 6. The required check on main and its override | 5    | not started                                   |       |
+| Slice                                          | Wave | State                    | Merge    |
+| ---------------------------------------------- | ---- | ------------------------ | -------- |
+| 1. The browser suite runs in CI                | 1    | merged, wave run pending | b7f8601e |
+| 2. Browser results, reruns and flakes          | 2    | not started              |          |
+| 3. A release candidate                         | 3    | not started              |          |
+| 4. Promotion refuses what isn't passing        | 3    | not started              |          |
+| 5. The release tier                            | 4    | not started              |          |
+| 6. The required check on main and its override | 5    | not started              |          |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Now:** wave 1 is blocked. Slice 1 (`.loops/test-gates-2-1`, 7626dfb3) passed its quick check, but the permission classifier denied its `candidate` and `full` CI runs, so the browser job has never run. Not merged; The user allowed both runs (a121, a130: "Run them"). On 7626dfb3, `full` is green with no browser job (run 45183253017). `candidate` is `file` (run 45181714693): the browser job took 7m15s, 10 of 11 checks passed, and `roundtrip` failed at "add: shows on this device at once" (2353 ms). Sent back to slice 1's agent; slice not merged. That word covers these two runs only; if a later run is denied, ask again. Items B-532, B-533 claimed for this topic. Backlog doctor's three findings (B-548, B-549, B-568) aren't this topic's.
+**Now:** wave 1 is blocked. Slice 1 (`.loops/test-gates-2-1`, 7626dfb3) passed its quick check, but the permission classifier denied its `candidate` and `full` CI runs, so the browser job has never run. Not merged; The user allowed both runs (a121, a130: "Run them"). On 7626dfb3, `full` is green with no browser job (run 45183253017). `candidate` is `file` (run 45181714693): the browser job took 7m15s, 10 of 11 checks passed, and `roundtrip` failed at "add: shows on this device at once" (2353 ms). Slice 1's agent fixed the runner path (f8f469ac) and filed the roundtrip 2-second budget miss as B-661 (cause unproven, one sample; the rest of roundtrip has not run on Linux). Merged as b7f8601e. Worktree kept. Synced with `dev` (7df67c57); quick check passed there. CI approval covers wave 1 only: a134 reads "this topic's runs", but the backlog session relayed the user's narrower word, so file a new ask before any later wave's run. The wave's `candidate` run on 65cd3516 (45187414322) is `file`: 10 of 11 checks passed, `roundtrip` failed again at the add step (2779 ms against 2000 ms, B-661). `ci blame` was not run: it would request a run on `dev`, whose tier list has no `candidate`, so it could not place this failure. Slice 1's agent is correcting the measurement (clock from submit, budget stays 2000 ms); then merge, quick check and one more wave 1 run. That word covers these two runs only; if a later run is denied, ask again. Items B-532, B-533 claimed for this topic. Backlog doctor's three findings (B-548, B-549, B-568) aren't this topic's.
 
 ## Architectural decisions
 

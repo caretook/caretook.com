@@ -59,7 +59,7 @@ export function EntryHeader({
       <KindIcon kind={kind} />
       <div className="min-w-0 flex-1 space-y-0.5">
         <div data-region="title">{title}</div>
-        <div data-region="time" className="text-base-content/70 text-sm">
+        <div data-region="time" className="text-muted text-sm">
           {time}
           {via && (
             <span data-region="via" className="ml-2">

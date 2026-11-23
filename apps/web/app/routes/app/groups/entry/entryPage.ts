@@ -87,3 +87,7 @@ export const withEventDraft = (data: EntryPageData, draft: EventDraft | null): E
         },
         heading: entryHeading("Event", draft.title, true),
       };
+
+/** The header's small tappable facts (when it happened, how it repeats): a quiet chip, not a `Button`. */
+export const ENTRY_CHIP =
+  "border-base-200 bg-base-200 rounded-selector text-base-content hover:bg-base-300 inline-flex h-auto cursor-pointer items-center justify-center gap-1 border px-2 py-0.5 text-sm outline-offset-2 data-[focus-visible]:outline-2";

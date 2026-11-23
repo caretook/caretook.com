@@ -3,7 +3,7 @@ import type { RemindChoice, RemindSettings } from "~/lib/calendars/remindMe";
 
 import { ORPCError } from "@orpc/client";
 import { useEffect, useState } from "react";
-import { Sheet } from "~/components/ui";
+import { CheckField, FormFooter, Loading, Message, Sheet } from "~/components/ui";
 import { REMIND_OFFLINE, remindSummary } from "~/lib/calendars/remindMe";
 import { rpc } from "~/lib/core/rpc";
 import { LEADS_CAP_NOTE, leadChoices, withLead } from "~/routes/app/groups/settings/calendar/reminderChoices";
@@ -90,13 +90,9 @@ export function RemindMeSheet({
   return (
     <Sheet guardChanges isOpen onOpenChange={(open) => !open && onClose()} title={`Remind me: ${title}`}>
       {loaded === "offline" ? (
-        <p data-remind-offline="" role="status">
-          {REMIND_OFFLINE}
-        </p>
+        <Message data-remind-offline="">{REMIND_OFFLINE}</Message>
       ) : !ready ? (
-        <p className="text-base-content/70 text-sm" role="status">
-          Loading…
-        </p>
+        <Loading label="Loading…" />
       ) : (
         <form
           className="space-y-3"
@@ -126,35 +122,27 @@ export function RemindMeSheet({
             <fieldset className="flex flex-col gap-2 pl-8" data-remind-leads="">
               <legend className="mb-1 text-sm font-medium">When</legend>
               {leadChoices(leads).map((choice) => (
-                <label key={choice.lead} className="flex cursor-pointer items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="checkbox checkbox-sm"
-                    checked={choice.checked}
-                    disabled={choice.disabled}
-                    onChange={(e) => setLeads(withLead(leads, choice.lead, e.target.checked))}
-                  />
-                  <span>{choice.label}</span>
-                </label>
+                <CheckField
+                  key={choice.lead}
+                  label={choice.label}
+                  checked={choice.checked}
+                  disabled={choice.disabled}
+                  onChange={(e) => setLeads(withLead(leads, choice.lead, e.target.checked))}
+                />
               ))}
-              <p className="text-base-content/70 text-sm">{LEADS_CAP_NOTE}</p>
+              <p className="text-muted text-sm">{LEADS_CAP_NOTE}</p>
             </fieldset>
           )}
-          <p className="text-base-content/70 text-sm" data-remind-summary="" aria-live="polite">
+          <p className="text-muted text-sm" data-remind-summary="" aria-live="polite">
             {remindSummary(current(), loaded.settings)}
           </p>
-          {error && (
-            <p role="alert" className="text-error text-sm">
-              {error}
-            </p>
-          )}
-          <button
-            type="submit"
-            className="btn btn-primary btn-block"
-            disabled={busy || (mode === "extra" && !leads.length)}
-          >
-            {busy ? "Saving…" : "Save"}
-          </button>
+          {error && <Message tone="error">{error}</Message>}
+          <FormFooter
+            submitLabel="Save"
+            busy={busy}
+            busyLabel="Saving…"
+            submitDisabled={mode === "extra" && !leads.length}
+          />
         </form>
       )}
     </Sheet>

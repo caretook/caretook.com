@@ -75,6 +75,9 @@ type AsAnchor = Look &
     href: string;
     target?: "_blank";
     rel?: string;
+    /** Save what it points at (a server route's export). */
+    download?: boolean;
+    "aria-disabled"?: boolean;
     to?: never;
   };
 

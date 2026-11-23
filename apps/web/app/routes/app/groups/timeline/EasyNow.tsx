@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { CalendarClock, CheckCheck } from "lucide-react";
 import { useMemo } from "react";
 import { PassUndoStatus, usePassLog } from "~/components/medications";
+import { Button, ICON_LG, Message, Skeleton } from "~/components/ui";
 import { duePasses, isPassDueNow } from "~/lib/medications/duePasses";
 import { givePassText, medicationCountText, passTitle } from "~/lib/medications/medicationDisplay";
 import { useDueDoses } from "~/lib/medications/dueDoses.sync";
@@ -54,26 +55,32 @@ export function EasyNow({
     >
       {shows && (
         <h2 className={EASY_HEADING}>
-          <CalendarClock aria-hidden="true" className="text-primary size-5" />
+          <CalendarClock aria-hidden="true" className={`text-primary ${ICON_LG}`} />
           Upcoming
         </h2>
       )}
-      {!ready && <div className="skeleton rounded-box h-16" aria-hidden="true" data-easy-skeleton="now" />}
+      {!ready && (
+        <div className="h-16" aria-hidden="true" data-easy-skeleton="now">
+          <Skeleton lines={3} />
+        </div>
+      )}
       {dueNow.length > 0 &&
         (canWrite ? (
           <ul className={`space-y-2 ${stale}`} aria-label="Due now" data-stale={fresh ? undefined : ""}>
             {dueNow.map((pass) => (
               <li key={pass.key}>
-                <button
-                  type="button"
-                  className={`btn btn-lg w-full justify-start text-xl ${pass.state === "overdue" ? "btn-error" : "btn-warning"}`}
+                <Button
+                  variant={pass.state === "overdue" ? "danger" : "warning"}
+                  size="lg"
+                  block
+                  icon={CheckCheck}
+                  className="justify-start text-xl"
                   disabled={busy || !fresh}
                   data-easy-give={pass.key}
                   onClick={() => void givenAll(pass, { place: EASY_NOW_UNDO })}
                 >
-                  <CheckCheck aria-hidden="true" className="size-6" />
                   {givePassText(pass)}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
@@ -92,7 +99,9 @@ export function EasyNow({
           </ul>
         ))}
       {canWrite && <PassUndoStatus groupId={groupId} place={EASY_NOW_UNDO} className="text-base" />}
-      {error && <p className="text-error text-base">{error}</p>}
+      <Message tone="error" className="text-base!">
+        {error}
+      </Message>
       {next}
     </section>
   );

@@ -1,7 +1,7 @@
 import type { DaySummaryMode, TimelineView } from "@caretook/data/schema";
 
 import { Eye, LayoutList, List } from "lucide-react";
-import { Menu, TOOL_CIRCLE } from "~/components/ui";
+import { CIRCLE, ICON, Menu } from "~/components/ui";
 
 const VIEW_ITEMS: { id: TimelineView; label: string; icon: typeof List }[] = [
   { id: "rows", label: "Rows", icon: List },
@@ -37,7 +37,10 @@ export function TimelineViewMenu({
   return (
     <Menu
       label="View options"
-      className={TOOL_CIRCLE}
+      variant="ghost"
+      size="sm"
+      shape="square"
+      className={CIRCLE}
       width="md"
       items={[
         {
@@ -56,7 +59,7 @@ export function TimelineViewMenu({
         },
       ]}
     >
-      <Eye className="size-4" aria-hidden="true" />
+      <Eye className={ICON} aria-hidden="true" />
     </Menu>
   );
 }

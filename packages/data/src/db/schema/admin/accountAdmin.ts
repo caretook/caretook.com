@@ -4,6 +4,9 @@ import { staffReasonZSchema } from "./staffRules";
 /** The outbox's `last_error` for a row skipped because its address is suppressed. */
 export const SUPPRESSED_ERROR = "suppressed";
 
+/** The outbox's `last_error` for a row skipped because its expiry passed before it could be sent. */
+export const EXPIRED_ERROR = "expired";
+
 // Staff account help (admin PRD, slice 2): the inputs of /admin/users and an
 // account's page, and how a sent email's failure reads there. Pure and
 // client-safe: the service, the API and the pages share it.
@@ -44,7 +47,7 @@ export type SetRoleInput = z.input<typeof setRoleZSchema>;
  * A short code for why an email wasn't sent, never the sender's whole
  * message (it can quote the address or the provider's details): a skip
  * outside production is `notAllowlisted`, a suppressed address's skip
- * `suppressed` (hosting PRD); a provider error's name
+ * `suppressed` (hosting PRD), an expired one's `expired`; a provider error's name
  * (Resend's `validation_error: …` → `validation_error`); anything else
  * `error`. Null when there was none.
  */
@@ -52,6 +55,7 @@ export const mailErrorCode = (status: string, lastError: string | null | undefin
   if (!lastError) return null;
   if (status === "skipped") {
     if (lastError === SUPPRESSED_ERROR) return "suppressed";
+    if (lastError === EXPIRED_ERROR) return "expired";
     return /allowlist/i.test(lastError) ? "notAllowlisted" : "skipped";
   }
   return /^([A-Za-z][\w.-]{0,40}):/.exec(lastError)?.[1] ?? "error";

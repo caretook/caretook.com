@@ -49,6 +49,8 @@ export type GoogleEvent = {
   end: GoogleEventTime | null;
   privateProperties: Record<string, string>;
   updated: string;
+  /** An instance of an event that repeats in Google (it has a recurring event id). */
+  recurring: boolean;
 };
 
 export type GoogleChanges =

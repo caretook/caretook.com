@@ -1,7 +1,7 @@
 import type { LiveDocument } from "~/lib/live-notes/liveNow";
 
 import { useState } from "react";
-import { Link } from "react-router";
+import { Button } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { announcementText, writingLabel } from "~/lib/live-notes/liveNow";
 import { COLUMN_CAP } from "./layout";
@@ -46,17 +46,19 @@ export function LiveNowBanner({
           <LiveDot />
           <p className="min-w-0 flex-1 text-sm">
             <span className="font-semibold">{writingLabel(top.editors.map((e) => nameOf(e.userId)))}</span>
-            <span className="text-base-content/70"> · </span>
+            <span className="text-muted"> · </span>
             <span className="break-words">{top.title}</span>
-            {more > 0 && <span className="text-base-content/70"> · +{more} more</span>}
+            {more > 0 && <span className="text-muted"> · +{more} more</span>}
           </p>
-          <Link
+          <Button
             to={appUrls.entry(groupId, top.id)}
-            className="btn btn-primary btn-sm shrink-0"
+            variant="primary"
+            size="sm"
+            className="shrink-0"
             aria-label={`Join ${top.title}`}
           >
             Join
-          </Link>
+          </Button>
         </section>
       )}
     </>

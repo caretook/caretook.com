@@ -11,8 +11,10 @@ import { zonedInstant } from "../core/zonedDay";
 // much of an item may leave is `shareLevel`'s; nothing here reads a note's
 // body or live notes, so no note content can leave through it.
 
-/** How far back and ahead the feed, reminders and Google look. */
+/** How far back and ahead the feed, the Planner and reminders look. */
 export const CALENDAR_WINDOW_DAYS = 90;
+/** How far ahead Google sync looks (specialist visits are booked months out); it looks back as far as the rest. */
+export const GOOGLE_WINDOW_AHEAD_DAYS = 365;
 
 const DAY_MS = 86_400_000;
 const MINUTE_MS = 60_000;
@@ -21,6 +23,12 @@ const MINUTE_MS = 60_000;
 export const calendarWindow = (now: Date) => ({
   from: new Date(now.getTime() - CALENDAR_WINDOW_DAYS * DAY_MS),
   to: new Date(now.getTime() + CALENDAR_WINDOW_DAYS * DAY_MS),
+});
+
+/** Google push and pull's horizon around `now`: 90 days back to 365 days ahead, as `[from, to)`. */
+export const googleWindow = (now: Date) => ({
+  from: calendarWindow(now).from,
+  to: new Date(now.getTime() + GOOGLE_WINDOW_AHEAD_DAYS * DAY_MS),
 });
 
 /**

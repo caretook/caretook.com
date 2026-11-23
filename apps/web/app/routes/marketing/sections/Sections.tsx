@@ -1,5 +1,6 @@
-import { Link } from "react-router";
+import type { ButtonVariant } from "~/components/ui/plain";
 
+import { Button } from "~/components/ui/plain";
 import { MARKETING_LINKS } from "../site/pages";
 import { MarketingIcon } from "./icons";
 import type {
@@ -22,13 +23,29 @@ const CONTAINER = "mx-auto w-full max-w-5xl px-4 sm:px-6";
  * A call to action. `/join` belongs to another part of the site (access
  * codes), so it loads as a document; everything else navigates in place.
  */
-export function CtaLink({ cta, className }: { cta: Cta; className: string }) {
-  return (
-    <Link to={cta.href} className={className} reloadDocument={cta.href.startsWith(MARKETING_LINKS.join)}>
+export function CtaLink({
+  cta,
+  variant,
+  className,
+}: {
+  cta: Cta;
+  variant?: ButtonVariant;
+  className?: string;
+}) {
+  const look = { variant, size: "lg", className } as const;
+  return cta.href.startsWith(MARKETING_LINKS.join) ? (
+    <Button {...look} href={cta.href}>
       {cta.label}
-    </Link>
+    </Button>
+  ) : (
+    <Button {...look} to={cta.href}>
+      {cta.label}
+    </Button>
   );
 }
+
+/** On the accent band, a call to action stands on the page's colour. */
+export const CTA_ON_ACCENT = "bg-base-100 text-base-content";
 
 export function Hero({ content }: { content: HeroContent }) {
   return (
@@ -47,8 +64,8 @@ export function Hero({ content }: { content: HeroContent }) {
           {content.lead}
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <CtaLink cta={content.primary} className="btn btn-primary btn-lg" />
-          {content.secondary && <CtaLink cta={content.secondary} className="btn btn-ghost btn-lg" />}
+          <CtaLink cta={content.primary} variant="primary" />
+          {content.secondary && <CtaLink cta={content.secondary} variant="ghost" />}
         </div>
       </div>
     </section>
@@ -158,7 +175,8 @@ export function CtaBand({ content, tone = "plain" }: { content: CtaBandContent; 
               <CtaLink
                 key={cta.href}
                 cta={cta}
-                className={accent ? "btn btn-lg bg-base-100 text-base-content" : "btn btn-primary btn-lg"}
+                variant={accent ? undefined : "primary"}
+                className={accent ? CTA_ON_ACCENT : undefined}
               />
             ))}
           </div>

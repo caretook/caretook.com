@@ -3,10 +3,10 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { LiveNotesEditorHandle } from "~/components/notes";
 
 import { useMemo, useRef, useState } from "react";
-import { Link, useLocation } from "react-router";
+import { useLocation } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { LinkedTodos } from "~/components/todos";
-import { BackLink } from "~/components/ui";
+import { BackLink, Message, Notice, Page, TITLE_SUB } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { START_AT_PARAM } from "~/lib/timeline/urls";
 import { WHEN_PARAM, WITH_PROVIDER_PARAM } from "~/lib/live-notes/urls";
@@ -99,7 +99,7 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
   const title = titleState({ kind: entry.kind, title: entry.title, saved: live.stored, canWrite, deleted });
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5 print:p-0">
+    <Page className="print:p-0">
       <BackLink to={timelineUrl} label="Timeline" className="print:hidden" />
 
       <h1 className="sr-only">{heading}</h1>
@@ -127,23 +127,16 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
           />
         )}
         <EntryVisitPrep live={live} groupId={groupId} />
-        {(saveError || mentions.error) && (
-          <p role="alert" className="text-error text-sm">
-            {saveError || mentions.error}
-          </p>
-        )}
+        {(saveError || mentions.error) && <Message tone="error">{saveError || mentions.error}</Message>}
 
         {deleted ? (
-          <div role="alert" className="alert">
-            <span>This entry was deleted.</span>
-            <Link to={timelineUrl} className="btn btn-sm">
-              Back to the timeline
-            </Link>
-          </div>
+          <Notice tone="error" action={{ label: "Back to the timeline", to: timelineUrl }}>
+            This entry was deleted.
+          </Notice>
         ) : (
           <>
             {entry.rescheduledTo && (
-              <h2 className="text-base-content/70 text-sm font-semibold" data-earlier-notes>
+              <h2 className={`text-muted ${TITLE_SUB}`} data-earlier-notes>
                 Earlier notes (read-only: they carry on in the new event)
               </h2>
             )}
@@ -174,6 +167,6 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
       {!deleted && live.stored && (
         <EntryPrintView heading={heading} kindLabel={label} entry={entry} {...printed} />
       )}
-    </main>
+    </Page>
   );
 }

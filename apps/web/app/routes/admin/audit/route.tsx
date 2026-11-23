@@ -1,6 +1,7 @@
+import { AdminPager } from "../AdminPager";
+import { AdminCard } from "../AdminCard";
 import type { Route } from "./+types/route";
 
-import { Link } from "react-router";
 import { requireStaff } from "~/.server/admin";
 import { adminUrls } from "../adminUrls";
 import { AuditEntryList } from "../AuditEntryList";
@@ -25,40 +26,20 @@ const entries = (n: number) => `${n.toLocaleString("en-US")} ${n === 1 ? "entry"
 export default function Audit({ loaderData }: Route.ComponentProps) {
   const { filter, count, page, pages, actors } = loaderData;
   return (
-    <section className="card bg-base-100 shadow-sm" aria-labelledby="audit">
-      <div className="card-body gap-4">
-        <h1 id="audit" className="card-title">
-          Audit log
-        </h1>
-        <AuditFilterForm filter={filter} actors={actors} />
-        <p role="status" className="text-sm" data-audit-count={count}>
-          {hasAuditFilters(filter)
-            ? `${entries(count)} ${count === 1 ? "matches" : "match"}.`
-            : `${entries(count)} in the log.`}
-        </p>
-        {loaderData.entries.length > 0 && <AuditEntryList entries={loaderData.entries} />}
-        {pages > 1 && (
-          <nav aria-label="Audit log pages" className="flex items-center justify-between gap-2 text-sm">
-            {page > 1 ? (
-              <Link className="btn btn-sm" to={adminUrls.audit(auditSearch(filter, page - 1))}>
-                Newer
-              </Link>
-            ) : (
-              <span />
-            )}
-            <span>
-              Page {page} of {pages}
-            </span>
-            {page < pages ? (
-              <Link className="btn btn-sm" to={adminUrls.audit(auditSearch(filter, page + 1))}>
-                Older
-              </Link>
-            ) : (
-              <span />
-            )}
-          </nav>
-        )}
-      </div>
-    </section>
+    <AdminCard id="audit" level={1} title="Audit log">
+      <AuditFilterForm filter={filter} actors={actors} />
+      <p role="status" className="text-sm" data-audit-count={count}>
+        {hasAuditFilters(filter)
+          ? `${entries(count)} ${count === 1 ? "matches" : "match"}.`
+          : `${entries(count)} in the log.`}
+      </p>
+      {loaderData.entries.length > 0 && <AuditEntryList entries={loaderData.entries} />}
+      <AdminPager
+        label="Audit log pages"
+        page={page}
+        pages={pages}
+        to={(n) => adminUrls.audit(auditSearch(filter, n))}
+      />
+    </AdminCard>
   );
 }

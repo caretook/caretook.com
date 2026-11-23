@@ -6,7 +6,7 @@ import type { ServiceContext } from "./types";
 import { randomBytes } from "node:crypto";
 import { MAX_PAGE_SIZE, SYSTEM_USER } from "../constants";
 import { withTransaction } from "../db";
-import { calendarItems, calendarWindow, shareLevel } from "../db/schema";
+import { calendarItems, calendarWindow, hasDetailsConsent, shareLevel } from "../db/schema";
 import { isError, newError } from "../errors";
 import {
   careGroupMemberModel,
@@ -137,7 +137,10 @@ export const resolve = async (token: string) => {
     role,
     authUser: { id: row.userId, roleNames: ["member"], groupRoles: { [row.groupId]: role } },
     level: shareLevel({
-      memberConsent: !!row.detailsConsentAt,
+      memberConsent: hasDetailsConsent({
+        consentAt: row.detailsConsentAt,
+        consentVersion: row.detailsConsentVersion,
+      }),
       groupAllowsDetails: group.detailsOutsideAllowed,
     }),
   } satisfies ResolvedFeed;

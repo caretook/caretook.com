@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { Linter, RuleTester } from "eslint";
 import tseslint from "typescript-eslint";
 import { afterAll, describe, expect, it, test } from "vitest";
-import { KIT_CLASSES_ALLOWED, KIT_CLASSES_NOT_SWEPT } from "./kit-guard.mjs";
+import { KIT_CLASSES_ALLOWED } from "./kit-guard.mjs";
 import plugin, { kitGuard, rules } from "./plugin.mjs";
 
 // The harness's lint rules (plugin.mjs), on TypeScript test snippets.
@@ -191,9 +191,15 @@ tester.run("no-kit-classes", rules["no-kit-classes"], {
       code: '<p className="badge" />;',
       filename: "apps/web/app/routes/app/groups/medications/print/MedicationSheet.tsx",
     },
-    { code: '<a className="btn" />;', filename: `apps/web/app/${KIT_CLASSES_NOT_SWEPT[0]}` },
+    { code: '<a className="btn" />;', filename: "apps/web/app/routes/admin/access-codes-print/route.tsx" },
   ],
   invalid: [
+    // A path that was on the sweep's list until `ui-kit-5` closed it.
+    {
+      code: '<a className="btn" />;',
+      filename: "apps/web/app/routes/app/layout/route.tsx",
+      errors: [{ messageId: "kitClass" }],
+    },
     kitHit('<a className="btn" />;'),
     kitHit('<p className="card" />;'),
     kitHit('<p className="badge" />;'),
@@ -268,10 +274,8 @@ describe("the kit's guard", () => {
     expect(lint(code, "apps/web/app/routes/app/groups/swept/screen.test.ts")).toEqual([]);
   });
 
-  test("every listed path exists, and no path is on both lists", () => {
+  test("every listed path exists", () => {
     const app = (path) => resolve(root, "apps/web/app", path);
-    expect([...KIT_CLASSES_ALLOWED, ...KIT_CLASSES_NOT_SWEPT].filter((p) => !existsSync(app(p)))).toEqual([]);
-    expect(KIT_CLASSES_NOT_SWEPT.filter((p) => KIT_CLASSES_ALLOWED.includes(p))).toEqual([]);
-    expect(new Set(KIT_CLASSES_NOT_SWEPT).size).toBe(KIT_CLASSES_NOT_SWEPT.length);
+    expect(KIT_CLASSES_ALLOWED.filter((p) => !existsSync(app(p)))).toEqual([]);
   });
 });

@@ -4,7 +4,7 @@ import { ORPCError } from "@orpc/client";
 import { Clock, CircleX } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { useFetcher } from "react-router";
-import { ConfirmDialog } from "~/components/ui";
+import { Button, Card, ConfirmDialog, ICON_LG, Message } from "~/components/ui";
 import { toActionResult } from "~/lib/core/api";
 import { rpc } from "~/lib/core/rpc";
 
@@ -90,57 +90,55 @@ export function PendingRequests({ requests, groupIds }: { requests: MyJoinReques
     <section aria-label="Requests to join" data-my-requests="" className="space-y-2">
       <ul className="space-y-2">
         {shown.map((request) => (
-          <li
-            key={request.id}
-            data-my-request={request.groupId}
-            data-request-status={request.status}
-            className="card bg-base-100 shadow-sm"
-          >
-            <div className="card-body flex-row items-start gap-3 p-4">
-              {request.status === "pending" ? (
-                <Clock aria-hidden="true" className="text-base-content/60 mt-0.5 size-5 shrink-0" />
-              ) : (
-                <CircleX aria-hidden="true" className="text-base-content/60 mt-0.5 size-5 shrink-0" />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold">
-                  {request.status === "pending" ? "Waiting for approval" : "Not approved"}:{" "}
-                  {request.groupName}
-                </p>
-                <p className="text-base-content/70 text-sm">
-                  {request.status === "pending"
-                    ? "An owner or admin of the group will answer your request. It opens here once they approve."
-                    : "Your request to join wasn't approved. Ask the person who shared the link if you think that's a mistake."}
-                </p>
-                {request.status === "pending" && (
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      className="btn btn-sm"
-                      data-withdraw-request={request.id}
-                      disabled={!online || busyId === request.id}
-                      aria-describedby={online ? undefined : `withdraw-offline-${request.id}`}
-                      aria-label={`Withdraw your request to join ${request.groupName}`}
-                      onClick={() => setWithdrawing(request)}
-                    >
-                      {busyId === request.id ? "Withdrawing…" : "Withdraw"}
-                    </button>
-                    {!online && (
-                      <span id={`withdraw-offline-${request.id}`} className="text-base-content/70 text-sm">
-                        Needs a connection
-                      </span>
-                    )}
-                  </div>
+          <li key={request.id} data-my-request={request.groupId} data-request-status={request.status}>
+            <Card>
+              <div className="flex items-start gap-3">
+                {request.status === "pending" ? (
+                  <Clock aria-hidden="true" className={`text-faint mt-0.5 shrink-0 ${ICON_LG}`} />
+                ) : (
+                  <CircleX aria-hidden="true" className={`text-faint mt-0.5 shrink-0 ${ICON_LG}`} />
                 )}
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">
+                    {request.status === "pending" ? "Waiting for approval" : "Not approved"}:{" "}
+                    {request.groupName}
+                  </p>
+                  <p className="text-muted text-sm">
+                    {request.status === "pending"
+                      ? "An owner or admin of the group will answer your request. It opens here once they approve."
+                      : "Your request to join wasn't approved. Ask the person who shared the link if you think that's a mistake."}
+                  </p>
+                  {request.status === "pending" && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Button
+                        size="sm"
+                        data-withdraw-request={request.id}
+                        disabled={!online}
+                        busy={busyId === request.id}
+                        busyLabel="Withdrawing…"
+                        aria-describedby={online ? undefined : `withdraw-offline-${request.id}`}
+                        aria-label={`Withdraw your request to join ${request.groupName}`}
+                        onClick={() => setWithdrawing(request)}
+                      >
+                        Withdraw
+                      </Button>
+                      {!online && (
+                        <span id={`withdraw-offline-${request.id}`} className="text-muted text-sm">
+                          Needs a connection
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            </Card>
           </li>
         ))}
       </ul>
       {result && !result.ok && (
-        <p role="alert" data-withdraw-error="" className="text-error text-sm">
+        <Message tone="error" data-withdraw-error="">
           {result.error}
-        </p>
+        </Message>
       )}
       <ConfirmDialog
         open={!!withdrawing}

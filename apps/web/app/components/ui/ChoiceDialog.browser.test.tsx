@@ -34,7 +34,7 @@ function Harness({
         <Menu
           label="Actions for Water the plants"
           items={[{ id: "delete", label: "Delete", onAction: () => setOpen(true) }]}
-          className="btn"
+          variant="secondary"
         >
           ⋯
         </Menu>

@@ -3,7 +3,7 @@ import type { AdminActionResult } from "../adminForms";
 import { STAFF_REASON_MAX } from "@caretook/data/schema";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import { ConfirmDialog, Field } from "~/components/ui";
+import { Button, ConfirmDialog, Field, Message } from "~/components/ui";
 import { issueFor } from "../adminForms";
 
 /** The fetcher every Clear shares, so the page can say it's done after the row is gone. */
@@ -25,9 +25,8 @@ export function ClearSuppression({ address }: { address: string }) {
 
   return (
     <>
-      <button
-        type="button"
-        className="btn btn-sm"
+      <Button
+        size="sm"
         aria-label={`Clear ${address}`}
         onClick={() => {
           setOpened({ before: fetcher.data });
@@ -35,7 +34,7 @@ export function ClearSuppression({ address }: { address: string }) {
         }}
       >
         Clear
-      </button>
+      </Button>
       <ConfirmDialog
         open={open}
         title="Clear this suppression?"
@@ -45,7 +44,12 @@ export function ClearSuppression({ address }: { address: string }) {
         onConfirm={() => void fetcher.submit({ intent: "clear", address, reason }, { method: "post" })}
         onClose={() => setOpened(null)}
       >
-        <Field label="Reason" help="Recorded in the audit log." error={issueFor(fresh, "reason")}>
+        <Field
+          kind="textarea"
+          label="Reason"
+          help="Recorded in the audit log."
+          error={issueFor(fresh, "reason")}
+        >
           {(control) => (
             <textarea
               {...control}
@@ -54,15 +58,14 @@ export function ClearSuppression({ address }: { address: string }) {
               onChange={(e) => setReason(e.target.value)}
               maxLength={STAFF_REASON_MAX}
               rows={2}
-              className="textarea w-full"
               required
             />
           )}
         </Field>
         {fresh && !fresh.ok && !issueFor(fresh, "reason") && (
-          <p role="alert" className="text-error mt-2 text-sm">
+          <Message tone="error" className="mt-2">
             {fresh.error}
-          </p>
+          </Message>
         )}
       </ConfirmDialog>
     </>
