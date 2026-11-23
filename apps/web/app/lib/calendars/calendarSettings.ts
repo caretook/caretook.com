@@ -196,7 +196,7 @@ const isNetworkError = (e: unknown) => e instanceof TypeError;
 /** A lost session: keep what's pending for after the next sign-in. */
 const isSignedOut = (e: unknown) => e instanceof ORPCError && e.code === "UNAUTHORIZED";
 /** The server has a newer wording than the one this device showed. */
-const isConsentOutdated = (e: unknown) =>
+export const isConsentOutdated = (e: unknown) =>
   e instanceof ORPCError &&
   (e.data as { code?: string } | undefined)?.code === "calendarSettingService:consentOutdated";
 
