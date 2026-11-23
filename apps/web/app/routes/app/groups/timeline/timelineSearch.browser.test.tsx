@@ -199,20 +199,25 @@ describe("searching the timeline", () => {
     expect(Math.abs(button.top + button.height / 2 - (box.top + box.height / 2))).toBeLessThan(2);
   });
 
-  test("at phone width the open field fills the row between Filter and View options; all three still work", async () => {
+  test("at phone width the open field fills the row between the date button and View options; all four still work", async () => {
     const device = await open("", { width: 420 });
     await openField();
     const eye = () => document.querySelector<HTMLElement>('button[aria-label="View options"]')!;
-    const row = filterButton().parentElement!.getBoundingClientRect();
-    const [m, f, box, v] = [magnifier(), filterButton(), field()!, eye()].map((el) =>
+    const date = () => document.querySelector<HTMLElement>('button[aria-label="Go to a day"]')!;
+    const rowEl = filterButton().parentElement!;
+    const row = rowEl.getBoundingClientRect();
+    const [m, f, d, box, v] = [magnifier(), filterButton(), date(), field()!, eye()].map((el) =>
       el.getBoundingClientRect(),
-    ) as [DOMRect, DOMRect, DOMRect, DOMRect];
+    ) as [DOMRect, DOMRect, DOMRect, DOMRect, DOMRect];
     expect(f.left).toBeGreaterThan(m.right);
-    expect(box.left).toBeGreaterThan(f.right);
+    expect(d.left).toBeGreaterThan(f.right);
+    expect(box.left).toBeGreaterThan(d.right);
     expect(v.left).toBeGreaterThan(box.right);
     // The eye at the row's right end, the field taking the room before it.
     expect(Math.abs(v.right - row.right)).toBeLessThan(1);
-    expect(box.width).toBeGreaterThan(row.width - 4 * v.width - 24);
+    // Four buttons and four 6px gaps; the field has all the rest, and nothing overflows.
+    expect(Math.abs(box.width - (row.width - 4 * v.width - 24))).toBeLessThan(1);
+    expect(rowEl.scrollWidth).toBeLessThanOrEqual(rowEl.clientWidth);
 
     await userEvent.type(await found(field), "quince");
     await expect.poll(() => texts().length).toBe(3);
@@ -225,6 +230,10 @@ describe("searching the timeline", () => {
     await expect.element(device.screen.getByRole("menu", { name: "View options" })).toBeVisible();
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.querySelector('[role="menu"]')).toBeNull();
+    await userEvent.click(date());
+    await expect.element(device.screen.getByRole("dialog", { name: "Go to a day" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
     expect(params(device.location()).get("q")).toBe("quince");
   });
 
