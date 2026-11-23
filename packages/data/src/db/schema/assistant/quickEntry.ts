@@ -1873,6 +1873,38 @@ const DETECTORS: Record<
   todo: todoReadings,
 };
 
+/** A proper fraction with a dose-like denominator: "3/8", "1/6", not "4/3" or "3/7". */
+const DOSE_FRACTION = /^([1-9])\/([234568])$/;
+
+/**
+ * Whether the word at `i` is a fraction typed directly before a medication's
+ * words ("gave 3/8 tylenol", "3/8 of a tylenol"), so its amount and not a date.
+ * "on" still makes it a date ("on 3/8 tylenol"). Without a dose verb the line
+ * must be only the fraction and the name, so "appt 3/8 tylenol review" and
+ * "dr lee 3/8 tylenol refill" keep their date.
+ */
+const isFractionAmount = (
+  tokens: readonly Token[],
+  medications: readonly QuickEntryMedication[],
+  i: number,
+  forcedDose: boolean,
+) => {
+  const fraction = DOSE_FRACTION.exec(tokens[i]!.w);
+  if (!fraction || Number(fraction[1]) >= Number(fraction[2]) || tokens[i - 1]?.w === "on") return false;
+  let first = i + 1;
+  while (first <= i + 2 && COUNT_LINKS.has(tokens[first]?.w ?? "")) first++;
+  let named = first;
+  while (/^\d/.test(tokens[named]?.w ?? "")) named++;
+  if (named >= tokens.length) return false;
+  const verb = forcedDose || tokens.some((t) => t.w in DOSE_VERBS);
+  return medications.some(
+    (m) =>
+      namesMedication(m, tokens, named, { verb }) &&
+      nameNumbers(m, tokens, named, -1, (k) => k >= first).length === named - first &&
+      (verb || (i === 0 && tokens.slice(named).every((_, k) => namesMedication(m, tokens, named + k)))),
+  );
+};
+
 const parsePart = (
   text: string,
   context: QuickEntryContext,
@@ -1883,7 +1915,13 @@ const parsePart = (
   const forced = todoPrefix ? "todo" : prefix ? PREFIXES[prefix[1]!.toLowerCase()]! : null;
   const body = prefix ? text.slice(prefix[0].length).trim() : text.trim();
   const tokens = tokenize(body);
-  const time = findTime(tokens.map((t) => t.w));
+  // A fraction that is a dose's amount is hidden from the date finder; a line forced to another kind keeps it.
+  const readsAmounts = forced === null || forced === "dose";
+  const time = findTime(
+    tokens.map((t, i) =>
+      readsAmounts && isFractionAmount(tokens, context.medications, i, forced === "dose") ? "" : t.w,
+    ),
+  );
   const free = tokens.map((_, i) => i).filter((i) => !time?.used.has(i));
   const vocab = findVocabulary(
     tokens.map((t) => vocabularyWord(t.w)),

@@ -554,6 +554,74 @@ describe("doses", () => {
     });
   });
 
+  describe("a fraction beside a medication is its amount (B-301, B-302)", () => {
+    const medications = [{ id: APAP, name: "Tylenol", dose: "1 tablet" }];
+    const day = (r: QuickEntryReading) =>
+      new Date(when(r)!).toLocaleDateString("en-US", {
+        timeZone: "America/Los_Angeles",
+        month: "numeric",
+        day: "numeric",
+      });
+
+    test.each([
+      ["gave 3/8 tylenol", "3/8 tablet"],
+      ["gave 1/6 tylenol", "1/6 tablet"],
+      ["gave 5/6 tylenol", "5/6 tablet"],
+      ["gave 2/5 tylenol", "2/5 tablet"],
+      ["gave 1/2 tylenol", "1/2 tablet"],
+      ["gave 1/8 tylenol", "1/8 tablet"],
+      ["gave 3/8 of a tylenol", "3/8 tablet"],
+      ["3/8 tylenol", "3/8 tablet"],
+    ])("%s records %s, dated now", (line, amount) => {
+      const r = top(line, { medications });
+      expect(action(r)).toMatchObject({ type: "logDose", amount, note: null });
+      expect(when(r)).toBe(NOW.toISOString());
+    });
+
+    test.each([
+      ["on 3/8 gave tylenol", "3/8"],
+      ["gave tylenol on 3/8", "3/8"],
+      ["on 3/8 tylenol", "3/8"],
+      ["11/25 gave tylenol", "11/25"],
+    ])("%s stays dated %s, with the usual dose", (line, date) => {
+      const r = top(line, { medications });
+      expect(action(r)).toMatchObject({ type: "logDose", amount: "1 tablet" });
+      expect(day(r)).toBe(date);
+    });
+
+    test.each(["gave 4/3 tylenol", "gave 3/7 tylenol", "gave 3/9 tylenol"])(
+      "%s isn't a dose-like fraction, so it stays a date",
+      (line) => {
+        expect(day(top(line, { medications }))).toBe(line.split(" ")[1]);
+      },
+    );
+
+    test("a real date later in the line still dates the dose", () => {
+      const r = top("gave 3/8 tylenol on 11/12", { medications });
+      expect(action(r)).toMatchObject({ amount: "3/8 tablet" });
+      expect(day(r)).toBe("11/12");
+    });
+
+    test("a line forced to another kind keeps its date", () => {
+      const r = top("n: 3/8 tylenol", { medications });
+      expect(r.kind).toBe("note");
+      expect(day(r)).toBe("3/8");
+    });
+
+    test("a forced dose reads the fraction as its amount", () => {
+      expect(action(top("d: 3/8 tylenol for pain", { medications }))).toMatchObject({ amount: "3/8 tablet" });
+    });
+
+    test.each(["appt 3/8 tylenol review", "dr lee 3/8 tylenol refill", "pick up 3/8 tylenol"])(
+      "%s has no dose verb, so 3/8 stays a date",
+      (line) => {
+        const r = top(line, { medications });
+        expect(r.kind).not.toBe("dose");
+        expect(JSON.stringify(action(r))).toContain("-03-08");
+      },
+    );
+  });
+
   test("a symptom word in a medication's notes doesn't make a symptom a dose", () => {
     expect(parse("pain 4 left knee")[0]!.readings.some((r) => r.kind === "dose")).toBe(false);
   });
