@@ -8,22 +8,20 @@ import {
   matchesQuery,
   parseDirectoryFilters,
   queryTokens,
-  setPast,
   setQuery,
   setType,
 } from "./providerDirectory";
 
 describe("parseDirectoryFilters", () => {
-  it("reads q, type and past", () => {
-    expect(parseDirectoryFilters("?q=%20cardio%20&type=clinician&past=1")).toEqual({
+  it("reads q and type", () => {
+    expect(parseDirectoryFilters("?q=%20cardio%20&type=clinician")).toEqual({
       q: "cardio",
       type: "clinician",
-      past: true,
     });
-    expect(parseDirectoryFilters("")).toEqual({ q: "", type: null, past: false });
+    expect(parseDirectoryFilters("")).toEqual({ q: "", type: null });
   });
   it("ignores unknown values", () => {
-    expect(parseDirectoryFilters("type=dentist&past=yes")).toEqual({ q: "", type: null, past: false });
+    expect(parseDirectoryFilters("type=dentist")).toEqual({ q: "", type: null });
   });
 });
 
@@ -32,9 +30,7 @@ describe("filter changes", () => {
     expect(setQuery("?type=pharmacy&x=1", "corner")).toBe("?q=corner&type=pharmacy&x=1");
     expect(setQuery("?q=corner&type=pharmacy", "  ")).toBe("?type=pharmacy");
     expect(setType("?q=dr", "clinician")).toBe("?q=dr&type=clinician");
-    expect(clearType("?q=dr&type=clinician&past=1")).toBe("?q=dr&past=1");
-    expect(setPast("?type=other", true)).toBe("?type=other&past=1");
-    expect(setPast("?past=1", false)).toBe("");
+    expect(clearType("?q=dr&type=clinician&x=1")).toBe("?q=dr&x=1");
   });
   it("return the search unchanged when nothing changes", () => {
     expect(setType("?type=clinician&z=2", "clinician")).toBe("?type=clinician&z=2");

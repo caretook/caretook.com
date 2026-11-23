@@ -6,7 +6,7 @@ import { OlderEntries } from "~/components/entry";
 import { getGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { loadPast } from "../loadUpcoming";
-import { PlannerFilterRow, PlannerHeader } from "../PlannerHeader";
+import { PlannerHeader } from "../PlannerHeader";
 import { emptyPastText, PAST_END_TEXT, parsePastFilters } from "../upcomingFilters";
 import { UpcomingList } from "../UpcomingList";
 import { usePastEvents } from "../useUpcomingData";
@@ -37,8 +37,7 @@ export default function PastEvents({ loaderData, params }: Route.ComponentProps)
 
   return (
     <Page data-past-events>
-      <PlannerHeader />
-      <PlannerFilterRow
+      <PlannerHeader
         view="past"
         author={author && authorName ? { name: authorName, image: data.imageOf(author) } : null}
       />

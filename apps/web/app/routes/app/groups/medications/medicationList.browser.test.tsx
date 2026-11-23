@@ -99,6 +99,27 @@ describe("the list", () => {
     expect(badge("Oxybutynin")).toBeNull();
   });
 
+  test("at phone width the type badge sits at the row's right edge, and a long name wraps beside it", async () => {
+    const longName = "Hydroxychloroquinesulfateextendedreleaseformulation with a very long descriptive name";
+    await open({
+      width: 320,
+      fixtures: [world(), fx.medication({ name: longName, strength: null, type: "prescription" })],
+    });
+    await expect.poll(() => listNames(CURRENT)).toContain(longName);
+    for (const name of ["Lisinopril", longName]) {
+      const row = [...document.querySelectorAll<HTMLElement>("main li[data-medication-id]")].find((li) =>
+        li.querySelector("[data-medication-name]")?.textContent?.startsWith(name),
+      )!;
+      const pill = row.querySelector("[data-medication-type]")!.getBoundingClientRect();
+      const link = row.querySelector("[data-medication-name]")!.getBoundingClientRect();
+      const rowBox = row.getBoundingClientRect();
+      const contentRight = rowBox.right - parseFloat(getComputedStyle(row).paddingRight);
+      expect(Math.abs(pill.right - contentRight)).toBeLessThanOrEqual(1);
+      expect(link.right).toBeLessThanOrEqual(pill.left);
+      expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth);
+    }
+  });
+
   test("search filters as it's typed (by reason too) and goes in the URL; the URL's search opens filtered", async () => {
     const device = await open();
     // The search box can render after open() resolves on a loaded machine: wait for it.

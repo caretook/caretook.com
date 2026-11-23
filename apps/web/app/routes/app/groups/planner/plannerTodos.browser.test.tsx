@@ -108,6 +108,22 @@ describe("todos on the Planner tab", () => {
     await expect.element(page.getByRole("heading", { name: `Todo page ${LATE.id}` })).toBeInTheDocument();
   });
 
+  test("the assignee sits under the time, not the title, and a long name stays inside the column", async () => {
+    await open();
+    await expect
+      .poll(() => rowOf(SAMS)?.querySelector("[data-when-column] [data-todo-assignee]"))
+      .toBeTruthy();
+    const row = rowOf(SAMS);
+    const column = row?.querySelector("[data-when-column]")?.getBoundingClientRect();
+    const time = row?.querySelector("[data-when]")?.getBoundingClientRect();
+    const pill = row?.querySelector("[data-todo-assignee]")?.getBoundingClientRect();
+    expect(pill?.top).toBeGreaterThanOrEqual(time?.bottom ?? Infinity);
+    expect(pill?.right).toBeLessThanOrEqual(column?.right ?? 0);
+    expect(
+      row?.querySelector("[data-todo-title]")?.parentElement?.querySelector("[data-todo-assignee]"),
+    ).toBeNull();
+  });
+
   test("ticking a todo completes it (a done-only upload); it leaves the Planner tab, and Undo brings it back", async () => {
     const device = await open();
     const tick = page.getByRole("checkbox", { name: "Mark “Call the pharmacy” done" });

@@ -101,6 +101,43 @@ describe("today's line", () => {
     expect(inOrder(list)).toBe(true);
   });
 
+  test.each([
+    ["a short period", undefined],
+    ["a period long enough to wrap", "A very long stay at the coastal recovery center annex"],
+  ])("the + is the header's last action, at its far right, with %s", async (_name, label) => {
+    const long = label
+      ? [fx.period({ type: "other", label, startedAt: at(new Date(Date.now() - 5 * 60_000)) })]
+      : [];
+    await open("", { fixtures: [...world(10), ...track(), ...long] });
+    await ready();
+    const header = await found(() => document.querySelector<HTMLElement>("main [data-day-header]"));
+    const actions = [
+      ...header.querySelectorAll<HTMLElement>("[data-day-actions] a, [data-day-actions] button"),
+    ];
+    const plus = actions.at(-1)!;
+    expect(plus.getAttribute("aria-label")).toBe("Add to Today");
+    expect(actions.map((a) => a.getAttribute("aria-label"))).toContain("Change care period");
+
+    const padding = parseFloat(getComputedStyle(header).paddingRight);
+    expect(
+      Math.abs(plus.getBoundingClientRect().right - (header.getBoundingClientRect().right - padding)),
+    ).toBeLessThanOrEqual(1);
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
+  });
+
+  test("Change is an icon button, found by its name, and opens the add sheet", async () => {
+    const device = await open();
+    await ready();
+    const change = page.getByRole("link", { name: "Change care period" });
+    await expect.element(change).toBeVisible();
+    const el = await found(CHANGE);
+    expect(el.textContent?.trim()).toBe("");
+    expect(el.querySelector("svg")).not.toBeNull();
+    await userEvent.click(change);
+    await waitUntil(() => !!FORM(), "the add sheet");
+    expect(device.location()).toMatch(/\/periods\/new$/);
+  });
+
   test("the line opens its period", async () => {
     const device = await open();
     await ready();
