@@ -994,6 +994,143 @@ const findAmount = (tokens: readonly Token[], idx: readonly number[]) => {
   return [];
 };
 
+/** Count words a dose can be typed in; digits, decimals and fractions are read by `countValue`. */
+const COUNT_WORDS = new Map([
+  ["½", 0.5],
+  ["half", 0.5],
+  ["quarter", 0.25],
+  ["one", 1],
+  ["two", 2],
+  ["three", 3],
+  ["four", 4],
+]);
+const MAX_COUNT = 20;
+const COUNT_LINKS = new Set(["of", "a", "an"]);
+
+const countValue = (w: string) => {
+  const named = COUNT_WORDS.get(w);
+  if (named !== undefined) return named;
+  const fraction = /^(\d)\/(\d)$/.exec(w);
+  if (fraction) return Number(fraction[2]) ? Number(fraction[1]) / Number(fraction[2]) : null;
+  return /^\d+(?:\.\d+)?$/.test(w) ? Number(w) : null;
+};
+const isCount = (value: number | null): value is number => value !== null && value > 0 && value <= MAX_COUNT;
+
+/** Units a dose is counted in. A measure ("500 mg", "5 ml") can't take a bare count. */
+const COUNTED_UNITS = new Map(
+  [
+    "tablet",
+    "tab",
+    "capsule",
+    "cap",
+    "pill",
+    "unit",
+    "puff",
+    "drop",
+    "spray",
+    "teaspoon",
+    "tablespoon",
+    "sachet",
+    "dose",
+    "inhalation",
+  ].flatMap((unit) => [
+    [unit, { one: unit, many: `${unit}s` }],
+    [`${unit}s`, { one: unit, many: `${unit}s` }],
+  ]),
+);
+for (const w of ["patch", "patches"]) COUNTED_UNITS.set(w, { one: "patch", many: "patches" });
+for (const w of ["tsp", "tbsp"]) COUNTED_UNITS.set(w, { one: w, many: w });
+
+/** The usual dose's unit, when it is a count and a unit ("2 tablets", "half a tablet"). */
+const usualUnit = (dose: string | null | undefined) => {
+  const m = /^(?:\d+(?:\.\d+)?|\d\/\d|½|half|quarter|one|two|three|four|an?)\s*(?:an?\s+)?([a-z]+)$/i.exec(
+    dose?.trim() ?? "",
+  );
+  return m ? COUNTED_UNITS.get(m[1]!.toLowerCase()) : undefined;
+};
+
+/** The amount a typed count records, in the usual dose's unit when it has one. */
+const countedAmount = (word: string, value: number, dose: string | null | undefined) => {
+  const unit = usualUnit(dose);
+  if (!unit) return word;
+  const article = /^[aeio]/.test(unit.one) ? "an" : "a";
+  if (word === "half") return `half ${article} ${unit.one}`;
+  if (word === "quarter") return `quarter of ${article} ${unit.one}`;
+  return `${word} ${value <= 1 ? unit.one : unit.many}`;
+};
+
+/** Words in directions that describe how to take a medication; only another word there can be a brand. */
+const DIRECTION_WORDS = new Set(
+  (
+    "take takes taking give use apply inhale swallow chew dissolve by mouth orally with without before after " +
+    "during food foods meal meals water milk juice breakfast lunch dinner supper snack bedtime morning " +
+    "afternoon evening night nightly daily weekly monthly once twice times every each hour hours needed " +
+    "tablet tablets capsule capsules pill pills dose doses empty stomach full glass day days week weeks " +
+    "when while then until left right side"
+  ).split(" "),
+);
+
+/**
+ * Whether the word at `i` really names this medication, so a number beside it
+ * is about the medication: its name, or a brand word in its directions. A
+ * symptom ("pain" in "for pain"), a word of how to take it, the reason, or
+ * (without a verb) a short partial name ("arm" for Armour) doesn't.
+ */
+const namesMedication = (
+  med: QuickEntryMedication,
+  tokens: readonly Token[],
+  i: number,
+  { verb = false } = {},
+) => {
+  if (hasSymptomWord(tokens, [i])) return false;
+  const score = matchMedication(med, tokens, [i])?.score ?? 0;
+  const word = wordsOf(tokens[i]!.w)[0] ?? "";
+  if (score === 0.8) return !DIRECTION_WORDS.has(word) && wordsOf(med.directions ?? "").includes(word);
+  if (score >= 0.85 && word.length < 4 && !wordsOf(med.name).includes(word)) return verb;
+  return score > 0;
+};
+
+/**
+ * What was typed beside a medication's words: a count directly before them
+ * ("3 tylenol", "half a tylenol") or after ("tylenol 2", "tylenol x2"), and a
+ * number after them that is its strength ("lisinopril 10"), which is no count.
+ */
+const typedBeside = (
+  s: PartState,
+  rest: readonly number[],
+  m: NameMatch<QuickEntryMedication>,
+  { wantCount, verb }: { wantCount: boolean; verb: boolean },
+) => {
+  const open = (k: number) => rest.includes(k) && !m.used.includes(k) && !s.claimed.has(k);
+  const naming = m.used.filter((i) => namesMedication(m.item, s.tokens, i, { verb }));
+  const strengths = (m.item.strength?.match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
+  let count: { used: number[]; amount: string } | null = null;
+  const strength: number[] = [];
+  const counted = (k: number, word: string, links: number[]) => {
+    const value = countValue(word);
+    if (!count && isCount(value))
+      count = { used: [k, ...links], amount: countedAmount(word, value, m.item.dose) };
+  };
+  if (wantCount)
+    for (const u of naming) {
+      const links: number[] = [];
+      let k = u - 1;
+      while (links.length < 2 && open(k) && COUNT_LINKS.has(s.tokens[k]!.w)) links.push(k--);
+      if (open(k)) counted(k, s.tokens[k]!.w, links);
+    }
+  for (const u of naming) {
+    const k = u + 1;
+    if (!open(k) || NOT_SEVERITY_AFTER.test(s.tokens[k + 1]?.w ?? "")) continue;
+    const w = s.tokens[k]!.w;
+    const times = /^[x×](\d+(?:\.\d+)?)$/.exec(w);
+    if (times) {
+      if (wantCount) counted(k, times[1]!, []);
+    } else if (/^\d/.test(w) && strengths.includes(countValue(w) ?? NaN)) strength.push(k);
+    else if (wantCount) counted(k, w, []);
+  }
+  return { count: count as { used: number[]; amount: string } | null, strength };
+};
+
 const PRONOUNS = new Set(["her", "his", "him", "them", "their", "the", "a", "an", "my", "she", "he"]);
 
 const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
@@ -1047,21 +1184,28 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   const nameIdx = rest.filter((i) => !amountUsed.includes(i) && !DOSE_FILLER.has(s.tokens[i]!.w));
   const matches = matchMedications(s.context, s.tokens, nameIdx);
   if (!matches.length) return [];
+  const typed = matches.map((m) =>
+    typedBeside(s, rest, m, { wantCount: !amountUsed.length, verb: !!status || forced }),
+  );
+  const typedUsed = (rank: number) => [...(typed[rank]!.count?.used ?? []), ...typed[rank]!.strength];
+  // A count or strength beside a brand word in the directions names the medication; a carried negation doesn't.
+  const sureName =
+    matches[0]!.score >= 0.85 || (!carriedNegation && (!!typed[0]!.count || typed[0]!.strength.length > 0));
   // Without a verb of its own, only a medication's name counts (not its notes).
-  if (!status && !forced && matches[0]!.score < 0.85) return [];
+  if (!status && !forced && !sureName) return [];
   // A line that is only a medication's name (and maybe an amount) is a dose too.
-  const nameOnly = matches[0]!.score >= 0.85 && nameIdx.every((i) => matches[0]!.used.includes(i));
+  const nameOnly = sureName && nameIdx.every((i) => matches[0]!.used.includes(i) || typedUsed(0).includes(i));
   // Only a carried "given" can be negated, and only over a bare name ("no lisinopril side effects" is a note).
   if (carriedNegation && (!nameOnly || (s.previousDose ?? (forced ? "given" : null)) !== "given")) return [];
   const inherited = carriedNegation ? "skipped" : (status ?? s.previousDose);
   if (!inherited && !forced && !nameOnly) return [];
-  for (const i of [...verbUsed, ...amountUsed, ...matches[0]!.used]) s.claimed.add(i);
+  for (const i of [...verbUsed, ...amountUsed, ...matches[0]!.used, ...typedUsed(0)]) s.claimed.add(i);
   const at = s.time.past.at;
   const amount = amountUsed.length ? rawOf(s.tokens, amountUsed) : null;
   return matches.map((m, rank) => {
     const noteIdx = stripLeading(
       s.tokens,
-      rest.filter((i) => !amountUsed.includes(i) && !m.used.includes(i)),
+      rest.filter((i) => !amountUsed.includes(i) && !m.used.includes(i) && !typedUsed(rank).includes(i)),
       PRONOUNS,
     );
     const note = meaningful(s.tokens, noteIdx, DOSE_FILLER) ? truncate(rawOf(s.tokens, noteIdx), 500) : null;
@@ -1082,7 +1226,7 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
         type: "logDose",
         medicationId: m.item.id,
         status: inherited ?? "given",
-        amount: amount ?? m.item.dose ?? null,
+        amount: amount ?? typed[rank]!.count?.amount ?? m.item.dose ?? null,
         note,
         occurredAt: at.toISOString(),
       },
@@ -1203,6 +1347,14 @@ const stripLeading = (tokens: readonly Token[], idx: number[], filler: ReadonlyS
 const NOT_SEVERITY_AFTER =
   /^(tablets?|tabs?|capsules?|caps?|pills?|mg|mcg|g|ml|mls|cc|units?|puffs?|drops?|hours?|hrs?|h|min|mins|minutes?|times|x|kg|lbs?|pounds?|days?|weeks?|%)$/;
 
+/** Whether the words are only a medication's: "tylenol" is never a symptom's name. */
+const onlyMedicationWords = (s: PartState, idx: readonly number[]) => {
+  const words = idx.filter((i) => !LEADING_SYMPTOM_FILLER.has(s.tokens[i]!.w) && !isNegating(s.tokens[i]!.w));
+  return (
+    words.length > 0 && words.every((i) => s.context.medications.some((m) => namesMedication(m, s.tokens, i)))
+  );
+};
+
 const symptomReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   const at = s.time.past.at;
   const make = (name: string, severity: number | null, note: string | null, confidence: number) =>
@@ -1255,6 +1407,9 @@ const symptomReadings = (s: PartState, forced: boolean): QuickEntryReading[] => 
       before = before.slice(0, -1);
     const after = free.slice(pos + 1 + (outOf ? 3 : 0));
     if (before.length) {
+      // "not 2 tylenol": a negating word is no symptom's name either.
+      if (!forced && (before.every((k) => isNegating(s.tokens[k]!.w)) || onlyMedicationWords(s, before)))
+        return [];
       const noteIdx = stripLeading(s.tokens, after, new Set(["in", "on", "at", "-", ":", "the"]));
       const note = meaningful(s.tokens, noteIdx) ? rawOf(s.tokens, noteIdx) : null;
       const long = before.length > 6;
@@ -1267,6 +1422,7 @@ const symptomReadings = (s: PartState, forced: boolean): QuickEntryReading[] => 
       const nameIdx = cut > 0 ? after.slice(0, cut) : after;
       const noteIdx = cut > 0 ? stripLeading(s.tokens, after.slice(cut), new Set(["in", "on", "at"])) : [];
       if (!meaningful(s.tokens, nameIdx)) continue;
+      if (!forced && onlyMedicationWords(s, nameIdx)) return [];
       return [
         make(
           rawOf(s.tokens, nameIdx),
