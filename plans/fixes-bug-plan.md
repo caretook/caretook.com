@@ -12,7 +12,9 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 4 (slices 19–27, B-527, B-578, B-580, B-581, B-591, B-599, B-601, B-602, B-605, all on opus) landed in dev through PR #100 as b97b5d69** (2026-11-23): `components` CI green on 336578d3 (run 45131667111), Codex clean, browser `roundtrip` and `ui` passed; lean `--suite` not run (the user's standing rule: ask first). To-test: `to-test/2026-11-23-0247-fixes-bug.md`. Docs folded (assistant, ui-kit, todos, connectors; all at the 10 KB line, trim when adding). Slice worktrees removed.
 
-**Wave 5 (slices 28–31, B-628, B-632, B-634, B-635, all on opus) is planned** (2026-11-23). Slices 29–31 chain on the quick-entry files; 28 runs beside 29. **Held:** B-615 and B-616 while dose-accuracy holds `timelineEntryService.ts` and `assistantActionService.ts`; B-620 and B-631 while onboarding holds `routes/app/groups/timeline/` (B-620's fix is user-approved, see its note; B-631 names `PassLogForm` there). Recheck `pnpm backlog prd list` at the next wave. **New for a later wave:** B-641 (`gave lorazepam 1/2 mg` at 0.5 mg may not record the usual dose; from slice 29, unconfirmed). B-643 (a request with a day still leads with a vital or symptom) is also for a later wave; B-642 (the `todays_doses` test fails from 00:00 to 00:10 Los Angeles) is in fixes-tooling. Slices 28–31 are merged, keeping their worktrees until the wave's CI verdict is green; quick check passed on de1b975c (synced with onboarding) and **`integration` CI is green on it** (run 45140076884); slice worktrees removed; `browser --changed` needs none. **PR #102 is open** on de1b975c. **Codex round 1:** its one P2 (`gave a 2nd at the clinic` and `received the 2nd at the clinic` get dated) is confirmed by running `findTime`, filed as B-644 for a later wave, replied to and resolved. Codex was clean on dc19b71. **Docs folded** into `docs/domain/assistant.md` (B-634, B-635; it sits at the 10 KB line, trim when adding). **Next:** `pnpm prd pr fixes-bug --tier integration`, `review --again` in the background until clean, land `--tier integration`, file the report, then rotate. Known limit left as is: `finished 2nd at the race` reads as a day.
+**Wave 5 (slices 28–31, B-628, B-632, B-634, B-635, all on opus) landed in dev through PR #102 as a04034ec** (2026-11-23): `integration` CI green on de1b975c (run 45140076884), quick check on 039ea84f, Codex clean on 039ea84f; `browser --changed` needs none. To-test: `to-test/2026-11-23-0359-fixes-bug.md`. Docs folded (`assistant.md`, exactly at its 10 KB budget: trim when adding). Slice worktrees removed. Known limit left as is: `finished 2nd at the race` reads as a day.
+
+**Hand-over (after the wave 5 landing; no slice in flight).** **Next wave:** `pnpm prd sync`, ingest, then plan B-644 (a counted ordinal before a place gets dated; Codex P2, confirmed), B-643 (a request with a day leads with a vital or symptom) and B-641 (`gave lorazepam 1/2 mg` at 0.5 mg, unconfirmed); all three share the quick-entry files, so chain them. **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (`routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -45,10 +47,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 25    | B-601 | landed                                     | efb9d552 |
 | 26    | B-602 | landed                                     | 43e222d4 |
 | 27    | B-605 | landed                                     | 23e69857 |
-| 28    | B-628 | merged                                     | 46f779de |
-| 29    | B-632 | merged                                     | 82eebf78 |
-| 30    | B-634 | merged                                     | c2c53eee |
-| 31    | B-635 | merged                                     | b1cf109f |
+| 28    | B-628 | landed                                     | 46f779de |
+| 29    | B-632 | landed                                     | 82eebf78 |
+| 30    | B-634 | landed                                     | c2c53eee |
+| 31    | B-635 | landed                                     | b1cf109f |
 
 ## Wave 1
 
