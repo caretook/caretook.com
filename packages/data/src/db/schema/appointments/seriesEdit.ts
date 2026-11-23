@@ -171,10 +171,10 @@ const onlyThis = (
     case "delete":
       return { ok: true, plan: { ...EMPTY, entries: [{ op: "delete", id: visit.id }] } };
     case "cancel":
-      if (!event) return fail("Only appointments can be cancelled");
+      if (!event) return fail("Only events can be cancelled");
       return write({ cancelledAt: now.toISOString(), cancelReason: change.reason?.trim() || null });
     case "reschedule":
-      if (!event) return fail("Only appointments can be rescheduled");
+      if (!event) return fail("Only events can be rescheduled");
       return {
         ok: true,
         plan: {
@@ -266,8 +266,7 @@ export const planSeriesEdit = ({
   if (scope === "only") return onlyThis(series, visit, change, now);
   const tz = series.timeZone;
   if (isPastVisit(visit, tz, now)) return fail("A past visit can't change the visits after it");
-  if (change.action === "cancel" && series.kind !== "event")
-    return fail("Only appointments can be cancelled");
+  if (change.action === "cancel" && series.kind !== "event") return fail("Only events can be cancelled");
 
   const splitDay = visit.seriesDay;
   const end = ending(series, splitDay);

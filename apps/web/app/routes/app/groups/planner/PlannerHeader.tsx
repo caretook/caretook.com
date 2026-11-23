@@ -98,7 +98,7 @@ export function PlannerHeader({
   const add: MenuEntry[] = [
     {
       id: "appointment",
-      label: "Appointment",
+      label: "Event",
       icon: CalendarPlus,
       href: appUrls.newPlannerEntry(groupId, "event"),
     },

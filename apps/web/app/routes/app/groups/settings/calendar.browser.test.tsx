@@ -139,7 +139,7 @@ describe("Calendar & reminders", () => {
     await open({ api: calendarServer("caretaker").api });
     await expect.element(consent()).not.toBeChecked();
     expect((await found(() => section("details-outside"))).textContent).toContain(
-      `say only "Appointment for Grandma June", the time and a link back`,
+      `say only "Event for Grandma June", the time and a link back`,
     );
     const describedBy = consent().element().getAttribute("aria-describedby")!;
     expect((await found(() => document.getElementById(describedBy))).textContent).toMatch(

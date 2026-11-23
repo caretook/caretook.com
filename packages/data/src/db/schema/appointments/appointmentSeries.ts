@@ -174,7 +174,7 @@ const crossFields = (value: CrossFields, ctx: z.RefinementCtx) => {
 };
 
 // Series are events only: a note is past-only, and a reminder is a todo.
-const kind = z.literal("event", { error: "A series makes appointments" });
+const kind = z.literal("event", { error: "A series makes events" });
 
 /** A series' content (everything but its group and recipient). On create, and on update against the merged row. */
 export const appointmentSeriesContentZSchema = z.object({ kind, ...seriesFields }).superRefine(crossFields);

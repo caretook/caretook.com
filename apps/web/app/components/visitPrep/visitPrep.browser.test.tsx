@@ -284,7 +284,7 @@ describe("on a provider's page", () => {
     await expect
       .element(getByCss("dialog[open]"))
       .toMatchTextContent(/No visit with Dr\. Ben Ortiz coming up/);
-    await userEvent.click(button("Add an appointment", "dialog[open]"));
+    await userEvent.click(button("Add an event", "dialog[open]"));
     await expect
       .poll(() => device.location())
       .toBe(`/app/groups/${GROUP}/entries/new?kind=event&when=pick&provider=${ORTIZ.id}`);

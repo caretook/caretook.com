@@ -102,7 +102,7 @@ describe.each(["caretaker", "viewer"] as const)("Calendar feed card, a %s", (rol
     const server = feedServer(role);
     await open({ role, api: server.api });
     await expect.element(create()).toBeVisible();
-    expect(feed().textContent).toContain('It says only "Appointment for …"');
+    expect(feed().textContent).toContain('It says only "Event for …"');
 
     await userEvent.click(create());
     await expect.poll(() => server.calls.of("calendars.feed.create")).toEqual([{ groupId: TEST_GROUP.id }]);

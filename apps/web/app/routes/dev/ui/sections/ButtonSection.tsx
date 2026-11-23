@@ -90,7 +90,7 @@ export function ButtonSection() {
           size="sm"
           shape="square"
           items={[
-            { id: "appointment", label: "Appointment", icon: CalendarPlus, onAction: () => undefined },
+            { id: "appointment", label: "Event", icon: CalendarPlus, onAction: () => undefined },
             { id: "todo", label: "Todo", icon: Plus, onAction: () => undefined },
           ]}
         >

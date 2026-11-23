@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cancelledLabel,
+  nextEventTitle,
   nextStripText,
   nowLabel,
   rescheduledLabel,
@@ -58,7 +59,7 @@ describe("cancelledLabel and rescheduledLabel", () => {
 describe("upcomingTitle and upcomingWhen", () => {
   it("falls back to Appointment", () => {
     expect(upcomingTitle({ kind: "event", title: "Dr. Alvarez" })).toBe("Dr. Alvarez");
-    expect(upcomingTitle({ kind: "event", title: " " })).toBe("Appointment");
+    expect(upcomingTitle({ kind: "event", title: " " })).toBe("Event");
   });
 
   it("gives the day and time, the day for all day, or Now", () => {
@@ -78,6 +79,25 @@ describe("upcomingTitle and upcomingWhen", () => {
         where,
       ),
     ).toBe("Now · until 11:15 AM");
+  });
+});
+
+describe("nextEventTitle", () => {
+  const entry = (occurredAt: string, title: string) => ({
+    id: "e",
+    kind: "event",
+    title,
+    occurredAt,
+    endsAt: "2026-11-18T18:30:00.000Z",
+    allDay: false,
+    timeZone: "America/Los_Angeles",
+  });
+  const at = new Date("2026-11-18T18:00:00.000Z");
+
+  it("calls an unnamed event ahead Upcoming event, and keeps a name or one in progress", () => {
+    expect(nextEventTitle(entry("2026-11-18T18:15:00.000Z", "Event"), at)).toBe("Upcoming event");
+    expect(nextEventTitle(entry("2026-11-18T18:15:00.000Z", "Dr. Lee"), at)).toBe("Dr. Lee");
+    expect(nextEventTitle(entry("2026-11-18T17:45:00.000Z", "Event"), at)).toBe("Event");
   });
 });
 

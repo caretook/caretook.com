@@ -323,7 +323,7 @@ describe("who's writing", () => {
     await waitUntil(() => AVATARS().length === 1, "avatars");
     // The viewer is the signed-in user here, so only Sam shows.
     expect(AVATARS().map((el) => el.dataset.person)).toEqual([SAM.id]);
-    await expect.poll(() => HEADER()?.textContent).toContain("Event");
+    await expect.poll(() => HEADER()?.textContent).toContain("Past event");
     await expect.poll(() => EDITOR()?.getAttribute("contenteditable")).toBe("false");
     expect([
       !!TITLE(),
@@ -653,6 +653,16 @@ describe("appointments", () => {
     expect(PLACE()).toBeNull();
     expect(MAP()).toBeTruthy();
   });
+
+  for (const [name, when, heading] of [
+    ["ahead", () => at(ahead()), "Upcoming event"],
+    ["past", () => hoursAgo(3), "Past event"],
+  ] as const)
+    test(`an unnamed event ${name} is headed "${heading}"`, async () => {
+      const unnamed = fx.event({ title: "Event", occurredAt: when(), text: "" });
+      await open(entryPath(unnamed.id), { role: "viewer", fixtures: [base(), unnamed] });
+      await waitUntil(() => document.querySelector("h1")?.textContent === heading, heading);
+    });
 
   test("a viewer sees no place row when there's none", async () => {
     const appt = fx.event({ title: "Cardiology", occurredAt: at(ahead()), text: "" });

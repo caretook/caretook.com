@@ -3,6 +3,7 @@ import type { SyncDb } from "~/lib/sync";
 import type { NoteDocParts } from "~/lib/live-notes/notes.sync";
 import type { EntryRow } from "~/lib/timeline/timeline.sync";
 
+import { entryTiming } from "~/lib/appointments/upcoming";
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import { data } from "react-router";
 import { startAtFrom } from "~/lib/timeline/urls";
@@ -135,7 +136,12 @@ export async function loadEntry(
       allDay: !!entry.allDay,
       place: entry.place ?? null,
     },
-    heading: entryHeading(KIND_META[entry.kind].label, title, false),
+    heading: entryHeading(
+      KIND_META[entry.kind].label,
+      title,
+      false,
+      entry.kind === "event" ? entryTiming(entry, new Date()) : undefined,
+    ),
     hasDocument: !!doc,
     initial: { snapshot: doc?.snapshot ?? null, updates },
     entryRows,

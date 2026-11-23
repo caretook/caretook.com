@@ -73,8 +73,8 @@ describe("tabSearch", () => {
 
 describe("empty states", () => {
   it("names what is on", () => {
-    expect(emptyUpcomingText("all")).toBe("No upcoming appointments or todos.");
-    expect(emptyUpcomingText("event")).toBe("No upcoming appointments.");
+    expect(emptyUpcomingText("all")).toBe("No upcoming events or todos.");
+    expect(emptyUpcomingText("event")).toBe("No upcoming events.");
     expect(emptyUpcomingText("todos", "Alex Rivera")).toBe("No upcoming todos by Alex Rivera.");
     expect(emptyPastText()).toBe("No past events yet.");
     expect(emptyPastText("Alex Rivera")).toBe("No past events by Alex Rivera.");

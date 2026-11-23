@@ -40,7 +40,7 @@ describe("toGoogleEvent", () => {
     const event = toGoogleEvent(item(), "generic");
     expect(event).toEqual({
       id: googleEventId("entry:e1"),
-      summary: "Appointment for Pat",
+      summary: "Event for Pat",
       description:
         "Thu 19 Nov · 9:00–10:00\nOpen in Caretook: https://caretook.example/app/groups/g1/entries/e1",
       location: null,
@@ -54,14 +54,14 @@ describe("toGoogleEvent", () => {
 
   it("adds the details with consent", () => {
     const event = toGoogleEvent(item(), "details");
-    expect(event.summary).toBe("Appointment for Pat: Dialysis");
+    expect(event.summary).toBe("Event for Pat: Dialysis");
     expect(event.location).toBe("Riverside Clinic");
     expect(event.description).toContain("With Dr. Rivera");
   });
 
   it("keeps a cancelled appointment, marked cancelled and free", () => {
     const event = toGoogleEvent(item({ status: "cancelled" }), "generic");
-    expect(event.summary).toBe("Cancelled: Appointment for Pat");
+    expect(event.summary).toBe("Cancelled: Event for Pat");
     expect(event.transparency).toBe("transparent");
     expect(event.privateProperties[STATUS_PROPERTY]).toBe("cancelled");
   });
@@ -121,7 +121,7 @@ describe("planPush", () => {
       level: "generic",
     });
     expect(plan.upserts).toHaveLength(1);
-    expect(plan.upserts[0]!.event.summary).toBe("Appointment for Pat");
+    expect(plan.upserts[0]!.event.summary).toBe("Event for Pat");
   });
 
   it("deletes the events of items that are gone (deleted, done, out of the window)", () => {
