@@ -17,7 +17,7 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 
 **Now:** wave 1 landed in `dev` as 06309608 through PR #118 (Codex clean, `candidate` run 45193491778 green on 83bb5796, 11 of 11 browser checks). Slice 1's worktree is removed. B-661 (roundtrip's add timing) is done; B-532 stays open for slices 3 and 4, B-533 for 5 and 6. Report filed.
 
-**Next:** wave 2's slice is merged (186a23c3, from e3c1c992); its forced-flake proof run 45198526790 read `flake`. The quick check passed on ab503425 and the wave's `candidate` run 45201998537 is green there (11 of 11 browser checks). Slice 2's worktree is removed. Synced with `dev` at d7125188 and the quick check passed there. No local browser run: the wave touches no app code and CI ran all 11 checks. Now: the PR and Codex's review, then land with `--tier candidate`. B-532 stays open for slices 3 and 4.
+**Next:** wave 2's slice is merged (186a23c3, from e3c1c992); its forced-flake proof run 45198526790 read `flake`. The quick check passed on ab503425 and the wave's `candidate` run 45201998537 is green there (11 of 11 browser checks). Slice 2's worktree is removed. Synced with `dev` at d7125188 and the quick check passed there. No local browser run: the wave touches no app code and CI ran all 11 checks. PR #120 is open and Codex was clean on 7d8b319. The runbook now has the browser verdict rules. Now: sync, push, Codex again on the docs commit, then land with `--tier candidate`. B-532 stays open for slices 3 and 4.
 
 **For slice 4:** the gate must refuse a `flake` when any `flaky[].brake` is true; slice 2 only sets the flag. **For slice 5:** reuse `runBrowserJob` and `summarizeBrowser` for repeat runs.
 
