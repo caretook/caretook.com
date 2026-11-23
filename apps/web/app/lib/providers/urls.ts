@@ -8,7 +8,7 @@ import { groupHome, searchString, segment } from "../core/urls";
 export const PROVIDER_TYPE_PARAM = "type";
 
 export const providerUrls = {
-  /** A group's provider directory, with its search and filters (`?q=`, `?type=`, `?past=1`) carried through. */
+  /** A group's provider directory, with its search and filters (`?q=`, `?type=`) carried through. */
   providers: (groupId: string, search?: Search) => `${groupHome(groupId)}/providers${searchString(search)}`,
   /**
    * The add sheet over the directory, carrying the list's search and filters.

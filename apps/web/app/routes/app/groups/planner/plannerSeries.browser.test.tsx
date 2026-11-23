@@ -156,6 +156,8 @@ describe("the scope dialog in Upcoming", () => {
     await rowMenu(FRI_20.id);
     await userEvent.click(menuItem("Edit"));
     await expect.element(page.getByRole("dialog", { name: "Change a repeating appointment" })).toBeVisible();
+    // The pointer is still where Edit was, now over this button: rest it on the title to read the unhovered tone.
+    await userEvent.hover(page.getByRole("heading", { name: "Change a repeating appointment" }));
     await expect.poll(() => look("Only this visit").background).toBe(token("bg-primary", "backgroundColor"));
     expect(look("This and later visits").color).not.toBe(token("text-error", "color"));
   });
