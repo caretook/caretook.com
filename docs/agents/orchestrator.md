@@ -4,7 +4,7 @@ For a PRD orchestrator: a top-level session (spawned agents can't spawn more), o
 
 ## Branches and protection
 
-- `main` (live) and `staging` change only by PR merge on GitHub (`staging` from `dev`, `main` from `staging`). `dev` takes landings, `pnpm backlog` commits and small direct changes. `prd/<topic>` takes its slices' merges and `dev` syncs; `slice/<topic>/<n>` its loop's commits; `plan/<topic>` (docs) and `hotfix/<name>` their session's commits; all three land in `dev` like a PRD.
+- `main` (live) and `staging` change only by PR merge on GitHub (`staging` from an `rc/*` candidate, `main` from `staging`). `dev` takes landings, `pnpm backlog` commits and small direct changes. `prd/<topic>` takes its slices' merges and `dev` syncs; `slice/<topic>/<n>` its loop's commits; `plan/<topic>` (docs) and `hotfix/<name>` their session's commits; all three land in `dev` like a PRD.
 - **Hooks** (`.githooks/`; `pnpm hooks:install` sets `core.hooksPath` for every worktree, and `new.sh` runs it): on `main` and `staging`, no commits, merges or pushes, and no local moves but a fast-forward to `origin`'s copy (`git fetch && git branch -f main origin/main`). The dev keeper overrides with `CARETOOK_ALLOW_PROTECTED=1` (the hook says so); agents never set it. `dev` isn't restricted. `commit-msg` checks Conventional Commits on every branch (`--no-verify` skips one).
 - `pnpm prd sync`, `pnpm prd land` and `pnpm backlog` write their own commit subjects. `pr` and `land` push `dev` (fast-forward only); backlog writes don't.
 
@@ -54,7 +54,7 @@ At every wave boundary: `pnpm backlog ingest`, `doctor` and `list`; propose new 
 - A go-ahead covers one landing, unless the landing mode covers more. Never land on your own judgement, never another PRD.
 - **`--force` and `--no-review`** need a fresh Fable land skeptic's `go` for this tip and action (`--skeptic <id>`, in the report for a veto) or the user's word (`--by-user`). A `no`: fix it or ask. On a brake or an unsynced tip, `--force` needs `--by-user`.
 - **Run each browser check once:** never rerun one that passed, never `--suite` twice for a landing.
-- **The backstop:** before opening the PR to `staging`, the dev keeper runs `pnpm prd browser --suite` on `dev` on a quiet machine and, until `test-gates-2`, `pnpm prd ci run full --ref dev --wait`, unless the user overrides it.
+- **Staging takes a candidate:** `pnpm prd ci candidate cut`, then `pnpm prd ci promote`, which refuses a tip that isn't passing. Agents never merge one any other way; the user's hand merge is the override.
 
 ### The check gate
 
