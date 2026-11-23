@@ -9,8 +9,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { defineConfig } from "@playwright/test";
 
-import { testZone } from "../ci/zones.mjs";
-
 export default defineConfig({
   testDir: ".",
   testMatch: "*.spec.mjs",
@@ -26,7 +24,8 @@ export default defineConfig({
   use: {
     baseURL: process.env.BASE ?? "http://localhost:5176",
     viewport: { width: 420, height: 900 },
-    timezoneId: testZone(),
+    // The one zone setting (scripts/ci/zones.mjs). Read inline: tests copy this file alone.
+    timezoneId: process.env.CARETOOK_TEST_ZONE || "America/Los_Angeles",
     locale: "en-US",
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
