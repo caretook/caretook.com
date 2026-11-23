@@ -6,6 +6,7 @@ import { page, userEvent } from "vitest/browser";
 
 import { surfaceContrast, textContrast } from "../../../test/contrast";
 import { renderInRouter } from "../../../test/device";
+import { accentClass, ACCENTS } from "./accents";
 import { TabNav } from "./index";
 
 // TabNav's per-tab fields (icon, count, current, replace), its sideways
@@ -156,4 +157,32 @@ describe("TabNav", () => {
       else expect(style.boxShadow).not.toBe("none");
     },
   );
+
+  describe.each(["light", "dark"] as const)("with an accent, in %s", (theme) => {
+    test.each(ACCENTS)("%s: the current tab and the count read at 4.5:1", async (accent) => {
+      await renderInRouter(
+        <TabNav
+          label="Medications tabs"
+          accent={accent}
+          tabs={[
+            { label: "Schedule", to: "/m/schedule", count: 2 },
+            { label: "List", to: "/m/list", count: 3 },
+          ]}
+        />,
+        { url: "/m/schedule", theme },
+      );
+      const current = nav().getByRole("link", { name: "Schedule, 2" }).element();
+      expect(textContrast(current)).toBeGreaterThanOrEqual(4.5);
+      for (const name of ["Schedule, 2", "List, 3"]) {
+        const count = nav().getByRole("link", { name }).element().querySelector(".badge")!;
+        expect(textContrast(count)).toBeGreaterThanOrEqual(4.5);
+      }
+      const probe = document.createElement("span");
+      probe.className = accentClass(accent, "soft");
+      document.body.append(probe);
+      const fill = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      expect(getComputedStyle(current).backgroundColor).toBe(fill);
+    });
+  });
 });

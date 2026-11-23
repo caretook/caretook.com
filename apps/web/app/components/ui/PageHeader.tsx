@@ -1,9 +1,12 @@
+import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { LinkProps } from "react-router";
+import type { Accent } from "./accents";
 import type { MenuEntry } from "./menuModel";
 
 import { Plus } from "lucide-react";
 import { Button } from "./Button";
+import { IconChip } from "./IconChip";
 import { Menu } from "./Menu";
 import { TITLE_PAGE } from "./styles";
 
@@ -35,6 +38,8 @@ const LOOK = { variant: "primary", size: "sm" } as const;
  * one quiet line under the title (a page's purpose or a viewer note).
  * `add` is the primary, icon-only `+`, always the last control at the top
  * right (`actions` sit to its left); the page passes it for writers only.
+ * `icon` and `accent` are the section's soft chip before the title, on its
+ * line and decorative, so the `h1` is named by the title alone.
  * `className` is for the outer element only.
  */
 export function PageHeader({
@@ -42,24 +47,37 @@ export function PageHeader({
   actions,
   add,
   description,
+  icon,
+  accent,
   className = "",
 }: {
   title: string;
   actions?: ReactNode;
   add?: PageHeaderAdd | false | null;
   description?: ReactNode;
+  icon?: LucideIcon;
+  accent?: Accent;
   className?: string;
 }) {
   const hasActions = actions != null && actions !== false;
+  const heading = <h1 className={`min-w-0 ${TITLE_PAGE}`}>{title}</h1>;
+  const titleLine = icon ? (
+    <div className="flex min-w-0 items-center gap-2">
+      <IconChip icon={icon} accent={accent} />
+      {heading}
+    </div>
+  ) : (
+    heading
+  );
   return (
     <header className={`flex flex-wrap items-start justify-between gap-3 ${className}`}>
       {description ? (
         <div className="min-w-0">
-          <h1 className={TITLE_PAGE}>{title}</h1>
+          {titleLine}
           <p className="text-muted text-sm">{description}</p>
         </div>
       ) : (
-        <h1 className={`min-w-0 ${TITLE_PAGE}`}>{title}</h1>
+        titleLine
       )}
       {(hasActions || add) && (
         <div className="flex shrink-0 items-center justify-end gap-2">

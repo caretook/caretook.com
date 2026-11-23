@@ -23,20 +23,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `self-recovery` | — | `test-gates`, `agent-autonomy`, `agent-autonomy-2` | `scripts/loops/recover`, `scripts/loops/land.sh`, `scripts/loops/lib.sh`, `scripts/loops/session`, `scripts/loops/open-session`, `scripts/loops/dispatch`, `scripts/loops/prd.sh`, `scripts/loops/inventory`, `scripts/loops/down.sh`, `scripts/loops/new.sh`, `scripts/loops/status-extra`, `scripts/loops/prompt.sh` | To write. launchd recovery, draining before a usage limit, step-in-progress markers, cost records, records for every session kind, headless sessions (B-407, B-433, B-437, B-438). Cut from orchestration-3; its planner cuts headless out if over six slices |
 | `self-recovery-2` | — | `self-recovery` | `scripts/loops/session`, `scripts/loops/open-session`, `scripts/loops/dispatch`, `scripts/loops/prd.sh` | Cost record and headless sessions, cut from self-recovery to keep it at six slices |
 | `staging-ship` | — | `test-gates-2` | `scripts/loops/review.sh`, `scripts/loops/codex-review`, `scripts/loops/prd.sh`, `scripts/loops/land.sh` | To write. Ship dev to staging in one command, Codex findings filed by tool, a staging to-test report (B-404, B-430, B-436). Cut from orchestration-3; doesn't need the dispatcher |
+| `ui-kit-3` | done | `ui-kit-2` | `apps/web/app/app.css`, `apps/web/app/components/ui/`, `apps/web/app/routes/dev/ui/`, `apps/web/app/lib/timeline/entryDisplay.ts`, `apps/web/app/components/entry/KindIcon.tsx`, `apps/web/app/components/quick-entry/QuickEntryCard.tsx`, `apps/web/app/lib/app-shell/` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** to write (B-398, B-269, B-448 and overlay motion): every remaining area swept onto the kit, one area per slice; then the lint guard. Cut from ui-kit-2 to keep it at six slices; starts after ui-kit-2 so the sweeps copy its final Button, header and motion contracts; before test-health waves 5 to 7; never beside i18n. Hot files when planned: most route and component folders, one area per slice |
+| `ui-kit-4` | — | `ui-kit-3` | `apps/web/app/routes/`, `apps/web/app/components/`, `eslint.config.js`, `scripts/eslint/` | — |
+| `quick-entry-2` | — | — | `packages/data/src/db/schema/assistant/quickEntry`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/timeline/timelineQuickEntry` | to write (B-300 to B-303), from the 2026-11-21 code review: negated doses, typed counts, wrong times, the stuck card · Depends on: `planner-2` in `dev` (it edits quick entry's future note; last item B-248) · Hot files: `db/schema/assistant/quickEntry.ts`, `quickEntryTime.ts`, `components/quick-entry/` |
+| `onboarding` | — | — | `apps/web/app/routes/account/join/`, `apps/web/app/routes/account/invite/`, `packages/auth/src/tickets.ts`, `packages/api/src/care-groups/`, `packages/data/src/services/careGroupInviteService.ts`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/root.tsx`, `apps/web/public/site.webmanifest`, `apps/web/app/routes/marketing/layout/`, `packages/data/src/db/schema/app-shell/userPreferences.ts`, `apps/web/app/lib/app-shell/me.ts`, `scripts/browser-checks/invites.spec.mjs` | to write (B-31): guided onboarding for new users, the real requirement; a demo group is one idea to refine; may point at the connect guide · Depends on: invites (done) · Hot files: seeds, careGroupService, /app home |
+| `assistant-access` | — | — | `packages/data/src/db/schema/care-groups/careGroup.ts`, `packages/data/src/db/schema/connectors/connectorRules`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/careGroupService.ts`, `packages/api/src/care-groups/careGroup.ts`, `packages/api/src/connectors/protocol.ts`, `packages/api/src/connectors/connect.ts`, `packages/api/src/connectors/connector.ts`, `packages/api/src/connectors/tools/groupOverview.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/care-groups/assistantsSwitch.sync.ts`, `apps/web/app/routes/app/groups/settings/assistants/`, `apps/web/app/routes/connectors/connect/`, `apps/web/app/routes/app/settings/devices/ConnectedAssistants.tsx` | Owner chooses read/write or read only for a group's assistants (B-558) |
 | `code-health` | — | `check-speed`, `orchestration-2` | `packages/data/src/db/schema/`, `packages/data/src/domain/`, `packages/data/src/services/`, `packages/data/package.json`, `package.json`, `apps/web/package.json`, `apps/web/app/`, `packages/api/src/`, `scripts/loops/lib.sh`, `scripts/loops/lease.sh`, `scripts/loops/land.test.mjs`, `scripts/loops/check-areas.d/`, `scripts/backlog/backlog.mjs`, `scripts/build/` | [PRD](code-health-prd.md), [plan](code-health-plan.md) (B-361, B-365, B-366, B-367): 6 slices, waves (1, 2, 3, 5) → 4 → 6: exact pins and a test refusing ranges, unused exports removed, the backlog lock held once and a knobs page, tests on pr/ready/review/land, pure logic moved to @caretook/data/domain, then every importer switched (slice 6, alone, after simple-mode lands; it touches import lines across apps/web/app and packages/api). No behaviour change, no migration. Follow-ons: code-health-2, code-health-3 |
-| `ui-kit-3` | — | `ui-kit-2` | `apps/web/app/app.css`, `apps/web/app/components/ui/`, `apps/web/app/routes/dev/ui/`, `apps/web/app/lib/timeline/entryDisplay.ts`, `apps/web/app/components/entry/KindIcon.tsx`, `apps/web/app/components/quick-entry/QuickEntryCard.tsx`, `apps/web/app/lib/app-shell/` | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** to write (B-398, B-269, B-448 and overlay motion): every remaining area swept onto the kit, one area per slice; then the lint guard. Cut from ui-kit-2 to keep it at six slices; starts after ui-kit-2 so the sweeps copy its final Button, header and motion contracts; before test-health waves 5 to 7; never beside i18n. Hot files when planned: most route and component folders, one area per slice |
 | `fixes-bug` | standing | — | — | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-ui` | standing | — | `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/timeline/DayHeader.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineHeader.tsx`, `apps/web/app/routes/app/groups/timeline/EasyModeToggle.tsx`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/provider/`, `apps/web/app/routes/app/groups/medications/MedicationListItem.tsx`, `apps/web/app/components/todos/useLinkedTodos.ts` | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety` | — | — | `packages/api/src/sync`, `apps/web/app/lib/sync/`, `apps/web/app/lib/auth/session`, `apps/web/app/routes/sign-out.tsx`, `apps/web/app/routes/app/layout/SyncIndicator.tsx`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `packages/data/src/services/`, `apps/web/app/lib/medications/medications.sync.ts`, `apps/web/app/lib/providers/providers.sync.ts`, `scripts/browser-checks/roundtrip.spec.mjs`, `scripts/browser-checks/signout-wipe.spec.mjs`, `scripts/browser-checks/session-end.spec.mjs` | to write (B-285 to B-296, B-382 to B-384, B-387: repeating-todo upload bugs Codex found, moved from `planner-2`), from the 2026-11-21 code review (findings not re-verified): refused sync changes shown to the user, an upload queue that can't wedge, offline edits that don't revert a co-member's change, replayed PUTs, global client-chosen ids, the sign-out wipe and unsent writes, then the column-agreement test and one generic upload handler · Depends on: (none); `test-health` shares the upload tests (B-371, B-374) · Hot files: `packages/api/src/sync.ts`, `lib/sync/client.ts`, `SyncIndicator`, `session.ts`, `sign-out.tsx`, `medications.sync.ts`, `providers.sync.ts`, the services' `upsert`s |
-| `quick-entry-2` | — | — | `packages/data/src/db/schema/assistant/quickEntry`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/timeline/timelineQuickEntry` | to write (B-300 to B-303), from the 2026-11-21 code review: negated doses, typed counts, wrong times, the stuck card · Depends on: `planner-2` in `dev` (it edits quick entry's future note; last item B-248) · Hot files: `db/schema/assistant/quickEntry.ts`, `quickEntryTime.ts`, `components/quick-entry/` |
-| `onboarding` | — | — | `apps/web/app/routes/account/join/`, `apps/web/app/routes/account/invite/`, `packages/auth/src/tickets.ts`, `packages/api/src/care-groups/`, `packages/data/src/services/careGroupInviteService.ts`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/root.tsx`, `apps/web/public/site.webmanifest`, `apps/web/app/routes/marketing/layout/`, `packages/data/src/db/schema/app-shell/userPreferences.ts`, `apps/web/app/lib/app-shell/me.ts`, `scripts/browser-checks/invites.spec.mjs` | to write (B-31): guided onboarding for new users, the real requirement; a demo group is one idea to refine; may point at the connect guide · Depends on: invites (done) · Hot files: seeds, careGroupService, /app home |
 | `demo-site` | hold | — | — | Shared demo site with generic logins and nightly reset; separate environment |
 | `symptom-catalog` | — | `quick-entry-2`, `dose-accuracy` | `packages/data/src/db/schema/timeline/`, `packages/data/src/services/timelineEntryService.ts`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/routes/app/groups/timeline/SymptomFields.tsx`, `apps/web/app/routes/app/groups/timeline/FeelingFields.tsx`, `apps/web/app/routes/app/groups/timeline/FilterSheet.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/daySummary`, `apps/web/app/lib/appointments/visitPrep`, `apps/web/app/lib/assistant/quickEntryPredictions`, `apps/web/app/components/quick-entry/` | to write (B-549): symptoms as a catalog type with a default set, quick add with a similar-name check, a multi-symptom filter; adds a migration |
 | `dose-accuracy` | — | — | `packages/data/src/db/schema/medications/dueDoses.ts`, `packages/data/src/db/schema/medications/duePasses.ts`, `apps/web/app/lib/medications/medications.sync.ts`, `apps/web/app/lib/medications/dueDoses.sync.ts`, `apps/web/app/lib/appointments/visitPrep`, `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/assistantActionService.ts`, `packages/api/src/connectors/tools/todaysDoses.ts` | to write (B-297 to B-299), from the 2026-11-21 code review: a dose answers only its own day's slot, deterministic dose ids, visit prep's missed doses per schedule epoch · Hot files: `db/schema/medications/dueDoses.ts`, `medications.sync.ts` (`logDoses`), `visitPrep.ts` |
 | `planner-3` | hold | `simple-mode` | `packages/data/src/db/schema/timeline/`, `packages/data/src/db/schema/assistant/`, `packages/data/src/permissions/timeline.ts`, `packages/data/src/services/entryLinkService.ts`, `packages/api/src/sync`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/timeline/entryLinks.sync.ts`, `apps/web/app/lib/todos/urls.ts`, `apps/web/app/components/todos/`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/new/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/lib/appointments/`, `packages/api/src/connectors/tools/writes.ts`, `scripts/browser-checks/sync-matrix.mjs` | **On hold 2026-11-21: the landed plan must be revised first to link any timeline entry to todos, many to many (the user’s correction is on B-245; B-477).** to write (B-245: a note can carry a todo with its own due day and assignee, the replacement for reminders; B-254: quick entry reads a repeating todo) · Depends on: `planner-2` in `dev` (last item B-248) · Hot files: the note editor and entry page, `todoService` and the todo schema (a link to its note), the Planner's todo rows, the Today card, the connector's `add_note` and `add_todo`; quick entry (B-254) |
 | `todo-subtasks` | — | `planner-3` | — | to write (B-550): nested todos, 3 levels in code, parent auto-completes |
 | `calendars-2` | — | — | `packages/data/src/google/`, `packages/data/src/services/calendar`, `packages/data/src/db/schema/calendars/`, `packages/data/src/db/schema/notifications/`, `packages/data/src/db/schema/appointments/repeatRule`, `packages/data/src/db/schema/appointments/seriesVisits`, `packages/notifications/`, `apps/web/app/lib/appointments/repeatChoice`, `apps/web/app/lib/calendars/`, `apps/web/app/components/repeat/`, `apps/web/app/routes/app/groups/settings/calendar/` | [PRD](calendars-2-prd.md), [plan](calendars-2-plan.md) (B-304 to B-309): 7 slices, waves (1, 3, 5, 6) → (2, 4) → 7: Google deletes leave started items and todos alone; Google sync looks a year ahead with a daily catch-up; reminders expire at the event's start; deleted providers leave pushes; a stale consent goes generic and asks again; times name their zone; monthly on the last day. Two additive migrations (waves 1 and 3), no deps, no stack. Push notifications (B-377) are calendars-3 |
-| `ui-kit-4` | — | `ui-kit-3` | `apps/web/app/routes/`, `apps/web/app/components/`, `eslint.config.js`, `scripts/eslint/` | — |
 | `tags` | — | `symptom-catalog` | `packages/data/src/db/schema/tags/`, `packages/data/src/services/todoService.ts`, `packages/api/src/syncRegistry.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/tags/`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/routes/app/groups/timeline/FilterSheet.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/entry/`, `apps/web/app/routes/app/groups/todo/`, `apps/web/app/routes/app/groups/todos/`, `apps/web/app/components/todos/`, `apps/web/app/routes/app/groups/planner/`, `apps/web/app/routes/app/groups/providers/`, `apps/web/app/routes/app/groups/medications/`, `apps/web/app/routes/app/groups/search/`, `scripts/browser-checks/sync-matrix.mjs` | to write (B-548): group-wide tags on every record, filterable on each list and in search; adds a migration |
 | `fixes-perf` | standing | — | — | plan: plans/fixes-perf-plan.md, rules: plans/fixes-rules.md |
 | `fixes-nit` | standing | — | — | plan: plans/fixes-nit-plan.md, rules: plans/fixes-rules.md |
@@ -102,7 +103,6 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `documents` | hold | `encryption` | — | to write (B-56) · Depends on: hosting (B-33, file storage); `profiles` (soft); `encryption` decision · Hot files: file storage, its area's `routes.ts`, `urls.ts`, schema and `permissions/` parts, `GROUP_SECTIONS` |
 | `contract-migrations` | hold | — | — | **On hold 2026-11-21: planning was burning too much Fable usage (nothing wrong with the topic; B-477).** Contract steps tracked from fixes-nit (B-379): B-455, B-456, B-457. Migrations: run alone in its wave. To write. |
 | `timeline-jump` | — | `quick-entry-2` | — | Jump to a date on the timeline, by picker and quick entry (B-557) |
-| `assistant-access` | — | — | `packages/data/src/db/schema/care-groups/careGroup.ts`, `packages/data/src/db/schema/connectors/connectorRules`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/careGroupService.ts`, `packages/api/src/care-groups/careGroup.ts`, `packages/api/src/connectors/protocol.ts`, `packages/api/src/connectors/connect.ts`, `packages/api/src/connectors/connector.ts`, `packages/api/src/connectors/tools/groupOverview.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/care-groups/assistantsSwitch.sync.ts`, `apps/web/app/routes/app/groups/settings/assistants/`, `apps/web/app/routes/connectors/connect/`, `apps/web/app/routes/app/settings/devices/ConnectedAssistants.tsx` | Owner chooses read/write or read only for a group's assistants (B-558) |
 | `orchestration-split` | hold | — | — | Held until after launch by the user (B-543): extract the orchestration tooling or replace it with a prebuilt one |
 
 ## Summary
@@ -144,10 +144,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-297 | bug | in-progress | dose-accuracy | prd/dose-accuracy | A surplus dose marks the next day's slot as given: two caregivers both tapping Given for one pass makes tomorrow's dose read done |
 | B-298 | change | triaged | dose-accuracy |  | Deterministic dose ids per medication, day and slot, so two devices logging the same pass converge on one row |
 | B-299 | bug | triaged | dose-accuracy |  | Visit prep's 'Missed doses' reads history through today's schedule: a schedule change shows phantom misses back to the last visit |
-| B-300 | bug | triaged | quick-entry-2 |  | Quick entry logs negated doses as given: 'did not give metoprolol', 'metoprolol not given', 'couldn't give…' all record a given dose at 0.9 confidence |
+| B-300 | bug | in-progress | quick-entry-2 | prd/quick-entry-2 | Quick entry logs negated doses as given: 'did not give metoprolol', 'metoprolol not given', 'couldn't give…' all record a given dose at 0.9 confidence |
 | B-301 | bug | triaged | quick-entry-2 |  | Quick entry discards a typed count and records the usual dose: 'gave 3 tylenol' records '2 tabs' with '3' in the note; 'gave half a tylenol' too |
-| B-302 | bug | triaged | quick-entry-2 |  | Quick entry gives silently wrong times: 'sat up in chair' is last Saturday, '2nd tylenol' is Nov 2, '11/25 at 2pm' is tomorrow, 'dr alvarez at 2' is 2 AM, 'pain 8 a bit better' is 8:00 AM |
-| B-303 | bug | triaged | quick-entry-2 |  | Quick entry gets stuck: remove a card, delete the text, retype the same line: no card, no Save, Enter does nothing |
+| B-302 | bug | in-progress | quick-entry-2 | prd/quick-entry-2 | Quick entry gives silently wrong times: 'sat up in chair' is last Saturday, '2nd tylenol' is Nov 2, '11/25 at 2pm' is tomorrow, 'dr alvarez at 2' is 2 AM, 'pain 8 a bit better' is 8:00 AM |
+| B-303 | bug | in-progress | quick-entry-2 | prd/quick-entry-2 | Quick entry gets stuck: remove a card, delete the text, retype the same line: no card, no Save, Enter does nothing |
 | B-304 | bug | triaged | calendars-2 |  | Deleting an old event in Google Calendar rewrites past Caretook records: soft-deletes a past reminder note, cancels a past appointment, marks a todo done for the group |
 | B-305 | bug | triaged | calendars-2 |  | Events made in Google more than 90 days out never arrive: ignored as outsideWindow, the sync token advances, nothing revisits them |
 | B-306 | bug | triaged | calendars-2 |  | A reminder email can arrive after its appointment: about 2 h of retry backoff, no expiry, text rendered at queue time |
@@ -157,7 +157,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-311 | bug | triaged | fixes-perf |  | The series top-up reads every live series every minute and rewrites topped_up_through daily even on ended series (re-syncing them to every device) |
 | B-313 | bug | triaged | fixes-perf |  | Timeline and Planner load and watch every note document in the group (snapshot, text, pending updates) to preview 30 rows, rerunning on each co-member keystroke |
 | B-316 | change | triaged | fixes-ui |  | No unsaved-changes guard on any sheet or form: a click outside, Escape or Back discards a half-filled medication, emergency or provider form |
-| B-319 | bug | in-progress | fixes-ui | prd/fixes-ui | Empty states flash before the first watch answer: a provider's linked entries ('No notes or events yet') and linked todos ('Former member') |
+| B-319 | bug | ready | fixes-ui | prd/fixes-ui | Empty states flash before the first watch answer: a provider's linked entries ('No notes or events yet') and linked todos ('Former member') |
 | B-325 | change | triaged | fixes-ui |  | Native readiness: no top safe-area inset on the header or sticky day headers (viewport-fit=cover), and /app is a blank page on cold start for up to about 4 s (HydrateFallback returns null) |
 | B-327 | bug | triaged | account-security |  | A removed or demoted manager's pending invites still work: a removed owner can accept their own owner invite within 7 days and be an owner again |
 | B-328 | bug | triaged | account-security |  | The emailed sign-in code has no per-address limit (per IP only): a distributed attacker gets unlimited guesses at any account's 6-digit code |
@@ -222,8 +222,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-416 | bug | ready | fixes-ui | prd/fixes-ui | owner pill on planner/planner list should be below time/date field. Too busy under title. |
 | B-417 | feature | triaged | marketing |  | We are getting close to feature complete. We need another marketing content pass that updates copy… |
 | B-418 | bug | triaged | fixes-tooling |  | Flaky tooling test under load: recover.test.mjs '--at a time that has passed waits until tomorrow' fails in the full pnpm test:tooling run and passes alone |
-| B-421 | bug | in-progress | fixes-ui | prd/fixes-ui | type pill on medication list items should float right. |
-| B-422 | feature | in-progress | fixes-ui | prd/fixes-ui | In providers list page, contact links in rows make it too hard to know what to click. Make those… |
+| B-421 | bug | ready | fixes-ui | prd/fixes-ui | type pill on medication list items should float right. |
+| B-422 | feature | ready | fixes-ui | prd/fixes-ui | In providers list page, contact links in rows make it too hard to know what to click. Make those… |
 | B-425 | feature | triaged | inbox-agent |  | An inbox agent: a session that helps the user add, categorize and prioritize inbox items, and writes them by pushing straight to origin/dev instead of committing in the local dev checkout, so it never steps on the user's working copy |
 | B-429 | change | triaged | asks-relay |  | Asks queue hygiene: reports that go stale are re-checked or expire, answered asks are archived, and an ask whose session has died still reaches the user |
 | B-430 | feature | triaged | staging-ship |  | Codex findings on a PRD pull request become backlog items by tool: verified against the code, duplicates noted on the existing item, as B-404 does for the staging PR |
@@ -283,8 +283,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-519 | bug | ready | fixes-ui | prd/fixes-ui | Easy mode button on the timeline sits lower than the Timeline page title: align it with the title's row (same vertical center and baseline) |
 | B-521 | change | landed | ui-kit-3 | prd/ui-kit-3 | Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark |
 | B-522 | change | landed | ui-kit-3 | prd/ui-kit-3 | Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary) |
-| B-523 | change | in-progress | ui-kit-3 | prd/ui-kit-3 | Each section's accent color as an icon chip beside the page title and as the current tab's pill tint; Easy mode stays neutral |
-| B-524 | change | in-progress | ui-kit-3 | prd/ui-kit-3 | Empty states show a colored icon circle in the section's accent color |
+| B-523 | change | landed | ui-kit-3 | prd/ui-kit-3 | Each section's accent color as an icon chip beside the page title and as the current tab's pill tint; Easy mode stays neutral |
+| B-524 | change | landed | ui-kit-3 | prd/ui-kit-3 | Empty states show a colored icon circle in the section's accent color |
 | B-525 | bug | triaged | fixes-tooling |  | Asks: two processes taking over a dead holder's ask lock can both remove it, so one deletes the other's fresh lock and an answer and a default overlap (asks.mjs withAskLock) |
 | B-526 | bug | triaged | fixes-tooling |  | Notices: two concurrent posts can lower the .seq high-water mark (check-then-rename), so after both expire a notice id is reused and a late notices --done withdraws a newer notice (notices.mjs createNotice) |
 | B-527 | bug | triaged | fixes-bug |  | Todo Undo and Done writes are voided with no catch (TodoUndoStatus.undo, useTodoTick's run via void complete(...)): a write that throws becomes an unhandled rejection, with nothing shown to the user |
@@ -325,6 +325,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-573 | bug | triaged | fixes-tooling |  | Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error |
 | B-574 | bug | triaged | fixes-tooling |  | ESLint aborts with exit 134 in the lint step of a check, seen in two worktrees within a second |
 | B-575 | change | triaged | fixes-ui |  | Planner tabs' accessible name still says 'Planner or todos': name it for Upcoming, Past and Todos, and update the roundtrip browser check that selects it |
+| B-576 | bug | triaged | fixes-tooling |  | Local pnpm lint runs out of memory at Node's default 4 GB heap: CI sets 6 GB, local checks don't |
 
 ## Items
 
@@ -684,9 +685,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-300 · bug · Quick entry logs negated doses as given: 'did not give metoprolol', 'metoprolol not given', 'couldn't give…' all record a given dose at 0.9 confidence
 
-- status: triaged
+- status: in-progress
 - prd: quick-entry-2
-- owner:
+- owner: prd/quick-entry-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. packages/data/src/db/schema/assistant/quickEntry.ts:257-279, 931-952. Reproduced with a scratch script. Negation is only recognised before take/have/swallow. Fix idea: any not/never/don't/couldn't near a dose verb makes it skipped or demotes the line to a note.
@@ -704,9 +705,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-302 · bug · Quick entry gives silently wrong times: 'sat up in chair' is last Saturday, '2nd tylenol' is Nov 2, '11/25 at 2pm' is tomorrow, 'dr alvarez at 2' is 2 AM, 'pain 8 a bit better' is 8:00 AM
 
-- status: triaged
+- status: in-progress
 - prd: quick-entry-2
-- owner:
+- owner: prd/quick-entry-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. packages/data/src/db/schema/assistant/quickEntryTime.ts (lines 84-101, 207-214, 297-342, 362-369, 465-474, 539-556). Reproduced. Also 'this morning' before 08:00 is blocked as future. Fix idea: tighten each rule, parse M/D, clamp period defaults to now for past kinds.
@@ -714,9 +715,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-303 · bug · Quick entry gets stuck: remove a card, delete the text, retype the same line: no card, no Save, Enter does nothing
 
-- status: triaged
+- status: in-progress
 - prd: quick-entry-2
-- owner:
+- owner: prd/quick-entry-2
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. components/quick-entry/useQuickEntry.ts:98-118,206-216: removed and chosen reset only on Save or Clear, and Clear is hidden when no cards show. Prune both maps to the current part keys.
@@ -815,10 +816,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-319 · bug · Empty states flash before the first watch answer: a provider's linked entries ('No notes or events yet') and linked todos ('Former member')
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 488e09bf
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. routes/app/groups/provider/LinkedEntries.tsx:21-31, components/todos/useLinkedTodos.ts: seeded with NO_ROWS. Low.
 - 2026-11-21 (prd/orchestration-2): category: ui (orchestration-2 split)
@@ -1460,19 +1461,19 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-421 · bug · type pill on medication list items should float right.
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: fc5dbe18
 
 - 2026-11-21 (Robert Bo Davis): Triage (backlog session): a small look/flow fix on one screen with no dependency on the Button work: fixes-ui by the category rule.
 
 ### B-422 · feature · In providers list page, contact links in rows make it too hard to know what to click. Make those…
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 8834115b
 
 - 2026-11-21 (Robert Bo Davis): From the inbox: In providers list page, contact links in rows make it too hard to know what to click. Make those clickable in the details sheet and remove the information from the rows. Most of the time we want notes open during contact anyway.
 - 2026-11-21 (Robert Bo Davis): Triage (backlog session): a small look/flow fix on one screen with no dependency on the Button work: fixes-ui by the category rule.
@@ -2082,20 +2083,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-523 · change · Each section's accent color as an icon chip beside the page title and as the current tab's pill tint; Easy mode stays neutral
 
-- status: in-progress
+- status: landed
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
-- commit:
+- commit: b3a6562f
 
 - 2026-11-22 (Robert Bo Davis): Color plan (backlog session, 2026-11-22), revised after a Fable skeptic pass: lift surfaces first, then accent tokens distinct from status colors (info/success/warning/error), then apply them. Cut: a tinted Today card (dilutes its urgency tints) and a standalone header wash (banding, sticky header). PageHeader and TabNav in ui/. An optional faint header wash may be tried here, not as its own item. Needs the accent tokens.
 - 2026-11-22 (plan/ui-kit-3): ui-kit-3 plan (2026-11-22): planned in plans/ui-kit-3-plan.md: slice 1 B-520 and B-481 (dark surfaces, field fill), slice 2 B-521 and B-522 (accents, entry icons), slice 3 B-523, slice 4 B-524, slices 5 and 6 B-471 (overlay fades, then the sheet's exit).
 
 ### B-524 · change · Empty states show a colored icon circle in the section's accent color
 
-- status: in-progress
+- status: landed
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
-- commit:
+- commit: a1ff2d67
 
 - 2026-11-22 (Robert Bo Davis): Color plan (backlog session, 2026-11-22), revised after a Fable skeptic pass: lift surfaces first, then accent tokens distinct from status colors (info/success/warning/error), then apply them. Cut: a tinted Today card (dilutes its urgency tints) and a standalone header wash (banding, sticky header). The EmptyState primitive only; no colored section headings. Needs the accent tokens.
 - 2026-11-22 (plan/ui-kit-3): ui-kit-3 plan (2026-11-22): planned in plans/ui-kit-3-plan.md: slice 1 B-520 and B-481 (dark surfaces, field fill), slice 2 B-521 and B-522 (accents, entry icons), slice 3 B-523, slice 4 B-524, slices 5 and 6 B-471 (overlay fades, then the sheet's exit).
@@ -2499,3 +2500,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (prd/fixes-ui): Found by fixes-ui slice 3 (B-538). The nav's label no longer describes its three tabs. Left alone there because renaming edits scripts/browser-checks/roundtrip.spec.mjs.
+
+### B-576 · bug · Local pnpm lint runs out of memory at Node's default 4 GB heap: CI sets 6 GB, local checks don't
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (prd/fixes-ui): Seen 2026-11-22 on prd/fixes-ui (7c90a0e4): eslint exit 134 at about 3.98 GB with 5-minute load 12, so not load. check --times shows 12 lint failures. ci.yml already sets NODE_OPTIONS=--max-old-space-size=6144; the local lint script sets nothing. Fix: give local lint the same heap, or cut type-aware ESLint's memory.

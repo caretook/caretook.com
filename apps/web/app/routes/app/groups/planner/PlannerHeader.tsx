@@ -8,6 +8,7 @@ import { useLocation } from "react-router";
 import { ChipGroup, FilterMenu, FilterMenuChips, PageHeader, TabNav, UserAvatar } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
+import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { clearAuthor } from "~/lib/timeline/timelineFilters";
 import { listSearch, TODO_SHEET_STATE } from "~/lib/todos/todoSheets";
 import { setShow, tabSearch, UPCOMING_SHOW_LABELS, UPCOMING_SHOWS } from "./upcomingFilters";
@@ -21,8 +22,9 @@ import { setShow, tabSearch, UPCOMING_SHOW_LABELS, UPCOMING_SHOWS } from "./upco
  * each reads (Planner: what it shows and the author; Todos: its `?who=` chip).
  */
 export function PlannerHeader() {
-  const { id: groupId, canWrite } = useGroup();
+  const { id: groupId, canWrite, easyRole } = useGroup();
   const { search } = useLocation();
+  const section = sectionAccent("planner", { easy: easyRole });
   const tabs = [
     { label: "Planner", to: appUrls.planner(groupId, tabSearch(search, "planner")) },
     { label: "Todos", to: appUrls.todos(groupId, listSearch(search)) },
@@ -46,8 +48,8 @@ export function PlannerHeader() {
 
   return (
     <div className="space-y-3">
-      <PageHeader title="Planner" add={canWrite && { label: "Add", items: add }} />
-      <TabNav label="Planner or todos" tabs={tabs} />
+      <PageHeader title="Planner" add={canWrite && { label: "Add", items: add }} {...section} />
+      <TabNav label="Planner or todos" tabs={tabs} accent={section?.accent} />
     </div>
   );
 }

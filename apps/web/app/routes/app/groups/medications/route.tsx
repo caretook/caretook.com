@@ -5,6 +5,7 @@ import { Outlet, PrefetchPageLinks, useLocation } from "react-router";
 import { Page, PageHeader, TabNav } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
+import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { medicationTabOf } from "~/lib/medications/medicationSheets";
 import { PrintMenu } from "./PrintMenu";
 import { useAddMenu } from "./useAddMenu";
@@ -22,6 +23,7 @@ export const meta = () => [{ title: "Medications · Caretook" }];
 
 export default function Medications({ params }: Route.ComponentProps) {
   const group = useGroup();
+  const section = sectionAccent("medications", { easy: group.easyRole });
   const { pathname, search } = useLocation();
   const add = useAddMenu(params.groupId, medicationTabOf(params.groupId, pathname), search);
   const tabs = useMemo(
@@ -37,6 +39,7 @@ export default function Medications({ params }: Route.ComponentProps) {
     <Page>
       <PageHeader
         title="Medications"
+        {...section}
         actions={<PrintMenu groupId={params.groupId} />}
         add={
           group.canWrite && { label: "Add", menuLabel: "Add", items: add.items, "data-add-medication": "" }
@@ -45,7 +48,7 @@ export default function Medications({ params }: Route.ComponentProps) {
       {/* The sheets' modules, loaded ahead, so they open offline too. */}
       {group.canWrite && add.prefetch.map((page) => <PrefetchPageLinks key={page} page={page} />)}
 
-      <TabNav label="Medications tabs" tabs={tabs} />
+      <TabNav label="Medications tabs" tabs={tabs} accent={section?.accent} />
 
       {/* The tab, and any sheet over it. */}
       <Outlet />
