@@ -143,11 +143,16 @@ describe("an email invite, signed out", () => {
 
   test("Create account makes the account through invite.signUp, signs in, and comes back to the invite", async () => {
     const calls = apiCalls();
+    let session: { user: { email: string; name: string }; session: object } | null = null;
     const device = await open(
       calls.record({
         "invite.preview": () => emailInvite,
         "invite.signUp": () => ({ verified: true }),
-        "/api/auth/sign-in/email": () => ({ user: { email: emailInvite.email } }),
+        "/api/auth/get-session": () => session,
+        "/api/auth/sign-in/email": () => {
+          session = { user: { email: emailInvite.email, name: "Avery Invited" }, session: {} };
+          return { user: { email: emailInvite.email } };
+        },
       }),
     );
     await fillSignUp();
@@ -167,6 +172,8 @@ describe("an email invite, signed out", () => {
     ]);
     // A changed URL is what tells a password manager the sign-up worked (B-666).
     await expect.poll(device.location).toBe(`${PATH}?signedUp=1`);
+    // What the member sees next is still the invite's consent step.
+    await expect.poll(() => form("accept")).not.toBeNull();
     expect(form("signUp")).toBeNull();
   });
 
