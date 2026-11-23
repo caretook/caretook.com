@@ -37,13 +37,30 @@ describe("the brake list", () => {
 
   it("has no line that matches no test file", async () => {
     const { brakes } = await readLists(root);
-    const tests = execFileSync("git", ["ls-files", "*.test.ts", "*.test.tsx", "*.test.mjs"], {
-      cwd: root,
-      encoding: "utf8",
-      maxBuffer: 10_000_000,
-    }).split("\n");
+    const tests = execFileSync(
+      "git",
+      ["ls-files", "*.test.ts", "*.test.tsx", "*.test.mjs", "scripts/browser-checks/*.spec.mjs"],
+      {
+        cwd: root,
+        encoding: "utf8",
+        maxBuffer: 10_000_000,
+      },
+    ).split("\n");
     expect(brakes.filter((glob) => !tests.some((f) => isBrake(f, [glob])))).toEqual([]);
   });
+
+  it("reads a check: line as that browser check's spec", () => {
+    expect(parseBrakeList("check:first-sync\n")).toEqual(["scripts/browser-checks/first-sync.spec.mjs"]);
+  });
+
+  it.each(["first-sync", "roundtrip", "layout-offline", "session-end", "live-notes"])(
+    "brakes on the %s browser check, and not on a check outside the sync flows",
+    async (check) => {
+      const { brakes } = await readLists(root);
+      expect(isBrake(`scripts/browser-checks/${check}.spec.mjs`, brakes)).toBe(true);
+      expect(isBrake("scripts/browser-checks/marketing.spec.mjs", brakes)).toBe(false);
+    },
+  );
 
   it.each([
     "apps/web/app/lib/sync/uploader.browser.test.tsx",
