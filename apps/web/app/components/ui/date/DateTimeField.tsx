@@ -57,7 +57,8 @@ const SEGMENT_STEPS: Record<string, { sign: 1 | -1; page: boolean }> = {
  * device's. `minuteStep` makes the minute segment's step keys move on that
  * grid (:10 goes to :15 or :00); a typed or saved minute stays as it is.
  * The hour segment's arrow keys move through the day's 24 hours (11 AM up is
- * 12 PM) and never change the date (11 PM up is 12 AM that day).
+ * 12 PM) and never change the date (11 PM up is 12 AM that day); PageUp and
+ * PageDown do the same, two hours at a time (10 AM up is 12 PM).
  */
 export function DateTimeField({
   name,
@@ -119,15 +120,17 @@ export function DateTimeField({
       return;
     }
     // React Aria's 12-hour segment wraps inside AM or PM (11 AM up is 12 AM).
-    // Take only the steps across that edge, so they move through the day's 24
-    // hours on the same date (B-585); every other step, and its typing buffer,
-    // stays React Aria's. A cleared segment has no hour to step from.
+    // Take only the steps across that edge, a page (2 hours) as well as one, so
+    // they move through the day's 24 hours on the same date (B-585, B-605);
+    // every other step, and its typing buffer, stays React Aria's. A cleared
+    // segment has no hour to step from.
     if (field === "hour") {
-      const atEdge = value.hour % 12 === (step.sign === 1 ? 11 : 0);
-      if (step.page || !atEdge || (e.target as HTMLElement).dataset.placeholder) return;
+      const amount = step.sign * (step.page ? 2 : 1);
+      const inHalfDay = (value.hour % 12) + amount;
+      if ((inHalfDay >= 0 && inHalfDay < 12) || (e.target as HTMLElement).dataset.placeholder) return;
       e.preventDefault();
       e.stopPropagation();
-      change(value.cycle("hour", step.sign));
+      change(value.cycle("hour", amount));
       return;
     }
     if (field !== "month" && field !== "year") return;
