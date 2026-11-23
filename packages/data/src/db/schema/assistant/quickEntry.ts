@@ -1731,6 +1731,17 @@ const noteAhead = (s: PartState) => {
 };
 
 /**
+ * Whether the line asks for something at a part of day still ahead ("check bp
+ * 120/80 in the morning", "ask about pain tonight"): its measurement or
+ * complaint is what to ask about, not a report, so the todo comes before them.
+ */
+const requestsAhead = (s: PartState, ahead: boolean) =>
+  ahead && !!s.time.spec && "period" in s.time.spec && !!s.time.spec.period && asksForAction(s);
+
+/** Below a todo and its note: a vital or symptom on a line that only asks for one. */
+const ASKED_FOR_CONFIDENCE = 0.3;
+
+/**
  * A note: what happened, at the part's time read back (a bare weekday or
  * day of the month is the last one). A time still ahead blocks it. With
  * `now`, it's dated now whatever the line says (the note a todo line offers).
@@ -2135,6 +2146,12 @@ const parsePart = (
         : [noteReading(s, noteFirst ? 0.8 : 0.4)]),
     ];
     if (!readings.some((r) => r.kind === "event")) readings.push(eventFromText(s, 0.2));
+    if (requestsAhead(s, ahead))
+      readings = readings.map((r) =>
+        r.kind === "vital" || r.kind === "symptom"
+          ? { ...r, confidence: Math.min(r.confidence, ASKED_FOR_CONFIDENCE) }
+          : r,
+      );
   }
   readings.sort((a, b) => b.confidence - a.confidence);
   return { text: body, readings };

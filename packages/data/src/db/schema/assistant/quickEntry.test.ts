@@ -1179,6 +1179,9 @@ describe("the user's lines (B-220)", () => {
     ["pick up the walker in the afternoon", todo("Pick up the walker", "2026-11-19", "14:00")],
     ["call the pharmacy at night", todo("Call the pharmacy", "2026-11-19", "22:00")],
     ["call the pharmacy at 9 in the morning", todo("Call the pharmacy", "2026-11-19", "09:00")],
+    // Its measurement or complaint is what to ask about, not a report (B-635).
+    ["check bp 120/80 in the morning", todo("Check bp 120/80", "2026-11-20", "08:00")],
+    ["ask about pain in the morning", todo("Ask about pain", "2026-11-20", "08:00")],
     ["dinner with Ann tomorrow 6pm", todo("Dinner with Ann", "2026-11-20", "18:00")],
     // A note with no time ahead stays a note, now or read back like the other past-only kinds.
     ["called the pharmacy", { kind: "note", occurredAt: NOW.toISOString() }],
@@ -1196,6 +1199,20 @@ describe("the user's lines (B-220)", () => {
     expect(shape(r)).toEqual(expected);
     expect(blocking(r)).toEqual([]);
     expect(assistantActionZSchema.safeParse(action(r)).success).toBe(true);
+  });
+
+  test.each([
+    ["check bp 120/80 in the morning", ["todo", "note", "vital", "event"]],
+    ["ask about pain in the morning", ["todo", "note", "symptom", "event"]],
+    // A report stays as it is.
+    ["bp 120/80 in the morning", ["vital", "note", "event"]],
+    ["pain in the morning", ["symptom", "note", "event"]],
+    ["check bp 120/80 this morning", ["vital", "note", "event"]],
+    // A request naming a provider stays an event first, with or without a part of day.
+    ["call dr lee in the morning", ["event", "todo", "note"]],
+    ["call dr lee tomorrow", ["event", "todo", "note"]],
+  ])("a request with a part of day: %s", (line, kinds) => {
+    expect(parse(line)[0]!.readings.map((r) => r.kind)).toEqual(kinds);
   });
 
   test("an incident has no severity, and the words after it are its note", () => {
