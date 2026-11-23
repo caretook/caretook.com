@@ -639,3 +639,57 @@ describe("kind chips", () => {
     expect(kinds.map((k) => k.kind)).toEqual(["note"]);
   });
 });
+
+describe("go to a day", () => {
+  const goCard = () => document.querySelector<HTMLElement>("[data-quick-goto]");
+  const goButton = () => page.getByRole("button", { name: "Go", exact: true });
+  const recentLines = () => localStorage.getItem(`caretook:recentLines:${TEST_USER.id}:${TEST_GROUP.id}`);
+  const entryCount = async (device: Awaited<ReturnType<typeof open>>) =>
+    (await device.query<{ n: number }>("SELECT count(*) AS n FROM timeline_entry"))[0]?.n;
+
+  test("the card goes to the day, writes nothing, records no line and clears the box", async () => {
+    const device = await open();
+    const before = await entryCount(device);
+    const recentBefore = recentLines();
+    await userEvent.fill(box(), "go to Jun 1");
+    await expect.poll(() => goCard()?.dataset.quickGoto).toBe("2027-06-01");
+    expect(cards()).toEqual([]);
+
+    await userEvent.click(goButton());
+    await expect.poll(device.location).toBe(`${TIMELINE_URL}?day=2027-06-01`);
+    await expect.element(box()).toHaveValue("");
+    await device.settle();
+    expect(await entryCount(device)).toBe(before);
+    expect(await device.queued()).toEqual([]);
+    expect(recentLines()).toBe(recentBefore);
+  });
+
+  test("Enter goes too", async () => {
+    const device = await open();
+    await userEvent.fill(box(), "show yesterday");
+    await expect.poll(() => goCard()?.dataset.quickGoto).toBe("2027-06-08");
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(device.location).toBe(`${TIMELINE_URL}?day=2027-06-08`);
+  });
+
+  test("a day ahead is blocked: no navigation and nothing saved", async () => {
+    const device = await open();
+    const before = await entryCount(device);
+    await userEvent.fill(box(), "go to tomorrow");
+    await expect.poll(() => goCard()?.textContent).toContain("The timeline ends today.");
+    await expect.element(goButton()).toBeDisabled();
+    await userEvent.keyboard("{Enter}");
+    await device.settle();
+    expect(device.location()).toBe(TIMELINE_URL);
+    await expect.element(box()).toHaveValue("go to tomorrow");
+    expect(await entryCount(device)).toBe(before);
+  });
+
+  test("a line that only mentions going somewhere keeps its save cards", async () => {
+    await open();
+    await userEvent.fill(box(), "go to PT tomorrow");
+    await waitUntil(() => cards().length > 0, "the cards");
+    expect(goCard()).toBeNull();
+    expect(saveButton()?.textContent).toContain("Save");
+  });
+});

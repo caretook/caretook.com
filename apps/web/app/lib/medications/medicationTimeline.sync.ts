@@ -27,9 +27,10 @@ export const timelineMedicationsQuery = (
   filters: EntryFilters,
   limit: number,
   cutoff?: string,
+  before?: string | null,
 ): LocalQuery => {
   const window = cutoff
-    ? historyWindow(groupId, filters, limit, cutoff)
+    ? historyWindow(groupId, filters, limit, cutoff, before)
     : entryWindow(groupId, filters, limit);
   return {
     sql: `SELECT m.id, m.name, m.strength, m.deleted_at FROM medication m
@@ -59,8 +60,9 @@ export function useTimelineMedications(
   limit: number,
   cutoff?: string,
   initial: EntryMedicationRow[] = NO_ROWS,
+  before?: string | null,
 ) {
-  const query = timelineMedicationsQuery(groupId, filters, limit, cutoff);
+  const query = timelineMedicationsQuery(groupId, filters, limit, cutoff, before);
   const rows = useLiveQuery<EntryMedicationRow>(query.sql, query.params, initial);
   const medicationOf = useMemo(() => {
     const byId = new Map(rows.map((row) => [row.id, toEntryMedication(row)]));

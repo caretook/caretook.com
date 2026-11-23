@@ -21,7 +21,7 @@ import {
   useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
-import { ConfirmDialog, EmptyState, Message } from "~/components/ui";
+import { ConfirmDialog, EmptyState, Message, Notice } from "~/components/ui";
 import { canReschedule } from "~/lib/appointments/eventReschedule";
 import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { canRemind } from "~/lib/calendars/remindMe";
@@ -33,8 +33,10 @@ import { emptyTimelineText } from "./entryLabels";
 import { SEARCH_END_TEXT, searchAnnouncement, searchStateText } from "./timelineSearch";
 import { entryOpen } from "~/lib/timeline/entryOpen";
 import { appUrls } from "~/lib/app-shell/appUrls";
+import { BackToToday } from "./BackToToday";
 import { DayHeader } from "./DayHeader";
 import { foldPassLogs } from "./dayItems";
+import { NewerEntries } from "./NewerEntries";
 import { PassLogItem } from "./PassLogItem";
 import { PeriodMarkerItem } from "./PeriodMarkerItem";
 import { COLUMN_CAP, ROWS_BOX } from "./layout";
@@ -47,6 +49,7 @@ import { TimelineEntryRow } from "./TimelineEntryRow";
 import { dayKeyIn, withMarkers } from "./timelineDays";
 import { QuickAddPrefetch } from "./QuickAddMenu";
 import { useEntryRemoval } from "./useEntryRemoval";
+import { useJumpLanding } from "./useJumpLanding";
 
 // The entries' column (1024 px from `lg`), shared with the quick-add bar and the filter chips.
 export { COLUMN_CAP } from "./layout";
@@ -121,6 +124,9 @@ export function TimelineEntryList({
     | "periods"
     | "summaryEntries"
     | "restored"
+    | "returning"
+    | "jump"
+    | "newer"
   >;
   view: TimelineView;
   units: UnitChoices;
@@ -181,14 +187,16 @@ export function TimelineEntryList({
   const adding = canWrite && !easy;
   // Nothing logged today, with no filter or search on: the Today heading says so (`EmptyToday`).
   const unfiltered = !kind && !author && !vital && !searching.q;
-  const emptyToday = adding && unfiltered && data.days[0]?.key !== todayKey;
+  // A jump's window that stops short of today has no Today heading or prompt.
+  const reachesToday = !data.jump?.bounded;
+  const emptyToday = adding && unfiltered && reachesToday && data.days[0]?.key !== todayKey;
   // No entries at all, with nothing filtering them: the section's icon above the line. Easy mode stays neutral.
   const emptyMark =
     unfiltered && data.days.length === 0
       ? sectionAccent("timeline", { easy: easy || group.easyRole })
       : undefined;
   const sections =
-    adding && days[0]?.key !== todayKey
+    adding && reachesToday && days[0]?.key !== todayKey
       ? [{ key: todayKey, label: dayLabel(now.toISOString(), timeZone, now), entries: [] }, ...days]
       : days;
   // Days before the newest page skip drawing their rows while off screen (`offscreenRows`).
@@ -203,6 +211,13 @@ export function TimelineEntryList({
     });
     return () => cancelAnimationFrame(frame);
   }, [drawAll]);
+  // So are days added above a jump's window: drawn once, so no estimated height moves the page.
+  const windowBound = data.jump?.before ?? null;
+  const [drawnBound, setDrawnBound] = useState(windowBound);
+  if (drawnBound !== windowBound) {
+    setDrawnBound(windowBound);
+    setDrawAll(true);
+  }
   const settled = drawAll ? NO_SETTLED : settledDays(sections);
   // Each day's summary line (none while a filter or search is on: `summaryEntries` is null then; none when they're off).
   const summaries =
@@ -227,6 +242,8 @@ export function TimelineEntryList({
     const el = list.current;
     if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "start" });
   }, [filterKey]);
+  // A jump lands on its day (only a jump: sheets and Back keep the scroll).
+  const landed = useJumpLanding(list, !!data.jump, data.returning);
 
   const emptyText = emptyTimelineText(kind, author && data.nameOf(author), searching.q, vital);
   const announcement = searchAnnouncement({
@@ -278,12 +295,19 @@ export function TimelineEntryList({
     );
   };
 
+  // Beside the day it's about, so newer days loaded above don't come between them.
+  const jumpNotice = data.jump?.notice && (
+    <Notice tone="info" role="status" data-jump-notice="">
+      {data.jump.notice}
+    </Notice>
+  );
+
   return (
     <>
       <section
         ref={list}
         aria-labelledby="timeline-heading"
-        className={`space-y-4 ${COLUMN_CAP}`}
+        className={`space-y-4 ${COLUMN_CAP} ${data.jump ? "pb-16" : ""} ${data.jump?.bounded ? "[overflow-anchor:none]" : ""}`}
         data-easy-list={easy ? "" : undefined}
       >
         <h2 id="timeline-heading" className="sr-only">
@@ -296,8 +320,13 @@ export function TimelineEntryList({
         <p role="status" className="sr-only" data-search-status>
           {announcement}
         </p>
+        {data.jump && (
+          <NewerEntries newer={data.newer} armed={landed} empty={data.days.length === 0} list={list} />
+        )}
+        {!sections.some((day) => day.key === data.jump?.noticeDay) && jumpNotice}
         {sections.map((day) => (
           <section key={day.key} aria-labelledby={`day-${day.key}`}>
+            {day.key === data.jump?.noticeDay && <div className="mb-4">{jumpNotice}</div>}
             <DayHeader
               dayKey={day.key}
               label={day.label}
@@ -350,6 +379,7 @@ export function TimelineEntryList({
         {/* After the headings, so a writer's empty timeline starts with Today's +. */}
         {data.days.length === 0 &&
           !emptyToday &&
+          !data.jump?.notice &&
           (emptyMark ? (
             <EmptyState {...emptyMark} data-empty="">
               {emptyText}
@@ -367,6 +397,7 @@ export function TimelineEntryList({
           endText={searching.q ? SEARCH_END_TEXT : undefined}
         />
       </section>
+      {data.jump && <BackToToday groupId={groupId} />}
 
       <ConfirmDialog
         open={removal.asking}
