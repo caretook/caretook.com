@@ -52,7 +52,9 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
         <PlannerHeader
           view="upcoming"
           show={show}
-          author={author && authorName ? { name: authorName, image: data.imageOf(author) } : null}
+          author={
+            author && authorName ? { userId: author, name: authorName, image: data.imageOf(author) } : null
+          }
         />
       )}
       {/* Undo after ticking a todo in the list. */}

@@ -7,6 +7,8 @@ import { avatarColorClass, avatarIconGlyph } from "./avatarLook";
 const SIZE = {
   /** 20px: inside a chip. */
   xs: "size-5 text-[0.6rem]",
+  /** 24px: an author on a timeline or Planner row. */
+  row: "size-6 text-[0.65rem]",
   /** 28px: editor avatars. */
   sm: "size-7 text-[0.7rem]",
   /** 32px: the account menu's button. */

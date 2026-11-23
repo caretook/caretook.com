@@ -5,7 +5,6 @@ import { useId, useState } from "react";
 import { Link } from "react-router";
 import { AuthorFilterLink, KindFilterLink, MedicationHeading } from "~/components/entry";
 import { Chevron, Collapse } from "~/components/ui";
-import { initials } from "~/lib/timeline/entryDisplay";
 import { formatTime } from "~/lib/core/format";
 import { passLogText } from "~/lib/medications/medicationDisplay";
 import { medicationEntryText } from "~/lib/medications/medicationEntries";
@@ -124,12 +123,7 @@ export function PassLogItem({
       </div>
       {!cards && (
         <div className={`${ASIDE_CLASS} w-8`} data-entry-aside>
-          <AuthorFilterLink
-            userId={author}
-            name={authorName}
-            initials={initials(authorName)}
-            image={authorImage}
-          />
+          <AuthorFilterLink userId={author} name={authorName} image={authorImage} circle />
         </div>
       )}
     </li>
