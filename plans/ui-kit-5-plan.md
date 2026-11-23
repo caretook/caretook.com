@@ -20,6 +20,10 @@
 
 **Backlog:** B-577 marked done at slice 7's merge.
 
+**After landing:** message `fixes-bug-d0` (SendMessage) that wave 3 is in dev. Its B-620 (day headers repeat a care period day number) and B-631 (Back can skip the discard prompt after a refused action) wait on `routes/app/groups/timeline/`.
+
+**Gate on 06b21030:** quick check passed; browser checks passed once each (app-shell, sign-in, first-sync, session-end, invites, ui); full CI requested. `ui-kit.md` folded.
+
 ## Durable decisions
 
 - **A sweep keeps behaviour:** same URLs, roles, data, labels, order, `data-*` hooks, focus and accessible names. No migration, no dependency, no change to a loader, sync query, service, email or print layout.
