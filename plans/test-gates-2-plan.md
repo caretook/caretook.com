@@ -7,7 +7,7 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 | Slice                                          | Wave | State                     | Merge    |
 | ---------------------------------------------- | ---- | ------------------------- | -------- |
 | 1. The browser suite runs in CI                | 1    | landed 06309608 (PR #118) | e3169ce8 |
-| 2. Browser results, reruns and flakes          | 2    | started (opus)            |          |
+| 2. Browser results, reruns and flakes          | 2    | merged (opus)             | 186a23c3 |
 | 3. A release candidate                         | 3    | not started               |          |
 | 4. Promotion refuses what isn't passing        | 3    | not started               |          |
 | 5. The release tier                            | 4    | not started               |          |
@@ -17,7 +17,9 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 
 **Now:** wave 1 landed in `dev` as 06309608 through PR #118 (Codex clean, `candidate` run 45193491778 green on 83bb5796, 11 of 11 browser checks). Slice 1's worktree is removed. B-661 (roundtrip's add timing) is done; B-532 stays open for slices 3 and 4, B-533 for 5 and 6. Report filed.
 
-**Next:** wave 2 is running. Synced with `dev` at 88971fe1, no new backlog items for this topic. Slice 2's worktree is made and its opus agent spawned, told to request no CI run until approved. On its hand-off: review, merge, quick check, then the proof run and the wave's `candidate` run once approved.
+**Next:** wave 2's slice is merged (186a23c3, from e3c1c992); its forced-flake proof run 45198526790 read `flake`. Now: the quick check, then the wave's `candidate` run on the tip. Keep slice 2's worktree until that verdict is green. B-532 stays open for slices 3 and 4.
+
+**For slice 4:** the gate must refuse a `flake` when any `flaky[].brake` is true; slice 2 only sets the flag. **For slice 5:** reuse `runBrowserJob` and `summarizeBrowser` for repeat runs.
 
 **CI approval:** covered wave 1 only. a134 reads "this topic's runs", but the backlog session relayed the user's narrower word. **Wave 2 is approved (a140, the user's yes):** the slice's proof run(s) with a check forced to fail once, and the wave's `candidate` gate plus any rerun after a fix. **It doesn't cover wave 3 or later: file a new ask (`--waits`, after a skeptic) before their first run.** The permission classifier denied agents' `pnpm prd ci run` until the user allowed it; never work around a denial.
 
