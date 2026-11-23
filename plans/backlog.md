@@ -106,6 +106,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `timeline-jump` | — | `quick-entry-2` | `apps/web/app/lib/timeline/timeline.sync.ts`, `apps/web/app/lib/timeline/timelineFilters.ts`, `apps/web/app/lib/providers/providers.sync.ts`, `apps/web/app/lib/medications/medicationTimeline.sync.ts`, `apps/web/app/lib/care-periods/periodMarkers.ts`, `apps/web/app/routes/app/groups/timeline/useTimelineData.ts`, `apps/web/app/routes/app/groups/timeline/timelineRows.ts`, `apps/web/app/routes/app/groups/timeline/timelinePaging.ts`, `apps/web/app/routes/app/groups/timeline/daySummaryRows.ts`, `apps/web/app/routes/app/groups/timeline/TimelineEntryList.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/timeline/route.tsx`, `apps/web/app/components/quick-entry/`, `packages/data/src/db/schema/assistant/quickEntryTime` | Jump to a date on the timeline, by picker and quick entry (B-557) |
 | `orchestration-split` | hold | — | — | Held until after launch by the user (B-543): extract the orchestration tooling or replace it with a prebuilt one |
 | `member-avatars` | — | `onboarding`, `ui-kit-5` | `packages/data/src/db/schema/auth/user.ts`, `packages/data/src/models/user/userModel.ts`, `packages/data/src/permissions/blocks.ts`, `packages/api/src/app-shell/me.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/app-shell/me.ts`, `apps/web/app/components/ui/UserAvatar.tsx`, `apps/web/app/components/ui/AvatarStack.tsx`, `apps/web/app/components/notes/EditorAvatars.tsx`, `apps/web/app/components/entry/KindIcon.tsx`, `apps/web/app/routes/app/settings/account/`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `apps/web/app/routes/app/groups/settings/members/`, `apps/web/app/routes/app/groups/timeline/TimelineEntryRow.tsx`, `apps/web/app/routes/app/groups/timeline/PassLogItem.tsx`, `apps/web/app/routes/app/groups/timeline/TimelineFilters.tsx`, `apps/web/app/routes/app/groups/planner/`, `scripts/browser-checks/roundtrip.spec.mjs` | Released 2026-11-23 by the user. Members choose an avatar color and icon; no photos or image storage. |
+| `onboarding-2` | hold | — | — | — |
 
 ## Summary
 
@@ -327,10 +328,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-662 | bug | triaged | fixes-bug |  | Quick entry guesses the amount when a bare number matches the strength: 'gave lisinopril 10' at 10 mg with a usual 2 tablets records 2 tablets |
 | B-663 | bug | triaged | fixes-ui |  | Menu section headings sit too close to the items above: Day summaries in the Timeline view menu is hard to read |
 | B-664 | bug | triaged | fixes-ui |  | Mobile bottom nav rides up with the on-screen keyboard and covers content while typing; hide it while the keyboard is open |
-| B-665 | change | triaged | fixes-ui |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
+| B-665 | change | triaged | onboarding-2 |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
 | B-666 | bug | triaged | fixes-bug |  | Signing up at the join link doesn't prompt the password manager to save the new password |
 | B-667 | chore | triaged | fixes-tooling |  | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
 | B-668 | change | triaged | fixes-ui |  | Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus |
+| B-669 | feature | triaged | onboarding-2 |  | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
+| B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a Later exit and a Want help onboarding? toast |
 
 ## Items
 
@@ -2563,7 +2566,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 ### B-665 · change · Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps
 
 - status: triaged
-- prd: fixes-ui
+- prd: onboarding-2
 - owner:
 - commit:
 
@@ -2596,3 +2599,22 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): From the user, 2026-11-23. Read from the code, not reproduced: the shared ComboBox uses menuTrigger=focus (apps/web/app/components/ui/ComboBox.tsx:93), and conditionSuggestions returns the first 20 names when nothing is typed, so the list opens unfiltered as soon as the field is focused. Wanted: nothing on focus with an empty field; on the first character, open the list filtered by the existing word-prefix match; clearing the field closes it. ComboBox is shared by eight other pickers (providers, places, assignees, links and more), which rely on browsing on focus, so make this an option used by ConditionNameField only. If the reported symptom is instead that the list fails to open on the first character, fix that too. Check on a phone, where the keyboard limits the room for the list.
+
+### B-669 · feature · Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast
+
+- status: triaged
+- prd: onboarding-2
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): From the user, 2026-11-23: wants to make heavy use of toasts; agreed no new dependency. First slice of onboarding-2; B-665 (Invite someone toast) builds on it. Use react-aria-components 1.22.1's toast (UNSTABLE_ToastRegion, UNSTABLE_ToastList, UNSTABLE_Toast, UNSTABLE_ToastQueue) only inside ui/, wrapped by the existing ui/Toast, with daisyUI styling. The UNSTABLE_ exports may change on upgrade, so screens must never import them. Needs: a queue so toasts don't overlap, optional action, dismiss, Undo, caller-set timing, reduced motion. Migrate UpdateNotice and AddedMedicationToast. Prove it first on a real phone, above the tab bar and with the keyboard open (see B-664); if it falls short, extend our own component rather than add a library. Usage rules for components.md: toasts for finished actions, Undo, background news and one-time nudges. Not for errors to fix, medically important information, the only path to an action, or the only signal of unsynced changes. Don't sweep the inline Message uses; move one only where a toast is clearly better.
+
+### B-670 · feature · Onboarding on its own pages with inline forms, providers first, a Later exit and a Want help onboarding? toast
+
+- status: triaged
+- prd: onboarding-2
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): From the user, 2026-11-23. Move onboarding off the Timeline card onto its own pages, with forms to do each action inline. Dismissable with 'Later, take me to caretook!'. If items are still missing, the user gets a 'Want help onboarding?' toast on login, and periodically while their attention is on the app. First step is providers, because the other items link to them. Code read: providers are linked from medications (prescriber_id), condition managers, entries (entry_provider), notes, todos, care periods (place_provider_id) and event series (provider_ids). Today's steps are profile, medication, entry, invite (managers), plus a connect pointer (gettingStarted.ts); there is no provider step or hasProvider fact, so both are new. ProviderForm and MedicationForm take onDone/onCancel and look reusable inline; confirm. Routes must be shared-route safe (clientLoader, local database, no server loader) and work offline. Nothing in the app tracks page visibility or focus yet, so the attention check is new. Depends on B-669 (shared toast system). Replaces GettingStartedCard on both timelines, including Easy view; update its tests and app-shell.md, timeline.md.
+- 2026-11-23 (Robert Bo Davis): From the user, 2026-11-23: first login takes them directly to the onboarding forms flow page, not the Timeline. The redirect must work offline and on the native target (clientLoader or client navigation, no server redirect), and must happen only once, so 'Later' is never undone by the next login.
