@@ -90,19 +90,21 @@ describe("a bare number at the strength with a usual dose of several units (B-66
     const device = await open();
     await type(LINE, ["dose"]);
     await waitUntil(() => !!cards()[0]?.querySelector("[data-quick-blocking]"), "the question");
-    expect(cards()[0]!.querySelector("[data-quick-blocking]")?.textContent).toContain("Choose the amount");
+    await expect
+      .poll(() => cards()[0]?.querySelector("[data-quick-blocking]")?.textContent)
+      .toContain("Choose the amount");
     expect(saveButton()?.disabled).toBe(true);
     expect(await doses(device)).toEqual([]);
 
     await userEvent.click(page.getByRole("button", { name: "2 tablets", exact: true }));
     await waitUntil(() => !cards()[0]?.querySelector("[data-quick-blocking]"), "the choice");
-    expect(cards()[0]!.textContent).toContain("Given 2 tablets");
+    await expect.poll(() => cards()[0]?.textContent).toContain("Given 2 tablets");
     await userEvent.click(await found(saveButton));
     await expect.poll(status).toBe("Saved 1 entry");
 
     const saved = await doses(device);
     expect(saved).toHaveLength(1);
-    expect(JSON.parse(saved[0]!.details)).toMatchObject({
+    expect(JSON.parse(saved[0]?.details ?? "null")).toMatchObject({
       medicationId: ACETAMINOPHEN.id,
       amount: "2 tablets",
     });
