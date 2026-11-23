@@ -1,6 +1,6 @@
 # Plan: The skeptic (agent autonomy, part 3)
 
-> Source PRD: [`plans/agent-autonomy-3-prd.md`](agent-autonomy-3-prd.md). User-story numbers (US) refer to it. Backlog items B-511 (a skeptic before every ask), B-512 (a skeptic before risky landings), B-513 (opus planners with a Fable final check, the `design` flag). Topic `agent-autonomy-3`, after `agent-autonomy` and `agent-autonomy-2`.
+> Source PRD: [`plans/agent-autonomy-3-prd.md`](agent-autonomy-3-prd.md). User-story numbers (US) refer to it. Backlog items B-511 (a skeptic before every ask), B-512 (a skeptic before risky landings), B-513 (opus planners with an Opus final check, the `design` flag). Topic `agent-autonomy-3`, after `agent-autonomy` and `agent-autonomy-2`.
 
 ## Status
 
@@ -18,7 +18,7 @@ Fold into the docs at landing (the PRD's _Docs at landing_): wave 1, [machinery]
 ## Architectural decisions
 
 - **Tooling only:** `scripts/loops/`, `scripts/backlog/registry`, their tests, prompts. No app code, no migration, no dependency.
-- **The skeptic is a subagent the session spawns on Fable**; the tooling gives it a brief and checks its record. Nothing in the tooling calls a model.
+- **The skeptic is a subagent the session spawns, on Fable for a risky landing and on Opus for an ask or a plan**; the tooling gives it a brief and checks its record. Nothing in the tooling calls a model.
 - **Pure decision, thin command:** the record checker and the briefs are functions tested alone.
 - **The never list is never decided by a skeptic**, and a skeptic's go never replaces the landing go-ahead itself.
 - **Records live in the main checkout's `.loops/.skeptic/`**, untracked, written atomically; tests use temporary directories.
@@ -55,7 +55,7 @@ Stack: no · Reads: docs/agents/machinery.md, docs/agents/orchestrator.md, docs/
 
 **User stories:** US 1, 2, 3, 4.
 
-**Build:** the PRD's _Asking_. `pnpm prd ask --question` needs `--skeptic <id>` with an `ask` verdict (the dispatcher's session `dispatch` exempt, on the honor system; reports exempt; also accepted: a land `no` and a plan `send-back`); the record is marked used; `--decided --skeptic <id> --chose <a>` files a settled record, never pushed, listed under "decided for you" and dismissed like a defaulted one. The run-through orchestrator's and unattended planner's prompts: write the evidence, run the skeptic on Fable, record, then ask or file the decision.
+**Build:** the PRD's _Asking_. `pnpm prd ask --question` needs `--skeptic <id>` with an `ask` verdict (the dispatcher's session `dispatch` exempt, on the honor system; reports exempt; also accepted: a land `no` and a plan `send-back`); the record is marked used; `--decided --skeptic <id> --chose <a>` files a settled record, never pushed, listed under "decided for you" and dismissed like a defaulted one. The run-through orchestrator's and unattended planner's prompts: write the evidence, run the skeptic on Opus, record, then ask or file the decision.
 
 **Acceptance criteria:**
 
