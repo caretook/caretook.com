@@ -308,7 +308,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-550 | feature | triaged | todo-subtasks |  | Nested todos: subtasks up to 3 levels deep, a parent completes when its last subtask is done |
 | B-551 | feature | triaged | inbox-agent |  | 'bye' for every agent role: a message of just 'bye' runs a handover check; nothing left means the session closes itself, otherwise it asks the user what to do with what's left |
 | B-552 | bug | landed | fixes-tooling |  | Flaky: print.browser.test.tsx 'the Print menu offers both sheets' clicks getByLabel('Print') while the closing menu, with the same label, is still fading, so the locator matches two elements |
-| B-553 | change | in-progress | test-gates | prd/test-gates | Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent |
+| B-553 | change | ready | test-gates | prd/test-gates | Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent |
 | B-554 | change | ready | test-gates | prd/test-gates | CI runs only on request: the orchestrator asks for a tier (static, unit, integration, components, full) on any branch, and the landing gate checks for a green run of the tier it declared; no automatic run on a PR or a push |
 | B-557 | feature | triaged | timeline-jump |  | quick date jump on timeline via date picker AND quick entry |
 | B-558 | feature | ready | assistant-access | prd/assistant-access | Assistants settings needs to allow owner to enable read/write or stick to read only for group… |
@@ -336,14 +336,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-582 | bug | triaged | fixes-tooling |  | MCP rate-limit integration test times out at 5 s under machine load |
 | B-583 | change | triaged | fixes-ui |  | Connector wording still says appointment: tool and prompt text, its kind: appointment output and the consent text; decide whether they move to Event (a consent change may need a version bump) |
 | B-584 | chore | triaged | fixes-tooling |  | Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone |
-| B-585 | bug | in-progress | fixes-ui | prd/fixes-ui | Stepping an event's hour up from 11 AM wraps to 12 AM the same day, not 12 PM, so Ends shows 'Must be after the start' |
+| B-585 | bug | ready | fixes-ui | prd/fixes-ui | Stepping an event's hour up from 11 AM wraps to 12 AM the same day, not 12 PM, so Ends shows 'Must be after the start' |
 | B-586 | bug | triaged | fixes-tooling |  | Phone notifications from the backlog session never arrive |
 | B-587 | bug | ready | test-gates | prd/test-gates | ci blame calls a failure the branch's when dev's comparison run skipped it as quarantined |
 | B-588 | bug | ready | test-gates | prd/test-gates | ci blame says every failure is dev's when a flake hides an unnamed job failure |
 | B-589 | bug | ready | test-gates | prd/test-gates | ci blame calls a named failure dev's when dev only failed to load the test file |
 | B-590 | bug | ready | test-gates | prd/test-gates | ci blame calls a branch's file-level failure dev's when dev only fails a named test in that file |
 | B-591 | bug | triaged | fixes-bug |  | Quick entry reads a fraction after the medication as a date: 'gave tylenol 3/8' logs the usual dose on March 8 |
-| B-592 | change | in-progress | fixes-ui | prd/fixes-ui | Planner event card: replace the narrow time column with a footer-actions layout |
+| B-592 | change | ready | fixes-ui | prd/fixes-ui | Planner event card: replace the narrow time column with a footer-actions layout |
 | B-593 | feature | triaged | member-avatars |  | Choose your avatar: a color and icon instead of plain initials |
 | B-594 | change | triaged | fixes-ui |  | Manage allergies on the Profile page; Medications keeps a read-only summary |
 | B-595 | chore | triaged | fixes-tooling |  | Slice agents read only their slice's section and the PRD decisions it cites, not the whole plan and PRD |
@@ -354,8 +354,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-600 | change | triaged | fixes-tooling |  | Context watch: a soft limit where the agent decides and a hard limit where it hands off, set per agent type |
 | B-601 | bug | triaged | fixes-bug |  | Back right after a failed sheet save skips the discard prompt and loses the edits: the leaving flag stays set until the next touch |
 | B-602 | bug | triaged | fixes-bug |  | Discard prompt misfires or is missed: a sync after the first touch reads as a change, a record deleted elsewhere can prompt, and Back with an unguarded sheet on top of a changed one does not ask |
-| B-603 | change | in-progress | fixes-ui | prd/fixes-ui | Extend the unsaved-changes guard to InviteSheet, InviteLinks, provider import, RepeatSheet and VisitPrepSheet |
+| B-603 | change | ready | fixes-ui | prd/fixes-ui | Extend the unsaved-changes guard to InviteSheet, InviteLinks, provider import, RepeatSheet and VisitPrepSheet |
 | B-604 | chore | triaged | fixes-tooling |  | Test Discard under reduced motion in the sheet guard |
+| B-605 | bug | triaged | fixes-bug |  | PageUp and PageDown on a date field's hour still wrap inside AM/PM, so 11 AM can page to 12 AM |
 
 ## Items
 
@@ -2352,10 +2353,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-553 · change · Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent
 
-- status: in-progress
+- status: ready
 - prd: test-gates
 - owner: prd/test-gates
-- commit:
+- commit: 490eb14a
 
 - 2026-11-22 (Robert Bo Davis): From the 2026-11-22 quick-check triage with the user (check log: 111 quick runs, median 7.9 min, 30 failed). The slice check itself ships in hotfix/fast-gate; test-gates owns the orchestrator side: agents stay idle and addressable until the wave's run is back, release their stack at hand-off, and the orchestrator does not rotate before then.
 - 2026-11-22 (Robert Bo Davis): VERIFY AFTER test-gates LANDS (user, 2026-11-22): the 20-minute quick-check limit stays for now, though the slowest passing quick check on record took 28 minutes under load. The user expects the quick check to speed up once browser tests are out of the unit tests, which should come with test-gates. After it lands, compare quick-check times (pnpm prd check --times) against the limit; if healthy checks can still reach 20 minutes, raise it with the user.
@@ -2627,10 +2628,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-585 · bug · Stepping an event's hour up from 11 AM wraps to 12 AM the same day, not 12 PM, so Ends shows 'Must be after the start'
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 6af2f056
 
 - 2026-11-22 (prd/fixes-ui): Found by fixes-ui slice 13 (B-535). React Aria's 12-hour segment wraps inside AM/PM; stock behaviour that predates the slice. Affects keyboard stepping in DateTimeField.
 
@@ -2690,10 +2691,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-592 · change · Planner event card: replace the narrow time column with a footer-actions layout
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 6af2f056
 
 - 2026-11-22 (Robert Bo Davis): User report from staging (phone width, 2026-11-22): the card is still ugly after B-256 and B-416 moved call, directions and initials under the time. Cause: UpcomingRow's 5.5rem when column wraps the time and stacks the actions and initials into a tall block. User's chosen layout: kind icon on the left and the ⋯ menu on the right; the time on one line above the title, with the repeat mark beside it; then title, with-line and address at full width; a footer row with labelled Call and Directions buttons on the left and the author's initials on the right. Drop the address line's duplicate map pin. A card with no actions has no footer row, and its initials sit at the end of the last line. Keep the whole-row link, filter links, read-only Easy mode and cancelled state. Check whether PlannerTodoRow should match. Triage: fixes-ui, a layout change on one screen.
 
@@ -2771,6 +2772,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-22 (Robert Bo Davis): The user: complex coding runs on Opus, so agents have a 1M window. Opus 5.5 is listed at 1M, and a recent session's cache read reached 235k, past any 200k cap. Today limitOf in scripts/loops/context.mjs gives every session and subagent one 160k limit, about 16% of the window, so slice agents hand off far too early (B-528 slice 6 needed three). Proposed start: 300k for slice agents, tuned from real runs. Update docs/agents/loop.md and machinery.md, which state 160k. Pairs with B-595 and B-596. Runs after test-gates with the rest of fixes-tooling. Exact number awaits the user's review.
 - 2026-11-22 (Robert Bo Davis): Replaces the single raised limit (user, 2026-11-22: soft and hard limits, the agent decides whether the work is worth continuing; numbers left to us). Slice agents: soft 175k, hard 300k. Orchestrators and backlog sessions: soft 160k, hard 225k. Soft: one reminder asking the agent to judge: continue if it is mid-change or holds understanding a fresh agent would pay to rebuild, hand off at a natural boundary, and say which in its hand-off. Repeat only every further 25k, not every 10 minutes. Hard: commit and hand off now; repeats on every tool call and --keep cannot silence it. Still never blocks a tool call, so uncommitted work is not stranded. The dispatcher's nudge, question and rotation start at the hard limit, not the soft one. --keep is refused on slice branches today, so a slice's decision needs no command. Touches context.mjs, dispatch-context.mjs, their tests, loop.md and machinery.md.
 - 2026-11-22 (Robert Bo Davis): User chose a hotfix in its own session for the slice-agent part only (soft 175k, hard 300k): session backlog - slice-context-limits. Orchestrator limits and the dispatcher stay here, after test-gates.
+- 2026-11-22 (Robert Bo Davis): Slice-agent part landed in dev as 86447987 (local hotfix): every orchestrator subagent now has soft 175k (judge, repeats every further 25k) and hard 300k (hand off on every tool call), as constants. Worktree-launched orchestrators get it at their next pnpm prd sync on the prd/ branch; sessions launched from the main checkout get it at once. Remains here, after test-gates: orchestrator and backlog soft 160k and hard 225k, and moving the dispatcher to the hard limit. Known hole, not fixed: pnpm prd context --keep from a subagent outside a slice/ branch mutes its orchestrator for 30 minutes.
 
 ### B-601 · bug · Back right after a failed sheet save skips the discard prompt and loses the edits: the leaving flag stays set until the next touch
 
@@ -2789,13 +2791,14 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (prd/fixes-ui): Known gaps from slice 14 (B-316).
+- 2026-11-22 (prd/fixes-ui): Also from fixes-ui slice 17 (B-603), read from useSheetExit and not reproduced: under reduced motion the discarded flag is not reset on a sheet that stays mounted, so a reopened guarded sheet may stop asking. Slice 17's invite sheets avoid it by rendering only while open.
 
 ### B-603 · change · Extend the unsaved-changes guard to InviteSheet, InviteLinks, provider import, RepeatSheet and VisitPrepSheet
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 18180d36
 
 - 2026-11-22 (prd/fixes-ui): Left unguarded by slice 14 (B-316).
 
@@ -2807,3 +2810,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (prd/fixes-ui): Gap from slice 14 (B-316).
+
+### B-605 · bug · PageUp and PageDown on a date field's hour still wrap inside AM/PM, so 11 AM can page to 12 AM
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-22 (prd/fixes-ui): Found by fixes-ui slice 15 (B-585), which fixed the arrow keys only.
