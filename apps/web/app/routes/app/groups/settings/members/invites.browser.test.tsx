@@ -306,3 +306,79 @@ describe("Pending invitations", () => {
     await expect.element(page.getByRole("alert")).toHaveTextContent("That invitation is no longer waiting.");
   });
 });
+
+describe("the invite sheets ask before losing changes (B-603)", () => {
+  const asked = () => document.querySelector("dialog[open]") !== null;
+  const close = () => userEvent.click(page.getByRole("button", { name: "Close" }));
+  const discard = () => userEvent.click(page.getByRole("button", { name: "Discard" }));
+  const linkButton = () => page.getByRole("button", { name: "Create a link" });
+  const linkSheet = () => document.querySelector<HTMLElement>("[data-link-sheet]");
+  const roleValue = (root: HTMLElement | null) =>
+    root?.querySelector<HTMLSelectElement>('select[name="role"]')?.value;
+
+  test("Invite by email: a changed form asks, Discard closes, and the next open starts fresh and asks again", async () => {
+    await open();
+    await userEvent.click(inviteButton());
+    await userEvent.fill(page.getByLabelText("Email", { exact: true }), "avery.invited@example.com");
+    await userEvent.selectOptions(page.getByLabelText("Role"), "viewer");
+    await close();
+    await expect.poll(asked).toBe(true);
+    await discard();
+    await expect.poll(sheet).toBeNull();
+
+    await userEvent.click(inviteButton());
+    await expect.element(page.getByLabelText("Email", { exact: true })).toHaveValue("");
+    await expect.poll(() => roleValue(sheet())).toBe("caretaker");
+    await userEvent.fill(page.getByLabelText("Email", { exact: true }), "avery.invited@example.com");
+    await close();
+    await expect.poll(asked).toBe(true);
+  });
+
+  test("Invite by email: an unchanged form closes without asking", async () => {
+    await open();
+    await userEvent.click(inviteButton());
+    await close();
+    await expect.poll(sheet).toBeNull();
+    expect(asked()).toBe(false);
+  });
+
+  test("Invite by email: a successful send closes without asking", async () => {
+    await open({ api: { "invite.createEmail": () => ({ email: "avery.invited@example.com" }) } });
+    await userEvent.click(inviteButton());
+    await userEvent.fill(page.getByLabelText("Email", { exact: true }), "avery.invited@example.com");
+    await userEvent.click(page.getByLabelText(ATTESTATION_TEXT));
+    await userEvent.click(page.getByRole("button", { name: "Send invitation" }));
+    await expect.poll(sheet).toBeNull();
+    expect(asked()).toBe(false);
+  });
+
+  test("Create a link: a changed form asks, Discard closes, and the next open starts fresh", async () => {
+    await open();
+    await userEvent.click(linkButton());
+    await userEvent.selectOptions(page.getByLabelText("Role"), "caretaker");
+    await close();
+    await expect.poll(asked).toBe(true);
+    await discard();
+    await expect.poll(linkSheet).toBeNull();
+
+    await userEvent.click(linkButton());
+    await expect.poll(() => roleValue(linkSheet())).toBe("viewer");
+  });
+
+  test("Create a link: an unchanged form closes without asking", async () => {
+    await open();
+    await userEvent.click(linkButton());
+    await close();
+    await expect.poll(linkSheet).toBeNull();
+    expect(asked()).toBe(false);
+  });
+
+  test("Create a link: a successful create closes without asking", async () => {
+    await open({ api: { "invite.createLink": () => ({ id: "link-1" }) } });
+    await userEvent.click(linkButton());
+    await userEvent.selectOptions(page.getByLabelText("Role"), "caretaker");
+    await userEvent.click(page.getByRole("button", { name: "Create link", exact: true }));
+    await expect.poll(linkSheet).toBeNull();
+    expect(asked()).toBe(false);
+  });
+});

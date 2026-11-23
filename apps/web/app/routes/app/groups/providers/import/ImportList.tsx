@@ -151,8 +151,12 @@ export function ImportList({
         </p>
       )}
 
-      <div className="flex justify-end gap-2">
-        <button type="button" className="btn btn-ghost" onClick={onDone}>
+      <div className="flex justify-end gap-2" data-import-picks>
+        {/* What the sheet's guard watches: a tick stays here while a search hides its row. */}
+        {ticked.map((id) => (
+          <input key={id} type="hidden" name="picked" value={id} />
+        ))}
+        <button type="button" className="btn btn-ghost" data-form-cancel="" onClick={onDone}>
           Done
         </button>
         <button

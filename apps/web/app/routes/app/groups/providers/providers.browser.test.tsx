@@ -444,6 +444,62 @@ describe("importing from another group (B-48)", () => {
     // The source group is untouched.
     expect(await device.query("SELECT id FROM provider WHERE group_id = ?", [SECOND])).toHaveLength(6);
   });
+
+  describe("asking before losing ticks (B-603)", () => {
+    const SHEET = () => document.querySelector("[role=dialog] [data-import-sheet]");
+    const asked = () => document.querySelector("dialog[open]") !== null;
+    const close = () => userEvent.click(page.getByRole("button", { name: "Close" }));
+    const search = async (text: string) =>
+      userEvent.fill(await found(() => document.querySelector("[role=dialog] input[type=search]")), text);
+    const ready = async () => {
+      await openSheet();
+      await waitUntil(() => rows().length > 0, "the second group's providers");
+    };
+
+    test("a tick asks, and Discard closes", async () => {
+      await ready();
+      await tick("Dr. Nia Okafor");
+      await close();
+      await expect.poll(asked).toBe(true);
+      await userEvent.click(page.getByRole("button", { name: "Discard" }));
+      await expect.poll(SHEET).toBeNull();
+    });
+
+    test("a tick a search has hidden still asks", async () => {
+      await ready();
+      await tick("Dr. Nia Okafor");
+      await search("Rivera");
+      await expect.poll(() => rows().map((r) => r.name)).toEqual(["Dr. Ana Rivera"]);
+      await close();
+      await expect.poll(asked).toBe(true);
+    });
+
+    test("no ticks closes without asking, even after a search", async () => {
+      await ready();
+      await search("Rivera");
+      await close();
+      await expect.poll(SHEET).toBeNull();
+      expect(asked()).toBe(false);
+    });
+
+    test("after a successful import, Close doesn't ask", async () => {
+      await ready();
+      await tick("Dr. Nia Okafor");
+      await userEvent.click(await found(SUBMIT));
+      await expect.poll(STATUS).toContain("Imported");
+      await close();
+      await expect.poll(SHEET).toBeNull();
+      expect(asked()).toBe(false);
+    });
+
+    test("Done leaves without asking", async () => {
+      await ready();
+      await tick("Dr. Nia Okafor");
+      await userEvent.click(page.getByRole("button", { name: "Done" }));
+      await expect.poll(SHEET).toBeNull();
+      expect(asked()).toBe(false);
+    });
+  });
 });
 
 describe("the page title", () => {

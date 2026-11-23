@@ -70,7 +70,13 @@ export default function ImportProvidersSheet({ loaderData }: Route.ComponentProp
   const [from, setFrom] = useState(groups.length === 1 ? groups[0]!.id : "");
   const source = groups.find((g) => g.id === from);
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && close()} title={IMPORT_TITLE}>
+    // Only the ticks are work to lose: searching or choosing a group isn't.
+    <Sheet
+      guardChanges="[data-import-picks]"
+      isOpen
+      onOpenChange={(open) => !open && close()}
+      title={IMPORT_TITLE}
+    >
       <div className="space-y-4" data-import-sheet>
         <ChoiceGroup
           name="from"
