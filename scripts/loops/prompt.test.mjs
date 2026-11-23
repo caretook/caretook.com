@@ -92,8 +92,16 @@ describe("orchestrator", () => {
       expect(out).toContain("resolve each answered thread");
       expect(out).toContain("`review --again` until clean");
       expect(out).toContain("After about three rounds, ask the user");
-      expect(out).toContain("`--no-review` only when they say so");
-      expect(out).toContain('or when Codex is out of credits: `review` exits 4 with "codex: out of credits"');
+      expect(out).toContain(
+        "`--force` and `--no-review` each need a Fable land skeptic's `go` for this tip and action",
+      );
+      expect(out).toContain("on a brake or an unsynced tip `--force` needs `--by-user`");
+      expect(out).toContain("Before declining a finding");
+      expect(out).toContain('`--action "decline <thread>"`');
+      expect(out).toContain("a `no` makes it a backlog item");
+      expect(out).toContain(
+        'needs neither when Codex is out of credits: `review` exits 4 with "codex: out of credits"',
+      );
       expect(out).toContain(
         "When the wave's diff is docs only (Markdown files, nothing else), don't run or wait for `pnpm prd review`: open the PR with `pnpm prd pr T` and land.",
       );
@@ -131,13 +139,12 @@ describe("orchestrator", () => {
     expect(out).toContain("record the landing mode in the plan's _Status_, then start the first ready wave.");
   });
 
-  it("--auto: a landing declares its tier, and --force is never named", () => {
+  it("--auto: a landing declares its tier", () => {
     for (const flags of [["--auto"], ["--resume", "--auto"]]) {
       const out = ok("orchestrator", "T", ...flags);
       expect(out).toContain('`pnpm prd land T --tier <t> -m "<subject>"`');
       expect(out).toContain("land typechecks the merge and lands the unsynced tip");
       expect(out).toContain("the next wave syncs as usual");
-      expect(out).not.toContain("--force");
     }
   });
 
@@ -157,7 +164,7 @@ describe("orchestrator", () => {
       expect(out).toContain("--recommend <a> --defaults` (or `--waits`, below)");
       expect(out).toContain("Pass `--defaults` on it: if no one answers within 30 minutes, the tool takes");
       expect(out).toContain(
-        "Pass `--waits` instead for the questions that never default: money (a paid service too), data loss or a change to existing data, a live deploy (staging or production), a destructive step (deleting unmerged work, a forced push or landing), a new dependency (AGENTS.md: the user's approval), and compliance",
+        "Pass `--waits` instead for the questions that never default: money (a paid service too), data loss or a change to existing data, a live deploy (staging or production), a destructive step (deleting unmerged work, a forced push), a new dependency (AGENTS.md: the user's approval), and compliance",
       );
       expect(out).toContain("The tool, never you, puts the recommendation in place of an answer");
       expect(out).toContain("`to-test/<date>-<time>-<topic>.md`");
@@ -361,6 +368,40 @@ describe("plan and backlog", () => {
     expect(plan).toContain("report the decisions you assumed");
   });
 
+  it("both asking paragraphs send a question past a fresh Opus skeptic, then ask or file the decision", () => {
+    for (const out of [ok("orchestrator", "T", "--auto"), ok("plan", "T", "--auto", "B-1")]) {
+      expect(out).toContain("**A fresh skeptic reads every question first.**");
+      expect(out).toContain("`pnpm prd prompt skeptic ask --evidence <file>`");
+      expect(out).toContain('`model: "opus"`');
+      expect(out).toContain("`pnpm prd skeptic record --kind ask --verdict <decide|ask>");
+      expect(out).toContain('--option "<b>" --skeptic <id> --recommend <a> --defaults`');
+      expect(out).toContain("`pnpm prd ask --decided --skeptic <id> --topic T");
+      expect(out).toContain("with no PushNotification and no wait");
+      expect(out).toContain("A `--waits` question is never decided");
+      expect(out).toContain("a land `no` or a plan `send-back` already counts");
+    }
+    // A terminal the user is watching gets no skeptic.
+    for (const out of [ok("orchestrator", "T"), ok("plan", "T", "B-1")])
+      expect(out).not.toContain("A fresh skeptic reads every question");
+  });
+
+  it("both planner prompts run the skeptic from the plan brief, with send-back and one retry", () => {
+    for (const plan of [ok("plan", "T"), ok("plan", "T", "--auto")]) {
+      expect(plan).toContain("`pnpm prd prompt skeptic plan --evidence <file>`");
+      expect(plan).toContain('`model: "opus"`');
+      expect(plan).toContain("`pnpm prd skeptic record --kind plan --verdict go|send-back");
+      expect(plan).toContain("run a fresh skeptic **once more** (one retry)");
+      expect(plan).toContain("A second **send-back**");
+    }
+    expect(ok("plan", "T")).toMatch(
+      /second \*\*send-back\*\* is the user's: put it to them with AskUserQuestion/,
+    );
+    const auto = ok("plan", "T", "--auto");
+    expect(auto).toContain("`pnpm backlog prd set T flags=<its flags>,hold`");
+    expect(auto).toContain("`--waits` question with `--skeptic <that record's id>`");
+    expect(auto.indexOf("flags=<its flags>,hold")).toBeLessThan(auto.indexOf("`--waits` question with"));
+  });
+
   it("plan --auto: questions and the report through pnpm prd ask with a push, never AskUserQuestion", () => {
     for (const plan of [ok("plan", "T", "--auto", "B-1"), ok("plan", "T", "B-1", "--auto")]) {
       expect(plan).toContain('You are the planning agent for "T".');
@@ -375,7 +416,7 @@ describe("plan and backlog", () => {
       expect(plan).toContain("--recommend <a> --defaults` (or `--waits`, below)");
       expect(plan).toContain("Pass `--defaults` on it");
       expect(plan).toContain(
-        "Pass `--waits` instead for the questions that never default: money (a paid service too), data loss or a change to existing data, a live deploy (staging or production), a destructive step (deleting unmerged work, a forced push or landing), a new dependency (AGENTS.md: the user's approval), and compliance",
+        "Pass `--waits` instead for the questions that never default: money (a paid service too), data loss or a change to existing data, a live deploy (staging or production), a destructive step (deleting unmerged work, a forced push), a new dependency (AGENTS.md: the user's approval), and compliance",
       );
       expect(plan).toContain("The tool, never you, puts the recommendation in place of an answer");
       expect(plan).not.toContain("wait for it however long it takes");
