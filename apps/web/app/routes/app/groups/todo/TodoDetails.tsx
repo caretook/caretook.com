@@ -37,7 +37,7 @@ export function TodoDetails({
         <dd data-todo-due>
           <span>{due.day}</span>
           {due.status && (
-            <span className={`block ${overdue ? "text-error" : "text-muted"}`}>{due.status}</span>
+            <span className={`block ${overdue ? "text-error-ink" : "text-muted"}`}>{due.status}</span>
           )}
           {todo.dueTime && zoneNote && <span className="text-muted block">{zoneNote}</span>}
         </dd>
@@ -49,7 +49,7 @@ export function TodoDetails({
         </p>
       )}
       {doneBy && (
-        <p className="text-success text-sm font-medium" data-todo-done-by>
+        <p className="text-success-ink text-sm font-medium" data-todo-done-by>
           {doneBy}
         </p>
       )}

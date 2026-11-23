@@ -6,6 +6,7 @@ import type { RescheduledTarget } from "./useUpcomingData";
 
 import { Link } from "react-router";
 import { EntryBody, KindFilterLink, KindIcon, RepeatMark } from "~/components/entry";
+import { Badge, LINK, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { entryTiming } from "~/lib/appointments/upcoming";
 import {
@@ -83,7 +84,7 @@ export function UpcomingRow({
       {readOnly ? <KindIcon kind={entry.kind} size="sm" /> : <KindFilterLink kind={entry.kind} size="sm" />}
       <div className="min-w-0">
         <p
-          className={`flex items-center gap-1 text-sm whitespace-nowrap tabular-nums ${inProgress ? "text-primary font-semibold" : "text-base-content/70"}`}
+          className={`flex items-center gap-1 text-sm whitespace-nowrap tabular-nums ${inProgress ? "text-primary-ink font-semibold" : "text-muted"}`}
           data-when-line
         >
           <time dateTime={entry.occurredAt} data-when>
@@ -96,23 +97,23 @@ export function UpcomingRow({
           units={units}
           clamp
           providers={contacts}
-          className={cancelled ? "text-base-content/60 line-through" : ""}
+          className={cancelled ? "text-faint line-through" : ""}
         />
         {place && (
-          <p className="text-base-content/70 text-sm break-words" data-place>
+          <p className="text-muted text-sm break-words" data-place>
             {placeLine(place.text)}
-            {place.from && <span className="text-base-content/50"> · from {place.from}</span>}
+            {place.from && <span className="text-faint"> · from {place.from}</span>}
           </p>
         )}
         {cancelled && (
           <p className="text-sm" data-cancelled-label>
-            <span className="badge badge-sm badge-ghost">{cancelled}</span>
+            <Badge tone={STATUS_TONE.past}>{cancelled}</Badge>
             {rescheduledTo && (
               <>
                 {" · "}
                 <Link
                   to={appUrls.entry(groupId, rescheduledTo.id)}
-                  className="link text-base-content/70 relative z-10"
+                  className={`${LINK} relative z-10`}
                   data-rescheduled-to={rescheduledTo.id}
                 >
                   {rescheduledLabel(rescheduledTo)}

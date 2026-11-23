@@ -6,6 +6,7 @@ import type { EasyOpenedRef } from "./useEasyOpened";
 import { parseSearch } from "@caretook/data/schema";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
+import { LINK, TITLE_SECTION } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { resultCountText } from "~/lib/search/searchResults";
@@ -67,14 +68,14 @@ export function SearchResults({
 
   return (
     <>
-      <p role="status" className="text-base-content/70 min-h-5 text-sm" data-search-status data-for={data.q}>
+      <p role="status" className="text-muted min-h-5 text-sm" data-search-status data-for={data.q}>
         {status}
       </p>
       {data.sections.map((section) => (
         <section key={section.type} aria-labelledby={`results-${section.type}`} data-section={section.type}>
           <h2 id={`results-${section.type}`} className="mb-1 flex items-baseline justify-between gap-2 px-1">
-            <span className="font-semibold">{section.label}</span>
-            <span className="text-base-content/60 text-sm">{section.total}</span>
+            <span className={TITLE_SECTION}>{section.label}</span>
+            <span className="text-faint text-sm">{section.total}</span>
           </h2>
           <ul className="divide-base-300 border-base-300 divide-y rounded-box border">
             {section.hits.map((hit) => {
@@ -205,7 +206,7 @@ function SectionLinks({
           to={toggle.to}
           replace
           preventScrollReset
-          className="link link-hover text-primary"
+          className={`${LINK} link-hover`}
           data-show-all={section.type}
         >
           {toggle.label}
@@ -215,7 +216,7 @@ function SectionLinks({
       {timeline && (
         <Link
           to={appUrls.timeline(groupId, { q: q.trim(), period })}
-          className="link link-hover text-primary"
+          className={`${LINK} link-hover`}
           data-see-timeline
         >
           See all {section.total} in timeline

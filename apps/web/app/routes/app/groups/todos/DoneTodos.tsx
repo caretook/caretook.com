@@ -1,5 +1,6 @@
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 
+import { Button, TITLE_SUB } from "~/components/ui";
 import { TodoRow } from "./TodoRow";
 
 type RowProps = Omit<Parameters<typeof TodoRow>[0], "todo">;
@@ -17,7 +18,7 @@ export function DoneTodos({
   if (!todos.length) return null;
   return (
     <section aria-labelledby="todos-done" className="border-base-300 border-t pt-4" data-todo-section="done">
-      <h2 id="todos-done" className="text-base-content/70 text-sm font-semibold">
+      <h2 id="todos-done" className={`${TITLE_SUB} text-muted`}>
         Done
       </h2>
       <ul className="divide-base-300 divide-y">
@@ -26,9 +27,9 @@ export function DoneTodos({
         ))}
       </ul>
       {more && (
-        <button type="button" className="btn btn-ghost btn-sm mt-2" onClick={onMore} data-done-more>
+        <Button variant="ghost" size="sm" className="mt-2" onClick={onMore} data-done-more="">
           Show more
-        </button>
+        </Button>
       )}
     </section>
   );
