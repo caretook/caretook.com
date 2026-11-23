@@ -61,8 +61,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 35    | B-648 | landed                                     | 11820cae |
 | 36    | B-647 | landed                                     | 3e6adea0 |
 | 37    | B-646 | landed                                     | ce4d22b1 |
-| 38    | B-651 | started (opus)                             | —        |
-| 39    | B-652 | waiting on 38 (opus)                       | —        |
+| 38    | B-651 | merged (opus)                              | a447334a |
+| 39    | B-652 | started (opus)                             | —        |
 
 ## Wave 1
 
