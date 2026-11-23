@@ -59,7 +59,7 @@ function Harness() {
             open={scoping}
             title="Which visits?"
             message="Choose the visits to change."
-            choices={[{ id: "all", label: "All visits" }]}
+            choices={[{ id: "all", label: "All visits", tone: "primary" }]}
             onChoose={() => {
               setScoping(false);
               void navigate("/");
