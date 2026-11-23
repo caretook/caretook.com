@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** wave 1 starting (2026-11-22). Slice 1 is next; slices 2 and 3 wait for it.
+**Where it stands:** wave 1 running (2026-11-22). Slice 1's worktree is `.loops/assistant-access-1` and its opus agent is spawned; B-558 is claimed. Slices 2 and 3 wait for it. If this session is gone, respawn it with `pnpm prd prompt slice assistant-access 1 --continue`.
 
 **Landing mode:** run everything through (started run-through). Start every ready slice, land each green wave, clean up. Questions go through `pnpm prd ask`; each landing files a report.
 
@@ -12,7 +12,7 @@
 
 | Slice | Wave | State       | Merge into `prd/assistant-access` (slice commits) |
 | ----- | ---- | ----------- | ------------------------------------------------- |
-| 1     | 1    | starting    |                                                   |
+| 1     | 1    | in progress |                                                   |
 | 2     | 2    | not started |                                                   |
 | 3     | 2    | not started |                                                   |
 
