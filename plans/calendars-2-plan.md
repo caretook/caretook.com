@@ -4,17 +4,21 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-21), not started. Nothing blocks wave 1.
+**Where it stands:** wave 1 merged into `prd/calendars-2` (2026-11-23), a quick check passed after each merge. The full CI run is out; slice worktrees stay until its verdict is green. B-304, B-306, B-309 done. No open `fixes-bug` slice touches this topic's hot files.
 
-| Slice | Wave | State       | Merge into `prd/calendars-2` (slice commits) |
-| ----- | ---- | ----------- | -------------------------------------------- |
-| 1     | 1    | not started |                                              |
-| 2     | 2    | not started |                                              |
-| 3     | 1    | not started |                                              |
-| 4     | 2    | not started |                                              |
-| 5     | 1    | not started |                                              |
-| 6     | 1    | not started |                                              |
-| 7     | 3    | not started |                                              |
+**For the wave 1 landing:** say that every connected member's Google events are rewritten once (the wording changes each hash). Hand test against real Google: a deleted upcoming todo's event comes back (`events.update` with `status: "confirmed"`, insert on 404; only the fake client ran it). A device on an older build shows a last-day rule as plain "Repeats" until it updates. Docs to fold: the Pull bullet in calendars (a delete no longer marks a todo done), the wording, notifications (`expires_at`, the `expired` skip), appointments and todos (the last-day rule).
+
+**Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
+
+| Slice | Wave | Model | State       | Merge into `prd/calendars-2` (slice commits) |
+| ----- | ---- | ----- | ----------- | -------------------------------------------- |
+| 1     | 1    | opus  | merged      | `26b3d891` (`4d0bbae3`, `f55df54a`)          |
+| 2     | 2    |       | not started |                                              |
+| 3     | 1    | opus  | merged      | `d65bacf4` (`ad831a51`; migration 0039)      |
+| 4     | 2    |       | not started |                                              |
+| 5     | 1    | opus  | merged      | `4d812bc6` (`c58aee87`)                      |
+| 6     | 1    | opus  | merged      | `6012a222` (`6914d97b`, `e82f69c0`)          |
+| 7     | 3    |       | not started |                                              |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 

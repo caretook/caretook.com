@@ -120,6 +120,19 @@ describe("sweepReminders", { timeout: 30_000 }, () => {
     expect(late).toHaveLength(1);
   });
 
+  it("queues a reminder that expires when its event starts", async () => {
+    const { ana, remindersOn, addAppointment } = await setup();
+    await remindersOn(ana, { reminderLeads: [60] });
+    await addAppointment();
+
+    const res = await sweepReminders(HOUR_BEFORE, { deliver: false });
+    if (isError(res)) throw new Error(String(res.code));
+    const rows = await getDb().select().from(outbox).where(inArray(outbox.id, res.ids));
+    const mine = rows.filter((row) => row.recipient === ana.user.email);
+    expect(mine).toHaveLength(1);
+    expect(new Date(mine[0]?.expiresAt ?? 0).toISOString()).toBe(NINE.toISOString());
+  });
+
   it("sends again when a visit moves, and nothing once it's cancelled", async () => {
     const { ana, remindersOn, addAppointment } = await setup();
     await remindersOn(ana, { reminderLeads: [60] });
@@ -161,12 +174,14 @@ describe("sweepReminders", { timeout: 30_000 }, () => {
     );
 
     const [generic] = to((await sweep(HOUR_BEFORE)).sent, ana.user.email);
-    expect(generic?.subject).toMatch(/^Event for Pat Example · .+ · 9:00–10:00$/);
+    expect(generic?.subject).toMatch(/^Event for Pat Example · \w{3}, \w{3} \d+ · 9:00–10:00 AM P[SD]T$/);
     for (const part of [generic!.subject, generic!.text, generic!.html]) {
       expect(part).not.toContain("Dialysis");
       expect(part).not.toContain("Riverside");
       expect(part).not.toContain("Rivera");
     }
+    expect(generic!.text).toMatch(/9:00–10:00 AM P[SD]T/);
+    expect(generic!.html).toMatch(/9:00–10:00 AM P[SD]T/);
     expect(generic!.text).toContain(`/app/groups/${group.id}/entries/${visit.id}`);
     expect(generic!.headers).toMatchObject({ "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" });
 
@@ -238,7 +253,7 @@ describe("sweepReminders", { timeout: 30_000 }, () => {
         .sort(),
     ).toEqual(["appointmentReminder", "todoDue"]);
     const todo = to(sent, ben.user.email).find((m) => m.name === "todoDue");
-    expect(todo?.subject).toMatch(/^Todo for Pat Example · .+ · 9:00$/);
+    expect(todo?.subject).toMatch(/^Todo for Pat Example · \w{3}, \w{3} \d+ · 9:00 AM P[SD]T$/);
     expect(todo?.text).not.toContain("prescription");
     // Cy's was queued and then skipped, not sent.
     expect(to(sent, cy.user.email)).toEqual([]);

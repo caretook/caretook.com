@@ -182,8 +182,6 @@ const apply = (
       );
     case "updateTodo":
       return todoService.update(ctx, action.todoId, { dueOn: action.dueOn, dueTime: action.dueTime });
-    case "completeTodo":
-      return todoService.complete(ctx, action.todoId);
     case "createAppointment":
       return createAppointment(ctx, conn, action, change);
   }
