@@ -32,7 +32,7 @@ pnpm prd <command>
     plan <topic> [--open] [B-n …]   a docs-only worktree for writing a PRD and plan; --open starts its
                               planning session here (it decides, writes both, lands them; few questions)
     plan                      no topic: a backlog and inbox planning session in the main checkout, here
-                              (either form runs on opus; --model <m> runs that one session on model m)
+                              (on opus, a `design` row's planner on Fable; --model <m> runs that one session on model m)
                               (it reads the backlog and helps you decide what's next)
     slice <topic> <n>         a slice's worktree (orchestrators run this); a stack only for Stack: yes
     hotfix <name> [--open] [--model <m>] ["<the fix>"]   a stackless worktree on hotfix/<name> from dev, for a fix
@@ -77,12 +77,14 @@ pnpm prd <command>
     session requests [--json] the pending requests, and those settled in the last day
 
   Asks (questions and reports for the dev keeper, in the main checkout's .loops/.asks)
-    ask --topic <t> --question <text> [--option <a>]… [--recommend <a|n> --defaults|--waits]   file a
-                              question; prints its id and the PushNotification line to send; a macOS
+    ask --topic <t> --question <text> --skeptic <id> [--option <a>]… [--recommend <a|n> --defaults|--waits]
+                              file a question past a skeptic (the dispatcher's own need none); prints its id and the PushNotification line to send; a macOS
                               notification, and \$CARETOOK_ASK_NOTIFY <id> <kind> <topic> <text> when set
                               (failures ignored). With a recommendation, --defaults takes it after
                               \$CARETOOK_ASK_DEFAULT_MIN (30) min unanswered; --waits (money, data, a live
                               deploy, a destructive step, a new dependency, compliance) waits however long
+    ask --decided --skeptic <id> --topic <t> --question <text> --option <a>… --chose <a|n>   file what a
+                              skeptic decided: settled, never pushed, listed under decided for you
     ask --topic <t> --report <text>   file a report (a landed wave, what to try); never pushed (no
                               PushNotification line); the same macOS notification and hook
     ask --wait <id> [--timeout <s>]   print the answer once there is one (exit 0; 75 at the timeout);
@@ -143,11 +145,13 @@ pnpm prd <command>
 
   Land
     land <topic> [-m subject] [--tier <t> [--why "<reason>"]] [--fixes B-n,…] [--no-review] [--local]
+                              [--force] [--skeptic <id>… | --by-user]
                               merge prd/<topic> into dev (only when the dev keeper says so) through its
                               PR: merged on GitHub once its head is the local tip and Codex's verdict is
                               clean and the CI gate passes, then dev-sync (--tier: the tier to wait for, by
                               default the diff's proposal; below it needs --why; --fixes: the dev brake
-                              this landing fixes; --no-review: skip the verdict, on the user's word only;
+                              this landing fixes; --force (skip the gate) and --no-review (skip the verdict)
+                              need a land skeptic's go for this tip or --by-user; out of credits needs neither;
                               --local: a local merge, the fallback, on their word)
     land hotfix/<name> --pr|--local [-m subject]   a hotfix: ask the user "PR or local?" each time
     land plan/<topic>         a plan branch: always a local merge
@@ -238,8 +242,8 @@ case $cmd in
   dev-sync) (($# <= 1)) || die "dev-sync: at most one branch name"; dev_sync "${1:-}" ;;
   plan)
     # --model <m> (or --model=<m>), anywhere: this one session's model, passed to claude --model
-    # (default: $agent_model, opus).
-    model=$agent_model rest=()
+    # (default: $agent_model, opus; a topic's planner on Fable when its row is flagged design).
+    model="" rest=()
     while (($#)); do
       case $1 in
         --model) [[ -n ${2:-} && ${2:-} != -* ]] || die "plan: --model needs a model name (e.g. opus)"; model=$2; shift ;;
@@ -249,6 +253,10 @@ case $cmd in
       shift
     done
     set -- ${rest[@]+"${rest[@]}"}
+    if [[ -z $model && -n ${1:-} && $1 != --open ]]; then
+      model=$(node "$bin/planner-model.mjs" "$1" "$main" 2>/dev/null) || model=""
+    fi
+    model=${model:-$agent_model}
     model_args=(--model "$model")
     if [[ ${1:-} == "" || ${1:-} == --open ]]; then
       (($# <= 1)) || die "plan: give a topic before other arguments"
@@ -381,6 +389,7 @@ case $cmd in
   ask | asks | answer)
     # The asking session and topic default to the worktree's: plan-<t> → plan-<t>, else prd-<topic>.
     export CARETOOK_ASKS_DIR=${CARETOOK_ASKS_DIR:-$loops/.asks}
+    export CARETOOK_SKEPTIC_DIR=${CARETOOK_SKEPTIC_DIR:-$loops/.skeptic}
     here=$(here_name) here_args=()
     if [[ $cmd == ask && -n $here ]]; then
       if [[ $here == plan-* ]]; then here_args=(--here-topic "${here#plan-}" --here-session "$here")
