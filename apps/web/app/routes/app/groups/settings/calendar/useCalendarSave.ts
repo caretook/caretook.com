@@ -3,13 +3,19 @@ import type { CalendarChange } from "~/lib/calendars/calendarSettings";
 import { ORPCError } from "@orpc/client";
 import { useEffect, useRef, useState } from "react";
 import { useRevalidator } from "react-router";
-import { saveCalendarSettings } from "~/lib/calendars/calendarSettings";
+import { isConsentOutdated, saveCalendarSettings } from "~/lib/calendars/calendarSettings";
 
-export type CalendarSaveStatus = { kind: "saving" | "saved" | "pending" } | { kind: "failed"; error: string };
+export type CalendarSaveStatus =
+  | { kind: "saving" | "saved" | "pending" }
+  /** `reload`: only a newer version of the app can fix this, so trying again won't. */
+  | { kind: "failed"; error: string; reload?: boolean };
 
 /** What a refused or failed save says: the server's reason (written for people), else try again. */
-const failure = (e: unknown) =>
-  e instanceof ORPCError && e.message ? e.message : "Couldn't save that. Try again.";
+const failure = (e: unknown): CalendarSaveStatus => ({
+  kind: "failed",
+  error: e instanceof ORPCError && e.message ? e.message : "Couldn't save that. Try again.",
+  reload: isConsentOutdated(e),
+});
 
 /**
  * Save a change to the member's own calendar settings as soon as it's made
@@ -53,7 +59,7 @@ export function useCalendarSave(userId: string, groupId: string) {
         if (outcome === "pending") waitForConnection();
         if (mine === latest.current) setStatus({ kind: outcome });
       },
-      (e: unknown) => mine === latest.current && setStatus({ kind: "failed", error: failure(e) }),
+      (e: unknown) => mine === latest.current && setStatus(failure(e)),
     );
   };
 
