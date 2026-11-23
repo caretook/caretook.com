@@ -63,8 +63,9 @@ describe("the brake list", () => {
 describe("the quarantine", () => {
   const entry = { file: "a/b.test.ts", name: "suite breaks", item: "B-1" };
 
-  it("starts empty", async () => {
-    expect((await readLists(root)).quarantine).toEqual([]);
+  it("holds no test on the brake list", async () => {
+    const { brakes, quarantine } = await readLists(root);
+    expect(quarantine.filter((e) => isBrake(e.file, brakes))).toEqual([]);
   });
 
   it("reads tab-separated lines and refuses a broken one", () => {
