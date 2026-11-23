@@ -4,12 +4,12 @@
 
 ## Status
 
-| Slice | Wave | State         | Merge into `prd/agent-autonomy` (slice commits) |
-| ----- | ---- | ------------- | ----------------------------------------------- |
-| 1     | 1    | landed (opus) | 55275f08 (d759b24e)                             |
-| 2     | 1    | landed (opus) | b3877be1 (142fa3d7)                             |
-| 3     | 2    | —             | —                                               |
-| 4     | 3    | —             | —                                               |
+| Slice | Wave | State          | Merge into `prd/agent-autonomy` (slice commits) |
+| ----- | ---- | -------------- | ----------------------------------------------- |
+| 1     | 1    | landed (opus)  | 55275f08 (d759b24e)                             |
+| 2     | 1    | landed (opus)  | b3877be1 (142fa3d7)                             |
+| 3     | 2    | started (opus) | —                                               |
+| 4     | 3    | —              | —                                               |
 
 **Rescoped on 2026-11-22** (backlog session, the user's pick) against [test-gates](test-gates-prd.md): the old slices 3 to 10 (machine claim, local flake rule, carried full pass, `Checked:` trailer, landing hold) are dropped; B-518 is rebuilt as slices 3 and 4. The old plan is in git history at 887d44de. The registry row runs **after `test-gates`**, which lands its brake and rapid gate in `land.sh` first.
 
