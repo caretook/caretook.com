@@ -143,7 +143,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-295 | bug | triaged | sync-safety-2 |  | System-written change entries take the device clock unchecked: a clock a day ahead dates 'Stopped …' tomorrow, at the top of the history, uneditable |
 | B-296 | bug | triaged | sync-safety-2 |  | A tab left open while another tab switches user keeps the old user id, and its next navigation clears the new user's local database |
 | B-297 | bug | landed | dose-accuracy | prd/dose-accuracy | A surplus dose marks the next day's slot as given: two caregivers both tapping Given for one pass makes tomorrow's dose read done |
-| B-298 | change | in-progress | dose-accuracy | prd/dose-accuracy | Deterministic dose ids per medication, day and slot, so two devices logging the same pass converge on one row |
+| B-298 | change | ready | dose-accuracy | prd/dose-accuracy | Deterministic dose ids per medication, day and slot, so two devices logging the same pass converge on one row |
 | B-299 | bug | in-progress | dose-accuracy | prd/dose-accuracy | Visit prep's 'Missed doses' reads history through today's schedule: a schedule change shows phantom misses back to the last visit |
 | B-304 | bug | triaged | calendars-2 |  | Deleting an old event in Google Calendar rewrites past Caretook records: soft-deletes a past reminder note, cancels a past appointment, marks a todo done for the group |
 | B-305 | bug | triaged | calendars-2 |  | Events made in Google more than 90 days out never arrive: ignored as outsideWindow, the sync token advances, nothing revisits them |
@@ -328,12 +328,20 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-604 | chore | triaged | fixes-tooling |  | Test Discard under reduced motion in the sheet guard |
 | B-605 | bug | triaged | fixes-bug |  | PageUp and PageDown on a date field's hour still wrap inside AM/PM, so 11 AM can page to 12 AM |
 | B-606 | feature | triaged | fixes-ui |  | Highlight a double dose on a next-dose-due notification |
-| B-607 | bug | ready | test-gates | prd/test-gates | Component test harness: settle can return before the page mounts, so a test reading right after open can get nothing |
+| B-607 | bug | landed | test-gates | prd/test-gates | Component test harness: settle can return before the page mounts, so a test reading right after open can get nothing |
 | B-608 | chore | triaged | fixes-tooling |  | Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check |
 | B-609 | chore | triaged | fixes-tooling |  | Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh |
 | B-610 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/db/resetStaging.int.test.ts: resetStaging wipes everything but real sign-ins, reseeds, and … |
 | B-611 | bug | triaged | dose-accuracy |  | A schedule change across midnight drops a dose's slot name in visit prep: a 23:30 dose given at 00:10 answers today's new 00:30 slot, and last night reads missed |
 | B-612 | chore | in-progress | test-gates | prd/test-gates | Raise the default PRD cap from 3 to 4: dispatcher, prd start and status agree without an env var |
+| B-613 | change | triaged | fixes-ui |  | Motion tuning: Today card slides open and shut, sheets fade only, overlays at 240 ms |
+| B-614 | bug | triaged | dose-accuracy |  | An offline log-then-Undo can delete another member's dose: the PUT is a no-op on their row, then the PATCH of deleted_at removes it (a PUT already carrying deleted_at does the same) |
+| B-615 | bug | triaged | fixes-bug |  | Connector log_dose names no slot, so two log_dose calls for one pass never merge into one dose; only give_pass converges |
+| B-616 | bug | triaged | fixes-bug |  | Two simultaneous first uploads of one dose id: the loser hits the primary key and gets a 500; a device retries into the no-op, but a connector run fails and must be retried |
+| B-617 | bug | triaged | fixes-ui |  | List tool buttons show no hover: search, filter and view on Timeline, filter on Providers and Planner |
+| B-618 | change | triaged | fixes-ui |  | Timeline day header: move Change care period to the left of the period text |
+| B-619 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a … |
+| B-620 | bug | triaged | fixes-bug |  | Timeline day headers repeat a care period day number when the viewer and recipient are in different time zones |
 
 ## Items
 
@@ -663,10 +671,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-298 · change · Deterministic dose ids per medication, day and slot, so two devices logging the same pass converge on one row
 
-- status: in-progress
+- status: ready
 - prd: dose-accuracy
 - owner: prd/dose-accuracy
-- commit:
+- commit: 5f927b61
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. logDoses uses crypto.randomUUID() (lib/medications/medications.sync.ts:825); series visits already use UUID v5. Two reviewers raised it as the root of the duplicate-dose finding.
 - 2026-11-21 (plan/dose-accuracy): Planned in plans/dose-accuracy-prd.md and -plan.md (2026-11-21): B-297 is slice 1, B-298 slices 2 and 3, B-299 slices 4 and 5.
@@ -2509,7 +2517,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-607 · bug · Component test harness: settle can return before the page mounts, so a test reading right after open can get nothing
 
-- status: ready
+- status: landed
 - prd: test-gates
 - owner: prd/test-gates
 - commit: fe82288c
@@ -2562,3 +2570,80 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-23 (Robert Bo Davis): User's decision 2026-11-23, since testing moved to CI. Change the default in scripts/loops/lib.sh (max_prds), dispatch.mjs and dispatch-pick.mjs (DEFAULT_CAPS), keeping CARETOOK_MAX_PRDS as the override; update tests and docs/orchestration.md, machinery.md and AGENTS-level mentions of three PRDs. The running dispatcher needs a restart to pick it up.
 - 2026-11-23 (prd/test-gates): test-gates slice 13, wave 7, after wave 6 lands. Scope from the backlog session: default cap 4 in lib.sh, dispatch.mjs, dispatch-pick.mjs; CARETOOK_MAX_PRDS stays the override; check and browser leases stay 2, load gate unchanged. The running dispatcher keeps the old default until the user restarts it.
+
+### B-613 · change · Motion tuning: Today card slides open and shut, sheets fade only, overlays at 240 ms
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user's call after reviewing the motion from ui-kit-3 (B-471). (1) The Timeline Today card's expansion was missed: its chevron turns but the contents pop; use the kit's Collapse (TodayCard.tsx). (2) Sheets only fade: drop the 1.5rem panel slide, in and out. (3) 240 ms is the default for sheets, menus, popovers, native dialogs and toasts (menus and popovers are 120 ms today, the others 180 ms). Button, row and hover feedback stays at 120 ms. The user has not seen a toast yet, so check one by eye. Update the timings pinned in sheetExit.browser.test.tsx and the motion notes in app.css, components.md and the /dev/ui motion section. Reduced motion stays instant. The chevron's own speed was not discussed: keep it matched to the Collapse if it looks off, and say so.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user: the Today card and the day summary must match in speed and animation. Today's rows are a plain ul toggled with hidden, so they pop while its Chevron turns; the day summary (DaySummaryLine) uses Collapse at 240 ms with the same Chevron. Give TodayCard the same Collapse around its rows, so both have one slide, one duration and one chevron. Keep aria-controls pointing at the collapsing region, closed rows out of the tab order, and check the collapsed summary line in the header doesn't jump as it appears. Compare the two side by side in a browser.
+
+### B-614 · bug · An offline log-then-Undo can delete another member's dose: the PUT is a no-op on their row, then the PATCH of deleted_at removes it (a PUT already carrying deleted_at does the same)
+
+- status: triaged
+- prd: dose-accuracy
+- owner:
+- commit:
+
+- 2026-11-23 (prd/dose-accuracy): From slice 3's hand-off, read from the code, no test yet. timelineEntryService upsert first-upload rule plus the delete path in syncRegistry.ts. An offline edit by a writer also lands on the other member's row; an Easy helper's PATCH is refused and shows in Changes not saved.
+
+### B-615 · bug · Connector log_dose names no slot, so two log_dose calls for one pass never merge into one dose; only give_pass converges
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/dose-accuracy): From dose-accuracy slice 3's hand-off. log_dose always gets a random id.
+
+### B-616 · bug · Two simultaneous first uploads of one dose id: the loser hits the primary key and gets a 500; a device retries into the no-op, but a connector run fails and must be retried
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/dose-accuracy): From dose-accuracy slice 3's hand-off. timelineEntryService upsert, dose kind.
+
+### B-617 · bug · List tool buttons show no hover: search, filter and view on Timeline, filter on Providers and Planner
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, reported by the user: Timeline's search, filter and view mode buttons don't animate; the Filter on Providers and Planner doesn't change under the cursor. Likely cause, read from the code and not yet confirmed in a browser: CIRCLE in components/ui/styles.ts sets bg-base-100 and border-base-300, and those utilities beat daisyUI's layered btn hover colours, so all circle tools lose hover. Fix it once in the shared style, keeping the outlined circle at rest and giving it a visible hover and press at the kit's 120 ms. Check every list's Filter (FilterMenu), including Medications and Todos. chipClass uses the same bg-base-100 on unselected chips, so check those too. Also: Timeline's Filter is a hand-written button with btn classes in TimelineFilters.tsx; move it to the kit's IconButton (it needs its count badge kept). Verify hover by eye or a browser test in light and dark.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user: the author and type filter controls on timeline entries should also be buttons with a hover change and animation. KindFilterLink and AuthorFilterLink (components/entry/KindIcon.tsx) are hand-styled links: type has only hover:brightness-95 with no transition, author initials and name have no kit motion. Give them the kit's button feel (visible hover and press at 120 ms, none under reduced motion) in every form: type icon, initials circle and name link, on Timeline rows, cards and pass log items, and on the Planner, which shares them. They navigate to a filtered URL, so keep them real links with their names, using the kit's link-styled Button or look. Keep the accent colours and the row's stretched-link layering (z-10), so tapping one filters and doesn't open the entry.
+
+### B-618 · change · Timeline day header: move Change care period to the left of the period text
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user: move Change care period on the Today timeline header to the left of the period text, so the page flows in a column. In DayPeriod (timeline/DayHeader.tsx) the order becomes the Change button, the period's type icon, then the text. Line the button's icon up with the column's left edge (the ghost button's padding must not indent it), and keep the text aligned when a viewer without write access sees no button or a past day has none. Check Easy mode, a long period name wrapping at phone width, and the sticky header.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user's correction, replacing the placement in the first note: Change sits directly left of the care period icon, within the right-hand group, not at the page's left edge. The goal: the care period icons line up down the page as the user scrolls past day headers. Order: [Change] [period icon] [text] [+]. Moving the button is not enough on its own: the group is right-aligned (ms-auto in DayHeader), so each icon's position depends on its text length ('day 9' vs 'day 10', or a different period name). Give the icon and text a shared column so the icon starts at the same x on every day header, with the text left-aligned after it; Today's Change hangs to the left of that column and must not shift it. Days without Change or without + (read-only viewers) must keep the same icon position where possible. Handle long names at phone width (wrap inside the column, no overflow), and check Easy mode, which has larger type and no Change. Verify by scrolling several days with different periods in a browser.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, the user's screenshot settles the scope, replacing the shared column in the previous note: this is only a button move. Today shows [icon] At home · day 6 [Change] [+], so Change pushes Today's period left of the same period on the day below. Move Change directly left of the period icon: [Change] [icon] [text] [+]. Keep the group right-aligned and add no column or fixed width; the text then ends at the same spot on every day, and the icons line up whenever the text is the same length. Check that Easy mode and a long name at phone width still wrap cleanly.
+
+### B-619 · bug · CI flake: apps/web/app/lib/search/search.sync.browser.test.tsx: about 2,000 entries the rebuild takes under 2 s, and a …
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): [ci-key c6539843d37a] Flaked (passed on its rerun); on the brake list, so not quarantined; found by prd/test-gates.
+- 2026-11-23 (prd/test-gates): Same test as B-492 (search.sync, about 2,000 entries, flaky under load), now seen on the CI Linux runner in run 45117253571: likely a duplicate, for fixes-tooling to merge.
+
+### B-620 · bug · Timeline day headers repeat a care period day number when the viewer and recipient are in different time zones
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): 2026-11-23, reported by the user with a screenshot: just after midnight Eastern, Today and Yesterday both read 'At home · day 6'. Cause from the code: DayHeader splits days in the viewer's zone (dayKey), but DayPeriod counts periodDay in the recipient's zone from a moment (now for Today, the day's newest row for past days). At 00:34 EST it is still the previous evening in a Los Angeles recipient's zone, so both headers land on one recipient date. The recipient's zone on the user's group was not checked, and this was not reproduced in a test. Proposed fix: in a day header, derive the number from the header's own date, so consecutive headers always differ by one: the period's start date in the recipient's zone to dayKey, plus 1, minimum 1. Keep the period's page and other 'current' lines in the recipient's zone; during the offset hours Today's header can then read one day ahead of the period page, which the user should accept or overrule when reviewing. Which period a header shows (periodAt) should be checked for the same offset. Test with a viewer and recipient in different zones, both sides of midnight (see B-372, a second time zone in tests).
