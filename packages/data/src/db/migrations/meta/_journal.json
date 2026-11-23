@@ -288,6 +288,13 @@
       "when": 1795439799893,
       "tag": "0040_connection_last_catch_up_at",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1795451655188,
+      "tag": "0041_member_avatars",
+      "breakpoints": true
     }
   ]
 }

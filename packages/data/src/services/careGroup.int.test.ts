@@ -45,12 +45,14 @@ describe("reading", () => {
     expect(ids).not.toContain(u.staff.user.id);
   });
 
-  it("shows a co-member only id, name and image; yourself and staff the whole row", async () => {
+  it("shows a co-member only id, name, image and avatar; yourself and staff the whole row", async () => {
     const { u } = await setup();
     const publicProfile = (who: Users[keyof Users]) => ({
       id: who.user.id,
       name: who.user.name,
       image: who.user.image,
+      avatarColor: who.user.avatarColor,
+      avatarIcon: who.user.avatarIcon,
       publicOnly: true,
     });
 
@@ -65,7 +67,14 @@ describe("reading", () => {
     const self = all.find((x) => x.id === u.viewer.user.id);
     expect(self).toMatchObject({ publicOnly: false, email: u.viewer.user.email, role: "member" });
     for (const other of all.filter((x) => x.id !== u.viewer.user.id)) {
-      expect(Object.keys(other).sort()).toEqual(["id", "image", "name", "publicOnly"]);
+      expect(Object.keys(other).sort()).toEqual([
+        "avatarColor",
+        "avatarIcon",
+        "id",
+        "image",
+        "name",
+        "publicOnly",
+      ]);
     }
 
     // Staff read any row whole (account access, not care data).
