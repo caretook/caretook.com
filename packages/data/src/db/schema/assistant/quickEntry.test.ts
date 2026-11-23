@@ -716,6 +716,26 @@ describe("doses", () => {
           expect(when(r)).toBe(NOW.toISOString());
         });
 
+        test.each([
+          ["gave lorazepam 1/2", "0.5 mg", "2 tablets", "1/2"],
+          ["gave lorazepam 1/2", "0.5 mg", null, "1/2"],
+          ["gave lorazepam 1/2", "0.5 mg", "1 mg", "1/2"],
+          ["gave lorazepam 1/2", "0.5 mg", "1 tablet", "1 tablet"],
+          ["gave lorazepam 1/2", "0.5 mg", "0.5 mg", "0.5 mg"],
+          ["gave lorazepam 3/8", "0.375 mg", "2 tablets", "3/8"],
+        ])("bare %s at %s with a usual %s records %s, no date (B-648)", (line, strength, dose, amount) => {
+          const r = top(line, { medications: [{ ...lorazepam[0]!, strength, dose }] });
+          expect(action(r)).toMatchObject({ type: "logDose", amount, note: null });
+          expect(when(r)).toBe(NOW.toISOString());
+        });
+
+        test("a whole number at the strength still names it: the usual dose (B-648)", () => {
+          const r = top("gave lisinopril 10", {
+            medications: [{ id: LIS, name: "Lisinopril", strength: "10 mg", dose: "2 tablets" }],
+          });
+          expect(action(r)).toMatchObject({ type: "logDose", amount: "2 tablets", note: null });
+        });
+
         test("a fraction that isn't the strength is still the amount", () => {
           const r = top("gave lorazepam 1/4", { medications: lorazepam });
           expect(action(r)).toMatchObject({ amount: "1/4 tablet" });
@@ -1204,6 +1224,9 @@ describe("the user's lines (B-220)", () => {
     ["check bp 120/80 tomorrow", todo("Check bp 120/80", "2026-11-20")],
     ["ask about pain tomorrow morning", todo("Ask about pain", "2026-11-20", "08:00")],
     ["dinner with Ann tomorrow 6pm", todo("Dinner with Ann", "2026-11-20", "18:00")],
+    // A later weekday on a request: the coming one, with its part of day (B-647).
+    ["pick up walker next friday morning", todo("Pick up walker", "2026-11-20", "08:00")],
+    ["check bp 120/80 friday", todo("Check bp 120/80", "2026-11-20")],
     // A note with no time ahead stays a note, now or read back like the other past-only kinds.
     ["called the pharmacy", { kind: "note", occurredAt: NOW.toISOString() }],
     ["called the pharmacy monday", { kind: "note", occurredAt: at("2026-11-16T16:00:00Z") }],
@@ -1236,8 +1259,27 @@ describe("the user's lines (B-220)", () => {
     // A request naming a provider stays an event first, with or without a part of day.
     ["call dr lee in the morning", ["event", "todo", "note"]],
     ["call dr lee tomorrow", ["event", "todo", "note"]],
+    ["call dr lee tomorrow morning", ["event", "todo", "note"]],
+    ["check bp 120/80 friday", ["todo", "note", "vital", "event"]],
+    ["bp 120/80 friday", ["vital", "note", "event"]],
   ])("a request with a part of day: %s", (line, kinds) => {
     expect(parse(line)[0]!.readings.map((r) => r.kind)).toEqual(kinds);
+  });
+
+  test("a report with a bare weekday still reads back to the last one", () => {
+    expect(when(top("bp 120/80 friday"))).toBe("2026-11-13T16:00:00.000Z");
+  });
+
+  test("a request naming a provider tomorrow morning is an event at 08:00", () => {
+    const r = top("call dr lee tomorrow morning");
+    expect(r.kind).toBe("event");
+    expect(action(r)).toMatchObject({ occurredAt: "2026-11-20T16:00:00.000Z", allDay: false });
+  });
+
+  test("a request naming the last weekday isn't ahead, so it offers no todo", () => {
+    expect(parse("call the pharmacy last friday morning")[0]!.readings.map((r) => r.kind)).not.toContain(
+      "todo",
+    );
   });
 
   test.each([
@@ -1664,8 +1706,9 @@ describe("todos", () => {
     });
   });
 
-  test("without a prefix there's no todo", () => {
-    expect(parse("call pharmacy friday")[0]!.readings.map((r) => r.kind)).not.toContain("todo");
+  test("without a prefix, a report is no todo and a request for a coming weekday is (B-647)", () => {
+    expect(parse("called pharmacy friday")[0]!.readings.map((r) => r.kind)).not.toContain("todo");
+    expect(top("call pharmacy friday").kind).toBe("todo");
   });
 
   test("in another zone, the due day and time are the recipient's", () => {
