@@ -7,7 +7,7 @@
 | Slice | Wave | State                    | Merge into `prd/ui-kit-4` (slice commits) |
 | ----- | ---- | ------------------------ | ----------------------------------------- |
 | 1     | 1    | merged, torn down (opus) | 6814c3dc (7acd4f33)                       |
-| 2     | 2    | running (opus)           |                                           |
+| 2     | 2    | merged, worktree kept    | 0037ec4a (2dd856f1, b0f05dfb, 8d500bbf)   |
 | 3     | 2    | running (opus)           |                                           |
 | 4     | 2    | handed off (opus)        | not merged (9dd63d03, 8de6ee85)           |
 | 5     | 3    | not started              |                                           |
@@ -18,7 +18,9 @@
 
 **Landing hold (2026-11-22):** the test-gates orchestrator, at the user's request, asked every PRD to hold `pnpm prd land` and any code push to `dev` until test-gates wave 5 lands; it will message this session (`prd-ui-kit-4`), and also check `pnpm log dev`. Slices, merges into this branch, checks, CI runs and the PR carry on. `pnpm backlog` commits are fine. After that landing, `land` needs a CI verdict for a `--tier` (see its landing notice). Wave 1 had already landed when the request arrived, and test-gates was told.
 
-**Slice 4 hand-off (waits for 2 and 3, plan order):** slice check passed on 8de6ee85. Its six profile component test files (`profile`, `profileBands`, `conditions`, `conditionProviders`, `emergency`, `vitalAverages`) were not run: the wave's full check must cover them. To fold at landing, in `docs/domain/profiles.md`: line 19 `**Card and sheets:** ConditionsCard` becomes `**Section and sheets:** ConditionsSection`; line 24 `VitalAveragesCard` becomes `VitalAveragesSection`. Worth noting for slice 5: `ListRow`'s `to` can't carry `state`, `prefetch` or `preventScrollReset`, so condition rows use a raw `li` inside `List`.
+**Slice 2 (opus, merged):** the worktree stays until the wave's full check passes, so a failure can go back to its agent; then `pnpm prd rm ui-kit-4-2`. Only `medicationForm` and `today` component tests ran. The full check must cover `entry`, `entryDraft` (`All day` is now `role="switch"`), `plannerEvents`, `plannerSeries` (`RescheduleSheet`), `timelineQuickEntryPasses` (`PassCard`, `DoseSlotRow`; a closed list is `Collapse`, `visibility: hidden`) and `print.browser.test`. To fold at landing: `docs/domain/medications.md` _Add and edit_, "Prescription details" is a `Chevron` and `Collapse` toggle, no longer `<details>`; `docs/domain/ui-kit.md` `Menu` contract, "until `ui-kit-4`" becomes `ui-kit-5`.
+
+**Slice 4 hand-off (waits for 3, plan order):** slice check passed on 8de6ee85. Its six profile component test files (`profile`, `profileBands`, `conditions`, `conditionProviders`, `emergency`, `vitalAverages`) were not run: the wave's full check must cover them. To fold at landing, in `docs/domain/profiles.md`: line 19 `**Card and sheets:** ConditionsCard` becomes `**Section and sheets:** ConditionsSection`; line 24 `VitalAveragesCard` becomes `VitalAveragesSection`. Worth noting for slice 5: `ListRow`'s `to` can't carry `state`, `prefetch` or `preventScrollReset`, so condition rows use a raw `li` inside `List`.
 
 **For wave 2 (from slice 1):** the guard's lists are in `scripts/eslint/kit-guard.mjs`. The print routes stay on the not-swept list because each holds an on-screen Print button: slices 2 and 4 sweep them. A listed path that no longer exists fails a test, so slice 4's renames must update their lines.
 
