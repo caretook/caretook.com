@@ -4,9 +4,11 @@
 
 ## Status
 
-**Where it stands:** wave 1 merged into `prd/calendars-2` (2026-11-23), a quick check passed after each merge. The full CI run is out; slice worktrees stay until its verdict is green. B-304, B-306, B-309 done. No open `fixes-bug` slice touches this topic's hot files.
+**Where it stands:** wave 1 (slices 1, 3, 5, 6; B-304, B-306, B-309) landed in `dev` as `1f260992` through PR #113 (2026-11-23), Codex clean, report filed (a129). Full CI verdict `flake` on `4ccc9653`: `usersAdmin.int.test.ts` failed once and passed on retry, not in this branch's files, cause unread, filed as B-658. The lean browser suite was not run (skeptic decided, a128, the user can veto). Slice worktrees removed. Wave 1's docs are folded and committed on this branch; they reach `dev` with wave 2.
 
-**For the wave 1 landing:** say that every connected member's Google events are rewritten once (the wording changes each hash). Hand test against real Google: a deleted upcoming todo's event comes back (`events.update` with `status: "confirmed"`, insert on 404; only the fake client ran it). A device on an older build shows a last-day rule as plain "Repeats" until it updates. Docs to fold: the Pull bullet in calendars (a delete no longer marks a todo done), the wording, notifications (`expires_at`, the `expired` skip), appointments and todos (the last-day rule).
+**Next:** `pnpm backlog ingest`, `doctor`, `list`; `pnpm prd sync`; claim B-305, B-307, B-308; start wave 2 (slices 2 and 4, both on opus; merge 2 first, 4 keeps both `index.test.ts` entries). Shell: start commands with `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`, and tell slice agents the same. `calendars.md` has about 30 bytes of budget left and `appointments.md` about 110, so trim at least what wave 2 folds in.
+
+**Open from wave 1:** hand test against real Google that a deleted upcoming todo's event comes back (`events.update` with `status: "confirmed"`, insert on 404; only the fake client ran it). A device on an older build shows a last-day rule as plain "Repeats" until it updates.
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
