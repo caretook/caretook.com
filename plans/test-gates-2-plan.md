@@ -15,7 +15,7 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Now:** wave 1 is blocked. Slice 1 (`.loops/test-gates-2-1`, 7626dfb3) passed its quick check, but the permission classifier denied its `candidate` and `full` CI runs, so the browser job has never run. Not merged; waiting on the user through `pnpm prd ask`. Do not rerun those commands without the user's word. Items B-532, B-533 claimed for this topic. Backlog doctor's three findings (B-548, B-549, B-568) aren't this topic's.
+**Now:** wave 1 is blocked. Slice 1 (`.loops/test-gates-2-1`, 7626dfb3) passed its quick check, but the permission classifier denied its `candidate` and `full` CI runs, so the browser job has never run. Not merged; waiting on the user: ask a121 (skeptic s1, `--waits`, never defaults). Do not rerun those commands without the user's word. Items B-532, B-533 claimed for this topic. Backlog doctor's three findings (B-548, B-549, B-568) aren't this topic's.
 
 ## Architectural decisions
 
