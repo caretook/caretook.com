@@ -12,6 +12,7 @@ import { renderWithDevice } from "../../../../../test/device";
 import { pageHeader } from "../../../../../test/pageHeader";
 import { at, fx, hoursAgo, todo, TEST_GROUP, TEST_TIME_ZONE, TEST_USER } from "../../../../../test/fixtures";
 import { clearTodoUndo } from "~/lib/todos/todoUndo";
+import { pickTime } from "../../../../../test/timeSelect";
 
 // The Planner's Todos tab (todos slice 1; tasks-2 put it under the Planner header): the list's Filter menu, sections, ticks with
 // Undo, Done with Reopen, what viewers see, and the add and edit sheets with
@@ -308,7 +309,10 @@ describe("the todo sheets", () => {
     await userEvent.click(page.getByRole("option", { name: 'Assign to "Aunt May" (not in the group)' }));
     await expect.element(dialog.getByText("Aunt May (not in the group)")).toBeInTheDocument();
     await userEvent.fill(dialog.getByLabelText("Due (optional)"), day(2));
-    await userEvent.fill(dialog.getByLabelText("Time (optional)"), "17:30");
+    await pickTime(
+      () => document.querySelector<HTMLInputElement>('[role=dialog] input[name="dueTime"]'),
+      "17:30",
+    );
     await userEvent.click(dialog.getByRole("button", { name: "Add todo" }));
 
     await expect.poll(() => titles(day(2))).toEqual(["Water the plants"]);

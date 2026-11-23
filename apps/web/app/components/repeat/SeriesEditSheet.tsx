@@ -3,8 +3,9 @@ import type { PlanSeries, SeriesEditChange } from "@caretook/data/series";
 import { parseRule, ruleText, SERIES_LIMITS } from "@caretook/data/schema";
 import { ruleFrom } from "@caretook/data/series";
 import { useState } from "react";
-import { Field, Sheet } from "~/components/ui";
+import { Field, Sheet, TimeSelect } from "~/components/ui";
 import { choiceOfRule } from "~/lib/appointments/repeatChoice";
+import { currentHourTime } from "~/lib/core/timeOfDay";
 import { repeatOutcome, RepeatField } from "./RepeatField";
 
 /** "HH:MM" plus minutes, as a wall-clock time (past midnight wraps). */
@@ -54,9 +55,9 @@ export function SeriesEditSheet({
   const [title, setTitle] = useState(series.title ?? "");
   const [place, setPlace] = useState(series.place ?? "");
   const [allDay, setAllDay] = useState(series.allDay);
-  const [startTime, setStartTime] = useState(series.startTime ?? "09:00");
+  const [startTime, setStartTime] = useState(() => series.startTime ?? currentHourTime(series.timeZone));
   const [endTime, setEndTime] = useState(
-    series.durationMinutes ? addMinutes(series.startTime ?? "09:00", series.durationMinutes) : "",
+    series.durationMinutes ? addMinutes(startTime, series.durationMinutes) : "",
   );
   const [choice, setChoice] = useState(() => choiceOfRule(ruleFrom(series, fromDay), fromDay));
 
@@ -119,33 +120,23 @@ export function SeriesEditSheet({
           All day
         </label>
         {!allDay && (
-          <div className="flex gap-2">
-            <Field label={event ? "Starts" : "At"} className="flex-1">
-              {(control) => (
-                <input
-                  {...control}
-                  name="startTime"
-                  type="time"
-                  required
-                  className="input w-full"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                />
-              )}
-            </Field>
+          <div className="flex flex-wrap gap-2">
+            <TimeSelect
+              label={event ? "Starts" : "At"}
+              name="startTime"
+              className="min-w-0 flex-1"
+              value={startTime}
+              onChange={setStartTime}
+            />
             {event && (
-              <Field label="Ends (optional)" className="flex-1">
-                {(control) => (
-                  <input
-                    {...control}
-                    name="endTime"
-                    type="time"
-                    className="input w-full"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                  />
-                )}
-              </Field>
+              <TimeSelect
+                label="Ends (optional)"
+                name="endTime"
+                optional
+                className="min-w-0 flex-1"
+                value={endTime}
+                onChange={setEndTime}
+              />
             )}
           </div>
         )}

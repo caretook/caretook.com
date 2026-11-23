@@ -77,3 +77,5 @@ export { ACCENTS, accentClass } from "./accents";
 export type { Accent, AccentLook, AccentOrNeutral } from "./accents";
 export { IconChip } from "./IconChip";
 export type { IconChipLook, IconChipSize } from "./IconChip";
+// fixes-ui (slice 13): the hour-first time picker.
+export { TimeSelect } from "./TimeSelect";

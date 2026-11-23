@@ -22,6 +22,7 @@ import {
   times,
   openAddMedication,
 } from "./medicationWorld";
+import { pickTime } from "../../../../../test/timeSelect";
 
 // Passes in a medication's schedule (medications.mjs's pass schedule steps):
 // adding one by passes (Morning with an amount of its own, the dose as its
@@ -81,7 +82,7 @@ const addByPasses = async (device: Awaited<ReturnType<typeof open>>) => {
   await userEvent.click(passBox(EVENING.id));
   await userEvent.click(await found(() => FORM()?.querySelector("[data-add-time]")));
   await expect.poll(() => times().length).toBe(1);
-  await userEvent.fill(await found(() => times()[0]), "14:00");
+  await pickTime(() => times()[0], "14:00");
   await userEvent.fill(await found(() => timeAmounts()[0]), "12.5 mg");
   await userEvent.click(submit());
   await expect.poll(() => SHEET()).toBeNull();
