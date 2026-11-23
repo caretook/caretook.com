@@ -11,6 +11,10 @@ export const TIMELINE_ERRORS = {
     message: "This care group has no care recipient yet",
     statusCode: 409,
   },
+  "timelineEntryService:duplicateRecord": {
+    message: "Couldn't record a duplicate dose upload",
+    statusCode: 500,
+  },
   "timelineEntryService:immutable": {
     message: "An entry's group, recipient and kind can't change",
     statusCode: 400,
