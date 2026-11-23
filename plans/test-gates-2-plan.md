@@ -10,14 +10,25 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 | 2. Browser results, reruns and flakes          | 2    | landed b55e4413 (PR #120) | 186a23c3 |
 | 3. A release candidate                         | 3    | landed ce792df3 (PR #122) | 22dc1231 |
 | 4. Promotion refuses what isn't passing        | 3    | landed ce792df3 (PR #122) | c9670a4c |
-| 5. The release tier                            | 4    | merged (opus)             | 55abe5cd |
-| 6. The required check on main and its override | 5    | not started               |          |
+| 5. The release tier                            | 4    | landed 4160dee5 (PR #127) | 55abe5cd |
+| 6. The required check on main and its override | 5    | merged (opus)             | 8d738b9c |
+| 7. CI's static job runs the check-areas lint   | 5    | merged (sonnet)           | 5428a233 |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Now:** wave 3 landed in `dev` as ce792df3 through PR #122, **without a Codex review (out of credits)**. `full` run 45212045467 green on 25523b82. The real candidate rc/20261123-1613 (PR #121, `candidate` run 45214064116, 11 of 11 browser checks) was closed unmerged with its branches deleted; `staging` stayed at 94b26ec3 and held PR #115 is still open. Slice 3 and 4 worktrees are removed, the docs are folded, B-532 is finished and report a146 is filed. B-533 (the staging to main gate) stays open for slices 5 and 6.
+**Now:** wave 4 landed in `dev` as 4160dee5 through PR #127 on the user's word, **without a Codex review (out of credits)**. `full` run 45237050708 green on e011122e. Slice 5's `release` run 45224003205 on ef58007e has a green verdict (11 of 11 browser checks, three times, 12 minutes); GitHub shows it red because the report-only zone jobs fail by design. Its 17 New York failures are filed: B-706 to B-715, and the other 7 files on B-372 (`roundtrip`, on the brake list, is among them). Local `phase2` was FLAKY at load 60 to 70 (B-716). Slice 5's worktree is removed and the runbook has the release tier. B-533 stays open for slice 6.
 
-**Next:** wave 4: slice 5 merged as 55abe5cd (worktree `test-gates-2-5` stays until the wave is green). Its `release` run 45224003205 on ef58007e has a **green verdict** (11 of 11 browser checks, three times, 12 minutes); GitHub shows the run red because the report-only zone jobs fail by design. The merge's quick check passed on a0e9ebf7 (a first try failed once in `scripts/loops/browser.test.mjs` under load 42; it passed 3 of 3 alone). The zone failures are filed once: B-706 to B-715, and the other 7 files on B-372 (`roundtrip`, on the brake list, is among the 17). Synced with `dev` at 623c26b1; quick check passed on 2fbb7670; the wave's `full` run 45233140090 is **green** on 2fbb7670 (two quarantined tests failed, as quarantine allows). Local `--changed` browser checks: 5 of 5, with `phase2` FLAKY at load 60 to 70 (B-716). Slice 5's worktree is removed and the runbook has the release tier. The user said land (2026-11-23). Then: PR, Codex (or exit 4), land with `--tier full`, report, rotate to wave 5, which needs its own CI ask.
+**Wave 5 (2026-11-23):** synced dev at 54194267; slice 6 worktree made, opus agent spawned, told to make **no real CI run, `release-gate` status, PR or override** until the orchestrator passes on the wave 5 CI approval (**a155, skeptic s15, the user's yes**: one `release` run from slice 6's branch, reruns after a fix, the wave's gate run, and one real `release-gate` status on a throwaway commit on a temporary branch, through the same status code, with a guard refusing staging or main; each run files at most 10 new `fixes-bug` items. It covers no staging to main PR, candidate, promotion, ruleset edit or real override). No staging to main PR is open, and none may be opened for this.
+
+**Slice 6 handed off (f57458d5), merged 8d738b9c, B-533 ready.** `release` run 45241502966 has a green verdict (11 of 11 browser checks; GitHub shows it red because of the report-only zone jobs). The real `release-gate` status is on throwaway commit fe017f92 and is deliberately `error`, so **no real green status exists yet and the user's ruleset step waits for one**. `ci release` and the override have run only against fixtures. Follow-ups: B-721 (zone filing refiles a landed item) and B-722 (a run replaces an override's status). Filing amended an unpushed backlog commit on local `dev` (51f86b34 to 0603e604, 11 note lines only).
+
+**Doc folds at landing:** the runbook's ruleset step, `ci release`, the override and the red-run note; handbooks: agents never write `release-gate` any other way, `release-test` only on throwaway commits.
+
+**Gate:** quick check passed on 7915dd64; `full` run 45245422304 green on it. **Slice 7 (B-725) was added after that**, at the request of the session running hotfix B-724, relayed as the user's choice. Its workflow change needs a new `full` run. Tell session `caretook-com-9f` when it is in `dev`.
+
+**Slice 7 merged (5428a233, B-725 ready). `full` run 45248416327 green on the synced tip ee4512a8** (one quarantined lease test failed, which doesn't count). The user said on 2026-11-23: no local quick check when a `full` CI run covers it, unless it is almost done, so none ran on this tip. Docs are folded (runbook, orchestrator handbook).
+
+**Next:** PR, Codex review (land `--no-review` if out of credits), land the last wave at `--tier full`, report, tell `caretook-com-9f`, `pnpm prd rm`, `pnpm prd end`. The user's "skip rechecks after a clean sync" was for wave 4 only, so wave 5 rechecks after each sync unless they repeat it. A local browser check that repeats a CI browser run on the same code adds little: the user questioned it in wave 4, and the handbook rule is unchanged.
 
 **For slice 6:** call `zone-file` from `pnpm prd ci release`; nothing calls it yet, and it has never run against the real backlog before this wave.
 
@@ -167,3 +178,20 @@ Stack: no · Reads: docs/agents/orchestrator.md, ops/runbook.md · Tests: unit
 - A real `release-gate` status is written on a test commit, linked in the hand-off. No ruleset is changed.
 
 **Blocked by:** 5.
+
+## Slice 7: CI's static job runs the check-areas lint
+
+Stack: no · Reads: docs/agents/loop.md · Tests: unit
+
+**Item:** B-725.
+
+**Build:**
+
+- In `.github/workflows/ci.yml`, the `static` job gets a step right after `docs-budget`: `id: check-areas`, `name: Check areas`, `if: ${{ !cancelled() }}`, `run: node scripts/loops/check-areas.mjs lint`.
+- In `scripts/deploy/workflows.test.mjs`, a test asserts that step's `run` and `if`.
+
+**Acceptance criteria:**
+
+- The unit test passes, and no other job or step changes.
+
+**Blocked by:** 6.

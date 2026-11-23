@@ -22,6 +22,9 @@ const CACHE_PREFIX = "caretook:avatar:";
 const PENDING_PREFIX = "caretook:avatar-pending:";
 const cacheKey = (userId: string) => `${CACHE_PREFIX}${userId}`;
 const pendingKey = (userId: string) => `${PENDING_PREFIX}${userId}`;
+/** What the server last accepted from this device, until the synced row shows it. */
+const SENT_PREFIX = "caretook:avatar-sent:";
+const sentKey = (userId: string) => `${SENT_PREFIX}${userId}`;
 
 /** What couldn't be stored (private mode, a full disk): kept for this page load. */
 const unstored = new Map<string, string>();
@@ -51,8 +54,10 @@ const isIdOrNull = (value: unknown) => value === null || typeof value === "strin
  * The queued choice, ids as stored: one this version doesn't know goes to the
  * server to refuse, rather than reading as unset and clearing the field there.
  */
-const readPending = (userId: string): AvatarChoice | null => {
-  const stored = readStored(pendingKey(userId));
+const readPending = (userId: string) => readChoiceAt(pendingKey(userId));
+
+const readChoiceAt = (key: string): AvatarChoice | null => {
+  const stored = readStored(key);
   if (typeof stored !== "object" || stored === null) return null;
   const { color, icon } = stored as { color?: unknown; icon?: unknown };
   return isIdOrNull(color) && isIdOrNull(icon) ? ({ color, icon } as AvatarChoice) : null;
@@ -112,6 +117,7 @@ const drain = async (userId: string, epoch: number): Promise<Sent> => {
         if (epoch !== forgotten) return { outcome: "pending" };
         writes++;
         writeStored(cacheKey(userId), readAvatarChoice(avatar));
+        writeStored(sentKey(userId), readAvatarChoice(avatar));
         clearPendingIf(userId, sent);
         last = { outcome: "saved" };
       } catch (error) {
@@ -150,7 +156,11 @@ const refresh = async (userId: string) => {
   try {
     const me = await rpc.me.get();
     if (since !== writes) return;
-    writeStored(cacheKey(userId), readAvatarChoice(me.avatar));
+    const answer = readAvatarChoice(me.avatar);
+    writeStored(cacheKey(userId), answer);
+    // Another device may have chosen since: wait for the server's answer, or the
+    // overlay would wait for a row that never comes.
+    if (readChoiceAt(sentKey(userId))) writeStored(sentKey(userId), answer);
     publish();
   } catch {
     // Offline or signed out: the next navigation or reconnect asks again.
@@ -172,6 +182,45 @@ export const useMyAvatar = (userId: string): AvatarChoice => {
     () => snapshot(userId),
     () => NO_AVATAR_CHOICE,
   );
+};
+
+/** Your choice that the synced row doesn't show yet: pending, else last accepted. */
+export const myAvatarOverlay = (userId: string): AvatarChoice | null => {
+  const raw = readPending(userId) ?? readChoiceAt(sentKey(userId));
+  if (!raw) return null;
+  const choice = readAvatarChoice(raw);
+  const json = JSON.stringify(choice);
+  const key = `overlay:${userId}`;
+  const last = snapshots.get(key);
+  if (last?.json === json) return last.choice;
+  snapshots.set(key, { json, choice });
+  return choice;
+};
+
+/** The synced row has caught up with what was accepted: the overlay ends. */
+export const settleMyAvatar = (userId: string, synced: AvatarChoice) => {
+  const sent = readChoiceAt(sentKey(userId));
+  if (!sent) return;
+  const shown = readAvatarChoice(sent);
+  if (shown.color !== synced.color || shown.icon !== synced.icon) return;
+  writeStored(sentKey(userId), null);
+  publish();
+};
+
+/**
+ * Your own choice to show over your synced row (`synced`; null while it isn't
+ * on the device), or null when the row is current.
+ */
+export const useMyAvatarOverlay = (userId: string, synced: AvatarChoice | null) => {
+  const overlay = useSyncExternalStore(
+    subscribe,
+    () => myAvatarOverlay(userId),
+    () => null,
+  );
+  useEffect(() => {
+    if (synced) settleMyAvatar(userId, synced);
+  }, [userId, synced, overlay]);
+  return overlay;
 };
 
 /**
@@ -201,7 +250,8 @@ export const forgetMyAvatar = () => {
   unstored.clear();
   try {
     for (const key of Object.keys(localStorage))
-      if (key.startsWith(CACHE_PREFIX) || key.startsWith(PENDING_PREFIX)) localStorage.removeItem(key);
+      if ([CACHE_PREFIX, PENDING_PREFIX, SENT_PREFIX].some((prefix) => key.startsWith(prefix)))
+        localStorage.removeItem(key);
   } catch {
     // Nothing stored.
   }
