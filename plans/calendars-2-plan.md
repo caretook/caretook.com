@@ -12,7 +12,7 @@
 | ----- | ---- | ----- | ------------------------------------------ | -------------------------------------------- |
 | 1     | 1    | opus  | started (worktree, agent spawned)          |                                              |
 | 2     | 2    |       | not started                                |                                              |
-| 3     | 1    | opus  | started (worktree, agent spawned)          |                                              |
+| 3     | 1    | opus  | handed off, reviewed; merges after 1       | (`ad831a51`; migration 0039)                 |
 | 4     | 2    |       | not started                                |                                              |
 | 5     | 1    | opus  | handed off, reviewed; merges after 1 and 3 | (`c58aee87`)                                 |
 | 6     | 1    | opus  | handed off, reviewed; merges after 5       | (`6914d97b`, `e82f69c0`)                     |
