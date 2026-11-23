@@ -34,6 +34,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 11 (slices 43–48, B-656, B-657, B-659, B-662, B-666, B-675, all on opus):** resumed after an interruption; git matched this Status, no slice in flight, already synced with dev (fa432c69). **Held for a later wave:** B-615 (dose-accuracy's wave 5 is still changing the `timelineEntryService` upsert; it will message), B-689 and B-690 (member-avatars holds `routes/app/groups/planner/`). At landing, fold the B-659 consent rule into `calendars.md` and B-656 into `care-periods.md`; `calendars.md` is near its 10 KB budget, so trim when adding.
 
+**Wave 11 progress:** all six slices merged; worktrees stay until the wave's verdict is green. Follow-up B-717 (consent refused on an old bundle). At landing also fold B-662 into `assistant.md` (_Doses_; at its 10 KB budget, trim). Browser: `roundtrip` is named by `carePeriodTrack.ts`; run `browser --changed --base dev`. Slice 44 changed the shared sheet guard: watch other sheets in the `components` run. Hand test for B-666: real password manager on join, link invite and email invite. **Next wave:** B-615 is free (dose-accuracy wave 5 landed as 1b2723a2), but stay off the upsert's duplicate return and `mayRestoreDose` (dose-accuracy slice 7, B-627).
+
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
 | Slice | Item  | State                                      | Merge    |
@@ -82,10 +84,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 42    | B-631 | landed                                     | 2a479df8 |
 | 43    | B-656 | merged (roundtrip at landing)              | a449f67c |
 | 44    | B-657 | merged (sheets in components CI)           | 036a9fff |
-| 45    | B-659 | started (opus)                             |          |
-| 46    | B-662 | started (opus)                             |          |
-| 47    | B-666 | handed off (e133139d)                      |          |
-| 48    | B-675 | started (opus)                             |          |
+| 45    | B-659 | merged (calendars.md at landing)           | 0a8ccfcc |
+| 46    | B-662 | merged (assistant.md at landing)           | 8c930686 |
+| 47    | B-666 | merged (needs a hand test)                 | 288e9cbe |
+| 48    | B-675 | merged                                     | 3d8e9cf5 |
 
 ## Wave 1
 
