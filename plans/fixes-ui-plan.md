@@ -6,7 +6,18 @@ Small UI fixes: look, layout, wording and flow. There is no PRD: this plan is th
 
 Landing mode: **run everything through** (started run-through, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports only through `pnpm prd ask`.
 
-Wave 1: slices 1–9, written 2026-11-22. Models: opus for all. Slice 2 waits for 1, slice 7 for 6 (same files); the rest start at once. All nine slices are merged and dev is synced (919126cb). Browser: `--changed --base dev` names none; `--suite` not run (the user asks to be asked first). Full check running on the tip; next: docs, PR, Codex, land. The full check must cover `linkedTodos.browser.test.tsx` and `provider.browser.test.tsx` (slice 9 changed their code). At landing: replace "Show past (N)" and `?past=1` in `docs/domain/providers.md` (past providers always list); update the day header wording in `docs/domain/timeline.md` and `docs/domain/care-periods.md` (+ at the far right, Change is an icon button); watch the `timelineHeader`, `timelineEasy`, `timelineLayout`, `timelineSummaries`, `timelineScroll`, `entry` and `ui/inScreens` component tests in the full check (slice 4 changed the header DOM).
+Wave 1: slices 1–9, written 2026-11-22. Models: opus for all.
+
+All nine slices are merged and dev is synced (919126cb). No slice is in flight. Browser: `--changed --base dev` names none; `--suite` not run (the user's rule: ask first).
+
+**Resume here (wave 1 gate, rotated for context):**
+
+1. The full check on d4bdb178 did **not** pass: ESLint died with "JavaScript heap out of memory" (exit 134) at load about 16. Format had passed; typecheck status is in no later step, and no test ran. Slice 7 hit the same crash at load about 20 and passed once the 5-minute load was under 16. Wait for load under 16, rerun `pnpm prd check` once. If it crashes again on a quiet machine, it is not load: find out why (dev's ui-kit-3 sync is new) and file it in fixes-tooling, or ask.
+2. Send any component test failure to a fix agent. Watch `timelineHeader`, `timelineEasy`, `timelineLayout`, `timelineSummaries`, `timelineScroll`, `entry`, `ui/inScreens` (slice 4 changed the day header's DOM), `linkedTodos` and `provider` (slice 9), `todos` and `easyRolePages` (slice 3).
+3. Fold the docs (all near the 10 KB budget: trim what you add). `providers.md`: past providers always list under their label (no "Show past", no `?past=1`); rows carry no contact details and open the provider page, which has the contact links. `timeline.md`: the + is at the far right of the day header. `care-periods.md`: the period sits right, before the +; Change is an icon button. `appointments.md`: `TabNav` is Upcoming | Past | Todos, `PlannerFilterRow` is gone, Filter sits beside the tabs on Upcoming; call, map and author sit under the time in `[data-when-column]`. `todos.md` if it places the Planner row's assignee.
+4. `pnpm prd serve --restart`, `pnpm prd pr fixes-ui`, `pnpm prd review fixes-ui --wait` in the background, triage, land, file the report with `pnpm prd ask --report`, then rotate for wave 2.
+
+Small follow-ups: B-575 (Planner tabs' accessible name) is filed. Stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows. Wave 2 candidates once ui-kit-3 is done: B-316, B-535, B-536, B-537, B-575.
 
 Left for a later wave: B-316 (unsaved-changes guard), B-535 (hour-first time picker), B-536 (danger text contrast) and B-537 (Event wording) touch ui-kit-3's hot files (`components/ui/`, `lib/timeline/entryDisplay.ts`, `lib/app-shell/`, `routes/dev/ui/`). B-325 (native safe area and cold start) waits for the Capacitor work, as its triage says.
 
