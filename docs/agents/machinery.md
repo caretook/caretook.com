@@ -74,4 +74,5 @@ The scripts behind `pnpm prd` (`scripts/loops/`): worktrees and leases, recorded
 
 ## Landing reports
 
-- After merging a `prd/` or `hotfix/` branch (fix topics included) whose diff isn't Markdown only, `land.sh` writes `to-test/<date>-<HHMM>-<topic>.md` in the main checkout (gitignored), itself, so it exists even if the session dies: the topic's title, what changed and landed, the commit and PR, the dev URL and seed accounts, and what wasn't checked (browser checks land can't see). Agents only add to them; a failed write never fails the landing.
+- After merging a `prd/` or `hotfix/` branch whose diff isn't Markdown only, `land.sh` writes `to-test/<date>-<HHMM>-<topic>.md` in the main checkout, so it survives the session: title, what landed, commit and PR, dev URL, seed accounts, and what wasn't checked (browser checks, an unsynced landing). Agents only add to them; a failed write is ignored.
+- **Unsynced:** land skips the sync if dev's new files miss the branch and the risky list (`dev-brought.mjs`), dev has no known brake and the merge typechecks. Never with `--force`/`--fixes`.
