@@ -14,6 +14,7 @@ import {
   markDraft,
   openAfterSave,
   partKey,
+  pruneCardState,
   savedText,
 } from "./quickEntryCards";
 
@@ -50,6 +51,74 @@ const titleOf = (r: QuickEntryReading) => {
   return a.type === "logDose" ? `Medication ${a.medicationId.slice(0, 2)}` : r.label;
 };
 const none = { chosen: new Map<string, number>(), removed: new Set<string>() };
+
+describe("pruneCardState", () => {
+  const parts: QuickEntryPart[] = [
+    { text: "bp 120/80", readings: [note("bp 120/80")] },
+    { text: "dizzy", readings: [note("dizzy")] },
+  ];
+  const first = partKey(0, parts[0]!);
+  const second = partKey(1, parts[1]!);
+
+  test("keeps state for keys still present and drops the rest", () => {
+    const kept = pruneCardState(parts, {
+      chosen: new Map([
+        [first, 1],
+        ["0:gone", 2],
+      ]),
+      removed: new Set([second, "1:gone"]),
+      errors: new Map([
+        [first, "Refused"],
+        ["2:gone", "Stale"],
+      ]),
+    });
+    expect([...kept.chosen]).toEqual([[first, 1]]);
+    expect([...kept.removed]).toEqual([second]);
+    expect([...kept.errors]).toEqual([[first, "Refused"]]);
+  });
+
+  test("the same text at another place is another card", () => {
+    const kept = pruneCardState([parts[1]!], {
+      chosen: new Map(),
+      removed: new Set([second]),
+      errors: new Map(),
+    });
+    expect(kept.removed.size).toBe(0);
+  });
+
+  test("no parts forgets everything", () => {
+    const kept = pruneCardState([], {
+      chosen: new Map([[first, 1]]),
+      removed: new Set([first]),
+      errors: new Map([[first, "Refused"]]),
+    });
+    expect([kept.chosen.size, kept.removed.size, kept.errors.size]).toEqual([0, 0, 0]);
+  });
+
+  test("returns the same maps when nothing changed, so rendering can't loop", () => {
+    const state = {
+      chosen: new Map([[first, 1]]),
+      removed: new Set([second]),
+      errors: new Map([[first, "Refused"]]),
+    };
+    const kept = pruneCardState(parts, state);
+    expect(kept.chosen).toBe(state.chosen);
+    expect(kept.removed).toBe(state.removed);
+    expect(kept.errors).toBe(state.errors);
+  });
+
+  test("only the map with something to drop is replaced", () => {
+    const state = {
+      chosen: new Map([[first, 1]]),
+      removed: new Set(["9:gone"]),
+      errors: new Map<string, string>(),
+    };
+    const kept = pruneCardState(parts, state);
+    expect(kept.chosen).toBe(state.chosen);
+    expect(kept.removed).not.toBe(state.removed);
+    expect(kept.errors).toBe(state.errors);
+  });
+});
 
 describe("buildCards", () => {
   const parts: QuickEntryPart[] = [
