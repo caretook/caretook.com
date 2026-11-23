@@ -6,18 +6,18 @@
 
 **Landing mode: run everything through** (started run-through; ask only real questions, through `pnpm prd ask`). The PRD lands once, after wave 2.
 
-Wave 1 running: slice 1 started 2026-11-23 from `b580a458`, worktree `.loops/timeline-jump-1`, agent on opus. Slices 2, 3 and 4 wait for slice 1's merge.
+Wave 1: slice 1 (agent on opus) handed off at `731544d0` and merged as `1cfac27b`; quick check on the merge running. Its worktree stays until the wave's CI verdict is green. Slices 2, 3 and 4 are unblocked.
 
-| Slice | Wave | State       | Merge into `prd/timeline-jump` (slice commits) |
-| ----- | ---- | ----------- | ---------------------------------------------- |
-| 1     | 1    | in progress | —                                              |
-| 2     | 2    | blocked (1) | —                                              |
-| 3     | 2    | blocked (1) | —                                              |
-| 4     | 2    | blocked (1) | —                                              |
+| Slice | Wave | State  | Merge into `prd/timeline-jump` (slice commits)  |
+| ----- | ---- | ------ | ----------------------------------------------- |
+| 1     | 1    | merged | `1cfac27b` (`6999da53`, `9db57b09`, `731544d0`) |
+| 2     | 2    | ready  | —                                               |
+| 3     | 2    | ready  | —                                               |
+| 4     | 2    | ready  | —                                               |
 
 **Backlog:** B-557 (quick date jump on the timeline) claimed by `prd/timeline-jump`; run `pnpm backlog done B-557` when the last slice merges. No other items belong to this topic.
 
-**Open issues:** none. `pnpm backlog doctor` reports three findings on other topics' items (B-548, B-549, B-568), left alone.
+**Open issues:** slice 1's Back-from-entry test proves the day, window and page height return, but its harness has no `ScrollRestoration`, so the browser's real restore is unexercised: try it by hand at landing. Slices 3 and 4 navigate with `JUMP_LINK_STATE` and `preventScrollReset`; slice 3's picker test first covers a jump-marker navigation. `pnpm backlog doctor` reports three findings on other topics' items (B-548, B-549, B-568), left alone.
 
 ## Architectural decisions
 
