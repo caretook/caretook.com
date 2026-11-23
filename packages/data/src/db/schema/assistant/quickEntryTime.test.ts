@@ -256,6 +256,12 @@ describe("a period that has begun", () => {
     });
   });
 
+  test("'at 12 this morning' is the midnight that began today", () => {
+    expect(topAt("woke at 12 this morning", AT_7).actions[0]).toMatchObject({
+      occurredAt: pst("2026-11-19", "00:00"),
+    });
+  });
+
   test("at 10:00, 'bp 120/80 this morning' is 8:00", () => {
     const r = topAt("bp 120/80 this morning", new Date(pst("2026-11-19", "10:00")));
     expect(r.actions[0]).toMatchObject({ occurredAt: pst("2026-11-19", "08:00") });

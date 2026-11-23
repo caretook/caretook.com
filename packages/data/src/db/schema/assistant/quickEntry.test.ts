@@ -1120,6 +1120,16 @@ describe("the user's lines (B-220)", () => {
     ["pick up the walker next tue", todo("Pick up the walker", "2026-11-24")],
     ["call the pharmacy tonight", todo("Call the pharmacy", "2026-11-19", "22:00")],
     ["call back in 2 hours", todo("Call back", "2026-11-19", "10:00")],
+    // A line asking for something, with a part of day and no day: the next such time.
+    ["call the pharmacy in the morning", todo("Call the pharmacy", "2026-11-20", "08:00")],
+    ["in the morning call the pharmacy", todo("Call the pharmacy", "2026-11-20", "08:00")],
+    [
+      "remember to water the plants in the morning",
+      todo("Remember to water the plants", "2026-11-20", "08:00"),
+    ],
+    ["pick up the walker in the afternoon", todo("Pick up the walker", "2026-11-19", "14:00")],
+    ["call the pharmacy at night", todo("Call the pharmacy", "2026-11-19", "22:00")],
+    ["call the pharmacy at 9 in the morning", todo("Call the pharmacy", "2026-11-19", "09:00")],
     ["dinner with Ann tomorrow 6pm", todo("Dinner with Ann", "2026-11-20", "18:00")],
     // A note with no time ahead stays a note, now or read back like the other past-only kinds.
     ["called the pharmacy", { kind: "note", occurredAt: NOW.toISOString() }],
@@ -1127,6 +1137,11 @@ describe("the user's lines (B-220)", () => {
     ["called the pharmacy on the 25th", { kind: "note", occurredAt: at("2026-10-25T15:00:00Z") }],
     ["called the pharmacy at 5pm", { kind: "note", occurredAt: at("2026-11-19T01:00:00Z") }],
     ["walked in 3 min", { kind: "note", occurredAt: at("2026-11-19T16:03:00Z") }],
+    // A line reporting what happened in a part of day stays a note, read back.
+    ["slept badly in the morning", { kind: "note", occurredAt: at("2026-11-19T16:00:00Z") }],
+    ["called the pharmacy in the morning", { kind: "note", occurredAt: at("2026-11-19T16:00:00Z") }],
+    ["call from the pharmacy in the morning", { kind: "note", occurredAt: at("2026-11-19T16:00:00Z") }],
+    ["call in the morning was fine", { kind: "note", occurredAt: at("2026-11-19T16:00:00Z") }],
   ])("%s", (line, expected) => {
     const r = top(line);
     expect(shape(r)).toEqual(expected);
@@ -1230,6 +1245,16 @@ describe("the vocabulary", () => {
   test.each(QUICK_ENTRY_VOCABULARY.map((entry) => [entry.phrase, entry.role, entry] as const))(
     "%s (%s)",
     (phrase, role, entry) => {
+      if (role === "requestVerb" || role === "requestLead") {
+        // Alone it picks nothing; opening a line with a part of day, it asks for a todo.
+        expect(top(phrase).kind).toBe("note");
+        expect(top(`${phrase} the thing in the evening`).kind).toBe("todo");
+        return;
+      }
+      if (role === "reportWord") {
+        expect(top(`call the pharmacy ${phrase} in the evening`).kind).toBe("note");
+        return;
+      }
       if (verbs.has(role)) {
         // A verb alone picks nothing; with a provider it picks its role's kind.
         expect(top(phrase).kind).toBe("note");
