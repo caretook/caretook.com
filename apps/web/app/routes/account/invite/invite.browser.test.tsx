@@ -165,7 +165,21 @@ describe("an email invite, signed out", () => {
     expect(calls.of("/api/auth/sign-in/email")).toEqual([
       { email: "avery.invited@example.com", password: "a long fictional passphrase" },
     ]);
-    expect(device.location()).toBe(PATH);
+    // A changed URL is what tells a password manager the sign-up worked (B-666).
+    await expect.poll(device.location).toBe(`${PATH}?signedUp=1`);
+    expect(form("signUp")).toBeNull();
+  });
+
+  test("a password manager can read the form: username, new password, one form, a real submit (B-666)", async () => {
+    await open({ "invite.preview": () => emailInvite });
+    await expect.element(field("Email")).toHaveAttribute("autocomplete", "username");
+    await expect.element(field("Password")).toHaveAttribute("autocomplete", "new-password");
+    await expect.element(field("Password again")).toHaveAttribute("autocomplete", "new-password");
+    const signUp = form("signUp");
+    for (const name of ["email", "password", "confirm"]) {
+      expect(signUp?.querySelector(`input[name="${name}"]`)).not.toBeNull();
+    }
+    expect(signUp?.querySelector('button[type="submit"]')?.textContent).toContain("Create account");
   });
 
   test("passwords that don't match are refused before any call", async () => {
@@ -227,6 +241,8 @@ describe("a link invite, signed out", () => {
     await expect.element(page.getByText("Sam Okafor invited you to join as a viewer.")).toBeVisible();
     await expect.element(field("Email")).toHaveValue("");
     await expect.element(field("Email")).not.toHaveAttribute("readonly");
+    await expect.element(field("Email")).toHaveAttribute("autocomplete", "username");
+    await expect.element(field("Password")).toHaveAttribute("autocomplete", "new-password");
     await expect.element(page.getByText("We'll email you a link to confirm it.")).toBeVisible();
     expect(form("decline")).toBeNull();
   });
