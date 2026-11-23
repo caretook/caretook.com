@@ -140,7 +140,9 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
     const { error } = await authClient.signIn.email({ email, password });
     if (error) return { intent, error: requestFailure(error) ?? authMessages.failed };
     sessionChanged();
-    throw redirect(accountUrls.invite(token));
+    // A new URL, not the same one: password managers read that as a sign-up
+    // that worked, and offer to save the password (B-666).
+    throw redirect(accountUrls.inviteSignedUp(token));
   }
 
   if (intent === "accept") {
@@ -290,7 +292,14 @@ function SignUpForm({
         {isLink(invite) ? (
           <Field kind="input" label="Email" help="We'll email you a link to confirm it.">
             {(control) => (
-              <input {...control} type="email" name="email" autoComplete="email" maxLength={254} required />
+              <input
+                {...control}
+                type="email"
+                name="email"
+                autoComplete="username"
+                maxLength={254}
+                required
+              />
             )}
           </Field>
         ) : (
@@ -300,6 +309,7 @@ function SignUpForm({
                 {...control}
                 type="email"
                 name="email"
+                autoComplete="username"
                 value={invite.email ?? ""}
                 readOnly
                 aria-readonly="true"
