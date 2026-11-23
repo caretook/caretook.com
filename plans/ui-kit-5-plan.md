@@ -22,7 +22,7 @@
 
 **After landing:** message `fixes-bug-d0` (SendMessage) that wave 3 is in dev. Its B-620 (day headers repeat a care period day number) and B-631 (Back can skip the discard prompt after a refused action) wait on `routes/app/groups/timeline/`.
 
-**Gate on 06b21030:** quick check passed; browser checks passed once each (app-shell, sign-in, first-sync, session-end, invites, ui); full CI requested. `ui-kit.md` folded.
+**Gate:** full CI green on 06b21030 (run 45166523278); browser checks passed once each there (app-shell, sign-in, first-sync, session-end, invites, ui); slice 7 worktree removed; synced with dev; quick check passed on 16c0d70f; `ui-kit.md` folded. Next: PR, Codex, land with `--tier full`, report, message fixes-bug-d0, `pnpm prd rm ui-kit-5`, `pnpm prd end`.
 
 ## Durable decisions
 
