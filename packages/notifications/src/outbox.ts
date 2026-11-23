@@ -5,6 +5,7 @@ import type { NotificationData } from "./render";
 import type { Sender } from "./senders";
 
 import {
+  EXPIRED_ERROR,
   SUPPRESSED_ERROR,
   SYSTEM_USER,
   dbMayFail,
@@ -111,6 +112,11 @@ export type NotifyOptions<N extends NotificationName> = {
    * with the same key queues nothing, and Resend gets it too.
    */
   idempotencyKey: string;
+  /**
+   * ISO. From this moment the message is no use: it is skipped as `expired`,
+   * never sent, and no retry is scheduled past it. Left out: it never expires.
+   */
+  expiresAt?: string;
   /** The caller's transaction: the row commits or rolls back with it. */
   tx?: Tx;
   /**
@@ -131,7 +137,7 @@ const recipientZ = z.email();
  */
 export const notify = async <N extends NotificationName>(
   name: N,
-  { to, actor, data, idempotencyKey, tx, deliver = true }: NotifyOptions<N>,
+  { to, actor, data, idempotencyKey, expiresAt, tx, deliver = true }: NotifyOptions<N>,
 ): Promise<Queued | AppError> => {
   const recipient = to.trim();
   if (!recipientZ.safeParse(recipient).success) {
@@ -156,7 +162,7 @@ export const notify = async <N extends NotificationName>(
   const queued = await dbMayFail(async (): Promise<Queued> => {
     const [row] = await db
       .insert(outbox)
-      .values({ name, recipient, ...rendered, idempotencyKey, createdBy: by, updatedBy: by })
+      .values({ name, recipient, ...rendered, idempotencyKey, expiresAt, createdBy: by, updatedBy: by })
       .onConflictDoNothing({ target: outbox.idempotencyKey })
       .returning({ id: outbox.id });
     if (row) return { id: row.id, created: true };
@@ -180,7 +186,10 @@ export const notify = async <N extends NotificationName>(
 export type DeliverySummary = {
   claimed: number;
   sent: number;
+  /** Every skipped row, the expired ones included. */
   skipped: number;
+  /** Of the skipped rows, those past their expiry. */
+  expired: number;
   retried: number;
   failed: number;
 };
@@ -230,6 +239,10 @@ const messageOf = (row: typeof outbox.$inferSelect, config: { from: string; appU
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error)).slice(0, 2000);
 
+/** Is the row's expiry at or before `at` (ms)? A row with none never expires. */
+const expiredBy = (row: typeof outbox.$inferSelect, at: number) =>
+  row.expiresAt !== null && new Date(row.expiresAt).getTime() <= at;
+
 /**
  * Claim due rows (pending and due, or stuck in `sending`) with
  * `FOR UPDATE SKIP LOCKED`, so concurrent sweeps never take the same row,
@@ -268,7 +281,9 @@ const claim = (limit: number, ids?: readonly string[]) => {
  * Send what's due: up to `limit` rows (or just `ids`), each once. A failure
  * goes back to pending with exponential backoff, and is marked failed after
  * MAX_ATTEMPTS. A row to a suppressed address is skipped (`suppressed`)
- * unless its notification is in SUPPRESSION_EXEMPT.
+ * unless its notification is in SUPPRESSION_EXEMPT. A row past its expiry is
+ * skipped (`expired`) without calling the sender, checked right before its
+ * send, and so is a failed one whose next try would fall at or after it.
  */
 export const deliverDue = async ({
   limit = BATCH_LIMIT,
@@ -280,7 +295,14 @@ export const deliverDue = async ({
   const claimed = await dbMayFail(() => claim(Math.min(limit, BATCH_LIMIT), ids), "notify:deliver");
   if (isError(claimed)) return claimed;
 
-  const summary: DeliverySummary = { claimed: claimed.length, sent: 0, skipped: 0, retried: 0, failed: 0 };
+  const summary: DeliverySummary = {
+    claimed: claimed.length,
+    sent: 0,
+    skipped: 0,
+    expired: 0,
+    retried: 0,
+    failed: 0,
+  };
   if (!claimed.length) return summary;
 
   const config = getMailConfig();
@@ -298,7 +320,9 @@ export const deliverDue = async ({
   for (const row of claimed) {
     let result: Awaited<ReturnType<Sender["send"]>>;
     try {
-      if (exempt(row.name)) {
+      if (expiredBy(row, Date.now())) {
+        result = { status: "skipped", reason: EXPIRED_ERROR };
+      } else if (exempt(row.name)) {
         result = await via.send(messageOf(row, config));
       } else if (isError(suppressed)) {
         // Unknown whether it's suppressed: try again later rather than risk it.
@@ -310,6 +334,14 @@ export const deliverDue = async ({
       }
     } catch (error) {
       result = { status: "error", error: errorText(error) };
+    }
+    // A retry that could only arrive too late is not scheduled.
+    if (
+      result.status === "error" &&
+      row.attempts < MAX_ATTEMPTS &&
+      expiredBy(row, Date.now() + retryDelayMs(row.attempts))
+    ) {
+      result = { status: "skipped", reason: EXPIRED_ERROR };
     }
 
     const done = await dbMayFail(async () => {
@@ -327,6 +359,7 @@ export const deliverDue = async ({
           .where(mine(row.id));
       } else if (result.status === "skipped") {
         summary.skipped++;
+        if (result.reason === EXPIRED_ERROR) summary.expired++;
         await db
           .update(outbox)
           .set({ status: "skipped", sentAt: sql`now()`, lastError: result.reason, ...redactedBody(row.name) })
