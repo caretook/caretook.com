@@ -25,6 +25,7 @@ import {
   isDraftReading,
   markDraft,
   openAfterSave,
+  pruneCardState,
   savedText,
 } from "./quickEntryCards";
 import { useQuickEntryData } from "./useQuickEntryData";
@@ -69,6 +70,12 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
         .parts,
     [text, timeZone, units, medications, providers, passes, members],
   );
+
+  // Forget a card's state as soon as its part of the line is gone (adjusted while rendering, so no stale frame).
+  const kept = pruneCardState(parts, { chosen, removed, errors });
+  if (kept.chosen !== chosen) setChosen(kept.chosen);
+  if (kept.removed !== removed) setRemoved(kept.removed);
+  if (kept.errors !== errors) setErrors(kept.errors);
 
   const preview = useMemo(() => {
     const context = {

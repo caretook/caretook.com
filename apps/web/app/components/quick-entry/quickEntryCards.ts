@@ -73,6 +73,35 @@ export const buildCards = (
     ];
   });
 
+/** What the box remembers per card: the reading chosen, the cards removed, a refusal's message. */
+export type QuickEntryCardState = {
+  chosen: ReadonlyMap<string, number>;
+  removed: ReadonlySet<string>;
+  errors: ReadonlyMap<string, string>;
+};
+
+const keepMapKeys = <V>(map: ReadonlyMap<string, V>, keys: ReadonlySet<string>): ReadonlyMap<string, V> =>
+  [...map.keys()].every((k) => keys.has(k)) ? map : new Map([...map].filter(([k]) => keys.has(k)));
+
+/**
+ * Card state only for the keys of the current parts, so a removal never
+ * outlives the text it belonged to. A map or set with nothing to drop comes
+ * back as the same object, so applying this while rendering can't loop.
+ */
+export const pruneCardState = (
+  parts: readonly QuickEntryPart[],
+  { chosen, removed, errors }: QuickEntryCardState,
+): QuickEntryCardState => {
+  const keys = new Set(parts.map((part, i) => partKey(i, part)));
+  return {
+    chosen: keepMapKeys(chosen, keys),
+    removed: [...removed].every((k) => keys.has(k))
+      ? removed
+      : new Set([...removed].filter((k) => keys.has(k))),
+    errors: keepMapKeys(errors, keys),
+  };
+};
+
 /** Every card's actions, in order, with the card each came from (for a refusal's message). */
 export const cardActions = (cards: readonly QuickEntryCard[]) =>
   cards.flatMap((card) => card.reading.actions.map((action) => ({ action, key: card.key })));

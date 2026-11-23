@@ -9,7 +9,8 @@ export type Clock = { hour: number; minute: number; meridiem?: "am" | "pm" };
 export type DaySpec =
   | { offset: number }
   | { weekday: number; modifier?: "next" | "last" | "this" }
-  | { month: number; date: number }
+  /** A month and day; `year` only when it was typed ("11/25/26"). */
+  | { month: number; date: number; year?: number }
   /** A day of the month alone ("the 25th"): this month's or the next (or last) one that has it. */
   | { date: number };
 export type Period = "morning" | "afternoon" | "evening" | "night";
@@ -88,15 +89,24 @@ const PERIOD_CLOCK: Record<Period, Clock> = {
   night: { hour: 22, minute: 0 },
 };
 
+/** When each period has begun: from then until its usual hour, "this morning" can already be now. */
+const PERIOD_BEGINS: Record<Period, number> = {
+  morning: 4 * 60,
+  afternoon: 12 * 60,
+  evening: 17 * 60,
+  night: 20 * 60,
+};
+
 const MINUTE_UNITS = new Set(["m", "min", "mins", "minute", "minutes"]);
 const HOUR_UNITS = new Set(["h", "hr", "hrs", "hour", "hours"]);
 const COUNT_WORDS: Record<string, number> = { a: 1, an: 1, one: 1, two: 2, three: 3, few: 3, couple: 2 };
 
 const meridiemOf = (text: string | undefined): "am" | "pm" | undefined => {
   if (!text) return undefined;
+  // A separate "a" or "p" is an ordinary word ("pain 8 a bit better"); "a.m." isn't.
   const t = text.replace(/\./g, "");
-  if (t === "am" || t === "a") return "am";
-  if (t === "pm" || t === "p") return "pm";
+  if (t === "am") return "am";
+  if (t === "pm") return "pm";
   return undefined;
 };
 
@@ -111,7 +121,9 @@ const clockWord = (word: string): Clock | null => {
   if (withMeridiem) {
     const hour = Number(withMeridiem[1]);
     const minute = Number(withMeridiem[2] ?? 0);
-    const meridiem = meridiemOf(withMeridiem[3]);
+    // Joined to the number, one letter is enough ("8a", "8:30p").
+    const suffix = withMeridiem[3]!;
+    const meridiem = meridiemOf(suffix.length === 1 ? `${suffix}m` : suffix);
     return validClock(hour, minute, meridiem) ? { hour, minute, meridiem } : null;
   }
   const colon = /^(\d{1,2}):(\d{2})$/.exec(word);
@@ -203,14 +215,93 @@ const ordinalDate = (word: string | undefined) => {
   return n >= 1 && n <= 31 ? n : null;
 };
 
-/** "o2 sat 95" is oxygen, not Saturday: a short weekday before a bare number, or after "o2", isn't one. */
+/** Common fractions: amounts ("gave 1/2 tylenol"), dates only after "on". */
+const FRACTIONS = new Set(["1/2", "1/3", "2/3", "1/4", "3/4", "1/8"]);
+
+/**
+ * Words that make the slash number before them an amount ("gave 1/8 tsp").
+ * The same units as the parser's `AMOUNT_UNITS`, which can't be imported here:
+ * the parser imports this file.
+ */
+const AMOUNT_UNIT_WORDS = new Set(
+  "tsp tbsp teaspoon teaspoons tablespoon tablespoons ml mls cc mg mcg g tab tabs tablet tablets pill pills cap caps capsule capsules dose doses drop drops puff puffs unit units patch patches spray sprays sachet sachets inhalation inhalations".split(
+    " ",
+  ),
+);
+
+/**
+ * A month/day word, month first ("11/25", "11/25/26", "11/25/2026"), when it
+ * is a real day. Without a year, a number out of ten ("3/10", a severity) and
+ * a common fraction are dates only after "on", and so is a number right
+ * before an amount's unit ("2/5 ml").
+ */
+const monthDayWord = (word: string | undefined, afterOn: boolean, next: string | undefined) => {
+  const m = word ? /^(\d{1,2})\/(\d{1,2})(?:\/(\d{4}|\d{2}))?$/.exec(word) : null;
+  if (!m) return null;
+  const month = Number(m[1]);
+  const date = Number(m[2]);
+  const year = m[3] ? Number(m[3]) + (m[3].length === 2 ? 2000 : 0) : undefined;
+  // Without a year, Feb 29 is real: resolving finds the nearest year that has it.
+  const longest = month >= 1 && month <= 12 ? new Date(Date.UTC(year ?? 2024, month, 0)).getUTCDate() : 0;
+  if (date < 1 || date > longest) return null;
+  if (
+    year === undefined &&
+    !afterOn &&
+    (date === 10 || FRACTIONS.has(word!) || AMOUNT_UNIT_WORDS.has(next ?? ""))
+  )
+    return null;
+  return { month, date, ...(year !== undefined && { year }) };
+};
+
+const PERIOD_WORDS = new Set(["morning", "afternoon", "evening", "night"]);
+
+/** A clock time starting at word `j`: "2pm", "noon", "2 pm", "at 2", "at 2pm". */
+const clockFollows = (words: readonly string[], j: number) => {
+  const at = words[j] === "at" ? 1 : 0;
+  const first = words[j + at];
+  if (!first) return false;
+  if (clockWord(first)) return true;
+  if (!/^\d{1,2}$/.test(first)) return false;
+  const hour = Number(first);
+  const meridiem = meridiemOf(words[j + at + 1]);
+  return meridiem ? validClock(hour, 0, meridiem) : at === 1 && validClock(hour, 0);
+};
+
+const inThePeriod = (words: readonly string[], j: number) =>
+  words[j] === "in" && words[j + 1] === "the" && PERIOD_WORDS.has(words[j + 2] ?? "");
+
+/** "sat" and "sun" are also ordinary words; one of these leading words makes them the day. */
+const AMBIGUOUS_DAYS = new Set(["sat", "sun"]);
+const DAY_LEADS = new Set(["on", "last", "next", "this"]);
+
+/**
+ * "o2 sat 95" is oxygen, not Saturday: a short weekday before a bare number, or
+ * after "o2", isn't one. "sat up in chair" and "in the sun" aren't days either:
+ * "sat" and "sun" need a leading word, a time after them, or the end of the line.
+ */
 const notAWeekday = (words: readonly string[], i: number) => {
   const word = words[i]!;
   if (word.length > 5) return false;
-  if (["o2", "spo2", "oxygen"].includes(words[i - 1] ?? "")) return true;
+  const before = words[i - 1] ?? "";
+  if (["o2", "spo2", "oxygen"].includes(before)) return true;
   const next = words[i + 1] ?? "";
-  const bareNumber = /^\d+(\.\d+)?%?$/.test(next) && !meridiemOf(words[i + 2]);
-  return bareNumber;
+  if (/^\d+(\.\d+)?%?$/.test(next) && !meridiemOf(words[i + 2])) return true;
+  if (!AMBIGUOUS_DAYS.has(word) || DAY_LEADS.has(before)) return false;
+  if (i === words.length - 1) return before === "the";
+  return !clockFollows(words, i + 1) && !PERIOD_WORDS.has(next) && !inThePeriod(words, i + 1);
+};
+
+/**
+ * Whether the ordinal at word `at` can be a day of the month: after "on", at
+ * the end of the line, or before a time word. A period word counts only last
+ * in the line, so "2nd evening dose" and "2nd night in a row" stay counts.
+ */
+const ordinalIsADay = (words: readonly string[], at: number, afterOn: boolean) => {
+  if (afterOn || at === words.length - 1) return true;
+  const next = words[at + 1]!;
+  if (clockFollows(words, at + 1) || inThePeriod(words, at + 1)) return true;
+  if (next === "at" && words[at + 2] === "night") return true;
+  return PERIOD_WORDS.has(next) && at + 1 === words.length - 1;
 };
 
 /**
@@ -331,11 +422,25 @@ export const findTime = (words: readonly string[]): FoundTime | null => {
           continue;
         }
       }
+      // "11/25", "on 11/10", "11/25/26"
+      const slashAt = word === "on" ? i + 1 : i;
+      const monthDay = monthDayWord(words[slashAt], word === "on", words[slashAt + 1]);
+      if (monthDay) {
+        day = monthDay;
+        take(i, slashAt - i + 1);
+        continue;
+      }
       // "25th", "the 25th", "on the 25th", "on 25th"
       const lead = word === "on" && next === "the" ? 2 : word === "on" || word === "the" ? 1 : 0;
       const ordinal = ordinalDate(words[i + lead]);
       const after = words[i + lead + 1] ?? "";
-      if (ordinal !== null && !NOT_A_DATE_AFTER.has(after) && !(after in MONTHS) && after !== "of") {
+      if (
+        ordinal !== null &&
+        !NOT_A_DATE_AFTER.has(after) &&
+        !(after in MONTHS) &&
+        after !== "of" &&
+        ordinalIsADay(words, i + lead, word === "on")
+      ) {
         day = { date: ordinal };
         take(i, lead + 1);
         continue;
@@ -356,6 +461,8 @@ export const findTime = (words: readonly string[]): FoundTime | null => {
           clock = { ...one, meridiem: m };
           take(i + at + 1, 1);
         }
+        // A zero-padded hour is on the 24-hour clock ("05:00" is 5 AM), not a bare hour.
+        else if (!one.meridiem && /^0[1-9]:/.test(first!)) clock = { ...one, meridiem: "am" };
         if (words[i + at + 1] === "o'clock") take(i + at + 1, 1);
         continue;
       }
@@ -461,11 +568,10 @@ export const wallTime = (date: string, hour: number, minute: number, timeZone: s
   return new Date(valid.length ? Math.min(...valid) : before);
 };
 
-/** 24-hour hours for a clock: with am/pm as said, else 1–6 read as afternoon, 7–11 as morning. */
+/** 24-hour hours for a clock: am/pm as said or as its period implies, else 1–6 are afternoon, 7–11 morning. */
 const hour24 = ({ hour, meridiem }: Clock, period?: Period) => {
   if (hour > 12) return hour;
-  const pm =
-    meridiem ?? (period === "afternoon" || period === "evening" || period === "night" ? "pm" : undefined);
+  const pm = meridiem ?? (period === "morning" ? "am" : period ? "pm" : undefined);
   if (pm === "am") return hour === 12 ? 0 : hour;
   if (pm === "pm") return hour === 12 ? 12 : hour + 12;
   if (hour >= 13 || hour === 0) return hour;
@@ -514,10 +620,14 @@ const dayDate = (
     while (day.date > new Date(Date.UTC(y, m, 0)).getUTCDate()) move();
     return `${y}-${pad(m)}-${pad(day.date)}`;
   }
+  if (day.year !== undefined) return `${day.year}-${pad(day.month)}-${pad(day.date)}`;
   const thisYear = `${year}-${pad(day.month)}-${pad(day.date)}`;
-  if (direction === "future" && thisYear < today) return `${year + 1}-${pad(day.month)}-${pad(day.date)}`;
-  if (direction === "past" && thisYear > today) return `${year - 1}-${pad(day.month)}-${pad(day.date)}`;
-  return thisYear;
+  const step = direction === "future" ? 1 : -1;
+  let y = year;
+  if (direction === "future" ? thisYear < today : thisYear > today) y += step;
+  // Feb 29: the nearest leap year that way.
+  if (day.month === 2 && day.date === 29) while (new Date(Date.UTC(y, 2, 0)).getUTCDate() < 29) y += step;
+  return `${y}-${pad(day.month)}-${pad(day.date)}`;
 };
 
 /**
@@ -539,10 +649,11 @@ export const resolveTime = (
   if (!spec.day) {
     // A time of day alone: the nearest one in the leaning direction.
     const c = clock!;
-    const hours =
-      c.meridiem || spec.period || c.hour === 0 || c.hour >= 12
-        ? [hour24(c, spec.period)]
-        : [c.hour, c.hour + 12];
+    const bare = !c.meridiem && !spec.period && c.hour !== 0 && c.hour < 12;
+    // Read forward, a bare hour is never before 7:00: nobody books 2 AM.
+    const hours = bare
+      ? [c.hour, c.hour + 12].filter((h) => direction === "past" || h >= 7)
+      : [hour24(c, spec.period)];
     const candidates = [-1, 0, 1].flatMap((offset) =>
       hours.map((h) => wallTime(addDays(today, offset), h, c.minute, timeZone)),
     );
@@ -565,6 +676,18 @@ export const resolveTime = (
     return { at: wallTime(date, Math.floor(nowMinutes / 60), nowMinutes % 60, timeZone), allDay: false };
   }
   return { at: wallTime(date, 0, 0, timeZone), allDay: true };
+};
+
+/**
+ * Whether a period said with no clock, today or with no day ("this morning",
+ * "tonight"), has begun while its usual hour is still ahead: what's being
+ * logged in it happened by now, not at that hour.
+ */
+export const periodUnderway = (spec: TimeSpec, { now, timeZone }: { now: Date; timeZone: string }) => {
+  if ("relativeMinutes" in spec || spec.clock || !spec.period) return false;
+  if (spec.day && !("offset" in spec.day && spec.day.offset === 0)) return false;
+  const minutes = wallParts(now.getTime(), timeZone).minutes;
+  return minutes >= PERIOD_BEGINS[spec.period] && minutes < PERIOD_CLOCK[spec.period].hour * 60;
 };
 
 /** Whether a phrase points ahead on its own ("tomorrow", "in 2 hours", "next tue"), whatever the kind. */

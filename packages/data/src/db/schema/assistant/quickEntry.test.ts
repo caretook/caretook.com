@@ -265,6 +265,410 @@ describe("doses", () => {
     expect(top("gave meds", { medications: [] }).kind).toBe("note");
   });
 
+  describe("a dose that wasn't given (B-300)", () => {
+    const doses = (line: string) => parse(line)[0]!.readings.filter((r) => r.kind === "dose");
+
+    test.each([
+      "did not give metoprolol",
+      "didn't give metoprolol",
+      "didn’t give metoprolol",
+      "didnt give metoprolol",
+      "metoprolol not given",
+      "metoprolol wasn't given",
+      "metoprolol was not given",
+      "couldn't give metoprolol",
+      "wouldn't give metoprolol",
+      "cannot give metoprolol",
+      "never gave metoprolol",
+      "forgot to give metoprolol",
+      "unable to give metoprolol",
+      "no metoprolol given",
+      "d: didn't give metoprolol",
+    ])("%s is skipped, with the note second", (line) => {
+      const { readings } = parse(line)[0]!;
+      expect(readings[0]!.kind).toBe("dose");
+      expect(action(readings[0]!)).toMatchObject({
+        type: "logDose",
+        medicationId: METO,
+        status: "skipped",
+        note: null,
+      });
+      expect(readings[1]!.kind).toBe("note");
+    });
+
+    test("a negated dose is less sure than a plain one and surer than the note", () => {
+      const { readings } = parse("didn't give metoprolol")[0]!;
+      expect(readings[0]!.confidence).toBeLessThan(top("gave metoprolol").confidence);
+      expect(readings[0]!.confidence).toBeGreaterThan(readings.find((r) => r.kind === "note")!.confidence);
+    });
+
+    test("a long name doesn't push the negating word out of reach", () => {
+      const medications = [{ id: METO, name: "Vitamin D3 Gummy Chew" }];
+      expect(action(top("no vitamin d3 gummy chew given", { medications }))).toMatchObject({
+        status: "skipped",
+      });
+    });
+
+    test("'and not' reads the next medication as skipped", () => {
+      expect(parse("gave tylenol and not metoprolol").map((p) => action(p.readings[0]!))).toMatchObject([
+        { type: "logDose", medicationId: APAP, status: "given" },
+        { type: "logDose", medicationId: METO, status: "skipped", note: null },
+      ]);
+    });
+
+    test("a carried negation needs a given before it and only a name after it", () => {
+      expect(top("no metoprolol").kind).toBe("note");
+      expect(parse("skipped metformin and not metoprolol")[1]!.readings[0]!.kind).toBe("note");
+      expect(parse("gave metformin, no lisinopril side effects")[1]!.readings[0]!.kind).toBe("note");
+    });
+
+    test.each([
+      ["gave metformin without food", "without food"],
+      ["gave metformin with no problems", "with no problems"],
+      ["gave tylenol not long ago", "not long ago"],
+    ])("%s stays given", (line, note) => {
+      expect(action(top(line))).toMatchObject({ type: "logDose", status: "given", note });
+    });
+
+    test.each([
+      ["no pain after metformin given", MET, "no pain after"],
+      ["no problems when given metformin", MET, "no problems when"],
+      ["no pain gave tylenol", APAP, "no pain"],
+      ["no chest pain gave tylenol", APAP, "no chest pain"],
+    ])("%s negates the symptom, not the dose", (line, medicationId, note) => {
+      expect(action(top(line))).toMatchObject({ type: "logDose", medicationId, status: "given", note });
+    });
+
+    test.each([
+      "no pain meds given metoprolol",
+      "no pain medicine given metoprolol",
+      "no pain relief given metoprolol",
+      "no painkillers given metoprolol",
+      "no pain metoprolol given",
+      "no evening metoprolol given",
+      "no more metoprolol given",
+    ])("%s is still skipped: the no is about the medication", (line) => {
+      expect(action(top(line))).toMatchObject({ type: "logDose", medicationId: METO, status: "skipped" });
+    });
+
+    test("a negated skip or refusal stays a note even after a symptom", () => {
+      expect(top("no pain skipped metformin").kind).toBe("note");
+      expect(top("no pain refused metformin").kind).toBe("note");
+    });
+
+    test("a medication named like a symptom can still be negated", () => {
+      const medications = [{ id: METO, name: "Nausea Relief" }];
+      expect(action(top("no nausea relief given", { medications }))).toMatchObject({ status: "skipped" });
+      expect(action(top("no nausea given", { medications }))).toMatchObject({ status: "skipped" });
+    });
+
+    test.each(["wouldn't take metoprolol", "wouldn’t take metoprolol", "did not swallow metoprolol"])(
+      "%s stays refused",
+      (line) => {
+        expect(action(top(line))).toMatchObject({ type: "logDose", medicationId: METO, status: "refused" });
+      },
+    );
+
+    test.each([
+      ["gave metoprolol", "given"],
+      ["skipped metoprolol", "skipped"],
+      ["refused metoprolol", "refused"],
+    ])("%s is unchanged", (line, status) => {
+      expect(action(top(line))).toMatchObject({ type: "logDose", medicationId: METO, status });
+    });
+
+    test.each(["didn't skip metoprolol", "didn't refuse metoprolol"])("%s is a note, no dose", (line) => {
+      expect(top(line).kind).toBe("note");
+      expect(doses(line)).toEqual([]);
+    });
+  });
+
+  describe("a typed count is the amount (B-301)", () => {
+    const TYL = "99999999-9999-4999-8999-999999999999";
+    const named = [{ id: TYL, name: "Tylenol", strength: "500 mg", dose: "2 tablets" }];
+    const fixtures = [
+      ["named Tylenol", named, TYL],
+      ["Tylenol only in its directions", undefined, APAP],
+    ] as const;
+    const over = (medications: typeof named | undefined) => (medications ? { medications } : {});
+    const symptoms = (line: string, medications?: typeof named) =>
+      parse(line, over(medications))[0]!.readings.filter((r) => r.kind === "symptom");
+
+    describe.each(fixtures)("%s", (_, medications, medicationId) => {
+      test.each([
+        ["gave 3 tylenol", "3 tablets"],
+        ["gave 1 tylenol", "1 tablet"],
+        ["gave half a tylenol", "half a tablet"],
+        ["gave 1/2 tylenol", "1/2 tablet"],
+        ["gave ½ tylenol", "½ tablet"],
+        ["gave two tylenol", "two tablets"],
+        ["tylenol x2", "2 tablets"],
+        ["tylenol 2", "2 tablets"],
+        ["3 tylenol", "3 tablets"],
+        ["tylenol 20", "20 tablets"],
+      ])("%s records %s", (line, amount) => {
+        const r = top(line, over(medications));
+        expect(r.kind).toBe("dose");
+        expect(action(r)).toMatchObject({ type: "logDose", medicationId, amount, note: null });
+      });
+
+      test("tylenol 2 at 8 is a dose at 8:00, never a symptom named Tylenol", () => {
+        const r = top("tylenol 2 at 8", over(medications));
+        expect(r.kind).toBe("dose");
+        expect(action(r)).toMatchObject({ medicationId, amount: "2 tablets", note: null });
+        expect(when(r)).toBe(at("2026-11-19T16:00:00Z"));
+        expect(symptoms("tylenol 2 at 8", medications)).toEqual([]);
+      });
+
+      test.each(["tylenol 500", "gave tylenol 25"])("%s keeps the usual dose", (line) => {
+        const r = top(line, over(medications));
+        expect(r.kind).toBe("dose");
+        expect(action(r)).toMatchObject({ medicationId, amount: "2 tablets" });
+      });
+
+      test("didn't give 2 tylenol is skipped with the amount", () => {
+        expect(action(top("didn't give 2 tylenol", over(medications)))).toMatchObject({
+          medicationId,
+          status: "skipped",
+          amount: "2 tablets",
+          note: null,
+        });
+      });
+
+      test("a negated skip with a count stays a note, with no dose", () => {
+        const { readings } = parse("didn't skip 2 tylenol", over(medications))[0]!;
+        expect(readings[0]!.kind).toBe("note");
+        expect(readings.some((r) => r.kind === "dose")).toBe(false);
+      });
+    });
+
+    test.each([
+      ["a measure", "500 mg"],
+      ["no usual dose", null],
+    ])("with %s, the count alone", (_, dose) => {
+      const medications = [{ id: TYL, name: "Tylenol", strength: "500 mg", dose }];
+      expect(action(top("gave 3 tylenol", { medications }))).toMatchObject({ amount: "3", note: null });
+    });
+
+    test("a strength after the name isn't a count; before it, a number is", () => {
+      expect(action(top("lisinopril 10"))).toMatchObject({
+        medicationId: LIS,
+        amount: "1 tablet",
+        note: null,
+      });
+      const medications = [{ id: TYL, name: "Warfarin", strength: "2 mg", dose: "1 tablet" }];
+      expect(action(top("gave 2 warfarin", { medications }))).toMatchObject({ amount: "2 tablets" });
+      expect(action(top("warfarin 2", { medications }))).toMatchObject({ amount: "1 tablet" });
+    });
+
+    describe("a number in the medication's name isn't a count", () => {
+      const OMEGA = [{ id: TYL, name: "Omega 3", dose: "1 capsule" }];
+      const HTP = [{ id: TYL, name: "5 HTP", dose: "1 capsule" }];
+
+      test.each([
+        ["gave omega 3", OMEGA, "1 capsule"],
+        ["omega 3", OMEGA, "1 capsule"],
+        ["gave 2 omega 3", OMEGA, "2 capsules"],
+        ["2 omega 3", OMEGA, "2 capsules"],
+        ["omega 3 x2", OMEGA, "2 capsules"],
+        ["omega 3 2", OMEGA, "2 capsules"],
+        ["gave 5 htp", HTP, "1 capsule"],
+        ["gave 2 5 htp", HTP, "2 capsules"],
+      ])("%s records the right amount", (line, medications, amount) => {
+        const r = top(line, { medications });
+        expect(r.kind).toBe("dose");
+        expect(action(r)).toMatchObject({ type: "logDose", medicationId: TYL, amount, note: null });
+      });
+
+      test("a number before a name that ends in it is still a count", () => {
+        expect(action(top("gave 3 omega", { medications: OMEGA }))).toMatchObject({ amount: "3 capsules" });
+      });
+
+      test("its strength and a time still read beside a number in the name", () => {
+        const medications = [{ ...OMEGA[0]!, strength: "1000 mg" }];
+        expect(action(top("omega 3 1000", { medications }))).toMatchObject({
+          amount: "1 capsule",
+          note: null,
+        });
+        const r = top("omega 3 at 8", { medications });
+        expect(action(r)).toMatchObject({ amount: "1 capsule", note: null });
+        expect(when(r)).toBe(at("2026-11-19T16:00:00Z"));
+      });
+
+      test("a number of times after the name stays in the note", () => {
+        expect(action(top("gave omega 3 times", { medications: OMEGA }))).toMatchObject({
+          amount: "1 capsule",
+          note: "3 times",
+        });
+      });
+    });
+
+    test("a carried negation over a directions-only match stays a note", () => {
+      const part = parse("gave metformin and not 2 tylenol")[1]!;
+      expect(part.readings[0]!.kind).toBe("note");
+      expect(part.readings.some((r) => r.kind === "dose" || r.kind === "symptom")).toBe(false);
+    });
+
+    test.each([
+      ["gave 2 tablets acetaminophen", "2 tablets"],
+      ["gave half a tablet metoprolol", "half a tablet"],
+      ["gave tylenol", "2 tablets"],
+    ])("%s is unchanged", (line, amount) => {
+      expect(action(top(line))).toMatchObject({ type: "logDose", amount });
+    });
+
+    test.each([
+      ["pain 4", "Pain", 4],
+      ["nausea 3/10", "Nausea", 3],
+      ["food 2", "Food", 2],
+    ])("%s is still a symptom beside directions that mention it", (line, name, severity) => {
+      const medications = [
+        { id: APAP, name: "Acetaminophen", dose: "2 tablets", directions: "Tylenol, for pain with food" },
+      ];
+      const r = top(line, { medications });
+      expect(r.kind).toBe("symptom");
+      expect(action(r)).toMatchObject({ name, severity });
+    });
+
+    test("what a medication is for isn't its name: arthritis 3 is a symptom", () => {
+      const medications = [
+        { id: APAP, name: "Acetaminophen", dose: "2 tablets", directions: "Tylenol, for arthritis flares" },
+      ];
+      expect(action(top("arthritis 3", { medications }))).toMatchObject({ name: "Arthritis", severity: 3 });
+      expect(action(top("tylenol 3", { medications }))).toMatchObject({ amount: "3 tablets" });
+    });
+
+    test("a short partial name without a verb isn't a dose: arm 3 is a symptom", () => {
+      const medications = [{ id: TYL, name: "Armour Thyroid", dose: "1 tablet" }];
+      expect(top("arm 3", { medications }).kind).toBe("symptom");
+    });
+
+    test("a number of times isn't a count", () => {
+      expect(action(top("gave tylenol 2 times"))).toMatchObject({ amount: "2 tablets", note: "2 times" });
+      expect(action(top("gave lisinopril 2 times"))).toMatchObject({ amount: "1 tablet", note: "2 times" });
+    });
+
+    test("a vital's number beside a medication isn't its count", () => {
+      const r = parse("rr 16 metformin given")[0]!.readings.find((x) => x.kind === "dose")!;
+      expect(action(r)).toMatchObject({ medicationId: MET, amount: "1 tablet" });
+    });
+  });
+
+  describe("a fraction beside a medication is its amount (B-301, B-302)", () => {
+    const medications = [{ id: APAP, name: "Tylenol", dose: "1 tablet" }];
+    const day = (r: QuickEntryReading) =>
+      new Date(when(r)!).toLocaleDateString("en-US", {
+        timeZone: "America/Los_Angeles",
+        month: "numeric",
+        day: "numeric",
+      });
+
+    test.each([
+      ["gave 3/8 tylenol", "3/8 tablet"],
+      ["gave 1/6 tylenol", "1/6 tablet"],
+      ["gave 5/6 tylenol", "5/6 tablet"],
+      ["gave 2/5 tylenol", "2/5 tablet"],
+      ["gave 1/2 tylenol", "1/2 tablet"],
+      ["gave 1/8 tylenol", "1/8 tablet"],
+      ["gave 3/8 of a tylenol", "3/8 tablet"],
+      ["3/8 tylenol", "3/8 tablet"],
+    ])("%s records %s, dated now", (line, amount) => {
+      const r = top(line, { medications });
+      expect(action(r)).toMatchObject({ type: "logDose", amount, note: null });
+      expect(when(r)).toBe(NOW.toISOString());
+    });
+
+    test.each([
+      ["on 3/8 gave tylenol", "3/8"],
+      ["gave tylenol on 3/8", "3/8"],
+      ["on 3/8 tylenol", "3/8"],
+      ["11/25 gave tylenol", "11/25"],
+    ])("%s stays dated %s, with the usual dose", (line, date) => {
+      const r = top(line, { medications });
+      expect(action(r)).toMatchObject({ type: "logDose", amount: "1 tablet" });
+      expect(day(r)).toBe(date);
+    });
+
+    test.each(["gave 4/3 tylenol", "gave 3/7 tylenol", "gave 3/9 tylenol"])(
+      "%s isn't a dose-like fraction, so it stays a date",
+      (line) => {
+        expect(day(top(line, { medications }))).toBe(line.split(" ")[1]);
+      },
+    );
+
+    test("a real date later in the line still dates the dose", () => {
+      const r = top("gave 3/8 tylenol on 11/12", { medications });
+      expect(action(r)).toMatchObject({ amount: "3/8 tablet" });
+      expect(day(r)).toBe("11/12");
+    });
+
+    test("a line forced to another kind keeps its date", () => {
+      const r = top("n: 3/8 tylenol", { medications });
+      expect(r.kind).toBe("note");
+      expect(day(r)).toBe("3/8");
+    });
+
+    test("a forced dose reads the fraction as its amount", () => {
+      expect(action(top("d: 3/8 tylenol for pain", { medications }))).toMatchObject({ amount: "3/8 tablet" });
+    });
+
+    test.each(["appt 3/8 tylenol review", "dr lee 3/8 tylenol refill", "pick up 3/8 tylenol"])(
+      "%s has no dose verb, so 3/8 stays a date",
+      (line) => {
+        const r = top(line, { medications });
+        expect(r.kind).not.toBe("dose");
+        expect(JSON.stringify(action(r))).toContain("-03-08");
+      },
+    );
+  });
+
+  describe("an application site isn't a medication's name (B-301)", () => {
+    const DIC = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const withDirections = (directions: string) => [{ id: DIC, name: "Diclofenac", directions }];
+
+    test.each([
+      ["knee 3", "Apply to knee twice daily", "Knee"],
+      ["knee 3/10", "Apply to knee twice daily", "Knee"],
+      ["knee 3", "Apply to left knee twice daily", "Knee"],
+      ["knee 3", "Apply to the left knee", "Knee"],
+      ["knee 3", "Apply on knee, twice daily", "Knee"],
+      ["shoulder 3", "Rub onto shoulder every morning", "Shoulder"],
+      ["back 3", "Apply over lower back at bedtime", "Back"],
+    ])("%s beside '%s' is a symptom", (line, directions, name) => {
+      const r = top(line, { medications: withDirections(directions) });
+      expect(r.kind).toBe("symptom");
+      expect(action(r)).toMatchObject({ name, severity: 3 });
+    });
+
+    test.each([
+      ["tongue 3", "Dissolve under the tongue as needed"],
+      ["tongue 3", "Place under tongue twice daily"],
+      ["eye 3", "1 drop in each eye twice daily"],
+      ["ear 3", "Apply behind the ear every 3 days"],
+    ])("%s beside '%s' isn't a dose", (line, directions) => {
+      const readings = parse(line, { medications: withDirections(directions) })[0]!.readings;
+      expect(readings.some((r) => r.kind === "dose")).toBe(false);
+    });
+
+    test.each([
+      ["voltaren 2", "Voltaren, apply to knee twice daily"],
+      ["voltaren 2", "Apply Voltaren to knee twice daily"],
+      ["voltaren 2", "Apply to knee twice daily, Voltaren"],
+      ["voltaren 2", "Apply to knee twice daily Voltaren"],
+    ])("%s still names the medication in '%s'", (line, directions) => {
+      expect(action(top(line, { medications: withDirections(directions) }))).toMatchObject({
+        type: "logDose",
+        medicationId: DIC,
+        amount: "2",
+      });
+    });
+
+    test("'gave diclofenac to knee' is a dose", () => {
+      const r = top("gave diclofenac to knee", { medications: withDirections("Apply to knee twice daily") });
+      expect(action(r)).toMatchObject({ type: "logDose", medicationId: DIC });
+    });
+  });
+
   test("a symptom word in a medication's notes doesn't make a symptom a dose", () => {
     expect(parse("pain 4 left knee")[0]!.readings.some((r) => r.kind === "dose")).toBe(false);
   });
@@ -347,6 +751,20 @@ describe("passes", () => {
     expect(top("gave evening meds with applesauce", withPasses).kind).toBe("note");
     expect(top("evening", withPasses).kind).toBe("note");
     expect(top("gave meds", { passes: [] }).kind).toBe("note");
+  });
+
+  test.each([
+    "couldn't give evening meds",
+    "couldn’t give evening meds",
+    "didn't give meds",
+    "never gave evening meds",
+    "evening meds not given",
+    "forgot evening meds",
+    "gave morning meds not",
+  ])("%s never gives the pass (B-300)", (line) => {
+    const readings = parse(line, withPasses)[0]!.readings;
+    expect(readings.some((r) => r.actions.some((a) => a.type === "givePass"))).toBe(false);
+    expect(readings[0]!.kind).toBe("note");
   });
 
   test("'and' carries Given to the next pass, and a pass carries it to a medication", () => {
