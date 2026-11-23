@@ -745,3 +745,181 @@ describe("a dose answers only its own slot on its own day", () => {
     });
   });
 });
+
+describe("dueDoses reads each day through the schedule history", () => {
+  const PASS = "0b6f3c1e-5d1a-4c2e-9a77-3f1d2b9d5001";
+  const timed = (...times: string[]) => ({
+    type: "scheduled" as const,
+    slots: times.map((time) => ({ time })),
+  });
+  const started = (medicationId: string, occurredAt: string) => ({
+    id: `started-${medicationId}`,
+    occurredAt,
+    details: { medicationId, change: "started" },
+  });
+  const edited = (medicationId: string, occurredAt: string, before: string[], after: string[]) => ({
+    id: `edited-${occurredAt}`,
+    occurredAt,
+    details: {
+      medicationId,
+      change: "changed",
+      fields: ["schedule"],
+      before: { schedule: timed(...before) },
+      after: { schedule: timed(...after) },
+    },
+  });
+
+  it("a medication added at 15:00 has no 08:00 slot today, and its 20:00 is upcoming", () => {
+    const m = med({ id: "a", createdAt: "2026-11-19T23:00:00.000Z" });
+    const result = dueDoses({
+      medications: [m],
+      doses: [],
+      changes: [started("a", "2026-11-19T23:00:00.000Z")],
+      now: new Date("2026-11-19T23:30:00.000Z"),
+      timeZone: LA,
+    });
+    expect(states(result)).toEqual(["20:00 upcoming"]);
+  });
+
+  it("a slot added today for a time already past isn't shown, and is tomorrow", () => {
+    const m = med({ id: "a" });
+    const changes = [edited("a", "2026-11-19T23:00:00.000Z", ["20:00"], ["08:00", "20:00"])];
+    const today = dueDoses({
+      medications: [m],
+      doses: [],
+      changes,
+      now: new Date("2026-11-19T23:30:00.000Z"),
+      timeZone: LA,
+    });
+    expect(states(today)).toEqual(["20:00 upcoming"]);
+    const tomorrow = dueDoses({
+      medications: [m],
+      doses: [],
+      changes,
+      now: new Date("2026-11-20T16:10:00.000Z"),
+      timeZone: LA,
+    });
+    expect(states(tomorrow)).toEqual(["08:00 due", "20:00 upcoming"]);
+  });
+
+  it("yesterday's missed list ignores a slot added today", () => {
+    const result = dueDoses({
+      medications: [med({ id: "a" })],
+      doses: [],
+      changes: [edited("a", "2026-11-20T18:00:00.000Z", ["20:00"], ["08:00", "20:00"])],
+      now: new Date("2026-11-20T19:00:00.000Z"),
+      timeZone: LA,
+    });
+    expect(result.missed.map((s) => s.time)).toEqual(["20:00"]);
+  });
+
+  it("a pass moved today shows one slot, at the new time, still answered by the dose before the move", () => {
+    const m = med({ id: "a", schedule: { type: "scheduled", slots: [{ passId: PASS }] } });
+    const given: DueDose = {
+      id: "before-move",
+      occurredAt: "2026-11-19T16:05:00.000Z",
+      details: { medicationId: "a", status: "given", scheduledFor: "08:00", passId: PASS },
+    };
+    const result = dueDoses({
+      medications: [m],
+      passes: [{ id: PASS, time: "11:00" }],
+      doses: [given],
+      changes: [
+        {
+          id: "moved",
+          occurredAt: "2026-11-19T18:00:00.000Z",
+          details: {
+            change: "passMoved",
+            passId: PASS,
+            passName: "Morning",
+            beforeTime: "08:00",
+            afterTime: "11:00",
+            medicationIds: ["a"],
+          },
+        },
+      ],
+      now: new Date("2026-11-19T19:30:00.000Z"),
+      timeZone: LA,
+    });
+    expect(states(result)).toEqual(["11:00 given"]);
+    expect(result.slots[0]?.dose?.id).toBe("before-move");
+  });
+
+  it("without entries about a medication, the result is the old one", () => {
+    const input = {
+      medications: [med({ id: "a" })],
+      doses: [dose("a", AM, "given", "08:00")],
+      now: plus(AM, 90),
+      timeZone: LA,
+    };
+    const other = [started("someone-else", "2026-11-19T15:00:00.000Z")];
+    expect(dueDoses({ ...input, changes: other })).toEqual(dueDoses(input));
+  });
+
+  describe("a schedule change across midnight (B-611)", () => {
+    const change = edited("a", "2026-11-20T08:05:00.000Z", ["23:30"], ["00:30"]);
+    const range = {
+      from: "2026-11-19T20:00:00.000Z",
+      to: "2026-11-20T14:00:00.000Z",
+      timeZone: LA,
+    };
+
+    it("a 23:30 dose given at 00:10 answers last night, and today's 00:30 stays open", () => {
+      const slots = doseSlotsBetween({
+        ...range,
+        medications: [med({ id: "a", schedule: timed("00:30") })],
+        doses: [dose("a", "2026-11-20T08:10:00.000Z", "given", "23:30")],
+        changes: [change],
+      });
+      expect(slots.map((s) => `${s.day} ${s.time} ${s.state}`)).toEqual([
+        "2026-11-19 23:30 given",
+        "2026-11-20 00:30 overdue",
+      ]);
+    });
+
+    it("the same through a moved pass, from a device that hadn't seen the move", () => {
+      const slots = doseSlotsBetween({
+        ...range,
+        medications: [med({ id: "a", schedule: { type: "scheduled", slots: [{ passId: PASS }] } })],
+        passes: [{ id: PASS, time: "00:30" }],
+        doses: [
+          {
+            id: "stale",
+            occurredAt: "2026-11-20T08:10:00.000Z",
+            details: { medicationId: "a", status: "given", scheduledFor: "23:30", passId: PASS },
+          },
+        ],
+        changes: [
+          {
+            id: "moved",
+            occurredAt: "2026-11-20T08:05:00.000Z",
+            details: {
+              change: "passMoved",
+              passId: PASS,
+              passName: "Night",
+              beforeTime: "23:30",
+              afterTime: "00:30",
+              medicationIds: ["a"],
+            },
+          },
+        ],
+      });
+      expect(slots.map((s) => `${s.day} ${s.time} ${s.state}`)).toEqual([
+        "2026-11-19 23:30 given",
+        "2026-11-20 00:30 overdue",
+      ]);
+    });
+
+    it("on Today too: last night isn't missed", () => {
+      const result = dueDoses({
+        medications: [med({ id: "a", schedule: timed("00:30") })],
+        doses: [dose("a", "2026-11-20T08:10:00.000Z", "given", "23:30")],
+        changes: [change],
+        now: new Date("2026-11-20T14:00:00.000Z"),
+        timeZone: LA,
+      });
+      expect(result.missed).toEqual([]);
+      expect(states(result)).toEqual(["00:30 overdue"]);
+    });
+  });
+});

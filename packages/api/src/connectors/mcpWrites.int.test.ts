@@ -61,12 +61,17 @@ const world = async () => {
   );
   const [morning, evening] = ok(await medicationPassService.list(owner.ctx, { groupId: group.id })).data;
   const metformin = ok(
-    await medicationService.create(owner.ctx, {
-      groupId: group.id,
-      name: "Metformin",
-      strength: "500 mg",
-      schedule: { type: "scheduled", slots: [{ passId: morning!.id }, { passId: evening!.id }] },
-    }),
+    // Started days ago, so Evening's slot is on today's schedule at any hour the tests run.
+    await medicationService.create(
+      owner.ctx,
+      {
+        groupId: group.id,
+        name: "Metformin",
+        strength: "500 mg",
+        schedule: { type: "scheduled", slots: [{ passId: morning!.id }, { passId: evening!.id }] },
+      },
+      { changedAt: minutesAgo(3 * 24 * 60) },
+    ),
   )!;
   // As needed, so its dose never answers a pass's slot (a dose without a time
   // answers the nearest open slot within two hours, Evening's from 18:00).

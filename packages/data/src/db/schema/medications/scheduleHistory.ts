@@ -54,9 +54,12 @@ export type ScheduleHistory = {
   /**
    * What a dose names, read at the time it was given: a time that was a
    * pass's then names that pass (so it follows the pass when it moves later
-   * that day), and a time its day's schedule no longer has names nothing.
+   * that day). A time the schedule has since dropped still names the slot it
+   * was, when that slot is within `windowMinutes` of the dose (so a 23:30 dose
+   * at 00:10 keeps last night's slot through a change at 00:05); else a time
+   * its day's schedule no longer has names nothing.
    */
-  doseName: (dose: { occurredAt: string; details: DoseSlotName }) => DoseSlotName;
+  doseName: (dose: { occurredAt: string; details: DoseSlotName }, windowMinutes?: number) => DoseSlotName;
 };
 
 type State = {
@@ -68,6 +71,8 @@ type State = {
 type Parsed =
   | { type: "move"; ms: number; id: string; passId: string; beforeTime: string; medicationIds: unknown }
   | { type: "own"; ms: number; id: string; change: string; before: MedicationSchedule | null };
+
+const MINUTE = 60_000;
 
 const record = (value: unknown) =>
   value && typeof value === "object" ? (value as Record<string, unknown>) : null;
@@ -177,14 +182,34 @@ export function scheduleHistory({
     });
   };
 
-  const doseName: ScheduleHistory["doseName"] = ({ occurredAt, details }) => {
+  /** Whether a day around `ms` really had a slot at `time` (in `passId`, when given) within the window. */
+  const hadSlotNear = (ms: number, time: string, passId: string | null, windowMinutes: number) => {
+    const day = dayInZone(new Date(ms), timeZone);
+    return [addDays(day, -1), day, addDays(day, 1)].some((d) =>
+      slotsOn(d).some(
+        (s) =>
+          s.time === time &&
+          (!passId || s.passId === passId) &&
+          Math.abs(zonedInstant(d, time, timeZone).getTime() - ms) <= windowMinutes * MINUTE,
+      ),
+    );
+  };
+
+  const doseName: ScheduleHistory["doseName"] = ({ occurredAt, details }, windowMinutes = 120) => {
     const ms = new Date(occurredAt).getTime();
-    if (!hasHistory || details.passId || !details.scheduledFor || Number.isNaN(ms)) return details;
+    if (!hasHistory || !details.scheduledFor || Number.isNaN(ms)) return details;
     const time = details.scheduledFor;
-    const inPass = timedSlots(stateAt(ms)).find((s) => s.time === time && s.passId);
+    const then = timedSlots(stateAt(ms));
+    if (details.passId) {
+      // A pass moved since the device read it: the time says which of its slots.
+      if (then.some((s) => s.passId === details.passId && s.time === time)) return details;
+      return hadSlotNear(ms, time, details.passId, windowMinutes) ? { scheduledFor: time } : details;
+    }
+    const inPass = then.find((s) => s.time === time && s.passId);
     if (inPass) return { passId: inPass.passId, scheduledFor: time };
     const day = dayInZone(new Date(ms), timeZone);
-    return timedSlots(endOf(day)).some((s) => s.time === time) ? details : {};
+    if (timedSlots(endOf(day)).some((s) => s.time === time)) return details;
+    return hadSlotNear(ms, time, null, windowMinutes) ? { scheduledFor: time } : {};
   };
 
   return { takenOn, slotsOn, doseName };
