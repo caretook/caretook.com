@@ -2,6 +2,7 @@ import type { DeviceRoute } from "../../../../../test/device";
 import type { GroupRole } from "../../../../../test/fixtures";
 import type { CalendarChange, CalendarSettings } from "~/lib/calendars/calendarSettings";
 
+import { DETAILS_CONSENT_VERSION } from "@caretook/data/schema";
 import { beforeEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { forgetCalendarSettings, withChange } from "~/lib/calendars/calendarSettings";
@@ -163,7 +164,11 @@ describe("the Details card's consent wording", () => {
       .toBeVisible();
 
     await userEvent.click(detailsSwitch());
-    await expect.poll(() => updates(server)).toEqual([{ groupId: TEST_GROUP.id, detailsConsent: true }]);
+    await expect
+      .poll(() => updates(server))
+      .toEqual([
+        { groupId: TEST_GROUP.id, detailsConsent: true, detailsConsentVersion: DETAILS_CONSENT_VERSION },
+      ]);
     await expect.element(detailsSwitch()).toBeChecked();
     await expect.poll(staleLine).toBeNull();
   });

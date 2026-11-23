@@ -11,6 +11,7 @@ const api = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn() }));
 vi.mock("../core/rpc", () => ({ rpc: { calendars: { settings: api } } }));
 
 const {
+  detailsConsentChange,
   forgetCalendarSettings,
   knownCalendarSettings,
   leftAfterSending,
@@ -18,12 +19,15 @@ const {
   saveCalendarSettings,
   withChange,
   withCurrentConsent,
+  withoutOutdatedConsent,
 } = await import("./calendarSettings");
 
 const USER = "u1";
 const GROUP = "g1";
 const request = new Request("http://localhost/app/groups/g1/settings/calendar");
 const offline = () => new TypeError("Failed to fetch");
+const AGREE = { detailsConsent: true, detailsConsentVersion: DETAILS_CONSENT_VERSION };
+const PENDING_KEY = `caretook:calendar-pending:${USER}:${GROUP}`;
 
 const store = new Map<string, string>();
 vi.stubGlobal(
@@ -142,11 +146,90 @@ describe("leftAfterSending", () => {
   });
 });
 
+describe("the consent's version (B-659)", () => {
+  it("names the wording on screen when agreeing, and nothing when turning off", () => {
+    expect(detailsConsentChange(true)).toEqual(AGREE);
+    expect(detailsConsentChange(false)).toEqual({ detailsConsent: false });
+  });
+
+  it("counts a pending consent only at the current version", () => {
+    expect(withoutOutdatedConsent(AGREE)).toEqual(AGREE);
+    expect(withoutOutdatedConsent({ detailsConsent: false })).toEqual({ detailsConsent: false });
+    expect(withoutOutdatedConsent({ detailsConsent: true })).toBeNull();
+    expect(
+      withoutOutdatedConsent({
+        detailsConsent: true,
+        detailsConsentVersion: "2020-01-01",
+        remindersOn: true,
+      }),
+    ).toEqual({ remindersOn: true });
+  });
+
+  it("treats the consent and its version as one answer once sent", () => {
+    expect(leftAfterSending(AGREE, AGREE)).toBeNull();
+    const newer = { detailsConsent: true, detailsConsentVersion: "2099-01-01" };
+    expect(leftAfterSending(newer, AGREE)).toEqual(newer);
+  });
+
+  it.each([
+    ["saved before this fix", { detailsConsent: true, remindersOn: true }],
+    [
+      "for an older wording",
+      { detailsConsent: true, detailsConsentVersion: "2020-01-01", remindersOn: true },
+    ],
+  ])("drops a pending consent %s on replay and keeps the rest", async (_name, stored) => {
+    store.set(`caretook:calendar:${USER}:${GROUP}`, JSON.stringify(settings()));
+    store.set(PENDING_KEY, JSON.stringify(stored));
+    expect(knownCalendarSettings(USER, GROUP)).toMatchObject({ detailsConsent: false, remindersOn: true });
+
+    api.update.mockResolvedValueOnce(settings({ remindersOn: true }));
+    api.get.mockResolvedValueOnce(settings({ remindersOn: true }));
+    expect(await loadCalendarSettings(request, USER, GROUP)).toMatchObject({
+      online: true,
+      settings: { detailsConsent: false, remindersOn: true },
+    });
+    expect(api.update.mock.calls).toEqual([[{ groupId: GROUP, remindersOn: true }]]);
+    expect(store.has(PENDING_KEY)).toBe(false);
+  });
+
+  it("sends nothing when the outdated consent was all that was pending", async () => {
+    store.set(PENDING_KEY, JSON.stringify({ detailsConsent: true, detailsConsentVersion: "2020-01-01" }));
+    api.get.mockResolvedValueOnce(settings());
+    await loadCalendarSettings(request, USER, GROUP);
+    expect(api.update).not.toHaveBeenCalled();
+    expect(store.has(PENDING_KEY)).toBe(false);
+  });
+
+  it("drops the consent when the server has moved past this app's wording, and still sends the rest", async () => {
+    store.set(PENDING_KEY, JSON.stringify({ ...AGREE, remindersOn: true }));
+    api.update.mockRejectedValueOnce(
+      new ORPCError("CONFLICT", {
+        message: "The wording changed",
+        data: { code: "calendarSettingService:consentOutdated" },
+      }),
+    );
+    api.update.mockResolvedValueOnce(settings({ remindersOn: true }));
+    api.get.mockResolvedValueOnce(settings({ remindersOn: true }));
+    expect(await loadCalendarSettings(request, USER, GROUP)).toMatchObject({
+      settings: { detailsConsent: false, remindersOn: true },
+    });
+    expect(api.update).toHaveBeenLastCalledWith({ groupId: GROUP, remindersOn: true });
+    expect(store.has(PENDING_KEY)).toBe(false);
+  });
+
+  it("turning off over a pending agreement leaves no version behind", async () => {
+    api.update.mockRejectedValue(offline());
+    await saveCalendarSettings(USER, GROUP, AGREE);
+    await saveCalendarSettings(USER, GROUP, { detailsConsent: false });
+    expect(JSON.parse(store.get(PENDING_KEY)!)).toEqual({ detailsConsent: false });
+  });
+});
+
 describe("saving and loading", () => {
   it("saves at once online, and caches the server's copy", async () => {
     api.update.mockResolvedValue(settings({ detailsConsent: true, shareLevel: "details" }));
-    expect(await saveCalendarSettings(USER, GROUP, { detailsConsent: true })).toBe("saved");
-    expect(api.update).toHaveBeenCalledWith({ groupId: GROUP, detailsConsent: true });
+    expect(await saveCalendarSettings(USER, GROUP, AGREE)).toBe("saved");
+    expect(api.update).toHaveBeenCalledWith({ groupId: GROUP, ...AGREE });
     expect(knownCalendarSettings(USER, GROUP)?.detailsConsent).toBe(true);
   });
 
@@ -154,7 +237,7 @@ describe("saving and loading", () => {
     api.get.mockResolvedValueOnce(settings());
     await loadCalendarSettings(request, USER, GROUP);
     api.update.mockRejectedValueOnce(offline());
-    expect(await saveCalendarSettings(USER, GROUP, { detailsConsent: true })).toBe("pending");
+    expect(await saveCalendarSettings(USER, GROUP, AGREE)).toBe("pending");
     expect(knownCalendarSettings(USER, GROUP)?.detailsConsent).toBe(true);
 
     // Still offline: the device's copy, with the change.
@@ -173,7 +256,7 @@ describe("saving and loading", () => {
       online: true,
       settings: { detailsConsent: true, detailsConsentAt: "2026-11-18T18:00:00.000Z" },
     });
-    expect(api.update).toHaveBeenLastCalledWith({ groupId: GROUP, detailsConsent: true });
+    expect(api.update).toHaveBeenLastCalledWith({ groupId: GROUP, ...AGREE });
 
     // Nothing left to send.
     api.get.mockResolvedValueOnce(settings({ detailsConsent: true }));
@@ -183,7 +266,7 @@ describe("saving and loading", () => {
 
   it("drops a pending change the server refuses, and uses its copy", async () => {
     api.update.mockRejectedValueOnce(offline());
-    await saveCalendarSettings(USER, GROUP, { detailsConsent: true });
+    await saveCalendarSettings(USER, GROUP, AGREE);
     api.update.mockRejectedValueOnce(
       new ORPCError("FORBIDDEN", { message: "Your group's owners keep details private" }),
     );
@@ -201,9 +284,7 @@ describe("saving and loading", () => {
     api.get.mockResolvedValueOnce(settings());
     await loadCalendarSettings(request, USER, GROUP);
     api.update.mockRejectedValueOnce(new ORPCError("FORBIDDEN", { message: "No" }));
-    await expect(saveCalendarSettings(USER, GROUP, { detailsConsent: true })).rejects.toBeInstanceOf(
-      ORPCError,
-    );
+    await expect(saveCalendarSettings(USER, GROUP, AGREE)).rejects.toBeInstanceOf(ORPCError);
     expect(knownCalendarSettings(USER, GROUP)?.detailsConsent).toBe(false);
   });
 

@@ -67,6 +67,13 @@ describe("names and lines", () => {
       "Daughter's house · day 2",
     );
   });
+
+  it("leaves the day out when there is no number", () => {
+    expect(currentLineText({ type: "home", label: null }, { day: null })).toBe("At home");
+    expect(currentLineText({ type: "hospital", label: "Cardiac unit" }, { day: null })).toBe(
+      "In hospital · Cardiac unit",
+    );
+  });
 });
 
 describe("times, days and lengths", () => {

@@ -28,9 +28,17 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 10 (slices 41–42, B-620, B-631, both on opus):** ui-kit-5's last wave landed as a5ec12da, which frees the timeline files; synced as 7f2e8685. B-615 and B-616 stay held as above. Slice 41 merged (slice check passed on c957fd24); its worktree stays until the wave is green. At landing, fold into `docs/domain/care-periods.md`: a day header counts to its own viewer-zone date. New item B-656 (a period starting just after midnight in the recipient's zone shows day 1 on two headers for a viewer behind that zone) waits for a later wave. Slice 42 merged (slice check passed on 09f40ff6); its worktree stays until the wave is green. New item B-657 (after a successful Add a medication, Back loses unsaved dose edits without asking) waits for a later wave. Synced as 7ab994fc (brings migrations 0039 and 0040; database reset): quick check passed, `components` CI green (run 45221463090). Slice worktrees removed; `care-periods.md` folded. `browser --changed --base dev` (roundtrip, ui) passed on c617e7f5 (don't rerun). Synced again as c3d6f826 (dose-accuracy wave 4, no migration): quick check passed, `components` CI green (run 45227226270). **PR #124 is open. Rotated here for context (no slice in flight). Next:** `pnpm prd review fixes-bug --wait` in the background, triage, then `pnpm prd land fixes-bug --tier components -m "fix(fixes-bug): day headers never repeat a care period day, Back asks after a refused action (B-620, B-631)"`. No Status commit between the review and the landing: it moves the PR's head. Land's report names Codex's verdict; the report text covers B-620, B-631 and the follow-ups B-656, B-657. The tier command reads files from stdin: `git diff --name-only dev...HEAD | node scripts/loops/check-plan.mjs --propose --repo "$PWD" --base dev --head HEAD`.
 
+**Wave 10 landed in dev through PR #124 as 07529c63** (2026-11-23): `components` CI green on c3d6f826 (run 45227226270). **Codex did not review it** (out of credits, `--no-review`). Report: ask a151. To-test: `to-test/2026-11-23-1235-fixes-bug.md`. Docs already folded (`care-periods.md`). **Next session:** `pnpm prd sync`, ingest, recheck hot files, then write wave 11 from the triaged items: B-615, B-656, B-657, B-659, B-662, B-666, B-675, B-689, B-690.
+
 **After wave 10:** B-616 moved to dose-accuracy slice 6 (recorded in the backlog on the user's word): dropped from this plan. **B-615** goes in wave 11: dose-accuracy's wave 4 landed as 30b6685a, and its orchestrator cleared `assistantActionService.ts` and `timelineEntryService.ts` for it, but asks that no one touch the `timelineEntryService` upsert until its wave 5 lands (it will message). Also waiting for wave 11: B-656 and B-657.
 
-- Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
+**Wave 11 (slices 43–48, B-656, B-657, B-659, B-662, B-666, B-675, all on opus):** resumed after an interruption; git matched this Status, no slice in flight, already synced with dev (fa432c69). **Held for a later wave:** B-615 (dose-accuracy's wave 5 is still changing the `timelineEntryService` upsert; it will message), B-689 and B-690 (member-avatars holds `routes/app/groups/planner/`). At landing, fold the B-659 consent rule into `calendars.md` and B-656 into `care-periods.md`; `calendars.md` is near its 10 KB budget, so trim when adding.
+
+**Wave 11 progress:** all six slices merged; worktrees stay until the wave's verdict is green. Follow-up B-717 (consent refused on an old bundle). At landing also fold B-662 into `assistant.md` (_Doses_; at its 10 KB budget, trim). Browser: `roundtrip` is named by `carePeriodTrack.ts`; run `browser --changed --base dev`. Slice 44 changed the shared sheet guard: watch other sheets in the `components` run. Hand test for B-666: real password manager on join, link invite and email invite. **CI on 5850c33f (synced with dev; quick check passed): `file`, run 45241794955.** Three `providers.browser.test.tsx` tests (B-603, asking before losing ticks) are the branch's per blame (green on dev, run 45243680483); sent to slice 44's agent as a fix request, in flight: no rotation until it is merged and the wave is green. `pnpm datastore:reset` was refused by the permission classifier: use `pnpm datastore:migrate` (0041 from dev) before the browser checks. Follow-ups filed: B-717, B-718 (quick entry asks an amount on a skipped or refused dose). Slice 44's fix (arrival rule only inside `data-sheet-arrives`, used by the pass log) merged as 990dd9bc; CI rerun next. **User's word for wave 11: no orchestrator quick check when a CI run follows** (`components` CI runs all of it; the backlog session is hotfixing the brief). The quick check on 527a3e71 was stopped on that word; code there equals c37e20a4, whose slice check passed. **Next:** wait for the `components` verdict on this tip (`pnpm prd ci run components --wait`); on green `pnpm datastore:migrate` (never reset), `pnpm prd serve --restart`, `pnpm prd browser --changed --base dev`, `pnpm prd rm` slices 43-48, fold docs (care-periods, calendars, assistant), `pnpm prd pr fixes-bug`, review, land `--tier components`. The landing report names the B-666 hand test and B-717, B-718. **`components` CI green on 89125c4c (run 45246214936; the only quarantined failure is `scripts/loops/lease.test.mjs`, not this branch's). Rotated here for context, no slice in flight. Next:** the steps above from `pnpm datastore:migrate` on (the verdict is in; don't rerun it, and this Status commit is docs only). **Next wave:** B-615 is free (dose-accuracy wave 5 landed as 1b2723a2), but stay off the upsert's duplicate return and `mayRestoreDose` (dose-accuracy slice 7, B-627).
+
+**Wave 11 landing (resumed after a rotation; git matched this Status).** Slices 43-48 are merged and their worktrees and branches are already gone. Synced with dev as 481a2563 (brings app code and migration 0042), so the verdict on 89125c4c no longer covers the tip: `components` CI requested on the synced tip, no quick check (the user's word). **Next:** on green, `pnpm datastore:migrate` (never reset), `pnpm prd serve --restart`, `pnpm prd browser --changed --base dev`, fold docs (care-periods, calendars, assistant), `pnpm prd pr fixes-bug`, review, land `--tier components`. **Done since:** migrated (0042), docs folded (42db5f13), `browser --changed --base dev` passed (sign-in, session-end, invites, ui; `roundtrip` after a PowerSync restart: don't rerun). `roundtrip` first failed 4 times on the avatar step because this stack's PowerSync still had the sync config from before a dev sync. **`components` CI green on 9f3264ca (run 45248060450; one quarantined failure, a Planner test this branch doesn't touch).** PR opened next, then `pnpm prd review fixes-bug --wait`, then `pnpm prd land fixes-bug --tier components -m "fix(fixes-bug): six bug fixes across timeline, sheets, consent, quick entry and sign-up (B-656, B-657, B-659, B-662, B-666, B-675)"`. No Status commit between the review and the landing: it moves the PR's head. The report names the B-666 hand test and B-717, B-718.
+
+- Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
 | Slice | Item  | State                                      | Merge    |
 | ----- | ----- | ------------------------------------------ | -------- |
@@ -74,8 +82,14 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 38    | B-651 | landed                                     | a447334a |
 | 39    | B-652 | landed                                     | 7be34f48 |
 | 40    | B-655 | landed                                     | 487cb235 |
-| 41    | B-620 | merged (opus; care-periods.md at landing)  | ab9dcfae |
-| 42    | B-631 | merged (opus)                              | 2a479df8 |
+| 41    | B-620 | landed (care-periods.md folded)            | ab9dcfae |
+| 42    | B-631 | landed                                     | 2a479df8 |
+| 43    | B-656 | merged (roundtrip at landing)              | a449f67c |
+| 44    | B-657 | merged, CI fix merged                      | 990dd9bc |
+| 45    | B-659 | merged (calendars.md at landing)           | 0a8ccfcc |
+| 46    | B-662 | merged (assistant.md at landing)           | 8c930686 |
+| 47    | B-666 | merged (needs a hand test)                 | 288e9cbe |
+| 48    | B-675 | merged                                     | 3d8e9cf5 |
 
 ## Wave 1
 
@@ -516,3 +530,73 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: compon
 - A successful save, add or delete still leaves without a prompt.
 - The 300 ms window in the item's second note is out of scope unless the tests above need it: name anything you find there in the hand-off.
 - Component tests: one for each line above, beside `sheetGuard.browser.test.tsx`.
+
+## Wave 11
+
+As before: the item's backlog notes (`pnpm backlog show B-<n>`) carry the file references, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. Running topics hold `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/assistantActionService.ts`, `apps/web/app/routes/app/groups/planner/`, `timeline/TimelineEntryRow.tsx`, `timeline/PassLogItem.tsx`, `timeline/TimelineFilters.tsx`, `apps/web/app/lib/sync/schema.ts` and `packages/data/src/errors/constants.ts`: no slice here edits them. If a fix can't avoid one, stop and say so in the hand-off.
+
+### Slice 43: a header before a period's first day shows no day number (B-656)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/care-periods.md, docs/domain/timeline.md · Tests: unit, component
+
+With the recipient in New York, a viewer in Los Angeles and a period starting 00:30 Eastern, the viewer's header for the date before the start and the header for the start date both read day 1, because `periodDayOn` has a minimum of 1.
+
+- A header whose `dayKey` is before the period's start date in the recipient's zone shows the period without a day number. The start date stays day 1.
+- Other uses of the day count keep their current text.
+- Unit tests: the count on the date before the start, on the start date and on the day after.
+- Component test: the reported case shows no number on the earlier header and day 1 on the start date.
+
+### Slice 44: Back asks after a successful add that keeps the sheet open (B-657)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: component
+
+The add's submit keeps `useSheetChanges`' no-prompt bypass though the sheet stays open, so Back loses unsaved dose edits.
+
+- After a successful Add a medication in the pass log with unsaved dose edits, the sheet stays open and Back asks before discarding.
+- A save that closes the sheet still leaves without a prompt.
+- A second refusal with the same text is still announced in `PassLogForm`. Name any other sheet with a side action that needs the same remount in the hand-off, and don't change it.
+- Component tests: one for each line above, beside `sheetGuard.browser.test.tsx`.
+
+### Slice 45: a consent records the wording the member saw (B-659)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/calendars.md, docs/domain/api.md · Tests: unit, integration, component
+
+`update({ detailsConsent: true })` stamps the server's current `DETAILS_CONSENT_VERSION`, so a consent queued offline before a wording bump records a version the member never saw.
+
+- Turning consent on sends the version the device displayed, in the request and in the persisted pending change.
+- The server records consent only when that version is the current one. An outdated or missing version records nothing and returns a typed error from `errors/calendars.ts`.
+- A pending change with an outdated or missing version, including one saved before this fix, is dropped on replay. The member sees the current wording and can agree again, and details stay off until then.
+- Turning consent off needs no version and always works.
+- Integration tests: current, outdated and missing version, and turning off. Unit test: the replay. Component test: the refused replay leaves the switch off with the current wording shown.
+
+### Slice 46: quick entry asks for the amount when a bare number is the strength (B-662)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md · Tests: unit, component
+
+The user decided: when a bare number matches the strength and the usual dose is more than one unit, the caretaker chooses the amount instead of a guess. `gave lisinopril 10` at 10 mg with a usual 2 tablets records 2 tablets today.
+
+- That case records no dose until the caretaker chooses. Use the way quick entry already asks for a missing detail; if there is none, open the dose's form with the amount empty and name that in the hand-off.
+- A usual dose of one unit still records directly (B-651), and every other row in the B-648 and B-651 tests keeps its result.
+- Replace the test named `a whole number at the strength still names it: the usual dose (B-648)`.
+- Unit tests: 10 at 10 mg with a usual 2 tablets, with a usual 1 tablet, and with no usual dose. Component test: the caretaker is asked and the chosen amount is what's recorded.
+
+### Slice 47: signing up offers to save the password (B-666)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/auth.md, docs/domain/care-groups.md · Tests: component
+
+The cause isn't confirmed. The suspects are the email field's `autoComplete="email"` and a fetch submit that swaps the step without a navigation. The join and invite sign-ups have the same shape.
+
+- On both forms, the email field is `autoComplete="username"`, the password stays `new-password`, and both are in one `<form>` with a real submit button.
+- After a successful sign-up, the page changes in a way password managers detect, using the router's navigation if the step swap can't. Don't change what the member sees next.
+- Component tests: the field attributes on both forms and the step after success.
+- An agent can't drive a real password manager. Say in the hand-off that this needs a hand test, and name the browser steps.
+
+### Slice 48: a repeated day jump keeps its reset after a sheet opens (B-675)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/timeline.md · Tests: unit, component
+
+In `useTimelineData.ts`, a repeat jump ignores the old paging only while its marker is present and never saves the reset. A sheet link replaces the location state, so the old `before` and `limit` return under the sheet.
+
+- Accepting a new jump persists the reset bound, limit and marker.
+- Jump to a day, load newer, jump to the same day again and open an entry's edit sheet: the window and scroll stay put.
+- Unit or component test: that sequence. A first jump and plain paging keep their behaviour.

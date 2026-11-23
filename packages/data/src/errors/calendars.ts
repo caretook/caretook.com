@@ -13,6 +13,10 @@ export const CALENDARS_ERRORS = {
     message: "Your group's owners keep details private",
     statusCode: 403,
   },
+  "calendarSettingService:consentOutdated": {
+    message: "The wording of this consent has changed. Read it and turn this on to agree again",
+    statusCode: 409,
+  },
   "calendarSettingService:detailsOwnerOnly": {
     message: "Only an owner can change whether details may leave Caretook",
     statusCode: 403,

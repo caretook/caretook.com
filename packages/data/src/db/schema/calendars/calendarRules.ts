@@ -84,7 +84,9 @@ export const hasDetailsConsent = ({
 export const calendarSettingsChangeZSchema = z.strictObject({
   remindersOn: z.boolean().optional(),
   reminderLeads: reminderLeadsZSchema.optional(),
-  /** On records the consent (`DETAILS_CONSENT_VERSION`), off clears it. */
+  /** On records the consent, only with the current `detailsConsentVersion`; off clears it. */
   detailsConsent: z.boolean().optional(),
+  /** The version of the wording the device showed when the member turned details on. */
+  detailsConsentVersion: z.string().max(40).optional(),
 });
 export type CalendarSettingsChange = z.input<typeof calendarSettingsChangeZSchema>;
