@@ -8,7 +8,7 @@
 
 Wave 1: slice 1 (agent on opus) handed off at `731544d0` and merged as `1cfac27b`; quick check passed on `b64426da`. Wave 1's CI run (`components`, run 45189225129 on `43161185`) came back `flake`: the only blocking failure is the search speed test on the brake list, in a file this branch doesn't touch. Slice 1's worktree stays until a clean verdict.
 
-Wave 2 running: slices 2, 3 and 4 started 2026-11-23 from `43161185`, worktrees `.loops/timeline-jump-{2,3,4}`, one agent each on opus. Its worktree stays until the wave's CI verdict is green. Slices 2, 3 and 4 are unblocked.
+Wave 2: slices 2, 3 and 4 (one agent each on opus) merged in order, each quick check passed, last on `6ecca0c8`. B-557 marked ready. Wave 2's CI run (`components`, the proposed tier) requested. Slice worktrees stay until its verdict. Slice 2 changed the ordinary timeline's data hook, so watch `timelineScroll`, `timelineSummaries` and `timelineBack`. Its worktree stays until the wave's CI verdict is green. Slices 2, 3 and 4 are unblocked.
 
 | Slice | Wave | State  | Merge into `prd/timeline-jump` (slice commits)  |
 | ----- | ---- | ------ | ----------------------------------------------- |
@@ -22,6 +22,8 @@ Wave 2 running: slices 2, 3 and 4 started 2026-11-23 from `43161185`, worktrees 
 **Slice 3 hand-off** (`a3ae6704`, quick check passed; merges after 2). Its look at phone width is unchecked: try it by hand at landing. Its test output logs a `<Focusable>` warning from the kit's Tooltip, source not traced.
 
 **Slice 4 hand-off** (`e1c6fdb7`, quick check passed; merges after 2 and 3). For the assistant doc at landing: "this friday" is the day in the current Sunday-to-Saturday week, so it can be ahead and blocked; a bare "go to Nov 30" before Nov 30 reads as last year's.
+
+**Slice 2 hand-off** (`cf9dd5aa`). Added a "Show newer entries" button for pages too short to scroll. Known limit: Back to a window past `RESTORE_CAP` (150 rows) may not reach the old position. Real iOS Safari and `ScrollRestoration` are unexercised: try by hand at landing.
 
 **Open issues:** slice 1's Back-from-entry test proves the day, window and page height return, but its harness has no `ScrollRestoration`, so the browser's real restore is unexercised: try it by hand at landing. Slices 3 and 4 navigate with `JUMP_LINK_STATE` and `preventScrollReset`; slice 3's picker test first covers a jump-marker navigation. `pnpm backlog doctor` reports three findings on other topics' items (B-548, B-549, B-568), left alone.
 
