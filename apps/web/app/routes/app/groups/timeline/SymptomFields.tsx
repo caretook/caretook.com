@@ -7,12 +7,11 @@ import { Field } from "~/components/ui";
 export function SymptomFields({ stored, nameError }: { stored?: SymptomDetails; nameError?: string }) {
   return (
     <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-      <Field label="Symptom" error={nameError}>
+      <Field label="Symptom" kind="input" error={nameError}>
         {(control) => (
           <input
             {...control}
             name="symptomName"
-            className="input w-full"
             maxLength={TIMELINE_LIMITS.symptomName}
             defaultValue={stored?.name ?? ""}
             placeholder="e.g. Knee pain"

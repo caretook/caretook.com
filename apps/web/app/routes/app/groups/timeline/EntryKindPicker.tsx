@@ -1,5 +1,6 @@
 import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 
+import { CHOICE_BUTTON } from "~/components/ui";
 import { VitalTypeMenu } from "./VitalTypeMenu";
 
 /**
@@ -27,10 +28,12 @@ export function EntryKindPicker({
           aria-label="Symptom"
           checked={kind === "symptom"}
           onChange={onSymptom}
-          className="join-item btn btn-sm"
+          className={CHOICE_BUTTON}
         />
         <VitalTypeMenu
-          className={`join-item btn btn-sm ${kind === "vital" ? "btn-neutral" : ""}`}
+          variant={kind === "vital" ? "primary" : "secondary"}
+          size="sm"
+          className="join-item"
           onSelect={onVital}
         >
           Vitals <span aria-hidden="true">▾</span>
