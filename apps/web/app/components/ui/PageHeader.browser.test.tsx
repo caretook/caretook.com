@@ -1,4 +1,4 @@
-import { Printer } from "lucide-react";
+import { Pill, Printer } from "lucide-react";
 import { describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 
@@ -98,5 +98,55 @@ describe("PageHeader's add", () => {
     await renderInRouter(<PageHeader title="Providers" />);
     const header = await found(() => document.querySelector("header"));
     expect([...header.children].map((el) => el.tagName)).toEqual(["H1"]);
+  });
+});
+
+describe("PageHeader's section chip", () => {
+  const chip = () => document.querySelector<HTMLElement>("header [data-icon-chip]");
+
+  test("sits before the title, on its line and hidden, so the h1 is named by the title alone", async () => {
+    const { screen } = await renderInRouter(<PageHeader title="Medications" icon={Pill} accent="teal" />);
+    const h1 = screen.getByRole("heading", { level: 1, name: "Medications", exact: true });
+    await expect.element(h1).toBeVisible();
+    const box = await found(chip);
+    expect(box.getAttribute("aria-hidden")).toBe("true");
+    const [c, t] = [box.getBoundingClientRect(), h1.element().getBoundingClientRect()];
+    expect(c.right).toBeLessThanOrEqual(t.left);
+    expect(Math.abs((c.top + c.bottom) / 2 - (t.top + t.bottom) / 2)).toBeLessThanOrEqual(1);
+  });
+
+  test("with a description, the chip stays on the title's line", async () => {
+    const { screen } = await renderInRouter(
+      <PageHeader title="Care periods" description="Where care has been" icon={Pill} accent="plum" />,
+    );
+    const box = (await found(chip)).getBoundingClientRect();
+    const title = screen.getByRole("heading", { level: 1 }).element().getBoundingClientRect();
+    const line = screen.getByText("Where care has been").element().getBoundingClientRect();
+    expect(Math.abs((box.top + box.bottom) / 2 - (title.top + title.bottom) / 2)).toBeLessThanOrEqual(1);
+    expect(line.top).toBeGreaterThanOrEqual(box.bottom - 1);
+  });
+
+  test("without an icon there is no chip", async () => {
+    await renderInRouter(<PageHeader title="Providers" />);
+    await found(() => document.querySelector("header h1"));
+    expect(chip()).toBeNull();
+  });
+
+  test("at 320 a long title with actions and a + wraps, inside the page", async () => {
+    const { screen } = await renderInRouter(
+      <PageHeader
+        title="A very long section title that has to wrap"
+        icon={Pill}
+        accent="teal"
+        actions={PRINT}
+        add={{ label: "Add", onPress: () => undefined }}
+      />,
+      { width: 320 },
+    );
+    await expect.element(screen.getByRole("button", { name: "Add" })).toBeVisible();
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(320);
+    for (const control of controls()) {
+      expect(control.getBoundingClientRect().right).toBeLessThanOrEqual(320);
+    }
   });
 });
