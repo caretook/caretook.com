@@ -5,6 +5,7 @@ import type { TimelineOutlet } from "./sheet";
 
 import { useRef } from "react";
 import { Outlet, PrefetchPageLinks } from "react-router";
+import { Page } from "~/components/ui";
 import { QuickEntryBox } from "~/components/quick-entry";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { formString } from "~/lib/core/form";
@@ -187,7 +188,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
     );
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 py-5 lg:max-w-none">
+    <Page className="lg:max-w-none">
       <div className={COLUMN_CAP}>
         <TimelineHeader easyMode={mode} />
       </div>
@@ -221,6 +222,6 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         onAddEntry={addEntry}
       />
       {sheets}
-    </main>
+    </Page>
   );
 }

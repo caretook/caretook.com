@@ -18,8 +18,8 @@ The `ui/` primitives' contracts; layout, rules and tests are in [components](com
 
 ## Contracts
 
-- `Button`: `variant` `primary`, `secondary` (default), `ghost`, `danger`, `dangerQuiet`; `size` `lg`, `md`, `sm`, `xs`; `shape` `rounded` (default), `pill`, `square`, `round`; `block`; `icon`. Icon only is `square` unless shaped; a button takes `pressed` (the toggle look, in place of the variant), `expanded`, `controls`, `ref`. `busy` with `busyLabel` (disabled, `aria-busy`, text swapped); type `button` unless given. With `to` a router link (`replace`, `state`, `prefetch`, `preventScrollReset`); with `href` a plain `<a>` the router doesn't own (no `title` on a text one: put it on a wrapper). Classes: the pure `buttonClass` (with `pressed`), which `TOOL_CIRCLE`, the chips, the date field and `Menu`'s trigger build on.
-- `Menu`'s trigger takes a look (`variant`, `size`, `shape`; no default shape) through `buttonClass`; a bare class string works until `ui-kit-5`. Solid `danger` only in a confirm or a form whose one job is destructive.
+- `Button`: `variant` `primary`, `secondary` (default), `ghost`, `danger`, `dangerQuiet`, `warning`; `size` `lg`, `md`, `sm`, `xs`; `shape` `rounded` (default), `pill`, `square`, `round`; `block`; `icon`. Icon only is `square` unless shaped; a button takes `pressed` (the toggle look, in place of the variant), `expanded`, `controls`, `ref`. `busy` with `busyLabel` (disabled, `aria-busy`, text swapped); type `button` unless given. With `to` a router link (`replace`, `state`, `prefetch`, `preventScrollReset`); with `href` a plain `<a>` the router doesn't own (no `title` on a text one: put it on a wrapper). Classes: the pure `buttonClass` (with `pressed`), which `TOOL_CIRCLE`, the chips, the date field and `Menu`'s trigger build on.
+- `Menu`'s trigger takes a look (`variant`, `size`, `shape`; no default) through `buttonClass`; a bare class string works until `ui-kit-5`. Solid `danger` only in a confirm, a form whose one job is destructive, or overdue Given all.
 - `FormFooter` (forms only): Cancel (`{ label, to }` or `{ label, onCancel }`) then submit `Button` (`submitLabel`, `busy`, `busyLabel`, `submitDisabled`, `danger`); right-aligned, or `align="start"`; a `status` slot.
 - `ConfirmDialog`/`useShowModal`: `confirmVariant` `danger` (default) or `primary`; waits for an open menu to close before `showModal()`; Escape closes only the dialog.
 - `ChoiceDialog` (`open`, `title`, `message`, up to three `choices` `{ id, label, tone, data-* }`, `cancelLabel`, `onChoose(id)`, `onClose`, `data-*` on the dialog): `ConfirmDialog`'s rules; choices stacked full width, then Cancel; `onClose` runs on every close.
@@ -45,10 +45,10 @@ The `ui/` primitives' contracts; layout, rules and tests are in [components](com
 
 ## Page, headings and tokens (`/app` only; marketing, print and `/admin` keep theirs)
 
-- `Page` is a page's one `main` (`mx-auto max-w-2xl space-y-4 px-4 py-5`; `width="wide"` is `max-w-4xl`), passing `data-*`, `id` and `className` through. Every `/app` page uses it but the timeline and entry folders, print sheets, the error screen and first sync.
+- `Page` is a page's one `main` (`mx-auto max-w-2xl space-y-4 px-4 py-5`; `width="wide"` is `max-w-4xl`), passes `data-*`, `id`, `className`. Every `/app` page uses it but Easy view, the entry folder, print sheets, the error screen and first sync.
 - **Every section page starts with a `PageHeader`** (its `h1` and actions; `description` for one quiet line under the title).
 - **Heading scale** (`ui/styles.ts`): `TITLE_PAGE` `text-xl font-semibold` (`PageHeader` uses it), `TITLE_SECTION` `text-base font-semibold` (sections and cards), `TITLE_SUB` `text-sm font-semibold`.
-- **Tokens:** `text-muted` (70%) and `text-faint` (62%, still 4.5:1 on the light page) in `app.css`. `LINK` (`link text-primary-ink`); `text-<tone>-ink` lifts a tone's text to 4.5:1 on every surface, `ICON_SM`, `ICON`, `ICON_LG` (`size-3.5`, `4`, `5`) in `ui/styles.ts`.
+- **Tokens:** `text-muted` (70%) and `text-faint` (62%, still 4.5:1 on the light page) in `app.css`. `LINK` (`link text-primary-ink`); `text-<tone>-ink` lifts a tone's text to 4.5:1 on every surface. `ui/styles.ts`: `ICON_SM`, `ICON`, `ICON_LG` (`size-3.5`, `4`, `5`), `COUNT_BADGE`.
 
 ## Bands
 

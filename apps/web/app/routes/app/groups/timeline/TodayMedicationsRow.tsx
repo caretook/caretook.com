@@ -3,6 +3,7 @@ import type { TodayCardData } from "./useTodayCard";
 import { CheckCheck, Pill } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { PassUndoStatus, usePassLog } from "~/components/medications";
+import { Button, LINK, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { givenAllLabel, scheduleZoneNote } from "~/lib/medications/medicationDisplay";
 import { medicationStripText } from "~/lib/medications/medicationStrip";
@@ -54,22 +55,27 @@ export function TodayMedicationsRow({
       action={
         canWrite &&
         dueNow && (
-          <button
-            type="button"
-            className={`btn btn-xs shrink-0 ${state === "overdue" ? "btn-error" : "btn-warning"}`}
+          <Button
+            variant={state === "overdue" ? "danger" : "warning"}
+            size="xs"
+            icon={CheckCheck}
+            className="shrink-0"
             disabled={busy || !fresh}
             aria-label={givenAllLabel(pass)}
-            data-given-all
+            data-given-all=""
             onClick={() => void givenAll(pass)}
           >
-            <CheckCheck className="size-3.5" aria-hidden="true" />
             Given all
-          </button>
+          </Button>
         )
       }
       below={
         <>
-          {error && <p className="text-error px-3 pb-1 text-sm">{error}</p>}
+          {error && (
+            <Message tone="error" className="px-3 pb-1">
+              {error}
+            </Message>
+          )}
           <PassUndoStatus groupId={groupId} className="not-empty:px-3 not-empty:pb-2" />
         </>
       }
@@ -79,7 +85,7 @@ export function TodayMedicationsRow({
         data-med-state={state}
         title={zoneNote ? `${text} · ${zoneNote}` : text}
       >
-        <span className={dueNow ? "font-semibold" : "text-base-content/70"}>{lead}:</span>{" "}
+        <span className={dueNow ? "font-semibold" : "text-muted"}>{lead}:</span>{" "}
         {canWrite && !tomorrow ? (
           <Link
             to={appUrls.newDose(
@@ -95,7 +101,7 @@ export function TodayMedicationsRow({
             state={SHEET_LINK_STATE}
             preventScrollReset
             prefetch="render"
-            className="link font-medium"
+            className={`${LINK} font-medium`}
             aria-label={`${title}: open the Dose sheet`}
             data-med-open
           >
@@ -105,7 +111,7 @@ export function TodayMedicationsRow({
           <span className="font-medium">{title}</span>
         )}
         <span> · {rest}</span>
-        {zoneNote && <span className="text-base-content/60"> · {zoneNote}</span>}
+        {zoneNote && <span className="text-faint"> · {zoneNote}</span>}
       </span>
     </TodayRow>
   );
