@@ -265,6 +265,92 @@ describe("doses", () => {
     expect(top("gave meds", { medications: [] }).kind).toBe("note");
   });
 
+  describe("a dose that wasn't given (B-300)", () => {
+    const doses = (line: string) => parse(line)[0]!.readings.filter((r) => r.kind === "dose");
+
+    test.each([
+      "did not give metoprolol",
+      "didn't give metoprolol",
+      "didn’t give metoprolol",
+      "didnt give metoprolol",
+      "metoprolol not given",
+      "metoprolol wasn't given",
+      "metoprolol was not given",
+      "couldn't give metoprolol",
+      "wouldn't give metoprolol",
+      "cannot give metoprolol",
+      "never gave metoprolol",
+      "forgot to give metoprolol",
+      "unable to give metoprolol",
+      "no metoprolol given",
+      "d: didn't give metoprolol",
+    ])("%s is skipped, with the note second", (line) => {
+      const { readings } = parse(line)[0]!;
+      expect(readings[0]!.kind).toBe("dose");
+      expect(action(readings[0]!)).toMatchObject({
+        type: "logDose",
+        medicationId: METO,
+        status: "skipped",
+        note: null,
+      });
+      expect(readings[1]!.kind).toBe("note");
+    });
+
+    test("a negated dose is less sure than a plain one and surer than the note", () => {
+      const { readings } = parse("didn't give metoprolol")[0]!;
+      expect(readings[0]!.confidence).toBeLessThan(top("gave metoprolol").confidence);
+      expect(readings[0]!.confidence).toBeGreaterThan(readings.find((r) => r.kind === "note")!.confidence);
+    });
+
+    test("a long name doesn't push the negating word out of reach", () => {
+      const medications = [{ id: METO, name: "Vitamin D3 Gummy Chew" }];
+      expect(action(top("no vitamin d3 gummy chew given", { medications }))).toMatchObject({
+        status: "skipped",
+      });
+    });
+
+    test("'and not' reads the next medication as skipped", () => {
+      expect(parse("gave tylenol and not metoprolol").map((p) => action(p.readings[0]!))).toMatchObject([
+        { type: "logDose", medicationId: APAP, status: "given" },
+        { type: "logDose", medicationId: METO, status: "skipped", note: null },
+      ]);
+    });
+
+    test("a carried negation needs a given before it and only a name after it", () => {
+      expect(top("no metoprolol").kind).toBe("note");
+      expect(parse("skipped metformin and not metoprolol")[1]!.readings[0]!.kind).toBe("note");
+      expect(parse("gave metformin, no lisinopril side effects")[1]!.readings[0]!.kind).toBe("note");
+    });
+
+    test.each([
+      ["gave metformin without food", "without food"],
+      ["gave metformin with no problems", "with no problems"],
+      ["gave tylenol not long ago", "not long ago"],
+    ])("%s stays given", (line, note) => {
+      expect(action(top(line))).toMatchObject({ type: "logDose", status: "given", note });
+    });
+
+    test.each(["wouldn't take metoprolol", "wouldn’t take metoprolol", "did not swallow metoprolol"])(
+      "%s stays refused",
+      (line) => {
+        expect(action(top(line))).toMatchObject({ type: "logDose", medicationId: METO, status: "refused" });
+      },
+    );
+
+    test.each([
+      ["gave metoprolol", "given"],
+      ["skipped metoprolol", "skipped"],
+      ["refused metoprolol", "refused"],
+    ])("%s is unchanged", (line, status) => {
+      expect(action(top(line))).toMatchObject({ type: "logDose", medicationId: METO, status });
+    });
+
+    test.each(["didn't skip metoprolol", "didn't refuse metoprolol"])("%s is a note, no dose", (line) => {
+      expect(top(line).kind).toBe("note");
+      expect(doses(line)).toEqual([]);
+    });
+  });
+
   test("a symptom word in a medication's notes doesn't make a symptom a dose", () => {
     expect(parse("pain 4 left knee")[0]!.readings.some((r) => r.kind === "dose")).toBe(false);
   });
@@ -347,6 +433,20 @@ describe("passes", () => {
     expect(top("gave evening meds with applesauce", withPasses).kind).toBe("note");
     expect(top("evening", withPasses).kind).toBe("note");
     expect(top("gave meds", { passes: [] }).kind).toBe("note");
+  });
+
+  test.each([
+    "couldn't give evening meds",
+    "couldn’t give evening meds",
+    "didn't give meds",
+    "never gave evening meds",
+    "evening meds not given",
+    "forgot evening meds",
+    "gave morning meds not",
+  ])("%s never gives the pass (B-300)", (line) => {
+    const readings = parse(line, withPasses)[0]!.readings;
+    expect(readings.some((r) => r.actions.some((a) => a.type === "givePass"))).toBe(false);
+    expect(readings[0]!.kind).toBe("note");
   });
 
   test("'and' carries Given to the next pass, and a pass carries it to a medication", () => {
