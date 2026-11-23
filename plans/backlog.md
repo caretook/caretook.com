@@ -113,7 +113,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 | Id | Type | Status | PRD | Owner | Title |
 | -- | ---- | ------ | --- | ----- | ----- |
-| B-31 | feature | triaged | onboarding |  | Guided onboarding for new users: a first-run flow that walks a new member through setting up and using the app (the real requirement; details to refine) |
+| B-31 | feature | in-progress | onboarding | prd/onboarding | Guided onboarding for new users: a first-run flow that walks a new member through setting up and using the app (the real requirement; details to refine) |
 | B-33 | plan | triaged | hosting |  | Production hosting and launch: hosted Postgres, production migrations, PowerSync Cloud, Vercel deploy, staging environment |
 | B-40 | chore | triaged | marketing |  | Real app screenshots for the marketing site before launch |
 | B-52 | feature | triaged | data-rights |  | Ability to download all data from the app to a file for backup or transfer to another device. |
@@ -185,8 +185,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-356 | feature | triaged | data-rights |  | A staff procedure and tooling for deletion and export requests before self-service ships (the privacy draft promises deletion within 45 days; nothing can delete an account or group) |
 | B-357 | question | triaged | data-rights |  | Consent evidence is deleted with the user or group (care_group_consent, connector_grant cascade), and the audit log loses target_user_id: keep them? |
 | B-358 | question | triaged | data-rights |  | Should the legal drafts promise only what is built (deletion, 'permanently removed' entries, backups, at-rest encryption), and who fills the placeholders ([Company legal name], [privacy email], [backup retention period])? |
-| B-359 | feature | triaged | onboarding |  | Record terms, privacy and 18+ acceptance at sign-up and invite accept (no /terms or /privacy link outside the marketing pages; the terms require 18+) |
-| B-360 | change | triaged | onboarding |  | The app isn't installable: site.webmanifest has display 'browser', start_url '/', and is linked only from the marketing layout |
+| B-359 | feature | in-progress | onboarding | prd/onboarding | Record terms, privacy and 18+ acceptance at sign-up and invite accept (no /terms or /privacy link outside the marketing pages; the terms require 18+) |
+| B-360 | change | in-progress | onboarding | prd/onboarding | The app isn't installable: site.webmanifest has display 'browser', start_url '/', and is linked only from the marketing layout |
 | B-361 | change | triaged | code-health |  | A @caretook/data/domain export for the pure logic now living under db/schema (quick entry parser, due doses, medication display, series edits: about half that folder) |
 | B-362 | change | triaged | code-health-2 |  | A soft-delete model factory and a shared upsert helper: nine models are the same file, twelve upserts repeat the exists-as-system, visible-as-actor sequence, 'invalid' is defined 18 times |
 | B-363 | change | triaged | code-health-2 |  | One exported role-capability table (canWrite(role), canComplete(role)) used by services, device modules and screens, before any role is added |
@@ -339,9 +339,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-31 · feature · Guided onboarding for new users: a first-run flow that walks a new member through setting up and using the app (the real requirement; details to refine)
 
-- status: triaged
+- status: in-progress
 - prd: onboarding
-- owner:
+- owner: prd/onboarding
 - commit:
 
 - 2026-11-18 (Robert Bo Davis): From the invites interview (2026-11-18): out of scope there, noted for later. Each new account gets a private demo group with fictional seed data (timeline, notes, vitals; later meds and providers) it can explore and delete.
@@ -1055,9 +1055,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-359 · feature · Record terms, privacy and 18+ acceptance at sign-up and invite accept (no /terms or /privacy link outside the marketing pages; the terms require 18+)
 
-- status: triaged
+- status: in-progress
 - prd: onboarding
-- owner:
+- owner: prd/onboarding
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. Tracked nowhere before this review.
@@ -1065,9 +1065,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-360 · change · The app isn't installable: site.webmanifest has display 'browser', start_url '/', and is linked only from the marketing layout
 
-- status: triaged
+- status: in-progress
 - prd: onboarding
-- owner:
+- owner: prd/onboarding
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. Also absent and untracked: an accessibility statement, app-store prerequisites, an ownership-transfer flow (careGroupMemberService.ts:173 says the last owner 'must hand over ownership first').
