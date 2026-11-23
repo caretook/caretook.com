@@ -6,14 +6,14 @@ Small UI fixes: look, layout, wording and flow. There is no PRD: this plan is th
 
 Landing mode: **run everything through** (started run-through, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports only through `pnpm prd ask`.
 
-Wave 1: slices 1–9, written 2026-11-22. Models: opus for all. Slice 2 waits for 1, slice 7 for 6 (same files); the rest start at once. Slice 1 is merged. Slices 2, 3, 4, 5, 6, 8 and 9 have worktrees and agents; 7 is not started. Slice 2 stacks the owner pill in `[data-when-column]` after `ContactActions`, with `relative z-10` so it stays tappable.
+Wave 1: slices 1–9, written 2026-11-22. Models: opus for all. Slice 2 waits for 1, slice 7 for 6 (same files); the rest start at once. Slices 1 and 2 are merged. Slice 5 is reviewed and waits its turn to merge. Slices 3, 4, 6, 8 and 9 are running; 7 is not started.
 
 Left for a later wave: B-316 (unsaved-changes guard), B-535 (hour-first time picker), B-536 (danger text contrast) and B-537 (Event wording) touch ui-kit-3's hot files (`components/ui/`, `lib/timeline/entryDisplay.ts`, `lib/app-shell/`, `routes/dev/ui/`). B-325 (native safe area and cold start) waits for the Capacitor work, as its triage says.
 
 | Slice | Item  | State               | Merge    |
 | ----- | ----- | ------------------- | -------- |
 | 1     | B-256 | merged (opus)       | b5373bc9 |
-| 2     | B-416 | started (opus)      | —        |
+| 2     | B-416 | merged (opus)       | f6f40e4f |
 | 3     | B-538 | started (opus)      | —        |
 | 4     | B-412 | started (opus)      | —        |
 | 5     | B-519 | handed off b1be7664 | —        |
@@ -41,7 +41,9 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 
 ## Slice 2: Planner owner pill sits under the time (B-416)
 
-Blocked by: slice 1 · Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/todos.md · Tests: component
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/todos.md · Tests: component
+
+**Blocked by:** slice 1.
 
 **Problem.** The owner pill under the title makes Planner and Planner list rows too busy.
 
@@ -105,7 +107,9 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 
 ## Slice 7: Provider contact links move to the details sheet (B-422)
 
-Blocked by: slice 6 · Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/providers.md · Tests: component
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/providers.md · Tests: component
+
+**Blocked by:** slice 6.
 
 **Problem.** Contact links in the provider rows make it hard to know what to click. People usually want the notes open while they make contact.
 
