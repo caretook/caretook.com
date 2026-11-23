@@ -70,6 +70,8 @@ function SwatchGroup({ label, children }: { label: string; children: ReactNode }
   );
 }
 
+const PENDING_TEXT = "Saved on this device. It'll sync when you're back online.";
+
 const DEFAULT_LOOK = "bg-base-200 text-base-content border border-base-300";
 
 function DefaultSwatch(props: { name: string; checked: boolean; onChange: () => void; icon: LucideIcon }) {
@@ -83,14 +85,15 @@ function DefaultSwatch(props: { name: string; checked: boolean; onChange: () => 
 
 /**
  * Choose your avatar: a color and an icon from the fixed set, each with a
- * Default, and a live preview. One choice across all your care groups, saved
- * with a connection.
+ * Default, and a live preview. One choice across all your care groups; made
+ * offline, it's kept on this device and sent on reconnect.
  */
 export function AvatarCard({ userId, name, email }: { userId: string; name: string | null; email: string }) {
   const saved = useMyAvatar(userId);
   const [draft, setDraft] = useState<AvatarChoice | null>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<ActionResult>();
+  const [queued, setQueued] = useState(false);
   const shown = draft ?? saved;
 
   const change = (next: Partial<AvatarChoice>) => {
@@ -102,7 +105,7 @@ export function AvatarCard({ userId, name, email }: { userId: string; name: stri
     event.preventDefault();
     setBusy(true);
     try {
-      await saveMyAvatar(userId, shown);
+      setQueued((await saveMyAvatar(userId, shown)) === "pending");
       setDraft(null);
       setResult({ ok: true });
     } catch (e) {
@@ -160,7 +163,7 @@ export function AvatarCard({ userId, name, email }: { userId: string; name: stri
             );
           })}
         </SwatchGroup>
-        <SaveRow busy={busy} result={result} />
+        <SaveRow busy={busy} result={result} savedText={queued ? PENDING_TEXT : undefined} />
       </form>
     </SettingsCard>
   );
