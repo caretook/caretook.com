@@ -81,6 +81,42 @@ afterEach(() => {
   localStorage.removeItem(`caretook:settings:${TEST_USER.id}`);
 });
 
+describe("a bare number at the strength with a usual dose of several units (B-662)", () => {
+  const LINE = "gave acetaminophen 500";
+  const doses = (device: Awaited<ReturnType<typeof open>>) =>
+    device.query<{ details: string }>("SELECT details FROM timeline_entry WHERE kind = 'dose'");
+
+  test("the caretaker is asked, nothing saves until they choose, and the chosen amount is recorded", async () => {
+    const device = await open();
+    await type(LINE, ["dose"]);
+    await waitUntil(() => !!cards()[0]?.querySelector("[data-quick-blocking]"), "the question");
+    expect(cards()[0]!.querySelector("[data-quick-blocking]")?.textContent).toContain("Choose the amount");
+    expect(saveButton()?.disabled).toBe(true);
+    expect(await doses(device)).toEqual([]);
+
+    await userEvent.click(page.getByRole("button", { name: "2 tablets", exact: true }));
+    await waitUntil(() => !cards()[0]?.querySelector("[data-quick-blocking]"), "the choice");
+    expect(cards()[0]!.textContent).toContain("Given 2 tablets");
+    await userEvent.click(await found(saveButton));
+    await expect.poll(status).toBe("Saved 1 entry");
+
+    const saved = await doses(device);
+    expect(saved).toHaveLength(1);
+    expect(JSON.parse(saved[0]!.details)).toMatchObject({
+      medicationId: ACETAMINOPHEN.id,
+      amount: "2 tablets",
+    });
+  });
+
+  test("Edit opens the Dose sheet with the amount empty", async () => {
+    await open();
+    await type(LINE, ["dose"]);
+    await waitUntil(() => !!cards()[0]?.querySelector("[data-quick-blocking]"), "the question");
+    await userEvent.click(page.getByRole("button", { name: `Edit "${LINE}"` }));
+    await expect.element(page.getByRole("textbox", { name: /Amount/ })).toHaveValue("");
+  });
+});
+
 describe("the box and its cards", () => {
   test("a vital, a dose and a symptom: three cards, saved together, offline, on the timeline and queued for upload", async () => {
     const device = await open();
