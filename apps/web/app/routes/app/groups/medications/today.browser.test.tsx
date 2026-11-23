@@ -367,6 +367,28 @@ describe("passes", () => {
     expect(slotState(med.id, R1)).toBe("due");
   });
 
+  test("a medication added after its pass's time has no overdue dose, and Given all leaves it out", async () => {
+    const added = clockMoment(-3);
+    const late = fx.medication({
+      name: "Late",
+      strength: "5 mg",
+      dose: "1 tablet",
+      createdAt: added,
+      updatedAt: added,
+      schedule: { type: "scheduled", slots: [{ passId: ROUNDS.id }] },
+    });
+    const start = fx.medicationChange({ medicationId: late.id, occurredAt: added });
+    const device = await open([ROUNDS, XA, late, start]);
+    await expect.poll(() => cardState(ROUNDS.id)).toBe("due");
+    await expand(ROUNDS.id);
+    expect(slot(XA.id, R1, card(ROUNDS.id))).toBeTruthy();
+    expect(slot(late.id, R1, card(ROUNDS.id))).toBeNull();
+    expect(card(ROUNDS.id)?.querySelectorAll("[data-slot]")).toHaveLength(1);
+
+    await userEvent.click(await found(() => card(ROUNDS.id)?.querySelector("[data-given-all]")));
+    await expect.poll(async () => (await doses(device)).map((d) => d.medicationId)).toEqual([XA.id]);
+  });
+
   test("a viewer sees each pass's state, with no Given all, Given or ⋯", async () => {
     await open(passWorld, "viewer");
     expect(cardState(ROUND_2.id)).toBe("due");

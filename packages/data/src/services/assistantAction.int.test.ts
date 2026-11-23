@@ -1,13 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { addDays, buildNoteDoc, dayInZone, doseSlotIdFor, passRoundId } from "../db/schema";
+import { addDays, buildNoteDoc, dayInZone, doseSlotIdFor, passRoundId, zonedInstant } from "../db/schema";
 import { createGroup, createUser, createWorld, ok, typeParagraph } from "../../test/fixtures";
 import { getDb } from "../db";
 import {
   FUTURE_DATE_MESSAGE,
   noteDocumentSchema,
   noteUpdateSchema,
+  medicationSchema,
   todoSchema,
   timelineEntryProviderSchema,
   timelineEntrySchema,
@@ -37,14 +38,19 @@ const setup = async () => {
   const { u, group, recipient } = await createWorld({ extras: ["outsider"] });
   const [morning, evening] = ok(await medicationPassService.list(u.owner.ctx, { groupId: group.id })).data;
   if (!morning || !evening) throw new Error("no default passes");
-  const addMedication = async (name: string) =>
+  // Started days ago, so both passes' slots are on today's schedule at any hour the tests run.
+  const addMedication = async (name: string, changedAt = minutesAgo(3 * 24 * 60)) =>
     ok(
-      await medicationService.create(u.caretaker.ctx, {
-        groupId: group.id,
-        name,
-        strength: "500 mg",
-        schedule: { type: "scheduled", slots: [{ passId: morning.id }, { passId: evening.id }] },
-      }),
+      await medicationService.create(
+        u.caretaker.ctx,
+        {
+          groupId: group.id,
+          name,
+          strength: "500 mg",
+          schedule: { type: "scheduled", slots: [{ passId: morning.id }, { passId: evening.id }] },
+        },
+        { changedAt },
+      ),
     )!;
   const provider = ok(
     await providerService.create(u.caretaker.ctx, {
@@ -67,6 +73,33 @@ const refusal = (res: unknown) => {
 };
 
 describe("assistantActionService.run", () => {
+  it("givePass leaves out a medication added after the pass's time that day", async () => {
+    const { group, recipient, morning, addMedication, run, entriesOf } = await setup();
+    const zone = recipient.timeZone ?? "UTC";
+    const day = addDays(dayInZone(new Date(), zone), -5);
+    const addedAt = zonedInstant(day, "14:59", zone);
+    const earlier = await addMedication(
+      "Metformin",
+      zonedInstant(addDays(day, -5), "07:00", zone).toISOString(),
+    );
+    const late = await addMedication("Lisinopril", addedAt.toISOString());
+    const stamp = async (id: string, createdAt: Date) =>
+      getDb()
+        .update(medicationSchema)
+        .set({ createdAt: createdAt.toISOString() })
+        .where(eq(medicationSchema.id, id));
+    await stamp(earlier.id, zonedInstant(addDays(day, -5), "07:00", zone));
+    await stamp(late.id, addedAt);
+
+    ok(
+      await run("caretaker", [
+        { type: "givePass", passId: morning.id, occurredAt: zonedInstant(day, "15:00", zone).toISOString() },
+      ]),
+    );
+    const given = (await entriesOf()).filter((e) => e.kind === "dose" && !e.deletedAt);
+    expect(given.map((e) => (e.details as { medicationId: string }).medicationId)).toEqual([earlier.id]);
+  });
+
   it("writes each action as quick entry would, carrying via", async () => {
     const { u, group, recipient, evening, addMedication, provider, run, entriesOf, todosOf } = await setup();
     const metformin = await addMedication("Metformin");
