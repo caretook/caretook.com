@@ -20,7 +20,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 8 (slices 38–39, B-651, B-652, both on opus) landed in dev through PR #109 as c1c5b0bf** (2026-11-23): `integration` CI on 53ab862c was `flake` (run 45159391173; only `scripts/loops/lease.test.mjs`, not this branch's, noted on B-654), quick check on 53ab862c, Codex clean on b29e187; `browser --changed` needs none. To-test: `to-test/2026-11-23-0558-fixes-bug.md`. Docs folded (`assistant.md`, exactly at its 10 KB budget: trim when adding). Slice worktrees removed.
 
-**Hand-over (after the wave 8 landing; no slice in flight).** **Next wave:** `pnpm prd sync`, ingest, then plan B-655 (`gave the 2nd at night` may still take a day; read from the code, so confirm with a test first). **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (ui-kit-5 holds `routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
+**Wave 9 (slice 40, B-655, on opus) in flight**, on dev-synced 5373e2f0. **Held:** recheck `pnpm backlog prd list` for B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts`, `assistantActionService.ts`) and B-620 and B-631 (ui-kit-5 holds `routes/app/groups/timeline/`; B-620's fix is user-approved, see its note).
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -65,6 +65,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 37    | B-646 | landed                                     | ce4d22b1 |
 | 38    | B-651 | landed                                     | a447334a |
 | 39    | B-652 | landed                                     | 7be34f48 |
+| 40    | B-655 | started (opus)                             |          |
 
 ## Wave 1
 
@@ -461,4 +462,19 @@ Blocked by slice 38 (same files). In `ordinalIsADay` (`quickEntryTime.ts`), a cl
 - `gave the 2nd at 2pm` gets no day of the month.
 - `a 2nd at 2pm` stays undated.
 - `dr lee the 2nd at 2pm` stays the 2nd at 2pm.
+- Unit tests: one row for each line above.
+
+## Wave 9
+
+As before: the item's backlog notes (`pnpm backlog show B-<n>`) carry the file references, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. Running topics hold `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/assistantActionService.ts`, `apps/web/app/components/quick-entry/` and `apps/web/app/routes/app/groups/timeline/`: no slice here edits them.
+
+### Slice 40: a counted ordinal before a part of day stays undated (B-655)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md · Tests: unit
+
+In `ordinalIsADay` (`quickEntryTime.ts`), the part-of-day branches may run without the counted-word check that slice 39 added for a clock time. This was read from the code and not run.
+
+- `gave the 2nd at night` and `gave the 2nd in the morning` get no day of the month.
+- `a 2nd in the morning` stays undated.
+- `dr lee the 2nd in the morning` and `dr lee the 2nd at night` stay on the 2nd.
 - Unit tests: one row for each line above.
