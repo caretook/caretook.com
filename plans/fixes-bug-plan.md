@@ -34,7 +34,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 16    | B-470 | landed                                     | 7e65e0ab |
 | 17    | B-472 | landed (+B-482; layout-offline at landing) | 3114a864 |
 | 18    | B-510 | landed                                     | 5d096ce3 |
-| 19    | B-527 | started                                    |          |
+| 19    | B-527 | merged | 04f5e825 |
 | 20    | B-578 | handed off (29a36540), merge after 19      |          |
 | 21    | B-591 | blocked by 20                              |          |
 | 22    | B-580 | blocked by 21                              |          |
