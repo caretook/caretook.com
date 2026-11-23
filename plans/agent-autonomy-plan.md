@@ -8,12 +8,20 @@
 | ----- | ---- | ------------- | ----------------------------------------------- |
 | 1     | 1    | landed (opus) | 55275f08 (d759b24e)                             |
 | 2     | 1    | landed (opus) | b3877be1 (142fa3d7)                             |
-| 3     | 2    | —             | —                                               |
-| 4     | 3    | —             | —                                               |
+| 3     | 2    | merged (opus) | 0c051399 (ba8e9ec0)                             |
+| 4     | 3    | merged (opus) | 8fc8b0aa (16d672b8, a2cf7d20)                   |
 
 **Rescoped on 2026-11-22** (backlog session, the user's pick) against [test-gates](test-gates-prd.md): the old slices 3 to 10 (machine claim, local flake rule, carried full pass, `Checked:` trailer, landing hold) are dropped; B-518 is rebuilt as slices 3 and 4. The old plan is in git history at 887d44de. The registry row runs **after `test-gates`**, which lands its brake and rapid gate in `land.sh` first.
 
-**Now:** wave 1 landed in dev as 0e38a6e7 through PR #58 (2026-11-22). Waves 2 and 3 not started; a new orchestrator starts from wave 2 once test-gates is done.
+**Landing mode:** run everything through (started by the dispatcher, 2026-11-23): land each green wave, clean up, ask only real questions through `pnpm prd ask`.
+
+**Now:** wave 1 landed in dev as 0e38a6e7 through PR #58 (2026-11-22). test-gates is done. Slices 3 and 4 merged 2026-11-23 (worktrees stay until the verdict is green); waves 2 and 3 land together as one PR. B-518 stays open until the fix below is in.
+
+Quick check passed on 42b5eba2 (slice 4 merged).
+
+**Ask a109, answered "Refuse only on a known brake":** the PRD lets land go unsynced only on a green, file or flake verdict for dev, but test-gates ended automatic dev runs and dev's last 8 commits have none. So an unsynced landing is refused when dev's tip reads `brake` or a live dev-brake notice exists, and goes ahead on no verdict. The fix (6c7662cf, opus) is merged as 565b0a53, and dev is synced in 8080fb0c. B-518 is done. The diff is tooling only, so its CI tier is `none`. Next: quick check, fold the docs, PR, Codex, land, `pnpm prd rm` the slices and the topic. Known gap, for the backlog: the brake read uses local `dev`, so a brake on a newer `origin/dev` tip is seen only through its notice.
+
+**Slice 4's other calls, to fold into the docs:** `--force` and `--fixes` never land unsynced; dev moving during the typecheck is judged once more, then refused; the pre-deployment clause is gone with test-gates' modes (B-531); nothing tests the merged result on dev until someone requests a run, so correct the PRD's "CI's dev run then tests the merged result".
 
 **Backlog:** B-503 and B-506 done with wave 1. Claim B-518 when slice 3 starts and `done` it when slice 4 merges. B-504, B-505 and B-517 are dropped; B-516 is landed (its after-notice is wave 1's landed notice; the rest was dropped with the local full check).
 
