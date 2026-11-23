@@ -13,7 +13,9 @@
 
 **Landing mode:** run everything through (started run-through). Land each green wave, clean up, and ask only real questions through `pnpm prd ask`.
 
-**Now (2026-11-23):** wave 1. Slice 1 (opus) is merged; its worktree `.loops/member-avatars-1` stays until the wave's verdict is green, and its stack is down. Next: quick check, then the wave's CI run. B-593 stays claimed until slice 4 merges. Watch in the CI run: components that mount the frame now make one extra `me.get` through `UserMenu`. Reviewed: the migration is safe on a fresh database (0005 creates the publication) and `db:roles` keeps the new columns (it derives them from the sync config).
+**Now (2026-11-23):** wave 1 is green and in review. Slice 1 (opus) is merged and its worktree removed. On the synced tip 00909617: full CI green (run 45231904007), quick check passed, and the 11 browser checks for the diff passed (`--changed --base dev`, no `--suite`). The earlier run on 2415225d was a `flake` in the search timing test, a file this branch doesn't touch. Next: PR, Codex review, land with `--tier full`, fold the docs, rotate. B-593 stays claimed until slice 4 merges. Reviewed: the migration is safe on a fresh database (0005 creates the publication) and `db:roles` keeps the new columns (it derives them from the sync config).
+
+**For later slices:** slice 2: `myAvatar.ts` holds the choice in memory and reads `me.get` once per page load, so the header shows the default until it answers and offline after a reload, and saving offline shows an error. Slice 3: an icon-only avatar sits on `bg-primary` until the per-group default exists.
 
 **Start conditions:** `onboarding` and `ui-kit-5` have landed (both confirmed done on `dev`, 2026-11-23).
 
