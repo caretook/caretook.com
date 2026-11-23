@@ -4,18 +4,18 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 
 ## Status
 
-| Slice                                          | Wave | State           | Merge |
-| ---------------------------------------------- | ---- | --------------- | ----- |
-| 1. The browser suite runs in CI                | 1    | starting (opus) |       |
-| 2. Browser results, reruns and flakes          | 2    | not started     |       |
-| 3. A release candidate                         | 3    | not started     |       |
-| 4. Promotion refuses what isn't passing        | 3    | not started     |       |
-| 5. The release tier                            | 4    | not started     |       |
-| 6. The required check on main and its override | 5    | not started     |       |
+| Slice                                          | Wave | State                             | Merge |
+| ---------------------------------------------- | ---- | --------------------------------- | ----- |
+| 1. The browser suite runs in CI                | 1    | in progress (opus, agent spawned) |       |
+| 2. Browser results, reruns and flakes          | 2    | not started                       |       |
+| 3. A release candidate                         | 3    | not started                       |       |
+| 4. Promotion refuses what isn't passing        | 3    | not started                       |       |
+| 5. The release tier                            | 4    | not started                       |       |
+| 6. The required check on main and its override | 5    | not started                       |       |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Now:** wave 1, slice 1. Base d88ff1aa (level with `dev`). Items B-532, B-533 claimed for this topic. Backlog doctor's three findings (B-548, B-549, B-568) aren't this topic's.
+**Now:** wave 1, slice 1 running in `.loops/test-gates-2-1` on `slice/test-gates-2/1`, from 27570615. Items B-532, B-533 claimed for this topic. Backlog doctor's three findings (B-548, B-549, B-568) aren't this topic's.
 
 ## Architectural decisions
 
