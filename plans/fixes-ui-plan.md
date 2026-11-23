@@ -48,9 +48,9 @@ Notes for the next wave:
 | 12    | B-537 | merged (opus)   | 5566480a |
 | 13    | B-535 | merged (opus)   | 1dc972d8 |
 | 14    | B-316 | merged (opus)   | 3c7a6607 |
-| 15    | B-585 | written (opus)  |          |
-| 16    | B-592 | written (opus)  |          |
-| 17    | B-603 | written (opus)  |          |
+| 15    | B-585 | started (opus)  |          |
+| 16    | B-592 | started (opus)  |          |
+| 17    | B-603 | started (opus)  |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
