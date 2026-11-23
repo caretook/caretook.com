@@ -7,14 +7,14 @@
 | Slice | Wave | State                           | Merge into `prd/dose-accuracy` (slice commits) |
 | ----- | ---- | ------------------------------- | ---------------------------------------------- |
 | 1     | 1    | landed in dev 82a5d3ac (PR #88) | e851c83d (597f6f1f, d3fb1182)                  |
-| 2     | 2    | —                               | —                                              |
+| 2     | 2    | started, agent spawned (opus)   | —                                              |
 | 3     | 3    | —                               | —                                              |
-| 4     | 2    | —                               | —                                              |
+| 4     | 2    | started, agent spawned (opus)   | —                                              |
 | 5     | 4    | —                               | —                                              |
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-22). Start every ready slice, land each green wave, clean up; ask only real questions through `pnpm prd ask`.
 
-**Now:** wave 1 landed in dev as 82a5d3ac (PR #88, Codex clean), B-297 done, its matching rule folded into the medications doc, landing report filed. **Next session: `pnpm prd sync`, then start wave 2 (slices 2 and 4, opus), claiming B-298 and B-299.** Ask a92 was answered "Answer nothing" (a second 23:30 dose after midnight answers no slot and stays on the timeline). B-606 (highlight a double dose on a next-dose-due notification) is filed outside this PRD because no such notification exists. For slices 2, 4 and 5: `doseSlotDay` uses the same reach as `slotAt`; keep the days either side when replacing the expansion, and answer doses before trimming to the range. `pnpm backlog doctor` reports two old inbox-line findings (B-548, B-549), unrelated to this topic.
+**Now:** wave 1 landed in dev as 82a5d3ac (PR #88, Codex clean), B-297 done, its matching rule folded into the medications doc, landing report filed. **Wave 2 is running:** synced with dev, B-298 and B-299 claimed, worktrees `dose-accuracy-2` and `dose-accuracy-4` made from e659c57f, one opus agent spawned for each. Next: review each hand-off, merge in plan order (2, then 4). Ask a92 was answered "Answer nothing" (a second 23:30 dose after midnight answers no slot and stays on the timeline). B-606 (highlight a double dose on a next-dose-due notification) is filed outside this PRD because no such notification exists. For slices 2, 4 and 5: `doseSlotDay` uses the same reach as `slotAt`; keep the days either side when replacing the expansion, and answer doses before trimming to the range. `pnpm backlog doctor` reports two old inbox-line findings (B-548, B-549), unrelated to this topic.
 
 **Backlog:** claim B-297 when slice 1 starts and `done` it when slice 1 merges; B-298 when slice 2 starts, `done` after slice 3 merges; B-299 when slice 4 starts, `done` after slice 5 merges.
 
