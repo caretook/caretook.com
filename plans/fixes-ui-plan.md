@@ -6,20 +6,17 @@ Small UI fixes: look, layout, wording and flow. There is no PRD: this plan is th
 
 Landing mode: **run everything through** (started run-through, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports only through `pnpm prd ask`.
 
-Wave 1: slices 1–9, written 2026-11-22. Models: opus for all.
+Wave 1: slices 1–9 (opus), **landed in dev as bb1133e0 through PR #78** (2026-11-22). Codex clean on 19a195c; full check passed on 887736df; report filed. No slice is in flight.
 
-All nine slices are merged and dev is synced (919126cb). No slice is in flight. Browser: `--changed --base dev` names none; `--suite` not run (the user's rule: ask first).
+**Resume here (wave 2):** `pnpm prd sync`, then `pnpm backlog ingest`, `doctor`, `list`. Append one slice per waiting item that doesn't touch a running topic's hot files (`pnpm backlog prd list`; ui-kit-3 is done, ui-kit-4 is planned, so check its row and whether it has started): B-316 (unsaved-changes guard), B-535 (hour-first time picker), B-536 (danger text contrast), B-537 (Event wording), B-575 (Planner tabs' accessible name). Then set this row's hot files.
 
-**Resume here (wave 1 gate, rotated for context):** reconciled with git on takeover (no slice worktrees). The lint crash is not load: ESLint passes 4 GB, CI sets 6 GB, so run `NODE_OPTIONS=--max-old-space-size=6144 pnpm prd check` until B-576 (local lint runs out of memory) is fixed. With it, lint and typecheck passed on 7c90a0e4 and 2 of 5919 tests failed, both again alone: `plannerSeries` (scope dialog's Edit button colour) and `timelineHeader` (the + is no longer the heading's sibling, from slice 4). Dev synced with ui-kit-3's last wave (30cb7855; conflicts in `PlannerHeader`, `DirectoryResults`, `TimelineHeader` resolved keeping both sides), so the next check must be full. An opus fix agent fixed both tests (26efde5e, tests only: a stale layout assertion, and the pointer left hovering the dialog button). Full check **passed on 887736df** (6 GB heap; one print-menu test failed in the full run and passed alone, the known race B-552). Docs folded. Next: step 4.
+Left for later: B-325 (native safe area and cold start) waits for the Capacitor work, as its triage says.
 
-1. The full check on d4bdb178 did **not** pass: ESLint died with "JavaScript heap out of memory" (exit 134) at load about 16. Format had passed; typecheck status is in no later step, and no test ran. Slice 7 hit the same crash at load about 20 and passed once the 5-minute load was under 16. Wait for load under 16, rerun `pnpm prd check` once. If it crashes again on a quiet machine, it is not load: find out why (dev's ui-kit-3 sync is new) and file it in fixes-tooling, or ask.
-2. Send any component test failure to a fix agent. Watch `timelineHeader`, `timelineEasy`, `timelineLayout`, `timelineSummaries`, `timelineScroll`, `entry`, `ui/inScreens` (slice 4 changed the day header's DOM), `linkedTodos` and `provider` (slice 9), `todos` and `easyRolePages` (slice 3).
-3. Fold the docs (all near the 10 KB budget: trim what you add). `providers.md`: past providers always list under their label (no "Show past", no `?past=1`); rows carry no contact details and open the provider page, which has the contact links. `timeline.md`: the + is at the far right of the day header. `care-periods.md`: the period sits right, before the +; Change is an icon button. `appointments.md`: `TabNav` is Upcoming | Past | Todos, `PlannerFilterRow` is gone, Filter sits beside the tabs on Upcoming; call, map and author sit under the time in `[data-when-column]`. `todos.md` if it places the Planner row's assignee.
-4. `pnpm prd serve --restart`, `pnpm prd pr fixes-ui`, `pnpm prd review fixes-ui --wait` in the background, triage, land, file the report with `pnpm prd ask --report`, then rotate for wave 2.
+Notes for the next wave:
 
-Small follow-ups: B-575 (Planner tabs' accessible name) is filed. Stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows. Wave 2 candidates once ui-kit-3 is done: B-316, B-535, B-536, B-537, B-575.
-
-Left for a later wave: B-316 (unsaved-changes guard), B-535 (hour-first time picker), B-536 (danger text contrast) and B-537 (Event wording) touch ui-kit-3's hot files (`components/ui/`, `lib/timeline/entryDisplay.ts`, `lib/app-shell/`, `routes/dev/ui/`). B-325 (native safe area and cold start) waits for the Capacitor work, as its triage says.
+- Until B-576 (local lint runs out of memory) is fixed, run checks and landings with `NODE_OPTIONS=--max-old-space-size=6144`; lint passes Node's 4 GB default even on a quiet machine.
+- A print-menu test can fail in a full run and pass alone (B-552, the known race).
+- Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
 | Slice | Item  | State         | Merge    |
 | ----- | ----- | ------------- | -------- |
