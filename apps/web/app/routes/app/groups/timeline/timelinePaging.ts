@@ -36,6 +36,10 @@ export const keepPaging = <E, L, S, M>(userId: string, groupId: string, kept: Ke
   remember(userId, keyOf(groupId), kept);
 };
 
+/** Whether a window was kept for this history entry: the timeline has been here before (Back to it), even at one page. */
+export const wasKept = (userId: string, groupId: string, locationKey: string) =>
+  recall<{ locationKey: string }>(userId, keyOf(groupId))?.locationKey === locationKey;
+
 /**
  * The window to start from: the kept one when it's this history entry's and
  * these filters', capped at `RESTORE_CAP` (past the cap, no rows: the capped
