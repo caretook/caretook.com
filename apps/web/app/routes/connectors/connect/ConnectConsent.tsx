@@ -4,7 +4,11 @@ import type { ConnectorScope } from "@caretook/data/schema";
 
 import { useEffect, useRef, useState } from "react";
 import { Form, useNavigation } from "react-router";
-import { CONNECTOR_CONSENT_TEXT, CONNECTOR_SCOPE_LABELS } from "@caretook/data/schema";
+import {
+  CONNECTOR_CONSENT_TEXT,
+  CONNECTOR_READ_ONLY_BY_OWNER_LABEL,
+  CONNECTOR_SCOPE_LABELS,
+} from "@caretook/data/schema";
 import { AskOwners } from "~/components/connectors/ask";
 import { ChoiceGroup } from "~/components/ui/plain";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -132,9 +136,11 @@ export function ConnectConsent({ groups, error }: { groups: ConnectGroup[]; erro
       />
       {widest === "read" && (
         <p className="text-base-content/70 text-sm" data-read-only="">
-          {group.role === "viewer"
-            ? "As a viewer in this group, you can connect for reading only."
-            : "This assistant asked only to read."}
+          {group.readOnlyByOwner
+            ? CONNECTOR_READ_ONLY_BY_OWNER_LABEL
+            : group.role === "viewer"
+              ? "As a viewer in this group, you can connect for reading only."
+              : "This assistant asked only to read."}
         </p>
       )}
       <label className="flex items-start gap-3 text-sm">
