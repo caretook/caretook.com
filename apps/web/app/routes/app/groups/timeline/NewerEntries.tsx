@@ -3,6 +3,7 @@ import type { TimelineData } from "./useTimelineData";
 
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { Button } from "~/components/ui";
+import { LANDING_GAP } from "./useJumpLanding";
 
 const NOTICE = "[data-jump-notice]";
 
@@ -45,7 +46,10 @@ export function NewerEntries({
   });
 
   useEffect(() => {
-    if (armed && empty && newer.has && !newer.loading) load.current();
+    if (!armed || !empty || !newer.has || newer.loading) return;
+    load.current();
+    // The page was too short to land on the notice: once the oldest day is under it, it goes to the top.
+    if (hold.current) hold.current.top = LANDING_GAP;
   }, [armed, empty, newer.has, newer.loading]);
 
   // Only a scroll upward loads: landing on the day leaves the rows above it unread.

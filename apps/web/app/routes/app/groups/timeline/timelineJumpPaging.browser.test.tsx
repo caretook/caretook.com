@@ -68,25 +68,26 @@ describe("the newer-edge query", () => {
 
 describe("scrolling newer from a day", () => {
   test("scrolling up adds newer days and the row on screen stays within a pixel", async () => {
-    await openTimeline({ fixtures: history(40), query: `?day=${key(20)}` });
-    const landed = await found(() => document.getElementById(`day-${key(20)}`));
+    await openTimeline({ fixtures: history(40), query: `?day=${key(30)}` });
+    const landed = await found(() => document.getElementById(`day-${key(30)}`));
     await stopsMoving(() => landed);
     const list = document.querySelector("section[aria-labelledby='timeline-heading']")!;
     expect(getComputedStyle(list).overflowAnchor).toBe("none");
-    expect(headingIds()[0]).toBe(`day-${key(20)}`);
+    expect(headingIds()[0]).toBe(`day-${key(30)}`);
 
-    const row = rowWith("Day 20 at 15")!;
+    const row = rowWith("Day 30 at 15")!;
     window.scrollBy(0, 40);
     await frames();
     const top = row.getBoundingClientRect().top;
     window.scrollBy(0, -4);
-    await waitUntil(() => headingIds()[0] !== `day-${key(20)}`, "newer days");
+    await waitUntil(() => headingIds()[0] !== `day-${key(30)}`, "newer days");
     await frames();
     expect(row.isConnected).toBe(true);
     expect(Math.abs(row.getBoundingClientRect().top - (top + 4))).toBeLessThanOrEqual(1);
-    // Whole days: the top day has all three of its notes.
+    // A page, not everything: far from today, and whole days: the top day has all three of its notes.
     const newest = headingIds()[0]!.replace("day-", "");
     const d = Array.from({ length: 40 }, (_, i) => i + 1).find((n) => key(n) === newest)!;
+    expect(d).toBeGreaterThan(1);
     for (const hour of [9, 12, 15]) expect(rowWith(`Day ${d} at ${hour}`)).toBeTruthy();
   });
 
@@ -111,8 +112,10 @@ describe("scrolling newer from a day", () => {
     const oldest = await found(() => document.getElementById(`day-${key(40)}`));
     expect(notice()?.textContent).toMatch(/^No entries on or before /);
     expect(notice()!.compareDocumentPosition(oldest) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // On screen, at the notice: not left at the top of the page.
-    await expect.poll(() => Math.abs(notice()!.getBoundingClientRect().top)).toBeLessThan(120);
+    // On screen, at the notice (the page's end may stop it short of the top), not left at the page's top.
+    await expect.poll(() => scrollY).toBeGreaterThan(0);
+    await expect.poll(() => notice()!.getBoundingClientRect().top).toBeLessThan(innerHeight);
+    expect(notice()!.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
     expect(document.getElementById(`day-${key(0)}`)).toBeNull();
   });
 

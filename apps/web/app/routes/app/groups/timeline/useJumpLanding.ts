@@ -5,7 +5,7 @@ import { NavigationType, useLocation, useNavigationType } from "react-router";
 import { isJumpState } from "~/lib/timeline/timelineJump";
 
 /** Room above the landed day, so its heading isn't against the screen's edge. */
-const LANDING_GAP = 8;
+export const LANDING_GAP = 8;
 
 /**
  * Scroll to the jumped-to day, for a navigation carrying the jump marker (a

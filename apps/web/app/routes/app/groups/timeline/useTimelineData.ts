@@ -201,7 +201,6 @@ export function useTimelineData({
   // The rows last read whole, which stay up while a moved window loads.
   const windowFresh = entries.fresh && links.fresh;
   const [held, setHeld] = useState(entries.rows);
-  if (windowFresh && held !== entries.rows) setHeld(entries.rows);
   // The window the rows on screen were fetched for: the cutoff's minute turn
   // refetches the same window, so it doesn't shrink the list while it does. A restored window
   // without its rows (past the cap) loads like any page, from the loader's one.
@@ -226,6 +225,7 @@ export function useTimelineData({
   // The new page shows once its windows are in, so no "with …" or summary line appears after it.
   const fresh = windowFresh && summaries.fresh;
   if (fresh && settled !== requested) setSettled(requested);
+  if (fresh && held !== entries.rows) setHeld(entries.rows);
   const page = pageWindow({ rowCount: entries.rows.length, requested, fresh, settled });
   if (moving && fresh) setPaging({ ...paging, from: undefined });
   const waiting = !fresh && (page.loading || moving);
