@@ -4,19 +4,21 @@
 
 ## Status
 
-| Slice | Title                                         | Wave | State       | Merge |
-| ----- | --------------------------------------------- | ---- | ----------- | ----- |
-| 1     | Timeline list and Today, guard list regrouped | 1    | not started |       |
-| 2     | Timeline forms and sheets                     | 2    | not started |       |
-| 3     | Easy view and quick entry                     | 2    | not started |       |
-| 4     | Entries and the notes editor                  | 2    | not started |       |
-| 5     | Admin                                         | 2    | not started |       |
-| 6     | Account, connectors and marketing             | 2    | not started |       |
-| 7     | The frame, home, and closing the guard        | 3    | not started |       |
+| Slice | Title                                         | Wave | State           | Merge |
+| ----- | --------------------------------------------- | ---- | --------------- | ----- |
+| 1     | Timeline list and Today, guard list regrouped | 1    | starting (opus) |       |
+| 2     | Timeline forms and sheets                     | 2    | not started     |       |
+| 3     | Easy view and quick entry                     | 2    | not started     |       |
+| 4     | Entries and the notes editor                  | 2    | not started     |       |
+| 5     | Admin                                         | 2    | not started     |       |
+| 6     | Account, connectors and marketing             | 2    | not started     |       |
+| 7     | The frame, home, and closing the guard        | 3    | not started     |       |
 
-**Now:** planned, not started.
+**Landing mode:** run everything through (start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Backlog:** claim B-577 when slice 1 starts. It is done when slice 7 merges.
+**Now:** wave 1. Synced with `dev` at 771bfb6d. Slice 1 is starting on opus.
+
+**Backlog:** B-577 claimed by prd/ui-kit-5. It is done when slice 7 merges.
 
 ## Durable decisions
 
