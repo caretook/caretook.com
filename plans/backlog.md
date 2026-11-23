@@ -295,7 +295,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-565 | feature | triaged | data-rights |  | Ownership transfer: a last owner can hand a care group to another member |
 | B-568 | bug | triaged | fixes-tooling | prd/test-gates | Component tests that failed once on CI's Linux runners: providers rows, provider empty links, emergency sheet, search speed, timeline Back, weekly print chart |
 | B-570 | bug | triaged | fixes-tooling |  | Session request notices can exceed the notice board's 200 characters and get dropped |
-| B-571 | bug | triaged | fixes-tooling |  | Staging reset test still times out at 30 s now and then, in CI as well as under local load |
+| B-571 | bug | landed | fixes-tooling |  | Staging reset test still times out at 30 s now and then, in CI as well as under local load |
 | B-573 | bug | triaged | fixes-tooling |  | Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error |
 | B-574 | bug | triaged | fixes-tooling |  | ESLint aborts with exit 134 in the lint step of a check, seen in two worktrees within a second |
 | B-576 | bug | triaged | fixes-tooling |  | Local pnpm lint runs out of memory at Node's default 4 GB heap: CI sets 6 GB, local checks don't |
@@ -331,7 +331,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-607 | bug | landed | test-gates | prd/test-gates | Component test harness: settle can return before the page mounts, so a test reading right after open can get nothing |
 | B-608 | chore | triaged | fixes-tooling |  | Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check |
 | B-609 | chore | triaged | fixes-tooling |  | Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh |
-| B-610 | bug | triaged | fixes-tooling |  | CI flake, fix first in fixes-tooling: resetStaging.int.test.ts fails by test and as a whole file |
+| B-610 | bug | landed | fixes-tooling |  | CI flake, fix first in fixes-tooling: resetStaging.int.test.ts fails by test and as a whole file |
 | B-611 | bug | triaged | dose-accuracy |  | A schedule change across midnight drops a dose's slot name in visit prep: a 23:30 dose given at 00:10 answers today's new 00:30 slot, and last night reads missed |
 | B-612 | chore | landed | test-gates | prd/test-gates | Raise the default PRD cap from 3 to 4: dispatcher, prd start and status agree without an env var |
 | B-613 | change | triaged | fixes-ui |  | Motion tuning: Today card slides open and shut, sheets fade only, overlays at 240 ms |
@@ -2282,10 +2282,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-571 · bug · Staging reset test still times out at 30 s now and then, in CI as well as under local load
 
-- status: triaged
+- status: landed
 - prd: fixes-tooling
 - owner:
-- commit:
+- commit: 3c20ff07
 
 - 2026-11-22 (prd/test-gates): After B-466's fix: timed out in CI run 45081669105 on 7bd82c6f, passed on the rerun of the same commit (45082124113) and in four earlier runs. test-gates slice 8 does not touch it.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
@@ -2293,6 +2293,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: the same resetStaging test. Fix once under B-610 and close both.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 4 (known flakes by cause). One fix per shared cause: B-610 with B-571, B-619 with B-492, and B-624 with B-446 and B-573.
 - 2026-11-23 (Robert Bo Davis): Correction to the fixes-tooling wave order of 2026-11-23: this staging reset fix keeps the user's fix-first priority. It goes first in fixes-tooling's next wave, ahead of B-600, unless a hotfix takes it sooner.
+- 2026-11-23 (Robert Bo Davis): Fixed by hotfix reset-staging-flake (3c20ff07, 2026-11-23). Cause: search.int.test.ts leaves 10,000 entries in its worker database, so this file's cleanup wipe took 11 to 14 s under load, past Vitest's 10 s hook limit. Reproduced by running the two files on one worker; the cleanup and test now get 60 s. Named tests, lint and typecheck passed; landed --force locally on the user's word, with no full check or CI run. The wipe test is still in scripts/ci/quarantine.txt: take it out once a CI run shows it green.
 
 ### B-573 · bug · Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error
 
@@ -2641,16 +2642,17 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-610 · bug · CI flake, fix first in fixes-tooling: resetStaging.int.test.ts fails by test and as a whole file
 
-- status: triaged
+- status: landed
 - prd: fixes-tooling
 - owner:
-- commit:
+- commit: 3c20ff07
 
 - 2026-11-22 (Robert Bo Davis): [ci-key b5b3b5a3d741] Flaked (passed on its rerun); found by prd/test-gates.
 - 2026-11-23 (prd/dose-accuracy): Merged with B-622 on the user's word, 2026-11-23: this item now also tracks the whole-file flake [ci-key 5ec2f8d0c0ea]. FIX FIRST in fixes-tooling's next wave (the user's priority; it has hit test-gates, ui-kit-4 and dose-accuracy, last in CI run 45118751172 on 77853311). Find why the file fails and fix that; don't widen the quarantine. The file's earlier timeout history is B-571, and this priority replaces its 'later wave, after B-542' timing for this test.
 - 2026-11-23 (Robert Bo Davis): Triage 2026-11-23: the same resetStaging test. Fix once under B-610 and close both.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 4 (known flakes by cause). One fix per shared cause: B-610 with B-571, B-619 with B-492, and B-624 with B-446 and B-573.
 - 2026-11-23 (Robert Bo Davis): Correction to the fixes-tooling wave order of 2026-11-23: this staging reset fix keeps the user's fix-first priority. It goes first in fixes-tooling's next wave, ahead of B-600, unless a hotfix takes it sooner.
+- 2026-11-23 (Robert Bo Davis): Fixed by hotfix reset-staging-flake (3c20ff07, 2026-11-23). Cause: search.int.test.ts leaves 10,000 entries in its worker database, so this file's cleanup wipe took 11 to 14 s under load, past Vitest's 10 s hook limit. Reproduced by running the two files on one worker; the cleanup and test now get 60 s. Named tests, lint and typecheck passed; landed --force locally on the user's word, with no full check or CI run. The wipe test is still in scripts/ci/quarantine.txt: take it out once a CI run shows it green.
 
 ### B-611 · bug · A schedule change across midnight drops a dose's slot name in visit prep: a 23:30 dose given at 00:10 answers today's new 00:30 slot, and last night reads missed
 
