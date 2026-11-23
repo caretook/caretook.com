@@ -228,7 +228,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-443 | bug | triaged | fixes-tooling |  | land.sh to-test file lists no items after a local landing: items are already landed, not ready, once dev has the merge |
 | B-446 | bug | triaged | fixes-tooling |  | browser.test.mjs 'kills a spec at its cap, worker and all, and retries it once' fails under heavy load (load 47), passes alone 3x |
 | B-447 | bug | triaged | fixes-tooling |  | to-test file: 'What wasn't checked' repeats the quick-check line, and a tooling-only landing still gets the app's dev URL and seed sign-ins under 'What to try' |
-| B-448 | chore | in-progress | ui-kit-4 | prd/ui-kit-4 | Rename the profile's *Card components and files (ProfileCards.tsx, ConditionsCard, DetailsCards, EmergencyCard, VitalAveragesCard) now that they render bands, not cards |
+| B-448 | chore | ready | ui-kit-4 | prd/ui-kit-4 | Rename the profile's *Card components and files (ProfileCards.tsx, ConditionsCard, DetailsCards, EmergencyCard, VitalAveragesCard) now that they render bands, not cards |
 | B-452 | bug | triaged | fixes-tooling |  | Dispatcher: a start or plan whose new.sh fails after making the worktree leaves it with no managed record, so later ticks treat it as opened by hand and it holds a slot for good |
 | B-453 | bug | triaged | fixes-tooling |  | Dispatcher: a 'hold the topic' answer is consumed and the reopen count cleared even when the backlog write fails, so the same tick reopens the session |
 | B-454 | bug | triaged | fixes-tooling |  | Dispatcher lock: two dispatchers starting together over a stale lock can both take it (the takeover unlinks the path from an earlier pid read) |
@@ -1508,10 +1508,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-448 · chore · Rename the profile's *Card components and files (ProfileCards.tsx, ConditionsCard, DetailsCards, EmergencyCard, VitalAveragesCard) now that they render bands, not cards
 
-- status: in-progress
+- status: ready
 - prd: ui-kit-4
 - owner: prd/ui-kit-4
-- commit:
+- commit: 9b5727f4
 
 - 2026-11-21 (prd/ui-kit): From ui-kit slice 7: kept the names to keep the diff small.
 - 2026-11-21 (plan/ui-kit-2): ui-kit-2 plan (2026-11-21): moved to the follow-on ui-kit-3 (ui-kit-2 is six slices without them). B-448 belongs in the profile area's sweep slice.
