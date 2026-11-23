@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Outlet, redirect, useLocation, useNavigate } from "react-router";
 import { getGroup, GroupProvider, setGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
+import { MemberLooksProvider } from "~/lib/care-groups/useMemberLooks";
 import { easyRoleRedirect } from "~/lib/assistant/easyModeLock";
 
 // Shared by web + native. `/app/groups/:groupId`: every screen about one
@@ -49,8 +50,10 @@ export default function GroupLayout({ loaderData }: Route.ComponentProps) {
   // Keyed on the group: another group is another page, with its own watch.
   return (
     <GroupProvider key={loaderData.id} group={loaderData}>
-      <EasyRoleRedirect />
-      <Outlet />
+      <MemberLooksProvider>
+        <EasyRoleRedirect />
+        <Outlet />
+      </MemberLooksProvider>
     </GroupProvider>
   );
 }
