@@ -10,17 +10,17 @@ Wave 1: slices 1–9, written 2026-11-22. Models: opus for all. Slice 2 waits fo
 
 Left for a later wave: B-316 (unsaved-changes guard), B-535 (hour-first time picker), B-536 (danger text contrast) and B-537 (Event wording) touch ui-kit-3's hot files (`components/ui/`, `lib/timeline/entryDisplay.ts`, `lib/app-shell/`, `routes/dev/ui/`). B-325 (native safe area and cold start) waits for the Capacitor work, as its triage says.
 
-| Slice | Item  | State          | Merge    |
-| ----- | ----- | -------------- | -------- |
-| 1     | B-256 | merged (opus)  | b5373bc9 |
-| 2     | B-416 | started (opus) | —        |
-| 3     | B-538 | started (opus) | —        |
-| 4     | B-412 | started (opus) | —        |
-| 5     | B-519 | started (opus) | —        |
-| 6     | B-413 | started (opus) | —        |
-| 7     | B-422 | written        | —        |
-| 8     | B-421 | started (opus) | —        |
-| 9     | B-319 | started (opus) | —        |
+| Slice | Item  | State               | Merge    |
+| ----- | ----- | ------------------- | -------- |
+| 1     | B-256 | merged (opus)       | b5373bc9 |
+| 2     | B-416 | started (opus)      | —        |
+| 3     | B-538 | started (opus)      | —        |
+| 4     | B-412 | started (opus)      | —        |
+| 5     | B-519 | handed off b1be7664 | —        |
+| 6     | B-413 | started (opus)      | —        |
+| 7     | B-422 | written             | —        |
+| 8     | B-421 | started (opus)      | —        |
+| 9     | B-319 | started (opus)      | —        |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
