@@ -5,6 +5,7 @@ import type { TimelineData } from "./useTimelineData";
 import type { TimelineEntryListFilters } from "./TimelineEntryList";
 
 import { isManagerRole } from "@caretook/data/permissions";
+import { useRef } from "react";
 import { QuickEntryBox } from "~/components/quick-entry";
 import { useGroup } from "~/lib/app-shell/group";
 import { nextStripText } from "~/lib/appointments/upcomingLabels";
@@ -15,6 +16,7 @@ import { EasyTodos } from "./EasyTodos";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
 import { EasyModeToggle } from "./EasyModeToggle";
 import { EasyTiles, EasyTilesSkeleton } from "./EasyTiles";
+import { GettingStartedCard } from "./GettingStartedCard";
 import { DICTATION_HINT } from "~/components/quick-entry/QuickEntryBox";
 import { useCanDictate } from "~/lib/assistant/canDictate";
 import { useEasyTiles } from "./useEasyTiles";
@@ -58,6 +60,13 @@ export function EasyTimeline({
 }) {
   const group = useGroup();
   const dictate = useCanDictate();
+  // The setup card's "Log a first entry": the box, in view and focused.
+  const quickField = useRef<HTMLTextAreaElement>(null);
+  const addEntry = () => {
+    const el = quickField.current;
+    el?.scrollIntoView({ block: "center" });
+    el?.focus({ preventScroll: true });
+  };
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 py-6" data-easy-timeline="">
       <header className={`flex items-start justify-between gap-3 ${COLUMN_CAP}`}>
@@ -69,6 +78,7 @@ export function EasyTimeline({
         </div>
         <EasyModeToggle mode={mode} />
       </header>
+      <GettingStartedCard className={COLUMN_CAP} onAddEntry={addEntry} easy />
       <EasyNow
         groupId={group.id}
         canWrite={mode.inputs}
@@ -84,7 +94,7 @@ export function EasyTimeline({
       )}
       {mode.inputs && (
         <div className={`space-y-2 ${EASY_BLOCK} ${COLUMN_CAP}`}>
-          <QuickEntryBox groupId={group.id} units={units} size="md" passChips={false} />
+          <QuickEntryBox groupId={group.id} units={units} size="md" passChips={false} fieldRef={quickField} />
           {dictate && (
             <p className="text-base-content/70 text-sm" data-dictation-hint="">
               {DICTATION_HINT}
