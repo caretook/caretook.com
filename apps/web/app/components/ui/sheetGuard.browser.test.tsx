@@ -59,6 +59,7 @@ function Harness() {
             open={scoping}
             title="Which visits?"
             message="Choose the visits to change."
+            cancelLabel="Not now"
             choices={[{ id: "all", label: "All visits", tone: "primary" }]}
             onChoose={() => {
               setScoping(false);
