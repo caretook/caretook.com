@@ -28,8 +28,10 @@ export function RepeatSheet({
   const [choice, setChoice] = useState(initial);
   const { rule, problem } = repeatOutcome(choice, timing, kind);
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && onClose()} title="Repeat">
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && onClose()} title="Repeat">
       <div className="space-y-4">
+        {/* The weekdays are buttons, so the guard reads them here. */}
+        <input type="hidden" name="repeatWeekdays" value={choice.weekdays.join(",")} />
         <RepeatField choice={choice} onChange={setChoice} timing={timing} kind={kind} />
         <div className="flex justify-end gap-2">
           <button type="button" className="btn btn-ghost" onClick={onClose}>
