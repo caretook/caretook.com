@@ -93,9 +93,10 @@ function TodayPeriod({
  * hospital · day 4" with the type's icon, linking to the period. The number
  * counts from the start's date in the recipient's zone to this header's own
  * date, so consecutive headers never repeat one when the viewer is in another
- * zone (around midnight, Today can read a day ahead of the period's page). No
- * place: the line stays short, and the period's page shows it. Nothing before
- * the first period. With `change`, writers get Change, which opens the add sheet.
+ * zone (around midnight, Today can read a day ahead of the period's page); a
+ * date before the start's shows the period with no number. No place: the line
+ * stays short, and the period's page shows it. Nothing before the first
+ * period. With `change`, writers get Change, which opens the add sheet.
  */
 function DayPeriod({
   groupId,

@@ -365,6 +365,28 @@ describe("the care period in the day headers", () => {
       expect(lineOf(8)).toBe("In hospital · day 1");
     });
   });
+
+  test("with the recipient in New York and a start at 00:30 there, the viewer's earlier date has no number and the start date is day 1", async () => {
+    // The browser is in Los Angeles: 00:30 on the 9th in New York is 21:30 on the 8th here.
+    const local = (day: number, hour: number, minute = 0) => new Date(2027, 5, day, hour, minute);
+    fixClock(local(9, 10));
+    await openTimeline({
+      bareDevice: true,
+      fixtures: [
+        fx.group(),
+        fx.recipient({ timeZone: "America/New_York" }),
+        fx.member({ userId: TEST_USER.id, role: "owner" }),
+        fx.note({ text: "Morning walk", occurredAt: at(local(9, 9)) }),
+        fx.note({ text: "Late arrival", occurredAt: at(local(8, 22)) }),
+        fx.period({ type: "home", startedAt: at(local(8, 21, 30)) }),
+      ],
+    });
+    const lineOf = (day: number) =>
+      header(local(day, 12))?.querySelector("[data-period-current]")?.textContent?.trim();
+    await waitUntil(() => lineOf(9) && lineOf(8), "both days' period lines");
+    expect(lineOf(8)).toBe("At home");
+    expect(lineOf(9)).toBe("At home · day 1");
+  });
 });
 
 describe("the header's width", () => {
