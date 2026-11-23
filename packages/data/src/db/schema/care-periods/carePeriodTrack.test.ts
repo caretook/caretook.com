@@ -5,6 +5,7 @@ import {
   neighbours,
   periodAt,
   periodDay,
+  periodDayOn,
   periodLengthDays,
   periodRange,
   periodSpans,
@@ -124,6 +125,44 @@ describe("currentPeriod and periodDay", () => {
   it("is day 1 for a date-only start today, and never less than 1", () => {
     expect(periodDay("2026-11-17T08:00:00.000Z", "2026-11-17T08:00:00.000Z", LA)).toBe(1);
     expect(periodDay("2026-11-17T08:00:00.000Z", "2026-11-16T08:00:00.000Z", LA)).toBe(1);
+  });
+});
+
+describe("periodDayOn", () => {
+  const HONOLULU = "Pacific/Honolulu";
+  // Noon on Jun 3 in Honolulu.
+  const start = "2027-06-03T22:00:00.000Z";
+
+  it("counts from the start's date in the recipient's zone to the given day", () => {
+    expect(periodDayOn(start, "2027-06-03", HONOLULU)).toBe(1);
+    expect(periodDayOn(start, "2027-06-08", HONOLULU)).toBe(6);
+    expect(periodDayOn(start, "2027-06-09", HONOLULU)).toBe(7);
+  });
+
+  it("gives consecutive days consecutive numbers on both sides of the viewer's midnight", () => {
+    // LA's 23:50 on Jun 8 and 00:34 on Jun 9 are both Jun 8 in Honolulu: periodDay repeats the number.
+    const before = "2027-06-09T06:50:00.000Z";
+    const after = "2027-06-09T07:34:00.000Z";
+    expect(periodDay(start, before, HONOLULU)).toBe(periodDay(start, after, HONOLULU));
+    const beforeKey = new Date(before).toLocaleDateString("en-CA", { timeZone: LA });
+    const afterKey = new Date(after).toLocaleDateString("en-CA", { timeZone: LA });
+    expect([beforeKey, afterKey]).toEqual(["2027-06-08", "2027-06-09"]);
+    expect(periodDayOn(start, afterKey, HONOLULU)).toBe(periodDayOn(start, beforeKey, HONOLULU) + 1);
+  });
+
+  it("reads the start's date in the recipient's zone, not the viewer's", () => {
+    // 23:30 on Jun 3 in Honolulu is already Jun 4 in LA: Jun 4 is still day 2.
+    expect(periodDayOn("2027-06-04T09:30:00.000Z", "2027-06-04", HONOLULU)).toBe(2);
+  });
+
+  it("is never below 1, for a day before the start's date", () => {
+    expect(periodDayOn(start, "2027-06-02", HONOLULU)).toBe(1);
+    expect(periodDayOn(start, "2027-05-01", HONOLULU)).toBe(1);
+  });
+
+  it("counts calendar days across a DST change", () => {
+    // Midnight Oct 31 2026 in LA; Nov 1 falls back.
+    expect(periodDayOn("2026-10-31T07:00:00.000Z", "2026-11-02", LA)).toBe(3);
   });
 });
 
