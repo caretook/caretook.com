@@ -143,8 +143,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-295 | bug | triaged | sync-safety-2 |  | System-written change entries take the device clock unchecked: a clock a day ahead dates 'Stopped …' tomorrow, at the top of the history, uneditable |
 | B-296 | bug | triaged | sync-safety-2 |  | A tab left open while another tab switches user keeps the old user id, and its next navigation clears the new user's local database |
 | B-297 | bug | landed | dose-accuracy | prd/dose-accuracy | A surplus dose marks the next day's slot as given: two caregivers both tapping Given for one pass makes tomorrow's dose read done |
-| B-298 | change | triaged | dose-accuracy |  | Deterministic dose ids per medication, day and slot, so two devices logging the same pass converge on one row |
-| B-299 | bug | triaged | dose-accuracy |  | Visit prep's 'Missed doses' reads history through today's schedule: a schedule change shows phantom misses back to the last visit |
+| B-298 | change | in-progress | dose-accuracy | prd/dose-accuracy | Deterministic dose ids per medication, day and slot, so two devices logging the same pass converge on one row |
+| B-299 | bug | in-progress | dose-accuracy | prd/dose-accuracy | Visit prep's 'Missed doses' reads history through today's schedule: a schedule change shows phantom misses back to the last visit |
 | B-304 | bug | triaged | calendars-2 |  | Deleting an old event in Google Calendar rewrites past Caretook records: soft-deletes a past reminder note, cancels a past appointment, marks a todo done for the group |
 | B-305 | bug | triaged | calendars-2 |  | Events made in Google more than 90 days out never arrive: ignored as outsideWindow, the sync token advances, nothing revisits them |
 | B-306 | bug | triaged | calendars-2 |  | A reminder email can arrive after its appointment: about 2 h of retry backoff, no expiry, text rendered at queue time |
@@ -659,9 +659,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-298 · change · Deterministic dose ids per medication, day and slot, so two devices logging the same pass converge on one row
 
-- status: triaged
+- status: in-progress
 - prd: dose-accuracy
-- owner:
+- owner: prd/dose-accuracy
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. logDoses uses crypto.randomUUID() (lib/medications/medications.sync.ts:825); series visits already use UUID v5. Two reviewers raised it as the root of the duplicate-dose finding.
@@ -669,9 +669,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-299 · bug · Visit prep's 'Missed doses' reads history through today's schedule: a schedule change shows phantom misses back to the last visit
 
-- status: triaged
+- status: in-progress
 - prd: dose-accuracy
-- owner:
+- owner: prd/dose-accuracy
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. dueDoses.ts:289-326 (the comment admits it), lib/appointments/visitPrep.ts:320. Also: a pass moved by more than 2 h unmatches earlier doses logged without passId; a medication added at 15:00 shows its 08:00 slot overdue. Fix idea: expand slots per schedule epoch from the medicationChange entries.
