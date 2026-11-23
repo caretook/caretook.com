@@ -1206,19 +1206,25 @@ const typedBeside = (
  * metformin given". The phrase's last word decides, so "no pain meds" and "no
  * pain relief" still negate, as does any word that names a medication.
  */
-const symptomPhrase = (s: PartState, negation: number, verb: number) => {
-  if (negation !== s.free[0] || s.tokens[negation]!.w !== "no") return null;
-  const between = s.free.filter((i) => i > negation && i < verb);
-  const end = between.findIndex((i) => PHRASE_ENDS.has(s.tokens[i]!.w));
+const symptomPhrase = (
+  tokens: readonly Token[],
+  free: readonly number[],
+  medications: readonly QuickEntryMedication[],
+  negation: number,
+  verb: number,
+) => {
+  if (negation !== free[0] || tokens[negation]!.w !== "no") return null;
+  const between = free.filter((i) => i > negation && i < verb);
+  const end = between.findIndex((i) => PHRASE_ENDS.has(tokens[i]!.w));
   const head = end < 0 ? between : between.slice(0, end);
   const last = head.at(-1);
   if (last === undefined) return null;
-  const lastWord = s.tokens[last]!.w;
+  const lastWord = tokens[last]!.w;
   if (/killer|reliever/.test(lastWord)) return null;
-  if (!TROUBLE_WORDS.has(lastWord) && !hasSymptomWord(s.tokens, [last])) return null;
+  if (!TROUBLE_WORDS.has(lastWord) && !hasSymptomWord(tokens, [last])) return null;
   const namesOne = (i: number) =>
-    s.context.medications.some(
-      (m) => namesMedication(m, s.tokens, i) || (matchMedication(m, s.tokens, [i])?.score ?? 0) >= 0.85,
+    medications.some(
+      (m) => namesMedication(m, tokens, i) || (matchMedication(m, tokens, [i])?.score ?? 0) >= 0.85,
     );
   return head.some(namesOne) ? null : [negation, ...head];
 };
@@ -1257,7 +1263,10 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
     if (w in DOSE_VERBS) {
       const negation = negationBefore(s.tokens, s.free, i, nameWords);
       otherPhrase =
-        (negation !== undefined && DOSE_VERBS[w] === "given" && symptomPhrase(s, negation, i)) || [];
+        (negation !== undefined &&
+          DOSE_VERBS[w] === "given" &&
+          symptomPhrase(s.tokens, s.free, s.context.medications, negation, i)) ||
+        [];
       if (negation === undefined || otherPhrase.length) {
         status = DOSE_VERBS[w]!;
         verbUsed.push(i);
@@ -1722,6 +1731,17 @@ const noteAhead = (s: PartState) => {
 };
 
 /**
+ * Whether the line asks for something at a part of day still ahead ("check bp
+ * 120/80 in the morning", "ask about pain tonight"): its measurement or
+ * complaint is what to ask about, not a report, so the todo comes before them.
+ */
+const requestsAhead = (s: PartState, ahead: boolean) =>
+  ahead && !!s.time.spec && "period" in s.time.spec && !!s.time.spec.period && asksForAction(s);
+
+/** Below a todo and its note: a vital or symptom on a line that only asks for one. */
+const ASKED_FOR_CONFIDENCE = 0.3;
+
+/**
  * A note: what happened, at the part's time read back (a bare weekday or
  * day of the month is the last one). A time still ahead blocks it. With
  * `now`, it's dated now whatever the line says (the note a todo line offers).
@@ -1934,8 +1954,10 @@ const isFractionAmount = (
  * name on a line that gives it ("gave tylenol 3/8"), so its amount and not a
  * date. A dose not given has no amount, so there it stays a date ("skipped
  * tylenol 3/8"), as it does after a count ("gave 2 tylenol 3/8") or a time
- * unit ("gave tylenol 3/8 days"). Without a verb the line must be only the
- * name and the fraction, so "refill tylenol 3/8" keeps its date.
+ * unit ("gave tylenol 3/8 days"), and on a line asking for it rather than
+ * reporting it ("need to take tylenol 3/8"). A "no" about a symptom doesn't
+ * count against the dose ("no pain gave tylenol 3/8"). Without a verb the line
+ * must be only the name and the fraction, so "refill tylenol 3/8" keeps its date.
  */
 const isFractionAfterName = (
   tokens: readonly Token[],
@@ -1951,7 +1973,15 @@ const isFractionAfterName = (
   const status = verb < 0 ? previousDose : DOSE_VERBS[tokens[verb]!.w]!;
   if ((status ?? "given") !== "given") return false;
   const all = tokens.map((_, k) => k);
-  if (verb >= 0 && negationBefore(tokens, all, verb, new Set()) !== undefined) return false;
+  if (verb >= 0) {
+    const negation = negationBefore(tokens, all, verb, new Set());
+    if (negation !== undefined && !symptomPhrase(tokens, all, medications, negation, verb)) return false;
+    const opensWithRequest = findVocabulary(
+      tokens.map((t) => vocabularyWord(t.w)),
+      () => true,
+    ).some((m) => m.used[0] === 0 && m.entry.role === "requestLead");
+    if (opensWithRequest) return false;
+  }
   let named = i - 1;
   while (named > 0 && /^\d/.test(tokens[named]!.w)) named--;
   return medications.some((m) => {
@@ -2116,6 +2146,12 @@ const parsePart = (
         : [noteReading(s, noteFirst ? 0.8 : 0.4)]),
     ];
     if (!readings.some((r) => r.kind === "event")) readings.push(eventFromText(s, 0.2));
+    if (requestsAhead(s, ahead))
+      readings = readings.map((r) =>
+        r.kind === "vital" || r.kind === "symptom"
+          ? { ...r, confidence: Math.min(r.confidence, ASKED_FOR_CONFIDENCE) }
+          : r,
+      );
   }
   readings.sort((a, b) => b.confidence - a.confidence);
   return { text: body, readings };

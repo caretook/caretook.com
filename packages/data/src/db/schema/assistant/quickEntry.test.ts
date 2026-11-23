@@ -670,6 +670,55 @@ describe("doses", () => {
         expect(action(r)).toMatchObject({ amount: "3/8 tablet" });
         expect(day(r)).toBe("11/12");
       });
+
+      describe("the odd cases (B-632)", () => {
+        const lorazepam = [{ id: MET, name: "Lorazepam", strength: "0.5 mg", dose: "1 tablet" }];
+
+        test("a 'no' about a symptom doesn't negate the dose: the fraction is the amount", () => {
+          const r = top("no pain gave tylenol 3/8", { medications: usual });
+          expect(action(r)).toMatchObject({ type: "logDose", status: "given", amount: "3/8 tablet" });
+          expect(when(r)).toBe(NOW.toISOString());
+        });
+
+        test.each(["need to take tylenol 3/8", "need to give tylenol 3/8", "remember to give tylenol 3/8"])(
+          "%s isn't a report of a dose, so it keeps its date",
+          (line) => {
+            const r = top(line, { medications: usual });
+            expect(JSON.stringify(action(r))).toContain("-03-08");
+            expect(JSON.stringify(action(r))).not.toContain("3/8 tablet");
+          },
+        );
+
+        test.each([
+          ["gave lorazepam 1/2", "0.5 mg"],
+          ["gave lorazepam 3/8", "0.375 mg"],
+        ])("%s is the %s strength: the usual dose, no date", (line, strength) => {
+          const r = top(line, { medications: [{ ...lorazepam[0]!, strength }] });
+          expect(action(r)).toMatchObject({ type: "logDose", amount: "1 tablet", note: null });
+          expect(when(r)).toBe(NOW.toISOString());
+        });
+
+        test("a fraction that isn't the strength is still the amount", () => {
+          const r = top("gave lorazepam 1/4", { medications: lorazepam });
+          expect(action(r)).toMatchObject({ amount: "1/4 tablet" });
+          expect(when(r)).toBe(NOW.toISOString());
+        });
+
+        test("'gave tylenol 3/8 at 9pm' is 3/8 tablet today at 9pm", () => {
+          // 10pm on Nov 19 in Los Angeles, so 9pm has passed today.
+          const now = new Date("2026-11-20T06:00:00Z");
+          const r = top("gave tylenol 3/8 at 9pm", { medications: usual, now });
+          expect(action(r)).toMatchObject({ amount: "3/8 tablet" });
+          expect(day(r)).toBe("11/19");
+          expect(
+            new Date(when(r)!).toLocaleTimeString("en-US", {
+              timeZone: "America/Los_Angeles",
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+          ).toBe("9:00 PM");
+        });
+      });
     });
 
     test("a line forced to another kind keeps its date", () => {
@@ -1130,6 +1179,9 @@ describe("the user's lines (B-220)", () => {
     ["pick up the walker in the afternoon", todo("Pick up the walker", "2026-11-19", "14:00")],
     ["call the pharmacy at night", todo("Call the pharmacy", "2026-11-19", "22:00")],
     ["call the pharmacy at 9 in the morning", todo("Call the pharmacy", "2026-11-19", "09:00")],
+    // Its measurement or complaint is what to ask about, not a report (B-635).
+    ["check bp 120/80 in the morning", todo("Check bp 120/80", "2026-11-20", "08:00")],
+    ["ask about pain in the morning", todo("Ask about pain", "2026-11-20", "08:00")],
     ["dinner with Ann tomorrow 6pm", todo("Dinner with Ann", "2026-11-20", "18:00")],
     // A note with no time ahead stays a note, now or read back like the other past-only kinds.
     ["called the pharmacy", { kind: "note", occurredAt: NOW.toISOString() }],
@@ -1147,6 +1199,20 @@ describe("the user's lines (B-220)", () => {
     expect(shape(r)).toEqual(expected);
     expect(blocking(r)).toEqual([]);
     expect(assistantActionZSchema.safeParse(action(r)).success).toBe(true);
+  });
+
+  test.each([
+    ["check bp 120/80 in the morning", ["todo", "note", "vital", "event"]],
+    ["ask about pain in the morning", ["todo", "note", "symptom", "event"]],
+    // A report stays as it is.
+    ["bp 120/80 in the morning", ["vital", "note", "event"]],
+    ["pain in the morning", ["symptom", "note", "event"]],
+    ["check bp 120/80 this morning", ["vital", "note", "event"]],
+    // A request naming a provider stays an event first, with or without a part of day.
+    ["call dr lee in the morning", ["event", "todo", "note"]],
+    ["call dr lee tomorrow", ["event", "todo", "note"]],
+  ])("a request with a part of day: %s", (line, kinds) => {
+    expect(parse(line)[0]!.readings.map((r) => r.kind)).toEqual(kinds);
   });
 
   test("an incident has no severity, and the words after it are its note", () => {

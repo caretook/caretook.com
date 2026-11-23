@@ -44,6 +44,19 @@ describe("words that aren't times", () => {
     "the 2nd dose",
     "2nd evening dose",
     "2nd night in a row",
+    "2nd floor",
+    "2nd floor at the clinic",
+    "the 2nd dose at the clinic",
+    "2nd at least",
+    "the 2nd at all",
+    "2nd at first",
+    "the 2nd at",
+    "the 2nd at 25",
+    "gave the 2nd at bedtime",
+    "gave the 2nd at home",
+    "took 2nd at lunch",
+    "had her 2nd at the clinic",
+    "her 2nd at the clinic",
     "pain 8 a bit better",
     "pain 8 p",
   ])("%s has no time", (line) => {
@@ -73,6 +86,11 @@ describe("the days they must not take away", () => {
     ["25th at 2pm", { date: 25 }],
     ["the 25th at night", { date: 25 }],
     ["the 25th in the morning", { date: 25 }],
+    ["dr lee the 2nd at the clinic", { date: 2 }],
+    ["dr lee 2nd at kaiser", { date: 2 }],
+    ["the 2nd at home", { date: 2 }],
+    ["dr lee the 2nd at 123 main st", { date: 2 }],
+    ["the 2nd at the clinic at 2pm", { date: 2 }],
     ["nov 2nd", { month: 11, date: 2 }],
     ["2nd nov", { month: 11, date: 2 }],
   ])("%s", (line, day) => {
@@ -109,6 +127,24 @@ describe("through the parser", () => {
     expect(timed("call Sam sat")).not.toMatchObject({ occurredAt: NOW.toISOString() });
     const lee = [{ id: "66666666-6666-4666-8666-666666666666", name: "Lee Park" }];
     expect(timed("Lee sat", { members: lee })).not.toMatchObject({ occurredAt: NOW.toISOString() });
+  });
+
+  test("an ordinal before 'at a place' dates the event and keeps the place", () => {
+    const r = top("dr lee the 2nd at the clinic");
+    expect(r.kind).toBe("event");
+    expect(r.actions[0]).toMatchObject({
+      occurredAt: new Date("2026-12-02T08:00:00Z").toISOString(),
+      allDay: true,
+      place: "the clinic",
+    });
+  });
+
+  test("an ordinal before 'at a time' keeps its clock", () => {
+    const r = top("dr lee the 2nd at 2pm");
+    expect(r.actions[0]).toMatchObject({
+      occurredAt: new Date("2026-12-02T22:00:00Z").toISOString(),
+      allDay: false,
+    });
   });
 
   test("'sat up in chair' is a note dated now", () => {
