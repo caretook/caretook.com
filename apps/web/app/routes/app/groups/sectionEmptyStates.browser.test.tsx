@@ -18,7 +18,13 @@ import { chooseEasyMode, openTimeline } from "./timeline/timelineWorld";
 // a soft circle above its existing words. A filtered list and Easy mode stay
 // quiet. The circle is compared by its painted colour.
 
-const chip = () => document.querySelector<HTMLElement>("main [data-icon-chip]");
+// `EmptyState`'s circle: the chip in the row right above its line. The screens
+// share no hook for it. A page header with a description has the same shape,
+// so anything inside a `header` is left out.
+const chip = () =>
+  document.querySelector<HTMLElement>(
+    "main div:not(header *):has(> [data-icon-chip]):has(+ p) > [data-icon-chip]",
+  );
 
 /** What the section's soft chip paints, measured from a probe with the same classes. */
 const softFill = (section: AccentedSection) => {
