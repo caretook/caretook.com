@@ -1752,13 +1752,17 @@ const asksForAction = (s: Pick<PartState, "vocab" | "free">) =>
  * on its own ("tomorrow", "in 2 hours", "next friday"), any time beside an
  * appointment word that isn't a visit ("appt friday 3pm"), a part of day with
  * no day on a line asking for something ("call the pharmacy in the morning"),
- * or one that, read back as a note's is, is still to come today ("tonight",
+ * a weekday not marked "last" on such a line ("check bp 120/80 friday" is the
+ * coming one), or one that, read back as a note's is, is still to come today ("tonight",
  * "this evening"). A note can't be ahead, so such a line is a todo.
  */
 const noteAhead = (s: PartState) => {
   if (!s.time.spec) return false;
   if ("period" in s.time.spec && s.time.spec.period && !s.time.spec.day && asksForAction(s)) return true;
-  const forward = saysFuture(s.time.spec) || (hasRole(s, "appointmentWord") && !hasRole(s, "visitVerb"));
+  const day = "day" in s.time.spec ? s.time.spec.day : undefined;
+  const comingWeekday = !!day && "weekday" in day && day.modifier !== "last" && asksForAction(s);
+  const forward =
+    saysFuture(s.time.spec) || comingWeekday || (hasRole(s, "appointmentWord") && !hasRole(s, "visitVerb"));
   const at = forward ? s.time.future.at : s.time.usual.at;
   return at.getTime() > s.context.now.getTime() + DEVICE_FUTURE_SKEW_MS;
 };
@@ -2129,9 +2133,9 @@ const parsePart = (
     );
     return { free, vocab };
   };
-  // "tomorrow morning" is a part of day on a request; a report or event keeps its day.
+  // "tomorrow morning", "next friday morning": a part of day on a request; a report or event keeps its day.
   const requested =
-    forced === null || forced === "todo" ? findTime(timeWords, { periodAfterTomorrow: true }) : null;
+    forced === null || forced === "todo" ? findTime(timeWords, { periodAfterDay: true }) : null;
   const time = requested && asksForAction(wordsLeft(requested)) ? requested : findTime(timeWords);
   const { free, vocab } = wordsLeft(time);
   const providers = matchProviders(context, tokens, free);
