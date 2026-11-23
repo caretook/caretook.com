@@ -266,8 +266,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-525 | bug | triaged | fixes-tooling |  | Asks: two processes taking over a dead holder's ask lock can both remove it, so one deletes the other's fresh lock and an answer and a default overlap (asks.mjs withAskLock) |
 | B-526 | bug | triaged | fixes-tooling |  | Notices: two concurrent posts can lower the .seq high-water mark (check-then-rename), so after both expire a notice id is reused and a late notices --done withdraws a newer notice (notices.mjs createNotice) |
 | B-527 | bug | landed | fixes-bug | prd/fixes-bug | Todo Undo and Done writes are voided with no catch (TodoUndoStatus.undo, useTodoTick's run via void complete(...)): a write that throws becomes an unhandled rejection, with nothing shown to the user |
-| B-532 | chore | triaged | test-gates-2 |  | Staging candidate: cut a release candidate branch from a green dev commit and open the PR into staging from it; CI runs the lean browser suite on the Docker stack against that fixed commit; only fixes go onto it |
-| B-533 | chore | triaged | test-gates-2 |  | staging to main gate: CI runs the full browser suite, a second time zone and repeated runs to catch flakes; a required status check on main always, on staging only in pre-deployment mode |
+| B-532 | chore | in-progress | test-gates-2 | prd/test-gates-2 | Staging candidate: cut a release candidate branch from a green dev commit and open the PR into staging from it; CI runs the lean browser suite on the Docker stack against that fixed commit; only fixes go onto it |
+| B-533 | chore | in-progress | test-gates-2 | prd/test-gates-2 | staging to main gate: CI runs the full browser suite, a second time zone and repeated runs to catch flakes; a required status check on main always, on staging only in pre-deployment mode |
 | B-542 | chore | triaged | fixes-tooling |  | Unit-test projects run at Vitest's default workers (cores - 1, 9 here): two overlapping checks run ~18 test processes on 10 cores, the load behind the under-load timeouts; cap the unit group at about 4 (or half the cores) and time it against check-times |
 | B-543 | question | triaged | orchestration-split |  | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
 | B-544 | chore | triaged | fixes-nit |  | vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405 |
@@ -352,6 +352,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-650 | bug | triaged | fixes-tooling |  | Unattended planner report's veto line sets flags=hold, dropping a row's design or standing flag |
 | B-651 | bug | triaged | fixes-bug |  | Quick entry: a decimal at the strength overstates the dose: 'gave lorazepam 0.5' at 0.5 mg with a usual '2 tablets' records 2 tablets |
 | B-652 | bug | triaged | fixes-bug |  | Quick entry: a counted ordinal before a clock time still takes a day: 'gave the 2nd at 2pm' reads as the 2nd of the month at 2pm |
+| B-653 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once… |
 
 ## Items
 
@@ -1976,9 +1977,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-532 · chore · Staging candidate: cut a release candidate branch from a green dev commit and open the PR into staging from it; CI runs the lean browser suite on the Docker stack against that fixed commit; only fixes go onto it
 
-- status: triaged
+- status: in-progress
 - prd: test-gates-2
-- owner:
+- owner: prd/test-gates-2
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): From the 2026-11-22 backlog session: the user's test-gate tiers and modes; being planned inline. User chose a candidate branch over freezing dev.
@@ -1987,9 +1988,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-533 · chore · staging to main gate: CI runs the full browser suite, a second time zone and repeated runs to catch flakes; a required status check on main always, on staging only in pre-deployment mode
 
-- status: triaged
+- status: in-progress
 - prd: test-gates-2
-- owner:
+- owner: prd/test-gates-2
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): From the 2026-11-22 backlog session: the user's test-gate tiers and modes; being planned inline. User chose main always, staging by mode. Relates to B-372 (a second time zone in tests).
@@ -2822,3 +2823,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 37 (B-646) hand-off: in ordinalIsADay (quickEntryTime.ts) a clock time after the ordinal marks a day before the counted-word check runs. 'a 2nd at 2pm' is already undated. Confirm with a test first.
+
+### B-653 · bug · CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once…
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): [ci-key 490c60a6d926] Flaked (passed on its rerun); found by prd/ui-kit-5.

@@ -28,11 +28,11 @@ const VitalsIcon = KIND_META.vital.Icon;
  */
 function SummaryLine({ summary: { overdue, soon, rest } }: { summary: TodaySummary }) {
   const parts = [
-    overdue && { text: overdue, className: "text-error shrink-0 font-semibold", data: "overdue" },
-    soon && { text: soon, className: "text-warning shrink-0 font-semibold", data: "soon" },
+    overdue && { text: overdue, className: "text-error-ink shrink-0 font-semibold", data: "overdue" },
+    soon && { text: soon, className: "text-warning-ink shrink-0 font-semibold", data: "soon" },
     rest && {
       text: rest,
-      className: "text-base-content/70 min-w-0 overflow-hidden text-ellipsis",
+      className: "text-muted min-w-0 overflow-hidden text-ellipsis",
       data: "rest",
     },
   ].filter((p) => !!p);
@@ -41,7 +41,7 @@ function SummaryLine({ summary: { overdue, soon, rest } }: { summary: TodaySumma
     <span className="flex min-w-0 whitespace-pre" data-today-summary>
       {parts.map((p, i) => (
         <span key={p.data} className={p.className} data-summary-part={p.data}>
-          {i > 0 && <span className="text-base-content/40"> · </span>}
+          {i > 0 && <span className="text-faint"> · </span>}
           {p.text}
         </span>
       ))}
@@ -120,9 +120,9 @@ export function TodayCard({
             <span className="sr-only">Latest vitals: </span>
             {today.vitals.map(({ reading, occurredAt }, i) => (
               <span key={reading.type} title={VITALS[reading.type].label} data-vital={reading.type}>
-                {i > 0 && <span className="text-base-content/40"> · </span>}
+                {i > 0 && <span className="text-faint"> · </span>}
                 <span className="font-semibold tabular-nums">{formatReading(reading, units)}</span>{" "}
-                <time dateTime={occurredAt} className="text-base-content/60 text-xs">
+                <time dateTime={occurredAt} className="text-faint text-xs">
                   {formatAgo(occurredAt)}
                 </time>
               </span>
@@ -145,7 +145,7 @@ export function TodayCard({
             >
               {nextText}
             </Link>
-            <RepeatMark seriesId={next.next.seriesId} className="text-base-content/70 ms-1" />
+            <RepeatMark seriesId={next.next.seriesId} className="text-muted ms-1" />
           </TodayRow>
         )}
         <TodayMedicationsRow
@@ -168,7 +168,7 @@ export function TodayCard({
             >
               <span title={todo.text} data-todo={todo.strip.todo.id} data-todo-state={todo.strip.state}>
                 <span className="font-semibold">{todo.lead}:</span> {todo.title}
-                <TodoRepeatMark todo={todo.strip.todo} className="text-base-content/70 ms-1" />
+                <TodoRepeatMark todo={todo.strip.todo} className="text-muted ms-1" />
                 {todo.rest && <span> · {todo.rest}</span>}
               </span>
             </TodayRow>

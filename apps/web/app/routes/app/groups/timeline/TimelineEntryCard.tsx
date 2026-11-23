@@ -44,16 +44,16 @@ export function TimelineEntryCard({
         aside={
           <>
             {liveLabel && <LiveDot label={liveLabel} />}
-            <time dateTime={entry.occurredAt} className="text-base-content/70 text-sm tabular-nums">
+            <time dateTime={entry.occurredAt} className="text-muted text-sm tabular-nums">
               {entry.allDay ? "All day" : formatTime(entry.occurredAt)}
             </time>
-            <RepeatMark seriesId={entry.seriesId} className="text-base-content/70" />
+            <RepeatMark seriesId={entry.seriesId} className="text-muted" />
           </>
         }
         footer={
           <>
             {cancelled && <CancelledBadge label={cancelled} />}
-            <p className="text-base-content/60 inline-block w-full text-xs">
+            <p className="text-faint inline-block w-full text-xs">
               <AuthorFilterLink userId={entry.createdBy} name={authorName} />
               <ViaTag via={entry.via} className="ml-1.5" />
               {elsewhere && ` · ${elsewhere}`}

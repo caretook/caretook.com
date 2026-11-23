@@ -4,19 +4,23 @@
 
 ## Status
 
-| Slice | Title                                         | Wave | State       | Merge |
-| ----- | --------------------------------------------- | ---- | ----------- | ----- |
-| 1     | Timeline list and Today, guard list regrouped | 1    | not started |       |
-| 2     | Timeline forms and sheets                     | 2    | not started |       |
-| 3     | Easy view and quick entry                     | 2    | not started |       |
-| 4     | Entries and the notes editor                  | 2    | not started |       |
-| 5     | Admin                                         | 2    | not started |       |
-| 6     | Account, connectors and marketing             | 2    | not started |       |
-| 7     | The frame, home, and closing the guard        | 3    | not started |       |
+| Slice | Title                                         | Wave | State         | Merge    |
+| ----- | --------------------------------------------- | ---- | ------------- | -------- |
+| 1     | Timeline list and Today, guard list regrouped | 1    | merged (opus) | 052389e8 |
+| 2     | Timeline forms and sheets                     | 2    | not started   |          |
+| 3     | Easy view and quick entry                     | 2    | not started   |          |
+| 4     | Entries and the notes editor                  | 2    | not started   |          |
+| 5     | Admin                                         | 2    | not started   |          |
+| 6     | Account, connectors and marketing             | 2    | not started   |          |
+| 7     | The frame, home, and closing the guard        | 3    | not started   |          |
 
-**Now:** planned, not started.
+**Landing mode:** run everything through (start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Backlog:** claim B-577 when slice 1 starts. It is done when slice 7 merges.
+**Now:** wave 1. Slice 1 merged as 052389e8, worktree removed. Full CI green on 03a832f3; synced with dev (d8003f82), quick check passed; browser checks roundtrip, first-sync, invites, ui passed. Docs folded. Next: PR, full CI on the synced tip, Codex, land, then rotate for wave 2.
+
+**For slice 3:** use `variant="warning"` for `EasyNow`'s Given all.
+
+**Backlog:** B-577 claimed by prd/ui-kit-5. It is done when slice 7 merges.
 
 ## Durable decisions
 

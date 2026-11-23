@@ -3,7 +3,7 @@ import type { LastEntryRow } from "./easyRows";
 import { Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useFetcher } from "react-router";
-import { ConfirmDialog } from "~/components/ui";
+import { Button, ConfirmDialog, ICON_LG } from "~/components/ui";
 import { useLiveQuery } from "~/lib/sync";
 import { lastEntryName, removableEntry } from "./removeLast";
 import { lastOwnEntryQuery } from "./easyRows";
@@ -35,17 +35,17 @@ export function RemoveLastEntry({ groupId, userId, now }: { groupId: string; use
   return (
     <div className="space-y-1" data-remove-last="">
       {entry && (
-        <button
-          type="button"
-          className="btn btn-ghost btn-md text-base"
+        <Button
+          variant="ghost"
+          className="text-base"
           disabled={remover.state !== "idle"}
           onClick={() => setAsking(entry)}
         >
-          <Undo2 aria-hidden="true" className="size-5" />
+          <Undo2 aria-hidden="true" className={ICON_LG} />
           Remove my last entry
-        </button>
+        </Button>
       )}
-      <p role="status" className="text-base-content/70 text-base">
+      <p role="status" className="text-muted text-base">
         {removed && remover.state === "idle" ? `Removed ${removed}.` : ""}
       </p>
       <ConfirmDialog
