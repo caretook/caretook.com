@@ -15,7 +15,7 @@ import { loadSearchPeriods, searchPeriodRange } from "~/lib/care-periods/periodS
 import { removeEntry } from "~/lib/timeline/timeline.sync";
 import { parseFilters } from "~/lib/timeline/timelineFilters";
 import { AddedMedicationToast } from "./AddedMedicationToast";
-import { InviteSomeoneCard } from "./InviteSomeoneCard";
+import { GettingStartedCard } from "./GettingStartedCard";
 import { LiveNowBanner } from "./LiveNowBanner";
 import { onlySheetChanged } from "./sheetGuard";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
@@ -191,7 +191,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
       <div className={COLUMN_CAP}>
         <TimelineHeader easyMode={mode} />
       </div>
-      <InviteSomeoneCard className={COLUMN_CAP} />
+      <GettingStartedCard className={COLUMN_CAP} onAddEntry={addEntry} />
       <TodayCard
         groupId={groupId}
         canWrite={canWrite}

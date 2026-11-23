@@ -7,6 +7,7 @@ import {
   DEFAULT_TIMELINE_VIEW,
   DEFAULT_UNITS,
   EASY_MODE_SETTINGS,
+  mergeSetupDismissed,
 } from "@caretook/data/schema";
 import { useSyncExternalStore } from "react";
 import { NETWORK_ANSWER_MS, withTimeout } from "../auth/sessionRules";
@@ -30,8 +31,11 @@ import { settingsPlan } from "./settingsPlan";
 // published to the settings store, so screens that read `useMySettings`
 // re-render when a refresh brings different values.
 
-export type MySettings = Pick<ApiOutputs["me"]["get"], "units" | "timelineView" | "easyMode" | "daySummary">;
-/** A change to some settings. `units` may name only some measures. */
+export type MySettings = Pick<
+  ApiOutputs["me"]["get"],
+  "units" | "timelineView" | "easyMode" | "daySummary" | "setupDismissed"
+>;
+/** A change to some settings. `units` may name only some measures; `setupDismissed` adds to the list. */
 export type SettingsChange = Partial<Omit<MySettings, "units">> & { units?: Partial<MySettings["units"]> };
 
 const DEFAULTS: MySettings = {
@@ -39,6 +43,7 @@ const DEFAULTS: MySettings = {
   timelineView: DEFAULT_TIMELINE_VIEW,
   easyMode: DEFAULT_EASY_MODE_SETTING,
   daySummary: DEFAULT_DAY_SUMMARY_MODE,
+  setupDismissed: [],
 };
 
 const PREFIX = "caretook:settings:";
@@ -67,6 +72,8 @@ const writeJson = (key: string, value: unknown) => {
 const merge = <T extends SettingsChange>(base: T, change: SettingsChange): T => {
   const next = { ...base, ...change };
   if (base.units || change.units) next.units = { ...base.units, ...change.units };
+  if (base.setupDismissed || change.setupDismissed)
+    next.setupDismissed = mergeSetupDismissed(base.setupDismissed, change.setupDismissed);
   return next;
 };
 
@@ -105,6 +112,11 @@ const clearPending = (userId: string, sent: SettingsChange) => {
   if ("timelineView" in sent && same(left.timelineView, sent.timelineView)) delete left.timelineView;
   if ("easyMode" in sent && same(left.easyMode, sent.easyMode)) delete left.easyMode;
   if ("daySummary" in sent && same(left.daySummary, sent.daySummary)) delete left.daySummary;
+  if (left.setupDismissed && sent.setupDismissed) {
+    const sentIds = new Set(sent.setupDismissed);
+    left.setupDismissed = left.setupDismissed.filter((id) => !sentIds.has(id));
+    if (left.setupDismissed.length === 0) delete left.setupDismissed;
+  }
   if (left.units && sent.units) {
     const units: Record<string, unknown> = { ...left.units };
     for (const [measure, unit] of Object.entries(sent.units))
@@ -211,6 +223,7 @@ const refresh = async (request: Request, userId: string, send: SettingsChange | 
       timelineView: me.timelineView,
       easyMode: me.easyMode,
       daySummary: me.daySummary,
+      setupDismissed: me.setupDismissed,
     });
     return "refreshed";
   } catch (e) {

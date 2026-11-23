@@ -1,7 +1,5 @@
 import { Outlet } from "react-router";
 
-import type { Route } from "./+types/route";
-
 import { resolveSiteUrl } from "../site/meta";
 import { MarketingAnalytics } from "./MarketingAnalytics";
 import { MarketingFooter } from "./MarketingFooter";
@@ -18,8 +16,6 @@ import { MarketingHeader } from "./MarketingHeader";
 export function loader() {
   return { siteUrl: resolveSiteUrl(process.env.APP_URL) };
 }
-
-export const links: Route.LinksFunction = () => [{ rel: "manifest", href: "/site.webmanifest" }];
 
 export default function MarketingLayout() {
   return (
