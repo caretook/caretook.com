@@ -1,3 +1,4 @@
+import type { GroupRoleName } from "../constants/roles";
 import type { Tx } from "../db";
 import type {
   CalendarItem,
@@ -6,7 +7,7 @@ import type {
   GoogleEventLink,
 } from "../db/schema";
 import type { AppError } from "../errors";
-import type { GoogleCalendarClient, GoogleChangeAction, GoogleEvent } from "../google";
+import type { GoogleCalendarClient, GoogleCalendarSession, GoogleChangeAction, GoogleEvent } from "../google";
 import type { ServiceContext } from "./types";
 
 import { randomUUID } from "node:crypto";
@@ -17,6 +18,7 @@ import {
   careRecipientSchema,
   googleCalendarConnectionSchema as connection,
   googleEventLinkSchema as link,
+  googleWindow,
 } from "../db/schema";
 import { ERRORS } from "../errors/constants";
 import { isError } from "../errors";
@@ -42,11 +44,18 @@ export const serviceName = "calendarPull";
 // event's pushed hash is cleared and the connection queued, so the next push
 // puts Caretook's version back. A passing failure (the database, Google)
 // leaves the sync token as it was, so the next pull sees the same changes.
+//
+// Once a day a pull also catches up (calendars-2): it lists the Google horizon
+// and runs the same planner over events with no link and none of our uid, so
+// one that was too far off when the change list showed it still arrives. The
+// change list owns linked events, and the catch-up never touches the sync token.
 
 /** A connection is pulled at most this often. */
 export const PULL_EVERY_MINUTES = 5;
 /** One sweep pulls at most this many connections. */
 export const PULL_BATCH_LIMIT = 20;
+/** A connection catches up at most this often. */
+export const CATCH_UP_EVERY_HOURS = 24;
 /** A cancelled appointment's reason when it was deleted in Google. */
 export const DELETED_IN_GOOGLE_REASON = "Deleted in Google Calendar";
 
@@ -187,6 +196,81 @@ const apply = (
   }
 };
 
+/** Apply a planned change, or mark it to be overwritten when the role or a service refuses it. */
+const takeChange = async (
+  ctx: ServiceContext,
+  conn: GoogleCalendarConnection,
+  action: Exclude<GoogleChangeAction, { type: "ignore" }>,
+  found: GoogleEventLink | null,
+  change: GoogleEvent,
+  now: Date,
+): Promise<"applied" | "overwritten" | AppError> => {
+  if (action.type !== "overwrite") {
+    const done = await apply(ctx, conn, action, change, now);
+    if (done && !isError(done)) return "applied";
+    if (isError(done) && !isRefusal(done)) return done;
+  }
+  const marked = await overwrite(conn, found, change);
+  return isError(marked) ? marked : "overwritten";
+};
+
+const catchUpDue = (conn: GoogleCalendarConnection, now: Date) =>
+  !conn.lastCatchUpAt ||
+  now.getTime() - new Date(conn.lastCatchUpAt).getTime() >= CATCH_UP_EVERY_HOURS * 3_600_000;
+
+/**
+ * List the Google horizon and take the events Caretook doesn't know yet,
+ * adding what it did to `counts`. The time is recorded only when it finishes;
+ * a failure is returned, and the next pull runs it again (what it took is
+ * linked by then, so nothing is taken twice).
+ */
+const catchUp = async (
+  session: GoogleCalendarSession,
+  conn: GoogleCalendarConnection,
+  { ctx, role, timeZone }: { ctx: ServiceContext; role: GroupRoleName; timeZone: string },
+  counts: { applied: number; overwritten: number },
+  now: Date,
+): Promise<AppError | null> => {
+  const { from, to } = googleWindow(now);
+  const listed = await session.listWindow(conn.calendarId, from, to);
+  if (isError(listed)) return listed;
+  // Read after the change list ran, so what it just took counts as linked.
+  const links = await dbFails(() =>
+    getDb().select({ googleEventId: link.googleEventId }).from(link).where(eq(link.connectionId, conn.id)),
+  );
+  if (isError(links)) return links;
+  const known = new Set(links.map((l) => l.googleEventId));
+
+  let failure: AppError | null = null;
+  let overwritten = 0;
+  for (const change of listed) {
+    if (known.has(change.id) || eventUid(change)) continue;
+    known.add(change.id);
+    const action = interpretGoogleChange({ change, link: null, item: null, role, now, timeZone });
+    if (action.type === "ignore") continue;
+    const outcome = await takeChange(ctx, conn, action, null, change, now);
+    if (isError(outcome)) {
+      failure = outcome;
+      break;
+    }
+    if (outcome === "applied") counts.applied++;
+    else overwritten++;
+  }
+  counts.overwritten += overwritten;
+  if (overwritten) {
+    const queued = await calendarSyncService.enqueue(undefined, { connectionId: conn.id }, "daily");
+    if (queued) return queued;
+  }
+  if (failure) return failure;
+  const saved = await dbFails(() =>
+    getDb()
+      .update(connection)
+      .set({ lastCatchUpAt: now.toISOString(), updatedBy: SYSTEM })
+      .where(eq(connection.id, conn.id)),
+  );
+  return isError(saved) ? saved : null;
+};
+
 /** The group's items now, by uid, and the recipient's zone. */
 const groupState = async (groupId: string, now: Date) => {
   const items = await calendarSyncService.groupItems(groupId, now);
@@ -274,23 +358,12 @@ export const pullConnection = async (
       result.ignored++;
       continue;
     }
-    if (action.type !== "overwrite") {
-      const done = await apply(ctx, conn, action, change, now);
-      if (done && !isError(done)) {
-        result.applied++;
-        continue;
-      }
-      if (isError(done) && !isRefusal(done)) {
-        failure = done;
-        break;
-      }
-    }
-    const marked = await overwrite(conn, found, change);
-    if (isError(marked)) {
-      failure = marked;
+    const outcome = await takeChange(ctx, conn, action, found, change, now);
+    if (isError(outcome)) {
+      failure = outcome;
       break;
     }
-    result.overwritten++;
+    result[outcome]++;
   }
 
   if (result.overwritten) {
@@ -306,7 +379,14 @@ export const pullConnection = async (
       .set({ syncToken: listed.syncToken || null, lastPulledAt: now.toISOString(), updatedBy: SYSTEM })
       .where(eq(connection.id, conn.id)),
   );
-  return isError(saved) ? saved : result;
+  if (isError(saved)) return saved;
+  // Its failure is logged and never fails the pull: the changes and the token are already kept.
+  if (catchUpDue(conn, now)) {
+    const failed = await catchUp(session, conn, { ctx, role, timeZone: state.timeZone }, result, now);
+    if (failed)
+      logError("calendars: Google catch-up failed", failed, { groupId: conn.groupId, recordId: conn.id });
+  }
+  return result;
 };
 
 export type PullSweepSummary = {
