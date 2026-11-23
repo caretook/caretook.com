@@ -11,6 +11,7 @@ import {
   inviteEmailZ,
   inviteState,
   isError,
+  legalAcceptanceService,
   linkInviteOptionsZ,
   SYSTEM_USER,
   userService,
@@ -248,12 +249,13 @@ export const invite = {
         name: z.string().trim().min(1).max(100),
         email: z.email().max(254),
         password: z.string().min(1).max(256),
+        legal: z.literal(true),
       }),
     )
     .handler(async ({ input }) => {
       const user = unwrap(
         await signUpWithTicket({
-          ticket: { kind: "invite", token: input.token },
+          ticket: { kind: "invite", token: input.token, legal: input.legal },
           name: input.name,
           email: input.email,
           password: input.password,
@@ -266,15 +268,22 @@ export const invite = {
    * Join the group as the signed-in user, who agreed to CONSENT_TEXT. Their
    * email must be the invite's. Accepting twice is fine. With a link it asks
    * to join instead (`status: "requested"`), and the group's owners and
-   * admins are emailed; asking twice returns the same request.
+   * admins are emailed; asking twice returns the same request. `legal`: they
+   * ticked the legal box, which an account with no current acceptance must
+   * (`legalRequired`).
    */
   accept: authedProcedure
-    .input(z.object({ token, consent: z.literal(true) }))
+    .input(z.object({ token, consent: z.literal(true), legal: z.literal(true).optional() }))
     .handler(async ({ context, input }) => {
       const result = unwrap(await careGroupInviteService.accept(context, input, { joinMail: joinMailer() }));
       if (result.queued.length) deliverSoon(result.queued);
       return { status: result.status, groupId: result.groupId, role: result.role };
     }),
+
+  /** Whether the signed-in person still has to agree to the current legal versions. */
+  legalNeeded: authedProcedure.handler(async ({ context }) => ({
+    needed: !unwrap(await legalAcceptanceService.hasCurrent(context.authUser.id)),
+  })),
 
   /**
    * What the Members page's invite controls may offer (owners and admins):

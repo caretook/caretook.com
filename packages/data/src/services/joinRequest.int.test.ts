@@ -50,7 +50,11 @@ const link = async (actor: Actor, groupId: string, opts: { maxUses?: number; exp
   );
 
 const ask = (actor: Actor, token: string, mail?: JoinMailer) =>
-  careGroupInviteService.accept(actor.ctx, { token, consent: true }, mail ? { joinMail: mail } : {});
+  careGroupInviteService.accept(
+    actor.ctx,
+    { token, consent: true, legal: true },
+    mail ? { joinMail: mail } : {},
+  );
 
 const roleOf = (groupId: string, userId: string) => careGroupMemberModel.getRole(groupId, userId);
 
