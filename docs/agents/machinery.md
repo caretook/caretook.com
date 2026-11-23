@@ -49,7 +49,7 @@ The scripts behind `pnpm prd` (`scripts/loops/`) that every session leans on: wo
 
 ## The load gate
 
-- `load-gate.mjs`: busy when the 5-minute load is above `CARETOOK_LOAD_BUSY` (twice the cores); `CARETOOK_LOAD_GATE=off` and an unreadable load are never busy; `CARETOOK_LOAD_FILE` stands in for the reading in tests; the `tooling:unit` project sets the gate off (its own tests set it back). A check (inside its check lease, which it holds while waiting) and a slice worktree's creation wait while busy, polling every `CARETOOK_LOAD_POLL` (15 s), at most `CARETOOK_LOAD_WAIT` (600 s), then proceed and say so; the check-times line's 12th field is the seconds waited. `pnpm prd start` only warns, the dispatcher starts and plans nothing, `pnpm prd status` prints the gate line.
+- `load-gate.mjs`: busy when the 5-minute load is above `CARETOOK_LOAD_BUSY` (default 20, twice the cores: full checks, browser checks, the dispatcher; 30 for quick and slice checks and slice starts, through `CARETOOK_LOAD_LANE=light`); `CARETOOK_LOAD_GATE=off` and an unreadable load are never busy; `CARETOOK_LOAD_FILE` stands in for the reading in tests; the `tooling:unit` project sets the gate off (its own tests set it back). A check (inside its check lease, which it holds while waiting), a browser run (before its lease) and a slice worktree's creation wait while busy, polling every `CARETOOK_LOAD_POLL` (15 s), at most `CARETOOK_LOAD_WAIT` (600 s), then proceed and say so; the check-times line's 12th field is the seconds waited. `pnpm prd start` only warns, the dispatcher starts and plans nothing, `pnpm prd status` prints the gate line.
 
 ## The check runner
 
