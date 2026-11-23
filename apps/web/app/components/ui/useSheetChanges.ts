@@ -46,15 +46,25 @@ export function fieldsDiffer(start: Map<string, string>, now: Map<string, string
 const onSubmitButton = (target: EventTarget | null) =>
   target instanceof Element && target.closest('button[type="submit"]') !== null;
 
-/** A submitted form and the alerts it already showed (a warning being answered, a past refusal). */
-type Submitted = { form: Element; alerts: ReadonlySet<Element> };
+/**
+ * An action that may yet be refused: the submitted form (none for a confirm's
+ * button) and what the sheet's alerts already said (a warning being answered, a
+ * past refusal). A sheet can show a refusal outside the form that was submitted.
+ */
+type Submitted = { form: Element | null; alerts: ReadonlyMap<Element, string> };
 
-const alertsIn = (form: Element) => new Set(form.querySelectorAll('[role="alert"]'));
+const alertsIn = (root: Element | null) =>
+  new Map(
+    [...(root?.querySelectorAll('[role="alert"]') ?? [])].map((alert) => [
+      alert,
+      alert.textContent?.trim() ?? "",
+    ]),
+  );
 
-/** The save didn't go through: a field is marked, or a new alert has something to say. */
-const wasRefused = ({ form, alerts }: Submitted) =>
-  form.querySelector('[aria-invalid="true"]') !== null ||
-  [...alertsIn(form)].some((alert) => !alerts.has(alert) && alert.textContent?.trim());
+/** It didn't go through: its form has a marked field, or an alert in the sheet has something new to say. */
+const wasRefused = (panel: Element | null, { form, alerts }: Submitted) =>
+  form?.querySelector('[aria-invalid="true"]') != null ||
+  [...alertsIn(panel)].some(([alert, text]) => text !== "" && alerts.get(alert) !== text);
 
 /** A form's starting values, the values last read, and the fields the person changed. */
 type Tracked = { root: Element; start: Map<string, string>; seen: Map<string, string>; own: Set<string> };
@@ -138,7 +148,12 @@ export function useSheetChanges(
       if (!(e.target instanceof Element) || !watched()?.contains(e.target)) return;
       if (e.type !== "submit" && !e.target.closest("[data-form-cancel]")) return;
       leaving.current = true;
-      submitted.current = e.type === "submit" ? { form: e.target, alerts: alertsIn(e.target) } : null;
+      const isSubmit = e.type === "submit";
+      // The form's own Cancel can't be refused; a confirm's action can.
+      submitted.current =
+        isSubmit || e.target.closest("dialog")
+          ? { form: isSubmit ? e.target : null, alerts: alertsIn(panelRef.current) }
+          : null;
     };
     const listeners: [string, (e: Event) => void][] = [
       ["beforeinput", act],
@@ -160,10 +175,12 @@ export function useSheetChanges(
   }, [panelRef, guard, isOpen, watched, current]);
 
   return useCallback(() => {
-    if (leaving.current && submitted.current && wasRefused(submitted.current)) leaving.current = false;
+    if (leaving.current && submitted.current && wasRefused(panelRef.current, submitted.current)) {
+      leaving.current = false;
+    }
     if (guard === false || leaving.current) return false;
     const form = current(acting.current !== null);
     if (!form || form.own.size === 0) return false;
     return fieldsDiffer(ownFields(form.start, form.own), ownFields(form.seen, form.own));
-  }, [guard, current]);
+  }, [panelRef, guard, current]);
 }
