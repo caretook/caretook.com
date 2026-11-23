@@ -14,10 +14,12 @@ Wave 2 running: slices 2, 3 and 4 started 2026-11-23 from `43161185`, worktrees 
 | ----- | ---- | ----------- | ----------------------------------------------- |
 | 1     | 1    | merged      | `1cfac27b` (`6999da53`, `9db57b09`, `731544d0`) |
 | 2     | 2    | in progress | —                                               |
-| 3     | 2    | in progress | —                                               |
+| 3     | 2    | handed off  | —                                               |
 | 4     | 2    | handed off  | —                                               |
 
 **Backlog:** B-557 (quick date jump on the timeline) claimed by `prd/timeline-jump`; run `pnpm backlog done B-557` when the last slice merges. No other items belong to this topic.
+
+**Slice 3 hand-off** (`a3ae6704`, quick check passed; merges after 2). Its look at phone width is unchecked: try it by hand at landing. Its test output logs a `<Focusable>` warning from the kit's Tooltip, source not traced.
 
 **Slice 4 hand-off** (`e1c6fdb7`, quick check passed; merges after 2 and 3). For the assistant doc at landing: "this friday" is the day in the current Sunday-to-Saturday week, so it can be ahead and blocked; a bare "go to Nov 30" before Nov 30 reads as last year's.
 
