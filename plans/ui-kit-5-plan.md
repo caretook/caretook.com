@@ -7,26 +7,16 @@
 | Slice | Title                                         | Wave | State         | Merge    |
 | ----- | --------------------------------------------- | ---- | ------------- | -------- |
 | 1     | Timeline list and Today, guard list regrouped | 1    | landed (opus) | 052389e8 |
-| 2     | Timeline forms and sheets                     | 2    | merged (opus) | 85bcc859 |
-| 3     | Easy view and quick entry                     | 2    | merged (opus) | 0e7f842f |
-| 4     | Entries and the notes editor                  | 2    | merged (opus) | 01a9b113 |
-| 5     | Admin                                         | 2    | merged (opus) | a9b7f208 |
-| 6     | Account, connectors and marketing             | 2    | merged (opus) | 2f650721 |
+| 2     | Timeline forms and sheets                     | 2    | landed (opus) | 85bcc859 |
+| 3     | Easy view and quick entry                     | 2    | landed (opus) | 0e7f842f |
+| 4     | Entries and the notes editor                  | 2    | landed (opus) | 01a9b113 |
+| 5     | Admin                                         | 2    | landed (opus) | a9b7f208 |
+| 6     | Account, connectors and marketing             | 2    | landed (opus) | 2f650721 |
 | 7     | The frame, home, and closing the guard        | 3    | not started   |          |
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** wave 1 landed in dev as fc079091 (PR #107, Codex clean, full CI flake on 035ef61c filed as B-653, a planner test outside this branch). Report filed. Slice 1 worktree removed. Wave 2 started 2026-11-23 from 515f9c73 (dev synced, only backlog and quarantine changes newer, so no quick check): slices 2 to 6 each have a worktree and an opus agent. All five merged into prd/ui-kit-5 (tip before this commit 2f650721; the guard-list conflicts were adjacent deletions, both sides dropped). The quick check passed on a9fd0459 (1516 tests). The full CI run (the proposed tier: `kit-guard.mjs` has no rule) is green on a9fd0459 (run 45158800831). Slice 2 to 6 worktrees removed. Synced to e61861bd: quick check passed, full CI green (run 45159898417), browser checks passed once each (roundtrip, live-notes, sign-in, first-sync, session-end, invites, ui, marketing). Wave 2's decisions are folded into `ui-kit.md`. Next: PR, Codex, land with `--tier full`, then rotate for wave 3 (slice 7). Browser checks at gates: the changed ones only (`pnpm prd browser --changed --base dev --list`, one name per call). No Status commit between `pr` and `land`.
-
-**For slice 3:** use `variant="warning"` for `EasyNow`'s Given all. Handed off at bab7bbfd; waits for slice 2 (plan order). Its `timelineEasyTiles`, `timelineEasyLock` and `timelineQuickEntry*` tests first run at the wave's CI. Fold at landing: `ui-kit.md` drops Easy view as a `Page` exception and records `Popover`'s trigger look (`variant`, `size`, `shape`).
-
-**For slice 2:** handed off at bce86882, sent back before merge: `DoseForm`'s duplicate-dose warning must stay `role="alert"` (a `role` override on `Notice`, asserted in `timelineDoses`). Its other timeline tests first run at the wave's CI. Fold at landing: `FormFooter`'s `size`, `CHOICE_BUTTON`, `CHOICE_TILE`, `Notice`'s `role`.
-
-**For slice 4:** handed off at be20b8e1; merges after 2 and 3. Only `entryMentions` ran. At the wave's CI watch `entry*`, `plannerEvents` (cancelled banner) and `plannerRemind` (Remind me sheet).
-
-**For slice 5:** handed off at 2b68c17e; merges after 2 to 4. Only `groups.browser.test.tsx` ran; the other 8 admin test files first run at the wave's CI.
-
-**For slice 6:** handed off at 7eb3a808; merges after 2 to 5. Its account, connector and marketing component tests first run at the wave's CI. It drops the public form's `data-field-error` hook, and `/connect` keeps a `Button` pair because its submits send `intent`.
+**Now:** wave 2 (slices 2 to 6) landed in dev as 5f4ca971 through PR #110: Codex clean on c1cb1c4c, full CI green (run 45162901683), browser checks passed once each on e61861bd (roundtrip, live-notes, sign-in, first-sync, session-end, invites, ui, marketing). One quarantined emergency-sheet test failed in that run after passing on a9fd0459; this wave changed no profile file. Report filed; slice worktrees removed; `ui-kit.md` folded. Next session: `pnpm backlog ingest` and `list`, `pnpm prd sync`, then start wave 3 (slice 7, opus). `Popover` keeps its bare class string; only `Menu`'s goes in slice 7. Browser checks at gates: the changed ones only (`pnpm prd browser --changed --base dev --list`, one name per call). No Status commit between `pr` and `land`.
 
 **Backlog:** B-577 claimed by prd/ui-kit-5. It is done when slice 7 merges.
 
