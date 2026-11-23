@@ -15,9 +15,11 @@ Wave 2 running: slices 2, 3 and 4 started 2026-11-23 from `43161185`, worktrees 
 | 1     | 1    | merged      | `1cfac27b` (`6999da53`, `9db57b09`, `731544d0`) |
 | 2     | 2    | in progress | —                                               |
 | 3     | 2    | in progress | —                                               |
-| 4     | 2    | in progress | —                                               |
+| 4     | 2    | handed off  | —                                               |
 
 **Backlog:** B-557 (quick date jump on the timeline) claimed by `prd/timeline-jump`; run `pnpm backlog done B-557` when the last slice merges. No other items belong to this topic.
+
+**Slice 4 hand-off** (`e1c6fdb7`, quick check passed; merges after 2 and 3). For the assistant doc at landing: "this friday" is the day in the current Sunday-to-Saturday week, so it can be ahead and blocked; a bare "go to Nov 30" before Nov 30 reads as last year's.
 
 **Open issues:** slice 1's Back-from-entry test proves the day, window and page height return, but its harness has no `ScrollRestoration`, so the browser's real restore is unexercised: try it by hand at landing. Slices 3 and 4 navigate with `JUMP_LINK_STATE` and `preventScrollReset`; slice 3's picker test first covers a jump-marker navigation. `pnpm backlog doctor` reports three findings on other topics' items (B-548, B-549, B-568), left alone.
 
