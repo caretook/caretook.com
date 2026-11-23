@@ -374,6 +374,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-725 | chore | landed | test-gates-2 | prd/test-gates-2 | CI's static job runs the check-areas lint, the one quick-check step it lacks |
 | B-726 | bug | triaged | fixes-bug |  | A retried dose upload can still bring back an undone dose when the dose's time was edited before the restore or delete |
 | B-727 | bug | triaged | fixes-tooling |  | ui browser check: the phone add sheet intermittently measures zero size |
+| B-728 | bug | triaged | fixes-bug |  | Repeat preview pairs the recipient's day with the viewer's time: a Wed 10 PM Los Angeles visit reads 'Wed, 1:00 AM' in New York, really Thu |
 
 ## Items
 
@@ -2888,6 +2889,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-23 (prd/test-gates-2): [ci-key 28b813b278a6] [ci-zone ef58007e] Fails in America/New_York on ef58007e; reported, not blocking.
 - 2026-11-23 (slice/test-gates-2/6): [ci-zone f57458d5] Fails in America/New_York on f57458d5; reported, not blocking.
+- 2026-11-23 (slice/fixes-bug/56): Slice 56: the failure was the test assuming Los Angeles; 1:00 PM is the right viewer time (test fixed, 9134375e). Separate app bug found, not fixed: RepeatField's preview pairs the recipient's series day with the viewer's time, so a 10 PM Wed LA visit reads 'Wed, Nov 18, 1:00 AM' in New York when it is Thu, Nov 19 there. Needs its own fixes-bug item.
 
 ### B-710 · bug · CI: apps/web/app/routes/app/groups/medication/medication.browser.test.tsx fails in America/New_York
 
@@ -3048,3 +3050,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (prd/member-avatars): Seen once on prd/member-avatars 5c165580 (2026-11-23, load about 30), 420 dark, ui.spec.mjs:83: width and height 0 and parent width 0, so the sheet was probably detached or hidden while the check awaited its animations. Three runs alone at the same load passed. Cause unknown: either the spec holds a stale element or the open sheet remounts in the app. Wave 3 adds MemberLooksProvider above the group's Outlet; it keeps children mounted, but this was not proven unrelated. Log: .git/worktrees/member-avatars/caretook-browser/ui-20261123-145424.log
+
+### B-728 · bug · Repeat preview pairs the recipient's day with the viewer's time: a Wed 10 PM Los Angeles visit reads 'Wed, 1:00 AM' in New York, really Thu
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/fixes-bug): From fixes-bug slice 56 (B-709) hand-off. visitLabel in apps/web/app/components/repeat/RepeatField.tsx. Confirmed by reproducing the label logic in Node under TZ=America/New_York, not on the screen. The fix needs a choice: show the viewer's day, or show both day and time in the recipient's zone.
