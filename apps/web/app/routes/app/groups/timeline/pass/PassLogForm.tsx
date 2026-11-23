@@ -43,7 +43,7 @@ export function PassLogForm({
   const adder = useFetcher<{ ok: boolean; error?: string }>();
   const remover = useFetcher<{ ok: boolean; error?: string }>();
   const [confirming, setConfirming] = useState(false);
-  // Each try's refusal is a new alert, even in the same words: it's how the sheet's guard sees it.
+  // Each try's refusal is a new alert, even in the same words, so it's announced and the sheet's guard sees it.
   const [sideTry, setSideTry] = useState(0);
   const addable = addableMedications(choices, doses);
   const [adding, setAdding] = useState("");
@@ -64,7 +64,7 @@ export function PassLogForm({
             data-pass-dose={dose.id}
           >
             <legend className="px-1 font-semibold">{dose.medicationName}</legend>
-            <input type="hidden" name={DOSE_IDS_FIELD} value={dose.id} />
+            <input type="hidden" name={DOSE_IDS_FIELD} value={dose.id} data-sheet-aside="" />
             <ChoiceGroup
               name={doseField("status", dose.id)}
               label="Status"
@@ -125,6 +125,7 @@ export function PassLogForm({
           method="post"
           className="flex items-end gap-2"
           data-pass-log-add
+          data-sheet-aside=""
           onSubmit={() => setSideTry((n) => n + 1)}
         >
           <input type="hidden" name="intent" value="add" />
