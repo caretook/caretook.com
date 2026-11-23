@@ -164,13 +164,15 @@ describe("adding a period", () => {
     });
   });
 
-  test("the footer keeps its names: Cancel and Save period here, Cancel and Save changes on an edit", async () => {
+  test("the add sheet's footer keeps its names: Cancel and Save period", async () => {
     await open();
     await waitUntil(() => !!ADD(), "Add");
     await userEvent.click(await found(ADD));
     await expect.element(formButton("Save period")).toHaveAttribute("type", "submit");
     await expect.element(formButton("Cancel")).toBeVisible();
+  });
 
+  test("the edit sheet's footer keeps its names: Cancel and Save changes", async () => {
     await open({ url: `${PERIODS_URL}/${REHAB.id}/edit` });
     await expect.element(formButton("Save changes")).toHaveAttribute("type", "submit");
     await expect.element(formButton("Cancel")).toBeVisible();

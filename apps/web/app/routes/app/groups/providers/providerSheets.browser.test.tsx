@@ -115,18 +115,21 @@ describe("adding a provider", () => {
     expect(listNames("Current providers").length).toBe(6);
   });
 
-  test("the footer keeps its names: Cancel and Add provider here, Delete provider, Cancel and Save on an edit; Cancel closes onto the list", async () => {
-    const button = (name: string) => page.getByRole("dialog").getByRole("button", { name, exact: true });
+  const sheetButton = (name: string) => page.getByRole("dialog").getByRole("button", { name, exact: true });
+
+  test("the add sheet's footer keeps its names: Add provider, and Cancel closes onto the list", async () => {
     const device = await open({ role: "caretaker" });
     await openAdd();
-    await expect.element(button("Add provider")).toHaveAttribute("type", "submit");
-    await userEvent.click(button("Cancel"));
+    await expect.element(sheetButton("Add provider")).toHaveAttribute("type", "submit");
+    await userEvent.click(sheetButton("Cancel"));
     await expect.poll(() => !FORM() && device.location()).toBe(PROVIDERS_URL);
+  });
 
+  test("the edit sheet's footer keeps its names: Delete provider, Cancel and Save", async () => {
     await open({ url: `${PROVIDERS_URL}/${PATEL.id}/edit` });
-    await expect.element(button("Save")).toHaveAttribute("type", "submit");
-    await expect.element(button("Cancel")).toBeVisible();
-    await expect.element(button("Delete provider")).toBeVisible();
+    await expect.element(sheetButton("Save")).toHaveAttribute("type", "submit");
+    await expect.element(sheetButton("Cancel")).toBeVisible();
+    await expect.element(sheetButton("Delete provider")).toBeVisible();
   });
 
   test("validation on the fields: name required, email and website shape, at most six phones (Add disabled at six; a seventh forced in is refused); focus on the first", async () => {
