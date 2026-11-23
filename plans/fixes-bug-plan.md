@@ -10,7 +10,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 3 (slice 18, B-510) landed in dev through PR #57** (2026-11-22). `pnpm prd check` takes no reason (only `--quick` does).
 
-**Wave 4 (this session, 2026-11-23): slices 19–27, all on opus.** Synced with dev at 1cee1cac. Merged: 19, 20, 24, 25, 27 (keep their worktrees until the wave is green); quick check passed on 468282b1. Merged too: 21, 26; quick check passed on 92d03e4e. Follow-ups filed: B-631, B-632. **Hand-over (context rotation, no slice in flight):** (1) review and merge slice 22 (94fbc42d, its quick check passed; `dr lee the 2nd at the clinic` is a different rule, `ordinalIsADay`, noted on B-580, not fixed), `pnpm backlog done B-580`; (2) start slice 23 (B-581, already claimed) from the merged tip and tell its agent to add to the `findTime` mask in `parsePart`; (3) merge it, quick check, then the wave gate (`pnpm prd ci run <tier> --wait`), sync, browser checks (the wave changes screens: `--suite` once plus `--changed --base dev --list`), PR, Codex, land, report, fold docs (assistant, ui-kit, todos, connectors). Worktrees 19–22 and 24–27 stay until the verdict is green. Watch at the gate: the Assistants settings tests (slice 24 refetches), screens using the three sheets slice 25 edited, the medication and todo edit routes (slice 26). Slices 24–27 were merged ahead of 21–23 because they share no files with the quick-entry chain. Chains on shared files: 20 → 21 → 22 → 23 (quick entry), 25 → 26 (sheet changes). **Resumed 2026-11-23 after the rotation:** slice 22 merged as 330d9639 (B-634 filed for `the 2nd at the clinic`); quick check passed on 4a684520; slice 23 (opus) merged as b0cd6f61; all of wave 4 is merged, quick check passed on 6ca0aa14. Synced with dev (2ce17522). Now: quick check and the `components` CI run on the synced tip, then browser checks, PR, Codex, land. B-634, B-635 filed for a later wave. **Held for a later wave:** B-615 and B-616 (dose-accuracy holds `timelineEntryService.ts` and `assistantActionService.ts`), B-620 (onboarding holds `routes/app/groups/timeline/`; the user approved its fix, see the item's note).
+**Wave 4 (slices 19–27, B-527, B-578, B-580, B-581, B-591, B-599, B-601, B-602, B-605, all on opus) landed in dev through PR #100 as b97b5d69** (2026-11-23): `components` CI green on 336578d3 (run 45131667111), Codex clean, browser `roundtrip` and `ui` passed; lean `--suite` not run (the user's standing rule: ask first). To-test: `to-test/2026-11-23-0247-fixes-bug.md`. Docs folded (assistant, ui-kit, todos, connectors; all at the 10 KB line, trim when adding). Slice worktrees removed. **Hand-over: no slice in flight.** Next wave: B-628, B-631, B-632, B-634, B-635 are waiting (B-632, B-634, B-635 share the quick-entry files: chain them). **Held:** B-615 and B-616 while dose-accuracy holds `timelineEntryService.ts` and `assistantActionService.ts`; B-620 while onboarding holds `routes/app/groups/timeline/` (the user approved its fix, see the item's note). Recheck `pnpm backlog prd list` first.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -34,15 +34,15 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 16    | B-470 | landed                                     | 7e65e0ab |
 | 17    | B-472 | landed (+B-482; layout-offline at landing) | 3114a864 |
 | 18    | B-510 | landed                                     | 5d096ce3 |
-| 19    | B-527 | merged                                     | 04f5e825 |
-| 20    | B-578 | merged                                     | 5d7cfdcf |
-| 21    | B-591 | merged                                     | c177aa58 |
-| 22    | B-580 | merged                                     | 330d9639 |
-| 23    | B-581 | merged                                     | b0cd6f61 |
-| 24    | B-599 | merged                                     | f8c90c02 |
-| 25    | B-601 | merged                                     | efb9d552 |
-| 26    | B-602 | merged                                     | 43e222d4 |
-| 27    | B-605 | merged                                     | 23e69857 |
+| 19    | B-527 | landed                                     | 04f5e825 |
+| 20    | B-578 | landed                                     | 5d7cfdcf |
+| 21    | B-591 | landed                                     | c177aa58 |
+| 22    | B-580 | landed                                     | 330d9639 |
+| 23    | B-581 | landed                                     | b0cd6f61 |
+| 24    | B-599 | landed                                     | f8c90c02 |
+| 25    | B-601 | landed                                     | efb9d552 |
+| 26    | B-602 | landed                                     | 43e222d4 |
+| 27    | B-605 | landed                                     | 23e69857 |
 
 ## Wave 1
 

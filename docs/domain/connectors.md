@@ -22,7 +22,7 @@ PRDs: [`connectors-prd.md`](../../plans/connectors-prd.md) (B-104), [`connectors
 - **`verify(token)` is the only way into `/mcp`.** Each call rechecks the account, membership, role (`scopesForRole`: viewers read, easy roles none), the switch and read only; token scopes narrow it (`effectiveScope`). It returns the member with `roleNames: ["member"]` and stamps `last_used_at` at most once a minute. `groupId` comes from the grant, never tool input.
 - `revoke` ends the tokens and the `oauth_consent` row. `revokeForMember` runs in `careGroupMemberService.remove` (and `leave`).
 - **The switch** `care_group.connectors_enabled` (default off; Dev Family on): owners only, via `careGroupService.update`. Off revokes every grant; on restores nothing.
-- **Read only** `connectors_read_only` (synced): owners only, kept across the switch, revokes nothing. `verify` narrows each call; grants keep their scope, so switching back restores writing. A blocked write: tool refusal `mcp:groupReadOnly`, not the 403. Labels name the owner only via `readOnlyByOwner`.
+- **Read only** `connectors_read_only` (synced): owners only, survives the switch, revokes nothing. `verify` narrows each call; grants keep their scope, so switching back restores it. A blocked write: `mcp:groupReadOnly`, not a 403. Labels follow the synced value; only `readOnlyByOwner` names the owner.
 
 ## Asking owners (`assistant_request`, `assistantRequestService`)
 
