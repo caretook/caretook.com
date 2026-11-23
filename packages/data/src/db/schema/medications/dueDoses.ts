@@ -198,15 +198,19 @@ const slotToAnswer = (
   windowMinutes: number,
   timeZone: string,
 ) => {
-  const open = own.filter((w) => !w.dose);
   const named = namedSlots(own, name);
-  if (!named) return nearest(inWindow(open, ms, windowMinutes), ms);
-  return slotAt(
-    named.filter((w) => !w.dose),
-    ms,
-    windowMinutes,
-    timeZone,
-  );
+  if (!named)
+    return nearest(
+      inWindow(
+        own.filter((w) => !w.dose),
+        ms,
+        windowMinutes,
+      ),
+      ms,
+    );
+  // The slot it's for, answered or not: one already answered makes this dose surplus.
+  const slot = slotAt(named, ms, windowMinutes, timeZone);
+  return slot && !slot.dose ? slot : null;
 };
 
 /** Each dose answers at most one slot (the rules are `dueDoses`'s). */
@@ -257,12 +261,14 @@ const settle = (
  * of its own at the same moment has one slot there (the pass's).
  *
  * A dose naming a pass (`passId`) or time (`scheduledFor`) its medication
- * still has answers only a slot of that name: the open one nearest within
- * `windowMinutes` (so 23:30's dose given at 00:10 answers last night), else
- * the open one on the recipient's day it was given, else none. It never
- * spills onto another day's slot, so a second dose stays on the timeline and
- * leaves tomorrow open. A retimed pass keeps its answered doses. Any other
- * dose answers the nearest open slot within the window. Named doses go first,
+ * still has answers only a slot of that name. The nearest one within
+ * `windowMinutes`, answered or not, is its slot: open, the dose answers it
+ * (so 23:30's dose given at 00:10 answers last night); already answered, the
+ * dose answers nothing. With none in the window, it answers the open one on
+ * the recipient's day it was given, else nothing. So a second dose stays on
+ * the timeline and never marks another day's slot. A retimed pass keeps its
+ * answered doses. Any other dose answers the nearest open slot within the
+ * window. Named doses go first,
  * each kind in time order, so the earliest keeps the slot. Slots on the days
  * either side take part in the matching but aren't returned, so a dose
  * answering one of them can't land on a day shown. Unanswered, a slot is

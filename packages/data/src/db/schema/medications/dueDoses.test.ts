@@ -502,7 +502,7 @@ describe("a dose answers only its own slot on its own day", () => {
     expect(result.missed.map((s) => s.day)).toEqual(["2026-11-18"]);
   });
 
-  it("a 23:30 dose at 00:10 answers last night while open, and tonight's once last night is answered", () => {
+  it("a 23:30 dose at 00:10 answers last night while open, and nothing once last night is answered", () => {
     const now = new Date("2026-11-19T08:20:00Z"); // 0:20 on the 19th
     const late = "2026-11-19T08:10:00Z"; // 0:10
     const open = run([only("23:30")], [given(late, "23:30")], now);
@@ -514,8 +514,10 @@ describe("a dose answers only its own slot on its own day", () => {
       [given("2026-11-19T07:40:00Z", "23:30"), given(late, "23:30")], // 23:40, then 0:10
       now,
     );
-    expect(answered.yesterday.map((s) => s.state)).toEqual(["given"]);
-    expect(states(answered)).toEqual(["23:30 given"]);
+    expect(answered.yesterday.map((s) => [s.state, s.dose?.occurredAt])).toEqual([
+      ["given", "2026-11-19T07:40:00Z"],
+    ]);
+    expect(states(answered)).toEqual(["23:30 upcoming"]);
   });
 
   it("a dose past midnight answers the night before, not the day shown as yesterday", () => {
@@ -595,6 +597,15 @@ describe("a dose answers only its own slot on its own day", () => {
       "2026-11-19T08:00:00Z",
     );
     expect(lateNight.map(line)).toEqual(["2026-11-17 23:30 given", "2026-11-18 23:30 missed"]);
+
+    const lateNightTwice = range(
+      only("23:30"),
+      [given("2026-11-18T07:40:00Z", "23:30"), given("2026-11-18T08:10:00Z", "23:30")], // 23:40, then 0:10
+      "2026-11-17T08:00:00Z",
+      "2026-11-19T08:00:00Z",
+    );
+    expect(lateNightTwice.map(line)).toEqual(["2026-11-17 23:30 given", "2026-11-18 23:30 missed"]);
+    expect(missedDoseCounts(lateNightTwice)).toMatchObject([{ missed: 1, slots: 2 }]);
   });
 
   it("a dose answering a slot just before the range doesn't answer one inside it", () => {
@@ -628,18 +639,14 @@ describe("a dose answers only its own slot on its own day", () => {
       expect(warned(skipped, planned, now)).toBe(false);
     });
 
-    it("for a late-night slot: last night's open or answered, tonight's answered", () => {
+    it("for a late-night slot: none while last night's is open, alreadyGiven once it's answered", () => {
       const now = new Date("2026-11-19T08:20:00Z"); // 0:20
       const planned = { medicationId: "a", status: "given" as const, scheduledFor: "23:30" };
       expect(warned(run([only("23:30")], [], now), planned, now)).toBe(false);
-      const one = run([only("23:30")], [given("2026-11-19T07:40:00Z", "23:30")], now);
-      expect(warned(one, planned, now)).toBe(false);
-      const both = run(
-        [only("23:30")],
-        [given("2026-11-19T07:40:00Z", "23:30"), given("2026-11-19T08:10:00Z", "23:30")],
-        now,
-      );
-      expect(warned(both, planned, now)).toBe(true);
+      const answered = run([only("23:30")], [given("2026-11-19T07:40:00Z", "23:30")], now);
+      expect(doseWarnings(answered, planned, now)).toEqual([
+        { type: "alreadyGiven", time: "23:30", givenAt: "2026-11-19T07:40:00Z" },
+      ]);
     });
 
     it("for a pass: warns on the second dose, not on the next day's first", () => {
