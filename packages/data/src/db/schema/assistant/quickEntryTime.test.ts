@@ -54,6 +54,7 @@ describe("words that aren't times", () => {
     "the 2nd at 25",
     "gave the 2nd at bedtime",
     "gave the 2nd at home",
+    "gave the 2nd evening",
     "took 2nd at lunch",
     "had her 2nd at the clinic",
     "her 2nd at the clinic",
@@ -120,7 +121,6 @@ describe("the days they must not take away", () => {
   test.each([
     ["gave the 2nd at night", "night"],
     ["gave the 2nd in the morning", "morning"],
-    ["gave the 2nd evening", "evening"],
     ["a 2nd in the morning", "morning"],
   ])("%s keeps the part of day and takes no day", (line, period) => {
     expect(specOf(line)?.day).toBeUndefined();
