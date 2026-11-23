@@ -68,12 +68,13 @@ export const accessCode = {
         email: z.email().max(254),
         password: z.string().min(1).max(256),
         group: newCareGroupZSchema,
+        legal: z.literal(true),
       }),
     )
     .handler(async ({ input }) => {
       unwrap(
         await signUpWithTicket({
-          ticket: { kind: "accessCode", code: input.code, group: input.group },
+          ticket: { kind: "accessCode", code: input.code, group: input.group, legal: input.legal },
           name: input.name,
           email: input.email,
           password: input.password,

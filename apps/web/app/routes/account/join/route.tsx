@@ -2,12 +2,12 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { CodePreview, JoinStep } from "./joinPage";
 import type { Route } from "./+types/route";
 
-import { newCareGroupZSchema } from "@caretook/data/schema";
+import { LEGAL_REQUIRED_MESSAGE, newCareGroupZSchema } from "@caretook/data/schema";
 import { ORPCError } from "@orpc/client";
 import { useRef, useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
 import { NewGroupFields, newGroupFromForm } from "~/components/groups";
-import { Button, Field } from "~/components/ui/plain";
+import { Button, CheckField, Field } from "~/components/ui/plain";
 import { toActionResult } from "~/lib/core/api";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -18,6 +18,7 @@ import { rpc } from "~/lib/core/rpc";
 import { NEW_GROUP_LINK_STATE } from "~/lib/care-groups/newGroupLink";
 import { AuthCard, ErrorMessage, useSubmitOnce } from "../AuthCard";
 import { CLOSED_CODE, stepForIssues } from "./joinPage";
+import { LegalAgreement } from "./LegalAgreement";
 
 // `/join/:code`: a staff access code's link (printed as a QR code). Shared by
 // web + native, client-only. Signed out, it's a two-step form: your account
@@ -68,6 +69,9 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
       issues: group.error.issues.map((i) => ({ path: `group.${i.path.join(".")}`, message: i.message })),
     };
   }
+  if (form.get("legal") !== "on") {
+    return { error: "", issues: [{ path: "legal", message: LEGAL_REQUIRED_MESSAGE }] };
+  }
   try {
     await rpc.accessCode.signUp({
       code: params.code,
@@ -75,6 +79,7 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
       email,
       password,
       group: group.data,
+      legal: true,
     });
   } catch (e) {
     if (isNetworkError(e)) return { error: authMessages.offline, issues: [] };
@@ -223,6 +228,14 @@ function JoinForm({ actionData }: { actionData: ActionData | undefined }) {
         </div>
         <div hidden={step !== "recipient"} data-join-step="recipient">
           <NewGroupFields issues={groupIssues} />
+          <CheckField
+            className="mt-3 text-sm"
+            name="legal"
+            required={step === "recipient"}
+            error={issue("legal")}
+            data-legal-box=""
+            label={<LegalAgreement />}
+          />
         </div>
         {actionData?.error && <ErrorMessage>{actionData.error}</ErrorMessage>}
         {step === "account" ? (
