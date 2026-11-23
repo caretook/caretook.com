@@ -4,3 +4,9 @@
 #
 # One test per line, three tab-separated fields:
 # <repo-relative test file><TAB><full test name><TAB><backlog item>
+apps/web/app/routes/app/groups/medications/print/print.browser.test.tsx	the weekly chart Next, Previous and This week move it by a week; a start day of its own shows that week (seven days across a clock change is weeklySheet.test.ts's)	B-568
+apps/web/app/routes/app/groups/profile/emergency.browser.test.tsx	the owner's sheet builds the list: a member removed and added back, moved up by keyboard, an outside contact refused then added, a new primary; one save	B-568
+apps/web/app/routes/app/groups/provider/provider.browser.test.tsx	the page with no links: says how to link one	B-568
+apps/web/app/routes/app/groups/providers/providers.browser.test.tsx	contact details on each row (B-44) a clinician's numbers dial (an extension after a pause) and her email mails her, each named for what it does	B-568
+apps/web/app/routes/app/groups/providers/providers.browser.test.tsx	contact details on each row (B-44) a practice's row: every number, and its address as a maps link in a new tab	B-568
+apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx	back from the entry page Back, then the filter that's on picked again: a dose still names its medication (B-235)	B-568
