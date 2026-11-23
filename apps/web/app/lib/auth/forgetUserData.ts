@@ -1,5 +1,6 @@
 import { forgetGroups } from "../app-shell/lastGroup";
 import { forgetSettings } from "../app-shell/me";
+import { forgetMyAvatar } from "../app-shell/myAvatar";
 import { forgetCalendarSettings } from "../calendars/calendarSettings";
 import { forgetRecentLines } from "../assistant/recentLines";
 import { forgetRecentSearches } from "../search/recentSearches";
@@ -15,6 +16,7 @@ import { forgetToggles } from "../assistant/easyModeToggle";
  */
 export const forgetUserData = () => {
   forgetSettings();
+  forgetMyAvatar();
   forgetCalendarSettings();
   forgetGroups();
   forgetRecentSearches();

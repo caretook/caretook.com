@@ -155,6 +155,8 @@ export const users = sqliteTable("user", {
   id: text("id").primaryKey(),
   name: text("name"),
   image: text("image"),
+  avatarColor: text("avatar_color"),
+  avatarIcon: text("avatar_icon"),
 });
 
 /** The group's provider directory. `phones` is JSON text; `is_primary` is 1 or 0. Deletes are soft. */

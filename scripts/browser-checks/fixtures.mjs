@@ -387,7 +387,8 @@ export const test = base.extend({
         ...(proxy && { proxy: { server: proxy.server, bypass: "<-loopback>" } }),
         baseURL: BASE,
         viewport: { width: 420, height: 900 },
-        timezoneId: "America/Los_Angeles",
+        // The one zone setting (scripts/ci/zones.mjs). Read inline: tests copy this file alone.
+        timezoneId: process.env.CARETOOK_TEST_ZONE || "America/Los_Angeles",
         locale: "en-US",
         ...opts,
         extraHTTPHeaders: { "x-forwarded-for": randomIp(), ...opts.extraHTTPHeaders },

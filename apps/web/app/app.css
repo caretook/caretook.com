@@ -418,6 +418,24 @@ fieldset:disabled :is(.input, .select, .textarea) {
   --color-hue-pink-ink: light-dark(oklch(42% 0.14 345), oklch(86% 0.09 345));
 }
 
+/* Avatar colors (member-avatars): ten hues at the midpoints between the status
+   and section colors, so a member's color never reads as either. Deeper in
+   light theme, paler in dark; all share one content color. Only
+   `ui/avatarLook.ts` names these. */
+@theme inline {
+  --color-avatar-content: light-dark(oklch(100% 0 0), oklch(22% 0.02 270));
+  --color-avatar-coral: light-dark(oklch(50% 0.13 32), oklch(78% 0.1 32));
+  --color-avatar-ochre: light-dark(oklch(50% 0.1 67), oklch(78% 0.1 67));
+  --color-avatar-moss: light-dark(oklch(50% 0.1 105), oklch(78% 0.1 105));
+  --color-avatar-fern: light-dark(oklch(50% 0.12 144), oklch(78% 0.1 144));
+  --color-avatar-jade: light-dark(oklch(50% 0.09 179), oklch(78% 0.1 179));
+  --color-avatar-sky: light-dark(oklch(50% 0.09 214), oklch(78% 0.1 214));
+  --color-avatar-blue: light-dark(oklch(50% 0.12 255), oklch(78% 0.1 255));
+  --color-avatar-violet: light-dark(oklch(50% 0.14 295), oklch(78% 0.1 295));
+  --color-avatar-orchid: light-dark(oklch(50% 0.14 329), oklch(78% 0.1 329));
+  --color-avatar-rose: light-dark(oklch(50% 0.14 359), oklch(78% 0.1 359));
+}
+
 /* Sheet (ui-kit-3): the overlay fades (the dimming and the sheet with it) and
    the panel slides, in and out on `--motion`. Transitions, not keyframes (see
    `motion-overlay`). `data-closing` is `useSheetExit`'s exit, played while the

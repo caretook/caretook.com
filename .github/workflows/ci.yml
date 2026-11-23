@@ -4,7 +4,9 @@
 #
 # The tier picks the jobs, each tier including the ones before it
 # (scripts/ci/tiers.mjs): static, unit, integration, components, and full
-# (the build job), candidate (the browser suite on the Docker stack). The last job writes the verdict and uploads it as the
+# (the build job), candidate (the browser suite on the Docker stack), release (two more
+# suite runs, each its own job since one job's limit holds one suite, and the component
+# tests and suite in the second zone, scripts/ci/zones.mjs). The last job writes the verdict and uploads it as the
 # `verdict` artifact, kept 7 days. A test step that fails reruns its failed files
 # once (scripts/ci/test-job.mjs), and a failed browser check likewise
 # (scripts/ci/browser-job.mjs); a quarantine step runs the quarantined tests and
@@ -46,6 +48,7 @@ jobs:
       components: ${{ steps.tier.outputs.components }}
       full: ${{ steps.tier.outputs.full }}
       candidate: ${{ steps.tier.outputs.candidate }}
+      release: ${{ steps.tier.outputs.release }}
       components2: ${{ steps.tier.outputs.components2 }}
       pg_password: ${{ steps.password.outputs.pg_password }}
     steps:
@@ -425,6 +428,291 @@ jobs:
           tail -n 100 .ci-server.log || true
           docker compose logs --tail 100 powersync || true
 
+  # Suite run 2 of 3 on `release`: the browser job's steps, on its own runner and limit.
+  browser-2:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.release == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    outputs:
+      started: ${{ steps.started.outputs.started }}
+      failures: ${{ steps.report.outputs.failures }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: setup
+        uses: ./.github/actions/setup
+      - id: env
+        name: Fictional env
+        run: |
+          node scripts/ci/env.mjs browser >> "$GITHUB_ENV"
+          mkdir -p .loops
+      - id: chromium
+        name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - id: stack
+        name: Start the Docker stack
+        run: pnpm datastore:up
+      - id: migrate
+        name: Migrate
+        run: pnpm datastore:migrate
+      - id: seed
+        name: Seed
+        run: pnpm datastore:seed
+      - id: build
+        name: Check build
+        run: pnpm --filter @caretook/web build
+      - id: serve
+        name: Serve the check build
+        run: |
+          cd apps/web
+          NODE_ENV=production nohup node --import ../../scripts/loops/host-headers.mjs \
+            node_modules/@react-router/serve/bin.cjs build/web/server/index.js \
+            > ../../.ci-server.log 2>&1 < /dev/null &
+          for _ in $(seq 1 60); do
+            curl -fsS -o /dev/null "$BASE/sign-in" && exit 0
+            sleep 1
+          done
+          tail -n 50 ../../.ci-server.log
+          exit 1
+      - id: powersync
+        name: Fresh PowerSync start
+        run: pnpm datastore:powersync
+      - id: started
+        name: Setup finished
+        run: echo "started=true" >> "$GITHUB_OUTPUT"
+      - id: suite
+        name: Browser suite
+        # Runs browser.sh --suite, then reruns each failed check once.
+        run: node scripts/ci/browser-job.mjs
+      - id: report
+        name: Report each check's result
+        if: ${{ !cancelled() && steps.started.outcome == 'success' }}
+        run: node scripts/ci/browser-job.mjs report >> "$GITHUB_OUTPUT"
+      - id: logs
+        name: Server and PowerSync logs
+        if: ${{ failure() }}
+        run: |
+          tail -n 100 .ci-server.log || true
+          docker compose logs --tail 100 powersync || true
+
+  # Suite run 3 of 3 on `release`: the browser job's steps, on its own runner and limit.
+  browser-3:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.release == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    outputs:
+      started: ${{ steps.started.outputs.started }}
+      failures: ${{ steps.report.outputs.failures }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: setup
+        uses: ./.github/actions/setup
+      - id: env
+        name: Fictional env
+        run: |
+          node scripts/ci/env.mjs browser >> "$GITHUB_ENV"
+          mkdir -p .loops
+      - id: chromium
+        name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - id: stack
+        name: Start the Docker stack
+        run: pnpm datastore:up
+      - id: migrate
+        name: Migrate
+        run: pnpm datastore:migrate
+      - id: seed
+        name: Seed
+        run: pnpm datastore:seed
+      - id: build
+        name: Check build
+        run: pnpm --filter @caretook/web build
+      - id: serve
+        name: Serve the check build
+        run: |
+          cd apps/web
+          NODE_ENV=production nohup node --import ../../scripts/loops/host-headers.mjs \
+            node_modules/@react-router/serve/bin.cjs build/web/server/index.js \
+            > ../../.ci-server.log 2>&1 < /dev/null &
+          for _ in $(seq 1 60); do
+            curl -fsS -o /dev/null "$BASE/sign-in" && exit 0
+            sleep 1
+          done
+          tail -n 50 ../../.ci-server.log
+          exit 1
+      - id: powersync
+        name: Fresh PowerSync start
+        run: pnpm datastore:powersync
+      - id: started
+        name: Setup finished
+        run: echo "started=true" >> "$GITHUB_OUTPUT"
+      - id: suite
+        name: Browser suite
+        # Runs browser.sh --suite, then reruns each failed check once.
+        run: node scripts/ci/browser-job.mjs
+      - id: report
+        name: Report each check's result
+        if: ${{ !cancelled() && steps.started.outcome == 'success' }}
+        run: node scripts/ci/browser-job.mjs report >> "$GITHUB_OUTPUT"
+      - id: logs
+        name: Server and PowerSync logs
+        if: ${{ failure() }}
+        run: |
+          tail -n 100 .ci-server.log || true
+          docker compose logs --tail 100 powersync || true
+
+  # The second zone. Its setting (scripts/ci/zones.mjs) decides whether a failure counts.
+  zone-browser:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.release == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    outputs:
+      started: ${{ steps.started.outputs.started }}
+      failures: ${{ steps.report.outputs.failures }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: setup
+        uses: ./.github/actions/setup
+      - id: env
+        name: Fictional env
+        run: |
+          node scripts/ci/env.mjs browser >> "$GITHUB_ENV"
+          node scripts/ci/env.mjs zone >> "$GITHUB_ENV"
+          mkdir -p .loops
+      - id: chromium
+        name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - id: stack
+        name: Start the Docker stack
+        run: pnpm datastore:up
+      - id: migrate
+        name: Migrate
+        run: pnpm datastore:migrate
+      - id: seed
+        name: Seed
+        run: pnpm datastore:seed
+      - id: build
+        name: Check build
+        run: pnpm --filter @caretook/web build
+      - id: serve
+        name: Serve the check build
+        run: |
+          cd apps/web
+          NODE_ENV=production nohup node --import ../../scripts/loops/host-headers.mjs \
+            node_modules/@react-router/serve/bin.cjs build/web/server/index.js \
+            > ../../.ci-server.log 2>&1 < /dev/null &
+          for _ in $(seq 1 60); do
+            curl -fsS -o /dev/null "$BASE/sign-in" && exit 0
+            sleep 1
+          done
+          tail -n 50 ../../.ci-server.log
+          exit 1
+      - id: powersync
+        name: Fresh PowerSync start
+        run: pnpm datastore:powersync
+      - id: started
+        name: Setup finished
+        run: echo "started=true" >> "$GITHUB_OUTPUT"
+      - id: suite
+        name: Browser suite
+        # Runs browser.sh --suite, then reruns each failed check once.
+        run: node scripts/ci/browser-job.mjs
+      - id: report
+        name: Report each check's result
+        if: ${{ !cancelled() && steps.started.outcome == 'success' }}
+        run: node scripts/ci/browser-job.mjs report >> "$GITHUB_OUTPUT"
+      - id: logs
+        name: Server and PowerSync logs
+        if: ${{ failure() }}
+        run: |
+          tail -n 100 .ci-server.log || true
+          docker compose logs --tail 100 powersync || true
+
+  zone-components-1:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.release == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      failures: ${{ steps.report.outputs.failures }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: setup
+        uses: ./.github/actions/setup
+      - id: env
+        name: Fictional env
+        run: |
+          node scripts/ci/env.mjs >> "$GITHUB_ENV"
+          node scripts/ci/env.mjs zone >> "$GITHUB_ENV"
+      - id: chromium
+        name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - id: test
+        name: Component tests in the second zone (shard 1 of 2)
+        run: >-
+          node scripts/ci/test-job.mjs --project web:components --shard=1/2 --reporter=default
+          --reporter=json --outputFile.json=ci-results/zone-components-1.json
+      - id: report
+        name: Report the failures
+        if: ${{ !cancelled() }}
+        run: node scripts/ci/verdict.mjs summarize ci-results/zone-components-1.json >> "$GITHUB_OUTPUT"
+
+  zone-components-2:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.release == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      failures: ${{ steps.report.outputs.failures }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: setup
+        uses: ./.github/actions/setup
+      - id: env
+        name: Fictional env
+        run: |
+          node scripts/ci/env.mjs >> "$GITHUB_ENV"
+          node scripts/ci/env.mjs zone >> "$GITHUB_ENV"
+      - id: chromium
+        name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - id: test
+        name: Component tests in the second zone (shard 2 of 2)
+        run: >-
+          node scripts/ci/test-job.mjs --project web:components --shard=2/2 --reporter=default
+          --reporter=json --outputFile.json=ci-results/zone-components-2.json
+      - id: report
+        name: Report the failures
+        if: ${{ !cancelled() }}
+        run: node scripts/ci/verdict.mjs summarize ci-results/zone-components-2.json >> "$GITHUB_OUTPUT"
+
   verdict:
     needs:
       - plan
@@ -435,6 +723,11 @@ jobs:
       - components-2
       - build
       - browser
+      - browser-2
+      - browser-3
+      - zone-components-1
+      - zone-components-2
+      - zone-browser
     # Not on a cancelled run: no artifact reads as unknown on the Mac.
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
