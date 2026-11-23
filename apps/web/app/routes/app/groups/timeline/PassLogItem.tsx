@@ -4,6 +4,7 @@ import type { TimelineEntry } from "~/lib/core/rpc";
 import { useId, useState } from "react";
 import { Link } from "react-router";
 import { AuthorFilterLink, KindFilterLink, MedicationHeading } from "~/components/entry";
+import { Chevron, Collapse } from "~/components/ui";
 import { initials } from "~/lib/timeline/entryDisplay";
 import { formatTime } from "~/lib/core/format";
 import { passLogText } from "~/lib/medications/medicationDisplay";
@@ -49,27 +50,30 @@ export function PassLogItem({
   const toggle = (
     <button
       type="button"
-      className="link link-hover text-base-content/70 relative z-10 text-sm"
+      className="link-hover text-muted relative z-10 inline-flex cursor-pointer items-center gap-1 text-sm"
       aria-expanded={expanded}
       aria-controls={listId}
       onClick={() => setExpanded((e) => !e)}
       data-pass-log-toggle
     >
+      <Chevron open={expanded} />
       {expanded ? "Hide medications" : `Show ${doses.length === 1 ? "medication" : "medications"}`}
     </button>
   );
   const list = (
-    <ul id={listId} hidden={!expanded} className="mt-1 space-y-1" data-pass-log-doses>
-      {doses.map((dose) => {
-        const parts = medicationEntryText(dose);
-        return (
-          <li key={dose.id} data-dose={dose.id}>
-            <MedicationHeading entry={dose} what={parts?.what ?? ""} className="text-sm" />
-            {parts?.note && <p className="text-base-content/80 text-sm break-words">{parts.note}</p>}
-          </li>
-        );
-      })}
-    </ul>
+    <Collapse open={expanded} id={listId} data-pass-log-doses="">
+      <ul className="mt-1 space-y-1">
+        {doses.map((dose) => {
+          const parts = medicationEntryText(dose);
+          return (
+            <li key={dose.id} data-dose={dose.id}>
+              <MedicationHeading entry={dose} what={parts?.what ?? ""} className="text-sm" />
+              {parts?.note && <p className="text-muted text-sm break-words">{parts.note}</p>}
+            </li>
+          );
+        })}
+      </ul>
+    </Collapse>
   );
 
   return (
@@ -94,7 +98,7 @@ export function PassLogItem({
       {!cards && (
         <time
           dateTime={occurredAt}
-          className="text-base-content/70 w-[4.1rem] shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums"
+          className="text-muted w-[4.1rem] shrink-0 pt-0.5 text-sm whitespace-nowrap tabular-nums"
         >
           {time}
         </time>
@@ -105,7 +109,7 @@ export function PassLogItem({
             {text}
           </p>
           {cards && (
-            <time dateTime={occurredAt} className="text-base-content/70 text-sm tabular-nums">
+            <time dateTime={occurredAt} className="text-muted text-sm tabular-nums">
               {time}
             </time>
           )}
@@ -113,7 +117,7 @@ export function PassLogItem({
         {toggle}
         {list}
         {cards && (
-          <p className="text-base-content/60 text-xs">
+          <p className="text-faint text-xs">
             <AuthorFilterLink userId={author} name={authorName} />
           </p>
         )}

@@ -7,7 +7,17 @@ import { VITALS } from "@caretook/data/schema";
 import { CalendarRange, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useLocation } from "react-router";
-import { ChipGroup, CIRCLE, Collapse, Field, IconButton, UserAvatar } from "~/components/ui";
+import {
+  Button,
+  ChipGroup,
+  CIRCLE,
+  Collapse,
+  COUNT_BADGE,
+  Field,
+  ICON_SM,
+  IconButton,
+  UserAvatar,
+} from "~/components/ui";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { useGroup } from "~/lib/app-shell/group";
 import { duringChipName, duringText } from "~/lib/care-periods/periodSearch";
@@ -16,7 +26,7 @@ import { clearAuthor, clearKind, clearPeriod, clearQuery, clearVital } from "~/l
 import { FilterSheet } from "./FilterSheet";
 import { useSearchField } from "./useSearchField";
 
-const X_ICON = <X className="size-3.5" aria-hidden="true" />;
+const X_ICON = <X className={ICON_SM} aria-hidden="true" />;
 
 /**
  * The filter row: the search magnifier, then one icon-only Filter button
@@ -104,7 +114,7 @@ export function FilterChips({
             name: duringChipName(during),
             to: { search: clearPeriod(search) },
             current: true,
-            leading: <CalendarRange className="size-3.5" aria-hidden="true" />,
+            leading: <CalendarRange className={ICON_SM} aria-hidden="true" />,
             trailing: X_ICON,
           },
         ]
@@ -123,26 +133,24 @@ export function FilterChips({
           onPress={field.toggle}
           className={CIRCLE}
         />
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
+          shape="square"
+          icon={SlidersHorizontal}
           aria-haspopup="dialog"
           aria-label={count ? `Filter, ${count} on` : "Filter"}
           title={count ? `Filter, ${count} on` : "Filter"}
-          className={`btn btn-sm btn-square btn-ghost relative ${CIRCLE}`}
+          className={`relative ${CIRCLE}`}
           onClick={() => setSheetOpen(true)}
-          data-filter-button
+          data-filter-button=""
         >
-          <SlidersHorizontal className="size-4" aria-hidden="true" />
           {count > 0 && (
-            <span
-              aria-hidden="true"
-              className="badge badge-neutral badge-xs absolute -top-1 -right-1 min-w-4 px-1 font-semibold"
-              data-filter-count
-            >
+            <span aria-hidden="true" className={COUNT_BADGE} data-filter-count>
               {count}
             </span>
           )}
-        </button>
+        </Button>
         <Collapse open={field.open} axis="inline" id={fieldId} className="min-w-0 flex-1">
           <Field label="Search entries" labelHidden>
             {(control) => (
