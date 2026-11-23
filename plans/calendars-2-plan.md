@@ -6,7 +6,7 @@
 
 **Where it stands:** wave 1 (slices 1, 3, 5, 6; B-304, B-306, B-309) landed in `dev` as `1f260992` through PR #113 (2026-11-23), Codex clean, report filed (a129). Full CI verdict `flake` on `4ccc9653`: `usersAdmin.int.test.ts` failed once and passed on retry, not in this branch's files, cause unread, filed as B-658. The lean browser suite was not run (skeptic decided, a128, the user can veto). Slice worktrees removed. Wave 1's docs are folded and committed on this branch; they reach `dev` with wave 2.
 
-**Next:** `pnpm backlog ingest`, `doctor`, `list`; `pnpm prd sync`; claim B-305, B-307, B-308; start wave 2 (slices 2 and 4, both on opus; merge 2 first, 4 keeps both `index.test.ts` entries). Shell: start commands with `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`, and tell slice agents the same. `calendars.md` has about 30 bytes of budget left and `appointments.md` about 110, so trim at least what wave 2 folds in.
+**Next:** wave 2 is running: B-305, B-307, B-308 claimed, worktrees `calendars-2-2` and `calendars-2-4` made from `9cc557d2`, one opus agent on each. On hand-off, merge 2 first; 4 keeps both `index.test.ts` entries. Shell: start commands with `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`, and tell slice agents the same. `calendars.md` has about 30 bytes of budget left and `appointments.md` about 110, so trim at least what wave 2 folds in.
 
 **Open from wave 1:** hand test against real Google that a deleted upcoming todo's event comes back (`events.update` with `status: "confirmed"`, insert on 404; only the fake client ran it). A device on an older build shows a last-day rule as plain "Repeats" until it updates.
 
@@ -15,9 +15,9 @@
 | Slice | Wave | Model | State       | Merge into `prd/calendars-2` (slice commits) |
 | ----- | ---- | ----- | ----------- | -------------------------------------------- |
 | 1     | 1    | opus  | merged      | `26b3d891` (`4d0bbae3`, `f55df54a`)          |
-| 2     | 2    |       | not started |                                              |
+| 2     | 2    | opus  | started     |                                              |
 | 3     | 1    | opus  | merged      | `d65bacf4` (`ad831a51`; migration 0039)      |
-| 4     | 2    |       | not started |                                              |
+| 4     | 2    | opus  | started     |                                              |
 | 5     | 1    | opus  | merged      | `4d812bc6` (`c58aee87`)                      |
 | 6     | 1    | opus  | merged      | `6012a222` (`6914d97b`, `e82f69c0`)          |
 | 7     | 3    |       | not started |                                              |
