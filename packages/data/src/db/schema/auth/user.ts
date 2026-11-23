@@ -7,6 +7,7 @@ import { boolean, check, jsonb, pgTable, text, timestamp, uuid } from "drizzle-o
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { z } from "zod";
 import { USER_ROLE_NAMES } from "../../../constants/roles";
+import { AVATAR_COLORS, AVATAR_ICONS } from "../app-shell/avatar";
 import { audits, id, timestamps } from "../core/columns";
 
 // Column names line up with Better Auth's user table (name, email,
@@ -29,12 +30,24 @@ export const userSchema = pgTable(
     disabledAt: timestamp("disabled_at", { precision: 3, mode: "string", withTimezone: true }),
     disabledBy: uuid("disabled_by"),
     disabledReason: text("disabled_reason"),
+    // The member's avatar: ids from the fixed catalog (app-shell/avatar.ts),
+    // null for the default. Co-members see them (PUBLIC_PROFILE_FIELDS).
+    avatarColor: text("avatar_color", { enum: AVATAR_COLORS }),
+    avatarIcon: text("avatar_icon", { enum: AVATAR_ICONS }),
     ...timestamps,
     ...audits,
   },
   (t) => [
     // `text({ enum })` only narrows the TS type; this enforces it in the database.
     check("user_role_check", sql`${t.role} IN (${sql.raw(USER_ROLE_NAMES.map((r) => `'${r}'`).join(", "))})`),
+    check(
+      "user_avatar_color_check",
+      sql`${t.avatarColor} IN (${sql.raw(AVATAR_COLORS.map((c) => `'${c}'`).join(", "))})`,
+    ),
+    check(
+      "user_avatar_icon_check",
+      sql`${t.avatarIcon} IN (${sql.raw(AVATAR_ICONS.map((i) => `'${i}'`).join(", "))})`,
+    ),
   ],
 );
 

@@ -121,7 +121,13 @@ describe("field-limited reads", () => {
 
   it("selects hidden user columns only for whole rows", () => {
     const limited = limitedSelection("userSchema", "read", member);
-    expect(limited && [...limited.visible].sort()).toEqual(["id", "image", "name"]);
+    expect(limited && [...limited.visible].sort()).toEqual([
+      "avatarColor",
+      "avatarIcon",
+      "id",
+      "image",
+      "name",
+    ]);
     expect(limited?.columns).toMatchObject({ email: false, role: false, preferences: false });
     expect(limited?.columns).not.toHaveProperty("name");
     expect(Object.keys(limited?.extras ?? {})).toContain(WHOLE_ROW_KEY);

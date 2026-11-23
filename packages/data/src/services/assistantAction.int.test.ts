@@ -430,6 +430,22 @@ describe("assistantActionService.run: dose ids", () => {
     expect(await doseRows(entriesOf)).toHaveLength(1);
   });
 
+  it("logs a pass once when two runs race, the loser told nothing is left", async () => {
+    const { evening, addMedication, run, entriesOf } = await setup();
+    await addMedication("Metformin");
+    const occurredAt = minutesAgo(0);
+
+    const results = await Promise.all([
+      run("caretaker", [{ type: "givePass", passId: evening.id, occurredAt }]),
+      run("admin", [{ type: "givePass", passId: evening.id, occurredAt }]),
+    ]);
+
+    const refused = results.flatMap((res) => (isError(res) ? [res.code] : []));
+    expect(refused.length).toBeLessThanOrEqual(1);
+    for (const code of refused) expect(code).toBe("assistantActionService:nothingLeft");
+    expect((await doseRows(entriesOf)).filter((row) => !row.deletedAt)).toHaveLength(1);
+  });
+
   it("takes a random id when the slot's id is on a deleted row", async () => {
     const { u, evening, addMedication, run, entriesOf } = await setup();
     await addMedication("Metformin");

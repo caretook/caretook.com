@@ -3,6 +3,7 @@ import type { InferRouterInputs } from "@orpc/server";
 import type { AbstractPowerSyncDatabase, CrudEntry } from "@powersync/web";
 import type { ApiOutputs } from "../core/rpc";
 
+import { OWN_DOSE_COPY_METADATA } from "@caretook/data/schema";
 import { getTableName } from "drizzle-orm";
 import { drizzleSchema } from "./schema";
 
@@ -27,13 +28,35 @@ export type UploadCall = (input: UploadInput) => Promise<UploadOutput>;
 type Refusal = Extract<UploadResult, { status: "rejected" }>;
 
 /** The op the server gets for one queued entry. */
-const toOp = (entry: CrudEntry): UploadOp => ({
-  op: entry.op,
-  table: entry.table,
-  id: entry.id,
-  data: entry.opData ?? null,
-  ...(entry.metadata ? { metadata: entry.metadata } : {}),
-});
+const toOp = (entry: CrudEntry, ownDoses: ReadonlySet<CrudEntry>): UploadOp => {
+  const metadata = ownDoses.has(entry) ? OWN_DOSE_COPY_METADATA : entry.metadata;
+  return {
+    op: entry.op,
+    table: entry.table,
+    id: entry.id,
+    data: entry.opData ?? null,
+    ...(metadata ? { metadata } : {}),
+  };
+};
+
+/**
+ * The batch's PATCHes of doses this device still holds as the writer's own
+ * (B-614): the local row's author is who last wrote it, and only this device's
+ * member writes here. (The PATCH can't say: it omits an `updated_by` that didn't
+ * change.) The row can't have changed under a queued write, since the server's
+ * copy replaces it only once the queue is empty.
+ */
+const ownDosePatches = async (db: AbstractPowerSyncDatabase, entries: CrudEntry[]) => {
+  const patches = entries.filter((entry) => entry.table === "timeline_entry" && String(entry.op) === "PATCH");
+  if (!patches.length) return new Set<CrudEntry>();
+  const rows = await db.getAll<{ id: string }>(
+    `SELECT id FROM timeline_entry
+     WHERE kind = 'dose' AND created_by = updated_by AND id IN (SELECT value FROM json_each(?))`,
+    [JSON.stringify(patches.map((entry) => entry.id))],
+  );
+  const own = new Set(rows.map((row) => row.id));
+  return new Set(patches.filter((entry) => own.has(entry.id)));
+};
 
 /** The device's own tables: the only names a label lookup reads from. */
 const DEVICE_TABLES = new Set<string>(Object.values(drizzleSchema).map((table) => getTableName(table)));
@@ -144,7 +167,8 @@ const refusalsOf = (entries: CrudEntry[], results: UploadResult[]): [CrudEntry, 
 export const uploadQueued = async (db: AbstractPowerSyncDatabase, upload: UploadCall) => {
   const batch = await db.getCrudBatch(UPLOAD_BATCH);
   if (!batch) return;
-  const { results } = await upload({ ops: batch.crud.map(toOp) });
+  const ownDoses = await ownDosePatches(db, batch.crud);
+  const { results } = await upload({ ops: batch.crud.map((entry) => toOp(entry, ownDoses)) });
   const refused = refusalsOf(batch.crud, results);
   for (const [, result] of refused) console.warn("Sync: the server refused a change", result);
   if (refused.length) await recordRefusals(db, refused);
