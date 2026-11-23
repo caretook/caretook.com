@@ -94,9 +94,10 @@ const COUNT_WORDS: Record<string, number> = { a: 1, an: 1, one: 1, two: 2, three
 
 const meridiemOf = (text: string | undefined): "am" | "pm" | undefined => {
   if (!text) return undefined;
+  // A separate "a" or "p" is an ordinary word ("pain 8 a bit better"); "a.m." isn't.
   const t = text.replace(/\./g, "");
-  if (t === "am" || t === "a") return "am";
-  if (t === "pm" || t === "p") return "pm";
+  if (t === "am") return "am";
+  if (t === "pm") return "pm";
   return undefined;
 };
 
@@ -111,7 +112,9 @@ const clockWord = (word: string): Clock | null => {
   if (withMeridiem) {
     const hour = Number(withMeridiem[1]);
     const minute = Number(withMeridiem[2] ?? 0);
-    const meridiem = meridiemOf(withMeridiem[3]);
+    // Joined to the number, one letter is enough ("8a", "8:30p").
+    const suffix = withMeridiem[3]!;
+    const meridiem = meridiemOf(suffix.length === 1 ? `${suffix}m` : suffix);
     return validClock(hour, minute, meridiem) ? { hour, minute, meridiem } : null;
   }
   const colon = /^(\d{1,2}):(\d{2})$/.exec(word);
@@ -203,14 +206,55 @@ const ordinalDate = (word: string | undefined) => {
   return n >= 1 && n <= 31 ? n : null;
 };
 
-/** "o2 sat 95" is oxygen, not Saturday: a short weekday before a bare number, or after "o2", isn't one. */
+const PERIOD_WORDS = new Set(["morning", "afternoon", "evening", "night"]);
+
+/** A clock time starting at word `j`: "2pm", "noon", "2 pm", "at 2", "at 2pm". */
+const clockFollows = (words: readonly string[], j: number) => {
+  const at = words[j] === "at" ? 1 : 0;
+  const first = words[j + at];
+  if (!first) return false;
+  if (clockWord(first)) return true;
+  if (!/^\d{1,2}$/.test(first)) return false;
+  const hour = Number(first);
+  const meridiem = meridiemOf(words[j + at + 1]);
+  return meridiem ? validClock(hour, 0, meridiem) : at === 1 && validClock(hour, 0);
+};
+
+const inThePeriod = (words: readonly string[], j: number) =>
+  words[j] === "in" && words[j + 1] === "the" && PERIOD_WORDS.has(words[j + 2] ?? "");
+
+/** "sat" and "sun" are also ordinary words; one of these leading words makes them the day. */
+const AMBIGUOUS_DAYS = new Set(["sat", "sun"]);
+const DAY_LEADS = new Set(["on", "last", "next", "this"]);
+
+/**
+ * "o2 sat 95" is oxygen, not Saturday: a short weekday before a bare number, or
+ * after "o2", isn't one. "sat up in chair" and "in the sun" aren't days either:
+ * "sat" and "sun" need a leading word, a time after them, or the end of the line.
+ */
 const notAWeekday = (words: readonly string[], i: number) => {
   const word = words[i]!;
   if (word.length > 5) return false;
-  if (["o2", "spo2", "oxygen"].includes(words[i - 1] ?? "")) return true;
+  const before = words[i - 1] ?? "";
+  if (["o2", "spo2", "oxygen"].includes(before)) return true;
   const next = words[i + 1] ?? "";
-  const bareNumber = /^\d+(\.\d+)?%?$/.test(next) && !meridiemOf(words[i + 2]);
-  return bareNumber;
+  if (/^\d+(\.\d+)?%?$/.test(next) && !meridiemOf(words[i + 2])) return true;
+  if (!AMBIGUOUS_DAYS.has(word) || DAY_LEADS.has(before)) return false;
+  if (i === words.length - 1) return before === "the";
+  return !clockFollows(words, i + 1) && !PERIOD_WORDS.has(next) && !inThePeriod(words, i + 1);
+};
+
+/**
+ * Whether the ordinal at word `at` can be a day of the month: after "on", at
+ * the end of the line, or before a time word. A period word counts only last
+ * in the line, so "2nd evening dose" and "2nd night in a row" stay counts.
+ */
+const ordinalIsADay = (words: readonly string[], at: number, afterOn: boolean) => {
+  if (afterOn || at === words.length - 1) return true;
+  const next = words[at + 1]!;
+  if (clockFollows(words, at + 1) || inThePeriod(words, at + 1)) return true;
+  if (next === "at" && words[at + 2] === "night") return true;
+  return PERIOD_WORDS.has(next) && at + 1 === words.length - 1;
 };
 
 /**
@@ -335,7 +379,13 @@ export const findTime = (words: readonly string[]): FoundTime | null => {
       const lead = word === "on" && next === "the" ? 2 : word === "on" || word === "the" ? 1 : 0;
       const ordinal = ordinalDate(words[i + lead]);
       const after = words[i + lead + 1] ?? "";
-      if (ordinal !== null && !NOT_A_DATE_AFTER.has(after) && !(after in MONTHS) && after !== "of") {
+      if (
+        ordinal !== null &&
+        !NOT_A_DATE_AFTER.has(after) &&
+        !(after in MONTHS) &&
+        after !== "of" &&
+        ordinalIsADay(words, i + lead, word === "on")
+      ) {
         day = { date: ordinal };
         take(i, lead + 1);
         continue;
