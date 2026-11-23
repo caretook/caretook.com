@@ -18,7 +18,7 @@ Slice 13 decisions: optional times (todo due, series Ends) stay empty by default
 
 Slice 14 gaps to file as follow-ups once the wave is green: a sync after the first touch can read as a change; Back after a failed save does not ask until the next touch; a record deleted elsewhere can prompt; Back with an unguarded sheet on top of a changed one does not ask; Discard under reduced motion has no test; `InviteSheet`, `InviteLinks`, provider import, `RepeatSheet` and `VisitPrepSheet` are unguarded. Wave gate: full check on the tip, then `pnpm prd browser --changed --base dev` (the user asks to be asked before any `--suite`).
 
-Wave 2 full check on ff19deb0 failed on 4 component tests. Three were tests that dismissed an edited sheet; they now go through Discard (merged 46098f03). The fourth is the print race B-552, left alone by the user's decision to re-measure it later. Full check rerunning on the tip.
+**Resume here (wave 2 gate):** all of slices 10–14 are merged and no slice is in flight. The user said to apply the B-552 print-test fix: done in df2ff0d5, 5 of 5 alone. The last full check (ff19deb0) failed on 4 tests; 3 were fixed by going through Discard and the fourth is B-552. The rerun was stopped for this fix, so **no full check has passed on the tip**. Next: `pnpm prd sync`; `NODE_OPTIONS=--max-old-space-size=6144 pnpm prd check` in the background, then `pnpm prd wait check`; `pnpm prd serve --restart`; `pnpm prd browser --changed --base dev` (no `--suite` without asking the user); `pnpm prd pr fixes-ui`; `pnpm prd review fixes-ui --wait`; land; `pnpm backlog done B-552`. Fold docs at landing. File slice 14's gaps below as follow-ups. The landing report must say: existing Google events are rewritten once on their next sync ("Appointment for" becomes "Event for"); B-583 (connector wording) awaits the user; B-585 is the 11 AM hour-step wrap.
 
 Notes for the next wave:
 
@@ -26,22 +26,22 @@ Notes for the next wave:
 - A print-menu test can fail in a full run and pass alone (B-552, the known race).
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                                    | Merge    |
-| ----- | ----- | -------------------------------------------------------- | -------- |
-| 1     | B-256 | merged (opus)                                            | b5373bc9 |
-| 2     | B-416 | merged (opus)                                            | f6f40e4f |
-| 3     | B-538 | merged (opus)                                            | 439b6571 |
-| 4     | B-412 | merged (opus)                                            | 91aced06 |
-| 5     | B-519 | merged (opus)                                            | b2aa214a |
-| 6     | B-413 | merged (opus)                                            | 13ac9f5a |
-| 7     | B-422 | merged (opus)                                            | 8834115b |
-| 8     | B-421 | merged (opus)                                            | fc5dbe18 |
-| 9     | B-319 | merged (opus)                                            | 488e09bf |
-| 10    | B-536 | merged (sonnet)                                          | c9c510cf |
-| 11    | B-575 | merged (sonnet)                                          | 123f2b24 |
-| 12    | B-537 | merged (opus)                                            | 5566480a |
-| 13    | B-535 | merged (opus)                                            | 1dc972d8 |
-| 14    | B-316 | merged (opus), worktree kept until the full check passes | 3c7a6607 |
+| Slice | Item  | State           | Merge    |
+| ----- | ----- | --------------- | -------- |
+| 1     | B-256 | merged (opus)   | b5373bc9 |
+| 2     | B-416 | merged (opus)   | f6f40e4f |
+| 3     | B-538 | merged (opus)   | 439b6571 |
+| 4     | B-412 | merged (opus)   | 91aced06 |
+| 5     | B-519 | merged (opus)   | b2aa214a |
+| 6     | B-413 | merged (opus)   | 13ac9f5a |
+| 7     | B-422 | merged (opus)   | 8834115b |
+| 8     | B-421 | merged (opus)   | fc5dbe18 |
+| 9     | B-319 | merged (opus)   | 488e09bf |
+| 10    | B-536 | merged (sonnet) | c9c510cf |
+| 11    | B-575 | merged (sonnet) | 123f2b24 |
+| 12    | B-537 | merged (opus)   | 5566480a |
+| 13    | B-535 | merged (opus)   | 1dc972d8 |
+| 14    | B-316 | merged (opus)   | 3c7a6607 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
