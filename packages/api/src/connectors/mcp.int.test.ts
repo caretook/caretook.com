@@ -248,7 +248,7 @@ describe("/mcp", () => {
       group: { name: "Test Family" },
       recipient: { preferredName: "Pat Example" },
       timeZone: "America/Los_Angeles",
-      you: { role: "viewer", canAddEntries: false },
+      you: { role: "viewer", canAddEntries: false, groupReadOnly: false },
       units: { temperature: "f", weight: "lb", glucose: "mg/dL", volume: "mL" },
       members: [
         { name: "owner", role: "owner" },
