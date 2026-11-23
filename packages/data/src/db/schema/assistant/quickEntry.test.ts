@@ -729,6 +729,17 @@ describe("doses", () => {
           expect(when(r)).toBe(NOW.toISOString());
         });
 
+        test.each([
+          ["gave lorazepam 0.5", "0.5 mg", "2 tablets", "0.5"],
+          ["gave lorazepam 0.5", "0.5 mg", null, "0.5"],
+          ["gave lorazepam 0.5", "0.5 mg", "1 tablet", "1 tablet"],
+          ["gave lorazepam 0.5", "0.5 mg", "0.5 mg", "0.5 mg"],
+        ])("bare %s at %s with a usual %s records %s, no date (B-651)", (line, strength, dose, amount) => {
+          const r = top(line, { medications: [{ ...lorazepam[0]!, strength, dose }] });
+          expect(action(r)).toMatchObject({ type: "logDose", amount, note: null });
+          expect(when(r)).toBe(NOW.toISOString());
+        });
+
         test("a whole number at the strength still names it: the usual dose (B-648)", () => {
           const r = top("gave lisinopril 10", {
             medications: [{ id: LIS, name: "Lisinopril", strength: "10 mg", dose: "2 tablets" }],
