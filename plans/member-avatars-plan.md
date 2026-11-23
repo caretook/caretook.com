@@ -6,12 +6,16 @@
 
 | Slice | Wave | State       | Merge into `prd/member-avatars` (slice commits) |
 | ----- | ---- | ----------- | ----------------------------------------------- |
-| 1     | 1    | not started |                                                 |
+| 1     | 1    | started     |                                                 |
 | 2     | 2    | not started |                                                 |
 | 3     | 3    | not started |                                                 |
 | 4     | 4    | not started |                                                 |
 
-**Start conditions:** `onboarding` and `ui-kit-5` have landed.
+**Landing mode:** run everything through (started run-through). Land each green wave, clean up, and ask only real questions through `pnpm prd ask`.
+
+**Now (2026-11-23):** wave 1. Slice 1 is in worktree `.loops/member-avatars-1` (slot 5, stack up) on `slice/member-avatars/1`, with a background agent on opus. B-593 is claimed. No open issues.
+
+**Start conditions:** `onboarding` and `ui-kit-5` have landed (both confirmed done on `dev`, 2026-11-23).
 
 **Landing:** one additive migration (slice 1), a sync-config and publication change, no new dependency. After pulling it, run `pnpm datastore:reset` locally.
 
