@@ -634,6 +634,19 @@ describe("DateTimeField", () => {
   test("a step that keeps the day is React Aria's own", async () => {
     expect(await step("2026-10-15T17:00:00.000Z", "month", "{ArrowDown}")).toBe("2026-09-15T17:00:00.000Z");
   });
+
+  test("a placeholder segment takes the text-faint tone, not a faded opacity", async () => {
+    await renderInRouter(
+      <DateTimeField
+        label="Start from"
+        defaultValue="2026-10-15T17:00:00.000Z"
+        timeZone="America/Los_Angeles"
+      />,
+    );
+    const classes = document.querySelector<HTMLElement>('[data-type="month"]')!.className;
+    expect(classes).toContain("data-[placeholder]:text-faint");
+    expect(classes).not.toContain("opacity");
+  });
 });
 
 /** A `Field` around an input, re-rendered with new props. */
@@ -777,15 +790,6 @@ describe("FilterMenu", () => {
     await expect.element(page.getByRole("menu")).toBeVisible();
     expect(page.getByRole("menuitem", { name: "Clear filters" }).elements()).toEqual([]);
     await userEvent.keyboard("{Escape}");
-  });
-
-  test("a placeholder segment takes the text-faint tone, not a faded opacity", async () => {
-    await renderInRouter(
-      <DateTimeField label="Start from" defaultValue="2026-10-15T17:00:00.000Z" timeZone={ZONE} />,
-    );
-    const classes = segment("month").className;
-    expect(classes).toContain("data-[placeholder]:text-faint");
-    expect(classes).not.toContain("opacity");
   });
 });
 
