@@ -45,6 +45,7 @@ export function RescheduleSheet({
     // Nothing to move: nothing to write.
     if (!keepOld && sameSchedule(schedule, initial)) return onClose();
     setBusy(true);
+    setError(null);
     const res = await rescheduleEvent(getSync(), entry.id, { ...schedule, keepOldAsCancelled: keepOld });
     setBusy(false);
     if (!res.ok) return setError(res.issues[0]?.message ?? res.error);

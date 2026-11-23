@@ -18,9 +18,13 @@ const asked = () => document.querySelector("dialog[open]") !== null;
 const keep = () => userEvent.click(page.getByRole("button", { name: "Keep editing" }));
 const discard = () => userEvent.click(page.getByRole("button", { name: "Discard" }));
 
-function Harness() {
+/** How Save ends: leaves, closes the way a saved sheet does (Back), or is refused (once). */
+type SaveEnd = "leave" | "back" | "refuse" | "refuseField" | "refuseOnce";
+
+function Harness({ saveEnd = "leave" }: { saveEnd?: SaveEnd }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const [refused, setRefused] = useState(false);
   // What a sync would do: a new value arriving with no one touching the form.
   const [synced, setSynced] = useState("Fictional start");
   const [deleting, setDeleting] = useState(false);
@@ -36,12 +40,28 @@ function Harness() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              void navigate("/");
+              if (
+                saveEnd === "refuse" ||
+                saveEnd === "refuseField" ||
+                (saveEnd === "refuseOnce" && !refused)
+              ) {
+                // After the submit, as a save's result arrives.
+                setTimeout(() => setRefused(true));
+                return;
+              }
+              if (saveEnd === "leave") void navigate("/");
+              else void navigate(-1);
             }}
           >
             <label>
-              Name <input name="name" defaultValue="Fictional name" />
+              Name{" "}
+              <input
+                name="name"
+                defaultValue="Fictional name"
+                aria-invalid={saveEnd === "refuseField" && refused ? true : undefined}
+              />
             </label>
+            {refused && saveEnd !== "refuseField" && <p role="alert">Couldn't save that.</p>}
             <input type="hidden" name="synced" value={synced} />
             <TimeSelect name="at" label="Time" defaultValue="09:00" />
             <button type="button" data-form-cancel="" onClick={() => void navigate("/")}>
@@ -85,8 +105,8 @@ function Harness() {
 
 const pressBack = () => document.querySelector<HTMLElement>("[data-back]")?.click();
 
-async function openSheet() {
-  const view = await renderInRouter(<Harness />, { width: 800 });
+async function openSheet(saveEnd?: SaveEnd) {
+  const view = await renderInRouter(<Harness saveEnd={saveEnd} />, { width: 800 });
   const opener = view.screen.getByRole("link", { name: "Open the sheet" });
   await userEvent.click(opener);
   await expect.element(page.getByRole("dialog", { name: "Edit" })).toBeVisible();
@@ -196,6 +216,50 @@ describe("leaving on purpose", () => {
     await userEvent.fill(nameField(), "Changed");
     await userEvent.click(page.getByRole("button", { name: "Cancel" }));
     await expect.poll(location).toBe("/");
+    expect(asked()).toBe(false);
+  });
+});
+
+describe("after a save (B-601)", () => {
+  const save = () => userEvent.click(page.getByRole("button", { name: "Save", exact: true }));
+
+  test.each([
+    { how: "an error line", saveEnd: "refuse", shown: () => panel()?.querySelector('[role="alert"]') },
+    {
+      how: "a marked field",
+      saveEnd: "refuseField",
+      shown: () => panel()?.querySelector('[aria-invalid="true"]'),
+    },
+  ] as const)("Back after a save refused with $how asks and keeps the edits", async ({ saveEnd, shown }) => {
+    const { location } = await openSheet(saveEnd);
+    await userEvent.fill(nameField(), "Changed");
+    await save();
+    await found(shown);
+    pressBack();
+    await expect.poll(asked).toBe(true);
+    expect(location()).toBe("/sheet");
+    await keep();
+    await expect.element(nameField()).toHaveValue("Changed");
+    expect(location()).toBe("/sheet");
+  });
+
+  test("Back after a successful save closes without asking", async () => {
+    const { location } = await openSheet("back");
+    await userEvent.fill(nameField(), "Changed");
+    await save();
+    await expect.poll(location).toBe("/");
+    await expect.poll(overlay).toBeNull();
+    expect(asked()).toBe(false);
+  });
+
+  test("a save that succeeds after a refusal closes without asking", async () => {
+    const { location } = await openSheet("refuseOnce");
+    await userEvent.fill(nameField(), "Changed");
+    await save();
+    await found(() => panel()?.querySelector('[role="alert"]'));
+    await save();
+    await expect.poll(location).toBe("/");
+    await expect.poll(overlay).toBeNull();
     expect(asked()).toBe(false);
   });
 });
