@@ -49,7 +49,7 @@ const ownDosePatches = async (db: AbstractPowerSyncDatabase, entries: CrudEntry[
   const patches = entries.filter(
     (entry) =>
       entry.table === "timeline_entry" &&
-      entry.op === "PATCH" &&
+      String(entry.op) === "PATCH" &&
       typeof entry.opData?.updated_by === "string",
   );
   if (!patches.length) return new Set<CrudEntry>();
