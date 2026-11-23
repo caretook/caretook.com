@@ -1,5 +1,6 @@
 import { History } from "lucide-react";
 import { Link } from "react-router";
+import { TITLE_SECTION } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { recordSearch, useRecentSearches } from "~/lib/search/recentSearches";
 
@@ -13,7 +14,7 @@ export function RecentSearches({ groupId, userId }: { groupId: string; userId: s
     <div className="space-y-4">
       {recent.length > 0 && (
         <section aria-labelledby="recent-searches" data-recent-searches>
-          <h2 id="recent-searches" className="mb-1 px-1 font-semibold">
+          <h2 id="recent-searches" className={`${TITLE_SECTION} mb-1 px-1`}>
             Recent searches
           </h2>
           <ul className="divide-base-300 border-base-300 divide-y rounded-box border">
@@ -35,7 +36,7 @@ export function RecentSearches({ groupId, userId }: { groupId: string; userId: s
           </ul>
         </section>
       )}
-      <p className="text-base-content/70 px-1 text-sm" data-search-tips>
+      <p className="text-muted px-1 text-sm" data-search-tips>
         Tip: put a phrase in &ldquo;quotes&rdquo;, and use -word to leave out entries with that word.
       </p>
     </div>

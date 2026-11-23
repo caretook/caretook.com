@@ -1,6 +1,6 @@
 import { Check, RotateCcw } from "lucide-react";
 import { TodoUndoStatus } from "~/components/todos";
-import { Section } from "~/components/ui";
+import { Button, Message, Section } from "~/components/ui";
 
 /**
  * The complete or reopen button, for whoever may complete the todo
@@ -27,36 +27,31 @@ export function TodoCompletion({
   return (
     <Section title="Status" id="completion">
       {done ? (
-        <button
-          type="button"
-          className="btn btn-outline btn-sm gap-1"
+        <Button
+          size="sm"
+          icon={RotateCcw}
           disabled={busy}
           aria-label={`Reopen “${title}”`}
           onClick={onReopen}
-          data-todo-reopen
+          data-todo-reopen=""
         >
-          <RotateCcw className="size-4" aria-hidden="true" />
           Reopen
-        </button>
+        </Button>
       ) : (
-        <button
-          type="button"
-          className="btn btn-primary btn-sm gap-1"
+        <Button
+          variant="primary"
+          size="sm"
+          icon={Check}
           disabled={busy}
           aria-label={`Mark “${title}” done`}
           onClick={onComplete}
-          data-todo-complete
+          data-todo-complete=""
         >
-          <Check className="size-4" aria-hidden="true" />
           Mark done
-        </button>
+        </Button>
       )}
       <TodoUndoStatus groupId={groupId} />
-      {error && (
-        <p role="alert" className="text-error text-sm">
-          {error}
-        </p>
-      )}
+      {error && <Message tone="error">{error}</Message>}
     </Section>
   );
 }

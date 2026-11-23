@@ -5,6 +5,7 @@ import { canCompleteTodo } from "@caretook/data/schema";
 import { ListTodo, UserRound } from "lucide-react";
 import { Link } from "react-router";
 import { TodoRepeatMark, TodoTick, useTodoTick } from "~/components/todos";
+import { Badge, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { assigneeLabel, dueText } from "~/lib/todos/todoDisplay";
@@ -62,23 +63,23 @@ export function PlannerTodoRow({
           />
         </span>
       ) : (
-        <ListTodo className="text-base-content/70 mt-0.5 size-5 shrink-0" aria-hidden="true" />
+        <ListTodo className="text-muted mt-0.5 size-5 shrink-0" aria-hidden="true" />
       )}
       <div className="flex w-[5.5rem] shrink-0 flex-col items-start gap-1" data-when-column>
         <span
-          className={`pt-0.5 text-sm tabular-nums ${overdue ? "text-error font-semibold" : "text-base-content/70"}`}
+          className={`pt-0.5 text-sm tabular-nums ${overdue ? "text-error-ink font-semibold" : "text-muted"}`}
           data-when
         >
           {when}
         </span>
         {/* A long name wraps inside the narrow column rather than running into the title. */}
-        <span
-          className="badge badge-ghost badge-sm h-auto max-w-full gap-1 py-0.5"
+        <Badge
+          icon={assignee.type === "name" ? UserRound : undefined}
+          className="h-auto max-w-full py-0.5 [&>svg]:shrink-0"
           data-todo-assignee={assignee.type}
         >
-          {assignee.type === "name" && <UserRound className="size-3 shrink-0" aria-hidden="true" />}
           <span className="min-w-0 break-words">{assignee.label}</span>
-        </span>
+        </Badge>
       </div>
       <div className="min-w-0 flex-1 pt-0.5">
         <p className="font-medium break-words" data-todo-title>
@@ -86,16 +87,16 @@ export function PlannerTodoRow({
         </p>
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm empty:hidden">
           {overdue && due && (
-            <span className="text-error" data-todo-due>
+            <span className="text-error-ink" data-todo-due>
               {due}
             </span>
           )}
-          <TodoRepeatMark todo={todo} className="text-base-content/70" />
+          <TodoRepeatMark todo={todo} className="text-muted" />
         </p>
         {tick.error && (
-          <p className="text-error relative z-10 text-sm" role="alert">
+          <Message tone="error" className="relative z-10">
             {tick.error}
-          </p>
+          </Message>
         )}
       </div>
     </li>
