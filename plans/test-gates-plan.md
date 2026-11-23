@@ -15,7 +15,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 
 **Done:** waves 1 to 4 are in dev (adce90ee PR #71, 5b724350 PR #74, da93fcfa PR #76, 2991461a PR #81). Their history is in git and in `ops/runbook.md`.
 
-**Now: wave 5 (slices 11, 6, 7, landed together under the new gate).** Slice 11 is merged (e7cfad86; B-587 to B-590 done). Slice 6 is merged (e82dc279; B-528 and B-554 done; three opus agents, the first two hit the context limit). Slice 7 is started in `.loops/test-gates-7` (opus; B-553 claimed). Worktrees `test-gates-11` and `test-gates-6` stay until the wave's run is green, so a failure can go back to them.
+**Now: wave 5 (slices 11, 6, 7, landed together under the new gate).** Slice 11 is merged (e7cfad86; B-587 to B-590 done). Slice 6 is merged (e82dc279; B-528 and B-554 done; three opus agents, the first two hit the context limit). Slice 7 is merged (490eb14a; B-553 done). Worktrees `test-gates-11`, `test-gates-6` and `test-gates-7` stay until the wave's run is green, so a failure can go back to them.
 
 **To land wave 5:** merge slice 7, then `pnpm prd sync`, the quick check, and a real `pnpm prd ci run full --wait` on the tip as the proof. Then the PR, Codex, and `pnpm prd land test-gates --tier full -m "<subject>"`. The landing notice must tell other orchestrators the gate changed at their next sync.
 
@@ -25,6 +25,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 
 - `orchestrator.md`: _The check gate_ and _Landing a wave_, including the `--recheck` text and the `checked_ok` mention. `hotfix.md`: a hotfix lands on the proposal or the user's word. `loop.md`: check wording.
 - The interim rule until `test-gates-2`: before a dev to staging PR, `pnpm prd ci run full --ref dev --wait`, with the user's override.
+- Slice 7: `orchestrator.md` _Running a wave_ (merge and dev-sync check, `ci run <tier> --wait`, blame and send-back, fresh fix agent, `rm` at a green verdict, rotation rule; steps 5 and 6 are now wrong). `loop.md` _Loop rules_ (the exception for merging `prd/<topic>` in a fix, stack release at hand-off, the wait, the fix steps). `machinery.md` (`tidy`, `gc`, `reclaim` holds, the `rotate` refusal, _Slices_ states, `scripts/ci/outstanding.mjs`).
 - `ops/runbook.md` line 31: a quarantined test that didn't pass on dev and a named test in a file dev couldn't load stay unknown.
 
 **Open issues:**
@@ -34,22 +35,23 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 - B-552 (print menu race) passed both component jobs in run 45101406161, one run only. The wave's `full` run tests it again.
 - B-568 stays open in fixes-tooling: six quarantined tests name it, and closing it removes them. B-571 and B-573 are flakes filed there.
 - `ci blame`, `ci file`, `ci status`, `ci gate`, the commit status and the infra-rerun loop have run only against fakes and temp repos. The `ci/` ref deletion in `pnpm prd tidy` has not run against a real old ref.
+- Slice 7 limits: "no rotation during a fix" and "a hand-off leaves no stack up" are prompt-only; a leftover `ci/` ref with no run blocks `rotate` until removed or `--mid-wave`; `gc`'s run-out hold has no `gc`-level test.
 - A flake verdict's GitHub run shows `success`: read the verdict, not the colour.
 - Context-limit fixes are filed in fixes-tooling for the user's review: B-595, B-596, B-597, B-598.
 
-| Slice | Wave | State          | Merge into `prd/test-gates` (slice commits) |
-| ----- | ---- | -------------- | ------------------------------------------- |
-| 1     | 1    | merged (opus)  | 98a36dd4 (5eb596a9)                         |
-| 2     | 1    | merged (opus)  | 34b157fb (80a35650)                         |
-| 3     | 2    | merged (opus)  | 39f87cf0 (f0645753)                         |
-| 4     | 3    | merged (opus)  | 6396b470 (be81f850, e68f8866)               |
-| 5     | 4    | merged (opus)  | 009275c5 (3a0324bc … 54c05411)              |
-| 6     | 5    | merged (opus)  | e82dc279 (64569315 … 68016f5c)              |
-| 7     | 5    | started (opus) | —                                           |
-| 8     | 2    | merged (opus)  | ff6ac3c3 (7bd82c6f)                         |
-| 9     | 3    | merged (opus)  | f285f1a5 (3b4428f0, 3b752d2e, 21533389)     |
-| 10    | 3    | merged (opus)  | 7484100e (b5c9c6c6)                         |
-| 11    | 5    | merged (opus)  | e7cfad86 (d64c4d14, 105a9f38)               |
+| Slice | Wave | State         | Merge into `prd/test-gates` (slice commits) |
+| ----- | ---- | ------------- | ------------------------------------------- |
+| 1     | 1    | merged (opus) | 98a36dd4 (5eb596a9)                         |
+| 2     | 1    | merged (opus) | 34b157fb (80a35650)                         |
+| 3     | 2    | merged (opus) | 39f87cf0 (f0645753)                         |
+| 4     | 3    | merged (opus) | 6396b470 (be81f850, e68f8866)               |
+| 5     | 4    | merged (opus) | 009275c5 (3a0324bc … 54c05411)              |
+| 6     | 5    | merged (opus) | e82dc279 (64569315 … 68016f5c)              |
+| 7     | 5    | merged (opus) | 490eb14a (e033b8f1, 0da30aed, 6dc62462)     |
+| 8     | 2    | merged (opus) | ff6ac3c3 (7bd82c6f)                         |
+| 9     | 3    | merged (opus) | f285f1a5 (3b4428f0, 3b752d2e, 21533389)     |
+| 10    | 3    | merged (opus) | 7484100e (b5c9c6c6)                         |
+| 11    | 5    | merged (opus) | e7cfad86 (d64c4d14, 105a9f38)               |
 
 **Backlog:**
 
