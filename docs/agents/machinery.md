@@ -32,10 +32,10 @@ The scripts behind `pnpm prd` (`scripts/loops/`) that every session leans on: wo
 
 ## The context watch
 
-- **The hook** (`context.mjs`, from `context-settings.json`): `session.sh` passes `claude --settings` for `prd` and backlog sessions (named ones too), so the user's own sessions and planners never run it. After each tool call it reads the size (the transcript's last assistant usage), writes the record and stays silent under `CARETOOK_CONTEXT_LIMIT` (160,000). Over it, it adds a reminder at the first crossing and every `CARETOOK_CONTEXT_REMIND_MIN` (10). It never blocks a tool call and always exits 0.
-- **A subagent's call** is sized from that agent's own transcript and gets the loop's words; if the transcript can't be read it stays silent. A backlog session's subagents get nothing.
+- **The hook** (`context.mjs`, from `context-settings.json`): `session.sh` passes `claude --settings` for `prd` and backlog sessions (named ones too), so the user's own sessions and planners never run it. After each tool call it reads the size (the transcript's last assistant usage), writes the record and stays silent under `CARETOOK_CONTEXT_LIMIT` (160,000; subagents: below). Over it, it reminds at the first crossing and every `CARETOOK_CONTEXT_REMIND_MIN` (10). It never blocks a tool call and always exits 0.
+- **A subagent** is sized from its own transcript (unreadable: silent); a backlog session's get nothing. Past **175k** it's asked to judge, again every further 25k; past **300k** told to hand off each call.
 - **The size record:** `.loops/.context/<name>.json` in the main checkout (subagents under `.agents/<name>/`). A record whose pid isn't the live session's is ignored.
-- **`pnpm prd context`** prints the caller's size and the limit; `--all [--json]` lists live sessions; `--keep "<why>"` silences the watch for `CARETOOK_CONTEXT_KEEP_MIN` (30). It's refused on a `slice/` branch, whose shell carries its orchestrator's session.
+- **`pnpm prd context`** prints the session's size (a subagent's shell: its orchestrator's) and the limit; `--all [--json]` lists live sessions; `--keep "<why>"` silences the watch for `CARETOOK_CONTEXT_KEEP_MIN` (30). It's refused on a `slice/` branch.
 
 ## The dispatcher
 
