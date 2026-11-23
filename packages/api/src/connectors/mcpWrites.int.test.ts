@@ -13,7 +13,7 @@ import {
   todoService,
   timelineEntryService,
 } from "@caretook/data";
-import { fromBase64, MENTION_NODE } from "@caretook/data/schema";
+import { doseSlotIdFor, fromBase64, MENTION_NODE } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, ok } from "../../../data/test/fixtures";
 import {
@@ -154,6 +154,32 @@ describe("/mcp write tools", () => {
     const passLogId = (written!.details as { passLogId: string }).passLogId;
     expect(textOf(pass)).toContain("Evening medications · Given all · 1 medication");
     expect(pass.structuredContent.url).toBe(`${base}/timeline/pass/${passLogId}/edit`);
+  });
+
+  it("give_pass writes the slot's id, and a second run doesn't double it", async () => {
+    const w = await world();
+    const token = w.writer.tokens.access_token;
+
+    const pass = await tool(token, "give_pass", { passId: w.evening.id });
+    expect(pass.isError).toBeUndefined();
+    const [id] = pass.structuredContent.entryIds!;
+    const written = await w.entry(id!);
+    expect(id).toBe(
+      doseSlotIdFor(
+        {
+          ...(written!.details as { medicationId: string; status: "given"; passId: string }),
+          occurredAt: written!.occurredAt,
+        },
+        { timeZone: written!.timeZone, passTime: w.evening.time },
+      ),
+    );
+
+    const again = await tool(token, "give_pass", { passId: w.evening.id });
+    expect(again.isError).toBe(true);
+    const doses = (await w.groupEntries()).filter(
+      (e) => e.kind === "dose" && (e.details as { passId?: string }).passId === w.evening.id,
+    );
+    expect(doses).toHaveLength(1);
   });
 
   it("add a note, an event with its provider, and a todo by its assignee's name", async () => {
