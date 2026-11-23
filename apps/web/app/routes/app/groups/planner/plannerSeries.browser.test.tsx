@@ -116,7 +116,7 @@ describe("a monthly repeat on the last day", () => {
     await userEvent.click(sheet.getByRole("button", { name: "Done" }));
     await expect.element(sheet).not.toBeInTheDocument();
 
-    await userEvent.click(getByCss("main header input"));
+    (await found(TITLE)).focus();
     await userEvent.keyboard("Month-end checkup{Enter}");
     await expect.poll(() => device.location()).toMatch(/\/entries\/[0-9a-f-]{36}$/);
 
