@@ -24,7 +24,8 @@
 - Slice 2: on `skeptic record`, `--option` is the option chosen and `--offer <a>` (repeated) the question's options; the hash covers the trimmed question and the options in order, so `ask` passes the same ones in the same order. A question with no recommendation counts as `waits`. `useRecord` spends the record before filing, so validate the question first or a failed `createAsk` burns the verdict.
 - Slice 3: land verdicts need the full 40-character tip and an action of `force`, `no-review` or `decline <thread>`. They aren't spent, so a retry on the same tip works: use `checkRecord`, not `useRecord`.
 - Slice 4: plan verdicts are `go` or `send-back`. A land `no` or plan `send-back` used for an ask is bound only by topic, age and single use.
-- Docs: machinery's notes on the store and the brief are still to fold in at wave 1's landing.
+
+**Wave 1:** quick check passed on 518e25b4; proposed tier `none` (tooling and docs), so no CI run. Synced with `dev` (23e157a8), machinery doc folded in. Next: quick check, PR, Codex review, land.
 
 Fold into the docs at landing (the PRD's _Docs at landing_): wave 1, [machinery](../docs/agents/machinery.md) (the store and the brief); wave 2, machinery, [orchestrator](../docs/agents/orchestrator.md), [planner](../docs/agents/planner.md), [preferences](../docs/agents/preferences.md), [backlog](../docs/agents/backlog.md). Trim at least what you fold in.
 
