@@ -12,21 +12,22 @@ PRDs: [`connectors-prd.md`](../../plans/connectors-prd.md) (B-104), [`connectors
 ## Consent (`/connect`)
 
 - Authorize sends to `/connect?…&sig=…` (signed, 10 minutes); signed out, to `/sign-in?redirectTo=…`. **It reads the session live** (`getAuthUser(…, { live: true })`): it mints 30-day tokens. A browser's dead end (error redirect, 4xx, 429) gets an HTML page (`withConnectorAuthorizePage`); other requests keep JSON.
-- `ConnectConsent.tsx`: client and redirect host, groups with the switch on, scope by role, the consent checkbox (`CONNECTOR_CONSENT_TEXT`, which lists todos; `_VERSION` "2026-11-21"), Connect, Cancel. With none on: the off groups, the ask button for non-owners, Assistants' link for owners.
+- `ConnectConsent.tsx`: client and redirect host, groups with the switch on, scope by role, the consent checkbox (`CONNECTOR_CONSENT_TEXT`, `_VERSION`), Connect, Cancel. With none on: the off groups, the ask button for non-owners, Assistants' link for owners.
 - **Success:** Connect returns `{ connected }` (Cancel redirects): "Connected to <group>", three examples, "Return to <client>". **Needs JS:** CSP `form-action 'self'` blocks a cross-origin 302, so it's `window.location`.
 
 ## Grants (`connector_grant`, `connectorGrantService`)
 
-- One grant binds a token to one group (`client_name` ≤ 40, `redirect_host`, `scope` `read|readWrite`, `consent_version`, `last_used_at`, `revoked_at`). One live grant per user and client; a new one ends the old one's tokens.
-- `PERMISSIONS.connector_grant`: read and delete for the member and the group's owners and admins; create and update for `system`.
-- **`verify(token)` is the only way into `/mcp`.** Each call rechecks the account, membership, current role (viewers read only; easy roles none: `scopesForRole`, so a role change cuts a grant off) and the switch; token scopes narrow it (`effectiveScope`). It returns the member with `roleNames: ["member"]` (no staff powers) and stamps `last_used_at` once a minute at most. `groupId` comes from the grant, never tool input.
+- One grant binds a token to one group (`scope` `read|readWrite`, `consent_version`, `revoked_at`). One live grant per user and client; a new one ends the old one's tokens.
+- `PERMISSIONS.connector_grant`: read and delete for the member, owners and admins; create and update for `system`.
+- **`verify(token)` is the only way into `/mcp`.** Each call rechecks the account, membership, role (`scopesForRole`: viewers read, easy roles none), the switch and read only; token scopes narrow it (`effectiveScope`). It returns the member with `roleNames: ["member"]` and stamps `last_used_at` at most once a minute. `groupId` comes from the grant, never tool input.
 - `revoke` ends the tokens and the `oauth_consent` row. `revokeForMember` runs in `careGroupMemberService.remove` (and `leave`).
-- **The switch** `care_group.connectors_enabled` (default off; Dev Family seeded on): owners only, through `careGroupService.update`. Off revokes every grant in the same transaction; on restores nothing.
+- **The switch** `care_group.connectors_enabled` (default off; Dev Family on): owners only, via `careGroupService.update`. Off revokes every grant; on restores nothing.
+- **Read only** `connectors_read_only` (default false): owners only, kept across the switch, revokes nothing. `verify` narrows each call and grants keep their scope, so switching back restores writing. A blocked write is the tool refusal `mcp:groupReadOnly`, not the 403.
 
 ## Asking owners (`assistant_request`, `assistantRequestService`)
 
 - Cascades from the group and the membership. Not synced. Read: the member, owners, admins; writes `system`.
-- `request`: not owners (`owner`), not while on (`alreadyOn`). Within 7 days it returns the last ask (`created: false`). Else, membership locked `FOR UPDATE`, the row plus `assistantsRequested` to each owner (key `…:<requestId>:<ownerId>`; names only), then `deliverSoon`.
+- `request`: not owners (`owner`), not while on (`alreadyOn`). Within 7 days it returns the last ask (`created: false`). Else, membership locked, the row plus `assistantsRequested` to each owner (names only), then `deliverSoon`.
 - oRPC `connector.requestEnable`, `myRequest`. The button (`components/connectors/ask/`) sits under the off note.
 
 ## `/mcp` (`packages/api/src/connectors/`)
