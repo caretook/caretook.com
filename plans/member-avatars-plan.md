@@ -4,16 +4,16 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/member-avatars` (slice commits) |
-| ----- | ---- | ----------- | ----------------------------------------------- |
-| 1     | 1    | started     |                                                 |
-| 2     | 2    | not started |                                                 |
-| 3     | 3    | not started |                                                 |
-| 4     | 4    | not started |                                                 |
+| Slice | Wave | State       | Merge into `prd/member-avatars` (slice commits)   |
+| ----- | ---- | ----------- | ------------------------------------------------- |
+| 1     | 1    | merged      | 816ac0c5 (aa217ed2, cd475969, 0cd26332, 129dbb45) |
+| 2     | 2    | not started |                                                   |
+| 3     | 3    | not started |                                                   |
+| 4     | 4    | not started |                                                   |
 
 **Landing mode:** run everything through (started run-through). Land each green wave, clean up, and ask only real questions through `pnpm prd ask`.
 
-**Now (2026-11-23):** wave 1. Slice 1 is in worktree `.loops/member-avatars-1` (slot 5, stack up) on `slice/member-avatars/1`, with a background agent on opus. B-593 is claimed. No open issues.
+**Now (2026-11-23):** wave 1. Slice 1 (opus) is merged; its worktree `.loops/member-avatars-1` stays until the wave's verdict is green, and its stack is down. Next: quick check, then the wave's CI run. B-593 stays claimed until slice 4 merges. Watch in the CI run: components that mount the frame now make one extra `me.get` through `UserMenu`. Reviewed: the migration is safe on a fresh database (0005 creates the publication) and `db:roles` keeps the new columns (it derives them from the sync config).
 
 **Start conditions:** `onboarding` and `ui-kit-5` have landed (both confirmed done on `dev`, 2026-11-23).
 
