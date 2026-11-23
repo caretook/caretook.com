@@ -272,7 +272,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-525 | bug | triaged | fixes-tooling |  | Asks: two processes taking over a dead holder's ask lock can both remove it, so one deletes the other's fresh lock and an answer and a default overlap (asks.mjs withAskLock) |
 | B-526 | bug | triaged | fixes-tooling |  | Notices: two concurrent posts can lower the .seq high-water mark (check-then-rename), so after both expire a notice id is reused and a late notices --done withdraws a newer notice (notices.mjs createNotice) |
 | B-527 | bug | triaged | fixes-bug |  | Todo Undo and Done writes are voided with no catch (TodoUndoStatus.undo, useTodoTick's run via void complete(...)): a write that throws becomes an unhandled rejection, with nothing shown to the user |
-| B-528 | chore | ready | test-gates | prd/test-gates | Rapid-mode landing gate: a landing into dev needs only the quick check (no local full, no escalation to full), the changed browser checks and Codex; CI on dev runs the rest |
+| B-528 | chore | landed | test-gates | prd/test-gates | Rapid-mode landing gate: a landing into dev needs only the quick check (no local full, no escalation to full), the changed browser checks and Codex; CI on dev runs the rest |
 | B-532 | chore | triaged | test-gates-2 |  | Staging candidate: cut a release candidate branch from a green dev commit and open the PR into staging from it; CI runs the lean browser suite on the Docker stack against that fixed commit; only fixes go onto it |
 | B-533 | chore | triaged | test-gates-2 |  | staging to main gate: CI runs the full browser suite, a second time zone and repeated runs to catch flakes; a required status check on main always, on staging only in pre-deployment mode |
 | B-542 | chore | triaged | fixes-tooling |  | Unit-test projects run at Vitest's default workers (cores - 1, 9 here): two overlapping checks run ~18 test processes on 10 cores, the load behind the under-load timeouts; cap the unit group at about 4 (or half the cores) and time it against check-times |
@@ -283,8 +283,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-549 | feature | triaged | symptom-catalog |  | Symptoms become a catalog type: a default set for every group, writers add new ones quickly with a similar-name check; filter the timeline by several symptoms at once |
 | B-550 | feature | triaged | todo-subtasks |  | Nested todos: subtasks up to 3 levels deep, a parent completes when its last subtask is done |
 | B-551 | feature | triaged | inbox-agent |  | 'bye' for every agent role: a message of just 'bye' runs a handover check; nothing left means the session closes itself, otherwise it asks the user what to do with what's left |
-| B-553 | change | ready | test-gates | prd/test-gates | Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent |
-| B-554 | change | ready | test-gates | prd/test-gates | CI runs only on request: the orchestrator asks for a tier (static, unit, integration, components, full) on any branch, and the landing gate checks for a green run of the tier it declared; no automatic run on a PR or a push |
+| B-553 | change | landed | test-gates | prd/test-gates | Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent |
+| B-554 | change | landed | test-gates | prd/test-gates | CI runs only on request: the orchestrator asks for a tier (static, unit, integration, components, full) on any branch, and the landing gate checks for a green run of the tier it declared; no automatic run on a PR or a push |
 | B-557 | feature | triaged | timeline-jump |  | quick date jump on timeline via date picker AND quick entry |
 | B-558 | feature | landed | assistant-access | prd/assistant-access | Assistants settings needs to allow owner to enable read/write or stick to read only for group… |
 | B-560 | feature | triaged | self-recovery-2 |  | A cost record: tokens by model per PRD and slice, from session and subagent transcripts, in pnpm prd cost |
@@ -308,10 +308,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-584 | chore | triaged | fixes-tooling |  | Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone |
 | B-585 | bug | landed | fixes-ui | prd/fixes-ui | Stepping an event's hour up from 11 AM wraps to 12 AM the same day, not 12 PM, so Ends shows 'Must be after the start' |
 | B-586 | bug | triaged | fixes-tooling |  | Phone notifications from the backlog session never arrive |
-| B-587 | bug | ready | test-gates | prd/test-gates | ci blame calls a failure the branch's when dev's comparison run skipped it as quarantined |
-| B-588 | bug | ready | test-gates | prd/test-gates | ci blame says every failure is dev's when a flake hides an unnamed job failure |
-| B-589 | bug | ready | test-gates | prd/test-gates | ci blame calls a named failure dev's when dev only failed to load the test file |
-| B-590 | bug | ready | test-gates | prd/test-gates | ci blame calls a branch's file-level failure dev's when dev only fails a named test in that file |
+| B-587 | bug | landed | test-gates | prd/test-gates | ci blame calls a failure the branch's when dev's comparison run skipped it as quarantined |
+| B-588 | bug | landed | test-gates | prd/test-gates | ci blame says every failure is dev's when a flake hides an unnamed job failure |
+| B-589 | bug | landed | test-gates | prd/test-gates | ci blame calls a named failure dev's when dev only failed to load the test file |
+| B-590 | bug | landed | test-gates | prd/test-gates | ci blame calls a branch's file-level failure dev's when dev only fails a named test in that file |
 | B-591 | bug | triaged | fixes-bug |  | Quick entry reads a fraction after the medication as a date: 'gave tylenol 3/8' logs the usual dose on March 8 |
 | B-592 | change | landed | fixes-ui | prd/fixes-ui | Planner event card: replace the narrow time column with a footer-actions layout |
 | B-593 | feature | triaged | member-avatars |  | Choose your avatar: a color and icon instead of plain initials |
@@ -331,6 +331,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-607 | bug | triaged | test-gates |  | Component test harness: settle can return before the page mounts, so a test reading right after open can get nothing |
 | B-608 | chore | triaged | fixes-tooling |  | Format before the slice check: prettier --write on a slice's changed files, and --cache on the whole-repo check |
 | B-609 | chore | triaged | fixes-tooling |  | Stale check-gate text after test-gates: prd.sh help (ci run exits, quick escalation), the hotfix prompt, the PR body and ready's local check line, and dead checked_ok in lib.sh |
+| B-610 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/db/resetStaging.int.test.ts: resetStaging wipes everything but real sign-ins, reseeds, and … |
 
 ## Items
 
@@ -1962,7 +1963,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-528 · chore · Rapid-mode landing gate: a landing into dev needs only the quick check (no local full, no escalation to full), the changed browser checks and Codex; CI on dev runs the rest
 
-- status: ready
+- status: landed
 - prd: test-gates
 - owner: prd/test-gates
 - commit: e82dc279
@@ -2074,7 +2075,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-553 · change · Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent
 
-- status: ready
+- status: landed
 - prd: test-gates
 - owner: prd/test-gates
 - commit: 490eb14a
@@ -2084,7 +2085,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-554 · change · CI runs only on request: the orchestrator asks for a tier (static, unit, integration, components, full) on any branch, and the landing gate checks for a green run of the tier it declared; no automatic run on a PR or a push
 
-- status: ready
+- status: landed
 - prd: test-gates
 - owner: prd/test-gates
 - commit: e82dc279
@@ -2317,7 +2318,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-587 · bug · ci blame calls a failure the branch's when dev's comparison run skipped it as quarantined
 
-- status: ready
+- status: landed
 - prd: test-gates
 - owner: prd/test-gates
 - commit: e7cfad86
@@ -2326,7 +2327,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-588 · bug · ci blame says every failure is dev's when a flake hides an unnamed job failure
 
-- status: ready
+- status: landed
 - prd: test-gates
 - owner: prd/test-gates
 - commit: e7cfad86
@@ -2335,7 +2336,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-589 · bug · ci blame calls a named failure dev's when dev only failed to load the test file
 
-- status: ready
+- status: landed
 - prd: test-gates
 - owner: prd/test-gates
 - commit: e7cfad86
@@ -2344,7 +2345,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-590 · bug · ci blame calls a branch's file-level failure dev's when dev only fails a named test in that file
 
-- status: ready
+- status: landed
 - prd: test-gates
 - owner: prd/test-gates
 - commit: e7cfad86
@@ -2527,3 +2528,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (prd/test-gates): Found folding test-gates wave 5 docs. ci run --wait exits by kind (0-5, 75), planCheck no longer escalates to full, prompt.sh's hotfix prompt names no CI tier, pr.sh and ready.sh still print checked_how, checked_ok is used only by tests.
+
+### B-610 · bug · CI flake: packages/data/src/db/resetStaging.int.test.ts: resetStaging wipes everything but real sign-ins, reseeds, and …
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): [ci-key b5b3b5a3d741] Flaked (passed on its rerun); found by prd/test-gates.
