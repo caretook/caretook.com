@@ -57,6 +57,7 @@ const googleServer = (role: GroupRole, google: GoogleStatus) => {
           detailsConsent: false,
           detailsConsentAt: null,
           detailsConsentVersion: null,
+          detailsConsentStale: false,
           groupAllowsDetails: true,
           shareLevel: "generic",
           feed: { active: false, rotatedAt: null },

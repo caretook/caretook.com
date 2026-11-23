@@ -7,6 +7,7 @@ import {
   careGroupMemberSchema,
   careGroupSchema,
   careRecipientSchema,
+  hasDetailsConsent,
   memberCalendarSettingSchema,
   providerSchema,
   reminderOverrideSchema,
@@ -88,6 +89,7 @@ export const reminderInputs = async ({ from, to, tx }: { from: Date; to: Date; t
         email: userSchema.email,
         leads: setting.reminderLeads,
         consentAt: setting.detailsConsentAt,
+        consentVersion: setting.detailsConsentVersion,
       })
       .from(setting)
       .innerJoin(
@@ -200,7 +202,12 @@ export const reminderInputs = async ({ from, to, tx }: { from: Date; to: Date; t
     groupAllowsDetails: g.allows,
     members: members
       .filter((m) => m.groupId === g.groupId)
-      .map((m) => ({ userId: m.userId, email: m.email, leads: m.leads, detailsConsent: !!m.consentAt })),
+      .map((m) => ({
+        userId: m.userId,
+        email: m.email,
+        leads: m.leads,
+        detailsConsent: hasDetailsConsent(m),
+      })),
     entries: entries
       .filter((e) => e.groupId === g.groupId)
       .map((e) => ({ ...e, providers: namesOf.get(e.id) ?? [] })),

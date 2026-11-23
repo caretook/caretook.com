@@ -59,7 +59,8 @@ const toTime = (time: calendar_v3.Schema$EventDateTime | undefined): GoogleEvent
   return null;
 };
 
-const fromGoogle = (event: calendar_v3.Schema$Event): GoogleEvent => ({
+/** Google's event as ours. Exported for its unit test; not part of the package's surface. */
+export const fromGoogle = (event: calendar_v3.Schema$Event): GoogleEvent => ({
   id: event.id ?? "",
   etag: event.etag ?? "",
   status: event.status === "cancelled" || event.status === "tentative" ? event.status : "confirmed",
@@ -70,6 +71,7 @@ const fromGoogle = (event: calendar_v3.Schema$Event): GoogleEvent => ({
   end: toTime(event.end),
   privateProperties: { ...(event.extendedProperties?.private ?? {}) },
   updated: event.updated ?? "",
+  recurring: !!event.recurringEventId,
 });
 
 const toGoogle = (event: GoogleEventInput): calendar_v3.Schema$Event => ({

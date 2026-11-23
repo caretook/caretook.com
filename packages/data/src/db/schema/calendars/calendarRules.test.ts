@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   calendarSettingsChangeZSchema,
   DEFAULT_REMINDER_LEADS,
+  DETAILS_CONSENT_VERSION,
+  hasDetailsConsent,
   reminderLeadsZSchema,
   shareLevel,
 } from "./calendarRules";
@@ -14,6 +16,19 @@ describe("shareLevel", () => {
     expect(shareLevel({ memberConsent: true, groupAllowsDetails: false })).toBe("generic");
     expect(shareLevel({ memberConsent: false, groupAllowsDetails: true })).toBe("generic");
     expect(shareLevel({ memberConsent: false, groupAllowsDetails: false })).toBe("generic");
+  });
+});
+
+describe("hasDetailsConsent", () => {
+  const consentAt = "2026-11-18T18:00:00.000Z";
+
+  it("holds only for a recorded consent to the current wording", () => {
+    expect(hasDetailsConsent({ consentAt, consentVersion: DETAILS_CONSENT_VERSION })).toBe(true);
+    expect(hasDetailsConsent({ consentAt: null, consentVersion: null })).toBe(false);
+    expect(hasDetailsConsent({ consentAt: undefined, consentVersion: undefined })).toBe(false);
+    expect(hasDetailsConsent({ consentAt, consentVersion: "2020-01-01" })).toBe(false);
+    expect(hasDetailsConsent({ consentAt, consentVersion: null })).toBe(false);
+    expect(hasDetailsConsent({ consentAt: null, consentVersion: DETAILS_CONSENT_VERSION })).toBe(false);
   });
 });
 
