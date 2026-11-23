@@ -134,7 +134,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-254 | feature | triaged | planner-3 |  | Quick entry: 'bins out every monday' makes a repeating todo |
-| B-269 | chore | in-progress | ui-kit-4 | prd/ui-kit-4 | Guard the kit: a lint rule or layout test that keeps react-aria imports in ui/ and flags raw btn, card, badge and alert classes outside ui/ |
+| B-269 | chore | ready | ui-kit-4 | prd/ui-kit-4 | Guard the kit: a lint rule or layout test that keeps react-aria imports in ui/ and flags raw btn, card, badge and alert classes outside ui/ |
 | B-286 | bug | triaged | sync-safety |  | A repeatable 5xx from sync.upload blocks a device's upload queue forever: no retry cap, and the sync indicator never shows uploadError or the queue length |
 | B-288 | bug | triaged | sync-safety |  | A replayed PUT on an existing row is a full update with the insert-time values, reverting newer edits (and for medications writing no change entry) |
 | B-289 | bug | triaged | sync-safety |  | Client-chosen ids are global: a member of one group can squat ids in another (note_document by a victim's provider id; series visit ids), wedging a device's queue or making top-up skip days |
@@ -328,6 +328,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-604 | chore | triaged | fixes-tooling |  | Test Discard under reduced motion in the sheet guard |
 | B-605 | bug | triaged | fixes-bug |  | PageUp and PageDown on a date field's hour still wrap inside AM/PM, so 11 AM can page to 12 AM |
 | B-606 | feature | inbox |  |  | Highlight a double dose on a next-dose-due notification |
+| B-607 | bug | triaged | fixes-tooling |  | Component test harness: settle can return before the page mounts, so a test reading right after open can get nothing |
 
 ## Items
 
@@ -563,10 +564,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-269 · chore · Guard the kit: a lint rule or layout test that keeps react-aria imports in ui/ and flags raw btn, card, badge and alert classes outside ui/
 
-- status: in-progress
+- status: ready
 - prd: ui-kit-4
 - owner: prd/ui-kit-4
-- commit:
+- commit: 6814c3dc
 
 - 2026-11-21 (Robert Bo Davis): Review 2026-11-21: no no-restricted-imports or class guard found in the ESLint configs; the rules in components.md are held by review only (react-aria is clean today). Add after the primitives land, with an allowlist for marketing and print sheets.
 - 2026-11-21 (plan/ui-kit): ui-kit plan (2026-11-21): moved to the follow-on ui-kit-2, after the area sweeps (B-398); ui-kit itself is the primitives and their first adopters.
@@ -2496,3 +2497,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-22 (prd/dose-accuracy): From the user's answer to dose-accuracy ask a92 (their words 'next dose tube notification', read as 'next dose due'). No such notification exists today: notifications are email only and none is about doses, push is a later plan. Needs a decision on what the notification is before this can be built.
+
+### B-607 · bug · Component test harness: settle can return before the page mounts, so a test reading right after open can get nothing
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-22 (prd/test-gates): Found by test-gates wave 5: entryRepeat.browser.test.tsx failed on CI runs 45108684442 and 45109646741 and was fixed in the test only. renderWithDevice's settle can go quiet while route loaders read the device; plannerWorld.ts already waits for main first.
