@@ -7,7 +7,7 @@ The [PRD](test-gates-prd.md) covers:
 - a run's failures are sorted by kind, and flakes are quarantined;
 - a landing waits for the tier its orchestrator declared.
 
-Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-566, B-567, B-568, B-572, B-587, B-588, B-589. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
+Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-566, B-567, B-568, B-572, B-587, B-588, B-589, B-607. B-531 (modes) is dropped. B-532 and B-533 go to `test-gates-2`.
 
 ## Status
 
@@ -20,6 +20,8 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 **Gate (resumed after the rotation):** all three slices are merged and dev is synced at f2e57eab (dev brought migration 0037; this worktree's database was reset). The previous session's gate died with it: no quick check on the tip, no CI run, no `ci/` ref. This session reran it in the background: the quick check, then `pnpm prd ci run full --ref prd/test-gates --wait 45`. If this line is still here after a restart, run `pnpm prd ci prd/test-gates` and `pnpm prd check --times`, reuse a full verdict on the tip, and rerun only what is missing. Commits since that are only this plan keep a verdict. The `test-gates-11` worktree is already gone; a failure in slice 11's files gets a fresh fix agent.
 
 **Gate results:** on 76c92bbb the quick check passed and `full` run 45107547857 read `flake`: one test in `timelineBack.browser.test.tsx` ("three pages down"), in a file this branch didn't touch, not on the brake list, and already named by B-568. Dev then brought assistant-access (app code and `sync-config.yaml`, no migration), synced cleanly at f75fd74f, so that verdict doesn't carry. On f1b19a9b the quick check passed and `full` run 45108684442 read `file`: `entryRepeat.browser.test.tsx` ("the repeat field previews each choice…") failed in components-1. Blame exited 5 (unknown): it passed alone on dev 0f1caad9 (run 45109453885) and failed both attempts alone on the tip (narrowed run 45109646741). App code is identical on the two commits; the branch differs only in `scripts/ci/` and `scripts/loops/`. Line 81 reads `REPEAT_BUTTON()` once right after `open()`, without `await found(...)`: a suspected read-before-render race, so it gets fixed, not rerun. A fresh opus fix agent fixed that one read (564838c4, narrowed run 45110214705 green, 8 of 8), merged as 9fe34d1b on top of the dev sync 9f0f7b91. The race wasn't reproduced on demand, so the `full` run is the real test. The harness gap behind it (`settle` can return before the page mounts) is filed as B-607 in fixes-tooling. The quick check and a new `full` run are going on the tip.
+
+**Next: wave 6 (slice 12, B-607), added on the user's word on 2026-11-22.** It starts after wave 5 lands and the session rotates. Wave 5's gate does not wait for it.
 
 **To land wave 5:** merge slice 7, then `pnpm prd sync`, the quick check, and a real `pnpm prd ci run full --wait` on the tip as the proof. Then the PR, Codex, and `pnpm prd land test-gates --tier full -m "<subject>"`. The landing notice must tell other orchestrators the gate changed at their next sync.
 
@@ -56,6 +58,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 | 9     | 3    | merged (opus) | f285f1a5 (3b4428f0, 3b752d2e, 21533389)     |
 | 10    | 3    | merged (opus) | 7484100e (b5c9c6c6)                         |
 | 11    | 5    | merged (opus) | e7cfad86 (d64c4d14, 105a9f38)               |
+| 12    | 6    | not started   | —                                           |
 
 **Backlog:**
 
@@ -79,6 +82,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 | B-588 | slice 11 starts | slice 11 merges |
 | B-589 | slice 11 starts | slice 11 merges |
 | B-590 | slice 11 fix    | slice 11 merges |
+| B-607 | slice 12 starts | slice 12 merges |
 
 ## Architectural decisions
 
@@ -101,6 +105,7 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
   3. slices 4 and 10 side by side, then slice 9 on top of 4 (9 needs the quarantine list)
   4. slice 5
   5. slice 11, then slice 6 on top of it, then slice 7, landed together
+  6. slice 12 (the harness race, B-607), after wave 5 has landed
 - Waves 1 to 4 land under today's gate. **Wave 5 lands under its own new gate**, with a real `--tier full` run as the proof, and its landing notice tells the other orchestrators that the gate changed at their next sync.
 - **Proving a workflow change:** a slice pushes its own commit to a `ci/` ref (`pnpm prd ci run`, or `git push origin HEAD:refs/heads/ci/<tier>/<name>` before the command exists), links the runs in its hand-off and deletes the refs. A pushed ref runs the workflow of that commit, so nothing needs to be in dev or staging first.
 - **Hot files:** `.github/workflows/`, `.github/actions/`, `scripts/ci/`, `scripts/deploy/workflows`, `packages/data/src/db/roles/syncConfig.ts` (the YAML reader the workflow tests use), `vitest.config.ts`, `scripts/loops/land`, `scripts/loops/check-plan`, `scripts/loops/check-body`, `scripts/loops/check-run`, `scripts/loops/check-times`, `scripts/loops/lib.sh`, `scripts/loops/prd.sh`, `scripts/loops/pr.sh`, `scripts/loops/prompt.sh`, `scripts/loops/tidy`, `scripts/loops/rotate`, `scripts/loops/browser.sh`, `scripts/loops/lease.sh`, `scripts/loops/stack-lib.sh`, `package.json`. These overlap:
@@ -418,3 +423,25 @@ Stack: no · Reads: docs/agents/loop.md, ops/runbook.md (the CI section) · Test
 - `pnpm test:tooling` passes.
 
 **Blocked by:** 5. **Blocks:** 6.
+
+## Slice 12: A rendered page has mounted before a test reads it
+
+Stack: no · Reads: docs/agents/loop.md, docs/domain/components.md · Tests: component
+
+**User stories:** US 2, 7. Added for B-607, the user's decision of 2026-11-22, after `entryRepeat.browser.test.tsx` failed in CI runs 45108684442 and 45109646741.
+
+**Build:**
+
+- `renderWithDevice` (`apps/web/test/device.tsx`) settles before returning, but `settle` can go quiet while a route's loaders are still reading the device, so the page hasn't mounted. Confirm that with a failing-first test.
+- Make the default first settle wait for the route to mount, in the harness, so a test can read straight after `open`. `plannerWorld.tsx` already waits for `main` by hand: drop that wait if the harness now covers it.
+- A render that never mounts, or a screen with no `main` (the harness also renders admin, marketing and sign-in screens), must not hang or start failing. A test passing `settle: false` keeps today's behaviour.
+- Don't fix other flakes here, and don't remove quarantine entries: B-568 stays with fixes-tooling.
+- The hand-off lists the `docs/domain/components.md` wording on _Settle_.
+
+**Acceptance criteria:**
+
+- A test of the harness fails before the change and passes after it: a route whose loader resolves late is mounted when `renderWithDevice` returns.
+- A requested `components` run of the slice's branch is green or `flake`, with any failure named in the hand-off with its run link. This harness is used by about 110 files, so own files alone don't prove it.
+- `pnpm test:tooling` passes.
+
+**Blocked by:** 7. **Blocks:** nothing.
