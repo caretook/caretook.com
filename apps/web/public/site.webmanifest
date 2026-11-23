@@ -2,8 +2,10 @@
   "name": "Caretook",
   "short_name": "Caretook",
   "description": "A shared place for a family to keep track of someone's care.",
-  "start_url": "/",
-  "display": "browser",
+  "id": "/app",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#432dd7",
   "icons": [
