@@ -7,7 +7,8 @@ import type { MemberRow } from "~/lib/timeline/timeline.sync";
 import { useCallback } from "react";
 import { Outlet } from "react-router";
 import { TodoUndoStatus, useTodoTick } from "~/components/todos";
-import { getGroup } from "~/lib/app-shell/group";
+import { getGroup, useGroup } from "~/lib/app-shell/group";
+import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { sessionContext } from "~/lib/auth/session";
 import { todosQuery } from "~/lib/todos/todos.sync";
 import { membersQuery, readRows } from "~/lib/timeline/timeline.sync";
@@ -75,6 +76,8 @@ export default function Todos({ loaderData, params }: Route.ComponentProps) {
     [complete, reopen],
   );
   const row = { nameOf: list.nameOf, now: list.now, timeZone: list.timeZone, onTick, busy };
+  const { easyRole } = useGroup();
+  const emptyMark = list.who === "everyone" ? sectionAccent("planner", { easy: easyRole }) : undefined;
 
   return (
     <Page>
@@ -88,7 +91,12 @@ export default function Todos({ loaderData, params }: Route.ComponentProps) {
         </p>
       )}
 
-      <TodoSections sections={list.sections} empty={EMPTY[list.who] ?? EMPTY.everyone!} {...row} />
+      <TodoSections
+        sections={list.sections}
+        empty={EMPTY[list.who] ?? EMPTY.everyone!}
+        emptyMark={emptyMark}
+        {...row}
+      />
       <DoneTodos todos={list.done} more={list.moreDone} onMore={list.showMoreDone} {...row} />
 
       {/* The add and edit sheets render here, over the list. */}

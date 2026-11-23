@@ -3,6 +3,9 @@ import type { DirectoryList } from "~/lib/providers/providerDirectory";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { Link, useLocation } from "react-router";
+import { EmptyState } from "~/components/ui";
+import { useGroup } from "~/lib/app-shell/group";
+import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { PROVIDER_TYPE_META, setPast } from "~/lib/providers/providerDirectory";
 import { ProviderListItem } from "./ProviderListItem";
 
@@ -58,6 +61,8 @@ export function DirectoryResults({
   const { search } = useLocation();
   const shown = list.current.length + (past ? list.past.length : 0);
   const filtered = !!text.trim() || !!type;
+  const { easyRole } = useGroup();
+  const emptyMark = filtered ? undefined : sectionAccent("providers", { easy: easyRole });
   return (
     <>
       <p role="status" className="sr-only">
@@ -70,7 +75,11 @@ export function DirectoryResults({
         </h2>
 
         {total === 0 ? (
-          <p className="text-base-content/70">No providers yet.</p>
+          emptyMark ? (
+            <EmptyState {...emptyMark}>No providers yet.</EmptyState>
+          ) : (
+            <p className="text-base-content/70">No providers yet.</p>
+          )
         ) : (
           list.current.length === 0 &&
           !(past && list.past.length > 0) && (
