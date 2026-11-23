@@ -31,13 +31,11 @@ function NeighbourLink({
       className={`rounded-box border-base-300 hover:bg-base-200/50 flex min-w-0 flex-1 items-center gap-2 border px-3 py-2 ${which === "next" ? "flex-row-reverse text-right" : ""}`}
       data-period-neighbour={which}
     >
-      <Icon className="text-base-content/70 size-4 shrink-0" aria-hidden="true" />
+      <Icon className="text-muted size-4 shrink-0" aria-hidden="true" />
       <span className="min-w-0">
-        <span className="text-base-content/70 block text-xs">
-          {which === "previous" ? "Before" : "After"}
-        </span>
+        <span className="text-muted block text-xs">{which === "previous" ? "Before" : "After"}</span>
         <span className="block truncate font-medium">{periodTitle(span.period)}</span>
-        <span className="text-base-content/70 block text-sm">{spanDatesText(span, timeZone, now)}</span>
+        <span className="text-muted block text-sm">{spanDatesText(span, timeZone, now)}</span>
       </span>
     </Link>
   );

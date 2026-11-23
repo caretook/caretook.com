@@ -2,7 +2,7 @@ import type { ProviderType } from "@caretook/data/schema";
 import type { DirectoryList } from "~/lib/providers/providerDirectory";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
-import { EmptyState } from "~/components/ui";
+import { EmptyState, List, TITLE_SUB } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
@@ -20,10 +20,7 @@ function ProviderList({
   label: string;
 }) {
   return (
-    <ul
-      aria-label={label}
-      className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border"
-    >
+    <List label={label}>
       {providers.map((p) => (
         <ProviderListItem
           key={p.id}
@@ -31,7 +28,7 @@ function ProviderList({
           practiceName={p.practiceId ? (practiceNames.get(p.practiceId) ?? null) : null}
         />
       ))}
-    </ul>
+    </List>
   );
 }
 
@@ -72,16 +69,12 @@ export function DirectoryResults({
         </h2>
 
         {total === 0 ? (
-          emptyMark ? (
-            <EmptyState {...emptyMark}>No providers yet.</EmptyState>
-          ) : (
-            <p className="text-base-content/70">No providers yet.</p>
-          )
+          <EmptyState {...emptyMark}>No providers yet.</EmptyState>
         ) : (
           shown === 0 && (
-            <p className="text-base-content/70" data-empty>
+            <EmptyState data-empty="">
               {text.trim() ? `No ${kind} match “${text.trim()}”.` : `No ${kind}.`}
-            </p>
+            </EmptyState>
           )
         )}
 
@@ -91,7 +84,7 @@ export function DirectoryResults({
 
         {list.past.length > 0 && (
           <section aria-labelledby="past-heading" className="space-y-2">
-            <h3 id="past-heading" className="text-base-content/70 text-sm font-semibold">
+            <h3 id="past-heading" className={`${TITLE_SUB} text-muted`}>
               Past providers
             </h3>
             <ProviderList providers={list.past} practiceNames={practiceNames} label="Past providers" />
