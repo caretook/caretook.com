@@ -4,18 +4,20 @@
 
 ## Status
 
-| Slice | Wave | State          | Merge into `prd/agent-autonomy` (slice commits) |
-| ----- | ---- | -------------- | ----------------------------------------------- |
-| 1     | 1    | landed (opus)  | 55275f08 (d759b24e)                             |
-| 2     | 1    | landed (opus)  | b3877be1 (142fa3d7)                             |
-| 3     | 2    | started (opus) | —                                               |
-| 4     | 3    | —              | —                                               |
+| Slice | Wave | State           | Merge into `prd/agent-autonomy` (slice commits) |
+| ----- | ---- | --------------- | ----------------------------------------------- |
+| 1     | 1    | landed (opus)   | 55275f08 (d759b24e)                             |
+| 2     | 1    | landed (opus)   | b3877be1 (142fa3d7)                             |
+| 3     | 2    | merged (opus)   | 0c051399 (ba8e9ec0)                             |
+| 4     | 3    | starting (opus) | —                                               |
 
 **Rescoped on 2026-11-22** (backlog session, the user's pick) against [test-gates](test-gates-prd.md): the old slices 3 to 10 (machine claim, local flake rule, carried full pass, `Checked:` trailer, landing hold) are dropped; B-518 is rebuilt as slices 3 and 4. The old plan is in git history at 887d44de. The registry row runs **after `test-gates`**, which lands its brake and rapid gate in `land.sh` first.
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-23): land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Now:** wave 1 landed in dev as 0e38a6e7 through PR #58 (2026-11-22). test-gates is done. Wave 2 (slice 3, opus) starting 2026-11-23; slice 3 alone changes no behaviour, so waves 2 and 3 may land together as one PR.
+**Now:** wave 1 landed in dev as 0e38a6e7 through PR #58 (2026-11-22). test-gates is done. Slice 3 merged 2026-11-23 (its worktree stays until the verdict is green). It changes no behaviour alone, so waves 2 and 3 land together as one PR; slice 4 starting.
+
+**For slice 4, from slice 3's hand-off:** go ahead only when `answered && drift && !refusal`. `dev-brought.mjs` exits 0 with refusals included, 2 on a bad command line, and prints nothing if its main guard doesn't match the path (treat empty output as a refusal). CI's two lists aren't risky or drift; more than one merge base is a refusal.
 
 **Backlog:** B-503 and B-506 done with wave 1. Claim B-518 when slice 3 starts and `done` it when slice 4 merges. B-504, B-505 and B-517 are dropped; B-516 is landed (its after-notice is wave 1's landed notice; the rest was dropped with the local full check).
 
