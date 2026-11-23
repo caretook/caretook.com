@@ -233,6 +233,7 @@ describe("the todo list", () => {
     (tick.element() as HTMLElement).focus();
     await expect.element(tick).toHaveFocus();
     await userEvent.keyboard(" ");
+    await expect.poll(() => titles("today")).toEqual([]);
 
     const undo = page.getByRole("button", { name: "Undo Pick up the walker" });
     await expect.element(undo).toBeVisible();
@@ -240,6 +241,7 @@ describe("the todo list", () => {
     await expect.element(undo).toHaveFocus();
     await userEvent.keyboard("{Enter}");
     await expect.poll(() => titles("today")).toEqual(["Pick up the walker"]);
+    await expect.poll(() => document.querySelector("[data-todo-undo]")).toBeNull();
   });
 
   test("two ticks each keep their own Undo; undoing the first reopens only it", async () => {
