@@ -15,6 +15,8 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 
 **Now:** waves 1 (adce90ee, PR #71) and 2 (5b724350, PR #74) are in dev. Wave 2 landed with `--force --no-review` on the user's word on 2026-11-22: its full check failed once on a harness flake (B-573) and the rerun was stopped; Codex was clean on d9bda4e, and only Markdown changed after it. No browser checks (no app code). Docs folded. **Wave 3 is slices 4 and 10 side by side, then slice 9 (all opus).** Synced with dev on 2026-11-22 (nothing new). Slice 9 was added for B-566, B-567 and B-568, which the user moved here (notice n19). Slice 10 was added for B-572, moved back from test-gates-2 on the user's word (its note); dev 42cba6b8 drops it from that plan, and the next `pnpm prd sync` brings the revert in. Slices 4 (6396b470) and 10 (7484100e) are merged and their worktrees removed. Slice 4's CI proof: flake run 45085948202, narrowed run 45086351881. Slice 9 is merged (f285f1a5); its worktree stays until the wave's full check passes, so a failure can go back to it. Synced with dev (e1845b41, ui-kit-3 wave 2 came in). **The user's word (2026-11-22): skip wave 3's full check, land with `--force`, and let the next wave pick up any errors.** The check was stopped before a result, so this tip has no check pass. **Wave 3 landed in dev as da93fcfa (PR #76, `--force` on the user's word, Codex clean on d6a27c1 and carried over the dev merge 12a01485); report filed; B-566, B-567 and B-572 done. Next: `pnpm prd sync`, then wave 4 (slice 5, opus; claim nothing new, B-529 and B-530 stay in progress until it merges). Wave 4 should expect errors from wave 3, which has no check pass.** Docs are folded into `ops/runbook.md`, `orchestrator.md` and `prompt.sh`; `machinery.md` and `loop.md` have no room, so the runbook holds the CI detail. The fold's list, for reference: `orchestrator.md` _The check gate_ ("a `package.json` (beyond its `scripts`)"), the same old wording at `scripts/loops/prompt.sh` line 154, and `loop.md` _Which checks a file needs_ (the `- (scripts only)` answer); in `ops/runbook.md` and `machinery.md`, the kinds and `ci run --wait` exit codes (0 green, 1 brake, 2 file, 3 flake, 4 infra, 5 unknown, 64 usage, 75 timeout), the brake list (hand-edited; a line matching no test fails `lists.test.mjs`; its flakes are filed, never quarantined), the quarantine (skipped except in a run's quarantine step), `--files` and `.ci-narrowed.json`. A flake verdict's GitHub run shows `success`: read the verdict, not the colour.
 
+**Wave 4 (resumed 2026-11-22):** reconciled with git: nothing in flight, no slice worktrees left, `pnpm prd sync` found dev up to date. Slice 5's worktree is made and its agent spawned (opus). Next: its hand-off, merge, wave gate.
+
 **For slice 5:** quarantine lines are `<file><TAB><full test name><TAB>B-n`; a flake with `name: null` is a whole-file flake and can't be quarantined by name. The brake list works per file, so an unrelated failure in `packages/api/src/router.int.test.ts` is also a brake (accepted).
 
 **Open issues:**
@@ -28,18 +30,18 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 - Slice 1's before and after time on a quiet machine is partial: static steps 127 s in series, 79.5 s side by side, at load 8 to 11.
 - B-554 stays in progress until slice 6 merges.
 
-| Slice | Wave | State         | Merge into `prd/test-gates` (slice commits) |
-| ----- | ---- | ------------- | ------------------------------------------- |
-| 1     | 1    | merged (opus) | 98a36dd4 (5eb596a9)                         |
-| 2     | 1    | merged (opus) | 34b157fb (80a35650)                         |
-| 3     | 2    | merged (opus) | 39f87cf0 (f0645753)                         |
-| 4     | 3    | merged (opus) | 6396b470 (be81f850, e68f8866)               |
-| 5     | 4    | —             | —                                           |
-| 6     | 5    | —             | —                                           |
-| 7     | 5    | —             | —                                           |
-| 8     | 2    | merged (opus) | ff6ac3c3 (7bd82c6f)                         |
-| 9     | 3    | merged (opus) | f285f1a5 (3b4428f0, 3b752d2e, 21533389)     |
-| 10    | 3    | merged (opus) | 7484100e (b5c9c6c6)                         |
+| Slice | Wave | State          | Merge into `prd/test-gates` (slice commits) |
+| ----- | ---- | -------------- | ------------------------------------------- |
+| 1     | 1    | merged (opus)  | 98a36dd4 (5eb596a9)                         |
+| 2     | 1    | merged (opus)  | 34b157fb (80a35650)                         |
+| 3     | 2    | merged (opus)  | 39f87cf0 (f0645753)                         |
+| 4     | 3    | merged (opus)  | 6396b470 (be81f850, e68f8866)               |
+| 5     | 4    | started (opus) | —                                           |
+| 6     | 5    | —              | —                                           |
+| 7     | 5    | —              | —                                           |
+| 8     | 2    | merged (opus)  | ff6ac3c3 (7bd82c6f)                         |
+| 9     | 3    | merged (opus)  | f285f1a5 (3b4428f0, 3b752d2e, 21533389)     |
+| 10    | 3    | merged (opus)  | 7484100e (b5c9c6c6)                         |
 
 **Backlog:**
 
