@@ -259,8 +259,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-501 | bug | triaged | fixes-tooling |  | Flaky under load: recipientCondition.int.test.ts 'refuses viewers, outsiders and staff, and another group's recipient' fails in a full check; passes alone |
 | B-502 | bug | triaged | fixes-tooling |  | Flaky under load: search.int.test.ts 'searches a group of 10,000 entries in under 200 ms' reads 210 ms in a full check; passes alone |
 | B-511 | feature | in-progress | agent-autonomy-3 | prd/agent-autonomy-3 | Skeptic before every ask: a session sends its question, options and evidence to a fresh Fable skeptic first; it decides (reversible, within the rules) or confirms the question is the user's; pnpm prd ask records the verdict |
-| B-512 | feature | triaged | agent-autonomy-3 |  | Skeptic before risky landings: a Fable skeptic reviews the evidence before land --force, landing on flaky tests (B-505) or declining a Codex finding, and the landing report says what it said |
-| B-513 | change | triaged | agent-autonomy-3 |  | Opus planners and backlog sessions with a Fable final check: the skeptic pass runs on Fable and may send a plan back; a registry flag (e.g. design) keeps a heavy design topic's planner on Fable |
+| B-512 | feature | in-progress | agent-autonomy-3 | prd/agent-autonomy-3 | Skeptic before risky landings: a Fable skeptic reviews the evidence before land --force, landing on flaky tests (B-505) or declining a Codex finding, and the landing report says what it said |
+| B-513 | change | in-progress | agent-autonomy-3 | prd/agent-autonomy-3 | Opus planners and backlog sessions with a Fable final check: the skeptic pass runs on Fable and may send a plan back; a registry flag (e.g. design) keeps a heavy design topic's planner on Fable |
 | B-515 | feature | triaged | inbox-agent |  | Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too |
 | B-518 | change | landed | agent-autonomy | prd/agent-autonomy | Land without re-syncing when dev's changes don't touch the branch: land.sh's drift refusal relaxes when dev's new commits share no file with the branch and bring none of the risky files; land still merges dev and typechecks the result, and the landing report says it landed on an unsynced tip |
 | B-525 | bug | triaged | fixes-tooling |  | Asks: two processes taking over a dead holder's ask lock can both remove it, so one deletes the other's fresh lock and an answer and a default overlap (asks.mjs withAskLock) |
@@ -343,6 +343,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-641 | bug | triaged | fixes-bug |  | Quick entry: 'gave lorazepam 1/2 mg' at a 0.5 mg strength may not record the usual dose |
 | B-642 | bug | triaged | fixes-tooling |  | Connector todays_doses test fails from midnight to 00:10 Los Angeles: its given dose, placed 10 minutes before now, lands on yesterday |
 | B-643 | bug | triaged | fixes-bug |  | Quick entry: a request with a day still leads with a vital or symptom dated ahead: 'check bp 120/80 tomorrow', 'ask about pain tomorrow morning' |
+| B-644 | bug | triaged | fixes-bug |  | Quick entry dates a counted ordinal before a place: 'gave a 2nd at the clinic', 'received the 2nd at the clinic' log on the 2nd instead of now |
 
 ## Items
 
@@ -1885,9 +1886,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-512 · feature · Skeptic before risky landings: a Fable skeptic reviews the evidence before land --force, landing on flaky tests (B-505) or declining a Codex finding, and the landing report says what it said
 
-- status: triaged
+- status: in-progress
 - prd: agent-autonomy-3
-- owner:
+- owner: prd/agent-autonomy-3
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: build the Fable 5.2 skeptic into more of the workflow; Fable reviews in short passes, Opus does the long work.
@@ -1898,9 +1899,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-513 · change · Opus planners and backlog sessions with a Fable final check: the skeptic pass runs on Fable and may send a plan back; a registry flag (e.g. design) keeps a heavy design topic's planner on Fable
 
-- status: triaged
+- status: in-progress
 - prd: agent-autonomy-3
-- owner:
+- owner: prd/agent-autonomy-3
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): 2026-11-22, the user: build the Fable 5.2 skeptic into more of the workflow; Fable reviews in short passes, Opus does the long work. Last 36h: main-checkout Fable sessions read 428M tokens, Fable planners 148M. The default model moved to Opus on dev the same day; this item adds the flag and the send-back rule.
@@ -2732,3 +2733,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 31 (B-635) hand-off, cause not traced. 'ask about pain tomorrow morning' also gets a todo with no due time, so 'morning' isn't read as a part of day there.
+
+### B-644 · bug · Quick entry dates a counted ordinal before a place: 'gave a 2nd at the clinic', 'received the 2nd at the clinic' log on the 2nd instead of now
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/fixes-bug): Codex P2 on PR #102 (https://github.com/caretook/caretook.com/pull/102#discussion_r4663493513). Confirmed by running findTime: both lines return day {date: 2}; before slice 30 (B-634) they returned no time. Cause: ordinalIsADay in packages/data/src/db/schema/assistant/quickEntryTime.ts skips only 'the' before the ordinal, so 'a' hides 'gave', and COUNTED_AFTER lacks 'received'. Fix: skip articles and widen the report words; keep 'dr lee the 2nd at the clinic' a day.
