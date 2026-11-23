@@ -335,6 +335,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-669 | feature | triaged | onboarding-2 |  | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
 | B-670 | feature | triaged | onboarding-2 |  | Onboarding on its own pages with inline forms, providers first, a Later exit and a Want help onboarding? toast |
 | B-671 | change | triaged | onboarding-2 |  | New groups default to No known allergies |
+| B-672 | feature | triaged | fixes-ui |  | Add an allergy: suggest substances and reactions as you type, like conditions |
+| B-673 | feature | triaged | fixes-ui |  | Add a medication: suggest common medication names as you type, like conditions |
+| B-674 | change | triaged | fixes-ui |  | Add a medication: the schedule starts on As needed |
+| B-675 | bug | triaged | fixes-bug |  | Timeline: after repeating a day jump, opening a sheet brings back the old expanded window and moves the scroll |
 
 ## Items
 
@@ -2640,3 +2644,40 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): User request 2026-11-23: new groups should default to "No known allergies". Today a new recipient has no_known_allergies_at null, shown as "Allergies not recorded". Adding an allergy already clears the flag (recipientAllergyService, allergies.sync.ts). Effects to handle: (1) the flag is shown as a recorded fact on the Medications region, printed sheets, the emergency sheet (emergencyPrintSheet.ts) and the connector recipient_profile tool (noKnownAllergies), so a default would state it for a recipient nobody has asked about; PrintAllergies exists so an empty block is never read as none. (2) gettingStarted.sync.ts counts the flag as the allergy/condition step done, so a default ticks it for every new group. Open with the user: true stored default, or preselected in the onboarding profile basics step (B-670) and saved on confirm. Triaged to onboarding-2 because it shapes that step.
+
+### B-672 · feature · Add an allergy: suggest substances and reactions as you type, like conditions
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User request 2026-11-23: a suggestion list for allergies similar to the conditions one, with the same "display on new character, not on focus" behavior as B-668. Today "Allergic to" in AllergyForm.tsx is a plain text input. Model on ConditionNameField and conditionSuggestions (lib/profiles): the group own substances first, then a curated list of common drug, food and environmental allergens worded as a family would, word-prefix match, accent- and case-insensitive, de-duplicated, free text always allowed. Nothing on focus with an empty field; the first character opens the filtered list; clearing closes it. Do B-668 first and reuse its ComboBox option (other pickers keep browsing on focus); consider sharing the matcher instead of copying it. Build after or with B-594 (manage allergies on Profile), which moves this form; B-670 profile basics then reuses it. Check on a phone.
+- 2026-11-23 (Robert Bo Davis): User addition 2026-11-23: the "Reaction (optional)" field gets a suggestion list too, same rules: nothing on focus, filtered from the first character, clearing closes it, free text always allowed. The group own reactions first, then a curated list of common reactions worded as a family would (hives, rash, swelling, trouble breathing, nausea and so on). Keep within ALLERGY_LIMITS.
+
+### B-673 · feature · Add a medication: suggest common medication names as you type, like conditions
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User request 2026-11-23: medications get a suggestion list too, same rules as conditions (B-668) and allergies (B-672): nothing on focus, filtered from the first character, clearing closes it, free text always allowed. Today NameField.tsx (components/medications; used by MedicationForm and the Dose sheet quick add in QuickAddFields.tsx) shows only "Used before" chips from the group own names via suggestMedicationNames, with no curated list. Wanted: the group names first, then a bundled curated list of common medications (works offline, no new dependency), in the same ComboBox pattern, replacing the chips. Keep the allergy-match warning on the typed or picked name, and keep it non-blocking. Look-alike names are a real risk (hydroxyzine and hydralazine): a pick must show the full name, never autofill on a partial match, and fill only the name, never a dose or strength. Do B-668 first and reuse its ComboBox option; share the matcher with B-672 if it fits. Check on a phone, in the sheet too.
+
+### B-674 · change · Add a medication: the schedule starts on As needed
+
+- status: triaged
+- prd: fixes-ui
+- owner:
+- commit:
+
+- 2026-11-23 (Robert Bo Davis): User request 2026-11-23: as needed should be the default for medication entry. Today the full form starts on "At set times" (ScheduleFields.tsx:62, initial?.type ?? "scheduled"). The Dose sheet quick add already saves as needed (medications.sync.ts:920), so only the full form changes. An existing medication keeps its own schedule. Switching to At set times must still offer the same starting slots (scheduleSlots.ts). Effect to keep in mind: an as-needed medication has no due doses on Today, so someone who skips the field gets no pass or missed-dose tracking for a daily medication; the choice must stay visible in the form. Update the form tests that assume the old default.
+
+### B-675 · bug · Timeline: after repeating a day jump, opening a sheet brings back the old expanded window and moves the scroll
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/timeline-jump): Codex on PR #119 (P2), verified in useTimelineData.ts: a repeat jump only ignores the old paging while its marker is present (current=false) and never saves the reset. A sheet link replaces the location state with SHEET_LINK_STATE, so jumpMark goes null, current turns true and the old before/limit return under the sheet. Fix: persist the reset bound, limit and marker when accepting a new jump. Repro: jump to a day, load newer, jump to the same day again, open an entry's edit sheet. No data affected.
