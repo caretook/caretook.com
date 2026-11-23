@@ -11,13 +11,15 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 | 3. A release candidate                         | 3    | landed ce792df3 (PR #122) | 22dc1231 |
 | 4. Promotion refuses what isn't passing        | 3    | landed ce792df3 (PR #122) | c9670a4c |
 | 5. The release tier                            | 4    | landed 4160dee5 (PR #127) | 55abe5cd |
-| 6. The required check on main and its override | 5    | not started               |          |
+| 6. The required check on main and its override | 5    | started (opus)            |          |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
 **Now:** wave 4 landed in `dev` as 4160dee5 through PR #127 on the user's word, **without a Codex review (out of credits)**. `full` run 45237050708 green on e011122e. Slice 5's `release` run 45224003205 on ef58007e has a green verdict (11 of 11 browser checks, three times, 12 minutes); GitHub shows it red because the report-only zone jobs fail by design. Its 17 New York failures are filed: B-706 to B-715, and the other 7 files on B-372 (`roundtrip`, on the brake list, is among them). Local `phase2` was FLAKY at load 60 to 70 (B-716). Slice 5's worktree is removed and the runbook has the release tier. B-533 stays open for slice 6.
 
-**Next:** start wave 5 (slice 6, on opus): `pnpm prd sync`, backlog ingest and list, and a new CI approval ask before its first run. The user's "skip rechecks after a clean sync" was for wave 4 only, so wave 5 rechecks after each sync unless they repeat it. A local browser check that repeats a CI browser run on the same code adds little: the user questioned it in wave 4, and the handbook rule is unchanged.
+**Wave 5 (2026-11-23):** synced dev at 54194267; slice 6 worktree made, opus agent spawned, told to make **no real CI run, `release-gate` status, PR or override** until the orchestrator passes on the wave 5 CI approval (ask being filed). No staging to main PR is open, and none may be opened for this.
+
+**Next:** get the wave 5 CI approval, then let slice 6 do its real run and status. The user's "skip rechecks after a clean sync" was for wave 4 only, so wave 5 rechecks after each sync unless they repeat it. A local browser check that repeats a CI browser run on the same code adds little: the user questioned it in wave 4, and the handbook rule is unchanged.
 
 **For slice 6:** call `zone-file` from `pnpm prd ci release`; nothing calls it yet, and it has never run against the real backlog before this wave.
 
