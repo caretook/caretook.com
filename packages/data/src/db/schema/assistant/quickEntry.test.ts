@@ -351,6 +351,135 @@ describe("doses", () => {
     });
   });
 
+  describe("a typed count is the amount (B-301)", () => {
+    const TYL = "99999999-9999-4999-8999-999999999999";
+    const named = [{ id: TYL, name: "Tylenol", strength: "500 mg", dose: "2 tablets" }];
+    const fixtures = [
+      ["named Tylenol", named, TYL],
+      ["Tylenol only in its directions", undefined, APAP],
+    ] as const;
+    const over = (medications: typeof named | undefined) => (medications ? { medications } : {});
+    const symptoms = (line: string, medications?: typeof named) =>
+      parse(line, over(medications))[0]!.readings.filter((r) => r.kind === "symptom");
+
+    describe.each(fixtures)("%s", (_, medications, medicationId) => {
+      test.each([
+        ["gave 3 tylenol", "3 tablets"],
+        ["gave 1 tylenol", "1 tablet"],
+        ["gave half a tylenol", "half a tablet"],
+        ["gave 1/2 tylenol", "1/2 tablet"],
+        ["gave ½ tylenol", "½ tablet"],
+        ["gave two tylenol", "two tablets"],
+        ["tylenol x2", "2 tablets"],
+        ["tylenol 2", "2 tablets"],
+        ["3 tylenol", "3 tablets"],
+        ["tylenol 20", "20 tablets"],
+      ])("%s records %s", (line, amount) => {
+        const r = top(line, over(medications));
+        expect(r.kind).toBe("dose");
+        expect(action(r)).toMatchObject({ type: "logDose", medicationId, amount, note: null });
+      });
+
+      test("tylenol 2 at 8 is a dose at 8:00, never a symptom named Tylenol", () => {
+        const r = top("tylenol 2 at 8", over(medications));
+        expect(r.kind).toBe("dose");
+        expect(action(r)).toMatchObject({ medicationId, amount: "2 tablets", note: null });
+        expect(when(r)).toBe(at("2026-11-19T16:00:00Z"));
+        expect(symptoms("tylenol 2 at 8", medications)).toEqual([]);
+      });
+
+      test.each(["tylenol 500", "gave tylenol 25"])("%s keeps the usual dose", (line) => {
+        const r = top(line, over(medications));
+        expect(r.kind).toBe("dose");
+        expect(action(r)).toMatchObject({ medicationId, amount: "2 tablets" });
+      });
+
+      test("didn't give 2 tylenol is skipped with the amount", () => {
+        expect(action(top("didn't give 2 tylenol", over(medications)))).toMatchObject({
+          medicationId,
+          status: "skipped",
+          amount: "2 tablets",
+          note: null,
+        });
+      });
+
+      test("a negated skip with a count stays a note, with no dose", () => {
+        const { readings } = parse("didn't skip 2 tylenol", over(medications))[0]!;
+        expect(readings[0]!.kind).toBe("note");
+        expect(readings.some((r) => r.kind === "dose")).toBe(false);
+      });
+    });
+
+    test.each([
+      ["a measure", "500 mg"],
+      ["no usual dose", null],
+    ])("with %s, the count alone", (_, dose) => {
+      const medications = [{ id: TYL, name: "Tylenol", strength: "500 mg", dose }];
+      expect(action(top("gave 3 tylenol", { medications }))).toMatchObject({ amount: "3", note: null });
+    });
+
+    test("a strength after the name isn't a count; before it, a number is", () => {
+      expect(action(top("lisinopril 10"))).toMatchObject({
+        medicationId: LIS,
+        amount: "1 tablet",
+        note: null,
+      });
+      const medications = [{ id: TYL, name: "Warfarin", strength: "2 mg", dose: "1 tablet" }];
+      expect(action(top("gave 2 warfarin", { medications }))).toMatchObject({ amount: "2 tablets" });
+      expect(action(top("warfarin 2", { medications }))).toMatchObject({ amount: "1 tablet" });
+    });
+
+    test("a carried negation over a directions-only match stays a note", () => {
+      const part = parse("gave metformin and not 2 tylenol")[1]!;
+      expect(part.readings[0]!.kind).toBe("note");
+      expect(part.readings.some((r) => r.kind === "dose" || r.kind === "symptom")).toBe(false);
+    });
+
+    test.each([
+      ["gave 2 tablets acetaminophen", "2 tablets"],
+      ["gave half a tablet metoprolol", "half a tablet"],
+      ["gave tylenol", "2 tablets"],
+    ])("%s is unchanged", (line, amount) => {
+      expect(action(top(line))).toMatchObject({ type: "logDose", amount });
+    });
+
+    test.each([
+      ["pain 4", "Pain", 4],
+      ["nausea 3/10", "Nausea", 3],
+      ["food 2", "Food", 2],
+    ])("%s is still a symptom beside directions that mention it", (line, name, severity) => {
+      const medications = [
+        { id: APAP, name: "Acetaminophen", dose: "2 tablets", directions: "Tylenol, for pain with food" },
+      ];
+      const r = top(line, { medications });
+      expect(r.kind).toBe("symptom");
+      expect(action(r)).toMatchObject({ name, severity });
+    });
+
+    test("what a medication is for isn't its name: arthritis 3 is a symptom", () => {
+      const medications = [
+        { id: APAP, name: "Acetaminophen", dose: "2 tablets", directions: "Tylenol, for arthritis flares" },
+      ];
+      expect(action(top("arthritis 3", { medications }))).toMatchObject({ name: "Arthritis", severity: 3 });
+      expect(action(top("tylenol 3", { medications }))).toMatchObject({ amount: "3 tablets" });
+    });
+
+    test("a short partial name without a verb isn't a dose: arm 3 is a symptom", () => {
+      const medications = [{ id: TYL, name: "Armour Thyroid", dose: "1 tablet" }];
+      expect(top("arm 3", { medications }).kind).toBe("symptom");
+    });
+
+    test("a number of times isn't a count", () => {
+      expect(action(top("gave tylenol 2 times"))).toMatchObject({ amount: "2 tablets", note: "2 times" });
+      expect(action(top("gave lisinopril 2 times"))).toMatchObject({ amount: "1 tablet", note: "2 times" });
+    });
+
+    test("a vital's number beside a medication isn't its count", () => {
+      const r = parse("rr 16 metformin given")[0]!.readings.find((x) => x.kind === "dose")!;
+      expect(action(r)).toMatchObject({ medicationId: MET, amount: "1 tablet" });
+    });
+  });
+
   test("a symptom word in a medication's notes doesn't make a symptom a dose", () => {
     expect(parse("pain 4 left knee")[0]!.readings.some((r) => r.kind === "dose")).toBe(false);
   });
