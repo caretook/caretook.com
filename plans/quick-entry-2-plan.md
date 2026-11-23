@@ -8,15 +8,21 @@
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`). The PRD lands once, after wave 2.
 
-| Slice | Wave | State                                                     | Merge into `prd/quick-entry-2` (slice commits) |
-| ----- | ---- | --------------------------------------------------------- | ---------------------------------------------- |
-| 1     | 1    | started, opus (worktree `quick-entry-2-1`)                |                                                |
-| 2     | 2    | not started                                               |                                                |
-| 3     | 1    | started, opus (worktree `quick-entry-2-3`)                |                                                |
-| 4     | 2    | not started                                               |                                                |
-| 5     | 1    | handed off, reviewed, awaiting merge after 1 and 3 (opus) | slice commit 42d56eb5; slice check passed      |
+| Slice | Wave | State                                      | Merge into `prd/quick-entry-2` (slice commits) |
+| ----- | ---- | ------------------------------------------ | ---------------------------------------------- |
+| 1     | 1    | merged (opus)                              | 85128423 (fc942dc7)                            |
+| 2     | 2    | started, opus (worktree `quick-entry-2-2`) |                                                |
+| 3     | 1    | merged (opus)                              | 235487f7 (694ed6e7)                            |
+| 4     | 2    | started, opus (worktree `quick-entry-2-4`) |                                                |
+| 5     | 1    | merged (opus)                              | 26d0b935 (42d56eb5)                            |
 
-**For the gate and docs (slice 5):** the other quick entry component tests render this box and haven't run on it (`timelineQuickEntrySuggestions`, `Passes`, `Todos`, the easy-mode files); the full check covers them. Fold the pruning and Clear rules into the assistant doc at landing.
+**Wave 1:** merged, not yet gated; B-300 and B-303 are done, B-302 finishes with slice 4. No check has run on the merged tip.
+
+**For the gate:** the other quick entry component tests render the box and haven't run on slice 5 (`timelineQuickEntrySuggestions`, `Passes`, `Todos`, the easy-mode files); the full check covers them. Lint runs out of memory at the default heap (B-576): run checks with `NODE_OPTIONS=--max-old-space-size=6144`, CI's value.
+
+**For the docs at landing:** the negation rules (plus the extra n't words and curly apostrophes slice 1 added), the time-word rules, the card pruning and Clear.
+
+**To file at the wave boundary (known limits from the hand-offs):** "no pain gave tylenol" (no comma) reads skipped; a line ending in "sat" ("she sat") reads as Saturday; "dr lee the 2nd at the clinic" gets no date.
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 
