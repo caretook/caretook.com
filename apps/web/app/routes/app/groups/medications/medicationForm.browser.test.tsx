@@ -82,8 +82,10 @@ const suggestion = (text: string) =>
   );
 const scheduleType = (value: "scheduled" | "asNeeded") =>
   FORM()!.querySelector<HTMLInputElement>(`input[name="scheduleType"][value="${value}"]`)!;
-const TIMES_ERROR = () =>
-  FORM()?.querySelector("[data-schedule-times] > p.text-error")?.textContent?.trim() ?? null;
+const TIMES_ERROR = () => {
+  const id = FORM()?.querySelector("[data-schedule-times]")?.getAttribute("aria-describedby");
+  return id ? (document.getElementById(id)?.textContent?.trim() ?? null) : null;
+};
 const medication = async (device: Awaited<ReturnType<typeof open>>, id: string) =>
   (await device.query<Record<string, unknown>>(MEDICATION_SQL, [id]))[0]!;
 const changes = async (device: Awaited<ReturnType<typeof open>>, id: string) =>
