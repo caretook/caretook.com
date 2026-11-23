@@ -64,7 +64,7 @@ describe("the timeline's date picker", () => {
     await landedOn("Forty days back");
     await userEvent.click(page.getByRole("button", { name: "Go to another day" }));
     expect((await found(dateInput)).value).toBe(key(40));
-    await userEvent.fill(dateInput()!, key(50));
+    await userEvent.fill(await found(dateInput), key(50));
     await userEvent.click(goButton());
     await landedOn("Fifty days back");
   });
