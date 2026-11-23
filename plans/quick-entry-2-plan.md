@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** both waves merged into `prd/quick-entry-2` (tip 563a3472, all slices on opus, worktrees removed). Next: `pnpm prd sync`, the full check, the PR, Codex, land, fold docs, `prd rm`, `prd end`.
+**Where it stands:** both waves merged and synced; full check passed on 1f5ba799 (one MCP rate-limit test timed out under load, passed alone, no connector code in this diff). Docs folded. Next: PR, Codex, land, `prd rm`, `prd end`.
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`). The PRD lands once, after wave 2.
 
@@ -16,7 +16,7 @@
 | 4     | 2    | merged (opus) | 563a3472 (087641c7, dce726f6)                  |
 | 5     | 1    | merged (opus) | 26d0b935 (42d56eb5)                            |
 
-**Items:** B-300, B-301, B-302, B-303 are ready. No check has run on the merged tip yet.
+**Items:** B-300, B-301, B-302, B-303 are ready.
 
 **For the gate:** the other quick entry component tests render the box and haven't run on slice 5 (`timelineQuickEntrySuggestions`, `Passes`, `Todos`, the easy-mode files); the full check covers them. Lint runs out of memory at the default heap (B-576): run checks with `NODE_OPTIONS=--max-old-space-size=6144`, CI's value.
 
