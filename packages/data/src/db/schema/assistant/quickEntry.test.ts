@@ -698,6 +698,24 @@ describe("doses", () => {
           expect(when(r)).toBe(NOW.toISOString());
         });
 
+        test("'gave lorazepam 1/2 mg' at a 0.5 mg strength is the usual dose, no date (B-641)", () => {
+          const r = top("gave lorazepam 1/2 mg", { medications: lorazepam });
+          expect(action(r)).toMatchObject({ type: "logDose", amount: "1 tablet", note: null });
+          expect(when(r)).toBe(NOW.toISOString());
+        });
+
+        test.each([
+          ["gave lorazepam 1/2 mg", "0.5 mg", "0.5 mg", "0.5 mg"],
+          ["gave lorazepam 1/2 mg", "0.5 mg", "2 tablets", "1/2 mg"],
+          ["gave lorazepam 1/2 mg", "0.5 mg", null, "1/2 mg"],
+          ["gave lorazepam 1/4 mg", "0.5 mg", "1 tablet", "1/4 mg"],
+          ["gave lorazepam 1/2 mcg", "0.5 mg", "1 tablet", "1/2 mcg"],
+        ])("%s at %s with a usual %s records %s", (line, strength, dose, amount) => {
+          const r = top(line, { medications: [{ ...lorazepam[0]!, strength, dose }] });
+          expect(action(r)).toMatchObject({ type: "logDose", amount, note: null });
+          expect(when(r)).toBe(NOW.toISOString());
+        });
+
         test("a fraction that isn't the strength is still the amount", () => {
           const r = top("gave lorazepam 1/4", { medications: lorazepam });
           expect(action(r)).toMatchObject({ amount: "1/4 tablet" });
@@ -1182,6 +1200,9 @@ describe("the user's lines (B-220)", () => {
     // Its measurement or complaint is what to ask about, not a report (B-635).
     ["check bp 120/80 in the morning", todo("Check bp 120/80", "2026-11-20", "08:00")],
     ["ask about pain in the morning", todo("Ask about pain", "2026-11-20", "08:00")],
+    // So with a day ahead, and "tomorrow morning" is that morning (B-643).
+    ["check bp 120/80 tomorrow", todo("Check bp 120/80", "2026-11-20")],
+    ["ask about pain tomorrow morning", todo("Ask about pain", "2026-11-20", "08:00")],
     ["dinner with Ann tomorrow 6pm", todo("Dinner with Ann", "2026-11-20", "18:00")],
     // A note with no time ahead stays a note, now or read back like the other past-only kinds.
     ["called the pharmacy", { kind: "note", occurredAt: NOW.toISOString() }],
@@ -1208,11 +1229,24 @@ describe("the user's lines (B-220)", () => {
     ["bp 120/80 in the morning", ["vital", "note", "event"]],
     ["pain in the morning", ["symptom", "note", "event"]],
     ["check bp 120/80 this morning", ["vital", "note", "event"]],
+    ["check bp 120/80 tomorrow", ["todo", "note", "vital", "event"]],
+    ["ask about pain tomorrow morning", ["todo", "note", "symptom", "event"]],
+    ["bp 120/80 tomorrow", ["vital", "todo", "note", "event"]],
+    ["pain tomorrow morning", ["symptom", "todo", "note", "event"]],
     // A request naming a provider stays an event first, with or without a part of day.
     ["call dr lee in the morning", ["event", "todo", "note"]],
     ["call dr lee tomorrow", ["event", "todo", "note"]],
   ])("a request with a part of day: %s", (line, kinds) => {
     expect(parse(line)[0]!.readings.map((r) => r.kind)).toEqual(kinds);
+  });
+
+  test.each([
+    ["pain tomorrow morning", "symptom"],
+    ["appt tomorrow morning", "event"],
+  ])("only a request reads a part of day after tomorrow: %s keeps the day", (line, kind) => {
+    const r = top(line);
+    expect(r.kind).toBe(kind);
+    expect(when(r)).toBe("2026-11-20T08:00:00.000Z"); // Midnight in Los Angeles.
   });
 
   test("an incident has no severity, and the words after it are its note", () => {

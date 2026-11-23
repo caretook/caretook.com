@@ -57,6 +57,11 @@ describe("words that aren't times", () => {
     "took 2nd at lunch",
     "had her 2nd at the clinic",
     "her 2nd at the clinic",
+    "gave a 2nd at the clinic",
+    "took an 8th at the clinic",
+    "received the 2nd at the clinic",
+    "received a 2nd at the clinic",
+    "got the 2nd at the clinic",
     "pain 8 a bit better",
     "pain 8 p",
   ])("%s has no time", (line) => {
