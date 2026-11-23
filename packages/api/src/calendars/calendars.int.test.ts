@@ -352,14 +352,12 @@ describe("calendars.group.setDetailsAllowed", () => {
 describe("leaving and removal", () => {
   /** A setting and an override for `who`, on an upcoming appointment. */
   const withRows = async (s: Awaited<ReturnType<typeof setup>>, who: Who) => {
-    await s
-      .api(who)
-      .calendars.settings.update({
-        groupId: s.group.id,
-        remindersOn: true,
-        detailsConsent: true,
-        detailsConsentVersion: DETAILS_CONSENT_VERSION,
-      });
+    await s.api(who).calendars.settings.update({
+      groupId: s.group.id,
+      remindersOn: true,
+      detailsConsent: true,
+      detailsConsentVersion: DETAILS_CONSENT_VERSION,
+    });
     const event = ok(
       await timelineEntryService.create(s.ctx("owner"), {
         groupId: s.group.id,
