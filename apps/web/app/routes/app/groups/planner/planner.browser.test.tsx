@@ -60,7 +60,7 @@ const choose = async (option: string) => {
   await userEvent.click(page.getByRole("menuitemradio", { name: option, exact: true }));
   await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
 };
-const TABS = 'main nav[aria-label="Planner or todos"]';
+const TABS = 'main nav[aria-label="Upcoming, past or todos"]';
 const tab = (label: string) =>
   [...document.querySelectorAll<HTMLAnchorElement>(`${TABS} a`)].find(
     (a) => a.textContent?.trim() === label,

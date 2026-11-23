@@ -59,7 +59,7 @@ describe("each section's chip", () => {
   test("the Planner is orange, and so is its current tab", async () => {
     await openPlanner({ role: "caretaker" });
     await expectChip("orange");
-    await expectCurrentTab("Planner or todos", "orange");
+    await expectCurrentTab("Upcoming, past or todos", "orange");
   });
 
   test("Care periods is plum", async () => {
@@ -80,6 +80,6 @@ describe("Easy stays neutral", () => {
     await openPlanner({ role: "easy_helper" });
     await expect.element(page.getByRole("heading", { level: 1, name: "Planner" })).toBeVisible();
     expect(chip()).toBeNull();
-    expect(document.querySelector('nav[aria-label="Planner or todos"]')).toBeNull();
+    expect(document.querySelector('nav[aria-label="Upcoming, past or todos"]')).toBeNull();
   });
 });

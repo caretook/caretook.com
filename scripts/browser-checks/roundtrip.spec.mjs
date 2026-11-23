@@ -608,7 +608,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     // title back. Client-side navigation through the tab bar's Planner and
     // its Todos tab: no new page loads or sign-ins.
     const plannerTab = `document.querySelector('nav[data-tab-bar] a[href="/app/groups/${DEV_FAMILY}/planner"]')`;
-    const todosTab = `document.querySelector('main nav[aria-label="Planner or todos"] a[href="/app/groups/${DEV_FAMILY}/todos"]')`;
+    const todosTab = `document.querySelector('main nav[aria-label="Upcoming, past or todos"] a[href="/app/groups/${DEV_FAMILY}/todos"]')`;
     const openTodos = async (page) => {
       await press(page, plannerTab);
       await wf(page, todosTab, 20_000);
