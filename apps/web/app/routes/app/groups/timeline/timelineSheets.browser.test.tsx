@@ -73,7 +73,7 @@ describe("the add sheet", () => {
     await expect.poll(SHEET).toBeNull();
   });
 
-  test("the footer is the kit's: Cancel, then the submit button, and Cancel doesn't submit", async () => {
+  test("the footer is the kit's: Cancel, then the submit button, and Cancel closes without asking or saving", async () => {
     const device = await openAdd();
     await userEvent.fill(await found(NAME), "Unsaved knee");
     const cancel = await found(() => SHEET()?.querySelector<HTMLButtonElement>("[data-form-cancel]"));
@@ -81,9 +81,8 @@ describe("the add sheet", () => {
     expect(cancel.compareDocumentPosition(SUBMIT()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(SUBMIT().textContent?.trim()).toBe("Add to timeline");
     await userEvent.click(cancel);
-    await expect
-      .poll(() => document.querySelector("dialog[open]")?.textContent)
-      .toContain("Discard changes?");
+    await expect.poll(SHEET).toBeNull();
+    expect(document.querySelector("dialog[open]")).toBeNull();
     expect(await entriesNamed(device, "Unsaved knee")).toHaveLength(0);
   });
 
