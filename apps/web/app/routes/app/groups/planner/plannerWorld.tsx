@@ -1,7 +1,6 @@
 import type { DeviceOptions, DeviceRoute } from "../../../../../test/device";
 import type { Fixture } from "../../../../../test/fixtures";
 
-import { expect } from "vitest";
 import { page } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { at, fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
@@ -175,16 +174,12 @@ export const openPlanner = async ({
   extra = [],
   ...options
 }: Partial<DeviceOptions> & { extra?: Fixture[] } = {}) => {
-  const device = await renderWithDevice({
+  return renderWithDevice({
     route: PLANNER_ROUTES,
     url,
     fixtures: [world(), extra],
     ...options,
   });
-  // The loaders read the device first: wait for the screen, then for its live queries.
-  await expect.poll(() => !!document.querySelector("main")).toBe(true);
-  await device.settle();
-  return device;
 };
 
 // --- DOM helpers (the old upcoming.mjs's selectors) ----------------------------------
