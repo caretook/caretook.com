@@ -4,18 +4,26 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 
 ## Status
 
-| Slice                                          | Wave | State              | Merge    |
-| ---------------------------------------------- | ---- | ------------------ | -------- |
-| 1. The browser suite runs in CI                | 1    | merged, wave green | b7f8601e |
-| 2. Browser results, reruns and flakes          | 2    | not started        |          |
-| 3. A release candidate                         | 3    | not started        |          |
-| 4. Promotion refuses what isn't passing        | 3    | not started        |          |
-| 5. The release tier                            | 4    | not started        |          |
-| 6. The required check on main and its override | 5    | not started        |          |
+| Slice                                          | Wave | State                     | Merge    |
+| ---------------------------------------------- | ---- | ------------------------- | -------- |
+| 1. The browser suite runs in CI                | 1    | landed 06309608 (PR #118) | e3169ce8 |
+| 2. Browser results, reruns and flakes          | 2    | merged (opus)             | 186a23c3 |
+| 3. A release candidate                         | 3    | not started               |          |
+| 4. Promotion refuses what isn't passing        | 3    | not started               |          |
+| 5. The release tier                            | 4    | not started               |          |
+| 6. The required check on main and its override | 5    | not started               |          |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Now:** wave 1 is blocked. Slice 1 (`.loops/test-gates-2-1`, 7626dfb3) passed its quick check, but the permission classifier denied its `candidate` and `full` CI runs, so the browser job has never run. Not merged; The user allowed both runs (a121, a130: "Run them"). On 7626dfb3, `full` is green with no browser job (run 45183253017). `candidate` is `file` (run 45181714693): the browser job took 7m15s, 10 of 11 checks passed, and `roundtrip` failed at "add: shows on this device at once" (2353 ms). Slice 1's agent fixed the runner path (f8f469ac) and filed the roundtrip 2-second budget miss as B-661 (cause unproven, one sample; the rest of roundtrip has not run on Linux). Merged as b7f8601e. Worktree kept. Synced with `dev` (7df67c57); quick check passed there. CI approval covers wave 1 only: a134 reads "this topic's runs", but the backlog session relayed the user's narrower word, so file a new ask before any later wave's run. The wave's `candidate` run on 65cd3516 (45187414322) is `file`: 10 of 11 checks passed, `roundtrip` failed again at the add step (2779 ms against 2000 ms, B-661). `ci blame` was not run: it would request a run on `dev`, whose tier list has no `candidate`, so it could not place this failure. Slice 1's fix 4aabc808 (clock from submit, budget stays 2000 ms) merged as e3169ce8; wave 1 `candidate` run 45190183990 on 3b4daefa is green, all 11 browser checks included (browser job 7m15s). Synced; `candidate` run 45193491778 on 83bb5796 is green too. Slice 1 worktree removed. Runbook updated. Next: PR, Codex, land with `--tier candidate`, then rotate. Wave 2's CI runs need a new ask. That word covers these two runs only; if a later run is denied, ask again. Items B-532, B-533 claimed for this topic. Backlog doctor's three findings (B-548, B-549, B-568) aren't this topic's.
+**Now:** wave 1 landed in `dev` as 06309608 through PR #118 (Codex clean, `candidate` run 45193491778 green on 83bb5796, 11 of 11 browser checks). Slice 1's worktree is removed. B-661 (roundtrip's add timing) is done; B-532 stays open for slices 3 and 4, B-533 for 5 and 6. Report filed.
+
+**Next:** wave 2's slice is merged (186a23c3, from e3c1c992); its forced-flake proof run 45198526790 read `flake`. The quick check passed on ab503425 and the wave's `candidate` run 45201998537 is green there (11 of 11 browser checks). Slice 2's worktree is removed. Synced with `dev` at d7125188 and the quick check passed there. No local browser run: the wave touches no app code and CI ran all 11 checks. PR #120 is open and Codex was clean on 7d8b319. The runbook now has the browser verdict rules. Now: sync, push, Codex again on the docs commit, then land with `--tier candidate`. B-532 stays open for slices 3 and 4.
+
+**For slice 4:** the gate must refuse a `flake` when any `flaky[].brake` is true; slice 2 only sets the flag. **For slice 5:** reuse `runBrowserJob` and `summarizeBrowser` for repeat runs.
+
+**CI approval:** covered wave 1 only. a134 reads "this topic's runs", but the backlog session relayed the user's narrower word. **Wave 2 is approved (a140, the user's yes):** the slice's proof run(s) with a check forced to fail once, and the wave's `candidate` gate plus any rerun after a fix. **It doesn't cover wave 3 or later: file a new ask (`--waits`, after a skeptic) before their first run.** The permission classifier denied agents' `pnpm prd ci run` until the user allowed it; never work around a denial.
+
+**For slice 2 and later:** `pnpm prd ci blame` requests a run on `dev`, so it couldn't place a candidate failure until `dev` had the tier (it does now). The later roundtrip steps passed on Linux, but the refused-upload queue counts are timing-sensitive.
 
 ## Architectural decisions
 

@@ -3,7 +3,8 @@
 # A flake in one of these is filed and never quarantined.
 #
 # One repo-relative glob per line: `*` stays inside a directory, `**` crosses them.
-# scripts/ci/lists.test.mjs fails on a line that matches no test file.
+# `check:<name>` is a browser check from scripts/loops/checks, as a whole.
+# scripts/ci/lists.test.mjs fails on a line that matches no test file or check.
 
 # Sync and offline
 apps/web/app/lib/sync/**
@@ -11,6 +12,11 @@ apps/web/app/lib/**/*.sync.test.ts
 apps/web/app/lib/**/*.sync.browser.test.tsx
 packages/api/src/sync*.test.ts
 scripts/loops/sync-matrix.test.mjs
+check:first-sync
+check:roundtrip
+check:layout-offline
+check:session-end
+check:live-notes
 
 # Role-by-action matrices and permissions
 # router.int.test.ts also holds sync.upload, non-member 404s and no-email checks.
