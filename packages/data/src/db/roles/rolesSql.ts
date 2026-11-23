@@ -43,7 +43,8 @@ export const DEFAULT_ROLE_NAMES: RoleNames = {
  * never devices.
  *
  * - "user": its email, role, preferences and disabled fields must never
- *   reach devices (the streams and the publication list id, name, image).
+ *   reach devices (the streams and the publication list id, name, image and
+ *   the two avatar ids).
  * - "note_document" and "timeline_entry": `search_vector` (migration 0016,
  *   hand-written, not in the Drizzle schema) is derived from text these
  *   tables already sync, and devices build their own index.

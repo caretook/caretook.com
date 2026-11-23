@@ -31,7 +31,7 @@ describe("getPermissionScope", () => {
           field: "id",
           userId: "u-member",
           groupRoles: ["owner", "admin", "caretaker", "viewer", "easy_helper", "easy_viewer"],
-          fields: ["id", "name", "image"],
+          fields: ["id", "name", "image", "avatarColor", "avatarIcon"],
         },
       ],
     });

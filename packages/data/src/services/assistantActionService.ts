@@ -291,38 +291,52 @@ const passDoses = async (
       code: "assistantActionService:nothingLeft",
       message: `Nothing is left to give in ${pass.name} today.`,
     });
+  const seen = new Set(doses.map((dose) => dose.id));
   const rows: EntryPlan[] = [];
   for (const { occurredAt, ...details } of writes) {
-    const id = await slotDoseId(tx, setting, { ...details, occurredAt }, pass.time);
+    const id = await slotDoseId(tx, setting, { ...details, occurredAt }, pass.time, seen);
     if (isError(id)) return id;
+    if (!id) continue;
     rows.push({
       type: "entry",
       input: { id, groupId, recipientId: setting.recipientId, kind: "dose", occurredAt, timeZone, details },
       providerIds: [],
     });
   }
+  if (!rows.length)
+    return newError({
+      code: "assistantActionService:nothingLeft",
+      message: `Nothing is left to give in ${pass.name} today.`,
+    });
   return rows;
 };
 
 /**
  * The id a planned dose takes: its slot's (`doseSlotIdFor`), unless a row in
  * Postgres has it, live or deleted, or this batch already used it; then a
- * random one, so a dose logged again after an Undo is a new row.
+ * random one, so a dose logged again after an Undo is a new row. Null when
+ * another run or upload logged this slot's dose after this plan read the doses
+ * (`seen`): it is already given. The id's lock is held to the end of the
+ * transaction, so a simultaneous first write waits instead of hitting the key.
  */
 const slotDoseId = async (
   tx: Tx,
   { timeZone, usedDoseIds }: Setting,
   dose: Parameters<typeof doseSlotIdFor>[0],
   passTime: string,
+  seen: ReadonlySet<string>,
 ) => {
   const slotId = doseSlotIdFor(dose, { timeZone, passTime });
   if (!slotId || usedDoseIds.has(slotId)) return crypto.randomUUID();
+  const locked = await timelineEntryModel.lockId(slotId, tx);
+  if (isError(locked)) return locked;
   const taken = await timelineEntryModel.getById(slotId, {
     authUser: SYSTEM_USER,
     tx,
     includeDeleted: true,
   });
   if (isError(taken)) return taken;
+  if (taken && !taken.deletedAt && !seen.has(slotId)) return null;
   if (taken) return crypto.randomUUID();
   usedDoseIds.add(slotId);
   return slotId;

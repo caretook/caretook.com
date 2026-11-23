@@ -590,6 +590,22 @@ const mayRestoreDose = (
   !(row.createdBy === uploader && new Date(row.occurredAt).getTime() === new Date(occurredAt).getTime());
 
 /**
+ * The dose with this id when it is another member's and the actor may log
+ * doses in its group; else null. An upload of the actor's own copy of it (a
+ * PUT that already carries `deleted_at`, or a flagged PATCH) leaves it alone
+ * (B-614). Viewers get null, so their upload is refused as usual.
+ */
+export const anotherMembersDose = (ctx: ServiceContext, id: string) =>
+  withTransaction(async (tx) => {
+    const row = await timelineEntryModel.getById(id, { ...ctx, tx, includeDeleted: true });
+    if (isError(row)) return row;
+    if (row?.kind !== "dose") return null;
+    const uploader = await doseUploader(ctx, tx, row.groupId, {});
+    if (isError(uploader)) return uploader;
+    return uploader && row.createdBy !== uploader ? row : null;
+  }, ctx);
+
+/**
  * Create the entry with this id, or bring the existing one up to date: what
  * PowerSync's upload queue sends for a row a device created. Safe to replay:
  * a second identical call changes nothing but `updatedAt`.
@@ -602,6 +618,7 @@ const mayRestoreDose = (
  *   anyone who may log one: onto a live row another member created, the first
  *   upload stands and nothing changes; onto a row another member deleted, it
  *   comes back as the uploader's, unless this is their own dose replayed.
+ *   Two first uploads of one id take turns, so the second is that duplicate.
  * - An id that exists but the actor can't see is refused, without saying
  *   whether it exists.
  * - A medication change is never created or edited here: one that exists
@@ -631,6 +648,11 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
         .filter((key) => key in parsed.data)
         .map((key) => [key, (parsed.data as Record<string, unknown>)[key]]),
     );
+
+    if (kind === "dose") {
+      const locked = await timelineEntryModel.lockId(id, tx);
+      if (isError(locked)) return locked;
+    }
 
     // Existence is checked as the system, so a taken id is refused cleanly
     // rather than failing on the primary key.
