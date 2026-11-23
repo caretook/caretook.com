@@ -7,6 +7,7 @@ import type { TimelineEntryListFilters } from "./TimelineEntryList";
 import { isManagerRole } from "@caretook/data/permissions";
 import { useRef } from "react";
 import { QuickEntryBox } from "~/components/quick-entry";
+import { Page, TITLE_PAGE } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { nextStripText } from "~/lib/appointments/upcomingLabels";
 import { RemoveLastEntry } from "./RemoveLastEntry";
@@ -68,11 +69,11 @@ export function EasyTimeline({
     el?.focus({ preventScroll: true });
   };
   return (
-    <main className="mx-auto max-w-2xl space-y-6 px-4 py-6" data-easy-timeline="">
+    <Page data-easy-timeline="">
       <header className={`flex items-start justify-between gap-3 ${COLUMN_CAP}`}>
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold break-words">{group.displayName}</h1>
-          <p className="text-base-content/80 text-base">
+          <h1 className={`${TITLE_PAGE} break-words`}>{group.displayName}</h1>
+          <p className="text-muted text-base">
             Today · <span data-easy-today>{easyTodayText(new Date())}</span>
           </p>
         </div>
@@ -96,7 +97,7 @@ export function EasyTimeline({
         <div className={`space-y-2 ${EASY_BLOCK} ${COLUMN_CAP}`}>
           <QuickEntryBox groupId={group.id} units={units} size="md" passChips={false} fieldRef={quickField} />
           {dictate && (
-            <p className="text-base-content/70 text-sm" data-dictation-hint="">
+            <p className="text-muted text-sm" data-dictation-hint="">
               {DICTATION_HINT}
             </p>
           )}
@@ -117,7 +118,7 @@ export function EasyTimeline({
         summaryMode={summaryMode}
       />
       {children}
-    </main>
+    </Page>
   );
 }
 
