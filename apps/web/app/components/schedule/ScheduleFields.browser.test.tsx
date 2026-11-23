@@ -36,8 +36,7 @@ describe("ScheduleFields", () => {
       />,
     );
 
-    const endSegment = (type: string) =>
-      document.querySelectorAll<HTMLElement>(`[data-type="${type}"]`)[1]!;
+    const endSegment = (type: string) => document.querySelectorAll<HTMLElement>(`[data-type="${type}"]`)[1]!;
     endSegment("hour").focus();
     await userEvent.keyboard("{ArrowUp}");
 
