@@ -216,14 +216,26 @@ const ordinalDate = (word: string | undefined) => {
 };
 
 /** Common fractions: amounts ("gave 1/2 tylenol"), dates only after "on". */
-const FRACTIONS = new Set(["1/2", "1/3", "2/3", "1/4", "3/4"]);
+const FRACTIONS = new Set(["1/2", "1/3", "2/3", "1/4", "3/4", "1/8"]);
+
+/**
+ * Words that make the slash number before them an amount ("gave 1/8 tsp").
+ * The same units as the parser's `AMOUNT_UNITS`, which can't be imported here:
+ * the parser imports this file.
+ */
+const AMOUNT_UNIT_WORDS = new Set(
+  "tsp tbsp teaspoon teaspoons tablespoon tablespoons ml mls cc mg mcg g tab tabs tablet tablets pill pills cap caps capsule capsules dose doses drop drops puff puffs unit units patch patches spray sprays sachet sachets inhalation inhalations".split(
+    " ",
+  ),
+);
 
 /**
  * A month/day word, month first ("11/25", "11/25/26", "11/25/2026"), when it
  * is a real day. Without a year, a number out of ten ("3/10", a severity) and
- * a common fraction are dates only after "on".
+ * a common fraction are dates only after "on", and so is a number right
+ * before an amount's unit ("2/5 ml").
  */
-const monthDayWord = (word: string | undefined, afterOn: boolean) => {
+const monthDayWord = (word: string | undefined, afterOn: boolean, next: string | undefined) => {
   const m = word ? /^(\d{1,2})\/(\d{1,2})(?:\/(\d{4}|\d{2}))?$/.exec(word) : null;
   if (!m) return null;
   const month = Number(m[1]);
@@ -232,7 +244,12 @@ const monthDayWord = (word: string | undefined, afterOn: boolean) => {
   // Without a year, Feb 29 is real: resolving finds the nearest year that has it.
   const longest = month >= 1 && month <= 12 ? new Date(Date.UTC(year ?? 2024, month, 0)).getUTCDate() : 0;
   if (date < 1 || date > longest) return null;
-  if (year === undefined && !afterOn && (date === 10 || FRACTIONS.has(word!))) return null;
+  if (
+    year === undefined &&
+    !afterOn &&
+    (date === 10 || FRACTIONS.has(word!) || AMOUNT_UNIT_WORDS.has(next ?? ""))
+  )
+    return null;
   return { month, date, ...(year !== undefined && { year }) };
 };
 
@@ -407,7 +424,7 @@ export const findTime = (words: readonly string[]): FoundTime | null => {
       }
       // "11/25", "on 11/10", "11/25/26"
       const slashAt = word === "on" ? i + 1 : i;
-      const monthDay = monthDayWord(words[slashAt], word === "on");
+      const monthDay = monthDayWord(words[slashAt], word === "on", words[slashAt + 1]);
       if (monthDay) {
         day = monthDay;
         take(i, slashAt - i + 1);

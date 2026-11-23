@@ -137,6 +137,12 @@ describe("month/day dates", () => {
     ["on 1/2", { month: 1, date: 2 }],
     ["on 11/10", { month: 11, date: 10 }],
     ["2/29", { month: 2, date: 29 }],
+    ["on 1/8", { month: 1, date: 8 }],
+    ["on 2/5 ml", { month: 2, date: 5 }],
+    ["11/25 at 2pm", { month: 11, date: 25 }],
+    ["dr lee 2/14", { month: 2, date: 14 }],
+    ["dr lee 3/8", { month: 3, date: 8 }],
+    ["2/5/26 ml", { month: 2, date: 5, year: 2026 }],
   ])("%s", (line, day) => {
     expect(specOf(line)?.day).toEqual(day);
   });
@@ -156,6 +162,11 @@ describe("month/day dates", () => {
     "2/30",
     "2/29/26",
     "0/5",
+    "gave 1/8 tsp",
+    "gave 1/8 tylenol",
+    "gave 2/5 ml",
+    "gave 3/8 tsp",
+    "1/6 tablet",
   ])("%s has no date", (line) => {
     expect(find(line)).toBeNull();
   });
