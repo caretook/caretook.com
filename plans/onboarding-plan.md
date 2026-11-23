@@ -4,17 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State         | Merge into `prd/onboarding` (slice commits) |
-| ----- | ---- | ------------- | ------------------------------------------- |
-| 1     | 1    | landed (opus) | 8404c3a4 (ebfc909c)                         |
-| 2     | 1    | landed (opus) | 043a28f5 (c6a64dd5, bcfee496)               |
-| 3     | 1    | landed (opus) | 6bb9316c (9310f2f9, 071859ba)               |
-| 4     | 2    | —             | —                                           |
-| 5     | 3    | —             | —                                           |
+| Slice | Wave | State          | Merge into `prd/onboarding` (slice commits) |
+| ----- | ---- | -------------- | ------------------------------------------- |
+| 1     | 1    | landed (opus)  | 8404c3a4 (ebfc909c)                         |
+| 2     | 1    | landed (opus)  | 043a28f5 (c6a64dd5, bcfee496)               |
+| 3     | 1    | landed (opus)  | 6bb9316c (9310f2f9, 071859ba)               |
+| 4     | 2    | started (opus) | —                                           |
+| 5     | 3    | —              | —                                           |
 
 **Landing mode:** run everything through (started run-through): land each green wave, clean up, ask real questions only through `pnpm prd ask`.
 
-**Now (2026-11-23):** wave 1 (slices 1, 2, 3) landed in dev as 1d7d817c through PR #97. Codex clean; full CI verdict `flake` on cbfcbcc0 (run 45127052638), a timeline test outside this branch, filed as B-633. `first-sync` and `invites` passed; the lean browser suite was not run (question a101 defaulted to landing without it). Wave 1 docs are folded here and land with wave 2. **Next: wave 2, slice 4** (opus). It must move `LegalAgreement` out of the join route to share it. Slice 5 should check the card for an owner in Easy mode (noted on B-31). Follow-ups filed: B-628 (preferences save can lose a change), B-629 (focus after dismissing the setup card), B-630 (two legal-link helpers).
+**Now (2026-11-23):** wave 1 (slices 1, 2, 3) landed in dev as 1d7d817c through PR #97. Codex clean; full CI verdict `flake` on cbfcbcc0 (run 45127052638), a timeline test outside this branch, filed as B-633. `first-sync` and `invites` passed; the lean browser suite was not run (question a101 defaulted to landing without it). Wave 1 docs are folded here and land with wave 2. **Wave 2 is running:** dev synced (0af68c25), slice 4's worktree `onboarding-4` made and its agent spawned (opus). It must move `LegalAgreement` out of the join route to share it. Slice 5 should check the card for an owner in Easy mode (noted on B-31). Follow-ups filed: B-628 (preferences save can lose a change), B-629 (focus after dismissing the setup card), B-630 (two legal-link helpers).
 
 **Backlog:** `done` B-360 when slice 2 merges, B-359 when slice 4 merges and B-31 when slice 5 merges.
 
