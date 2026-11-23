@@ -344,6 +344,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-620 | bug | triaged | fixes-bug |  | Timeline day headers repeat a care period day number when the viewer and recipient are in different time zones |
 | B-621 | feature | triaged | fixes-ui |  | Quick entry: a tips panel under the box on a user's first 3 focuses, with examples, two shorthand codes and an X |
 | B-622 | bug | dropped | fixes-tooling |  | CI flake: packages/data/src/db/resetStaging.int.test.ts |
+| B-623 | bug | triaged | fixes-tooling |  | Check rerun never runs for tooling: check-body's 'unhandled error' grep matches a passing test's title |
+| B-624 | bug | triaged | fixes-tooling |  | browser.test.mjs 'passes a clean spec' fails under load: it expects exactly two output lines |
 
 ## Items
 
@@ -2673,3 +2675,21 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-23 (Robert Bo Davis): [ci-key 5ec2f8d0c0ea] Flaked (passed on its rerun); a whole-file flake can't be quarantined by name; found by prd/ui-kit-4.
 - 2026-11-23 (prd/dose-accuracy): Merged into B-610 on the user's word, 2026-11-23; B-610 carries this item's ci-key, so a new whole-file flake notes B-610.
+
+### B-623 · bug · Check rerun never runs for tooling: check-body's 'unhandled error' grep matches a passing test's title
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-23 (prd/test-gates): scripts/loops/check-body.sh:69 greps the verbose output for 'unhandled error', and browser/check-body tests include the passing title "doesn't rerun after an unhandled error". So any tooling failure prints 'an unhandled error, so no rerun' and skips its one rerun. Seen on prd/test-gates 518a041f, 2026-11-23.
+
+### B-624 · bug · browser.test.mjs 'passes a clean spec' fails under load: it expects exactly two output lines
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-23 (prd/test-gates): Failed in the quick check on prd/test-gates 518a041f (load about 32): 3 lines, not 2. Passed alone 3 of 3. Likely the load-wait line from browser.sh's load_gate_wait; not confirmed. Related: B-446.
