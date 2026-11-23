@@ -88,7 +88,7 @@ describe("My todos in easy mode", () => {
     // Big ticks, one per todo.
     const ticks = card()!.querySelectorAll<HTMLInputElement>("[data-todo-tick]");
     expect(ticks).toHaveLength(5);
-    expect(ticks[0]?.classList.contains("checkbox-xl")).toBe(true);
+    expect(ticks[0]?.getBoundingClientRect().width ?? 0).toBeGreaterThanOrEqual(32);
 
     // The other regions are where they were: Upcoming, then the card, the tiles, Remove, the box, the rows.
     // They can render after the card on a loaded machine (the tiles replace their skeleton

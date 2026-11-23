@@ -78,7 +78,7 @@ export function QuickEntrySuggestions({
 function Row({ caption, data, children }: { caption: string; data: string; children: ReactNode }) {
   return (
     <div className="space-y-1" data-quick-row={data}>
-      <p className="text-base-content/70 text-xs" aria-hidden="true">
+      <p className="text-muted text-xs" aria-hidden="true">
         {caption}
       </p>
       {children}
