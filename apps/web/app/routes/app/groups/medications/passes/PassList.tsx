@@ -5,7 +5,7 @@ import type { LocalMedication } from "~/lib/medications/medications.sync";
 import { ArrowDown, ArrowUp, Clock, Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useFetcher } from "react-router";
-import { ConfirmDialog, EmptyState, Menu, SEPARATOR } from "~/components/ui";
+import { ConfirmDialog, EmptyState, LINK, Menu, SEPARATOR } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
@@ -77,7 +77,7 @@ export function PassList({
             <div className="min-w-0 flex-1">
               <p className="font-medium wrap-break-word">
                 <span data-pass-name>{pass.name}</span>
-                <span className="text-base-content/70 font-normal">
+                <span className="text-muted font-normal">
                   {" · "}
                   <time data-pass-time dateTime={pass.time}>
                     {clockTime(pass.time)}
@@ -90,7 +90,7 @@ export function PassList({
                     <li key={m.id} className="inline after:content-[',_'] last:after:content-none">
                       <Link
                         to={appUrls.medication(groupId, m.id)}
-                        className="link link-hover"
+                        className={LINK}
                         data-pass-medication={m.id}
                       >
                         {medicationTitle(m)}
@@ -99,7 +99,7 @@ export function PassList({
                   ))}
                 </ul>
               ) : (
-                <p className="text-base-content/70 text-sm" data-pass-medications-none>
+                <p className="text-muted text-sm" data-pass-medications-none>
                   No medications yet
                 </p>
               )}
@@ -108,7 +108,10 @@ export function PassList({
               <Menu
                 label={`Actions for ${pass.name}`}
                 items={actions(pass, index)}
-                className="btn btn-ghost btn-sm btn-square shrink-0"
+                variant="ghost"
+                size="sm"
+                shape="square"
+                className="shrink-0"
               >
                 <Ellipsis className="size-4" aria-hidden="true" />
               </Menu>

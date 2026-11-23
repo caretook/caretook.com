@@ -3,7 +3,7 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 
 import { Printer } from "lucide-react";
 import { PrintAllergies, PrintConditions } from "~/components/medications";
-import { BackLink } from "~/components/ui";
+import { BackLink, Button } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
@@ -52,10 +52,9 @@ export default function MedicationsPrint({ loaderData, params }: Route.Component
     <main className="mx-auto max-w-4xl space-y-4 px-4 py-5 print:max-w-none print:p-0" data-print-page>
       <div className="flex items-center justify-between gap-3 print:hidden">
         <BackLink to={appUrls.medicationList(params.groupId)} label="Medications" />
-        <button type="button" className="btn btn-primary btn-sm gap-1.5" onClick={() => window.print()}>
-          <Printer className="size-4" aria-hidden="true" />
+        <Button variant="primary" size="sm" icon={Printer} onClick={() => window.print()}>
           Print
-        </button>
+        </Button>
       </div>
       <MedicationSheet
         sheet={sheet}

@@ -1,30 +1,31 @@
 import type { DoseStatus } from "@caretook/data/schema";
+import type { BadgeTone } from "~/components/ui";
 import type { DoseSlot, SlotState } from "~/lib/medications/dueDoses";
 
 import { Check, Ellipsis } from "lucide-react";
 import { Link } from "react-router";
-import { Menu } from "~/components/ui";
+import { Badge, Button, ListRow, Menu, Message, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { isOpen } from "~/lib/medications/dueDoses";
 import { medicationTitle, slotStateText } from "~/lib/medications/medicationDisplay";
 import { usePassLog } from "./usePassLog";
 
-const BADGE: Record<SlotState, string> = {
-  upcoming: "badge-ghost",
-  due: "badge-warning",
-  overdue: "badge-error",
-  given: "badge-primary badge-soft",
-  skipped: "badge-neutral badge-outline",
-  refused: "badge-neutral badge-outline",
-  missed: "badge-error badge-outline",
+const TONE: Record<SlotState, BadgeTone> = {
+  upcoming: "neutral",
+  due: STATUS_TONE.dueSoon,
+  overdue: STATUS_TONE.overdue,
+  given: STATUS_TONE.done,
+  skipped: STATUS_TONE.past,
+  refused: STATUS_TONE.past,
+  missed: STATUS_TONE.overdue,
 };
 
 /** A slot's state as a badge: "Due", "Overdue", "Given 8:05"… */
 export function SlotBadge({ slot, timeZone }: { slot: DoseSlot; timeZone: string }) {
   return (
-    <span className={`badge badge-sm shrink-0 ${BADGE[slot.state]}`} data-slot-state={slot.state}>
+    <Badge tone={TONE[slot.state]} className="shrink-0" data-slot-state={slot.state}>
       {slotStateText(slot, timeZone)}
-    </span>
+    </Badge>
   );
 }
 
@@ -62,38 +63,40 @@ export function DoseSlotRow({
   const open = canWrite && isOpen(slot);
 
   return (
-    <li
-      className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2"
+    <ListRow
+      className="flex flex-wrap items-center gap-x-3 gap-y-1"
       data-slot={`${medication.id}@${slot.time}`}
     >
       <div className="min-w-0 flex-1">
         <Link to={appUrls.medication(groupId, medication.id)} className="link-hover font-medium break-words">
           {title}
         </Link>
-        {slot.amount && <p className="text-base-content/70 text-sm">{slot.amount}</p>}
+        {slot.amount && <p className="text-muted text-sm">{slot.amount}</p>}
       </div>
       <SlotBadge slot={slot} timeZone={timeZone} />
       {loggedBy && slot.dose && (
-        <span className="text-base-content/70 text-sm" data-logged-by>
+        <span className="text-muted text-sm" data-logged-by>
           by {loggedBy}
         </span>
       )}
       {open && (
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
+          <Button
+            variant="primary"
+            size="sm"
+            icon={Check}
             disabled={busy}
             aria-label={`Given: ${title}, ${slot.time}`}
-            data-give
+            data-give=""
             onClick={() => void logSlot(slot, "given", { passLogId })}
           >
-            <Check className="size-4" aria-hidden="true" />
             Given
-          </button>
+          </Button>
           <Menu
             label={`More for ${title}, ${slot.time}`}
-            className="btn btn-ghost btn-sm btn-square"
+            variant="ghost"
+            size="sm"
+            shape="square"
             items={[
               { id: "skipped", label: "Skipped…", onAction: () => onMark(slot, "skipped") },
               { id: "refused", label: "Refused…", onAction: () => onMark(slot, "refused") },
@@ -104,10 +107,10 @@ export function DoseSlotRow({
         </div>
       )}
       {error && (
-        <p role="alert" className="text-error w-full text-sm">
+        <Message tone="error" className="w-full">
           {error}
-        </p>
+        </Message>
       )}
-    </li>
+    </ListRow>
   );
 }

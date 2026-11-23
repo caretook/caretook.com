@@ -3,7 +3,7 @@ import type { ProviderRow } from "~/lib/providers/providers.sync";
 import { useMemo } from "react";
 import { Link } from "react-router";
 import { ContactActions, ProviderTypeIcon } from "~/components/providers";
-import { Section } from "~/components/ui";
+import { EmptyState, List, ListRow, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { quickActions } from "~/lib/providers/contactActions";
 import { useLiveQuery } from "~/lib/sync";
@@ -34,15 +34,15 @@ function ProviderRowItem({
   if (!provider || provider.groupId !== groupId) return null;
   const removed = !!provider.deletedAt;
   return (
-    <li
-      className="hover:bg-base-200/50 relative isolate flex items-center gap-3 px-3 py-2.5"
+    <ListRow
+      className="hover:bg-base-200/50 relative isolate flex items-center gap-3"
       data-medication-provider={label.toLowerCase()}
     >
       <ProviderTypeIcon type={provider.type} past={removed || provider.status === "past"} />
       <div className="min-w-0 flex-1">
-        <p className="text-base-content/70 text-sm">{label}</p>
+        <p className="text-muted text-sm">{label}</p>
         {removed ? (
-          <p className="text-base-content/50 truncate" data-provider-name>
+          <p className="text-faint truncate" data-provider-name>
             {provider.name} (removed)
           </p>
         ) : (
@@ -56,7 +56,7 @@ function ProviderRowItem({
         )}
       </div>
       {!removed && <ContactActions actions={quickActions(provider)} />}
-    </li>
+    </ListRow>
   );
 }
 
@@ -85,9 +85,9 @@ export function MedicationProviders({
   return (
     <Section title="Prescriber and pharmacy" id="providers">
       {!prescriberId && !pharmacyId ? (
-        <p className="text-base-content/70 text-sm">No prescriber or pharmacy yet.</p>
+        <EmptyState>No prescriber or pharmacy yet.</EmptyState>
       ) : (
-        <ul className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border">
+        <List>
           {prescriberId && (
             <ProviderRowItem
               groupId={groupId}
@@ -104,7 +104,7 @@ export function MedicationProviders({
               loaded={pharmacyRows ?? NO_ROWS}
             />
           )}
-        </ul>
+        </List>
       )}
     </Section>
   );

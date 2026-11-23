@@ -1,6 +1,7 @@
 import type { Schedule } from "~/lib/appointments/entrySchedule";
 
 import { useState } from "react";
+import { Button, ToggleField } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
 import { localTimeZone } from "~/lib/core/format";
 import { currentHourIn } from "~/lib/core/timeOfDay";
@@ -87,26 +88,22 @@ export function ScheduleFields({
           if (next.endsAt !== schedule.endsAt && schedule.endsAt) setEndVersion((v) => v + 1);
         }}
       />
-      <label className="label text-base-content cursor-pointer gap-2 text-sm">
-        <input
-          type="checkbox"
-          className="toggle toggle-sm"
-          checked={schedule.allDay}
-          onChange={(e) =>
-            edit(
-              withAllDay(
-                schedule,
-                e.target.checked,
-                timeZone,
-                // withAllDay places it in the entry's zone, so the hour is that zone's.
-                kind === "event" ? { hour: currentHourIn(timeZone), minute: 0 } : undefined,
-              ),
-              true,
-            )
-          }
-        />
-        All day
-      </label>
+      <ToggleField
+        label="All day"
+        checked={schedule.allDay}
+        onChange={(e) =>
+          edit(
+            withAllDay(
+              schedule,
+              e.target.checked,
+              timeZone,
+              // withAllDay places it in the entry's zone, so the hour is that zone's.
+              kind === "event" ? { hour: currentHourIn(timeZone), minute: 0 } : undefined,
+            ),
+            true,
+          )
+        }
+      />
       {kind === "event" &&
         !schedule.allDay &&
         (schedule.endsAt ? (
@@ -119,22 +116,18 @@ export function ScheduleFields({
               error={error ?? undefined}
               onChange={(iso) => edit(withEnd(schedule, iso))}
             />
-            <button
-              type="button"
-              className="btn btn-ghost btn-xs"
-              onClick={() => edit(withEnd(schedule, null), true)}
-            >
+            <Button variant="ghost" size="xs" onClick={() => edit(withEnd(schedule, null), true)}>
               No end time
-            </button>
+            </Button>
           </div>
         ) : (
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => edit(withEnd(schedule, defaultEnd(schedule)), true)}
           >
             Add an end time
-          </button>
+          </Button>
         ))}
     </>
   );

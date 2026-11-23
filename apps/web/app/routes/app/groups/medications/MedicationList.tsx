@@ -3,7 +3,7 @@ import type { MedicationList as Listed } from "~/lib/medications/medicationList"
 import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 
-import { EmptyState } from "~/components/ui";
+import { EmptyState, List, TITLE_SUB } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { MEDICATION_TYPE_LABELS, STATUS_LABELS } from "~/lib/medications/medicationDisplay";
@@ -21,14 +21,11 @@ function Rows({
   label: string;
 }) {
   return (
-    <ul
-      aria-label={label}
-      className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border"
-    >
+    <List label={label}>
       {medications.map((m) => (
         <MedicationListItem key={m.id} medication={m} passes={passes} />
       ))}
-    </ul>
+    </List>
   );
 }
 
@@ -78,16 +75,12 @@ export function MedicationList({
         </h2>
 
         {total === 0 ? (
-          emptyMark ? (
-            <EmptyState {...emptyMark}>No medications yet.</EmptyState>
-          ) : (
-            <p className="text-base-content/70">No medications yet.</p>
-          )
+          <EmptyState {...emptyMark}>No medications yet.</EmptyState>
         ) : (
           shown === 0 && (
-            <p className="text-base-content/70" data-empty>
+            <EmptyState data-empty="">
               {text.trim() ? `No ${what} match “${text.trim()}”.` : `No ${what}.`}
-            </p>
+            </EmptyState>
           )
         )}
 
@@ -98,7 +91,7 @@ export function MedicationList({
         {list.stopped.length > 0 && (
           <section aria-labelledby={status ? undefined : "stopped-heading"} className="space-y-2">
             {!status && (
-              <h3 id="stopped-heading" className="text-base-content/70 text-sm font-semibold">
+              <h3 id="stopped-heading" className={`${TITLE_SUB} text-muted`}>
                 Completed and discontinued
               </h3>
             )}

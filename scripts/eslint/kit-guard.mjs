@@ -20,29 +20,6 @@ export const KIT_CLASSES_ALLOWED = [
 /** Areas with hits today. A sweep's last step deletes its group; `ui-kit-5` empties the list. */
 /** @type {string[]} */
 export const KIT_CLASSES_NOT_SWEPT = [
-  // Slice 2: medications.
-  "components/medications/AllergiesRegion.tsx",
-  "components/medications/DoseSlotRow.tsx",
-  "components/medications/MedicationStatusActions.tsx",
-  "components/medications/PassCard.tsx",
-  "components/medications/PassUndoStatus.tsx",
-  "components/schedule/RescheduleSheet.tsx",
-  "components/schedule/ScheduleFields.tsx",
-  "routes/app/groups/medication/MedicationDetails.tsx",
-  "routes/app/groups/medication/route.tsx",
-  "routes/app/groups/medications/AsNeededRow.tsx",
-  "routes/app/groups/medications/MedicationForm.tsx",
-  "routes/app/groups/medications/MedicationListItem.tsx",
-  "routes/app/groups/medications/PrintMenu.tsx",
-  "routes/app/groups/medications/ScheduleFields.tsx",
-  "routes/app/groups/medications/allergies/AllergyForm.tsx",
-  "routes/app/groups/medications/allergies/AllergyList.tsx",
-  "routes/app/groups/medications/allergies/route.tsx",
-  "routes/app/groups/medications/passes/PassForm.tsx",
-  "routes/app/groups/medications/passes/PassList.tsx",
-  "routes/app/groups/medications/print/route.tsx",
-  "routes/app/groups/medications/print/week/WeekPicker.tsx",
-  "routes/app/groups/medications/print/week/route.tsx",
   // Slice 3: providers and care periods.
   "components/contact/ContactLines.tsx",
   "components/contact/PhoneFields.tsx",

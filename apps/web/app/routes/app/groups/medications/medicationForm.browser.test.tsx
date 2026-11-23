@@ -269,8 +269,10 @@ describe("the type", () => {
     const id = typeGroup().getAttribute("aria-describedby");
     return id ? (document.getElementById(id)?.textContent?.trim() ?? null) : null;
   };
-  const details = () => FORM()!.querySelector<HTMLDetailsElement>("details[data-prescription-details]")!;
-  const summaryShown = () => details().querySelector("summary")!.checkVisibility();
+  const details = () => FORM()!.querySelector<HTMLElement>("[data-prescription-details]")!;
+  const toggle = () => details().querySelector<HTMLButtonElement>("[data-prescription-toggle]");
+  const summaryShown = () => toggle()?.checkVisibility() ?? false;
+  const detailsOpen = () => details().querySelector(":scope > [data-collapse]")!.hasAttribute("data-open");
   const inDetails = (name: string) => !!details().querySelector(`[name="${name}"]`);
   const typeOf = async (device: Awaited<ReturnType<typeof open>>, id: string) =>
     (await device.query<{ type: string | null }>("SELECT type FROM medication WHERE id = ?", [id]))[0]?.type;
@@ -282,7 +284,7 @@ describe("the type", () => {
       [...(FORM()?.querySelectorAll<HTMLInputElement>('input[name="type"]') ?? [])].map((r) => r.ariaLabel),
     ).toEqual(["Prescription", "Over the counter", "Supplement", "Other"]);
     expect(checkedType()).toBe("prescription");
-    expect(details().open).toBe(true);
+    expect(detailsOpen()).toBe(true);
     expect(summaryShown()).toBe(false);
 
     await userEvent.fill(await found(() => field("name")), "Sertraline");
@@ -310,23 +312,27 @@ describe("the type", () => {
     );
     await userEvent.click(typeRadio("otc"));
 
-    await expect.poll(() => details().open).toBe(false);
+    await expect.poll(() => detailsOpen()).toBe(false);
     expect(summaryShown()).toBe(true);
-    expect(details().querySelector("summary")?.textContent?.trim()).toBe("Prescription details");
+    expect(toggle()?.textContent?.trim()).toBe("Prescription details");
     expect(["prescriberId", "refillsLeft", "rxNumber"].map(inDetails)).toEqual([true, true, true]);
     expect(["pharmacyId", "lastFilledOn", "quantity"].map(inDetails)).toEqual([false, false, false]);
-    expect(field("quantity")?.checkVisibility()).toBe(true);
-    expect(field("rxNumber")?.checkVisibility()).toBe(false);
+    expect(field("quantity")?.checkVisibility({ visibilityProperty: true })).toBe(true);
+    await expect.poll(() => field("rxNumber")?.checkVisibility({ visibilityProperty: true })).toBe(false);
 
-    await userEvent.click(await found(() => details().querySelector("summary")));
-    await expect.poll(() => field("rxNumber")!.checkVisibility()).toBe(true);
+    expect(toggle()?.getAttribute("aria-expanded")).toBe("false");
+    const region = document.getElementById(toggle()?.getAttribute("aria-controls") ?? "");
+    expect(region?.contains(field("rxNumber") ?? null)).toBe(true);
+    await userEvent.click(await found(toggle));
+    await expect.poll(() => toggle()?.getAttribute("aria-expanded")).toBe("true");
+    await expect.poll(() => field("rxNumber")!.checkVisibility({ visibilityProperty: true })).toBe(true);
     await userEvent.fill(await found(() => field("rxNumber")), "RX 7781");
     // Back to Prescription and to Supplement: the section stays open, since it has a value now.
     await userEvent.click(typeRadio("prescription"));
     await expect.poll(() => summaryShown()).toBe(false);
     await userEvent.click(typeRadio("supplement"));
     await expect.poll(() => summaryShown()).toBe(true);
-    expect(details().open).toBe(true);
+    expect(detailsOpen()).toBe(true);
     expect(field("rxNumber")?.value).toBe("RX 7781");
     await userEvent.click(typeRadio("otc"));
     await userEvent.click(submit());
@@ -342,7 +348,7 @@ describe("the type", () => {
     await openWith(`${LIST}/${NAPROXEN.id}/edit`);
     await waitUntil(() => !!FORM(), "the edit sheet");
     expect(checkedType()).toBe("otc");
-    expect(details().open).toBe(true);
+    expect(detailsOpen()).toBe(true);
     expect(field("rxNumber")?.value).toBe("RX 5521");
   });
 
@@ -350,7 +356,7 @@ describe("the type", () => {
     await openWith(`${LIST}/${IBUPROFEN.id}/edit`);
     await waitUntil(() => !!FORM(), "the edit sheet");
     expect(checkedType()).toBe("otc");
-    expect(details().open).toBe(false);
+    expect(detailsOpen()).toBe(false);
   });
 
   test("an old one with no type starts on none and can't be saved until one is chosen; the type writes no change entry", async () => {
@@ -358,7 +364,7 @@ describe("the type", () => {
     await waitUntil(() => !!FORM(), "the edit sheet");
     expect(checkedType()).toBeNull();
     // No type yet: nothing to fold.
-    expect(details().open).toBe(true);
+    expect(detailsOpen()).toBe(true);
     expect(summaryShown()).toBe(false);
 
     await userEvent.click(submit());

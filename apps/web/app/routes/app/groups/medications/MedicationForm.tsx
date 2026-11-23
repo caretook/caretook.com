@@ -5,11 +5,11 @@ import type { LocalMedication, MedicationNameRow } from "~/lib/medications/medic
 import type { LocalCondition } from "~/lib/profiles/conditions.sync";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { MEDICATION_FORMS, MEDICATION_LIMITS, MEDICATION_TYPES } from "@caretook/data/schema";
 import { NameField } from "~/components/medications";
-import { ChoiceGroup, Field } from "~/components/ui";
+import { Chevron, ChoiceGroup, Collapse, Field, FormFooter, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { FORM_LABELS, MEDICATION_TYPE_LABELS } from "~/lib/medications/medicationDisplay";
@@ -40,12 +40,11 @@ function TextField({
   onChange?: (value: string) => void;
 }) {
   return (
-    <Field label={label} error={issueFor(issues, name)}>
+    <Field label={label} error={issueFor(issues, name)} kind="input">
       {(control) => (
         <input
           {...control}
           name={name}
-          className="input w-full"
           maxLength={max}
           defaultValue={defaultValue ?? ""}
           placeholder={placeholder}
@@ -85,16 +84,8 @@ function DayField({
   issues: FieldIssue[];
 }) {
   return (
-    <Field label={label} error={issueFor(issues, name)}>
-      {(control) => (
-        <input
-          {...control}
-          type="date"
-          name={name}
-          className="input w-full"
-          defaultValue={defaultValue ?? ""}
-        />
-      )}
+    <Field label={label} error={issueFor(issues, name)} kind="input">
+      {(control) => <input {...control} type="date" name={name} defaultValue={defaultValue ?? ""} />}
     </Field>
   );
 }
@@ -149,6 +140,13 @@ export function MedicationForm({
       !!medication &&
       (medication.prescriberId !== null || medication.refillsLeft !== null || !!medication.rxNumber),
   );
+  const detailsId = useId();
+  // A refused field folded away: its section opens first, then it takes focus.
+  const focusOnOpen = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    focusOnOpen.current?.focus();
+    focusOnOpen.current = null;
+  }, [detailsOpen]);
   const chooseType = (next: MedicationType) => {
     setType(next);
     if (next !== "prescription") setDetailsOpen(hasPrescriptionDetails(formRef.current));
@@ -174,8 +172,11 @@ export function MedicationForm({
             '[data-provider-picker]:has([data-picker-error]) input:not([type="hidden"]), [data-conditions-picker]:has([data-picker-error]) input:not([type="hidden"])',
           ));
     // A field folded into "Prescription details" opens its section first.
-    const section = target?.closest("details");
-    if (section && !section.open) section.open = true;
+    if (target?.closest("[data-prescription-details] > [data-collapse]:not([data-open])")) {
+      focusOnOpen.current = target;
+      setDetailsOpen(true);
+      return;
+    }
     target?.focus();
   }, [fetcher.state, fetcher.data, onDone]);
 
@@ -209,14 +210,9 @@ export function MedicationForm({
           issues={issues}
           placeholder="e.g. 10 mg"
         />
-        <Field label="Form (optional)" error={issueFor(issues, "form")}>
+        <Field label="Form (optional)" error={issueFor(issues, "form")} kind="select">
           {(control) => (
-            <select
-              {...control}
-              name={FIELD.form}
-              className="select w-full"
-              defaultValue={medication?.form ?? ""}
-            >
+            <select {...control} name={FIELD.form} defaultValue={medication?.form ?? ""}>
               <option value="">Not set</option>
               {MEDICATION_FORMS.map((form) => (
                 <option key={form} value={form}>
@@ -247,12 +243,11 @@ export function MedicationForm({
         zoneNote={zoneNote}
       />
 
-      <Field label="Directions (optional)" error={issueFor(issues, "directions")}>
+      <Field label="Directions (optional)" error={issueFor(issues, "directions")} kind="textarea">
         {(control) => (
           <textarea
             {...control}
             name={FIELD.directions}
-            className="textarea w-full"
             rows={2}
             maxLength={MEDICATION_LIMITS.directions}
             defaultValue={medication?.directions ?? ""}
@@ -284,46 +279,55 @@ export function MedicationForm({
       />
 
       {/* One element for every type, so the fields keep what's typed when the type changes. */}
-      <details
-        open={!folds || detailsOpen}
-        onToggle={(e) => folds && setDetailsOpen(e.currentTarget.open)}
-        className={folds ? "rounded-box border-base-300 my-2 border px-3 py-1" : ""}
+      <div
+        className={folds ? "rounded-box border-base-300 my-2 border px-3 py-1" : undefined}
         data-prescription-details
       >
-        <summary className={folds ? "cursor-pointer py-1.5 font-medium" : "hidden"}>
-          Prescription details
-        </summary>
-        <ProviderPickerField
-          kind="prescriber"
-          providers={providers}
-          initialId={medication?.prescriberId ?? null}
-          error={issueFor(issues, "prescriberId")}
-        />
-        <div className="grid gap-x-3 sm:grid-cols-2">
-          <Field label="Refills left (optional)" error={issueFor(issues, "refillsLeft")}>
-            {(control) => (
-              <input
-                {...control}
-                type="number"
-                inputMode="numeric"
-                name={FIELD.refillsLeft}
-                min={0}
-                max={MEDICATION_LIMITS.refillsMax}
-                step={1}
-                className="input w-full"
-                defaultValue={medication?.refillsLeft ?? ""}
-              />
-            )}
-          </Field>
-          <TextField
-            label="Rx number (optional)"
-            name={FIELD.rxNumber}
-            defaultValue={medication?.rxNumber}
-            max={MEDICATION_LIMITS.rxNumber}
-            issues={issues}
+        {folds && (
+          <button
+            type="button"
+            className="flex w-full cursor-pointer items-center gap-1.5 py-1.5 text-start font-medium"
+            aria-expanded={detailsOpen}
+            aria-controls={detailsId}
+            data-prescription-toggle
+            onClick={() => setDetailsOpen((open) => !open)}
+          >
+            <Chevron open={detailsOpen} />
+            Prescription details
+          </button>
+        )}
+        <Collapse open={!folds || detailsOpen} id={detailsId}>
+          <ProviderPickerField
+            kind="prescriber"
+            providers={providers}
+            initialId={medication?.prescriberId ?? null}
+            error={issueFor(issues, "prescriberId")}
           />
-        </div>
-      </details>
+          <div className="grid gap-x-3 sm:grid-cols-2">
+            <Field label="Refills left (optional)" error={issueFor(issues, "refillsLeft")} kind="input">
+              {(control) => (
+                <input
+                  {...control}
+                  type="number"
+                  inputMode="numeric"
+                  name={FIELD.refillsLeft}
+                  min={0}
+                  max={MEDICATION_LIMITS.refillsMax}
+                  step={1}
+                  defaultValue={medication?.refillsLeft ?? ""}
+                />
+              )}
+            </Field>
+            <TextField
+              label="Rx number (optional)"
+              name={FIELD.rxNumber}
+              defaultValue={medication?.rxNumber}
+              max={MEDICATION_LIMITS.rxNumber}
+              issues={issues}
+            />
+          </div>
+        </Collapse>
+      </div>
       <ProviderPickerField
         kind="pharmacy"
         providers={providers}
@@ -352,19 +356,16 @@ export function MedicationForm({
       </fieldset>
 
       {general && (
-        <p role="alert" className="text-error text-sm" data-form-error>
+        <Message tone="error" data-form-error="">
           {general}
-        </p>
+        </Message>
       )}
 
-      <div className="flex flex-wrap items-center justify-end gap-2 pt-3">
-        <button data-form-cancel="" type="button" className="btn btn-ghost" onClick={onCancel}>
-          Cancel
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={busy}>
-          {medication ? "Save" : "Add medication"}
-        </button>
-      </div>
+      <FormFooter
+        submitLabel={medication ? "Save" : "Add medication"}
+        busy={busy}
+        cancel={{ label: "Cancel", onCancel }}
+      />
     </fetcher.Form>
   );
 }
