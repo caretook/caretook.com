@@ -4,7 +4,20 @@
 
 ## Status
 
-**Where it stands:** both waves merged and synced; full check passed on 1f5ba799 (one MCP rate-limit test timed out under load, passed alone, no connector code in this diff). Docs folded. Next: PR, Codex, land, `prd rm`, `prd end`.
+**Where it stands (hand-over, 2026-11-22):** both waves are merged, synced and in PR #79 (reviewed head eaeefffe; full check passed on 1f5ba799, quick check on eaeefffe, docs folded). **Not landed:** Codex found two P2s, both reproduced on the parser and both new regressions that save a wrong medication record, so they are fixed before landing (critical for this PRD). No slice is in flight.
+
+**Next, in order:**
+
+1. Spawn one opus fix agent on `prd/quick-entry-2` (`packages/data/src/db/schema/assistant/quickEntry.ts` and `quickEntry.test.ts`) for both fixes below, with test rows. Export `PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"` and run checks with `NODE_OPTIONS=--max-old-space-size=6144`.
+   - **A number in the medication's name isn't a count** (thread `PRRT_kwDOVx-WLM66qkT6`): with a medication named "Omega 3", usual dose "1 capsule", "gave omega 3" and "omega 3" record "3 capsules"; they must keep "1 capsule". `matchMedication` leaves numeric tokens out of `m.used`, so `typedBeside` sees them as open. "gave 2 omega 3" must still record "2 capsules".
+   - **A negation of a symptom isn't a negated dose** (thread `PRRT_kwDOVx-WLM66qkUB`, also B-579): "no pain after metformin given" and "no problems when given metformin" read skipped with the note "pain after"; they must read given and keep the words whole in the note, as does "no pain gave tylenol". A "no" that opens a phrase about something other than the medication or verb doesn't negate. All of slice 1's rows must still pass ("no metoprolol given", "did not give", "forgot to give", "never gave", "couldn't give").
+2. Merge, `pnpm prd check --quick "Codex fixes"`, `pnpm prd pr quick-entry-2`.
+3. Reply on both threads with the fixing commit, `pnpm prd review quick-entry-2 --resolve <threadId>` each, `--again`, then `--wait` in the background.
+4. On a clean verdict: `pnpm prd land quick-entry-2 -m "fix(quick-entry-2): quick entry reads what was typed (B-300, B-301, B-302, B-303)"`, file the report with `pnpm prd ask --topic quick-entry-2 --report`, `pnpm prd rm quick-entry-2`, then `cd` to the main checkout and `pnpm prd end`. Mark B-579 done if the fix covers it.
+
+**Context:** the previous session kept itself past 160k only to finish this landing; the findings changed that, so it rotated here.
+
+**Flake seen:** MCP rate-limit test timed out once under load and passed alone (B-582, `fixes-tooling`); this diff has no connector code.
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`). The PRD lands once, after wave 2.
 
