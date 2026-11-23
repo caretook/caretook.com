@@ -7,16 +7,16 @@
 | Slice | Title                                         | Wave | State         | Merge    |
 | ----- | --------------------------------------------- | ---- | ------------- | -------- |
 | 1     | Timeline list and Today, guard list regrouped | 1    | landed (opus) | 052389e8 |
-| 2     | Timeline forms and sheets                     | 2    | started, opus |          |
-| 3     | Easy view and quick entry                     | 2    | handed off    |          |
-| 4     | Entries and the notes editor                  | 2    | handed off    |          |
-| 5     | Admin                                         | 2    | handed off    |          |
-| 6     | Account, connectors and marketing             | 2    | handed off    |          |
+| 2     | Timeline forms and sheets                     | 2    | merged (opus) | 85bcc859 |
+| 3     | Easy view and quick entry                     | 2    | merged (opus) | 0e7f842f |
+| 4     | Entries and the notes editor                  | 2    | merged (opus) | 01a9b113 |
+| 5     | Admin                                         | 2    | merged (opus) | a9b7f208 |
+| 6     | Account, connectors and marketing             | 2    | merged (opus) | 2f650721 |
 | 7     | The frame, home, and closing the guard        | 3    | not started   |          |
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** wave 1 landed in dev as fc079091 (PR #107, Codex clean, full CI flake on 035ef61c filed as B-653, a planner test outside this branch). Report filed. Slice 1 worktree removed. Wave 2 started 2026-11-23 from 515f9c73 (dev synced, only backlog and quarantine changes newer, so no quick check): slices 2 to 6 each have a worktree and an opus agent. Next: merge hand-offs in plan order, quick check after each, then the wave's CI run. Browser checks at gates: the changed ones only (`pnpm prd browser --changed --base dev --list`, one name per call). No Status commit between `pr` and `land`.
+**Now:** wave 1 landed in dev as fc079091 (PR #107, Codex clean, full CI flake on 035ef61c filed as B-653, a planner test outside this branch). Report filed. Slice 1 worktree removed. Wave 2 started 2026-11-23 from 515f9c73 (dev synced, only backlog and quarantine changes newer, so no quick check): slices 2 to 6 each have a worktree and an opus agent. All five merged into prd/ui-kit-5 (tip before this commit 2f650721; the guard-list conflicts were adjacent deletions, both sides dropped). One quick check covers the five merges. Next: the wave CI run at the proposed tier, then sync, PR, Codex, land. Slice worktrees stay until the verdict is green. Browser checks at gates: the changed ones only (`pnpm prd browser --changed --base dev --list`, one name per call). No Status commit between `pr` and `land`.
 
 **For slice 3:** use `variant="warning"` for `EasyNow`'s Given all. Handed off at bab7bbfd; waits for slice 2 (plan order). Its `timelineEasyTiles`, `timelineEasyLock` and `timelineQuickEntry*` tests first run at the wave's CI. Fold at landing: `ui-kit.md` drops Easy view as a `Page` exception and records `Popover`'s trigger look (`variant`, `size`, `shape`).
 
