@@ -16,7 +16,7 @@
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`).
 
-**Now:** wave 1. Slice 1 merged as 052389e8 (hand-off 543eb553); its worktree stays until the wave is green. Next: quick check, then the wave CI run.
+**Now:** wave 1. Slice 1 merged as 052389e8 (hand-off 543eb553); its worktree stays until the wave is green. Quick check passed on 03a832f3. Wave CI full green on 03a832f3 (run 45149342065). Next: sync dev, quick check, changed browser checks, PR, Codex, land.
 
 **For the landing docs (ui-kit.md):** the new `warning` button variant, `COUNT_BADGE`, the timeline no longer an exception to `Page`, and overdue Given all using solid `danger` (the doc reserves it for confirms, so add the exception or change the look). Slice 3 uses `variant="warning"` for `EasyNow`'s Given all.
 
