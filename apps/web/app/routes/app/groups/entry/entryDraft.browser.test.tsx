@@ -31,7 +31,7 @@ const RECIPIENT_ZONE = "America/Los_Angeles";
 /** The 25th of next month at midnight in the recipient's zone, as quick entry makes an all-day draft. */
 const day25 = () => {
   const [year, month] = dayInZone(new Date(), RECIPIENT_ZONE).split("-").map(Number);
-  const day = new Date(Date.UTC(year!, month!, 25)).toISOString().slice(0, 10);
+  const day = new Date(Date.UTC(year!, month, 25)).toISOString().slice(0, 10);
   return startOfDay(day, RECIPIENT_ZONE).toISOString();
 };
 
