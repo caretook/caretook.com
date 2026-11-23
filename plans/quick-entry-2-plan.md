@@ -4,27 +4,27 @@
 
 ## Status
 
-**Where it stands:** orchestrator started 2026-11-22. Wave 1 (slices 1, 3, 5) is starting; all slices run on opus.
+**Where it stands:** both waves merged into `prd/quick-entry-2` (tip 563a3472, all slices on opus, worktrees removed). Next: `pnpm prd sync`, the full check, the PR, Codex, land, fold docs, `prd rm`, `prd end`.
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`). The PRD lands once, after wave 2.
 
-| Slice | Wave | State                                                   | Merge into `prd/quick-entry-2` (slice commits)       |
-| ----- | ---- | ------------------------------------------------------- | ---------------------------------------------------- |
-| 1     | 1    | merged (opus)                                           | 85128423 (fc942dc7)                                  |
-| 2     | 2    | started, opus (worktree `quick-entry-2-2`)              |                                                      |
-| 3     | 1    | merged (opus)                                           | 235487f7 (694ed6e7)                                  |
-| 4     | 2    | handed off, fix reviewed, awaiting merge after 2 (opus) | slice commits 087641c7, dce726f6; slice check passed |
-| 5     | 1    | merged (opus)                                           | 26d0b935 (42d56eb5)                                  |
+| Slice | Wave | State         | Merge into `prd/quick-entry-2` (slice commits) |
+| ----- | ---- | ------------- | ---------------------------------------------- |
+| 1     | 1    | merged (opus) | 85128423 (fc942dc7)                            |
+| 2     | 2    | merged (opus) | 7faa3d9f (fdc92179, 6ed1bc0a)                  |
+| 3     | 1    | merged (opus) | 235487f7 (694ed6e7)                            |
+| 4     | 2    | merged (opus) | 563a3472 (087641c7, dce726f6)                  |
+| 5     | 1    | merged (opus) | 26d0b935 (42d56eb5)                            |
 
-**Wave 1:** merged, not yet gated; B-300 and B-303 are done, B-302 finishes with slice 4. No check has run on the merged tip.
+**Items:** B-300, B-301, B-302, B-303 are ready. No check has run on the merged tip yet.
 
 **For the gate:** the other quick entry component tests render the box and haven't run on slice 5 (`timelineQuickEntrySuggestions`, `Passes`, `Todos`, the easy-mode files); the full check covers them. Lint runs out of memory at the default heap (B-576): run checks with `NODE_OPTIONS=--max-old-space-size=6144`, CI's value.
 
 **For the docs at landing:** the negation rules (plus the extra n't words and curly apostrophes slice 1 added), the time-word rules, the card pruning and Clear.
 
-**To file at the wave boundary (known limits from the hand-offs):** "no pain gave tylenol" (no comma) reads skipped; a line ending in "sat" ("she sat") reads as Saturday; "dr lee the 2nd at the clinic" gets no date; "bp 12/8" reads as Dec 8 and "pain 5/5" as May 5; a less common fraction with no unit ("gave 1/6 tylenol", "gave 3/8 tylenol") still reads as a date; `AMOUNT_UNIT_WORDS` in the time module must be kept in step with the parser's `AMOUNT_UNITS` by hand; "call the pharmacy in the morning" at 7:00 stays a note; "at 12 this morning" is midnight.
+**Filed as follow-ups (`fixes-bug`):** B-578 other slash numbers read as dates, B-579 "no pain gave tylenol" reads skipped, B-580 a line ending in "sat" reads as Saturday, B-581 "call the pharmacy in the morning" at 7:00 stays a note.
 
-**For the docs at landing (slice 4):** month/day dates, bare hours forward never before 7:00, zero-padded hours are am, Feb 29 takes the nearest leap year, a period underway is now.
+**For the docs at landing (slices 2 and 4):** typed counts and what isn't one, no symptom named after a medication, month/day dates, bare hours forward never before 7:00, zero-padded hours are am, Feb 29 takes the nearest leap year, a period underway is now.
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 
