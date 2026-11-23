@@ -371,6 +371,19 @@ const GENERIC_MEDS = new Set([
   "doses",
 ]);
 
+/** Words for trouble that a "no" can open a phrase about, beside the symptom words: "no problems when…". */
+const TROUBLE_WORDS = new Set([
+  "problem",
+  "problems",
+  "issue",
+  "issues",
+  "trouble",
+  "complaint",
+  "complaints",
+]);
+/** Words that end the phrase a "no" opens, before what happened: "no pain after…", "no problems when…". */
+const PHRASE_ENDS = new Set(["after", "when", "while", "since", "before"]);
+
 /** Words in a dose line that aren't the medication's name. */
 const DOSE_FILLER = new Set([
   ...FILLER,
@@ -1105,9 +1118,39 @@ const namesMedication = (
 };
 
 /**
+ * The numbers typed next to the word at `u` that continue the medication's
+ * name in that direction: the 3 of "omega 3", the 5 of "5 htp". "omega 3
+ * times" is a number of times, so that 3 stays out.
+ */
+const nameNumbers = (
+  med: QuickEntryMedication,
+  tokens: readonly Token[],
+  u: number,
+  step: 1 | -1,
+  open: (k: number) => boolean,
+) => {
+  const nameWords = wordsOf(med.name);
+  const word = wordsOf(tokens[u]!.w)[0] ?? "";
+  const exact = nameWords.indexOf(word);
+  const at =
+    exact >= 0
+      ? exact
+      : nameWords.findIndex((n) => n.startsWith(word) || (n.length >= 4 && editDistance(word, n) <= 2));
+  const found: number[] = [];
+  if (at < 0) return found;
+  for (let j = at + step, k = u + step; /^\d/.test(nameWords[j] ?? ""); j += step, k += step) {
+    if (!open(k) || tokens[k]!.w !== nameWords[j]) break;
+    if (step === 1 && NOT_SEVERITY_AFTER.test(tokens[k + 1]?.w ?? "")) break;
+    found.push(k);
+  }
+  return found;
+};
+
+/**
  * What was typed beside a medication's words: a count directly before them
- * ("3 tylenol", "half a tylenol") or after ("tylenol 2", "tylenol x2"), and a
- * number after them that is its strength ("lisinopril 10"), which is no count.
+ * ("3 tylenol", "half a tylenol") or after ("tylenol 2", "tylenol x2"), and
+ * numbers that are no count: its strength after them ("lisinopril 10") or a
+ * number in its name ("omega 3"), returned together as `strength`.
  */
 const typedBeside = (
   s: PartState,
@@ -1128,12 +1171,15 @@ const typedBeside = (
   if (wantCount)
     for (const u of naming) {
       const links: number[] = [];
-      let k = u - 1;
+      let k = u - 1 - nameNumbers(m.item, s.tokens, u, -1, open).length;
       while (links.length < 2 && open(k) && COUNT_LINKS.has(s.tokens[k]!.w)) links.push(k--);
       if (open(k)) counted(k, s.tokens[k]!.w, links);
     }
+  for (const u of naming) strength.push(...nameNumbers(m.item, s.tokens, u, -1, open));
   for (const u of naming) {
-    const k = u + 1;
+    const inName = nameNumbers(m.item, s.tokens, u, 1, open);
+    strength.push(...inName);
+    const k = u + 1 + inName.length;
     if (!open(k) || NOT_SEVERITY_AFTER.test(s.tokens[k + 1]?.w ?? "")) continue;
     const w = s.tokens[k]!.w;
     const times = /^[x×](\d+(?:\.\d+)?)$/.exec(w);
@@ -1145,12 +1191,37 @@ const typedBeside = (
   return { count: count as { used: number[]; amount: string } | null, strength };
 };
 
+/**
+ * The words of a "no" that opens the part and is about a symptom or trouble,
+ * not the dose: "no pain" in "no pain gave tylenol", "no chest pain after
+ * metformin given". The phrase's last word decides, so "no pain meds" and "no
+ * pain relief" still negate, as does any word that names a medication.
+ */
+const symptomPhrase = (s: PartState, negation: number, verb: number) => {
+  if (negation !== s.free[0] || s.tokens[negation]!.w !== "no") return null;
+  const between = s.free.filter((i) => i > negation && i < verb);
+  const end = between.findIndex((i) => PHRASE_ENDS.has(s.tokens[i]!.w));
+  const head = end < 0 ? between : between.slice(0, end);
+  const last = head.at(-1);
+  if (last === undefined) return null;
+  const lastWord = s.tokens[last]!.w;
+  if (/killer|reliever/.test(lastWord)) return null;
+  if (!TROUBLE_WORDS.has(lastWord) && !hasSymptomWord(s.tokens, [last])) return null;
+  const namesOne = (i: number) =>
+    s.context.medications.some(
+      (m) => namesMedication(m, s.tokens, i) || (matchMedication(m, s.tokens, [i])?.score ?? 0) >= 0.85,
+    );
+  return head.some(namesOne) ? null : [negation, ...head];
+};
+
 const PRONOUNS = new Set(["her", "his", "him", "them", "their", "the", "a", "an", "my", "she", "he"]);
 
 const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   let status: DoseStatus | null = null;
   let negated = false;
   const verbUsed: number[] = [];
+  // "no pain gave tylenol": words about something else, kept for the note and never read as a name.
+  let otherPhrase: number[] = [];
   const nameWords = new Set(
     matchMedications(
       s.context,
@@ -1176,7 +1247,9 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
     }
     if (w in DOSE_VERBS) {
       const negation = negationBefore(s.tokens, s.free, i, nameWords);
-      if (negation === undefined) {
+      otherPhrase =
+        (negation !== undefined && DOSE_VERBS[w] === "given" && symptomPhrase(s, negation, i)) || [];
+      if (negation === undefined || otherPhrase.length) {
         status = DOSE_VERBS[w]!;
         verbUsed.push(i);
       } else {
@@ -1195,7 +1268,9 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   if (carriedNegation) verbUsed.push(opener);
   const rest = s.free.filter((i) => !verbUsed.includes(i));
   const amountUsed = findAmount(s.tokens, rest);
-  const nameIdx = rest.filter((i) => !amountUsed.includes(i) && !DOSE_FILLER.has(s.tokens[i]!.w));
+  const nameIdx = rest.filter(
+    (i) => !amountUsed.includes(i) && !DOSE_FILLER.has(s.tokens[i]!.w) && !otherPhrase.includes(i),
+  );
   const matches = matchMedications(s.context, s.tokens, nameIdx);
   if (!matches.length) return [];
   const typed = matches.map((m) =>

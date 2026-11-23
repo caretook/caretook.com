@@ -330,6 +330,38 @@ describe("doses", () => {
       expect(action(top(line))).toMatchObject({ type: "logDose", status: "given", note });
     });
 
+    test.each([
+      ["no pain after metformin given", MET, "no pain after"],
+      ["no problems when given metformin", MET, "no problems when"],
+      ["no pain gave tylenol", APAP, "no pain"],
+      ["no chest pain gave tylenol", APAP, "no chest pain"],
+    ])("%s negates the symptom, not the dose", (line, medicationId, note) => {
+      expect(action(top(line))).toMatchObject({ type: "logDose", medicationId, status: "given", note });
+    });
+
+    test.each([
+      "no pain meds given metoprolol",
+      "no pain medicine given metoprolol",
+      "no pain relief given metoprolol",
+      "no painkillers given metoprolol",
+      "no pain metoprolol given",
+      "no evening metoprolol given",
+      "no more metoprolol given",
+    ])("%s is still skipped: the no is about the medication", (line) => {
+      expect(action(top(line))).toMatchObject({ type: "logDose", medicationId: METO, status: "skipped" });
+    });
+
+    test("a negated skip or refusal stays a note even after a symptom", () => {
+      expect(top("no pain skipped metformin").kind).toBe("note");
+      expect(top("no pain refused metformin").kind).toBe("note");
+    });
+
+    test("a medication named like a symptom can still be negated", () => {
+      const medications = [{ id: METO, name: "Nausea Relief" }];
+      expect(action(top("no nausea relief given", { medications }))).toMatchObject({ status: "skipped" });
+      expect(action(top("no nausea given", { medications }))).toMatchObject({ status: "skipped" });
+    });
+
     test.each(["wouldn't take metoprolol", "wouldn’t take metoprolol", "did not swallow metoprolol"])(
       "%s stays refused",
       (line) => {
@@ -427,6 +459,48 @@ describe("doses", () => {
       const medications = [{ id: TYL, name: "Warfarin", strength: "2 mg", dose: "1 tablet" }];
       expect(action(top("gave 2 warfarin", { medications }))).toMatchObject({ amount: "2 tablets" });
       expect(action(top("warfarin 2", { medications }))).toMatchObject({ amount: "1 tablet" });
+    });
+
+    describe("a number in the medication's name isn't a count", () => {
+      const OMEGA = [{ id: TYL, name: "Omega 3", dose: "1 capsule" }];
+      const HTP = [{ id: TYL, name: "5 HTP", dose: "1 capsule" }];
+
+      test.each([
+        ["gave omega 3", OMEGA, "1 capsule"],
+        ["omega 3", OMEGA, "1 capsule"],
+        ["gave 2 omega 3", OMEGA, "2 capsules"],
+        ["2 omega 3", OMEGA, "2 capsules"],
+        ["omega 3 x2", OMEGA, "2 capsules"],
+        ["omega 3 2", OMEGA, "2 capsules"],
+        ["gave 5 htp", HTP, "1 capsule"],
+        ["gave 2 5 htp", HTP, "2 capsules"],
+      ])("%s records the right amount", (line, medications, amount) => {
+        const r = top(line, { medications });
+        expect(r.kind).toBe("dose");
+        expect(action(r)).toMatchObject({ type: "logDose", medicationId: TYL, amount, note: null });
+      });
+
+      test("a number before a name that ends in it is still a count", () => {
+        expect(action(top("gave 3 omega", { medications: OMEGA }))).toMatchObject({ amount: "3 capsules" });
+      });
+
+      test("its strength and a time still read beside a number in the name", () => {
+        const medications = [{ ...OMEGA[0]!, strength: "1000 mg" }];
+        expect(action(top("omega 3 1000", { medications }))).toMatchObject({
+          amount: "1 capsule",
+          note: null,
+        });
+        const r = top("omega 3 at 8", { medications });
+        expect(action(r)).toMatchObject({ amount: "1 capsule", note: null });
+        expect(when(r)).toBe(at("2026-11-19T16:00:00Z"));
+      });
+
+      test("a number of times after the name stays in the note", () => {
+        expect(action(top("gave omega 3 times", { medications: OMEGA }))).toMatchObject({
+          amount: "1 capsule",
+          note: "3 times",
+        });
+      });
     });
 
     test("a carried negation over a directions-only match stays a note", () => {
