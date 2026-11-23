@@ -22,7 +22,7 @@ Slice 14 gaps to file as follow-ups once the wave is green: a sync after the fir
 
 **Wave 3 (resume here):** slices 15 (B-585), 16 (B-592) and 17 (B-603), written 2026-11-22 after `pnpm prd sync` found dev had only backlog commits. All opus, all independent, none touching the hot files of test-gates or assistant-access. Not started until the table below says so.
 
-Slices 15 and 16 are merged and their worktrees removed; slice 17 is still running. Neither slice ran `pnpm prd browser --changed`, so the wave gate must. File as a follow-up once green: PageUp and PageDown on the hour still wrap inside AM/PM (slice 15 covers arrow keys only). At landing: fold into `appointments.md` that event cards have a footer and `[data-when-column]` now exists only on todo rows. The full check must cover `easyRolePages`, `entryRepeat` and `entry` (the last steps the hour), which the slices did not run. `PlannerTodoRow` keeps its 5.5rem column, so todo and event rows now align differently in one list: tell the user in the landing report.
+Slices 15, 16 and 17 are merged, their worktrees removed, and no slice is in flight. dev had nothing new at the last sync. **Next:** once the 5-minute load is under 16, `NODE_OPTIONS=--max-old-space-size=6144 pnpm prd check` in the background, then `pnpm prd wait check`; `pnpm prd serve --restart`; `pnpm prd browser --changed --base dev` (no slice ran it, and no `--suite` without asking the user); `pnpm prd pr fixes-ui`; `pnpm prd review fixes-ui --wait`; land. The full check is the first run of `easyRolePages`, `entryRepeat`, `todoRepeat` and `entry` against these changes. Follow-ups filed: B-605 (PageUp and PageDown on the hour still wrap inside AM/PM) and a note on B-602 (reduced-motion Discard on a sheet that stays mounted, read from the code and not reproduced). At landing: fold into `appointments.md` that event cards have a footer and `[data-when-column]` now exists only on todo rows; into `ui-kit.md` that hour arrows cross AM/PM; and that provider import's guard counts only ticks and its Done leaves without asking. `PlannerTodoRow` keeps its 5.5rem column, so todo and event rows now align differently in one list: tell the user in the landing report.
 
 Held from wave 3: B-594 (allergies on the Profile page) waits for ui-kit-4's medications and profile sweep, as its triage says (that sweep renames the profile parts); B-583 (connector wording) awaits the user's decision; B-325 (native safe area) waits for Capacitor.
 
@@ -52,7 +52,7 @@ Notes for the next wave:
 | 14    | B-316 | merged (opus)   | 3c7a6607 |
 | 15    | B-585 | merged (opus)   | 52d2e14b |
 | 16    | B-592 | merged (opus)   | 6af2f056 |
-| 17    | B-603 | started (opus)  |          |
+| 17    | B-603 | merged (opus)   | 18180d36 |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
