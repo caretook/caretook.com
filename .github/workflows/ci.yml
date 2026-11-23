@@ -410,7 +410,8 @@ jobs:
         run: echo "started=true" >> "$GITHUB_OUTPUT"
       - id: suite
         name: Browser suite
-        run: bash scripts/loops/browser.sh --suite
+        # An absolute path: the runner changes directory and then resolves itself from $0.
+        run: bash "$GITHUB_WORKSPACE/scripts/loops/browser.sh" --suite
       - id: logs
         name: Server and PowerSync logs
         if: ${{ failure() }}

@@ -204,7 +204,7 @@ describe("the deploy workflows", () => {
     expect(run("stack")).toBe("pnpm datastore:up");
     expect(run("serve")).toContain("NODE_ENV=production");
     expect(run("serve")).toContain("host-headers.mjs");
-    expect(run("suite")).toBe("bash scripts/loops/browser.sh --suite");
+    expect(run("suite")).toBe('bash "$GITHUB_WORKSPACE/scripts/loops/browser.sh" --suite');
   });
 
   it("runs the deploy's steps in order", () => {
