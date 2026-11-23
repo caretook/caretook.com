@@ -24,11 +24,28 @@ export type SetupStep =
   | Readonly<{ id: "connect"; target: "assistants" | "devices" }>;
 
 export type SetupPlan = Readonly<{
+  kind: "steps";
   steps: readonly SetupStep[];
   doneCount: number;
   total: number;
   finished: boolean;
 }>;
+
+/** A role that can't do the setup steps: a few words on what it can do, and no steps. */
+export type RoleWelcome = Readonly<{ kind: "welcome"; text: string; steps: readonly [] }>;
+
+// Each names only what the role may do (care-groups.md); an easy role's pages are the timeline and Planner.
+const WELCOMES = new Map([
+  [
+    "viewer",
+    "You can see this care group's timeline, medications, providers and planner, and tick off todos assigned to you.",
+  ],
+  [
+    "easy_helper",
+    "You can log notes, events, symptoms, vitals and doses, change what you've logged, and tick off todos assigned to you.",
+  ],
+  ["easy_viewer", "You can see what's been logged and what's coming up, and tick off todos assigned to you."],
+]);
 
 /** Owners can always reach the switch; anyone else needs it on, and is sent to their own Devices page. */
 const connectStep = (role: string, connectorsEnabled: boolean): SetupStep[] => {
@@ -37,14 +54,16 @@ const connectStep = (role: string, connectorsEnabled: boolean): SetupStep[] => {
   return connectorsEnabled ? [{ id: "connect", target: "devices" }] : [];
 };
 
-/** The role's setup steps with their states, or null for a role with no checklist. */
+/** The role's setup steps with their states, its welcome, or null for a role this build doesn't know. */
 export const gettingStartedSteps = ({
   role,
   facts,
 }: {
   role: string | null | undefined;
   facts: SetupFacts;
-}): SetupPlan | null => {
+}): SetupPlan | RoleWelcome | null => {
+  const welcome = role ? WELCOMES.get(role) : undefined;
+  if (welcome) return { kind: "welcome", text: welcome, steps: [] };
   if (!role || !isWriterRole(role)) return null;
   const counted: SetupStep[] = [
     { id: "profile", done: facts.hasProfileBasics },
@@ -54,6 +73,7 @@ export const gettingStartedSteps = ({
   ];
   const doneCount = counted.filter((s) => "done" in s && s.done).length;
   return {
+    kind: "steps",
     steps: [...counted, ...connectStep(role, facts.connectorsEnabled)],
     doneCount,
     total: counted.length,

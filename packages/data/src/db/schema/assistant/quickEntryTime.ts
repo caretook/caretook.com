@@ -300,16 +300,34 @@ const notAWeekday = (words: readonly string[], i: number) => {
   return !clockFollows(words, i + 1) && !PERIOD_WORDS.has(next) && !inThePeriod(words, i + 1);
 };
 
+/** Words after "at" that aren't a place ("2nd at least", "the 2nd at bedtime"). */
+const NOT_A_PLACE = new Set(
+  "least most all first last once times bedtime breakfast lunch dinner supper".split(" "),
+);
+
+/** Words before an ordinal that make it a count of something ("gave the 2nd", "her 2nd"). */
+const COUNTED_AFTER = new Set("gave give given giving took take taking had my her his their our".split(" "));
+
+/** "at the clinic", "at kaiser", "at 123 main st": a bare number of one or two digits is no place. */
+const placeFollows = (words: readonly string[], j: number) => {
+  if (words[j] !== "at") return false;
+  const first = words[j + 1];
+  return first !== undefined && !NOT_A_PLACE.has(first) && !/^\d{1,2}$/.test(first);
+};
+
 /**
  * Whether the ordinal at word `at` can be a day of the month: after "on", at
- * the end of the line, or before a time word. A period word counts only last
- * in the line, so "2nd evening dose" and "2nd night in a row" stay counts.
+ * the end of the line, or before a time word or "at" a place. A period word
+ * counts only last in the line, so "2nd evening dose" and "2nd night in a row"
+ * stay counts.
  */
 const ordinalIsADay = (words: readonly string[], at: number, afterOn: boolean) => {
   if (afterOn || at === words.length - 1) return true;
   const next = words[at + 1]!;
   if (clockFollows(words, at + 1) || inThePeriod(words, at + 1)) return true;
   if (next === "at" && words[at + 2] === "night") return true;
+  const before = words[at - 1] === "the" ? words[at - 2] : words[at - 1];
+  if (placeFollows(words, at + 1) && !COUNTED_AFTER.has(before ?? "")) return true;
   return PERIOD_WORDS.has(next) && at + 1 === words.length - 1;
 };
 

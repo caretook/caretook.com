@@ -1,10 +1,12 @@
 import type { DeviceOptions } from "../../../../../test/device";
+import type { GroupRole } from "../../../../../test/fixtures";
 
 import { beforeEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, TEST_GROUP, TEST_USER } from "../../../../../test/fixtures";
 import * as timeline from "./route";
+import { chooseEasyMode } from "./timelineWorld";
 
 // The setup card on the timeline: by role, ticking itself off from synced
 // data, dismissed for good, and the invite card back once it's gone.
@@ -12,7 +14,7 @@ import * as timeline from "./route";
 const ROUTE = { path: "/app/groups/:groupId/timeline", module: timeline };
 const URL = `/app/groups/${TEST_GROUP.id}/timeline`;
 const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
-const joined = (createdAt: string, role: "owner" | "admin" | "caretaker" | "viewer" = "owner") =>
+const joined = (createdAt: string, role: GroupRole = "owner") =>
   fx.member({ userId: TEST_USER.id, role, createdAt });
 const open = (member: ReturnType<typeof joined>, options: Partial<DeviceOptions> = {}) =>
   renderWithDevice({ route: ROUTE, url: URL, role: null, fixtures: [member], ...options });
@@ -20,6 +22,8 @@ const card = () => document.querySelector("[data-setup-card]");
 const inviteHook = () => document.querySelector("[data-invite-card]");
 const step = (id: string) => document.querySelector(`[data-setup-step="${id}"]`);
 const heading = () => page.getByRole("heading", { name: "Timeline", level: 1 });
+const welcome = () => document.querySelector("[data-welcome-card]");
+const easyView = () => document.querySelector("[data-easy-timeline]");
 
 beforeEach(() => localStorage.clear());
 
@@ -113,5 +117,79 @@ describe("the setup card", () => {
     await expect.element(heading()).toBeVisible();
     await expect.poll(inviteHook).not.toBeNull();
     expect(card()).toBeNull();
+  });
+});
+
+describe("the welcome", () => {
+  test("a viewer gets it on the full timeline, with nothing to do in it", async () => {
+    await open(joined(hoursAgo(1), "viewer"));
+    await expect.poll(welcome).not.toBeNull();
+    expect(easyView()).toBeNull();
+    expect(welcome()?.textContent).toContain("todos assigned to you");
+    expect(welcome()?.querySelectorAll("a")).toHaveLength(0);
+    expect(welcome()?.querySelectorAll("button")).toHaveLength(1);
+    expect(card()).toBeNull();
+  });
+
+  test.each(["easy_helper", "easy_viewer"] as const)("%s gets it on the easy timeline", async (role) => {
+    await open(joined(hoursAgo(1), role));
+    await expect.poll(welcome).not.toBeNull();
+    expect(easyView()?.contains(welcome())).toBe(true);
+    expect(welcome()?.querySelectorAll("a")).toHaveLength(0);
+    expect(card()).toBeNull();
+  });
+
+  test("a viewer in Easy mode gets it too", async () => {
+    chooseEasyMode();
+    await open(joined(hoursAgo(1), "viewer"));
+    await expect.poll(welcome).not.toBeNull();
+    expect(easyView()?.contains(welcome())).toBe(true);
+  });
+
+  test("dismissing it on the easy timeline survives a reload", async () => {
+    const member = joined(hoursAgo(1), "easy_viewer");
+    const first = await open(member);
+    await expect.poll(welcome).not.toBeNull();
+    await userEvent.click(page.getByRole("button", { name: "Dismiss welcome" }));
+    await expect.poll(welcome).toBeNull();
+    await first.screen.unmount();
+
+    await open(member);
+    await expect.poll(easyView).not.toBeNull();
+    await expect.poll(() => document.querySelector("[data-easy-today]")).not.toBeNull();
+    expect(welcome()).toBeNull();
+  });
+
+  test("past 14 days there's no welcome", async () => {
+    await open(joined(hoursAgo(24 * 14 + 1), "easy_helper"));
+    await expect.poll(easyView).not.toBeNull();
+    expect(welcome()).toBeNull();
+  });
+});
+
+describe("a writer in Easy mode", () => {
+  test.each(["owner", "admin", "caretaker"] as const)("%s gets the setup steps", async (role) => {
+    chooseEasyMode();
+    await open(joined(hoursAgo(1), role));
+    await expect.poll(card).not.toBeNull();
+    expect(easyView()?.contains(card())).toBe(true);
+    expect(welcome()).toBeNull();
+  });
+
+  test("Log a first entry goes to the easy view's box", async () => {
+    chooseEasyMode();
+    await open(joined(hoursAgo(1)));
+    await expect.poll(card).not.toBeNull();
+    await userEvent.click(page.getByRole("button", { name: "Log a first entry" }));
+    await expect.poll(() => document.activeElement?.tagName).toBe("TEXTAREA");
+  });
+
+  test("a lone owner who dismisses it gets no invite card in the easy view", async () => {
+    chooseEasyMode();
+    await open(joined(hoursAgo(1)));
+    await expect.poll(card).not.toBeNull();
+    await userEvent.click(page.getByRole("button", { name: "Dismiss setup" }));
+    await expect.poll(card).toBeNull();
+    expect(inviteHook()).toBeNull();
   });
 });

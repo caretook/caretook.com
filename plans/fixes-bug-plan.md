@@ -10,7 +10,9 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 3 (slice 18, B-510) landed in dev through PR #57** (2026-11-22). `pnpm prd check` takes no reason (only `--quick` does).
 
-**Wave 4 (slices 19–27, B-527, B-578, B-580, B-581, B-591, B-599, B-601, B-602, B-605, all on opus) landed in dev through PR #100 as b97b5d69** (2026-11-23): `components` CI green on 336578d3 (run 45131667111), Codex clean, browser `roundtrip` and `ui` passed; lean `--suite` not run (the user's standing rule: ask first). To-test: `to-test/2026-11-23-0247-fixes-bug.md`. Docs folded (assistant, ui-kit, todos, connectors; all at the 10 KB line, trim when adding). Slice worktrees removed. **Hand-over: no slice in flight.** Next wave: B-628, B-631, B-632, B-634, B-635 are waiting (B-632, B-634, B-635 share the quick-entry files: chain them). **Held:** B-615 and B-616 while dose-accuracy holds `timelineEntryService.ts` and `assistantActionService.ts`; B-620 while onboarding holds `routes/app/groups/timeline/` (the user approved its fix, see the item's note). Recheck `pnpm backlog prd list` first.
+**Wave 4 (slices 19–27, B-527, B-578, B-580, B-581, B-591, B-599, B-601, B-602, B-605, all on opus) landed in dev through PR #100 as b97b5d69** (2026-11-23): `components` CI green on 336578d3 (run 45131667111), Codex clean, browser `roundtrip` and `ui` passed; lean `--suite` not run (the user's standing rule: ask first). To-test: `to-test/2026-11-23-0247-fixes-bug.md`. Docs folded (assistant, ui-kit, todos, connectors; all at the 10 KB line, trim when adding). Slice worktrees removed.
+
+**Wave 5 (slices 28–31, B-628, B-632, B-634, B-635, all on opus) is planned** (2026-11-23). Slices 29–31 chain on the quick-entry files; 28 runs beside 29. **Held:** B-615 and B-616 while dose-accuracy holds `timelineEntryService.ts` and `assistantActionService.ts`; B-620 and B-631 while onboarding holds `routes/app/groups/timeline/` (B-620's fix is user-approved, see its note; B-631 names `PassLogForm` there). Recheck `pnpm backlog prd list` at the next wave. **New for a later wave:** B-641 (`gave lorazepam 1/2 mg` at 0.5 mg may not record the usual dose; from slice 29, unconfirmed). B-643 (a request with a day still leads with a vital or symptom) is also for a later wave; B-642 (the `todays_doses` test fails from 00:00 to 00:10 Los Angeles) is in fixes-tooling. Slices 28–31 are merged, keeping their worktrees until the wave's CI verdict is green; quick check passed on de1b975c (synced with onboarding) and **`integration` CI is green on it** (run 45140076884); slice worktrees removed; `browser --changed` needs none. **PR #102 is open** on de1b975c. **Codex round 1:** its one P2 (`gave a 2nd at the clinic` and `received the 2nd at the clinic` get dated) is confirmed by running `findTime`, filed as B-644 for a later wave, replied to and resolved. Codex was clean on dc19b71. **Docs folded** into `docs/domain/assistant.md` (B-634, B-635; it sits at the 10 KB line, trim when adding). **Next:** `pnpm prd pr fixes-bug --tier integration`, `review --again` in the background until clean, land `--tier integration`, file the report, then rotate. Known limit left as is: `finished 2nd at the race` reads as a day.
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
@@ -43,6 +45,10 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 25    | B-601 | landed                                     | efb9d552 |
 | 26    | B-602 | landed                                     | 43e222d4 |
 | 27    | B-605 | landed                                     | 23e69857 |
+| 28    | B-628 | merged                                     | 46f779de |
+| 29    | B-632 | merged                                     | 82eebf78 |
+| 30    | B-634 | merged                                     | c2c53eee |
+| 31    | B-635 | merged                                     | b1cf109f |
 
 ## Wave 1
 
@@ -302,3 +308,47 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md · Tests: compon
 
 - PageUp and PageDown move the hour the way the arrow keys now do, crossing AM/PM correctly.
 - Component test: paging across 11 AM to 12 PM and 11 PM to 12 AM, in both directions, gives the right time.
+
+## Wave 5
+
+As before: the item's backlog notes (`pnpm backlog show B-<n>`) carry the file references, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. Running topics hold `packages/data/src/services/timelineEntryService.ts`, `packages/data/src/services/assistantActionService.ts`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/lib/app-shell/me.ts` and `packages/data/src/db/schema/app-shell/userPreferences.ts`: no slice here edits them.
+
+### Slice 28: two simultaneous preference saves both count (B-628)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/app-shell.md, docs/domain/data-layer.md · Tests: integration
+
+`updatePreferences` (`packages/api/src/app-shell/me.ts`) reads the row and then writes it with no lock, so of two simultaneous requests changing different fields, one can be lost (a setup card dismissal, for one).
+
+- Two simultaneous saves of different preferences both persist: make the read and write atomic (a transaction with a row lock, or a single atomic update), including when the user has no row yet. No migration, and no edit to `userPreferences.ts`; if the fix can't be done without one, stop and say so in the hand-off.
+- Integration test: concurrent saves of different fields, on an existing row and on a first save, keep both changes.
+
+### Slice 29: a fraction after a medication reads right in the odd cases (B-632)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/medications.md · Tests: unit
+
+`quickEntry.ts`'s fraction rule (from B-591): an opening `no` counts as negating the dose, `take` counts as given, and a fraction equal to the medication's strength is read as a tablet fraction.
+
+- `no pain gave tylenol 3/8`: the `no` belongs to the pain, so the fraction is the amount, with no date.
+- `need to take tylenol 3/8`: not a report of a dose, so it keeps its date.
+- `gave lorazepam 1/2` with a 0.5 mg strength: the fraction is the strength, so the usual dose, with no date.
+- `gave tylenol 3/8 at 9pm` stays 3/8 tablet today at 9pm: pin it.
+- Unit tests: one row for each line above.
+
+### Slice 30: an ordinal before "at a place" is a day (B-634)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md · Tests: unit
+
+Blocked by slice 29 (same files). `ordinalIsADay` (`quickEntryTime.ts`) doesn't read `dr lee the 2nd at the clinic` as a date.
+
+- An ordinal day followed by `at <place>` is a day; `at <time>` keeps working as it does now. An ordinal that isn't a day (`the 2nd dose`, `2nd floor`) stays undated.
+- Unit tests: those lines.
+
+### Slice 31: requests with a part of day stay todos (B-635)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md, docs/domain/todos.md · Tests: unit
+
+Blocked by slice 30 (same files). The request rule from B-581 misreads `check bp 120/80 in the morning` (a note dated now, with a todo as the alternative) and `ask about pain in the morning` (a symptom first).
+
+- Both lines read as a todo for the next morning first. A report (`bp 120/80 in the morning`, `pain in the morning`) stays as it is.
+- Unchanged: `call dr lee in the morning` stays an event first, like `call dr lee tomorrow`. Request detection stays a word list; don't replace it.
+- Unit tests: each line above.
