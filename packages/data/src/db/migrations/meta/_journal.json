@@ -295,6 +295,13 @@
       "when": 1795451655188,
       "tag": "0041_member_avatars",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1795458676621,
+      "tag": "0042_natural_arclight",
+      "breakpoints": true
     }
   ]
 }
