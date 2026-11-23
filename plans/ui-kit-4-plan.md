@@ -7,14 +7,24 @@
 | Slice | Wave | State                    | Merge into `prd/ui-kit-4` (slice commits) |
 | ----- | ---- | ------------------------ | ----------------------------------------- |
 | 1     | 1    | merged, torn down (opus) | 6814c3dc (7acd4f33)                       |
-| 2     | 2    | not started              |                                           |
-| 3     | 2    | not started              |                                           |
-| 4     | 2    | not started              |                                           |
+| 2     | 2    | merged, torn down (opus) | 0037ec4a (2dd856f1, b0f05dfb, 8d500bbf)   |
+| 3     | 2    | merged, torn down (opus) | ac30a9c7 (d5bb6112, b5f66807, a8d0b74a)   |
+| 4     | 2    | merged, torn down (opus) | 70904d83 (9dd63d03, 8de6ee85)             |
 | 5     | 3    | not started              |                                           |
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-22). Start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`.
 
-**Now:** wave 1 at its gate: slice 1 merged, B-269 ready. Synced; quick check passed on af3dd985 (the wave changes only lint tooling, no app code); no browser checks needed; guard folded into the components and ui-kit docs. Next: PR, Codex, land, rotate. No new backlog items for this topic at the wave 1 boundary; `backlog doctor`'s two findings (B-548, B-549 inbox titles) aren't this topic's.
+**Now:** wave 1 landed in `dev` as eef72fd8 (PR #89, Codex clean, quick check on the merged tip 61efde0e, no browser checks needed; report a95). Docs folded. Wave 2 started: synced (already up to date), B-398 and B-448 claimed, worktrees `ui-kit-4-2`, `-3`, `-4` made from 77b4ea24, one opus agent spawned per slice. Next: merge their hand-offs in plan order. `backlog doctor`'s two findings (B-548, B-549 inbox titles) aren't this topic's.
+
+**Landing hold (2026-11-22):** the test-gates orchestrator, at the user's request, asked every PRD to hold `pnpm prd land` and any code push to `dev` until test-gates wave 5 lands; it will message this session (`prd-ui-kit-4`), and also check `pnpm log dev`. Slices, merges into this branch, checks, CI runs and the PR carry on. `pnpm backlog` commits are fine. After that landing, `land` needs a CI verdict for a `--tier` (see its landing notice). Wave 1 had already landed when the request arrived, and test-gates was told.
+
+**Slice 2 (opus, merged):** the worktree stays until the wave's full check passes, so a failure can go back to its agent; then `pnpm prd rm ui-kit-4-2`. Only `medicationForm` and `today` component tests ran. The full check must cover `entry`, `entryDraft` (`All day` is now `role="switch"`), `plannerEvents`, `plannerSeries` (`RescheduleSheet`), `timelineQuickEntryPasses` (`PassCard`, `DoseSlotRow`; a closed list is `Collapse`, `visibility: hidden`) and `print.browser.test`. To fold at landing: `docs/domain/medications.md` _Add and edit_, "Prescription details" is a `Chevron` and `Collapse` toggle, no longer `<details>`; `docs/domain/ui-kit.md` `Menu` contract, "until `ui-kit-4`" becomes `ui-kit-5`.
+
+**Wave 2 gate:** slices 2, 3, 4 merged; the only conflicts were the guard list's adjacent group deletions (both groups dropped). Full `pnpm prd check` passed on 9b5727f4 (596 files, 6598 tests, 5 skipped), which includes test-gates wave 5, so the landing hold is over. `prd browser --changed` lists no browser checks. B-448 done; B-398 stays open for slice 5. **The user's word (2026-11-22): "Full local check will suffice. Don't wait for CI."** Taken for wave 2 only: land with `--force`, and the report says CI didn't run. Next: docs folded, PR, Codex review, land, then rotate for wave 3.
+
+**Slice 3 (opus, merged):** the full check must cover `provider`, `providers`, `period`, `providerBands`, `periodBands`, `linkedLoading`, `providerConditions`, `providerMedications`, and the shared parts' consumers `contact`, `memberSharing`, `profile`, `emergency`, `entry`, `planner`, `easyRolePages`. To fold at landing: `ui-kit.md`, `ListRow` has no `href` or `state` (such rows stay `List` plus a hand-written link) and `FormFooter` is only for real forms; `providers.md`, contact actions are `Button href` and the form's Delete sits beside `FormFooter`; `care-periods.md`, "Date only" is a `CheckField`. Worth trying by hand: the provider import sheet (tapping a row's padding no longer ticks it).
+
+**Slice 4 (opus, merged):** slice check passed on 8de6ee85. Its six profile component test files (`profile`, `profileBands`, `conditions`, `conditionProviders`, `emergency`, `vitalAverages`) were not run: the wave's full check must cover them. To fold at landing, in `docs/domain/profiles.md`: line 19 `**Card and sheets:** ConditionsCard` becomes `**Section and sheets:** ConditionsSection`; line 24 `VitalAveragesCard` becomes `VitalAveragesSection`. Worth noting for slice 5: `ListRow`'s `to` can't carry `state`, `prefetch` or `preventScrollReset`, so condition rows use a raw `li` inside `List`.
 
 **For wave 2 (from slice 1):** the guard's lists are in `scripts/eslint/kit-guard.mjs`. The print routes stay on the not-swept list because each holds an on-screen Print button: slices 2 and 4 sweep them. A listed path that no longer exists fails a test, so slice 4's renames must update their lines.
 

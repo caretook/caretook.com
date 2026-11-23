@@ -1,6 +1,7 @@
 import type { PrintSheet } from "./printSheet";
 import type { ReactNode } from "react";
 
+import { EmptyState } from "~/components/ui";
 import { RECENTLY_STOPPED_DAYS } from "./printSheet";
 
 // The sheet itself: a header that says whose list it is and when it was
@@ -23,10 +24,6 @@ function Section({ id, title, children }: { id: string; title: string; children:
     </section>
   );
 }
-
-const Empty = ({ children }: { children: ReactNode }) => (
-  <p className="text-base-content/70 text-sm">{children}</p>
-);
 
 const Muted = ({ children }: { children: ReactNode }) => (
   <span className="text-base-content/70 block">{children}</span>
@@ -60,7 +57,7 @@ export function MedicationSheet({ sheet, allergies }: { sheet: PrintSheet; aller
 
       <Section id="print-current" title="Current medications">
         {sheet.current.length === 0 ? (
-          <Empty>No current medications.</Empty>
+          <EmptyState>No current medications.</EmptyState>
         ) : (
           sheet.currentGroups.map((group) => (
             <div key={group.type ?? "none"} className="space-y-1" data-print-group={group.type ?? "none"}>
@@ -119,7 +116,7 @@ export function MedicationSheet({ sheet, allergies }: { sheet: PrintSheet; aller
 
       <Section id="print-stopped" title={`Stopped in the last ${RECENTLY_STOPPED_DAYS} days`}>
         {sheet.stopped.length === 0 ? (
-          <Empty>None stopped in the last {RECENTLY_STOPPED_DAYS} days.</Empty>
+          <EmptyState>None stopped in the last {RECENTLY_STOPPED_DAYS} days.</EmptyState>
         ) : (
           <table className={TABLE}>
             <colgroup>
@@ -161,7 +158,7 @@ export function MedicationSheet({ sheet, allergies }: { sheet: PrintSheet; aller
 
       <Section id="print-contacts" title="Prescribers and pharmacies">
         {sheet.contacts.length === 0 ? (
-          <Empty>No prescriber or pharmacy recorded.</Empty>
+          <EmptyState>No prescriber or pharmacy recorded.</EmptyState>
         ) : (
           <table className={TABLE}>
             <colgroup>

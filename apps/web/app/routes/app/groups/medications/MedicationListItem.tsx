@@ -3,6 +3,7 @@ import type { LocalMedication } from "~/lib/medications/medications.sync";
 
 import { Pill } from "lucide-react";
 import { Link } from "react-router";
+import { Badge, ListRow } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import {
   MEDICATION_TYPE_LABELS,
@@ -27,13 +28,13 @@ export function MedicationListItem({
   const stopped = stoppedText(medication);
   const badge = medicationTypeBadge(medication.type);
   return (
-    <li
-      className="hover:bg-base-200/50 relative isolate flex items-start gap-3 px-3 py-2.5"
+    <ListRow
+      className="hover:bg-base-200/50 relative isolate flex items-start gap-3"
       data-medication-id={medication.id}
     >
       <span
         aria-hidden="true"
-        className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-full ${stopped ? "bg-base-200 text-base-content/60" : "bg-primary/15 text-primary"}`}
+        className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-full ${stopped ? "bg-base-200 text-faint" : "bg-primary/15 text-primary"}`}
       >
         <Pill className="size-4" />
       </span>
@@ -41,37 +42,39 @@ export function MedicationListItem({
         <p className="flex min-w-0 items-start justify-between gap-2">
           <Link
             to={appUrls.medication(medication.groupId, medication.id)}
-            className={`min-w-0 font-medium wrap-break-word outline-none before:absolute before:inset-0 focus-visible:before:outline-2 focus-visible:before:-outline-offset-2 ${stopped ? "text-base-content/70" : ""}`}
+            className={`min-w-0 font-medium wrap-break-word outline-none before:absolute before:inset-0 focus-visible:before:outline-2 focus-visible:before:-outline-offset-2 ${stopped ? "text-muted" : ""}`}
             data-medication-name
           >
             {medicationTitle(medication)}
           </Link>
           {badge && medication.type && (
             <span
-              className="badge badge-ghost badge-sm mt-0.5 shrink-0"
+              className="mt-0.5 flex shrink-0"
               title={MEDICATION_TYPE_LABELS[medication.type]}
               data-medication-type={medication.type}
             >
-              <span aria-hidden="true">{badge}</span>
-              <span className="sr-only">{MEDICATION_TYPE_LABELS[medication.type]}</span>
+              <Badge>
+                <span aria-hidden="true">{badge}</span>
+                <span className="sr-only">{MEDICATION_TYPE_LABELS[medication.type]}</span>
+              </Badge>
             </span>
           )}
         </p>
-        <p className="text-base-content/70 text-sm" data-medication-summary>
+        <p className="text-muted text-sm" data-medication-summary>
           {medicationSummaryLine(medication, passes)}
         </p>
         {medication.reason && (
-          <p className="text-base-content/70 text-sm" data-medication-reason>
+          <p className="text-muted text-sm" data-medication-reason>
             <span className="sr-only">Reason: </span>
             {medication.reason}
           </p>
         )}
         {stopped && (
-          <p className="text-base-content/70 text-sm" data-medication-stopped>
+          <p className="text-muted text-sm" data-medication-stopped>
             {stopped}
           </p>
         )}
       </div>
-    </li>
+    </ListRow>
   );
 }

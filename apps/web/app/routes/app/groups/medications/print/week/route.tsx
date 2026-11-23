@@ -4,7 +4,7 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import { Printer } from "lucide-react";
 import { useSearchParams } from "react-router";
 import { PrintAllergies, PrintConditions } from "~/components/medications";
-import { BackLink } from "~/components/ui";
+import { BackLink, Button } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { getGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
@@ -59,10 +59,9 @@ export default function MedicationsPrintWeek({ loaderData, params }: Route.Compo
     >
       <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
         <BackLink to={appUrls.medicationSchedule(params.groupId)} label="Medications" />
-        <button type="button" className="btn btn-primary btn-sm gap-1.5" onClick={() => window.print()}>
-          <Printer className="size-4" aria-hidden="true" />
+        <Button variant="primary" size="sm" icon={Printer} onClick={() => window.print()}>
           Print
-        </button>
+        </Button>
       </div>
       <WeekPicker groupId={params.groupId} sheet={sheet} />
       <WeeklyChart

@@ -1,4 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { Button } from "~/components/ui";
 import { clearUndo, subscribeUndo, undoFor, undoSnapshot } from "~/lib/medications/passUndo";
 import { undoPassLog } from "./usePassLog";
 
@@ -38,13 +39,13 @@ export function PassUndoStatus({
   return (
     <div role="status" aria-live="polite" className={className} data-pass-undo={shown ? "" : undefined}>
       {shown && (
-        <p className="alert alert-info alert-soft flex items-center justify-between gap-3 py-2 text-sm">
+        <p className="rounded-box bg-info/10 flex items-center justify-between gap-3 px-3 py-2 text-sm">
           <span data-pass-undo-label>{shown.label}</span>
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
+          <Button
+            variant="ghost"
+            size="sm"
             disabled={busy}
-            data-pass-undo-button
+            data-pass-undo-button=""
             onClick={() => {
               setBusy(true);
               setError(null);
@@ -54,10 +55,10 @@ export function PassUndoStatus({
             }}
           >
             Undo
-          </button>
+          </Button>
         </p>
       )}
-      {error && <p className="text-error text-sm">{error}</p>}
+      {error && <p className="text-error-ink text-sm">{error}</p>}
     </div>
   );
 }

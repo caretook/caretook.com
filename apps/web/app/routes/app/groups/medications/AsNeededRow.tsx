@@ -3,7 +3,7 @@ import type { AsNeededToday, DueDoses } from "~/lib/medications/dueDoses";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
-import { ConfirmDialog } from "~/components/ui";
+import { Button, ConfirmDialog, ListRow, Message } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { doseWarnings } from "~/lib/medications/dueDoses";
 import { asNeededCountText, doseWarningText, medicationTitle } from "~/lib/medications/medicationDisplay";
@@ -37,32 +37,31 @@ export function AsNeededRow({
   };
 
   return (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2" data-as-needed={medication.id}>
+    <ListRow className="flex flex-wrap items-center gap-x-3 gap-y-1" data-as-needed={medication.id}>
       <div className="min-w-0 flex-1">
         <Link to={appUrls.medication(groupId, medication.id)} className="link-hover font-medium break-words">
           {title}
         </Link>
-        <p className="text-base-content/70 text-sm" data-as-needed-count>
+        <p className="text-muted text-sm" data-as-needed-count>
           {asNeededCountText(item)}
         </p>
       </div>
       {canWrite && (
-        <button
-          type="button"
-          className="btn btn-sm"
+        <Button
+          size="sm"
+          icon={Plus}
           disabled={busy}
           aria-label={`Log a dose of ${title}`}
-          data-log-as-needed
+          data-log-as-needed=""
           onClick={tap}
         >
-          <Plus className="size-4" aria-hidden="true" />
           Log
-        </button>
+        </Button>
       )}
       {error && (
-        <p role="alert" className="text-error w-full text-sm">
+        <Message tone="error" className="w-full">
           {error}
-        </p>
+        </Message>
       )}
       {canWrite && (
         <ConfirmDialog
@@ -77,6 +76,6 @@ export function AsNeededRow({
           onClose={() => setWarning(null)}
         />
       )}
-    </li>
+    </ListRow>
   );
 }

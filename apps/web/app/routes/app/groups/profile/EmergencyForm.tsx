@@ -6,7 +6,7 @@ import { CONTACT_LIMITS, DETAILS_LIMITS, PROVIDER_LIMITS } from "@caretook/data/
 import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
-import { ChoiceGroup, Field, IconButton } from "~/components/ui";
+import { Button, ChoiceGroup, EmptyState, Field, IconButton } from "~/components/ui";
 import {
   addableMembers,
   draftName,
@@ -159,7 +159,7 @@ export function EmergencyForm({
   return (
     <fetcher.Form method="post" noValidate className="space-y-4" ref={formRef} data-emergency-form="">
       <input type="hidden" name={EMERGENCY_FIELD} value={JSON.stringify(draftToSave(draft))} />
-      <p className="text-base-content/70 text-sm">Responders call them in this order, first to last.</p>
+      <p className="text-muted text-sm">Responders call them in this order, first to last.</p>
 
       {draft.entries.length ? (
         <ol className="space-y-2" aria-label="Emergency contacts, in order" data-emergency-draft="">
@@ -177,19 +177,16 @@ export function EmergencyForm({
           ))}
         </ol>
       ) : (
-        <p className="text-base-content/70 text-sm" data-emergency-empty="">
-          No one on the list yet.
-        </p>
+        <EmptyState data-emergency-empty="">No one on the list yet.</EmptyState>
       )}
 
       <div className="space-y-2">
         {addable.length > 0 && (
           <div className="flex items-end gap-2">
-            <Field label="Add a member" className="min-w-0 flex-1">
+            <Field kind="select" label="Add a member" className="min-w-0 flex-1">
               {(control) => (
                 <select
                   {...control}
-                  className="select w-full"
                   value={chosen?.userId ?? ""}
                   onChange={(event) => setToAdd(event.target.value)}
                   data-add-member-choice=""
@@ -202,30 +199,30 @@ export function EmergencyForm({
                 </select>
               )}
             </Field>
-            <button type="button" className="btn mb-1" onClick={addMember} data-add-member="">
+            <Button className="mb-1" onClick={addMember} data-add-member="">
               Add
-            </button>
+            </Button>
           </div>
         )}
         {withoutPhone && (
-          <p className="text-base-content/70 text-sm" data-without-phone="">
+          <p className="text-muted text-sm" data-without-phone="">
             {withoutPhone}
           </p>
         )}
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={Plus}
             disabled={outsideFull}
             onClick={addOutside}
             data-focus="add"
             data-add-outside=""
           >
-            <Plus className="size-4" aria-hidden="true" />
             Add someone without an account
-          </button>
+          </Button>
           {outsideFull && (
-            <span className="text-base-content/70 text-sm">
+            <span className="text-muted text-sm">
               {DETAILS_LIMITS.outsideContacts} outside contacts is the most
             </span>
           )}
@@ -293,23 +290,17 @@ function DraftRow({
     >
       {entry.kind === "member" ? (
         <div className="flex items-center gap-2">
-          <span className="text-base-content/70 w-5 shrink-0 text-right text-sm tabular-nums">
-            {position}.
-          </span>
+          <span className="text-muted w-5 shrink-0 text-right text-sm tabular-nums">{position}.</span>
           <div className="min-w-0 flex-1">
             <p className="truncate font-medium">{entry.name}</p>
-            {entry.phones[0] && (
-              <p className="text-base-content/70 truncate text-sm">{entry.phones[0].number}</p>
-            )}
+            {entry.phones[0] && <p className="text-muted truncate text-sm">{entry.phones[0].number}</p>}
           </div>
           {controls}
         </div>
       ) : (
         <fieldset>
           <div className="flex items-center gap-2">
-            <span className="text-base-content/70 w-5 shrink-0 text-right text-sm tabular-nums">
-              {position}.
-            </span>
+            <span className="text-muted w-5 shrink-0 text-right text-sm tabular-nums">{position}.</span>
             <legend className="min-w-0 flex-1 truncate font-medium">{name}</legend>
             {controls}
           </div>
@@ -351,7 +342,7 @@ function OutsideField({
   const error = issues.find((issue) => issue.path === path)?.message;
   const value = entry.contact[field];
   return (
-    <Field label={label} error={error}>
+    <Field kind="input" label={label} error={error}>
       {(control) => (
         <input
           {...control}
@@ -360,7 +351,6 @@ function OutsideField({
           onChange={(event) => onEdit(field, event.target.value)}
           maxLength={MAX_LENGTH[field] + 20}
           autoComplete="off"
-          className={`input w-full ${error ? "input-error" : ""}`}
           data-focus={field === "name" ? "name" : undefined}
           data-outside-field={field}
         />

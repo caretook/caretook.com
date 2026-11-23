@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { PROVIDER_LIMITS, PROVIDER_TYPES } from "@caretook/data/schema";
 import { PhoneFields } from "~/components/contact";
-import { ChoiceGroup, Field } from "~/components/ui";
+import { Button, CheckField, ChoiceGroup, Field, FormFooter, Message } from "~/components/ui";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 import { FIELD, hasPractice } from "./providerFormData";
 
@@ -89,12 +89,11 @@ export function ProviderForm({
         error={issueFor(issues, "type")}
       />
 
-      <Field label="Name" error={issueFor(issues, "name")}>
+      <Field label="Name" kind="input" error={issueFor(issues, "name")}>
         {(control) => (
           <input
             {...control}
             name={FIELD.name}
-            className="input w-full"
             maxLength={PROVIDER_LIMITS.name}
             defaultValue={provider?.name ?? ""}
             placeholder={NAME_PLACEHOLDER[type]}
@@ -103,12 +102,11 @@ export function ProviderForm({
         )}
       </Field>
 
-      <Field label={`${meta.label} (optional)`} error={issueFor(issues, "specialty")}>
+      <Field label={`${meta.label} (optional)`} kind="input" error={issueFor(issues, "specialty")}>
         {(control) => (
           <input
             {...control}
             name={FIELD.specialty}
-            className="input w-full"
             maxLength={PROVIDER_LIMITS.specialty}
             defaultValue={provider?.specialty ?? ""}
             placeholder={meta.placeholder}
@@ -118,14 +116,9 @@ export function ProviderForm({
       </Field>
 
       {hasPractice(type) && (
-        <Field label="Practice (optional)" error={issueFor(issues, "practiceId")}>
+        <Field label="Practice (optional)" kind="select" error={issueFor(issues, "practiceId")}>
           {(control) => (
-            <select
-              {...control}
-              name={FIELD.practiceId}
-              className="select w-full"
-              defaultValue={currentPractice}
-            >
+            <select {...control} name={FIELD.practiceId} defaultValue={currentPractice}>
               <option value="">None</option>
               {choices.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -141,14 +134,13 @@ export function ProviderForm({
 
       <PhoneFields initial={provider?.phones} issues={issues} />
 
-      <Field label="Email (optional)" error={issueFor(issues, "email")}>
+      <Field label="Email (optional)" kind="input" error={issueFor(issues, "email")}>
         {(control) => (
           <input
             {...control}
             name={FIELD.email}
             type="email"
             inputMode="email"
-            className="input w-full"
             maxLength={PROVIDER_LIMITS.email}
             defaultValue={provider?.email ?? ""}
             autoComplete="off"
@@ -156,12 +148,11 @@ export function ProviderForm({
         )}
       </Field>
 
-      <Field label="Address (optional)" error={issueFor(issues, "address")}>
+      <Field label="Address (optional)" kind="textarea" error={issueFor(issues, "address")}>
         {(control) => (
           <textarea
             {...control}
             name={FIELD.address}
-            className="textarea w-full"
             rows={2}
             maxLength={PROVIDER_LIMITS.address}
             defaultValue={provider?.address ?? ""}
@@ -169,13 +160,12 @@ export function ProviderForm({
         )}
       </Field>
 
-      <Field label="Website (optional)" error={issueFor(issues, "website")}>
+      <Field label="Website (optional)" kind="input" error={issueFor(issues, "website")}>
         {(control) => (
           <input
             {...control}
             name={FIELD.website}
             inputMode="url"
-            className="input w-full"
             maxLength={PROVIDER_LIMITS.website}
             defaultValue={provider?.website ?? ""}
             placeholder="e.g. clinic.example"
@@ -186,54 +176,35 @@ export function ProviderForm({
 
       <fieldset className="fieldset gap-2 pt-2">
         <legend className="sr-only">Status</legend>
-        <label className="label text-base-content cursor-pointer items-start gap-3 whitespace-normal">
-          <input
-            type="checkbox"
-            name={FIELD.isPrimary}
-            className="checkbox checkbox-sm mt-0.5"
-            defaultChecked={provider?.isPrimary ?? false}
-          />
-          <span>
-            Primary
-            <span className="text-base-content/70 block text-sm">Pinned at the top of the list</span>
-          </span>
-        </label>
-        <label className="label text-base-content cursor-pointer items-start gap-3 whitespace-normal">
-          <input
-            type="checkbox"
-            name={FIELD.past}
-            className="checkbox checkbox-sm mt-0.5"
-            defaultChecked={provider?.status === "past"}
-          />
-          <span>
-            Past
-            <span className="text-base-content/70 block text-sm">
-              No longer seen; listed under Past providers
-            </span>
-          </span>
-        </label>
+        <CheckField
+          name={FIELD.isPrimary}
+          label="Primary"
+          help="Pinned at the top of the list"
+          defaultChecked={provider?.isPrimary ?? false}
+        />
+        <CheckField
+          name={FIELD.past}
+          label="Past"
+          help="No longer seen; listed under Past providers"
+          defaultChecked={provider?.status === "past"}
+        />
       </fieldset>
 
-      {general && (
-        <p role="alert" className="text-error text-sm">
-          {general}
-        </p>
-      )}
+      {general && <Message tone="error">{general}</Message>}
 
-      <div className="flex flex-wrap items-center gap-2 pt-3">
+      {/* The footer has its own top padding, so Delete lines up with its buttons from the bottom. */}
+      <div className="flex flex-wrap items-end gap-2">
         {onDelete && (
-          <button type="button" className="btn btn-ghost text-error mr-auto" onClick={onDelete}>
+          <Button variant="dangerQuiet" onClick={onDelete}>
             Delete provider
-          </button>
+          </Button>
         )}
-        <div className="ml-auto flex gap-2">
-          <button data-form-cancel="" type="button" className="btn btn-ghost" onClick={onCancel}>
-            Cancel
-          </button>
-          <button type="submit" className="btn btn-primary" disabled={busy}>
-            {provider ? "Save" : "Add provider"}
-          </button>
-        </div>
+        <FormFooter
+          className="ms-auto"
+          submitLabel={provider ? "Save" : "Add provider"}
+          busy={busy}
+          cancel={{ label: "Cancel", onCancel }}
+        />
       </div>
     </fetcher.Form>
   );

@@ -4,7 +4,7 @@ import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
 import { MEDICATION_PASS_LIMITS } from "@caretook/data/schema";
 import { useEffect, useRef } from "react";
 import { useFetcher } from "react-router";
-import { Field, TimeSelect } from "~/components/ui";
+import { Field, FormFooter, Message, TimeSelect } from "~/components/ui";
 import { useGroup } from "~/lib/app-shell/group";
 import { PASS_FIELD } from "./passActions";
 
@@ -52,12 +52,11 @@ export function PassForm({
     <fetcher.Form method="post" ref={formRef} className="space-y-1" noValidate data-pass-form>
       <input type="hidden" name={PASS_FIELD.intent} value={pass ? "update" : "create"} />
       {pass && <input type="hidden" name={PASS_FIELD.passId} value={pass.id} />}
-      <Field label="Name" error={nameError}>
+      <Field label="Name" error={nameError} kind="input">
         {(control) => (
           <input
             {...control}
             name={PASS_FIELD.name}
-            className="input w-full"
             defaultValue={pass?.name ?? ""}
             maxLength={MEDICATION_PASS_LIMITS.name}
             placeholder="e.g. Noon"
@@ -79,19 +78,12 @@ export function PassForm({
         }
         error={timeError}
       />
-      {general && (
-        <p className="text-error text-sm" role="alert">
-          {general}
-        </p>
-      )}
-      <div className="flex justify-end gap-2 pt-3">
-        <button data-form-cancel="" type="button" className="btn btn-ghost" onClick={onCancel}>
-          Cancel
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={busy}>
-          {pass ? "Save" : "Add pass"}
-        </button>
-      </div>
+      {general && <Message tone="error">{general}</Message>}
+      <FormFooter
+        submitLabel={pass ? "Save" : "Add pass"}
+        busy={busy}
+        cancel={{ label: "Cancel", onCancel }}
+      />
     </fetcher.Form>
   );
 }

@@ -6,7 +6,17 @@ import { PROVIDER_TYPES } from "@caretook/data/schema";
 import { useMemo, useState } from "react";
 import { useFetcher } from "react-router";
 import { ProviderTypeIcon } from "~/components/providers";
-import { ChipGroup, Field } from "~/components/ui";
+import {
+  Badge,
+  Button,
+  CheckField,
+  ChipGroup,
+  EmptyState,
+  Field,
+  List,
+  Message,
+  STATUS_TONE,
+} from "~/components/ui";
 import { ALREADY_HERE, importButtonLabel, importSummary, notesStayIn } from "~/lib/providers/importWording";
 import { directoryList, PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 import { alreadyHereIds } from "~/lib/providers/providerImport";
@@ -69,16 +79,15 @@ export function ImportList({
 
   return (
     <>
-      <p className="text-base-content/70 text-sm" data-notes-rule>
+      <p className="text-muted text-sm" data-notes-rule>
         {notesStayIn(group.name)}
       </p>
 
-      <Field label={`Search providers in ${group.name}`} labelHidden>
+      <Field label={`Search providers in ${group.name}`} labelHidden kind="input">
         {(control) => (
           <input
             {...control}
             type="search"
-            className="input w-full"
             placeholder="Search by name, specialty or practice"
             autoComplete="off"
             value={text}
@@ -100,74 +109,67 @@ export function ImportList({
       />
 
       {live.length === 0 ? (
-        <p className="text-base-content/70">No providers in {group.name} yet.</p>
+        <EmptyState>No providers in {group.name} yet.</EmptyState>
       ) : shown.length === 0 ? (
-        <p className="text-base-content/70">No providers match “{text.trim()}”.</p>
+        <EmptyState>No providers match “{text.trim()}”.</EmptyState>
       ) : (
-        <ul
-          aria-label={`Providers in ${group.name}`}
-          className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y border"
-        >
+        <List label={`Providers in ${group.name}`}>
           {shown.map((p) => {
             const isHere = here.has(p.id);
             const practice = p.practiceId ? practiceNames.get(p.practiceId) : null;
             const details = [PROVIDER_TYPE_META[p.type].label, p.specialty, practice].filter(Boolean);
             return (
               <li key={p.id} data-import-row={p.id}>
-                <label
-                  className={`flex items-center gap-3 px-3 py-2 ${isHere ? "text-base-content/50" : "cursor-pointer"}`}
-                >
-                  <input
-                    type="checkbox"
-                    className="checkbox checkbox-sm"
-                    checked={!isHere && chosen.has(p.id)}
-                    disabled={isHere}
-                    onChange={(e) => toggle(p.id, e.currentTarget.checked)}
-                  />
-                  <ProviderTypeIcon type={p.type} past={p.status === "past"} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium" data-import-name>
-                      {p.name}
+                <CheckField
+                  className="px-3 py-2"
+                  checked={!isHere && chosen.has(p.id)}
+                  disabled={isHere}
+                  onChange={(e) => toggle(p.id, e.currentTarget.checked)}
+                  label={
+                    <span className="flex items-center gap-3">
+                      <ProviderTypeIcon type={p.type} past={p.status === "past"} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium" data-import-name>
+                          {p.name}
+                        </span>
+                        <span className="text-muted block truncate text-sm">
+                          {details.join(" · ")}
+                          {p.status === "past" && " · Past"}
+                        </span>
+                      </span>
+                      {isHere && (
+                        <Badge tone={STATUS_TONE.past} className="shrink-0">
+                          {ALREADY_HERE}
+                        </Badge>
+                      )}
                     </span>
-                    <span className="text-base-content/70 block truncate text-sm">
-                      {details.join(" · ")}
-                      {p.status === "past" && " · Past"}
-                    </span>
-                  </span>
-                  {isHere && <span className="badge badge-ghost badge-sm shrink-0">{ALREADY_HERE}</span>}
-                </label>
+                  }
+                />
               </li>
             );
           })}
-        </ul>
+        </List>
       )}
 
-      <p role="status" className="text-sm" data-import-status>
-        {result?.ok ? importSummary(result.results) : ""}
-      </p>
-      {result && !result.ok && (
-        <p role="alert" className="text-error text-sm">
-          {result.error}
-        </p>
-      )}
+      <Message data-import-status="">{result?.ok ? importSummary(result.results) : ""}</Message>
+      {result && !result.ok && <Message tone="error">{result.error}</Message>}
 
       <div className="flex justify-end gap-2" data-import-picks>
         {/* What the sheet's guard watches: a tick stays here while a search hides its row. */}
         {ticked.map((id) => (
           <input key={id} type="hidden" name="picked" value={id} />
         ))}
-        <button type="button" className="btn btn-ghost" data-form-cancel="" onClick={onDone}>
+        <Button data-form-cancel="" onClick={onDone}>
           Done
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary"
+        </Button>
+        <Button
+          variant="primary"
           disabled={ticked.length === 0 || busy}
           onClick={submit}
-          data-import-submit
+          data-import-submit=""
         >
           {importButtonLabel(ticked.length)}
-        </button>
+        </Button>
       </div>
     </>
   );

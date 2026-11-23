@@ -3,7 +3,7 @@ import type { LocalProvider, ProviderRow } from "~/lib/providers/providers.sync"
 
 import { Link } from "react-router";
 import { PROVIDER_TYPE_ICONS } from "~/components/providers";
-import { Badge, DetailHeader, STATUS_TONE } from "~/components/ui";
+import { Badge, DetailHeader, LINK, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { PROVIDER_TYPE_META } from "~/lib/providers/providerDirectory";
 import { useLiveQuery } from "~/lib/sync";
@@ -66,13 +66,13 @@ function PracticeLink({ groupId, practiceId }: { groupId: string; practiceId: st
   if (!practice || practice.groupId !== groupId) return null;
   if (practice.deletedAt) {
     return (
-      <span className="text-base-content/50 whitespace-nowrap" data-practice>
+      <span className="text-faint whitespace-nowrap" data-practice>
         {practice.name} (removed)
       </span>
     );
   }
   return (
-    <Link to={appUrls.provider(groupId, practice.id)} className="link whitespace-nowrap" data-practice>
+    <Link to={appUrls.provider(groupId, practice.id)} className={`${LINK} whitespace-nowrap`} data-practice>
       {practice.name}
     </Link>
   );

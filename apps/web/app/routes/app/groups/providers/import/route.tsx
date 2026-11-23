@@ -11,7 +11,7 @@ import { sessionContext } from "~/lib/auth/session";
 import { IMPORT_TITLE } from "~/lib/providers/importWording";
 import { importProviders, providersQuery, toProviders } from "~/lib/providers/providers.sync";
 import { groupFor, myGroupsQuery, readRows, toMyGroup } from "~/lib/timeline/timeline.sync";
-import { ChoiceGroup, Sheet } from "~/components/ui";
+import { Button, ChoiceGroup, Sheet } from "~/components/ui";
 import { useCloseProviderSheet, useProvidersOutlet } from "../providerSheet";
 import { importProvidersGuard } from "../providerSheetGuard";
 import { ImportList } from "./ImportList";
@@ -89,9 +89,7 @@ export default function ImportProvidersSheet({ loaderData }: Route.ComponentProp
           <ImportList key={source.id} group={source} target={providers} onDone={close} />
         ) : (
           <div className="flex justify-end">
-            <button type="button" className="btn btn-ghost" onClick={close}>
-              Cancel
-            </button>
+            <Button onClick={close}>Cancel</Button>
           </div>
         )}
       </div>

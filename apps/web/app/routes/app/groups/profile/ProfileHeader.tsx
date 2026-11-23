@@ -1,9 +1,8 @@
 import type { RecipientProfile } from "~/lib/profiles/profile.sync";
 
 import { Pencil, Printer } from "lucide-react";
-import { Link } from "react-router";
 import { canEditRecipient, canReadRecipient } from "@caretook/data/schema";
-import { DetailHeader, UserAvatar } from "~/components/ui";
+import { Button, DetailHeader, UserAvatar } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { ageText, birthdayText, PROFILE_NEEDS_CONNECTION } from "~/lib/profiles/recipientDisplay";
@@ -57,54 +56,50 @@ function EditBasics({ groupId }: { groupId: string }) {
   if (!online)
     return (
       <div className="flex shrink-0 flex-col items-end gap-1 text-right">
-        <button
-          type="button"
-          className="btn btn-sm"
+        <Button
+          size="sm"
+          icon={Pencil}
           disabled
           aria-label="Edit profile"
           aria-describedby="profile-edit-offline"
           data-edit-basics=""
         >
-          <Pencil className="size-4" aria-hidden="true" />
           Edit
-        </button>
-        <p
-          id="profile-edit-offline"
-          className="text-base-content/70 max-w-40 text-xs"
-          data-needs-connection=""
-        >
+        </Button>
+        <p id="profile-edit-offline" className="text-muted max-w-40 text-xs" data-needs-connection="">
           {PROFILE_NEEDS_CONNECTION}
         </p>
       </div>
     );
   return (
-    <Link
+    <Button
       to={appUrls.profile(groupId, "basics")}
       state={PROFILE_SHEET_STATE}
       prefetch="render"
       preventScrollReset
-      className="btn btn-sm shrink-0"
+      size="sm"
+      icon={Pencil}
+      className="shrink-0"
       aria-label="Edit profile"
       data-edit-basics=""
     >
-      <Pencil className="size-4" aria-hidden="true" />
       Edit
-    </Link>
+    </Button>
   );
 }
 
 /** The emergency sheet (writers only: their devices have the details it prints). */
 function PrintLink({ groupId }: { groupId: string }) {
   return (
-    <Link
+    <Button
       to={appUrls.profilePrint(groupId)}
       prefetch="render"
-      className="btn btn-sm"
+      size="sm"
+      icon={Printer}
       aria-label="Print emergency sheet"
       data-print-link=""
     >
-      <Printer className="size-4" aria-hidden="true" />
       Print
-    </Link>
+    </Button>
   );
 }

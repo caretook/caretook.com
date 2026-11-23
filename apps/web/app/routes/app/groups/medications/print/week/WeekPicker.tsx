@@ -1,12 +1,10 @@
 import type { WeeklySheet } from "./weeklySheet";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Link, useNavigate } from "react-router";
-import { Field } from "~/components/ui";
+import { useNavigate } from "react-router";
+import { Button, Field } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { parseWeekStart } from "./weeklySheet";
-
-const LINK = "btn btn-ghost btn-sm gap-1";
 
 /**
  * Which week the sheet is: the week before or after, this week, or a start
@@ -19,24 +17,32 @@ export function WeekPicker({ groupId, sheet }: { groupId: string; sheet: WeeklyS
 
   return (
     <nav aria-label="Week" className="flex flex-wrap items-end gap-x-2 gap-y-1 print:hidden" data-week-picker>
-      <Link to={to(sheet.previousStart)} replace preventScrollReset className={LINK} data-week-previous>
-        <ChevronLeft className="size-4" aria-hidden="true" />
+      <Button
+        to={to(sheet.previousStart)}
+        replace
+        preventScrollReset
+        variant="ghost"
+        size="sm"
+        icon={ChevronLeft}
+        data-week-previous=""
+      >
         Previous week
-      </Link>
-      <Link
+      </Button>
+      <Button
         to={to(sheet.thisWeekStart)}
         replace
         preventScrollReset
-        className={LINK}
+        variant="ghost"
+        size="sm"
         aria-current={isThisWeek ? "true" : undefined}
-        data-week-this
+        data-week-this=""
       >
         This week
-      </Link>
-      <Link to={to(sheet.nextStart)} replace preventScrollReset className={LINK} data-week-next>
+      </Button>
+      <Button to={to(sheet.nextStart)} replace preventScrollReset variant="ghost" size="sm" data-week-next="">
         Next week
         <ChevronRight className="size-4" aria-hidden="true" />
-      </Link>
+      </Button>
       <Field label="Starts on" className="ms-auto">
         {(control) => (
           <input

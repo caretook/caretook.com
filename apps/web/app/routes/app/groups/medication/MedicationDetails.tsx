@@ -3,7 +3,7 @@ import type { SchedulePass } from "~/lib/medications/medicationDisplay";
 import type { LocalMedication } from "~/lib/medications/medications.sync";
 
 import { Link } from "react-router";
-import { Section } from "~/components/ui";
+import { EmptyState, LINK, Section } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { localTimeZone } from "~/lib/core/format";
 import {
@@ -18,13 +18,13 @@ import { PROFILE_SHEET_STATE } from "~/lib/profiles/profileSheetLink";
 function Row({ id, label, children }: { id: string; label: string; children: ReactNode }) {
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-0.5 px-3 py-2.5" data-detail={id}>
-      <dt className="text-base-content/70 w-28 shrink-0 text-sm">{label}</dt>
+      <dt className="text-muted w-28 shrink-0 text-sm">{label}</dt>
       <dd className="min-w-0 flex-1 wrap-break-word whitespace-pre-line">{children}</dd>
     </div>
   );
 }
 
-const LIST = "rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border";
+const LIST = "rounded-box border-base-300 bg-base-100 divide-base-300 divide-y overflow-hidden border";
 
 /**
  * What the medication is (its type, or "not set") and how it's taken
@@ -53,7 +53,11 @@ export function MedicationDetails({
   return (
     <Section title="Details" id="details">
       {stopped && (
-        <div role="note" className="alert alert-soft" data-medication-stopped>
+        <div
+          role="note"
+          className="rounded-box border-base-300 bg-base-100 border px-3 py-2"
+          data-medication-stopped
+        >
           <span>
             {stopped}
             {medication.stopNote && <span className="block text-sm">{medication.stopNote}</span>}
@@ -67,7 +71,7 @@ export function MedicationDetails({
         </Row>
         <Row id="schedule" label="Schedule">
           {scheduleText(medication.schedule, passes, medication.dose)}
-          {zoneNote && <span className="text-base-content/70 block text-sm">{zoneNote}</span>}
+          {zoneNote && <span className="text-muted block text-sm">{zoneNote}</span>}
         </Row>
         {medication.dose && (
           <Row id="dose" label="Dose">
@@ -87,7 +91,7 @@ export function MedicationDetails({
                 <Link
                   to={appUrls.condition(groupId, c.id)}
                   state={PROFILE_SHEET_STATE}
-                  className="link"
+                  className={LINK}
                   data-medication-condition={c.id}
                 >
                   {c.name}
@@ -122,7 +126,7 @@ export function MedicationRefills({ medication }: { medication: LocalMedication 
   return (
     <Section title="Refills" id="refills" data-medication-refills="">
       {refills.length === 0 ? (
-        <p className="text-muted text-sm">No refill details yet.</p>
+        <EmptyState>No refill details yet.</EmptyState>
       ) : (
         <dl className={LIST}>
           {refills.map(([id, label, value]) => (

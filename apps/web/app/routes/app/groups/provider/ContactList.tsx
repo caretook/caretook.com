@@ -2,7 +2,7 @@ import type { ContactAction } from "~/lib/providers/contactActions";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { ACTION_ICONS, actionLinkProps } from "~/components/providers";
-import { Section } from "~/components/ui";
+import { List, Section } from "~/components/ui";
 import { allActions, callAction } from "~/lib/providers/contactActions";
 
 const CAPTIONS: Record<Exclude<ContactAction["kind"], "call">, string> = {
@@ -32,11 +32,7 @@ export function ContactList({ provider }: { provider: LocalProvider }) {
   if (rows.length === 0) return null;
   return (
     <Section title="Contact" id="contact">
-      <ul
-        aria-label="Contact"
-        className="rounded-box border-base-300 bg-base-100 divide-base-200 divide-y overflow-hidden border"
-        data-contact-list
-      >
+      <List label="Contact" data-contact-list="">
         {rows.map(({ action, caption }) => {
           const Icon = ACTION_ICONS[action.kind];
           return (
@@ -47,11 +43,11 @@ export function ContactList({ provider }: { provider: LocalProvider }) {
                 className="hover:bg-base-200/50 flex items-center gap-3 px-3 py-2.5"
                 {...actionLinkProps(action)}
               >
-                <Icon className="text-base-content/70 size-4 shrink-0" aria-hidden="true" />
+                <Icon className="text-muted size-4 shrink-0" aria-hidden="true" />
                 <span className="min-w-0 flex-1">
                   <span className="sr-only">{action.label}: </span>
                   <span className="block break-words whitespace-pre-line">{action.value}</span>
-                  <span aria-hidden="true" className="text-base-content/70 block text-sm">
+                  <span aria-hidden="true" className="text-muted block text-sm">
                     {caption}
                   </span>
                 </span>
@@ -59,7 +55,7 @@ export function ContactList({ provider }: { provider: LocalProvider }) {
             </li>
           );
         })}
-      </ul>
+      </List>
     </Section>
   );
 }
