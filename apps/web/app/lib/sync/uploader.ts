@@ -40,26 +40,22 @@ const toOp = (entry: CrudEntry, ownDoses: ReadonlySet<CrudEntry>): UploadOp => {
 };
 
 /**
- * The batch's PATCHes of doses this device still holds as written by the same
- * member (B-614). The local row can't have changed under a queued write: the
- * server's copy replaces it only once the queue is empty. So the row says
- * whose dose the member was changing when they made the edit or Undo.
+ * The batch's PATCHes of doses this device still holds as the writer's own
+ * (B-614): the local row's author is who last wrote it, and only this device's
+ * member writes here. (The PATCH can't say: it omits an `updated_by` that didn't
+ * change.) The row can't have changed under a queued write, since the server's
+ * copy replaces it only once the queue is empty.
  */
 const ownDosePatches = async (db: AbstractPowerSyncDatabase, entries: CrudEntry[]) => {
-  const patches = entries.filter(
-    (entry) =>
-      entry.table === "timeline_entry" &&
-      String(entry.op) === "PATCH" &&
-      typeof entry.opData?.updated_by === "string",
-  );
+  const patches = entries.filter((entry) => entry.table === "timeline_entry" && String(entry.op) === "PATCH");
   if (!patches.length) return new Set<CrudEntry>();
-  const rows = await db.getAll<{ id: string; created_by: string | null }>(
-    `SELECT id, created_by FROM timeline_entry
-     WHERE kind = 'dose' AND id IN (SELECT value FROM json_each(?))`,
+  const rows = await db.getAll<{ id: string }>(
+    `SELECT id FROM timeline_entry
+     WHERE kind = 'dose' AND created_by = updated_by AND id IN (SELECT value FROM json_each(?))`,
     [JSON.stringify(patches.map((entry) => entry.id))],
   );
-  const authors = new Map(rows.map((row) => [row.id, row.created_by]));
-  return new Set(patches.filter((entry) => authors.get(entry.id) === entry.opData?.updated_by));
+  const own = new Set(rows.map((row) => row.id));
+  return new Set(patches.filter((entry) => own.has(entry.id)));
 };
 
 /** The device's own tables: the only names a label lookup reads from. */
