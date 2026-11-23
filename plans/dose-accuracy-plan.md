@@ -4,17 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State                                               | Merge into `prd/dose-accuracy` (slice commits) |
-| ----- | ---- | --------------------------------------------------- | ---------------------------------------------- |
-| 1     | 1    | started (worktree `dose-accuracy-1`, agent on opus) | —                                              |
-| 2     | 2    | —                                                   | —                                              |
-| 3     | 3    | —                                                   | —                                              |
-| 4     | 2    | —                                                   | —                                              |
-| 5     | 4    | —                                                   | —                                              |
+| Slice | Wave | State                                                                 | Merge into `prd/dose-accuracy` (slice commits) |
+| ----- | ---- | --------------------------------------------------------------------- | ---------------------------------------------- |
+| 1     | 1    | handed off at 597f6f1f (opus), reviewed, not merged: waits on ask a92 | —                                              |
+| 2     | 2    | —                                                                     | —                                              |
+| 3     | 3    | —                                                                     | —                                              |
+| 4     | 2    | —                                                                     | —                                              |
+| 5     | 4    | —                                                                     | —                                              |
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-22). Start every ready slice, land each green wave, clean up; ask only real questions through `pnpm prd ask`.
 
-**Now:** wave 1 running. B-297 claimed. No open issues. `pnpm backlog doctor` reports two old inbox-line findings (B-548, B-549), unrelated to this topic.
+**Now:** wave 1: slice 1's slice check passed. B-297 claimed. **Open: ask a92** (defaults to "Answer nothing" at 23:20): a second 23:30 dose given after midnight answers tonight's slot under slice 1's criterion, so tonight reads given early. If the answer is "Answer nothing", send slice 1's agent the fix (a named dose within the window of an already-answered slot of its name answers nothing), change the criterion and the PRD's matching line, then merge. If "Answer tonight", merge 597f6f1f as is. For slices 2, 4 and 5: `doseSlotDay` uses the same reach as `slotAt`; keep the days either side when replacing the expansion, and answer doses before trimming to the range. `pnpm backlog doctor` reports two old inbox-line findings (B-548, B-549), unrelated to this topic.
 
 **Backlog:** claim B-297 when slice 1 starts and `done` it when slice 1 merges; B-298 when slice 2 starts, `done` after slice 3 merges; B-299 when slice 4 starts, `done` after slice 5 merges.
 
