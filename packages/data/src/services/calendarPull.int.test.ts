@@ -234,8 +234,14 @@ describe("pulling", () => {
     await settled();
     expect(eventOf(conn, uid).status).toBe("cancelled");
 
-    // Edited in Caretook afterwards, it is written to Google again.
-    ok(await timelineEntryService.update(owner.ctx, past.id, { place: "Harbor Heart Center" }));
+    // Its time corrected in Caretook afterwards (the member's generic event shows no place), it is written again.
+    const corrected = plusHours(past.occurredAt, 1);
+    ok(
+      await timelineEntryService.update(owner.ctx, past.id, {
+        occurredAt: corrected,
+        endsAt: plusHours(corrected, 1),
+      }),
+    );
     await settled();
     ok(await calendarSyncService.runDue({ client: google }));
     await settled();
