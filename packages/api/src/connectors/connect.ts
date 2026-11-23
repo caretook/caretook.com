@@ -11,6 +11,7 @@ import {
   isConnectorScope,
   isEasyRole,
   isError,
+  readOnlyByOwner,
   scopesForRole,
 } from "@caretook/data";
 
@@ -31,6 +32,8 @@ export type ConnectGroup = {
   recipientName: string | null;
   role: GroupRoleName;
   scopes: readonly ConnectorScope[];
+  /** The group's owner is why this member and client can only read here. */
+  readOnlyByOwner: boolean;
 };
 
 /**
@@ -89,6 +92,20 @@ export const signedConnectRequest = async (
 
 const asksToWrite = (scopes: readonly string[]) => scopes.includes(CONNECTOR_OAUTH_SCOPES.write);
 
+/**
+ * What the page offers in a group: the role's scopes under the group's
+ * read-only setting, write only if the client asked for it. The owner is the
+ * reason only when this member and client could write with the setting off.
+ */
+export const connectChoices = (
+  role: GroupRoleName,
+  groupReadOnly: boolean,
+  requested: readonly string[],
+) => ({
+  scopes: scopesForRole(role, groupReadOnly).filter((s) => s === "read" || asksToWrite(requested)),
+  readOnlyByOwner: readOnlyByOwner("readWrite", role, groupReadOnly, asksToWrite(requested)),
+});
+
 /** The OAuth scopes to accept for a grant of `scope`: only ones the client asked for. */
 export const acceptedOAuthScopes = (scope: ConnectorScope, requested: readonly string[]) => {
   const wanted: string[] = [CONNECTOR_OAUTH_SCOPES.read, CONNECTOR_OAUTH_SCOPES.offline];
@@ -119,6 +136,7 @@ const memberGroups = async (authUser: AuthUser) => {
         recipientName: recipient ? recipient.preferredName || recipient.name : null,
         role,
         enabled: group.connectorsEnabled,
+        groupReadOnly: group.connectorsReadOnly,
       },
     ];
   });
@@ -129,15 +147,15 @@ type MemberGroup = Exclude<Awaited<ReturnType<typeof memberGroups>>, AppError>[n
 const eligibleGroups = (groups: MemberGroup[], requested: readonly string[]) =>
   groups
     .filter((g) => g.enabled)
-    .map(({ enabled: _enabled, ...group }): ConnectGroup => ({
+    .map(({ enabled: _enabled, groupReadOnly, ...group }): ConnectGroup => ({
       ...group,
-      scopes: scopesForRole(group.role).filter((s) => s === "read" || asksToWrite(requested)),
+      ...connectChoices(group.role, groupReadOnly, requested),
     }));
 
 /** The groups with the switch off, with the member's last request to each one's owners. */
 const offGroups = async (authUser: AuthUser, groups: MemberGroup[]) => {
   const off: OffGroup[] = [];
-  for (const { enabled, ...group } of groups) {
+  for (const { enabled, groupReadOnly: _groupReadOnly, ...group } of groups) {
     if (enabled) continue;
     let askedAt: string | null = null;
     if (group.role !== "owner") {

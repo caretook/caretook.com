@@ -118,11 +118,37 @@ describe("the OAuth dance", () => {
           recipientName: "Pat Example",
           role: "owner",
           scopes: ["read", "readWrite"],
+          readOnlyByOwner: false,
         },
       ],
       offGroups: [],
     });
     expect(JSON.stringify(page)).not.toContain(offGroup.id);
+  });
+
+  it("offers only read on a read-only group, naming the owner only for a member who could write", async () => {
+    const m = await member("connect-read-only");
+    const viewer = await createUser("connect-read-only-viewer");
+    await enablePasswordSignIn(viewer.user.id);
+    const { group } = await createGroup(m, [{ user: viewer.user, role: "viewer" }]);
+    for (const data of [{ connectorsEnabled: true }, { connectorsReadOnly: true }])
+      ok(await careGroupService.update(m.ctx, { filter: { id: { type: "eq", value: group.id } }, data }));
+
+    const groupsOf = async (email: string) => {
+      const at = await atConsent(email);
+      const page = ok(await loadConnectPage(at.authUser, at.search));
+      if (page.state !== "consent") throw new Error(page.state);
+      return page.groups;
+    };
+    const mine = await groupsOf(m.email);
+    expect(mine.find((g) => g.id === group.id)).toMatchObject({ scopes: ["read"], readOnlyByOwner: true });
+    expect(mine.find((g) => g.id === m.group.id)).toMatchObject({
+      scopes: ["read", "readWrite"],
+      readOnlyByOwner: false,
+    });
+    expect(await groupsOf(viewer.user.email)).toMatchObject([
+      { id: group.id, scopes: ["read"], readOnlyByOwner: false },
+    ]);
   });
 
   it("with no group allowing assistants, lists the groups with the switch off and the member's last ask", async () => {
