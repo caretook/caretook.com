@@ -25,7 +25,7 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 
 **For slice 5:** reuse `runBrowserJob` and `summarizeBrowser` for repeat runs. **For slice 6:** reuse `releasePasses(v, tier, sha)` in `scripts/ci/gate.mjs`, which already refuses a `flake` with a brake-list test.
 
-**CI approval:** each wave needs its own. a140 covered wave 2, and a144 (the user's yes) covered wave 3's runs and its one real candidate only. **Wave 4 has no approval: file a new ask (`--waits`, after a skeptic) before its first run**, including one a slice agent would request. Give slice agents a hard stop until it is answered. The permission classifier denied agents' `pnpm prd ci run` until the user allowed it; never work around a denial.
+**CI approval:** each wave needs its own. a140 covered wave 2, and a144 (the user's yes) covered wave 3's runs and its one real candidate only. **Wave 4's ask is a147 (`--waits`, skeptic s13), unanswered: no run until it is yes**, including one a slice agent would request (`pnpm prd ask --wait a147`). It covers no real candidate or promotion. Slice 5 must fit three suite runs past the `browser` job's 35-minute limit. The permission classifier denied agents' `pnpm prd ci run` until the user allowed it; never work around a denial.
 
 **For slice 2 and later:** `pnpm prd ci blame` requests a run on `dev`, so it couldn't place a candidate failure until `dev` had the tier (it does now). The later roundtrip steps passed on Linux, but the refused-upload queue counts are timing-sensitive.
 
