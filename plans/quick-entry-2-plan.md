@@ -8,13 +8,13 @@
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`). The PRD lands once, after wave 2.
 
-| Slice | Wave | State                                      | Merge into `prd/quick-entry-2` (slice commits) |
-| ----- | ---- | ------------------------------------------ | ---------------------------------------------- |
-| 1     | 1    | merged (opus)                              | 85128423 (fc942dc7)                            |
-| 2     | 2    | started, opus (worktree `quick-entry-2-2`) |                                                |
-| 3     | 1    | merged (opus)                              | 235487f7 (694ed6e7)                            |
-| 4     | 2    | started, opus (worktree `quick-entry-2-4`) |                                                |
-| 5     | 1    | merged (opus)                              | 26d0b935 (42d56eb5)                            |
+| Slice | Wave | State                                                             | Merge into `prd/quick-entry-2` (slice commits) |
+| ----- | ---- | ----------------------------------------------------------------- | ---------------------------------------------- |
+| 1     | 1    | merged (opus)                                                     | 85128423 (fc942dc7)                            |
+| 2     | 2    | started, opus (worktree `quick-entry-2-2`)                        |                                                |
+| 3     | 1    | merged (opus)                                                     | 235487f7 (694ed6e7)                            |
+| 4     | 2    | handed off (087641c7), sent back: "1/8 tsp" reads as Jan 8 (opus) |                                                |
+| 5     | 1    | merged (opus)                                                     | 26d0b935 (42d56eb5)                            |
 
 **Wave 1:** merged, not yet gated; B-300 and B-303 are done, B-302 finishes with slice 4. No check has run on the merged tip.
 
@@ -22,7 +22,9 @@
 
 **For the docs at landing:** the negation rules (plus the extra n't words and curly apostrophes slice 1 added), the time-word rules, the card pruning and Clear.
 
-**To file at the wave boundary (known limits from the hand-offs):** "no pain gave tylenol" (no comma) reads skipped; a line ending in "sat" ("she sat") reads as Saturday; "dr lee the 2nd at the clinic" gets no date.
+**To file at the wave boundary (known limits from the hand-offs):** "no pain gave tylenol" (no comma) reads skipped; a line ending in "sat" ("she sat") reads as Saturday; "dr lee the 2nd at the clinic" gets no date; "bp 12/8" reads as Dec 8 and "pain 5/5" as May 5; "call the pharmacy in the morning" at 7:00 stays a note; "at 12 this morning" is midnight.
+
+**For the docs at landing (slice 4):** month/day dates, bare hours forward never before 7:00, zero-padded hours are am, Feb 29 takes the nearest leap year, a period underway is now.
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 
