@@ -1,11 +1,11 @@
 import type { RefObject } from "react";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { NavigationType, useLocation, useNavigationType } from "react-router";
 import { isJumpState } from "~/lib/timeline/timelineJump";
 
 /** Room above the landed day, so its heading isn't against the screen's edge. */
-const LANDING_GAP = 8;
+export const LANDING_GAP = 8;
 
 /**
  * Scroll to the jumped-to day, for a navigation carrying the jump marker (a
@@ -13,6 +13,7 @@ const LANDING_GAP = 8;
  * Nothing else scrolls: opening or closing a sheet has no marker, and Back
  * (`POP`, marker or not) is scroll restoration's. It runs a frame later, after
  * the router's own scroll handling and with the new window's rows drawn.
+ * Returns whether the landing is over (paging newer waits for it).
  */
 export function useJumpLanding(list: RefObject<HTMLElement | null>, jumped: boolean, returning: boolean) {
   const location = useLocation();
@@ -21,18 +22,23 @@ export function useJumpLanding(list: RefObject<HTMLElement | null>, jumped: bool
   const navigationType = useNavigationType();
   // A document load has the "default" key; so does Back to it, which `returning` tells apart.
   const [freshKey] = useState(() => (key === "default" && !returning ? key : null));
-  const landed = useRef<string | null>(null);
+  const [landedKey, setLandedKey] = useState<string | null>(null);
+  const marked = navigationType !== NavigationType.Pop && isJumpState(state);
+  const fresh = key === freshKey && landedKey === null;
+  const landing = jumped && (marked || fresh) && landedKey !== key;
 
   useEffect(() => {
-    const marked = navigationType !== NavigationType.Pop && isJumpState(state);
-    const fresh = key === freshKey && landed.current === null;
-    if (!jumped || !(marked || fresh) || landed.current === key) return;
+    if (!landing) return;
     const frame = requestAnimationFrame(() => {
-      landed.current = key;
-      const target = list.current?.querySelector("[data-jump-notice], section[aria-labelledby^='day-']");
+      setLandedKey(key);
+      const el = list.current;
+      const target =
+        el?.querySelector("[data-jump-notice]") ?? el?.querySelector("section[aria-labelledby^='day-']");
       if (!target) return;
       window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - LANDING_GAP });
     });
     return () => cancelAnimationFrame(frame);
-  }, [key, state, navigationType, jumped, freshKey, list]);
+  }, [landing, key, list]);
+
+  return !landing;
 }

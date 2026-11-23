@@ -10,15 +10,15 @@ import type { PeriodMarker } from "~/lib/care-periods/periodMarkers";
 import type { LocalCarePeriod } from "~/lib/care-periods/carePeriods.sync";
 import type { TimelinePeriods } from "./timelinePeriods";
 
-import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { NavigationType, useLocation, useNavigationType } from "react-router";
 import { isEntryKind, KIND_META } from "~/lib/timeline/entryDisplay";
 import { groupLinksByEntry } from "~/lib/providers/entryProviders";
 import { localTimeZone } from "~/lib/core/format";
 import { isLiveEntryKind } from "~/lib/live-notes/liveEntry";
 import { liveDotLabel } from "~/lib/live-notes/liveNow";
 import { withMedication } from "~/lib/medications/medicationEntries";
-import { useLiveQuery } from "~/lib/sync";
+import { getSync, useLiveQuery } from "~/lib/sync";
 import { useLiveDocuments } from "~/lib/live-notes/editors.sync";
 import { useSchedulePasses } from "~/lib/medications/medicationPasses.sync";
 import { useTimelineMedications } from "~/lib/medications/medicationTimeline.sync";
@@ -44,7 +44,8 @@ import { useTimelinePeriods } from "./timelinePeriods";
 import { useHistoryCutoff } from "./useHistoryCutoff";
 import { daySummaryQuery, summariesOff, summarySince } from "./daySummaryRows";
 import { keepPaging, startPaging, wasKept } from "./timelinePaging";
-import { jumpNotice } from "~/lib/timeline/timelineJump";
+import { isJumpState, jumpNotice } from "~/lib/timeline/timelineJump";
+import { readNewerWindow } from "~/lib/timeline/timelineNewer.sync";
 
 // The timeline's data, live: the loader reads the first screenful
 // (`loadTimelineRows`), and live queries here take over from there, so other
@@ -88,7 +89,18 @@ export type TimelineData = {
   /** This mount came back to a history entry the timeline has already been on (even at one page). */
   returning: boolean;
   /** The day jumped to (`?day=`): whether its window stops short of today, and what the list says about it. */
-  jump: { day: string; bounded: boolean; notice: string | null } | null;
+  jump: {
+    day: string;
+    /** The rows on screen stop short of today. */
+    bounded: boolean;
+    /** The bound of the rows on screen (null: the ordinary history). */
+    before: string | null;
+    notice: string | null;
+    /** The day the notice sits above: the nearest on or before the chosen one, else the oldest shown. */
+    noticeDay: string | null;
+  } | null;
+  /** Paging newer from a jump: there's more above, a page is loading, load the next. */
+  newer: { has: boolean; loading: boolean; load: () => void };
 };
 
 /** A live document's title: its entry's, else its kind ("Note"). */
@@ -119,7 +131,6 @@ export function useTimelineData({
   day?: string | null;
   initial: TimelineRows;
 }): TimelineData {
-  const { before } = initial;
   // The paging belongs to one set of filters (kind, author and search) and one jump: under any other, it's one page again.
   const filterKey = JSON.stringify([
     filters.kind,
@@ -129,7 +140,11 @@ export function useTimelineData({
     day,
   ]);
   // Back to this history entry starts from the window kept for it; anything else from one page.
-  const { key: locationKey } = useLocation();
+  const location = useLocation();
+  const { key: locationKey } = location;
+  // A new jump (the marker, not Back to one) starts from its day, even the same day again.
+  const navigationType = useNavigationType();
+  const jumpMark = navigationType !== NavigationType.Pop && isJumpState(location.state) ? locationKey : null;
   const [returning] = useState(() => wasKept(userId, groupId, locationKey));
   const [start] = useState(() => ({
     initial,
@@ -141,8 +156,18 @@ export function useTimelineData({
   // The kept rows are the restored window's: they stand in for the loader's (one page) until the
   // watches answer, so the first render is as tall as the one left. New loader data replaces them.
   const restored = start.initial === initial ? start.rows : undefined;
-  const [paging, setPaging] = useState({ filterKey, limit: start.limit });
-  const requested = paging.filterKey === filterKey ? paging.limit : PAGE_SIZE;
+  const [paging, setPaging] = useState({
+    filterKey,
+    mark: jumpMark,
+    limit: start.limit,
+    before: start.before === undefined ? initial.before : start.before,
+    // The bound the rows on screen were read with, while a moved window loads.
+    from: undefined as string | null | undefined,
+  });
+  const current = paging.filterKey === filterKey && !(jumpMark && jumpMark !== paging.mark);
+  const requested = current ? paging.limit : PAGE_SIZE;
+  const before = current ? paging.before : initial.before;
+  const moving = current && paging.from !== undefined;
 
   // The history ends at a cutoff that moves on once a minute, so items cross
   // from the Today card's appointment into it without new rows.
@@ -173,14 +198,38 @@ export function useTimelineData({
   const ahead = aheadQueries(groupId, filters, cutoff);
   const nextRows = useLiveQuery<EntryRow>(ahead.next.sql, ahead.next.params, initial.nextRows);
   const providersByEntry = useMemo(() => groupLinksByEntry(linkRows, fromLocalTimestamp), [linkRows]);
-  // The new page shows once both windows are in, so no "with …" line flickers.
-  const fresh = entries.fresh && links.fresh;
+  // The rows last read whole, which stay up while a moved window loads.
+  const windowFresh = entries.fresh && links.fresh;
+  const [held, setHeld] = useState(entries.rows);
   // The window the rows on screen were fetched for: the cutoff's minute turn
   // refetches the same window, so it doesn't shrink the list while it does. A restored window
   // without its rows (past the cap) loads like any page, from the loader's one.
   const [settled, setSettled] = useState(restored ? requested : PAGE_SIZE);
+  const zone = localTimeZone();
+  // The day summaries read whole days, from the oldest shown day's baseline; nothing while filtered.
+  const summariesHidden = summariesOff(filters);
+  const oldestHeld = held.slice(0, settled).at(-1)?.occurred_at;
+  const summarySql = daySummaryQuery(
+    groupId,
+    summarySince(oldestHeld ? fromLocalTimestamp(oldestHeld) : null, cutoff, zone),
+    cutoff,
+    summariesHidden,
+    before,
+  );
+  const summaries = useLiveRows<EntryRow>(
+    summarySql.sql,
+    summarySql.params,
+    restored?.summaryRows ?? initial.summaryRows,
+  );
+  const summaryRows = summaries.rows;
+  // The new page shows once its windows are in, so no "with …" or summary line appears after it.
+  const fresh = windowFresh && summaries.fresh;
   if (fresh && settled !== requested) setSettled(requested);
+  if (fresh && held !== entries.rows) setHeld(entries.rows);
   const page = pageWindow({ rowCount: entries.rows.length, requested, fresh, settled });
+  if (moving && fresh) setPaging({ ...paging, from: undefined });
+  const waiting = !fresh && (page.loading || moving);
+  const windowBefore = moving && !fresh ? (paging.from ?? null) : before;
   // Doses and medication changes are named by their medication: one query over the same window.
   const medications = useTimelineMedications(
     groupId,
@@ -210,32 +259,16 @@ export function useTimelineData({
         : withMedication(entry, medicationOf, passes),
     );
   // A pass log is never split across pages: one running past the page waits for the next.
-  const shown = withPreview(wholeLogsPage(entries.rows, page.limit, rowPassLogId));
+  const shown = withPreview(wholeLogsPage(waiting ? held : entries.rows, page.limit, rowPassLogId));
   // The track, and its markers over the same window as the shown entries.
   const periods = useTimelinePeriods(groupId, initial);
   const markers = periodMarkers(periods.spans, {
     oldestLoaded: shown.at(-1)?.occurredAt ?? null,
     hasOlder: page.hasOlder,
     filtered: !!(filters.kind || filters.author || filters.match),
-    before,
+    before: windowBefore,
   });
   const now = new Date(cutoff);
-  const zone = localTimeZone();
-  // The day summaries read whole days, from the oldest shown day's baseline; nothing while filtered.
-  const summariesHidden = summariesOff(filters);
-  const summarySql = daySummaryQuery(
-    groupId,
-    summarySince(shown.at(-1)?.occurredAt ?? null, cutoff, zone),
-    cutoff,
-    summariesHidden,
-    before,
-  );
-  const summaryRows = useLiveQuery<EntryRow>(
-    summarySql.sql,
-    summarySql.params,
-    restored?.summaryRows ?? initial.summaryRows,
-  );
-
   // Keep the settled window for this history entry, for Back to it after a remount.
   const settledWindow = fresh && settled === requested;
   useEffect(() => {
@@ -244,6 +277,7 @@ export function useTimelineData({
       locationKey,
       filterKey,
       limit: requested,
+      before,
       rows: { entryRows: entries.rows, linkRows: links.rows, summaryRows, medicationRows: medications.rows },
     });
   }, [
@@ -253,6 +287,7 @@ export function useTimelineData({
     locationKey,
     filterKey,
     requested,
+    before,
     entries.rows,
     links.rows,
     summaryRows,
@@ -261,13 +296,49 @@ export function useTimelineData({
 
   const days = groupByDay(shown, zone, new Date());
 
+  // Reading where the window moves next, off the device.
+  const [readingNewer, setReadingNewer] = useState(false);
+  const windowId = JSON.stringify([filterKey, jumpMark, before, requested]);
+  const latestWindow = useRef(windowId);
+  useEffect(() => {
+    latestWindow.current = windowId;
+  }, [windowId]);
+  const loadNewer = () => {
+    if (!before || readingNewer || waiting) return;
+    const from = before;
+    setReadingNewer(true);
+    readNewerWindow(getSync(), groupId, filters, from, cutoff, zone)
+      .then((next) => {
+        // Another filter or a new jump while it read: this answer is for a window that's gone.
+        if (latestWindow.current !== windowId) return;
+        setPaging({
+          filterKey,
+          mark: jumpMark ?? paging.mark,
+          limit: requested + next.added,
+          before: next.before,
+          from,
+        });
+      })
+      // A failed local read leaves the window as it is; the next scroll tries again.
+      .catch(() => undefined)
+      .finally(() => setReadingNewer(false));
+  };
+  // The nearest day with entries, on or before the chosen one (keys sort as dates).
+  const landedDay = day ? (days.find((d) => d.key <= day)?.key ?? null) : null;
+
   return {
     days,
     hasOlder: page.hasOlder,
     loadingOlder: page.loading,
     loadOlder: () => {
-      if (page.loading || !page.hasOlder) return;
-      setPaging({ filterKey, limit: nextLimit(page.limit) });
+      if (page.loading || readingNewer || !page.hasOlder) return;
+      setPaging({
+        filterKey,
+        mark: jumpMark ?? paging.mark,
+        limit: nextLimit(page.limit),
+        before,
+        from: undefined,
+      });
     },
     latestVitals: toLatestVitals(readingRows),
     liveDocuments,
@@ -286,15 +357,18 @@ export function useTimelineData({
     jump: day
       ? {
           day,
-          bounded: !!before,
-          notice: before
+          bounded: !!windowBefore,
+          before: windowBefore,
+          notice: initial.before
             ? jumpNotice({
                 day,
-                shownDay: days[0]?.key ?? null,
+                shownDay: landedDay,
                 filtered: !!(filters.kind || filters.author || filters.vital),
               })
             : null,
+          noticeDay: landedDay ?? days.at(-1)?.key ?? null,
         }
       : null,
+    newer: { has: !!windowBefore, loading: readingNewer || waiting, load: loadNewer },
   };
 }
