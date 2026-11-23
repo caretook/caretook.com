@@ -15,7 +15,7 @@ import { ChipGroup, ChoiceGroup, Field } from "~/components/ui";
 import { formatTime } from "~/lib/core/format";
 import {
   choiceRule,
-  monthlyLabels,
+  monthlyOptions,
   PRESET_LABELS,
   REPEAT_PRESETS,
   toggleWeekday,
@@ -63,7 +63,7 @@ export const repeatOutcome = (choice: RepeatChoice, timing: Omit<SeriesTiming, "
 
 /**
  * How an appointment or reminder repeats (appointments-2): Doesn't repeat,
- * Daily, Weekly (on chosen days), Monthly (on the date or the nth weekday),
+ * Daily, Weekly (on chosen days), Monthly (on the date, the nth weekday or the last day),
  * or Custom (every N days, weeks or months), and how it ends (never, on a
  * date, after N). A live preview says the rule in words and lists the next
  * three visits. Controlled: the caller holds the choice. Loads rrule (the
@@ -84,7 +84,6 @@ export function RepeatField({
   const set = (patch: Partial<RepeatChoice>) => onChange({ ...choice, ...patch });
   const freq: RepeatFreq | null =
     choice.preset === "none" ? null : choice.preset === "custom" ? choice.unit : choice.preset;
-  const monthly = monthlyLabels(timing.startsOn, choice.keptWeekday);
   const { rule, problem } = repeatOutcome(choice, timing, kind);
   const preview = rule ? nextVisits({ ...timing, rule }, timing.startsOn, 3) : [];
   const noun = kind === "event" ? "visits" : "times";
@@ -162,10 +161,7 @@ export function RepeatField({
         <ChoiceGroup
           name="monthlyBy"
           label="Each month"
-          options={[
-            { value: "date", label: monthly.date },
-            { value: "weekday", label: monthly.weekday },
-          ]}
+          options={monthlyOptions(timing.startsOn, choice)}
           value={choice.monthlyBy}
           onChange={(monthlyBy) => set({ monthlyBy, keptWeekday: undefined })}
         />

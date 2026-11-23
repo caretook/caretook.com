@@ -21,6 +21,8 @@ describe("todoRepeatLine", () => {
     expect(line("FREQ=DAILY;INTERVAL=3")).toBe("Repeats every 3 days");
     expect(line("FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=18")).toBe("Repeats monthly on the 18th");
     expect(line("FREQ=MONTHLY;INTERVAL=1;BYDAY=-1FR")).toBe("Repeats monthly on the last Friday");
+    expect(line("FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1")).toBe("Repeats monthly on the last day");
+    expect(line("FREQ=MONTHLY;INTERVAL=2;BYMONTHDAY=-1")).toBe("Repeats every 2 months on the last day");
     expect(line("FREQ=MONTHLY;INTERVAL=3;BYDAY=2TU")).toBe("Repeats every 3 months on the 2nd Tuesday");
   });
 

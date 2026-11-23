@@ -101,6 +101,40 @@ const confirmReason = async (reason: string) => {
 beforeEach(() => fixClock(NOW));
 afterEach(() => vi.useRealTimers());
 
+describe("a monthly repeat on the last day", () => {
+  test("from the last day of a month, writes a visit on each month's last day in the 90 days", async () => {
+    vi.setSystemTime(new Date("2026-11-30T18:00:00.000Z")); // Mon 30 Nov, 10:00 in Los Angeles.
+    const device = await openPlanner({ url: `${entryUrl("new")}?kind=event` });
+    await userEvent.click(getByCss("main [data-repeat-button]"));
+    const sheet = page.getByRole("dialog", { name: "Repeat" });
+    await userEvent.selectOptions(sheet.getByRole("combobox", { name: "Repeat" }), "monthly");
+    await expect
+      .element(sheet.getByRole("radio", { name: "On the 30th (skips shorter months)" }))
+      .toBeChecked();
+    await userEvent.click(sheet.getByRole("radio", { name: "On the last day" }));
+    await expect.element(sheet.getByText("Monthly on the last day at 10:00")).toBeInTheDocument();
+    await userEvent.click(sheet.getByRole("button", { name: "Done" }));
+    await expect.element(sheet).not.toBeInTheDocument();
+
+    await userEvent.click(getByCss("main header input"));
+    await userEvent.keyboard("Month-end checkup{Enter}");
+    await expect.poll(() => device.location()).toMatch(/\/entries\/[0-9a-f-]{36}$/);
+
+    const stored = () =>
+      device.query<{ id: string; rule: string }>("SELECT id, rule FROM appointment_series WHERE title = ?", [
+        "Month-end checkup",
+      ]);
+    await expect.poll(async () => (await stored()).length).toBe(1);
+    const [made] = await stored();
+    expect(made?.rule).toBe("FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=-1");
+    const visits = await device.query<{ series_day: string }>(
+      "SELECT series_day FROM timeline_entry WHERE series_id = ? ORDER BY series_day",
+      [made?.id],
+    );
+    expect(visits.map((v) => v.series_day)).toEqual(["2026-11-30", "2026-12-31", "2027-01-31", "2027-02-28"]);
+  });
+});
+
 describe("the scope dialog in Upcoming", () => {
   test("a series visit's ⋯ starts with Edit; a viewer's has neither Edit nor a dialog", async () => {
     const device = await openPlanner({ extra: SERIES });
