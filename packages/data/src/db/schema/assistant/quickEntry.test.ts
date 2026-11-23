@@ -456,6 +456,14 @@ describe("doses", () => {
       expect(action(r)).toMatchObject({ name, severity });
     });
 
+    test("what a medication is for isn't its name: arthritis 3 is a symptom", () => {
+      const medications = [
+        { id: APAP, name: "Acetaminophen", dose: "2 tablets", directions: "Tylenol, for arthritis flares" },
+      ];
+      expect(action(top("arthritis 3", { medications }))).toMatchObject({ name: "Arthritis", severity: 3 });
+      expect(action(top("tylenol 3", { medications }))).toMatchObject({ amount: "3 tablets" });
+    });
+
     test("a short partial name without a verb isn't a dose: arm 3 is a symptom", () => {
       const medications = [{ id: TYL, name: "Armour Thyroid", dose: "1 tablet" }];
       expect(top("arm 3", { medications }).kind).toBe("symptom");

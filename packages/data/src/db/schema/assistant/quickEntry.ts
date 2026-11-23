@@ -1073,7 +1073,7 @@ const DIRECTION_WORDS = new Set(
 /**
  * Whether the word at `i` really names this medication, so a number beside it
  * is about the medication: its name, or a brand word in its directions. A
- * symptom ("pain" in "for pain"), a word of how to take it, the reason, or
+ * symptom, what it is for ("for arthritis"), a word of how to take it, or
  * (without a verb) a short partial name ("arm" for Armour) doesn't.
  */
 const namesMedication = (
@@ -1085,7 +1085,11 @@ const namesMedication = (
   if (hasSymptomWord(tokens, [i])) return false;
   const score = matchMedication(med, tokens, [i])?.score ?? 0;
   const word = wordsOf(tokens[i]!.w)[0] ?? "";
-  if (score === 0.8) return !DIRECTION_WORDS.has(word) && wordsOf(med.directions ?? "").includes(word);
+  if (score === 0.8)
+    return (
+      !DIRECTION_WORDS.has(word) &&
+      wordsOf((med.directions ?? "").replace(/\bfor\b[^,;.]*/gi, " ")).includes(word)
+    );
   if (score >= 0.85 && word.length < 4 && !wordsOf(med.name).includes(word)) return verb;
   return score > 0;
 };
