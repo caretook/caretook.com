@@ -4,15 +4,21 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-22), not started.
+**Where it stands:** wave 1 starting (2026-11-22). Slice 1 is next; slices 2 and 3 wait for it.
+
+**Landing mode:** run everything through (started run-through). Start every ready slice, land each green wave, clean up. Questions go through `pnpm prd ask`; each landing files a report.
+
+**Models:** slice 1 opus (migration, permissions, `/mcp` gate).
 
 | Slice | Wave | State       | Merge into `prd/assistant-access` (slice commits) |
 | ----- | ---- | ----------- | ------------------------------------------------- |
-| 1     | 1    | not started |                                                   |
+| 1     | 1    | starting    |                                                   |
 | 2     | 2    | not started |                                                   |
 | 3     | 2    | not started |                                                   |
 
 **Backlog:** slice 1 claims B-558; run `pnpm backlog done` on it when slice 3's wave has merged.
+
+**Open issues:** none. `pnpm backlog doctor` reports two old title mismatches (B-548, B-549), unrelated to this PRD.
 
 ## Architectural decisions
 
