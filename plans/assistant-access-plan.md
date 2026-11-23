@@ -4,7 +4,7 @@
 
 ## Status
 
-**Where it stands:** wave 1 merged and synced with `dev` (2026-11-22); its full check is next (the migration makes it full), then the PR, Codex and landing. Slices 2 and 3 start in the next session, after the rotate. B-558 is claimed and stays open until wave 2 merges.
+**Where it stands:** wave 1 merged and synced with `dev` (2026-11-22); its full check passed on b76d5901. Browser checks skipped for wave 1 on the user's word (no screens changed; the migration had expanded `--changed` to the whole lean set, and that run was stopped). Next: the PR, Codex and landing. Slices 2 and 3 start in the next session, after the rotate. B-558 is claimed and stays open until wave 2 merges.
 
 **For wave 2 (from slice 1's hand-off):** slice 2 adds the column to `sync-config.yaml` and the device schema and uses `CONNECTOR_READ_ONLY_BY_OWNER_LABEL`. Slice 3 changes `loadConnectPage` to `scopesForRole(role, group.connectorsReadOnly)`; until then Connect on a read-only group shows the `groupReadOnly` refusal. Migration `0037` is regenerated if another PRD lands one first.
 
