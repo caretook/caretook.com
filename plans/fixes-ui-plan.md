@@ -20,7 +20,9 @@ Slice 14 gaps to file as follow-ups once the wave is green: a sync after the fir
 
 **Latest (wave 2):** full check passed on 3c76e5ec; after syncing dev's assistant-access migration, quick check and `roundtrip`, `first-sync`, `ui` passed on 01b907f4. PR #84 open. Codex round 1: one P2 (Back right after a failed save skips the prompt), verified and tracked as B-601. Slice 14's gaps are filed as B-601, B-602, B-603 and B-604. Docs folded. Codex clean on 21d4146b. **Wave 2 landed in dev as e41e558b through PR #84** (2026-11-22); B-552 marked done; report filed. No slice is in flight.
 
-**Resume here (wave 3):** `pnpm prd sync`, then the wave boundary steps. Waiting: B-585 (11 AM hour step wraps to 12 AM), B-592 (Planner event card footer actions), B-594 (allergies on the Profile page), B-603 (guard the remaining sheets). B-583 (connector wording) awaits the user's decision and B-325 (native safe area) waits for Capacitor, so neither gets a slice yet. Check `pnpm backlog prd list` for hot-file overlap first.
+**Wave 3 (resume here):** slices 15 (B-585), 16 (B-592) and 17 (B-603), written 2026-11-22 after `pnpm prd sync` found dev had only backlog commits. All opus, all independent, none touching the hot files of test-gates or assistant-access. Not started until the table below says so.
+
+Held from wave 3: B-594 (allergies on the Profile page) waits for ui-kit-4's medications and profile sweep, as its triage says (that sweep renames the profile parts); B-583 (connector wording) awaits the user's decision; B-325 (native safe area) waits for Capacitor.
 
 **Earlier hand-over (wave 2 gate):** all of slices 10–14 are merged and no slice is in flight. The user said to apply the B-552 print-test fix: done in df2ff0d5, 5 of 5 alone. The last full check (ff19deb0) failed on 4 tests; 3 were fixed by going through Discard and the fourth is B-552. The rerun was stopped for this fix, so **no full check has passed on the tip**. Resumed 2026-11-22: Status reconciled with git, synced with dev as 1b5dc09c (docs and plans only), full check started once the 5-minute load is under 16. Next: if no check is running, `NODE_OPTIONS=--max-old-space-size=6144 pnpm prd check` in the background, then `pnpm prd wait check`; `pnpm prd serve --restart`; `pnpm prd browser --changed --base dev` (no `--suite` without asking the user); `pnpm prd pr fixes-ui`; `pnpm prd review fixes-ui --wait`; land; `pnpm backlog done B-552`. Fold docs at landing. File slice 14's gaps below as follow-ups. The landing report must say: existing Google events are rewritten once on their next sync ("Appointment for" becomes "Event for"); B-583 (connector wording) awaits the user; B-585 is the 11 AM hour-step wrap.
 
@@ -46,6 +48,9 @@ Notes for the next wave:
 | 12    | B-537 | merged (opus)   | 5566480a |
 | 13    | B-535 | merged (opus)   | 1dc972d8 |
 | 14    | B-316 | merged (opus)   | 3c7a6607 |
+| 15    | B-585 | written (opus)  |          |
+| 16    | B-592 | written (opus)  |          |
+| 17    | B-603 | written (opus)  |          |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -247,3 +252,51 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/com
 - [ ] Component test: an unchanged form closes without asking.
 - [ ] Component test: saving a changed form closes without asking.
 - [ ] Component test: the sheet's exit motion and focus return still work after Discard.
+
+## Wave 3 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency, and no edits to the hot files of test-gates or assistant-access (`pnpm backlog prd list`), including `routes/app/groups/settings/assistants/`. Loops don't edit `docs/`. If a fix can't be done within this, stop and say so in the hand-off.
+
+## Slice 15: Stepping the hour past 11 AM reaches 12 PM (B-585)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/appointments.md · Tests: component
+
+**Problem.** In `DateTimeField`, React Aria's 12-hour segment wraps inside AM/PM, so stepping up from 11 AM gives 12 AM the same day, and Ends then shows "Must be after the start".
+
+**Build.** In `components/ui/date/DateTimeField.tsx`, make the hour segment's arrow-key stepping move through the day's 24 hours: 11 AM up is 12 PM, and 12 PM down is 11 AM. The date never changes: 11 PM up wraps to 12 AM on the same day, and 12 AM down to 11 PM, as they do today. Typing into the segment and the AM/PM segment behave as before.
+
+**Acceptance criteria.**
+
+- [ ] Component test: ArrowUp from 11 AM gives 12 PM, and ArrowDown from 12 PM gives 11 AM.
+- [ ] Component test: ArrowUp from 11 PM gives 12 AM on the same date.
+- [ ] Component test: an event from 10 AM to 11 AM, with Ends stepped up, shows 12 PM and no "Must be after the start".
+
+## Slice 16: Planner event card gets a footer for its actions (B-592)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/appointments.md, docs/domain/todos.md · Tests: component
+
+**Problem.** On a phone, `UpcomingRow`'s 5.5rem time column wraps the time and stacks call, directions and initials into a tall block.
+
+**Build.** In `routes/app/groups/planner/UpcomingRow.tsx`, drop the time column. The kind icon sits on the left and the ⋯ menu on the right. The time runs on one line above the title, with the repeat mark beside it; then the title, with-line and address at full width, without the address line's duplicate map pin. A footer row holds labelled Call and Directions buttons on the left and the author's initials on the right. A card with no actions has no footer, and its initials end the last line. Keep the whole-row link, filter links, read-only Easy mode and the cancelled state. Compare `PlannerTodoRow.tsx`: match it only if it shares the same column problem, and say in the hand-off which you did.
+
+**Acceptance criteria.**
+
+- [ ] Component test at phone width: the time renders on one line above the title, with the repeat mark beside it.
+- [ ] Component test: a card with a contact shows labelled Call and Directions in a footer, with the initials on the right.
+- [ ] Component test: a card with no actions has no footer, and its initials still show.
+- [ ] Component test: the address line has no map pin of its own.
+- [ ] Component test: the whole-row link, filter links, Easy mode's read-only card and the cancelled state still work.
+
+## Slice 17: The remaining sheets guard unsaved changes (B-603)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/ui-kit.md, docs/domain/components.md, docs/domain/care-groups.md, docs/domain/providers.md · Tests: component
+
+**Problem.** Slice 14 left `InviteSheet`, `InviteLinks`, provider import, `RepeatSheet` and `VisitPrepSheet` without the discard prompt.
+
+**Build.** Pass `Sheet`'s existing `guardChanges` in `routes/app/groups/settings/members/InviteSheet.tsx`, `InviteLinks.tsx`, `routes/app/groups/providers/import/route.tsx`, `components/repeat/RepeatSheet.tsx` and `components/visitPrep/VisitPrepSheet.tsx`. Verify each first: one that holds no editable form, or isn't a `Sheet`, stays as it is and the hand-off says why. No change to the guard itself (B-601 and B-602 cover its gaps in fixes-bug). A successful save, send or import never prompts.
+
+**Acceptance criteria.**
+
+- [ ] Component test, for each sheet wired: a changed form asks before closing, and Discard closes it.
+- [ ] Component test, for each sheet wired: an unchanged form closes without asking.
+- [ ] Component test: a successful invite and a successful import close without asking.
