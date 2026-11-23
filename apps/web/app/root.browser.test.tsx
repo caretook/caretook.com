@@ -7,12 +7,9 @@ import { Layout, links } from "./root";
 // The document head's install tags (onboarding slice 2), on every page.
 
 const head = () => {
-  const Stub = createRoutesStub([{ path: "/", Component: () => null }]);
-  const html = renderToStaticMarkup(
-    <Layout>
-      <Stub />
-    </Layout>,
-  );
+  // Inside the stub, which gives Layout's <Meta>, <Links> and <Scripts> their router.
+  const Stub = createRoutesStub([{ path: "/", Component: () => <Layout>{null}</Layout> }]);
+  const html = renderToStaticMarkup(<Stub />);
   return new DOMParser().parseFromString(html, "text/html").head;
 };
 
