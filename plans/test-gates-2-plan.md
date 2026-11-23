@@ -12,6 +12,7 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 | 4. Promotion refuses what isn't passing        | 3    | landed ce792df3 (PR #122) | c9670a4c |
 | 5. The release tier                            | 4    | landed 4160dee5 (PR #127) | 55abe5cd |
 | 6. The required check on main and its override | 5    | merged (opus)             | 8d738b9c |
+| 7. CI's static job runs the check-areas lint   | 5    | started (sonnet)          |          |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
@@ -23,7 +24,9 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 
 **Doc folds at landing:** the runbook's ruleset step, `ci release`, the override and the red-run note; handbooks: agents never write `release-gate` any other way, `release-test` only on throwaway commits.
 
-**Next:** quick check, the `full` gate run on the merged tip, docs, PR, land (last wave), `pnpm prd rm`, `pnpm prd end`. The user's "skip rechecks after a clean sync" was for wave 4 only, so wave 5 rechecks after each sync unless they repeat it. A local browser check that repeats a CI browser run on the same code adds little: the user questioned it in wave 4, and the handbook rule is unchanged.
+**Gate:** quick check passed on 7915dd64; `full` run 45245422304 green on it. **Slice 7 (B-725) was added after that**, at the request of the session running hotfix B-724, relayed as the user's choice. Its workflow change needs a new `full` run. Tell session `caretook-com-9f` when it is in `dev`.
+
+**Next:** merge slice 7, the `full` gate run on that tip, docs, PR, land (last wave), `pnpm prd rm`, `pnpm prd end`. The user's "skip rechecks after a clean sync" was for wave 4 only, so wave 5 rechecks after each sync unless they repeat it. A local browser check that repeats a CI browser run on the same code adds little: the user questioned it in wave 4, and the handbook rule is unchanged.
 
 **For slice 6:** call `zone-file` from `pnpm prd ci release`; nothing calls it yet, and it has never run against the real backlog before this wave.
 
@@ -173,3 +176,20 @@ Stack: no · Reads: docs/agents/orchestrator.md, ops/runbook.md · Tests: unit
 - A real `release-gate` status is written on a test commit, linked in the hand-off. No ruleset is changed.
 
 **Blocked by:** 5.
+
+## Slice 7: CI's static job runs the check-areas lint
+
+Stack: no · Reads: docs/agents/loop.md · Tests: unit
+
+**Item:** B-725.
+
+**Build:**
+
+- In `.github/workflows/ci.yml`, the `static` job gets a step right after `docs-budget`: `id: check-areas`, `name: Check areas`, `if: ${{ !cancelled() }}`, `run: node scripts/loops/check-areas.mjs lint`.
+- In `scripts/deploy/workflows.test.mjs`, a test asserts that step's `run` and `if`.
+
+**Acceptance criteria:**
+
+- The unit test passes, and no other job or step changes.
+
+**Blocked by:** 6.
