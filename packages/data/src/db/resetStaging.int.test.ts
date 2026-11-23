@@ -29,12 +29,14 @@ describe("resetStaging", () => {
   });
 
   // Leave the worker's database as other files expect it: no seed, no users of ours.
+  // The wipe also deletes what earlier files left in this worker's database: after
+  // search.int.test.ts's 10,000 entries it took ~14 s on a busy machine (B-610).
   afterAll(async () => {
     staging();
     await wipeStaging();
     await getDb().delete(userSchema).where(eq(userSchema.email, REAL_EMAIL));
     vi.unstubAllEnvs();
-  });
+  }, 60_000);
 
   it("refuses anywhere but staging, before anything is deleted", async () => {
     const db = getDb();
@@ -113,5 +115,5 @@ describe("resetStaging", () => {
     expect(new Set(memberships.map((m) => m.role))).toEqual(new Set(["owner"]));
     // A whole seed (one scrypt hash and one verify, B-466): ~1.6 s alone, so the default 5 s is too tight
     // on a busy machine.
-  }, 30_000);
+  }, 60_000);
 });
