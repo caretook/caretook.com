@@ -98,6 +98,41 @@ describe("fakeGoogleCalendar", () => {
     expect(google.event(calendarId, instance.id)?.recurring).toBe(true);
   });
 
+  it("lists a window: live events inside its bounds, repeats' instances marked, and no others", async () => {
+    const { google, session, calendarId } = await connected();
+    const at = (hour: number) => ({ dateTime: `2027-03-01T${hour}:00:00.000Z`, timeZone: "UTC" });
+    const make = (summary: string, start: number, end: number, recurring = false) =>
+      google.user.create(calendarId, { summary, start: at(start), end: at(end), recurring });
+    make("Ended at the lower bound", 8, 10);
+    make("Overlaps the lower bound", 9, 11);
+    make("Inside", 12, 13);
+    make("Repeat instance", 14, 15, true);
+    google.user.delete(calendarId, make("Deleted", 15, 16).id);
+    make("Starts at the upper bound", 18, 19);
+
+    const listed = await session.listWindow(
+      calendarId,
+      new Date("2027-03-01T10:00:00.000Z"),
+      new Date("2027-03-01T18:00:00.000Z"),
+    );
+    if (isError(listed)) throw new Error("expected events");
+    expect(listed.map((e) => [e.summary, e.recurring])).toEqual([
+      ["Overlaps the lower bound", false],
+      ["Inside", false],
+      ["Repeat instance", true],
+    ]);
+  });
+
+  it("can fail the window list alone", async () => {
+    const { google, session, calendarId } = await connected();
+    google.failCalls(true, "listWindow");
+    const failed = await session.listWindow(calendarId, new Date(0), new Date(1));
+    expect(isError(failed) && failed.code).toBe("googleCalendar:failed");
+    expect(isError(await session.listChanges(calendarId, null))).toBe(false);
+    google.failCalls(false, "listWindow");
+    expect(await session.listWindow(calendarId, new Date(0), new Date(1))).toEqual([]);
+  });
+
   it("counts a delete of a gone event as done, and fails every call while Google is down", async () => {
     const { google, session, calendarId } = await connected();
     expect(await session.deleteEvent(calendarId, "never-there")).toBe(true);
