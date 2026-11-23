@@ -9,6 +9,7 @@ import {
   googleCalendarConnectionSchema,
   googleEventLinkSchema,
   googleOauthStateSchema,
+  memberCalendarSettingSchema,
   userSchema,
 } from "../db/schema";
 import { isError } from "../errors";
@@ -327,6 +328,29 @@ describe("pushing", () => {
     await settled();
     expect(summaries(conn.calendarId)).toEqual(["Event for Pat Example", "Todo for Pat Example"]);
     expect(JSON.stringify(google.events(conn.calendarId))).not.toMatch(/Dialysis|Riverside|walker/);
+  });
+
+  it("goes generic when the consent wording changed, until the member agrees again", async () => {
+    const { caretaker, group } = await setup();
+    const conn = await connect(caretaker, group.id);
+    ok(await calendarSettingService.update(caretaker.ctx, group.id, { detailsConsent: true }));
+    await settled();
+    expect(summaries(conn.calendarId)).toContain("Event for Pat Example: Dialysis");
+
+    await getDb()
+      .update(memberCalendarSettingSchema)
+      .set({ detailsConsentVersion: "2020-01-01" })
+      .where(eq(memberCalendarSettingSchema.userId, caretaker.user.id));
+    ok(await calendarSyncService.pushConnection(conn, { client: google }));
+    expect(summaries(conn.calendarId)).toEqual(["Event for Pat Example", "Todo for Pat Example"]);
+    expect(JSON.stringify(google.events(conn.calendarId))).not.toMatch(/Dialysis|Riverside|walker/);
+
+    ok(await calendarSettingService.update(caretaker.ctx, group.id, { detailsConsent: true }));
+    await settled();
+    expect(summaries(conn.calendarId)).toEqual([
+      "Event for Pat Example: Dialysis",
+      "Todo for Pat Example: Pick up the walker",
+    ]);
   });
 
   it("goes generic for everyone when the owners forbid details", async () => {

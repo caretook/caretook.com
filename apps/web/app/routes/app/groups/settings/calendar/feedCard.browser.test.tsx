@@ -35,6 +35,7 @@ const defaults = (role: GroupRole, v: Partial<CalendarSettings> = {}): CalendarS
   detailsConsent: false,
   detailsConsentAt: null,
   detailsConsentVersion: null,
+  detailsConsentStale: false,
   groupAllowsDetails: true,
   shareLevel: "generic",
   feed: { active: false, rotatedAt: null },

@@ -375,6 +375,33 @@ describe("GET /api/calendar/<token>.ics", () => {
     expect(ics).not.toContain("Harbor Cardiology");
   });
 
+  it("goes generic when the consent wording changed, until the member agrees again", async () => {
+    const s = await setup();
+    await s.entry({});
+    const handle = s.handler();
+    const { file } = await makeFeed(s, "caretaker");
+    const read = async () => (await (await fetchFeed(handle, file)).text()).replaceAll("\r\n", "\n");
+    await s.api("caretaker").calendars.settings.update({ groupId: s.group.id, detailsConsent: true });
+    expect(await read()).toContain("Kidney check");
+
+    ok(
+      await memberCalendarSettingModel.update({
+        authUser: SYSTEM_USER,
+        filter: {
+          groupId: { type: "eq", value: s.group.id },
+          userId: { type: "eq", value: s.id("caretaker") },
+        },
+        data: { detailsConsentVersion: "2020-01-01" },
+      }),
+    );
+    const stale = await read();
+    expect(stale).not.toContain("Kidney check");
+    expect(stale).not.toContain("Mercy Clinic");
+
+    await s.api("caretaker").calendars.settings.update({ groupId: s.group.id, detailsConsent: true });
+    expect(await read()).toContain("Kidney check");
+  });
+
   it("answers an unknown, malformed or wrongly named token with a bodyless 404", async () => {
     const s = await setup();
     const handle = s.handler();

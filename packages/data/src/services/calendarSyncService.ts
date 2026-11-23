@@ -22,6 +22,7 @@ import {
   googleCalendarConnectionSchema as connection,
   googleEventLinkSchema as link,
   googleWindow,
+  hasDetailsConsent,
   memberCalendarSettingSchema,
   providerSchema,
   shareLevel,
@@ -153,6 +154,7 @@ const levelOf = async (conn: GoogleCalendarConnection): Promise<ShareLevel | App
       .select({
         allowed: careGroupSchema.detailsOutsideAllowed,
         consentAt: memberCalendarSettingSchema.detailsConsentAt,
+        consentVersion: memberCalendarSettingSchema.detailsConsentVersion,
       })
       .from(careGroupSchema)
       .leftJoin(
@@ -166,7 +168,10 @@ const levelOf = async (conn: GoogleCalendarConnection): Promise<ShareLevel | App
   );
   if (isError(rows)) return rows;
   const row = rows[0];
-  return shareLevel({ memberConsent: !!row?.consentAt, groupAllowsDetails: !!row?.allowed });
+  return shareLevel({
+    memberConsent: hasDetailsConsent({ consentAt: row?.consentAt, consentVersion: row?.consentVersion }),
+    groupAllowsDetails: !!row?.allowed,
+  });
 };
 
 /** A group's calendar items for Google, push and pull: `googleWindow` around `now` (90 days back, 365 ahead). */
