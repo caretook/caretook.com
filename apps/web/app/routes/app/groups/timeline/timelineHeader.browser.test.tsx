@@ -122,6 +122,15 @@ describe("the Easy mode button", () => {
     expect(b.top).toBeLessThan(h1.bottom);
     expect(b.right).toBeLessThanOrEqual(360);
   });
+
+  test("at phone width the button and the title share a vertical center, within 1 px", async () => {
+    await openTimeline({ role: "caretaker", width: 360 });
+    await ready();
+    const button = await found(easyButton);
+    const center = (r: DOMRect) => r.top + r.height / 2;
+    const h1 = document.querySelector("main h1")!.getBoundingClientRect();
+    expect(Math.abs(center(button.getBoundingClientRect()) - center(h1))).toBeLessThanOrEqual(1);
+  });
 });
 
 describe("the toolbar", () => {
