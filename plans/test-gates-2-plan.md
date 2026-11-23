@@ -19,7 +19,7 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 
 **Next:** wave 2 is running. Synced with `dev` at 88971fe1, no new backlog items for this topic. Slice 2's worktree is made and its opus agent spawned, told to request no CI run until approved. On its hand-off: review, merge, quick check, then the proof run and the wave's `candidate` run once approved.
 
-**CI approval:** covered wave 1 only. a134 reads "this topic's runs", but the backlog session relayed the user's narrower word. **Wave 2's question is filed as a140 (`--waits`, skeptic s11 said ask): no wave 2 CI run until it is answered**, including one a slice agent would request. If this session restarts, run `pnpm prd ask --wait a140` in the background. The permission classifier denied agents' `pnpm prd ci run` until the user allowed it; never work around a denial.
+**CI approval:** covered wave 1 only. a134 reads "this topic's runs", but the backlog session relayed the user's narrower word. **Wave 2 is approved (a140, the user's yes):** the slice's proof run(s) with a check forced to fail once, and the wave's `candidate` gate plus any rerun after a fix. **It doesn't cover wave 3 or later: file a new ask (`--waits`, after a skeptic) before their first run.** The permission classifier denied agents' `pnpm prd ci run` until the user allowed it; never work around a denial.
 
 **For slice 2 and later:** `pnpm prd ci blame` requests a run on `dev`, so it couldn't place a candidate failure until `dev` had the tier (it does now). The later roundtrip steps passed on Linux, but the refused-upload queue counts are timing-sensitive.
 
