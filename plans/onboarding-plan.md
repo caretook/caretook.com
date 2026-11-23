@@ -4,17 +4,17 @@
 
 ## Status
 
-| Slice | Wave | State                       | Merge into `prd/onboarding` (slice commits)  |
-| ----- | ---- | --------------------------- | -------------------------------------------- |
-| 1     | 1    | merged (opus)               | 8404c3a4 (ebfc909c)                          |
-| 2     | 1    | handed off, reviewed (opus) | — (c6a64dd5, bcfee496; merges after slice 1) |
-| 3     | 1    | started (opus)              | —                                            |
-| 4     | 2    | —                           | —                                            |
-| 5     | 3    | —                           | —                                            |
+| Slice | Wave | State          | Merge into `prd/onboarding` (slice commits) |
+| ----- | ---- | -------------- | ------------------------------------------- |
+| 1     | 1    | merged (opus)  | 8404c3a4 (ebfc909c)                         |
+| 2     | 1    | merged (opus)  | 043a28f5 (c6a64dd5, bcfee496)               |
+| 3     | 1    | started (opus) | —                                           |
+| 4     | 2    | —              | —                                           |
+| 5     | 3    | —              | —                                           |
 
 **Landing mode:** run everything through (started run-through): land each green wave, clean up, ask real questions only through `pnpm prd ask`.
 
-**Now (2026-11-23):** wave 1 running from b91c9d56. Worktrees `onboarding-1`, `-2`, `-3` made, one background opus agent each. Slice 1 merged (migration 0038); its quick check is running. Slice 2 handed off (slice check passed on bcfee496, diff reviewed) and merges next. Slice 3 is still running. B-359, B-360 and B-31 claimed. No new backlog items for this topic. Slice 4 must move `LegalAgreement` out of the join route to share it. Slices 1 and 2 each added a legal-links helper (`lib/auth/legalLinks.ts`, `account/legalLinks.ts`): fold them into one at landing or file a follow-up.
+**Now (2026-11-23):** wave 1 running from b91c9d56. Worktrees `onboarding-1`, `-2`, `-3` made, one background opus agent each. Slice 1 merged (migration 0038), quick check passed on 7f5ae1cb. Slice 2 merged, B-360 done, its quick check is running. Slice 3 is still running. B-359, B-360 and B-31 claimed. No new backlog items for this topic. Slice 4 must move `LegalAgreement` out of the join route to share it. Slices 1 and 2 each added a legal-links helper (`lib/auth/legalLinks.ts`, `account/legalLinks.ts`): fold them into one at landing or file a follow-up.
 
 **Backlog:** `done` B-360 when slice 2 merges, B-359 when slice 4 merges and B-31 when slice 5 merges.
 
