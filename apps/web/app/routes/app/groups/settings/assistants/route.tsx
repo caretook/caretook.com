@@ -2,6 +2,7 @@ import type { Route } from "./+types/route";
 import type { ActionResult } from "~/lib/core/api";
 import type { ApiOutputs } from "~/lib/core/rpc";
 
+import { CONNECTOR_READ_ONLY_BY_OWNER_LABEL } from "@caretook/data/schema";
 import { ORPCError } from "@orpc/client";
 import { Link } from "react-router";
 import { ConnectGuide } from "~/components/connectors";
@@ -11,17 +12,18 @@ import { getGroup, useGroup } from "~/lib/app-shell/group";
 import { sessionContext } from "~/lib/auth/session";
 import { load } from "~/lib/core/api";
 import { rpc } from "~/lib/core/rpc";
-import { loadAssistantsSwitch, useAssistantsEnabled } from "~/lib/care-groups/assistantsSwitch.sync";
+import { loadAssistantsSwitch, useAssistantsSetting } from "~/lib/care-groups/assistantsSwitch.sync";
 import { failedSave } from "../api";
 import { AssistantsSwitch } from "./AssistantsSwitch";
 import {
-  ASSISTANTS_EXPLAINED,
   assistantsAccess,
+  assistantsExplained,
   assistantsIntent,
   assistantsStatus,
   OFFLINE_ASSISTANTS,
 } from "./assistants";
 import { GroupConnections } from "./GroupConnections";
+import { ReadOnlySwitch } from "./ReadOnlySwitch";
 
 // `…/settings/assistants` (connectors slice 5). Shared by web + native.
 // Whether members may connect their own AI assistant comes from the
@@ -34,7 +36,9 @@ import { GroupConnections } from "./GroupConnections";
 // connections on Settings → Devices. After the switch, for everyone, the
 // connect guide (connectors-2 slice 1): the address and each client's steps,
 // or the off note while the switch is off, with "Ask owners to turn this on"
-// for everyone but owners (slice 2, `connector.requestEnable`).
+// for everyone but owners (slice 2, `connector.requestEnable`). While
+// assistants are on, owners choose read only (assistant-access) and everyone
+// else sees it, from the same local row.
 
 export const meta = () => [{ title: "Assistants · Group settings · Caretook" }];
 
@@ -68,6 +72,10 @@ export async function clientAction({ request, params }: Route.ClientActionArgs):
       await rpc.careGroup.update({ groupId, connectorsEnabled: intent.enabled });
       return { ok: true };
     }
+    if (intent?.intent === "setReadOnly") {
+      await rpc.careGroup.update({ groupId, connectorsReadOnly: intent.readOnly });
+      return { ok: true };
+    }
     if (intent?.intent === "disconnect") {
       await rpc.connector.revoke({ grantId: intent.id });
       return { ok: true };
@@ -85,7 +93,7 @@ export default function GroupAssistants({ loaderData }: Route.ComponentProps) {
   const { switchRows, connections, online } = loaderData;
   const group = useGroup();
   const access = assistantsAccess(group.role);
-  const enabled = useAssistantsEnabled(group.id, switchRows);
+  const { enabled, readOnly } = useAssistantsSetting(group.id, switchRows);
 
   return (
     <SettingsPage
@@ -93,12 +101,18 @@ export default function GroupAssistants({ loaderData }: Route.ComponentProps) {
       offlineNotice={access.manage && !online ? OFFLINE_ASSISTANTS : undefined}
     >
       <SettingsCard id="assistants-switch" title="AI assistants">
-        <p className="text-base-content/70 text-sm">{ASSISTANTS_EXPLAINED}</p>
+        <p className="text-base-content/70 text-sm">{assistantsExplained(enabled && readOnly)}</p>
         {access.toggle && online ? (
           <AssistantsSwitch enabled={enabled} connected={connections?.length ?? 0} />
         ) : (
           <p data-assistants-status="" className="text-sm">
             {assistantsStatus(enabled, access.toggle)}
+          </p>
+        )}
+        {enabled && access.toggle && online && <ReadOnlySwitch readOnly={readOnly} />}
+        {enabled && readOnly && !(access.toggle && online) && (
+          <p data-assistants-read-only="" className="text-sm">
+            {CONNECTOR_READ_ONLY_BY_OWNER_LABEL}
           </p>
         )}
         {!access.manage && (
