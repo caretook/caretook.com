@@ -35,7 +35,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | `onboarding` | done | — | `apps/web/app/routes/account/join/`, `apps/web/app/routes/account/invite/`, `packages/auth/src/tickets.ts`, `packages/api/src/care-groups/`, `packages/data/src/services/careGroupInviteService.ts`, `apps/web/app/routes/app/groups/timeline/`, `apps/web/app/root.tsx`, `apps/web/public/site.webmanifest`, `apps/web/app/routes/marketing/layout/`, `packages/data/src/db/schema/app-shell/userPreferences.ts`, `apps/web/app/lib/app-shell/me.ts`, `scripts/browser-checks/invites.spec.mjs` | to write (B-31): guided onboarding for new users, the real requirement; a demo group is one idea to refine; may point at the connect guide · Depends on: invites (done) · Hot files: seeds, careGroupService, /app home |
 | `assistant-access` | done | — | `packages/data/src/db/schema/care-groups/careGroup.ts`, `packages/data/src/db/schema/connectors/connectorRules`, `packages/data/src/services/connectorGrantService.ts`, `packages/data/src/services/careGroupService.ts`, `packages/api/src/care-groups/careGroup.ts`, `packages/api/src/connectors/protocol.ts`, `packages/api/src/connectors/connect.ts`, `packages/api/src/connectors/connector.ts`, `packages/api/src/connectors/tools/groupOverview.ts`, `powersync/sync-config.yaml`, `apps/web/app/lib/sync/schema.ts`, `apps/web/app/lib/care-groups/assistantsSwitch.sync.ts`, `apps/web/app/routes/app/groups/settings/assistants/`, `apps/web/app/routes/connectors/connect/`, `apps/web/app/routes/app/settings/devices/ConnectedAssistants.tsx` | Owner chooses read/write or read only for a group's assistants (B-558) |
 | `code-health` | — | `check-speed`, `orchestration-2` | `packages/data/src/db/schema/`, `packages/data/src/domain/`, `packages/data/src/services/`, `packages/data/package.json`, `package.json`, `apps/web/package.json`, `apps/web/app/`, `packages/api/src/`, `scripts/loops/lib.sh`, `scripts/loops/lease.sh`, `scripts/loops/land.test.mjs`, `scripts/loops/check-areas.d/`, `scripts/backlog/backlog.mjs`, `scripts/build/` | [PRD](code-health-prd.md), [plan](code-health-plan.md) (B-361, B-365, B-366, B-367): 6 slices, waves (1, 2, 3, 5) → 4 → 6: exact pins and a test refusing ranges, unused exports removed, the backlog lock held once and a knobs page, tests on pr/ready/review/land, pure logic moved to @caretook/data/domain, then every importer switched (slice 6, alone, after simple-mode lands; it touches import lines across apps/web/app and packages/api). No behaviour change, no migration. Follow-ons: code-health-2, code-health-3 |
-| `fixes-bug` | standing | — | `apps/web/app/routes/app/groups/timeline/DayHeader`, `packages/data/src/db/schema/care-periods/carePeriodTrack`, `apps/web/app/components/ui/useSheetChanges`, `apps/web/app/components/ui/Sheet`, `apps/web/app/components/ui/sheetGuard`, `apps/web/app/routes/app/groups/timeline/pass/` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
+| `fixes-bug` | standing | — | `apps/web/app/routes/app/groups/timeline/DayHeader`, `packages/data/src/db/schema/care-periods/carePeriodTrack`, `apps/web/app/components/ui/useSheetChanges`, `apps/web/app/components/ui/Sheet`, `apps/web/app/components/ui/sheetGuard`, `apps/web/app/routes/app/groups/timeline/pass/`, `packages/data/src/services/calendarSettingService.ts`, `packages/api/src/calendars/`, `apps/web/app/lib/calendars/calendarSettings`, `apps/web/app/routes/app/groups/settings/calendar/`, `packages/data/src/errors/calendars.ts`, `packages/data/src/db/schema/assistant/quickEntry`, `apps/web/app/components/quick-entry/`, `apps/web/app/routes/account/join/`, `apps/web/app/routes/account/invite/`, `apps/web/app/routes/app/groups/timeline/useTimelineData` | plan: plans/fixes-bug-plan.md, rules: plans/fixes-rules.md |
 | `fixes-ui` | standing | — | — | plan: plans/fixes-ui-plan.md, rules: plans/fixes-rules.md |
 | `sync-safety` | — | — | `packages/api/src/sync`, `apps/web/app/lib/sync/`, `apps/web/app/lib/auth/session`, `apps/web/app/routes/sign-out.tsx`, `apps/web/app/routes/app/layout/SyncIndicator.tsx`, `apps/web/app/routes/app/layout/UserMenu.tsx`, `packages/data/src/services/`, `apps/web/app/lib/medications/medications.sync.ts`, `apps/web/app/lib/providers/providers.sync.ts`, `scripts/browser-checks/roundtrip.spec.mjs`, `scripts/browser-checks/signout-wipe.spec.mjs`, `scripts/browser-checks/session-end.spec.mjs` | to write (B-285 to B-296, B-382 to B-384, B-387: repeating-todo upload bugs Codex found, moved from `planner-2`), from the 2026-11-21 code review (findings not re-verified): refused sync changes shown to the user, an upload queue that can't wedge, offline edits that don't revert a co-member's change, replayed PUTs, global client-chosen ids, the sign-out wipe and unsent writes, then the column-agreement test and one generic upload handler · Depends on: (none); `test-health` shares the upload tests (B-371, B-374) · Hot files: `packages/api/src/sync.ts`, `lib/sync/client.ts`, `SyncIndicator`, `session.ts`, `sign-out.tsx`, `medications.sync.ts`, `providers.sync.ts`, the services' `upsert`s |
 | `demo-site` | hold | — | — | Shared demo site with generic logins and nightly reset; separate environment |
@@ -315,16 +315,16 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-650 | bug | triaged | fixes-tooling |  | Unattended planner report's veto line sets flags=hold, dropping a row's design or standing flag |
 | B-653 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once… |
 | B-654 | bug | triaged | fixes-tooling |  | CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai… |
-| B-656 | bug | triaged | fixes-bug |  | Timeline: a period starting just after midnight in the recipient's zone shows day 1 on two headers for a viewer behind that zone |
-| B-657 | bug | triaged | fixes-bug |  | Pass log: after a successful Add a medication with unsaved dose edits, the sheet stays open and Back leaves without asking, losing the edits |
+| B-656 | bug | in-progress | fixes-bug | prd/fixes-bug | Timeline: a period starting just after midnight in the recipient's zone shows day 1 on two headers for a viewer behind that zone |
+| B-657 | bug | in-progress | fixes-bug | prd/fixes-bug | Pass log: after a successful Add a medication with unsaved dose edits, the sheet stays open and Back leaves without asking, losing the edits |
 | B-658 | bug | triaged | fixes-tooling |  | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
-| B-659 | bug | triaged | fixes-bug |  | A consent turned on offline before a wording bump and sent after it records the new version, though the member saw the older wording |
+| B-659 | bug | in-progress | fixes-bug | prd/fixes-bug | A consent turned on offline before a wording bump and sent after it records the new version, though the member saw the older wording |
 | B-660 | chore | triaged | fixes-tooling |  | CI verdicts keep each failed test's failure message, so a one-off flake shows which limit or timeout broke |
-| B-662 | bug | triaged | fixes-bug |  | Quick entry guesses the amount when a bare number matches the strength: 'gave lisinopril 10' at 10 mg with a usual 2 tablets records 2 tablets |
+| B-662 | bug | in-progress | fixes-bug | prd/fixes-bug | Quick entry guesses the amount when a bare number matches the strength: 'gave lisinopril 10' at 10 mg with a usual 2 tablets records 2 tablets |
 | B-663 | bug | triaged | fixes-ui |  | Menu section headings sit too close to the items above: Day summaries in the Timeline view menu is hard to read |
 | B-664 | bug | triaged | fixes-ui |  | Mobile bottom nav rides up with the on-screen keyboard and covers content while typing; hide it while the keyboard is open |
 | B-665 | change | triaged | onboarding-2 |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
-| B-666 | bug | triaged | fixes-bug |  | Signing up at the join link doesn't prompt the password manager to save the new password |
+| B-666 | bug | in-progress | fixes-bug | prd/fixes-bug | Signing up at the join link doesn't prompt the password manager to save the new password |
 | B-667 | chore | triaged | fixes-tooling |  | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
 | B-668 | change | triaged | fixes-ui |  | Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus |
 | B-669 | feature | triaged | onboarding-2 |  | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
@@ -332,7 +332,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-672 | feature | triaged | fixes-ui |  | Add an allergy: suggest substances and reactions as you type, like conditions |
 | B-673 | feature | triaged | fixes-ui |  | Add a medication: suggest common medication names as you type, like conditions |
 | B-674 | change | triaged | fixes-ui |  | Add a medication: the schedule starts on As needed |
-| B-675 | bug | triaged | fixes-bug |  | Timeline: after repeating a day jump, opening a sheet brings back the old expanded window and moves the scroll |
+| B-675 | bug | in-progress | fixes-bug | prd/fixes-bug | Timeline: after repeating a day jump, opening a sheet brings back the old expanded window and moves the scroll |
 | B-676 | change | triaged | fixes-ui |  | Quick entry: the suggested result card can be clicked to add it, as Enter does |
 | B-677 | change | triaged | fixes-ui |  | Role pickers: explain what each role can do, when inviting and managing members |
 | B-678 | bug | triaged | fixes-ui |  | Manage members: cards truncate names and details on phone and desktop; redo the layout |
@@ -362,6 +362,16 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-702 | bug | triaged | fixes-ui |  | Medications Print menu: text overflows or crowds the menu box |
 | B-704 | bug | triaged | fixes-tooling |  | browser.test.mjs can leave its fixture's process group running when the test is interrupted |
 | B-705 | chore | triaged | fixes-tooling |  | Enforce the one-day wait on new packages: minimumReleaseAge is missing from pnpm-workspace.yaml |
+| B-706 | bug | triaged | fixes-bug |  | CI: apps/web/app/routes/account/join/join.browser.test.tsx fails in America/New_York |
+| B-707 | bug | triaged | fixes-bug |  | CI: apps/web/app/routes/admin/new-group/newGroup.browser.test.tsx fails in America/New_York |
+| B-708 | bug | triaged | fixes-bug |  | CI: apps/web/app/routes/app/groups/entry/entryDraft.browser.test.tsx fails in America/New_York |
+| B-709 | bug | triaged | fixes-bug |  | CI: apps/web/app/routes/app/groups/entry/entryRepeat.browser.test.tsx fails in America/New_York |
+| B-710 | bug | triaged | fixes-bug |  | CI: apps/web/app/routes/app/groups/medication/medication.browser.test.tsx fails in America/New_York |
+| B-711 | bug | triaged | fixes-bug |  | CI: apps/web/app/routes/app/groups/medications/today.browser.test.tsx fails in America/New_York |
+| B-712 | bug | triaged | fixes-bug |  | CI: apps/web/app/routes/app/groups/new/newGroup.browser.test.tsx fails in America/New_York |
+| B-713 | bug | triaged | fixes-bug |  | CI: apps/web/app/routes/app/groups/period/period.browser.test.tsx fails in America/New_York |
+| B-714 | bug | triaged | fixes-bug |  | CI: apps/web/app/routes/app/groups/periods/periods.browser.test.tsx fails in America/New_York |
+| B-715 | bug | triaged | fixes-bug |  | CI: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx fails in America/New_York |
 
 ## Items
 
@@ -1095,6 +1105,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-21 (prd/test-health): test-health orchestrator (2026-11-22): new coverage, which the test-health PRD lists as out of scope; not in any slice. Proposed: a follow-up PRD (test-coverage) rather than this one.
 - 2026-11-22 (prd/test-health): test-health ended 2026-11-22 (landed 2e526422); new coverage out of its scope, proposed for a follow-up PRD test-health-2
 - 2026-11-23 (plan/test-health-2): Planned 2026-11-23 in plans/test-health-2-plan.md (six slices; runs after test-gates-2 and sync-safety). B-374: a whole-batch 400 is resent one change at a time (the user's answer, a103).
+- 2026-11-23 (prd/test-gates-2): [ci-zone-overflow ef58007e] 7 more test file(s) fail in America/New_York on ef58007e, past the cap of 10: apps/web/app/routes/app/groups/planner/plannerEvents.browser.test.tsx, apps/web/app/routes/app/groups/planner/plannerSeries.browser.test.tsx, apps/web/app/routes/app/groups/settings/calendarGoogle.browser.test.tsx, apps/web/app/routes/app/groups/settings/groupSettings.browser.test.tsx, apps/web/app/routes/app/groups/timeline/timelineCarePeriods.browser.test.tsx, apps/web/app/routes/app/groups/timeline/todayCard.browser.test.tsx, scripts/browser-checks/roundtrip.spec.mjs.
 
 ### B-373 · chore · Role coverage gaps: a removed member writing or reading a care table, staff support on care tables, non-member writes through sync upload on 10 of 15 tables, and a real every-procedure unauthenticated sweep
 
@@ -2479,18 +2490,18 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-656 · bug · Timeline: a period starting just after midnight in the recipient's zone shows day 1 on two headers for a viewer behind that zone
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 41 (B-620) hand-off. Recipient in New York, viewer in Los Angeles, period starting 00:30 Eastern: the viewer's header for the previous date and the start date both read day 1, because periodDayOn has a minimum of 1. Affects only the period's first day.
 
 ### B-657 · bug · Pass log: after a successful Add a medication with unsaved dose edits, the sheet stays open and Back leaves without asking, losing the edits
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-23 (prd/fixes-bug): From fixes-bug slice 42 (B-631) hand-off, reproduced with a throwaway component test. The add's submit keeps useSheetChanges' no-prompt bypass though the sheet stays open. Likely fix: end the bypass when a submit succeeds and the sheet stays open. Also: a refusal arriving while an identical alert is on screen is seen only if that alert remounts; PassLogForm now does, other sheets with a side action would need the same.
@@ -2506,9 +2517,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-659 · bug · A consent turned on offline before a wording bump and sent after it records the new version, though the member saw the older wording
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-23 (prd/calendars-2): From calendars-2 slice 4 (B-308). update({ detailsConsent: true }) stamps the server's current DETAILS_CONSENT_VERSION, not the version the device showed. Needs a bump landing inside one offline window. Fix idea: the device sends the version it displayed and the server refuses or leaves it stale on a mismatch.
@@ -2525,9 +2536,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-662 · bug · Quick entry guesses the amount when a bare number matches the strength: 'gave lisinopril 10' at 10 mg with a usual 2 tablets records 2 tablets
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): User decision 2026-11-23: when a bare number matches the strength and the usual dose is more than one unit, have the caretaker choose the amount instead of guessing. A caretaker who gave one 10 mg tablet otherwise gets a wrong dose on record. Replaces the behavior pinned in packages/data/src/db/schema/assistant/quickEntry.test.ts (B-648 test). Keep a usual dose of one unit recording directly (B-651).
@@ -2565,9 +2576,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-666 · bug · Signing up at the join link doesn't prompt the password manager to save the new password
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): User report, 2026-11-23, submitting /join/CARE-DEMO-0001 (password manager and browser not recorded). The fields already use type=password and autoComplete=new-password (apps/web/app/routes/account/join/route.tsx:194-204). Cause not confirmed. Suspects: the email field is autoComplete=email rather than username, and the React Router Form submits by fetch and swaps the step instead of a full page navigation, which some managers need to detect success. The invite sign-up (routes/account/invite/route.tsx:288-327) has the same shape, so check and fix both. Verify with a real password manager.
@@ -2649,9 +2660,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-675 · bug · Timeline: after repeating a day jump, opening a sheet brings back the old expanded window and moves the scroll
 
-- status: triaged
+- status: in-progress
 - prd: fixes-bug
-- owner:
+- owner: prd/fixes-bug
 - commit:
 
 - 2026-11-23 (prd/timeline-jump): Codex on PR #119 (P2), verified in useTimelineData.ts: a repeat jump only ignores the old paging while its marker is present (current=false) and never saves the reset. A sheet link replaces the location state with SHEET_LINK_STATE, so jumpMark goes null, current turns true and the old before/limit return under the sheet. Fix: persist the reset bound, limit and marker when accepting a new jump. Repro: jump to a day, load newer, jump to the same day again, open an entry's edit sheet. No data affected.
@@ -2929,3 +2940,93 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-23 (Robert Bo Davis): From the calendars-3 planning report (a141). AGENTS.md says to keep it, but pnpm-workspace.yaml has no such setting and its history shows none. Confirmed 2026-11-23.
+
+### B-706 · bug · CI: apps/web/app/routes/account/join/join.browser.test.tsx fails in America/New_York
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/test-gates-2): [ci-key edad63a35e71] [ci-zone ef58007e] Fails in America/New_York on ef58007e; reported, not blocking.
+
+### B-707 · bug · CI: apps/web/app/routes/admin/new-group/newGroup.browser.test.tsx fails in America/New_York
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/test-gates-2): [ci-key 9321dde7976c] [ci-zone ef58007e] Fails in America/New_York on ef58007e; reported, not blocking.
+
+### B-708 · bug · CI: apps/web/app/routes/app/groups/entry/entryDraft.browser.test.tsx fails in America/New_York
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/test-gates-2): [ci-key 8110f8a77144] [ci-zone ef58007e] Fails in America/New_York on ef58007e; reported, not blocking.
+
+### B-709 · bug · CI: apps/web/app/routes/app/groups/entry/entryRepeat.browser.test.tsx fails in America/New_York
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/test-gates-2): [ci-key 28b813b278a6] [ci-zone ef58007e] Fails in America/New_York on ef58007e; reported, not blocking.
+
+### B-710 · bug · CI: apps/web/app/routes/app/groups/medication/medication.browser.test.tsx fails in America/New_York
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/test-gates-2): [ci-key 3d0bf9a04304] [ci-zone ef58007e] Fails in America/New_York on ef58007e; reported, not blocking.
+
+### B-711 · bug · CI: apps/web/app/routes/app/groups/medications/today.browser.test.tsx fails in America/New_York
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/test-gates-2): [ci-key 362293a2db8f] [ci-zone ef58007e] Fails in America/New_York on ef58007e; reported, not blocking.
+
+### B-712 · bug · CI: apps/web/app/routes/app/groups/new/newGroup.browser.test.tsx fails in America/New_York
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/test-gates-2): [ci-key 39998160dab1] [ci-zone ef58007e] Fails in America/New_York on ef58007e; reported, not blocking.
+
+### B-713 · bug · CI: apps/web/app/routes/app/groups/period/period.browser.test.tsx fails in America/New_York
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/test-gates-2): [ci-key fe8463de1955] [ci-zone ef58007e] Fails in America/New_York on ef58007e; reported, not blocking.
+
+### B-714 · bug · CI: apps/web/app/routes/app/groups/periods/periods.browser.test.tsx fails in America/New_York
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/test-gates-2): [ci-key a159be70b1c7] [ci-zone ef58007e] Fails in America/New_York on ef58007e; reported, not blocking.
+
+### B-715 · bug · CI: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx fails in America/New_York
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-23 (prd/test-gates-2): [ci-key b22c2d3eee0c] [ci-zone ef58007e] Fails in America/New_York on ef58007e; reported, not blocking.
