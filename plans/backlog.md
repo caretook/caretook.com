@@ -134,7 +134,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-254 | feature | triaged | planner-3 |  | Quick entry: 'bins out every monday' makes a repeating todo |
-| B-269 | chore | triaged | ui-kit-4 |  | Guard the kit: a lint rule or layout test that keeps react-aria imports in ui/ and flags raw btn, card, badge and alert classes outside ui/ |
+| B-269 | chore | in-progress | ui-kit-4 | prd/ui-kit-4 | Guard the kit: a lint rule or layout test that keeps react-aria imports in ui/ and flags raw btn, card, badge and alert classes outside ui/ |
 | B-286 | bug | triaged | sync-safety |  | A repeatable 5xx from sync.upload blocks a device's upload queue forever: no retry cap, and the sync indicator never shows uploadError or the queue length |
 | B-288 | bug | triaged | sync-safety |  | A replayed PUT on an existing row is a full update with the insert-time values, reverting newer edits (and for medications writing no change entry) |
 | B-289 | bug | triaged | sync-safety |  | Client-chosen ids are global: a member of one group can squat ids in another (note_document by a victim's provider id; series visit ids), wedging a device's queue or making top-up skip days |
@@ -563,9 +563,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-269 · chore · Guard the kit: a lint rule or layout test that keeps react-aria imports in ui/ and flags raw btn, card, badge and alert classes outside ui/
 
-- status: triaged
+- status: in-progress
 - prd: ui-kit-4
-- owner:
+- owner: prd/ui-kit-4
 - commit:
 
 - 2026-11-21 (Robert Bo Davis): Review 2026-11-21: no no-restricted-imports or class guard found in the ESLint configs; the rules in components.md are held by review only (react-aria is clean today). Add after the primitives land, with an allowlist for marketing and print sheets.
