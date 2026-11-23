@@ -4,14 +4,20 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/agent-autonomy-3` (slice commits) |
-| ----- | ---- | ----- | ------------------------------------------------- |
-| 1     | 1    | —     | —                                                 |
-| 2     | 2    | —     | —                                                 |
-| 3     | 2    | —     | —                                                 |
-| 4     | 2    | —     | —                                                 |
+| Slice | Wave | State                                                                     | Merge into `prd/agent-autonomy-3` (slice commits) |
+| ----- | ---- | ------------------------------------------------------------------------- | ------------------------------------------------- |
+| 1     | 1    | started (worktree `.loops/agent-autonomy-3-1`, agent on opus, 2026-11-23) | —                                                 |
+| 2     | 2    | —                                                                         | —                                                 |
+| 3     | 2    | —                                                                         | —                                                 |
+| 4     | 2    | —                                                                         | —                                                 |
 
-**Backlog:** claim B-511 when slice 1 starts and `done` it when slice 2 merges; B-512 with slice 3; B-513 with slice 4.
+**Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up. Questions go through `pnpm prd ask`, never the terminal.
+
+**Models:** opus for every slice (the plan's _Models_).
+
+**Open issues:** none of ours. `pnpm backlog doctor` reports three findings on other topics (B-548, B-549, B-568), left alone.
+
+**Backlog:** B-511 claimed (slice 1 started); `done` it when slice 2 merges; B-512 with slice 3; B-513 with slice 4.
 
 Fold into the docs at landing (the PRD's _Docs at landing_): wave 1, [machinery](../docs/agents/machinery.md) (the store and the brief); wave 2, machinery, [orchestrator](../docs/agents/orchestrator.md), [planner](../docs/agents/planner.md), [preferences](../docs/agents/preferences.md), [backlog](../docs/agents/backlog.md). Trim at least what you fold in.
 
