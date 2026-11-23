@@ -381,6 +381,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-722 | bug | triaged | fixes-tooling |  | A release run after a recorded override replaces the override's release-gate status, so a failing run blocks main again |
 | B-723 | bug | triaged | fixes-tooling |  | Tooling test context.test.mjs flaked in a quick check: '--all --json lists live sessions only' failed its first-row size assertion (line 388) |
 | B-724 | chore | landed | fixes-tooling | hotfix/skip-quick-before-ci | Orchestrators stop running a local quick check right before the CI run that repeats it |
+| B-725 | chore | in-progress | test-gates-2 | prd/test-gates-2 | CI's static job runs the check-areas lint, the one quick-check step it lacks |
 
 ## Items
 
@@ -3132,3 +3133,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit: 451d7479
 
 - 2026-11-23 (Robert Bo Davis): User asked for this as a hotfix on 2026-11-23, worked in its own backlog session. On 2026-11-23, 40 of 77 orchestrator quick checks (242 of 464 min) were followed by CI on the same branch within 5 min. CI components/full cover everything in quick except the check-areas lint. Land already gates on the CI verdict, not a local pass.
+
+### B-725 · chore · CI's static job runs the check-areas lint, the one quick-check step it lacks
+
+- status: in-progress
+- prd: test-gates-2
+- owner: prd/test-gates-2
+- commit:
+
+- 2026-11-23 (prd/test-gates-2): Requested through the session running hotfix B-724 (orchestrators stop running a local quick check right before the CI run that repeats it), which makes CI the wave gate. Slice 7 of test-gates-2.
