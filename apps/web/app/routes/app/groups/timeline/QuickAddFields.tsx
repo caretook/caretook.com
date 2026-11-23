@@ -33,12 +33,11 @@ export function QuickAddFields({
   return (
     <div className="space-y-1" data-quick-add>
       <NameField defaultValue="" names={names} error={issueFor(issues, "name")} />
-      <Field label="Dose each time (optional)" error={issueFor(issues, "dose")}>
+      <Field label="Dose each time (optional)" kind="input" error={issueFor(issues, "dose")}>
         {(control) => (
           <input
             {...control}
             name={QUICK_ADD_FIELD.dose}
-            className="input w-full"
             maxLength={MEDICATION_LIMITS.dose}
             placeholder="e.g. 2 tablets"
             onChange={(e) => onDoseChange(e.target.value)}

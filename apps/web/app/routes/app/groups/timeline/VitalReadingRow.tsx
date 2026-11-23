@@ -2,6 +2,7 @@ import type { UnitChoices, VitalReading, VitalType } from "@caretook/data/schema
 import type { FieldIssue } from "~/lib/core/api";
 
 import { VITALS } from "@caretook/data/schema";
+import { Button } from "~/components/ui";
 import { vitalInputName } from "./entryFormData";
 import { vitalFieldIssue } from "./formIssues";
 import { VitalField } from "./VitalField";
@@ -33,9 +34,9 @@ export function VitalReadingRow({
       <legend className="fieldset-legend flex w-full items-center justify-between gap-2">
         <span>{spec.label}</span>
         {onRemove && (
-          <button type="button" className="btn btn-ghost btn-xs" onClick={onRemove}>
+          <Button variant="ghost" size="xs" onClick={onRemove}>
             Remove<span className="sr-only"> {spec.label.toLowerCase()}</span>
-          </button>
+          </Button>
         )}
       </legend>
       <input type="hidden" name={vitalInputName(index, "type")} value={type} />

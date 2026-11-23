@@ -10,7 +10,7 @@ import {
   isVitalDetails,
   TIMELINE_LIMITS,
 } from "@caretook/data/schema";
-import { Field } from "~/components/ui";
+import { Field, FormFooter, Message } from "~/components/ui";
 import { DateTimeField } from "~/components/ui/date";
 import { EntryKindPicker } from "./EntryKindPicker";
 import { FeelingFields } from "./FeelingFields";
@@ -124,12 +124,11 @@ export function EntryForm({
       )}
 
       {!easy && (
-        <Field label="Notes (optional)" error={issueFor(issues, "body")}>
+        <Field label="Notes (optional)" kind="textarea" error={issueFor(issues, "body")}>
           {(control) => (
             <textarea
               {...control}
               name="body"
-              className="textarea w-full"
               rows={3}
               maxLength={TIMELINE_LIMITS.body}
               defaultValue={filled?.body ?? ""}
@@ -146,27 +145,15 @@ export function EntryForm({
         error={issueFor(issues, "occurredAt")}
       />
 
-      {result && !result.ok && !issues.length && (
-        <p role="alert" className="text-error text-sm">
-          {result.error}
-        </p>
-      )}
+      {result && !result.ok && !issues.length && <Message tone="error">{result.error}</Message>}
 
-      <div className="flex gap-2 pt-2">
-        <button type="submit" className={`btn btn-primary ${easy ? "btn-lg" : ""}`} disabled={busy}>
-          {busy ? "Saving…" : entry ? "Save changes" : "Add to timeline"}
-        </button>
-        {onCancel && (
-          <button
-            data-form-cancel=""
-            type="button"
-            className={`btn btn-ghost ${easy ? "btn-lg" : ""}`}
-            onClick={onCancel}
-          >
-            Cancel
-          </button>
-        )}
-      </div>
+      <FormFooter
+        submitLabel={entry ? "Save changes" : "Add to timeline"}
+        busy={busy}
+        busyLabel="Saving…"
+        size={easy ? "lg" : "md"}
+        cancel={onCancel && { label: "Cancel", onCancel }}
+      />
     </Form>
   );
 }

@@ -9,7 +9,7 @@ import { useCallback, useMemo, useState } from "react";
 import { redirect, useLocation } from "react-router";
 import { startAtFrom } from "~/lib/timeline/urls";
 import { MarkDoseDialog, PassCard, PassUndoStatus } from "~/components/medications";
-import { Sheet } from "~/components/ui";
+import { EmptyState, Sheet } from "~/components/ui";
 import { doseWarnings } from "~/lib/medications/dueDoses";
 import { duePasses, isNamedPass, isPassDueNow } from "~/lib/medications/duePasses";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
@@ -130,11 +130,11 @@ export default function NewDoseSheet({ loaderData, params }: Route.ComponentProp
       )}
       <MarkDoseDialog marking={marking} groupId={params.groupId} onClose={() => setMarking(null)} />
       {choices.length === 0 && (
-        <p className="mb-2" data-no-medications>
+        <EmptyState className="mb-2" data-no-medications="">
           {group.canWrite
             ? "There are no current medications yet. Add one as you log its dose."
             : "There are no current medications yet."}
-        </p>
+        </EmptyState>
       )}
       {options.length > 0 && (
         <DoseForm
