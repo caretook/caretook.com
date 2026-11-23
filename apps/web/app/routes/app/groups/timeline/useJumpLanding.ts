@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 
 import { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigationType } from "react-router";
+import { NavigationType, useLocation, useNavigationType } from "react-router";
 import { isJumpState } from "~/lib/timeline/timelineJump";
 
 /** Room above the landed day, so its heading isn't against the screen's edge. */
@@ -15,14 +15,16 @@ const LANDING_GAP = 8;
  * the router's own scroll handling and with the new window's rows drawn.
  */
 export function useJumpLanding(list: RefObject<HTMLElement | null>, jumped: boolean, returning: boolean) {
-  const { key, state } = useLocation();
+  const location = useLocation();
+  const { key } = location;
+  const state: unknown = location.state;
   const navigationType = useNavigationType();
   // A document load has the "default" key; so does Back to it, which `returning` tells apart.
   const [freshKey] = useState(() => (key === "default" && !returning ? key : null));
   const landed = useRef<string | null>(null);
 
   useEffect(() => {
-    const marked = navigationType !== "POP" && isJumpState(state);
+    const marked = navigationType !== NavigationType.Pop && isJumpState(state);
     const fresh = key === freshKey && landed.current === null;
     if (!jumped || !(marked || fresh) || landed.current === key) return;
     const frame = requestAnimationFrame(() => {
