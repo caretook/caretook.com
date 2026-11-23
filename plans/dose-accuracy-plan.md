@@ -11,11 +11,12 @@
 | 3     | 3    | landed in dev ae9433dc (PR #96)  | 5f927b61 (51e60708)                            |
 | 4     | 2    | landed in dev b91c9d56 (PR #91)  | 154e2a0a (bd3101ee)                            |
 | 5     | 4    | landed in dev 30b6685a (PR #123) | 1aa31357 (c851e600, 940c1353)                  |
-| 6     | 5    | building (opus)                  | —                                              |
+| 6     | 5    | merged, wave gate next           | c22fd80f (46aa519c, 807605d0, fc062675)        |
+| 7     | 6    | planned (B-627, ask a150)        | —                                              |
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-22). Start every ready slice, land each green wave, clean up; ask only real questions through `pnpm prd ask`.
 
-**Now: wave 5 (resumed after an interruption 2026-11-23; git matched this Status).** Backlog ingested (nothing new for this topic), branch up to date with dev, B-614, B-616 and B-627 claimed, worktree `dose-accuracy-6` made on `slice/dose-accuracy/6`, slice 6 agent spawned on opus. **When wave 5 lands, message `fixes-bug-d0`:** it is holding off the `timelineEntryService` upsert until then. Wave 4 landed in dev as 30b6685a (PR #123, `--no-review` because Codex is out of credits, CI `components` green on a7e001ea, browser check `phase2` passed, report filed); its docs are folded into medications (committed here, they land with wave 5). Wave 4's history follows.
+**Now: wave 5 (resumed after an interruption 2026-11-23; git matched this Status).** Slice 6 (opus) merged as c22fd80f with B-614 and B-616 (both marked ready); quick check passed there. Worktree `dose-accuracy-6` stays until the wave is green. **Next: sync dev, quick check, CI at the tier `git diff --name-only dev...HEAD | node scripts/loops/check-plan.mjs --propose --repo . --base dev --head HEAD` gives, browser checks, PR, land.** **When wave 5 lands, message `fixes-bug-d0`:** it is holding off the `timelineEntryService` upsert until then. **B-627 stays open for slice 7 (wave 6):** slice 6 showed a retry and a first upload arrive identical, so the skeptic decided a small additive table (ask a150, skeptic s14, the user can veto; a veto is cheapest before slice 7 lands). Slice 6's choices, accepted: the device flags a dose PATCH as its own copy when the local row's `created_by` equals `updated_by` (every Undo and edit stamps the acting member, so a deliberate Undo of another's synced dose is unflagged and still removes it); an Easy helper's flagged PATCH onto another member's dose is now a silent no-op rather than a refusal (B-614's intent; told to the user). No upload-level test covers a flagged PATCH from a viewer or helper. Fold at landing: the own-copy flag and the per-id lock (medications, a line in sync). Wave 4 landed in dev as 30b6685a (PR #123, `--no-review` because Codex is out of credits, CI `components` green on a7e001ea, browser check `phase2` passed, report filed); its docs are folded into medications (committed here, they land with wave 5). Wave 4's history follows.
 
 **Wave 4 (resumed after an interruption 2026-11-23):** git matched this Status. Synced dev (cd94bd7e, brings migration 0038; database reset). Slice 5 merged as 1aa31357 (slice check passed on 940c1353; worktree `dose-accuracy-5` kept until the wave is green). Watch the wave's run for a screen test that adds a medication and expects a slot already past: it is now dropped. Slice 5's choices, accepted: the changes query starts two days back, because matching reaches that far; `give_pass` on a pass whose only medication was added after its time says the pass has no medications. Fold at landing: medications (_What's due_: `changes` through `scheduleHistory`; _Doses over a range_: a dropped time keeps naming its historical slot within the window), connectors and assistant (`todays_doses` and the pass planners read the same entries). B-299 and B-611 are marked ready. Quick check passed on 788a5315. Synced dev (a7e001ea, migrations 0039 and 0040, database reset). Quick check passed there and **CI `components` is green on a7e001ea** (run 45221343704; one quarantined failure, the emergency contacts sheet, outside this diff). Slice 5's worktree is removed. **Next: browser check `phase2` (the only one the diff names), PR, Codex, land `--tier components`; no Status commit between the PR and the landing.** **Tell `fixes-bug-d0` when wave 4 lands;** it was told to start B-615 now. **B-614, B-616 and B-627 are slice 6, wave 5** (B-616 moved here from `fixes-bug` on the user's word). Ask a108 returned "Keep A's dose". **Tier lookup:** never call `check-plan.mjs` without piping the changed files in; it hung this session for about nine hours (reported to the backlog session).
 
@@ -41,7 +42,8 @@ Fold into [medications](../docs/domain/medications.md) at landing: the matching 
 - **Wave 2: slices 2 and 4, side by side.** Slice 2 owns the id helpers (in the passes half of the due logic, with `givenAllWrites`) and the device's dose writers. Slice 4 owns the new schedule history module, `doseSlotsBetween` and visit prep. Slice 2 adds nothing to the due-dose module's file.
 - **Wave 3: slice 3.** It owns the server's dose writes (the assistant action service) and the upsert rules.
 - **Wave 4: slice 5.** It owns `dueDoses`'s use of the history, `useDueDoses`, the connector's `todays_doses` and the server's pass planner (which slice 3 edited, hence the order).
-- **Wave 5: slice 6.** It owns the dose rules in the upsert and the delete path for uploads (B-614, B-627).
+- **Wave 5: slice 6.** It owns the dose rules in the upsert and the delete path for uploads (B-614, B-616).
+- **Wave 6: slice 7.** It owns the record of accepted duplicates and the restore rule's use of it (B-627), and adds this PRD's one migration.
 - **Stacks:** none. Integration tests run in stackless worktrees.
 - **Checks:** each slice runs `pnpm test:components --changed prd/dose-accuracy` while building, `pnpm prd check --quick "slice hand-off"` and `pnpm prd browser --changed` once before hand-off. No browser check is edited.
 - **Beside other PRDs:** `fixes-bug` lists `packages/data/src/services/` as hot; slices 3 and 5 edit only `timelineEntryService` (the upsert) and `assistantActionService` there, so the orchestrator checks the open fixes for those two files before wave 3. `sync-safety` (unwritten) lists `medications.sync.ts` and the services' upserts: if it is running, don't start slices 2 or 3 beside a slice of its that touches them. `connectors-3` (unwritten) lists the connector tools: slice 5 edits `todays_doses` only to pass the history in. `quick-entry-2` (B-300, B-301) changes how quick entry reads a dose, not how it is written; slice 2 keeps its edit in the quick-entry runner to the id. `code-health` (B-361) moves these pure files later.
@@ -179,4 +181,28 @@ Two gaps in slice 3's upload rules for a `dose`. **B-614 (the user's answer, ask
 - [ ] Integration: a member's Undo of a shared dose synced to their device still removes it; a viewer is still refused; an Easy helper's paths behave as slice 3 set them.
 - [ ] `pnpm prd check --quick` passes.
 
-**Blocked by:** 5. **Blocks:** nothing.
+B-627's criterion (a replayed duplicate leaves the dose deleted) moved to slice 7.
+
+**Blocked by:** 5. **Blocks:** 7.
+
+---
+
+## Slice 7: A retried upload can't bring back an undone dose
+
+Stack: no · Reads: docs/domain/medications.md, docs/domain/sync.md, docs/domain/data-layer.md · Tests: integration
+
+**User stories:** 6, 8. Backlog: B-627. Decided in ask a150 (skeptic s14; the user can veto), which reverses this PRD's "no schema change" assumption for this one table.
+
+### What to build
+
+A small additive, server-only table recording each accepted duplicate of a dose: the member, the dose id and the upload's `occurredAt`. Write it in the upsert's transaction at the duplicate return, so it commits exactly when the duplicate was accepted (a lost response leaves a record, a failed request leaves none). The restore rule reads it: an upload matching a record is a retry and leaves a deleted dose deleted; the same member's upload at another `occurredAt` is a new log and restores it (US 8). The table never syncs to devices, and its rows are removed with the user, the group and the entry (AGENTS.md, _Compliance_: check the account deletion path).
+
+### Acceptance criteria
+
+- [ ] Integration: B's accepted duplicate, replayed after A's Undo, leaves the dose deleted.
+- [ ] Integration: a new log by B at another `occurredAt` after A's Undo restores it; B's first upload arriving after A's Undo, with no earlier duplicate, restores it.
+- [ ] Integration: a failed upload leaves no record, so its retry still counts as a first upload.
+- [ ] Integration: the records go when the user, the group or the entry is deleted; the table is not in the sync config.
+- [ ] `pnpm prd check --quick` passes.
+
+**Blocked by:** 6. **Blocks:** nothing.
