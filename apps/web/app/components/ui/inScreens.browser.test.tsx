@@ -218,6 +218,8 @@ describe.each([
 
   test("a menu, then the sheet it opens: named, focus in and back, on the surface; the sheet full screen on a phone, centred from sm", async () => {
     await open(PROBE_URL, layout);
+    // settle covers the database only: the first render can still be on its way.
+    await expect.element(page.getByRole("button", { name: "Probe actions" })).toBeVisible();
     await menu(actions, { name: "Probe actions", items: "Open the sheet,Delete" });
     // The sheet opens from a menu item: by tap only (`overlay` reopens it from its trigger).
     await chooseAction("Open the sheet");
