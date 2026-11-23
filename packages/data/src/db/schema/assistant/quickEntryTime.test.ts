@@ -33,6 +33,12 @@ describe("words that aren't times", () => {
     "sat in the sun",
     "sun was out",
     "the sat",
+    "she sat",
+    "he sat",
+    "they sat",
+    "then she sat",
+    "mom sat",
+    "my mom sat",
     "2nd tylenol",
     "the 2nd tylenol",
     "the 2nd dose",
@@ -57,6 +63,10 @@ describe("the days they must not take away", () => {
     ["next sun", { weekday: 0, modifier: "next" }],
     ["this sat", { weekday: 6, modifier: "this" }],
     ["dr lee sat", { weekday: 6 }],
+    ["appt sat", { weekday: 6 }],
+    ["call mom sat", { weekday: 6 }],
+    ["she sat 2pm", { weekday: 6 }],
+    ["she left on sat", { weekday: 6 }],
     ["on the 2nd", { date: 2 }],
     ["on 2nd", { date: 2 }],
     ["dr lee the 2nd", { date: 2 }],
@@ -89,6 +99,18 @@ describe("am and pm", () => {
 });
 
 describe("through the parser", () => {
+  test("a member's name before a last 'sat' is the verb", () => {
+    const members = [{ id: "66666666-6666-4666-8666-666666666666", name: "Sam Rivera" }];
+    const timed = (line: string, extra: Partial<QuickEntryContext> = {}) =>
+      parseQuickEntry(line, { ...context, members, ...extra }).parts[0]!.readings[0]!.actions[0];
+    expect(timed("Sam sat")).toMatchObject({ occurredAt: NOW.toISOString() });
+    expect(timed("Sam Rivera sat")).toMatchObject({ occurredAt: NOW.toISOString() });
+    // Not when the name opens something else, or a provider has it too.
+    expect(timed("call Sam sat")).not.toMatchObject({ occurredAt: NOW.toISOString() });
+    const lee = [{ id: "66666666-6666-4666-8666-666666666666", name: "Lee Park" }];
+    expect(timed("Lee sat", { members: lee })).not.toMatchObject({ occurredAt: NOW.toISOString() });
+  });
+
   test("'sat up in chair' is a note dated now", () => {
     const r = top("sat up in chair");
     expect(r.kind).toBe("note");
