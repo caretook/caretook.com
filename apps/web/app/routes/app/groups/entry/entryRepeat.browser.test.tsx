@@ -78,7 +78,7 @@ afterEach(() => vi.useRealTimers());
 describe("the repeat field", () => {
   test("previews each choice in words with the next three visits, and refuses a week with no days", async () => {
     const device = await open(NEW_EVENT);
-    expect(REPEAT_BUTTON()?.getAttribute("aria-label")).toBe("Repeat: Doesn't repeat");
+    expect((await found(REPEAT_BUTTON)).getAttribute("aria-label")).toBe("Repeat: Doesn't repeat");
     await openRepeat();
     await expect.poll(() => PRESET()?.value).toBe("none");
     expect(document.querySelector<HTMLElement>("[data-repeat-preview]")).toBeNull();

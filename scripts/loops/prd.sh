@@ -133,13 +133,13 @@ pnpm prd <command>
     ci [<branch>]             the latest whole-tier verdict for the branch's tip
 
   Land
-    land <topic> [-m subject] [--recheck "<why>"] [--no-review] [--local]
+    land <topic> [-m subject] [--tier <t> [--why "<reason>"]] [--fixes B-n,…] [--no-review] [--local]
                               merge prd/<topic> into dev (only when the dev keeper says so) through its
                               PR: merged on GitHub once its head is the local tip and Codex's verdict is
-                              clean, then dev-sync (--recheck: when the last check is stale, run it on the
-                              tip in the branch's worktree and land on a pass; --no-review: skip the
-                              verdict, on the user's word only; --local: a local merge, the fallback, on
-                              their word)
+                              clean and the CI gate passes, then dev-sync (--tier: the tier to wait for, by
+                              default the diff's proposal; below it needs --why; --fixes: the dev brake
+                              this landing fixes; --no-review: skip the verdict, on the user's word only;
+                              --local: a local merge, the fallback, on their word)
     land hotfix/<name> --pr|--local [-m subject]   a hotfix: ask the user "PR or local?" each time
     land plan/<topic>         a plan branch: always a local merge
     review <topic|branch> [--json] [--wait [min]] [--again] [--resolve <threadId>]
@@ -147,7 +147,7 @@ pnpm prd <command>
                               stale) and its findings; --again asks Codex again, --resolve closes a declined
                               thread, --wait polls until Codex answers on the head (exit 0/1/2, 4 out of credits, 75 timed out);
                               a clean verdict carries over a plain dev merge
-    pr <topic|hotfix/name> [-m subject]   push dev (fast-forward only) and the branch, then open its PR into
+    pr <topic|hotfix/name> [-m subject] [--tier <t> [--why "<reason>"]]   push dev (fast-forward only) and the branch, then open its PR into
                               dev, or update the open one (title: the landing subject; body: backlog items,
                               the check pass); plan/ branches are refused
     dev-sync [branch]         bring the main checkout's dev up to origin/dev after a GitHub merge (land runs
@@ -320,18 +320,16 @@ case $cmd in
     done
     [[ -z $(git -C "$dir" status --porcelain) ]] || die "commit your changes first: the check is recorded against a commit"
     record=$(checked_file "$dir")
-    # The mode comes from the plan (check-plan.mjs): a quick check on a diff that
-    # touches a migration, seeds, the sync config, a lockfile, a package.json
-    # (beyond its scripts) or the Vitest config is a full one, and the tooling tests join when it touches
-    # the tooling. A slice's --quick is the slice check: its own test files only,
-    # never forced to full.
+    # The plan (check-plan.mjs) names the diff's own tests, and the tooling tests
+    # join when it touches the tooling. A quick check stays quick: what a diff needs
+    # beyond it is the landing's tier. A slice's --quick is the slice check.
     asked=full
     if ((quick)); then
       asked=quick
       [[ $(git -C "$dir" branch --show-current) == slice/* ]] && asked=slice
     fi
     base=$(check_base "$dir" "$asked")
-    { read -r pmode; read -r preason; read -r ptooling; read -r pown; } < <(
+    { read -r pmode; read -r ptooling; read -r pown; } < <(
       git -C "$dir" diff --name-only "$base" HEAD | node "$bin/check-plan.mjs" --mode "$asked" --repo "$dir" --base "$base" --head HEAD)
     rm -f "$record"
     # A check lease (lease.sh; CARETOOK_CHECK_SLOTS, default 2) around it, so a
@@ -340,13 +338,11 @@ case $cmd in
       echo "Slice check against ${base:0:7}: typecheck, lint, format, every unit test, and the integration and component tests this diff adds or edits ($why)"
     elif [[ $pmode == quick ]]; then
       echo "Quick check against ${base:0:7}: typecheck, lint, format, every unit test, the integration tests related to the diff, and the component tests it adds or edits ($why)"
-    elif ((quick)); then
-      echo "$preason"; why=""
     fi
     [[ $ptooling != 0 ]] && echo "The diff touches the tooling: the tooling tests (pnpm test:tooling) join."
     # shellcheck disable=SC2086
     (cd "$dir" && use_node && "$bin/lease.sh" run check --label "pnpm check${pmode:+ ($pmode)}" -- \
-      "$bin/check-run.sh" "$pmode" "${why:-$preason}" -- "$bin/check-body.sh" "$pmode" "$base" "$ptooling" $pown)
+      "$bin/check-run.sh" "$pmode" "$why" -- "$bin/check-body.sh" "$pmode" "$base" "$ptooling" $pown)
     if [[ $pmode == quick || $pmode == slice ]]; then
       echo "$(git -C "$dir" rev-parse HEAD) quick $base $why" > "$record"
       echo "quick check passed on $(git -C "$dir" rev-parse --short HEAD) ($(git -C "$dir" branch --show-current)): $why"
