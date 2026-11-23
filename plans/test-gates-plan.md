@@ -17,6 +17,8 @@ Items B-553, B-554, B-341, B-528, B-529, B-530, B-555, B-556, B-559, B-242, B-56
 
 **Now: wave 5 (slices 11, 6, 7, landed together under the new gate).** Slice 11 is merged (e7cfad86; B-587 to B-590 done). Slice 6 is merged (e82dc279; B-528 and B-554 done; three opus agents, the first two hit the context limit). Slice 7 is merged (490eb14a; B-553 done). Worktrees `test-gates-11`, `test-gates-6` and `test-gates-7` stay until the wave's run is green, so a failure can go back to them.
 
+**Hand-over (context rotation):** all three slices are merged and dev is synced at f2e57eab (dev brought migration 0037; this worktree's database was reset). The previous session started the gate in the background: the quick check, then `pnpm prd ci run full --ref prd/test-gates --wait 45`. That job may have ended with the rotation. First run `pnpm prd ci prd/test-gates` and `pnpm prd check --times`; reuse a full verdict on this tip if there is one, and rerun only what is missing. Commits since that are only this plan keep a verdict.
+
 **To land wave 5:** merge slice 7, then `pnpm prd sync`, the quick check, and a real `pnpm prd ci run full --wait` on the tip as the proof. Then the PR, Codex, and `pnpm prd land test-gates --tier full -m "<subject>"`. The landing notice must tell other orchestrators the gate changed at their next sync.
 
 **For the landing report (slice 6's decisions):** `--recheck` is retired and refuses, pointing to `--tier`. `--tier none` over a real proposal is refused even with `--why`. A harness change or a scripts-only `package.json` commit doesn't keep a verdict. Blame files dev's failures even when the landing is then refused.
