@@ -6,7 +6,7 @@
 
 **Landing mode: run everything through** (started run-through; ask only real questions, through `pnpm prd ask`). The PRD lands once, after wave 2.
 
-Wave 1: slice 1 (agent on opus) handed off at `731544d0` and merged as `1cfac27b`; quick check on the merge running. Its worktree stays until the wave's CI verdict is green. Slices 2, 3 and 4 are unblocked.
+Wave 1: slice 1 (agent on opus) handed off at `731544d0` and merged as `1cfac27b`; quick check passed on `b64426da`. Wave 1's CI run (`components`, the proposed tier) requested; wave 2 starts on its green verdict. Its worktree stays until the wave's CI verdict is green. Slices 2, 3 and 4 are unblocked.
 
 | Slice | Wave | State  | Merge into `prd/timeline-jump` (slice commits)  |
 | ----- | ---- | ------ | ----------------------------------------------- |
