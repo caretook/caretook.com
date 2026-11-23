@@ -97,6 +97,47 @@ describe("the Avatar card", () => {
   });
 });
 
+describe("choosing offline", () => {
+  const FRAMED = { route: ROUTES, url: "/app/settings/account", frame: true };
+  const header = () => getByCss('[data-region="user"] [data-avatar-color]');
+
+  test("shows in the picker and header, and survives a reload", async () => {
+    const first = await renderWithDevice(FRAMED);
+    await choose("Color", "Jade");
+    await choose("Icon", "Bird");
+    await save();
+    await expect.element(page.getByText("Saved on this device.", { exact: false })).toBeVisible();
+    await expect.element(preview()).toHaveAttribute("data-avatar-color", "jade");
+    await expect.element(header()).toHaveAttribute("data-avatar-icon", "bird");
+
+    // What a reload keeps: only this device's storage, read again by a new screen.
+    expect(localStorage.getItem(`caretook:avatar-pending:${TEST_USER.id}`)).toContain("jade");
+    await first.screen.unmount();
+    await renderWithDevice(FRAMED);
+    await expect.element(radio("Color", "Jade")).toBeChecked();
+    await expect.element(header()).toHaveAttribute("data-avatar-color", "jade");
+    await expect.element(header()).toHaveAttribute("data-avatar-icon", "bird");
+  });
+});
+
+describe("back online", () => {
+  test("the queued choice is sent on reconnect", async () => {
+    const { calls, api, stored } = server({ color: null, icon: null });
+    const setAvatar = api["me.setAvatar"];
+    delete api["me.setAvatar"];
+    await renderWithDevice({ route: ROUTES, url: "/app/settings/account", api, frame: true });
+    await choose("Color", "Rose");
+    await save();
+    await expect.element(page.getByText("Saved on this device.", { exact: false })).toBeVisible();
+
+    if (setAvatar) api["me.setAvatar"] = setAvatar;
+    window.dispatchEvent(new Event("online"));
+    await expect.poll(stored).toEqual({ color: "rose", icon: null });
+    expect(calls.of("me.setAvatar")).toEqual([{ color: "rose", icon: null }]);
+    await expect.element(preview()).toHaveAttribute("data-avatar-color", "rose");
+  });
+});
+
 describe("UserAvatar's looks", () => {
   const shown = async (look?: { color?: string | null; icon?: string | null }) => {
     await renderInRouter(<UserAvatar data-testid="who" name="Rosa Delgado" look={look} />);

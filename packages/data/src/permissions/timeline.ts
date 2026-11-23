@@ -5,6 +5,7 @@ import {
   LOGGERS,
   OWN_ROW_LOGGERS,
   SYSTEM_ONLY,
+  SYSTEM_ONLY_SCHEMA,
   WRITERS,
   groupEntry,
   groupOwnEntry,
@@ -33,4 +34,8 @@ export const TIMELINE_PERMISSIONS = {
     },
     delete: groupOwnEntry(WRITERS, OWN_ROW_LOGGERS),
   },
+
+  // Accepted duplicate uploads of a dose (B-627): written and read directly
+  // by timelineEntryService.upsert, never through a model.
+  doseDuplicateUploadSchema: SYSTEM_ONLY_SCHEMA,
 } as const satisfies PartialPermissions;
