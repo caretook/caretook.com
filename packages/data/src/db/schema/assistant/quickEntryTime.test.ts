@@ -2,7 +2,7 @@ import type { QuickEntryContext } from "./quickEntry";
 
 import { describe, expect, test } from "vitest";
 import { parseQuickEntry } from "./quickEntry";
-import { findTime } from "./quickEntryTime";
+import { findTime, resolveTime } from "./quickEntryTime";
 
 // Words that aren't times leave the time alone. The clock is fixed in the
 // recipient's zone, America/Los_Angeles, like the parser's own table.
@@ -105,5 +105,151 @@ describe("through the parser", () => {
     const r = top("o2 sat 95");
     expect(r.kind).toBe("vital");
     expect(r.actions[0]).toMatchObject({ occurredAt: NOW.toISOString() });
+  });
+});
+
+// Slice 4: dates and hours. Wall times below are Los Angeles (PST, UTC-8, in November).
+const pst = (date: string, time: string) => new Date(`${date}T${time}:00-08:00`).toISOString();
+const resolved = (line: string, direction: "past" | "future", now: Date) => {
+  const spec = find(line)!.spec;
+  const r = resolveTime(spec, { now, timeZone: "America/Los_Angeles", direction });
+  return { at: r.at.toISOString(), allDay: r.allDay };
+};
+const parsedAt = (now: Date) => ({
+  ...context,
+  now,
+  providers: [
+    ...context.providers,
+    { id: "66666666-6666-4666-8666-666666666666", name: "Dr. Elena Alvarez", type: "clinician" as const },
+  ],
+});
+const topAt = (line: string, now: Date) => parseQuickEntry(line, parsedAt(now)).parts[0]!.readings[0]!;
+const blockingOf = (r: ReturnType<typeof top>) => r.warnings.filter((w) => w.blocking);
+const AT_7 = new Date(pst("2026-11-19", "07:00"));
+
+describe("month/day dates", () => {
+  test.each([
+    ["11/25", { month: 11, date: 25 }],
+    ["11/25/26", { month: 11, date: 25, year: 2026 }],
+    ["11/25/2026", { month: 11, date: 25, year: 2026 }],
+    ["3/10/26", { month: 3, date: 10, year: 2026 }],
+    ["on 1/4", { month: 1, date: 4 }],
+    ["on 1/2", { month: 1, date: 2 }],
+    ["on 11/10", { month: 11, date: 10 }],
+    ["2/29", { month: 2, date: 29 }],
+  ])("%s", (line, day) => {
+    expect(specOf(line)?.day).toEqual(day);
+  });
+
+  test.each([
+    "gave 1/2 tylenol",
+    "gave 1/3 tylenol",
+    "gave 2/3 tylenol",
+    "gave 1/4 tylenol",
+    "gave 3/4 tylenol",
+    "nausea 3/10",
+    "6/10 pain in left knee",
+    "11/10",
+    "bp 120/80",
+    "13/25",
+    "11/31",
+    "2/30",
+    "2/29/26",
+    "0/5",
+  ])("%s has no date", (line) => {
+    expect(find(line)).toBeNull();
+  });
+
+  test("'11/25 at 2pm' is Nov 25, 14:00", () => {
+    expect(resolved("11/25 at 2pm", "future", NOW).at).toBe(pst("2026-11-25", "14:00"));
+  });
+
+  test("'11/25' alone is all day ahead, and that day back", () => {
+    expect(resolved("11/25", "future", NOW)).toEqual({ at: pst("2026-11-25", "00:00"), allDay: true });
+    expect(resolved("11/25", "past", NOW)).toEqual({ at: pst("2025-11-25", "08:00"), allDay: false });
+  });
+
+  test("'on 1/4' and 'on 11/10' are those days", () => {
+    expect(resolved("on 1/4", "future", NOW).at).toBe(pst("2027-01-04", "00:00"));
+    expect(resolved("on 11/10", "past", NOW).at).toBe(pst("2026-11-10", "08:00"));
+  });
+
+  test("a typed year is kept, either way", () => {
+    expect(resolved("11/25/26", "past", NOW).at).toBe(pst("2026-11-25", "00:00"));
+    expect(resolved("1/5/26", "future", NOW).at).toBe(pst("2026-01-05", "00:00"));
+  });
+
+  test("Feb 29 without a year is the nearest leap year's", () => {
+    expect(resolved("2/29", "future", NOW).at).toBe(pst("2028-02-29", "00:00"));
+    expect(resolved("2/29", "past", NOW).at).toBe(pst("2024-02-29", "08:00"));
+  });
+
+  test("'dr alvarez 11/25 at 2pm' is an event on Nov 25 at 14:00", () => {
+    const r = topAt("dr alvarez 11/25 at 2pm", NOW);
+    expect(r.kind).toBe("event");
+    expect(r.actions[0]).toMatchObject({ occurredAt: pst("2026-11-25", "14:00"), allDay: false });
+  });
+});
+
+describe("a bare hour", () => {
+  test.each([
+    ["dr alvarez at 2", "future", "20:00", "2026-11-20", "14:00"],
+    ["dr alvarez at 2", "future", "09:00", "2026-11-19", "14:00"],
+    ["at 8", "future", "15:00", "2026-11-19", "20:00"],
+    ["at 8", "future", "06:00", "2026-11-19", "08:00"],
+    ["at 2am", "future", "20:00", "2026-11-20", "02:00"],
+    ["at 05:00", "future", "20:00", "2026-11-20", "05:00"],
+    ["at 5:00", "future", "20:00", "2026-11-20", "17:00"],
+    ["gave tylenol at 2", "past", "09:00", "2026-11-19", "02:00"],
+  ] as const)("%s read %s at %s", (line, direction, time, date, expected) => {
+    const now = new Date(pst("2026-11-19", time));
+    expect(resolved(line, direction, now).at).toBe(pst(date, expected));
+  });
+});
+
+describe("a period that has begun", () => {
+  test.each(["bp 120/80 this morning", "bp 120/80 in the morning", "n: had dialysis this morning"])(
+    "%s at 7:00 is dated 7:00, unblocked",
+    (line) => {
+      const r = topAt(line, AT_7);
+      expect(r.actions[0]).toMatchObject({ occurredAt: AT_7.toISOString() });
+      expect(blockingOf(r)).toEqual([]);
+    },
+  );
+
+  test("'woke at 5 this morning' is 5:00 today", () => {
+    expect(topAt("woke at 5 this morning", AT_7).actions[0]).toMatchObject({
+      occurredAt: pst("2026-11-19", "05:00"),
+    });
+  });
+
+  test("at 10:00, 'bp 120/80 this morning' is 8:00", () => {
+    const r = topAt("bp 120/80 this morning", new Date(pst("2026-11-19", "10:00")));
+    expect(r.actions[0]).toMatchObject({ occurredAt: pst("2026-11-19", "08:00") });
+  });
+
+  test("before it begins, a past-only kind is still blocked", () => {
+    const r = topAt("bp 120/80 this morning", new Date(pst("2026-11-19", "03:00")));
+    expect(blockingOf(r).map((w) => w.message)).toEqual(["Can't be in the future"]);
+  });
+
+  test.each([
+    ["call the pharmacy this afternoon", "12:30"],
+    ["call the pharmacy tonight", "21:00"],
+    ["walk this evening", "10:00"],
+  ])("%s at %s is a todo first, its note dated now", (line, time) => {
+    const now = new Date(pst("2026-11-19", time));
+    const readings = parseQuickEntry(line, parsedAt(now)).parts[0]!.readings;
+    expect(readings[0]!.kind).toBe("todo");
+    expect(readings.find((r) => r.kind === "note")!.actions[0]).toMatchObject({
+      occurredAt: now.toISOString(),
+    });
+  });
+
+  test("'last night' is unchanged", () => {
+    const now = new Date(pst("2026-11-19", "21:00"));
+    expect(topAt("bp 120/80 last night", now).actions[0]).toMatchObject({
+      occurredAt: pst("2026-11-18", "22:00"),
+    });
   });
 });
