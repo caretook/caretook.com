@@ -1,7 +1,7 @@
 import type { TimelineEntry } from "../../db";
 import type { Filter, QuerySelectArgs } from "../base/queryHelpers";
 
-import { and, desc, sql } from "drizzle-orm";
+import { and, desc, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, SYSTEM_USER } from "../../constants";
 import { dbMayFail, txOrDb } from "../../db";
@@ -189,6 +189,59 @@ export const remove = async (args: QuerySelectArgs<K>) => {
   if (!res.length) return newError({ code: "baseModel:remove:nothingRemoved" });
 
   return { ids: res.map((r) => r.id) };
+};
+
+/**
+ * Bring a soft-deleted entry back as the actor's own, with `content`: a dose
+ * another member deleted whose shared id this member then uploaded. Checked
+ * against the table's **create** permission, since it adds the actor's entry
+ * (update can't touch `deletedAt`, and an Easy helper can't update another
+ * member's row). Nothing happens to a live row. `via` is cleared: it says who
+ * created a row.
+ */
+export const restore = async (
+  id: string,
+  content: Partial<
+    Pick<
+      TimelineEntry,
+      | "title"
+      | "body"
+      | "occurredAt"
+      | "timeZone"
+      | "details"
+      | "allDay"
+      | "endsAt"
+      | "place"
+      | "cancelledAt"
+      | "cancelledBy"
+      | "cancelReason"
+      | "rescheduledTo"
+      | "seriesId"
+      | "seriesDay"
+      | "seriesDetached"
+    >
+  >,
+  args: Pick<QuerySelectArgs<K>, "authUser" | "tx">,
+) => {
+  const where = generateQueryWhere(schemaName, "create", {
+    ...args,
+    filter: { id: { type: "eq", value: id } },
+  });
+  if (isError(where)) return where;
+
+  const t = timelineEntrySchema;
+  const actor = args.authUser?.id ?? SYSTEM_USER.id;
+  const res = await dbMayFail(
+    () =>
+      txOrDb(args.tx)
+        .update(t)
+        .set({ ...content, deletedAt: null, via: null, createdBy: actor, updatedBy: actor })
+        .where(and(where, isNotNull(t.deletedAt)))
+        .returning({ id: t.id }),
+    "timelineEntryModel:restore",
+  );
+  if (isError(res)) return res;
+  return res.length ? getById(id, args) : null;
 };
 
 /** Hard delete, for retention jobs and data-deletion requests. System only. */
