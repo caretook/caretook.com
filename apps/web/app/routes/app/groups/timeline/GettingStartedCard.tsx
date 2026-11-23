@@ -1,6 +1,7 @@
 import type { SetupStep } from "~/lib/app-shell/gettingStarted";
 
 import { CheckCircle2, Circle, Sparkles, X } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router";
 import { Card, ICON, IconButton, LINK } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -109,11 +110,13 @@ export function GettingStartedCard({
   const { id, userId, role } = useGroup();
   const { setupDismissed } = useCachedSettings(userId);
   const setup = useSetupFacts(id, userId);
+  // The window is read once per visit: a card doesn't vanish under someone mid-page.
+  const [openedAt] = useState(() => Date.now());
   // Until the device answers, neither card: the invite card mustn't flash first.
   if (!setup) return null;
   const plan = gettingStartedSteps({ role, facts: setup.facts });
   const shows =
-    plan && !plan.finished && !setupDismissed.includes(id) && inSetupWindow(setup.joinedAt, Date.now());
+    plan && !plan.finished && !setupDismissed.includes(id) && inSetupWindow(setup.joinedAt, openedAt);
   if (!shows) return <InviteSomeoneCard className={className} />;
   return (
     <Card

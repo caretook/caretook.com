@@ -61,7 +61,7 @@ describe("the setup card", () => {
     await expect.poll(card).not.toBeNull();
     await device.sync([
       medication,
-      fx.medicationChange({ medicationId: medication.row.id as string, change: "started" }),
+      fx.medicationChange({ medicationId: medication.row.id, change: "started" }),
     ]);
     await device.settle();
     await expect.poll(() => step("medication")?.hasAttribute("data-done")).toBe(true);

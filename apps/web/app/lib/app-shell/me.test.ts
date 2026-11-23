@@ -191,7 +191,7 @@ describe("dismissed setup cards", () => {
     expect(pending()).toEqual({ setupDismissed: [B] });
   });
 
-  it("keeps a pending dismissal on top of the server's list", async () => {
+  it("keeps a pending dismissal on top of the server's list", () => {
     store.set(`caretook:settings:${USER}`, JSON.stringify({ setupDismissed: [A] }));
     store.set(`caretook:settings-pending:${USER}`, JSON.stringify({ setupDismissed: [B] }));
     expect(cachedSettings(USER).setupDismissed).toEqual([A, B]);
