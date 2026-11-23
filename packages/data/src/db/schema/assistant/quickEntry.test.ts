@@ -698,6 +698,24 @@ describe("doses", () => {
           expect(when(r)).toBe(NOW.toISOString());
         });
 
+        test("'gave lorazepam 1/2 mg' at a 0.5 mg strength is the usual dose, no date (B-641)", () => {
+          const r = top("gave lorazepam 1/2 mg", { medications: lorazepam });
+          expect(action(r)).toMatchObject({ type: "logDose", amount: "1 tablet", note: null });
+          expect(when(r)).toBe(NOW.toISOString());
+        });
+
+        test.each([
+          ["gave lorazepam 1/2 mg", "0.5 mg", "0.5 mg", "0.5 mg"],
+          ["gave lorazepam 1/2 mg", "0.5 mg", "2 tablets", "1/2 mg"],
+          ["gave lorazepam 1/2 mg", "0.5 mg", null, "1/2 mg"],
+          ["gave lorazepam 1/4 mg", "0.5 mg", "1 tablet", "1/4 mg"],
+          ["gave lorazepam 1/2 mcg", "0.5 mg", "1 tablet", "1/2 mcg"],
+        ])("%s at %s with a usual %s records %s", (line, strength, dose, amount) => {
+          const r = top(line, { medications: [{ ...lorazepam[0]!, strength, dose }] });
+          expect(action(r)).toMatchObject({ type: "logDose", amount, note: null });
+          expect(when(r)).toBe(NOW.toISOString());
+        });
+
         test("a fraction that isn't the strength is still the amount", () => {
           const r = top("gave lorazepam 1/4", { medications: lorazepam });
           expect(action(r)).toMatchObject({ amount: "1/4 tablet" });

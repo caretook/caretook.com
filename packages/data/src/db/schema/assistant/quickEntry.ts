@@ -1082,6 +1082,28 @@ const countedAmount = (word: string, value: number, dose: string | null | undefi
   return `${word} ${value <= 1 ? unit.one : unit.many}`;
 };
 
+const MEASURE = /^(\d+(?:\.\d+)?)\s*([a-z]+)$/i;
+
+/**
+ * The amount typed with a unit. A fraction that is exactly the strength ("1/2
+ * mg" at 0.5 mg) names one unit of it, so it records the usual dose when that
+ * is one unit or the same measure. A usual "2 tablets" would double what was
+ * typed, so there the typed amount stands.
+ */
+const typedAmount = (tokens: readonly Token[], used: readonly number[], med: QuickEntryMedication) => {
+  const raw = rawOf(tokens, used);
+  const [word, unit] = used.map((i) => tokens[i]!.w);
+  if (used.length !== 2 || !/^(?:\d\/\d|½)$/.test(word!)) return raw;
+  const strength = MEASURE.exec(med.strength?.trim() ?? "");
+  if (!strength || Number(strength[1]) !== countValue(word!) || strength[2]!.toLowerCase() !== unit)
+    return raw;
+  const dose = med.dose?.trim() ?? "";
+  const measure = MEASURE.exec(dose);
+  const sameMeasure =
+    !!measure && Number(measure[1]) === Number(strength[1]) && measure[2]!.toLowerCase() === unit;
+  return sameMeasure || (/^(?:1|one|an?)\s/i.test(dose) && usualUnit(dose)) ? dose : raw;
+};
+
 /** Words in directions that describe how to take a medication; only another word there can be a brand. */
 const DIRECTION_WORDS = new Set(
   (
@@ -1308,8 +1330,8 @@ const doseReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   if (!inherited && !forced && !nameOnly) return [];
   for (const i of [...verbUsed, ...amountUsed, ...matches[0]!.used, ...typedUsed(0)]) s.claimed.add(i);
   const at = s.time.past.at;
-  const amount = amountUsed.length ? rawOf(s.tokens, amountUsed) : null;
   return matches.map((m, rank) => {
+    const amount = amountUsed.length ? typedAmount(s.tokens, amountUsed, m.item) : null;
     const noteIdx = stripLeading(
       s.tokens,
       rest.filter((i) => !amountUsed.includes(i) && !m.used.includes(i) && !typedUsed(rank).includes(i)),
