@@ -1,4 +1,5 @@
 import { ASSISTANT_REQUEST_WINDOW_DAYS } from "@caretook/data/schema";
+import { Button, Message } from "~/components/ui/plain";
 import { ASK_OWNERS, ASKED_NOTE, askedOn, ASKING_OWNERS, canAskAgain } from "~/lib/connectors/connectGuide";
 import { useAskOwners } from "./useAskOwners";
 
@@ -23,15 +24,11 @@ export function AskOwners({ groupId, askedAt: initial }: { groupId: string; aske
           . {ASKED_NOTE}
         </p>
       ) : (
-        <button type="button" className="btn btn-sm" disabled={busy} onClick={() => void ask()}>
-          {busy ? ASKING_OWNERS : ASK_OWNERS}
-        </button>
+        <Button size="sm" busy={busy} busyLabel={ASKING_OWNERS} onClick={() => void ask()}>
+          {ASK_OWNERS}
+        </Button>
       )}
-      {error && (
-        <p role="alert" className="text-error text-sm">
-          {error}
-        </p>
-      )}
+      {error && <Message tone="error">{error}</Message>}
     </div>
   );
 }

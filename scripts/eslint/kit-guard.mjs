@@ -20,11 +20,6 @@ export const KIT_CLASSES_ALLOWED = [
 /** Areas with hits today. A sweep's last step deletes its group; `ui-kit-5` empties the list. */
 /** @type {string[]} */
 export const KIT_CLASSES_NOT_SWEPT = [
-  // ui-kit-5 slice 6: account and connectors.
-  "components/connectors/ConnectGuide.tsx",
-  "components/connectors/ask/AskOwners.tsx",
-  "routes/account/AuthCard.tsx",
-  "routes/connectors/connect/ConnectConsent.tsx",
   // ui-kit-5 slice 7: the frame, home and the new group page.
   "routes/app/groups/new/route.tsx",
   "routes/app/home/NewGroupLink.tsx",

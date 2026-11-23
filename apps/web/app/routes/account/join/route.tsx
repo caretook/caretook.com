@@ -7,7 +7,7 @@ import { ORPCError } from "@orpc/client";
 import { useRef, useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
 import { NewGroupFields, newGroupFromForm } from "~/components/groups";
-import { Button, CheckField, Field } from "~/components/ui/plain";
+import { Button, CheckField, Field, LINK } from "~/components/ui/plain";
 import { toActionResult } from "~/lib/core/api";
 import { accountUrls } from "~/lib/auth/accountUrls";
 import { appUrls } from "~/lib/app-shell/appUrls";
@@ -154,8 +154,6 @@ export default function Join({ loaderData, actionData }: Route.ComponentProps) {
   return <JoinForm key={code} actionData={actionData} />;
 }
 
-const INPUT = "input w-full";
-
 function JoinForm({ actionData }: { actionData: ActionData | undefined }) {
   const submitOnce = useSubmitOnce();
   const busy = useNavigation().state !== "idle";
@@ -183,28 +181,16 @@ function JoinForm({ actionData }: { actionData: ActionData | undefined }) {
       <Form method="post" onSubmit={submitOnce} className="space-y-1" data-join-form={step}>
         <div ref={accountRef} hidden={step !== "account"} data-join-step="account">
           <p className="text-sm">First, your Caretook account. You'll be the care group's owner.</p>
-          <Field label="Your name">
+          <Field kind="input" label="Your name">
+            {(control) => <input {...control} name="name" autoComplete="name" maxLength={100} required />}
+          </Field>
+          <Field kind="input" label="Email" error={issue("email")}>
+            {(control) => <input {...control} type="email" name="email" autoComplete="email" required />}
+          </Field>
+          <Field kind="input" label="Password" help="At least 12 characters." error={issue("password")}>
             {(control) => (
               <input
                 {...control}
-                className={INPUT}
-                name="name"
-                autoComplete="name"
-                maxLength={100}
-                required
-              />
-            )}
-          </Field>
-          <Field label="Email" error={issue("email")}>
-            {(control) => (
-              <input {...control} className={INPUT} type="email" name="email" autoComplete="email" required />
-            )}
-          </Field>
-          <Field label="Password" help="At least 12 characters." error={issue("password")}>
-            {(control) => (
-              <input
-                {...control}
-                className={INPUT}
                 type="password"
                 name="password"
                 autoComplete="new-password"
@@ -213,16 +199,9 @@ function JoinForm({ actionData }: { actionData: ActionData | undefined }) {
               />
             )}
           </Field>
-          <Field label="Password again">
+          <Field kind="input" label="Password again">
             {(control) => (
-              <input
-                {...control}
-                className={INPUT}
-                type="password"
-                name="confirm"
-                autoComplete="new-password"
-                required
-              />
+              <input {...control} type="password" name="confirm" autoComplete="new-password" required />
             )}
           </Field>
         </div>
@@ -255,7 +234,7 @@ function JoinForm({ actionData }: { actionData: ActionData | undefined }) {
       </Form>
       <p className="text-center text-sm">
         Already have a Caretook account?{" "}
-        <Link to={accountUrls.signIn()} className="link">
+        <Link to={accountUrls.signIn()} className={LINK}>
           Sign in
         </Link>
       </p>

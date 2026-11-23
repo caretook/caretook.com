@@ -2,7 +2,7 @@ import type { FormEvent, ReactNode } from "react";
 
 import { useCallback, useRef } from "react";
 import { useSubmit } from "react-router";
-import { Field, Message, Notice } from "~/components/ui/plain";
+import { Card, Field, Message, Notice } from "~/components/ui/plain";
 
 // The card every signed-out account page sits in (sign-in, reset password,
 // verify email). Shared by those routes only, so it lives beside them.
@@ -36,12 +36,10 @@ export function useSubmitOnce() {
 export function AuthCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-8">
-      <div className="card bg-base-100 w-full max-w-sm shadow-md">
-        <div className="card-body gap-4">
-          <h1 className="card-title text-2xl">{title}</h1>
-          {children}
-        </div>
-      </div>
+      <Card className="w-full max-w-sm">
+        <h1 className="text-2xl font-semibold">{title}</h1>
+        {children}
+      </Card>
     </main>
   );
 }
@@ -49,11 +47,10 @@ export function AuthCard({ title, children }: { title: string; children: ReactNo
 /** An email field (the same on every account form). */
 export function EmailField({ defaultValue }: { defaultValue?: string }) {
   return (
-    <Field label="Email">
+    <Field kind="input" label="Email">
       {(control) => (
         <input
           {...control}
-          className="input w-full"
           type="email"
           name="email"
           autoComplete="email"
