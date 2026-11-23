@@ -782,7 +782,7 @@ describe("upsert: a dose's shared slot id", () => {
       const failed = await withTransaction(async (tx) => {
         ok(await timelineEntryService.upsert({ ...u.admin.ctx, tx }, dose("B", id, LATER)));
         return newError({ code: "timelineEntryService:notFound" });
-      }, u.admin.ctx);
+      });
       expect(codeOf(failed)).toBe("timelineEntryService:notFound");
       expect(await records(id)).toEqual([]);
 
