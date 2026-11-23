@@ -9,7 +9,7 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 | 1. The browser suite runs in CI                | 1    | landed 06309608 (PR #118)    | e3169ce8 |
 | 2. Browser results, reruns and flakes          | 2    | landed b55e4413 (PR #120)    | 186a23c3 |
 | 3. A release candidate                         | 3    | merged (opus), real cut open | 22dc1231 |
-| 4. Promotion refuses what isn't passing        | 3    | started (opus)               |          |
+| 4. Promotion refuses what isn't passing        | 3    | merged (opus)                | c9670a4c |
 | 5. The release tier                            | 4    | not started                  |          |
 | 6. The required check on main and its override | 5    | not started                  |          |
 
@@ -17,7 +17,11 @@ PRD: [test-gates-2-prd.md](test-gates-2-prd.md). Items B-532, B-533. Starts afte
 
 **Now:** wave 2 landed in `dev` as b55e4413 through PR #120 (Codex clean on 28d79ca0, `candidate` run 45201998537 green on ab503425, 11 of 11 browser checks; forced-flake proof run 45198526790 read `flake`). Slice 2's worktree is removed and the runbook has the browser verdict rules. B-532 (the staging candidate) stays open for slices 3 and 4, B-533 (the staging to main gate) for 5 and 6. Report filed.
 
-**Next:** wave 3 is running. Synced with `dev` (only backlog commits were newer), backlog ingested, nothing new for this topic. Slice 3's worktree is made and its agent (opus) is building with a hard stop before any real CI run, candidate cut or staging PR. The wave 3 CI approval is ask a144 (`--waits`, skeptic s12): no real CI run, candidate cut or staging PR until it is answered. Any `ci/` branch made for the real run is deleted with the `rc/` branch. The candidate rule counts only `rc/*` heads, so held PR #115 (head `dev`) is never touched. Slice 3 is merged (22dc1231) with one criterion open: the real cut, which also first exercises the real `gh` calls, the `ci.mjs` wiring and `--wait`. Slice 4 (opus) is started with the same hard stop; its promote must delete the `rc/*` branch when it merges, because a leftover branch with no open PR doesn't count as a candidate.
+**Next:** wave 3's slices are both merged (3: 22dc1231, quick check passed on 6ff88fcc; 4: c9670a4c, quick check next). Their worktrees stay until the wave's verdict is green. **Blocked on ask a144** (`--waits`, skeptic s12): no real CI run, candidate cut or staging PR until it is answered. On a yes: request the wave's run, cut one real candidate, link its run, close its PR unmerged, and delete the `rc/` branch and any `ci/` branch made for it. The real cut first exercises slice 3's `gh` calls, its `ci.mjs` wiring and `--wait`. The candidate rule counts only `rc/*` heads, so held PR #115 (head `dev`) is never touched.
+
+**Wave 3 docs to fold at landing:** orchestrator.md: remove _The backstop_ and the interim "request a `full` run" rule; _Branches and protection_: `staging` takes candidates (`rc/*`) through `pnpm prd ci promote`; agents never merge a candidate any other way, and the user's hand merge on GitHub is the override. `ops/runbook.md` lines 105 and 222: "staging takes PRs from `dev`" becomes candidates and promote. `docs/agents/machinery.md` is 10 bytes over budget already, so don't grow it.
+
+**Open from slice 4:** B-681 (promotion prints a passing flake's tests but doesn't file them) is proposed for this topic. `gh pr merge` can't pin the base, so staging moving between promote's ancestor check and its merge isn't caught. The real `gh pr merge` and `gh pr view` calls stay unexercised until the user's first real promotion.
 
 **For slice 4:** the gate must refuse a `flake` when any `flaky[].brake` is true; slice 2 only sets the flag. **For slice 5:** reuse `runBrowserJob` and `summarizeBrowser` for repeat runs.
 
