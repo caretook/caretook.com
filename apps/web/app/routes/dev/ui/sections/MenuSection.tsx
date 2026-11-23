@@ -1,6 +1,6 @@
 import { ArrowUpDown, EllipsisVertical, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Menu, SEPARATOR, TOOL_CIRCLE } from "~/components/ui";
+import { CIRCLE, Menu, SEPARATOR } from "~/components/ui";
 import { Example } from "../Example";
 
 export function MenuSection() {
@@ -11,7 +11,10 @@ export function MenuSection() {
         <Menu
           label="Note actions"
           title="Note actions"
-          className={TOOL_CIRCLE}
+          variant="ghost"
+          size="sm"
+          shape="square"
+          className={CIRCLE}
           items={[
             { id: "edit", label: "Edit", icon: Pencil, onAction: () => undefined },
             SEPARATOR,
@@ -25,7 +28,10 @@ export function MenuSection() {
         <Menu
           label="Sort"
           title="Sort"
-          className={TOOL_CIRCLE}
+          variant="ghost"
+          size="sm"
+          shape="square"
+          className={CIRCLE}
           items={[
             {
               type: "section",
