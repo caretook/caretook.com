@@ -309,7 +309,7 @@ describe("mentions on the entry page", () => {
     await expect.poll(() => mentionChips()[0]?.href).toBeNull();
     expect(mentionChips()).toEqual([{ id: PATEL.id, text: "Dr. Samuel Patel", href: null }]);
     expect(document.querySelector<HTMLElement>(".ProseMirror [data-mention] span")?.className).toContain(
-      "text-base-content/50",
+      "text-faint",
     );
   });
 

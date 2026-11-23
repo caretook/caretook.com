@@ -20,18 +20,6 @@ export const KIT_CLASSES_ALLOWED = [
 /** Areas with hits today. A sweep's last step deletes its group; `ui-kit-5` empties the list. */
 /** @type {string[]} */
 export const KIT_CLASSES_NOT_SWEPT = [
-  // ui-kit-5 slice 4: entries and the notes editor.
-  "components/entry/EntryActions.tsx",
-  "components/entry/RemindMeSheet.tsx",
-  "components/notes/LiveNotesEditor.tsx",
-  "routes/app/groups/entry/EntryCancelledBanner.tsx",
-  "routes/app/groups/entry/EntryRepeat.tsx",
-  "routes/app/groups/entry/EntryTimeChip.tsx",
-  "routes/app/groups/entry/EntryVisitPrep.tsx",
-  "routes/app/groups/entry/EntryWithRow.tsx",
-  "routes/app/groups/entry/PeriodSuggestionChip.tsx",
-  "routes/app/groups/entry/ShareButton.tsx",
-  "routes/app/groups/entry/route.tsx",
   // ui-kit-5 slice 5: admin.
   "routes/admin/AccountBadges.tsx",
   "routes/admin/access-codes/route.tsx",

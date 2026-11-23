@@ -2,6 +2,7 @@ import type { MemberRow } from "~/lib/timeline/timeline.sync";
 
 import { CalendarX2 } from "lucide-react";
 import { Link } from "react-router";
+import { Notice, TITLE_SUB } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { cancelledByLine } from "~/lib/appointments/eventCancel";
 import { useLiveQuery } from "~/lib/sync";
@@ -51,14 +52,9 @@ export function EntryCancelledBanner({
   const byName = members.find((m) => m.user_id === cancelledBy)?.name || null;
 
   return (
-    <section
-      aria-labelledby="cancelled-heading"
-      className="alert alert-warning alert-soft items-start"
-      data-cancelled-banner
-    >
-      <CalendarX2 className="mt-0.5 size-5" aria-hidden="true" />
-      <div className="min-w-0">
-        <h2 id="cancelled-heading" className="font-semibold">
+    <section aria-labelledby="cancelled-heading" data-cancelled-banner>
+      <Notice tone="warning" icon={CalendarX2} action={onUndo && { label: "Undo cancel", onAction: onUndo }}>
+        <h2 id="cancelled-heading" className={TITLE_SUB}>
           Cancelled
         </h2>
         {cancelReason && (
@@ -73,15 +69,10 @@ export function EntryCancelledBanner({
             </Link>
           </p>
         )}
-        <p className="text-sm opacity-80" data-cancelled-by>
+        <p className="text-muted" data-cancelled-by>
           {cancelledByLine({ cancelledAt, byName }, new Date(now))}
         </p>
-      </div>
-      {onUndo && (
-        <button type="button" className="btn btn-sm" onClick={onUndo}>
-          Undo cancel
-        </button>
-      )}
+      </Notice>
     </section>
   );
 }
