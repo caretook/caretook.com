@@ -133,7 +133,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-252 | feature | triaged | connectors-3 |  | Connector: a tool to read the dosing schedule beyond today (tomorrow's or this week's rounds and times), separate from upcoming |
 | B-253 | feature | triaged | connectors-3 |  | Connector: add_todo can make a repeating todo (daily, weekly on days, monthly) |
 | B-254 | feature | triaged | planner-3 |  | Quick entry: 'bins out every monday' makes a repeating todo |
-| B-256 | bug | landed | fixes-ui | prd/fixes-ui | call and directions icons on planner schedule should be below the time, not beside the… |
+| B-256 | bug | staging | fixes-ui | prd/fixes-ui | call and directions icons on planner schedule should be below the time, not beside the… |
 | B-269 | chore | triaged | ui-kit-4 |  | Guard the kit: a lint rule or layout test that keeps react-aria imports in ui/ and flags raw btn, card, badge and alert classes outside ui/ |
 | B-286 | bug | triaged | sync-safety |  | A repeatable 5xx from sync.upload blocks a device's upload queue forever: no retry cap, and the sync indicator never shows uploadError or the queue length |
 | B-288 | bug | triaged | sync-safety |  | A replayed PUT on an existing row is a full update with the insert-time values, reverting newer edits (and for medications writing no change entry) |
@@ -157,8 +157,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-309 | change | triaged | calendars-2 |  | Reminder emails show times in the recipient's zone with no zone label, 24-hour en-GB format; and 'monthly on the 29th–31st' silently skips short months (no 'last day' option) |
 | B-311 | bug | triaged | fixes-perf |  | The series top-up reads every live series every minute and rewrites topped_up_through daily even on ended series (re-syncing them to every device) |
 | B-313 | bug | triaged | fixes-perf |  | Timeline and Planner load and watch every note document in the group (snapshot, text, pending updates) to preview 30 rows, rerunning on each co-member keystroke |
-| B-316 | change | in-progress | fixes-ui | prd/fixes-ui | No unsaved-changes guard on any sheet or form: a click outside, Escape or Back discards a half-filled medication, emergency or provider form |
-| B-319 | bug | landed | fixes-ui | prd/fixes-ui | Empty states flash before the first watch answer: a provider's linked entries ('No notes or events yet') and linked todos ('Former member') |
+| B-316 | change | ready | fixes-ui | prd/fixes-ui | No unsaved-changes guard on any sheet or form: a click outside, Escape or Back discards a half-filled medication, emergency or provider form |
+| B-319 | bug | staging | fixes-ui | prd/fixes-ui | Empty states flash before the first watch answer: a provider's linked entries ('No notes or events yet') and linked todos ('Former member') |
 | B-325 | change | triaged | fixes-ui |  | Native readiness: no top safe-area inset on the header or sticky day headers (viewport-fit=cover), and /app is a blank page on cold start for up to about 4 s (HydrateFallback returns null) |
 | B-327 | bug | triaged | account-security |  | A removed or demoted manager's pending invites still work: a removed owner can accept their own owner invite within 7 days and be an owner again |
 | B-328 | bug | triaged | account-security |  | The emailed sign-in code has no per-address limit (per IP only): a distributed attacker gets unlimited guesses at any account's 6-digit code |
@@ -218,13 +218,13 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-406 | feature | triaged | inbox-agent |  | Set priority in the inbox, not the backlog: the user orders a short 'Next up' list in plans/inbox.md (plain lines, no ids or fields) and the dispatcher reads it as the order to plan and run, keeping the PRD table's row order in step; the user opens the backlog only when an agent asks |
 | B-407 | feature | triaged | self-recovery |  | Recover by itself and land safely: a launchd job runs pnpm prd recover --wait at login and when work is recorded as running but no session is alive; the dispatcher slows down before a usage limit (starts no slice or planner, drains); a landing or migration cut off halfway leaves a step-in-progress marker so the resumed session finishes or undoes it |
 | B-408 | feature | triaged | worker-watch |  | Stuck workers handled by the orchestrator: it tracks how long its commands and slice agents have run against their usual time, stops and restarts a stuck one on its own judgement (once), and for a judgement call asks a fresh skeptic agent first and the user through the asks queue only if that doesn't settle it |
-| B-412 | bug | landed | fixes-ui | prd/fixes-ui | plus button on timeline day header should be on far right so all actions are on right. Care period… |
-| B-413 | bug | landed | fixes-ui | prd/fixes-ui | don't collapse past providers on list providers page, it breaks search and isn't needed. This list… |
-| B-416 | bug | landed | fixes-ui | prd/fixes-ui | owner pill on planner/planner list should be below time/date field. Too busy under title. |
+| B-412 | bug | staging | fixes-ui | prd/fixes-ui | plus button on timeline day header should be on far right so all actions are on right. Care period… |
+| B-413 | bug | staging | fixes-ui | prd/fixes-ui | don't collapse past providers on list providers page, it breaks search and isn't needed. This list… |
+| B-416 | bug | staging | fixes-ui | prd/fixes-ui | owner pill on planner/planner list should be below time/date field. Too busy under title. |
 | B-417 | feature | triaged | marketing |  | We are getting close to feature complete. We need another marketing content pass that updates copy… |
 | B-418 | bug | triaged | fixes-tooling |  | Flaky tooling test under load: recover.test.mjs '--at a time that has passed waits until tomorrow' fails in the full pnpm test:tooling run and passes alone |
-| B-421 | bug | landed | fixes-ui | prd/fixes-ui | type pill on medication list items should float right. |
-| B-422 | feature | landed | fixes-ui | prd/fixes-ui | In providers list page, contact links in rows make it too hard to know what to click. Make those… |
+| B-421 | bug | staging | fixes-ui | prd/fixes-ui | type pill on medication list items should float right. |
+| B-422 | feature | staging | fixes-ui | prd/fixes-ui | In providers list page, contact links in rows make it too hard to know what to click. Make those… |
 | B-425 | feature | triaged | inbox-agent |  | An inbox agent: a session that helps the user add, categorize and prioritize inbox items, and writes them by pushing straight to origin/dev instead of committing in the local dev checkout, so it never steps on the user's working copy |
 | B-429 | change | triaged | asks-relay |  | Asks queue hygiene: reports that go stale are re-checked or expire, answered asks are archived, and an ask whose session has died still reaches the user |
 | B-430 | feature | triaged | staging-ship |  | Codex findings on a PRD pull request become backlog items by tool: verified against the code, duplicates noted on the existing item, as B-404 does for the staging PR |
@@ -254,7 +254,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-465 | bug | triaged | fixes-tooling |  | pnpm prd down keeps stopping servers, stacks and the test Postgres when the dispatcher won't stop in time (mid new.sh), racing a start against the shutdown |
 | B-467 | feature | triaged | asks-relay |  | The backlog session is the go-between for every agent's questions: agents file to the asks queue and wait, the backlog session ranks them by how soon an answer blocks real work, asks the user itself and decides which ones ping the phone |
 | B-468 | bug | triaged | fixes-tooling |  | open-session.sh fails when iTerm2 has windows but no current window: the dispatcher counts it as a planner death |
-| B-471 | feature | landed | ui-kit-3 | prd/ui-kit-3 | Overlay motion: menus, popovers, dialogs and toasts fade in and out, and a sheet closes with the reverse of its opening |
+| B-471 | feature | staging | ui-kit-3 | prd/ui-kit-3 | Overlay motion: menus, popovers, dialogs and toasts fade in and out, and a sheet closes with the reverse of its opening |
 | B-474 | change | triaged | inbox-agent |  | Inbox agent plan amendments from the user: it never leaves staged or uncommitted changes behind (stash, or commit and push), and someone is named as owning cleanup of completed items |
 | B-477 | change | triaged | fixes-tooling |  | PRD registry: a hold carries its reason |
 | B-479 | bug | triaged | fixes-tooling |  | calendarCron.int.test.ts 'runs the reminders first, then Google push and pull, and the series top-up last by default' times out at 5 s under load (passes alone) |
@@ -281,15 +281,15 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-513 | change | triaged | agent-autonomy-3 |  | Opus planners and backlog sessions with a Fable final check: the skeptic pass runs on Fable and may send a plan back; a registry flag (e.g. design) keeps a heavy design topic's planner on Fable |
 | B-515 | feature | triaged | inbox-agent |  | Always-on backlog and inbox sessions: the dispatcher keeps one backlog and one inbox session running and reopens a dead one; they don't count against the three PRD slots, and the context watch (B-507) rotates them too |
 | B-518 | change | triaged | agent-autonomy |  | Land without re-syncing when dev's changes don't touch the branch: land.sh's drift refusal relaxes when dev's new commits share no file with the branch and bring none of the risky files; land still merges dev and typechecks the result, and the landing report says it landed on an unsynced tip |
-| B-519 | bug | landed | fixes-ui | prd/fixes-ui | Easy mode button on the timeline sits lower than the Timeline page title: align it with the title's row (same vertical center and baseline) |
-| B-521 | change | landed | ui-kit-3 | prd/ui-kit-3 | Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark |
-| B-522 | change | landed | ui-kit-3 | prd/ui-kit-3 | Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary) |
-| B-523 | change | landed | ui-kit-3 | prd/ui-kit-3 | Each section's accent color as an icon chip beside the page title and as the current tab's pill tint; Easy mode stays neutral |
-| B-524 | change | landed | ui-kit-3 | prd/ui-kit-3 | Empty states show a colored icon circle in the section's accent color |
+| B-519 | bug | staging | fixes-ui | prd/fixes-ui | Easy mode button on the timeline sits lower than the Timeline page title: align it with the title's row (same vertical center and baseline) |
+| B-521 | change | staging | ui-kit-3 | prd/ui-kit-3 | Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark |
+| B-522 | change | staging | ui-kit-3 | prd/ui-kit-3 | Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary) |
+| B-523 | change | staging | ui-kit-3 | prd/ui-kit-3 | Each section's accent color as an icon chip beside the page title and as the current tab's pill tint; Easy mode stays neutral |
+| B-524 | change | staging | ui-kit-3 | prd/ui-kit-3 | Empty states show a colored icon circle in the section's accent color |
 | B-525 | bug | triaged | fixes-tooling |  | Asks: two processes taking over a dead holder's ask lock can both remove it, so one deletes the other's fresh lock and an answer and a default overlap (asks.mjs withAskLock) |
 | B-526 | bug | triaged | fixes-tooling |  | Notices: two concurrent posts can lower the .seq high-water mark (check-then-rename), so after both expire a notice id is reused and a late notices --done withdraws a newer notice (notices.mjs createNotice) |
 | B-527 | bug | triaged | fixes-bug |  | Todo Undo and Done writes are voided with no catch (TodoUndoStatus.undo, useTodoTick's run via void complete(...)): a write that throws becomes an unhandled rejection, with nothing shown to the user |
-| B-528 | chore | triaged | test-gates |  | Rapid-mode landing gate: a landing into dev needs only the quick check (no local full, no escalation to full), the changed browser checks and Codex; CI on dev runs the rest |
+| B-528 | chore | in-progress | test-gates | prd/test-gates | Rapid-mode landing gate: a landing into dev needs only the quick check (no local full, no escalation to full), the changed browser checks and Codex; CI on dev runs the rest |
 | B-529 | chore | landed | test-gates | prd/test-gates | Dev red, by kind after one CI rerun of the failed tests: brake (build, typecheck, lint, or a sync, offline, RBAC, privacy, migration or seed test: other landings wait, only the fix lands); file (a real failure in one area: a fixes-bug item against the landing); flake (passes on rerun: quarantined, filed to fixes-tooling) |
 | B-530 | chore | landed | test-gates | prd/test-gates | Flake quarantine: CI runs quarantined tests without failing on them; each entry names its fixes-tooling item and leaves the list when the item is done |
 | B-532 | chore | triaged | test-gates-2 |  | Staging candidate: cut a release candidate branch from a green dev commit and open the PR into staging from it; CI runs the lean browser suite on the Docker stack against that fixed commit; only fixes go onto it |
@@ -297,7 +297,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-535 | change | ready | fixes-ui | prd/fixes-ui | Hour-first time picker: defaults to the current hour at :00, minutes in 15-minute steps (00/15/30/45), works on phones; for medication dose times, pass time, todo due time, series edit times and event/appointment Starts/Ends |
 | B-536 | bug | ready | fixes-ui | prd/fixes-ui | Danger text fails 4.5:1 in light: Menu's danger item and buttonClass's dangerQuiet use text-error (about 2.9:1); DateTimeField's placeholder segments at 60% opacity are a little under 4.5:1 on the light field fill |
 | B-537 | change | ready | fixes-ui | prd/fixes-ui | One word in the app: Event, never Appointment; 'Upcoming event' / 'Past event' only where the two mix and timing isn't clear (an event's page heading, the Today card's next line, the todo form's event picker) |
-| B-538 | change | landed | fixes-ui | prd/fixes-ui | Planner tabs become Upcoming \| Past \| Todos: Upcoming and Past move out of the chip row into the main pill tabs (the Planner heading names the section), the filter button sits beside the tabs on Upcoming, and switching to Todos and back keeps Past |
+| B-538 | change | staging | fixes-ui | prd/fixes-ui | Planner tabs become Upcoming \| Past \| Todos: Upcoming and Past move out of the chip row into the main pill tabs (the Planner heading names the section), the filter button sits beside the tabs on Upcoming, and switching to Todos and back keeps Past |
 | B-542 | chore | triaged | fixes-tooling |  | Unit-test projects run at Vitest's default workers (cores - 1, 9 here): two overlapping checks run ~18 test processes on 10 cores, the load behind the under-load timeouts; cap the unit group at about 4 (or half the cores) and time it against check-times |
 | B-543 | question | triaged | orchestration-split |  | Split the orchestration tooling into its own multi-project tool, or replace it with a prebuilt one |
 | B-544 | chore | triaged | fixes-nit |  | vitest.config.ts:196 comment still names worker databases <name>_w<VITEST_POOL_ID>; they're caretook_tw_<stem>_<hash>_w<n> since B-405 |
@@ -317,12 +317,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-563 | feature | triaged | marketing |  | Accessibility statement page |
 | B-564 | change | triaged | hosting |  | App-store prerequisites for the Capacitor apps |
 | B-565 | feature | triaged | data-rights |  | Ownership transfer: a last owner can hand a care group to another member |
-| B-566 | bug | landed | test-gates | prd/test-gates | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
-| B-567 | bug | landed | test-gates | prd/test-gates | inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2 |
+| B-566 | bug | staging | test-gates | prd/test-gates | Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector |
+| B-567 | bug | staging | test-gates | prd/test-gates | inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2 |
 | B-568 | bug | triaged | fixes-tooling | prd/test-gates | Component tests that failed once on CI's Linux runners: providers rows, provider empty links, emergency sheet, search speed, timeline Back, weekly print chart |
 | B-570 | bug | triaged | fixes-tooling |  | Session request notices can exceed the notice board's 200 characters and get dropped |
 | B-571 | bug | triaged | fixes-tooling |  | Staging reset test still times out at 30 s now and then, in CI as well as under local load |
-| B-572 | bug | landed | test-gates | prd/test-gates | Check gate: a package.json change to scripts alone should not force a full check |
+| B-572 | bug | staging | test-gates | prd/test-gates | Check gate: a package.json change to scripts alone should not force a full check |
 | B-573 | bug | triaged | fixes-tooling |  | Browser harness 'one spec' test fails now and then in a busy check: it gets a third output line where it expects two, and the check's rerun skips it as an unhandled error |
 | B-574 | bug | triaged | fixes-tooling |  | ESLint aborts with exit 134 in the lint step of a check, seen in two worktrees within a second |
 | B-575 | change | ready | fixes-ui | prd/fixes-ui | Planner tabs' accessible name still says 'Planner or todos': name it for Upcoming, Past and Todos, and update the roundtrip browser check that selects it |
@@ -337,9 +337,11 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-584 | chore | triaged | fixes-tooling |  | Backlog prompt: "deploy staging" trigger that promotes dev and notifies my phone |
 | B-585 | bug | triaged | fixes-ui |  | Stepping an event's hour up from 11 AM wraps to 12 AM the same day, not 12 PM, so Ends shows 'Must be after the start' |
 | B-586 | bug | triaged | fixes-tooling |  | Phone notifications from the backlog session never arrive |
-| B-587 | bug | in-progress | test-gates | prd/test-gates | ci blame calls a failure the branch's when dev's comparison run skipped it as quarantined |
-| B-588 | bug | in-progress | test-gates | prd/test-gates | ci blame says every failure is dev's when a flake hides an unnamed job failure |
-| B-589 | bug | in-progress | test-gates | prd/test-gates | ci blame calls a named failure dev's when dev only failed to load the test file |
+| B-587 | bug | ready | test-gates | prd/test-gates | ci blame calls a failure the branch's when dev's comparison run skipped it as quarantined |
+| B-588 | bug | ready | test-gates | prd/test-gates | ci blame says every failure is dev's when a flake hides an unnamed job failure |
+| B-589 | bug | ready | test-gates | prd/test-gates | ci blame calls a named failure dev's when dev only failed to load the test file |
+| B-590 | bug | ready | test-gates | prd/test-gates | ci blame calls a branch's file-level failure dev's when dev only fails a named test in that file |
+| B-591 | bug | triaged | fixes-bug |  | Quick entry reads a fraction after the medication as a date: 'gave tylenol 3/8' logs the usual dose on March 8 |
 
 ## Items
 
@@ -575,7 +577,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-256 · bug · call and directions icons on planner schedule should be below the time, not beside the…
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: b5373bc9
@@ -820,10 +822,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-316 · change · No unsaved-changes guard on any sheet or form: a click outside, Escape or Back discards a half-filled medication, emergency or provider form
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: df2ff0d5
 
 - 2026-11-21 (Robert Bo Davis): Code review 2026-11-21, from a reviewer's reading, not re-verified by the backlog session. components/ui/Sheet.tsx:47-51 (isDismissable); no useBlocker or dirty check anywhere. May belong with the ui-kit PRD's form primitives.
 - 2026-11-21 (prd/orchestration-2): category: ui (orchestration-2 split)
@@ -831,7 +833,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-319 · bug · Empty states flash before the first watch answer: a provider's linked entries ('No notes or events yet') and linked todos ('Former member')
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 488e09bf
@@ -1423,7 +1425,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-412 · bug · plus button on timeline day header should be on far right so all actions are on right. Care period…
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 91aced06
@@ -1434,7 +1436,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-413 · bug · don't collapse past providers on list providers page, it breaks search and isn't needed. This list…
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 13ac9f5a
@@ -1445,7 +1447,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-416 · bug · owner pill on planner/planner list should be below time/date field. Too busy under title.
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: f6f40e4f
@@ -1477,7 +1479,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-421 · bug · type pill on medication list items should float right.
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: fc5dbe18
@@ -1486,7 +1488,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-422 · feature · In providers list page, contact links in rows make it too hard to know what to click. Make those…
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 8834115b
@@ -1790,7 +1792,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-471 · feature · Overlay motion: menus, popovers, dialogs and toasts fade in and out, and a sheet closes with the reverse of its opening
 
-- status: landed
+- status: staging
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
 - commit: 6711b506
@@ -2074,7 +2076,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-519 · bug · Easy mode button on the timeline sits lower than the Timeline page title: align it with the title's row (same vertical center and baseline)
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: b2aa214a
@@ -2083,7 +2085,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-521 · change · Section and entry-type accent colors: tokens distinct from the status colors, each with a paired tint and text color checked for contrast in light and dark
 
-- status: landed
+- status: staging
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
 - commit: 49d983dd
@@ -2093,7 +2095,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-522 · change · Timeline entry-type icons use the new accent colors instead of the status colors (warning, info, primary, secondary)
 
-- status: landed
+- status: staging
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
 - commit: 49d983dd
@@ -2103,7 +2105,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-523 · change · Each section's accent color as an icon chip beside the page title and as the current tab's pill tint; Easy mode stays neutral
 
-- status: landed
+- status: staging
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
 - commit: b3a6562f
@@ -2113,7 +2115,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-524 · change · Empty states show a colored icon circle in the section's accent color
 
-- status: landed
+- status: staging
 - prd: ui-kit-3
 - owner: prd/ui-kit-3
 - commit: a1ff2d67
@@ -2154,9 +2156,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-528 · chore · Rapid-mode landing gate: a landing into dev needs only the quick check (no local full, no escalation to full), the changed browser checks and Codex; CI on dev runs the rest
 
-- status: triaged
+- status: in-progress
 - prd: test-gates
-- owner:
+- owner: prd/test-gates
 - commit:
 
 - 2026-11-22 (Robert Bo Davis): From the 2026-11-22 backlog session: the user's test-gate tiers and modes; being planned inline. User chose quick only (no local full ever).
@@ -2234,7 +2236,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-538 · change · Planner tabs become Upcoming | Past | Todos: Upcoming and Past move out of the chip row into the main pill tabs (the Planner heading names the section), the filter button sits beside the tabs on Upcoming, and switching to Todos and back keeps Past
 
-- status: landed
+- status: staging
 - prd: fixes-ui
 - owner: prd/fixes-ui
 - commit: 439b6571
@@ -2330,6 +2332,8 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-22 (prd/fixes-tooling): Found at fixes-tooling wave 2's gate (2026-11-22): failed 1 of 5811 on e0c21bbf, passed 3/3 alone and in the rerun. A race from ui-kit-3's overlay fades (93cae190); other tests that reopen a menu by label may share it.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-22 (prd/test-gates): Failed in test-gates slice 9's components run 45088030543 (commit 21533389) and again on the job's rerun, so CI read it as a real failure. It now keeps the components tier red. Not quarantined, per the user's decision to re-measure after the quarantine lands.
+- 2026-11-22 (prd/fixes-ui): fixes-ui wave 2 gate (2026-11-22): failed in the full run and its rerun on ff19deb0, then 1 of 3 alone, with the strict-mode double match on getByLabel('Print'). Suggested fix, not applied or tested: after the {Escape} in print.browser.test.tsx, wait until no [role=menu] remains.
+- 2026-11-22 (prd/fixes-ui): Fixed on the user's word (2026-11-22) in prd/fixes-ui df2ff0d5: the test waits for the closing menu to go. Passed 5 of 5 alone. Mark done when fixes-ui wave 2 lands.
 
 ### B-553 · change · Slices check only their own tests: the slice check is typecheck, lint, format, every unit test and the integration and component test files the slice added or edited; the orchestrator runs the rest and sends failures back to the idle slice agent
 
@@ -2432,7 +2436,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-566 · bug · Access-code QR test fails on Linux: CI's Chromium has no BarcodeDetector
 
-- status: landed
+- status: staging
 - prd: test-gates
 - owner: prd/test-gates
 - commit: 12a01485
@@ -2443,7 +2447,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-567 · bug · inScreens first probe test reads the Probe actions button before the first render, failing when it runs first in CI's component shard 2
 
-- status: landed
+- status: staging
 - prd: test-gates
 - owner: prd/test-gates
 - commit: 12a01485
@@ -2484,7 +2488,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-572 · bug · Check gate: a package.json change to scripts alone should not force a full check
 
-- status: landed
+- status: staging
 - prd: test-gates
 - owner: prd/test-gates
 - commit: 12a01485
@@ -2625,27 +2629,45 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-587 · bug · ci blame calls a failure the branch's when dev's comparison run skipped it as quarantined
 
-- status: in-progress
+- status: ready
 - prd: test-gates
 - owner: prd/test-gates
-- commit:
+- commit: e7cfad86
 
 - 2026-11-22 (prd/test-gates): Codex on PR #81 (scripts/ci/blame.mjs:120), verified: a narrowed dev run skips quarantined tests and runQuarantine returns early on narrowed runs, so a test never run on dev reads as passing there. Run the targeted quarantined tests or leave them unknown. Fix before slice 6's gate relies on blame.
 
 ### B-588 · bug · ci blame says every failure is dev's when a flake hides an unnamed job failure
 
-- status: in-progress
+- status: ready
 - prd: test-gates
 - owner: prd/test-gates
-- commit:
+- commit: e7cfad86
 
 - 2026-11-22 (prd/test-gates): Codex on PR #81 (scripts/ci/blame.mjs:42), reproduced: a file verdict with empty afterRerun and the job's assertion in flaky gives partial=false and exit 0 with nothing run on dev. A flake must not explain the failed job; return unknown. Must be fixed before slice 6, whose gate lands a file verdict when blame gives every failure to dev.
 
 ### B-589 · bug · ci blame calls a named failure dev's when dev only failed to load the test file
 
-- status: in-progress
+- status: ready
 - prd: test-gates
 - owner: prd/test-gates
-- commit:
+- commit: e7cfad86
 
 - 2026-11-22 (prd/test-gates): Codex on PR #81 (scripts/ci/blame.mjs:109), reproduced: a branch's named assertion against a dev verdict listing the file with no named tests lands in split.dev, though dev never ran the assertion. Leave it unknown. Must be fixed before slice 6, whose gate lands a file verdict when blame gives every failure to dev.
+
+### B-590 · bug · ci blame calls a branch's file-level failure dev's when dev only fails a named test in that file
+
+- status: ready
+- prd: test-gates
+- owner: prd/test-gates
+- commit: e7cfad86
+
+- 2026-11-22 (prd/test-gates): Found in slice 11's hand-off, verified in scripts/ci/blame.mjs failsOnDev: a failure with no test name matches any named dev failure in the same file, so a branch load error can be cleared as dev's and blameExit can return 0. Fixed in slice 11 before slice 6 relies on blame.
+
+### B-591 · bug · Quick entry reads a fraction after the medication as a date: 'gave tylenol 3/8' logs the usual dose on March 8
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-22 (Robert Bo Davis): Codex on PR #82 (quickEntry.ts:1907), reproduced on db91f582: with a usual dose of 2 tablets, 'gave tylenol 3/8' gives amount 2 tablets dated 2026-03-08, while 'gave 3/8 tylenol' gives 3/8 tablet now. isFractionAmount only looks forward for the medication. Sibling of B-578.
