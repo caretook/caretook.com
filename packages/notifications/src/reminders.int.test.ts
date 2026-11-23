@@ -174,12 +174,14 @@ describe("sweepReminders", { timeout: 30_000 }, () => {
     );
 
     const [generic] = to((await sweep(HOUR_BEFORE)).sent, ana.user.email);
-    expect(generic?.subject).toMatch(/^Event for Pat Example · .+ · 9:00–10:00$/);
+    expect(generic?.subject).toMatch(/^Event for Pat Example · \w{3}, \w{3} \d+ · 9:00–10:00 AM P[SD]T$/);
     for (const part of [generic!.subject, generic!.text, generic!.html]) {
       expect(part).not.toContain("Dialysis");
       expect(part).not.toContain("Riverside");
       expect(part).not.toContain("Rivera");
     }
+    expect(generic!.text).toMatch(/9:00–10:00 AM P[SD]T/);
+    expect(generic!.html).toMatch(/9:00–10:00 AM P[SD]T/);
     expect(generic!.text).toContain(`/app/groups/${group.id}/entries/${visit.id}`);
     expect(generic!.headers).toMatchObject({ "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" });
 
@@ -251,7 +253,7 @@ describe("sweepReminders", { timeout: 30_000 }, () => {
         .sort(),
     ).toEqual(["appointmentReminder", "todoDue"]);
     const todo = to(sent, ben.user.email).find((m) => m.name === "todoDue");
-    expect(todo?.subject).toMatch(/^Todo for Pat Example · .+ · 9:00$/);
+    expect(todo?.subject).toMatch(/^Todo for Pat Example · \w{3}, \w{3} \d+ · 9:00 AM P[SD]T$/);
     expect(todo?.text).not.toContain("prescription");
     // Cy's was queued and then skipped, not sent.
     expect(to(sent, cy.user.email)).toEqual([]);

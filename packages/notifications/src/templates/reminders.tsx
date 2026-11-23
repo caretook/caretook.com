@@ -46,7 +46,7 @@ const textZ = (max: number) => z.string().trim().min(1).max(max);
 const reminderDataZ = z.object({
   /** calendarText's summary: "Event for Pat", or with details "Event for Pat: Dialysis". */
   summary: textZ(300),
-  /** When, in the member's zone: "Thu 19 Nov · 9:00–10:00". */
+  /** When, in the member's zone: "Thu, Nov 19 · 9:00–10:00 AM PST". */
   when: textZ(120),
   /** Details only. */
   location: z.string().trim().max(300).nullish(),
