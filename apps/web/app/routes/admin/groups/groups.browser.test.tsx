@@ -6,6 +6,7 @@ import { formString } from "~/lib/core/form";
 import { page, userEvent } from "vitest/browser";
 import { adminFx } from "../../../../test/adminFixtures";
 import { found } from "../../../../test/found";
+import { getByCss } from "../../../../test/locators";
 import { openAdmin, postedForms } from "../adminWorld";
 import * as group from "../group/route";
 import { parseGroupSearch } from "./groupFilters";
@@ -140,7 +141,7 @@ describe("a group's staff page", () => {
     await userEvent.fill(dialog().getByRole("textbox", { name: /Reason/ }), "The family asked by phone");
     await userEvent.click(confirm);
 
-    await expect.element(device.screen.getByRole("status")).toHaveTextContent("Lee Park is now an owner.");
+    await expect.element(getByCss('[data-admin-result="ok"]')).toHaveTextContent("Lee Park is now an owner.");
     await expect.poll(() => memberRow(viewer.email)?.getAttribute("data-role")).toBe("owner");
     expect(document.querySelector("[data-no-owner]")).toBeNull();
     expect(document.querySelector('[data-action="group.promoteOwner"]')).not.toBeNull();
@@ -183,7 +184,7 @@ describe("a group's staff page", () => {
     );
     await userEvent.click(device.screen.getByRole("button", { name: "Send owner invite" }));
     await expect
-      .element(device.screen.getByRole("status"))
+      .element(getByCss('[data-admin-result="ok"]'))
       .toHaveTextContent("Sent an owner invite to min.park.jr@example.com.");
     expect(posts).toEqual([
       { intent: "inviteOwner", email: "min.park.jr@example.com", reason: "Nobody suitable to promote" },
