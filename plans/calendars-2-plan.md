@@ -8,15 +8,15 @@
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-| Slice | Wave | Model | State                             | Merge into `prd/calendars-2` (slice commits) |
-| ----- | ---- | ----- | --------------------------------- | -------------------------------------------- |
-| 1     | 1    | opus  | started (worktree, agent spawned) |                                              |
-| 2     | 2    |       | not started                       |                                              |
-| 3     | 1    | opus  | started (worktree, agent spawned) |                                              |
-| 4     | 2    |       | not started                       |                                              |
-| 5     | 1    | opus  | started (worktree, agent spawned) |                                              |
-| 6     | 1    | opus  | started (worktree, agent spawned) |                                              |
-| 7     | 3    |       | not started                       |                                              |
+| Slice | Wave | Model | State                                      | Merge into `prd/calendars-2` (slice commits) |
+| ----- | ---- | ----- | ------------------------------------------ | -------------------------------------------- |
+| 1     | 1    | opus  | started (worktree, agent spawned)          |                                              |
+| 2     | 2    |       | not started                                |                                              |
+| 3     | 1    | opus  | started (worktree, agent spawned)          |                                              |
+| 4     | 2    |       | not started                                |                                              |
+| 5     | 1    | opus  | handed off, reviewed; merges after 1 and 3 | (`c58aee87`)                                 |
+| 6     | 1    | opus  | started (worktree, agent spawned)          |                                              |
+| 7     | 3    |       | not started                                |                                              |
 
 **Backlog:** claim a slice's item when it starts; run `pnpm backlog done` on an item when its last slice merges.
 
