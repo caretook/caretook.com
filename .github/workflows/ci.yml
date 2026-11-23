@@ -4,7 +4,7 @@
 #
 # The tier picks the jobs, each tier including the ones before it
 # (scripts/ci/tiers.mjs): static, unit, integration, components, and full
-# (the build job). The last job writes the verdict and uploads it as the
+# (the build job), candidate (the browser suite on the Docker stack). The last job writes the verdict and uploads it as the
 # `verdict` artifact, kept 7 days. A test step that fails reruns its failed files
 # once (scripts/ci/test-job.mjs); a quarantine step runs the quarantined tests and
 # can't fail the run. A commit carrying .ci-narrowed.json runs only its files' jobs.
@@ -44,6 +44,7 @@ jobs:
       integration: ${{ steps.tier.outputs.integration }}
       components: ${{ steps.tier.outputs.components }}
       full: ${{ steps.tier.outputs.full }}
+      candidate: ${{ steps.tier.outputs.candidate }}
       components2: ${{ steps.tier.outputs.components2 }}
       pg_password: ${{ steps.password.outputs.pg_password }}
     steps:
@@ -349,6 +350,75 @@ jobs:
             fi
           done
 
+  # The browser suite on the Docker stack, against a check build this job serves
+  # itself: browser.sh starts a server only in a loop worktree. The checks' caps
+  # total about 26 minutes, and setup takes the rest of the limit.
+  browser:
+    needs:
+      - plan
+    if: ${{ needs.plan.outputs.candidate == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    outputs:
+      started: ${{ steps.started.outputs.started }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: setup
+        uses: ./.github/actions/setup
+      - id: env
+        name: Fictional env
+        run: |
+          node scripts/ci/env.mjs browser >> "$GITHUB_ENV"
+          mkdir -p .loops
+      - id: chromium
+        name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - id: stack
+        name: Start the Docker stack
+        run: pnpm datastore:up
+      - id: migrate
+        name: Migrate
+        run: pnpm datastore:migrate
+      - id: seed
+        name: Seed
+        run: pnpm datastore:seed
+      - id: build
+        name: Check build
+        run: pnpm --filter @caretook/web build
+      - id: serve
+        name: Serve the check build
+        run: |
+          cd apps/web
+          NODE_ENV=production nohup node --import ../../scripts/loops/host-headers.mjs \
+            node_modules/@react-router/serve/bin.cjs build/web/server/index.js \
+            > ../../.ci-server.log 2>&1 < /dev/null &
+          for _ in $(seq 1 60); do
+            curl -fsS -o /dev/null "$BASE/sign-in" && exit 0
+            sleep 1
+          done
+          tail -n 50 ../../.ci-server.log
+          exit 1
+      - id: powersync
+        name: Fresh PowerSync start
+        run: pnpm datastore:powersync
+      - id: started
+        name: Setup finished
+        run: echo "started=true" >> "$GITHUB_OUTPUT"
+      - id: suite
+        name: Browser suite
+        # An absolute path: the runner changes directory and then resolves itself from $0.
+        run: bash "$GITHUB_WORKSPACE/scripts/loops/browser.sh" --suite
+      - id: logs
+        name: Server and PowerSync logs
+        if: ${{ failure() }}
+        run: |
+          tail -n 100 .ci-server.log || true
+          docker compose logs --tail 100 powersync || true
+
   verdict:
     needs:
       - plan
@@ -358,6 +428,7 @@ jobs:
       - components-1
       - components-2
       - build
+      - browser
     # Not on a cancelled run: no artifact reads as unknown on the Mac.
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
