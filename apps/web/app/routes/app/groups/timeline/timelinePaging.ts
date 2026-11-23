@@ -23,11 +23,18 @@ export type KeptPaging<E, L, S, M> = {
   locationKey: string;
   filterKey: string;
   limit: number;
+  /** A jump's bound as paging newer left it (null: it reached the ordinary history). */
+  before?: string | null;
   rows: PagingRows<E, L, S, M>;
 };
 
 /** How the timeline starts: the window, and the rows to show at once (none: the loader's). */
-export type StartPaging<E, L, S, M> = { limit: number; rows?: PagingRows<E, L, S, M> };
+export type StartPaging<E, L, S, M> = {
+  limit: number;
+  /** The kept bound; absent: the loader's. */
+  before?: string | null;
+  rows?: PagingRows<E, L, S, M>;
+};
 
 const keyOf = (groupId: string) => ({ groupId, name: "timeline:paging" });
 
@@ -53,6 +60,7 @@ export const startPaging = <E, L, S, M>(
   const kept = recall<KeptPaging<E, L, S, M>>(userId, keyOf(groupId));
   if (!kept || kept.locationKey !== locationKey || kept.filterKey !== filterKey || kept.limit <= PAGE_SIZE)
     return { limit: PAGE_SIZE };
-  if (kept.limit > RESTORE_CAP) return { limit: RESTORE_CAP };
-  return { limit: kept.limit, rows: kept.rows };
+  const bound = kept.before === undefined ? {} : { before: kept.before };
+  if (kept.limit > RESTORE_CAP) return { limit: RESTORE_CAP, ...bound };
+  return { limit: kept.limit, ...bound, rows: kept.rows };
 };

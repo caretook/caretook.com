@@ -259,6 +259,27 @@ export const historyWindow = (
   };
 };
 
+/**
+ * The rows just above a jump's bound, oldest first, under the same filters
+ * and cutoff as `historyWindow`: `occurred_at >= before` is that window's
+ * `< before` turned over, so a row exactly at the bound is in one, never both.
+ */
+export const newerEdgeQuery = (
+  groupId: string,
+  filters: EntryFilters,
+  before: string,
+  cutoff: string,
+  limit: number,
+): LocalQuery => {
+  const { conditions, params } = filterConditions(groupId, filters, null);
+  conditions.push(`(NOT ${HISTORY_ENDS_SQL} OR occurred_at <= ?)`, "occurred_at >= ?");
+  params.push(toLocalTimestamp(cutoff), toLocalTimestamp(before));
+  return {
+    sql: `SELECT occurred_at, kind, details FROM timeline_entry WHERE ${conditions.join(" AND ")} ORDER BY occurred_at ASC, id ASC LIMIT ?`,
+    params: [...params, limit],
+  };
+};
+
 /** How far ahead Upcoming looks before "Show later". */
 export const UPCOMING_HORIZON_DAYS = 90;
 
