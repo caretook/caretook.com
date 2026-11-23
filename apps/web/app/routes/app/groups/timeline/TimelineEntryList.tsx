@@ -8,6 +8,7 @@ import type {
 } from "@caretook/data/schema";
 import type { TimelineEntry } from "~/lib/core/rpc";
 import type { TimelineSearchState } from "./timelineSearch";
+import type { SectionAccent } from "~/lib/app-shell/sectionAccents";
 
 import { canChangeEntry, parseSearch } from "@caretook/data/schema";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -20,13 +21,14 @@ import {
   useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
-import { ConfirmDialog } from "~/components/ui";
+import { ConfirmDialog, EmptyState } from "~/components/ui";
 import { canReschedule } from "~/lib/appointments/eventReschedule";
 import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { canRemind } from "~/lib/calendars/remindMe";
 import { asksScope, ONLY_THIS_VISIT_STATE } from "~/lib/appointments/seriesScope";
 import { dayLabel, localTimeZone } from "~/lib/core/format";
 import { useGroup } from "~/lib/app-shell/group";
+import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { emptyTimelineText } from "./entryLabels";
 import { SEARCH_END_TEXT, searchAnnouncement, searchStateText } from "./timelineSearch";
 import { entryOpen } from "~/lib/timeline/entryOpen";
@@ -178,7 +180,13 @@ export function TimelineEntryList({
   const todayKey = dayKeyIn(now.toISOString(), timeZone);
   const adding = canWrite && !easy;
   // Nothing logged today, with no filter or search on: the Today heading says so (`EmptyToday`).
-  const emptyToday = adding && !kind && !author && !vital && !searching.q && data.days[0]?.key !== todayKey;
+  const unfiltered = !kind && !author && !vital && !searching.q;
+  const emptyToday = adding && unfiltered && data.days[0]?.key !== todayKey;
+  // No entries at all, with nothing filtering them: the section's icon above the line. Easy mode stays neutral.
+  const emptyMark =
+    unfiltered && data.days.length === 0
+      ? sectionAccent("timeline", { easy: easy || group.easyRole })
+      : undefined;
   const sections =
     adding && days[0]?.key !== todayKey
       ? [{ key: todayKey, label: dayLabel(now.toISOString(), timeZone, now), entries: [] }, ...days]
@@ -338,15 +346,21 @@ export function TimelineEntryList({
                 )}
               </ol>
             )}
-            {emptyToday && day.key === todayKey && <EmptyToday onAddEntry={onAddEntry} />}
+            {emptyToday && day.key === todayKey && <EmptyToday onAddEntry={onAddEntry} mark={emptyMark} />}
           </section>
         ))}
         {/* After the headings, so a writer's empty timeline starts with Today's +. */}
-        {data.days.length === 0 && !emptyToday && (
-          <p className="text-base-content/70" data-empty>
-            {searchStateText(searching.state) ?? emptyText}
-          </p>
-        )}
+        {data.days.length === 0 &&
+          !emptyToday &&
+          (emptyMark ? (
+            <EmptyState {...emptyMark} data-empty="">
+              {emptyText}
+            </EmptyState>
+          ) : (
+            <p className="text-base-content/70" data-empty>
+              {searchStateText(searching.state) ?? emptyText}
+            </p>
+          ))}
         {adding && <QuickAddPrefetch groupId={groupId} />}
 
         <OlderEntries
@@ -373,8 +387,23 @@ export function TimelineEntryList({
   );
 }
 
-/** Under an empty Today: a muted line and "Add an entry" (when there's a quick-entry box to go to). */
-function EmptyToday({ onAddEntry }: { onAddEntry?: () => void }) {
+/**
+ * Under an empty Today: a muted line and "Add an entry" (when there's a
+ * quick-entry box to go to). `mark`: the timeline has no entries at all, so
+ * the section's icon sits above the line.
+ */
+function EmptyToday({ onAddEntry, mark }: { onAddEntry?: () => void; mark?: SectionAccent }) {
+  if (mark)
+    return (
+      <div className={`mt-2 px-3 py-3 ${ROWS_BOX}`} data-empty-today>
+        <EmptyState
+          {...mark}
+          action={onAddEntry ? { label: "Add an entry", onAction: onAddEntry } : undefined}
+        >
+          {EMPTY_TODAY_TEXT}
+        </EmptyState>
+      </div>
+    );
   return (
     <div
       className={`mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3 ${ROWS_BOX}`}

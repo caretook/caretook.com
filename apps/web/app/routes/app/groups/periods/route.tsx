@@ -1,4 +1,4 @@
-import { Page, PageHeader } from "~/components/ui";
+import { EmptyState, Page, PageHeader } from "~/components/ui";
 import type { Route } from "./+types/route";
 import type { ShouldRevalidateFunctionArgs } from "react-router";
 import type { CarePeriodRow } from "~/lib/care-periods/carePeriods.sync";
@@ -88,10 +88,10 @@ export default function Periods({ loaderData, params }: Route.ComponentProps) {
       {spans.length ? (
         <PeriodList groupId={params.groupId} spans={spans} places={places} timeZone={timeZone} now={now} />
       ) : (
-        <p className="text-base-content/70 py-6 text-center" data-periods-empty>
+        <EmptyState {...sectionAccent("periods", { easy: group.easyRole })} data-periods-empty="">
           No care periods yet.
           {group.canWrite && " Add where care is now, or where it was before."}
-        </p>
+        </EmptyState>
       )}
 
       {/* The add sheet renders here, over the list. */}

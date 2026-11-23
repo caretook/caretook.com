@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { SectionAccent } from "~/lib/app-shell/sectionAccents";
 import type { ActionResult } from "~/lib/core/api";
 import type { TimelineEntry } from "~/lib/core/rpc";
 import type { UpcomingListData } from "./useUpcomingData";
@@ -14,7 +15,7 @@ import {
   useRemindMe,
   useSeriesScope,
 } from "~/components/entry";
-import { ConfirmDialog } from "~/components/ui";
+import { ConfirmDialog, EmptyState } from "~/components/ui";
 import { useVisitPrep } from "~/components/visitPrep";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { canRemind } from "~/lib/calendars/remindMe";
@@ -51,6 +52,7 @@ export function UpcomingList({
   groupId,
   label,
   empty,
+  emptyMark,
   children,
   readOnly = false,
 }: {
@@ -59,6 +61,8 @@ export function UpcomingList({
   /** The list's name for screen readers ("Upcoming", "Past events"). */
   label: string;
   empty: string;
+  /** The section's icon and accent for an unfiltered empty list; without it, a quiet line. */
+  emptyMark?: SectionAccent;
   children?: ReactNode;
   /** Only the rows: no menus or filter links (the easy roles). */
   readOnly?: boolean;
@@ -133,11 +137,16 @@ export function UpcomingList({
           {removeError ?? cancelling.error ?? scope.error}
         </p>
       )}
-      {data.sections.length === 0 && (
-        <p className="text-base-content/70" data-empty>
-          {empty}
-        </p>
-      )}
+      {data.sections.length === 0 &&
+        (emptyMark ? (
+          <EmptyState {...emptyMark} data-empty="">
+            {empty}
+          </EmptyState>
+        ) : (
+          <p className="text-base-content/70" data-empty>
+            {empty}
+          </p>
+        ))}
       {data.sections.map((section) => (
         <section key={section.key} aria-labelledby={`day-${section.key}`} data-day={section.key}>
           <h3
