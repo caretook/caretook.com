@@ -160,7 +160,7 @@ describe("the scope dialog in Upcoming", () => {
     // The pointer is still where Edit was, now over this button: rest it on the title to read the unhovered tone.
     await userEvent.hover(page.getByRole("heading", { name: "Change a repeating event" }));
     await expect.poll(() => look("Only this visit").background).toBe(token("bg-primary", "backgroundColor"));
-    expect(look("This and later visits").color).not.toBe(token("text-error", "color"));
+    expect(look("This and later visits").color).not.toBe(token("text-error-ink", "color"));
   });
 
   test("Delete, only this visit: that visit goes at once (the dialog was the confirm), the rest stay", async () => {

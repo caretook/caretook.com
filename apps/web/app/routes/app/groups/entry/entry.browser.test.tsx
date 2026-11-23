@@ -619,7 +619,7 @@ describe("appointments", () => {
     await waitUntil(() => !!seg("hour", 1));
     expect(seg("hour", 1)?.textContent).toBe("10");
     seg("hour", 1)!.focus();
-    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}");
     await waitUntil(
       () => !!CHIP_DIALOG()?.textContent?.includes("Must be after the start"),
       "the field error",
