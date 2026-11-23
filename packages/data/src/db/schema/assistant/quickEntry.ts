@@ -1697,14 +1697,25 @@ const mentionedText = (s: PartState) => {
 };
 
 /**
+ * Whether the line opens by asking for something to be done ("call the
+ * pharmacy", "remember to …") and nothing in it reports what happened.
+ */
+const asksForAction = (s: PartState) =>
+  s.vocab.some(
+    (m) => m.used[0] === s.free[0] && (m.entry.role === "requestVerb" || m.entry.role === "requestLead"),
+  ) && !hasRole(s, "reportWord", "visitVerb", "contactVerb");
+
+/**
  * Whether the part says a time ahead for a note: a phrase that points ahead
  * on its own ("tomorrow", "in 2 hours", "next friday"), any time beside an
- * appointment word that isn't a visit ("appt friday 3pm"), or one that, read
- * back as a note's is, is still to come today ("tonight", "this evening").
- * A note can't be ahead, so such a line is a todo.
+ * appointment word that isn't a visit ("appt friday 3pm"), a part of day with
+ * no day on a line asking for something ("call the pharmacy in the morning"),
+ * or one that, read back as a note's is, is still to come today ("tonight",
+ * "this evening"). A note can't be ahead, so such a line is a todo.
  */
 const noteAhead = (s: PartState) => {
   if (!s.time.spec) return false;
+  if ("period" in s.time.spec && s.time.spec.period && !s.time.spec.day && asksForAction(s)) return true;
   const forward = saysFuture(s.time.spec) || (hasRole(s, "appointmentWord") && !hasRole(s, "visitVerb"));
   const at = forward ? s.time.future.at : s.time.usual.at;
   return at.getTime() > s.context.now.getTime() + DEVICE_FUTURE_SKEW_MS;
@@ -2056,7 +2067,7 @@ const parsePart = (
     (i) => free.includes(i),
   );
   const providers = matchProviders(context, tokens, free);
-  const verb = vocab.some((m) => m.entry.role !== "appointmentWord" && m.entry.role !== "symptomIncident");
+  const verb = vocab.some((m) => ["visitVerb", "contactVerb", "noteIncident"].includes(m.entry.role));
   const s: PartState = {
     text: body,
     tokens,
