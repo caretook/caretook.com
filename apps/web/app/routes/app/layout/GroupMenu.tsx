@@ -3,7 +3,7 @@ import type { MyGroup } from "~/lib/core/rpc";
 import type { clientLoader as layoutLoader } from "./route";
 import type { GroupRow } from "~/lib/timeline/timeline.sync";
 
-import { ChevronDown, History, Plus, Settings, UserRound } from "lucide-react";
+import { ChevronDown, MapPin, Plus, Settings, UserRound } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { useNavigate, useRouteLoaderData } from "react-router";
 import { Menu, SEPARATOR } from "~/components/ui";
@@ -112,7 +112,7 @@ export function GroupMenu({ groupId }: { groupId: string }) {
         {
           id: "care-periods",
           label: "Care periods",
-          icon: History,
+          icon: MapPin,
           href: appUrls.periods(groupId),
         },
         {
