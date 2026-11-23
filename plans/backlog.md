@@ -306,16 +306,16 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-650 | bug | triaged | fixes-tooling |  | Unattended planner report's veto line sets flags=hold, dropping a row's design or standing flag |
 | B-653 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the list an item leaves the Planner tab once… |
 | B-654 | bug | triaged | fixes-tooling |  | CI flake: scripts/loops/lease.test.mjs: pnpm prd check's check lease makes the runs beyond the default limit of two wai… |
-| B-656 | bug | ready | fixes-bug | prd/fixes-bug | Timeline: a period starting just after midnight in the recipient's zone shows day 1 on two headers for a viewer behind that zone |
-| B-657 | bug | ready | fixes-bug | prd/fixes-bug | Pass log: after a successful Add a medication with unsaved dose edits, the sheet stays open and Back leaves without asking, losing the edits |
+| B-656 | bug | landed | fixes-bug | prd/fixes-bug | Timeline: a period starting just after midnight in the recipient's zone shows day 1 on two headers for a viewer behind that zone |
+| B-657 | bug | landed | fixes-bug | prd/fixes-bug | Pass log: after a successful Add a medication with unsaved dose edits, the sheet stays open and Back leaves without asking, losing the edits |
 | B-658 | bug | triaged | fixes-tooling |  | CI flake: packages/api/src/admin/usersAdmin.int.test.ts: admin.users.get shows the account, its sessions, groups and ma… |
-| B-659 | bug | ready | fixes-bug | prd/fixes-bug | A consent turned on offline before a wording bump and sent after it records the new version, though the member saw the older wording |
+| B-659 | bug | landed | fixes-bug | prd/fixes-bug | A consent turned on offline before a wording bump and sent after it records the new version, though the member saw the older wording |
 | B-660 | chore | triaged | fixes-tooling |  | CI verdicts keep each failed test's failure message, so a one-off flake shows which limit or timeout broke |
-| B-662 | bug | ready | fixes-bug | prd/fixes-bug | Quick entry guesses the amount when a bare number matches the strength: 'gave lisinopril 10' at 10 mg with a usual 2 tablets records 2 tablets |
+| B-662 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry guesses the amount when a bare number matches the strength: 'gave lisinopril 10' at 10 mg with a usual 2 tablets records 2 tablets |
 | B-663 | bug | triaged | fixes-ui |  | Menu section headings sit too close to the items above: Day summaries in the Timeline view menu is hard to read |
 | B-664 | bug | triaged | fixes-ui |  | Mobile bottom nav rides up with the on-screen keyboard and covers content while typing; hide it while the keyboard is open |
 | B-665 | change | triaged | onboarding-2 |  | Remove the standalone Invite someone notice from the Timeline; inviting lives in the onboarding setup steps |
-| B-666 | bug | ready | fixes-bug | prd/fixes-bug | Signing up at the join link doesn't prompt the password manager to save the new password |
+| B-666 | bug | landed | fixes-bug | prd/fixes-bug | Signing up at the join link doesn't prompt the password manager to save the new password |
 | B-667 | chore | triaged | fixes-tooling |  | Resettable seeded onboarding test user, so the new-member setup flow can be retried without a new address each time |
 | B-668 | change | triaged | fixes-ui |  | Add a condition: show name suggestions from the first typed character, filtered, not an unfiltered list on focus |
 | B-669 | feature | triaged | onboarding-2 |  | Shared toast system on React Aria: a queue, dismiss and Undo, behind ui/Toast |
@@ -323,7 +323,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-672 | feature | triaged | fixes-ui |  | Add an allergy: suggest substances and reactions as you type, like conditions |
 | B-673 | feature | triaged | fixes-ui |  | Add a medication: suggest common medication names as you type, like conditions |
 | B-674 | change | triaged | fixes-ui |  | Add a medication: the schedule starts on As needed |
-| B-675 | bug | ready | fixes-bug | prd/fixes-bug | Timeline: after repeating a day jump, opening a sheet brings back the old expanded window and moves the scroll |
+| B-675 | bug | landed | fixes-bug | prd/fixes-bug | Timeline: after repeating a day jump, opening a sheet brings back the old expanded window and moves the scroll |
 | B-676 | change | triaged | fixes-ui |  | Quick entry: the suggested result card can be clicked to add it, as Enter does |
 | B-677 | change | triaged | fixes-ui |  | Role pickers: explain what each role can do, when inviting and managing members |
 | B-678 | bug | triaged | fixes-ui |  | Manage members: cards truncate names and details on phone and desktop; redo the layout |
@@ -2395,7 +2395,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-656 · bug · Timeline: a period starting just after midnight in the recipient's zone shows day 1 on two headers for a viewer behind that zone
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 036a9fff
@@ -2404,7 +2404,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-657 · bug · Pass log: after a successful Add a medication with unsaved dose edits, the sheet stays open and Back leaves without asking, losing the edits
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 036a9fff
@@ -2422,7 +2422,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-659 · bug · A consent turned on offline before a wording bump and sent after it records the new version, though the member saw the older wording
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 3d8e9cf5
@@ -2441,7 +2441,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-662 · bug · Quick entry guesses the amount when a bare number matches the strength: 'gave lisinopril 10' at 10 mg with a usual 2 tablets records 2 tablets
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 3d8e9cf5
@@ -2481,7 +2481,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-666 · bug · Signing up at the join link doesn't prompt the password manager to save the new password
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 3d8e9cf5
@@ -2565,7 +2565,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-675 · bug · Timeline: after repeating a day jump, opening a sheet brings back the old expanded window and moves the scroll
 
-- status: ready
+- status: landed
 - prd: fixes-bug
 - owner: prd/fixes-bug
 - commit: 3d8e9cf5
