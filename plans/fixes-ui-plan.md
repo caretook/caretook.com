@@ -8,7 +8,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22). Star
 
 Wave 1: slices 1–9 (opus), **landed in dev as bb1133e0 through PR #78** (2026-11-22). Codex clean on 19a195c; full check passed on 887736df; report filed. No slice is in flight.
 
-Wave 2: slices 10–14, written 2026-11-22 after a clean sync (dev had only wave 1's landing and backlog commits). Running topics are test-gates and quick-entry-2; no slice touches their hot files. Start 10, 11 and 12 together; 13 after 10 is merged; 14 after 13 is merged. Models: sonnet for 10 and 11 (edits spelled out), opus for 12, 13 and 14. `pnpm backlog doctor` reports two old inbox-tag findings (B-548, B-549), neither in this topic.
+Wave 2: slices 10–14, written 2026-11-22 after a clean sync (dev had only wave 1's landing and backlog commits). Running topics are test-gates and quick-entry-2; no slice touches their hot files. Slices 10, 11 and 12 started 2026-11-22 (worktrees made, agents spawned); 13 after 10 is merged; 14 after 13 is merged. Models: sonnet for 10 and 11 (edits spelled out), opus for 12, 13 and 14. `pnpm backlog doctor` reports two old inbox-tag findings (B-548, B-549), neither in this topic.
 
 Left for later: B-325 (native safe area and cold start) waits for the Capacitor work, as its triage says.
 
@@ -29,9 +29,9 @@ Notes for the next wave:
 | 7     | B-422 | merged (opus)        | 8834115b |
 | 8     | B-421 | merged (opus)        | fc5dbe18 |
 | 9     | B-319 | merged (opus)        | 488e09bf |
-| 10    | B-536 | ready (sonnet)       | -        |
-| 11    | B-575 | ready (sonnet)       | -        |
-| 12    | B-537 | ready (opus)         | -        |
+| 10    | B-536 | in flight (sonnet)   | -        |
+| 11    | B-575 | in flight (sonnet)   | -        |
+| 12    | B-537 | in flight (opus)     | -        |
 | 13    | B-535 | blocked by 10 (opus) | -        |
 | 14    | B-316 | blocked by 13 (opus) | -        |
 
