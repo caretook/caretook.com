@@ -246,6 +246,47 @@ describe("on the appointment's page", () => {
     }
   });
 
+  describe("asking before losing a moved start (B-603)", () => {
+    const asked = () => document.querySelector("dialog[open]") !== null;
+    const close = () => userEvent.click(page.getByRole("button", { name: "Close" }));
+    const moveStart = async () => {
+      const month = getByCss('[data-visit-prep-sheet] [data-type="month"]');
+      const before = month.element().textContent;
+      (await month.findElement()).focus();
+      await userEvent.keyboard("{ArrowDown}");
+      await expect.poll(() => month.element().textContent).not.toBe(before);
+    };
+    const openPrep = async () => {
+      await open(entryPath(APPT.id), { role: "caretaker" });
+      await userEvent.click(PREPARE());
+      await previewReady();
+    };
+
+    test("a moved start asks, and Discard closes", async () => {
+      await openPrep();
+      await moveStart();
+      await close();
+      await expect.poll(asked).toBe(true);
+      await userEvent.click(page.getByRole("button", { name: "Discard" }));
+      await expect.poll(SHEET).toBeNull();
+    });
+
+    test("an unchanged start closes without asking", async () => {
+      await openPrep();
+      await close();
+      await expect.poll(SHEET).toBeNull();
+      expect(asked()).toBe(false);
+    });
+
+    test("Insert after moving the start closes without asking", async () => {
+      await openPrep();
+      await moveStart();
+      await waitUntil(() => PREVIEW().includes("Since your last visit"), "the moved preview");
+      await insert();
+      expect(asked()).toBe(false);
+    });
+  });
+
   test("no Prepare for a viewer", async () => {
     const device = await open(entryPath(APPT.id), { role: "viewer" });
     await waitUntil(() => EDITOR()?.textContent?.includes("Bring the pill box"));

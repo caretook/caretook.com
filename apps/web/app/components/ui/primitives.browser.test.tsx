@@ -635,6 +635,63 @@ describe("DateTimeField", () => {
     expect(await step("2026-10-15T17:00:00.000Z", "month", "{ArrowDown}")).toBe("2026-09-15T17:00:00.000Z");
   });
 
+  describe("stepping the hour", () => {
+    /** A field at `iso` with its `type` segment focused, and what onChange got. */
+    const focused = async (iso: string, type = "hour") => {
+      const onChange = vi.fn<(iso: string) => void>();
+      await renderInRouter(
+        <DateTimeField label="Start from" defaultValue={iso} timeZone={ZONE} onChange={onChange} />,
+      );
+      segment(type).focus();
+      return onChange;
+    };
+    const shown = () => [segment("hour").textContent, segment("dayPeriod").textContent];
+    const pressed = async (onChange: ReturnType<typeof vi.fn>, key: string) => {
+      await userEvent.keyboard(key);
+      await expect.poll(() => onChange.mock.calls.length).toBe(1);
+      return onChange.mock.calls[0]![0] as string;
+    };
+
+    // 18 November 2026 in Los Angeles (UTC−8).
+    test("ArrowUp from 11 AM gives 12 PM", async () => {
+      const onChange = await focused("2026-11-18T19:00:00.000Z");
+      expect(await pressed(onChange, "{ArrowUp}")).toBe("2026-11-18T20:00:00.000Z");
+      await expect.poll(shown).toEqual(["12", "PM"]);
+    });
+
+    test("ArrowDown from 12 PM gives 11 AM", async () => {
+      const onChange = await focused("2026-11-18T20:00:00.000Z");
+      expect(await pressed(onChange, "{ArrowDown}")).toBe("2026-11-18T19:00:00.000Z");
+      await expect.poll(shown).toEqual(["11", "AM"]);
+    });
+
+    test("ArrowUp from 11 PM gives 12 AM on the same date", async () => {
+      const onChange = await focused("2026-11-19T07:00:00.000Z");
+      expect(await pressed(onChange, "{ArrowUp}")).toBe("2026-11-18T08:00:00.000Z");
+      await expect.poll(shown).toEqual(["12", "AM"]);
+      expect(segment("day").textContent).toBe("18");
+    });
+
+    test("ArrowDown from 12 AM gives 11 PM on the same date", async () => {
+      const onChange = await focused("2026-11-18T08:00:00.000Z");
+      expect(await pressed(onChange, "{ArrowDown}")).toBe("2026-11-19T07:00:00.000Z");
+      await expect.poll(shown).toEqual(["11", "PM"]);
+      expect(segment("day").textContent).toBe("18");
+    });
+
+    test("typing an hour and stepping AM/PM are React Aria's own", async () => {
+      const typed = await focused("2026-11-18T19:00:00.000Z");
+      expect(await pressed(typed, "3")).toBe("2026-11-18T11:00:00.000Z");
+      await expect.poll(shown).toEqual(["3", "AM"]);
+    });
+
+    test("AM/PM stepped from 11 AM gives 11 PM", async () => {
+      const onChange = await focused("2026-11-18T19:00:00.000Z", "dayPeriod");
+      expect(await pressed(onChange, "{ArrowUp}")).toBe("2026-11-19T07:00:00.000Z");
+      await expect.poll(shown).toEqual(["11", "PM"]);
+    });
+  });
+
   test("a placeholder segment takes the text-faint tone, not a faded opacity", async () => {
     await renderInRouter(
       <DateTimeField

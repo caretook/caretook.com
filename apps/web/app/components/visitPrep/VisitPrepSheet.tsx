@@ -46,7 +46,7 @@ export function VisitPrepSheet({
   };
 
   return (
-    <Sheet isOpen onOpenChange={(open) => !open && onClose()} title={`Prepare for ${title}`}>
+    <Sheet guardChanges isOpen onOpenChange={(open) => !open && onClose()} title={`Prepare for ${title}`}>
       <form
         className="space-y-3"
         data-visit-prep-sheet=""

@@ -89,7 +89,7 @@ export const upcomingActions = (
   const place = placeOf(entry, contacts);
   const href = place ? mapsHref(place.text) : null;
   if (place && href) {
-    actions.push({ kind: "map", href, label: `Open ${placeLine(place.text)} in maps`, value: place.text });
+    actions.push({ kind: "map", href, label: `Directions to ${placeLine(place.text)}`, value: place.text });
   }
   return actions;
 };
