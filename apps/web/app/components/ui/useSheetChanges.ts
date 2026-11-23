@@ -42,6 +42,16 @@ export function fieldsDiffer(start: Map<string, string>, now: Map<string, string
 const onSubmitButton = (target: EventTarget | null) =>
   target instanceof Element && target.closest('button[type="submit"]') !== null;
 
+/** A submitted form and the alerts it already showed (a warning being answered, a past refusal). */
+type Submitted = { form: Element; alerts: ReadonlySet<Element> };
+
+const alertsIn = (form: Element) => new Set(form.querySelectorAll('[role="alert"]'));
+
+/** The save didn't go through: a field is marked, or a new alert has something to say. */
+const wasRefused = ({ form, alerts }: Submitted) =>
+  form.querySelector('[aria-invalid="true"]') !== null ||
+  [...alertsIn(form)].some((alert) => !alerts.has(alert) && alert.textContent?.trim());
+
 export function useSheetChanges(
   panelRef: RefObject<HTMLElement | null>,
   guard: boolean | string,
@@ -50,8 +60,9 @@ export function useSheetChanges(
   const start = useRef<{ root: Element; fields: Map<string, string> } | null>(null);
   const touched = useRef(false);
   // A submit or the form's own Cancel: the sheet may close without asking,
-  // until the person does something else (a save that failed).
+  // until the person does something else or the save is refused.
   const leaving = useRef(false);
+  const submitted = useRef<Submitted | null>(null);
 
   const watched = useCallback(() => {
     const panel = panelRef.current;
@@ -62,6 +73,7 @@ export function useSheetChanges(
     start.current = null;
     touched.current = false;
     leaving.current = false;
+    submitted.current = null;
     if (guard === false || !isOpen) return;
     // Where the form starts; a first touch reads it again, past any re-render.
     const first = watched();
@@ -84,7 +96,9 @@ export function useSheetChanges(
     };
     const leave = (e: Event) => {
       if (!(e.target instanceof Element) || !watched()?.contains(e.target)) return;
-      if (e.type === "submit" || e.target.closest("[data-form-cancel]")) leaving.current = true;
+      if (e.type !== "submit" && !e.target.closest("[data-form-cancel]")) return;
+      leaving.current = true;
+      submitted.current = e.type === "submit" ? { form: e.target, alerts: alertsIn(e.target) } : null;
     };
     const listeners: [string, (e: Event) => void][] = [
       ["focusin", before],
@@ -104,6 +118,7 @@ export function useSheetChanges(
 
   return useCallback(() => {
     const root = watched();
+    if (leaving.current && submitted.current && wasRefused(submitted.current)) leaving.current = false;
     if (guard === false || !root || !touched.current || leaving.current) return false;
     if (start.current?.root !== root) return false;
     return fieldsDiffer(start.current.fields, readFields(root));
