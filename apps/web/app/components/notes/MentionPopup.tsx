@@ -4,6 +4,7 @@ import type { MentionPopupState } from "./useMentionPopup";
 import { Plus } from "lucide-react";
 import { Fragment } from "react";
 import { createPortal } from "react-dom";
+import { SURFACE } from "~/components/ui";
 
 /** The option element's id, for the editor's `aria-activedescendant`. */
 export const mentionOptionId = (popupId: string, index: number) => `${popupId}-${index}`;
@@ -61,7 +62,7 @@ export function MentionPopup({ popup }: { popup: MentionPopupState }) {
         <>
           <span className="block truncate font-medium">{option.label}</span>
           {option.description && (
-            <span className="text-base-content/70 block truncate text-xs">{option.description}</span>
+            <span className="text-muted block truncate text-xs">{option.description}</span>
           )}
         </>
       )}
@@ -70,11 +71,11 @@ export function MentionPopup({ popup }: { popup: MentionPopupState }) {
   return createPortal(
     <div
       ref={popupRef}
-      className="rounded-box border-base-300 bg-base-100 z-50 max-h-72 max-w-[min(20rem,calc(100vw-2rem))] overflow-y-auto border p-1 shadow-lg"
+      className={`${SURFACE} z-50 max-h-72 max-w-[min(20rem,calc(100vw-2rem))] overflow-y-auto p-1`}
       data-mention-popup
     >
       {!matched && (
-        <p role="status" className="text-base-content/70 px-3 py-2 text-sm">
+        <p role="status" className="text-muted px-3 py-2 text-sm">
           No providers match
         </p>
       )}
@@ -89,7 +90,7 @@ export function MentionPopup({ popup }: { popup: MentionPopupState }) {
                   <li
                     role="presentation"
                     id={`${id}-${run.key}`}
-                    className="border-base-300 text-base-content/70 mt-1 border-t px-3 pt-2 pb-1 text-xs font-semibold"
+                    className="border-base-300 text-muted mt-1 border-t px-3 pt-2 pb-1 text-xs font-semibold"
                     data-mention-heading
                   >
                     {run.heading}

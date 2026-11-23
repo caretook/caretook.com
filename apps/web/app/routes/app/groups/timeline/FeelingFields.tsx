@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { Angry, Annoyed, Frown, Laugh, Meh, Smile } from "lucide-react";
 import { useId } from "react";
 import { TIMELINE_LIMITS } from "@caretook/data/schema";
-import { Field } from "~/components/ui";
+import { CHOICE_TILE, Field, Message } from "~/components/ui";
 import { FEELING_SYMPTOM_NAME } from "~/lib/assistant/easyTiles";
 
 /** The scale's words at each end and the middle, read with the number. */
@@ -62,10 +62,7 @@ export function FeelingFields({
           {Array.from({ length: max + 1 }, (_, n) => {
             const Face = FACES[n] ?? Meh;
             return (
-              <label
-                key={n}
-                className="btn btn-outline has-checked:btn-primary has-focus-visible:outline-2 has-focus-visible:outline-offset-2 h-auto min-h-16 flex-col gap-1 px-1 py-2 text-lg"
-              >
+              <label key={n} className={`${CHOICE_TILE} h-auto min-h-16 flex-col gap-1 px-1 py-2 text-lg`}>
                 <input
                   type="radio"
                   name="severity"
@@ -80,14 +77,14 @@ export function FeelingFields({
             );
           })}
         </div>
-        {severityError && <p className="text-error text-sm">{severityError}</p>}
+        {severityError && <Message tone="error">{severityError}</Message>}
       </div>
-      <Field label="What's wrong? (optional)" error={nameError}>
+      <Field label="What's wrong? (optional)" kind="input" error={nameError}>
         {(control) => (
           <input
             {...control}
             name="symptomName"
-            className="input input-lg w-full"
+            className={`${control.className} input-lg`}
             maxLength={TIMELINE_LIMITS.symptomName}
             defaultValue={stored?.name && stored.name !== FEELING_SYMPTOM_NAME ? stored.name : ""}
             placeholder="e.g. Sore knee"

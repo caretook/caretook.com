@@ -2,7 +2,7 @@ import type { ShareOutcome } from "./share";
 
 import { Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { IconButton } from "~/components/ui";
+import { Badge, Field, IconButton } from "~/components/ui";
 import { shareLink, shareUrl } from "./share";
 
 /**
@@ -32,19 +32,21 @@ export function ShareButton({ title, path }: { title: string; path: string }) {
         onPress={() => void shareLink(navigator, { title, url: linkUrl() }).then(setOutcome)}
       />
       <div role="status" className="absolute top-full right-0 z-10 mt-1">
-        {outcome === "copied" && (
-          <span className="badge badge-neutral whitespace-nowrap shadow">Link copied</span>
-        )}
+        {outcome === "copied" && <Badge className="whitespace-nowrap shadow">Link copied</Badge>}
         {outcome === "failed" && (
           <div className="bg-base-100 border-base-300 w-64 rounded-box border p-2 text-sm shadow">
             <p>Couldn't copy the link. Copy it here:</p>
-            <input
-              readOnly
-              aria-label="Link to this entry"
-              value={linkUrl()}
-              onFocus={(e) => e.currentTarget.select()}
-              className="input input-sm mt-1 w-full"
-            />
+            <Field label="Link to this entry" labelHidden>
+              {(control) => (
+                <input
+                  {...control}
+                  readOnly
+                  value={linkUrl()}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="input input-sm mt-1 w-full"
+                />
+              )}
+            </Field>
           </div>
         )}
       </div>

@@ -11,6 +11,7 @@ import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Heading2, Italic, List, ListOrdered } from "lucide-react";
 import { useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { Button, Message } from "~/components/ui";
 import { bindNoteDoc, createNoteDoc } from "~/lib/live-notes/notes.sync";
 import { useOtherGroupProviders } from "~/lib/providers/otherGroupProviders.sync";
 import { createProvider, importProviders } from "~/lib/providers/providers.sync";
@@ -166,9 +167,9 @@ export function LiveNotesEditor({
       </MentionTargets>
       <MentionPopup popup={mentions.popup} />
       {mentions.error && (
-        <p role="alert" className="text-error border-base-300 border-t px-4 py-2 text-sm">
+        <Message tone="error" className="border-base-300 border-t px-4 py-2">
           {mentions.error}
-        </p>
+        </Message>
       )}
     </div>
   );
@@ -232,18 +233,16 @@ function Toolbar({ editor }: { editor: Editor }) {
       className="border-base-300 bg-(--color-field)/95 sticky top-0 z-10 flex gap-1 rounded-t-box border-b p-1 backdrop-blur"
     >
       {buttons.map(({ key, label, Icon, run }) => (
-        <button
+        <Button
           key={key}
-          type="button"
-          aria-label={label}
-          aria-pressed={state[key]}
+          label={label}
+          icon={Icon}
+          size="sm"
+          pressed={state[key]}
           // Keep the editor's selection: a toolbar tap shouldn't blur it.
           onMouseDown={(e) => e.preventDefault()}
           onClick={run}
-          className={`btn btn-ghost btn-sm btn-square ${state[key] ? "btn-active" : ""}`}
-        >
-          <Icon className="size-4" aria-hidden="true" />
-        </button>
+        />
       ))}
     </div>
   );

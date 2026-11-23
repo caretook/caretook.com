@@ -3,6 +3,7 @@ import type { RecipientWords } from "~/lib/assistant/easyTiles";
 
 import { Link } from "react-router";
 import { KindIcon } from "~/components/entry";
+import { Button, LINK, Skeleton } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { tileKey, tileLabel } from "~/lib/assistant/easyTiles";
 import { STALE } from "./layout";
@@ -64,24 +65,25 @@ export function EasyTiles({
           const href = tileHref(groupId, tile);
           return (
             <li key={tileKey(tile)} className={TILE_CELL}>
-              <Link
+              <Button
                 to={href}
                 state={tile.kind === "note" ? undefined : SHEET_LINK_STATE}
                 preventScrollReset
                 prefetch="render"
-                className="btn btn-outline h-full min-h-11 w-full flex-col gap-1 px-1 py-2 text-sm leading-tight font-semibold whitespace-normal"
+                block
+                className="h-full min-h-11 flex-col gap-1 px-1 py-2 text-sm leading-tight font-semibold whitespace-normal"
                 data-tile={tileKey(tile)}
               >
                 <KindIcon kind={tile.kind} />
                 {tileLabel(tile, words)}
-              </Link>
+              </Button>
             </li>
           );
         })}
       </ul>
       {!setting && canChoose && (
         <p className="text-base" data-tiles-hint="">
-          <Link to={appUrls.groupSettings(groupId, "details")} className="link link-primary">
+          <Link to={appUrls.groupSettings(groupId, "details")} className={LINK}>
             Choose the tiles
           </Link>
         </p>
@@ -95,7 +97,9 @@ export function EasyTilesSkeleton() {
   return (
     <ul className={TILE_ROW} aria-hidden="true" data-easy-skeleton="tiles">
       {[0, 1, 2, 3].map((i) => (
-        <li key={i} className={`skeleton rounded-box h-16 ${TILE_CELL}`} />
+        <li key={i} className={`h-16 ${TILE_CELL}`}>
+          <Skeleton lines={3} />
+        </li>
       ))}
     </ul>
   );

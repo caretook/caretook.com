@@ -1,3 +1,5 @@
+import { BackLink, EmptyState, LINK } from "~/components/ui";
+import { AdminCard } from "../AdminCard";
 import type { Route } from "./+types/route";
 import type { AdminActionResult } from "../adminForms";
 
@@ -107,9 +109,7 @@ export default function UserPage({ loaderData }: Route.ComponentProps) {
   const { page, canHelp, canDisable, canSetRole, isSelf, history } = loaderData;
   return (
     <>
-      <Link to={adminUrls.users()} className="link text-sm">
-        All users
-      </Link>
+      <BackLink to={adminUrls.users()} label="All users" />
       <AccountSection page={page} canHelp={canHelp} />
       <AccountAdminActions
         account={page.account}
@@ -121,23 +121,21 @@ export default function UserPage({ loaderData }: Route.ComponentProps) {
       <GroupsSection page={page} />
       <MailSection page={page} />
       {history && (
-        <section className="card bg-base-100 shadow-sm" aria-labelledby="history" data-user-section="history">
-          <div className="card-body gap-3">
-            <h2 id="history" className="card-title text-base">
-              Audit log
-            </h2>
-            {history.entries.length === 0 ? (
-              <p className="text-sm">Nothing yet.</p>
-            ) : (
-              <AuditEntryList entries={history.entries} />
-            )}
-            {history.count > history.entries.length && (
-              <Link to={adminUrls.audit(auditSearch({ target: page.account.id }))} className="link text-sm">
-                All {history.count.toLocaleString("en-US")} entries
-              </Link>
-            )}
-          </div>
-        </section>
+        <AdminCard id="history" titleSize="base" title="Audit log" data-user-section="history">
+          {history.entries.length === 0 ? (
+            <EmptyState>Nothing yet.</EmptyState>
+          ) : (
+            <AuditEntryList entries={history.entries} />
+          )}
+          {history.count > history.entries.length && (
+            <Link
+              to={adminUrls.audit(auditSearch({ target: page.account.id }))}
+              className={`${LINK} text-sm`}
+            >
+              All {history.count.toLocaleString("en-US")} entries
+            </Link>
+          )}
+        </AdminCard>
       )}
     </>
   );

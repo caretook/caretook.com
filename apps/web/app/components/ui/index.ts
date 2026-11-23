@@ -81,3 +81,5 @@ export type { IconChipLook, IconChipSize } from "./IconChip";
 export { TimeSelect } from "./TimeSelect";
 // ui-kit-5 (slice 1): the count on a filter button.
 export { COUNT_BADGE } from "./styles";
+// ui-kit-5 (slice 2): radios that look like buttons.
+export { CHOICE_BUTTON, CHOICE_TILE } from "./styles";
