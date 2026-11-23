@@ -2,6 +2,7 @@
 // later), from the `GROUP_SECTIONS` registry, rendered twice by the /app frame.
 
 import { Link, useNavigation } from "react-router";
+import { ICON, navLinkClass } from "~/components/ui";
 import { GROUP_SECTIONS, isTabBarHidden, sectionCurrent } from "~/lib/app-shell/groupSections";
 
 /**
@@ -29,9 +30,9 @@ export function SectionNav({ groupId, pathname }: { groupId: string; pathname: s
                 to={section.path(groupId)}
                 prefetch="render"
                 aria-current={current}
-                className={`btn btn-ghost btn-sm gap-1.5 ${current ? "btn-active" : ""}`}
+                className={navLinkClass(!!current)}
               >
-                <Icon className="size-4" aria-hidden="true" />
+                <Icon className={ICON} aria-hidden="true" />
                 {section.label}
               </Link>
             </li>
