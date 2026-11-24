@@ -10,6 +10,7 @@
 //   pnpm prd dispatch --pause [<why>]       the running dispatcher (and any later one) does nothing
 //   pnpm prd dispatch --resume              undo --pause
 //   pnpm prd dispatch --stop                end the running dispatcher (TERM)
+//   pnpm prd dispatch --cap <n>|default     the PRD cap (lanes), read every tick: running PRDs finish
 //
 // The actions:
 //   - start: `new.sh prd <topic>`, then a managed, run-through orchestrator
@@ -44,6 +45,10 @@
 // stay over the context limit (dispatch-context.mjs): a nudge, a defaulting
 // question, the rotation. CARETOOK_CONTEXT_NUDGE_MIN (15); CARETOOK_CONTEXT_WATCH=off stops it.
 //
+// Each tick also catches a stuck managed, run-through orchestrator (dispatch-stuck.mjs):
+// one question per stall that never defaults ("rotate it now", the mid-wave
+// rotation, or "leave it"). CARETOOK_STUCK_MIN (30); CARETOOK_STUCK_WATCH=off stops it.
+//
 // Every CARETOOK_PICKUP_EVERY seconds (300; `off` never), on a tick that isn't
 // paused, it runs the pickup (`pnpm prd dev-sync`), so lines pushed to
 // origin/dev reach the main checkout; a failed or refused one logs one line and
@@ -60,7 +65,7 @@
 // keepAlive: each kept kind's quick deaths, last open, open ask and stop),
 // .dispatch.log (each acting tick, and each idle one whose lines changed).
 //
-// Env: CARETOOK_MAX_PRDS (4), CARETOOK_MAX_PLANNERS (1), CARETOOK_FIXES_MIN (3):
+// Env: CARETOOK_MAX_PRDS (4; a stored --cap, .loops/.prd-cap, wins over it), CARETOOK_MAX_PLANNERS (1), CARETOOK_FIXES_MIN (3):
 // the pick's caps; CARETOOK_LOAD_* (load-gate.mjs); CARETOOK_SESSIONS_DIR,
 // CARETOOK_ASKS_DIR; CARETOOK_ITERM_APP (default /Applications/iTerm.app);
 // CARETOOK_CLAUDE_BIN (the helper's claude); CARETOOK_CLOCK_FILE (tests: epoch
@@ -82,9 +87,19 @@ import {
 import { basename, delimiter, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dismissAsk, getAsk, listAsks, settleDue } from "./asks.mjs";
+import { CAPTAIN_SESSION, nextCaptain } from "./captain.mjs";
 import { contextDirOf, hardLimitOf, limitOf, sizeRecord, updateRecord } from "./context.mjs";
 import { CONTEXT_OPTIONS, CONTEXT_SESSION, commandUnder, contextDecision } from "./dispatch-context.mjs";
 import { DISPATCH_SESSION, KEEP_SESSION, REOPEN_OPTIONS, formatPick, pick } from "./dispatch-pick.mjs";
+import {
+  STUCK_OPTIONS,
+  STUCK_SESSION,
+  busyUnder,
+  stuckClock,
+  stuckDecision,
+  stuckSettings,
+} from "./dispatch-stuck.mjs";
+import { heartbeatDirOf, readHeartbeats } from "./heartbeat.mjs";
 import { briefProblem } from "./rotate.mjs";
 import { START_GRACE_MS, clearKeepStops, keepAliveDecision, keepAnswerAction } from "./keep-alive.mjs";
 import { readLoadGate } from "./load-gate.mjs";
@@ -199,12 +214,39 @@ export function pathsOf(/** @type {string} */ main, env = process.env) {
     asks: env.CARETOOK_ASKS_DIR || join(loops, ".asks"),
     requests: env.CARETOOK_REQUESTS_DIR || join(loops, ".requests"),
     notices: env.CARETOOK_NOTICES_DIR || join(loops, ".notices"),
+    cap: join(loops, ".prd-cap"),
+    watch: env.CARETOOK_WATCH_DIR || join(loops, ".watch"),
   };
+}
+
+/** The highest --cap: the slots (lib.sh, 1-19). */
+export const MAX_CAP = 19;
+
+/** The stored --cap (.loops/.prd-cap, lib.sh reads it too), or null when none or not 1-MAX_CAP. */
+export function storedCap(/** @type {string} */ file) {
+  let text;
+  try {
+    text = readFileSync(file, "utf8").trim();
+  } catch {
+    return null;
+  }
+  const n = /^[1-9][0-9]?$/.test(text) ? Number(text) : 0;
+  return n >= 1 && n <= MAX_CAP ? n : null;
+}
+
+/** The PRD cap and what set it: the stored --cap, else CARETOOK_MAX_PRDS, else 4. */
+export function prdCapOf(/** @type {string} */ file, env = process.env) {
+  const stored = storedCap(file);
+  if (stored !== null) return { cap: stored, from: "pnpm prd dispatch --cap" };
+  const fromEnv = positive(env.CARETOOK_MAX_PRDS, 0);
+  return fromEnv ? { cap: fromEnv, from: "CARETOOK_MAX_PRDS" } : { cap: 4, from: "default" };
 }
 
 /** @typedef {{ paused?: { at: string, why: string } | null, reopens?: Record<string, number>,
  *   asked?: Record<string, { id: string, topic: string }>, lastTidy?: number,
  *   context?: Record<string, import("./dispatch-context.mjs").ContextEntry>,
+ *   stuck?: { lastTickAt?: number, clockFrom?: number | null,
+ *     sessions?: Record<string, import("./dispatch-stuck.mjs").StuckEntry>, reported?: string[] },
  *   keepAlive?: import("./keep-alive.mjs").KeepState }} DispatchState */
 
 /** @returns {DispatchState} */
@@ -402,7 +444,7 @@ export function gather(/** @type {ReturnType<typeof pathsOf>} */ p, env = proces
       busy: gate.busy,
       paused: Boolean(state.paused),
       caps: {
-        prds: positive(env.CARETOOK_MAX_PRDS, 4),
+        prds: prdCapOf(p.cap, env).cap,
         planners: positive(env.CARETOOK_MAX_PLANNERS, 1),
         fixesMin: positive(env.CARETOOK_FIXES_MIN, 3),
       },
@@ -559,6 +601,9 @@ function contextStep(
       // A backlog or inbox session: `rotate --self` finds its caller by ancestry, so the tick opens its line.
       const brief =
         a.type === "rotate-backlog" ? (a.brief ? ` --brief ${sh(briefFile(a.session))}` : " --no-brief") : "";
+      // The main backlog session comes back as a new captain: its tab title and Remote Control name.
+      const captain =
+        a.type === "rotate-backlog" && a.session === CAPTAIN_SESSION ? nextCaptain(p.sessions) : null;
       const r =
         a.type === "rotate"
           ? run("bash", [join(HERE, "rotate.sh"), a.topic, "--mid-wave", "--reason", "context"], {
@@ -569,9 +614,10 @@ function contextStep(
               [
                 join(HERE, "open-session.sh"),
                 "--command",
-                `cd ${sh(p.main)} && ${sh(join(HERE, "rotate-into.sh"))} ${sh(a.session)} ${a.pid} --reason context${brief}`,
+                `cd ${sh(p.main)} && ${sh(join(HERE, "rotate-into.sh"))} ${sh(a.session)} ${a.pid} --reason context${brief}` +
+                  (captain ? ` --captain ${captain}` : ""),
                 "--title",
-                a.session,
+                captain ?? a.session,
                 "--background",
               ],
               { cwd: p.main },
@@ -590,6 +636,220 @@ function contextStep(
             `${a.session} is over the context limit, and its rotation was refused: ${lastLine(r)}`,
             "--session",
             CONTEXT_SESSION,
+          ]);
+      }
+    }
+  }
+  return acted;
+}
+
+// ---- the stuck orchestrator -------------------------------------------------------
+
+/** A file's JSON, or null. */
+const readJson = (/** @type {string} */ file) => {
+  try {
+    return JSON.parse(readFileSync(file, "utf8"));
+  } catch {
+    return null;
+  }
+};
+
+/** A topic's watch marks (watch.mjs's marks.jsonl): { slice, at } lines; a bad line is skipped. */
+function watchMarks(/** @type {string} */ file) {
+  /** @type {{ slice: string, at: string }[]} */
+  const out = [];
+  let text;
+  try {
+    text = readFileSync(file, "utf8");
+  } catch {
+    return out;
+  }
+  for (const line of text.split("\n"))
+    try {
+      const m = JSON.parse(line);
+      if (m && m.slice !== undefined && typeof m.at === "string")
+        out.push({ slice: String(m.slice), at: m.at });
+    } catch {
+      /* not a mark */
+    }
+  return out;
+}
+
+/** Gathers the stuck facts and applies the decision. Returns whether it did anything. */
+function stuckStep(
+  /** @type {ReturnType<typeof pathsOf>} */ p,
+  /** @type {ReturnType<typeof gather>} */ g,
+  /** @type {{ dryRun: boolean, env: NodeJS.ProcessEnv, out: (l: string) => void, every: number }} */ {
+    dryRun,
+    env,
+    out,
+    every,
+  },
+) {
+  if (env.CARETOOK_STUCK_WATCH === "off") return false;
+  const now = g.facts.now;
+  const { limitMs, gapMs } = stuckSettings(env, every);
+  const prev = readState(p.state).stuck ?? {};
+  const clockFrom = stuckClock(prev, now, gapMs);
+  const sessions = g.records.map((r) => ({
+    name: r.name,
+    pid: r.record.pid ?? 0,
+    kind: r.record.kind,
+    topic: r.record.topic,
+    managed: r.record.managed === true,
+    auto: r.record.auto === true,
+    live: r.live,
+    rotating: r.record.rotating === true,
+  }));
+  const watched = sessions.filter((s) => s.live && s.managed && s.auto && s.kind === "prd" && s.topic);
+  // The process table only when a session is watched; unreadable holds every one (busy).
+  const running = new Set();
+  if (watched.length) {
+    let table = null;
+    try {
+      table = processTable();
+    } catch {
+      /* held below */
+    }
+    for (const s of watched) if (!table || busyUnder(s.pid, table)) running.add(s.name);
+  }
+  /** @type {Record<string, { state: any, marks: { slice: string, at: string }[] }>} */
+  const watch = {};
+  for (const s of watched) {
+    const dir = join(p.watch, /** @type {string} */ (s.topic));
+    watch[/** @type {string} */ (s.topic)] = {
+      state: readJson(join(dir, "state.json")),
+      marks: watchMarks(join(dir, "marks.jsonl")),
+    };
+  }
+  const entries = prev.sessions ?? {};
+  // The open asks, and each entry's own (an answered or dismissed one isn't listed).
+  const asks = [...g.facts.asks];
+  for (const e of Object.values(entries))
+    if (e.askId && !asks.some((a) => a.id === e.askId)) {
+      const a = getAsk(p.asks, e.askId);
+      if (a) asks.push(a);
+    }
+  const actions = stuckDecision({
+    sessions,
+    heartbeats: watched.length ? readHeartbeats(heartbeatDirOf(p.sessions)) : [],
+    running,
+    asks,
+    watch,
+    entries,
+    reported: prev.reported ?? [],
+    paused: g.facts.paused,
+    clockFrom,
+    limitMs,
+    now,
+  });
+  if (dryRun) {
+    for (const a of actions)
+      if (a.type !== "answered") out(`stuck: would ${a.type} ${a.type === "report" ? a.key : a.session}`);
+    return false;
+  }
+  // The clocks: a paused tick writes nothing, so a long pause is a gap too.
+  if (!g.facts.paused)
+    updateState(p.state, (s) => {
+      s.stuck = { ...s.stuck, lastTickAt: now, clockFrom };
+    });
+
+  /** @param {(st: NonNullable<DispatchState["stuck"]>) => void} fn */
+  const setStuck = (fn) =>
+    updateState(p.state, (s) => {
+      s.stuck = { ...s.stuck, sessions: { ...s.stuck?.sessions } };
+      fn(/** @type {any} */ (s.stuck));
+    });
+  const askTool = (/** @type {string[]} */ args) =>
+    run("node", [join(HERE, "ask.mjs"), ...args], {
+      cwd: p.main,
+      env: { ...env, CARETOOK_ASKS_DIR: p.asks },
+    });
+  const lastLine = (/** @type {{ out: string, err: string }} */ r) =>
+    (r.err || r.out).split("\n").pop() ?? "";
+
+  let acted = false;
+  for (const a of actions) {
+    acted = true;
+    if (a.type === "clear") {
+      if (a.askId) dismissAsk(p.asks, a.askId, { now });
+      setStuck((st) => void delete st.sessions?.[a.session]);
+      out(`stuck: ${a.session} cleared`);
+    } else if (a.type === "answered") {
+      setStuck((st) => {
+        const e = st.sessions?.[a.session];
+        if (e) e.answer = a.answer;
+      });
+      out(`stuck: ask ${a.askId} means ${a.answer === "rotate" ? "rotate" : "leave it"} for ${a.session}`);
+    } else if (a.type === "report") {
+      const r = askTool(["ask", "--topic", "dispatch", "--report", a.text, "--session", STUCK_SESSION]);
+      if (!r.ok) {
+        out(`stuck: filing the report failed: ${lastLine(r)}`);
+        continue;
+      }
+      setStuck((st) => void (st.reported = [...(st.reported ?? []), a.key].slice(-20)));
+      out(`stuck: reported ${a.sessions.join(", ")} quiet together`);
+    } else if (a.type === "ask") {
+      // It waits, like the reopen question: a rotation burns usage, so it never defaults.
+      const r = askTool([
+        "ask",
+        "--topic",
+        a.topic,
+        "--question",
+        a.text,
+        "--session",
+        STUCK_SESSION,
+        ...STUCK_OPTIONS.flatMap((o) => ["--option", o]),
+        "--waits",
+      ]);
+      const id = r.ok ? r.out.split("\n")[0].trim() : "";
+      if (!/^a\d+$/.test(id)) {
+        out(`stuck: filing the question for ${a.session} failed: ${lastLine(r)}`);
+        continue;
+      }
+      setStuck((st) => {
+        /** @type {any} */ (st.sessions)[a.session] = { pid: a.pid, since: a.since, askId: id };
+      });
+      out(`stuck: ${a.session} asked (${id})`);
+      const push =
+        r.out
+          .split("\n")
+          .find((l) => l.startsWith("Now send a PushNotification: "))
+          ?.slice("Now send a PushNotification: ".length) ?? `${a.topic}: ${a.text}`;
+      const helper = run(
+        "bash",
+        [
+          join(HERE, "open-session.sh"),
+          "--command",
+          helperLine({ main: p.main, claude: env.CARETOOK_CLAUDE_BIN || "claude", line: push }),
+          "--title",
+          HELPER_SESSION,
+          "--background",
+        ],
+        { cwd: p.main },
+      );
+      if (!helper.ok) out(`  ${HELPER_SESSION} didn't start (ignored): ${lastLine(helper)}`);
+    } else if (a.type === "rotate") {
+      const r = run("bash", [join(HERE, "rotate.sh"), a.topic, "--mid-wave", "--reason", "stuck"], {
+        cwd: p.main,
+      });
+      const reported = entries[a.session]?.reported === true;
+      setStuck((st) => {
+        const e = st.sessions?.[a.session];
+        if (e) Object.assign(e, { triedAt: now }, r.ok ? {} : { reported: true });
+      });
+      if (r.ok) out(`stuck: ${a.session} rotating`);
+      else {
+        out(`stuck: rotating ${a.session} was refused: ${lastLine(r)}`);
+        if (!reported)
+          askTool([
+            "ask",
+            "--topic",
+            a.topic,
+            "--report",
+            `${a.session} looks stuck, and its rotation was refused: ${lastLine(r)}`,
+            "--session",
+            STUCK_SESSION,
           ]);
       }
     }
@@ -728,7 +988,7 @@ function requestStep(
  */
 export function tick(
   /** @type {ReturnType<typeof pathsOf>} */ p,
-  { dryRun = false, env = process.env, say = (/** @type {string} */ l) => console.log(l) } = {},
+  { dryRun = false, env = process.env, say = (/** @type {string} */ l) => console.log(l), every = 60 } = {},
 ) {
   const lines = [];
   const out = (/** @type {string} */ l) => lines.push(l);
@@ -763,7 +1023,7 @@ export function tick(
       if (what === "hold") {
         const row = facts.rows.find((r) => r.topic === topic);
         const flags = [...new Set([...(row?.flags ?? []), "hold"])];
-        const r = backlog(p.main, ["prd", "set", topic, `flags=${flags.join(",")}`]);
+        const r = backlog(p.main, ["prd", "set", topic, "flags+=hold"]);
         out(
           r.ok
             ? `ask ${id} answered "${a.answer}": ${topic} flagged hold`
@@ -842,6 +1102,13 @@ export function tick(
     watched = contextStep(p, g, { dryRun, env, out });
   } catch (e) {
     out(`context: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  // The stuck orchestrator: apart from the pick, like the context follow-up.
+  try {
+    if (stuckStep(p, g, { dryRun, env, out, every })) watched = true;
+  } catch (e) {
+    out(`stuck: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   // The keep-alive, beside the pick: it takes no slot, so the pick's action still happens.
@@ -1113,6 +1380,7 @@ function parse(/** @type {string[]} */ argv) {
     pause: /** @type {string | null} */ (null),
     resume: false,
     stop: false,
+    cap: /** @type {string | null} */ (null),
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -1124,10 +1392,15 @@ function parse(/** @type {string[]} */ argv) {
     else if (a === "--pause") o.pause = argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : "";
     else if (a === "--resume") o.resume = true;
     else if (a === "--stop") o.stop = true;
-    else if (a === "-h" || a === "--help") o.help = true;
+    else if (a === "--cap") {
+      const v = argv[++i] ?? "";
+      if (v !== "default" && !(/^[0-9]+$/.test(v) && Number(v) >= 1 && Number(v) <= MAX_CAP))
+        throw new Error(`--cap takes a number from 1 to ${MAX_CAP}, or default`);
+      o.cap = v;
+    } else if (a === "-h" || a === "--help") o.help = true;
     else
       throw new Error(
-        `dispatch: unknown argument ${a} (--every <s>, --once, --dry-run, --pause [<why>], --resume, --stop)`,
+        `dispatch: unknown argument ${a} (--every <s>, --once, --dry-run, --pause [<why>], --resume, --stop, --cap <n>|default)`,
       );
   }
   return o;
@@ -1145,7 +1418,7 @@ async function main() {
     const text = readFileSync(fileURLToPath(import.meta.url), "utf8").split("\n");
     console.log(
       text
-        .slice(1, 12)
+        .slice(1, 13)
         .map((l) => l.replace(/^\/\/ ?/, ""))
         .join("\n"),
     );
@@ -1160,6 +1433,36 @@ async function main() {
     );
   };
 
+  if (o.cap !== null) {
+    const now = nowOf();
+    const before = prdCapOf(p.cap);
+    mkdirSync(p.loops, { recursive: true });
+    if (o.cap === "default") {
+      if (existsSync(p.cap)) unlinkSync(p.cap);
+    } else {
+      const tmp = `${p.cap}.${process.pid}`;
+      writeFileSync(tmp, `${o.cap}\n`);
+      renameSync(tmp, p.cap);
+    }
+    const after = prdCapOf(p.cap);
+    const line = `PRD cap ${after.cap} (${after.from}; was ${before.cap})`;
+    log([line], now);
+    try {
+      createNotice(p.notices, { text: `${line}: running PRDs finish; new starts wait under it`, now });
+    } catch {
+      /* the cap is stored; a notice that can't post changes nothing */
+    }
+    const holder = lockHolder(p.lock);
+    const running = worktreesOf(p.main).filter((w) => w.branch.startsWith("prd/")).length;
+    console.log(
+      `${line}. ${running} PRD worktrees now: ${
+        running >= after.cap
+          ? `none start until fewer than ${after.cap} remain (running ones finish)`
+          : `${after.cap - running} more may start`
+      }; ${holder ? `the dispatcher (pid ${holder}) reads it on its next tick` : "no dispatcher is running"}.`,
+    );
+    return;
+  }
   if (o.pause !== null || o.resume) {
     if (o.pause !== null && o.resume) throw new Error("--pause or --resume, not both");
     const now = nowOf();
@@ -1234,7 +1537,7 @@ async function main() {
   for (;;) {
     const now = nowOf();
     const quiet = [];
-    const t = tick(p, { say: (l) => quiet.push(l) });
+    const t = tick(p, { say: (l) => quiet.push(l), every: o.every });
     const text = t.lines.join("\n");
     if (o.once || t.acted || text !== last) {
       log(t.lines, now);

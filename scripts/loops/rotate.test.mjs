@@ -8,6 +8,7 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
   chmodSync,
   copyFileSync,
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -20,6 +21,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { CAPTAINS } from "./captain.mjs";
 import { clearsHot, doneFlags, slicesLeft } from "./rotate.mjs";
 
 const HERE = new URL(".", import.meta.url).pathname;
@@ -191,6 +193,7 @@ beforeAll(() => {
     "lib.sh",
     "session.sh",
     "sessions.mjs",
+    "captain.mjs",
     "rotate.sh",
     "rotate-into.sh",
     "rotate.mjs",
@@ -203,6 +206,7 @@ beforeAll(() => {
     "test-db.sh",
   ])
     copyFileSync(join(HERE, f), scripts(f));
+  cpSync(join(HERE, "prompts"), scripts("prompts"), { recursive: true });
   const backlogDir = join(HERE, "../backlog");
   for (const f of readdirSync(backlogDir).filter((f) => f.endsWith(".mjs") && !f.includes(".test.")))
     copyFileSync(join(backlogDir, f), join(main, "scripts/backlog", f));
@@ -437,10 +441,13 @@ describe("pnpm prd rotate --self", () => {
   const briefs = () => join(loops, ".briefs");
   const briefFile = (name = "backlog") => join(briefs(), `${name}.md`);
   /** A recorded session that runs `rotate --self` from inside itself, then stays up. */
-  const selfSession = async (name, { args = "", cwd = main, claude = ["--model", "sonnet"] } = {}) => {
+  const selfSession = async (
+    name,
+    { args = "", cwd = main, claude = ["--model", "sonnet"], remote = name } = {},
+  ) => {
     const s = start(
       "bash",
-      [scripts("session.sh"), name, "--", ...claude, "--remote-control", name, "x"],
+      [scripts("session.sh"), name, "--", ...claude, "--remote-control", remote, "x"],
       { STUB_MODE: "self", STUB_STAY: "1", STUB_NAME: name, STUB_ARGS: args },
       cwd,
     );
@@ -463,17 +470,24 @@ describe("pnpm prd rotate --self", () => {
 
   beforeEach(() => rmSync(briefs(), { recursive: true, force: true }));
 
-  it("ends a backlog session and opens one of the same name, model and Remote Control, with no brief", async () => {
-    const old = await selfSession("backlog");
+  it("ends the main backlog session and opens one of the same name and model, as a new captain, with no brief", async () => {
+    const old = await selfSession("backlog", { remote: "Archer" });
     expect(old.code).toBe("0");
-    expect(old.out).toContain(`Rotating backlog: pid ${old.pid} (the calling session).`);
+    const captain = /^Rotating backlog: pid \d+ \(the calling session\), as ([A-Za-z]+)\.$/m.exec(
+      old.out,
+    )?.[1];
+    expect(CAPTAINS).toContain(captain);
+    expect(captain).not.toBe("Archer");
+    // The tab is titled with the captain.
+    expect(old.out).toContain(`to open ${captain} (its command):`);
     const line = printedLine(old.out);
-    expect(line).toBe(`cd ${main} && ${scripts("rotate-into.sh")} backlog ${old.pid}`);
+    expect(line).toBe(`cd ${main} && ${scripts("rotate-into.sh")} backlog ${old.pid} --captain ${captain}`);
     expect(runInto(line).status).toBe(0);
     expect((await old.s.done).code).toBe(143);
     expect(JSON.parse(stateFile("record-at-term"))).toMatchObject({ pid: old.pid, rotating: true });
     const atStart = JSON.parse(stateFile("record-at-start"));
-    expect(atStart).toMatchObject({ kind: "backlog", model: "sonnet", remote: "backlog" });
+    // The record (backlog.json, read at start) stays backlog; only the display name is the captain's.
+    expect(atStart).toMatchObject({ kind: "backlog", model: "sonnet", remote: captain });
     expect(atStart.pid).not.toBe(old.pid);
     expect(atStart).not.toHaveProperty("rotating");
     const args = newArgs();
@@ -483,7 +497,7 @@ describe("pnpm prd rotate --self", () => {
       "--model",
       "sonnet",
       "--remote-control",
-      "backlog",
+      captain,
     ]);
     const prompt = promptOf(args);
     expect(prompt.startsWith("You are the new backlog/inbox planning agent.")).toBe(true);
@@ -519,7 +533,10 @@ describe("pnpm prd rotate --self", () => {
     const line = `cd ${main} && ${scripts("rotate-into.sh")} backlog ${pid} --brief '${file}'`;
     expect(runInto(line).status).toBe(0);
     await s.done;
-    const prompt = promptOf(newArgs());
+    // A rotation given no --captain (an old opener's line) draws one itself.
+    const args = newArgs();
+    expect(CAPTAINS).toContain(args[args.indexOf("--remote-control") + 1]);
+    const prompt = promptOf(args);
     expect(prompt.startsWith("## Brief from the session before")).toBe(true);
     expect(prompt).toContain(text);
     expect(prompt.indexOf(text)).toBeLessThan(
@@ -634,8 +651,9 @@ describe("pnpm prd rotate --self", () => {
           "inbox",
           "--managed",
           "--",
+          // Recorded on the old default: the new session must come up on prd.sh's Sonnet.
           "--model",
-          "sonnet",
+          "opus",
           "--remote-control",
           "inbox",
           "x",
@@ -646,7 +664,7 @@ describe("pnpm prd rotate --self", () => {
       await until(() => existsSync(join(state, "ready")));
       return { s, pid: stubPid(), out: stateFile("rotate.out"), code: stateFile("rotate.code").trim() };
     };
-    /** The new session: in the recorded directory, on the recorded model, fast settings, managed. */
+    /** The new session: in the recorded directory, on Sonnet with the low-effort settings, managed. */
     const expectFresh = (oldPid) => {
       const atStart = JSON.parse(stateFile("record-at-start"));
       expect(atStart).toMatchObject({
@@ -671,9 +689,10 @@ describe("pnpm prd rotate --self", () => {
     };
     beforeEach(() => rmSync(join(root, "home"), { recursive: true, force: true }));
 
-    it("rotates itself into a fresh one in its own directory, keeping its model and fast mode", async () => {
+    it("rotates itself into a fresh one in its own directory, on Sonnet at low effort though recorded on Opus", async () => {
       const old = await startInbox();
       expect(old.code).toBe("0");
+      expect(JSON.parse(stateFile("record-at-start")).model).toBe("opus");
       expect(old.out).toContain(`Rotating inbox: pid ${old.pid} (the calling session).`);
       const line = printedLine(old.out);
       expect(line).toBe(`cd ${main} && ${scripts("rotate-into.sh")} inbox ${old.pid}`);
@@ -700,16 +719,15 @@ describe("pnpm prd rotate --self", () => {
       expect(r.stderr).toContain("the inbox session hands off with no brief");
     });
 
-    it("the opener reopens a dead one the same way: its directory, model, fast mode and managed", async () => {
+    it("the keep-alive's opener reopens a dead Opus one the same way: its directory, Sonnet low, managed", async () => {
       const old = await startInbox();
       await finish(old);
+      expect(record("inbox").model).toBe("opus");
       rmSync(join(state, "record-at-start"), { force: true });
       const r = run("open-session.sh", ["inbox", "--print"], inboxEnv());
       expect(r.status).toBe(0);
       const line = r.stdout.split("\n")[1].trim();
-      expect(line).toBe(
-        `cd ${main} && ${scripts("prd.sh")} inbox --dir ${inboxDir()} --model sonnet --managed`,
-      );
+      expect(line).toBe(`cd ${main} && ${scripts("prd.sh")} inbox --dir ${inboxDir()} --managed`);
       const opened = spawnSync("bash", ["-c", line], {
         cwd: root,
         encoding: "utf8",

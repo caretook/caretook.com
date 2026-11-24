@@ -7,7 +7,9 @@
 // doesn't cut PowerSync's stream), a weekly series made offline and its "this
 // and later" split reaching the other member, a read-only viewer, a reschedule's one
 // transaction uploading and reaching the other member, the sync matrix (every
-// synced table's row on both devices: sync-matrix.mjs), an upload refused by
+// synced table's row on both devices, every streamed column as written:
+// sync-matrix.mjs), a removed member's device left with none of the group's
+// rows, an upload refused by
 // permissions (a member demoted while offline) and listed under Settings →
 // Changes not saved, a viewer's todo ticked
 // offline and their refused title change, a repeating todo ticked offline
@@ -18,6 +20,7 @@
 // One test, in the old script's order (each step names the old PASS line it
 // carries): the devices and their rows are the state each step builds on.
 import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import {
   BASE,
   DEV_FAMILY,
@@ -31,7 +34,24 @@ import {
   test,
   waitFor,
 } from "./fixtures.mjs";
-import { RECIPIENT_PATCH, SYNC_MATRIX, cleanupSql, localTimestamp, matrixContext } from "./sync-matrix.mjs";
+import {
+  RECIPIENT_PATCH,
+  SERVER_SET_COLUMNS,
+  SYNC_MATRIX,
+  cleanupSql,
+  columnMismatches,
+  localTimestamp,
+  matrixContext,
+  streamColumns,
+} from "./sync-matrix.mjs";
+import {
+  SYNC_WRITERS,
+  matrixIds,
+  writerCall,
+  writerCleanupSql,
+  writerContext,
+  writtenId,
+} from "./sync-writers.mjs";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** An assertion that is its own reported step (one old PASS line). */
@@ -80,16 +100,25 @@ const NAME = `document.querySelector('[role=dialog] input[name="symptomName"]')`
 const SUBMIT = `document.querySelector('[role=dialog] button[type="submit"]')`;
 const SHEET = `document.querySelector("[role=dialog]")`;
 
+const GATE_ADD = `document.querySelector('[role=dialog] [data-symptom-gate] [data-add-symptom]')`;
+
 /**
  * Add a symptom through the sheet. With `shown` (an expression), returns the ms
  * from pressing submit until it holds, whether or not the sheet has closed yet.
+ * A run's names are new: when the catalog has a similar one (the seeds'
+ * "Pain", an earlier run's), the sheet asks first, and this adds it as new.
  */
 async function addSymptom(page, name, shown) {
   await addToTimeline(page, "Symptom");
   await wf(page, NAME);
   await page.locator('[role=dialog] input[name="symptomName"]').fill(name);
-  const submitted = Date.now();
+  let submitted = Date.now();
   await press(page, SUBMIT);
+  await wf(page, `!${SHEET} || !!${GATE_ADD}${shown ? ` || !!(${shown})` : ""}`);
+  if (await page.evaluate(`!!${GATE_ADD}`)) {
+    submitted = Date.now();
+    await press(page, GATE_ADD);
+  }
   const [shownMs] = await Promise.all([
     shown ? wf(page, shown).then(() => Date.now() - submitted) : undefined,
     wf(page, `!${SHEET}`),
@@ -168,6 +197,7 @@ const localCopyHolds = (text) => `(async () => {
 // and can fail its first connect after a reset (a 401 while it refetches the
 // JWKS), a full page load closes the previous page's database, and a refused
 // upload is logged on purpose.
+const SYSTEM_USER = "00000000-0000-0000-0000-000000000000";
 const NOISE =
   /the server refused a change|401|Failed to load resource|ERR_INTERNET_DISCONNECTED|Failed to fetch|\[vite\] failed to connect|Failed to send error to Vite|\[PowerSync\]: Sync error|\[PowerSync\]: Initial connect attempt|error closing database connection|\[PowerSync\]: Sync aborted|Error loading route module/;
 
@@ -193,6 +223,9 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
   // A run that died mid-step left it done: open again before anyone loads.
   if (viewerTodo) psql(reopenViewerTodoSql);
   const tag = `RT-${Date.now().toString(36)}`;
+  // 6b'': a fictional member this run adds and removes.
+  const removedEmail = `${tag.toLowerCase()}-removed@example.com`;
+  const removedErrors = [];
   const matrix = matrixContext({
     tag,
     groupId: DEV_FAMILY,
@@ -226,6 +259,9 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     await wf(B, `${SHEET}?.textContent.includes("Edit symptom") && ${NAME}`);
     await B.locator('[role=dialog] input[name="symptomName"]').fill(`${name}, edited`);
     await press(B, SUBMIT);
+    // Like the name it had, so the sheet asks first: a new name.
+    await wf(B, `!${SHEET} || !!${GATE_ADD}`);
+    if (await B.evaluate(`!!${GATE_ADD}`)) await press(B, GATE_ADD);
     const editMs = await timeUntil(A, `${rowWith(name)}?.textContent.includes("edited")`);
     await check("edit: reaches the other member", true, `${editMs} ms`);
     await check(
@@ -251,6 +287,39 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
         `SELECT (deleted_at IS NOT NULL)::text FROM timeline_entry WHERE details->>'name' LIKE '${tag}%'`,
         (r) => r === "true",
       )) === "true",
+    );
+
+    // 3a. The same new symptom from both members, each offline (symptom-catalog):
+    // each device adds the catalog row with its entry, under the id derived
+    // from the group and the name; on reconnect they converge on one row.
+    const sameName = `${tag} hiccup spell`;
+    const sameKey = sameName.toLowerCase();
+    dA.offline(true);
+    dB.offline(true);
+    await addSymptom(A, sameName);
+    await addSymptom(B, sameName.toUpperCase());
+    dA.offline(false);
+    dB.offline(false);
+    const typesOn = (page) =>
+      localRows(page, "SELECT id, name FROM symptom_type WHERE group_id = ? AND name_key = ?", [
+        DEV_FAMILY,
+        sameKey,
+      ]);
+    const onServer = await waitForSql(
+      `SELECT (SELECT count(*) FROM symptom_type WHERE group_id = '${DEV_FAMILY}' AND name_key = '${sameKey}')
+        || ':' || (SELECT count(*) || '/' || count(DISTINCT symptom_type_id) FROM timeline_entry
+          WHERE group_id = '${DEV_FAMILY}' AND lower(details->>'name') = '${sameKey}' AND deleted_at IS NULL)`,
+      (r) => r === "1:2/1",
+      30_000,
+    );
+    const converged = await until(async () => {
+      const [a, b] = [await typesOn(A), await typesOn(B)];
+      return a.length === 1 && b.length === 1 && a[0].id === b[0].id && a[0].name === b[0].name ? a[0] : null;
+    }, 30_000);
+    await check(
+      "symptom catalog: two members adding the same new name offline converge on one row",
+      onServer === "1:2/1" && !!converged,
+      `server ${onServer} (rows:entries/types); A ${JSON.stringify(await typesOn(A))}; B ${JSON.stringify(await typesOn(B))}`,
     );
 
     // 3b. A connector's write through /mcp reaches this device with its "via" tag.
@@ -537,28 +606,63 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     seriesMs += Date.now() - tSeries;
     console.log(`  series: its steps added ${seriesMs} ms to the run`);
 
-    // 6b. The sync matrix: every synced table's row reaches the other device.
+    // 6b. The sync matrix: every synced table's row reaches the other device,
+    // each uploadable one written by the app's own writer (sync-writers.mjs).
     // care_recipient first (its one uploadable column), before the matrix's
-    // allergy clears "No known allergies" on the server.
+    // allergy clears "No known allergies".
     const recorded = recordedAt !== "";
-    await localWrite(A, [RECIPIENT_PATCH.write(matrix, recorded)]);
+    // The row as PowerSync stored it (`ps_data__<table>`'s JSON): every
+    // column the stream sent (or, for a local write, the device schema's).
+    const rowOn = async (page, table, id) => {
+      const [row] = await localRows(page, `SELECT data FROM "ps_data__${table}" WHERE id = ?`, [id]);
+      return row ? { id, ...JSON.parse(row.data) } : undefined;
+    };
+    const wctx = writerContext({ ...matrix, recorded });
+    const recipientWrite = await A.evaluate(writerCall("care_recipient", wctx));
     const patched = await until(async () => {
       const [row] = await localRows(B, RECIPIENT_PATCH.read(matrix).sql, RECIPIENT_PATCH.read(matrix).params);
       return row && !!row.recorded !== recorded;
     });
     await check(
-      "matrix: care_recipient (device patch) reaches the other member",
-      !!patched,
-      recorded ? "cleared No known allergies" : "recorded No known allergies",
+      `matrix: care_recipient (${SYNC_WRITERS.care_recipient.writer}) reaches the other member`,
+      !!recipientWrite.ok && !!patched,
+      `${recorded ? "cleared" : "recorded"} No known allergies: ${JSON.stringify(recipientWrite)}`,
     );
+    // The rest, with device A's uploads held (its web port's requests wait,
+    // PowerSync's stream stays up), so each row is read back as its writer
+    // left it before the server's copy replaces it.
+    await A.evaluate(() => window.caretookModules().then(() => true));
+    dA.proxy.hold(new URL(BASE).port);
     const t1 = Date.now();
-    await localWrite(
-      A,
-      SYNC_MATRIX.filter((r) => r.by === "device").map((r) => r.write(matrix)),
+    const writerRefusals = [];
+    const expectedRows = {};
+    let queuedAtRead = 0;
+    try {
+      for (const [table, w] of Object.entries(SYNC_WRITERS)) {
+        if (table === "care_recipient" || w.by) continue;
+        const result = await A.evaluate(writerCall(table, wctx));
+        if (!result?.ok) writerRefusals.push(`${table} (${w.writer}): ${JSON.stringify(result)}`);
+        wctx.ids[table] = writtenId(table, wctx.ids, result);
+      }
+      for (const [table, w] of Object.entries(SYNC_WRITERS))
+        if (w.by) wctx.ids[table] = writtenId(table, wctx.ids);
+      for (const table of Object.keys(SYNC_WRITERS))
+        if (table !== "care_recipient" && wctx.ids[table])
+          expectedRows[table] = await rowOn(A, table, wctx.ids[table]);
+      // Still queued: the rows read back are the writers', not the server's.
+      queuedAtRead = await queued(A);
+    } finally {
+      dA.proxy.release();
+    }
+    Object.assign(matrix.ids, matrixIds(wctx.ids));
+    await check(
+      "matrix: every uploadable table's app writer accepts its row, read back before it uploads",
+      writerRefusals.length === 0 && queuedAtRead > 0,
+      `${queuedAtRead} queued when read; ${writerRefusals.join("; ")}`.slice(0, 800),
     );
     const rows = SYNC_MATRIX.filter((r) => r.by !== "patch").map((r) => ({
       ...r,
-      rowId: r.by === "device" ? r.id(matrix) : psql(r.idSql(matrix)),
+      rowId: r.by === "device" ? wctx.ids[r.table] : psql(r.idSql(matrix)),
     }));
     const holds = async (page, r) =>
       !!r.rowId &&
@@ -574,7 +678,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     const missingA = await missingOn(A);
     for (const r of rows)
       await check(
-        `matrix: ${r.table} (${r.by === "device" ? "written on a device" : "server-written"}) is on both devices`,
+        `matrix: ${r.table} (${r.by === "device" ? `written by ${SYNC_WRITERS[r.table].writer}` : "server-written"}) is on both devices`,
         !missingB.includes(r.table) && !missingA.includes(r.table),
         [
           missingB.includes(r.table) && "not on the other member's device",
@@ -587,6 +691,106 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     console.log(
       `  matrix: ${rows.length - missingB.length}/${rows.length} tables on the other device ${matrixMs} ms after the write`,
     );
+
+    // 6b'. Every column each table's stream sends matches on the other device
+    // (test-health-2, B-371): a device-written row as its app writer left it on device A (but
+    // the columns the server sets by design, SERVER_SET_COLUMNS), and a
+    // server-written row, and care_recipient's patch, as device A holds it.
+    const STREAMS = streamColumns(
+      readFileSync(new URL("../../powersync/sync-config.yaml", import.meta.url), "utf8"),
+    );
+    const t1c = Date.now();
+    const compared = [
+      ...rows.map((r) => ({ table: r.table, id: r.rowId, written: r.by === "device" ? r : null })),
+      { table: "care_recipient", id: matrix.recipientId, written: null },
+    ];
+    for (const r of compared) {
+      const columns = STREAMS.get(r.table) ?? [];
+      const skip = r.written ? { ...SERVER_SET_COLUMNS["*"], ...SERVER_SET_COLUMNS[r.table] } : {};
+      const expected = async () => (r.written ? expectedRows[r.table] : await rowOn(A, r.table, r.id));
+      let mismatches = ["not compared"];
+      await until(async () => {
+        mismatches = columnMismatches((await expected()) ?? {}, await rowOn(B, r.table, r.id), columns, skip);
+        return mismatches.length === 0;
+      }, 5_000);
+      const named = Object.keys(skip);
+      await check(
+        `columns: ${r.table}'s ${columns.length - named.length} streamed columns match on the other device${named.length ? ` (server-set: ${named.join(", ")})` : ""}`,
+        columns.length > 0 && mismatches.length === 0,
+        mismatches.join("; ").slice(0, 800),
+      );
+    }
+    console.log(`  columns: ${compared.length} rows compared in ${Date.now() - t1c} ms`);
+
+    // 6b''. A removed member's device (test-health-2, B-373): a fictional
+    // caretaker joins, syncs the group (the matrix's rows included), and the
+    // owner removes them through careGroup.removeMember; every row of the
+    // group, and the co-members' profiles, must leave their device.
+    const tRemoved = Date.now();
+    psql(`
+      WITH u AS (
+        INSERT INTO "user" (email, name, email_verified, created_by, updated_by)
+        VALUES ('${removedEmail}', 'RT Removed Tester', true, '${SYSTEM_USER}', '${SYSTEM_USER}')
+        RETURNING id
+      ), a AS (
+        INSERT INTO account (user_id, provider_id, account_id, password)
+        SELECT u.id, 'credential', u.id::text,
+          (SELECT a.password FROM account a JOIN "user" s ON s.id = a.user_id
+            WHERE s.email = 'member@example.com' AND a.provider_id = 'credential')
+        FROM u
+      )
+      INSERT INTO care_group_member (group_id, user_id, role, created_by, updated_by)
+      SELECT '${DEV_FAMILY}', u.id, 'caretaker', '${memberId}', '${memberId}' FROM u;`);
+    const removedId = userId(removedEmail);
+    const dD = await device("removed");
+    const D = dD.page;
+    await signIn(D, removedEmail);
+    // The group's rows on the device, per synced table, as PowerSync stores
+    // them (`ps_data__<table>`), and the co-members' profiles.
+    const groupRowsOn = async (page) => {
+      const counts = {};
+      for (const table of STREAMS.keys()) {
+        const where =
+          table === "care_group"
+            ? `json_extract(data, '$.id') = ?`
+            : table === "user"
+              ? `id <> ?`
+              : `json_extract(data, '$.group_id') = ?`;
+        const [row] = await localRows(page, `SELECT count(*) AS n FROM "ps_data__${table}" WHERE ${where}`, [
+          table === "user" ? removedId : DEV_FAMILY,
+        ]);
+        if (row.n > 0) counts[table] = row.n;
+      }
+      return counts;
+    };
+    const held = await until(async () => {
+      const counts = await groupRowsOn(D);
+      return (await localRows(D, `SELECT id FROM "ps_data__timeline_entry" WHERE id = ?`, [matrix.ids.entry]))
+        .length === 1 && counts.care_recipient_details
+        ? counts
+        : null;
+    }, 30_000);
+    await check(
+      "removed: a new caretaker's device holds the group's rows (the matrix's and the writers' details)",
+      !!held,
+      JSON.stringify(held ?? (await groupRowsOn(D))),
+    );
+    const removedStatus = await rpc(A, "careGroup/removeMember", { groupId: DEV_FAMILY, userId: removedId });
+    let stillHeld = {};
+    const gone = await until(async () => {
+      stillHeld = await groupRowsOn(D);
+      return Object.keys(stillHeld).length === 0;
+    }, 30_000);
+    await check(
+      "removed: after the owner removes them, their device holds none of the group's rows",
+      removedStatus === 200 && !!gone,
+      `removeMember ${removedStatus}; still on the device: ${JSON.stringify(stillHeld)}`,
+    );
+    console.log(
+      `  removed: ${Object.values(held ?? {}).reduce((a, b) => a + b, 0)} rows in ${Object.keys(held ?? {}).length} tables before, none left ${Date.now() - tRemoved} ms into the step`,
+    );
+    removedErrors.push(...dD.errors);
+    await dD.close();
 
     // 6c and 6d share one offline window (the caretaker's and the viewer's
     // devices), so their reconnects overlap: one PowerSync retry, not two.
@@ -860,7 +1064,7 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
       JSON.stringify(lists),
     );
 
-    const errors = [dA, dB, dC].flatMap((d) => d.errors).filter((e) => !NOISE.test(e));
+    const errors = [...[dA, dB, dC].flatMap((d) => d.errors), ...removedErrors].filter((e) => !NOISE.test(e));
     await check(
       "no console errors or warnings",
       errors.length === 0,
@@ -877,7 +1081,14 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
         `UPDATE timeline_entry SET deleted_at = now() WHERE title LIKE '${tag} via%' AND deleted_at IS NULL`,
       );
       psql(`DELETE FROM oauth_client WHERE name = 'Claude ${tag}'`);
+      psql(`DELETE FROM "user" WHERE email = '${removedEmail}'`);
       psql(cleanupSql(matrix, recordedAt));
+      // The run's symptom names in the catalog (rows are never soft-deleted), any case.
+      psql(
+        `UPDATE timeline_entry SET deleted_at = coalesce(deleted_at, now()), symptom_type_id = NULL WHERE group_id = '${DEV_FAMILY}' AND details->>'name' ILIKE '${tag}%';
+         DELETE FROM symptom_type WHERE group_id = '${DEV_FAMILY}' AND name ILIKE '${tag}%'`,
+      );
+      psql(writerCleanupSql({ timeline_entry: matrix.ids.entry }));
       psql(
         `UPDATE timeline_entry SET deleted_at = now() WHERE title LIKE '${tag} resched%' AND deleted_at IS NULL`,
       );

@@ -12,10 +12,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Worker } from "node:worker_threads";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { ROTATING_GRACE_MS } from "./dispatch-pick.mjs";
 import { START_GRACE_MS } from "./keep-alive.mjs";
-import { MAX_TEXT } from "./notices.mjs";
+import { MAX_TEXT, raiseSeq, readSeq } from "./notices.mjs";
 import {
   KEEP_SETTLED_MS,
   backlogRemoteOf,
@@ -72,6 +73,13 @@ describe("names and process lines", () => {
     expect(backlogRemoteOf("vim --remote-control backlog")).toBeNull();
     expect(backlogRemoteOf("claude You could pass `--remote-control backlog`")).toBeNull();
   });
+
+  it("reads a captain's Remote Control name as the main backlog session's", () => {
+    expect(backlogRemoteOf("claude --model opus --remote-control Picard You are")).toBe("backlog");
+    expect(backlogRemoteOf("claude --remote-control=Kirk")).toBe("backlog");
+    expect(backlogRemoteOf("claude --remote-control Picardy You are")).toBeNull();
+    expect(backlogRemoteOf("vim --remote-control Picard")).toBeNull();
+  });
 });
 
 describe("the store", () => {
@@ -108,6 +116,98 @@ describe("the store", () => {
     expect(b.id).toBe("r2");
     expect(existsSync(a.brief)).toBe(false);
     expect(readRequests(dir).map((r) => r.id)).toEqual(["r2"]);
+  });
+
+  it("keeps the mark at the higher id when a lower raise lands last", () => {
+    // Two requests filed together: r2's raise finishes first, then r1's lands
+    // late (the check-then-rename used to leave .seq at 1 here, and r2 reused).
+    const a = createRequest(dir, { name: "one", now: NOW });
+    const b = createRequest(dir, { name: "two", now: NOW });
+    expect([a.id, b.id]).toEqual(["r1", "r2"]);
+    raiseSeq(dir, 1);
+    expect(readSeq(dir)).toBe(2);
+    for (const r of [a, b]) settleRequest(dir, r.id, { state: "opened", now: NOW });
+    expect(createRequest(dir, { name: "three", now: NOW + KEEP_SETTLED_MS + 1000 }).id).toBe("r3");
+    expect(readRequests(dir).map((r) => r.id)).toEqual(["r3"]);
+  });
+
+  it("carries an old .seq file over", () => {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, ".seq"), "7\n");
+    expect(createRequest(dir, { name: "after-the-old-mark", now: NOW }).id).toBe("r8");
+    expect(existsSync(join(dir, ".seq"))).toBe(false);
+    expect(readSeq(dir)).toBe(8);
+  });
+
+  // Worker threads held at one barrier (Atomics, no sleeps), then all running
+  // `task` together: (module, data) => result, data being one of `inputs`.
+  const atBarrier = async (/** @type {string} */ task, /** @type {unknown[]} */ inputs) => {
+    const go = new Int32Array(new SharedArrayBuffer(4));
+    const modules = {
+      requests: new URL("./session-requests.mjs", import.meta.url).href,
+      notices: new URL("./notices.mjs", import.meta.url).href,
+    };
+    const code = `
+      const { parentPort, workerData } = require("node:worker_threads");
+      Promise.all([import(workerData.modules.requests), import(workerData.modules.notices)]).then(([requests, notices]) => {
+        parentPort.postMessage("ready");
+        Atomics.wait(workerData.go, 0, 0);
+        parentPort.postMessage({ result: (${task})({ ...requests, ...notices }, workerData.data) });
+      });
+    `;
+    const workers = inputs.map((data) => new Worker(code, { eval: true, workerData: { modules, go, data } }));
+    try {
+      const ready = workers.map((w) => new Promise((resolve) => w.once("message", resolve)));
+      const results = workers.map(
+        (w) =>
+          new Promise((resolve, reject) => {
+            w.on("error", reject);
+            w.on("message", (m) => m?.result !== undefined && resolve(m.result));
+          }),
+      );
+      await Promise.all(ready);
+      Atomics.store(go, 0, 1);
+      Atomics.notify(go, 0);
+      return await Promise.all(results);
+    } finally {
+      await Promise.all(workers.map((w) => w.terminate()));
+    }
+  };
+
+  it("never reuses an id or lowers the mark when requests are filed at once", async () => {
+    const WORKERS = 8;
+    const EACH = 5;
+    const inputs = Array.from({ length: WORKERS }, (_, n) => ({ dir, n, each: EACH, now: NOW }));
+    const ids = (
+      await atBarrier(
+        `({ createRequest }, { dir, n, each, now }) =>
+          Array.from({ length: each }, (_, i) => createRequest(dir, { name: "w" + n + "-" + i, now }).id)`,
+        inputs,
+      )
+    ).flat();
+    const total = WORKERS * EACH;
+    expect(new Set(ids).size).toBe(total);
+    expect(readSeq(dir)).toBe(total);
+    for (const r of readRequests(dir)) settleRequest(dir, r.id, { state: "opened", now: NOW });
+    expect(createRequest(dir, { name: "later", now: NOW + KEEP_SETTLED_MS + 1000 }).id).toBe(`r${total + 1}`);
+  });
+
+  it("keeps the highest mark when raises in every order run at once", async () => {
+    // Each worker raises the same marks in its own order, so lower raises land
+    // after higher ones on every thread.
+    mkdirSync(dir, { recursive: true });
+    const marks = Array.from({ length: 20 }, (_, i) => i + 1);
+    const orders = [
+      marks,
+      [...marks].reverse(),
+      ...[3, 7, 11, 13, 17, 19].map((k) => marks.map((_, i) => ((i * k) % 20) + 1)),
+    ];
+    await atBarrier(
+      `({ raiseSeq }, { dir, order }) => { for (const n of order) raiseSeq(dir, n); return true; }`,
+      orders.map((order) => ({ dir, order })),
+    );
+    expect(readSeq(dir)).toBe(20);
+    expect(createRequest(dir, { name: "next", now: NOW }).id).toBe("r21");
   });
 
   it("status lists only the pending ones", () => {
@@ -196,6 +296,19 @@ describe("the decision", () => {
     const one = ["claude --remote-control backlog Hi"];
     expect(decide({ requests, sessions, processes: one, max: 2 }).action).toBe("open");
     expect(decide({ requests, sessions, processes: [...one, ...one], max: 2 }).action).toBe("refuse");
+  });
+
+  it("tells a captain-named main session from backlog-<name> ones: its record and process count once", () => {
+    const requests = [req("r1", "new")];
+    const captain = ["claude --remote-control Riker Hi"];
+    // Its process alone holds backlog, so it counts toward the limit, not as a request's name.
+    expect(decide({ requests, processes: captain, max: 1 })).toMatchObject({
+      action: "refuse",
+      why: "1 backlog sessions are live, the limit is 1",
+    });
+    expect(decide({ requests, sessions: [live("backlog")], processes: captain, max: 2 }).action).toBe("open");
+    // It never holds a backlog-<name>: a request beside it opens.
+    expect(decide({ requests: [req("r2", "riker")], processes: captain, max: 3 }).action).toBe("open");
   });
 
   it("a session still starting counts toward the limit", () => {

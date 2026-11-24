@@ -1,5 +1,5 @@
-import type { MedicationType } from "@caretook/data/schema";
-import type { ActionResult, FieldIssue } from "~/lib/core/api";
+import type { MedicationType, NewMedicationDraft } from "@caretook/data/schema";
+import type { ActionResult, CreateResult, FieldIssue } from "~/lib/core/api";
 import type { LocalPass } from "~/lib/medications/medicationPasses.sync";
 import type { LocalMedication, MedicationNameRow } from "~/lib/medications/medications.sync";
 import type { LocalCondition } from "~/lib/profiles/conditions.sync";
@@ -105,11 +105,14 @@ export function MedicationForm({
   conditions = [],
   conditionIds = [],
   zoneNote,
+  draft,
   onDone,
   onCancel,
 }: {
   /** Editing this medication; omit to add one. */
   medication?: LocalMedication;
+  /** Adding: what the fields start with (quick entry's "new med lisinopril 10 mg tablet"). */
+  draft?: Pick<NewMedicationDraft, "name" | "strength" | "form" | "directions"> | null;
   providers: readonly LocalProvider[];
   /** The group's passes, deleted ones too (`useSchedulePasses`). */
   passes: readonly LocalPass[];
@@ -119,10 +122,11 @@ export function MedicationForm({
   /** What the medication is for as the form opens. */
   conditionIds?: readonly string[];
   zoneNote: string | null;
-  onDone: () => void;
+  /** After a save; adding one passes the new medication's id. The form itself never navigates. */
+  onDone: (id?: string) => void;
   onCancel: () => void;
 }) {
-  const fetcher = useFetcher<ActionResult>();
+  const fetcher = useFetcher<ActionResult | CreateResult>();
   const formRef = useRef<HTMLFormElement>(null);
   const result = fetcher.state === "idle" ? fetcher.data : undefined;
   const issues = result && !result.ok ? result.issues : [];
@@ -152,13 +156,13 @@ export function MedicationForm({
     if (next !== "prescription") setDetailsOpen(hasPrescriptionDetails(formRef.current));
   };
 
-  // A save closes the sheet; a refusal moves focus to the first field it's about.
-  const handled = useRef<ActionResult | undefined>(undefined);
+  // A save goes to `onDone`; a refusal moves focus to the first field it's about.
+  const handled = useRef<ActionResult | CreateResult | undefined>(undefined);
   useEffect(() => {
     if (fetcher.state !== "idle" || !fetcher.data || handled.current === fetcher.data) return;
     handled.current = fetcher.data;
     if (fetcher.data.ok) {
-      onDone();
+      onDone("id" in fetcher.data ? fetcher.data.id : undefined);
       return;
     }
     const form = formRef.current;
@@ -190,7 +194,11 @@ export function MedicationForm({
     <fetcher.Form method="post" ref={formRef} className="space-y-1" noValidate data-medication-form>
       <input type="hidden" name="intent" value={medication ? "update" : "create"} />
 
-      <NameField defaultValue={medication?.name ?? ""} names={names} error={issueFor(issues, "name")} />
+      <NameField
+        defaultValue={medication?.name ?? draft?.name ?? ""}
+        names={names}
+        error={issueFor(issues, "name")}
+      />
 
       <ChoiceGroup
         name={FIELD.type}
@@ -205,14 +213,14 @@ export function MedicationForm({
         <TextField
           label="Strength (optional)"
           name={FIELD.strength}
-          defaultValue={medication?.strength}
+          defaultValue={medication?.strength ?? draft?.strength}
           max={MEDICATION_LIMITS.strength}
           issues={issues}
           placeholder="e.g. 10 mg"
         />
         <Field label="Form (optional)" error={issueFor(issues, "form")} kind="select">
           {(control) => (
-            <select {...control} name={FIELD.form} defaultValue={medication?.form ?? ""}>
+            <select {...control} name={FIELD.form} defaultValue={medication?.form ?? draft?.form ?? ""}>
               <option value="">Not set</option>
               {MEDICATION_FORMS.map((form) => (
                 <option key={form} value={form}>
@@ -250,7 +258,7 @@ export function MedicationForm({
             name={FIELD.directions}
             rows={2}
             maxLength={MEDICATION_LIMITS.directions}
-            defaultValue={medication?.directions ?? ""}
+            defaultValue={medication?.directions ?? draft?.directions ?? ""}
             placeholder="e.g. With food, in the morning"
           />
         )}

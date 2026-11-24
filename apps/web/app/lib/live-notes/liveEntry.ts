@@ -47,8 +47,9 @@ export const isUnnamedEvent = (kind: string, title: string | null | undefined) =
 
 /**
  * What the title field shows and asks for. An unnamed event shows an empty
- * field: "Title" on a draft, then the gentle "Add a title" once it's saved
- * as "Event". A note's title is optional.
+ * field: "Enter a title to save" on a draft (B-692: a title is what saves
+ * it), then the gentle "Add a title" once it's saved as "Event". The field's
+ * accessible name stays "Title". A note's title is optional.
  */
 export const titleField = (
   kind: LiveEntryKind,
@@ -57,5 +58,5 @@ export const titleField = (
 ): { value: string; placeholder: string } => {
   if (kind === "note") return { value: title ?? "", placeholder: "Title (optional)" };
   if (!isUnnamedEvent(kind, title)) return { value: title ?? "", placeholder: "Title" };
-  return saved ? { value: "", placeholder: "Add a title" } : { value: "", placeholder: "Title" };
+  return { value: "", placeholder: saved ? "Add a title" : "Enter a title to save" };
 };

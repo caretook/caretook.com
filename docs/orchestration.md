@@ -102,7 +102,7 @@ Every change is committed straight onto `dev` (only those two files), so every s
 
 4. The orchestrator summarises the plan and the backlog, then asks how to land (before each landing, run everything through, or automatically for the waves or slices you pick) and which slices to run. If a session gets slow or confused, close it and rerun the same command (`pnpm prd start <topic>` reprints it). It picks up from the plan's _Status_ section, which the orchestrator updates at every step (a slice started, handed off or merged, a wave landed), so nothing is lost whenever it stops.
 
-**At most four PRDs run at once.** `pnpm prd start` refuses a fifth (raise `CARETOOK_MAX_PRDS` to override).
+**Four PRDs run at once,** or `pnpm prd dispatch --cap <n>`; running ones finish.
 
 **The dispatcher:** `pnpm prd dispatch` plans and starts topics in the PRD table's order as slots free up, never two that share hot files, waits on a busy machine, and reopens sessions that die. `pnpm prd queue <topic>` moves a topic first; a row's `hold` flag or `pnpm prd dispatch --pause` holds it back, `--dry-run` shows why each topic waits. Its orchestrators land each wave without asking; their questions and reports wait in `pnpm prd asks` (answer with `pnpm prd answer <id> <n>`, [machinery](agents/machinery.md#the-dispatcher)); a recommended one may default in 30 minutes; `pnpm prd notices` lists heads-ups. `CARETOOK_UNSYNCED=off` stops unsynced landings.
 
@@ -177,14 +177,15 @@ chore(app-shell): merge dev into prd/app-shell
 - **Types:** `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `style`, `build`, `ci`, `chore`, `revert`.
 - **Scope** (optional): the PRD topic, or the area. Backlog ids go at the end, in parentheses.
 - **Breaking change:** `feat(api)!: …`, with a `BREAKING CHANGE:` footer.
-- The tools write their own: `pnpm backlog` commits as `chore(backlog): …`, `pnpm prd sync` as `chore(<topic>): merge dev …`, and `pnpm prd land` takes `-m "feat(<topic>): …"` (or writes a default).
+- `pnpm backlog`, `pnpm prd sync` and `pnpm prd land` (`-m`, else a default) write their own.
 
 ## Commands at a glance
 
 | Command                           | What it's for                                                                      |
 | --------------------------------- | ---------------------------------------------------------------------------------- |
 | `pnpm prd status`                 | every worktree and session: kind, context size (`pnpm prd context`), server link   |
-| `pnpm prd status-watch [seconds]` | the same, redrawn every few seconds (default 5) until Ctrl-C                       |
+| `pnpm prd status-watch [seconds]` | the same, redrawn every 5 s; `pnpm prd watch`: each slice agent's next action      |
+| `pnpm prd metrics [--json]`       | slice and landing times, check times, flake rate, Codex's find rate (`--since`)    |
 | `pnpm prd start <topic>`          | create or reopen a PRD's worktree; prints the orchestrator command                 |
 | `pnpm prd queue <topic>`          | wait for a free slot, then open a run-through orchestrator in this terminal        |
 | `pnpm prd plan <topic> --open`    | a docs-only worktree and a planning session that writes and lands the PRD and plan |

@@ -5,7 +5,17 @@ import { isError } from "../errors";
 import { SYSTEM_USER } from "../constants";
 import { getDb } from "./client";
 import { resetStaging, wipeStaging } from "./resetStaging";
-import { accountSchema, careGroupMemberSchema, careGroupSchema, userSchema } from "./schema";
+import {
+  accountSchema,
+  careGroupMemberSchema,
+  careGroupSchema,
+  DEFAULT_SYMPTOMS,
+  symptomKey,
+  symptomTypeId,
+  symptomTypeSchema,
+  timelineEntrySchema,
+  userSchema,
+} from "./schema";
 import { DEV_GROUP_ID } from "./seeds/careGroups";
 
 // Reset staging (B-449) against the test database: the wipe keeps real
@@ -105,6 +115,32 @@ describe("resetStaging", () => {
     expect(groupIds).toContain(DEV_GROUP_ID);
     expect(groupIds).not.toContain(own!.id);
     expect(groupIds).not.toContain(theirs!.id);
+
+    // The seed's last step fills the symptom catalog (symptom-catalog slice 1):
+    // Dev Family has every default and the names its entries use.
+    const catalog = await db
+      .select({ key: symptomTypeSchema.nameKey })
+      .from(symptomTypeSchema)
+      .where(eq(symptomTypeSchema.groupId, DEV_GROUP_ID));
+    const keys = catalog.map((r) => r.key);
+    expect(keys).toEqual(
+      expect.arrayContaining([...DEFAULT_SYMPTOMS.map(symptomKey), "knee pain", "sudden confusion"]),
+    );
+    expect(new Set(keys).size).toBe(keys.length);
+    // And every live seeded symptom points at its name's type (slice 2).
+    const symptoms = await db
+      .select({
+        groupId: timelineEntrySchema.groupId,
+        details: timelineEntrySchema.details,
+        deletedAt: timelineEntrySchema.deletedAt,
+        symptomTypeId: timelineEntrySchema.symptomTypeId,
+      })
+      .from(timelineEntrySchema)
+      .where(eq(timelineEntrySchema.kind, "symptom"));
+    const live = symptoms.filter((e) => !e.deletedAt);
+    expect(live.length).toBeGreaterThan(0);
+    for (const e of live)
+      expect(e.symptomTypeId).toBe(symptomTypeId(e.groupId, (e.details as { name: string }).name));
 
     // The real account owns every group (all of them are seeded now).
     const memberships = await db

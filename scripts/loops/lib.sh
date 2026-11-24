@@ -7,7 +7,15 @@ main=$(git -C "$(dirname "${BASH_SOURCE[0]}")" worktree list --porcelain | awk '
 loops=$main/.loops
 leases=$loops/.slots
 trunk=${TRUNK:-dev}
-max_prds=${CARETOOK_MAX_PRDS:-4}
+# The PRD cap (lanes): `pnpm prd dispatch --cap <n>` stores it in .loops/.prd-cap, which
+# wins over CARETOOK_MAX_PRDS; the default is 4. max_prds_from says which one set it.
+prd_cap_file=$loops/.prd-cap
+max_prds=${CARETOOK_MAX_PRDS:-4} max_prds_from=${CARETOOK_MAX_PRDS:+CARETOOK_MAX_PRDS}
+max_prds_from=${max_prds_from:-default}
+if [[ -r $prd_cap_file ]] && _cap=$(<"$prd_cap_file") && [[ $_cap =~ ^[1-9][0-9]?$ ]]; then
+  max_prds=$_cap max_prds_from="pnpm prd dispatch --cap"
+fi
+unset _cap
 
 # dispatch_pid → the running dispatcher's pid (pnpm prd dispatch: its lock,
 # .loops/.dispatch.lock), or nothing and false when none runs.
@@ -80,6 +88,16 @@ prd_count() {
 }
 
 die() { echo "$*" >&2; exit 1; }
+
+# run_log [--once <field,…>] KIND [key=value|key:=json]… → one event in the run log
+# (run-log.mjs; $CARETOOK_RUN_LOG, else .loops/.run-log.jsonl in the main
+# checkout). It never prints and never fails: watching never hurts the work.
+run_log() {
+  local once=()
+  if [[ ${1:-} == --once ]]; then once=(--once "${2:-}"); shift 2; fi
+  node "$(dirname "${BASH_SOURCE[0]}")/run-log.mjs" append --log "${CARETOOK_RUN_LOG:-$loops/.run-log.jsonl}" \
+    ${once[@]+"${once[@]}"} "$@" </dev/null >/dev/null 2>&1 || true
+}
 
 # here_name → the name of the .loops worktree the shell is in, or nothing.
 here_name() {
@@ -177,13 +195,11 @@ docs_only() {
 }
 
 # propose_tier BASE TIP [DECLARED] → three lines from check-plan.mjs: the tier this
-# diff should wait for, why, and ok | below | refused for the declared tier.
+# diff (BASE...TIP, which check-plan.mjs computes) should wait for, why, and
+# ok | below | refused for the declared tier.
 propose_tier() {
-  local from
-  from=$(git -C "$main" merge-base "$1" "$2") || return 1
-  git -C "$main" diff --name-only --no-renames "$from" "$2" |
-    node "$(dirname "${BASH_SOURCE[0]}")/check-plan.mjs" --propose --repo "$main" --base "$from" --head "$2" \
-      ${3:+--declared "$3"}
+  node "$(dirname "${BASH_SOURCE[0]}")/check-plan.mjs" --propose --repo "$main" --base "$1" --head "$2" \
+    ${3:+--declared "$3"}
 }
 
 # checked_ok DIR REV → succeeds when `pnpm prd check` (full or --quick) passed
@@ -252,6 +268,20 @@ node_is() {
 trunk_drift() {
   git -C "$main" diff --name-only "$1...${2:-$trunk}" |
     grep -vxF -e plans/backlog.md -e plans/inbox.md -e plans/backlog-archive.md -e scripts/ci/brake-list.txt -e scripts/ci/quarantine.txt || true
+}
+
+# trunk_lists BRANCH [REF] → CI's two lists that dev (or REF) changed since
+# BRANCH last merged it and BRANCH itself didn't: what `sync` copies when it skips
+# the merge. A list both sides changed is shared, so dev-brought.mjs refuses and
+# sync merges instead.
+trunk_lists() {
+  local base f
+  base=$(git -C "$main" merge-base "$1" "${2:-$trunk}") || return 0
+  for f in scripts/ci/brake-list.txt scripts/ci/quarantine.txt; do
+    git -C "$main" diff --quiet "$base" "${2:-$trunk}" -- "$f" && continue
+    git -C "$main" diff --quiet "$base" "$1" -- "$f" || continue
+    echo "$f"
+  done
 }
 
 # Machine-wide leases (browser checks, pnpm prd check) live in lease.sh.

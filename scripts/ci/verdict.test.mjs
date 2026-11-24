@@ -33,6 +33,7 @@ describe("the verdict's kinds", () => {
       integration: ok,
       "components-1": ok,
       "components-2": ok,
+      "components-3": ok,
       build: ok,
       [job]: { result: "failure", outputs: { started: "true" } },
     };

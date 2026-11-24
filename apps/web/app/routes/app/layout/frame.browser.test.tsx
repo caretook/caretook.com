@@ -428,6 +428,38 @@ describe("the floating tab bar", () => {
     expect(spacer.height).toBeGreaterThanOrEqual(innerHeight - b.top);
   });
 
+  test("at 420: the links split the bar into equal full-height sections, the current one marked and filled edge to edge, the focus ring inside it", async () => {
+    await open();
+    await expect.element(page.getByText("Slept well")).toBeVisible();
+    const b = bar().getBoundingClientRect();
+    const links = barLinks();
+    const rects = links.map((a) => a.getBoundingClientRect());
+    const widths = rects.map((r) => r.width);
+    expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(1);
+    expect(widths.reduce((sum, w) => sum + w, 0)).toBeGreaterThan(b.width - 1);
+    expect(Math.min(...rects.map((r) => r.left)) - b.left).toBeLessThan(1);
+    expect(b.right - Math.max(...rects.map((r) => r.right))).toBeLessThan(1);
+    for (const r of rects) {
+      expect(r.height).toBeGreaterThanOrEqual(44);
+      expect(r.top - b.top).toBeLessThan(1);
+      expect(b.bottom - r.bottom).toBeLessThan(1);
+    }
+    const current = links.filter((a) => a.getAttribute("aria-current") === "page");
+    expect(current.map((a) => a.getAttribute("aria-label"))).toEqual(["Timeline"]);
+    // No per-link circle: a middle link is square, the bar clips the ends.
+    const middle = links[1]!;
+    expect(getComputedStyle(middle).borderTopLeftRadius).toBe("0px");
+    expect(getComputedStyle(bar()).overflow).toBe("hidden");
+    // Keyboard focus draws the ring inside the link, in the bar's content colour.
+    links[0]!.focus();
+    await userEvent.tab();
+    expect(document.activeElement).toBe(middle);
+    const ring = getComputedStyle(middle);
+    expect(ring.outlineStyle).toBe("solid");
+    expect(parseFloat(ring.outlineOffset)).toBeLessThan(0);
+    expect(ring.outlineColor).toBe(getComputedStyle(bar()).color);
+  });
+
   test("at 420: a toast sits above the bar", async () => {
     await open();
     await expect.element(page.getByText("Slept well")).toBeVisible();
@@ -442,6 +474,37 @@ describe("the floating tab bar", () => {
     expect(status.bottom).toBeLessThanOrEqual(bar().getBoundingClientRect().top);
     await toast.unmount();
   });
+
+  // Headless Chromium has no safe area, so the inset is simulated through
+  // `--tab-bar-inset` (app.css reads `env(safe-area-inset-bottom)` into it).
+  test.each([
+    ["no inset", null, 12],
+    ["a 34px inset (an iPhone's home indicator)", "34px", 34],
+  ] as const)(
+    "at 420 with %s: the bar sits just above it, the spacer following",
+    async (_, inset, expected) => {
+      if (inset) document.documentElement.style.setProperty("--tab-bar-inset", inset);
+      try {
+        await open();
+        await expect.element(page.getByText("Slept well")).toBeVisible();
+        const b = bar().getBoundingClientRect();
+        const offset = innerHeight - b.bottom;
+        if (inset) {
+          // The inset plus at most 8px, not the full gap on top of it.
+          expect(offset).toBeGreaterThanOrEqual(expected);
+          expect(offset).toBeLessThanOrEqual(expected + 8);
+        } else {
+          // Today's 12px gap.
+          expect(offset).toBeCloseTo(expected, 0);
+        }
+        // The spacer reserves the bar, its offset and the gap above it.
+        const spacer = document.querySelector("[data-tab-bar-spacer]")!.getBoundingClientRect();
+        expect(spacer.height).toBeCloseTo(innerHeight - b.top + 12, 0);
+      } finally {
+        document.documentElement.style.removeProperty("--tab-bar-inset");
+      }
+    },
+  );
 
   test.each(["light", "dark"] as const)(
     "in %s: the bar's surface stands off the page and from a card; resting icons clear 4.5:1 and the current one 3:1; the current one has a fill of its own",

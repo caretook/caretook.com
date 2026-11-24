@@ -6,15 +6,15 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 **Landing mode: run everything through** (started run-through; land each green wave, clean up, ask only real questions via `pnpm prd ask`).
 
-**Hand-off (2026-11-22, after the wave 1 landing; no slices in flight).** Wave 1 (slices 1–8, all opus) landed in dev through PR #61 (dev b0b9a31): full check passed on 80aa5175 (5709/5709, tooling 791/791; the first run failed only resetStaging B-466, passed alone 3/3), quick passed on 3b19210e after a conflict-free dev sync, browser `--changed` none needed. Codex reviewed fb529c4 clean; the docs fold and dev merge after it landed `--no-review` (said in the report). Report: ask a49; to-test `to-test/2026-11-22-1127-fixes-tooling.md`. Docs folded: backlog.md (`--archived`), machinery.md (tidy ownership and lsof, session `--if-pid`). B-458's archived-item fixes (B-205/B-206/B-208/B-88/B-222) are applied. B-460 done with slice 5; B-461 noted as likely the same cause (confirm under load). Follow-ups filed: B-527 (fixes-bug, Undo/Done writes uncaught), B-534 (tooling tests and the load gate).
+**History:** earlier hand-offs and landed waves' rows are in [`plans/fixes-tooling-history.md`](fixes-tooling-history.md) (`pnpm prd status-trim`).
 
-**Resumed (2026-11-24, session b2).** Git matched _Status_. 20 (a3e23b87, also edits `rm.sh`) and 24 (4cad5a4c) had commits but no live agent: respawned both with `--continue` (opus) to recheck and hand off. Merged 20–23 cleanly (auto-merges in dispatch*). 24 merged (16f598e9). Docs folded (machinery, orchestrator, backlog; all within budget). Wave gate `pnpm test:tooling` passed on 5f8c6853 (1783). Synced dev (9fd91277): conflicts with inbox-agent B-515 (an `inbox` session kind) in context/dispatch-context code resolved by a fix agent: inbox keeps one limit, hard = soft 160k, rotate unasked (`hardLimitFor("inbox")`, `inboxLimit` in `contextDecision`); docs re-folded on dev's text. `pnpm test:tooling` passed on the synced tip 11de7bd2 (1830). PR #145 opened; Codex review waiting. Then land (no CI tier: tooling and docs only). Message inbox-agent-67 on landing (its B-733 waits). Told inbox-agent-ec I'll message on landing (its slice 7, B-733, waits for this wave).
+**Hand-off (2026-11-24, after the wave 6 landing; no slices in flight; on hold).** Wave 6 (slices 41–48, opus; 48 sonnet; 49 no commits) landed in dev as 2eaa00b through PR #155, tier full, on the flake verdict of run 45443329910 (planner B-653 and timelineBack B-633 only, dev's quarantine gap; the user chose to land without a rerun, a190). Codex was out of credits, so it landed `--no-review` (said in the report). Report filed; to-test `to-test/2026-11-24-1219-fixes-tooling.md`. Slice worktrees 41–49 removed. Docs folded (machinery, loop, planner, orchestrator, backlog). Filed: B-766, B-767, B-768, B-771 (B-770 dropped as its duplicate). **Paused by the user after wave 6** (row `flags=standing,hold`). **Next, when resumed:** B-771 first, then B-542, B-766–B-769, B-633, B-653 and the other triaged items.
 
-**Hand-over (2026-11-24, mid-wave 3, rotated for context).** Merged into prd/fixes-tooling: 17 (0e5c25aa), 18 (8a805d94), 19 (cfa4e90f); their items done. Handed off, not merged (review done, diffs small, merge in plan order after 20): 21 (43174cc9), 22 (76240876), 23 (b2051308). In flight: 20 (B-452, spawned after 17 merged) and 24 (B-600, committed 4cad5a4c, was waiting on its check): respawn with `--continue` if no hand-off. All touch `dispatch.mjs` (20 start path, 21 hold answer, 22 takeLock, 23 request catch; 17 open path): expect small conflicts in it and in `dispatch.test.mjs`, resolve keeping both. Then the wave gate: tooling only (`scripts/loops/`), so `pnpm test:tooling` plus `pnpm prd ci run` at the tier the check plan proposes (none expected), sync, PR, review, land. Follow-up filed: B-731 (session-requests `.seq` race). Known flake under load seen 3x this wave: tidy-cli.test beforeAll 10 s (B-461, noted). Inbox-agent-ec will message on landing; it keeps `session.sh`, `sessions.mjs`, `prompt.sh`, `prd.sh`, `lib.sh`.
+**Gate (2026-11-24, fixes-tooling-9e).** Reconciled: all merged, nothing in flight. Dev synced first (test-health-2's landing, no conflicts), then `pnpm prd ci run full --wait` on the synced tip. Docs folded (machinery, loop, planner, orchestrator, backlog; all within budget). Filed B-766 (`prd help` prints `design: command not found`), B-767 (amend repeats the Backlog-Tool trailer), B-768 (slice-fields warns on `Blocked by`). Ingest: nothing new. The backlog session (on the user's word) reopened B-633, B-653 and filed B-769 (newGroup sheet flake), all quarantined on dev 3aa912d3; they're ours for a later wave. If the full run fails only on timelineBack, planner or newGroup, that's dev's quarantine gap, not this branch: sync picks it up. **Gate verdict: flake** (run 45443329910 on 2683ef03; only planner B-653 and timelineBack B-633, untouched files, dev's quarantine gap). `prd sync --force` skipped dev's quarantine restore (unsynced.sh treats quarantine.txt as no drift), so origin/dev merged by hand as e6247bcf. PR #155 opened; Codex review waiting. Codex out of credits (exit 4): land `--no-review`. How to land: skeptic s23 said ask; filed as ask a190 (defaults to "Land now, no rerun" at 12:47); waiting with `prd ask --wait a190`. On land: `pnpm prd land fixes-tooling --tier full --no-review -m "…"`. B-771 (sync skips dev's CI lists; B-770 dropped as its duplicate) heads the next fixes-tooling wave, after the pause. Was: green, `pnpm prd pr`, review (likely exit 4), land `--tier full`, report, rm worktrees 41–49, status-trim, then the pause below.
 
-**Wave 3 (2026-11-24, this session; started run-through).** Test-gates is done, so the hold is over. Waves follow the user's order (see _Wave 3_). Slices 17 (B-468, open-session only), 18 (B-525), 19 (B-526), all opus. Inbox-agent-ec confirmed (2026-11-24) its slice 6 leaves `dispatch*.mjs`, `session-requests.mjs`, `context.mjs` alone and narrowed its hot list (keeps `session.sh`, `sessions.mjs`); it messages on landing. So also slices 20 (B-452, after 17), 21 (B-453), 22 (B-454), 23 (B-570), 24 (B-600), all opus. Docs to fold: machinery (a stale ask lock is taken over under `.<id>.takeover`; notices keep their high-water mark in `.seq.d/`; an opener failure is not a death: reopen uncounted, a fresh start or plan worktree removed with `rm.sh`, keep-alive entry restored; the opener falls back to the first window, else a new one; `.dispatch.lock` is taken over under a `<lock>.takeover` guard; a session request notice that cannot post shows in `pnpm prd session requests`). B-586 (phone pushes) needs the user on the real phone: not sliced. B-477 is `scripts/backlog/` (inbox-agent): later.
+**Pause after wave 6 (the user, via the backlog session, 2026-11-24).** Run waves 5 and 6 as planned; if wave 6's clashes spill items into a wave 7, don't run it. After wave 6 lands and its docs are folded: `pnpm backlog prd set fixes-tooling flags=standing,hold` (keep standing; plain `flags=hold` drops it, B-464), and add to the row's notes "**On hold <date>: paused by the user after wave 6 so UI fixes can run (only one fixes topic at a time).**" Then wind down as a finished orchestrator does (`pnpm prd rm fixes-tooling`, `cd` to the main checkout, `pnpm prd end`), so the fixes slot and the lane go to UI fixes.
 
-**Hand-off (2026-11-22, wave 2 landing).** Wave 2 (slices 9–16, all opus) merged; dev synced (brought the tedder family seed, switched to `seedPasswordHash` in 1399ff15). Full check passed on 1399ff15 (5722/5722, tooling 811/811). Docs folded (55b318af): machinery.md (`pnpm prd wait`, worker db names, load gate off in `tooling:unit`), data-layer.md (worker names, 10 s test connect, shared seed hash), orchestrator.md (tooling lint), runbook (`DATABASE_CONNECT_TIMEOUT_MS`); loop.md not touched (near budget; the prompts carry `pnpm prd wait check`). Browser: the lean set (the diff touches `package.json` and the pool config). Follow-ups filed: B-544 (fixes-nit, stale `vitest.config.ts:196` comment), B-545 (`rm.sh` reads prd list twice).
+**Pause after wave 5: cancelled** (the user, via the backlog session, 2026-11-24: don't stop running work). Carry on run-through, waves as usual; slice 31's still-failing items get their fix slices as planned.
 
 **B-547 (dev red, fixed here on the user's word, e0c21bbf):** React Aria hides a popover with inline styles until it is placed, and ui-kit-3's `motion-overlay` fade also ran on that hiding. React Aria cancels the fade when it reveals the panel, so an Escape in that window left the close waiting forever: an invisible calendar stayed in the DOM and took taps. `motion-overlay` now has no transition while that inline hiding is on (`[style*="clip-path"]`; a React Aria upgrade could change it, `overlayMotion.browser.test.tsx` guards it). sync-safety only shifted the timing (no single change pinned). Full check passed on e0c21bbf (5811, tooling 812; the first run failed only the print menu race, filed). The lean browser set passed before this fix (1b120e9c) and was not rerun.
 
@@ -22,32 +22,8 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 
 - Gotchas: this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need Node 24 first on PATH (`$HOME/.nvm/versions/node/v24.*/bin`).
 
-| Slice | Item  | State                                                                                         | Merge    |
-| ----- | ----- | --------------------------------------------------------------------------------------------- | -------- |
-| 1     | B-381 | merged (quick passed on slice)                                                                | 3df76253 |
-| 2     | B-394 | merged (quick passed; 20 s timeout kept, see note)                                            | 26e83fa4 |
-| 3     | B-411 | merged (tooling: rotate.test 20 s timeout at load 126, passes alone)                          | 7ccc8ff8 |
-| 4     | B-440 | merged (tooling; tidy-cli.test beforeAll 10 s timeout under load: B-460)                      | 1a7ad440 |
-| 5     | B-441 | merged (conflict with 4 in tidy-cli.mjs resolved; +B-460 fix: load gate off in tidy-cli.test) | d971f6fa |
-| 6     | B-458 | merged (tooling)                                                                              | a8ab24cc |
-| 7     | B-475 | merged (test race, not a timer; Undo catch: B-527 fixes-bug)                                  | cd8cc1f5 |
-| 8     | B-484 | merged (quick passed on slice)                                                                | af134b65 |
-| 9     | B-451 | merged (full passed on slice: package.json; browser not run, no stack)                        | 4adeb2da |
-| 10    | B-445 | merged (quick passed on slice)                                                                | da329245 |
-| 11    | B-534 | merged (full passed on slice)                                                                 | 0d7e9205 |
-| 12    | B-444 | merged (quick passed on slice)                                                                | 9a1479e9 |
-| 13    | B-405 | merged (quick passed on slice)                                                                | 6f8d07be |
-| 14    | B-388 | merged (quick: only resetStaging timed out (fixed by 16))                                     | e962e40d |
-| 15    | B-450 | merged (quick passed on slice)                                                                | d0b0324b |
-| 16    | B-466 | merged (full passed on slice)                                                                 | 3f739326 |
-| 17    | B-468 | merged (opus; quick passed on rerun; first run only tidy-cli beforeAll, B-461)                | 0e5c25aa |
-| 18    | B-525 | merged (opus; quick passed on rerun; first run only tidy-cli beforeAll, B-461)                | 8a805d94 |
-| 19    | B-526 | merged (opus; quick passed; follow-up B-731)                                                  | cfa4e90f |
-| 20    | B-452 | merged (opus; quick passed; adds `rm.sh --no-registry` for undo)                              | 5c94e59e |
-| 21    | B-453 | merged (opus; quick: only tidy-cli beforeAll at load 30, B-461; alone 3/3)                    | 5f319e68 |
-| 22    | B-454 | merged (opus; quick passed)                                                                   | e8bf7ebb |
-| 23    | B-570 | merged (opus; quick passed)                                                                   | fd7c1cb4 |
-| 24    | B-600 | merged (opus; quick passed; doc lines for orchestrator/machinery/backlog in hand-off)         | 16f598e9 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1
 
@@ -287,3 +263,254 @@ Slice agents already have soft 175k / hard 300k (`context.mjs`, hotfix 86447987)
 - Keep `pnpm prd context` and `liveSizes` output right for both limits.
 - Unit tests (`context.test.mjs`, `dispatch-context.test.mjs`): the orchestrator's soft and hard thresholds; the backlog session's reminder never says to hand off unasked; the dispatcher's backlog question defaults to keep going.
 - Hand-off: the lines loop.md, machinery.md and orchestrator.md should change (they state 160k).
+
+## Wave 4
+
+The user's order: known flakes by cause. Same rules as waves 1–3: **first show the cause** (a deterministic failure, or a reasoned reading of the race from the code), then fix that cause; a longer timeout alone only when the work is genuinely large and the hand-off says so. Never touch a running topic's hot files (`pnpm backlog prd list`: inbox-agent's `scripts/backlog/`, `lib.sh`, `prd.sh`, `prompt.sh`, `tidy*`, `queue*`, `session*`, `rotate*`, `bye*`, `dispatch*`, `keep-alive*`, `open-session*`; test-health-2's `vitest.config.ts`, `apps/web/test/`, sync paths, `sync-matrix*`; symptom-catalog's timeline paths). Loops never edit `docs/` or AGENTS.md: say in the hand-off what a doc should gain. Not in this wave: B-461/B-732 (`tidy-cli.test.mjs`, inbox-agent's hot `tidy`), B-619 (search speed: not reproduced in 24 runs; waits for CI failure messages, B-660).
+
+### Slice 25: recover's '--at a time that has passed' test doesn't depend on the machine (B-418)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/recovery.md · Tests: unit
+
+`scripts/loops/recover.test.mjs` (~597) '--at a time that has passed waits until tomorrow' fails in a full `pnpm test:tooling` run under load and passes alone; the assertion output was never captured.
+
+- Find the cause from the code (`recover.sh`/`recover-lib.mjs`'s clock: the fake `CARETOOK_CLOCK_FILE`, any real `date` read, the local time zone the `--at` time is read in, the fake `sleep` and the test's timeout) and show it; fix that cause so the test passes at any load, time zone and time of day.
+- Unit test: the same assertions, plus a case that pins the cause (e.g. a non-UTC `TZ`, or a real-clock read that must not happen).
+
+### Slice 26: the browser harness tests don't count load-wait lines, and leave no process group behind (B-573, B-446, B-704)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/browser.test.mjs`: 'passes a clean spec' (~182) gets a third output line under load where it expects two (likely `browser.sh`'s `load_gate_wait` line, not confirmed); 'kills a spec at its cap, worker and all, and retries it once' failed at load 47 ("expected false to be true" after 9.7 s, real-time sleeps); and an interrupted run left its silent fixture's process group alive for days (B-704).
+
+- Confirm what the extra line is (run the test's harness with the load gate busy) and fix the cause: the tests run `browser.sh` with the load gate off (`CARETOOK_LOAD_GATE=off`, the shared test env from B-534) or assert on the lines that matter, not a count.
+- The kill test waits on the event (the process gone, the retry's marker), not on a fixed sleep; keep its deadline generous and say why.
+- The fixtures' process groups are killed when a test fails, times out or the run is interrupted (an `afterEach`/`afterAll` that kills every group it started, and a fixture that can't outlive its parent, e.g. a parent-death check); show how B-704's group outlived its run.
+- Unit tests: a busy load gate doesn't change the clean spec's output; the kill test passes with the machine's clock slowed (or the waits driven by events); a test that throws mid-run leaves no fixture group alive.
+
+### Slice 27: the MCP rate-limit test survives load (B-582)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md · Tests: integration
+
+`packages/api/src/connectors/mcp.int.test.ts` (~392) 'allows 60 calls a minute per connection, then 429 with Retry-After' times out at 5 s under load (passes alone).
+
+- Find where the time goes (61 sequential calls through the full MCP stack, each with its database work) and cut it as B-394 did for list_timeline: a cheaper call, a cheaper world, or the limiter tested with an injected clock and count; the limiter's behaviour (60 a minute, then 429 with `Retry-After`) is still asserted end to end at least once. An explicit timeout only if the work still needs it, with a comment saying why.
+- Integration test: the same assertions, with before/after times in the hand-off.
+
+### Slice 28: the todays_doses connector test holds at any time of day (B-642)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`packages/api/src/connectors/readTools.int.test.ts` (~372, ~385) places a given dose 10 (and 5) minutes before now, so from 00:00 to 00:10 Los Angeles it lands on yesterday and the assertion (~438) finds no given slot today.
+
+- Run the test on a fixed clock (a fixed `now` for the handler, `handlerAt` or its equivalent, and for the entries it writes), chosen mid-day in the recipient's zone; no other test in the file changes behaviour.
+- Integration test: the same assertions on the fixed clock, plus a case at 00:05 in the recipient's zone that passed only by luck before (show it failing on the old code in the hand-off).
+
+### Slice 29: context.test.mjs '--all --json lists live sessions only' is not load-sensitive (B-723)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/context.test.mjs` '--all --json lists live sessions only' failed its first-row size assertion (~388) in a quick check at load about 25; passed 3/3 alone; the value wasn't captured.
+
+- Read the test and `context.mjs`'s `--all --json` path for what can change the first row's size or order under load (a real clock, mtime ordering, a transcript still being written, a real session record leaking in from the machine) and show the cause; fix it so the row and its size are deterministic.
+- Unit test: the same assertion, plus one that pins the cause (e.g. equal mtimes, or a live machine record that must not appear).
+
+### Slice 30: lease.test.mjs's 'beyond the default limit of two' doesn't race (B-654)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/lease.test.mjs` (~263) 'makes the runs beyond the default limit of two wait, and holders shows who holds what' flaked in CI (passed on its rerun; ci-key ab40db666b8d).
+
+- Find the race from the code (holders started in parallel and checked before they hold, a real-time wait, the load gate, `lease.sh`'s poll interval) and show it; the test waits on each holder's state (a marker or `holders` output), never on a fixed sleep.
+- Unit test: the same assertions, deterministic under a slowed holder (e.g. a holder delayed before it takes the lease).
+
+## Wave 5
+
+The user's order: re-measure test flakes. Slice 31 re-measures the old under-load flakes after the harness fix B-607 (settle can return before the page mounts, landed by test-gates as fe82288c) and proposes closing what no longer fails; only what still fails gets a fix slice, in this wave's second half. Slices 32–38 fix flakes and races whose cause is already known or readable from the code, in files that inbox-agent no longer holds. Same rules as wave 4: **first show the cause**, then fix it; a longer timeout alone only when the work is genuinely large and the hand-off says so. Never touch a running topic's hot files (`pnpm backlog prd list`: test-health-2's `vitest.config.ts`, `apps/web/test/`, sync paths, `router.int.test.ts`, `roundtrip.spec.mjs`, `sync-matrix*`; symptom-catalog's timeline paths and `components/quick-entry/`). Loops never edit `docs/` or AGENTS.md: say in the hand-off what a doc should gain. Not in this wave: B-375 (touches `vitest.config.ts`, test-health-2's), B-667 (a seeded onboarding user: a fixture, not a flake; a later wave).
+
+### Slice 31: re-measure the under-load flakes after B-607 (B-479, B-480, B-485, B-488, B-489, B-490, B-491, B-493, B-494, B-495, B-496, B-497, B-498, B-499, B-500, B-501, B-502, B-568, B-633, B-645, B-653, B-658, B-716, B-727, B-743)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/loop.md, docs/agents/machinery.md · Tests: none (measurement only)
+
+Each item is a component, integration or browser-check test that failed under load and passed alone. Many may be gone since B-607 (the component harness's settle) and the tooling load fixes of waves 1–4.
+
+- **Change no code or test.** For each item, run the test's file at check-like load: the named files together, at the Vitest project's usual workers, **at least 10 times**, while a second process keeps the machine busy (e.g. a concurrent `pnpm test:tooling` or the other files of the same project; no new dependencies). Quarantined tests (`scripts/ci/quarantine.txt`: B-568, B-633, B-645, B-653, B-658, B-743) run with `CARETOOK_QUARANTINE=run`. Record the load (`uptime`) for each round.
+- B-716 (phase2) and B-727 (ui.spec) are browser checks: run `pnpm prd browser` for that one check 5 times under the same load, if the slice can take a browser lease; else say so and leave them unmeasured.
+- B-479 and B-743 are the same test (calendarCron): measure once, report both.
+- Hand-off: a table with Item | Test | Runs | Failures | Load | Failure message (first line) | Proposal (`close`: no failure in all runs; `fix`: failed, with the cause if the message shows it). Nothing is closed by the slice; the orchestrator files the proposals.
+
+### Slice 32: stack.test.mjs's 'gc removes it only after a yes' holds under load (B-740)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/stack.test.mjs` 'flags a merged slice, not a fresh one, and gc removes it only after a yes' times out at 20 s at load ~60, passes alone 3/3 at load 18.
+
+- Find where its time goes (git repos and worktrees made per test, node starts, `prd list` calls, the load gate, real sleeps) and show it; cut that cost (a shared fixture repo made once, fewer process starts, the load gate off in the test env) so it passes well inside its timeout at any load. Keep the assertions.
+- Unit test: the same assertions, with before/after times in the hand-off.
+
+### Slice 33: ask.test.mjs's countdown is read from a fixed now (B-741)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/ask.test.mjs` 'asks shows the countdown…' (~236) expects 'in 30m' and gets 'in 29m' for an ask 1 s old: the countdown rounds the real clock.
+
+- Show the rounding race from the code (`asks` reads the real `Date.now()` after the ask is written); drive the listing from a fixed now (the clock override the ask tools already use, or one added the same way) so the countdown is exact; check the rounding the user sees (minutes up or down) is what the doc says.
+- Unit test: the same assertion on a fixed clock, plus a case 1 s and 59 s past a minute boundary.
+
+### Slice 34: lease.sh leaves no lease behind after a TERM mid-take (B-742)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/lease.sh`: a TERM between a lease's `mkdir` and the `lease_path=` assignment leaves the lease directory behind, since the trap only removes `$lease_path`.
+
+- Close the window: set the path before the `mkdir` (the trap removes it only if this process made it, e.g. an owner file with its pid), or take the lease into a temporary name and rename; show the old order and the new in the hand-off.
+- Unit test: a TERM delivered in that window (a test hook that pauses between the two steps, waited on by a marker, never a sleep) leaves no lease; the existing 'TERMed mid-check' test still passes.
+
+### Slice 35: load-gate.test.mjs's 'the scripts that wait or warn' tests don't race (B-744, B-745, B-746, B-747)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+All four tests of `scripts/loops/load-gate.test.mjs`'s 'the scripts that wait or warn' block flaked together in one CI run (passed on the rerun); they're quarantined (`scripts/ci/quarantine.txt`).
+
+- Find the shared cause from the code (a real load read, a real-time poll or sleep, the fake load file written while a script reads it, a shared temp dir across the block, the CI runner's own load) and show it; the tests wait on each script's state, never on a fixed sleep, and read only a fake load.
+- Unit test: the four tests pass with `CARETOOK_QUARANTINE=run` 20 times in a row at load; the hand-off says whether their quarantine lines can go (the orchestrator removes them through `pnpm prd ci` when the items are done).
+
+### Slice 36: tidy-cli.test.mjs's beforeAll holds under load (B-461, B-732)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md, docs/agents/backlog.md · Tests: unit
+
+`scripts/loops/tidy-cli.test.mjs` 'tidy archives finished items' beforeAll times out at 10 s at load 30–40 (passes alone 12/12), after B-460 turned the load gate off in its setup.
+
+- Measure where the beforeAll's time goes (repos, worktrees, `new.sh` runs, backlog writes, node starts) and show it; cut it (one fixture built once and copied, fewer process starts) so it stays well inside 10 s at load 40, or say why the work is genuinely large and set a timeout with a comment.
+- Unit test: the same assertions, with before/after times in the hand-off.
+
+### Slice 37: session requests raise their .seq only upward (B-731)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/loops/session-requests.mjs` raises `.seq` check-then-rename, as `notices.mjs` did before B-526, so two concurrent requests can lower it and reuse an id.
+
+- Apply B-526's fix (`notices.mjs`'s high-water mark as `.seq.d/` files that only move up), sharing its helper rather than copying it where that's simple; old `.seq` files still read.
+- Unit test: concurrent requests never reuse an id or lower the mark (driven by a barrier, not sleeps), and an existing `.seq` is carried over.
+
+### Slice 38: a waiting join request from an account with no current legal acceptance isn't asked again (B-638)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/care-groups.md · Tests: integration
+
+`careGroupInviteService`'s `askWithLink` returns a waiting request before the legal check, but the test 'a waiting request isn't asked again' sends `legal: true` with a current row, so nothing pins that order.
+
+- No code change unless the test shows a bug. Integration test in `packages/data/src/services/careGroupInvite.int.test.ts`: an account with a waiting request and no current legal acceptance asks again with the link and gets its waiting request back (no new row, no legal refusal); all data fictional.
+
+### Slice 39: a slim, fast inbox session (B-739)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/inbox.md, docs/agents/machinery.md, docs/agents/backlog.md · Tests: unit
+
+Added to wave 5 on the user's word (via the backlog session, 2026-11-24); inbox-agent is done, so its files are free. The goal is speed: the user talks at the phone to manage the inbox.
+
+- **Sonnet at low effort:** the inbox session opens on Sonnet at low effort, set in the session's own settings file (`prd.sh`'s inbox default model; `--model` still overrides); fast mode stays off. It holds across `prd rotate`, a phone hand-off (`prd rotate --self`) and a keep-alive reopen, **with no dispatcher restart**: `open-session.mjs` reopens on the session's recorded model, so an old record saying opus must give way to the new default (or the rotation rewrites the record).
+- **The prompt** (`prompt.sh`'s inbox prompt): only add, reword, move or remove unfiled lines on the user's word; never read the backlog, no separate `pnpm backlog similar` step before an add, no extra work. Dedupe and triage stay with ingest, the backlog session and the planner.
+- **Keep `inbox add`'s look-alike stop** (exit 3, rerun with `--anyway` on the user's word); `backlog add` is unchanged.
+- **New commands:** `pnpm backlog inbox edit` and `pnpm backlog inbox remove` for unfiled lines; they refuse filed lines, as `inbox move` does.
+- Unit tests: a keep-alive reopen and a rotation of an inbox session recorded on opus come up on Sonnet low; `--model` still wins; the prompt names no backlog read or `similar` step; `inbox edit`/`remove` change an unfiled line and refuse a filed one; `inbox add` still stops on a look-alike.
+
+### Slice 40: appointmentSeries.int.test.ts holds under load (B-500)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/appointments.md, docs/domain/data-layer.md · Tests: integration
+
+Slice 31 re-measured it: 'writes visits through today + 90 for a series without them: links, documents, ids' timed out at 5 s in 6 of 42 runs, mostly at load above 80. It takes 1.3–2.7 s at load ~20 and 3.9–5.1 s at 80–100. Each test builds a full world (`createWorld` with outsider and staff, users made one by one), then writes 39 visits with their links and documents. Seven other tests in the file's `appointmentSeriesService.topUp` block also timed out once or twice in 32 runs.
+
+- Measure where the file's time goes and cut it for the whole file: a world built once per describe where tests don't change it, only the parts a test needs, batched inserts in the fixture; keep every assertion. An explicit timeout only if the work still needs it, with a comment saying why. Don't touch the shared test fixtures test-health-2 holds (`apps/web/test/`); `packages/data` fixtures are fine.
+- Integration test: the same assertions, with before/after times at load in the hand-off.
+
+## Wave 6
+
+The user's contents and order (via the backlog session, 2026-11-24): agent efficiency first (B-597, B-595, B-596, B-598), then the check flow (B-696), test load (B-576, B-574; B-542 waits), phone pushes (B-586), the release-age wait (B-705), and the hold flags (B-464, B-650). **Slice 41 goes first:** it splits `prompt.sh` and `ci.mjs`, which 42–46 then edit in their own parts; 47–49 run beside it. Never touch a running topic's hot files (`pnpm backlog prd list`: test-health-2's `vitest.config.ts`, `apps/web/test/`, sync paths, `router.int.test.ts`, `roundtrip.spec.mjs`, `sync-matrix*`; symptom-catalog's timeline paths). Loops never edit `docs/` or AGENTS.md: say in the hand-off what a doc should gain, and the orchestrator folds it. Not in this wave: B-542 (the unit-test worker cap lives in `vitest.config.ts`, test-health-2's; wave 7, which the user said not to run before the pause).
+
+### Slice 41: split ci.mjs and prompt.sh so an agent reads only the part it needs (B-597)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: unit
+
+`scripts/ci/ci.mjs` (47 KB) and `scripts/loops/prompt.sh` (51 KB) are each read whole by agents changing one part.
+
+- **A refactor, no behaviour change.** `prompt.sh` becomes a thin dispatcher plus one file per prompt kind (orchestrator, plan, slice, the backlog/inbox/skeptic kinds, shared helpers such as `bye_line`), e.g. `scripts/loops/prompts/<kind>.sh` sourced by it; `pnpm prd prompt …` prints byte-identical text for every kind and flag. `ci.mjs` keeps its CLI and splits its subcommands into modules beside the existing `scripts/ci/*.mjs` (no file over about 15 KB); what other modules import from it stays importable.
+- A header comment in each says which part lives where, so an agent can open just that file.
+- Unit tests: the existing `prompt.test.mjs` and `ci.test.mjs` pass unchanged (move tests only if they follow the code); a new test compares every prompt kind's output before and after on a fixed plan (a golden file made from the pre-split script). Hand-off: the old and new file sizes, and the lines `machinery.md` should gain.
+
+### Slice 42: slice agents read only their slice's section and the decisions it cites (B-595)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/loop.md · Tests: unit · Blocked by: 41
+
+A slice agent's startup reads about 110 KB (the whole plan, the PRD, the role docs) while its own section is about 3 KB.
+
+- The slice prompt (`pnpm prd prompt slice`, its part after slice 41) embeds the slice's own section of the plan and the PRD's _Decisions_ rows or sections it names, instead of telling the agent to read the whole plan and PRD; it still names the section's `Reads` docs and `loop.md`. A plan with no PRD (a fixes topic) embeds only the section and the wave's intro paragraph.
+- `--continue` does the same.
+- Unit tests: a slice prompt on a fixture plan holds its own section and the wave intro, not another slice's text; a cited PRD decision is embedded and an uncited one isn't. Hand-off: the startup bytes before and after for one real slice of this plan, and the lines `loop.md` should change.
+
+### Slice 43: cap slice size at planning (B-596)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/planner.md · Tests: unit · Blocked by: 41
+
+test-gates slice 6 touched 15 files and took three Opus agents.
+
+- The planner prompt (and the plan skeptic's brief) gains the rule: a slice that would touch more than about 8 files, or more than one running topic's hot file, is split into slices that each land on their own.
+- `pnpm prd slice`'s merge side: when a slice's branch changes more than 12 files, the orchestrator's merge line (or `pnpm prd status`) warns once, so the next planning learns from it; no refusal.
+- Unit tests: the planner and plan-skeptic prompts carry the rule; the warning shows for a 13-file fixture branch and not for 8. Hand-off: the lines `planner.md` should gain.
+
+### Slice 44: a plan's Status stays short (B-598)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/orchestrator.md · Tests: unit · Blocked by: 41
+
+This plan's Status is 57 KB; every fresh orchestrator reads it.
+
+- Finished-wave history moves to `plans/<topic>-history.md`: a `pnpm prd status-trim <topic>` (or a name that fits `pnpm prd help`) moves every hand-off paragraph but the latest, and for a fixes plan the Status table's rows of slices whose wave has landed, into the history file (appended, newest first), leaving a one-line pointer. `fixes-plans.test.mjs`'s table rule keeps holding (allow the trimmed table; next slice number still comes from the highest slice in plan plus history).
+- The orchestrator prompt tells it to run the trim after each landing; `pnpm docs:budget` (or the plan check) warns when a plan's Status passes about 6 KB.
+- Unit tests: the trim on a fixture plan keeps the latest hand-off, the open rows and the landing mode, and moves the rest; a rerun changes nothing; the next-slice number survives a trim. Hand-off: the lines `orchestrator.md` should gain.
+
+### Slice 45: check-plan never hangs and never reports no changes by mistake (B-696)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/orchestrator.md · Tests: unit · Blocked by: 41
+
+On 2026-11-23 two orchestrators waited hours on `node scripts/loops/check-plan.mjs --base dev`: the CLI reads stdin to EOF before its flags (check-plan.mjs:150), and with empty stdin `--propose` prints "none / no changes".
+
+- Validate the arguments before reading stdin: require `--mode` or `--propose`, refuse unknown flags (exit 2 with usage).
+- With `--propose` and `--base`/`--head`, compute the diff itself (`git diff --name-only <base>...<head>`); read stdin only when no base is given.
+- One command prints the proposed tier for the branch (e.g. `pnpm prd tier [--base dev]`), named in the orchestrator prompt where it now says "the tier the check plan proposes".
+- Unit tests: `--base dev` alone exits 2 at once with stdin left open; `--propose --base` on a fixture repo with changes doesn't print "no changes"; stdin still works for `propose_tier`. Hand-off: the orchestrator rule for `orchestrator.md` (don't chain a lookup ahead of a long check; confirm a check holds a lease in `pnpm prd status` before reporting it running).
+
+### Slice 46: a hold keeps a row's other flags (B-464, B-650)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/backlog.md · Tests: unit · Blocked by: 41
+
+`pnpm backlog prd set <topic> flags=hold` replaces the flag list, so a hold drops `standing`, `alone` or `design`. The prompts (backlog run line, the planner report's veto line) and `dispatch.mjs` write it that way.
+
+- `prd set` gains an add and a remove form (e.g. `flags+=hold`, `flags-=hold`), keeping the others; plain `flags=` still replaces.
+- Every prompt line and `dispatch.mjs` call that holds or releases uses it.
+- Unit tests: `flags+=hold` on a `standing` row leaves `standing,hold`; `flags-=hold` leaves `standing`; adding a present flag changes nothing; the prompts' and dispatcher's hold lines use the add form. Hand-off: the line `backlog.md` should change.
+
+### Slice 47: confirm local lint no longer runs out of memory (B-576, B-574)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md · Tests: none (measurement only)
+
+test-gates wave 4 (2991461a) gave local lint 6 GB; both items say to confirm no recurrence, then close.
+
+- Change nothing at first. Search the check logs and check-times records since 2991461a (all worktrees) for a lint step exiting 134 or a heap-limit message; then run `pnpm lint` 5 times at check-like load (a concurrent `pnpm test:tooling`), recording peak memory if the shell can show it (`/usr/bin/time -l`).
+- If none fails, hand off proposing close for both. If one does, show the cause and fix it in the lint script or ESLint config (not `vitest.config.ts`), with a unit test where one fits.
+- Hand-off: the logs searched, the runs, load, peak memory and the proposal.
+
+### Slice 48: the one-day wait on new packages is enforced (B-705)
+
+Stack: no · Reads: plans/fixes-rules.md · Tests: unit
+
+AGENTS.md says to keep `minimumReleaseAge`, but `pnpm-workspace.yaml` has none.
+
+- Add `minimumReleaseAge: 1440` (minutes) to `pnpm-workspace.yaml`; confirm pnpm 12.21.0 accepts the key (unknown keys fail) and `pnpm install --frozen-lockfile` still passes; no lockfile change.
+- A tooling unit test reads `pnpm-workspace.yaml` and fails without the key at 1440 or more.
+
+### Slice 49: why the backlog session's phone pushes don't arrive (B-586)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/agents/machinery.md, docs/agents/backlog.md · Tests: none (investigation only)
+
+The item says: test with the user on the real phone before planning a fix or calling it fixed. Run-through can't do that, so this slice does the part that needs no phone and readies the test.
+
+- Change no code. Compare how each session kind is started (`--remote-control`, settings files such as `inbox-settings.json`, `context-settings.json`, `agentPushNotifEnabled`), what `pnpm prd ask` does for a push (`CARETOOK_ASK_NOTIFY`), and what differs between the backlog session and a managed `prd-` session or the dispatcher helper.
+- Hand-off: the differences found, the likely causes ranked, and a short phone test for the user (which session sends what, what to look for), which the orchestrator files as a question. No fix and no close.

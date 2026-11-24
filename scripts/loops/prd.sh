@@ -6,8 +6,10 @@ set -euo pipefail
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
 bin=$(dirname "$0")
-# The model plan, backlog, hotfix and inbox sessions run on unless --model names another.
+# The model plan, backlog and hotfix sessions run on unless --model names another.
 agent_model=opus
+# The inbox session's: Sonnet, for speed (inbox-settings.json sets low effort, fast mode off).
+inbox_model=sonnet
 # Every command runs on .nvmrc's Node, whatever shell called it.
 use_node || true
 
@@ -17,8 +19,14 @@ pnpm prd <command>
 
   See what's going on
     status                    every worktree: branch, changes, dev server link; sessions (managed or by hand);
-                              the dispatcher (running, paused and why, stopped; its last line); lease holders; the load
+                              the dispatcher (running, paused and why, stopped; its last line); lease holders; the load;
+                              the workers (each lease, pnpm prd command and slice agent: age, usual time, state)
     status-watch [seconds]    status, redrawn every few seconds (default 5) until Ctrl-C
+    watch [topic] [--json] [--wait [--timeout <s>]]   each slice agent's state (ok, slow, quiet, no-progress,
+                              stopped, unknown) and the next action (none, nudge, restart, skeptic); --wait
+                              blocks until there is one and exits with it (75 at the timeout), run in the background
+    watch [topic] --mark <slice> nudged|replied|restarted|left|asked [--until <ISO|+30m>] [--ask <id>]
+                              record what was done (.loops/.watch/<topic>/; left: its recheck time)
     ready [topic]             the ready-to-land report: link, what it addresses, blockers
 
   Start and stop work
@@ -33,11 +41,12 @@ pnpm prd <command>
                               planning session here (it decides, writes both, lands them; few questions)
     plan                      no topic: a backlog and inbox planning session in the main checkout, here
                               (on opus, a `design` row's planner on Fable; --model <m> runs that one session on model m)
-                              (it reads the backlog and helps you decide what's next)
+                              (it reads the backlog and helps you decide what's next; its Remote Control
+                              name and tab title are a captain's, a new one each session; its record stays backlog)
     inbox [--model <m>]       the inbox agent: you tell it ideas in plain words (here or from the phone) and it
-                              adds them to the inbox on origin/dev, under the right heading; Opus in fast mode
-                              (--model <m>: another model), Remote Control "inbox", opened in its own directory
-                              outside the repository (\$CARETOOK_INBOX_DIR, default ~/.caretook/inbox; created);
+                              adds, rewords, moves or removes inbox lines on origin/dev; Sonnet at low effort
+                              (--model <m>: another model, this session only; a reopen or rotation is Sonnet),
+                              Remote Control "inbox", opened in its own directory outside the repository (\$CARETOOK_INBOX_DIR, default ~/.caretook/inbox; created);
                               the dispatcher keeps it open once you have opened it by hand and trusted the folder
     slice <topic> <n>         a slice's worktree (orchestrators run this); a stack only for Stack: yes
     hotfix <name> [--open] [--model <m>] ["<the fix>"]   a stackless worktree on hotfix/<name> from dev, for a fix
@@ -106,11 +115,13 @@ pnpm prd <command>
                               refused once defaulted)
 
   Skeptic (a fresh subagent's verdict before an ask or a risky landing, in the main checkout's .loops/.skeptic)
-    prompt skeptic ask|land|plan --evidence <file>   print its brief: the rules and the evidence
-    skeptic record --kind ask|land|plan --verdict <v> --why "<one line>" [--option <a>]
+    prompt skeptic ask|land|plan|stall --evidence <file>   print its brief: the rules and the evidence
+    skeptic record --kind ask|land|plan|stall --verdict <v> --why "<one line>" [--option <a>]
                               [--question <text> [--offer <a>]… --defaults|--waits]
                               [--tip <full sha> --action force|no-review|"decline <thread>"]
-                              record its answer (ask: decide, ask; land: go, no; plan: go, send-back);
+                              [--slice <n> --defaults|--waits]   (stall; --waits: a never-list step)
+                              record its answer (ask: decide, ask; land: go, no; plan: go, send-back;
+                              stall: restart, leave, ask);
                               prints the id; counts for \$CARETOOK_SKEPTIC_MAX_MIN (60) min
     skeptic [list] [--topic <t>] [--json]   the verdicts, oldest first
 
@@ -135,14 +146,22 @@ pnpm prd <command>
                               sync config, a lockfile, a package.json (beyond its scripts) or the Vitest config makes it a full
                               check; the tooling tests join when the diff touches the tooling
                               (docs and tooling-only changes need neither: docs/agents/orchestrator.md, _The check gate_)
+    status-trim [topic] [--dry-run] [--next]   keep the plan's _Status_ short (after each landing): move the
+                              hand-offs but the latest, and a fixes plan's landed waves (their paragraphs and
+                              table rows), to plans/<topic>-history.md, newest first; --next: the next slice number
     wait [check|browser|<kind>] [--timeout <s>]   block until this worktree's check (or that lease kind's
                               holder or queued taker here) is gone; exit 75 at the timeout (default 3600 s),
                               naming it. Wait on a background check with this, never \`pgrep -f\` (it matches itself)
     check --times [--since <date>]   the check log's summary (runs, median and total minutes, failures,
                               by mode, PRD and step, the ten most-failed test files); runs no check,
                               works from any checkout
+    metrics [--since <date>] [--json]   how runs are going: slice and landing durations (count, median,
+                              slowest), check times by mode, the flake rate by check and overall, and
+                              how many reviewed heads Codex had findings on (out of credits apart),
+                              from .loops/.run-log.jsonl, the check log and the flake log; works anywhere
     sync [--force]            merge dev into this PRD branch when its changes need it (shared or risky
-                              files); --force merges anyway, when you need code another PRD landed
+                              files; Markdown isn't shared); --force merges anyway, when you need code
+                              another PRD landed. Dev's CI lists always come in (a commit when no merge)
     browser <check>           one browser check; at most four run at once machine-wide
     browser --changed         the checks this worktree's changes need (--base REF, --list)
     browser --smoke …         any of these in smoke mode: each check's core path only (after a merge)
@@ -153,6 +172,7 @@ pnpm prd <command>
                               (static, unit, integration, components, full; each includes the ones before);
                               --wait blocks for the verdict (0 green, 1 not green, 75 at the timeout)
     ci [<branch>]             the latest whole-tier verdict for the branch's tip
+    tier [--base <ref>]       the CI tier this worktree's commits propose against <ref> (default $trunk), and why
 
   Land
     land <topic> [-m subject] [--tier <t> [--why "<reason>"]] [--fixes B-n,…] [--no-review] [--local]
@@ -180,7 +200,7 @@ pnpm prd <command>
   prompt orchestrator|plan|slice <topic> [n|--auto]   the first prompt for a session (prompt backlog: no topic)
                      recover: the recovery agent (pnpm prd recover opens it)
                      tidy: the cleanup brief for a cheap session (haiku), repeated with /loop
-                     skeptic ask|land|plan --evidence <file>: the brief for a fresh skeptic
+                     skeptic ask|land|plan|stall --evidence <file>: the brief for a fresh skeptic
                      orchestrator <topic> --resume [--auto]: take over after an interruption
                      slice <topic> <n> --continue: pick up an interrupted slice
 USAGE
@@ -205,7 +225,7 @@ case $cmd in
 esac
 case $cmd in
   status | ls) exec "$bin/ls.sh" "$@" ;;
-  status-watch | watch)
+  status-watch)
     every=${1:-5}
     [[ $every =~ ^[0-9]+$ ]] && ((every > 0)) || die "status-watch takes a whole number of seconds (default 5)"
     trap 'echo; exit 0' INT TERM
@@ -219,6 +239,16 @@ case $cmd in
     done
     ;;
   ready) exec "$bin/ready.sh" "$@" ;;
+  watch)
+    t=""
+    [[ ${1:-} == "" || ${1:-} == -* ]] || { t=$1; shift; }
+    if [[ -z $t ]]; then h=$(here_name); [[ -n $h ]] || die "watch: name a topic, or run it inside its worktree"; t=$(topic_of "$h"); fi
+    CARETOOK_SESSIONS_DIR=${CARETOOK_SESSIONS_DIR:-$loops/.sessions} CARETOOK_ASKS_DIR=${CARETOOK_ASKS_DIR:-$loops/.asks} \
+      exec node "$bin/watch.mjs" "$t" "$@" ;;
+  metrics)
+    exec node "$bin/metrics.mjs" --run-log "${CARETOOK_RUN_LOG:-$loops/.run-log.jsonl}" \
+      --check-log "${CARETOOK_CHECK_LOG:-$loops/.check-times.log}" \
+      --flake-log "${CARETOOK_BROWSER_FLAKES:-$loops/.browser-flakes.log}" "$@" ;;
   land) exec "$bin/land.sh" "$@" ;;
   serve) exec "$bin/serve.sh" "$@" ;;
   browser) exec "$bin/browser.sh" "$@" ;;
@@ -236,6 +266,12 @@ case $cmd in
   test-db | testdb) exec "$bin/test-db.sh" "$@" ;;
   prompt) exec "$bin/prompt.sh" "$@" ;;
   queue) exec node "$bin/queue.mjs" "$@" ;;
+  status-trim)
+    t=""
+    [[ ${1:-} == "" || ${1:-} == -* ]] || { t=$1; shift; }
+    if [[ -z $t ]]; then h=$(here_name); [[ -n $h ]] || die "status-trim: name a topic, or run it inside its worktree"; t=$(topic_of "$h"); fi
+    exec node "$bin/status-trim.mjs" "$t" "$@"
+    ;;
   dispatch) exec node "$bin/dispatch.mjs" "$@" ;;
   recover) exec "$bin/recover.sh" "$@" ;;
   down) exec "$bin/down.sh" "$@" ;;
@@ -251,6 +287,20 @@ case $cmd in
     ;;
   review) exec "$bin/review.sh" "$@" ;;
   pr) exec "$bin/pr.sh" "$@" ;;
+  tier)
+    tbase=$trunk
+    while (($#)); do
+      case $1 in
+        --base) tbase=${2:?"usage: pnpm prd tier [--base <ref>]"}; shift 2 ;;
+        *) die "usage: pnpm prd tier [--base <ref>]" ;;
+      esac
+    done
+    tip=$(git rev-parse HEAD) || die "not in a git worktree"
+    proposed=$(propose_tier "$tbase" "$tip") || die "can't propose a tier for $tbase...HEAD"
+    { read -r ptier; read -r pwhy; } <<< "$proposed"
+    echo "$ptier ($pwhy)"
+    [[ -z $(git status --porcelain) ]] || echo "(uncommitted changes don't count: commit them first)" >&2
+    ;;
   dev-sync) (($# <= 1)) || die "dev-sync: at most one branch name"; dev_sync "${1:-}" ;;
   plan)
     # --model <m> (or --model=<m>), anywhere: this one session's model, passed to claude --model
@@ -273,8 +323,11 @@ case $cmd in
     if [[ ${1:-} == "" || ${1:-} == --open ]]; then
       (($# <= 1)) || die "plan: give a topic before other arguments"
       wrapper=$(cd "$bin" && pwd)/session.sh
+      # Its display name is a captain's (captain.mjs), unlike the last; the record stays backlog.
+      captain=$(CARETOOK_SESSIONS_DIR=${CARETOOK_SESSIONS_DIR:-$loops/.sessions} node "$bin/captain.mjs" next) ||
+        die "plan: couldn't pick the backlog session's captain"
       cd "$main" && exec "$wrapper" backlog --kind backlog -- \
-        ${model_args[@]+"${model_args[@]}"} --remote-control backlog "$("$bin/prompt.sh" backlog)"
+        ${model_args[@]+"${model_args[@]}"} --remote-control "$captain" "$(CARETOOK_CAPTAIN=$captain "$bin/prompt.sh" backlog)"
     fi
     topic=$1; shift; open=0 items=()
     for a in "$@"; do
@@ -292,13 +345,14 @@ case $cmd in
     echo "  $cmd_line"
     ;;
   inbox)
-    # The inbox session (prompt.sh inbox): Opus in fast mode (session.sh gives
-    # the inbox kind inbox-settings.json, the context hook and fastMode in one
-    # file), opened bare: in its own directory outside the repository, so
-    # neither AGENTS.md nor the project's memory loads.
+    # The inbox session (prompt.sh inbox): Sonnet at low effort, fast mode off
+    # (session.sh gives the inbox kind inbox-settings.json: the context hook,
+    # effortLevel and fastMode in one file), opened bare: in its own directory
+    # outside the repository, so neither AGENTS.md nor the project's memory loads.
     # --dir and --managed are the reopen's and rotation's (open-session.mjs,
-    # rotate-into.sh): the recorded directory, and the dispatcher's record.
-    model=$agent_model dir=${CARETOOK_INBOX_DIR:-$HOME/.caretook/inbox} managed=()
+    # rotate-into.sh): the recorded directory, and the dispatcher's record. They
+    # pass no --model, so a reopen or rotation is always on inbox_model.
+    model=$inbox_model dir=${CARETOOK_INBOX_DIR:-$HOME/.caretook/inbox} managed=()
     while (($#)); do
       case $1 in
         --model) [[ -n ${2:-} && ${2:-} != -* ]] || die "inbox: --model needs a model name (e.g. opus)"; model=$2; shift ;;
@@ -434,9 +488,22 @@ case $cmd in
       --force) sync_force=1 ;;
       *) die "sync: unknown option $1 (--force merges even when dev's changes don't need it)" ;;
     esac
-    if [[ -z $(trunk_drift "$branch") ]]; then
+    # CI reads the branch's own copy of its two lists, so a sync always brings
+    # dev's in. A list-only change keeps the recorded check (keeps_check).
+    lists=$(trunk_lists "$branch")
+    if [[ -z $(trunk_drift "$branch") && -z $lists ]]; then
       echo "$branch is up to date with $trunk (only backlog commits are newer, if any)"
+    elif [[ -z $(trunk_drift "$branch") ]]; then
+      git -C "$dir" merge --no-ff -m "chore(${branch#*/}): merge $trunk into $branch (CI lists)" "$trunk"
+      echo "Merged $trunk's CI lists into $branch (nothing else but backlog commits). No recheck needed"
     elif [[ -z $sync_force ]] && unsynced_safe "$branch" "$trunk"; then
+      if [[ -n $lists ]]; then
+        # shellcheck disable=SC2086
+        git -C "$dir" checkout "$trunk" -- $lists
+        # shellcheck disable=SC2086
+        git -C "$dir" commit -q -m "chore(${branch#*/}): take $trunk's CI lists" -- $lists
+        echo "Took $trunk's CI lists ($(echo $lists | tr ' ' ',')) into $branch"
+      fi
       echo "$branch needs no merge: $trunk's changes share no file with it and bring nothing risky. No recheck needed (pnpm prd sync --force merges anyway, when you need that code)"
     else
       git -C "$dir" merge --no-ff -m "chore(${branch#*/}): merge $trunk into $branch" "$trunk"

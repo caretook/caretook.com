@@ -39,4 +39,12 @@ export const TIMELINE_ERRORS = {
     message: "A rescheduled event must point at another event in this care group",
     statusCode: 400,
   },
+  "symptomTypeService:invalid": {
+    message: "The symptom name is invalid",
+    statusCode: 400,
+  },
+  "symptomTypeService:backfill": {
+    message: "Couldn't fill in the symptom catalog",
+    statusCode: 500,
+  },
 } as const;

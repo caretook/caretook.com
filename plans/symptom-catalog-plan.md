@@ -4,16 +4,27 @@
 
 ## Status
 
-**Where it stands:** planned (2026-11-22), not started. Starts after `quick-entry-2` and `dose-accuracy`.
+**Where it stands (2026-11-24, wave 4 session):** wave 3 landed in dev as f9d9237 (PR #157). Wave 4 (the last): slice 4 merged as f08fd876 (eac5e4df), slice 7 (B-758, decided by skeptic s24, ask a193: words-inside needs 2+ words) merged as e64bc270 (c9b1580b). B-549, B-758 marked done (ready). Worktrees 4 and 7 kept until the wave's verdict is green. **Wave gate:** run 45458619825 braked on static (Prettier on this plan, fixed); rerun 45461153153 on fd2142cb: **flake** (planner.browser.test.tsx, not ours; lands, filed after merge). Docs folded (e3abd15a). Worktrees 4, 7 removed. Next: PR, review, land.
 
-| Slice | Wave | State       | Merge into `prd/symptom-catalog` (slice commits) |
-| ----- | ---- | ----------- | ------------------------------------------------ |
-| 1     | 1    | not started |                                                  |
-| 2     | 2    | not started |                                                  |
-| 3     | 3    | not started |                                                  |
-| 4     | 4    | not started |                                                  |
-| 5     | 3    | not started |                                                  |
-| 6     | 3    | not started |                                                  |
+**Next:** browser --changed --base dev: none needed (serve restarted on :6573). green → `pnpm prd rm symptom-catalog-4`, `-7`; `pnpm prd sync`; browser checks (`--suite` once: quick entry flow changed); PR, review (exit 4: `--no-review`), land `--tier components`; fold docs (assistant/connectors: the parser's `symptoms` context, the card's Use/Add new question that Save waits for, the runner adding the catalog row, `log_symptom` taking the catalog's spelling; timeline: words-inside needs 2+ words; roundtrip.spec.mjs comment still names "Pain" as a similar example, stale); `status-trim`; `pnpm prd rm symptom-catalog`, `pnpm prd end`.
+
+**For slice 4 (from slices 2 and 3):** `quickEntry.sync.ts` doesn't add the catalog row locally yet: call `addSymptomTypeIn(tx, …)` (`symptomTypes.sync.ts`) inside its transaction; keep `symptomTypeColumn`; match names through `similarSymptoms`/`symptomKey` (`symptomCatalog.ts`). `ui-kit-3` holds `QuickEntryCard`: sync first, keep the card change small. A test that asserts the upload queue after a new symptom name sees the `symptom_type` PUT first (see `device.browser.test.tsx`).
+
+**Lessons (wave 3):** `pnpm prd sync` skips backlog-only and quarantine-only commits even with `--force` (B-771): after a sync, check `scripts/ci/quarantine.txt` and merge `dev` by hand if a needed line is missing. Plain `pnpm prd ci blame` reads the tip's verdict: after a status commit, pass the run's commit (`ci blame <sha>`). `--suite` is classifier-blocked: run `pnpm prd browser --changed --base dev` (or ask). `prd pr` refuses whenever dev moved: sync right before the gate run when dev is busy. After merging a slice with a migration, `pnpm datastore:reset`; an `<input list>` is a `combobox` in tests.
+
+**Landing mode:** run everything through (start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`).
+
+**Models:** every slice on opus (slices 3, 4, 5, 6, 7 and the wave 3 fix agent ran on opus).
+
+| Slice | Wave | State  | Merge into `prd/symptom-catalog` (slice commits) |
+| ----- | ---- | ------ | ------------------------------------------------ |
+| 1     | 1    | landed | cebc11e8 (9e8dc3d9, 02e638f2)                    |
+| 2     | 2    | landed | b7b7a990 (e4e6310b)                              |
+| 3     | 3    | landed | 8e7cca8f (3c3f8466), fix ab9b42e8 (fff9414a)     |
+| 4     | 4    | merged | f08fd876 (eac5e4df)                              |
+| 5     | 3    | landed | 27ad45f3 (d78e5483)                              |
+| 6     | 3    | landed | 625e47ec (0202848a)                              |
+| 7     | 4    | merged | e64bc270 (c9b1580b)                              |
 
 **Backlog:** claim B-549 when slice 1 starts; run `pnpm backlog done B-549` when the last slice merges.
 
@@ -32,7 +43,7 @@ Durable decisions every slice follows:
 
 ## How to run this plan
 
-- **Waves:** 1 → 2 → (3, 5, 6) → 4.
+- **Waves:** 1 → 2 → (3, 5, 6) → (4, 7).
 - **Gates:** each slice hands off on `pnpm prd check --quick "slice hand-off"`; wave gates are quick checks. Slice 1 appends a server-written `symptom_type` row to the sync matrix (a tooling test requires one for every device table); slice 3 adds the two-client step to `roundtrip`.
 - **Ownership:** slice 1 the table, catalog module, group creation and the backfill step; slice 2 the entry column and write path; slice 3 the symptom sheet and the Easy feelings form; slice 4 quick entry and connectors; slice 5 the timeline filters; slice 6 day summaries, visit prep and quick-entry predictions.
 - **Beside other topics:** append to the shared registries (`sync-config.yaml`, device schema, upload registry, `services/` and `models/` indexes, `sync-matrix.mjs`). `quick-entry-2` and `dose-accuracy` land first (the parser; the entry service, assistant runner and visit prep). `ui-kit-3` holds `QuickEntryCard`: slice 4 syncs first and keeps its card change small. `code-health` may move parser files: if so, `pnpm prd sync` and carry on in the new place.
@@ -159,3 +170,19 @@ Day summaries, visit prep and quick-entry predictions drop their own folds and g
 - [ ] Unit: predictions count both spellings as one.
 
 **Blocked by:** 2. **Blocks:** none.
+
+## Slice 7: The words-inside rule needs two words
+
+Stack: no · Reads: docs/domain/timeline.md · Tests: unit
+
+**Backlog:** B-758 (decided for the user, ask a193: the shorter name needs 2+ words).
+
+### What to build
+
+In `similarSymptoms` (`symptomCatalog.ts`), the words-inside match (rank 2) counts only when the shorter name has two or more words, so the default "Pain" no longer prompts for "Knee pain". Reordered words (rank 0) and typos (rank 1) are unchanged. No other file's logic changes.
+
+### Acceptance criteria
+
+- [ ] Unit: "Knee pain" against the defaults offers no "Pain"; "Lower back pain" still offers "Back pain"; reordered words and a typo still match; the cap of three holds.
+
+**Blocked by:** 3. **Blocks:** none.

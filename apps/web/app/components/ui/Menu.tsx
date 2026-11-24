@@ -155,6 +155,8 @@ function Section({ section }: { section: NormalizedSection }) {
     <AriaMenuSection
       id={section.id}
       aria-label={title ? undefined : section.ariaLabel}
+      // A heading after another part of the menu gets room above it, so it reads as its own group's.
+      className={!header && title ? "not-first:mt-2" : undefined}
       {...(selection && {
         selectionMode: "single" as const,
         disallowEmptySelection: true,

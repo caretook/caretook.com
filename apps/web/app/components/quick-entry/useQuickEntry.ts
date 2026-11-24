@@ -1,10 +1,10 @@
 import type { QuickEntryReading, UnitChoices } from "@caretook/data/schema";
-import type { QuickEntryCard } from "./quickEntryCards";
+import type { QuickEntryCard, SymptomChoice } from "./quickEntryCards";
 import type { DuePass } from "~/lib/medications/duePasses";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { parseQuickEntry, readGoTo } from "@caretook/data/schema";
+import { parseQuickEntry, readGoTo, symptomKey } from "@caretook/data/schema";
 import { usePassLog } from "~/components/medications";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { localTimeZone } from "~/lib/core/format";
@@ -18,6 +18,7 @@ import { setDay } from "~/lib/timeline/timelineFilters";
 import { JUMP_LINK_STATE, jumpDayText } from "~/lib/timeline/timelineJump";
 import { withoutSheetParams } from "~/lib/timeline/urls";
 import { runActions } from "~/lib/assistant/quickEntry.sync";
+import { useSymptomTypes } from "~/lib/timeline/symptomTypes.sync";
 import {
   buildCards,
   canSaveCards,
@@ -28,9 +29,14 @@ import {
   editTarget,
   isDraftReading,
   markDraft,
+  newItemLine,
+  newItemPreview,
+  newItemTarget,
   openAfterSave,
+  partsForRole,
   pruneCardState,
   savedText,
+  withSymptomGates,
 } from "./quickEntryCards";
 import { GO_TO_AHEAD } from "./quickEntryCopy";
 import { useQuickEntryData } from "./useQuickEntryData";
@@ -59,11 +65,13 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   const { search } = useLocation();
   const { medications, providers, members } = useQuickEntryData(groupId);
   const { passes, dueNow } = useQuickEntryPasses(groupId);
+  const symptoms = useSymptomTypes(groupId);
   const passLog = usePassLog(groupId);
   const [text, setTextState] = useState("");
   const [chosen, setChosen] = useState<ReadonlyMap<string, number>>(new Map());
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
   const [errors, setErrors] = useState<ReadonlyMap<string, string>>(new Map());
+  const [symptomChoices, setSymptomChoices] = useState<ReadonlyMap<string, SymptomChoice>>(new Map());
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const [announcement, setAnnouncement] = useState("");
@@ -71,9 +79,20 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   const timeZone = group.recipient?.timeZone ?? deviceZone();
   const parts = useMemo(
     () =>
-      parseQuickEntry(text, { now: new Date(), timeZone, units, medications, providers, passes, members })
-        .parts,
-    [text, timeZone, units, medications, providers, passes, members],
+      partsForRole(
+        parseQuickEntry(text, {
+          now: new Date(),
+          timeZone,
+          units,
+          medications,
+          providers,
+          passes,
+          members,
+          symptoms,
+        }).parts,
+        group.canWrite,
+      ),
+    [text, timeZone, units, medications, providers, passes, members, symptoms, group.canWrite],
   );
 
   // A whole line asking for a day is a Go to: it has no save cards, so nothing can reach the runner.
@@ -81,10 +100,11 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   const isGoTo = goTo !== null;
 
   // Forget a card's state as soon as its part of the line is gone (adjusted while rendering, so no stale frame).
-  const kept = pruneCardState(parts, { chosen, removed, errors });
+  const kept = pruneCardState(parts, { chosen, removed, errors, symptoms: symptomChoices });
   if (kept.chosen !== chosen) setChosen(kept.chosen);
   if (kept.removed !== removed) setRemoved(kept.removed);
   if (kept.errors !== errors) setErrors(kept.errors);
+  if (kept.symptoms !== symptomChoices) setSymptomChoices(kept.symptoms!);
 
   const preview = useMemo(() => {
     const context = {
@@ -96,13 +116,22 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
       members: new Map(members.map((m) => [m.id, { name: m.id === group.userId ? "You" : m.name }])),
       recipientTimeZone: timeZone,
     };
-    return (reading: QuickEntryReading) => actionPreview(reading.actions[0]!, context);
+    const practiceName = (id: string) => context.providers.get(id)?.name;
+    return (reading: QuickEntryReading) =>
+      reading.newItem
+        ? newItemPreview(reading.newItem, practiceName)
+        : actionPreview(reading.actions[0]!, context);
   }, [units, medications, providers, passes, members, group.userId, timeZone]);
   const titleOf = useCallback((r: QuickEntryReading) => preview(r).title, [preview]);
 
   const cards = useMemo(
-    () => (isGoTo ? [] : markDraft(buildCards(parts, { chosen, removed }, titleOf))),
-    [isGoTo, parts, chosen, removed, titleOf],
+    () =>
+      isGoTo
+        ? []
+        : markDraft(
+            withSymptomGates(buildCards(parts, { chosen, removed }, titleOf), symptoms, symptomChoices),
+          ),
+    [isGoTo, parts, chosen, removed, titleOf, symptoms, symptomChoices],
   );
 
   // Announce the cards once typing settles, not on every keystroke.
@@ -131,6 +160,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     setChosen(new Map());
     setRemoved(new Set());
     setErrors(new Map());
+    setSymptomChoices(new Map());
   };
 
   const choose = (card: QuickEntryCard, index: number) => {
@@ -140,6 +170,13 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
       next.delete(card.key);
       return next;
     });
+  };
+
+  /** A symptom card's answer: the catalog's name to use, or null to add the name as typed. */
+  const chooseSymptom = (card: QuickEntryCard, use: string | null) => {
+    if (!card.symptomGate) return;
+    const answer = { key: symptomKey(card.symptomGate.name), use };
+    setSymptomChoices((m) => new Map(m).set(card.key, answer));
   };
 
   const remove = (card: QuickEntryCard) => setRemoved((s) => new Set(s).add(card.key));
@@ -169,14 +206,22 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
 
   /** What a card that opens as the draft says: "Opens to finish · Dr. Elena Alvarez · Wed, Nov 25". */
   const draftLine = (card: QuickEntryCard) => {
+    if (card.opensDraft && card.reading.newItem) return newItemLine(card.reading.newItem);
     const action = card.reading.actions[0];
     if (!card.opensDraft || action?.type !== "addEvent") return null;
     const names = action.providerIds.flatMap((id) => providers.find((p) => p.id === id)?.name ?? []);
     return draftSummary(names, preview(card.reading).when);
   };
 
-  /** Open a provider event on the new-event page, filled in: nothing is written until it saves there. */
+  /**
+   * Open a provider event on the new-event page, or a new medication or
+   * provider on its Add sheet, filled in: nothing is written until it saves there.
+   */
   const openDraft = (card: QuickEntryCard) => {
+    if (card.reading.newItem) {
+      const target = newItemTarget(card.reading.newItem, groupId);
+      return navigate(target.to, { state: target.state });
+    }
     const action = card.reading.actions[0];
     if (action?.type !== "addEvent") return;
     return navigate(appUrls.newEntry(groupId, "event"), {
@@ -237,15 +282,14 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
   };
 
   const edit = async (card: QuickEntryCard) => {
-    const action = card.reading.actions[0]!;
-    // A provider event is finished on the new-event page: Edit opens it there, writing nothing.
-    if (isDraftReading(card.reading)) {
+    // A provider event is finished on the new-event page, a new medication or provider on its Add sheet: Edit opens it there, writing nothing.
+    if (isDraftReading(card.reading) || card.reading.newItem) {
       if (card.blocking.length) return;
       remove(card);
       await openDraft(card);
       return;
     }
-    const target = editTarget(action, groupId, search, card.reading.asksAmount);
+    const target = editTarget(card.reading.actions[0]!, groupId, search, card.reading.asksAmount);
     if (target === "saveAndOpen") {
       // A note or event is written on its page: save this card and open it there.
       if (card.blocking.length) return;
@@ -272,6 +316,7 @@ export function useQuickEntry({ groupId, units }: { groupId: string; units: Unit
     announcement,
     canSave: canSaveCards(cards) && !busy,
     choose,
+    chooseSymptom,
     remove,
     save,
     edit,

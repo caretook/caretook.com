@@ -116,13 +116,28 @@ function StepRow({
   );
 }
 
+/**
+ * Where focus goes once a setup or welcome card is dismissed, since its button
+ * leaves with it: the quick-entry box when there is one, else the page's
+ * heading (made focusable for it).
+ */
+export function focusAfterSetup(field: HTMLElement | null, heading: HTMLElement | null | undefined) {
+  if (field) return field.focus();
+  if (!heading) return;
+  heading.tabIndex = -1;
+  heading.focus();
+}
+
 export function GettingStartedCard({
   className = "",
   onAddEntry,
+  onDismissed,
   easy = false,
 }: {
   className?: string;
   onAddEntry: () => void;
+  /** Called on dismiss, before the card goes: moves focus somewhere sensible (`focusAfterSetup`). */
+  onDismissed?: () => void;
   /** On the easy timeline: its larger type, and no invite card once this is gone. */
   easy?: boolean;
 }) {
@@ -136,7 +151,10 @@ export function GettingStartedCard({
   const plan = gettingStartedSteps({ role, facts: setup.facts });
   const fallback = easy ? null : <InviteSomeoneCard className={className} />;
   if (!plan || setupDismissed.includes(id) || !inSetupWindow(setup.joinedAt, openedAt)) return fallback;
-  const dismiss = () => void saveSettings(userId, { setupDismissed: [id] }).catch(() => undefined);
+  const dismiss = () => {
+    onDismissed?.();
+    void saveSettings(userId, { setupDismissed: [id] }).catch(() => undefined);
+  };
   if (plan.kind === "welcome")
     return <WelcomeCard text={plan.text} easy={easy} className={className} onDismiss={dismiss} />;
   if (plan.finished) return fallback;

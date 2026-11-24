@@ -6,7 +6,8 @@
 # a day), and who holds the machine-wide leases (browser checks and pnpm prd
 # check: lease.sh holders), and after the worktree table the dispatcher (running,
 # paused and why, or stopped; its last log entry), the recorded sessions (managed
-# or by hand), the open asks and the live notices. (pnpm prd status, and pnpm prd status-watch)
+# or by hand), the open asks, the workers (status-extra.mjs: every lease, pnpm prd
+# command and slice agent with its age, usual time and state) and the live notices. (pnpm prd status, and pnpm prd status-watch)
 set -euo pipefail
 # shellcheck source=stack-lib.sh
 source "$(dirname "$0")/stack-lib.sh"
@@ -51,7 +52,7 @@ for dir in "$loops"/*/; do
   printf "$fmt" "$name" "$slot" "$branch" "+$ahead $parent" "$dirty" "$stack" "$web"
 done
 [[ -n $found ]] || echo "(no worktrees: pnpm prd start <topic>)"
-echo "PRD worktrees: $(prd_count) of $max_prds"
+echo "PRD worktrees: $(prd_count) of $max_prds${max_prds_from:+ ($max_prds_from)}"
 
 # The dispatcher, recorded sessions and open asks (status-extra.mjs): sessions and asks print nothing,
 # heading included, when there are none.

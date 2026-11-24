@@ -27,6 +27,7 @@ import {
   projectFolder,
   runThrough,
 } from "./open-session.mjs";
+import { CAPTAINS } from "./captain.mjs";
 
 const SESSION_SH = "/o/scripts/loops/session.sh";
 const W = `cd /w/.loops/t && ${SESSION_SH} prd-t`;
@@ -131,6 +132,7 @@ beforeAll(() => {
     "open-session.mjs",
     "planner-model.mjs",
     "sessions.mjs",
+    "captain.mjs",
   ])
     copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
   mkdirSync(join(main, "scripts/backlog"));
@@ -172,16 +174,46 @@ describe("backlog, recovery and hotfix sessions", () => {
         main: "/m",
         wrapper,
         record: { kind: "backlog", model: "sonnet", managed: true },
+        captain: "Pike",
       }),
     ).toMatchObject({
       session: "backlog",
+      title: "Pike",
       mode: "fresh",
       managed: true,
-      command: `cd /m && ${wrapper} backlog --kind backlog --managed -- --model sonnet --remote-control backlog "$(scripts/loops/prompt.sh backlog)"`,
+      command: `cd /m && ${wrapper} backlog --kind backlog --managed -- --model sonnet --remote-control Pike "$(CARETOOK_CAPTAIN=Pike scripts/loops/prompt.sh backlog)"`,
     });
   });
 
-  it("a named backlog session reopens under its recorded Remote Control name", () => {
+  it("the main backlog session reopens as a new captain, never its last one", () => {
+    const seen = new Set();
+    for (let i = 0; i < 40; i++) {
+      const c = chooseMainCommand({
+        name: "backlog",
+        main: "/m",
+        wrapper,
+        record: { kind: "backlog", remote: "Riker" },
+      });
+      expect(CAPTAINS).toContain(c.title);
+      expect(c.title).not.toBe("Riker");
+      expect(c.session).toBe("backlog");
+      expect(c.command).toContain(
+        `${wrapper} backlog --kind backlog -- --model opus --remote-control ${c.title} `,
+      );
+      seen.add(c.title);
+    }
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
+  it("a named backlog session reopens under its recorded Remote Control name, with no captain", () => {
+    expect(
+      chooseMainCommand({
+        name: "backlog-x",
+        main: "/m",
+        wrapper,
+        record: { kind: "backlog", model: "sonnet", managed: true, remote: "backlog - x" },
+      }),
+    ).toEqual(expect.not.objectContaining({ title: expect.anything() }));
     expect(
       chooseMainCommand({
         name: "backlog-x",
@@ -208,21 +240,22 @@ describe("backlog, recovery and hotfix sessions", () => {
     );
   });
 
-  it("the inbox session reopens through prd.sh inbox in its recorded directory, on its recorded model", () => {
+  it("the inbox session reopens through prd.sh inbox in its recorded directory, on prd.sh's model", () => {
     const prd = wrapper.replace(/session\.sh$/, "prd.sh");
-    const record = { kind: "inbox", model: "sonnet", managed: true, dir: "/h/.caretook/inbox" };
+    // A record from the old default (Opus) passes no --model: prd.sh's Sonnet at low effort takes over.
+    const record = { kind: "inbox", model: "opus", managed: true, dir: "/h/.caretook/inbox" };
     expect(chooseMainCommand({ name: "inbox", main: "/m", wrapper, record })).toMatchObject({
       session: "inbox",
       kind: "inbox",
       mode: "fresh",
       managed: true,
-      command: `cd /m && ${prd} inbox --dir /h/.caretook/inbox --model sonnet --managed`,
+      command: `cd /m && ${prd} inbox --dir /h/.caretook/inbox --managed`,
     });
-    // No directory or model recorded: the default directory, on Opus; by hand stays by hand.
+    // No directory or model recorded: the default directory; by hand stays by hand.
     expect(
       chooseMainCommand({ name: "inbox", main: "/m", wrapper, record: { kind: "inbox" }, inboxDir: "/d" })
         .command,
-    ).toBe(`cd /m && ${prd} inbox --dir /d --model opus`);
+    ).toBe(`cd /m && ${prd} inbox --dir /d`);
   });
 
   it("the inbox directory is the record's, else CARETOOK_INBOX_DIR, else ~/.caretook/inbox", () => {
@@ -281,7 +314,11 @@ describe("backlog, recovery and hotfix sessions", () => {
     writeRecord("backlog", { kind: "backlog", model: "sonnet", ended: "2026-01-01T00:00:00Z" });
     const out = ok(["backlog", "--print"]);
     expect(out).toContain(`cd ${main} && `);
-    expect(out).toContain('--model sonnet --remote-control backlog "$(scripts/loops/prompt.sh backlog)"');
+    const captain = /^backlog as ([A-Za-z]+) /m.exec(out)?.[1];
+    expect(CAPTAINS).toContain(captain);
+    expect(out).toContain(
+      `--model sonnet --remote-control ${captain} "$(CARETOOK_CAPTAIN=${captain} scripts/loops/prompt.sh backlog)"`,
+    );
     expect(out).not.toContain("--continue");
     rmSync(folder, { recursive: true });
   });

@@ -52,7 +52,7 @@ export const NEVER_DEFAULT =
 /** How long answering, settling or dismissing waits for another one's lock on the same ask. */
 export const LOCK_WAIT_MS = 5000;
 /** The dispatcher's own sessions: code, so their questions need no skeptic (the honor system). */
-export const DISPATCHER_SESSIONS = ["dispatch", "dispatch-context", "dispatch-keep"];
+export const DISPATCHER_SESSIONS = ["dispatch", "dispatch-context", "dispatch-keep", "dispatch-stuck"];
 /** A lock this old is taken over even if its holder looks alive (a reused pid). */
 const LOCK_STALE_MS = 60_000;
 
@@ -461,7 +461,11 @@ export function clock(iso) {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-/** When an awaiting, defaulting question takes its recommendation: `takes "<a>" in 18m`, or due. */
+/**
+ * When an awaiting, defaulting question takes its recommendation: `takes "<a>" in 18m`, or due.
+ * The time left is span's: to the nearest second, then whole minutes rounded down (29m59s
+ * left reads "29m"); the clock time beside it is exact.
+ */
 export function countdown(ask, now = Date.now()) {
   const left = Date.parse(ask.defaultAt ?? "") - now;
   return left > 0

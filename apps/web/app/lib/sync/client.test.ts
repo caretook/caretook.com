@@ -52,6 +52,7 @@ const PREVIOUS_USER_KEYS = [
   "caretook:lastGroup:u1",
   "caretook:recentSearches:u1",
   "caretook:recentLines:u1:g1",
+  "caretook:quickEntryTips:u1",
   "caretook:easyMode:u1:g1",
 ];
 

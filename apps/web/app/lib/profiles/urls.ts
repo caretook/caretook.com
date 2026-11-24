@@ -15,6 +15,8 @@ export const profileUrls = {
     `${groupHome(groupId)}/profile${isProfileSheet(sheet) ? `/${sheet}` : ""}`,
   /** The recipient's printable emergency sheet (a page, not a sheet over the profile). */
   profilePrint: (groupId: string) => `${groupHome(groupId)}/profile/print`,
+  /** The allergies sheet over the profile: add, edit and remove the recipient's allergies (writers). */
+  profileAllergies: (groupId: string) => `${groupHome(groupId)}/profile/allergies`,
   /** The add-a-condition sheet over the profile (conditions). */
   newCondition: (groupId: string) => `${groupHome(groupId)}/profile/conditions/new`,
   /** One condition's sheet over the profile. */

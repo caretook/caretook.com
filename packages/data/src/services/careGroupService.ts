@@ -9,6 +9,7 @@ import { careGroupMemberModel, careGroupModel, careRecipientModel } from "../mod
 import { isSystemUser } from "../permissions";
 import { revokeForGroup } from "./connectorGrantService";
 import { addDefaults as addDefaultPasses } from "./medicationPassService";
+import { addDefaults as addDefaultSymptoms } from "./symptomTypeService";
 
 export const serviceName = "careGroup";
 export const schemaName = careGroupModel.schemaName;
@@ -29,6 +30,8 @@ export const create = (ctx: ServiceContext, { recipient, ...data }: CareGroupCre
     const group = await careGroupModel.create({ ...ctx, tx, data });
     if (isError(group)) return group;
     if (!group) return { group: null, recipient: null };
+    const symptoms = await addDefaultSymptoms(tx, group.id);
+    if (symptoms) return symptoms;
 
     if (!recipient) return { group, recipient: null };
     // Where the recipient lives: the zone of the device that creates the group, unless it says otherwise.

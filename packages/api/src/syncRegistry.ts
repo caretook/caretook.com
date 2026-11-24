@@ -15,6 +15,7 @@ import {
   providerService,
   recipientAllergyService,
   recipientConditionService,
+  symptomTypeService,
   timelineEntryService,
   todoService,
   UNDO_NEXT_METADATA,
@@ -265,7 +266,8 @@ const timelineEntry = softDelete({
   fixed: { ...GROUP_RECIPIENT, kind: text },
   content: TIMELINE_CONTENT,
   // The service sets `cancelled_by`, like the audit columns. `via` syncs down only (connectors).
-  serverSet: ["cancelled_by", "via"],
+  // `symptom_type_id`: the service derives it from the name (symptom-catalog); the device's is ignored.
+  serverSet: ["cancelled_by", "via", "symptom_type_id"],
   // A dose logged and undone before it uploaded, onto another member's row:
   // their dose stands, live or deleted (B-614).
   put: async (ctx, op, input) => {
@@ -492,6 +494,22 @@ const noteUpdate: UploadEntry = {
   },
 };
 
+// symptom_type: a group's symptom catalog (symptom-catalog). A device adds a
+// name (PUT) with the entry that first uses it; the server derives the row's
+// id and key from the group and the name, so a replay, or another device's
+// PUT of the same name in any case or spacing, lands on the one row. Rows are
+// never changed or removed from a device. Loggers only (viewers refused).
+const symptomType: UploadEntry = {
+  columns: columnsOf({ fixed: ["group_id", "name"], serverSet: ["name_key"] }),
+  handle: async (ctx, op) => {
+    if (op.op !== "PUT") return readOnly("symptom_type", op.op);
+    const of = (column: string) => text(op.data?.[column]) ?? "";
+    return outcome(
+      await symptomTypeService.add(ctx, { id: op.id, groupId: of("group_id"), name: of("name") }),
+    );
+  },
+};
+
 // care_recipient: read-only, except "No known allergies" and "No known
 // conditions": a PATCH of only one of them sets or clears it.
 const NO_KNOWN = {
@@ -570,6 +588,7 @@ export const UPLOAD_REGISTRY: ReadonlyMap<string, UploadEntry> = new Map([
   ["medication_condition", medicationCondition],
   ["condition_manager", conditionManager],
   ["appointment_series", appointmentSeries],
+  ["symptom_type", symptomType],
 ]);
 
 /** One op through its table's handler; any other table is read-only. */

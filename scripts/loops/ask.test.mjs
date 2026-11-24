@@ -9,6 +9,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { DISPATCHER_SESSIONS } from "./asks.mjs";
 import { CONTEXT_SESSION } from "./dispatch-context.mjs";
 import { DISPATCH_SESSION, KEEP_SESSION } from "./dispatch-pick.mjs";
+import { STUCK_SESSION } from "./dispatch-stuck.mjs";
 import { recordVerdict } from "./skeptics.mjs";
 
 const PRD_SH = new URL("./prd.sh", import.meta.url).pathname;
@@ -231,16 +232,29 @@ describe("defaults on silence", () => {
     expect(stored("a1")).toMatchObject({ answer: "after the check", defaulted: false });
   });
 
-  it("asks shows the countdown, and a due ask as due without settling it: it can still be answered", async () => {
-    askDefaulting(30);
-    expect(prd(["asks"]).stdout.split("\n")[0]).toMatch(
-      /^a1 {2}question {2}demo {2}\d+s ago, dispatch, takes "yes" in 30m \(at \d\d:\d\d\) unless answered$/,
-    );
-    askDefaulting(0.001);
-    await new Promise((r) => setTimeout(r, 200));
-    const listed = prd(["asks"]).stdout;
+  it("asks shows the countdown from a fixed now, and a due ask as due without settling it: it can still be answered", () => {
+    // CARETOOK_CLOCK_FILE: ask files at, and asks lists from, these epoch seconds.
+    const clockFile = join(root, "clock");
+    const T = 1_794_999_960; // a whole minute (2026-11-18)
+    const at = (s) => {
+      writeFileSync(clockFile, String(T + s));
+      return { CARETOOK_CLOCK_FILE: clockFile };
+    };
+    expect(askDefaulting(30, at(0)).status).toBe(0);
+    const when = hhmm(stored("a1").defaultAt);
+    const first = (s) => prd(["asks"], at(s)).stdout.split("\n")[0];
+    const line = (ago, left) =>
+      `a1  question  demo  ${ago} ago, dispatch, takes "yes" in ${left} (at ${when}) unless answered`;
+    expect(first(0)).toBe(line("0s", "30m"));
+    // Whole minutes left, rounded down: 1 s and 59 s past a minute boundary both read 29m.
+    expect(first(1)).toBe(line("1s", "29m"));
+    expect(first(59)).toBe(line("59s", "29m"));
+    expect(first(60)).toBe(line("1m", "29m"));
+    expect(first(61)).toBe(line("1m", "28m"));
+    askDefaulting(0.001, at(59)); // due 60 ms later
+    const listed = prd(["asks"], at(60)).stdout;
     expect(listed).toMatch(
-      /^a2 {2}question {2}demo {2}\d+s ago, dispatch, takes "yes": due \(still answerable\)$/m,
+      /^a2 {2}question {2}demo {2}1s ago, dispatch, takes "yes": due \(still answerable\)$/m,
     );
     expect(stored("a2")).toMatchObject({ answeredAt: null, defaulted: false });
     expect(prd(["asks", "--json"]).status).toBe(0);
@@ -369,7 +383,7 @@ describe("a skeptic before every ask", () => {
   });
 
   it("only the dispatcher's sessions are exempt, and only by an explicit --session", () => {
-    expect(DISPATCHER_SESSIONS).toEqual([DISPATCH_SESSION, CONTEXT_SESSION, KEEP_SESSION]);
+    expect(DISPATCHER_SESSIONS).toEqual([DISPATCH_SESSION, CONTEXT_SESSION, KEEP_SESSION, STUCK_SESSION]);
     for (const s of DISPATCHER_SESSIONS) expect(raw(question("--session", s, "--waits")).status).toBe(0);
     expect(raw(question("--session", "prd-demo", "--waits")).status).toBe(1);
     expect(raw(question("--waits"), { CARETOOK_SESSION: "dispatch" }).status).toBe(1);
@@ -447,6 +461,43 @@ describe("a skeptic before every ask", () => {
     expect(raw(question("--waits", "--skeptic", plan)).status).toBe(0);
     expect(stored("a1").skeptic).toMatchObject({ verdict: "no" });
     expect(stored("a2").skeptic).toMatchObject({ verdict: "send-back" });
+  });
+
+  it("a stall ask verdict files a question naming its slice; restart and leave don't", () => {
+    const stall = (fields = {}) =>
+      recordVerdict(skepticDir, {
+        kind: "stall",
+        verdict: "ask",
+        why: "two agents might share the worktree",
+        topic: "demo",
+        slice: "4",
+        askerClass: "defaults",
+        ...fields,
+      }).id;
+    const stalled = (...more) => [
+      "ask",
+      "--topic",
+      "demo",
+      "--question",
+      "Slice 4 stalled after its restart: what now?",
+      "--option",
+      "leave it",
+      "--option",
+      "stop the slice",
+      ...more,
+    ];
+    const ok = raw(stalled("--recommend", "leave it", "--defaults", "--skeptic", stall()));
+    expect(ok.status).toBe(0);
+    expect(ok.stdout).toContain("Now send a PushNotification");
+    expect(stored("a1").skeptic).toMatchObject({ verdict: "ask" });
+    const restart = raw(stalled("--waits", "--skeptic", stall({ verdict: "restart" })));
+    expect(restart.status).toBe(1);
+    expect(restart.stderr).toMatch(/stall restart: act on it/);
+    const never = stall({ askerClass: "waits" });
+    expect(raw(stalled("--recommend", "leave it", "--defaults", "--skeptic", never)).stderr).toMatch(
+      /takes --waits/,
+    );
+    expect(raw(stalled("--recommend", "leave it", "--waits", "--skeptic", never)).status).toBe(0);
   });
 
   describe("--decided", () => {

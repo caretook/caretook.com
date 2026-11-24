@@ -1,4 +1,3 @@
-import type { SectionAccent } from "~/lib/app-shell/sectionAccents";
 import type { LocalTodo } from "~/lib/todos/todos.sync";
 import type { TodoSection } from "~/lib/todos/todoList";
 
@@ -11,20 +10,12 @@ type RowProps = Omit<Parameters<typeof TodoRow>[0], "todo">;
 export function TodoSections({
   sections,
   empty,
-  emptyMark,
   ...row
 }: {
   sections: TodoSection<LocalTodo>[];
   empty: string;
-  /** The section's icon and accent for an unfiltered empty list; without it, a quiet line. */
-  emptyMark?: SectionAccent;
 } & RowProps) {
-  if (!sections.length)
-    return (
-      <EmptyState {...emptyMark} data-todos-empty="">
-        {empty}
-      </EmptyState>
-    );
+  if (!sections.length) return <EmptyState data-todos-empty="">{empty}</EmptyState>;
   return (
     <div className="space-y-4">
       {sections.map((section) => (

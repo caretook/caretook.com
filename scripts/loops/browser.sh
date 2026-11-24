@@ -32,6 +32,8 @@
 # timeout, a 401 or PSYNC_S2101. It first waits (up to 5 min) for the load to
 # drop below that. A pass on the retry is FLAKY: it counts as passing, and is
 # recorded in $main/.loops/.browser-flakes.log so flaky steps can be fixed.
+# Every check's result also goes to the run log (run-log.mjs, CARETOOK_RUN_LOG)
+# for pnpm prd metrics.
 #
 # Each run holds a browser lease (lease.sh), the directory $main/.loops/.lease/browser/<N>.
 # When every lease is taken it waits, polling every 5 s, and gives up after
@@ -247,8 +249,14 @@ child="" watchdog=""
 # also release it before their exit (done_with).
 cleanup() {
   set +e
+  local c
   [[ -n $watchdog ]] && kill_tree "$watchdog" TERM
   [[ -n $child ]] && kill -0 "$child" 2>/dev/null && kill_tree "$child" TERM
+  # Then anything else still below this script: a signal that lands between
+  # `node … &` and `child=$!` (or the watcher's `&` and `watchdog=$!`) runs this
+  # trap with neither recorded, and the check would outlive it with its output
+  # filter (B-704).
+  for c in $(pgrep -P $$ 2>/dev/null); do kill_tree "$c" TERM; done
   lease_release
 }
 # done_with RC → release the lease, then exit with RC.
@@ -467,11 +475,23 @@ run_check() {
   fi
 }
 
+# log_result FILE → the run log's line for the check just run (run-log.mjs): its
+# result (pass, ended, flaky, fail, timeout), seconds and whether it was retried.
+# It never fails the run.
+log_result() {
+  local result
+  result=$(tr '[:upper:]' '[:lower:]' <<< "$verdict")
+  run_log browser "check=$(check_name "$(basename "$1")")" "result=$result" "seconds:=${elapsed:-0}" \
+    "retried:=$([[ ${retried:-0} == 1 ]] && echo true || echo false)" "worktree=$here" \
+    "branch=$(git -C "$top" branch --show-current 2>/dev/null || true)" "mode=$mode" "smoke:=$([[ -n $smoke ]] && echo true || echo false)"
+}
+
 if [[ $mode == one ]]; then
   file=$(resolve_check "$check") || die "no check $check in $checks_dir"
   start_server
   acquire "$(basename "$file")"
   run_check "$file" "${args[@]}"
+  log_result "$file"
   done_with "$rc"
 fi
 
@@ -575,6 +595,7 @@ for c in "${suite[@]}"; do
   ((i > 1)) && sleep "$pause"
   write_lease "$mode $i/${#suite[@]}: $(basename "$file")"
   run_check "$file"
+  log_result "$file"
   record_result "$c" "$verdict" "$retried"
   [[ $verdict == pass || $verdict == ended || $verdict == FLAKY ]] || failed=$((failed + 1))
   rows+=("$(printf '%-24s %-8s %s' "$(basename "$file")" "$verdict" "$(fmt_secs "$elapsed")")")

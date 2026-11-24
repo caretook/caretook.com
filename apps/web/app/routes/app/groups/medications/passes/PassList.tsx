@@ -10,6 +10,7 @@ import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { clockTime, medicationTitle } from "~/lib/medications/medicationDisplay";
+import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
 import { PASS_FIELD } from "./passActions";
 
 export type PassWithMedications = { pass: LocalPass; medications: LocalMedication[] };
@@ -35,6 +36,7 @@ export function PassList({
   const [deleting, setDeleting] = useState<LocalPass | null>(null);
   const post = (fields: Record<string, string>) => void fetcher.submit(fields, { method: "post" });
   const { easyRole } = useGroup();
+  const linkState = useMedicationLinkState();
 
   if (!passes.length)
     return (
@@ -90,6 +92,7 @@ export function PassList({
                     <li key={m.id} className="inline after:content-[',_'] last:after:content-none">
                       <Link
                         to={appUrls.medication(groupId, m.id)}
+                        state={linkState}
                         className={LINK}
                         data-pass-medication={m.id}
                       >

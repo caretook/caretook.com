@@ -52,7 +52,7 @@ describe("unnamed events", () => {
   });
 
   it("show an empty title field, prompting for a name once saved", () => {
-    expect(titleField("event", null, false)).toEqual({ value: "", placeholder: "Title" });
+    expect(titleField("event", null, false)).toEqual({ value: "", placeholder: "Enter a title to save" });
     expect(titleField("event", "Event", true)).toEqual({
       value: "",
       placeholder: "Add a title",

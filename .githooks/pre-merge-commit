@@ -5,4 +5,20 @@ branch=$(current_branch)
 if [[ $branch =~ $PROTECTED_RE ]]; then
   overridden "merge commit on $branch" || refuse "a merge commit on $branch"
 fi
+
+# A slice that changed more than 12 files warns once, as it's merged (never
+# refused), so the next planning cuts smaller slices (planner.md: about 8 files).
+# git names what it merges in GITHEAD_<sha>=<name>; MERGE_HEAD isn't written yet.
+SLICE_FILES_WARN=12
+if [[ $branch == prd/* ]]; then
+  for var in $(compgen -v GITHEAD_ || true); do
+    slice=${!var} sha=${var#GITHEAD_}
+    [[ $slice == "slice/${branch#prd/}/"* ]] || continue
+    files=$(git diff --name-only "HEAD...$sha" 2>/dev/null | wc -l | tr -d ' ')
+    if ((files > SLICE_FILES_WARN)); then
+      echo "caretook hooks: warning: $slice changes $files files (over $SLICE_FILES_WARN)." >&2
+      echo "  Merged anyway. Planning splits a slice past about 8 files, or more than one running topic's hot file, into slices that each land on their own: note it for the next plan." >&2
+    fi
+  done
+fi
 exit 0

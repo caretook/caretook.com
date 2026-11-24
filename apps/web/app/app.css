@@ -128,16 +128,22 @@ fieldset:disabled :is(.input, .select, .textarea) {
 }
 
 /* The phone tab bar (TabBar, under the /app outlet on group routes): a
-   3.5rem bar floating --tab-bar-gap above the bottom safe area. Its height
-   is the bar plus that gap below and above it plus the safe area: its spacer
-   reserves this much at the end of the page, and anything else fixed to the
-   bottom of a group screen (Toast) offsets itself by it. Its surface is
-   near-black `neutral` in light; dark's `neutral` is within 1.1:1 of the
-   dark page, so there it is `base-300` (`light-dark` follows the theme's
-   color-scheme). */
+   3.5rem bar floating --tab-bar-bottom above the screen's bottom edge: just
+   above the home indicator where there's a bottom safe area
+   (--tab-bar-inset, the safe area plus 0.25rem; the safe area already clears
+   the indicator, so the full gap on top of it floated the bar too high in the
+   installed iOS app), else --tab-bar-gap. Its height is the bar plus that
+   offset below and --tab-bar-gap above it: its spacer reserves this much at
+   the end of the page, and anything else fixed to the bottom of a group
+   screen (Toast) offsets itself by it. Tests simulate an inset by setting
+   --tab-bar-inset. Its surface is near-black `neutral` in light; dark's
+   `neutral` is within 1.1:1 of the dark page, so there it is `base-300`
+   (`light-dark` follows the theme's color-scheme). */
 :root {
   --tab-bar-gap: 0.75rem;
-  --tab-bar-height: calc(3.5rem + 2 * var(--tab-bar-gap) + env(safe-area-inset-bottom));
+  --tab-bar-inset: env(safe-area-inset-bottom, 0px);
+  --tab-bar-bottom: max(var(--tab-bar-gap), calc(var(--tab-bar-inset) + 0.25rem));
+  --tab-bar-height: calc(3.5rem + var(--tab-bar-gap) + var(--tab-bar-bottom));
   --tab-bar-surface: light-dark(var(--color-neutral), var(--color-base-300));
   --tab-bar-content: light-dark(var(--color-neutral-content), var(--color-base-content));
 }
@@ -245,7 +251,9 @@ fieldset:disabled :is(.input, .select, .textarea) {
    scale above 1. Every rule that animates sits under `no-preference`, and
    under "reduce motion" nothing moves at all (daisyUI's own 0.2s on `.btn`
    is switched off too). `Chevron` takes `motion-turn`, `ListRow` and other
-   hover surfaces `motion-colors`; `Collapse` is the `[data-collapse]` rules. */
+   hover surfaces `motion-colors`, a link with a button's feel that isn't a
+   `.btn` (an entry's kind and author filters) `motion-press`; `Collapse` is
+   the `[data-collapse]` rules. */
 :root {
   --motion-fast: 120ms;
   --motion: 180ms;
@@ -287,6 +295,16 @@ fieldset:disabled :is(.input, .select, .textarea) {
     transition-property: color, background-color, border-color;
     transition-duration: var(--motion-fast);
     transition-timing-function: var(--motion-ease);
+  }
+}
+@utility motion-press {
+  @media (prefers-reduced-motion: no-preference) {
+    transition-property: color, background-color, border-color, box-shadow, scale;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: var(--motion-ease);
+    &:active {
+      scale: 0.97;
+    }
   }
 }
 @utility motion-turn {

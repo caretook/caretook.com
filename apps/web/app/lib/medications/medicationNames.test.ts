@@ -1,47 +1,54 @@
+import { foldSearchText } from "@caretook/data/schema";
 import { describe, expect, it } from "vitest";
-import { suggestMedicationNames } from "./medicationNames";
+import { MEDICATION_NAMES } from "./medicationNameList";
+import { MEDICATION_SUGGESTION_LIMIT, medicationNameSuggestions } from "./medicationNames";
 
 const names = (...list: string[]) => list.map((name) => ({ name }));
 
-describe("suggestMedicationNames", () => {
-  const group = names("Lisinopril", "Metformin", "Folic acid", "Acetaminophen", "Latanoprost", "Losartan");
-
-  it("matches the start of a name, case ignored", () => {
-    expect(suggestMedicationNames("lis", group)).toEqual(["Lisinopril"]);
-    expect(suggestMedicationNames("LA", group)).toEqual(["Latanoprost"]);
-  });
-
-  it("puts names that start with the text before names with a later word that does", () => {
-    expect(suggestMedicationNames("ac", group)).toEqual(["Acetaminophen", "Folic acid"]);
-  });
-
-  it("keeps the order given within each group (most recently used first)", () => {
-    expect(suggestMedicationNames("l", group)).toEqual(["Lisinopril", "Latanoprost", "Losartan"]);
-  });
-
-  it("ignores accents and surrounding spaces", () => {
-    expect(suggestMedicationNames("  cafe ", names("Caféine tablets"))).toEqual(["Caféine tablets"]);
-  });
-
-  it("lists each name once, whatever its case", () => {
-    expect(suggestMedicationNames("met", names("Metformin", "metformin", "METFORMIN "))).toEqual([
-      "Metformin",
+describe("medicationNameSuggestions", () => {
+  it("puts the group's names first, then the curated list, the group's spelling winning a duplicate", () => {
+    const group = names("lisinopril", "Folic acid (1 mg)", "Lipo-flavonoid");
+    expect(medicationNameSuggestions("li", group)).toEqual([
+      "lisinopril",
+      "Lipo-flavonoid",
+      "Insulin lispro",
+      "Lidocaine",
+      "Linagliptin",
+      "Liraglutide",
+      "Lithium",
     ]);
+    // A later word's start matches too; the group's spelling comes first.
+    expect(medicationNameSuggestions("acid", group)).toEqual(["Folic acid (1 mg)", "Folic acid"]);
   });
 
-  it("suggests nothing for empty text, or a name that's exactly what's typed", () => {
-    expect(suggestMedicationNames("", group)).toEqual([]);
-    expect(suggestMedicationNames("   ", group)).toEqual([]);
-    expect(suggestMedicationNames("lisinopril", group)).toEqual([]);
+  it("lists look-alikes in full, side by side, and a middle of a word doesn't match", () => {
+    expect(medicationNameSuggestions("hydr", [])).toEqual([
+      "Hydralazine",
+      "Hydrochlorothiazide",
+      "Hydrocodone-acetaminophen",
+      "Hydrocortisone",
+      "Hydroxychloroquine",
+      "Hydroxyzine",
+    ]);
+    expect(medicationNameSuggestions("hydroxy", [])).toEqual(["Hydroxychloroquine", "Hydroxyzine"]);
+    expect(medicationNameSuggestions("pril", [])).toEqual([]);
   });
 
-  it("doesn't match the middle of a word", () => {
-    expect(suggestMedicationNames("pril", group)).toEqual([]);
+  it("folds case and accents, matches each typed word in any order, and drops blanks", () => {
+    expect(medicationNameSuggestions("  CAFE ", names("Caféine tablets", "  "))).toEqual(["Caféine tablets"]);
+    expect(medicationNameSuggestions("d vit", [])).toEqual(["Calcium with vitamin D", "Vitamin D3"]);
   });
 
-  it("suggests at most five", () => {
-    const many = names("A1", "A2", "A3", "A4", "A5", "A6");
-    expect(suggestMedicationNames("a", many)).toHaveLength(5);
-    expect(suggestMedicationNames("a", many, 2)).toEqual(["A1", "A2"]);
+  it("caps the list", () => {
+    expect(MEDICATION_SUGGESTION_LIMIT).toBe(20);
+    const many = names(...Array.from({ length: 25 }, (_, i) => `Med ${i}`));
+    expect(medicationNameSuggestions("m", many)).toEqual(many.slice(0, 20).map((m) => m.name));
+    expect(medicationNameSuggestions("m", [], { limit: 3 })).toHaveLength(3);
+  });
+
+  it("has about 200 curated names, each once, with no strength in them", () => {
+    expect(MEDICATION_NAMES.length).toBeGreaterThanOrEqual(190);
+    expect(new Set(MEDICATION_NAMES.map(foldSearchText)).size).toBe(MEDICATION_NAMES.length);
+    expect(MEDICATION_NAMES.filter((n) => /\d+\s*(mg|mcg|ml|g)\b/i.test(n))).toEqual([]);
   });
 });

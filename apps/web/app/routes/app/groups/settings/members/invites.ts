@@ -29,7 +29,7 @@ export const mayResend = (myRole: string | null, invite: { role: string; status:
 export const mayRevoke = (myRole: string | null, invite: { status: string }) =>
   invite.status === "pending" && (myRole === "owner" || myRole === "admin");
 
-const shortDate = (iso: string, locale?: string) =>
+export const shortDate = (iso: string, locale?: string) =>
   new Date(iso).toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" });
 
 /** "Sent by Sam · Expires Nov 25, 2026", "Expired Nov 17, 2026 · …" or "Declined Nov 18, 2026". */

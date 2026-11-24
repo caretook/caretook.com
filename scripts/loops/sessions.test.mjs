@@ -7,6 +7,7 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
   chmodSync,
   copyFileSync,
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -18,6 +19,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { CAPTAINS } from "./captain.mjs";
 import {
   ancestorClaude,
   isLive,
@@ -226,12 +228,14 @@ beforeAll(() => {
     "lib.sh",
     "session.sh",
     "sessions.mjs",
+    "captain.mjs",
     "end-session.sh",
     "prompt.sh",
     "planner-model.mjs",
     "inbox-settings.json",
   ])
     copyFileSync(join(HERE, f), scripts(f));
+  cpSync(join(HERE, "prompts"), scripts("prompts"), { recursive: true });
   mkdirSync(join(main, "scripts/backlog"));
   for (const f of ["registry.mjs", "format.mjs"])
     copyFileSync(join(HERE, "../backlog", f), join(main, "scripts/backlog", f));
@@ -519,7 +523,33 @@ describe("sessions start through the wrapper", () => {
     expect(run("prd.sh", ["plan", "--model", "sonnet"]).status).toBe(0);
     expect(record("backlog")).toMatchObject({ pid: stubPid(), kind: "backlog", model: "sonnet", exit: 0 });
     const args = readFileSync(join(state, "args"), "utf8").split("\n");
-    expect(args.slice(2, 6)).toEqual(["--model", "sonnet", "--remote-control", "backlog"]);
+    expect(args.slice(2, 5)).toEqual(["--model", "sonnet", "--remote-control"]);
+    // Its display name is a captain's; the record stays backlog and remembers it.
+    expect(CAPTAINS).toContain(args[5]);
+    expect(record("backlog").remote).toBe(args[5]);
+  });
+
+  it("each start of the main backlog session is a new captain, its tab titled the same", () => {
+    let last = null;
+    for (let i = 0; i < 6; i++) {
+      const r = run("prd.sh", ["plan"], { CARETOOK_TAB_TITLE: "always" });
+      expect(r.status).toBe(0);
+      const captain = readFileSync(join(state, "args"), "utf8").split("\n")[5];
+      expect(CAPTAINS).toContain(captain);
+      expect(captain).not.toBe(last);
+      expect(r.stdout).toContain(`\x1b]0;${captain}\x07`);
+      expect(record("backlog")).toMatchObject({ kind: "backlog", remote: captain });
+      last = captain;
+    }
+  });
+
+  it("titles no other session's tab: a backlog-<name> one keeps its name", () => {
+    const r = run("session.sh", ["backlog-notes", "--", "--remote-control", "backlog - notes", "x"], {
+      CARETOOK_TAB_TITLE: "always",
+    });
+    expect(r.status).toBe(0);
+    expect(r.stdout).not.toContain("\x1b]0;");
+    expect(record("backlog-notes")).toMatchObject({ kind: "backlog", remote: "backlog - notes" });
   });
 
   it("pnpm prd hotfix --open records the session; without --open it prints the wrapped command", () => {
@@ -548,7 +578,7 @@ describe("the inbox session", () => {
     run("prd.sh", ["inbox", ...args], { CARETOOK_INBOX_DIR: inboxDir(), ...extra });
   beforeEach(() => rmSync(home(), { recursive: true, force: true }));
 
-  it("starts in its own directory outside the repository, creating it, on Opus in fast mode", () => {
+  it("starts in its own directory outside the repository, creating it, on Sonnet at low effort", () => {
     const r = inbox();
     expect(r.status).toBe(0);
     expect(r.stderr).toContain(`Made ${inboxDir()} for the inbox session.`);
@@ -556,18 +586,18 @@ describe("the inbox session", () => {
     expect(record("inbox")).toMatchObject({
       pid: stubPid(),
       kind: "inbox",
-      model: "opus",
+      model: "sonnet",
       remote: "inbox",
       exit: 0,
     });
     const args = readFileSync(join(state, "args"), "utf8").split("\n");
-    // One settings file, and it is the one holding both the context hook and fastMode.
+    // One settings file, and it is the one holding the context hook and the effort.
     expect(args.filter((a) => a === "--settings")).toHaveLength(1);
     expect(args.slice(0, 6)).toEqual([
       "--settings",
       scripts("inbox-settings.json"),
       "--model",
-      "opus",
+      "sonnet",
       "--remote-control",
       "inbox",
     ]);
@@ -576,11 +606,11 @@ describe("the inbox session", () => {
     expect(inbox().stderr).not.toContain("Made ");
   });
 
-  it("--model overrides Opus; the fast settings stay", () => {
-    expect(inbox(["--model", "sonnet"]).status).toBe(0);
-    expect(record("inbox")).toMatchObject({ kind: "inbox", model: "sonnet" });
+  it("--model overrides Sonnet; the low-effort settings stay", () => {
+    expect(inbox(["--model", "opus"]).status).toBe(0);
+    expect(record("inbox")).toMatchObject({ kind: "inbox", model: "opus" });
     const args = readFileSync(join(state, "args"), "utf8").split("\n");
-    expect(args.slice(0, 4)).toEqual(["--settings", scripts("inbox-settings.json"), "--model", "sonnet"]);
+    expect(args.slice(0, 4)).toEqual(["--settings", scripts("inbox-settings.json"), "--model", "opus"]);
     expect(inbox(["--model=haiku"]).status).toBe(0);
     expect(record("inbox").model).toBe("haiku");
     expect(inbox(["--bogus"]).stderr).toContain(
@@ -594,7 +624,7 @@ describe("the inbox session", () => {
     const other = join(home(), "other-inbox");
     expect(inbox(["--dir", other, "--managed"], { CARETOOK_INBOX_DIR: "" }).status).toBe(0);
     expect(readFileSync(join(state, "cwd"), "utf8").trim()).toBe(other);
-    expect(record("inbox")).toMatchObject({ kind: "inbox", dir: other, managed: true, model: "opus" });
+    expect(record("inbox")).toMatchObject({ kind: "inbox", dir: other, managed: true, model: "sonnet" });
     expect(inbox(["--dir", join(main, "scripts")]).stderr).toContain("where AGENTS.md would load");
   });
 
@@ -603,10 +633,10 @@ describe("the inbox session", () => {
     expect(readFileSync(join(state, "hook"), "utf8").trim()).toBe(`inbox ${scripts("context.mjs")}`);
   });
 
-  it("the settings file holds the context hook and fastMode, and nothing else", () => {
-    const fast = JSON.parse(readFileSync(join(HERE, "inbox-settings.json"), "utf8"));
+  it("the settings file holds the context hook, low effort and fast mode off, and nothing else", () => {
+    const own = JSON.parse(readFileSync(join(HERE, "inbox-settings.json"), "utf8"));
     const context = JSON.parse(readFileSync(join(HERE, "context-settings.json"), "utf8"));
-    expect(fast).toEqual({ ...context, fastMode: true });
+    expect(own).toEqual({ ...context, fastMode: false, effortLevel: "low" });
   });
 
   it("refuses a directory inside a repository or under a CLAUDE.md or AGENTS.md", () => {

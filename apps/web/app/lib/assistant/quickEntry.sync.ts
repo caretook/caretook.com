@@ -12,6 +12,7 @@ import {
   assistantActionZSchema,
   encodeNoteDoc,
   entryProviderId,
+  isSymptomDetails,
   noteDocFromText,
   timelineEntryContentZSchema,
 } from "@caretook/data/schema";
@@ -36,6 +37,7 @@ import { toPasses } from "../medications/medicationPasses.sync";
 import { providerQuery, toProvider } from "../providers/providers.sync";
 import { noteDocuments, noteUpdates, todos, timelineEntries, timelineEntryProviders } from "../sync/schema";
 import { plannedTodo } from "../todos/todos.sync";
+import { addSymptomTypeIn } from "../timeline/symptomTypes.sync";
 import {
   contentColumns,
   forbidden,
@@ -44,6 +46,7 @@ import {
   invalid,
   nowTimestamp,
   readRows,
+  symptomTypeColumn,
 } from "../timeline/timeline.sync";
 
 // Carrying out assistant actions (quick entry's cards) on this device: every
@@ -56,8 +59,9 @@ import {
 // strip's Given all: the doses `givenAllWrites` plans for the pass's open
 // slots on its day, as one round. A todo (`addTodo`) is checked as
 // `createTodo` checks it (`plannedTodo`) and written in the same transaction;
-// it isn't an entry. A refused action refuses the batch, naming the action
-// it was.
+// it isn't an entry. A symptom adds its name's catalog row when the group
+// has none (`addSymptomTypeIn`). A refused action refuses the batch, naming
+// the action it was.
 
 export type RunActionsResult =
   | {
@@ -83,6 +87,8 @@ type EntryRows = {
   /** A note's or event's live document: a note's text, with its providers mentioned. */
   document?: { text: string | null; mentions: NoteMention[] };
   providerIds?: string[];
+  /** A symptom's name, whose catalog row is added with it when the group has none. */
+  symptomName?: string;
 };
 
 const deviceTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -228,6 +234,7 @@ export const runActions = async (
         recipientId: group.recipient.id,
         kind: content.data.kind,
         ...contentColumns(content.data),
+        ...symptomTypeColumn(groupId, content.data),
         cancelledBy: null,
         deletedAt: null,
         ...audit,
@@ -238,6 +245,8 @@ export const runActions = async (
       ...(action.type === "addEvent" && { document: { text: null, mentions: [] } }),
       // An Easy helper's note keeps its mentions in the text, unlinked.
       providerIds: writer ? providerIds : [],
+      ...(content.data.kind === "symptom" &&
+        isSymptomDetails(content.data.details) && { symptomName: content.data.details.name }),
     });
   }
 
@@ -247,8 +256,10 @@ export const runActions = async (
         await tx.insert(todos).values(rows.todo);
         continue;
       }
-      const { entry, more, document, providerIds } = rows;
+      const { entry, more, document, providerIds, symptomName } = rows;
       if (entry.kind === "dose") await claimDoseIds(tx, [entry, ...(more ?? [])]);
+      // A symptom's name joins the catalog in the same write, when it's new (as `createEntry`).
+      if (symptomName) await addSymptomTypeIn(tx, { groupId, name: symptomName, userId: db.userId, now });
       await tx.insert(timelineEntries).values(entry);
       for (const row of more ?? []) await tx.insert(timelineEntries).values(row);
       if (document) {

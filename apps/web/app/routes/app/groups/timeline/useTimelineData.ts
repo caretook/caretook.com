@@ -137,6 +137,7 @@ export function useTimelineData({
     filters.author,
     filters.match ?? null,
     filters.vital ?? null,
+    filters.symptoms ?? [],
     day,
   ]);
   // Back to this history entry starts from the window kept for it; anything else from one page.

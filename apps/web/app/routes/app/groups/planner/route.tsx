@@ -4,7 +4,6 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 
 import { TodoUndoStatus } from "~/components/todos";
 import { getGroup, useGroup } from "~/lib/app-shell/group";
-import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { sessionContext } from "~/lib/auth/session";
 import { loadUpcoming } from "./loadUpcoming";
 import { PlannerHeader } from "./PlannerHeader";
@@ -64,7 +63,6 @@ export default function Planner({ loaderData, params }: Route.ComponentProps) {
         groupId={groupId}
         label="Upcoming"
         empty={emptyUpcomingText(show, authorName)}
-        emptyMark={show === "all" && !author ? sectionAccent("planner", { easy: easyRole }) : undefined}
         readOnly={easyRole}
       />
     </Page>

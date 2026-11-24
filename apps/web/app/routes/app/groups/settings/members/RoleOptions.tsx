@@ -1,9 +1,9 @@
-import { roleDescription, roleGroups, roleLabel } from "../groupSettings";
+import { roleGroups, roleLabel } from "../groupSettings";
 
 /**
  * A role `<select>`'s options, grouped: the regular roles, then the easy
- * roles under "Easier to use" (`roleGroups`). Each option's `title` is the
- * role's description, for the managers who pick it.
+ * roles under "Easier to use" (`roleGroups`). What each role may do is in
+ * `RoleHelp` beside the picker's label (an option can't hold a second line).
  */
 export function RoleOptions({ roles }: { roles: readonly string[] }) {
   return (
@@ -11,7 +11,7 @@ export function RoleOptions({ roles }: { roles: readonly string[] }) {
       {roleGroups(roles).map((group) => (
         <optgroup key={group.id} label={group.label} data-role-group={group.id}>
           {group.roles.map((role) => (
-            <option key={role} value={role} title={roleDescription(role)}>
+            <option key={role} value={role}>
               {roleLabel(role)}
             </option>
           ))}

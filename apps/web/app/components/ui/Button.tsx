@@ -5,6 +5,7 @@ import type { ButtonLook, ButtonSize } from "./buttonClass";
 
 import { Link } from "react-router";
 import { buttonClass } from "./buttonClass";
+import { COUNT_BADGE } from "./styles";
 
 type Look = Pick<ButtonLook, "variant" | "size" | "shape" | "block"> & {
   /** Classes for the outer element (a margin, `grow`, `join-item`), never its look. */
@@ -18,12 +19,15 @@ type Content =
       icon?: LucideIcon;
       children: ReactNode;
       label?: never;
+      count?: never;
     }
   | {
       icon: LucideIcon;
       /** Icon only: the accessible name and the tooltip. */
       label: string;
       children?: never;
+      /** A count badge at its corner (`COUNT_BADGE`, hidden from assistive tech: `label` says it); none at 0. */
+      count?: number;
     };
 
 /** What only a `<button>` takes (never a link). */
@@ -99,12 +103,29 @@ const ONLY_ICON: Record<ButtonSize, string> = { lg: "size-6", md: "size-6", sm: 
  * `IconButton` is a short name for the icon-only form.
  */
 export function Button(props: ButtonProps) {
-  const { variant, size = "md", shape, block, icon: Icon, label, children, className = "" } = props;
+  const { variant, size = "md", shape, block, icon: Icon, label, children, count, className = "" } = props;
   const iconOnly = label !== undefined;
   const pressed = props.to === undefined && props.href === undefined ? props.pressed : undefined;
-  const look =
-    `${buttonClass({ variant, size, block, shape: shape ?? (iconOnly ? "square" : undefined), pressed })} ${className}`.trim();
-  const icon = Icon ? <Icon className={(iconOnly ? ONLY_ICON : TEXT_ICON)[size]} aria-hidden="true" /> : null;
+  const look = [
+    buttonClass({ variant, size, block, shape: shape ?? (iconOnly ? "square" : undefined), pressed }),
+    count === undefined ? "" : "relative",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const glyph = Icon ? (
+    <Icon className={(iconOnly ? ONLY_ICON : TEXT_ICON)[size]} aria-hidden="true" />
+  ) : null;
+  const icon = count ? (
+    <>
+      {glyph}
+      <span aria-hidden="true" className={COUNT_BADGE} data-count>
+        {count}
+      </span>
+    </>
+  ) : (
+    glyph
+  );
   const name = iconOnly ? { "aria-label": label, title: label } : {};
 
   if (props.href !== undefined) {
@@ -116,6 +137,7 @@ export function Button(props: ButtonProps) {
       icon: _i,
       label: _l,
       children: _c,
+      count: _n,
       className: _cn,
       busy: _busy,
       busyLabel: _bl,
@@ -144,6 +166,7 @@ export function Button(props: ButtonProps) {
       icon: _i,
       label: _l,
       children: _c,
+      count: _n,
       className: _cn,
       busy: _busy,
       busyLabel: _bl,
@@ -171,6 +194,7 @@ export function Button(props: ButtonProps) {
     icon: _i,
     label: _l,
     children: _c,
+    count: _n,
     className: _cn,
     busy = false,
     busyLabel,

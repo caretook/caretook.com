@@ -4,14 +4,28 @@
 
 ## Status
 
-| Slice                                       | Wave | State       | Merge |
-| ------------------------------------------- | ---- | ----------- | ----- |
-| 1. A rejected batch can't block the queue   | 1    | not started |       |
-| 2. Every entry point refuses                | 1    | not started |       |
-| 3. Fixtures in the shape devices receive    | 1    | not started |       |
-| 4. Round trip compares columns              | 1    | not started |       |
-| 5. Round trip through the app's own writers | 2    | not started |       |
-| 6. A second time zone                       | 3    | not started |       |
+**Done.** Wave 3 landed in `dev` as f9b32d87 through PR #154 at tier `full` (run 45424681240 green on 24218d92), without a Codex review (out of credits). Report a188; to-test `to-test/2026-11-24-1036-test-health-2.md`. Next: `pnpm prd rm test-health-2`, `pnpm prd end`.
+
+| Slice                                       | Wave | State                           | Merge    |
+| ------------------------------------------- | ---- | ------------------------------- | -------- |
+| 1. A rejected batch can't block the queue   | 1    | landed f4281e0 (PR #147, opus)  | 159df711 |
+| 2. Every entry point refuses                | 1    | landed f4281e0 (PR #147, opus)  | 0b9da399 |
+| 3. Fixtures in the shape devices receive    | 1    | landed f4281e0 (PR #147, opus)  | 04f07d63 |
+| 4. Round trip compares columns              | 1    | landed f4281e0 (PR #147, opus)  | 9e03018d |
+| 5. Round trip through the app's own writers | 2    | landed 2724ace (PR #151, opus)  | fd67ffc4 |
+| 6. A second time zone                       | 3    | landed f9b32d87 (PR #154, opus) | 84cb89b2 |
+
+**Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
+
+**Wave 2 landed** in `dev` as 2724ace through PR #151, **without a Codex review (out of credits)**, at tier `full` (it edits `ci.yml`), run 45408126170 green on e4effb6a. Dev moved twice during the landing (symptom-catalog, then fixes-tooling wave 4, which touched `loop.md`), so `full` ran three times; budget for that. Browser checks on ec1c138e: `roundtrip` 39 s, `live-notes`, `first-sync` pass. Report a183; to-test file `to-test/2026-11-24-0903-test-health-2.md`. B-371 done. Docs folded: loop.md (the sync matrix's app writers, the module hook; trimmed, 15323 of 15360). Slice 5 worktree removed.
+
+**Wave 3 (session 2026-11-24):** B-372 claimed; B-750 filed (fixes-bug umbrella for second-zone overflow, the new `ZONE_OVERFLOW_ITEM`); worktree `test-health-2-6` made, opus agent spawned (told: `ZONE_OVERFLOW_ITEM` → B-750). Handed off on fdbd0007 (slice check green; `web:components:ny` 53 files pass by hand, no NY skips, no new items), merged 84cb89b2, B-372 done. It edits `ci.yml`: gate tier `full`, run requested. Watch the 20-min component-shard timeout (+53 files). Run 45422207251 green on 841ce494; slice 6 worktree removed; `pnpm prd sync` merged dev (brought migration 0044; `datastore:reset` was refused by the classifier, so the review server's DB may lack it: the wave changes tests only); `full` run on the synced tip requested. No browser checks needed. Docs folded into components.md (second zone; trimmed, 10222 of 10240). B-757 filed (fixes-tooling): the slice check runs own component files only in LA.
+
+**Wave 3, slice 6** (opus; Stack: no). Its blocker `test-gates-2` slice 5 landed (4160dee5). Tell its agent: repoint `ZONE_OVERFLOW_ITEM` in `scripts/ci/release.mjs` (and `release.test.mjs`'s two `B-372` expectations) from B-372 to a live item (file one, e.g. a `fixes-bug` umbrella for New York failures past the cap); B-706 to B-715 are the New York failures already filed; slice 3's `fixtureProblems` could run the `*World.tsx` worlds. Gate: the check plan's tier. This is the last wave: after it lands, `pnpm prd rm test-health-2`, then `cd` to the main checkout and `pnpm prd end`.
+
+**Follow-ups noted:** B-749 (fixes-tooling): add `roundtrip` to the check-areas rules of the `*.sync.ts` writers it now calls (todos, allergies, conditions, medicationConditions, notes); slice 5's `note_update` writer types into a `Y.Text` named "matrix", not the editor's XML fragment.
+
+**Notes from wave 1:** slice 2 found no holes; three list reads (`timeline.list`, `latestVitals`, `members`) answer an outsider with an empty list, not an error, by design. The removal step adds a 4th device to `roundtrip` (about 3 s).
 
 ## Architectural decisions
 

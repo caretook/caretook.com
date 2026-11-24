@@ -56,11 +56,12 @@ streams:
       # appointments and reminders (future events and notes).
       # `via`: written through a member's AI assistant ("via Claude"; connectors).
       # `series_id`, `series_day`, `series_detached`: a repeating series' visit (appointments-2).
+      # `symptom_type_id`: a symptom's catalog row (symptom-catalog; the server derives it).
       - >-
         SELECT id, group_id, recipient_id, kind, occurred_at, time_zone, title, body, details,
         deleted_at, created_at, updated_at, created_by, updated_by,
         ends_at, all_day, place, cancelled_at, cancelled_by, cancel_reason, rescheduled_to, via,
-        series_id, series_day, series_detached
+        series_id, series_day, series_detached, symptom_type_id
         FROM timeline_entry WHERE group_id IN my_groups
       # Live documents: the compacted snapshot and every pending Yjs update,
       # so any document opens and edits offline. Viewers get them too (read-only).
@@ -144,6 +145,11 @@ streams:
         title, duration_minutes, place, provider_ids, topped_up_through,
         deleted_at, created_at, updated_at, created_by, updated_by
         FROM appointment_series WHERE group_id IN my_groups
+      # The group's symptom catalog (symptom-catalog): every member, every role.
+      # Rows are added, never changed or removed (but with the group).
+      - >-
+        SELECT id, group_id, name, name_key, created_at, updated_at, created_by, updated_by
+        FROM symptom_type WHERE group_id IN my_groups
 
   # The recipient's sensitive details (phones, email, address, insurance,
   # outside contacts) for owners, admins and caretakers only (WRITER_ROLES in

@@ -18,6 +18,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAsk, getAsk, listAsks } from "./asks.mjs";
+import { CAPTAINS } from "./captain.mjs";
 import {
   CONTEXT_OPTIONS,
   CONTEXT_SESSION,
@@ -429,8 +430,10 @@ describe("the tick", () => {
     for (const f of [
       "dispatch.mjs",
       "dispatch-context.mjs",
+      "dispatch-stuck.mjs",
       "dispatch-pick.mjs",
       "context.mjs",
+      "heartbeat.mjs",
       "keep-alive.mjs",
       "session-requests.mjs",
       "notices.mjs",
@@ -438,6 +441,7 @@ describe("the tick", () => {
       "ask.mjs",
       "skeptics.mjs",
       "sessions.mjs",
+      "captain.mjs",
       "load-gate.mjs",
       "rotate.mjs",
       "open-session.mjs",
@@ -571,6 +575,7 @@ describe("the tick", () => {
           pid: child.pid,
           kind: "backlog",
           managed: true,
+          remote: "Kirk",
           started: new Date().toISOString(),
         }),
       );
@@ -612,9 +617,14 @@ describe("the tick", () => {
       tick();
       expect(callsOf("rotate")).toEqual([]);
       expect(rotationLines()).toHaveLength(1);
-      expect(rotationLines()[0]).toContain(
-        `rotate-into.sh backlog ${pid} --reason context --brief ${brief()} --title backlog --background`,
-      );
+      const m = new RegExp(
+        `rotate-into\\.sh backlog ${pid} --reason context --brief ${brief()} --captain ([A-Za-z]+) --title ([A-Za-z]+) --background`,
+      ).exec(rotationLines()[0]);
+      expect(m).not.toBeNull();
+      // The main backlog session comes back as a new captain, its tab titled the same, never the last one.
+      expect(CAPTAINS).toContain(m?.[1]);
+      expect(m?.[2]).toBe(m?.[1]);
+      expect(m?.[1]).not.toBe("Kirk");
     });
 
     it("rotates without a brief when the only one is older, and says so", () => {

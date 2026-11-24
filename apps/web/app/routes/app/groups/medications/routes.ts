@@ -8,7 +8,7 @@ const sheets = (tab: "schedule" | "list"): RouteConfigEntry[] => [
   route(":medicationId/edit", "routes/app/groups/medications/edit/route.tsx", {
     id: `medications-${tab}-edit`,
   }),
-  // The recipient's allergies (writers), opened from the list and from a medication's page.
+  // The old allergies sheet: it redirects to the profile's, where allergies are managed now.
   route("allergies", "routes/app/groups/medications/allergies/route.tsx", {
     id: `medications-${tab}-allergies`,
   }),

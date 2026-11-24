@@ -4,3 +4,6 @@ packages:
 
 allowBuilds:
   esbuild: true
+
+# A new package version waits a day (minutes) before it can be installed.
+minimumReleaseAge: 1440

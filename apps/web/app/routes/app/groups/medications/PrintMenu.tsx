@@ -32,7 +32,7 @@ export function PrintMenu({ groupId }: { groupId: string }) {
   );
   return (
     <>
-      <Menu items={items} label="Print" menuLabel="Print" variant="ghost" size="sm" shape="square" width="md">
+      <Menu items={items} label="Print" menuLabel="Print" variant="ghost" size="sm" shape="square" width="lg">
         <Printer className="size-4" aria-hidden="true" />
       </Menu>
       <PrefetchPageLinks page={list} />

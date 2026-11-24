@@ -193,3 +193,46 @@ describe("a writer in Easy mode", () => {
     expect(inviteHook()).toBeNull();
   });
 });
+
+// B-629: the dismiss button leaves with its card, so focus moves on instead of falling to the body.
+describe("focus after dismissing", () => {
+  const quickField = () => document.querySelector("[data-quick-entry] textarea");
+  const dismissByKeyboard = async (name: string) => {
+    page.getByRole("button", { name }).element().focus();
+    await userEvent.keyboard("{Enter}");
+  };
+
+  test("the setup card hands focus to the quick-entry box", async () => {
+    await open(joined(hoursAgo(1)));
+    await expect.poll(card).not.toBeNull();
+    await dismissByKeyboard("Dismiss setup");
+    await expect.poll(card).toBeNull();
+    expect(document.activeElement).not.toBe(document.body);
+    expect(document.activeElement).toBe(quickField());
+  });
+
+  test("a viewer's welcome hands it to the Timeline heading", async () => {
+    await open(joined(hoursAgo(1), "viewer"));
+    await expect.poll(welcome).not.toBeNull();
+    await dismissByKeyboard("Dismiss welcome");
+    await expect.poll(welcome).toBeNull();
+    expect(document.activeElement).toBe(heading().element());
+  });
+
+  test("in the easy view, a writer's goes to the box", async () => {
+    chooseEasyMode();
+    await open(joined(hoursAgo(1)));
+    await expect.poll(card).not.toBeNull();
+    await dismissByKeyboard("Dismiss setup");
+    await expect.poll(card).toBeNull();
+    expect(document.activeElement).toBe(quickField());
+  });
+
+  test("an Easy viewer's goes to the name heading", async () => {
+    await open(joined(hoursAgo(1), "easy_viewer"));
+    await expect.poll(welcome).not.toBeNull();
+    await dismissByKeyboard("Dismiss welcome");
+    await expect.poll(welcome).toBeNull();
+    expect(document.activeElement).toBe(easyView()?.querySelector("h1"));
+  });
+});

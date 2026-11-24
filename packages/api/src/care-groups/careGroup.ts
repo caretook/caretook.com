@@ -111,6 +111,21 @@ export const careGroup = {
   }),
 
   /**
+   * Owners and admins: whether each member has confirmed their email, and
+   * when they last signed in (their latest remaining session; null when
+   * none is left). Never the email; not synced. Other members get a 403,
+   * non-members a 404.
+   */
+  memberStatuses: authedProcedure.input(z.object({ groupId: id })).handler(async ({ context, input }) => {
+    const rows = unwrap(await careGroupMemberService.accountStatuses(context, input.groupId));
+    return rows.map((row) => ({
+      userId: row.userId,
+      emailVerified: row.emailVerified,
+      lastSignInAt: row.lastSignInAt ? row.lastSignInAt.toISOString() : null,
+    }));
+  }),
+
+  /**
    * Rename a group, or choose how easy mode picks its tiles (`easyTiles`;
    * null: learned from use). Owners and admins; fields left out keep their
    * value. Other members get a 403, non-members a 404. The Assistants switch

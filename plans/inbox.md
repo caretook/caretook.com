@@ -6,7 +6,18 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 
 ## Bugs/Nits
 
+- After a long idle tab (and a staging deploy), clicking the main header nav didn't do anything on staging; had to reload the page. (B-735)
+- On the timeline, after jumping to a day, trying to scroll always takes you back to that day. (B-736)
+  Jump to day should probably be a quick action with no URL query string (or the query string should be removed after the jump).
+- Inbox agent opened with Opus medium instead of low. (B-739)
+- On installed PWA on iOS, the bottom navigation bar floats too high up; it needs to be closer to the bottom of the screen. (B-763)
+- When the internet connection drops, the browser and the installed PWA show only a blank screen. (B-777)
+
 ## Change requests
+
+- Placeholder and search bar on timeline should read "Type to search". (B-748)
+- App first load is way too long. (B-764)
+  We need to either speed it up or make the loading message more friendly with a progress bar.
 
 ## Feature requests
 
@@ -19,6 +30,8 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
 - Tags on everything so users can organize data how they want. (B-548)
 - Symomtons need to be repeatble and filterable need multi filter. (B-549)
 - nested todos (B-550)
+- A link icon on each timeline day header and item so users can easily send links to other people. should NOT prevent scrolling later (B-737)
+- Ability to open live notes full screen. (B-765)
 
 ## Big plans
 

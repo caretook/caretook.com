@@ -1,6 +1,7 @@
 import type { ActionKind, AssistantAction } from "./assistantActions";
 import type { DoseStatus } from "../medications/medication";
 import type { ProviderType } from "../providers/provider";
+import type { NewItemDraft } from "./quickEntryNewItem";
 import type { ResolvedTime, TimeDirection, TimeSpec } from "./quickEntryTime";
 import type { VocabularyMatch, VocabularyRole } from "./quickEntryVocabulary";
 import type { UnitChoices, UnitFor, VitalFieldSpec, VitalReading, VitalType } from "../timeline/vitals";
@@ -8,10 +9,12 @@ import type { UnitChoices, UnitFor, VitalFieldSpec, VitalReading, VitalType } fr
 import { DEVICE_FUTURE_SKEW_MS, FUTURE_DATE_MESSAGE, localDate } from "../core/entryTiming";
 import { findTime, periodUnderway, resolveTime, saysFuture, wallTime } from "./quickEntryTime";
 import { findVocabulary, vocabularyWord } from "./quickEntryVocabulary";
+import { keepsNewItemLine, readNewItem } from "./quickEntryNewItem";
 import { foldSearchText } from "../search/search";
 import { TODO_LIMITS } from "../todos/todo";
 import { localTime } from "../todos/todoRules";
 import { TIMELINE_LIMITS } from "../timeline/timelineEntry";
+import { similarSymptoms } from "../timeline/symptomCatalog";
 import {
   BP_ORDER_MESSAGE,
   fieldRange,
@@ -88,6 +91,8 @@ export type QuickEntryContext = {
   passes?: readonly QuickEntryPass[];
   /** The group's members, whom a todo's "for Sam" or "@Sam" can name. */
   members?: readonly QuickEntryMember[];
+  /** The group's symptom catalog: a symptom named like one of them takes its spelling. */
+  symptoms?: readonly { name: string }[];
 };
 
 /** A member of the group, as a todo's assignee. */
@@ -96,8 +101,11 @@ export type QuickEntryMember = { id: string; name: string };
 /** Something to show on a card. A blocking one stops that card from saving. */
 export type QuickEntryWarning = { message: string; blocking: boolean };
 
+/** What a card can be: an action's kind, or a medication or provider to add (no action: Save opens its Add sheet). */
+export type QuickEntryKind = ActionKind | NewItemDraft["kind"];
+
 export type QuickEntryReading = {
-  kind: ActionKind;
+  kind: QuickEntryKind;
   /** The kind as a word, for the card and its alternative chips ("Vital", "Note"). */
   label: string;
   actions: AssistantAction[];
@@ -108,18 +116,22 @@ export type QuickEntryReading = {
   asksAmount?: boolean;
   /** One answer to `asksAmount`, as its chip says it ("2 tablets"). */
   amountChoice?: string;
+  /** A medication or provider to add ("new med lisinopril 10 mg"): no actions; Save opens its Add sheet with this. */
+  newItem?: NewItemDraft;
 };
 
 export type QuickEntryPart = { text: string; readings: QuickEntryReading[] };
 export type QuickEntryResult = { parts: QuickEntryPart[] };
 
-export const KIND_LABELS: Record<ActionKind, string> = {
+export const KIND_LABELS: Record<QuickEntryKind, string> = {
   vital: "Vital",
   symptom: "Symptom",
   dose: "Dose",
   note: "Note",
   event: "Event",
   todo: "Todo",
+  medication: "New medication",
+  provider: "New provider",
 };
 
 /** Kind prefixes: `v: …` is always a vital. */
@@ -1533,12 +1545,17 @@ const onlyMedicationWords = (s: PartState, idx: readonly number[]) => {
 
 const symptomReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   const at = s.time.past.at;
+  // The catalog's spelling for a name it has (same key: case and spaces), else the words as typed.
+  const named = (name: string) => {
+    const typed = capitalize(truncate(name, TIMELINE_LIMITS.symptomName));
+    return similarSymptoms(typed, s.context.symptoms ?? []).exact?.name ?? typed;
+  };
   const make = (name: string, severity: number | null, note: string | null, confidence: number) =>
     reading(
       "symptom",
       {
         type: "logSymptom",
-        name: capitalize(truncate(name, TIMELINE_LIMITS.symptomName)),
+        name: named(name),
         severity,
         note,
         occurredAt: at.toISOString(),
@@ -1974,6 +1991,16 @@ const todoReading = (s: PartState, confidence: number): QuickEntryReading => {
   );
 };
 
+/** A medication or provider to add: no actions; its card's Save opens the Add sheet filled in. */
+const newItemReading = (draft: NewItemDraft, confidence: number): QuickEntryReading => ({
+  kind: draft.kind,
+  label: KIND_LABELS[draft.kind],
+  actions: [],
+  confidence,
+  warnings: [],
+  newItem: draft,
+});
+
 const DETECTORS: Record<
   Exclude<ActionKind, "note">,
   (s: PartState, forced: boolean) => QuickEntryReading[]
@@ -2213,7 +2240,10 @@ const parsePart = (
       });
     readings.push(fallback);
   } else {
+    // "new med lisinopril 10 mg", "add provider Dr Kim": ahead of any loose match to what the group has.
+    const newItem = readNewItem(body, context.providers);
     readings = [
+      ...(newItem ? [newItemReading(newItem.draft, newItem.confidence)] : []),
       ...vitalReadings(s, false),
       ...passReadings(s, false),
       ...doseReadings(s, false),
@@ -2252,7 +2282,7 @@ const TODO_AFTER_SOFT = /\s*(?:\band\b|\bthen\b|&|\+)\s*(?=(?:t|task|todo|to-do|
 export const splitQuickEntry = (text: string): string[] => {
   const line = text.trim();
   if (!line) return [];
-  if (/^[ne]:/i.test(line)) return [line];
+  if (/^[ne]:/i.test(line) || keepsNewItemLine(line)) return [line];
   return line
     .split(/\s*(?:;|\n|(?<!\d),|,(?!\d))\s*/)
     .flatMap((piece) => {

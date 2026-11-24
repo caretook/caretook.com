@@ -15,6 +15,7 @@ import {
   entryProviderId,
   medicationConditionId,
   noteDocFromText,
+  symptomTypeRow,
 } from "@caretook/data/schema";
 import { getTableColumns, getTableName } from "drizzle-orm";
 import { drizzleSchema } from "~/lib/sync/schema";
@@ -119,8 +120,16 @@ const recipientId = TEST_RECIPIENT.id;
 
 // --- Groups and people -------------------------------------------------------
 
+// The switches as the server defaults them (not null there, so never null on a synced row).
 const group = (v: Partial<Values<"careGroups">> = {}) =>
-  row("careGroups", { id: TEST_GROUP.id, name: TEST_GROUP.name, ...v });
+  row("careGroups", {
+    id: TEST_GROUP.id,
+    name: TEST_GROUP.name,
+    connectorsEnabled: 0,
+    connectorsReadOnly: 0,
+    detailsOutsideAllowed: 1,
+    ...v,
+  });
 
 const recipient = (v: Partial<Values<"careRecipients">> = {}) =>
   row("careRecipients", {
@@ -136,7 +145,14 @@ const user = (v: Partial<Values<"users">> = {}) =>
   row("users", { id: newId(), name: "Sam Okafor", image: null, ...v });
 
 const member = (v: Partial<Values<"careGroupMembers">> & { userId: string }) =>
-  row("careGroupMembers", { id: newId(), groupId, role: "caretaker", createdAt: hoursAgo(24 * 30), ...v });
+  row("careGroupMembers", {
+    id: newId(),
+    groupId,
+    role: "caretaker",
+    createdAt: hoursAgo(24 * 30),
+    isPrimaryContact: 0,
+    ...v,
+  });
 
 /**
  * A co-member: their public profile (`user`) and membership. The fixture's
@@ -246,10 +262,15 @@ const event = ({ text, ...v }: EntryValues & { text?: string } = {}) => {
   return row("timelineEntries", entry, doc);
 };
 
+/** A symptom, pointing at its name's catalog row as the server sets it (symptom-catalog slice 2). */
 const symptom = ({ name = "Headache", severity = 3, ...v }: EntryValues & Partial<SymptomDetails> = {}) =>
   row(
     "timelineEntries",
-    entryBase("symptom", { details: pgJson({ name, severity } satisfies SymptomDetails), ...v }),
+    entryBase("symptom", {
+      details: pgJson({ name, severity } satisfies SymptomDetails),
+      symptomTypeId: symptomTypeRow(v.groupId ?? groupId, name).id,
+      ...v,
+    }),
   );
 
 const vital = ({
@@ -628,6 +649,22 @@ export const series = (v: Partial<Values<"appointmentSeries">> = {}) => {
     providerIds: "[]",
     toppedUpThrough: "2027-02-16",
     deletedAt: null,
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};
+
+// --- Added by symptom-catalog slice 1 ----------------------------------------
+
+/** A row of the group's symptom catalog, with its derived id and key ("Nausea" unless given). */
+export const symptomType = (name = "Nausea", v: Partial<Values<"symptomTypes">> = {}) => {
+  const created = hoursAgo(24 * 30);
+  const base = symptomTypeRow(v.groupId ?? groupId, name);
+  return row("symptomTypes", {
+    ...base,
     createdAt: created,
     updatedAt: created,
     createdBy: TEST_USER.id,

@@ -6,7 +6,8 @@ import { userEvent } from "vitest/browser";
 import { fixClock, found } from "../../../../../test/found";
 import { getByCss } from "../../../../../test/locators";
 import { renderWithDevice } from "../../../../../test/device";
-import { fx, medicationPass } from "../../../../../test/fixtures";
+import { fx, medicationPass, TEST_TIME_ZONE } from "../../../../../test/fixtures";
+import { deviceZone } from "../../../../../test/zone";
 import { clearUndo } from "~/lib/medications/passUndo";
 import {
   clockAt,
@@ -21,9 +22,9 @@ import {
 } from "./medicationWorld";
 
 // Today on the Schedule tab (medications.mjs's Today, pass
-// slot and Given all steps), on a fixed clock: 10:00 on Wednesday Jun 9 2027 on
-// the device, with the recipient in the device's zone (whichever the run uses),
-// so her slots read as the clock does. Times of their
+// slot and Given all steps), on a fixed clock: 10:00 on Wednesday Jun 9 2027 in
+// the recipient's zone (Los Angeles, whichever zone the device runs in), so her
+// slots read as the clock does. Times of their
 // own and passes a few minutes back are due; one tap logs Given, the ⋯ marks
 // Skipped or Refused with a note, an as-needed medication past its maximum
 // asks first; Given all logs a pass's open medications in one round with
@@ -34,8 +35,8 @@ import {
 
 const SAM = fx.person({ name: "Sam Okafor", role: "caretaker" });
 
-/** The recipient, where the device is: `CLOCK` and `clockAt` are the device's 10:00. */
-const RECIPIENT_HERE = fx.recipient({ timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+/** The recipient in Los Angeles, whichever zone the device is in: `CLOCK` and `clockAt` are her 10:00. */
+const RECIPIENT_HERE = fx.recipient({ timeZone: TEST_TIME_ZONE });
 
 /** Donepezil at two times of its own, both due (6 and 3 minutes back). */
 const T1 = clockAt(-6);
@@ -124,7 +125,10 @@ describe("times of their own", () => {
     const device = await open([DONEPEZIL]);
     expect(slotState(DONEPEZIL.id, T1)).toBe("due");
     expect(slotState(DONEPEZIL.id, T2)).toBe("due");
-    await expect.poll(() => TODAY()?.textContent).not.toContain("Times are");
+    // Her times need no note where the device is too; in New York they say whose they are.
+    if (deviceZone() === TEST_TIME_ZONE)
+      await expect.poll(() => TODAY()?.textContent).not.toContain("Times are");
+    else await expect.poll(() => TODAY()?.textContent).toContain("Times are Los Angeles time");
     await userEvent.click(await found(() => slot(DONEPEZIL.id, T1)?.querySelector("[data-give]")));
     await expect.poll(() => slotState(DONEPEZIL.id, T1)).toBe("given");
     expect(slotState(DONEPEZIL.id, T2)).toBe("due");
