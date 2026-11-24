@@ -1090,6 +1090,31 @@ describe("symptoms", () => {
     expect(action(r)).toMatchObject({ type: "logSymptom", name, severity, note });
   });
 
+  describe("the group's catalog (symptom-catalog)", () => {
+    const symptoms = [{ name: "Nausea" }, { name: "Knee pain" }, { name: "Fall" }, { name: "SOB" }];
+
+    test.each([
+      ["nausea 3", "Nausea", 3],
+      ["NAUSEA 3/10", "Nausea", 3],
+      ["knee   PAIN 4", "Knee pain", 4],
+      ["sob 5", "SOB", 5],
+      // An incident's canonical name too.
+      ["fell in the hall", "Fall", null],
+      // Only the same key: a similar name stays as typed (its card asks).
+      ["knee pian 4", "Knee pian", 4],
+      ["back pain 8", "Back pain", 8],
+    ])("%s reads as %s", (line, name, severity) => {
+      const r = top(line, { symptoms });
+      expect(r.kind).toBe("symptom");
+      expect(action(r)).toMatchObject({ type: "logSymptom", name, severity });
+    });
+
+    test("without a catalog, the words as typed", () => {
+      expect(action(top("sob 5"))).toMatchObject({ name: "Sob" });
+      expect(action(top("sob 5", { symptoms: [] }))).toMatchObject({ name: "Sob" });
+    });
+  });
+
   test("a symptom alone has a note as its alternative", () => {
     expect(parse("dizzy")[0]!.readings.map((r) => r.kind)).toEqual(["symptom", "note", "event"]);
   });

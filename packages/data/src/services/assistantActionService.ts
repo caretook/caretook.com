@@ -32,6 +32,7 @@ import {
   FUTURE_DATE_MESSAGE,
   givenAllWrites,
   isDoseDetails,
+  isSymptomDetails,
   isTooFarAhead,
   noteDocFromText,
   addDays,
@@ -55,6 +56,7 @@ import { rejectError } from "../permissions";
 import * as entryProviderService from "./entryProviderService";
 import * as noteDocumentService from "./noteDocumentService";
 import * as recipientConditionService from "./recipientConditionService";
+import * as symptomTypeService from "./symptomTypeService";
 import * as todoService from "./todoService";
 import * as timelineEntryService from "./timelineEntryService";
 
@@ -631,6 +633,15 @@ const planAction = async (
   if (!content.success) return invalid(issuesOf(content.error));
   const refused = future(content.data.kind, content.data.occurredAt, setting.now);
   if (refused) return refused;
+
+  // A symptom named like a catalog row (any case or spacing) takes its
+  // spelling; a new name is added as it is when the entry is written
+  // (`timelineEntryService`), with no similar-name question: nobody is there to answer it.
+  if (content.data.kind === "symptom" && isSymptomDetails(content.data.details)) {
+    const type = await symptomTypeService.getByName({ ...ctx, tx }, groupId, content.data.details.name);
+    if (isError(type)) return type;
+    if (type) content.data.details = { ...content.data.details, name: type.name };
+  }
 
   if (action.type === "logDose") {
     const medication = await currentMedication(ctx, tx, groupId, action.medicationId);

@@ -98,8 +98,9 @@ const typoAllowance = (a: string, b: string) => {
 
 /**
  * How close `name` is to a catalog name, lower is closer: 0 the same words
- * in another order, 1 a small typo, 2 one name's words all inside the
- * other's; null when they aren't similar (or are the same key).
+ * in another order, 1 a small typo, 2 the shorter name's words (two or
+ * more) all inside the other's; null when they aren't similar (or are the
+ * same key).
  */
 const similarity = (key: string, words: string[], other: string): number | null => {
   if (other === key) return null;
@@ -111,15 +112,17 @@ const similarity = (key: string, words: string[], other: string): number | null 
   const allowed = typoAllowance(key, other);
   if (allowed > 0 && editDistance(key, other, allowed) <= allowed) return 1;
   const [small, big] = mine.size <= theirs.size ? [mine, theirs] : [theirs, mine];
-  if (small.size > 0 && [...small].every((w) => big.has(w))) return 2;
+  // Two words at least: one word inside a longer name is too loose ("Pain"
+  // isn't "Knee pain").
+  if (small.size >= 2 && [...small].every((w) => big.has(w))) return 2;
   return null;
 };
 
 /**
  * `name` against a group's catalog: the row with the same key (`exact`, to
  * reuse), else up to three similar ones (`similar`, closest first, then A
- * to Z): the same words in any order, a small typo, or one name's words all
- * inside the other's. Pure, so it runs on the device's local copy offline.
+ * to Z): the same words in any order, a small typo, or one name's words (two
+ * or more) all inside the other's. Pure, so it runs on the device's local copy offline.
  */
 export const similarSymptoms = <T extends { name: string }>(
   name: string,
