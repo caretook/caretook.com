@@ -50,7 +50,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 24    | B-600 | merged (opus; quick passed; doc lines for orchestrator/machinery/backlog in hand-off)                                                      | 16f598e9 |
 | 25    | B-418 | merged (opus; cause: 258 fake-clock 300 s steps; step now `CARETOOK_RECOVER_STEP_SECS`; quick red only in stack.test (B-740) and tidy-cli) | cd0e8eae |
 | 26    | B-573 | started (opus; also B-446, B-704)                                                                                                          |          |
-| 27    | B-582 | started (opus)                                                                                                                             |          |
+| 27    | B-582 | handed off 92196e1c (opus; quick passed; limiter filled directly, 60th/61st through /mcp; ~2.5 s to ~0.8 s)                                |          |
 | 28    | B-642 | handed off c3ab42cf (opus; fixed 2030 clock, 00:05 case fails on old code; quick passed, tooling red only stack.test B-740, tidy-cli)      |          |
 | 29    | B-723 | handed off 4e1f251d (opus; quick red only in untouched files under load: stack, backlog, tidy-cli)                                         |          |
 | 30    | B-654 | handed off c91d833c (opus; holders wait on a go file, slowed-taker case; quick red only stack.test, ask.test (filed), tidy-cli)            |          |
