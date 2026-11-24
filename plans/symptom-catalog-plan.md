@@ -4,9 +4,9 @@
 
 ## Status
 
-**Where it stands (hand-over, 2026-11-24):** **wave 3 landed** in dev as f9d9237 (PR #157, tier components, run 45450721779 green, `--no-review`: Codex out of credits). Report a192 filed; to-test `to-test/2026-11-24-1249-symptom-catalog.md`. Docs folded into timeline.md (catalog gate, upload, `?symptom=` filter). No slice in flight; worktrees 3, 5, 6 removed. B-549 stays claimed (done when slice 4 merges). Follow-ups filed, triaged: B-758 (this topic: the similar-name words-inside rule asks too often, e.g. "Knee pain" offers "Pain"), B-756 (fixes-ui: the empty filtered list names no symptoms).
+**Where it stands (2026-11-24, wave 4 session):** wave 3 landed in dev as f9d9237 (PR #157). Wave 4 boundary done (ingest: nothing new; sync: up to date). B-758 decided by the skeptic (s24, ask a193, the user may veto): new slice 7, the words-inside rule needs the shorter name to have 2+ words; B-758 claimed. **Slice 4 started** (worktree symptom-catalog-4, opus agent, told not to touch `similarSymptoms`' rules). Slice 7 starting next (opus). B-756 (fixes-ui) stays with fixes-ui.
 
-**Next (fresh session):** wave boundary (`pnpm backlog ingest`, `doctor`, `list`; ask whether B-758 joins slice 4 or waits), `pnpm prd sync`, then wave 4: slice 4 (`pnpm prd slice symptom-catalog 4`, opus agent) with the notes below.
+**Next:** on hand-offs, merge in plan order (4, then 7), `backlog done B-549` after slice 4, `done B-758` after slice 7; then the wave's CI run (`pnpm prd tier`), PR, review, land; this is the last wave, so after landing `pnpm prd rm symptom-catalog` and `pnpm prd end`.
 
 **For slice 4 (from slices 2 and 3):** `quickEntry.sync.ts` doesn't add the catalog row locally yet: call `addSymptomTypeIn(tx, …)` (`symptomTypes.sync.ts`) inside its transaction; keep `symptomTypeColumn`; match names through `similarSymptoms`/`symptomKey` (`symptomCatalog.ts`). `ui-kit-3` holds `QuickEntryCard`: sync first, keep the card change small. A test that asserts the upload queue after a new symptom name sees the `symptom_type` PUT first (see `device.browser.test.tsx`).
 
@@ -21,9 +21,10 @@
 | 1     | 1    | landed      | cebc11e8 (9e8dc3d9, 02e638f2)                    |
 | 2     | 2    | landed      | b7b7a990 (e4e6310b)                              |
 | 3     | 3    | landed      | 8e7cca8f (3c3f8466), fix ab9b42e8 (fff9414a)     |
-| 4     | 4    | not started |                                                  |
+| 4     | 4    | started     |                                                  |
 | 5     | 3    | landed      | 27ad45f3 (d78e5483)                              |
 | 6     | 3    | landed      | 625e47ec (0202848a)                              |
+| 7     | 4    | not started |                                                  |
 
 **Backlog:** claim B-549 when slice 1 starts; run `pnpm backlog done B-549` when the last slice merges.
 
@@ -42,7 +43,7 @@ Durable decisions every slice follows:
 
 ## How to run this plan
 
-- **Waves:** 1 → 2 → (3, 5, 6) → 4.
+- **Waves:** 1 → 2 → (3, 5, 6) → (4, 7).
 - **Gates:** each slice hands off on `pnpm prd check --quick "slice hand-off"`; wave gates are quick checks. Slice 1 appends a server-written `symptom_type` row to the sync matrix (a tooling test requires one for every device table); slice 3 adds the two-client step to `roundtrip`.
 - **Ownership:** slice 1 the table, catalog module, group creation and the backfill step; slice 2 the entry column and write path; slice 3 the symptom sheet and the Easy feelings form; slice 4 quick entry and connectors; slice 5 the timeline filters; slice 6 day summaries, visit prep and quick-entry predictions.
 - **Beside other topics:** append to the shared registries (`sync-config.yaml`, device schema, upload registry, `services/` and `models/` indexes, `sync-matrix.mjs`). `quick-entry-2` and `dose-accuracy` land first (the parser; the entry service, assistant runner and visit prep). `ui-kit-3` holds `QuickEntryCard`: slice 4 syncs first and keeps its card change small. `code-health` may move parser files: if so, `pnpm prd sync` and carry on in the new place.
@@ -169,3 +170,19 @@ Day summaries, visit prep and quick-entry predictions drop their own folds and g
 - [ ] Unit: predictions count both spellings as one.
 
 **Blocked by:** 2. **Blocks:** none.
+
+## Slice 7: The words-inside rule needs two words
+
+Stack: no · Reads: docs/domain/timeline.md · Tests: unit
+
+**Backlog:** B-758 (decided for the user, ask a193: the shorter name needs 2+ words).
+
+### What to build
+
+In `similarSymptoms` (`symptomCatalog.ts`), the words-inside match (rank 2) counts only when the shorter name has two or more words, so the default "Pain" no longer prompts for "Knee pain". Reordered words (rank 0) and typos (rank 1) are unchanged. No other file's logic changes.
+
+### Acceptance criteria
+
+- [ ] Unit: "Knee pain" against the defaults offers no "Pain"; "Lower back pain" still offers "Back pain"; reordered words and a typo still match; the cap of three holds.
+
+**Blocked by:** 3. **Blocks:** none.
