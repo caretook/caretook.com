@@ -1,5 +1,5 @@
 import type { ProviderType } from "@caretook/data/schema";
-import type { ActionResult, FieldIssue } from "~/lib/core/api";
+import type { ActionResult, CreateResult, FieldIssue } from "~/lib/core/api";
 import type { LocalProvider } from "~/lib/providers/providers.sync";
 
 import { useEffect, useRef, useState } from "react";
@@ -58,12 +58,13 @@ export function ProviderForm({
   provider?: LocalProvider;
   initialType?: ProviderType;
   practices: LocalProvider[];
-  onDone: () => void;
+  /** After a save; adding one passes the new provider's id. The form itself never navigates. */
+  onDone: (id?: string) => void;
   onCancel: () => void;
   /** Editing: asks to delete the provider. */
   onDelete?: () => void;
 }) {
-  const fetcher = useFetcher<ActionResult>();
+  const fetcher = useFetcher<ActionResult | CreateResult>();
   const formRef = useRef<HTMLFormElement>(null);
   const [type, setType] = useState<ProviderType>(provider?.type ?? initialType);
 
@@ -71,12 +72,12 @@ export function ProviderForm({
   const issues = result && !result.ok ? result.issues : [];
   const busy = fetcher.state !== "idle";
 
-  // A save closes the sheet; a refusal moves focus to the first field it's about.
-  const handled = useRef<ActionResult | undefined>(undefined);
+  // A save goes to `onDone`; a refusal moves focus to the first field it's about.
+  const handled = useRef<ActionResult | CreateResult | undefined>(undefined);
   useEffect(() => {
     if (fetcher.state !== "idle" || !fetcher.data || handled.current === fetcher.data) return;
     handled.current = fetcher.data;
-    if (fetcher.data.ok) onDone();
+    if (fetcher.data.ok) onDone("id" in fetcher.data ? fetcher.data.id : undefined);
     else formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
   }, [fetcher.state, fetcher.data, onDone]);
 
