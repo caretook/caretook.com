@@ -17,7 +17,7 @@ import { EasyTodos } from "./EasyTodos";
 import { COLUMN_CAP, TimelineEntryList } from "./TimelineEntryList";
 import { EasyModeToggle } from "./EasyModeToggle";
 import { EasyTiles, EasyTilesSkeleton } from "./EasyTiles";
-import { GettingStartedCard } from "./GettingStartedCard";
+import { focusAfterSetup, GettingStartedCard } from "./GettingStartedCard";
 import { DICTATION_HINT } from "~/components/quick-entry/QuickEntryBox";
 import { useCanDictate } from "~/lib/assistant/canDictate";
 import { useEasyTiles } from "./useEasyTiles";
@@ -68,18 +68,23 @@ export function EasyTimeline({
     el?.scrollIntoView({ block: "center" });
     el?.focus({ preventScroll: true });
   };
+  // A dismissed setup card's focus: the quick-entry box, else the name heading.
+  const heading = useRef<HTMLHeadingElement>(null);
+  const afterSetup = () => focusAfterSetup(quickField.current, heading.current);
   return (
     <Page data-easy-timeline="">
       <header className={`flex items-start justify-between gap-3 ${COLUMN_CAP}`}>
         <div className="min-w-0">
-          <h1 className={`${TITLE_PAGE} break-words`}>{group.displayName}</h1>
+          <h1 ref={heading} tabIndex={-1} className={`${TITLE_PAGE} break-words`}>
+            {group.displayName}
+          </h1>
           <p className="text-muted text-base">
             Today · <span data-easy-today>{easyTodayText(new Date())}</span>
           </p>
         </div>
         <EasyModeToggle mode={mode} />
       </header>
-      <GettingStartedCard className={COLUMN_CAP} onAddEntry={addEntry} easy />
+      <GettingStartedCard className={COLUMN_CAP} onAddEntry={addEntry} onDismissed={afterSetup} easy />
       <EasyNow
         groupId={group.id}
         canWrite={mode.inputs}
