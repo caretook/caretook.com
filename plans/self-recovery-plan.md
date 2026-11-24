@@ -4,18 +4,20 @@
 
 ## Status
 
-| Slice | Wave | State          | Merge into `prd/self-recovery` (slice commits) |
-| ----- | ---- | -------------- | ---------------------------------------------- |
-| 1     | 1    | working (opus) | —                                              |
-| 2     | 1    | working (opus) | —                                              |
-| 3     | 1    | working (opus) | —                                              |
-| 4     | 2    | —              | —                                              |
-| 5     | 2    | —              | —                                              |
-| 6     | 3    | —              | —                                              |
+| Slice | Wave | State                                                     | Merge into `prd/self-recovery` (slice commits) |
+| ----- | ---- | --------------------------------------------------------- | ---------------------------------------------- |
+| 1     | 1    | working (opus)                                            | —                                              |
+| 2     | 1    | working (opus)                                            | —                                              |
+| 3     | 1    | handed off 67595728 (opus), waits for 1, 2 to merge first | —                                              |
+| 4     | 2    | —                                                         | —                                              |
+| 5     | 2    | —                                                         | —                                              |
+| 6     | 3    | —                                                         | —                                              |
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-24): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
 **Now (2026-11-24):** wave 1 started on dev 5d2ede1c: worktrees `.loops/self-recovery-{1,2,3}` made, one opus agent each; B-407, B-433, B-462, B-463 claimed. Watch running.
+
+**Hand-offs to fold at landing:** slice 3 (usage.mjs, `.loops/.usage/<session>.json`): machinery.md gets _The usage reading_ (files, merge rules, `CARETOOK_USAGE_STALE_MIN` default 15, `pnpm prd usage [--json]`, status's `USAGE:` line; both settings files carry `statusLine` and a `StopFailure` hook). For slice 5: no subscriber overage flag, `overage` = a plan window at 100%; end a session with `markStalled(dir, name, {error: "limited", pid})`. For slice 6: `clearStalled` on resume.
 
 **Backlog:** claim B-407 when slice 1 starts, B-462 and B-463 when slice 2 starts, B-433 when slice 3 starts. `done` B-462 and B-463 when slice 2 merges, B-433 when slice 3 merges, B-407 when the last of slices 1, 2, 4, 5 and 6 merges.
 
