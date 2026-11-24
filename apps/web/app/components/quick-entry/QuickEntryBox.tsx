@@ -144,6 +144,7 @@ export function QuickEntryBox({
                 draftLine={q.draftLine(card)}
                 error={q.errors.get(card.key)}
                 onChoose={(index) => q.choose(card, index)}
+                onSymptomChoice={(use) => q.chooseSymptom(card, use)}
                 onEdit={() => void q.edit(card)}
                 onRemove={() => q.remove(card)}
               />

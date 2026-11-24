@@ -12,6 +12,7 @@ import { foldSearchText } from "../search/search";
 import { TODO_LIMITS } from "../todos/todo";
 import { localTime } from "../todos/todoRules";
 import { TIMELINE_LIMITS } from "../timeline/timelineEntry";
+import { similarSymptoms } from "../timeline/symptomCatalog";
 import {
   BP_ORDER_MESSAGE,
   fieldRange,
@@ -88,6 +89,8 @@ export type QuickEntryContext = {
   passes?: readonly QuickEntryPass[];
   /** The group's members, whom a todo's "for Sam" or "@Sam" can name. */
   members?: readonly QuickEntryMember[];
+  /** The group's symptom catalog: a symptom named like one of them takes its spelling. */
+  symptoms?: readonly { name: string }[];
 };
 
 /** A member of the group, as a todo's assignee. */
@@ -1533,12 +1536,17 @@ const onlyMedicationWords = (s: PartState, idx: readonly number[]) => {
 
 const symptomReadings = (s: PartState, forced: boolean): QuickEntryReading[] => {
   const at = s.time.past.at;
+  // The catalog's spelling for a name it has (same key: case and spaces), else the words as typed.
+  const named = (name: string) => {
+    const typed = capitalize(truncate(name, TIMELINE_LIMITS.symptomName));
+    return similarSymptoms(typed, s.context.symptoms ?? []).exact?.name ?? typed;
+  };
   const make = (name: string, severity: number | null, note: string | null, confidence: number) =>
     reading(
       "symptom",
       {
         type: "logSymptom",
-        name: capitalize(truncate(name, TIMELINE_LIMITS.symptomName)),
+        name: named(name),
         severity,
         note,
         occurredAt: at.toISOString(),

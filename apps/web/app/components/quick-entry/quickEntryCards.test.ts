@@ -16,6 +16,7 @@ import {
   partKey,
   pruneCardState,
   savedText,
+  withSymptomGates,
 } from "./quickEntryCards";
 
 const at = "2026-11-19T16:00:00.000Z";
@@ -117,6 +118,72 @@ describe("pruneCardState", () => {
     expect(kept.chosen).toBe(state.chosen);
     expect(kept.removed).not.toBe(state.removed);
     expect(kept.errors).toBe(state.errors);
+  });
+});
+
+describe("withSymptomGates (symptom-catalog)", () => {
+  const catalog = [
+    { id: "t-knee", name: "Knee pain" },
+    { id: "t-nausea", name: "Nausea" },
+  ];
+  const symptom = (name: string): QuickEntryReading => ({
+    kind: "symptom",
+    label: "Symptom",
+    actions: [{ type: "logSymptom", name, severity: 4, occurredAt: at }],
+    confidence: 0.85,
+    warnings: [],
+  });
+  const parts: QuickEntryPart[] = [
+    { text: "knee pian 4", readings: [symptom("Knee pian"), note("knee pian 4")] },
+    { text: "nausea 4", readings: [symptom("Nausea")] },
+    { text: "itchy 4", readings: [symptom("Itchy")] },
+    { text: "dizzy", readings: [note("dizzy")] },
+  ];
+  const key = partKey(0, parts[0]!);
+  const gated = (choices = new Map()) => withSymptomGates(buildCards(parts, none, titleOf), catalog, choices);
+  const names = (cards: ReturnType<typeof gated>) =>
+    cards.map((c) => {
+      const a = c.reading.actions[0]!;
+      return a.type === "logSymptom" ? a.name : null;
+    });
+
+  test("only a name like the catalog's asks, and Save waits for it", () => {
+    const cards = gated();
+    expect(cards.map((c) => c.symptomGate ?? null)).toEqual([
+      { name: "Knee pian", similar: [catalog[0]] },
+      null,
+      null,
+      null,
+    ]);
+    expect(cards[0]!.blocking).toEqual([]);
+    expect(canSaveCards(cards)).toBe(false);
+    expect(cardsAnnouncement(cards, titleOf)).toContain("Symptom, Symptom, can't be saved yet");
+  });
+
+  test("Use <name> saves the catalog's name; Add new saves it as typed", () => {
+    const used = gated(new Map([[key, { key: "knee pian", use: "Knee pain" }]]));
+    expect(used[0]!.symptomGate).toBeUndefined();
+    expect(names(used)).toEqual(["Knee pain", "Nausea", "Itchy", null]);
+    expect(canSaveCards(used)).toBe(true);
+
+    const added = gated(new Map([[key, { key: "knee pian", use: null }]]));
+    expect(added[0]!.symptomGate).toBeUndefined();
+    expect(names(added)).toEqual(["Knee pian", "Nausea", "Itchy", null]);
+    expect(canSaveCards(added)).toBe(true);
+  });
+
+  test("an answer for another name asks again", () => {
+    const cards = gated(new Map([[key, { key: "knee pan", use: null }]]));
+    expect(cards[0]!.symptomGate?.name).toBe("Knee pian");
+  });
+
+  test("pruneCardState drops answers for gone cards", () => {
+    const symptoms = new Map([
+      [key, { key: "knee pian", use: null }],
+      ["9:gone", { key: "x", use: null }],
+    ]);
+    const kept = pruneCardState(parts, { ...none, errors: new Map(), symptoms });
+    expect([...kept.symptoms!.keys()]).toEqual([key]);
   });
 });
 
