@@ -12,7 +12,7 @@ Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4
 
 Held for later waves, with why: B-325 (Capacitor); B-693, B-697 (wait for the toast system B-669); B-694 (user approves each form live: never in an unattended slice); B-621, B-676, B-762 (quick-entry, symptom-catalog hot); B-617, B-748, B-756 (timeline filters, symptom-catalog hot); B-680 (the user may add preferences: ask before building); B-684, B-695 (app-wide sweeps: a wave of their own); B-698, B-700, B-701, B-606 (medication cards and passes: open questions to ask when built; do together); B-594 then B-672, B-673 (after slice 29's ComboBox option); B-679 (after slice 31); B-583 (connector rename, decided); B-735 (stale client, cause unknown); B-736, B-737 (timeline jump and links, together); B-765 (live note full screen); B-664 (after slice 23, same file); B-613 (motion, broad ui/ change); B-691 then B-692.
 
-**Hand-over (session 2 rotates after the wave 4 landing, 2026-11-24):** nothing in flight; no slice worktrees. Wave 5 is next: `pnpm backlog ingest`, `list`, then write slices from the triaged fixes-ui items, numbered on from `pnpm prd status-trim fixes-ui --next` (34). Now unblocked by wave 4: B-594 then B-672, B-673 (reuse ComboBox `opensOn="typing"`), B-679 (after slice 31's MemberItem), B-664 (bottom bar and the keyboard; slice 23 done). New: B-636 (Planner todo rows keep the old time column). Check `pnpm backlog prd list` for running topics' hot files first (symptom-catalog landed). Possible follow-up for the user: a medication's conditions refusal after the write is not shown on the page (slice 27). Docs trimmed at wave 4 lost the extra seed user list (care-groups.md) and the `useId`/`input[name=…]` hint (ui-kit.md); add back only if room.
+**Wave 5 (session 3, 2026-11-24):** synced dev by hand (627f1311, clean; CI lists checked). Slices 34–48 written (15 items, claimed; hot files set). Ready at start: 34, 36, 37, 38, 39, 40, 41, 43, 44, 45, 47; then 35 (after 34, 36), 42 (after 41), 46 (after 45), 48 (after 47). Models: opus for every slice. Still held: B-748 (with B-680), B-765 (too vague for an unattended slice), B-583 (connectors-3 planned on that area), plus the list above.
 
 **CI hold lifted:** the third components shard landed on dev as 2aff6468. **At the wave boundary (not mid-wave), sync by hand until B-771 lands** (`pnpm prd sync` can miss dev's CI lists): `git fetch origin && git merge origin/dev -m "chore(fixes-ui): merge dev into prd/fixes-ui"`; then `git diff origin/dev -- .github/workflows/ci.yml scripts/` shows only our changes (the merge is also what brings in new loop tooling: `pnpm prd` runs this worktree's `scripts/loops/`), `ci.yml` has `components-3`, `scripts/ci/quarantine.txt` has the B-633, B-653 and B-769 lines; `pnpm install` if the lockfile moved. Tell the user if that merge conflicts. The first components run is components-3's first real test: report anything odd from it.
 
@@ -21,8 +21,23 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item | State | Merge |
-| ----- | ---- | ----- | ----- |
+| Slice | Item  | State    | Merge |
+| ----- | ----- | -------- | ----- |
+| 34    | B-594 | starting |       |
+| 35    | B-672 | blocked  |       |
+| 36    | B-673 | starting |       |
+| 37    | B-679 | starting |       |
+| 38    | B-664 | starting |       |
+| 39    | B-636 | starting |       |
+| 40    | B-621 | starting |       |
+| 41    | B-676 | starting |       |
+| 42    | B-762 | blocked  |       |
+| 43    | B-617 | starting |       |
+| 44    | B-756 | starting |       |
+| 45    | B-691 | starting |       |
+| 46    | B-692 | blocked  |       |
+| 47    | B-736 | starting |       |
+| 48    | B-737 | blocked  |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
@@ -490,3 +505,214 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/medications.md, docs/domai
 
 - [ ] Component test: opening a medication from Schedule shows Back "Schedule" and returns there; from search, Back returns to the same search.
 - [ ] Component test: a direct load shows Back "Medications" to the list.
+
+## Wave 5 (written 2026-11-24 by the orchestrator, from the triaged fixes-ui items)
+
+Every slice: no migration, no dependency. Only worker-watch (tooling) runs beside us, so no app hot files are taken. Where a backlog note says "check on a phone", name it in the hand-off as a hand test; the agent can't do it.
+
+## Slice 34: Manage allergies on the Profile page (B-594)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/profiles.md, docs/domain/medications.md · Tests: component
+
+**Problem.** Allergies are managed under Medications, but an allergy is a fact about the care recipient.
+
+**Build.** Add an Allergies section to the Profile page beside Conditions (`routes/app/groups/profile/`, modelled on `ConditionsSection.tsx`), with add, edit, remove and No known allergies, for the same roles as today, reusing `medications/allergies/AllergyForm.tsx` and `allergyActions.ts` (move them under `profile/allergies/` if that reads better). It must work offline as Conditions does. The Medications list and each medication page keep a read-only allergy summary (`components/medications/AllergiesRegion.tsx`) with a Manage link to Profile; severe allergies stay prominent. The old allergy URLs redirect to the Profile section (or keep working). Printed sheets, the emergency sheet and the connector view don't change. No migration: `recipient_allergy` already syncs.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the Profile page lists allergies and can add, edit and remove one, and set No known allergies, offline from the local database.
+- [ ] Component test: the Medications summary is read-only, keeps a severe allergy prominent, and its Manage link goes to Profile.
+- [ ] Component test: a viewer sees allergies on Profile with no edit controls.
+- [ ] The old allergies URL lands on the Profile section.
+
+## Slice 35: Allergy fields suggest as you type (B-672)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/profiles.md · Tests: component, unit
+
+**Blocked by:** slice 34 (moves the form), slice 36 (the shared matcher).
+
+**Problem.** "Allergic to" and "Reaction" are plain text inputs; conditions suggest as you type.
+
+**Build.** Both fields use the ComboBox `opensOn="typing"` option (slice 29) like `ConditionNameField.tsx`: nothing on focus with an empty field, the first character opens the filtered list, clearing closes it, free text always allowed. Substances: the group's own first, then a curated list of common drug, food and environmental allergens worded as a family would. Reactions: the group's own first, then common reactions (hives, rash, swelling, trouble breathing, nausea…). Use slice 36's shared matcher (word-prefix, accent- and case-insensitive, de-duplicated). Keep within `ALLERGY_LIMITS`.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: substance and reaction suggestions put the group's own first, match word prefixes ignoring case and accents, and de-duplicate.
+- [ ] Component test: focusing an empty field shows no list; typing one letter shows filtered suggestions; picking one fills the field; free text still saves.
+
+## Slice 36: Medication names suggest as you type (B-673)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: component, unit
+
+**Problem.** `components/medications/NameField.tsx` (MedicationForm and the Dose sheet's quick add in `QuickAddFields.tsx`) shows only "Used before" chips, with no curated list.
+
+**Build.** First generalise the matcher in `lib/profiles/conditionSuggestions.ts` into a shared one (keep conditions' behaviour and tests) for slices 35 and 36. Then `NameField` uses the ComboBox `opensOn="typing"` option: the group's names first, then a bundled curated list of common medications (offline, no dependency), replacing the chips. Keep the non-blocking allergy-match warning on the typed or picked name. Look-alike names are a real risk (hydroxyzine, hydralazine): a pick shows the full name, never autofills on a partial match, and fills only the name, never a dose or strength.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: the shared matcher keeps condition suggestions as before, and medication suggestions put the group's names first.
+- [ ] Component test: no list on focus; one letter shows filtered names; picking fills only the name; typing a partial name never autofills.
+- [ ] Component test: the allergy warning still shows for a matching name, in the form and the Dose sheet's quick add.
+
+## Slice 37: Members show email confirmation status (B-679)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/care-groups.md, docs/domain/api.md, docs/domain/profiles.md · Tests: integration, component
+
+**Problem.** Owners and admins can't see whether an invited member has confirmed their email.
+
+**Build.** A manager-only oRPC read (in the care-groups area of `packages/api/`, RBAC in SQL through the model) returns, per member, `emailVerified` and, only if it comes from existing session rows with no migration or sign-in hook, the latest session time. Never the email. Don't add these to the synced member row. `settings/members/MemberItem.tsx` shows "Email not confirmed" (or confirmed) to owners and admins only, online only; offline shows nothing. Last sign-in shows nothing (not "never") when no session remains; leave it out entirely if it isn't easy.
+
+**Acceptance criteria.**
+
+- [ ] Integration test: an owner or admin gets the statuses for the group's members; a member or viewer is refused; no email is returned.
+- [ ] Component test: an owner sees the status on an unconfirmed member's card; a member sees none; offline shows none.
+
+## Slice 38: The phone bottom bar hides while the keyboard is open (B-664)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/app-shell.md · Tests: component
+
+**Problem.** Focusing a text field on a phone lifts the fixed tab bar (`routes/app/layout/SectionNav.tsx`) above the keyboard, covering content.
+
+**Build.** A small hook (in `lib/app-shell/`) that says the on-screen keyboard is open: a text-entry element has focus on a coarse pointer and `visualViewport` height has shrunk well below the layout height (fall back to focus alone where `visualViewport` is missing). `SectionNav` hides (off-screen, `aria-hidden`/`inert`) while it's open and returns on close. Desktop is unchanged. Name the iPhone, Android and Capacitor checks as hand tests.
+
+**Acceptance criteria.**
+
+- [ ] Unit or component test: the hook reports open for a focused input with a shrunk viewport, and closed after blur or the viewport restores.
+- [ ] Component test: the bar is hidden while it's open and shown again after.
+
+## Slice 39: Planner todo rows match the event cards (B-636)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/todos.md · Tests: component
+
+**Problem.** Event cards moved the time above the title (B-592); `routes/app/groups/planner/PlannerTodoRow.tsx` keeps the old time column, so the list aligns two ways.
+
+**Build.** Lay todo rows out like `UpcomingRow.tsx`: due time above the title, the same left edge and spacing, the owner pill and actions where event cards put them. Keep the checkbox and its behaviour.
+
+**Acceptance criteria.**
+
+- [ ] Component test: a todo row's due time renders above its title, not in a side column, and the checkbox still completes it.
+
+## Slice 40: Quick entry tips panel on the first focuses (B-621)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/assistant.md · Tests: component
+
+**Problem.** Quick entry looks like a plain box; users don't learn it does more.
+
+**Build.** In the shared `components/quick-entry/QuickEntryBox.tsx` (timeline and Easy mode), a panel below the box on a user's first 3 real focuses, while it's focused: "Why don't you try", then the four examples (bp 130/85 hr 72; gave metformin; pain 4 left knee; appt Dr Lee Friday 2pm, one shared list with `quickEntryCopy.ts`), then only two shorthands, n: for a note and e: for an event, and that commas log several at once. A labelled kit IconButton X ends it for good. Pressing the panel or the X must not blur the box first; focus on the X counts as in the box. It goes on blur, stays while typing, and gives way to a preview card or name completions (never covers them or the Suggestions popover). Count only real user focuses (not autofocus, the refocus after Save, closing a sheet or returning from Suggestions). Store the count and the dismissal per user per device in localStorage with try/catch, cleared with the other per-user keys at sign-out; if storage fails, show nothing. It floats, pushing nothing; at phone width it fits or scrolls inside itself; the kit's existing overlay fade, none under reduced motion. Screen readers don't hear it twice with the box's description. In Easy mode, check it against the dictation hint.
+
+**Acceptance criteria.**
+
+- [ ] Component test: the panel shows on the first three focuses and not the fourth; the X hides it for good; it hides on blur.
+- [ ] Component test: autofocus and the refocus after Save don't count; storage throwing shows nothing.
+- [ ] Component test: name completions or a preview card replace it; clicking the X keeps focus in the box.
+
+## Slice 41: The quick entry result card is a button that adds it (B-676)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/assistant.md · Tests: component
+
+**Problem.** The suggested result card (`components/quick-entry/QuickEntryCard.tsx`) can't be clicked; only Enter adds it.
+
+**Build.** Make the card's main reading (icon, kind, when, title, detail) a native button that does exactly what Enter does (with several cards, that's Save all, matching Enter), styled as the primary choice beside the "Make it a note" and alternative chips (which only switch the reading), with hover, focus and an accessible name saying what it adds. Don't wrap the whole card: Remove, Edit and the chips stay separate, unnested buttons. Disabled when `canSave` is false (blocked card or busy save). Enter behaviour is unchanged; the Matching names list is out of scope.
+
+**Acceptance criteria.**
+
+- [ ] Component test: clicking the main reading saves the entry as Enter does, and its accessible name names what it adds.
+- [ ] Component test: a blocked card's button is disabled; Remove, Edit and the chips are not inside it and still work.
+
+## Slice 42: Quick entry "new med" and "new provider" open the Add sheet filled in (B-762)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/assistant.md, docs/domain/medications.md, docs/domain/providers.md · Tests: unit, component
+
+**Blocked by:** slice 41 (the same card).
+
+**Problem.** There's no way to start a new medication or provider from quick entry.
+
+**Build.** Vocabulary rows ("new med", "started", "add medication", "new provider", "add provider") plus parser test rows make a medication or provider card. Its Save opens the existing Add medication or Add provider sheet prefilled (name, strength, form, directions; provider name, specialty or practice, phone, address); the sheet saves as today. The new-item words win over the loose match to an existing medication ("new med lisinopril" isn't the current Lisinopril 5 mg). Writer roles only. No new assistant action, no server or connector change.
+
+**Acceptance criteria.**
+
+- [ ] Unit test: "new med lisinopril 10 mg tablet" parses to a new-medication card with name, strength and form, not the existing medication; "add provider Dr Kim cardiology 555-0100" to a provider card.
+- [ ] Component test: Save on each opens its Add sheet with the fields filled in; a viewer gets no such card.
+
+## Slice 43: List tool buttons and entry filter links show hover (B-617)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/ui-kit.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** Timeline's search, filter and view buttons and every list's Filter show no hover; the kind and author filter links on entries have no button feel.
+
+**Build.** Likely cause: `CIRCLE` in `components/ui/styles.ts` sets `bg-base-100`/`border-base-300`, which beat daisyUI's layered btn hover. Fix it once in the shared style: outlined circle at rest, visible hover and press at the kit's 120 ms, none under reduced motion, light and dark. Check every `FilterMenu` (Providers, Planner, Medications, Todos) and unselected `chipClass` chips. Move Timeline's hand-written Filter button (`TimelineFilters.tsx`) to the kit's IconButton, keeping its count badge. Give `KindFilterLink` and `AuthorFilterLink` (`components/entry/KindIcon.tsx`) the kit's button feel in every form (type icon, initials circle, name link) while staying real links, keeping accent colours and the row's stretched-link layering (z-10).
+
+**Acceptance criteria.**
+
+- [ ] Component test: a circle tool button's background changes on hover (computed style differs from rest) in light and dark.
+- [ ] Component test: Timeline's Filter is the kit IconButton and keeps its count badge.
+- [ ] Component test: a kind filter link on a row filters the timeline without opening the entry, and has the transition class.
+
+## Slice 44: Timeline symptom filter's empty state names the chosen types (B-756)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** With `?symptom=` chosen and nothing matching, the timeline says "No symptoms on the timeline yet.", as if the group had none.
+
+**Build.** When a symptom filter is set, the empty state names the chosen symptom types ("No pain or nausea on the timeline yet.", wording to match the other filtered empty states) with a way to clear the filter. The unfiltered empty state is unchanged.
+
+**Acceptance criteria.**
+
+- [ ] Component test: with a symptom filter and no matches, the empty state names the chosen types and offers clearing it; without one, the old text shows.
+
+## Slice 45: The event time picker's calendar sits inside its panel (B-691)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/ui-kit.md, docs/domain/appointments.md · Tests: component
+
+**Problem.** In `routes/app/groups/entry/EntryTimeChip.tsx`'s w-72 popover, `components/ui/date/DateTimeField.tsx` opens its calendar as a second, nested popover, wider than the panel and spilling past it.
+
+**Build.** An explicit prop (or context) on `DateTimeField` renders the calendar inline below the field when it's inside another popover; fields in sheets and forms keep their own popover. The calendar fits the panel's content width with day cells as close to 44 px as the width allows. Keep `calendarOpen` on arrival (Add event's pickDay), the first picked day starting at 9:00, the calendar toggle, Esc closing the calendar before the panel, and a tap in the calendar not counting as outside. With Starts and Ends, one calendar open at a time. The taller panel stays on screen at phone width and short heights, scrolling inside, with Done reachable.
+
+**Acceptance criteria.**
+
+- [ ] Component test: inside the entry time chip, the calendar renders within the panel's bounds (no second popover); in a form, it still opens its own popover.
+- [ ] Component test: Esc closes the calendar first, then the panel; opening Ends' calendar closes Starts'.
+- [ ] The existing DateTimeField and entry time chip tests are updated and pass.
+
+## Slice 46: A new event's first day pick moves focus to the title (B-692)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/appointments.md · Tests: component
+
+**Blocked by:** slice 45 (the same popover).
+
+**Problem.** After picking a date on a new event, it isn't clear that a title saves it.
+
+**Build.** Only on the first day pick of a pickDay draft (`useLiveEntry.ts`, `EntryTimeChip.tsx`): close the calendar and time popover, commit the schedule, and focus the title input, overriding the popover's focus return; focus within the tap's gesture where possible (iOS keyboard). Later openings, and typing in the date field, behave as now. On an unsaved new event the title placeholder reads "Enter a title to save"; its accessible name stays Title; saved unnamed events keep theirs. Suggested title chips still save on tap.
+
+**Acceptance criteria.**
+
+- [ ] Component test: on Add event, picking a day closes the popover and focuses the title, whose placeholder is "Enter a title to save".
+- [ ] Component test: reopening the time chip and picking another day keeps focus in the popover; a saved event's placeholder is unchanged.
+
+## Slice 47: Scrolling after a jump to a day stays where you scroll (B-736)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md · Tests: component
+
+**Problem.** After jumping to a day (`?day=`), scrolling always pulls back to that day.
+
+**Build.** Find why the jump re-applies (likely the `?day=` effect re-running on paging or a re-render) and make the jump happen once per navigation: the scroll to the day runs once, then the user's scroll wins as rows load above and below. Keep `?day=` as a shareable deep link (slice 48 uses it) and Back to today (`BackToToday.tsx`). If the cleanest fix is to drop the query after the jump with `replace`, make sure Back and a reload still behave.
+
+**Acceptance criteria.**
+
+- [ ] Component test: after a jump to a day, scrolling away and loading more rows doesn't scroll back to that day.
+- [ ] Component test: a direct load with `?day=` still lands on that day.
+
+## Slice 48: A copy-link button on timeline day headers and entries (B-737)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/timeline.md, docs/domain/app-shell.md · Tests: component
+
+**Blocked by:** slice 47.
+
+**Problem.** There's no easy way to send someone a link to a day or an entry on the timeline.
+
+**Build.** A small kit IconButton with a link icon and an accessible name ("Copy link to <day>", "Copy link to <entry>") on each day header (`DayHeader.tsx`) and in each entry's actions (where the row's other actions are; never inside its stretched link). It copies an absolute URL built with `appUrls` (the day: the timeline `?day=` link; an entry: its page) to the clipboard and confirms inline ("Link copied", announced politely); if the clipboard fails, it shows the link to copy. Opening the link must not stop scrolling later (slice 47).
+
+**Acceptance criteria.**
+
+- [ ] Component test: the day header's button copies that day's absolute link and announces it; an entry's copies the entry's link.
+- [ ] Component test: a clipboard failure shows the link instead.
