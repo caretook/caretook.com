@@ -9,15 +9,15 @@
 | 1     | 1    | merged (opus) | 160c54d7 (c1fe984d)                                                                         |
 | 2     | 1    | merged (opus) | 997e1b2e (24ec786e); conflicts in inventory.mjs, its test, recover.sh resolved keeping both |
 | 3     | 1    | merged (opus) | 2221f009 (67595728)                                                                         |
-| 4     | 2    | —             | —                                                                                           |
-| 5     | 2    | —             | —                                                                                           |
+| 4     | 2    | merged (opus) | 6addf780 (0dbc6afb)                                                                         |
+| 5     | 2    | merged (opus) | 3591bb90 (68db32a5, 8e254a89)                                                               |
 | 6     | 3    | —             | —                                                                                           |
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-24): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
-**Now (2026-11-24):** wave 1 merged at 2221f009, docs folded at 5a356337. Gate green (test:tooling 88 files / 2184 tests, eslint scripts clean); slice worktrees removed; sync: up to date. PR #169 open (tier none); Codex review waiting. Next: triage, land, status-trim, rotate (wave 2 = slices 4, 5 in the next session).
+**Now (2026-11-24):** wave 2 merged (4: 6addf780, 5: 3591bb90); `pnpm test:tooling` green on the merged tip (2243 tests), eslint clean; slice worktrees removed. Dev synced with `--force` (2e331b80: `pr` refused the unsynced tip; dev brought only fixes-ui app code); tooling recheck on the synced tip running. **PR #171** open, Codex review waiting. Then land `--tier none` (run-through). New: B-786 (the watchdog's limited rule should use the drain's), for slice 6 or later.
 
-**Hand-offs to fold at landing:** slice 3 (usage.mjs, `.loops/.usage/<session>.json`): machinery.md gets _The usage reading_ (files, merge rules, `CARETOOK_USAGE_STALE_MIN` default 15, `pnpm prd usage [--json]`, status's `USAGE:` line; both settings files carry `statusLine` and a `StopFailure` hook). Slice 2 (recover lock `.loops/.recover.lock`, exit 75 when busy; dispatcher reopens only when every earlier step passed; intent `.loops/.dispatch-intent.json` written before clear-lock, dropped once the new dispatcher holds its lock, `CARETOOK_RECOVER_DISPATCH_SECS` 60; migrate marker `.loops/.migrate/<name>` reported and rerun; `--unattended`: agent in a background tab, one report topic recover on failure): recovery.md's _After a restart_ and inventory bullets (add `migrating`, `dispatcher.intent`, `recover`); optional machinery Files entry. For slice 4: read `recover.running/pid` from inventory facts, call `recover --unattended`, 75 = already running, back-off so failed runs don't each file a report. For slice 5: no subscriber overage flag, `overage` = a plan window at 100%; end a session with `markStalled(dir, name, {error: "limited", pid})`. For slice 6: `clearStalled` on resume.
+**Wave 2 docs:** folded into recovery.md (watchdog, autostart, `down --stay`, the drain) with a pointer in machinery.md's pick (at its budget, trimmed). **For slice 6:** `clearStalled` the `error: limited` marks after the reset, and claim those sessions before the ordinary reopen rule counts them as reopens. **Follow-ups:** slice 4's `limitedOf` could use slice 5's `readDrain`/`probeAllowed`; pre-existing `prd.sh help` prints `line 17: design: command not found`.
 
 **Backlog:** claim B-407 when slice 1 starts, B-462 and B-463 when slice 2 starts, B-433 when slice 3 starts. `done` B-462 and B-463 when slice 2 merges, B-433 when slice 3 merges, B-407 when the last of slices 1, 2, 4, 5 and 6 merges.
 
