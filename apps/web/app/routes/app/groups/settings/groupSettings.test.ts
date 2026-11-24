@@ -185,7 +185,9 @@ describe("roleGroups and roleDescription", () => {
   });
 
   it("describes each role from GROUP_ROLES, who the easy ones are for included", () => {
-    expect(roleDescription("viewer")).toBe("Reads care data only.");
+    expect(roleDescription("viewer")).toBe(
+      "Sees care information but can't change it, apart from ticking off todos assigned to them.",
+    );
     expect(roleDescription("easy_helper")).toMatch(
       /^For someone who isn't comfortable with apps or who has memory or thinking difficulties\./,
     );
