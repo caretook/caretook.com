@@ -4,10 +4,13 @@ import { createContext, redirect } from "react-router";
 import { accountUrls } from "./accountUrls";
 import { authClient } from "./auth-client";
 import { forgetUserData } from "./forgetUserData";
+import { expireKeptCopy } from "./keptCopy";
+import { localCopyFate } from "./localCopyRules";
+import { finishPendingSignOut, signOutPending } from "./pendingSignOut";
 import { signInUrl } from "../core/redirect";
 import { sessionEpoch } from "./sessionEpoch";
 import { askSession, sessionFreshness, shouldRecheck, withoutAnswer } from "./sessionRules";
-import { closeSync, openSync } from "../sync";
+import { closeSync, countWaiting, openSync } from "../sync";
 
 // The signed-in user and their local database, for /app clientLoaders.
 //
@@ -103,13 +106,43 @@ const roleOf = (user: object) => {
  * Wipe this device's copy: stop syncing, empty the local database (vacuumed,
  * so no freed page keeps a deleted row) and drop its search index, and forget
  * the cached user and the forget list (`forgetUserData`). Sign-out, and a
- * session the server says has ended, both go through here. Changes not uploaded yet are lost.
+ * session the server says has ended with nothing waiting to upload, both go
+ * through here. Changes not uploaded yet are lost.
  */
 export const wipeDevice = async () => {
   known = null;
   await closeSync().catch((e: unknown) => console.error("Couldn't clear local data", e));
   forgetSessionUser();
   forgetUserData();
+};
+
+/**
+ * Keep the local copy for its owner (B-290): close the database without
+ * clearing it, keeping its owner and when it was kept, and forget everything
+ * else cached (the user, settings, groups, searches) except their unsent
+ * settings changes. Nothing shows until someone signs in: the owner's
+ * sign-in reopens it and uploads, anyone else's wipes it first.
+ */
+const keepForOwner = async () => {
+  known = null;
+  await closeSync({ keep: true }).catch((e: unknown) => console.error("Couldn't close local data", e));
+  forgetSessionUser();
+  forgetUserData({ keepPending: true });
+};
+
+/**
+ * The server says this device's session has ended (signed out elsewhere,
+ * expired, revoked): with changes waiting to upload the copy is kept for its
+ * owner, else wiped (`localCopyFate`). Resolves which.
+ */
+export const endSession = async (): Promise<"keep" | "wipe"> => {
+  const waiting = await countWaiting().catch((e: unknown) => {
+    console.error("Couldn't count the changes waiting to upload", e);
+    return 0;
+  });
+  const fate = localCopyFate({ reason: "sessionEnded", waiting }) === "keep" ? "keep" : "wipe";
+  await (fate === "keep" ? keepForOwner() : wipeDevice());
+  return fate;
 };
 
 type Resolved = SessionUser | "signedOut" | "offlineTooLong" | "rateLimited" | "unverified";
@@ -139,9 +172,16 @@ const getSession = async () => {
  * sends sign-in a "try again in a moment" (B-130), anything else plain
  * sign-in. The server still checks the session before accepting any upload,
  * and PowerSync before sending any data. When the server says there's no
- * session, the device's copy is wiped.
+ * session, the device's copy is wiped, or kept for its owner when changes
+ * wait to upload (`endSession`). A sign-out still owed to the server
+ * (`pendingSignOut.ts`) is finished first, and the answer is signed out
+ * without asking.
  */
 const resolveUser = async (): Promise<Resolved> => {
+  if (signOutPending()) {
+    await finishPendingSignOut();
+    return "signedOut";
+  }
   const answer = await askSession(getSession);
   if (answer.kind === "ok") {
     const { user } = answer.data;
@@ -151,7 +191,7 @@ const resolveUser = async (): Promise<Resolved> => {
     return { id: user.id, name: user.name, email: user.email, image: user.image ?? null, role: roleOf(user) };
   }
   if (answer.kind === "signedOut") {
-    if (cachedUser()) await wipeDevice();
+    if (cachedUser()) await endSession();
     return "signedOut";
   }
   const cached = cachedUser();
@@ -164,6 +204,8 @@ const check = () =>
   (inflight ??= (async () => {
     // Taken before asking, so a sign-in during the request isn't credited to it.
     const epoch = sessionEpoch();
+    // A copy kept past its limit goes before anything else (B-290).
+    await expireKeptCopy().catch((e: unknown) => console.error("Couldn't expire the kept copy", e));
     const user = await resolveUser();
     if (typeof user === "string") {
       known = null;
@@ -179,7 +221,7 @@ const check = () =>
 
 /**
  * A background recheck's answer, from wherever the user is now: signed out
- * (the device is wiped already, by `resolveUser`) is a full navigation to
+ * (the device is wiped or kept already, by `resolveUser`) is a full navigation to
  * sign-in, unverified to verify-email, and someone else's session a reload.
  * A rate limit or no answer does nothing: the next navigation asks again.
  */

@@ -281,15 +281,16 @@ describe("rescheduled to", () => {
 });
 
 describe("upsert (the upload path)", () => {
-  it("round-trips the fields, keeps ones a replay leaves out, and refuses a future vital", async () => {
+  it("round-trips the fields, changes nothing on a replay, and refuses a future vital", async () => {
     const { u, input } = await setup();
     const id = randomUUID();
     const put = { ...input({ place: "Clinic", allDay: false }), id };
-    ok(await timelineEntryService.upsert(u.caretaker.ctx, put));
-    const edited = ok(
+    const made = ok(await timelineEntryService.upsert(u.caretaker.ctx, put));
+    expect(made.row).toMatchObject({ place: "Clinic", allDay: false });
+    const replayed = ok(
       await timelineEntryService.upsert(u.caretaker.ctx, { ...input(), id, title: "Renamed" }),
     );
-    expect(edited).toMatchObject({ title: "Renamed", place: "Clinic" });
+    expect(replayed).toMatchObject({ created: false, row: { title: made.row?.title, place: "Clinic" } });
 
     const refused = await timelineEntryService.upsert(u.caretaker.ctx, {
       ...input({ kind: "vital", title: null, occurredAt: fromNow(3 * HOUR) }),

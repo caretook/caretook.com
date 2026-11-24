@@ -4,20 +4,20 @@
 
 ## Status
 
-| Slice | Wave | State         | Merge into `prd/sync-safety` (slice commits) |
-| ----- | ---- | ------------- | -------------------------------------------- |
-| 1     | 1    | landed (opus) | 5a140ed9 (8cc4d866, 2e34d947)                |
-| 2     | 1    | landed (opus) | 385a1ba8 (a67973a0)                          |
-| 3     | 2    | not started   |                                              |
-| 4     | 2    | not started   |                                              |
-| 5     | 2    | not started   |                                              |
-| 6     | 1    | landed (opus) | f4c6ad13 (a822dcba, 625bf09a)                |
+| Slice | Wave | State         | Merge into `prd/sync-safety` (slice commits)      |
+| ----- | ---- | ------------- | ------------------------------------------------- |
+| 1     | 1    | landed (opus) | 5a140ed9 (8cc4d866, 2e34d947)                     |
+| 2     | 1    | landed (opus) | 385a1ba8 (a67973a0)                               |
+| 3     | 2    | merged (opus) | 8f433310 (62ba5822, 22c41a57, bbc3c85c)           |
+| 4     | 2    | merged (opus) | 8e5032d4 (a6c85065)                               |
+| 5     | 2    | merged (opus) | b005e91a (4656d227, 466903be, 6bb52d5a, 5595ba83) |
+| 6     | 1    | landed (opus) | f4c6ad13 (a822dcba, 625bf09a)                     |
 
 **Landing mode:** run everything through (started run-through, 2026-11-22): start every ready slice, land each green wave, clean up; ask only real questions via `pnpm prd ask`.
 
-**Held for test profiling after wave 1** (notice n7, 2026-11-22: the user holds every PRD after its current wave; the dispatcher restarts this topic later). Wave 1 (slices 1, 2, 6) landed through the PR into dev; the worktree is removed (`pnpm prd rm sync-safety`), so a restart begins with `pnpm prd start sync-safety` and then wave 2.
+**Wave 2 under way** (restarted 2026-11-24, run-through): worktrees `sync-safety-3`, `-4`, `-5` made from prd/sync-safety at 23666d2e (dev's tip), one opus agent each; items claimed. Slice 3 was told to wait for word that slice 5 is merged, then merge prd/sync-safety and recheck before its hand-off. Backlog ingest at the boundary: nothing new for this topic. Slice 4 merged; its hand-off gap (magic-link or invite sign-in with a pending sign-out) filed as B-730 for sync-safety-2. Slice 5 merged; its agent was told to merge prd and recheck (slice 5 changed `upsert`'s return to `Upserted<T>`). Fold for slice 5: sync (a PUT is create-if-absent, follow-ups only with the create in one transaction), data-layer (`Upserted`), live-notes (a taken document id is a 403), appointments (`seriesVisitFallbackId`; a member's own dose replayed no longer updates). Slice 3 merged after its pre-hand-off merge of prd. Fold for slice 3: sync (`failed`, the probe, the tries in `caretook:upload-tries`, setting aside, Try again, NUL refused as `sync:invalid`), api (`sync.upload`'s results). **Wave 2 green:** `components` run 45378922670 on 4a3a9550. Slice worktrees removed. `pnpm prd sync` skipped (dev shares no file; B-729, a dev brake in syncMedications, was a test-clock fix already in dev). Served at :6273; `browser --changed --base dev` running (roundtrip, live-notes, app-shell, sign-in, first-sync, session-end, invites). PR #143 open. Browser checks 7/7 passed. Codex out of credits (review exit 4): landing with `--no-review`, tier `components`. Wave 2 docs folded into sync, auth, api, data-layer, live-notes, appointments (trimmed to budget). Synced dev at b004ec55 (a docs conflict in appointments.md, dev's Tests line taken); PR #143 pushed; `components` green on the synced tip (run 45383435741); landing with `--no-review`. After landing: `pnpm prd rm sync-safety`, then `pnpm prd end` from the main checkout (the last wave). Not tested: a follow-up failing and rolling back its create; the device still writes series visits under `seriesVisitId` (a taken id lands in not saved, the server tops up under the fallback). Fold for slice 4: sync _Session_ (kept copy, 30-day expiry, `endSession`, `closeSync({ keep })`, `countWaiting`, the test seam), auth (pending sign-out, sign-in loader and action guard); `signout-wipe` was already folded into `session-end`, so its steps went there (adds about 2 s to the lean set).
 
-**Next: wave 2, slices 3, 4 and 5** (all ready: slices 1 and 2 are in dev). Claim B-286 (slice 3), B-290 (slice 4), B-288 and B-289 (slice 5). Merge order: 5 before 3 (slice 3 syncs before its handoff). Notes from wave 1's hand-offs:
+**Wave 2: slices 3, 4 and 5.** Claimed B-286 (slice 3), B-290 (slice 4), B-288 and B-289 (slice 5). Merge order: 5 before 3 (slice 3 syncs before its handoff). Notes from wave 1's hand-offs:
 
 - **Slice 5:** the PUT branch is the `op.op === "PUT"` block of `softDelete` in `packages/api/src/syncRegistry.ts`; its follow-ups (`deleted_at` → `remove`, then `afterPut`, todo's tick) are where "only when created, in one transaction" goes; todo's twin is the spec's `put` hook. Roundtrip's `unsaved_change` held only the two forced refusals (device B's timeline PATCH, device C's todo title PATCH): no twins to cover.
 - **Slice 3:** the loop is the one `applyOp` line in `packages/api/src/sync.ts`; new errors go in `packages/data/src/errors/sync.ts`. Set-aside records go in `unsaved_change` with `outcome = 'set_aside'`; the page renders every line through `unsavedSentence` and ignores `outcome` so far. `useSyncState().uploadFailed` exists for "Can't sync, retrying".

@@ -845,6 +845,21 @@ test("two members' sheet entries converge; offline, refused uploads, the viewer 
     await wf(A, `location.pathname === "/sign-in"`, 15_000);
     await check("sign-out: /app needs signing in again", true);
 
+    // 8. Nothing else went unsaved (sync-safety, B-288): every replay and
+    // follow-up of the run was applied, so each device's "not saved" list
+    // holds only the change the test forced the server to refuse.
+    const unsaved = async (page) =>
+      (await localRows(page, "SELECT table_name, row_id, op FROM unsaved_change ORDER BY recorded_at")).map(
+        (r) => `${r.table_name}:${r.row_id}:${r.op}`,
+      );
+    const lists = { B: await unsaved(B), C: await unsaved(C) };
+    await check(
+      "not saved: each device lists only the change it was forced to have refused",
+      JSON.stringify(lists) ===
+        JSON.stringify({ B: [`timeline_entry:${matrix.ids.entry}:PATCH`], C: [`todo:${viewerTodo}:PATCH`] }),
+      JSON.stringify(lists),
+    );
+
     const errors = [dA, dB, dC].flatMap((d) => d.errors).filter((e) => !NOISE.test(e));
     await check(
       "no console errors or warnings",

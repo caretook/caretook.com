@@ -37,6 +37,7 @@ import {
   userModel,
 } from "../models";
 import { isSystemUser, rejectError } from "../permissions";
+import { asCreated, unchanged } from "./upserted";
 import { enqueue as enqueueCalendarPush } from "./calendarSyncService";
 
 // Todos: the group's shared todo list. Write through here, not the model:
@@ -537,7 +538,8 @@ export const restoreOccurrence = (ctx: ServiceContext, id: string) =>
  * whatever the uploader's role: it changes nothing. When the chain already
  * has another open todo (two devices ticked it on different days), it's a
  * stale twin: nothing is written. Otherwise it's a skip the device made: a
- * writer's create. Returns the row, or null when nothing was written.
+ * writer's create. Says whether it created (`Upserted`), or null when
+ * nothing was written.
  */
 export const upsertOccurrence = (ctx: ServiceContext, input: TodoOccurrenceInput) =>
   withTransaction(async (tx) => {
@@ -553,7 +555,7 @@ export const upsertOccurrence = (ctx: ServiceContext, input: TodoOccurrenceInput
       const visible = await todoModel.getById(id, { ...ctx, tx, includeDeleted: true });
       if (isError(visible)) return visible;
       if (!visible) return rejectError(ctx.authUser);
-      return visible.groupId === groupId ? visible : newError({ code: "todoService:immutable" });
+      return visible.groupId === groupId ? unchanged(visible) : newError({ code: "todoService:immutable" });
     }
 
     const role = await roleIn(ctx, tx, groupId);
@@ -583,36 +585,33 @@ export const upsertOccurrence = (ctx: ServiceContext, input: TodoOccurrenceInput
       data: { ...content, id, groupId, recipientId: recipient.id, eventId: null, repeatStartsOn, repeatId },
     });
     if (isError(created) || !created) return created;
-    return (await enqueueCalendarPush(tx, { todoId: id }, "todo")) ?? created;
+    return (await enqueueCalendarPush(tx, { todoId: id }, "todo")) ?? asCreated(created);
   }, ctx);
 
 /**
- * Create the todo with this id, or bring the existing one up to date: what
- * PowerSync's upload queue sends for a row a device created. Safe to
- * replay. The group and recipient never change, a deleted todo stays
- * deleted, and an id the actor can't see is refused without saying whether
- * it exists.
+ * Create the todo with this id if there is none: what PowerSync's upload
+ * queue sends for a row a device created. A replay changes nothing (only a
+ * PATCH edits), whatever the actor's role now (a viewer's device replaying
+ * the create included), so it never reverts a newer edit. The group and
+ * recipient never change, and an id the actor can't see is refused without
+ * saying whether it exists. Says whether it created (`Upserted`).
  */
 export const upsert = (ctx: ServiceContext, input: TodoUpsertInput) =>
   withTransaction(async (tx) => {
     const parsed = todoUpsertZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { id, groupId, recipientId, ...content } = parsed.data;
+    const { id, groupId, recipientId } = parsed.data;
 
     const existing = await todoModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
     if (isError(existing)) return existing;
-    if (!existing) return create({ ...ctx, tx }, input);
+    if (!existing) return asCreated(await create({ ...ctx, tx }, input));
 
     const visible = await todoModel.getById(id, { ...ctx, tx, includeDeleted: true });
     if (isError(visible)) return visible;
     if (!visible) return rejectError(ctx.authUser);
     if (visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId))
       return newError({ code: "todoService:immutable" });
-    if (visible.deletedAt) return visible;
-
-    // A replay of the create from a viewer's device changes nothing.
-    if (completionOnly(visible, content)) return visible;
-    return update({ ...ctx, tx }, id, content);
+    return unchanged(visible);
   }, ctx);
 
 /** Soft delete (a mistake, a cancelled errand). Writers only. */

@@ -158,20 +158,20 @@ describe("recipientConditionService", () => {
     ).not.toBe("ok");
   });
 
-  it("upserts by id: creates, updates, keeps a deleted one deleted, and refuses a group change", async () => {
+  it("upserts by id: creates, changes nothing on a replay, keeps a deleted one deleted, and refuses a group change", async () => {
     const { u, group, recipient, names } = await setup();
     const id = randomUUID();
     const input = { id, groupId: group.id, recipientId: recipient.id, name: "Gout" };
 
-    expect(ok(await recipientConditionService.upsert(u.caretaker.ctx, input))?.id).toBe(id);
+    expect(ok(await recipientConditionService.upsert(u.caretaker.ctx, input)).row?.id).toBe(id);
     expect(
       ok(await recipientConditionService.upsert(u.caretaker.ctx, { ...input, sinceYear: 2020 })),
-    ).toMatchObject({ id, sinceYear: 2020 });
+    ).toMatchObject({ created: false, row: { id, sinceYear: null } });
     expect(
       codeOf(await recipientConditionService.upsert(u.caretaker.ctx, { ...input, groupId: randomUUID() })),
     ).not.toBe("ok");
     ok(await recipientConditionService.remove(u.caretaker.ctx, id));
-    expect(ok(await recipientConditionService.upsert(u.caretaker.ctx, input))?.deletedAt).toBeTruthy();
+    expect(ok(await recipientConditionService.upsert(u.caretaker.ctx, input)).row?.deletedAt).toBeTruthy();
     expect(await names()).toEqual([]);
     expect(
       codeOf(await recipientConditionService.upsert(u.viewer.ctx, { ...input, id: randomUUID() })),

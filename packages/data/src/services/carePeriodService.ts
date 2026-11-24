@@ -19,6 +19,7 @@ import {
 import { isError, newError } from "../errors";
 import { carePeriodModel, careGroupModel, careRecipientModel, providerModel } from "../models";
 import { rejectError } from "../permissions";
+import { asCreated, unchanged } from "./upserted";
 
 // Care periods: where the recipient's care happens, over time. Write through
 // here, not the model: this is where content is validated, the place is
@@ -174,30 +175,28 @@ export const update = (ctx: ServiceContext, id: string, input: CarePeriodUpdateI
   }, ctx);
 
 /**
- * Create the period with this id, or bring the existing one up to date:
- * what PowerSync's upload queue sends for a row a device created. Safe to
- * replay. The group and recipient never change, a deleted period stays
- * deleted, and an id the actor can't see is refused without saying whether
- * it exists.
+ * Create the period with this id if there is none: what PowerSync's upload
+ * queue sends for a row a device created. A replay changes nothing (only a
+ * PATCH edits), whatever the actor's role now, so it never reverts a newer
+ * edit. The group and recipient never change, and an id the actor can't see is refused
+ * without saying whether it exists. Says whether it created (`Upserted`).
  */
 export const upsert = (ctx: ServiceContext, input: CarePeriodUpsertInput) =>
   withTransaction(async (tx) => {
     const parsed = carePeriodUpsertZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { id, groupId, recipientId, ...content } = parsed.data;
+    const { id, groupId, recipientId } = parsed.data;
 
     const existing = await carePeriodModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
     if (isError(existing)) return existing;
-    if (!existing) return create({ ...ctx, tx }, input);
+    if (!existing) return asCreated(await create({ ...ctx, tx }, input));
 
     const visible = await carePeriodModel.getById(id, { ...ctx, tx, includeDeleted: true });
     if (isError(visible)) return visible;
     if (!visible) return rejectError(ctx.authUser);
     if (visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId))
       return newError({ code: "carePeriodService:immutable" });
-    if (visible.deletedAt) return visible;
-
-    return update({ ...ctx, tx }, id, content);
+    return unchanged(visible);
   }, ctx);
 
 /** Soft delete (a period recorded by mistake). The period before it runs on in its place. */
