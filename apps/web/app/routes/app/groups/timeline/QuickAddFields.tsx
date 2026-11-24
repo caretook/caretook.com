@@ -13,7 +13,7 @@ import { issueFor } from "./formIssues";
 const TYPE_OPTIONS = MEDICATION_TYPES.map((type) => ({ value: type, label: MEDICATION_TYPE_LABELS[type] }));
 
 /**
- * The Dose sheet's "+ New medication": the name (with names used before,
+ * The Dose sheet's "+ New medication": the name (suggested as you type,
  * and a warning on an allergy match), the dose each time and the type
  * (Prescription to start with, required), under the Medication choice. The
  * rest (strength, directions, a schedule) is the medication's edit sheet's,
