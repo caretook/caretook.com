@@ -15,6 +15,7 @@ import {
   entryProviderId,
   medicationConditionId,
   noteDocFromText,
+  symptomTypeRow,
 } from "@caretook/data/schema";
 import { getTableColumns, getTableName } from "drizzle-orm";
 import { drizzleSchema } from "~/lib/sync/schema";
@@ -643,6 +644,22 @@ export const series = (v: Partial<Values<"appointmentSeries">> = {}) => {
     providerIds: "[]",
     toppedUpThrough: "2027-02-16",
     deletedAt: null,
+    createdAt: created,
+    updatedAt: created,
+    createdBy: TEST_USER.id,
+    updatedBy: TEST_USER.id,
+    ...v,
+  });
+};
+
+// --- Added by symptom-catalog slice 1 ----------------------------------------
+
+/** A row of the group's symptom catalog, with its derived id and key ("Nausea" unless given). */
+export const symptomType = (name = "Nausea", v: Partial<Values<"symptomTypes">> = {}) => {
+  const created = hoursAgo(24 * 30);
+  const base = symptomTypeRow(v.groupId ?? groupId, name);
+  return row("symptomTypes", {
+    ...base,
     createdAt: created,
     updatedAt: created,
     createdBy: TEST_USER.id,

@@ -302,6 +302,13 @@
       "when": 1795458676621,
       "tag": "0042_natural_arclight",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1795521525451,
+      "tag": "0043_symptom_catalog",
+      "breakpoints": true
     }
   ]
 }

@@ -10,6 +10,7 @@ import * as adminAuditService from "./adminAuditService";
 import * as careGroupInviteService from "./careGroupInviteService";
 import { staffRefusal } from "./staffAccess";
 import { addDefaults as addDefaultPasses } from "./medicationPassService";
+import { addDefaults as addDefaultSymptoms } from "./symptomTypeService";
 
 export const serviceName = "staffGroup";
 export const schemaName = careGroupModel.schemaName;
@@ -51,6 +52,8 @@ export const createWithOwnerInvite = (
     });
     if (isError(group)) return group;
     if (!group) return newError({ code: "baseModel:create:nothingCreated" });
+    const symptoms = await addDefaultSymptoms(tx, group.id);
+    if (symptoms) return symptoms;
 
     const recipient = await careRecipientModel.create({
       ...system,

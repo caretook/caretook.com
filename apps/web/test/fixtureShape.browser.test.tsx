@@ -14,6 +14,7 @@ import {
   pgJson,
   recipientDetails,
   series,
+  symptomType,
   todo,
   TEST_USER,
 } from "./fixtures";
@@ -57,6 +58,7 @@ const DEFAULTS: Record<string, Fixture[]> = {
   medication_condition: [medicationCondition(medicationId, conditionId)],
   condition_manager: [conditionManager(conditionId, providerId)],
   appointment_series: [series()],
+  symptom_type: [symptomType()],
 };
 
 /** Synced tables with a server schema but no builder, each with why. */

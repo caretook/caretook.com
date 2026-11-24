@@ -487,6 +487,27 @@ export const appointmentSeries = sqliteTable(
 );
 
 /**
+ * The group's symptom catalog (symptom-catalog): the names the symptom
+ * sheet suggests. `name_key` folds case and spaces (`symptomKey`), and the
+ * id comes from the group and the key (`symptomTypeId`). Rows are added,
+ * never changed or removed.
+ */
+export const symptomTypes = sqliteTable(
+  "symptom_type",
+  {
+    id: text("id").primaryKey(),
+    groupId: text("group_id"),
+    name: text("name"),
+    nameKey: text("name_key"),
+    createdAt: text("created_at"),
+    updatedAt: text("updated_at"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (t) => [index("symptom_type_group").on(t.groupId)],
+);
+
+/**
  * Local only (never synced, never uploaded; cleared with the local copy): one
  * row per change the server didn't save (sync-safety, B-285). `outcome` is
  * `refused` (a 4xx: the server's `code` and `issues`, JSON text) or
@@ -534,6 +555,7 @@ export const drizzleSchema = {
   medicationConditions,
   conditionManagers,
   appointmentSeries,
+  symptomTypes,
   unsavedChanges,
 };
 
