@@ -42,7 +42,7 @@ import * as providers from "./route";
 // The directory's add and edit sheets on the test device (providers.mjs's
 // sheet, practice-delete and device steps): Add over the list, validation on
 // the fields (at most six phones, a seventh forced in refused), a clinician
-// with two phones and a practice saved and queued whole, Back after a save,
+// with two phones and a practice saved and queued whole, opening its page with Back to the list,
 // edit by deep link, primary and past, delete after a confirm, a practice
 // that providers name refusing to go, and the device module's own refusals
 // (a viewer's writes, a symptom link, a bad practice). The device is offline
@@ -117,12 +117,18 @@ describe("adding a provider", () => {
 
   const sheetButton = (name: string) => page.getByRole("dialog").getByRole("button", { name, exact: true });
 
-  test("the add sheet's footer keeps its names: Add provider, and Cancel closes onto the list", async () => {
+  test("the add sheet's footer keeps its names: Add provider, and Cancel and Escape close onto the list, adding nothing", async () => {
     const device = await open({ role: "caretaker" });
     await openAdd();
     await expect.element(sheetButton("Add provider")).toHaveAttribute("type", "submit");
     await userEvent.click(sheetButton("Cancel"));
     await expect.poll(() => !FORM() && device.location()).toBe(PROVIDERS_URL);
+
+    await openAdd();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => !SHEET() && device.location()).toBe(PROVIDERS_URL);
+    expect(listNames("Current providers").length).toBe(6);
+    expect(await device.queued()).toEqual([]);
   });
 
   test("the edit sheet's footer keeps its names: Delete provider, Cancel and Save", async () => {
@@ -164,7 +170,7 @@ describe("adding a provider", () => {
     expect(await device.queued()).toEqual([]);
   });
 
-  test("a clinician with two phones and a practice: saving closes the sheet onto the list, where it is at once, written and queued whole; Back doesn't reopen the sheet", async () => {
+  test("a clinician with two phones and a practice: saving opens the new provider's page, written and queued whole; Back goes to the directory, where it is, not the form", async () => {
     // From Dr. Patel's page to the directory, so Back has somewhere to go.
     const device = await open({ url: providerUrl(PATEL.id) });
     await userEvent.click(page.getByRole("link", { name: "Providers" }).first());
@@ -188,9 +194,13 @@ describe("adding a provider", () => {
     await userEvent.selectOptions(await found(() => field<HTMLSelectElement>("practiceId")), WESTSIDE.id);
     await userEvent.click(submit());
 
-    await expect.poll(() => !SHEET() && device.location()).toBe(PROVIDERS_URL);
-    await expect.poll(() => listNames("Current providers")).toContain("Dr. Nadia Brooks");
+    // The row is local at once, so its page opens offline.
+    await expect.poll(() => storedNamed(device, "Dr. Nadia Brooks")).toBeDefined();
     const row = (await storedNamed(device, "Dr. Nadia Brooks"))!;
+    await expect.poll(() => !SHEET() && device.location()).toBe(providerUrl(row.id));
+    await expect
+      .element(page.getByRole("heading", { level: 1, name: "Dr. Nadia Brooks" }))
+      .toBeInTheDocument();
     expect(row).toMatchObject({
       type: "clinician",
       specialty: "Neurology",
@@ -209,8 +219,10 @@ describe("adding a provider", () => {
       expect.objectContaining({ op: "PUT", type: "provider", id: row.id }),
     ]);
 
+    // The page replaced the sheet's entry: Back is the directory, with no form.
     back();
-    await expect.poll(() => device.location()).toBe(providerUrl(PATEL.id));
+    await expect.poll(() => device.location()).toBe(PROVIDERS_URL);
+    await expect.poll(() => listNames("Current providers")).toContain("Dr. Nadia Brooks");
     expect(FORM()).toBeNull();
   });
 
@@ -252,8 +264,9 @@ describe("adding a provider", () => {
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
 
     await userEvent.click(submit());
-    await expect.poll(() => !SHEET() && device.location()).toBe(PROVIDERS_URL);
+    await expect.poll(() => storedNamed(device, "Dr. Lena Ortiz")).toBeDefined();
     const row = (await storedNamed(device, "Dr. Lena Ortiz"))!;
+    await expect.poll(() => !SHEET() && device.location()).toBe(providerUrl(row.id));
     expect(JSON.parse(row.phones)).toEqual([
       { label: "Nurse line", number: "(555) 010-7800" },
       { label: "Billing", number: "(555) 010-7801" },
