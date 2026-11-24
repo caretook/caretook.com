@@ -47,9 +47,12 @@ export function SectionNav({ groupId, pathname }: { groupId: string; pathname: s
  * The phone tab bar under the outlet (hidden on the entry page): a rounded
  * bar floating clear of the screen's edges and the home indicator, on a
  * surface of its own (`--tab-bar-surface`: near-black `neutral` in light,
- * `base-300` in dark), one icon per section, the current one a solid
- * `primary` circle. Each link is named by its section (`aria-label`, and the
- * same `title`). It's fixed, so it also renders a spacer of
+ * `base-300` in dark), split into one equal full-height section per section
+ * of the group, each an icon, the current one filled solid `primary` edge to
+ * edge (the bar clips the fills to its rounded shape; the end links round
+ * with it so the focus ring, drawn inside the link in the bar's content
+ * colour, follows the curve). Each link is named by its section
+ * (`aria-label`, and the same `title`). It's fixed, so it also renders a spacer of
  * `--tab-bar-height` (the bar, its gap and the safe area) in the page flow:
  * the last thing on any group screen scrolls clear of it, with no screen
  * needing to know the bar exists. It sits under modals (`z-40`; `Sheet`'s
@@ -65,7 +68,7 @@ export function TabBar({ groupId, pathname }: { groupId: string; pathname: strin
       <nav
         aria-label="Group sections"
         data-tab-bar
-        className="fixed inset-x-4 bottom-[calc(var(--tab-bar-gap)+env(safe-area-inset-bottom))] z-40 mx-auto flex h-14 max-w-xs items-center justify-around rounded-full bg-(--tab-bar-surface) px-2 text-(--tab-bar-content) shadow-lg sm:hidden print:hidden"
+        className="fixed inset-x-4 bottom-[calc(var(--tab-bar-gap)+env(safe-area-inset-bottom))] z-40 mx-auto flex h-14 max-w-xs overflow-hidden rounded-full bg-(--tab-bar-surface) text-(--tab-bar-content) shadow-lg sm:hidden print:hidden"
       >
         {GROUP_SECTIONS.map((section) => {
           const current = sectionCurrent(section, target, groupId);
@@ -78,7 +81,7 @@ export function TabBar({ groupId, pathname }: { groupId: string; pathname: strin
               aria-current={current}
               aria-label={section.label}
               title={section.label}
-              className={`flex size-11 items-center justify-center rounded-full ${
+              className={`flex min-w-11 flex-1 items-center justify-center first:rounded-s-full last:rounded-e-full focus-visible:-outline-offset-2! focus-visible:outline-(--tab-bar-content)! ${
                 current ? "bg-primary text-primary-content" : "text-(--tab-bar-content)/75"
               }`}
             >
