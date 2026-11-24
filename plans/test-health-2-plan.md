@@ -4,18 +4,18 @@
 
 ## Status
 
-| Slice                                       | Wave | State                                   | Merge    |
-| ------------------------------------------- | ---- | --------------------------------------- | -------- |
-| 1. A rejected batch can't block the queue   | 1    | merged (opus)                           | 159df711 |
-| 2. Every entry point refuses                | 1    | started (opus)                          |          |
-| 3. Fixtures in the shape devices receive    | 1    | handed off 45f4e47d (opus), waits for 2 |          |
-| 4. Round trip compares columns              | 1    | started (opus)                          |          |
-| 5. Round trip through the app's own writers | 2    | not started                             |          |
-| 6. A second time zone                       | 3    | not started                             |          |
+| Slice                                       | Wave | State          | Merge    |
+| ------------------------------------------- | ---- | -------------- | -------- |
+| 1. A rejected batch can't block the queue   | 1    | merged (opus)  | 159df711 |
+| 2. Every entry point refuses                | 1    | merged (opus)  | 0b9da399 |
+| 3. Fixtures in the shape devices receive    | 1    | merged (opus)  | 04f07d63 |
+| 4. Round trip compares columns              | 1    | started (opus) |          |
+| 5. Round trip through the app's own writers | 2    | not started    |          |
+| 6. A second time zone                       | 3    | not started    |          |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Now (2026-11-24):** `sync-safety` and `test-gates-2` slice 5 are in `dev`, so wave 1 is ready. B-371, B-373, B-374 claimed. Slices 1 to 4 worktrees made (`.loops/test-health-2-<n>`; 4 has a stack), one opus agent each spawned. B-372 holds `test-gates-2`'s New York overflow (7 files, `roundtrip` among them): slice 6 repoints it.
+**Now (2026-11-24):** `sync-safety` and `test-gates-2` slice 5 are in `dev`, so wave 1 is ready. B-371, B-373, B-374 claimed. Slices 1 to 4 worktrees made (`.loops/test-health-2-<n>`; 4 has a stack), one opus agent each spawned. Slice 2 found no holes; the router now has 91 procedures (8 public), not 89. Slice 3 changed `fx.group` and `fx.member` defaults (not-null switches), so other component tests first meet them in the wave's CI run. B-371 and B-373 stay open for slices 4 and 5. B-372 holds `test-gates-2`'s New York overflow (7 files, `roundtrip` among them): slice 6 repoints it.
 
 ## Architectural decisions
 
