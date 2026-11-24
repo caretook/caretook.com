@@ -4,11 +4,11 @@
 
 ## Status
 
-**Where it stands (hand-over, 2026-11-24):** **wave 1 landed** in dev as ca4dbb54 (PR #149, tier full, `--no-review`: Codex out of credits). Gate run 45402448788 was a flake in `calendarCron.int.test.ts` (not ours, filed B-743). Report filed as ask a181; to-test file `to-test/2026-11-24-0831-symptom-catalog.md`. Docs folded into timeline.md. No slice in flight; slice 1's worktree removed. B-549 stays claimed (done when the last slice merges).
+**Where it stands (hand-over, 2026-11-24):** **wave 2 landed** in dev as 7cff84e1 (PR #152, tier full, `--no-review`: Codex out of credits). Gate: run 45411480362 green after one cancelled run (components-2 hung after its last passing file; not filed, rerun once); synced-tip run 45413057947 green. Report filed; to-test `to-test/2026-11-24-0954-symptom-catalog.md`. Docs folded into timeline.md. No slice in flight; slice 2's worktree removed. B-549 stays claimed.
 
-**Wave 2 (2026-11-24):** boundary done (ingest: nothing new; nothing to propose), sync: already up to date with dev. Slice 2 handed off (e4e6310b, migration 0044_symptom_entry_type, must stay last: regenerate if dev brings a 0044) and merged as b7b7a990. Wave gate: full run 45407562750 was cancelled (components-2 hung after its last passing file, 13:58 → job timeout 14:10; blame: unknown, no failure); re-requested once: green, run 45411480362 on cbb5b074. Slice 2 worktree removed. Dev sync merged (tooling, CI, browser checks; no migration or seed). PR #152 open; Codex out of credits (exit 4): land `--no-review`. Docs folded into timeline.md (fb0cefd8, within budget). Full run on synced tip d3243399 green (45413057947). Browser `--changed`: 5 passed; 6 failed on an unmigrated integration stack (42703: 0044 not applied here), passed after `pnpm datastore:reset` + PowerSync restart. Landing `--tier full --no-review`. Next: green → `pnpm prd rm symptom-catalog-2`, sync, PR, review, land.
+**Next (fresh session):** wave boundary (`pnpm backlog ingest`, `doctor`, `list`), `pnpm prd sync`, then wave 3: slices 3, 5 and 6 together (`pnpm prd slice symptom-catalog <n>` each, opus agents). Give slice 3 the notes below; slices 5 and 6 slice 2's notes.
 
-**Slice 1 hand-off notes, for slice 2:** `symptomTypeService.ensure(ctx, groupId, name)` is ready for the write path (advisory lock on the derived id); extend `symptomTypeService.backfill` with the pointer step; `SYMPTOM_NAME_MAX` is separate from `timelineEntry.ts` so the composite FK has no import cycle; the backfill runs from `scripts/migrate.ts` (not test setup), so integration tests call it directly; migration `0043_symptom_catalog.sql` has a redundant `symptom_type_group_idx` to drop when slice 2 regenerates it (one pending migration for the topic: since 0043 landed, slice 2 adds the next number).
+**Slice 2 hand-off notes, for wave 3:** the entry's pointer is written locally already (`symptomTypeColumn(groupId, content)` in `timeline.sync.ts`; quick entry uses it too). Slice 3 only adds the `symptom_type` row in the same local write, plus its upload entry. Slice 5: filter on the stored `symptom_type_id` (partial index `timeline_entry_symptom_type_idx` on the server; no device index yet, add one if the filter needs it); seeded and fixture symptoms carry pointers. Slice 4 later: keep `symptomTypeColumn` when quick entry matches the catalog. Migration: 0044 is landed, so slice 3 (if it needs one) takes the next number.
 
 **For slice 3:** dev's new `sync-writers` test (`scripts/browser-checks/sync-writers.mjs`) needs an app writer for every uploadable table: add one for `symptom_type` with its upload entry. Also add `symptom_type` to `FIXTURE_SCHEMAS` in `apps/web/test/fixtureShape.ts` (drop its `NO_FIXTURE_SCHEMA` reason) and a case in `packages/api/src/accessSweep.int.test.ts` when it adds the upload entry.
 
@@ -21,7 +21,7 @@
 | Slice | Wave | State       | Merge into `prd/symptom-catalog` (slice commits) |
 | ----- | ---- | ----------- | ------------------------------------------------ |
 | 1     | 1    | landed      | cebc11e8 (9e8dc3d9, 02e638f2)                    |
-| 2     | 2    | merged      | b7b7a990 (e4e6310b)                              |
+| 2     | 2    | landed      | b7b7a990 (e4e6310b)                              |
 | 3     | 3    | not started |                                                  |
 | 4     | 4    | not started |                                                  |
 | 5     | 3    | not started |                                                  |
