@@ -8,7 +8,7 @@ import { CalendarRange, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { MemberAvatar } from "~/components/members";
-import { ChipGroup, CIRCLE, Collapse, Field, ICON_SM, IconButton } from "~/components/ui";
+import { ChipGroup, CIRCLE, Collapse, Field, ICON_SM, IconButton, SEARCH_PLACEHOLDER } from "~/components/ui";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { useGroup } from "~/lib/app-shell/group";
 import { duringChipName, duringText } from "~/lib/care-periods/periodSearch";
@@ -174,7 +174,7 @@ export function FilterChips({
                 type="search"
                 autoComplete="off"
                 enterKeyHint="search"
-                placeholder="Search entries"
+                placeholder={SEARCH_PLACEHOLDER}
                 className="input input-sm w-full rounded-full"
                 value={field.value}
                 onChange={(e) => field.change(e.currentTarget.value)}
