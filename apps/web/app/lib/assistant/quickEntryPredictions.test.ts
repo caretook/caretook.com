@@ -103,6 +103,20 @@ describe("usualAtHour", () => {
     expect(usualAtHour(entries, NOW, ZONE)[0]).toMatchObject({ label: "knee pain", fill: "knee pain " });
   });
 
+  it("counts both spellings of a symptom as one name", () => {
+    // Four knee pains in any case or spacing outnumber three "Nausea"s only together.
+    const entries = [
+      symptom(onDays("08:00", 1)[0]!, "Knee pain"),
+      symptom(onDays("08:00", 2)[0]!, "Nausea"),
+      symptom(onDays("08:00", 3)[0]!, "knee  pain"),
+      symptom(onDays("08:00", 4)[0]!, "Nausea"),
+      symptom(onDays("08:00", 5)[0]!, "KNEE PAIN"),
+      symptom(onDays("08:00", 6)[0]!, "Nausea"),
+      symptom(onDays("08:00", 7)[0]!, "Knee  Pain"),
+    ];
+    expect(usualAtHour(entries, NOW, ZONE)[0]).toMatchObject({ key: "symptom", label: "knee pain", days: 7 });
+  });
+
   it("ignores unknown vital types, odd details and bad times", () => {
     const entries = [
       ...onDays("08:00", 1, 2, 3).map((at) => vitals(at, "telepathy")),

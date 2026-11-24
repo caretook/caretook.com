@@ -4,9 +4,11 @@
 
 ## Status
 
-**Where it stands (hand-over, 2026-11-24):** **wave 2 landed** in dev as 7cff84e1 (PR #152, tier full, `--no-review`: Codex out of credits). Gate: run 45411480362 green after one cancelled run (components-2 hung after its last passing file; not filed, rerun once); synced-tip run 45413057947 green. Report filed; to-test `to-test/2026-11-24-0954-symptom-catalog.md`. Docs folded into timeline.md. No slice in flight; slice 2's worktree removed. B-549 stays claimed.
+**Where it stands (2026-11-24, wave 3 merged):** wave 2 landed in dev as 7cff84e1 (PR #152). Wave boundary done (nothing new; filed B-756 (fixes-ui): the empty filtered list names no symptoms; B-758 (this topic, triaged): the similar-name check's words-inside rule asks too often, e.g. "Knee pain" offers "Pain"). Wave 3: all three slices handed off (opus agents) and merged in plan order: slice 3 (3c3f8466) as 8e7cca8f, slice 5 (d78e5483) as 27ad45f3, slice 6 (0202848a) as 625e47ec; `timeline.sync.ts` auto-merged. Worktrees `symptom-catalog-3`, `-5`, `-6` kept until the wave run is green. No migration in this wave.
 
-**Next (fresh session):** wave boundary (`pnpm backlog ingest`, `doctor`, `list`), `pnpm prd sync`, then wave 3: slices 3, 5 and 6 together (`pnpm prd slice symptom-catalog <n>` each, opus agents). Give slice 3 the notes below; slices 5 and 6 slice 2's notes.
+**Wave run 45427105181 (components, 89f7aa04): `file`**, one failure, blamed on slice 3: `apps/web/test/device.browser.test.tsx` "a local write updates the screen and queues an upload…" (likely the extra `symptom_type` PUT). Sent back to slice 3's agent as a fix request; on its hand-off, merge `slice/symptom-catalog/3` again and rerun `components`. **Next after green:**; it must include `timelineFilters.browser.test.tsx`, `timelineSheets`, `timelineEasyTiles`, `timelineSheetUrls` (touched indirectly). On green: `pnpm prd rm` the three worktrees, `pnpm prd sync`, synced-tip run, PR, review, land, report. Then wave 4 (slice 4) in a fresh session.
+
+**For slice 4 (from slice 3):** `quickEntry.sync.ts` doesn't add the catalog row locally yet; call `addSymptomTypeIn(tx, …)` (`symptomTypes.sync.ts`) inside its transaction. Keep `symptomTypeColumn`.
 
 **Slice 2 hand-off notes, for wave 3:** the entry's pointer is written locally already (`symptomTypeColumn(groupId, content)` in `timeline.sync.ts`; quick entry uses it too). Slice 3 only adds the `symptom_type` row in the same local write, plus its upload entry. Slice 5: filter on the stored `symptom_type_id` (partial index `timeline_entry_symptom_type_idx` on the server; no device index yet, add one if the filter needs it); seeded and fixture symptoms carry pointers. Slice 4 later: keep `symptomTypeColumn` when quick entry matches the catalog. Migration: 0044 is landed, so slice 3 (if it needs one) takes the next number.
 
@@ -22,10 +24,10 @@
 | ----- | ---- | ----------- | ------------------------------------------------ |
 | 1     | 1    | landed      | cebc11e8 (9e8dc3d9, 02e638f2)                    |
 | 2     | 2    | landed      | b7b7a990 (e4e6310b)                              |
-| 3     | 3    | not started |                                                  |
+| 3     | 3    | merged      |                                                  |
 | 4     | 4    | not started |                                                  |
-| 5     | 3    | not started |                                                  |
-| 6     | 3    | not started |                                                  |
+| 5     | 3    | merged      |                                                  |
+| 6     | 3    | merged      |                                                  |
 
 **Backlog:** claim B-549 when slice 1 starts; run `pnpm backlog done B-549` when the last slice merges.
 

@@ -139,5 +139,11 @@ export const onlySheetChanged = (groupId: string, current: URL, next: URL) => {
   if (!within(current.pathname, base) || !within(next.pathname, base)) return false;
   const [a, b] = [parseFilters(current.search), parseFilters(next.search)];
   const dayOf = (url: URL) => url.searchParams.get(DAY_PARAM);
-  return a.kind === b.kind && a.author === b.author && a.vital === b.vital && dayOf(current) === dayOf(next);
+  return (
+    a.kind === b.kind &&
+    a.author === b.author &&
+    a.vital === b.vital &&
+    a.symptoms.join(",") === b.symptoms.join(",") &&
+    dayOf(current) === dayOf(next)
+  );
 };

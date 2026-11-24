@@ -107,6 +107,8 @@ export const timelineEntries = sqliteTable(
   (t) => [
     index("timeline_entry_group_occurred").on(t.groupId, t.occurredAt),
     index("timeline_entry_series").on(t.seriesId),
+    // The symptom-type filter, and the types a group has entries of (symptom-catalog).
+    index("timeline_entry_group_symptom_type").on(t.groupId, t.symptomTypeId),
   ],
 );
 
