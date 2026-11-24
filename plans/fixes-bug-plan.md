@@ -108,6 +108,9 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 62    | B-729 | landed (test only)                         | 7c92d280 |
 | 63    | B-726 | landed                                     | 731dd3fa |
 | 64    | B-728 | landed (ask a168, vetoable)                | 5f29ce60 |
+| 65    | B-715 | started (opus)                             |          |
+| 66    | B-689 | started (opus)                             |          |
+| 67    | B-690 | started (opus)                             |          |
 
 **Wave 12 (slices 49–61, all on opus):** resumed after a rotation; git matched _Status_, no slice in flight, already up to date with dev. **Held for a later wave:** B-689, B-690 and B-715, because member-avatars holds `routes/app/groups/planner/`. New York run of the nine other zone files on b21f66d2: 25 of 93 tests fail. Most hard-code Los Angeles times; B-708's all-day day (Jul 24 for Jul 25) may be a real bug, so each slice decides from evidence.
 
@@ -132,7 +135,7 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Next session (wave 14):** `pnpm prd sync`, ingest, recheck hot files (`pnpm backlog prd list`). The only waiting items are B-689, B-690 and B-715, all held while member-avatars (`running`, its slice 4 handed off) holds `routes/app/groups/planner/`. If it still runs, ask its orchestrator (ListAgents, SendMessage) to message at landing and set a background watch that exits when its row leaves `running`; write wave 14 from the three once it clears. If ask a168 is vetoed, B-728 goes back as a new slice.
 
-**Wave 14 waiting (2026-11-24, resumed after an interruption; git matched _Status_, no slice worktree, inbox empty).** `prd/fixes-bug` is 12 commits behind dev (sync at wave start). Ask a168 not vetoed (defaulted to A). Only B-689, B-690, B-715 wait, all held by member-avatars (`running`, slice 4 handed off; its CI on 054bb015 was `brake`). Its orchestrator `member-avatars-4c` was asked to message `fixes-bug-69` at landing; a background watch exits when its row leaves `running`. It replied: its last wave (slice 4) is merged and waiting on `components` CI; its Planner changes touch `PlannerHeader`, `UpcomingRow`, `UpcomingRowParts`, `planner/route.tsx` and `past/route.tsx` (expect B-689/B-690 to build on those after the sync). **Next:** `pnpm prd sync`, ingest, write slices 65-67 (B-689, B-690, B-715, on opus), set hot files, run the wave.
+**Wave 14 waiting (2026-11-24, resumed after an interruption; git matched _Status_, no slice worktree, inbox empty).** `prd/fixes-bug` is 12 commits behind dev (sync at wave start). Ask a168 not vetoed (defaulted to A). Only B-689, B-690, B-715 wait, all held by member-avatars (`running`, slice 4 handed off; its CI on 054bb015 was `brake`). Its orchestrator `member-avatars-4c` was asked to message `fixes-bug-69` at landing; a background watch exits when its row leaves `running`. It replied: its last wave (slice 4) is merged and waiting on `components` CI; its Planner changes touch `PlannerHeader`, `UpcomingRow`, `UpcomingRowParts`, `planner/route.tsx` and `past/route.tsx` (expect B-689/B-690 to build on those after the sync). **member-avatars landed as 7d69b3ba (PR #138);** `prd sync --force` merged dev as 8ad25909 (no migration; needed for its Planner code). Wave 14 written: slices 65 (B-715), 66 (B-689), 67 (B-690), all on opus, run at once.
 
 ## Wave 1
 
@@ -784,3 +787,42 @@ Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain
 - An all-day visit keeps its series day (no zone shift).
 - Leave `SeriesEditSheet`'s start and end pickers as they are (they use the series' zone; a separate item if anything).
 - Component test in `entryRepeat.browser.test.tsx`: a late-evening Los Angeles visit read in New York shows the next day; it passes under both `TZ=America/New_York` and `TZ=America/Los_Angeles` (with `CARETOOK_TEST_ZONE` set to match).
+
+## Wave 14
+
+As before: **first confirm the bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it and change no app code. member-avatars has landed (7d69b3ba), so the Planner folder is free; its author circles there are now `MemberAvatar`/`AuthorCircle` from `components/entry/KindIcon.tsx`: leave them as they are. Stay out of `vitest.config.ts`, `scripts/ci/` and inbox-agent's hot files (`pnpm backlog prd list`). The three slices run at once and all touch the Planner: keep each change to its own item, and put new tests in the slice's own test file (named below) rather than in `planner.browser.test.tsx`, except slice 65, which owns that file.
+
+### Slice 65: the Planner component test passes in New York (B-715)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/appointments.md · Tests: component
+
+`apps/web/app/routes/app/groups/planner/planner.browser.test.tsx` fails under `TZ=America/New_York` (CI zone runs on ef58007e and f57458d5). Wave 12's other zone files (B-706 to B-714) were all test-only: hard-coded Los Angeles times. Decide from evidence: run it in both zones (`TZ=America/New_York` and `TZ=America/Los_Angeles`, with `CARETOOK_TEST_ZONE` set to match), and for each failure say whether the test or the app is wrong.
+
+- The file passes in both zones. A test-only fix builds its times from the group's zone instead of the machine's; an app bug found here gets fixed with a test that shows it.
+- Only this file and what it tests; no change to other zone files.
+
+### Slice 66: adding a todo from the Planner lands on Todos (B-689)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/todos.md, docs/domain/app-shell.md · Tests: component
+
+The backlog item's note has the code read: `useCloseTodoSheet` (`routes/app/groups/todos/todoSheet.ts`) goes back (`navigate(-1)`) when `TODO_SHEET_STATE` is set, which the Planner's Add menu sets (`PlannerHeader.tsx`), and lands on the Todos list only without it, so the Todos landing is the fallback, not the design.
+
+- A successful save from the Planner's Add > Todo (from Upcoming or from Past) always lands on `appUrls.todos(groupId, listSearch(search))` with `replace`, so Back doesn't reopen the form. Mark the intent in the link state (its own field).
+- Cancel, Escape and a tap outside still return to the opener tab.
+- Other openers of the sheet keep returning where they were: quick entry's Edit on the timeline, `LinkedTodos`, a todo's page.
+- A kept Todos filter (Mine, Unassigned) doesn't hide the new todo right after landing; if it would, say how you handled it.
+- In `PlannerHeader.tsx` change only the Todo menu item (slice 67 changes the Event one).
+- Component tests in a new `planner/plannerAddTodo.browser.test.tsx`: save from Upcoming and from Past lands on Todos; cancel returns to the tab.
+
+### Slice 67: Planner events return to the Planner (B-690)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/appointments.md, docs/domain/timeline.md · Tests: component
+
+The backlog item's two notes are the spec (code read and the user's decision). Add > Event (`PlannerHeader.tsx`) opens `entries/new?kind=event&when=pick` with no link state; the entry page autosaves and its only exit is a BackLink to the Timeline (`routes/app/groups/entry/route.tsx`); the first save's `navigate(…, { replace: true })` in `useLiveEntry.ts` (one-off and repeating) drops history state.
+
+- **A new event from the Planner:** mark the Planner as the opener in link state and carry it over the first save's replace. While it's set, the back link reads Planner and goes to `appUrls.plannerPast` when the event is past, else `appUrls.planner`, decided on leaving (a time edited on the page counts), by the Planner's own rule (`isUpcoming`/`entryTiming` in `lib/appointments/upcoming.ts`: in progress and today's all-day count as Upcoming). An abandoned unsaved draft returns to the tab it was opened from.
+- **An existing event opened from a Planner row** (Upcoming or Past): the row link passes the opener's full URL (path and search) in history state; the back link reads Planner and returns to that exact URL, filters kept, even after a time edit moves it to the other tab; scroll restored where the router allows.
+- Deleting either kind of event opened from the Planner returns to the Planner (the new one by its time, the existing one to its opener), not the Timeline.
+- A reload keeps the return path if history state survives; a direct link or bookmark keeps the Timeline link, and so does every other way in.
+- In `PlannerHeader.tsx` change only the Event menu item (slice 66 changes the Todo one).
+- Component tests in a new `planner/plannerEventReturn.browser.test.tsx` (or beside the entry page's tests): new past, future and in-progress events, a time changed before leaving, opening from Upcoming and from Past with a filter set, Back after a time edit, delete.
