@@ -224,7 +224,7 @@ describe("an event in one tap, and title chips", () => {
     const before = await counts(device);
     await addFrom("Event");
     await waitUntil(() => device.location().endsWith("?kind=event") && editorFocused(), "the draft");
-    await expect.poll(() => TITLE()?.placeholder).toBe("Title");
+    await expect.poll(() => TITLE()?.placeholder).toBe("Enter a title to save");
     await waitUntil(() => CHIPS().length > 0, "the chips");
     expect(CHIPS().map((b) => b.textContent?.trim())).toContain("Physical therapy");
     await device.settle();
@@ -554,8 +554,10 @@ describe("appointments", () => {
     d.setHours(9, 0, 0, 0);
     return d;
   };
-  const pickAheadDay = async () => {
-    const d = ahead();
+  /** In the open calendar, pick the day `days` from today (the calendar's own close is the caller's to wait on). */
+  const pickAheadDay = async (days = 3) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
     const heading = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
     await waitUntil(() => !!CHIP_DIALOG() && !!GRID(), "the calendar");
     const calHeading = () => GRID()!.closest("[role=dialog]")!.querySelector("h2")!.textContent.trim();
@@ -564,33 +566,74 @@ describe("appointments", () => {
         await found(() => GRID()?.closest("[role=dialog]")?.querySelector('[aria-label="Next month"]')),
       );
     await waitUntil(() => calHeading() === heading);
-    const cell = [...document.querySelectorAll("[role=grid] [role=gridcell] > *")].find(
-      (c) => c.textContent?.trim() === String(d.getDate()) && !c.hasAttribute("data-outside-month"),
-    )!;
+    const cell = await found(() =>
+      [...document.querySelectorAll("[role=grid] [role=gridcell] > *")].find(
+        (c) => c.textContent?.trim() === String(d.getDate()) && !c.hasAttribute("data-outside-month"),
+      ),
+    );
     await userEvent.click(cell);
-    await waitUntil(() => !GRID() && !!seg("hour"), "the time segments");
   };
 
-  test("?when=pick opens the calendar on arrival; a picked day starts at the current hour; leaving saves nothing; a title saves it then", async () => {
+  // B-692: on Add event, the first day picked closes the picker and asks for the title.
+  test('?when=pick opens the calendar on arrival; the first day picked starts at the current hour, closes the popover and focuses the title ("Enter a title to save"); leaving saves nothing; a title saves it then', async () => {
     const hour = new Date().getHours();
     const start = ahead();
     start.setHours(hour, 0, 0, 0);
     const device = await open(`/app/groups/${GROUP}/entries/new?kind=event&when=pick`);
     await pickAheadDay();
-    expect(`${seg("hour")?.textContent}:${seg("minute")?.textContent}`).toBe(`${hour % 12 || 12}:00`);
-    await userEvent.click(await found(() => button("Done")));
-    await waitUntil(() => !CHIP_DIALOG());
+    await waitUntil(() => !CHIP_DIALOG(), "the popover to close");
+    await waitUntil(() => !!TITLE() && document.activeElement === TITLE(), "focus on the title");
+    const title = TITLE()!;
+    expect(title.placeholder).toBe("Enter a title to save");
+    expect(title.labels?.[0]?.textContent).toBe("Title");
     expect(new Date(HEADER_TIME()?.dateTime ?? "").getTime()).toBe(start.getTime());
+    // Focus stays on the title once the popover has gone.
+    await device.settle();
+    expect(document.activeElement).toBe(title);
     expect(device.location()).toMatch(/\/entries\/new/);
     expect((await device.queued()).length).toBe(0);
 
-    (await found(TITLE)).focus();
     await userEvent.keyboard("Eye appointment");
     (await found(TITLE)).blur();
     await expect.poll(() => device.location()).toMatch(ON_ENTRY);
     await expect
       .poll(async () => Date.parse((await stored(device, idOf(device.location())))!.occurred_at))
       .toBe(start.getTime());
+  });
+
+  test("after the first pick, reopening the time chip and picking another day keeps the popover open, focus in it; a saved event's placeholder is unchanged", async () => {
+    const hour = new Date().getHours();
+    const later = ahead();
+    later.setDate(later.getDate() + 2);
+    later.setHours(hour, 0, 0, 0);
+    const device = await open(`/app/groups/${GROUP}/entries/new?kind=event&when=pick`);
+    await pickAheadDay();
+    await waitUntil(() => !CHIP_DIALOG() && document.activeElement === TITLE(), "focus on the title");
+
+    await userEvent.click(await found(TIME_CHIP));
+    await userEvent.click(await found(PICK_DATE));
+    await pickAheadDay(5);
+    await waitUntil(() => !GRID() && !!seg("hour"), "the calendar to close");
+    await device.settle();
+    expect(CHIP_DIALOG()?.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement).toBe(PICK_DATE());
+    // The time picked first stays (the current hour applies to the first pick only).
+    expect(`${seg("hour")?.textContent}:${seg("minute")?.textContent}`).toBe(`${hour % 12 || 12}:00`);
+    await userEvent.click(await found(() => button("Done")));
+    await waitUntil(() => !CHIP_DIALOG());
+    expect(new Date(HEADER_TIME()?.dateTime ?? "").getTime()).toBe(later.getTime());
+    expect(TITLE()?.placeholder).toBe("Enter a title to save");
+    await device.screen.unmount();
+
+    // Saved events keep theirs: an unnamed one "Add a title", a named one "Title".
+    const unnamed = fx.event({ title: "Event", occurredAt: at(ahead()), text: "" });
+    const named = fx.event({ title: "Dentist", occurredAt: at(ahead()), text: "" });
+    const saved = await open(entryPath(unnamed.id), { fixtures: [base(), unnamed, named] });
+    await expect.poll(() => TITLE()?.placeholder).toBe("Add a title");
+    await saved.screen.unmount();
+    await open(entryPath(named.id), { fixtures: [base(), unnamed, named] });
+    await expect.poll(() => TITLE()?.value).toBe("Dentist");
+    expect(TITLE()?.placeholder).toBe("Title");
   });
 
   test("an event's minutes step by 15 from a saved 9:10, which stays until stepped", async () => {

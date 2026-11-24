@@ -59,7 +59,9 @@ const InlineCalendarsContext = createContext<{
  * "day" shows the date alone (an all-day item). `dayPickTime` sets the time
  * the first time the day changes (an appointment whose day is picked first
  * starts at 9:00); after that, picking a day keeps the time as usual.
- * `calendarOpen` opens the calendar as the field mounts. `timeZone` shows
+ * `calendarOpen` opens the calendar as the field mounts. `onCalendarPick`
+ * is called after a day is picked in the calendar (not typed), once
+ * `onChange` has the new value. `timeZone` shows
  * and edits the time in that zone (the care recipient's) instead of the
  * device's. `minuteStep` makes the minute segment's step keys move on that
  * grid (:10 goes to :15 or :00); a typed or saved minute stays as it is.
@@ -77,6 +79,7 @@ export function DateTimeField({
   granularity = "minute",
   dayPickTime,
   calendarOpen,
+  onCalendarPick,
   timeZone,
   minuteStep,
 }: {
@@ -93,6 +96,8 @@ export function DateTimeField({
   dayPickTime?: { hour: number; minute: number };
   /** Open the calendar on mount. */
   calendarOpen?: boolean;
+  /** A day was picked in the calendar (after `onChange`). */
+  onCalendarPick?: () => void;
   /** The IANA zone the time is shown and typed in; the device's by default. */
   timeZone?: string;
   /** The minutes the step keys move by. */
@@ -222,10 +227,10 @@ export function DateTimeField({
       </Group>
       <FieldError className={FIELD_ERROR}>{error}</FieldError>
       {inline ? (
-        open && <MonthCalendar inline />
+        open && <MonthCalendar inline onPick={onCalendarPick} />
       ) : (
         <PopoverPanel placement="bottom end">
-          <MonthCalendar />
+          <MonthCalendar onPick={onCalendarPick} />
         </PopoverPanel>
       )}
     </DatePicker>
@@ -233,9 +238,10 @@ export function DateTimeField({
 }
 
 /** The month calendar, in the field's popover or inline below it. */
-function MonthCalendar({ inline = false }: { inline?: boolean }) {
+function MonthCalendar({ inline = false, onPick }: { inline?: boolean; onPick?: () => void }) {
   return (
-    <Calendar className={inline ? "w-full" : "w-72 max-w-full"}>
+    // React Aria chains this after the picker's own onChange (which sets the value).
+    <Calendar className={inline ? "w-full" : "w-72 max-w-full"} onChange={onPick && (() => onPick())}>
       <header className="mb-2 flex items-center gap-1">
         <Button slot="previous" aria-label="Previous month" className={ICON_BUTTON}>
           <ChevronLeft className="size-4" aria-hidden="true" />
