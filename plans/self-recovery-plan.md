@@ -4,22 +4,24 @@
 
 ## Status
 
-| Slice | Wave | State          | Merge into `prd/self-recovery` (slice commits)                                              |
-| ----- | ---- | -------------- | ------------------------------------------------------------------------------------------- |
-| 1     | 1    | merged (opus)  | 160c54d7 (c1fe984d)                                                                         |
-| 2     | 1    | merged (opus)  | 997e1b2e (24ec786e); conflicts in inventory.mjs, its test, recover.sh resolved keeping both |
-| 3     | 1    | merged (opus)  | 2221f009 (67595728)                                                                         |
-| 4     | 2    | merged (opus)  | 6addf780 (0dbc6afb)                                                                         |
-| 5     | 2    | started (opus) | —                                                                                           |
-| 6     | 3    | —              | —                                                                                           |
+| Slice | Wave | State         | Merge into `prd/self-recovery` (slice commits)                                              |
+| ----- | ---- | ------------- | ------------------------------------------------------------------------------------------- |
+| 1     | 1    | merged (opus) | 160c54d7 (c1fe984d)                                                                         |
+| 2     | 1    | merged (opus) | 997e1b2e (24ec786e); conflicts in inventory.mjs, its test, recover.sh resolved keeping both |
+| 3     | 1    | merged (opus) | 2221f009 (67595728)                                                                         |
+| 4     | 2    | merged (opus) | 6addf780 (0dbc6afb)                                                                         |
+| 5     | 2    | merged (opus) | 3591bb90 (68db32a5, 8e254a89)                                                               |
+| 6     | 3    | —             | —                                                                                           |
 
 **Landing mode:** run everything through (started by the dispatcher, 2026-11-24): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
 
-**Now (2026-11-24):** wave 1 **landed** in dev as fcdcf55c (PR #169). **Wave 2 under way:** slice 4 handed off (quick check green, 2219 tests) and merged. boundary done (ingest: nothing new; sync: up to date), worktrees `self-recovery-4` and `-5` made from a1a671b2, both agents spawned on opus with the notes below; watch running. Next: review hand-offs, merge 4 then 5, CI run at the proposed tier (tooling-only: `pnpm test:tooling`), PR, land.
+**Now (2026-11-24):** wave 1 **landed** in dev as fcdcf55c (PR #169). **Wave 2 under way:** slice 4 handed off (quick check green, 2219 tests) and merged; slice 5 handed off (quick check green, 2208 tests) and merged clean. Gate: `pnpm test:tooling` + `pnpm exec eslint scripts` on the tip. boundary done (ingest: nothing new; sync: up to date), worktrees `self-recovery-4` and `-5` made from a1a671b2, both agents spawned on opus with the notes below; watch running. Next: review hand-offs, merge 4 then 5, CI run at the proposed tier (tooling-only: `pnpm test:tooling`), PR, land.
 
 **Wave 1 docs:** folded into recovery.md (usage reading there, not machinery.md, which is at its budget). **Notes for later slices:** for slice 4: read `recover.running/pid` from inventory facts, call `recover --unattended`, 75 = already running, back-off so failed runs don't each file a report. For slice 5: no subscriber overage flag, `overage` = a plan window at 100%; end a session with `markStalled(dir, name, {error: "limited", pid})`. For slice 6: `clearStalled` on resume.
 
 **Slice 4 fold (recovery.md, machinery.md):** `down --stay [<why>]` writes `.loops/.stay-down.json`; recover `--unattended` with it exits 0, a hand recover clears it; `CARETOOK_RECOVER_REPORT=off`; `pnpm prd autostart install|remove|status` (LaunchAgent `com.caretook.prd-watchdog`, every 300 s, RunAtLoad, log `.loops/.watchdog.log`); `pnpm prd watchdog [--dry-run]` (state `.loops/.watchdog.json`, back-off 10/20/30 min, one report per incident, 75 neither). A closed hand-opened tab reads as a crash (one recover). Slice 4's `limitedOf` may give way to slice 5's drain decision. Pre-existing: `prd.sh help` prints `line 17: design: command not found`.
+
+**Slice 5 fold:** machinery.md _The dispatcher_: the drain step (`CARETOOK_USAGE_DRAIN` 85, `CARETOOK_USAGE_STOP` 98, overage = a window at 100%; draining: no start/plan/reopen, `--resume` doesn't override, `CARETOOK_USAGE_WATCH=off` does; limited: managed sessions marked stalled `error: limited`, TERM then KILL a tick later, never one in a landing; one report naming hand-opened sessions; no claude opens while limited; unknown reading files one report). orchestrator.md: `pnpm prd slice` is refused while draining, so wait for the reset. For slice 6: `clearStalled` the limited marks after the reset, and claim those sessions before the ordinary reopen rule counts them as reopens; slice 4's `limitedOf` could use `readDrain`/`probeAllowed` (follow-up).
 
 **Backlog:** claim B-407 when slice 1 starts, B-462 and B-463 when slice 2 starts, B-433 when slice 3 starts. `done` B-462 and B-463 when slice 2 merges, B-433 when slice 3 merges, B-407 when the last of slices 1, 2, 4, 5 and 6 merges.
 
