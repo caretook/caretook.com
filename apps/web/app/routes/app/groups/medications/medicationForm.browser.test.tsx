@@ -218,11 +218,10 @@ describe("adding", () => {
     await waitUntil(() => !!FORM(), "the add sheet");
     await userEvent.click(await found(() => scheduleType("scheduled")));
     await waitUntil(() => !!FORM()?.querySelector("[data-schedule-passes]"), "the passes");
-    expect(
-      [...FORM()!.querySelectorAll("[data-pass-slot]")].map((li) =>
-        li.querySelector("label")?.textContent?.trim(),
-      ),
-    ).toEqual(["Morning 8:00", "Evening 20:00"]);
+    const names = [...(FORM()?.querySelectorAll("[data-pass-slot]") ?? [])].map((li) =>
+      li.querySelector("label")?.textContent?.trim(),
+    );
+    expect(names).toEqual(["Morning 8:00", "Evening 20:00"]);
     expect(FORM()?.querySelectorAll('[data-pass-slot] input[type="checkbox"]:checked')).toHaveLength(0);
     expect(times()).toHaveLength(0);
     expect(scheduleType("scheduled").checked).toBe(true);
