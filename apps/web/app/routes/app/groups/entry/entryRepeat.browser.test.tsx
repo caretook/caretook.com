@@ -156,6 +156,21 @@ describe("the repeat field", () => {
     expect(REPEAT_BUTTON()?.getAttribute("aria-label")).toBe("Repeat: Doesn't repeat");
     expect(await device.queued()).toEqual([]);
   });
+
+  test("a late-evening Los Angeles visit reads on the viewer's day and time", async () => {
+    // Wed 2026-11-18, 10:00 PM in Los Angeles: Thu 1:00 AM in New York.
+    vi.setSystemTime(new Date("2026-11-19T06:00:00.000Z"));
+    await open(NEW_EVENT);
+    await openRepeat();
+    await choose("weekly");
+    expect(PREVIEW_TEXT()).toBe("Every Wed at 22:00");
+    const inNewYork = Intl.DateTimeFormat().resolvedOptions().timeZone === "America/New_York";
+    expect(PREVIEW_NEXT()).toEqual(
+      inNewYork
+        ? ["Thu, Nov 19, 1:00 AM", "Thu, Nov 26, 1:00 AM", "Thu, Dec 3, 1:00 AM"]
+        : ["Wed, Nov 18, 10:00 PM", "Wed, Nov 25, 10:00 PM", "Wed, Dec 2, 10:00 PM"],
+    );
+  });
 });
 
 describe("saving a series", () => {

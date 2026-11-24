@@ -22,18 +22,19 @@ import {
   UNIT_LABELS,
 } from "~/lib/appointments/repeatChoice";
 
-const visitDay = new Intl.DateTimeFormat(undefined, {
-  weekday: "short",
-  month: "short",
-  day: "numeric",
-  timeZone: "UTC",
-});
+const DAY_PARTS = { weekday: "short", month: "short", day: "numeric" } as const;
+const seriesDay = new Intl.DateTimeFormat(undefined, { ...DAY_PARTS, timeZone: "UTC" });
+const viewerDay = new Intl.DateTimeFormat(undefined, DAY_PARTS);
 
-/** A preview line's day ("Wed, Nov 18") and, when timed, its time in the viewer's zone. */
-const visitLabel = (visit: { day: string; start: string }, allDay: boolean) => {
-  const day = visitDay.format(new Date(`${visit.day}T12:00:00Z`));
-  return allDay ? day : `${day}, ${formatTime(visit.start)}`;
-};
+/**
+ * A preview line: an all-day visit's series day ("Wed, Nov 18"); a timed visit's
+ * start instant, day and time both in the viewer's zone, as the Planner shows it
+ * (a Wed 10 PM Los Angeles visit is "Thu, Nov 19, 1:00 AM" in New York).
+ */
+const visitLabel = (visit: { day: string; start: string }, allDay: boolean) =>
+  allDay
+    ? seriesDay.format(new Date(`${visit.day}T12:00:00Z`))
+    : `${viewerDay.format(new Date(visit.start))}, ${formatTime(visit.start)}`;
 
 /** What repeats: an appointment's visits, or a repeating todo (planner-2), counted in times. */
 export type RepeatKind = "event" | "note" | "todo";
