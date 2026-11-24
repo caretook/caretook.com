@@ -95,7 +95,9 @@ describe("Menu's section headings", () => {
     const gap = second.getBoundingClientRect().top - cards.element().getBoundingClientRect().bottom;
     expect(gap).toBeGreaterThanOrEqual(8);
     // The first heading: no room added above its section, only its own top padding.
-    expect(getComputedStyle(first.parentElement!).marginTop).toBe("0px");
+    const firstSection = first.parentElement;
+    if (!firstSection) throw new Error("no section around Layout");
+    expect(getComputedStyle(firstSection).marginTop).toBe("0px");
     expect(getComputedStyle(first).paddingTop).toBe("4px");
   });
 });
