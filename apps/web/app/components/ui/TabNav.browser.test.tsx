@@ -159,9 +159,11 @@ describe("TabNav", () => {
       .getByRole("link")
       .elements()
       .map((l) => l.getBoundingClientRect());
-    expect(Math.abs(rects[0]!.left - b.left)).toBeLessThanOrEqual(border + 0.5);
-    for (let i = 1; i < rects.length; i++)
-      expect(Math.abs(rects[i]!.left - rects[i - 1]!.right)).toBeLessThan(1);
+    const lefts = rects.map((r) => r.left);
+    const rights = rects.map((r) => r.right);
+    expect(Math.abs(Math.min(...lefts) - b.left)).toBeLessThanOrEqual(border + 0.5);
+    const gaps = lefts.slice(1).map((left, i) => Math.abs(left - (rights[i] ?? left)));
+    expect(Math.max(...gaps)).toBeLessThan(1);
     // Keyboard focus draws the ring inside the tab, where the bar's clip can't hide it.
     (nav().getByRole("link", { name: "Schedule" }).element() as HTMLElement).focus();
     await userEvent.tab();
