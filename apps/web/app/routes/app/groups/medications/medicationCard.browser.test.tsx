@@ -55,15 +55,9 @@ const STOPPED = fx.medication({
   stoppedOn: "2027-05-20",
 });
 
-/** Where the list's Log goes, so landing on it shows. */
-const DOSE_SHEET = {
-  path: "/app/groups/:groupId/timeline/new/dose",
-  module: { default: () => <p data-dose-sheet /> },
-};
-
 const open = async (url: string, role: "caretaker" | "viewer" = "caretaker", fixtures: Fixture[] = []) =>
   renderWithDevice({
-    route: [...MEDICATION_ROUTES, DOSE_SHEET],
+    route: MEDICATION_ROUTES,
     url,
     role,
     fixtures: [RECIPIENT_HERE, DONEPEZIL, ONDANSETRON, STOPPED, ...fixtures],
@@ -120,7 +114,7 @@ describe("on the list", () => {
   test("Log on a scheduled medication opens the Dose sheet on it", async () => {
     const device = await open(LIST);
     await userEvent.click(await found(() => listRow(DONEPEZIL.id)?.querySelector("[data-log-dose]")));
-    await expect.poll(() => device.location()).toBe(appUrls.newDose(GROUP, { medicationId: DONEPEZIL.id }));
+    await expect.poll(() => device.location()).toBe(appUrls.medicationListDose(GROUP, DONEPEZIL.id));
     expect(await doses(device)).toHaveLength(0);
   });
 

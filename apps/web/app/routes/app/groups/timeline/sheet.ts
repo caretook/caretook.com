@@ -31,12 +31,14 @@ export { SHEET_LINK_STATE } from "~/lib/timeline/timelineSheet";
  *   it ahead of you (Back after a save doesn't reopen it, and doesn't stay
  *   on a second copy of the timeline either);
  * - opened from a link or a bookmark (the first page loaded): replace it
- *   with the timeline, keeping its filters.
+ *   with the timeline, keeping its filters, or with `home` (the page it
+ *   sits over when that isn't the timeline: the Dose sheet over the
+ *   Medications list).
  *
  * Only the first call counts, so a save and a dismissal together never go
  * back twice.
  */
-export function useCloseSheet() {
+export function useCloseSheet(home?: string) {
   const navigate = useNavigate();
   const location = useLocation();
   const state: unknown = location.state;
@@ -48,9 +50,9 @@ export function useCloseSheet() {
     closed.current = true;
     if (openedOverTimeline(state)) void navigate(-1);
     else
-      void navigate(appUrls.timeline(id, withoutSheetParams(search)), {
+      void navigate(home ?? appUrls.timeline(id, withoutSheetParams(search)), {
         replace: true,
         preventScrollReset: true,
       });
-  }, [navigate, state, search, id]);
+  }, [navigate, state, search, id, home]);
 }

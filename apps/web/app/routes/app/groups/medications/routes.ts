@@ -23,7 +23,11 @@ export const medicationRoutes: RouteConfigEntry[] = [
   route("medications", "routes/app/groups/medications/route.tsx", [
     // Static segments, so they rank above `medications/:medicationId`.
     route("schedule", "routes/app/groups/medications/schedule/route.tsx", sheets("schedule")),
-    route("list", "routes/app/groups/medications/list/route.tsx", sheets("list")),
+    // The list's Log opens the timeline's Dose sheet over the list, which it closes back onto.
+    route("list", "routes/app/groups/medications/list/route.tsx", [
+      ...sheets("list"),
+      route("dose", "routes/app/groups/timeline/new-dose/route.tsx", { id: "medications-list-dose" }),
+    ]),
     // The group's medication passes (Morning, Evening…); editing one is a sheet in the tab.
     route("passes", "routes/app/groups/medications/passes/route.tsx", [
       route("new", "routes/app/groups/medications/passes/new/route.tsx"),

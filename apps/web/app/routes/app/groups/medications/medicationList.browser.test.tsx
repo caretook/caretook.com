@@ -3,8 +3,12 @@ import { page, userEvent } from "vitest/browser";
 import { renderWithDevice } from "../../../../../test/device";
 import { pageHeader } from "../../../../../test/pageHeader";
 import { fx } from "../../../../../test/fixtures";
+import { found } from "../../../../../test/found";
+import { appUrls } from "~/lib/app-shell/appUrls";
 import {
   dayAgo,
+  DOSES_SQL,
+  GROUP,
   LIST,
   LISINOPRIL,
   listNames,
@@ -28,7 +32,9 @@ import {
 // is offline throughout, so every screen here is the offline one too. The
 // section current in the tab bar and the header is frame.browser.test.tsx's;
 // the list's order and matching
-// rules are medicationList.test.ts's.
+// rules are medicationList.test.ts's. Log on a scheduled medication opens
+// the Dose sheet over the list, and closing or saving it comes back to the
+// list (B-783); the card's own Log controls are medicationCard.browser.test.tsx's.
 
 const open = (options: Partial<Parameters<typeof renderWithDevice>[0]> = {}) =>
   renderWithDevice({ route: MEDICATION_ROUTES, url: LIST, fixtures: world(), ...options });
@@ -294,5 +300,55 @@ describe("the list", () => {
       .poll(() => listNames(CURRENT))
       .toEqual(SEEDED_CURRENT.filter((n) => !n.startsWith("Lisinopril")));
     await expect.poll(() => listNames(STOPPED)).toContain("Lisinopril 10 mg");
+  });
+});
+
+describe("Log on a scheduled medication", () => {
+  const SHEET = () => page.getByRole("dialog", { name: "Log a dose" });
+  const SHEET_OPEN = () => !!document.querySelector('[role="dialog"]');
+  const lisinoprilLog = () =>
+    document.querySelector<HTMLElement>(`main li[data-medication-id="${LISINOPRIL.id}"] [data-log-dose]`);
+  const lisinoprilDoses = async (device: { query: <T>(sql: string) => Promise<T[]> }) =>
+    (await device.query<{ medicationId: string }>(DOSES_SQL)).filter((d) => d.medicationId === LISINOPRIL.id);
+
+  test("opens the Dose sheet on it over the list (search kept); Cancel and Escape close back onto the list", async () => {
+    const device = await open({ url: `${LIST}?q=lis` });
+    for (const close of [
+      () => userEvent.click(SHEET().getByRole("button", { name: "Cancel" })),
+      () => userEvent.keyboard("{Escape}"),
+    ]) {
+      await userEvent.click(await found(lisinoprilLog));
+      await expect.element(SHEET()).toBeVisible();
+      expect(device.location()).toBe(appUrls.medicationListDose(GROUP, LISINOPRIL.id, "?q=lis"));
+      // The list stays underneath, filtered as it was.
+      expect(listNames(CURRENT)).toEqual(["Lisinopril 10 mg"]);
+      await close();
+      await expect.poll(() => !SHEET_OPEN() && device.location()).toBe(`${LIST}?q=lis`);
+      expect(listNames(CURRENT)).toEqual(["Lisinopril 10 mg"]);
+    }
+  });
+
+  test("saving a dose from it logs the dose and returns to the list", async () => {
+    const device = await open();
+    const before = (await lisinoprilDoses(device)).length;
+    await userEvent.click(await found(lisinoprilLog));
+    await expect.element(SHEET()).toBeVisible();
+    await userEvent.click(SHEET().getByRole("button", { name: "Log dose" }));
+    await expect.poll(async () => (await lisinoprilDoses(device)).length).toBe(before + 1);
+    await expect.poll(() => !SHEET_OPEN() && device.location()).toBe(LIST);
+    await expect.poll(() => listNames(CURRENT)).toEqual(SEEDED_CURRENT);
+  });
+
+  test("opened from a bookmark, it closes onto the list, search kept", async () => {
+    const device = await open({ url: appUrls.medicationListDose(GROUP, LISINOPRIL.id, "?q=lis") });
+    await expect.element(SHEET()).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => !SHEET_OPEN() && device.location()).toBe(`${LIST}?q=lis`);
+  });
+
+  test("a viewer opening it gets the list", async () => {
+    const device = await open({ role: "viewer", url: appUrls.medicationListDose(GROUP, LISINOPRIL.id) });
+    await expect.poll(() => device.location()).toBe(LIST);
+    expect(SHEET_OPEN()).toBe(false);
   });
 });
