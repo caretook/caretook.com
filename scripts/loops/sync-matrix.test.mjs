@@ -176,3 +176,56 @@ describe("the matrix's column comparison", () => {
     ]);
   });
 });
+
+describe("the matrix's app writers (sync-writers.mjs)", async () => {
+  const { SYNC_WRITERS, matrixIds, writerCall, writtenId } =
+    await import("../browser-checks/sync-writers.mjs");
+  const uploads = uploadTables(read("../../packages/api/src/syncRegistry.ts"));
+
+  /** Every uploadable table with no writer, and every writer for a table that isn't uploadable. */
+  const writerProblems = (writers) => [
+    ...uploads.filter((t) => !writers[t]).map((t) => `${t}: no app writer`),
+    ...Object.keys(writers)
+      .filter((t) => !uploads.includes(t))
+      .map((t) => `${t}: not an uploadable table`),
+    ...Object.entries(writers)
+      .filter(([, w]) => w.by && (!writers[w.by]?.run || !w.id))
+      .map(([t, w]) => `${t}: produced by ${w.by}, which has no writer of its own (or no id)`),
+  ];
+
+  it("gives every uploadable table an app writer, and no other table", () => {
+    expect(writerProblems(SYNC_WRITERS)).toEqual([]);
+  });
+
+  it("fails an uploadable table with no writer, or one produced by a table with none", () => {
+    const { todo: _todo, ...noTodo } = SYNC_WRITERS;
+    expect(writerProblems(noTodo)).toEqual(["todo: no app writer"]);
+    expect(
+      writerProblems({ ...SYNC_WRITERS, condition_manager: { by: "reminder", writer: "x", id: () => "1" } }),
+    ).toEqual(["condition_manager: produced by reminder, which has no writer of its own (or no id)"]);
+  });
+
+  it("orders each writer after the tables whose ids it reads", () => {
+    const order = Object.keys(SYNC_WRITERS);
+    for (const [table, w] of Object.entries(SYNC_WRITERS)) {
+      const source = `${w.run ?? ""}${w.id ?? ""}`;
+      // A produced row's id may read its producer's; a writer reads only those before it.
+      const last = w.by ? order.indexOf(w.by) : order.indexOf(table) - 1;
+      for (const [, used] of source.matchAll(/ids\.([a-z_]+)/g))
+        expect(order.indexOf(used), `${table} reads ${used}`).toBeLessThanOrEqual(last);
+    }
+  });
+
+  it("builds a page expression from each writer's own source, and the link ids from their parents", () => {
+    const ctx = { tag: "T", groupId: "g", recipientId: "r", userId: "u", recorded: false, ids: {} };
+    for (const [table, w] of Object.entries(SYNC_WRITERS))
+      if (w.run) expect(() => new Function(`return ${writerCall(table, ctx)}`)).not.toThrow();
+    expect(() => writerCall("condition_manager", ctx)).toThrow(/no writer of its own/);
+    const ids = { recipient_condition: "c1", provider: "p1", timeline_entry: "e1", medication: "m1" };
+    expect(writtenId("condition_manager", ids)).toBe(conditionManagerId("c1", "p1"));
+    expect(writtenId("timeline_entry_provider", ids)).toBe(entryProviderId("e1", "p1"));
+    expect(writtenId("medication_condition", ids)).toBe(medicationConditionId("m1", "c1"));
+    expect(writtenId("todo", ids, { ok: true, id: "t1" })).toBe("t1");
+    expect(matrixIds({ ...ids, todo: "t1" })).toMatchObject({ entry: "e1", condition: "c1", todo: "t1" });
+  });
+});

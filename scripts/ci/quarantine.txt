@@ -13,5 +13,9 @@ apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx	back from 
 apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx	back from the entry page three pages down, an entry's page and Back: all three pages' rows are there at once, and the next page still loads	B-633
 apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the header the tabs carry what each reads: Upcoming what it shows and the author, Past the author, Todos its chip	B-645
 apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the list an item leaves the Planner tab once its end (in progress) or its start passes, without a reload	B-653
-scripts/loops/lease.test.mjs	pnpm prd check's check lease makes the runs beyond the default limit of two wait, and holders shows who holds what	B-654
 packages/api/src/admin/usersAdmin.int.test.ts	admin.users.get shows the account, its sessions, groups and mail, and nothing from the care tables	B-658
+packages/notifications/src/calendarCron.int.test.ts	/api/cron/calendar runs the reminders first, then Google push and pull, and the series top-up last by default	B-743
+scripts/loops/load-gate.test.mjs	the scripts that wait or warn a slice start waits while busy and starts when the load drops	B-744
+scripts/loops/load-gate.test.mjs	the scripts that wait or warn a slice start goes ahead after the bounded wait and says so	B-745
+scripts/loops/load-gate.test.mjs	the scripts that wait or warn a slice start waits for nothing with CARETOOK_LOAD_GATE=off or CARETOOK_LEASES=off	B-746
+scripts/loops/load-gate.test.mjs	the scripts that wait or warn is off in the tooling tests' shared env (vitest.config.ts), so their slice starts never poll	B-747

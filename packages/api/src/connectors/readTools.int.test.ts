@@ -381,14 +381,19 @@ describe("read tools", { timeout: 60_000 }, () => {
     ).toEqual([["20:00", "upcoming"]]);
   });
 
-  it("todays_doses: agrees with the app's due-doses core for the same data and now, in the recipient's zone", async () => {
-    const now = new Date();
+  // On a fixed clock, so the doses written minutes before it are today in the
+  // recipient's zone at any hour the suite runs (B-642: on the real clock, a run
+  // from 00:00 to 00:10 Los Angeles put the given dose on yesterday). The doses
+  // are written through the model, as the service refuses a time ahead of the
+  // real clock.
+  const agreesWithTheCore = async (now: Date) => {
     const handler = handlerAt(now);
     const w = await world();
     const passes = ok(await medicationPassService.list(w.owner.ctx, { groupId: w.group.id })).data;
     const morning = passes.find((p) => p.name === "Morning")!;
     const evening = passes.find((p) => p.name === "Evening")!;
-    // Started days ago, so both slots are on today's schedule at any hour the test runs.
+    // Started days before the clock, so both slots are on its day's schedule.
+    const daysBefore = { changedAt: new Date(now.getTime() - 72 * 60 * 60_000).toISOString() };
     const aspirin = await addMedication(
       w.caretaker.ctx,
       w.group.id,
@@ -397,34 +402,38 @@ describe("read tools", { timeout: 60_000 }, () => {
         strength: null,
         schedule: { type: "scheduled", slots: [{ passId: morning.id }, { passId: evening.id }] },
       },
-      { changedAt: hoursAgo(72) },
+      daysBefore,
     );
-    const pain = await addMedication(w.caretaker.ctx, w.group.id, {
-      name: "Ibuprofen",
-      strength: null,
-      schedule: { type: "asNeeded", maxPerDay: 3 },
-    });
+    const pain = await addMedication(
+      w.caretaker.ctx,
+      w.group.id,
+      { name: "Ibuprofen", strength: null, schedule: { type: "asNeeded", maxPerDay: 3 } },
+      daysBefore,
+    );
     await addMedication(w.owner.ctx, w.second.group.id, { name: "Elsewhere" });
-    ok(
-      await addEntry(w.caretaker.ctx, w.group.id, {
-        kind: "dose",
-        occurredAt: new Date(now.getTime() - 10 * 60_000).toISOString(),
-        details: {
-          medicationId: aspirin.id,
-          status: "given",
-          amount: "1 tablet",
-          scheduledFor: "08:00",
-          passId: morning.id,
-        },
-      }),
-    );
-    ok(
-      await addEntry(w.caretaker.ctx, w.group.id, {
-        kind: "dose",
-        occurredAt: new Date(now.getTime() - 5 * 60_000).toISOString(),
-        details: { medicationId: pain.id, status: "given", amount: "1 tablet" },
-      }),
-    );
+    const addDose = async (minutesBefore: number, details: Record<string, unknown>) =>
+      ok(
+        await timelineEntryModel.create({
+          ...w.caretaker.ctx,
+          data: {
+            groupId: w.group.id,
+            recipientId: w.recipient.id,
+            kind: "dose",
+            occurredAt: new Date(now.getTime() - minutesBefore * 60_000).toISOString(),
+            timeZone: "America/Los_Angeles",
+            details: details as never,
+          },
+        }),
+      );
+    // Four and two minutes before the clock: today even at 00:05.
+    await addDose(4, {
+      medicationId: aspirin.id,
+      status: "given",
+      amount: "1 tablet",
+      scheduledFor: "08:00",
+      passId: morning.id,
+    });
+    await addDose(2, { medicationId: pain.id, status: "given", amount: "1 tablet" });
     const token = await w.connect(w.viewer);
     const result = await callTool(handler, token, "todays_doses");
     const out = result.structuredContent as {
@@ -481,6 +490,16 @@ describe("read tools", { timeout: 60_000 }, () => {
     ]);
     expect(out.missed.length).toBe(due.missed.length);
     expect(JSON.stringify(result)).not.toContain("Elsewhere");
+  };
+
+  it("todays_doses: agrees with the app's due-doses core for the same data and now, in the recipient's zone", async () => {
+    // 12:00 in Los Angeles.
+    await agreesWithTheCore(new Date("2030-06-12T19:00:00.000Z"));
+  });
+
+  it("todays_doses: agrees with the core at 00:05 in the recipient's zone, the given dose still today", async () => {
+    // 00:05 in Los Angeles: a dose ten minutes before would be yesterday.
+    await agreesWithTheCore(new Date("2030-06-12T07:05:00.000Z"));
   });
 
   it("upcoming: appointments soonest first, in the offset, 30 days by default and 90 at most", async () => {

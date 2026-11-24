@@ -37,6 +37,7 @@ scripts/browser-checks/fixtures.mjs      sign-in ui phase2 roundtrip live-notes
 scripts/browser-checks/playwright.config.mjs sign-in
 scripts/browser-checks/reporter.mjs      sign-in
 scripts/browser-checks/sync-matrix.mjs   roundtrip
+scripts/browser-checks/sync-writers.mjs  roundtrip
 scripts/browser-checks/                  @self
 
 # Build, config, dependencies, sync rules and migrations touch every screen.
