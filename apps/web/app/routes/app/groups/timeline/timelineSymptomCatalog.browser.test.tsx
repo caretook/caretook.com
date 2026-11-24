@@ -32,8 +32,8 @@ describe("the symptom sheet's suggestions", () => {
       fx.group({ id: OTHER_GROUP, name: "Another family" }),
       symptomType("Hiccups", { groupId: OTHER_GROUP }),
     ]);
-    await found(NAME);
-    expect(NAME()!.tagName).toBe("INPUT");
+    const name = await found(NAME);
+    expect(name.tagName).toBe("INPUT");
     await expect.poll(suggestions).toEqual(["Fall", "Knee pain", "Nausea"]);
   });
 

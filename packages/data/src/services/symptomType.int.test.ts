@@ -81,7 +81,7 @@ describe("a new group's catalog", () => {
     const redeemed = ok(
       await withTransaction((tx) =>
         accessCodeService.redeem(tx, {
-          code: code!.code,
+          code: code.code,
           userId: owner.user.id,
           group: { recipientName: "Ada Example", timeZone: "America/Denver" },
         }),
@@ -101,7 +101,7 @@ describe("a new group's catalog", () => {
           ownerEmail: `sym-owner-${crypto.randomUUID().slice(0, 8)}@example.com`,
           attested: true,
         },
-        { mail: async () => ({ id: crypto.randomUUID() }) },
+        { mail: () => Promise.resolve({ id: crypto.randomUUID() }) },
       ),
     );
     expect(await keysOf(made.groupId)).toEqual(sortedDefaults());
