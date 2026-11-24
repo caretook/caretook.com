@@ -156,7 +156,7 @@ describe("a document id taken in another group (B-289)", () => {
         subject: "provider",
       }),
     );
-    await addEntry({ id } as Partial<TimelineEntryCreateInput>);
+    await addEntry({ id });
 
     const res = await noteDocumentService.create(u.caretaker.ctx, { id, groupId: group.id });
     expect(isError(res) && res.statusCode).toBeGreaterThanOrEqual(400);

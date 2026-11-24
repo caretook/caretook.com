@@ -1,4 +1,3 @@
-import type { World } from "../../test/fixtures";
 import type { AppError } from "../errors";
 import type { ServiceContext, Upserted } from "./types";
 
@@ -26,6 +25,13 @@ import {
 // service's `upsert` creates the row when there is none and otherwise
 // changes nothing, so a resent create never reverts a newer edit. One case
 // per service, the same three checks each.
+
+/** The parts of a `createWorld` the cases read. */
+type World = {
+  group: { id: string };
+  recipient: { id: string };
+  u: Record<"owner" | "admin" | "caretaker", { ctx: ServiceContext; user: { id: string } }>;
+};
 
 type Row = { id: string } & Record<string, unknown>;
 

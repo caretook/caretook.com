@@ -243,7 +243,7 @@ export const update = (
  * edit. The group and recipient never change, and an id the actor can't see is refused
  * without saying whether it exists. Says whether it created (`Upserted`).
  */
-export const upsert = (ctx: ServiceContext, input: MedicationPassUpsertInput, opts: PassWriteOptions = {}) =>
+export const upsert = (ctx: ServiceContext, input: MedicationPassUpsertInput, _opts: PassWriteOptions = {}) =>
   withTransaction(async (tx) => {
     const parsed = medicationPassUpsertZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
