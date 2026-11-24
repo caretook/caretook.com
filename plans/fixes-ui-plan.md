@@ -14,30 +14,30 @@ Held for later waves, with why: B-325 (Capacitor); B-693, B-697 (wait for the to
 
 **Wave 5 (session 3, 2026-11-24):** synced dev by hand (627f1311, clean; CI lists checked). Slices 34–48 written (15 items, claimed; hot files set). Ready at start: 34, 36, 37, 38, 39, 40, 41, 43, 44, 45, 47; then 35 (after 34, 36), 42 (after 41), 46 (after 45), 48 (after 47). Models: opus for every slice. Still held: B-748 (with B-680), B-765 (too vague for an unattended slice), B-583 (connectors-3 planned on that area), plus the list above.
 
-**CI hold lifted:** the third components shard landed on dev as 2aff6468. **At the wave boundary (not mid-wave), sync by hand until B-771 lands** (`pnpm prd sync` can miss dev's CI lists): `git fetch origin && git merge origin/dev -m "chore(fixes-ui): merge dev into prd/fixes-ui"`; then `git diff origin/dev -- .github/workflows/ci.yml scripts/` shows only our changes (the merge is also what brings in new loop tooling: `pnpm prd` runs this worktree's `scripts/loops/`), `ci.yml` has `components-3`, `scripts/ci/quarantine.txt` has the B-633, B-653 and B-769 lines; `pnpm install` if the lockfile moved. Tell the user if that merge conflicts. The first components run is components-3's first real test: report anything odd from it.
+**Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
 Notes for every wave:
 
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State              | Merge |
-| ----- | ----- | ------------------ | ----- |
-| 34    | B-594 | in progress (opus) |       |
-| 35    | B-672 | blocked            |       |
-| 36    | B-673 | in progress (opus) |       |
-| 37    | B-679 | in progress (opus) |       |
-| 38    | B-664 | handed off 0377bb95 |       |
-| 39    | B-636 | handed off 69ef1d98 |       |
+| Slice | Item  | State                                                                         | Merge |
+| ----- | ----- | ----------------------------------------------------------------------------- | ----- |
+| 34    | B-594 | in progress (opus)                                                            |       |
+| 35    | B-672 | blocked                                                                       |       |
+| 36    | B-673 | in progress (opus)                                                            |       |
+| 37    | B-679 | in progress (opus)                                                            |       |
+| 38    | B-664 | handed off 0377bb95                                                           |       |
+| 39    | B-636 | handed off 69ef1d98                                                           |       |
 | 40    | B-621 | handed off 6559847d (other quick entry tests may now see the panel: watch CI) |       |
-| 41    | B-676 | handed off 34cc3bd3 |       |
-| 42    | B-762 | blocked            |       |
-| 43    | B-617 | in progress (opus) |       |
-| 44    | B-756 | handed off 97ae1c89 |       |
-| 45    | B-691 | handed off 30dc31be (touches ui/Popover.tsx: all popovers scroll inside) |       |
-| 46    | B-692 | blocked            |       |
-| 47    | B-736 | handed off b154ba6f |       |
-| 48    | B-737 | blocked            |       |
+| 41    | B-676 | handed off 34cc3bd3                                                           |       |
+| 42    | B-762 | blocked                                                                       |       |
+| 43    | B-617 | in progress (opus)                                                            |       |
+| 44    | B-756 | handed off 97ae1c89                                                           |       |
+| 45    | B-691 | handed off 30dc31be (touches ui/Popover.tsx: all popovers scroll inside)      |       |
+| 46    | B-692 | blocked                                                                       |       |
+| 47    | B-736 | handed off b154ba6f                                                           |       |
+| 48    | B-737 | blocked                                                                       |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
