@@ -11,7 +11,7 @@ Agents file each new line into the tracker ([backlog.md](backlog.md)) and add it
   Jump to day should probably be a quick action with no URL query string (or the query string should be removed after the jump).
 - Inbox agent opened with Opus medium instead of low. (B-739)
 - On installed PWA on iOS, the bottom navigation bar floats too high up; it needs to be closer to the bottom of the screen. (B-763)
-- When the internet connection drops, the browser and the installed PWA show only a blank screen.
+- When the internet connection drops, the browser and the installed PWA show only a blank screen. (B-777)
 
 ## Change requests
 
