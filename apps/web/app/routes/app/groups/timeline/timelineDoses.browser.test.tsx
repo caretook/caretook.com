@@ -485,11 +485,12 @@ describe("the Dose sheet's + New medication", () => {
     await userEvent.click(await found(NAME));
     expect(document.querySelector('[role="listbox"]')).toBeNull();
     await userEvent.keyboard("ibu");
-    expect(SHEET()!.textContent).not.toContain("Matches an allergy on file");
+    await expect.element(page.getByRole("option", { name: "Ibuprofen", exact: true })).toBeVisible();
+    expect(SHEET()?.textContent).not.toContain("Matches an allergy on file");
     await userEvent.click(page.getByRole("option", { name: "Ibuprofen", exact: true }));
     await expect.poll(() => NAME()?.value).toBe("Ibuprofen");
     await expect.poll(() => SHEET()!.textContent).toContain("Matches an allergy on file: Ibuprofen (severe)");
-    expect(NEW_DOSE()!.value).toBe("");
+    expect(NEW_DOSE()?.value).toBe("");
     expect(AMOUNT().value).toBe("");
   });
 
