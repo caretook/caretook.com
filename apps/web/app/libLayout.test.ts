@@ -32,6 +32,8 @@ const SYNC_PLUMBING = [
   "useRememberedQuery.ts",
   "uploader.ts",
   "uploader.browser.test.tsx",
+  "uploadTries.ts",
+  "uploadTries.test.ts",
 ];
 
 const areas = readdirSync(domainDocs)

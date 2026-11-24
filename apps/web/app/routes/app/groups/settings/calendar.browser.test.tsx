@@ -212,6 +212,28 @@ describe("Calendar & reminders", () => {
     await expect.element(consent()).not.toBeChecked();
   });
 
+  test("a consent refused for a newer wording offers a reload and records nothing (B-717)", async () => {
+    const server = calendarServer("caretaker");
+    server.newerWording = true;
+    await open({ api: server.api });
+    await userEvent.click(consent());
+    await expect
+      .element(page.getByRole("alert"))
+      .toHaveTextContent("The wording of this consent has changed. Reload Caretook to read the new wording");
+    await expect.element(page.getByRole("button", { name: "Reload" })).toBeVisible();
+    await expect.element(consent()).not.toBeChecked();
+    expect(server.settings.detailsConsent).toBe(false);
+    expect(server.settings.detailsConsentAt).toBeNull();
+  });
+
+  test("another refusal offers no reload (B-717)", async () => {
+    const server = calendarServer("caretaker", { groupAllowsDetails: false });
+    await open({ api: server.api, allowed: true });
+    await userEvent.click(consent());
+    await expect.element(page.getByRole("alert")).toBeVisible();
+    expect(page.getByRole("button", { name: "Reload" }).query()).toBeNull();
+  });
+
   test("offline with nothing on the device: it needs a connection", async () => {
     await open({});
     await expect.element(page.getByText(/Needs a connection to load these settings/)).toBeVisible();

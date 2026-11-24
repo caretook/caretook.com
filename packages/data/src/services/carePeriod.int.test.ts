@@ -227,7 +227,10 @@ describe("carePeriodService: writing", () => {
     const id = randomUUID();
     const first = ok(await carePeriodService.upsert(u.caretaker.ctx, { ...input(), id }));
     const again = ok(await carePeriodService.upsert(u.caretaker.ctx, { ...input({ label: "Ward 3" }), id }));
-    expect(again).toMatchObject({ id, label: "Ward 3", createdAt: first!.createdAt });
+    expect(again).toMatchObject({
+      created: false,
+      row: { id, label: first.row?.label, createdAt: first.row?.createdAt },
+    });
 
     const other = await setup();
     expect(codeOf(await carePeriodService.upsert(other.u.caretaker.ctx, { ...other.input(), id }))).toBe(
@@ -242,7 +245,7 @@ describe("carePeriodService: writing", () => {
     const gone = await addPeriod();
     ok(await carePeriodService.remove(u.caretaker.ctx, gone.id));
     const replay = ok(await carePeriodService.upsert(u.caretaker.ctx, { ...input(), id: gone.id }));
-    expect(replay?.deletedAt).toBeTruthy();
+    expect(replay.row?.deletedAt).toBeTruthy();
     expect(group.id).toBeTruthy();
   });
 

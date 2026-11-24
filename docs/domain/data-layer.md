@@ -17,10 +17,10 @@ The data layer area's rules and decisions (AGENTS.md's core rules still apply).
     - Update and remove refuse an empty filter.
     - Filters are serializable (`{ field: { type: "eq", value } }`) and checked against the table's columns.
   - `services/`: `getService(model)` with `ServiceContext = { authUser, tx? }`. Business rules, side effects and transactions go here. Services never read requests; internal work uses `SYSTEM_USER`.
-- **`withTransaction(fn)` rolls back when `fn` returns an AppError.** `afterCommit(tx, fn)` runs work after the outermost commit (e.g. starting a Google push with `waitUntil`).
-- **Arg types use `WithoutProtected<T>`:** a generic `Omit<DbInsert<K>, …>` silently drops optional columns such as `id`.
+- **`withTransaction(fn)` rolls back when `fn` returns an AppError.** `afterCommit(tx, fn)` runs work after the outermost commit (a Google push).
+- **Arg types use `WithoutProtected<T>`:** a generic `Omit<DbInsert<K>, …>` drops optional columns like `id`.
 - **Table conventions:**
-  - UUID PKs via `id()`: clients create rows offline, so `create`/`upsert` accept a caller-supplied id.
+  - UUID PKs via `id()`: clients create rows offline, so `create`/`upsert` accept a caller-supplied id. **`upsert` is create-if-absent** (`Upserted<T>`: `{ created, row }`).
   - Every table spreads `timestamps` (timestamptz, string mode) and `audits` (`created_by`/`updated_by`, set by models, not FKs).
 - **Adding a table:**
   1. Write `db/schema/<area>/<name>.ts` (table, types, Zod) and export it from that folder's `index.ts`; a new area adds a folder and a line in `db/schema/index.ts`.
@@ -47,4 +47,4 @@ The data layer area's rules and decisions (AGENTS.md's core rules still apply).
   - `db:roles` runs after every migration (it narrows the publication migrations widen). Tests that create roles use unique names and drop them.
 - **Personal access** (`pnpm db:access grant <email> --hours N | revoke <email> | list`, `dbAccessService`): a `staff_<slug>` LOGIN role, read-only (`default_transaction_read_only`), with SELECT on every table **except the secrets** (`PERSONAL_ACCESS_EXCLUDED` in `db/roles/personalAccess.ts`: the feed token hash, Google's sealed refresh and sync tokens and OAuth state, Better Auth's `account`, `session`, `verification` and `jwks`, the rate-limit tables, and column grants that leave out invite token hashes and ciphertext, `access_code.code` and email bodies; a unit test fails on a new column or table matching `token|secret|hash|password|private` that isn't listed or allowed; `grant` starts with `REVOKE ALL`, so a re-grant narrows an older role, and `revoke` removes the column grants too), `VALID UNTIL` ≤ 24 h, the password sent as a SCRAM verifier and printed once; staff only. Audited `db.accessGranted`/`db.accessRevoked`. `revoke` ends its sessions (safe twice); `VALID UNTIL` stops new sign-ins only. The procedure is [`ops/break-glass.md`](../../ops/break-glass.md).
 - **Sealing:** `utils/seal.ts` is AES-256-GCM with a key and associated data (Google refresh tokens; the `linkToken.ts` pattern, with `createHmac` `linkSubkey` for derived link tokens).
-- **System-only tables written directly** (no model, no audits): the `google_*` and `calendar_sync_job` tables (`googleConnectionService`, `calendarSyncService`), `rate_limit_hit` and Better Auth's `rate_limit` (`rateLimitService`, Better Auth), `email_suppression` (`emailSuppressionService`), `dose_duplicate_upload` (`upsert`).
+- **System-only tables written directly** (no model, no audits): the `google_*` and `calendar_sync_job` tables (`googleConnectionService`, `calendarSyncService`), `rate_limit_hit` and Better Auth's `rate_limit` (`rateLimitService`), `email_suppression` (`emailSuppressionService`), `dose_duplicate_upload` (`upsert`).

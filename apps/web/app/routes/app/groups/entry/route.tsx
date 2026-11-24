@@ -7,7 +7,6 @@ import { useLocation } from "react-router";
 import { EditorAvatars, LiveNotesEditor } from "~/components/notes";
 import { LinkedTodos } from "~/components/todos";
 import { BackLink, Message, Notice, Page, TITLE_SUB } from "~/components/ui";
-import { appUrls } from "~/lib/app-shell/appUrls";
 import { START_AT_PARAM } from "~/lib/timeline/urls";
 import { WHEN_PARAM, WITH_PROVIDER_PARAM } from "~/lib/live-notes/urls";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
@@ -85,7 +84,6 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
   // Read once: after sign-out closes the database, this page may render once more before it goes.
   const [db] = useState(getSync);
   const editor = useRef<LiveNotesEditorHandle>(null);
-  const timelineUrl = appUrls.timeline(groupId);
   const printed = useEntryPrint(entry.id, loaderData.initial);
   usePrintOnOpen();
   // A mention in the text links the provider, as the With row does.
@@ -100,7 +98,17 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
 
   return (
     <Page className="print:p-0">
-      <BackLink to={timelineUrl} label="Timeline" className="print:hidden" />
+      <BackLink
+        to={live.back.to}
+        label={live.back.label}
+        // Decided on leaving (B-690): a time edited here counts, and Back to the opener is a history step.
+        onClick={(event) => {
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+          event.preventDefault();
+          live.leave();
+        }}
+        className="print:hidden"
+      />
 
       <h1 className="sr-only">{heading}</h1>
       <div className="space-y-4 print:hidden">
@@ -130,7 +138,13 @@ function EntryPage({ loaderData: loaded, params }: Route.ComponentProps) {
         {(saveError || mentions.error) && <Message tone="error">{saveError || mentions.error}</Message>}
 
         {deleted ? (
-          <Notice tone="error" action={{ label: "Back to the timeline", to: timelineUrl }}>
+          <Notice
+            tone="error"
+            action={{
+              label: `Back to the ${live.back.label === "Planner" ? "Planner" : "timeline"}`,
+              to: live.back.to,
+            }}
+          >
             This entry was deleted.
           </Notice>
         ) : (

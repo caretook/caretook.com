@@ -88,6 +88,9 @@ describe("orchestrator", () => {
       expect(out).toContain("`pnpm prd pr T`");
       expect(out).toContain("`pnpm prd review T --wait` in the background");
       expect(out).toContain("push a real one off to the backlog");
+      expect(out).toContain(
+        "when `add` stops on a look-alike (exit 3), `note` the item it names if that covers the finding, or rerun with `--anyway` if it doesn't",
+      );
       expect(out).toContain("Reply on every thread before resolving it");
       expect(out).toContain("resolve each answered thread");
       expect(out).toContain("`review --again` until clean");
@@ -484,6 +487,65 @@ describe("plan and backlog", () => {
   });
 });
 
+describe("inbox", () => {
+  const b = () => `pnpm -s -C ${main} backlog`;
+
+  it("names the commands it may run, by the main checkout's path", () => {
+    const text = ok("inbox");
+    expect(text).toMatch(/^You are the inbox agent\./);
+    expect(text).toContain("Run only these:");
+    expect(text).toContain(`\`${b()} similar <words…>\` before every add; show the user what it finds`);
+    expect(text).toContain(`\`${b()} inbox add <type> <text…> [--details "<text>"]\``);
+    expect(text).toContain("rerun with `--anyway` only on the user's word");
+    expect(text).toContain(`\`${b()} inbox move <words…> <type>\``);
+    expect(text).toContain(`\`${b()} inbox\` lists the lines not filed yet, only when a request needs them`);
+  });
+
+  it("says what it must not do: no file, no commit, no ingest, triage, holds or asks", () => {
+    const text = ok("inbox");
+    expect(text).toContain("Edit no file and commit nothing");
+    expect(text).toContain("Ingest, triage, priority, holds, PRDs and asks belong to the backlog session");
+    expect(text).toContain("For a filed one it prints a `set` line: don't run it");
+    expect(text).not.toContain("pnpm backlog ingest");
+    expect(text).not.toContain("pnpm prd");
+    // Its one prd command is its own hand-off.
+    expect(text.match(/ prd [a-z-]+/g)).toEqual([" prd rotate"]);
+  });
+
+  it("hands off to a fresh inbox session by the main checkout's path, with no brief", () => {
+    const text = ok("inbox");
+    expect(text).toContain(
+      `**Hand off** when the user says so (from the phone too) or a context-watch reminder does: say in one line that a fresh inbox session takes over, run \`pnpm -s -C ${main} prd rotate --self\`, and do nothing after it.`,
+    );
+    expect(text).not.toContain("--brief");
+  });
+
+  it("sends a priority request to the backlog session and writes nothing", () => {
+    expect(ok("inbox")).toContain(
+      "**Priority:** told what comes first or matters most, change nothing and tell the user to say it in the backlog session.",
+    );
+  });
+
+  it("reads no doc, opens no poll, lists nothing at the start, and waits", () => {
+    const text = ok("inbox");
+    expect(text).toContain("read no doc, ask no opening question, list nothing at the start");
+    expect(text).toContain("Wait for what the user says.");
+    expect(text).not.toMatch(/AGENTS\.md|docs\/|AskUserQuestion|--guide/);
+  });
+
+  it("names items by their plain titles", () => {
+    expect(ok("inbox")).toContain("Name an item by its short plain title with the id");
+  });
+
+  it("runs with no topic, refuses one, and stays short", () => {
+    // Under a fixed size, the main checkout's path (a test's temporary one) counted as one word.
+    expect(ok("inbox").replaceAll(main, "<main>").length).toBeLessThan(1900);
+    const r = prompt("inbox", "T");
+    expect(r.code).not.toBe(0);
+    expect(r.err).toContain("prompt: inbox takes no topic or options");
+  });
+});
+
 describe("recover", () => {
   it("is the recovery agent: inventory, ListAgents, carry-on message, the opener, no code changes", () => {
     const text = ok("recover");
@@ -526,6 +588,8 @@ describe("tidy", () => {
     expect(text).toContain("`/loop 3h`");
     expect(text).toContain("The dispatcher runs `pnpm prd tidy --yes` every six hours by itself");
     expect(text).toContain("dead lease and slot tickets");
+    expect(text).toContain("finished backlog items: dropped ones, and landed ones whose topic has no `prd/`");
+    expect(text).not.toContain("archive backlog items");
     expect(text).toContain("**Never close or end a session**");
     expect(text).toContain("**Never delete unmerged work**");
     expect(text).toContain("A report is never pushed: send no PushNotification for it.");

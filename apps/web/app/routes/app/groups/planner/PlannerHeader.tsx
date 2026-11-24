@@ -5,16 +5,19 @@ import type { UpcomingShow } from "./upcomingFilters";
 import { CalendarPlus, ListTodo } from "lucide-react";
 import { useMemo } from "react";
 import { useLocation } from "react-router";
-import { FilterMenu, FilterMenuChips, PageHeader, TabNav, UserAvatar } from "~/components/ui";
+import { MemberAvatar } from "~/components/members";
+import { FilterMenu, FilterMenuChips, PageHeader, TabNav } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { useGroup } from "~/lib/app-shell/group";
 import { sectionAccent } from "~/lib/app-shell/sectionAccents";
 import { clearAuthor } from "~/lib/timeline/timelineFilters";
-import { listSearch, TODO_SHEET_STATE } from "~/lib/todos/todoSheets";
+import { listSearch, PLANNER_TODO_STATE, TODO_SHEET_STATE } from "~/lib/todos/todoSheets";
+import { plannerReturnState } from "~/lib/appointments/plannerReturn";
 import { setShow, tabSearch, UPCOMING_SHOW_LABELS, UPCOMING_SHOWS } from "./upcomingFilters";
+import { usePlannerOpener } from "./usePlannerOpener";
 
 type PlannerView = "upcoming" | "past";
-type PlannerAuthor = { name: string; image: string | null };
+type PlannerAuthor = { userId: string; name: string; image: string | null };
 
 /** The Filter menu and chips of Upcoming (Show, and the author) or Past (the author's chip alone). */
 const plannerFilters = (
@@ -48,7 +51,15 @@ const plannerFilters = (
           label: `By ${author.name}`,
           name: `By ${author.name}: clear this filter`,
           search: clearAuthor(search),
-          leading: <UserAvatar name={author.name} image={author.image} size="xs" className="-ml-1.5" />,
+          leading: (
+            <MemberAvatar
+              userId={author.userId}
+              name={author.name}
+              image={author.image}
+              size="xs"
+              className="-ml-1.5"
+            />
+          ),
         },
       ]
     : [],
@@ -84,6 +95,7 @@ export function PlannerHeader({
     () => (view ? plannerFilters(search, view, show, author) : null),
     [search, view, show, author],
   );
+  const eventOpener = usePlannerOpener(true);
   const upcoming = appUrls.planner(groupId);
   const tabs = [
     {
@@ -101,14 +113,17 @@ export function PlannerHeader({
       label: "Event",
       icon: CalendarPlus,
       href: appUrls.newPlannerEntry(groupId, "event"),
+      // Its back link returns to the Planner: Upcoming or Past by its time once saved (B-690).
+      state: plannerReturnState(eventOpener),
     },
     {
       id: "todo",
       label: "Todo",
       icon: ListTodo,
-      // On the Todos tab its chip is kept for the list under the sheet.
+      // On the Todos tab its chip is kept for the list under the sheet. From
+      // Upcoming or Past a save lands on Todos; Cancel goes back to the tab.
       href: appUrls.newTodo(groupId, {}, listSearch(search)),
-      state: TODO_SHEET_STATE,
+      state: view ? PLANNER_TODO_STATE : TODO_SHEET_STATE,
     },
   ];
 

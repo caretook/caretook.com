@@ -1,9 +1,8 @@
 import type { ContactAction } from "~/lib/providers/contactActions";
 
-import { AuthorFilterLink } from "~/components/entry";
+import { AuthorCircle, AuthorFilterLink } from "~/components/entry";
 import { ACTION_ICONS, actionLinkProps } from "~/components/providers";
 import { Button } from "~/components/ui";
-import { initials } from "~/lib/timeline/entryDisplay";
 
 /** What a footer button says; its full name ("Call Dr. Tran, Office") is the action's label. */
 const FOOTER_LABELS: Partial<Record<ContactAction["kind"], string>> = { call: "Call", map: "Directions" };
@@ -34,8 +33,8 @@ export function UpcomingRowActions({ actions }: { actions: ContactAction[] }) {
 }
 
 /**
- * A Planner card's author initials: a filter link, or for `readOnly` (the easy
- * roles) plain initials, so a tap on them opens the row.
+ * A Planner card's author avatar: a filter link, or for `readOnly` (the easy
+ * roles) the plain avatar, so a tap on it opens the row.
  */
 export function UpcomingRowAuthor({
   userId,
@@ -49,16 +48,7 @@ export function UpcomingRowAuthor({
   readOnly: boolean;
 }) {
   if (!readOnly) {
-    return <AuthorFilterLink userId={userId} name={name} initials={initials(name)} image={image} />;
+    return <AuthorFilterLink userId={userId} name={name} image={image} circle />;
   }
-  return (
-    <span
-      className="bg-base-200 text-muted inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
-      title={name}
-      data-author={userId}
-    >
-      <span aria-hidden="true">{initials(name)}</span>
-      <span className="sr-only">{name}</span>
-    </span>
-  );
+  return <AuthorCircle userId={userId} name={name} image={image} label={name} title={name} />;
 }

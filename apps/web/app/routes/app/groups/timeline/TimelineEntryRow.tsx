@@ -6,6 +6,7 @@ import type { TimelineEntry } from "~/lib/core/rpc";
 
 import { canHaveNoteDocument } from "@caretook/data/schema";
 import {
+  AuthorCircle,
   AuthorFilterLink,
   EntryActions,
   EntryBody,
@@ -15,7 +16,6 @@ import {
 } from "~/components/entry";
 import { Badge, ViaTag } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
-import { initials } from "~/lib/timeline/entryDisplay";
 import { formatTime, formatTimeInZone } from "~/lib/core/format";
 import { cancelledLabel } from "~/lib/appointments/upcomingLabels";
 import { actionsLabel } from "./entryLabels";
@@ -27,7 +27,7 @@ import { ASIDE_CLASS } from "./layout";
 export type EntryViewProps = {
   entry: TimelineEntry;
   authorName: string;
-  /** The author's picture (the row's tooltip). */
+  /** The author's picture (the row's avatar and tooltip). */
   authorImage?: string | null;
   units: UnitChoices;
   /** Fading out while its delete is saved. */
@@ -55,7 +55,7 @@ export type EntryViewProps = {
 /**
  * One entry as a dense row: kind icon, time, the entry's body (text clamped
  * to two lines, with "More"), then a right-hand column with the ⋯ menu and,
- * under it, the author's initials (a filter).
+ * under it, the author's avatar (a filter).
  */
 export function TimelineEntryRow({
   entry,
@@ -127,20 +127,14 @@ export function TimelineEntryRow({
           />
         )}
         {easy ? (
-          <span
-            className="bg-base-200 text-muted inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold"
-            data-author={entry.createdBy}
-          >
-            <span aria-hidden="true">{initials(authorName)}</span>
-            <span className="sr-only">By {authorName}</span>
-          </span>
-        ) : (
-          <AuthorFilterLink
+          <AuthorCircle
             userId={entry.createdBy}
             name={authorName}
-            initials={initials(authorName)}
             image={authorImage}
+            label={`By ${authorName}`}
           />
+        ) : (
+          <AuthorFilterLink userId={entry.createdBy} name={authorName} image={authorImage} circle />
         )}
       </div>
     </li>

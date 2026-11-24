@@ -16,6 +16,11 @@ import { renderWithDevice } from "../../../../../test/device";
 // and seriesVisits.test.ts's; the upload is syncAppointmentSeries.int.test.ts's.
 // The clock is the Planner tests': Wed 2026-11-18, 10:00 AM in Los Angeles.
 
+// The rule's words keep the recipient's wall clock (10:00 in Los Angeles);
+// the preview's visit times are in the viewer's zone.
+const VIEWER_TIME =
+  Intl.DateTimeFormat().resolvedOptions().timeZone === "America/New_York" ? "1:00 PM" : "10:00 AM";
+
 const GROUP = TEST_GROUP.id;
 const NEW_EVENT = `/app/groups/${GROUP}/entries/new?kind=event`;
 const NEW_NOTE = `/app/groups/${GROUP}/entries/new?kind=note`;
@@ -87,18 +92,18 @@ describe("the repeat field", () => {
     expect(pressedDays()).toEqual(["Wed"]);
     expect(PREVIEW_TEXT()).toBe("Every Wed at 10:00");
     expect(PREVIEW_NEXT()).toEqual([
-      "Wed, Nov 18, 10:00 AM",
-      "Wed, Nov 25, 10:00 AM",
-      "Wed, Dec 2, 10:00 AM",
+      `Wed, Nov 18, ${VIEWER_TIME}`,
+      `Wed, Nov 25, ${VIEWER_TIME}`,
+      `Wed, Dec 2, ${VIEWER_TIME}`,
     ]);
 
     await userEvent.click(await found(() => dayChip("Mon")));
     await userEvent.click(await found(() => dayChip("Fri")));
     expect(PREVIEW_TEXT()).toBe("Every Mon, Wed, Fri at 10:00");
     expect(PREVIEW_NEXT()).toEqual([
-      "Wed, Nov 18, 10:00 AM",
-      "Fri, Nov 20, 10:00 AM",
-      "Mon, Nov 23, 10:00 AM",
+      `Wed, Nov 18, ${VIEWER_TIME}`,
+      `Fri, Nov 20, ${VIEWER_TIME}`,
+      `Mon, Nov 23, ${VIEWER_TIME}`,
     ]);
 
     for (const day of ["Mon", "Wed", "Fri"]) await userEvent.click(await found(() => dayChip(day)));
@@ -110,9 +115,9 @@ describe("the repeat field", () => {
     await userEvent.click(await found(() => radio("On the 3rd Wednesday")));
     expect(PREVIEW_TEXT()).toBe("Monthly on the 3rd Wednesday at 10:00");
     expect(PREVIEW_NEXT()).toEqual([
-      "Wed, Nov 18, 10:00 AM",
-      "Wed, Dec 16, 10:00 AM",
-      "Wed, Jan 20, 10:00 AM",
+      `Wed, Nov 18, ${VIEWER_TIME}`,
+      `Wed, Dec 16, ${VIEWER_TIME}`,
+      `Wed, Jan 20, ${VIEWER_TIME}`,
     ]);
 
     await choose("custom");
@@ -133,9 +138,9 @@ describe("the repeat field", () => {
     );
     expect(PREVIEW_TEXT()).toBe("Every 3 days at 10:00 · 12 visits");
     expect(PREVIEW_NEXT()).toEqual([
-      "Wed, Nov 18, 10:00 AM",
-      "Sat, Nov 21, 10:00 AM",
-      "Tue, Nov 24, 10:00 AM",
+      `Wed, Nov 18, ${VIEWER_TIME}`,
+      `Sat, Nov 21, ${VIEWER_TIME}`,
+      `Tue, Nov 24, ${VIEWER_TIME}`,
     ]);
 
     await userEvent.click(await found(() => radio("On a date")));
@@ -150,6 +155,21 @@ describe("the repeat field", () => {
     await expect.poll(() => FIELD()).toBeNull();
     expect(REPEAT_BUTTON()?.getAttribute("aria-label")).toBe("Repeat: Doesn't repeat");
     expect(await device.queued()).toEqual([]);
+  });
+
+  test("a late-evening Los Angeles visit reads on the viewer's day and time", async () => {
+    // Wed 2026-11-18, 10:00 PM in Los Angeles: Thu 1:00 AM in New York.
+    vi.setSystemTime(new Date("2026-11-19T06:00:00.000Z"));
+    await open(NEW_EVENT);
+    await openRepeat();
+    await choose("weekly");
+    expect(PREVIEW_TEXT()).toBe("Every Wed at 22:00");
+    const inNewYork = Intl.DateTimeFormat().resolvedOptions().timeZone === "America/New_York";
+    expect(PREVIEW_NEXT()).toEqual(
+      inNewYork
+        ? ["Thu, Nov 19, 1:00 AM", "Thu, Nov 26, 1:00 AM", "Thu, Dec 3, 1:00 AM"]
+        : ["Wed, Nov 18, 10:00 PM", "Wed, Nov 25, 10:00 PM", "Wed, Dec 2, 10:00 PM"],
+    );
   });
 });
 

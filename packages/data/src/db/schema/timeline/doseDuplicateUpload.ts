@@ -2,9 +2,12 @@ import { index, pgTable, primaryKey, timestamp, uuid } from "drizzle-orm/pg-core
 import { userSchema } from "../auth/user";
 import { timelineEntrySchema } from "./timelineEntry";
 
-// Each upload the server accepted as a duplicate of another member's dose
-// (B-627). A retry of one looks exactly like a first upload, so this is how
-// the restore rule tells them apart: a match leaves a deleted dose deleted.
+// Each dose upload the server accepted: a first upload or a replay onto the
+// uploader's own row (B-726), a duplicate of another member's dose (B-627),
+// and the two a restore settles, the one it displaced and its own (B-719).
+// The name is from B-627. A retry looks exactly like a first upload, and the
+// row may have changed time or hands since, so this is how the restore rule
+// tells them apart: a match leaves a deleted dose deleted.
 // The system's only (see PERMISSIONS): written and read by
 // timelineEntryService.upsert, never through a model, and it never syncs.
 // Its rows go with the entry (and so the group) and with the user.

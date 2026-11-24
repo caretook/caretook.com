@@ -10,6 +10,8 @@ packages/api/src/sync.ts                 roundtrip live-notes
 packages/api/src/syncRegistry.ts         roundtrip live-notes
 # The connector's upload and its "not saved" records (sync-safety): every synced write.
 apps/web/app/lib/sync/uploader.ts        roundtrip live-notes
+# The failing op's try counter (B-286): pure, unit-tested; the uploader's device test drives it.
+apps/web/app/lib/sync/uploadTries.ts     -
 # The tile cache and its hook: unit tests and the timeline's component tests
 # (timeline/timelineRemembered.browser.test.tsx).
 apps/web/app/lib/sync/remembered.ts      -

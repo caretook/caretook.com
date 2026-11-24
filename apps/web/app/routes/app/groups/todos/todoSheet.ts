@@ -13,7 +13,7 @@ import { medicationsQuery, toMedications } from "~/lib/medications/medications.s
 import { providersQuery, toProviders } from "~/lib/providers/providers.sync";
 import { todoEventChoicesQuery } from "~/lib/todos/todos.sync";
 import { membersQuery, readRows, toTimelineEntries } from "~/lib/timeline/timeline.sync";
-import { listSearch, openedFromApp } from "~/lib/todos/todoSheets";
+import { listSearch, openedFromApp, savesToTodos } from "~/lib/todos/todoSheets";
 import { RECENT_EVENT_DAYS } from "./todoLinks";
 
 // Sheets over the todo list are child routes (`todos/new`,
@@ -23,7 +23,9 @@ import { RECENT_EVENT_DAYS } from "./todoLinks";
 /**
  * Close the sheet by leaving its route: back, when it was opened by one of
  * the app's links; otherwise (a bookmark, a reload) the list replaces it,
- * with its chip kept. Only the first call counts.
+ * with its chip kept. `close({ saved: true })` after a save from the
+ * Planner's Add > Todo (`PLANNER_TODO_STATE`) lands on the list instead,
+ * replacing the sheet. Only the first call counts.
  */
 export function useCloseTodoSheet() {
   const navigate = useNavigate();
@@ -32,12 +34,16 @@ export function useCloseTodoSheet() {
   const { search } = location;
   const { id } = useGroup();
   const closed = useRef(false);
-  return useCallback(() => {
-    if (closed.current) return;
-    closed.current = true;
-    if (openedFromApp(state)) void navigate(-1);
-    else void navigate(appUrls.todos(id, listSearch(search)), { replace: true, preventScrollReset: true });
-  }, [navigate, state, search, id]);
+  return useCallback(
+    (how?: { saved?: boolean }) => {
+      if (closed.current) return;
+      closed.current = true;
+      const toList = how?.saved === true && savesToTodos(state);
+      if (!toList && openedFromApp(state)) void navigate(-1);
+      else void navigate(appUrls.todos(id, listSearch(search)), { replace: true, preventScrollReset: true });
+    },
+    [navigate, state, search, id],
+  );
 }
 
 /** The group's members as the sheet's loader reads them, so the first render has them. */

@@ -4,22 +4,27 @@
 
 ## Status
 
-| Slice | Wave | State       | Merge into `prd/member-avatars` (slice commits)   |
-| ----- | ---- | ----------- | ------------------------------------------------- |
-| 1     | 1    | landed      | 816ac0c5 (aa217ed2, cd475969, 0cd26332, 129dbb45) |
-| 2     | 2    | merged      | a8f52f91 (567e2913), opus                         |
-| 3     | 3    | not started |                                                   |
-| 4     | 4    | not started |                                                   |
+| Slice | Wave | State  | Merge into `prd/member-avatars` (slice commits)   |
+| ----- | ---- | ------ | ------------------------------------------------- |
+| 1     | 1    | landed | 816ac0c5 (aa217ed2, cd475969, 0cd26332, 129dbb45) |
+| 2     | 2    | landed | a8f52f91 (567e2913), opus                         |
+| 3     | 3    | landed | 3c244581 (14c5af53), opus                         |
+| 4     | 4    | merged | 054bb015 (af41b9b2), opus                         |
 
 **Landing mode:** run everything through (started run-through). Land each green wave, clean up, and ask only real questions through `pnpm prd ask`.
 
-**Now (2026-11-23):** wave 1 landed in `dev` as a3e635e2 through PR #125, at tier full (CI run 45236725148 green on 835c4e85). Codex did not review it (out of credits, `--no-review`). Report a152 is filed. Slice 1 (opus) has no worktree left. **Wave 2 is running:** backlog ingested (nothing new for this topic), `dev` synced at 2ae02c7e (this branch differs from `dev` only in docs, so no recheck was needed), slice 2 (opus) handed off, reviewed and merged as a8f52f91. Quick check passed on 19c04dd6. CI run 45240399245 green at tier `components` on 95e006dd; the member-avatars-2 worktree is removed. `dev` synced at 917e0a74. Quick check passed on 187f3e90 and the browser suite passed 11 of 11. The avatar queue is folded into `sync`. **Now:** PR and Codex review. **Next:** land at tier `components`, file the report, rotate. Known limits from the hand-off: a choice refused during a background send is dropped silently, and another device's change reaches the header only on the next page load until slice 3's synced row. B-593 stays claimed until slice 4 merges.
+**Now (2026-11-23):** wave 1 landed as a3e635e2 (PR #125). Wave 2 landed in `dev` as b1ee1d19 through PR #128, at tier `components` (CI run 45245508309 green on 38582b4d), with the browser suite 11 of 11. Codex did not review either wave (out of credits, `--no-review`). Report a156 is filed. **Wave 3 landed** in `dev` as 358a209d through PR #133, at tier `components` (CI run 45254180107 green on af94450a). Codex did not review it (out of credits, `--no-review`). Browser checks for the diff: live-notes, app-shell and first-sync passed; `ui` failed once (the phone add sheet measured zero size), then passed 3 of 3 alone, filed as B-727 (ui browser check: the phone add sheet intermittently measures zero size), cause unknown. No slice is in flight and no slice worktree is left. **Next: wave 4:** `pnpm backlog ingest`, `list`, `pnpm prd sync`, then start slice 4 on opus. B-593 stays claimed until slice 4 merges.
 
+**Wave 4 (resumed 2026-11-23 after an interruption):** _Status_ matched git. Backlog ingest had nothing new, no new item belongs here, and `pnpm prd sync` found only backlog commits on `dev`. Slice 4 started from 0a2b59fc on opus, handed off with its slice check passed, and merged as 054bb015; B-593 is marked done. `pnpm prd sync` after the merge found only backlog commits. The first `components` run (45260335192 on 054bb015) failed only in `packages/api/src/syncMedications.int.test.ts`, which this branch doesn't touch: dev's B-729 (the two-doses sync test), since fixed in `dev`. The tool reported "unknown" for it. On 2026-11-24, `pnpm prd sync --force` merged `dev` in as 5ea8828f, and a fresh `components` run was requested on that tip. **Promised:** message `fixes-bug-69` when this lands in `dev` and releases `routes/app/groups/planner/` (its B-689, B-690 and B-715 wait on that folder). That run was green: `components`, 45368781054 on 5ea8828f. The slice worktree is removed. PR #138 is open, and Codex is out of credits, so the wave lands with `--no-review`. Browser checks for the diff: roundtrip and ui passed; the `--suite` run was refused (ask before a suite). Docs folded: `app-shell`, `ui-kit` and `timeline`, all under budget. **Next:** `pnpm prd land member-avatars --tier components --no-review`, the report, message `fixes-bug-69`, `pnpm prd rm member-avatars`, `pnpm prd end`. Keep the `member-avatars-4` worktree until it's green, and send any failure to the slice's agent. Then `pnpm prd rm member-avatars-4`, PR, review, fold `app-shell` (the picker), `ui-kit` (`UserAvatar` looks, tokens, the `row` size) and `timeline` (`AuthorCircle`), land, report, `pnpm prd rm member-avatars`, `pnpm prd end`.
+
+**For slice 4 (from slice 3's hand-off):** use `<MemberAvatar userId name image />` from `components/members`. `KindIcon`, `PlannerHeader` and `TimelineFilters` still use plain `UserAvatar`. `ProfileHeader` stays plain (decided at slice 4): it shows the care recipient, who is not a member and has no look. Known limits: past ten members a leaver can move someone on a repeated color to the freed one; avatars can show neutral briefly on entering a group; a quick A to B to A change can briefly show B.
+
+**No local quick check when CI will run (the user, 2026-11-23):** after a merge or dev sync, go straight to `pnpm prd ci run`. The slice agent's own check on its branch stays. Order per wave: merge, `pnpm prd sync`, one CI run on that tip, land on its verdict, with no quick check after the sync. Only docs commits go on top of the green tip, so the verdict still counts.
 **Rechecks:** the user's "skip rechecks after a clean dev sync" covered wave 1 only. Later waves recheck after each dev sync unless the user repeats it.
 
-**Docs:** `sync` and `care-groups` are folded for waves 1 and 2 (the device queue is in `sync`). `app-shell` (the picker) and `ui-kit` (`UserAvatar` looks, tokens) are still to fold, at the waves that finish them. Both sit a few bytes under their 10 KB budget, so trim as much as you add.
+**Docs:** `sync` and `care-groups` are folded for waves 1 to 3 (the device queue is in `sync`, default colors in `care-groups`). `app-shell` (the picker) and `ui-kit` (`UserAvatar` looks, tokens) are still to fold, at the waves that finish them. Both sit a few bytes under their 10 KB budget, so trim as much as you add.
 
-**For later slices:** slice 2: `myAvatar.ts` holds the choice in memory and reads `me.get` once per page load, so the header shows the default until it answers and offline after a reload, and saving offline shows an error. Slice 3: an icon-only avatar sits on `bg-primary` until the per-group default exists.
+**For later slices:** another device's change reaches the header only on the next page load until the synced row does it, and other open tabs don't update live. Known limit from slice 2: a choice refused during a background send is dropped with no message and isn't on "Changes not saved".
 
 **Start conditions:** `onboarding` and `ui-kit-5` have landed (both confirmed done on `dev`, 2026-11-23).
 

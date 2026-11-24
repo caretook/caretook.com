@@ -103,8 +103,10 @@ describe("the New care group sheet", () => {
     await expect
       .element(page.getByRole("link", { name: "Invite someone" }))
       .toHaveAttribute("href", `/app/groups/${NEW.group}/settings/members`);
+    // A new group takes the zone of the device creating it, wherever the test runs.
+    const deviceZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     expect(calls.of("careGroup.create")).toEqual([
-      { recipientName: "Lou Moreno", preferredName: "Lou", groupName: "", timeZone: "America/Los_Angeles" },
+      { recipientName: "Lou Moreno", preferredName: "Lou", groupName: "", timeZone: deviceZone },
     ]);
   });
 

@@ -7,6 +7,7 @@ import { VITALS } from "@caretook/data/schema";
 import { CalendarRange, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useLocation } from "react-router";
+import { MemberAvatar } from "~/components/members";
 import {
   Button,
   ChipGroup,
@@ -16,7 +17,6 @@ import {
   Field,
   ICON_SM,
   IconButton,
-  UserAvatar,
 } from "~/components/ui";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { useGroup } from "~/lib/app-shell/group";
@@ -38,7 +38,7 @@ const X_ICON = <X className={ICON_SM} aria-hidden="true" />;
  * View options; drawn as `TOOL_CIRCLE`, from `ui/`). All three are one size of circle. Under them, each filter on is a removable chip (a link that
  * clears only it, so the URL keeps the rest; see
  * `lib/timeline/timelineFilters.ts`): the kind, the vital type (`?vital=`),
- * "By <name>" (`author`: that person's name and picture), "Matching “…”"
+ * "By <name>" (`author`: that person's name and avatar), "Matching “…”"
  * (the search, while its field is closed) and "During …" (`?period=`). No
  * filters, no chip row. The magnifier opens the search field beside the
  * button; a search used there (Enter, leaving the field) is saved to the
@@ -56,7 +56,7 @@ export function FilterChips({
   trailing,
 }: {
   kind: TimelineEntryKind | null;
-  author: { name: string; image: string | null } | null;
+  author: { userId: string; name: string; image: string | null } | null;
   q: string;
   /** The vital-type filter, under the vital kind. */
   vital?: VitalType | null;
@@ -90,7 +90,15 @@ export function FilterChips({
     name: `By ${author.name}: clear this filter`,
     to: { search: clearAuthor(search) },
     current: true,
-    leading: <UserAvatar name={author.name} image={author.image} size="xs" className="-ml-1.5" />,
+    leading: (
+      <MemberAvatar
+        userId={author.userId}
+        name={author.name}
+        image={author.image}
+        size="xs"
+        className="-ml-1.5"
+      />
+    ),
     trailing: X_ICON,
   };
   const matchingChip: LinkChip | null = q

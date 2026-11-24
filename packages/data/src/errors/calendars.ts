@@ -14,7 +14,7 @@ export const CALENDARS_ERRORS = {
     statusCode: 403,
   },
   "calendarSettingService:consentOutdated": {
-    message: "The wording of this consent has changed. Read it and turn this on to agree again",
+    message: "The wording of this consent has changed. Reload Caretook to read the new wording",
     statusCode: 409,
   },
   "calendarSettingService:detailsOwnerOnly": {

@@ -172,7 +172,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
     <div className={COLUMN_CAP}>
       <FilterChips
         kind={kind}
-        author={author ? { name: data.nameOf(author), image: data.imageOf(author) } : null}
+        author={author ? { userId: author, name: data.nameOf(author), image: data.imageOf(author) } : null}
         q={q}
         vital={vital}
         vitalTypes={data.latestVitals.map((v) => v.reading.type)}

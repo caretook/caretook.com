@@ -21,6 +21,7 @@ import {
   appointmentSeriesUpsertZSchema,
   dayInZone,
   SERIES_AHEAD_DAYS,
+  seriesVisitFallbackId,
   seriesVisitId,
 } from "../db/schema";
 import { seriesVisits } from "../db/schema/appointments/seriesVisits";
@@ -35,6 +36,7 @@ import {
   timelineEntryModel,
 } from "../models";
 import { isSystemUser, rejectError } from "../permissions";
+import { asCreated, unchanged } from "./upserted";
 import * as entryProviderService from "./entryProviderService";
 import * as noteDocumentService from "./noteDocumentService";
 import * as timelineEntryService from "./timelineEntryService";
@@ -46,7 +48,8 @@ import * as timelineEntryService from "./timelineEntryService";
 // Each visit is an ordinary timeline entry, written through
 // timelineEntryService in the series' transaction, with its provider links
 // and an empty live document. Visit ids are `seriesVisitId(series, day)`,
-// so the device that made the series and the server converge on one row.
+// so the device that made the series and the server converge on one row;
+// when another group's row holds that id, `seriesVisitFallbackId` (B-289).
 //
 // A device writes the series and its visits through `topped_up_through`
 // itself (lib/appointments/series.sync.ts) and uploads them as ordinary ops,
@@ -113,21 +116,32 @@ const checkProviders = async (ctx: ServiceContext, tx: Tx, groupId: string, ids:
   return null;
 };
 
-/** Whether a visit for `day` (live or deleted) or its id exists already: then the day is left alone. */
-const visitExists = async (tx: Tx, series: AppointmentSeries, day: string) => {
+/**
+ * The id to write `day`'s visit under, or null when the day has one already
+ * (live or deleted): a row of this group and series for that day, or its id
+ * held by one. When another row holds the computed id (another group's, or
+ * not this series': B-289), the visit takes `seriesVisitFallbackId`.
+ */
+const visitSlot = async (tx: Tx, series: AppointmentSeries, day: string) => {
   const sameDay = await timelineEntryModel.get({
     authUser: SYSTEM_USER,
     tx,
     includeDeleted: true,
-    filter: { seriesId: { type: "eq", value: series.id }, seriesDay: { type: "eq", value: day } },
+    filter: {
+      groupId: { type: "eq", value: series.groupId },
+      seriesId: { type: "eq", value: series.id },
+      seriesDay: { type: "eq", value: day },
+    },
   });
-  if (isError(sameDay) || sameDay) return sameDay ? true : sameDay;
-  const sameId = await timelineEntryModel.getById(seriesVisitId(series.id, day), {
-    authUser: SYSTEM_USER,
-    tx,
-    includeDeleted: true,
-  });
-  return isError(sameId) ? sameId : !!sameId;
+  if (isError(sameDay)) return sameDay;
+  if (sameDay) return null;
+  const id = seriesVisitId(series.id, day);
+  const sameId = await timelineEntryModel.getById(id, { authUser: SYSTEM_USER, tx, includeDeleted: true });
+  if (isError(sameId)) return sameId;
+  if (!sameId) return id;
+  // This series' own row under the id (its day changed since): the day is taken care of.
+  if (sameId.groupId === series.groupId && sameId.seriesId === series.id) return null;
+  return seriesVisitFallbackId(series.id, day);
 };
 
 /**
@@ -164,10 +178,9 @@ const writeVisits = async (
   const providerIds = await linkableProviders(tx, series);
   if (isError(providerIds)) return providerIds;
   for (const visit of seriesVisits(series, from, to)) {
-    const exists = await visitExists(tx, series, visit.day);
-    if (isError(exists)) return exists;
-    if (exists) continue;
-    const id = seriesVisitId(series.id, visit.day);
+    const id = await visitSlot(tx, series, visit.day);
+    if (isError(id)) return id;
+    if (!id) continue;
     const entry = await timelineEntryService.create({ ...ctx, tx }, {
       id,
       groupId: series.groupId,
@@ -304,13 +317,11 @@ export const update = (ctx: ServiceContext, id: string, input: AppointmentSeries
   }, ctx);
 
 /**
- * Create the series with this id, or bring the existing one up to date:
- * PowerSync's upload of a series a device made. Safe to replay.
- *
- * - A new id is a `create` (same checks).
- * - An existing id is an `update`; its group, recipient and kind must match.
- * - A deleted series stays deleted.
- * - An id the actor can't see is refused, without saying whether it exists.
+ * Create the series with this id if there is none: what PowerSync's upload
+ * queue sends for a row a device created. A replay changes nothing (only a
+ * PATCH edits), whatever the actor's role now, so it never reverts a newer
+ * edit. The group, recipient and kind never change, and an id the actor can't see is refused
+ * without saying whether it exists. Says whether it created (`Upserted`).
  */
 export const upsert = (
   ctx: ServiceContext,
@@ -320,7 +331,7 @@ export const upsert = (
   withTransaction(async (tx) => {
     const parsed = appointmentSeriesUpsertZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { id, groupId, recipientId, kind, toppedUpThrough: _through, ...content } = parsed.data;
+    const { id, groupId, recipientId, kind } = parsed.data;
 
     const existing = await appointmentSeriesModel.getById(id, {
       authUser: SYSTEM_USER,
@@ -328,7 +339,7 @@ export const upsert = (
       includeDeleted: true,
     });
     if (isError(existing)) return existing;
-    if (!existing) return create({ ...ctx, tx }, input, opts);
+    if (!existing) return asCreated(await create({ ...ctx, tx }, input, opts));
 
     const visible = await appointmentSeriesModel.getById(id, { ...ctx, tx, includeDeleted: true });
     if (isError(visible)) return visible;
@@ -340,9 +351,7 @@ export const upsert = (
       (recipientId !== undefined && visible.recipientId !== recipientId)
     )
       return immutable();
-    if (visible.deletedAt) return visible;
-
-    return update({ ...ctx, tx }, id, content);
+    return unchanged(visible);
   }, ctx);
 
 /**
@@ -382,8 +391,9 @@ export const TOP_UP_BATCH = 50;
  * Keep every live series' visits 90 days ahead, as the system. For each
  * series whose `topped_up_through` is before today (in its own zone) + 90,
  * write the days after it through that date, skipping any day with a visit
- * already (live or deleted, by `(series_id, series_day)` or by id, since a
- * series' first visit keeps the draft's own id), then advance
+ * already (live or deleted, by `(series_id, series_day)` in its group, since
+ * a series' first visit keeps the draft's own id, or this series' row under
+ * the computed id; an id another row holds gets the fallback id), then advance
  * `topped_up_through`. One transaction per series, so a failure leaves that
  * series as it was; a second run writes nothing. A series stops at its
  * UNTIL or COUNT (the expansion has no later days) and a deleted one is

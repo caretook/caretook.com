@@ -87,8 +87,9 @@ export default function NewTodoSheet({ loaderData, params }: Route.ComponentProp
           group.recipient?.timeZone ?? null,
           Intl.DateTimeFormat().resolvedOptions().timeZone,
         )}
-        onDone={close}
-        onCancel={close}
+        // From the Planner's Upcoming or Past, a save lands on the Todos tab.
+        onDone={() => close({ saved: true })}
+        onCancel={() => close()}
       />
     </Sheet>
   );

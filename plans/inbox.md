@@ -1,6 +1,6 @@
 # Inbox
 
-Add anything here: one line per item, under the heading that fits. Indent extra lines under it for details. Save; that's all.
+Add anything here: one line per item, under the heading that fits. Indent extra lines under it for details. Save; that's all. Or say it to the inbox session (`pnpm prd inbox`), which pushes the line for you.
 
 Agents file each new line into the tracker ([backlog.md](backlog.md)) and add its id, like `(B-12)`. To change something already filed, add a new line saying so.
 

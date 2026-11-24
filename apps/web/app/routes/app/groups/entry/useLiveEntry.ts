@@ -19,6 +19,12 @@ import { cancelEvent, uncancelEvent } from "~/lib/appointments/appointments.sync
 import { draftTiming } from "~/lib/appointments/repeatChoice";
 import { applySeriesEdit, createSeries } from "~/lib/appointments/series.sync";
 import { asksScopeOnEdit, openedForOnlyThisVisit } from "~/lib/appointments/seriesScope";
+import {
+  backIsHistoryStep,
+  plannerReturnFrom,
+  plannerReturnState,
+  plannerReturnUrl,
+} from "~/lib/appointments/plannerReturn";
 import { materializeLiveEntry } from "~/lib/live-notes/liveEntry.sync";
 import { linkProvider } from "~/lib/providers/providers.sync";
 import { removeEntry, toTimelineEntry, updateEntry } from "~/lib/timeline/timeline.sync";
@@ -76,8 +82,15 @@ export type LiveEntry = {
   cancel: (reason: string) => void;
   /** Undoes a cancel. */
   uncancel: () => void;
-  /** Soft-deletes the entry, then goes back to the timeline. */
+  /** Soft-deletes the entry, then leaves (`leave`). */
   remove: () => Promise<void>;
+  /**
+   * Where the back link goes, worked out now: the Planner when it opened the
+   * page (B-690; see lib/appointments/plannerReturn.ts), else the timeline.
+   */
+  back: { label: string; to: string };
+  /** Leaves the page for `back`, decided at the moment it's called (a time edited here counts). */
+  leave: () => void;
   /** Saves a draft now (to link a provider to it); resolves true once it's stored. The editor stays mounted. */
   ensureStored: () => Promise<boolean>;
   /** The last failed write's message, cleared by the next one that works. */
@@ -118,6 +131,10 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
   const { recipient } = group;
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Opened from the Planner (B-690): read once, and carried over the first save's URL replace.
+  const [returnTo] = useState(() => plannerReturnFrom(location.state));
+  const [savedState] = useState(() => (returnTo ? plannerReturnState(returnTo) : undefined));
 
   // The draft's fields, read when it's saved.
   const [draft] = useState(data.entry);
@@ -196,7 +213,7 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
         saved.current = true;
         repeatRef.current = null;
         setRepeat(null);
-        if (isNew) void navigate(appUrls.entry(groupId, draft.id), { replace: true });
+        if (isNew) void navigate(appUrls.entry(groupId, draft.id), { replace: true, state: savedState });
         return true;
       }
       const input: MaterializeInput = {
@@ -224,11 +241,11 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
         if (!linked.ok) setSaveError(linked.error);
       }
       // Back from here goes to the timeline, and the link is the entry's own.
-      if (isNew) void navigate(appUrls.entry(groupId, draft.id), { replace: true });
+      if (isNew) void navigate(appUrls.entry(groupId, draft.id), { replace: true, state: savedState });
       return true;
     })();
     return saving.current;
-  }, [draft, groupId, isNew, navigate, startSeries]);
+  }, [draft, groupId, isNew, navigate, startSeries, savedState]);
 
   // The editor asks on each local change until this says it's saved.
   const ensureSaved = useCallback(
@@ -336,31 +353,46 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
     setWithProviders(providersRef.current);
   };
 
+  const entry: LiveEntry["entry"] = {
+    id: draft.id,
+    kind,
+    title: live ? live.title : draft.title,
+    timeZone: live?.timeZone ?? draft.timeZone,
+    occurredAt: live?.occurredAt ?? draftSchedule.occurredAt,
+    endsAt: live ? (live.endsAt ?? null) : draftSchedule.endsAt,
+    allDay: live ? !!live.allDay : draftSchedule.allDay,
+    place: live ? (live.place ?? null) : draftPlace,
+    cancelledAt: live?.cancelledAt ?? null,
+    cancelledBy: live?.cancelledBy ?? null,
+    cancelReason: live?.cancelReason ?? null,
+    rescheduledTo: live?.rescheduledTo ?? null,
+    via: live?.via ?? null,
+    seriesId: live?.seriesId ?? null,
+    seriesDay: live?.seriesDay ?? null,
+    seriesDetached: !!live?.seriesDetached,
+  };
+
+  /** The back link's target: a new event saved from the Planner by its time now, else where it was opened from. */
+  const backTo = (stored: boolean, now: Date) =>
+    returnTo
+      ? { label: "Planner", to: plannerReturnUrl(returnTo, { groupId, entry, stored, now }) }
+      : { label: "Timeline", to: appUrls.timeline(groupId) };
+  const leave = () => {
+    const { to } = backTo(seen || saved.current || !isNew, new Date());
+    // Right after its opener in history: a step back, so the tab's scroll comes back.
+    const idx: unknown = (window.history.state as { idx?: unknown } | null)?.idx;
+    if (returnTo && backIsHistoryStep(returnTo, to, idx)) void navigate(-1);
+    else void navigate(to);
+  };
+
   const remove = async () => {
     const res = await removeEntry(getSync(), draft.id);
     if (!res.ok) return setSaveError(res.error);
-    void navigate(appUrls.timeline(groupId));
+    leave();
   };
 
   return {
-    entry: {
-      id: draft.id,
-      kind,
-      title: live ? live.title : draft.title,
-      timeZone: live?.timeZone ?? draft.timeZone,
-      occurredAt: live?.occurredAt ?? draftSchedule.occurredAt,
-      endsAt: live ? (live.endsAt ?? null) : draftSchedule.endsAt,
-      allDay: live ? !!live.allDay : draftSchedule.allDay,
-      place: live ? (live.place ?? null) : draftPlace,
-      cancelledAt: live?.cancelledAt ?? null,
-      cancelledBy: live?.cancelledBy ?? null,
-      cancelReason: live?.cancelReason ?? null,
-      rescheduledTo: live?.rescheduledTo ?? null,
-      via: live?.via ?? null,
-      seriesId: live?.seriesId ?? null,
-      seriesDay: live?.seriesDay ?? null,
-      seriesDetached: !!live?.seriesDetached,
-    },
+    entry,
     stored: !!live,
     isNew,
     canWrite,
@@ -373,6 +405,8 @@ export function useLiveEntry(data: EntryPageData, groupId: string): LiveEntry {
     cancel,
     uncancel,
     remove,
+    back: backTo(!!live || !isNew, new Date()),
+    leave,
     ensureStored: save,
     saveError,
     pendingProviders: live ? [] : withProviders,

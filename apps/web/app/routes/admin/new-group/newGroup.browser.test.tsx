@@ -44,7 +44,8 @@ describe("/admin/new-group", () => {
       );
     expect(posted.posts).toEqual([
       {
-        timeZone: "America/Los_Angeles",
+        // The runner's zone: CI runs this in more than one.
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         groupName: "Lindqvist Family",
         recipientName: "June Lindqvist",
         ownerEmail: "pat.lindqvist@example.com",

@@ -480,11 +480,17 @@ describe("assistantActionService.run: dose ids", () => {
   });
 
   it("leaves a dose naming no slot on a random id", async () => {
-    const { addMedication, run, entriesOf, recipient } = await setup();
-    const metformin = await addMedication("Metformin");
+    const { u, group, run, entriesOf, recipient } = await setup();
+    const asNeeded = ok(
+      await medicationService.create(u.caretaker.ctx, {
+        groupId: group.id,
+        name: "Ibuprofen",
+        schedule: { type: "asNeeded" },
+      }),
+    )!;
     const occurredAt = minutesAgo(1);
     const res = ok(
-      await run("caretaker", [{ type: "logDose", medicationId: metformin.id, status: "given", occurredAt }]),
+      await run("caretaker", [{ type: "logDose", medicationId: asNeeded.id, status: "given", occurredAt }]),
     );
     const [row] = await doseRows(entriesOf);
     expect(row!.id).toBe(res.ids[0]);

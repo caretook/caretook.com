@@ -38,6 +38,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Wave 11 landing (resumed after a rotation; git matched this Status).** Slices 43-48 are merged and their worktrees and branches are already gone. Synced with dev as 481a2563 (brings app code and migration 0042), so the verdict on 89125c4c no longer covers the tip: `components` CI requested on the synced tip, no quick check (the user's word). **Next:** on green, `pnpm datastore:migrate` (never reset), `pnpm prd serve --restart`, `pnpm prd browser --changed --base dev`, fold docs (care-periods, calendars, assistant), `pnpm prd pr fixes-bug`, review, land `--tier components`. **Done since:** migrated (0042), docs folded (42db5f13), `browser --changed --base dev` passed (sign-in, session-end, invites, ui; `roundtrip` after a PowerSync restart: don't rerun). `roundtrip` first failed 4 times on the avatar step because this stack's PowerSync still had the sync config from before a dev sync. **`components` CI green on 9f3264ca (run 45248060450; one quarantined failure, a Planner test this branch doesn't touch).** PR opened next, then `pnpm prd review fixes-bug --wait`, then `pnpm prd land fixes-bug --tier components -m "fix(fixes-bug): six bug fixes across timeline, sheets, consent, quick entry and sign-up (B-656, B-657, B-659, B-662, B-666, B-675)"`. No Status commit between the review and the landing: it moves the PR's head. The report names the B-666 hand test and B-717, B-718.
 
+**Wave 11 landed in dev through PR #131 as ae42c519** (2026-11-23): `components` CI green on 9f3264ca (run 45248060450). **Codex did not review it** (out of credits, `--no-review`). To-test: `to-test/2026-11-23-1432-fixes-bug.md`. Docs folded (care-periods, calendars, assistant; the last two at their 10 KB budget: trim when adding). **Next session:** `pnpm prd sync`, ingest, recheck hot files (`pnpm backlog prd list`), then write wave 12 from the triaged items: B-615 (stay off the upsert's duplicate return and `mayRestoreDose`), B-689, B-690, B-717, B-718, B-719 and the America/New_York component test failures B-706 to B-715.
+
 - Gotchas: after a dev sync that changes `powersync/sync-config.yaml`, restart the stack's PowerSync (`docker restart caretook-loop3-powersync-1`) before the browser checks; this Status table's columns must stay exactly Slice | Item | State | Merge (`fixes-plans.test.mjs`); agent shells need `export PATH="$HOME/.nvm/versions/node/v24.22.3/bin:$PATH"`; fresh stacks may need a PowerSync restart before sign-in/first-sync pass.
 
 | Slice | Item  | State                                      | Merge    |
@@ -84,12 +86,60 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 | 40    | B-655 | landed                                     | 487cb235 |
 | 41    | B-620 | landed (care-periods.md folded)            | ab9dcfae |
 | 42    | B-631 | landed                                     | 2a479df8 |
-| 43    | B-656 | merged (roundtrip at landing)              | a449f67c |
-| 44    | B-657 | merged, CI fix merged                      | 990dd9bc |
-| 45    | B-659 | merged (calendars.md at landing)           | 0a8ccfcc |
-| 46    | B-662 | merged (assistant.md at landing)           | 8c930686 |
-| 47    | B-666 | merged (needs a hand test)                 | 288e9cbe |
-| 48    | B-675 | merged                                     | 3d8e9cf5 |
+| 43    | B-656 | landed (care-periods.md folded)            | a449f67c |
+| 44    | B-657 | landed (with its CI fix)                   | 990dd9bc |
+| 45    | B-659 | landed (calendars.md folded)               | 0a8ccfcc |
+| 46    | B-662 | landed (assistant.md folded)               | 8c930686 |
+| 47    | B-666 | landed (needs a hand test)                 | 288e9cbe |
+| 48    | B-675 | landed                                     | 3d8e9cf5 |
+| 49    | B-615 | landed (ask a161)                          | ec9155df |
+| 50    | B-717 | landed                                     | 16156d44 |
+| 51    | B-718 | landed                                     | 01632c12 |
+| 52    | B-719 | landed                                     | 09e91a94 |
+| 53    | B-706 | landed                                     | b692a863 |
+| 54    | B-707 | landed                                     | db29dbe1 |
+| 55    | B-708 | landed                                     | b965c5cd |
+| 56    | B-709 | landed                                     | 4d419f6f |
+| 57    | B-710 | landed                                     | 2767bd9d |
+| 58    | B-711 | landed                                     | 00c8c823 |
+| 59    | B-712 | landed                                     | 57459518 |
+| 60    | B-713 | landed                                     | 417c0719 |
+| 61    | B-714 | landed                                     | e1fb3268 |
+| 62    | B-729 | landed (test only)                         | 7c92d280 |
+| 63    | B-726 | landed                                     | 731dd3fa |
+| 64    | B-728 | landed (ask a168, vetoable)                | 5f29ce60 |
+| 65    | B-715 | landed (test only)                         | 5a088bc9 |
+| 66    | B-689 | landed                                     | c25d2c1b |
+| 67    | B-690 | landed (PlannerHeader import conflict)     | ce0cbf74 |
+
+**Wave 12 (slices 49–61, all on opus):** resumed after a rotation; git matched _Status_, no slice in flight, already up to date with dev. **Held for a later wave:** B-689, B-690 and B-715, because member-avatars holds `routes/app/groups/planner/`. New York run of the nine other zone files on b21f66d2: 25 of 93 tests fail. Most hard-code Los Angeles times; B-708's all-day day (Jul 24 for Jul 25) may be a real bug, so each slice decides from evidence.
+
+**Wave 12 hand-over (rotated mid-wave for context, 2026-11-23). Nothing is merged yet; merge in plan order, 49 to 61.** Handed off, clean, quick check passed: 50 at 55b32372, 51 at dd042445, 52 at d880bd00, 53 at c96afea4, 54 at dc764a2e, 55 at a549ae6a, 56 at 9134375e, 57 at f5745c73, 58 at 88bd4c2b, 59 at 662973e9, 60 at 803c90cc, 61 at a432a42b. All zone slices (53–61) were test-only: the app was right, including B-708's all-day day.
+
+- **Slice 49 (B-615) is the only one in flight.** Its first hand-off was af715f46. Skeptic s18 decided (ask a161, the user can veto): a `log_dose` is a repeat only when the amount and note also match; a differing call records a separate dose on a random id. The fix is committed as 4b5bc80d and its quick check was running at rotation. Respawn with `--continue` if there's no hand-off for that tip; confirm the check passed and that a test covers different amount, different note and identical retry.
+- **Expect a conflict check** between 49 and 52 only if `timelineEntryService.ts` appears in 49's diff (it shouldn't).
+- **Gate:** slice 50 changes `serviceWorkerRegister.ts`, which `check-areas` maps to `@suite`, so `browser --changed --base dev` pulls in the lean set; run it once. Tier: take the check plan's proposal. Use `pnpm datastore:migrate`, never reset.
+- **Follow-ups filed:** B-726 (a retried dose upload can still bring back an undone dose after a time edit), B-728 (repeat preview pairs the recipient's day with the viewer's time; the fix needs a product choice). Both triaged for fixes-bug. B-719's new tests were never seen failing on the old code (the agent's direct run was blocked): say so in the report.
+- **Hand test for the report:** B-717's Reload with a real service worker update after a deploy; unit tests use fakes.
+- **Docs at landing:** `connectors.md` and `medications.md` (`log_dose` slot identity, "Already logged", the repeat rule); `assistant.md` _Doses_ (`asksAmount` is for a given dose only; at budget, trim); `calendars.md` (reload on an outdated consent; at budget, trim). `docs/agents/machinery.md` is 8 B over budget from before this wave: don't grow it.
+- **Still held:** B-689, B-690, B-715 (member-avatars holds the Planner folder).
+- **Resumed after the mid-wave rotation (2026-11-23); git matched this Status.** Nothing merged, 50–61 clean at the SHAs above, `prd/fixes-bug` is 35 commits behind `dev`. Slice 49 respawned with `--continue` on opus to confirm its tests and check on 4b5bc80d. Its slice check passed on 4b5bc80d (30 of 30 integration tests). **All of 49 to 61 are merged (tip e1fb3268); worktrees stay until the wave is green.** The landing report must say: a `log_dose` that leaves out the amount or note counts as a repeat of the recorded dose (`saysTheSame`), so a real second dose logged bare reports "Already logged"; this is looser than a161's wording. Synced with dev as 64d52d8c (no migration or sync config change); `components` CI requested on the synced tip, no quick check. **`components` CI on 4bd1a186: `brake`** (run 45258699609), one failure: `syncMedications.int.test.ts` "two members' doses for one slot keeps Given and Skipped as two rows". It fails on dev too (inbox-agent's narrowed run 45259937817 on 54a43bf1; our blame returned unknown, GitHub unreachable), filed as B-729 to fixes-bug. **Slice 62 (B-729) started on opus** to find the cause and fix it; inbox-agent-37 waits on it (told yes; message it when B-729 lands in dev). No rotation until 62 is merged and the wave is green. Slice 62 merged as 7c92d280: the test read due slots at the real clock, so after 20:00 UTC the dose answered tomorrow's slot; test only, no app change. **`components` CI green on 3f0707eb (run 45358073493).** Slice worktrees 49-62 removed; database migrated, server restarted (no sync config change since wave 11, so no PowerSync restart); docs folded (medications, connectors, assistant, calendars, all under 10 KB). `browser --changed --base dev` running (pulls the lean set; run once). **Next:** `pnpm datastore:migrate` (never reset), PowerSync restart if `sync-config.yaml` changed, `pnpm prd serve --restart`, `pnpm prd browser --changed --base dev` once, `pnpm prd rm` slices 49-61, fold docs, `pnpm prd pr fixes-bug`, review, land `--tier components`.
+
+**Wave 12 landed in dev through PR #135 as bcf6ffff** (2026-11-24): `components` CI green on 3f0707eb (run 45358073493), `browser --changed --base dev` 11/11 (lean set included). **Codex did not review it** (out of credits, `--no-review`). Report: ask a166. To-test: `to-test/2026-11-24-0353-fixes-bug.md`. Docs folded (medications, connectors, assistant, calendars; all within a few bytes of 10 KB: trim when adding). Slice worktrees removed. B-729 (the dev brake) was a test reading due slots at the real clock; inbox-agent-37 was told it's in dev.
+
+**Next session (wave 13):** `pnpm prd sync`, ingest, recheck hot files (`pnpm backlog prd list`), then write wave 13 from the triaged items: B-726 (a retried dose upload after a time edit), and B-689, B-690, B-715 once member-avatars no longer holds `routes/app/groups/planner/`. B-728 (repeat preview pairs the recipient's day with the viewer's time) needs a product choice first: ask through `pnpm prd ask` before planning it.
+
+**Wave 13 (2026-11-24; git matched _Status_, no slice in flight; `prd sync` needed no merge, dev's inbox-agent landing shares no file).** Slice 63 (B-726) on opus. **B-728:** question drafted (`A`: viewer's zone for day and time, recommended; `B`: recipient's zone, labelled); skeptic s20 decided A (ask a168, filed for veto under "decided for you"); slice 64 (B-728) on opus. **Still held:** B-689, B-690, B-715 (member-avatars holds `routes/app/groups/planner/`); a background watch exits when its row leaves `running`, and they become a later wave (this one only if 63 and 64 are still in flight). **Both merged** (63 as 731dd3fa after a quick check on f5b17cc3; 64 as 5f29ce60 after a quick check on dffccc4f); worktrees stay until the wave is green. No migration. `browser --changed --base dev --list` names no check for this diff (none run). Database migrated, server restarted on the tip. **Docs folded** (`medications.md`, now 10 230 B; `appointments.md`; `sync.md` has no upload rule to change). Were: `medications.md` and `sync.md` _On upload_: every accepted dose upload is recorded in `dose_duplicate_upload` (the name dates from B-627), not only duplicates and restores; server-written doses (connector, assistant, Given all round) aren't. `appointments.md` _Repeating_: a timed visit's preview line is its day and time in the viewer's zone (B-728). Hand test for the report: the repeat preview in a browser set to another zone than the group's. **`components` CI green on 9d3f2e2c (run 45362438054; one quarantined failure, `scripts/loops/lease.test.mjs`, not this branch's).** Slice worktrees 63-64 removed; `prd sync` needs no merge. **Next:** `pnpm prd pr fixes-bug`, `pnpm prd review fixes-bug --wait`, then `pnpm prd land fixes-bug --tier components -m "fix(fixes-bug): retried dose uploads leave undone doses undone, repeat preview in the viewer's zone (B-726, B-728)"`. No Status commit between the review and the landing. The report names ask a168 (B-728 decided, vetoable) and the hand test: the repeat preview with the browser in another zone than the group's.
+
+**Wave 13 landed in dev through PR #136 as 99598435** (2026-11-24): `components` CI green on 82a3cf1 (run 45364779288), after a `sync --force` that brought dev's trimmed `machinery.md` (land refused on its budget). **Codex did not review it** (out of credits, `--no-review`). Report: ask a170. To-test: `to-test/2026-11-24-0433-fixes-bug.md`. Docs folded (`medications.md` at 10 236 B, `appointments.md`). Slice worktrees removed.
+
+**Next session (wave 14):** `pnpm prd sync`, ingest, recheck hot files (`pnpm backlog prd list`). The only waiting items are B-689, B-690 and B-715, all held while member-avatars (`running`, its slice 4 handed off) holds `routes/app/groups/planner/`. If it still runs, ask its orchestrator (ListAgents, SendMessage) to message at landing and set a background watch that exits when its row leaves `running`; write wave 14 from the three once it clears. If ask a168 is vetoed, B-728 goes back as a new slice.
+
+**Wave 14 waiting (2026-11-24, resumed after an interruption; git matched _Status_, no slice worktree, inbox empty).** `prd/fixes-bug` is 12 commits behind dev (sync at wave start). Ask a168 not vetoed (defaulted to A). Only B-689, B-690, B-715 wait, all held by member-avatars (`running`, slice 4 handed off; its CI on 054bb015 was `brake`). Its orchestrator `member-avatars-4c` was asked to message `fixes-bug-69` at landing; a background watch exits when its row leaves `running`. It replied: its last wave (slice 4) is merged and waiting on `components` CI; its Planner changes touch `PlannerHeader`, `UpcomingRow`, `UpcomingRowParts`, `planner/route.tsx` and `past/route.tsx` (expect B-689/B-690 to build on those after the sync). **member-avatars landed as 7d69b3ba (PR #138);** `prd sync --force` merged dev as 8ad25909 (no migration; needed for its Planner code). Wave 14 written: slices 65 (B-715), 66 (B-689), 67 (B-690), all on opus, run at once. Hot files set (planner/, todos/, entry/, lib/appointments/), items claimed. **Worktrees made and agents spawned for 65, 66, 67 (opus)**; if they're gone after a crash, respawn with `--continue`. Merge in order 65, 66, 67; 66 and 67 both touch `PlannerHeader.tsx` (different menu items). **All three merged** (65 5a088bc9, 66 c25d2c1b, 67 ce0cbf74; slice checks passed); worktrees stay until the wave is green. Slice 67 changed `components/ui/BackLink.tsx` (an optional `onClick`), which maps to the `ui` browser check. Not covered by tests (memory router): Back after landing on Todos doesn't reopen the form; reload keeps the Planner return; scroll restore on Back. **`components` CI green on efed38b1 (run 45373891260).** Slice worktrees 65-67 removed. Database migrated (no new migration, no sync config change), server restarted, `browser --changed --base dev` 2/2 (live-notes, ui; don't rerun). Docs folded (`appointments.md` _Back to the Planner_ and tests, `todos.md` sheets; both under 10 KB). **Next:** `pnpm prd pr fixes-bug`, `pnpm prd review fixes-bug --wait`, then `pnpm prd land fixes-bug --tier components -m "fix(fixes-bug): Planner todos land on Todos, Planner events return to the Planner, Planner test passes in New York (B-689, B-690, B-715)"`. No Status commit between the review and the landing. Hand tests for the report: Back after a Planner todo save; reload on an entry opened from the Planner; scroll on Back.
+
+**Wave 14 landed in dev through PR #140 as 3e16f92** (2026-11-24): `components` CI green on efed38b1 (run 45373891260; a later dev sync brought tooling and docs only), `browser --changed --base dev` 2/2. **Codex did not review it** (out of credits, `--no-review`). Report filed; to-test: `to-test/2026-11-24-0535-fixes-bug.md`. Docs folded (`appointments.md`, `todos.md`). Slice worktrees removed. Land first refused on a stale dev-brake notice for B-729 (landed in wave 12) until `prd sync --force`.
+
+**Next session:** no fixes-bug item waits. `pnpm prd sync`, ingest, `pnpm backlog list` for new triaged `fixes-bug` items, then write wave 15 from them.
 
 ## Wave 1
 
@@ -600,3 +650,183 @@ In `useTimelineData.ts`, a repeat jump ignores the old paging only while its mar
 - Accepting a new jump persists the reset bound, limit and marker.
 - Jump to a day, load newer, jump to the same day again and open an entry's edit sheet: the window and scroll stay put.
 - Unit or component test: that sequence. A first jump and plain paging keep their behaviour.
+
+## Wave 12
+
+As before: the item's backlog notes (`pnpm backlog show B-<n>`) carry the file references, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code. Stay out of `routes/app/groups/planner/` and member-avatars' other hot files (`pnpm backlog prd list`), and out of `vitest.config.ts` and `scripts/ci/` (test-gates-2).
+
+**The zone slices (53–61)** each own one test file. Run it in both zones: `CARETOOK_TEST_ZONE=America/New_York TZ=America/New_York pnpm exec vitest run --project web:components <file>`, then the same with `America/Los_Angeles`. Find out why each failure happens before changing anything:
+
+- **The test assumes Los Angeles:** make it state its zone or compute its expectation, without weakening what it asserts. Don't change the runner's zone or skip the test.
+- **The app is wrong for a viewer in New York** (a wrong day, time or due state): fix the app in that slice if the fix is small and inside the slice's area, with the test proving it. Otherwise leave the test failing, file a `fixes-bug` item, and say so in the hand-off.
+
+### Slice 49: two connector log_dose calls for one pass merge into one dose (B-615)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/connectors.md, docs/domain/medications.md · Tests: integration
+
+`log_dose` in `packages/api/src/connectors/tools/writes.ts` always takes a random id, so two calls for one scheduled dose make two doses, while `give_pass` converges.
+
+- A `log_dose` that resolves to one scheduled slot uses that slot's identity, as `give_pass` does; a repeat for that slot makes no second dose.
+- A dose with no scheduled slot (as needed, or off schedule) keeps today's behaviour.
+- Don't change the upsert's duplicate return or `mayRestoreDose` (slice 52 owns them).
+- Integration test: two calls for one slot leave one dose; two as-needed doses stay two.
+
+### Slice 50: an outdated calendar consent tells the member to reload (B-717)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/calendars.md · Tests: unit, component
+
+A device on an older bundle sends its old consent version and gets `consentOutdated` on every try, while the message suggests agreeing again.
+
+- On this error the settings screen says the wording has changed and offers a reload; agreeing again on the old bundle is no longer the suggested step.
+- The server still refuses an old version and records nothing.
+- Component test in `settings/calendar.browser.test.tsx`: the refusal shows the reload path.
+
+### Slice 51: a skipped or refused dose doesn't ask for an amount (B-718)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/assistant.md · Tests: unit
+
+In `quickEntry.ts`, the `asksAmount` branch ignores the inherited status, so a dose that wasn't given is blocked until an amount is chosen.
+
+- `asksAmount` applies only to a given dose. `skipped lisinopril 10` and a refused dose record without choosing, and record no guessed amount.
+- `gave lisinopril 10` at 10 mg with a usual 2 tablets still asks (B-662).
+- Unit test in `quickEntry.test.ts`: given, skipped and refused.
+
+### Slice 52: a retried upload can't bring back an undone dose (B-719)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/medications.md · Tests: integration
+
+A restore changes `created_by` and only duplicates are recorded in `dose_duplicate_upload`, so A's retried first upload, or B's restoring upload after a time edit, matches no record and restores a dose someone has since undone.
+
+- A restore records the displaced author and the restoring upload, so a retry of either is recognised and leaves an undone dose undone.
+- A genuine new log of that dose still works as it does today.
+- If this needs a migration, keep it additive.
+- Integration test: A's upload loses its response, B restores, someone deletes, A retries: the dose stays deleted. The same for B's retry after a time edit.
+
+### Slice 53: join test passes in New York (B-706)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md · Tests: component
+
+`apps/web/app/routes/account/join/join.browser.test.tsx`, 1 failure: the signUp payload differs. Follow _The zone slices_.
+
+### Slice 54: staff new-group test passes in New York (B-707)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/admin.md · Tests: component
+
+`apps/web/app/routes/admin/new-group/newGroup.browser.test.tsx`, 1 failure: the posted payload differs. Follow _The zone slices_.
+
+### Slice 55: an event draft keeps its day in New York (B-708)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/appointments.md · Tests: component
+
+`apps/web/app/routes/app/groups/entry/entryDraft.browser.test.tsx`, 3 failures: an all-day draft shows Jul 24 where the test expects the 25th, and two writes never reach the entry URL. Follow _The zone slices_, and establish first whether the all-day day is really wrong for this viewer.
+
+### Slice 56: repeat preview test passes in New York (B-709)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/appointments.md · Tests: component
+
+`apps/web/app/routes/app/groups/entry/entryRepeat.browser.test.tsx`, 1 failure: the preview shows 1:00 PM where the test expects 10:00 AM. Follow _The zone slices_.
+
+### Slice 57: medication schedule says whose times they are in New York (B-710)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: component
+
+`apps/web/app/routes/app/groups/medication/medication.browser.test.tsx`, 2 failures on the "Times are … time" label. Follow _The zone slices_.
+
+### Slice 58: Today's slot states are right in New York (B-711)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/medications.md · Tests: component
+
+`apps/web/app/routes/app/groups/medications/today.browser.test.tsx`, 10 failures: slots read `upcoming` where the test expects `due`. Follow _The zone slices_.
+
+### Slice 59: new-group test passes in New York (B-712)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/care-groups.md · Tests: component
+
+`apps/web/app/routes/app/groups/new/newGroup.browser.test.tsx`, 1 failure: the create payload differs. Follow _The zone slices_.
+
+### Slice 60: care period page test passes in New York (B-713)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/care-periods.md · Tests: component
+
+`apps/web/app/routes/app/groups/period/period.browser.test.tsx`, 3 failures on displayed times (00:15 for 03:15). Follow _The zone slices_.
+
+### Slice 61: care periods list test passes in New York (B-714)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/care-periods.md · Tests: component
+
+`apps/web/app/routes/app/groups/periods/periods.browser.test.tsx`, 3 failures: displayed times, a date-only prefill's instant, and an "until" day. Follow _The zone slices_, and establish first whether the date-only prefill and the "until" day are really wrong for this viewer.
+
+### Slice 62: two members' doses for one slot stay two rows again (B-729)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/medications.md · Tests: integration
+
+A brake on `dev` (54a43bf1) and on this branch: `packages/api/src/syncMedications.int.test.ts`, "sync.upload: two members' doses for one slot keeps Given and Skipped as two rows, and the earlier reads the slot", fails with `expected undefined to be '<uuid>'` (dev's narrowed run 45259937817; this branch's `components` run 45258699609). The test last changed in 46aa519c (dose-accuracy, B-614, B-616); since then `dev` took fixes-bug wave 11 and member-avatars slice 3, and this branch adds slice 52 (B-719, `timelineEntryService.ts`).
+
+- Find which change broke it first (`git log` on the test and on `timelineEntryService.ts`, and run the test on each candidate): the app or the test.
+- If the app is wrong, fix it so two members' doses for one slot keep both rows and the earlier reads the slot, without undoing B-719's retry rule or B-614/B-616's "an upload leaves another member's dose alone".
+- If the test is stale, correct its expectation without weakening what it asserts.
+- The test passes, and `timelineEntry.int.test.ts` still passes.
+
+## Wave 13
+
+As before: **first confirm the bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it and change no app code. Stay out of `routes/app/groups/planner/` and member-avatars' other hot files (`pnpm backlog prd list`), and out of `vitest.config.ts` and `scripts/ci/`.
+
+### Slice 63: a retried dose upload after a time edit can't bring back an undone dose (B-726)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/sync.md, docs/domain/medications.md · Tests: integration
+
+Slice 52 (B-719) records a restore's displaced author and restoring upload in `dose_duplicate_upload`, but two gaps remain (read from the code, no test yet): (1) another member edits the dose's time before the restore, so the displaced row's `occurred_at` no longer matches A's original upload and A's retry isn't recognised; (2) with no restore at all, A's upload loses its response, the time is edited, someone deletes the dose, and A's retry reads as a new tap and brings it back.
+
+- A retry of an accepted dose upload is recognised whatever happened to the row since (a time edit, a restore, a delete), and leaves an undone dose undone. Recording every accepted dose upload is the likely shape; if so, keep any migration additive.
+- A genuine new log of that dose still works as it does today, and B-719's, B-614's and B-616's rules still hold (an upload leaves another member's dose alone; two members' doses for one slot stay two rows).
+- Integration tests in `packages/api/src/syncMedications.int.test.ts` (or beside it): both scenarios above end with the dose still deleted; a fresh log after a delete still records.
+
+### Slice 64: the repeat preview reads each visit in the viewer's zone (B-728)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/appointments.md · Tests: component
+
+`visitLabel` in `apps/web/app/components/repeat/RepeatField.tsx` formats the series day (the recipient's zone) as the day and the visit's start instant in the viewer's zone as the time, so a Wed 10:00 PM Los Angeles visit reads "Wed, 1:00 AM" in New York. Decided (skeptic s20, ask a168, the user can veto): a timed visit's line shows its day and time both in the viewer's zone, as the Planner and the entry page do.
+
+- A timed visit's line is the start instant's day and time in the viewer's zone ("Thu, 1:00 AM" for that viewer).
+- An all-day visit keeps its series day (no zone shift).
+- Leave `SeriesEditSheet`'s start and end pickers as they are (they use the series' zone; a separate item if anything).
+- Component test in `entryRepeat.browser.test.tsx`: a late-evening Los Angeles visit read in New York shows the next day; it passes under both `TZ=America/New_York` and `TZ=America/Los_Angeles` (with `CARETOOK_TEST_ZONE` set to match).
+
+## Wave 14
+
+As before: **first confirm the bug with a failing test**; if it doesn't reproduce, say so in the hand-off with the test that shows it and change no app code. member-avatars has landed (7d69b3ba), so the Planner folder is free; its author circles there are now `MemberAvatar`/`AuthorCircle` from `components/entry/KindIcon.tsx`: leave them as they are. Stay out of `vitest.config.ts`, `scripts/ci/` and inbox-agent's hot files (`pnpm backlog prd list`). The three slices run at once and all touch the Planner: keep each change to its own item, and put new tests in the slice's own test file (named below) rather than in `planner.browser.test.tsx`, except slice 65, which owns that file.
+
+### Slice 65: the Planner component test passes in New York (B-715)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/appointments.md · Tests: component
+
+`apps/web/app/routes/app/groups/planner/planner.browser.test.tsx` fails under `TZ=America/New_York` (CI zone runs on ef58007e and f57458d5). Wave 12's other zone files (B-706 to B-714) were all test-only: hard-coded Los Angeles times. Decide from evidence: run it in both zones (`TZ=America/New_York` and `TZ=America/Los_Angeles`, with `CARETOOK_TEST_ZONE` set to match), and for each failure say whether the test or the app is wrong.
+
+- The file passes in both zones. A test-only fix builds its times from the group's zone instead of the machine's; an app bug found here gets fixed with a test that shows it.
+- Only this file and what it tests; no change to other zone files.
+
+### Slice 66: adding a todo from the Planner lands on Todos (B-689)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/todos.md, docs/domain/app-shell.md · Tests: component
+
+The backlog item's note has the code read: `useCloseTodoSheet` (`routes/app/groups/todos/todoSheet.ts`) goes back (`navigate(-1)`) when `TODO_SHEET_STATE` is set, which the Planner's Add menu sets (`PlannerHeader.tsx`), and lands on the Todos list only without it, so the Todos landing is the fallback, not the design.
+
+- A successful save from the Planner's Add > Todo (from Upcoming or from Past) always lands on `appUrls.todos(groupId, listSearch(search))` with `replace`, so Back doesn't reopen the form. Mark the intent in the link state (its own field).
+- Cancel, Escape and a tap outside still return to the opener tab.
+- Other openers of the sheet keep returning where they were: quick entry's Edit on the timeline, `LinkedTodos`, a todo's page.
+- A kept Todos filter (Mine, Unassigned) doesn't hide the new todo right after landing; if it would, say how you handled it.
+- In `PlannerHeader.tsx` change only the Todo menu item (slice 67 changes the Event one).
+- Component tests in a new `planner/plannerAddTodo.browser.test.tsx`: save from Upcoming and from Past lands on Todos; cancel returns to the tab.
+
+### Slice 67: Planner events return to the Planner (B-690)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/components.md, docs/domain/appointments.md, docs/domain/timeline.md · Tests: component
+
+The backlog item's two notes are the spec (code read and the user's decision). Add > Event (`PlannerHeader.tsx`) opens `entries/new?kind=event&when=pick` with no link state; the entry page autosaves and its only exit is a BackLink to the Timeline (`routes/app/groups/entry/route.tsx`); the first save's `navigate(…, { replace: true })` in `useLiveEntry.ts` (one-off and repeating) drops history state.
+
+- **A new event from the Planner:** mark the Planner as the opener in link state and carry it over the first save's replace. While it's set, the back link reads Planner and goes to `appUrls.plannerPast` when the event is past, else `appUrls.planner`, decided on leaving (a time edited on the page counts), by the Planner's own rule (`isUpcoming`/`entryTiming` in `lib/appointments/upcoming.ts`: in progress and today's all-day count as Upcoming). An abandoned unsaved draft returns to the tab it was opened from.
+- **An existing event opened from a Planner row** (Upcoming or Past): the row link passes the opener's full URL (path and search) in history state; the back link reads Planner and returns to that exact URL, filters kept, even after a time edit moves it to the other tab; scroll restored where the router allows.
+- Deleting either kind of event opened from the Planner returns to the Planner (the new one by its time, the existing one to its opener), not the Timeline.
+- A reload keeps the return path if history state survives; a direct link or bookmark keeps the Timeline link, and so does every other way in.
+- In `PlannerHeader.tsx` change only the Event menu item (slice 66 changes the Todo one).
+- Component tests in a new `planner/plannerEventReturn.browser.test.tsx` (or beside the entry page's tests): new past, future and in-progress events, a time changed before leaving, opening from Upcoming and from Past with a filter set, Back after a time edit, delete.

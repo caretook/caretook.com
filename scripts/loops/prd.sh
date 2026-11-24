@@ -6,7 +6,7 @@ set -euo pipefail
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
 bin=$(dirname "$0")
-# The model plan, backlog and hotfix sessions run on unless --model names another.
+# The model plan, backlog, hotfix and inbox sessions run on unless --model names another.
 agent_model=opus
 # Every command runs on .nvmrc's Node, whatever shell called it.
 use_node || true
@@ -34,6 +34,11 @@ pnpm prd <command>
     plan                      no topic: a backlog and inbox planning session in the main checkout, here
                               (on opus, a `design` row's planner on Fable; --model <m> runs that one session on model m)
                               (it reads the backlog and helps you decide what's next)
+    inbox [--model <m>]       the inbox agent: you tell it ideas in plain words (here or from the phone) and it
+                              adds them to the inbox on origin/dev, under the right heading; Opus in fast mode
+                              (--model <m>: another model), Remote Control "inbox", opened in its own directory
+                              outside the repository (\$CARETOOK_INBOX_DIR, default ~/.caretook/inbox; created);
+                              the dispatcher keeps it open once you have opened it by hand and trusted the folder
     slice <topic> <n>         a slice's worktree (orchestrators run this); a stack only for Stack: yes
     hotfix <name> [--open] [--model <m>] ["<the fix>"]   a stackless worktree on hotfix/<name> from dev, for a fix
                               outside any PRD (reused if it exists); --open starts its session here
@@ -47,8 +52,9 @@ pnpm prd <command>
                               Vite caches, with sizes; frees them after a yes
     tidy [--yes] [--json]     leftovers sorted into safe (merged slice and landed plan worktrees, dead tickets,
                               orphan test databases, stale remote refs, dangling caretook volumes, old hang
-                              logs, ended records) and ask (finished-looking live sessions, branches without a
-                              worktree, items to archive, registry rows that look done); --yes removes the safe
+                              logs, ended records, finished items whose topic has no prd/ worktree) and ask
+                              (finished-looking live sessions, branches without a worktree, registry rows
+                              that look done); --yes removes the safe
                               ones and files the ask list as one report (prompt tidy: the haiku brief)
     test-db status|up|down|list|use   the shared test Postgres (a database per worktree, :5436)
     recover [--at HH:MM] [--wait] [--no-agent]   after a restart, crash or usage limit: Docker, stale locks,
@@ -165,7 +171,7 @@ pnpm prd <command>
                               dev, or update the open one (title: the landing subject; body: backlog items,
                               the check pass); plan/ branches are refused
     dev-sync [branch]         bring the main checkout's dev up to origin/dev after a GitHub merge (land runs
-                              it): fast-forward, rebase backlog-only commits, or merge
+                              it): fast-forward, replay unshared backlog commits, or merge; never stops on the inbox
 
   prompt orchestrator|plan|slice <topic> [n|--auto]   the first prompt for a session (prompt backlog: no topic)
                      recover: the recovery agent (pnpm prd recover opens it)
@@ -279,6 +285,43 @@ case $cmd in
     echo
     echo "Start its planning session in a new terminal (or rerun with --open):"
     echo "  $cmd_line"
+    ;;
+  inbox)
+    # The inbox session (prompt.sh inbox): Opus in fast mode (session.sh gives
+    # the inbox kind inbox-settings.json, the context hook and fastMode in one
+    # file), opened bare: in its own directory outside the repository, so
+    # neither AGENTS.md nor the project's memory loads.
+    # --dir and --managed are the reopen's and rotation's (open-session.mjs,
+    # rotate-into.sh): the recorded directory, and the dispatcher's record.
+    model=$agent_model dir=${CARETOOK_INBOX_DIR:-$HOME/.caretook/inbox} managed=()
+    while (($#)); do
+      case $1 in
+        --model) [[ -n ${2:-} && ${2:-} != -* ]] || die "inbox: --model needs a model name (e.g. opus)"; model=$2; shift ;;
+        --model=*) model=${1#--model=}; [[ -n $model ]] || die "inbox: --model needs a model name (e.g. opus)" ;;
+        --dir) [[ -n ${2:-} ]] || die "inbox: --dir needs a directory"; dir=$2; shift ;;
+        --managed) managed=(--managed) ;;
+        *) die "inbox: unknown argument $1 (--model <m>, --dir <d>, --managed)" ;;
+      esac
+      shift
+    done
+    fresh=0
+    [[ -d $dir ]] || { mkdir -p "$dir" || die "inbox: can't create $dir"; fresh=1; }
+    dir=$(cd "$dir" && pwd -P)
+    if top=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null); then
+      die "inbox: $dir is inside the git repository $top, where AGENTS.md would load; set CARETOOK_INBOX_DIR to a directory outside any repository"
+    fi
+    d=$dir
+    while :; do
+      for f in CLAUDE.md CLAUDE.local.md AGENTS.md; do
+        [[ ! -e $d/$f ]] || die "inbox: $d/$f would load into the inbox session; set CARETOOK_INBOX_DIR to a directory with none above it"
+      done
+      [[ $d != / ]] || break
+      d=$(dirname "$d")
+    done
+    ((fresh)) && echo "Made $dir for the inbox session. Its first open asks whether you trust this folder: choose Yes, once." >&2
+    wrapper=$(cd "$bin" && pwd)/session.sh
+    prompt_text=$("$bin/prompt.sh" inbox)
+    cd "$dir" && exec "$wrapper" inbox --kind inbox ${managed[@]+"${managed[@]}"} -- --model "$model" --remote-control inbox "$prompt_text"
     ;;
   slice) exec "$bin/new.sh" slice "$@" ;;
   hotfix)

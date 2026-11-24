@@ -1,6 +1,7 @@
 // "Changes not saved" (Settings): the records the uploader keeps for changes
-// the server refused (`unsaved_change`, lib/sync/uploader.ts), as lines a
-// caretaker can read. Pure: the page's queries are ./unsavedChanges.sync.ts.
+// the server refused or set aside (`unsaved_change`, lib/sync/uploader.ts),
+// as lines a caretaker can read. A set-aside line (`outcome` `set_aside`) has
+// "Try again". Pure: the page's queries are ./unsavedChanges.sync.ts.
 
 /** One `unsaved_change` row, as the device stores it (JSON columns as text). */
 export type UnsavedRecord = {
@@ -76,6 +77,7 @@ const parseIssues = (issues: string | null): Issue[] => {
 
 /** Why the server said no, for an ordinary cause; null for a code this page doesn't know. */
 const reasonFor = (code: string, issues: Issue[]): string | null => {
+  if (code === "sync:failed") return "the server couldn't save this";
   if (code === "permissions:unauthorized") return "you can't edit in this group any more";
   if (code === "todoService:completionOnly") return "you can only tick or reopen to-dos assigned to you";
   if (code === "sync:readOnlyTable") return "it can't be changed from this device";
@@ -118,6 +120,9 @@ export const unsavedSentence = (r: {
   if (reason) return `${head}: ${reason}`;
   return r.issues.length ? `${head}: ${messages(r.issues)}` : `${head}: the server refused it`;
 };
+
+/** Whether a line can be sent again: its newest record was set aside (a server fault), not refused. */
+export const canTryAgain = (line: Pick<UnsavedLine, "outcome">) => line.outcome === "set_aside";
 
 /** The records as the page's lines, newest first: one line per `lineKey`, with a count. */
 export const unsavedLines = (records: readonly UnsavedRecord[]): UnsavedLine[] => {

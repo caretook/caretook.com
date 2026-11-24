@@ -4,14 +4,32 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/inbox-agent` (slice commits) |
-| ----- | ---- | ----- | -------------------------------------------- |
-| 1     | 1    | —     | —                                            |
-| 2     | 1    | —     | —                                            |
-| 3     | 2    | —     | —                                            |
-| 4     | 3    | —     | —                                            |
-| 5     | 4    | —     | —                                            |
-| 6     | 5    | —     | —                                            |
+| Slice | Wave | State                                    | Merge into `prd/inbox-agent` (slice commits) |
+| ----- | ---- | ---------------------------------------- | -------------------------------------------- |
+| 1     | 1    | landed (opus) in dev `24440550`, PR #134 | `0c37dc6d` (`ced2c458`)                      |
+| 2     | 1    | landed (opus) in dev `24440550`, PR #134 | `935bc723` (`4b98c644`)                      |
+| 3     | 2    | landed (opus) in dev `fb6688e6`, PR #137 | `8a2b35bc` (`edb5cd93`, `54c810c3`)          |
+| 4     | 3    | landed (opus) in dev `faadbc1b`, PR #139 | `b57c2f99` (`336f9121`)                      |
+| 5     | 4    | merged (opus), B-515 done                | `2a3d7845` (`47bdd9a5`)                      |
+| 6     | 5    | —                                        | —                                            |
+
+**Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
+
+**Wave 4 (2026-11-24):** slice 5 handed off (`47bdd9a5`, quick check, test:tooling, eslint passed) and merged; B-515 done. CI integration green on `a78190f3` (run 45375315919); `inbox-agent-5` removed; sync was a no-op; PR #141 open; Codex out of credits (exit 4), so land with `--no-review`. Docs folded: machinery (keep-alive for inbox, the pickup, `dir`, the hook and opener for inbox; trimmed to stay under dev's size) and inbox (trust gate, always on). Land refused the unsynced tip under the stale B-729 brake notice n83 (as in wave 3); `sync --force` merged dev as `dbfb89a9`; CI integration rerun on the synced tip, then land `--no-review`. Slice 5 notes: the dispatcher opens the inbox session only once its folder is trusted (read-only check of `~/.claude/projects` and `~/.claude.json`); else it tells the user to run `pnpm prd inbox` once by hand. Docs to fold: machinery (the pickup, `CARETOOK_PICKUP_EVERY`, the kept inbox session and its trust gate, `rotate --self` for inbox, `dir` in the session record); inbox (the hand-off line, the first open by hand). Slice 6 changes `prompt.sh` too (the inbox prompt's size test is 1900).
+
+**Hand-over (2026-11-24): wave 3 landed; start wave 4 (slice 5) next.** Wave 3 landed in dev as `faadbc1b` through PR #139 with `--no-review` (Codex out of credits), at CI integration green on `146487aa` (run 45370404316), after `sync --force` (`67239401`): land refused an unsynced tip under the stale B-729 brake notice n83 (B-729 is fixed). The landing report is filed; the to-test file is `to-test/2026-11-24-0504-inbox-agent.md`. Docs folded: `docs/agents/inbox.md`, its _Area index_ entry, an orchestration row, the inbox file's opening lines. B-425 done; `inbox-agent-4` removed. No slice in flight. Next: claim B-515 and start slice 5; it lands at integration (it touches `scripts/loops/`). Models: every slice on opus.
+
+**Slice 4 hand-off:** both real-session checks passed (debug logs: no CLAUDE.md/AGENTS.md/memory loaded in the bare directory; `fastMode` through `--settings` is requested). But the API refuses fast mode without usage credits, so the session falls back to normal Opus with Claude Code's own notice (the PRD's fallback). Not asked: the fallback is the PRD's answer; the report says it. For slice 5 (noted on B-515): a new directory's "trust this folder?" prompt defaults to "No, exit", so a keep-alive would hang until the user accepts it once by hand; `session.sh` doesn't export `CARETOOK_CONTEXT_HOOK` for kind inbox, so export it and give `context.mjs` an inbox reminder.
+
+**Earlier (wave 2):** Wave 2 landed in dev as `fb6688e6` through PR #137 with `--no-review` (Codex out of credits), at CI integration green on `295fc0c6` (run 45364603017). The landing report is ask a169; the to-test file is `to-test/2026-11-24-0429-inbox-agent.md`. Docs folded: backlog (the origin path, who may change the inbox) and AGENTS.md (`pnpm prd dev-sync`). B-474 and B-435 done; B-425 stays claimed until slice 4 merges. No slice in flight. Accepted gap (noted on B-425): `ingest` with the main checkout mid-merge prints that the pickup skipped, then refuses as before. Models: every slice on opus.
+
+**Slice 3 notes for slice 4:** the inbox session runs `pnpm backlog similar`, `inbox add`, `inbox move` and `inbox` by the main checkout's path; pickup output is on stderr, the result line ("added under <heading> on origin/dev as <sha>: …") on stdout. `BACKLOG_PICKUP=off` turns the pickup off. Slice 4 starts with two real-session checks (fast mode through `--settings`, and the bare directory loading neither AGENTS.md nor memory); if either fails, ask the user.
+
+**Gate, corrected:** `scripts/loops/lib.sh` counts as the browser harness, so a wave that touches it lands at the **integration** tier (land requests the CI run itself). `pnpm test:tooling` and `pnpm exec eslint scripts` remain the local pre-check. The B-729 dev brake that held wave 1 about 12 hours is fixed in dev (`bcf6ffff`, fixes-bug). Skeptic s19 / ask a165 (wait for fixes-bug) is settled. Open issues: none. `pnpm backlog doctor` still reports two old inbox-line mismatches (B-548, B-549), not this topic's.
+
+**Slice 1 notes for later:** it added `land_push_trunk` (a landing refuses when the pickup brings anything but the backlog files and CI's two lists). Slice 3's origin writer can call `dev_sync` as the pickup, and must treat its refusal of a checkout off `dev` or mid-merge as "skipped" (tell slice 3's agent this).
+
+**Slice 2 notes for later:** the look-alike threshold (Dice 0.6, at least two shared words) was tested only on fictional titles, so its noise on the real backlog is unmeasured. `tidy --yes` exits 1 if the archive step fails (main checkout mid-merge or off `dev`); its other removals still run. Slice 3 changes the same `scripts/backlog/backlog.mjs`.
 
 **Backlog:** claim B-425 and B-474 when slice 1 starts, `done` B-474 when slice 3 merges and B-425 when slice 4 merges; B-435 when slice 2 starts, `done` when slice 3 merges; B-515 when slice 5 starts, `done` when it merges; B-551 when slice 6 starts, `done` when it merges.
 
