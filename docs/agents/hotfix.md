@@ -15,3 +15,4 @@ One contained fix in its own worktree, outside the PRD rules, when the user asks
   - **Ready:** wait for `Local:`, check that `/sign-in` returns 200, and tell the user to open `127.0.0.1`, not `localhost`.
   - **Cleanup:** stop the server before `pnpm prd rm`, which removes the links with the worktree.
 - Backlog items go through `pnpm backlog`, never edits on the branch.
+- **Bye:** a message of just 'bye' runs `pnpm prd bye` after your own checks: the fix landed, or the user knows `hotfix/<name>` holds it unlanded.

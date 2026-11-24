@@ -27,6 +27,7 @@ import {
   projectFolder,
   runThrough,
 } from "./open-session.mjs";
+import { CAPTAINS } from "./captain.mjs";
 
 const SESSION_SH = "/o/scripts/loops/session.sh";
 const W = `cd /w/.loops/t && ${SESSION_SH} prd-t`;
@@ -131,6 +132,7 @@ beforeAll(() => {
     "open-session.mjs",
     "planner-model.mjs",
     "sessions.mjs",
+    "captain.mjs",
   ])
     copyFileSync(join(HERE, f), join(main, "scripts/loops", f));
   mkdirSync(join(main, "scripts/backlog"));
@@ -172,16 +174,46 @@ describe("backlog, recovery and hotfix sessions", () => {
         main: "/m",
         wrapper,
         record: { kind: "backlog", model: "sonnet", managed: true },
+        captain: "Pike",
       }),
     ).toMatchObject({
       session: "backlog",
+      title: "Pike",
       mode: "fresh",
       managed: true,
-      command: `cd /m && ${wrapper} backlog --kind backlog --managed -- --model sonnet --remote-control backlog "$(scripts/loops/prompt.sh backlog)"`,
+      command: `cd /m && ${wrapper} backlog --kind backlog --managed -- --model sonnet --remote-control Pike "$(scripts/loops/prompt.sh backlog)"`,
     });
   });
 
-  it("a named backlog session reopens under its recorded Remote Control name", () => {
+  it("the main backlog session reopens as a new captain, never its last one", () => {
+    const seen = new Set();
+    for (let i = 0; i < 40; i++) {
+      const c = chooseMainCommand({
+        name: "backlog",
+        main: "/m",
+        wrapper,
+        record: { kind: "backlog", remote: "Riker" },
+      });
+      expect(CAPTAINS).toContain(c.title);
+      expect(c.title).not.toBe("Riker");
+      expect(c.session).toBe("backlog");
+      expect(c.command).toContain(
+        `${wrapper} backlog --kind backlog -- --model opus --remote-control ${c.title} `,
+      );
+      seen.add(c.title);
+    }
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
+  it("a named backlog session reopens under its recorded Remote Control name, with no captain", () => {
+    expect(
+      chooseMainCommand({
+        name: "backlog-x",
+        main: "/m",
+        wrapper,
+        record: { kind: "backlog", model: "sonnet", managed: true, remote: "backlog - x" },
+      }),
+    ).toEqual(expect.not.objectContaining({ title: expect.anything() }));
     expect(
       chooseMainCommand({
         name: "backlog-x",
@@ -281,7 +313,9 @@ describe("backlog, recovery and hotfix sessions", () => {
     writeRecord("backlog", { kind: "backlog", model: "sonnet", ended: "2026-01-01T00:00:00Z" });
     const out = ok(["backlog", "--print"]);
     expect(out).toContain(`cd ${main} && `);
-    expect(out).toContain('--model sonnet --remote-control backlog "$(scripts/loops/prompt.sh backlog)"');
+    const captain = /^backlog as ([A-Za-z]+) /m.exec(out)?.[1];
+    expect(CAPTAINS).toContain(captain);
+    expect(out).toContain(`--model sonnet --remote-control ${captain} "$(scripts/loops/prompt.sh backlog)"`);
     expect(out).not.toContain("--continue");
     rmSync(folder, { recursive: true });
   });
@@ -497,11 +531,36 @@ describe("pnpm prd open", () => {
     expect(script.match(/activate/g)).toEqual(["activate"]);
     expect(script).toMatch(/if not quiet then activate/);
     expect(script).toMatch(/set previousTab to current tab of theWindow/);
-    expect(script).toMatch(/if quiet then tell previousTab to select/);
+    expect(script).toMatch(/tell previousTab to select/);
     expect(script).toMatch(/set newSession to current session of newTab/);
     expect(script).toMatch(/tell newSession\s+set name to tabTitle\s+write text cmd/);
     // "title" is a session property in iTerm2: a variable of that name breaks "set name"
     expect(script).not.toMatch(/set title to/);
+  });
+
+  it("falls back when iTerm2 has no current window: the first window, else a new one (B-468)", () => {
+    ok(["auto", "--background"]);
+    const script = tabScript();
+    // current window is missing value when iTerm2 is hidden, minimised or has no key window.
+    expect(script).toMatch(/try\s+set theWindow to current window\s+end try/);
+    expect(script).toMatch(
+      /if theWindow is missing value then\s+try\s+set theWindow to first window\s+end try\s+end if/,
+    );
+    // Its tab is addressed only once a window is in hand, and never fails the open.
+    const inWindow = script.slice(script.indexOf("if theWindow is not missing value then"));
+    expect(script.indexOf("if theWindow is not missing value then")).toBeLessThan(
+      script.indexOf("current tab of theWindow"),
+    );
+    expect(inWindow).toMatch(/try\s+set previousTab to current tab of theWindow\s+end try/);
+    expect(script).toMatch(
+      /if quiet and previousTab is not missing value then\s+try\s+tell previousTab to select/,
+    );
+    // No usable window, or no tab made in it: a new window, and the command goes to its session.
+    expect(script).toMatch(
+      /if newSession is missing value then\s+set newWindow to \(create window with default profile\)\s+set newSession to current session of newWindow\s+end if\s+tell newSession/,
+    );
+    expect(script).not.toMatch(/current (tab|session) of current window/);
+    expect(script).not.toMatch(/count of windows/);
   });
 
   it("opens any command line in a tab with --command, exec'd so the tab closes with it", () => {

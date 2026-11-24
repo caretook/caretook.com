@@ -4,15 +4,15 @@ For a slice agent (a loop): one background agent working one slice of a PRD in `
 
 ## Loop rules
 
-- Work only inside your worktree. Run `source ~/.nvm/nvm.sh && nvm use` in every shell (Node 24; browser checks need its global `WebSocket`).
-- Read the docs your slice's `Reads` field names. A missing field means no stack and nothing extra to read ([fields](planner.md#slice-fields)).
+- Work only inside your worktree. Run `source ~/.nvm/nvm.sh && nvm use` in every shell (Node 24).
+- Read the docs your slice's `Reads` names (none given: no stack, nothing extra; [fields](planner.md#slice-fields)).
 - Your stack is your own: `pnpm datastore:reset`, `pnpm test`, `docker compose …` and `pnpm dev` use your ports. Never touch the main checkout, other worktrees or other Compose projects.
 - Run the dev server with `pnpm prd serve` (background; `WEB_PORT` pins the port; `--restart` after merges). After editing `powersync/sync-config.yaml`, `docker compose restart powersync`.
-- Edits to shared files stay small and are listed in the hand-off. Don't edit AGENTS.md or `docs/` (the orchestrator folds at landing), and change the backlog only through `pnpm backlog note`.
-- No new dependencies. All data stays fictional.
+- Keep shared-file edits small. Don't edit AGENTS.md or `docs/` (the orchestrator folds at landing), and change the backlog only through `pnpm backlog note`.
 - **Past 175k context** a hook asks you to judge ([the watch](machinery.md#the-context-watch)): continue or hand off, and say which in the hand-off. **Past 300k** hand off now: commit, start no check, name any unfinished fix.
 - **Commit on your branch**, then check (`pnpm prd check` refuses a dirty tree; fix in more commits): Conventional Commits scoped to the topic, with the attribution line. Don't merge, rebase or push any other branch (but a fix's merge, below); never set `CARETOOK_ALLOW_PROTECTED`. Delete scratch scripts first.
 - **Your hand-off releases your stack** (`pnpm prd stack down`); then wait: the orchestrator may send back a failure from the wave's CI run.
+- **Bye** (a message of just 'bye'): your hand-off ready, your stack down, then `pnpm prd bye` (it only reports); send your orchestrator what it lists.
 - **A fix request is only:** `pnpm prd stack up` if the slice uses one; `git merge --no-ff -m "chore(<topic>): merge prd/<topic> for a fix" prd/<topic>`; a new commit; `pnpm prd check --quick "slice fix"`; `stack down`; a new hand-off line.
 
 ## Hand-off
@@ -44,10 +44,10 @@ Your final message:
 `scripts/browser-checks/`: one Playwright Test spec per check (`<check>.spec.mjs`; `checks.test.mjs` wants one per manifest line). `marketing-screenshots.mjs` is outside the manifest, run by hand (`BASE`, `PG_CONTAINER`) against `pnpm prd serve --built` (B-40). The flows each owns (their screens are component tests):
 
 - `sign-in` (one sign-in on a double click); `first-sync` (a sheet URL as a full page, a slow first sync's state, a new group syncing in); `session-end` (another device signing this one out; recent searches and the search index gone); `layout-offline` (an offline layout change reaching the server, another browser's layout winning, sheets offline, and a real reload offline served by the service worker).
-- `roundtrip` (sheet entries converging across two devices, offline then reconnect, the viewer, reschedule, a series and its split, the sync matrix, refused uploads, a connector write via `/mcp` with its tag); `phase2` (the timeline by sync, a server-linked provider, offline filtering); `live-notes` (documents across devices: typing, concurrent edits, offline, shared links).
+- `roundtrip` (sheet entries converging across two devices, offline then reconnect, the viewer, reschedule, a series and its split, the sync matrix, removal, refused uploads, a connector write via `/mcp` with its tag); `phase2` (the timeline by sync, a server-linked provider, offline filtering); `live-notes` (documents across devices: typing, concurrent edits, offline, shared links).
 - `app-shell` (theme before first paint, sign-out, rename and members across devices, the details stream, `/admin`'s 404s and an audited banner); `invites` (account emails, email and link invites, join requests, access codes, through `/dev/mail.json`); `ui` (production CSS and the CSP: menu and sheet surfaces on a check build); `marketing` (the public site and headers).
 
-- **Run them only through `pnpm prd browser <check> [args…]`** (`browser.sh`), never `node <check>.mjs`. It holds a machine-wide `browser` lease (two at once; waits up to `CARETOOK_BROWSER_WAIT`), uses `.nvmrc`'s Node and the worktree's `.env.loop`, and logs to the worktree's git dir. Run long ones under `caffeinate -i`.
+- **Run them only through `pnpm prd browser <check> [args…]`** (`browser.sh`). It holds a machine-wide `browser` lease (two at once; waits up to `CARETOOK_BROWSER_WAIT`), uses `.nvmrc`'s Node and the worktree's `.env.loop`, and logs to the worktree's git dir. Run long ones under `caffeinate -i`.
 - **`--changed`** runs what the diff needs (committed since the base, staged, unstaged, untracked), in manifest order, with a table; `--base REF` (default `BASE_BRANCH`, else `origin/dev`), `--head REF`, `--list` (show only). **`--suite`** is the lean set. `--timeout <s>`; `--smoke` (only tests tagged `@smoke`); `--verbose`; `--dev` (against the dev server).
 - **It runs on a check build:** a production build with `VITE_CHECK_BUILD=1` (keeps `window.caretookSync` and `window.caretookModules`, which includes `series`), started, swapped in for a dev server, and rebuilt when the app, `public/`, `.env`, a `package.json` or the lockfile is newer. `NODE_ENV=production`, so Better Auth's rate limits are on (about 3 sign-ins per 10 s per client IP); each fixture device has its own `x-forwarded-for`, so the limits apply per device.
 - **Limits, each a TIMEOUT:** silence (`CARETOOK_BROWSER_SILENCE`, 90 s); the cap (`--timeout`, else the manifest's, else 600 s); and for `--suite`/`--changed` the suite cap (`CARETOOK_BROWSER_SUITE_CAP`), past which the rest are `NOT-RUN`.
@@ -68,7 +68,7 @@ Your final message:
 ### The manifest and the lean set
 
 - `scripts/loops/checks` lists every check in suite order: cap, never-exits, and `e2e yes` (in the lean set, which is `--suite`). `checks.test.mjs` keeps it and `check-areas.d/` in step, so a new check adds a line to both.
-- **The sync matrix** (`roundtrip` 6b, `sync-matrix.mjs`): a row per device-schema table, written on one device and seen on the other; `sync-matrix.test.mjs` fails when a synced table has none, so a new synced table adds one. Area checks don't assert "a second device sees X".
+- **The sync matrix** (`roundtrip` 6b, `sync-matrix.mjs`): a row per device-schema table, written on one device, every streamed column compared on the other (server-set ones named); `sync-matrix.test.mjs` fails on a synced table with no row. Area checks don't assert "a second device sees X".
 - **Moving a check's screen steps to component tests:** write the tests, delete each covered step, keep only the flows; set it `e2e yes` if a flow is left, else delete it and its `check-areas.d/` rules.
 
 ### Writing a check

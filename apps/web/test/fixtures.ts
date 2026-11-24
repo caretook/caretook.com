@@ -120,8 +120,16 @@ const recipientId = TEST_RECIPIENT.id;
 
 // --- Groups and people -------------------------------------------------------
 
+// The switches as the server defaults them (not null there, so never null on a synced row).
 const group = (v: Partial<Values<"careGroups">> = {}) =>
-  row("careGroups", { id: TEST_GROUP.id, name: TEST_GROUP.name, ...v });
+  row("careGroups", {
+    id: TEST_GROUP.id,
+    name: TEST_GROUP.name,
+    connectorsEnabled: 0,
+    connectorsReadOnly: 0,
+    detailsOutsideAllowed: 1,
+    ...v,
+  });
 
 const recipient = (v: Partial<Values<"careRecipients">> = {}) =>
   row("careRecipients", {
@@ -137,7 +145,14 @@ const user = (v: Partial<Values<"users">> = {}) =>
   row("users", { id: newId(), name: "Sam Okafor", image: null, ...v });
 
 const member = (v: Partial<Values<"careGroupMembers">> & { userId: string }) =>
-  row("careGroupMembers", { id: newId(), groupId, role: "caretaker", createdAt: hoursAgo(24 * 30), ...v });
+  row("careGroupMembers", {
+    id: newId(),
+    groupId,
+    role: "caretaker",
+    createdAt: hoursAgo(24 * 30),
+    isPrimaryContact: 0,
+    ...v,
+  });
 
 /**
  * A co-member: their public profile (`user`) and membership. The fixture's

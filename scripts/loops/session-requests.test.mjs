@@ -15,6 +15,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { ROTATING_GRACE_MS } from "./dispatch-pick.mjs";
 import { START_GRACE_MS } from "./keep-alive.mjs";
+import { MAX_TEXT } from "./notices.mjs";
 import {
   KEEP_SETTLED_MS,
   backlogRemoteOf,
@@ -70,6 +71,13 @@ describe("names and process lines", () => {
     expect(backlogRemoteOf("claude --remote-control prd-a You are")).toBeNull();
     expect(backlogRemoteOf("vim --remote-control backlog")).toBeNull();
     expect(backlogRemoteOf("claude You could pass `--remote-control backlog`")).toBeNull();
+  });
+
+  it("reads a captain's Remote Control name as the main backlog session's", () => {
+    expect(backlogRemoteOf("claude --model opus --remote-control Picard You are")).toBe("backlog");
+    expect(backlogRemoteOf("claude --remote-control=Kirk")).toBe("backlog");
+    expect(backlogRemoteOf("claude --remote-control Picardy You are")).toBeNull();
+    expect(backlogRemoteOf("vim --remote-control Picard")).toBeNull();
   });
 });
 
@@ -197,6 +205,19 @@ describe("the decision", () => {
     expect(decide({ requests, sessions, processes: [...one, ...one], max: 2 }).action).toBe("refuse");
   });
 
+  it("tells a captain-named main session from backlog-<name> ones: its record and process count once", () => {
+    const requests = [req("r1", "new")];
+    const captain = ["claude --remote-control Riker Hi"];
+    // Its process alone holds backlog, so it counts toward the limit, not as a request's name.
+    expect(decide({ requests, processes: captain, max: 1 })).toMatchObject({
+      action: "refuse",
+      why: "1 backlog sessions are live, the limit is 1",
+    });
+    expect(decide({ requests, sessions: [live("backlog")], processes: captain, max: 2 }).action).toBe("open");
+    // It never holds a backlog-<name>: a request beside it opens.
+    expect(decide({ requests: [req("r2", "riker")], processes: captain, max: 3 }).action).toBe("open");
+  });
+
   it("a session still starting counts toward the limit", () => {
     const d = decide({ requests: [req("r1", "new")], starting: ["backlog"], max: 1 });
     expect(d).toMatchObject({ action: "refuse", why: "1 backlog sessions are live, the limit is 1" });
@@ -209,6 +230,28 @@ describe("the decision", () => {
     expect(requestNotice(req("r1", "a"), { opened: false, why: "fictional" })).toBe(
       "request r1: `backlog - a` not opened: fictional",
     );
+  });
+
+  it("keeps a notice with long names and a long error within the board, with its id and outcome", () => {
+    const name = "x".repeat(40);
+    const from = `backlog-${"y".repeat(40)}`;
+    const why = `its tab didn't open (${"fictional opener error ".repeat(12)})`;
+    const refused = requestNotice(req("r12", name, { from }), { opened: false, why });
+    expect(refused.length).toBeLessThanOrEqual(MAX_TEXT);
+    expect(refused).toMatch(
+      /^request r12 \(for backlog-y+…?\): `backlog - x+…?` not opened: its tab didn't open/,
+    );
+    expect(refused).toMatch(/…$/);
+    const opened = requestNotice(req("r12", name, { from }), { opened: true });
+    expect(opened.length).toBeLessThanOrEqual(MAX_TEXT);
+    expect(opened).toMatch(/^request r12 \(for backlog-y+…?\): opened `backlog - x+…?`$/);
+    // Even a requester's name past the board alone leaves the id and the outcome.
+    const huge = requestNotice(req("r12", name, { from: "z".repeat(400) }), {
+      opened: false,
+      why: "\n".repeat(3) + why,
+    });
+    expect(huge.length).toBeLessThanOrEqual(MAX_TEXT);
+    expect(huge).toMatch(/^request r12 \(for z+…\): `backlog - x+…?` not opened: its tab/);
   });
 });
 
@@ -262,6 +305,14 @@ describe("the command", () => {
       expect(r.stderr).toContain("pnpm prd:");
     }
     expect(readRequests(dir)).toEqual([]);
+  });
+
+  it("lists a settled request's failed notice", () => {
+    const r = createRequest(dir, { name: "quiet", now: Date.now() });
+    settleRequest(dir, r.id, { state: "opened", noticeFailed: "a fictional board error" });
+    expect(cli("requests").stdout).toContain(
+      `${r.id}  opened  backlog - quiet  from -, ${r.requestedAt} (its notice failed: a fictional board error)`,
+    );
   });
 
   it("says nothing is pending", () => {

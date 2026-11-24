@@ -20,19 +20,22 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAsk, getAsk } from "./asks.mjs";
 import { ROTATING_GRACE_MS } from "./dispatch-pick.mjs";
 import {
   HELPER_SESSION,
   PICKUP_EVERY_S,
   REOPEN_RESET_MS,
+  TAKEOVER_STALE_MS,
   TIDY_EVERY_MS,
   answerAction,
   helperLine,
+  lockHolder,
   pickupDue,
   pickupEvery,
   sessionLine,
+  takeLock,
   tidyDue,
 } from "./dispatch.mjs";
 import { createRequest } from "./session-requests.mjs";
@@ -92,7 +95,20 @@ describe("the pure parts", () => {
 const NEW_SH = `#!/usr/bin/env bash
 echo "$*" >> "$STUB_STATE/new.calls"
 [[ -z \${STUB_NEW_FAIL:-} ]] || { echo "no room" >&2; exit 1; }
+if [[ -n \${STUB_NEW_MAKE:-} ]]; then
+  if [[ $1 == plan ]]; then name=plan-$2; else name=$2; fi
+  git worktree add -q -b "$1/$2" ".loops/$name" dev
+fi
+[[ -z \${STUB_NEW_FAIL_AFTER:-} ]] || { echo "migrate failed" >&2; exit 1; }
 echo "made $2"
+`;
+// rm.sh: removes the worktree and its session record, as the real one does.
+const RM_SH = `#!/usr/bin/env bash
+echo "$*" >> "$STUB_STATE/rm.calls"
+if [[ $1 == plan-* ]]; then session=$1; else session=prd-$1; fi
+git worktree remove --force ".loops/$1"
+rm -f ".loops/.sessions/$session.json"
+echo "removed $1"
 `;
 const OPEN_SH = `#!/usr/bin/env bash
 printf '%s\\x1f' "$@" >> "$STUB_STATE/open.calls"; echo >> "$STUB_STATE/open.calls"
@@ -110,6 +126,10 @@ const [a, b, topic, ...kv] = process.argv.slice(2);
 if (a === "prd" && b === "list") console.log(readFileSync(file, "utf8"));
 else if (a === "prd" && b === "set") {
   appendFileSync(process.env.STUB_STATE + "/backlog.calls", ["prd set", topic, ...kv].join(" ") + "\\n");
+  if (process.env.STUB_BACKLOG_FAIL) {
+    console.error("registry locked");
+    process.exit(1);
+  }
   const rows = JSON.parse(readFileSync(file, "utf8"));
   const row = rows.find((r) => r.topic === topic);
   for (const w of kv) if (w.startsWith("flags=")) row.flags = w.slice(6).split(",").filter(Boolean);
@@ -223,6 +243,7 @@ beforeAll(() => {
     "ask.mjs",
     "skeptics.mjs",
     "sessions.mjs",
+    "captain.mjs",
     "load-gate.mjs",
     "rotate.mjs",
     "open-session.mjs",
@@ -231,6 +252,7 @@ beforeAll(() => {
     copyFileSync(join(HERE, f), scripts(f));
   writeFileSync(scripts("new.sh"), NEW_SH);
   writeFileSync(scripts("open-session.sh"), OPEN_SH);
+  writeFileSync(scripts("rm.sh"), RM_SH);
   writeFileSync(scripts("tidy-cli.mjs"), TIDY);
   writeFileSync(scripts("prd.sh"), PRD_SH);
   writeFileSync(join(main, "scripts/backlog/backlog.mjs"), BACKLOG);
@@ -276,7 +298,7 @@ afterAll(() => rmSync(root, { recursive: true, force: true }));
 beforeEach(() => {
   for (const d of [state, sessions, asks, join(loops, ".requests"), join(loops, ".notices")])
     rmSync(d, { recursive: true, force: true });
-  for (const f of [".dispatch.json", ".dispatch.log", ".dispatch.lock"])
+  for (const f of [".dispatch.json", ".dispatch.log", ".dispatch.lock", ".prd-cap"])
     rmSync(join(loops, f), { force: true });
   for (const w of existsSync(loops) ? readdirSync(loops) : [])
     if (!w.startsWith(".")) git(main, "worktree", "remove", "--force", join(loops, w));
@@ -343,12 +365,93 @@ describe("one tick per action", () => {
     expect(ok(["--dry-run"], { CARETOOK_MAX_PRDS: "5" })).toContain("start a:");
   });
 
+  it("--cap stores the PRD cap, read every tick over CARETOOK_MAX_PRDS; default clears it", () => {
+    const names = ["w", "x", "y"];
+    for (const n of names) worktree(n, `prd/${n}`);
+    setRows([...names.map((topic) => ({ topic, state: "running" })), { topic: "a", state: "planned" }]);
+    const lowered = ok(["--cap", "2"]);
+    expect(lowered).toContain("PRD cap 2 (pnpm prd dispatch --cap; was 4)");
+    expect(lowered).toContain("3 PRD worktrees now: none start until fewer than 2 remain");
+    expect(readFileSync(join(loops, ".prd-cap"), "utf8")).toBe("2\n");
+    expect(logText()).toContain("PRD cap 2 (pnpm prd dispatch --cap; was 4)");
+    expect(readdirSync(join(loops, ".notices")).length).toBeGreaterThan(0);
+    // Lowering ends nothing: the running three stay, and no start.
+    expect(ok(["--dry-run"], { CARETOOK_MAX_PRDS: "6" })).toContain("no free slot (3 of 2 running)");
+    expect(ok(["--cap", "6"])).toContain("3 more may start");
+    expect(ok(["--dry-run"])).toContain("start a:");
+    expect(ok(["--cap", "default"])).toContain("PRD cap 4 (default; was 6)");
+    expect(existsSync(join(loops, ".prd-cap"))).toBe(false);
+    expect(ok(["--dry-run"], { CARETOOK_MAX_PRDS: "3" })).toContain("no free slot (3 of 3 running)");
+    for (const bad of ["0", "20", "two", ""]) {
+      const r = dispatch(["--cap", bad]);
+      expect(r.status).toBe(2);
+      expect(r.stderr).toContain("--cap takes a number from 1 to 19, or default");
+    }
+  });
+
   it("a failed worktree opens nothing", () => {
     setRows([{ topic: "a", state: "planned" }]);
     const out = ok(["--once"], { STUB_NEW_FAIL: "1" });
     expect(out).toContain("new.sh prd a: failed (exit 1): no room");
     expect(openCalls()).toEqual([]);
     expect(existsSync(join(sessions, "prd-a.json"))).toBe(false);
+  });
+
+  it("a start whose tab never opens leaves no record, no worktree and no count, and starts on a later tick (B-468)", () => {
+    setRows([{ topic: "a", state: "planned" }]);
+    const out = ok(["--once"], { STUB_NEW_MAKE: "1", STUB_OPEN_FAIL: "prd-a" });
+    expect(out).toContain(
+      "  prd-a: its tab never opened, not counted as a death (failed (exit 1): no tab); a later tick retries; a removed",
+    );
+    expect(calls("rm")).toEqual(["a --no-registry"]);
+    expect(existsSync(join(loops, "a"))).toBe(false);
+    expect(existsSync(join(sessions, "prd-a.json"))).toBe(false);
+    expect(dstate().reopens ?? {}).toEqual({});
+    // One line for the failed open, after the new.sh line.
+    expect(
+      logText()
+        .split("\n")
+        .filter((l) => l.includes("prd-a")),
+    ).toHaveLength(1);
+    // The opener works again: the next tick starts it afresh, no reopen.
+    git(main, "branch", "-q", "-D", "prd/a");
+    expect(ok(["--once"], { STUB_NEW_MAKE: "1" })).toContain("start a: planned, and nothing stops it");
+    expect(calls("new")).toEqual(["prd a", "prd a"]);
+    expect(openCalls().at(-1)?.slice(2)).toEqual(["--title", "prd-a", "--background"]);
+    expect(dstate().reopens ?? {}).toEqual({});
+  });
+
+  it("a planner whose tab never opens doesn't hold the planner slot", () => {
+    setRows([
+      { topic: "p", state: "to-write", waiting: 2 },
+      { topic: "q", state: "to-write", waiting: 2 },
+    ]);
+    ok(["--once"], { STUB_NEW_MAKE: "1", STUB_OPEN_FAIL: "plan-p" });
+    expect(calls("rm")).toEqual(["plan-p --no-registry"]);
+    expect(existsSync(join(loops, "plan-p"))).toBe(false);
+    // No planner runs: another may be planned (here p again, by row order), none is reopened.
+    const next = ok(["--dry-run"]);
+    expect(next).toContain("plan p: 2 waiting, no plan yet");
+    expect(next).not.toContain("a planner is running");
+    expect(next).not.toMatch(/reopen plan-p/);
+  });
+
+  it("a reopen whose tab never opens adds no count and files no ask: a later tick retries (B-468)", () => {
+    worktree("a", "prd/a");
+    deadRecord("prd-a");
+    setRows([{ topic: "a", state: "running" }]);
+    for (let i = 0; i < 4; i++) {
+      const out = ok(["--once"], { STUB_OPEN_FAIL: "a" });
+      expect(out).toContain("reopen prd-a: prd-a died (reopen 1 of 2)");
+      expect(out).toContain("  prd-a: its tab never opened, not counted as a death");
+    }
+    expect(dstate().reopens ?? {}).toEqual({});
+    expect(existsSync(asks)).toBe(false);
+    expect(calls("rm")).toEqual([]);
+    expect(existsSync(join(loops, "a"))).toBe(true);
+    // Once a tab opens, it counts as the first reopen.
+    expect(ok()).toContain("reopen prd-a: prd-a died (reopen 1 of 2)");
+    expect(dstate().reopens).toEqual({ "prd-a": 1 });
   });
 
   it("reopen: the opener in the background, counted", () => {
@@ -403,6 +506,42 @@ describe("one tick per action", () => {
     expect(r.status).toBe(1);
     expect(r.stderr).toContain("dispatch needs iTerm2");
     expect(calls("new")).toEqual([]);
+  });
+
+  it("a new.sh that fails after making the worktree removes it: no slot held at the next tick (B-452)", () => {
+    setRows([{ topic: "a", state: "planned" }]);
+    const out = ok(["--once"], { STUB_NEW_MAKE: "1", STUB_NEW_FAIL_AFTER: "1" });
+    expect(out).toContain("  new.sh prd a: failed (exit 1): migrate failed; a removed");
+    // Forced (a half setup holds no work) and with the registry row left alone.
+    expect(calls("rm")).toEqual(["a --no-registry --force"]);
+    expect(existsSync(join(loops, "a"))).toBe(false);
+    expect(existsSync(join(sessions, "prd-a.json"))).toBe(false);
+    expect(openCalls()).toEqual([]);
+    expect(
+      logText()
+        .split("\n")
+        .filter((l) => l.includes("new.sh")),
+    ).toHaveLength(1);
+    // The next tick sees no worktree opened by hand and no slot taken: it starts a again.
+    const next = ok(["--dry-run"], { CARETOOK_MAX_PRDS: "1" });
+    expect(next).toContain("start a: planned, and nothing stops it");
+    expect(next).not.toContain("opened by hand");
+  });
+
+  it("a planner whose new.sh fails after making its worktree doesn't hold the planner slot (B-452)", () => {
+    setRows([{ topic: "p", state: "to-write", waiting: 2 }]);
+    ok(["--once"], { STUB_NEW_MAKE: "1", STUB_NEW_FAIL_AFTER: "1" });
+    expect(calls("rm")).toEqual(["plan-p --no-registry --force"]);
+    expect(existsSync(join(loops, "plan-p"))).toBe(false);
+    const next = ok(["--dry-run"]);
+    expect(next).toContain("plan p: 2 waiting, no plan yet");
+    expect(next).not.toContain("a planner is running");
+  });
+
+  it("a new.sh that fails before making the worktree removes nothing", () => {
+    setRows([{ topic: "a", state: "planned" }]);
+    expect(ok(["--once"], { STUB_NEW_FAIL: "1" })).toContain("  new.sh prd a: failed (exit 1): no room\n");
+    expect(calls("rm")).toEqual([]);
   });
 });
 
@@ -487,6 +626,69 @@ describe("the lock, pause, resume and stop", () => {
     expect(existsSync(join(loops, ".dispatch.lock"))).toBe(false);
     expect(logText()).toContain("stopped (SIGTERM)");
     expect(ok(["--stop"])).toContain("No dispatcher is running.");
+  });
+});
+
+describe("taking over a stale lock (B-454)", () => {
+  // Two takers in this process, each with a live pid of its own; `between` runs
+  // the other taker at the point the old unlink-and-write raced.
+  const A = process.pid;
+  const B = process.ppid;
+  /** @type {string} */ let dir;
+  /** @type {string} */ let lock;
+  /** @type {number} */ let dead;
+
+  beforeAll(() => {
+    const r = spawnSync("sh", ["-c", "echo $$"], { encoding: "utf8" });
+    dead = Number(r.stdout.trim());
+  });
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "dispatch-lock-"));
+    lock = join(dir, ".dispatch.lock");
+    writeFileSync(lock, `${dead}\n`);
+  });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+  const held = () => Number(readFileSync(lock, "utf8").trim());
+
+  it("two takers racing over a dead holder's lock end with one holder", () => {
+    /** @type {any} */ let inner;
+    const outer = takeLock(lock, { pid: A, between: () => (inner = takeLock(lock, { pid: B })) });
+    expect(inner).toEqual({ ok: true });
+    expect(outer).toEqual({ ok: false, pid: B });
+    expect(held()).toBe(B);
+    expect(existsSync(`${lock}.takeover`)).toBe(false);
+  });
+
+  it("the same race the other way round also ends with one holder", () => {
+    /** @type {any} */ let inner;
+    const outer = takeLock(lock, { pid: B, between: () => (inner = takeLock(lock, { pid: A })) });
+    expect(inner).toEqual({ ok: true });
+    expect(outer).toEqual({ ok: false, pid: A });
+    expect(held()).toBe(A);
+  });
+
+  it("a lone taker takes a dead holder's lock", () => {
+    expect(takeLock(lock, { pid: A })).toEqual({ ok: true });
+    expect(lockHolder(lock)).toBe(A);
+  });
+
+  it("a live holder's lock is never taken", () => {
+    writeFileSync(lock, `${B}\n`);
+    expect(takeLock(lock, { pid: A })).toEqual({ ok: false, pid: B });
+    expect(held()).toBe(B);
+  });
+
+  it("a crashed taker's stale guard is cleared; a fresh one is waited on", () => {
+    mkdirSync(`${lock}.takeover`);
+    const old = (Date.now() - TAKEOVER_STALE_MS - 1000) / 1000;
+    utimesSync(`${lock}.takeover`, old, old);
+    expect(takeLock(lock, { pid: A })).toEqual({ ok: true });
+    expect(held()).toBe(A);
+
+    writeFileSync(lock, `${dead}\n`);
+    mkdirSync(`${lock}.takeover`);
+    expect(takeLock(lock, { pid: A })).toEqual({ ok: false, pid: 0 });
+    expect(held()).toBe(dead);
   });
 });
 
@@ -575,6 +777,31 @@ describe("deaths and the reopen ask", () => {
     updateReopens({ "prd-a": 1, "prd-gone": 2 });
     ok();
     expect(dstate().reopens).toEqual({});
+  });
+
+  it("a failed hold write keeps the answer and the count, skips the topic, and is retried next tick", () => {
+    dying();
+    ok();
+    ok();
+    expect(ok()).toContain("filed ask a1");
+    answer("a1", "hold the topic");
+    const failed = ok(["--once"], { STUB_BACKLOG_FAIL: "1" });
+    expect(failed).toContain(
+      'ask a1 answered "hold the topic", but flagging a hold failed (retried next tick)',
+    );
+    expect(failed).toContain("registry locked");
+    expect(failed).toContain("a: its orchestrator died after 2 reopens; waits on ask a1");
+    expect(failed).not.toContain("filed ask");
+    expect(dstate()).toMatchObject({ reopens: { "prd-a": 2 }, asked: { "prd-a": { id: "a1", topic: "a" } } });
+    // Two reopens and the helper's tab: nothing opened on the failed tick.
+    expect(openCalls()).toHaveLength(3);
+
+    const held = ok();
+    expect(held).toContain('ask a1 answered "hold the topic": a flagged hold');
+    expect(calls("backlog")).toEqual(["prd set a flags=hold", "prd set a flags=hold"]);
+    expect(held).toContain("a: on hold; its orchestrator isn't live (not reopened)");
+    expect(dstate()).toMatchObject({ reopens: {}, asked: {} });
+    expect(openCalls()).toHaveLength(3);
   });
 });
 
@@ -811,10 +1038,44 @@ describe("the keep-alive tick", () => {
     expect(calls("new")).toEqual(["prd a"]);
   });
 
+  it("a kept session whose tab never opens records no quick death, and opens on a later tick", () => {
+    ok(["--once"], on);
+    const before = dstate().keepAlive.backlog;
+    setClock(T0 + 180);
+    const out = ok(["--once"], { ...on, STUB_OPEN_FAIL: "backlog" });
+    expect(out).toContain("  backlog: its tab never opened, not counted as a death");
+    expect(dstate().keepAlive.backlog).toEqual(before);
+    // A first open that fails leaves no entry at all.
+    rmSync(join(loops, ".dispatch.json"));
+    ok(["--once"], { ...on, STUB_OPEN_FAIL: "backlog" });
+    expect(dstate().keepAlive?.backlog).toBeUndefined();
+    setClock(T0 + 360);
+    ok(["--once"], on);
+    expect(dstate().keepAlive.backlog).toEqual({ deaths: 0, openedAt: (T0 + 360) * 1000 });
+  });
+
   it("counts an unrecorded --remote-control backlog process as live", () => {
     writeFileSync(join(root, "processes"), "claude-stub --model opus --remote-control backlog You are\n");
     ok(["--once"], on);
     expect(keptOpens()).toEqual([]);
+  });
+
+  it("counts a captain-named backlog session as live: by its record, or by its process", () => {
+    writeFileSync(join(root, "processes"), "claude-stub --model opus --remote-control Picard You are\n");
+    ok(["--once"], on);
+    expect(keptOpens()).toEqual([]);
+  });
+
+  it("reopens a dead captain-named backlog session, its record still backlog with its last captain", () => {
+    deadRecord("backlog", { kind: "backlog", model: "opus", remote: "Picard" });
+    expect(ok(["--once"], on)).toContain("keep-alive backlog: open (no live backlog session)");
+    expect(keptOpens()).toEqual([["backlog", "--background"]]);
+    // The opener draws the next captain against it (open-session.mjs).
+    expect(JSON.parse(readFileSync(join(sessions, "backlog.json"), "utf8"))).toMatchObject({
+      kind: "backlog",
+      managed: true,
+      remote: "Picard",
+    });
   });
 
   it("doesn't reopen inside the start grace, and asks at the third quick death", () => {

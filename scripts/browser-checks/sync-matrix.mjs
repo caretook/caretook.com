@@ -406,3 +406,104 @@ export const cleanupSql = (ctx, recordedAt) =>
     `UPDATE recipient_condition SET deleted_at = now() WHERE deleted_at IS NULL AND id = '${ctx.ids.condition}'`,
     `UPDATE care_recipient SET no_known_allergies_at = ${recordedAt ? `'${recordedAt}'` : "NULL"} WHERE id = '${ctx.recipientId}' AND no_known_allergies_at IS DISTINCT FROM ${recordedAt ? `'${recordedAt}'::timestamptz` : "NULL"}`,
   ].join(";\n");
+
+// ---------------------------------------------------------------------------
+// The column comparison (test-health-2, B-371): a row reaching the other
+// device isn't enough; every column its stream sends must arrive as written.
+
+/**
+ * The columns each table's stream sends, from powersync/sync-config.yaml:
+ * every `SELECT <columns> FROM <table>` in it (comments dropped, a
+ * `"table".` prefix stripped), unioned per table. `sync-matrix.test.mjs`
+ * holds it to packages/data's full reader (`syncedColumns`).
+ */
+export const streamColumns = (configText) => {
+  const text = configText
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("#"))
+    .join("\n");
+  const out = new Map();
+  for (const m of text.matchAll(/\bSELECT\s+([\s\S]+?)\s+FROM\s+"?([a-z_]+)"?/gi)) {
+    const table = m[2];
+    const set = out.get(table) ?? new Set();
+    for (const raw of m[1].split(",")) set.add(raw.trim().replace(/^"?[a-z_]+"?\./, ""));
+    out.set(table, set);
+  }
+  return new Map([...out].map(([t, s]) => [t, [...s]]));
+};
+
+/**
+ * Columns the server sets by design, so device B's value isn't what device A
+ * wrote: `table → column → why`, and `"*"` for every device-written table.
+ * Only for rows written on a device (a server-written row is compared device
+ * to device). Each must name a column its table's stream sends
+ * (`exceptionProblems`).
+ */
+export const SERVER_SET_COLUMNS = {
+  "*": {
+    created_at: "the services stamp their own save time (syncRegistry's serverSet)",
+    updated_at: "the services stamp their own save time (syncRegistry's serverSet)",
+  },
+  timeline_entry: { series_detached: "Postgres's default (false) for a row that isn't a series visit" },
+  note_update: {
+    updated_by: "the services stamp it with the writer; the device's update has no such column",
+  },
+  note_document: { editors: "the server keeps who edited (serverSet); a new document's is {}" },
+};
+
+/**
+ * Every exception that names a table or column its stream doesn't send;
+ * `"*"`'s columns are checked against each of `deviceTables`.
+ */
+export const exceptionProblems = (exceptions, columns, deviceTables = []) =>
+  Object.entries(exceptions).flatMap(([key, cols]) =>
+    (key === "*" ? deviceTables : [key]).flatMap((table) => {
+      const sent = columns.get(table);
+      if (!sent) return [`${table}: no stream sends this table`];
+      return Object.keys(cols)
+        .filter((c) => !sent.includes(c))
+        .map((c) => `${table}.${c}: its stream doesn't send this column`);
+    }),
+  );
+
+/** The row one of the matrix's INSERTs writes: `column → value`. */
+export const writtenRow = ({ sql, params }) => {
+  const columns =
+    /\(([^)]*)\)\s+VALUES/
+      .exec(sql)?.[1]
+      .split(",")
+      .map((c) => c.trim()) ?? [];
+  return Object.fromEntries(columns.map((c, i) => [c, params[i]]));
+};
+
+/** JSON text compares by value (Postgres reformats it); everything else exactly. */
+const sameValue = (a, b) => {
+  if (a === b) return true;
+  if (typeof a !== "string" || typeof b !== "string" || !/^[[{]/.test(a) || !/^[[{]/.test(b)) return false;
+  try {
+    const sorted = (v) =>
+      v && typeof v === "object" && !Array.isArray(v)
+        ? Object.fromEntries(
+            Object.keys(v)
+              .sort()
+              .map((k) => [k, sorted(v[k])]),
+          )
+        : Array.isArray(v)
+          ? v.map(sorted)
+          : v;
+    return JSON.stringify(sorted(JSON.parse(a))) === JSON.stringify(sorted(JSON.parse(b)));
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * The columns where `actual` differs from `expected`, over `columns`, minus
+ * the named `skip` ones: `["column: expected → actual"]`. A column `expected`
+ * doesn't name is expected empty (null), as the writer's own row holds it.
+ */
+export const columnMismatches = (expected, actual, columns, skip = {}) =>
+  columns
+    .filter((c) => !(c in skip))
+    .filter((c) => !sameValue(expected[c] ?? null, actual?.[c] ?? null))
+    .map((c) => `${c}: ${JSON.stringify(expected[c] ?? null)} → ${JSON.stringify(actual?.[c] ?? null)}`);

@@ -15,14 +15,17 @@
 # fresh session with the resume prompt (prompt.sh orchestrator <topic> --resume,
 # plus --auto when the plan's _Status_ or the last record says run-through;
 # prompt.sh plan for a planner, with --auto for a run-through one). The record's
-# managed (the dispatcher's) is carried over. Sessions keep their names. A
+# managed (the dispatcher's) is carried over. Sessions keep their names (the
+# main backlog session's tab and Remote Control take a new captain's). A
 # hotfix continues in its worktree; backlog and recovery sessions always start
 # fresh in the main checkout, whose saved conversations may be anyone's, and
 # the inbox session fresh in its recorded directory (prd.sh inbox --dir). These
 # kinds are refused while their record is live.
 #
 # It opens the command in a new iTerm2 tab (osascript) and writes it to that
-# tab as `exec`, so the tab closes when the session ends. --background leaves
+# tab as `exec`, so the tab closes when the session ends: in the current
+# window, else (iTerm2 hidden, minimised, no key window) the first window, else
+# a new window. --background leaves
 # iTerm2 where it is (no activate) and selects the tab that was selected
 # before. Without iTerm2, or with --print, it prints the command instead, to
 # paste into a terminal.
@@ -42,7 +45,7 @@ while (($#)); do
     --background) background=1 ;;
     --command) command=${2:?--command <line>}; shift ;;
     --title) title=${2:?--title <title>}; shift ;;
-    -h | --help) sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h | --help) sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) die "open: unknown option $1 (--print, --background)" ;;
     *) [[ -z $name ]] || die "open: one worktree at a time"; name=$1 ;;
   esac
@@ -50,7 +53,7 @@ while (($#)); do
 done
 if [[ -n $command ]]; then
   [[ -z $name ]] || die "open: a worktree or --command, not both"
-  session=${title:-session} how="its command"
+  session=${title:-session} how="its command" title=""
 else
   [[ -n $name ]] || die "usage: pnpm prd open <name> [--print] [--background]"
   dir=$loops/$name
@@ -59,8 +62,11 @@ else
   else
     choice=$(node "$bin/open-session.mjs" --main "$name" "$main") || exit 1
   fi
-  field() { node -e 'process.stdout.write(String(JSON.parse(process.argv[1])[process.argv[2]]))' "$choice" "$1"; }
+  field() { node -e 'process.stdout.write(String(JSON.parse(process.argv[1])[process.argv[2]] ?? ""))' "$choice" "$1"; }
   session=$(field session) mode=$(field mode) command=$(field command)
+  # The tab's title: the choice's (the main backlog session's captain), else the session's name.
+  title=$(field title)
+  [[ $title != "$session" ]] || title=""
   if [[ $mode == continue ]]; then how="continuing its saved conversation"; else how="a fresh session with the resume prompt"; fi
 fi
 
@@ -74,24 +80,45 @@ iterm=${CARETOOK_ITERM_APP:-/Applications/iTerm.app}
 if ((print == 0)) && [[ -d $iterm ]] && command -v osascript >/dev/null 2>&1; then
   # Writes to the tab it made (never "the current session"), and with
   # --background neither activates iTerm2 nor leaves the new tab selected.
-  osascript - "$(tab_line "$command")" "$session" "$background" >/dev/null <<'APPLESCRIPT'
+  osascript - "$(tab_line "$command")" "${title:-$session}" "$background" >/dev/null <<'APPLESCRIPT'
 on run argv
   set cmd to item 1 of argv
   set tabTitle to item 2 of argv
   set quiet to (item 3 of argv is "1")
   tell application "iTerm2"
     if not quiet then activate
-    if (count of windows) is 0 then
+    -- current window is missing value when iTerm2 is hidden, minimised or has
+    -- no key window (B-468): then the first window, else a new window.
+    set theWindow to missing value
+    try
+      set theWindow to current window
+    end try
+    if theWindow is missing value then
+      try
+        set theWindow to first window
+      end try
+    end if
+    set newSession to missing value
+    if theWindow is not missing value then
+      set previousTab to missing value
+      try
+        set previousTab to current tab of theWindow
+      end try
+      try
+        tell theWindow
+          set newTab to (create tab with default profile)
+        end tell
+        set newSession to current session of newTab
+      end try
+      if quiet and previousTab is not missing value then
+        try
+          tell previousTab to select
+        end try
+      end if
+    end if
+    if newSession is missing value then
       set newWindow to (create window with default profile)
       set newSession to current session of newWindow
-    else
-      set theWindow to current window
-      set previousTab to current tab of theWindow
-      tell theWindow
-        set newTab to (create tab with default profile)
-      end tell
-      set newSession to current session of newTab
-      if quiet then tell previousTab to select
     end if
     tell newSession
       set name to tabTitle
@@ -101,9 +128,9 @@ on run argv
 end run
 APPLESCRIPT
   if ((background)); then where="a new background iTerm2 tab"; else where="a new iTerm2 tab"; fi
-  echo "Opened $session in $where ($how)."
+  echo "Opened $session${title:+ as $title} in $where ($how)."
   exit 0
 fi
 
-if ((print == 0)); then echo "iTerm2 isn't here ($iterm): run this in a new terminal to open $session ($how):"; else echo "$session ($how):"; fi
+if ((print == 0)); then echo "iTerm2 isn't here ($iterm): run this in a new terminal to open $session${title:+ as $title} ($how):"; else echo "$session${title:+ as $title} ($how):"; fi
 echo "  $command"
