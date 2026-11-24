@@ -64,7 +64,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 28    | B-642     | merged (opus; quick passed; fixed 2030 clock, 00:05 case)                                                                                  | dd3e33f6 |
 | 29    | B-723     | merged (opus; fixed pid 99999999; quick red only stack/backlog/tidy-cli under load)                                                        | 0ca671b6 |
 | 30    | B-654     | merged (opus; holders wait on a go file; B-741 ask.test filed)                                                                             | 6e8ba3f8 |
-| 31    | B-479 +24 | started (opus; re-measure only)                                                                                                            |          |
+| 31    | B-479 +24 | handed off (opus; measurement, no commits): 24 no failure, proposed close (notes filed); B-500 still fails, slice 40                       | —        |
 | 32    | B-740     | started (opus)                                                                                                                             |          |
 | 33    | B-741     | started (opus)                                                                                                                             |          |
 | 34    | B-742     | started (opus)                                                                                                                             |          |
@@ -73,6 +73,7 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 37    | B-731     | handed off c384b269 (opus; quick red only ask.test B-741 and tidy-cli B-461, fixed by 33/36; passed alone)                                 |          |
 | 38    | B-638     | started (opus)                                                                                                                             |          |
 | 39    | B-739     | started (opus; added on the user's word via the backlog session)                                                                           |          |
+| 40    | B-500     | started (opus; from slice 31's re-measure)                                                                                                 |          |
 
 ## Wave 1
 
@@ -461,3 +462,12 @@ Added to wave 5 on the user's word (via the backlog session, 2026-11-24); inbox-
 - **Keep `inbox add`'s look-alike stop** (exit 3, rerun with `--anyway` on the user's word); `backlog add` is unchanged.
 - **New commands:** `pnpm backlog inbox edit` and `pnpm backlog inbox remove` for unfiled lines; they refuse filed lines, as `inbox move` does.
 - Unit tests: a keep-alive reopen and a rotation of an inbox session recorded on opus come up on Sonnet low; `--model` still wins; the prompt names no backlog read or `similar` step; `inbox edit`/`remove` change an unfiled line and refuse a filed one; `inbox add` still stops on a look-alike.
+
+### Slice 40: appointmentSeries.int.test.ts holds under load (B-500)
+
+Stack: no · Reads: plans/fixes-rules.md, docs/domain/appointments.md, docs/domain/data-layer.md · Tests: integration
+
+Slice 31 re-measured it: 'writes visits through today + 90 for a series without them: links, documents, ids' timed out at 5 s in 6 of 42 runs, mostly at load above 80. It takes 1.3–2.7 s at load ~20 and 3.9–5.1 s at 80–100. Each test builds a full world (`createWorld` with outsider and staff, users made one by one), then writes 39 visits with their links and documents. Seven other tests in the file's `appointmentSeriesService.topUp` block also timed out once or twice in 32 runs.
+
+- Measure where the file's time goes and cut it for the whole file: a world built once per describe where tests don't change it, only the parts a test needs, batched inserts in the fixture; keep every assertion. An explicit timeout only if the work still needs it, with a comment saying why. Don't touch the shared test fixtures test-health-2 holds (`apps/web/test/`); `packages/data` fixtures are fine.
+- Integration test: the same assertions, with before/after times at load in the hand-off.
