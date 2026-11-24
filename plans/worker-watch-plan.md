@@ -10,7 +10,7 @@
 | 2     | 2    | merged (opus)  | 5310ab85 (893c22ff)                           |
 | 3     | 2    | merged (opus)  | ac7b0b0c (d4819e33, b06de0b6)                 |
 | 4     | 3    | merged (opus)  | 1bcec0f4 (f817b808)                           |
-| 5     | 4    | started (opus) | —                                             |
+| 5     | 4    | merged (opus)  | 5a173de3 (e2e1baab)                           |
 | 6     | 4    | started (opus) | —                                             |
 
 **Landing mode:** run everything through (started by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
