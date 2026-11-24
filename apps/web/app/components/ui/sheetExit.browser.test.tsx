@@ -150,11 +150,12 @@ describe("the sheet's motion", () => {
     await userEvent.click(screen.getByRole("button", { name: "Add symptom" }));
     // Entering: the panel already sits where it ends.
     const sheet = await found(() => panel());
+    const dimming = await found(() => overlay());
     expect(getComputedStyle(sheet).translate).toBe("none");
     expect(getComputedStyle(sheet).transitionProperty).not.toMatch(/translate|transform/);
-    expect(seconds(getComputedStyle(overlay()!).transitionDuration)).toEqual([MOTION_MS / 1000]);
-    expect(getComputedStyle(overlay()!).transitionProperty).toBe("opacity");
-    await expect.poll(() => getComputedStyle(overlay()!).opacity).toBe("1");
+    expect(seconds(getComputedStyle(dimming).transitionDuration)).toEqual([MOTION_MS / 1000]);
+    expect(getComputedStyle(dimming).transitionProperty).toBe("opacity");
+    await expect.poll(() => getComputedStyle(dimming).opacity).toBe("1");
     expect(getComputedStyle(sheet).translate).toBe("none");
     // Leaving: it fades where it is.
     const exit = watchExit();
