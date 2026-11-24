@@ -46,6 +46,15 @@ import * as plannerRoute from "./route";
 // tests; this is what's on the screen.
 
 const MINUTE = 60_000;
+/**
+ * "10:45 AM" for `laTime(days, hour, minute)` on the device's clock. The world is set in
+ * Los Angeles wall-clock time and the Planner shows each time in the viewer's zone, so a
+ * New York device sees the 10:45 AM visit end at 1:45 PM.
+ */
+const shownAt = (days: number, hour: number, minute = 0) =>
+  new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(
+    new Date(Date.UTC(2026, 10, 18 + days, hour + 8, minute)),
+  );
 /** The Filter button, by its exact name: the menu ("Filter the Planner") and the chips ("Filters on") are named alike. */
 const filterButton = () => page.getByRole("button", { name: /^Filter(, \d+ on)?$/ });
 /** The labels of the "Filters on" chips. */
@@ -163,9 +172,9 @@ describe("the list", () => {
       "Monday, Nov 23",
       "Tuesday, Nov 24",
     ]);
-    expect(rowOf(NURSE.id)?.when).toBe("Now · until 10:45 AM");
-    expect(rowOf(THERAPY.id)?.when).toBe("2:00 PM");
-    expect(rowOf(CARDIOLOGY.id)?.when).toBe("10:30 AM–11:15 AM");
+    expect(rowOf(NURSE.id)?.when).toBe(`Now · until ${shownAt(0, 10, 45)}`);
+    expect(rowOf(THERAPY.id)?.when).toBe(shownAt(0, 14));
+    expect(rowOf(CARDIOLOGY.id)?.when).toBe(`${shownAt(1, 10, 30)}–${shownAt(1, 11, 15)}`);
     expect(rowOf(HOSPICE.id)?.when).toBe("All day");
   });
 

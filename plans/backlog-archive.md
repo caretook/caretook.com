@@ -404,6 +404,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-530 | chore | staging | test-gates | prd/test-gates | Flake quarantine: CI runs quarantined tests without failing on them; each entry names its fixes-tooling item and leaves the list when the item is done |
 | B-531 | chore | dropped | test-gates |  | Test-gate modes: rapid (the default) and pre-deployment (the dispatcher runs only launch-blocking topics, landings wait for dev green in CI, the candidate takes only fixes); one command sets the mode and every tool reads it |
 | B-532 | chore | landed | test-gates-2 | prd/test-gates-2 | Staging candidate: cut a release candidate branch from a green dev commit and open the PR into staging from it; CI runs the lean browser suite on the Docker stack against that fixed commit; only fixes go onto it |
+| B-533 | chore | landed | test-gates-2 | prd/test-gates-2 | staging to main gate: CI runs the full browser suite, a second time zone and repeated runs to catch flakes; a required status check on main always, on staging only in pre-deployment mode |
 | B-534 | bug | landed | fixes-tooling | prd/fixes-tooling | Tooling tests that call new.sh without CARETOOK_LOAD_GATE=off wait on the real machine's load gate (15 s polls up to 600 s) and time out under load; also registry.cli.test.mjs 'doctor reports…' and rotate.test.mjs 'sets done only for a merged branch…' timed out at 20 s once under load |
 | B-535 | change | landed | fixes-ui | prd/fixes-ui | Hour-first time picker: defaults to the current hour at :00, minutes in 15-minute steps (00/15/30/45), works on phones; for medication dose times, pass time, todo due time, series edit times and event/appointment Starts/Ends |
 | B-536 | bug | landed | fixes-ui | prd/fixes-ui | Danger text fails 4.5:1 in light: Menu's danger item and buttonClass's dangerQuiet use text-error (about 2.9:1); DateTimeField's placeholder segments at 60% opacity are a little under 4.5:1 on the light field fill |
@@ -440,6 +441,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-590 | bug | landed | test-gates | prd/test-gates | ci blame calls a branch's file-level failure dev's when dev only fails a named test in that file |
 | B-591 | bug | landed | fixes-bug | prd/fixes-bug | Quick entry reads a fraction after the medication as a date: 'gave tylenol 3/8' logs the usual dose on March 8 |
 | B-592 | change | landed | fixes-ui | prd/fixes-ui | Planner event card: replace the narrow time column with a footer-actions layout |
+| B-593 | feature | landed | member-avatars | prd/member-avatars | Choose your avatar: a color and icon instead of plain initials |
 | B-599 | bug | landed | fixes-bug | prd/fixes-bug | Assistants settings: connection labels stay stale when another owner flips read only while the page is open |
 | B-601 | bug | landed | fixes-bug | prd/fixes-bug | Back right after a failed sheet save skips the discard prompt and loses the edits: the leaving flag stays set until the next touch |
 | B-602 | bug | landed | fixes-bug | prd/fixes-bug | Discard prompt misfires or is missed: a sync after the first touch reads as a change, a record deleted elsewhere can prompt, and Back with an unguarded sheet on top of a changed one does not ask |
@@ -475,6 +477,7 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 | B-671 | change | dropped | onboarding-2 |  | New groups default to No known allergies |
 | B-703 | bug | dropped | fixes-tooling |  | Addressed: stray browser-test processes from the old connectors-1 worktree stopped |
 | B-724 | chore | landed | fixes-tooling | hotfix/skip-quick-before-ci | Orchestrators stop running a local quick check right before the CI run that repeats it |
+| B-725 | chore | landed | test-gates-2 | prd/test-gates-2 | CI's static job runs the check-areas lint, the one quick-check step it lacks |
 
 ## Items
 
@@ -4848,6 +4851,18 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - 2026-11-22 (plan/test-gates): Follow-on topic test-gates-2 (cut from test-gates on 2026-11-22; see plans/test-gates-prd.md, Solution tiers 3-4).
 - 2026-11-22 (plan/test-gates-2): Planned 2026-11-22 in plans/test-gates-2-plan.md (slices 1-4). Candidate branch with a merge -s ours of staging; the tool gates promotion and a hand merge is the user's override.
 
+### B-533 · chore · staging to main gate: CI runs the full browser suite, a second time zone and repeated runs to catch flakes; a required status check on main always, on staging only in pre-deployment mode
+
+- status: landed
+- prd: test-gates-2
+- owner: prd/test-gates-2
+- commit: 8d738b9c
+
+- 2026-11-22 (Robert Bo Davis): From the 2026-11-22 backlog session: the user's test-gate tiers and modes; being planned inline. User chose main always, staging by mode. Relates to B-372 (a second time zone in tests).
+- 2026-11-22 (plan/test-gates): Follow-on topic test-gates-2 (cut from test-gates on 2026-11-22; see plans/test-gates-prd.md, Solution tiers 3-4).
+- 2026-11-22 (Robert Bo Davis): The modes (B-531) are dropped: decide the required check on staging without a pre-deployment mode when test-gates-2 is planned. With no automatic run on dev, the staging gate is the only check of dev as a whole.
+- 2026-11-22 (plan/test-gates-2): Planned 2026-11-22 in plans/test-gates-2-plan.md (slices 2, 5, 6). Required release-gate check on main with a recorded user override; second time zone reports first; the user adds the check to the ruleset after a first green status.
+
 ### B-534 · bug · Tooling tests that call new.sh without CARETOOK_LOAD_GATE=off wait on the real machine's load gate (15 s polls up to 600 s) and time out under load; also registry.cli.test.mjs 'doctor reports…' and rotate.test.mjs 'sets done only for a merged branch…' timed out at 20 s once under load
 
 - status: landed
@@ -5207,6 +5222,18 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 
 - 2026-11-22 (Robert Bo Davis): User report from staging (phone width, 2026-11-22): the card is still ugly after B-256 and B-416 moved call, directions and initials under the time. Cause: UpcomingRow's 5.5rem when column wraps the time and stacks the actions and initials into a tall block. User's chosen layout: kind icon on the left and the ⋯ menu on the right; the time on one line above the title, with the repeat mark beside it; then title, with-line and address at full width; a footer row with labelled Call and Directions buttons on the left and the author's initials on the right. Drop the address line's duplicate map pin. A card with no actions has no footer row, and its initials sit at the end of the last line. Keep the whole-row link, filter links, read-only Easy mode and cancelled state. Check whether PlannerTodoRow should match. Triage: fixes-ui, a layout change on one screen.
 
+### B-593 · feature · Choose your avatar: a color and icon instead of plain initials
+
+- status: landed
+- prd: member-avatars
+- owner: prd/member-avatars
+- commit: 054bb015
+
+- 2026-11-22 (Robert Bo Davis): User decision 2026-11-22: no Gravatar (a third party would see viewer IPs and email hashes) and no photo upload for now. Each member picks a color and an icon from a fixed set in their account settings, and everyone in their care groups sees it wherever UserAvatar, AvatarStack and author initials appear (Timeline, Planner, members, live-note editors, the header). Members who have not chosen keep initials. Open for the planner: whether initials can sit on the chosen color, a default color per member, and contrast in both themes. Colors must not be confused with section or status colors. Needs an additive migration, sync to co-members, and validated values on the server. Stored choices are ids from the fixed set, never free text or URLs. Works offline with no external requests, so the image CSP stays as is. Photo upload is not part of this.
+- 2026-11-22 (Robert Bo Davis): User decision 2026-11-22: a member who has not chosen defaults to a color different from everyone else in the group. This settles the earlier open question on a default color. For the planner: one person can be in several groups, so the default is per group, and every device must agree on it offline (for example, worked out from a stable order such as join order, skipping colors members chose). A member's default should not change when someone else joins or leaves if that can be avoided. When a group has more members than colors, colors repeat, and the initials or icon still tell members apart.
+- 2026-11-23 (plan/member-avatars): Planned 2026-11-23: plans/member-avatars-prd.md and -plan.md, four slices. Default colors are derived on each device; the choice is two user columns synced to co-members.
+- 2026-11-23 (Robert Bo Davis): 2026-11-23: the user approved starting this beside test-gates-2. scripts/browser-checks/ was released from test-gates-2's hot files because its remaining slices 5 and 6 don't list it. If test-gates-2 does need roundtrip.spec.mjs after all, coordinate at landing.
+
 ### B-599 · bug · Assistants settings: connection labels stay stale when another owner flips read only while the page is open
 
 - status: landed
@@ -5551,3 +5578,12 @@ Finished items (landed, staging, live and dropped), moved here from [backlog.md]
 - commit: 451d7479
 
 - 2026-11-23 (Robert Bo Davis): User asked for this as a hotfix on 2026-11-23, worked in its own backlog session. On 2026-11-23, 40 of 77 orchestrator quick checks (242 of 464 min) were followed by CI on the same branch within 5 min. CI components/full cover everything in quick except the check-areas lint. Land already gates on the CI verdict, not a local pass.
+
+### B-725 · chore · CI's static job runs the check-areas lint, the one quick-check step it lacks
+
+- status: landed
+- prd: test-gates-2
+- owner: prd/test-gates-2
+- commit: 5428a233
+
+- 2026-11-23 (prd/test-gates-2): Requested through the session running hotfix B-724 (orchestrators stop running a local quick check right before the CI run that repeats it), which makes CI the wave gate. Slice 7 of test-gates-2.

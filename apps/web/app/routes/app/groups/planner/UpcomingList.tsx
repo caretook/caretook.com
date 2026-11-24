@@ -21,6 +21,7 @@ import { appUrls } from "~/lib/app-shell/appUrls";
 import { canRemind } from "~/lib/calendars/remindMe";
 import { canReschedule } from "~/lib/appointments/eventReschedule";
 import { asksScope, ONLY_THIS_VISIT_STATE } from "~/lib/appointments/seriesScope";
+import { plannerReturnState } from "~/lib/appointments/plannerReturn";
 import { useGroup } from "~/lib/app-shell/group";
 import { getSync } from "~/lib/sync";
 import { removeEntry } from "~/lib/timeline/timeline.sync";
@@ -29,6 +30,7 @@ import { isPlannerTodo } from "~/lib/todos/plannerTodos";
 import { upcomingTitle } from "~/lib/appointments/upcomingLabels";
 import { UpcomingRow } from "./UpcomingRow";
 import { PlannerTodoRow } from "./PlannerTodoRow";
+import { usePlannerOpener } from "./usePlannerOpener";
 
 // The Planner tab lists notes and events only, which show no vital readings: the default units do.
 const UNITS = resolveUnits(null);
@@ -81,6 +83,8 @@ export function UpcomingList({
     );
   const scope = useSeriesScope(canWrite);
   const navigate = useNavigate();
+  // The entry page goes back to this tab (B-690).
+  const opener = usePlannerOpener(false);
   const prep = useVisitPrep(groupId, canWrite, { openAfter: true });
   const preparable = (entry: TimelineEntry) =>
     entry.kind === "event" && !entry.cancelledAt && !entry.rescheduledTo && isUpcoming(entry, data.now);
@@ -92,7 +96,10 @@ export function UpcomingList({
         canWrite && asksScope(entry, data.now)
           ? () =>
               scope.ask(entry, "edit", {
-                only: () => void navigate(appUrls.entry(groupId, entry.id), { state: ONLY_THIS_VISIT_STATE }),
+                only: () =>
+                  void navigate(appUrls.entry(groupId, entry.id), {
+                    state: plannerReturnState(opener, ONLY_THIS_VISIT_STATE),
+                  }),
               })
           : undefined
       }

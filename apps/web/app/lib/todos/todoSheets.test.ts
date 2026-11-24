@@ -6,6 +6,8 @@ import {
   newTodoGuard,
   onlyTodoSheetChanged,
   openedFromApp,
+  PLANNER_TODO_STATE,
+  savesToTodos,
   TODO_SHEET_STATE,
   todoPageState,
 } from "./todoSheets";
@@ -38,6 +40,11 @@ describe("todo sheet guards", () => {
   it("knows its own links and sheet-only navigations", () => {
     expect(openedFromApp(TODO_SHEET_STATE)).toBe(true);
     expect(openedFromApp(null)).toBe(false);
+    expect(openedFromApp(PLANNER_TODO_STATE)).toBe(true);
+    expect(savesToTodos(PLANNER_TODO_STATE)).toBe(true);
+    expect(savesToTodos(TODO_SHEET_STATE)).toBe(false);
+    expect(savesToTodos({ savedToTodos: true })).toBe(false);
+    expect(savesToTodos(null)).toBe(false);
     expect(listSearch("?who=everyone&providerId=p")).toBe("?who=everyone");
     const url = (path: string) => new URL(`http://x${path}`);
     expect(onlyTodoSheetChanged(G, url(LIST), url(`${LIST}/new`))).toBe(true);
