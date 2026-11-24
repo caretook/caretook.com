@@ -6,7 +6,7 @@ import { defineConfig } from "vitest/config";
 import { deviceCommands } from "./apps/web/test/commands.ts";
 import { intWorkers } from "./packages/data/src/db/testDatabase.ts";
 import { parseQuarantine, quarantineMode } from "./scripts/ci/lists.mjs";
-import { testZone } from "./scripts/ci/zones.mjs";
+import { PRIMARY_ZONE, SECOND_ZONE, testZone } from "./scripts/ci/zones.mjs";
 
 // Vitest projects:
 //   data:unit    pure functions, no database (packages/data *.test.ts)
@@ -46,7 +46,6 @@ const freePort = () =>
       server.close(() => resolve(port));
     });
   });
-const browserPort = await freePort();
 
 // Integration workers, each on its own database (packages/data/test/globalSetup.ts).
 const integrationWorkers = intWorkers(process.env.CARETOOK_INT_WORKERS);
@@ -66,6 +65,80 @@ const withQuarantine = <P extends { test: { setupFiles?: string[] } }>(project: 
     ...project.test,
     setupFiles: [quarantineSetup, ...(project.test.setupFiles ?? [])],
     provide: { caretookQuarantine },
+  },
+});
+
+// Node's projects run in one zone, the seeds' (TZ, which Node reads for Date and
+// Intl), so a result can't differ between the Mac and CI's UTC runners. Not the
+// browser projects: their zone is the browser context's. zones.test.mjs checks it.
+const inNodeZone = <P extends { test: { env?: Record<string, string>; browser?: unknown } }>(project: P) =>
+  project.test.browser
+    ? project
+    : { ...project, test: { ...project.test, env: { ...project.test.env, TZ: PRIMARY_ZONE } } };
+
+// The component tests' projects: `web:components` (every file, in the test zone)
+// and `web:components:ny` (NY_INCLUDE, in the second zone). The device's zone is
+// the browser context's; the recipient's is the fixtures' (TEST_TIME_ZONE).
+const COMPONENT_FILES = ["app/**/*.browser.test.tsx", "test/**/*.browser.test.tsx"];
+const NY_INCLUDE = [
+  "app/routes/app/groups/timeline/**/*.browser.test.tsx",
+  "app/routes/app/groups/medications/**/*.browser.test.tsx",
+  "app/routes/app/groups/medication/**/*.browser.test.tsx",
+  "app/routes/app/groups/planner/**/*.browser.test.tsx",
+];
+const componentsProject = (name: string, zone: string, port: number, include = COMPONENT_FILES) => ({
+  extends: "./apps/web/vite.config.ts",
+  // Server-only modules (`~/.server/*`, which web-only routes import for
+  // their loaders) resolve to stubs that throw if called: the test
+  // device gives those routes `loaderData` instead (apps/web/test/server/).
+  resolve: {
+    alias: [
+      {
+        find: /^~\/\.server\/(.*)$/,
+        replacement: fileURLToPath(new URL("./apps/web/test/server/$1", import.meta.url)),
+      },
+    ],
+  },
+  // The account and group pages import ORPCError for their loaders: pre-bundled
+  // up front, so the first run doesn't re-optimize and reload mid-test. The
+  // access code print test makes its QR code with `qrcode`, as the server does.
+  optimizeDeps: { include: ["@orpc/server", "qrcode"] },
+  test: {
+    name,
+    // The browser server listens on this port (Vitest 5 reads `test.api`).
+    api: { port },
+    root: "./apps/web",
+    include,
+    setupFiles: ["./test/setup.ts"],
+    // Takes the machine-wide browser lease around Chromium (see the file).
+    globalSetup: ["./test/browserLease.ts"],
+    // Two test files at once (Vitest's default is cores − 1). Each file
+    // is its own tab with its own PowerSync database, and the lease lets
+    // four worktrees run at once: at 9 the tabs pinned every core and the
+    // slowest tests passed 15 s and timed out (B-131 measured 4 as no
+    // slower than 9 under load; 2 leaves room for the other loops).
+    maxWorkers: 2,
+    // Vitest runs projects with their own maxWorkers as a group of their
+    // own: this one after the rest, so `pnpm check`'s unit and
+    // integration tests aren't competing with Chromium either.
+    sequence: { groupOrder: 1 },
+    // expect.poll and expect.element give up after 1 s by default, which a
+    // loaded machine passes before a route's clientLoader or first query
+    // has answered (B-131): 5 s, `WAIT_TIMEOUT` in apps/web/test/found.ts
+    // (the harness's one timeout; keep the two the same).
+    expect: { poll: { timeout: 5000 } },
+    browser: {
+      enabled: true,
+      headless: true,
+      // The device's zone (the seeds' by default) and an English locale, so
+      // times and dates read the same on every machine.
+      provider: playwright({ contextOptions: { timezoneId: zone, locale: "en-US" } }),
+      instances: [{ browser: "chromium" }],
+      viewport: { width: 420, height: 900 },
+      screenshotFailures: false,
+      // Page-level commands for tests (apps/web/test/commands.ts).
+      commands: deviceCommands,
+    },
   },
 });
 
@@ -162,61 +235,14 @@ export default defineConfig({
           env: { CARETOOK_LOAD_GATE: "off" },
         },
       },
-      {
-        extends: "./apps/web/vite.config.ts",
-        // Server-only modules (`~/.server/*`, which web-only routes import for
-        // their loaders) resolve to stubs that throw if called: the test
-        // device gives those routes `loaderData` instead (apps/web/test/server/).
-        resolve: {
-          alias: [
-            {
-              find: /^~\/\.server\/(.*)$/,
-              replacement: fileURLToPath(new URL("./apps/web/test/server/$1", import.meta.url)),
-            },
-          ],
-        },
-        // The account and group pages import ORPCError for their loaders: pre-bundled
-        // up front, so the first run doesn't re-optimize and reload mid-test. The
-        // access code print test makes its QR code with `qrcode`, as the server does.
-        optimizeDeps: { include: ["@orpc/server", "qrcode"] },
-        test: {
-          name: "web:components",
-          // The browser server listens on this port (Vitest 5 reads `test.api`).
-          api: { port: browserPort },
-          root: "./apps/web",
-          include: ["app/**/*.browser.test.tsx", "test/**/*.browser.test.tsx"],
-          setupFiles: ["./test/setup.ts"],
-          // Takes the machine-wide browser lease around Chromium (see the file).
-          globalSetup: ["./test/browserLease.ts"],
-          // Two test files at once (Vitest's default is cores − 1). Each file
-          // is its own tab with its own PowerSync database, and the lease lets
-          // four worktrees run at once: at 9 the tabs pinned every core and the
-          // slowest tests passed 15 s and timed out (B-131 measured 4 as no
-          // slower than 9 under load; 2 leaves room for the other loops).
-          maxWorkers: 2,
-          // Vitest runs projects with their own maxWorkers as a group of their
-          // own: this one after the rest, so `pnpm check`'s unit and
-          // integration tests aren't competing with Chromium either.
-          sequence: { groupOrder: 1 },
-          // expect.poll and expect.element give up after 1 s by default, which a
-          // loaded machine passes before a route's clientLoader or first query
-          // has answered (B-131): 5 s, `WAIT_TIMEOUT` in apps/web/test/found.ts
-          // (the harness's one timeout; keep the two the same).
-          expect: { poll: { timeout: 5000 } },
-          browser: {
-            enabled: true,
-            headless: true,
-            // The seeds' zone and an English locale, so times and dates read
-            // the same on every machine.
-            provider: playwright({ contextOptions: { timezoneId: testZone(), locale: "en-US" } }),
-            instances: [{ browser: "chromium" }],
-            viewport: { width: 420, height: 900 },
-            screenshotFailures: false,
-            // Page-level commands for tests (apps/web/test/commands.ts).
-            commands: deviceCommands,
-          },
-        },
-      },
+      componentsProject("web:components", testZone(), await freePort()),
+      // The second zone, every day: the screens where a zone mistake misdates care
+      // data (the timeline, doses, events) with the device in New York and the
+      // recipient's fixtures still in Los Angeles (B-372). Its own project, since
+      // one project's browser instances can't have different provider settings;
+      // its own port, since the two run at once. A New York-only skip names its
+      // item (`inSecondZone`, apps/web/test/zone.ts); never the shared quarantine.
+      componentsProject("web:components:ny", SECOND_ZONE, await freePort(), NY_INCLUDE),
       {
         test: {
           name: "integration",
@@ -237,6 +263,8 @@ export default defineConfig({
           sequence: { groupOrder: 2 },
         },
       },
-    ].map(withQuarantine),
+    ]
+      .map(inNodeZone)
+      .map(withQuarantine),
   },
 });
