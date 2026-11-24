@@ -8,7 +8,8 @@ import { Badge, Button, ListRow, Menu, Message, STATUS_TONE } from "~/components
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { isOpen } from "~/lib/medications/dueDoses";
 import { useMedicationLinkState } from "~/lib/medications/medicationOrigin";
-import { medicationTitle, slotStateText } from "~/lib/medications/medicationDisplay";
+import { extraDoseText, medicationTitle, slotStateText } from "~/lib/medications/medicationDisplay";
+import { ExtraDoseWarning } from "./ExtraDoseWarning";
 import { usePassLog } from "./usePassLog";
 
 const TONE: Record<SlotState, BadgeTone> = {
@@ -37,7 +38,8 @@ export type MarkStatus = Exclude<DoseStatus, "given">;
  * (a link to its page), its amount, its state and who logged it. While it's
  * still open, writers get a one-tap Given (logged now, for this slot, with
  * its amount, in `passLogId`'s round when it's in a pass) and a menu for
- * Skipped and Refused (`onMark`, which asks for a note).
+ * Skipped and Refused (`onMark`, which asks for a note). Given more than
+ * once, it says so (`ExtraDoseWarning`), to viewers too.
  */
 export function DoseSlotRow({
   slot,
@@ -63,6 +65,7 @@ export function DoseSlotRow({
   const { medication } = slot;
   const title = medicationTitle(medication);
   const open = canWrite && isOpen(slot);
+  const twice = extraDoseText(slot, timeZone);
 
   return (
     <ListRow
@@ -112,6 +115,7 @@ export function DoseSlotRow({
           </Menu>
         </div>
       )}
+      {twice && <ExtraDoseWarning text={twice} className="w-full" />}
       {error && (
         <Message tone="error" className="w-full">
           {error}
