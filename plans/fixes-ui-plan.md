@@ -19,11 +19,11 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State          | Merge |
-| ----- | ----- | -------------- | ----- |
-| 59    | B-777 | started (opus) |       |
-| 60    | B-783 | started (opus) |       |
-| 61    | B-784 | started (opus) |       |
+| Slice | Item  | State                | Merge |
+| ----- | ----- | -------------------- | ----- |
+| 59    | B-777 | agent spawned (opus) |       |
+| 60    | B-783 | agent spawned (opus) |       |
+| 61    | B-784 | agent spawned (opus) |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
