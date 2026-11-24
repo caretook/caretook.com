@@ -1500,6 +1500,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - 2026-11-22 (prd/fixes-tooling): Likely the same cause as B-460 (tidy-cli.test.mjs setup waited on new.sh's load gate), fixed by 4dc59ddd in fixes-tooling wave 1; confirm under load before closing.
 - 2026-11-22 (Robert Bo Davis): Decided by the user 2026-11-22: not in fixes-tooling wave 1. Re-measure after the test worker cap (B-542) and test-gates' quarantine land; fix only what still flakes, in a later wave.
 - 2026-11-23 (Robert Bo Davis): fixes-tooling wave order (the user, 2026-11-23: keep one topic, organize waves by kind of work; replaces the plan Status list of wave 3 candidates). Order: 3 context, dispatcher, sessions; 4 known flakes by cause; 5 re-measure test flakes; 6 check flow; 7 landing, Codex, cleanup; 8 planning and prompts. This item: wave 4 (known flakes by cause). One fix per shared cause: B-610 with B-571, B-619 with B-492, and B-624 with B-446 and B-573.
+- 2026-11-24 (prd/fixes-tooling): 2026-11-24, fixes-tooling slice 21 quick check at load ~30: tidy-cli.test.mjs 'tidy archives finished items' beforeAll 'Hook timed out in 10000ms'; alone 12/12 three times.
 
 ### B-462 · bug · pnpm prd recover reopens the dispatcher even when a test-Postgres, stack or server step failed, so it can reopen managed sessions on broken infrastructure
 
