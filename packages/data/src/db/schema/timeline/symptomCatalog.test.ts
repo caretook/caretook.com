@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SYMPTOMS, SYMPTOM_NAME_MAX, symptomKey, symptomName, symptomTypeId } from "./symptomCatalog";
+import {
+  DEFAULT_SYMPTOMS,
+  SIMILAR_SYMPTOMS_MAX,
+  SYMPTOM_NAME_MAX,
+  similarSymptoms,
+  symptomKey,
+  symptomName,
+  symptomTypeId,
+} from "./symptomCatalog";
 import { TIMELINE_LIMITS } from "./timelineEntry";
 import { symptomTypeNameZSchema, symptomTypeRow } from "./symptomType";
 
@@ -61,5 +69,48 @@ describe("a catalog row", () => {
       name: "Knee pain",
       nameKey: "knee pain",
     });
+  });
+});
+
+describe("similarSymptoms (the check before a new name)", () => {
+  const catalog = (...names: string[]) => names.map((name) => ({ id: name, name }));
+  const similar = (name: string, rows: { name: string }[]) =>
+    similarSymptoms(name, rows).similar.map((r) => r.name);
+
+  it("finds the exact match in any case or spacing, and offers nothing else", () => {
+    const rows = catalog("Nausea", "Knee pain", "Pain");
+    expect(similarSymptoms("  knee   PAIN ", rows)).toEqual({ exact: rows[1], similar: [] });
+  });
+
+  it("offers the same words in another order", () => {
+    expect(similar("pain knee", catalog("Knee pain", "Nausea"))).toEqual(["Knee pain"]);
+    expect(similar("Knee-pain", catalog("Knee pain"))).toEqual(["Knee pain"]);
+  });
+
+  it("offers one name's words inside the other's, either way", () => {
+    expect(similar("Left knee pain", catalog("Knee pain", "Nausea"))).toEqual(["Knee pain"]);
+    expect(similar("Pain", catalog("Back pain", "Fever"))).toEqual(["Back pain"]);
+  });
+
+  it("offers a small typo", () => {
+    expect(similar("Nausia", catalog("Nausea", "Fever"))).toEqual(["Nausea"]);
+    expect(similar("Head ache", catalog("Headache"))).toEqual(["Headache"]);
+    expect(similar("Dizzyness", catalog("Dizziness"))).toEqual(["Dizziness"]);
+    expect(similar("Shortness of breth", catalog("Shortness of breath"))).toEqual(["Shortness of breath"]);
+  });
+
+  it("offers nothing for unrelated names, and no typo match for very short ones", () => {
+    expect(similar("Hiccups", catalog(...DEFAULT_SYMPTOMS))).toEqual([]);
+    expect(similar("Sore elbow", catalog("Nausea", "Knee pain", "Fever"))).toEqual([]);
+    expect(similar("Flu", catalog("Fall"))).toEqual([]);
+    expect(similarSymptoms("   ", catalog("Pain"))).toEqual({ exact: null, similar: [] });
+  });
+
+  it("offers at most three, the closest first, then A to Z", () => {
+    const rows = catalog("Back pain", "Chest pain", "Neck pain", "Pain knee", "Knee pains");
+    expect(SIMILAR_SYMPTOMS_MAX).toBe(3);
+    // Reordered words, then the typo, then one contained word (A to Z).
+    expect(similar("Knee pain", rows)).toEqual(["Pain knee", "Knee pains"]);
+    expect(similar("pain", rows)).toEqual(["Back pain", "Chest pain", "Neck pain"]);
   });
 });

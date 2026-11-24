@@ -7,13 +7,16 @@ import {
   ENTRY_PROVIDER_NAMESPACE,
   MEDICATION_CONDITION_NAMESPACE,
   SERVER_SET_COLUMNS,
+  SYMPTOM_TYPE_NAMESPACE,
   SYNC_MATRIX,
   columnMismatches,
   conditionManagerId,
   entryProviderId,
   exceptionProblems,
+  matrixSymptomName,
   medicationConditionId,
   streamColumns,
+  symptomTypeId,
   writtenRow,
 } from "../browser-checks/sync-matrix.mjs";
 
@@ -90,6 +93,14 @@ describe("the sync matrix", () => {
     expect(medicationConditionId(medication, condition)).toBe(
       data.medicationConditionId(medication, condition),
     );
+  });
+
+  it("derives a symptom type's id as packages/data does", async () => {
+    const data = await import("../../packages/data/src/db/schema/timeline/symptomCatalog.ts");
+    expect(SYMPTOM_TYPE_NAMESPACE).toBe(data.SYMPTOM_TYPE_NAMESPACE);
+    const group = "0B6F3C1E-5D1A-4C2E-9A77-3F1D2BF01002";
+    for (const name of [matrixSymptomName("rt-abc123"), "  Knee   PAIN "])
+      expect(symptomTypeId(group, name), name).toBe(data.symptomTypeId(group, name));
   });
 
   it("derives a condition's manager link id as packages/data does", async () => {

@@ -6,6 +6,8 @@ import { useId } from "react";
 import { TIMELINE_LIMITS } from "@caretook/data/schema";
 import { CHOICE_TILE, Field, Message } from "~/components/ui";
 import { FEELING_SYMPTOM_NAME } from "~/lib/assistant/easyTiles";
+import { useGroup } from "~/lib/app-shell/group";
+import { useSymptomTypes } from "~/lib/timeline/symptomTypes.sync";
 
 /** The scale's words at each end and the middle, read with the number. */
 export const feelingWords = (n: number) =>
@@ -24,7 +26,8 @@ const FACES: LucideIcon[] = [Laugh, Smile, Smile, Smile, Meh, Meh, Meh, Frown, F
 /**
  * Easy mode's symptom (the "How she feels" tile): a 0–10 face scale, big
  * enough to tap without glasses, and what's wrong if they want to say. The
- * symptom is named "Feeling" when nothing is typed. A one-off scale of
+ * symptom is named "Feeling" when nothing is typed; what's typed suggests the
+ * group's catalog (a native `datalist`, as the symptom sheet's). A one-off scale of
  * eleven, so native radios here rather than a `ChoiceGroup` (a few joined
  * buttons): arrow keys move along it, and each says its number and words.
  */
@@ -42,6 +45,9 @@ export function FeelingFields({
 }) {
   const id = useId();
   const max = TIMELINE_LIMITS.severityMax;
+  const { id: groupId } = useGroup();
+  // "Feeling" is what an empty answer saves, so it isn't offered.
+  const catalog = useSymptomTypes(groupId).filter((type) => type.name !== FEELING_SYMPTOM_NAME);
   return (
     <div className="space-y-3">
       <div className="fieldset">
@@ -88,9 +94,16 @@ export function FeelingFields({
             maxLength={TIMELINE_LIMITS.symptomName}
             defaultValue={stored?.name && stored.name !== FEELING_SYMPTOM_NAME ? stored.name : ""}
             placeholder="e.g. Sore knee"
+            list={`${id}-symptoms`}
+            autoComplete="off"
           />
         )}
       </Field>
+      <datalist id={`${id}-symptoms`}>
+        {catalog.map((type) => (
+          <option key={type.id} value={type.name} />
+        ))}
+      </datalist>
       <input type="hidden" name="symptomNameDefault" value={FEELING_SYMPTOM_NAME} />
     </div>
   );
