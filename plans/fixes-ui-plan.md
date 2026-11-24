@@ -24,14 +24,14 @@ Notes for every wave:
 | Slice | Item  | State           | Merge    |
 | ----- | ----- | --------------- | -------- |
 | 49    | B-583 | merged (opus)   | aef5557c |
-| 50    | B-613 | running (opus)  |          |
-| 51    | B-765 | running (opus)  |          |
-| 52    | B-735 | running (opus)  |          |
-| 53    | B-701 | running (opus)  |          |
-| 54    | B-606 | running (opus)  |          |
-| 55    | B-698 | written         |          |
+| 50    | B-613 | merged (opus)   | 0157d117 |
+| 51    | B-765 | merged (opus)   | 15167ea9 |
+| 52    | B-735 | merged (opus)   | 12bcaa29 |
+| 53    | B-701 | merged (opus)   | a30cf79a |
+| 54    | B-606 | merged (opus)   | c312d03e |
+| 55    | B-698 | merged (opus)   | 0419f380 |
 | 56    | B-700 | running (opus)  |          |
-| 57    | B-680 | running (opus)  |          |
+| 57    | B-680 | merged (opus)   | e020375b |
 | 58    | B-748 | merged (sonnet) | 27823c3e |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
