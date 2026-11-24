@@ -16,7 +16,7 @@ The **core**: rules every session needs, and pointers to role and area docs (_Ar
 ## Branches and roles
 
 - `main` (live) and `staging` change only by PR on GitHub. `dev` is the trunk. `prd/<topic>` (an orchestrator's), `slice/<topic>/<n>` (a loop's), `plan/<topic>` (docs) and `hotfix/<name>` land in `dev` through `pnpm prd land`: `prd/` by a Codex-reviewed PR, a hotfix by PR or locally (ask).
-- **The main checkout is the user's and stays on `dev`.** Agents reach it only via `pnpm backlog` and `pnpm prd land`.
+- **The main checkout is the user's and stays on `dev`.** Agents reach it only via `pnpm backlog`, `pnpm prd dev-sync` and `land`.
 - Each role has a doc in `docs/agents/`; your prompt names yours.
 
 ## Review guidelines

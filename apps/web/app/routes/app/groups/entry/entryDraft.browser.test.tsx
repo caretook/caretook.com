@@ -8,6 +8,7 @@ import { found } from "../../../../../test/found";
 import { renderWithDevice } from "../../../../../test/device";
 import { fx, TEST_GROUP } from "../../../../../test/fixtures";
 import { QUICK_ENTRY_DRAFT } from "~/lib/assistant/quickEntryDraft";
+import { dayInZone, startOfDay } from "~/lib/core/zonedDay";
 import * as entryRoute from "./route";
 
 // The new-event page opened with a draft (quick entry's provider events,
@@ -24,11 +25,14 @@ const NEW_EVENT = `/app/groups/${GROUP}/entries/new?kind=event`;
 const LAUNCH = `/app/groups/${GROUP}/launch`;
 const ON_ENTRY = /\/entries\/[0-9a-f-]{36}$/;
 
-/** The 25th of next month at midnight on the test device (Los Angeles). */
+/** The draft's zone (the recipient's), whatever zone the device is in. */
+const RECIPIENT_ZONE = "America/Los_Angeles";
+
+/** The 25th of next month at midnight in the recipient's zone, as quick entry makes an all-day draft. */
 const day25 = () => {
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  return new Date(now.getFullYear(), month, 25).toISOString();
+  const [year, month] = dayInZone(new Date(), RECIPIENT_ZONE).split("-").map(Number);
+  const day = new Date(Date.UTC(year!, month, 25)).toISOString().slice(0, 10);
+  return startOfDay(day, RECIPIENT_ZONE).toISOString();
 };
 
 const draft = (over: Partial<EventDraft> = {}): EventDraft => ({
@@ -38,7 +42,7 @@ const draft = (over: Partial<EventDraft> = {}): EventDraft => ({
   allDay: true,
   place: ADDRESS,
   providerIds: [ALVAREZ.id],
-  timeZone: "America/Los_Angeles",
+  timeZone: RECIPIENT_ZONE,
   ...over,
 });
 

@@ -1,6 +1,8 @@
 import type { MedicationChangeDetails } from "@caretook/data";
 
 import {
+  addDays,
+  dayInZone,
   doseSlotIdFor,
   dueDoses,
   medicationChangeId,
@@ -9,6 +11,7 @@ import {
   OWN_DOSE_COPY_METADATA,
   providerService,
   timelineEntryService,
+  zonedInstant,
 } from "@caretook/data";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
@@ -678,7 +681,11 @@ describe("sync.upload: two members' doses for one slot", () => {
   const doseSetup = async (slots: { time: string }[] = [{ time: "08:00" }]) => {
     const owner = await createUser("owner");
     const caretaker = await createUser("caretaker");
-    const { group, recipient } = await createGroup(owner, [{ user: caretaker.user, role: "caretaker" }]);
+    const helper = await createUser("helper");
+    const { group, recipient } = await createGroup(owner, [
+      { user: caretaker.user, role: "caretaker" },
+      { user: helper.user, role: "caretaker" },
+    ]);
     const medication = ok(
       await medicationService.create(owner.ctx, {
         groupId: group.id,
@@ -714,6 +721,7 @@ describe("sync.upload: two members' doses for one slot", () => {
       doses,
       owner: { ...owner, api: clientFor(owner.ctx.authUser) },
       caretaker: { ...caretaker, api: clientFor(caretaker.ctx.authUser) },
+      helper: { ...helper, api: clientFor(helper.ctx.authUser) },
     };
   };
 
@@ -823,9 +831,12 @@ describe("sync.upload: two members' doses for one slot", () => {
 
   it("keeps Given and Skipped as two rows, and the earlier reads the slot", async () => {
     const { medication, put, doses, owner, caretaker } = await doseSetup();
-    const earlier = sqliteTime(-120_000);
-    const given = put("given", earlier, "gave it");
-    const skipped = put("skipped", sqliteTime(-60_000), "thought it was missed");
+    // Pinned to yesterday's 08:00 in the recipient's zone, not the clock: read
+    // at "now", the nearest 08:00 is tomorrow's from 20:00 UTC on (B-729).
+    const slotAt = zonedInstant(addDays(dayInZone(new Date(), TZ), -1), "08:00", TZ).getTime();
+    const at = (minutes: number) => new Date(slotAt + minutes * 60_000).toISOString().replace(/Z$/, "000Z");
+    const given = put("given", at(1), "gave it");
+    const skipped = put("skipped", at(2), "thought it was missed");
     expect(skipped.id).not.toBe(given.id);
 
     await upload(caretaker.api, [skipped]);
@@ -841,11 +852,80 @@ describe("sync.upload: two members' doses for one slot", () => {
         details: row.details as never,
         createdBy: row.createdBy,
       })),
-      now: new Date(),
-      timeZone: "UTC",
+      now: new Date(slotAt + 10 * 60_000),
+      timeZone: TZ,
       windowMinutes: 24 * 60,
     });
-    expect(due.slots.find((slot) => slot.dose)?.dose?.id).toBe(given.id);
+    expect(due.slots.find((slot) => slot.time === "08:00")?.dose?.id).toBe(given.id);
+  });
+
+  describe("a retried upload after a time edit (B-726)", () => {
+    const timeEdit = (id: string, by: string, occurredAt: string) => ({
+      op: "PATCH" as const,
+      table: "timeline_entry",
+      id,
+      data: { occurred_at: occurredAt, updated_at: sqliteTime(0), updated_by: by },
+    });
+    const storedDose = async (ownerCtx: Parameters<typeof timelineEntryService.getById>[0], id: string) =>
+      ok(await timelineEntryService.getById(ownerCtx, id, { includeDeleted: true }))!;
+
+    it("leaves the dose deleted when A retries after a time edit and a delete, with no restore", async () => {
+      const { put, doses, owner, caretaker } = await doseSetup();
+      // A's upload is accepted but its response is lost, so A's device keeps it queued.
+      const first = put("given", sqliteTime(-60 * 60_000), "A's dose");
+      expect(await upload(caretaker.api, [first])).toEqual([{ id: first.id, status: "applied" }]);
+      expect(await upload(owner.api, [timeEdit(first.id, owner.user.id, sqliteTime(-30 * 60_000))])).toEqual([
+        { id: first.id, status: "applied" },
+      ]);
+      await upload(owner.api, [undoPatch(first.id, owner.user.id)]);
+
+      expect(await upload(caretaker.api, [first])).toEqual([{ id: first.id, status: "applied" }]);
+
+      expect(await doses()).toEqual([]);
+      expect(await storedDose(owner.ctx, first.id)).toMatchObject({ createdBy: caretaker.user.id });
+    });
+
+    it("leaves the dose deleted when A retries after a time edit, B's restore and a second delete", async () => {
+      const { put, doses, owner, caretaker, helper } = await doseSetup();
+      const first = put("given", sqliteTime(-60 * 60_000), "A's dose");
+      await upload(caretaker.api, [first]);
+      await upload(owner.api, [timeEdit(first.id, owner.user.id, sqliteTime(-30 * 60_000))]);
+      await upload(helper.api, [undoPatch(first.id, helper.user.id)]);
+      const restoring = { ...put("given", sqliteTime(-20 * 60_000), "B's tap"), id: first.id };
+      await upload(owner.api, [restoring]);
+      expect(await doses()).toMatchObject([{ id: first.id, createdBy: owner.user.id }]);
+      await upload(helper.api, [undoPatch(first.id, helper.user.id)]);
+
+      expect(await upload(caretaker.api, [first])).toEqual([{ id: first.id, status: "applied" }]);
+
+      expect(await doses()).toEqual([]);
+      expect(await storedDose(owner.ctx, first.id)).toMatchObject({
+        createdBy: owner.user.id,
+        details: { note: "B's tap" },
+      });
+    });
+
+    it("still records a fresh log of that dose after a delete, by its author or another member", async () => {
+      const { put, doses, owner, caretaker } = await doseSetup();
+      const first = put("given", sqliteTime(-60 * 60_000), "A's dose");
+      await upload(caretaker.api, [first]);
+      await upload(owner.api, [timeEdit(first.id, owner.user.id, sqliteTime(-30 * 60_000))]);
+      await upload(owner.api, [undoPatch(first.id, owner.user.id)]);
+
+      // A's other device, which never saw the row, gives it again at its own time.
+      const again = { ...put("given", sqliteTime(-10 * 60_000), "A's other phone"), id: first.id };
+      await upload(caretaker.api, [again]);
+      expect(await doses()).toMatchObject([
+        { id: first.id, createdBy: caretaker.user.id, details: { note: "A's other phone" } },
+      ]);
+
+      await upload(caretaker.api, [undoPatch(first.id, caretaker.user.id)]);
+      const theirs = { ...put("given", sqliteTime(-5 * 60_000), "B's tap"), id: first.id };
+      await upload(owner.api, [theirs]);
+      expect(await doses()).toMatchObject([
+        { id: first.id, createdBy: owner.user.id, details: { note: "B's tap" } },
+      ]);
+    });
   });
 
   it("keeps a slot id for a dose naming a slot the medication no longer has", async () => {

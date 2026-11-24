@@ -729,6 +729,8 @@ describe("upsert: a dose's shared slot id", () => {
   describe("a retried duplicate (B-627)", () => {
     const records = (entryId: string) =>
       getDb().select().from(doseDuplicateUploadSchema).where(eq(doseDuplicateUploadSchema.entryId, entryId));
+    /** Who has an accepted upload recorded for the entry, sorted. */
+    const uploaders = async (entryId: string) => (await records(entryId)).map((r) => r.userId).sort();
 
     /** A's dose, B's accepted duplicate at `LATER`, then A's Undo. */
     const undoneAfterDuplicate = async () => {
@@ -784,24 +786,24 @@ describe("upsert: a dose's shared slot id", () => {
         return newError({ code: "timelineEntryService:notFound" });
       });
       expect(codeOf(failed)).toBe("timelineEntryService:notFound");
-      expect(await records(id)).toEqual([]);
+      expect(await uploaders(id)).toEqual([u.caretaker.user.id]);
 
       ok(await timelineEntryService.remove(u.caretaker.ctx, id));
       ok(await timelineEntryService.upsert(u.admin.ctx, dose("B", id, LATER)));
       expect(await stored(id)).toMatchObject({ deletedAt: null, createdBy: u.admin.user.id });
     });
 
-    it("records a duplicate once, and nothing for a viewer", async () => {
+    it("records each accepted upload once (A's first, B's duplicate), and nothing for a viewer", async () => {
       const { u, dose, id } = await undoneAfterDuplicate();
       ok(await timelineEntryService.upsert(u.admin.ctx, dose("B", id, LATER)));
       await timelineEntryService.upsert(u.viewer.ctx, dose("viewer", id));
 
-      expect(await records(id)).toMatchObject([{ userId: u.admin.user.id }]);
+      expect(await uploaders(id)).toEqual([u.caretaker.user.id, u.admin.user.id].sort());
     });
 
     it("drops the records with the entry", async () => {
       const { id } = await undoneAfterDuplicate();
-      expect(await records(id)).toHaveLength(1);
+      expect(await records(id)).toHaveLength(2);
 
       ok(
         await timelineEntryModel.purge({ authUser: SYSTEM_USER, filter: { id: { type: "eq", value: id } } }),
@@ -815,7 +817,7 @@ describe("upsert: a dose's shared slot id", () => {
 
       await getDb().delete(userSchema).where(eq(userSchema.id, u.admin.user.id));
 
-      expect(await records(id)).toEqual([]);
+      expect(await uploaders(id)).toEqual([u.caretaker.user.id]);
     });
 
     it("drops the records with the group", async () => {
@@ -832,6 +834,76 @@ describe("upsert: a dose's shared slot id", () => {
         "utf8",
       );
       expect(config).not.toContain("dose_duplicate_upload");
+    });
+  });
+
+  describe("a retry after a restore (B-719)", () => {
+    const EDITED = "2026-11-17T16:50:00.000Z";
+
+    /** A's dose at `AT`, deleted, then B's restoring upload at `LATER`. */
+    const restoredByB = async () => {
+      const world = await doseSetup();
+      const { u, dose } = world;
+      const id = randomUUID();
+      ok(await timelineEntryService.upsert(u.caretaker.ctx, dose("A", id)));
+      ok(await timelineEntryService.remove(u.owner.ctx, id));
+      ok(await timelineEntryService.upsert(u.admin.ctx, dose("B", id, LATER)));
+      return { ...world, id };
+    };
+
+    it("leaves the dose deleted when A retries the upload the restore displaced", async () => {
+      const { u, dose, stored, id } = await restoredByB();
+      ok(await timelineEntryService.remove(u.owner.ctx, id));
+
+      ok(await timelineEntryService.upsert(u.caretaker.ctx, dose("A", id)));
+
+      const row = await stored(id);
+      expect(row.deletedAt).not.toBeNull();
+      expect(row).toMatchObject({ createdBy: u.admin.user.id, details: { note: "B" } });
+    });
+
+    it("leaves the dose deleted when B retries the restoring upload after a time edit", async () => {
+      const { u, dose, stored, id } = await restoredByB();
+      ok(await timelineEntryService.update(u.admin.ctx, id, { occurredAt: EDITED }));
+      ok(await timelineEntryService.remove(u.owner.ctx, id));
+
+      ok(await timelineEntryService.upsert(u.admin.ctx, dose("B", id, LATER)));
+
+      const row = await stored(id);
+      expect(row.deletedAt).not.toBeNull();
+      expect(new Date(row.occurredAt).toISOString()).toBe(EDITED);
+    });
+
+    it("still restores for a new log by either of them at another time", async () => {
+      const { u, dose, stored, id } = await restoredByB();
+      ok(await timelineEntryService.remove(u.owner.ctx, id));
+
+      ok(await timelineEntryService.upsert(u.caretaker.ctx, dose("A again", id, EDITED)));
+      expect(await stored(id)).toMatchObject({
+        deletedAt: null,
+        createdBy: u.caretaker.user.id,
+        details: { note: "A again" },
+      });
+
+      ok(await timelineEntryService.remove(u.owner.ctx, id));
+      ok(await timelineEntryService.upsert(u.admin.ctx, dose("B again", id, "2026-11-17T16:55:00.000Z")));
+      expect(await stored(id)).toMatchObject({
+        deletedAt: null,
+        createdBy: u.admin.user.id,
+        details: { note: "B again" },
+      });
+    });
+
+    it("still restores when the displaced author's account is gone", async () => {
+      const { u, dose, stored } = await doseSetup();
+      const id = randomUUID();
+      ok(await timelineEntryService.upsert(u.caretaker.ctx, dose("A", id)));
+      ok(await timelineEntryService.remove(u.owner.ctx, id));
+      await getDb().delete(userSchema).where(eq(userSchema.id, u.caretaker.user.id));
+
+      ok(await timelineEntryService.upsert(u.admin.ctx, dose("B", id, LATER)));
+
+      expect(await stored(id)).toMatchObject({ deletedAt: null, createdBy: u.admin.user.id });
     });
   });
 

@@ -4,14 +4,24 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/inbox-agent` (slice commits) |
-| ----- | ---- | ----- | -------------------------------------------- |
-| 1     | 1    | —     | —                                            |
-| 2     | 1    | —     | —                                            |
-| 3     | 2    | —     | —                                            |
-| 4     | 3    | —     | —                                            |
-| 5     | 4    | —     | —                                            |
-| 6     | 5    | —     | —                                            |
+| Slice | Wave | State                                    | Merge into `prd/inbox-agent` (slice commits) |
+| ----- | ---- | ---------------------------------------- | -------------------------------------------- |
+| 1     | 1    | landed (opus) in dev `24440550`, PR #134 | `0c37dc6d` (`ced2c458`)                      |
+| 2     | 1    | landed (opus) in dev `24440550`, PR #134 | `935bc723` (`4b98c644`)                      |
+| 3     | 2    | merged (opus)                            | `8a2b35bc` (`edb5cd93`, `54c810c3`)          |
+| 4     | 3    | —                                        | —                                            |
+| 5     | 4    | —                                        | —                                            |
+| 6     | 5    | —                                        | —                                            |
+
+**Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
+
+**Wave 2 (2026-11-24): green, landing.** CI integration green on `295fc0c6` (run 45364603017); slice 3's worktree removed; sync a no-op; PR #137; Codex out of credits (exit 4), so landing with `--no-review`. Docs folded: backlog (the origin path, who may change the inbox) and AGENTS.md (`pnpm prd dev-sync`). **Wave 2 (2026-11-24): slice 3 merged** as `8a2b35bc` (opus; slice check green on `54c810c3`); B-474 and B-435 done. Its worktree stays until the wave's CI verdict is green. Next: `pnpm prd ci run integration --wait`, then sync, PR, review, land. Accepted gap (noted on B-425): `ingest` with the main checkout mid-merge prints that the pickup skipped, then refuses as before rather than filing. Slice 4 notes: the inbox session runs `pnpm backlog similar`, `inbox add`, `inbox move` and `inbox` by the main checkout's path; pickup output is on stderr, the result line on stdout. Wave 1 landed as `24440550` (PR #134, `--no-review`, Codex out of credits; report ask a167). B-425 stays claimed until slice 4 merges.
+
+**Gate, corrected:** `scripts/loops/lib.sh` counts as the browser harness, so a wave that touches it lands at the **integration** tier (land requests the CI run itself). `pnpm test:tooling` and `pnpm exec eslint scripts` remain the local pre-check. The B-729 dev brake that held wave 1 about 12 hours is fixed in dev (`bcf6ffff`, fixes-bug). Skeptic s19 / ask a165 (wait for fixes-bug) is settled. Open issues: none. `pnpm backlog doctor` still reports two old inbox-line mismatches (B-548, B-549), not this topic's.
+
+**Slice 1 notes for later:** it added `land_push_trunk` (a landing refuses when the pickup brings anything but the backlog files and CI's two lists). Slice 3's origin writer can call `dev_sync` as the pickup, and must treat its refusal of a checkout off `dev` or mid-merge as "skipped" (tell slice 3's agent this).
+
+**Slice 2 notes for later:** the look-alike threshold (Dice 0.6, at least two shared words) was tested only on fictional titles, so its noise on the real backlog is unmeasured. `tidy --yes` exits 1 if the archive step fails (main checkout mid-merge or off `dev`); its other removals still run. Slice 3 changes the same `scripts/backlog/backlog.mjs`.
 
 **Backlog:** claim B-425 and B-474 when slice 1 starts, `done` B-474 when slice 3 merges and B-425 when slice 4 merges; B-435 when slice 2 starts, `done` when slice 3 merges; B-515 when slice 5 starts, `done` when it merges; B-551 when slice 6 starts, `done` when it merges.
 

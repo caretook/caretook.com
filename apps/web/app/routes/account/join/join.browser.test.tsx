@@ -127,7 +127,8 @@ describe("/join/:code", () => {
           recipientName: "Rose Example",
           preferredName: "Nana",
           groupName: "",
-          timeZone: "America/Los_Angeles",
+          // A new group starts in the zone of the device creating it.
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
         legal: true,
       },

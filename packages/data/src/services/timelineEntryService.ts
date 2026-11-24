@@ -29,6 +29,7 @@ import {
   timelineEntryCreateZSchema,
   timelineEntryUpdateZSchema,
   timelineEntryUpsertZSchema,
+  userSchema,
 } from "../db/schema";
 import { isPastVisit } from "../db/schema/appointments/seriesEdit";
 import { isError, newError } from "../errors";
@@ -591,14 +592,44 @@ const mayRestoreDose = (
   row.updatedBy !== uploader &&
   !(row.createdBy === uploader && new Date(row.occurredAt).getTime() === new Date(occurredAt).getTime());
 
-/** Note an upload accepted as a duplicate, in its transaction: it commits only if the upload does. */
-const recordDuplicateDose = (tx: Tx, entryId: string, userId: string, occurredAt: string) =>
+/**
+ * Note an accepted dose upload (a first upload, a replay onto the uploader's
+ * own row, a duplicate or a restore), in its transaction: it commits only if
+ * the upload does. The row may change time or hands before a retry arrives,
+ * so this note is what tells the retry from a new log (B-627, B-726).
+ */
+const recordDoseUpload = (tx: Tx, entryId: string, userId: string, occurredAt: string) =>
   dbMayFail(
     () => tx.insert(doseDuplicateUploadSchema).values({ entryId, userId, occurredAt }).onConflictDoNothing(),
     "timelineEntryService:duplicateRecord",
   );
 
-/** Whether this exact upload was already accepted as a duplicate: a retry, not a new log (B-627). */
+/**
+ * Note both uploads a restore settles, in its transaction: the one it displaced
+ * and its own. The row keeps neither once it changes hands or its time is
+ * edited, so a retry of either would otherwise pass for a new log (B-719).
+ * `created_by` has no FK, so a displaced author with no user row (the system,
+ * a deleted account) is skipped: they have no upload left to retry.
+ */
+const recordRestoredDose = async (
+  tx: Tx,
+  displaced: Pick<TimelineEntry, "id" | "createdBy" | "occurredAt">,
+  uploader: string,
+  occurredAt: string,
+) => {
+  const author = await dbMayFail(
+    () => tx.select({ id: userSchema.id }).from(userSchema).where(eq(userSchema.id, displaced.createdBy)),
+    "timelineEntryService:duplicateRecord",
+  );
+  if (isError(author)) return author;
+  if (author.length > 0) {
+    const noted = await recordDoseUpload(tx, displaced.id, displaced.createdBy, displaced.occurredAt);
+    if (isError(noted)) return noted;
+  }
+  return recordDoseUpload(tx, displaced.id, uploader, occurredAt);
+};
+
+/** Whether this exact upload was already accepted without becoming the row: a retry, not a new log (B-627). */
 const isAcceptedDuplicate = async (tx: Tx, entryId: string, userId: string, occurredAt: string) => {
   const rows = await dbMayFail(
     () =>
@@ -647,7 +678,9 @@ export const anotherMembersDose = (ctx: ServiceContext, id: string) =>
  *   anyone who may log one: onto a live row another member created, the first
  *   upload stands, nothing changes and the duplicate is recorded; onto a row
  *   another member deleted, it comes back as the uploader's, unless this is
- *   their own dose replayed or a retry of a recorded duplicate (B-627).
+ *   their own dose replayed or a retry of a recorded upload (B-627). Every
+ *   accepted dose upload is recorded (B-726), and a restore also records the
+ *   upload it displaced (B-719).
  *   Two first uploads of one id take turns, so the second is that duplicate.
  * - An id that exists but the actor can't see is refused, without saying
  *   whether it exists.
@@ -692,7 +725,12 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
       includeDeleted: true,
     });
     if (isError(existing)) return existing;
-    if (!existing) return create({ ...ctx, tx }, parsed.data);
+    if (!existing) {
+      const created = await create({ ...ctx, tx }, parsed.data);
+      if (isError(created) || !created || kind !== "dose") return created;
+      const noted = await recordOwnDoseUpload(ctx, tx, id, groupId, scheduling, occurredAt);
+      return noted ?? created;
+    }
 
     const visible = await timelineEntryModel.getById(id, { ...ctx, tx, includeDeleted: true });
     if (isError(visible)) return visible;
@@ -711,7 +749,7 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
       if (isError(uploader)) return uploader;
       if (uploader) {
         if (!visible.deletedAt && visible.createdBy !== uploader) {
-          const recorded = await recordDuplicateDose(tx, id, uploader, occurredAt);
+          const recorded = await recordDoseUpload(tx, id, uploader, occurredAt);
           return isError(recorded) ? recorded : visible;
         }
         const retried =
@@ -738,6 +776,10 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
             { ...ctx, tx },
           );
           if (isError(restored)) return restored;
+          if (restored) {
+            const noted = await recordRestoredDose(tx, visible, uploader, occurredAt);
+            if (isError(noted)) return noted;
+          }
           const queued = await enqueueCalendarPush(tx, { entryId: id }, "entry");
           return queued ?? restored;
         }
@@ -748,7 +790,7 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
     // medication: the service's stands.
     if (isSystemWrittenKind(visible.kind)) return visible;
 
-    return update(
+    const updated = await update(
       { ...ctx, tx },
       id,
       // Checked against the entry's kind once merged with the stored row.
@@ -761,7 +803,30 @@ export const upsert = (ctx: ServiceContext, input: TimelineEntryUpsertInput) =>
         ...scheduling,
       } as TimelineEntryUpdateInput,
     );
+    if (isError(updated) || !updated || visible.kind !== "dose") return updated;
+    const noted = await recordOwnDoseUpload(ctx, tx, id, groupId, scheduling, occurredAt);
+    return noted ?? updated;
   }, ctx);
+
+/**
+ * Note a dose upload that became (or updated) the uploader's own row, for
+ * anyone who may log doses: a retry of it after a time edit, a restore or a
+ * delete is then still a retry, not a new log (B-726). An error, else null.
+ */
+const recordOwnDoseUpload = async (
+  ctx: ServiceContext,
+  tx: Tx,
+  id: string,
+  groupId: string,
+  fields: Parameters<typeof canLogEntry>[2],
+  occurredAt: string,
+) => {
+  const uploader = await doseUploader(ctx, tx, groupId, fields);
+  if (isError(uploader)) return uploader;
+  if (!uploader) return null;
+  const recorded = await recordDoseUpload(tx, id, uploader, occurredAt);
+  return isError(recorded) ? recorded : null;
+};
 
 /**
  * Soft delete. The entry disappears from the timeline but syncs as deleted.
