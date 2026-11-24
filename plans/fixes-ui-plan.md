@@ -8,7 +8,7 @@ Landing mode: **run everything through** (started run-through, 2026-11-22; resum
 
 Waves 1–3 landed (PR #78, #84, #86); details in the history file.
 
-**Wave 4** (2026-11-24, session 1): slices 18–33 written from the triaged items; base `prd/fixes-ui` = dev 91f30299. Running topic: symptom-catalog (its hot files excluded). Chains: 22→23, 25→26→27→28, 30→31. Models: sonnet for 20, 21, 28; opus for the rest. Merge order: handed-off slices merge in plan order among themselves, without waiting for an earlier slice still running when a chain waits on a later one (20 and 25 merged before 19, 21, 22, 24).
+**Wave 4** (2026-11-24, session 1): slices 18–33 written from the triaged items; base `prd/fixes-ui` = dev 91f30299. Running topic: symptom-catalog (its hot files excluded). Chains: 22→23, 25→26→27→28, 30→31. Models: sonnet for 20, 21, 28; opus for the rest. Merge order: handed-off slices merge in plan order among themselves, without waiting for an earlier slice still running when a chain waits on a later one (20 and 25 merged before 19, 21, 22, 24). At landing fold into docs: care-groups.md (RoleHelp dialog, GROUP_ROLES sees/changes; member rows carry no role description on purpose), providers.md (phone label select with Custom).
 
 Held for later waves, with why: B-325 (Capacitor); B-693, B-697 (wait for the toast system B-669); B-694 (user approves each form live: never in an unattended slice); B-621, B-676, B-762 (quick-entry, symptom-catalog hot); B-617, B-748, B-756 (timeline filters, symptom-catalog hot); B-680 (the user may add preferences: ask before building); B-684, B-695 (app-wide sweeps: a wave of their own); B-698, B-700, B-701, B-606 (medication cards and passes: open questions to ask when built; do together); B-594 then B-672, B-673 (after slice 29's ComboBox option); B-679 (after slice 31); B-583 (connector rename, decided); B-735 (stale client, cause unknown); B-736, B-737 (timeline jump and links, together); B-765 (live note full screen); B-664 (after slice 23, same file); B-613 (motion, broad ui/ change); B-691 then B-692.
 
@@ -19,41 +19,41 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                      | Merge    |
-| ----- | ----- | -------------------------- | -------- |
-| 1     | B-256 | merged (opus)              | b5373bc9 |
-| 2     | B-416 | merged (opus)              | f6f40e4f |
-| 3     | B-538 | merged (opus)              | 439b6571 |
-| 4     | B-412 | merged (opus)              | 91aced06 |
-| 5     | B-519 | merged (opus)              | b2aa214a |
-| 6     | B-413 | merged (opus)              | 13ac9f5a |
-| 7     | B-422 | merged (opus)              | 8834115b |
-| 8     | B-421 | merged (opus)              | fc5dbe18 |
-| 9     | B-319 | merged (opus)              | 488e09bf |
-| 10    | B-536 | merged (sonnet)            | c9c510cf |
-| 11    | B-575 | merged (sonnet)            | 123f2b24 |
-| 12    | B-537 | merged (opus)              | 5566480a |
-| 13    | B-535 | merged (opus)              | 1dc972d8 |
-| 14    | B-316 | merged (opus)              | 3c7a6607 |
-| 15    | B-585 | merged (opus)              | 52d2e14b |
-| 16    | B-592 | merged (opus)              | 6af2f056 |
-| 17    | B-603 | merged (opus)              | 18180d36 |
-| 18    | B-618 | merged (opus)              | 4ecaa3f5 |
-| 19    | B-663 | started (opus)             |          |
-| 20    | B-702 | merged (sonnet)            | a0510b3d |
-| 21    | B-682 | started (sonnet)           |          |
-| 22    | B-683 | started (opus)             |          |
-| 23    | B-763 | waits (opus)               |          |
-| 24    | B-685 | started (opus)             |          |
-| 25    | B-686 | merged (opus)              | 948eebc8 |
-| 26    | B-687 | started (opus)             |          |
-| 27    | B-688 | waits (opus)               |          |
-| 28    | B-674 | waits (sonnet)             |          |
-| 29    | B-668 | started (opus)             |          |
-| 30    | B-677 | started (opus)             |          |
-| 31    | B-678 | waits (opus)               |          |
-| 32    | B-629 | handed off (opus) 035359d2 |          |
-| 33    | B-699 | handed off (opus) 1316e8ce |          |
+| Slice | Item  | State            | Merge    |
+| ----- | ----- | ---------------- | -------- |
+| 1     | B-256 | merged (opus)    | b5373bc9 |
+| 2     | B-416 | merged (opus)    | f6f40e4f |
+| 3     | B-538 | merged (opus)    | 439b6571 |
+| 4     | B-412 | merged (opus)    | 91aced06 |
+| 5     | B-519 | merged (opus)    | b2aa214a |
+| 6     | B-413 | merged (opus)    | 13ac9f5a |
+| 7     | B-422 | merged (opus)    | 8834115b |
+| 8     | B-421 | merged (opus)    | fc5dbe18 |
+| 9     | B-319 | merged (opus)    | 488e09bf |
+| 10    | B-536 | merged (sonnet)  | c9c510cf |
+| 11    | B-575 | merged (sonnet)  | 123f2b24 |
+| 12    | B-537 | merged (opus)    | 5566480a |
+| 13    | B-535 | merged (opus)    | 1dc972d8 |
+| 14    | B-316 | merged (opus)    | 3c7a6607 |
+| 15    | B-585 | merged (opus)    | 52d2e14b |
+| 16    | B-592 | merged (opus)    | 6af2f056 |
+| 17    | B-603 | merged (opus)    | 18180d36 |
+| 18    | B-618 | merged (opus)    | 4ecaa3f5 |
+| 19    | B-663 | started (opus)   |          |
+| 20    | B-702 | merged (sonnet)  | a0510b3d |
+| 21    | B-682 | started (sonnet) |          |
+| 22    | B-683 | started (opus)   |          |
+| 23    | B-763 | waits (opus)     |          |
+| 24    | B-685 | started (opus)   |          |
+| 25    | B-686 | merged (opus)    | 948eebc8 |
+| 26    | B-687 | started (opus)   |          |
+| 27    | B-688 | waits (opus)     |          |
+| 28    | B-674 | waits (sonnet)   |          |
+| 29    | B-668 | started (opus)   |          |
+| 30    | B-677 | merged (opus)    | 7603ae58 |
+| 31    | B-678 | started (opus)   |          |
+| 32    | B-629 | merged (opus)    | 4cbcd7b2 |
+| 33    | B-699 | merged (opus)    | 98a3381c |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
