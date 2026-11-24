@@ -1,7 +1,7 @@
 import type { UnsavedRecord } from "./unsavedChanges";
 
 import { describe, expect, it } from "vitest";
-import { unsavedLines, unsavedSentence } from "./unsavedChanges";
+import { canTryAgain, unsavedLines, unsavedSentence } from "./unsavedChanges";
 
 const sentence = (over: Partial<Parameters<typeof unsavedSentence>[0]>) =>
   unsavedSentence({ table: "medication", op: "PATCH", code: "x:y", issues: [], label: null, ...over });
@@ -32,6 +32,14 @@ describe("unsavedSentence", () => {
     expect(sentence({ table: "todo", code: "todoService:completionOnly", label: "Bins" })).toBe(
       "Your change to the to-do “Bins” wasn't saved: you can only tick or reopen to-dos assigned to you",
     );
+  });
+
+  it("says the server couldn't save a set-aside change (B-286)", () => {
+    expect(sentence({ code: "sync:failed", label: "Lisinopril" })).toBe(
+      "Your change to the medication “Lisinopril” wasn't saved: the server couldn't save this",
+    );
+    expect(canTryAgain({ outcome: "set_aside" })).toBe(true);
+    expect(canTryAgain({ outcome: "refused" })).toBe(false);
   });
 
   it("names the kind alone without a label", () => {

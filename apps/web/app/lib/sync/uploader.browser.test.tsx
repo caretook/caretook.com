@@ -1,10 +1,12 @@
 import type { SyncDb } from "./index";
 import type { UploadCall, UploadInput, UploadResult } from "./uploader";
+import type { TryStore } from "./uploadTries";
 
 import { OWN_DOSE_COPY_METADATA } from "@caretook/data/schema";
 import { afterEach, describe, expect, test } from "vitest";
 import { closeSync, installTestDatabase } from "./index";
-import { uploadQueued } from "./uploader";
+import { UploadFailedError, uploadQueued } from "./uploader";
+import { SET_ASIDE_SPAN_MS, tryCounter } from "./uploadTries";
 import { openTestDatabase, queuedWrites, syncDown } from "../../../test/database";
 import { flattenFixtures, fx, TEST_GROUP, TEST_RECIPIENT, TEST_USER } from "../../../test/fixtures";
 
@@ -12,6 +14,8 @@ import { flattenFixtures, fx, TEST_GROUP, TEST_RECIPIENT, TEST_USER } from "../.
 // database, with the server stubbed: a refused op is recorded in the
 // local-only `unsaved_change` table (data, code, issues, label) before the
 // whole batch is acknowledged; the wipe at sign-out clears the records.
+// Then a `failed` op (slice 3, B-286): only the ops before it are
+// acknowledged until it has failed often enough, then it is set aside.
 
 let db: SyncDb | null = null;
 
@@ -211,5 +215,124 @@ describe("uploadQueued", () => {
       expect(await again.powersync.getAll("SELECT id FROM unsaved_change")).toEqual([]);
       await again.powersync.close();
     } else expect(reopened).toEqual([]);
+  });
+});
+
+describe("uploadQueued: an op the server couldn't process (B-286)", () => {
+  const NOTES = ["One", "Two", "Three"].map((title, i) => ({
+    id: `0b6f3c1e-5d1a-4c2e-9a77-3f1d2b8c1e0${i}`,
+    title,
+  }));
+
+  /** Three new notes, queued in order. */
+  const queueNotes = async (d: SyncDb) => {
+    for (const { id, title } of NOTES)
+      await d.powersync.execute(
+        `INSERT INTO timeline_entry (id, group_id, recipient_id, kind, occurred_at, title)
+         VALUES (?, ?, ?, 'note', '2027-06-09T12:00:00.000000Z', ?)`,
+        [id, TEST_GROUP.id, TEST_RECIPIENT.id, title],
+      );
+  };
+
+  /** A server that can't process the op for `failing` and stops there, as sync.upload does. */
+  const failingServer = (failing: string) => {
+    const sent: UploadInput[] = [];
+    const call: UploadCall = (input) => {
+      sent.push(input);
+      const results: UploadResult[] = [];
+      for (const op of input.ops) {
+        if (op.id === failing) {
+          results.push({ id: op.id, status: "failed", code: "sync:failed" });
+          break;
+        }
+        results.push({ id: op.id, status: "applied" });
+      }
+      return Promise.resolve({ results });
+    };
+    return { call, sent };
+  };
+
+  const memory = (): TryStore & { value: string | null } => {
+    const store = {
+      value: null as string | null,
+      read: () => store.value,
+      write: (value: string | null) => {
+        store.value = value;
+      },
+    };
+    return store;
+  };
+
+  const queuedIds = async (d: SyncDb) => (await queuedWrites(d)).map((w) => w.id);
+
+  test("after a failed op at index 1 only the first leaves the queue, and the upload throws", async () => {
+    const d = await open();
+    await queueNotes(d);
+    const { call } = failingServer(NOTES[1]!.id);
+    const tries = tryCounter(memory());
+    await expect(uploadQueued(d.powersync, call, { tries })).rejects.toBeInstanceOf(UploadFailedError);
+    expect(await queuedIds(d)).toEqual([NOTES[1]!.id, NOTES[2]!.id]);
+    expect(await recorded(d)).toEqual([]);
+  });
+
+  test("after a failed op at index 0 nothing leaves the queue", async () => {
+    const d = await open();
+    await queueNotes(d);
+    const { call } = failingServer(NOTES[0]!.id);
+    await expect(uploadQueued(d.powersync, call, { tries: tryCounter(memory()) })).rejects.toBeInstanceOf(
+      UploadFailedError,
+    );
+    expect(await queuedIds(d)).toEqual(NOTES.map((n) => n.id));
+  });
+
+  test("a request that fails as a whole counts no try", async () => {
+    const d = await open();
+    await queueNotes(d);
+    const store = memory();
+    const offline: UploadCall = () => Promise.reject(new TypeError("Failed to fetch"));
+    await expect(uploadQueued(d.powersync, offline, { tries: tryCounter(store) })).rejects.toThrow(
+      "Failed to fetch",
+    );
+    expect(store.value).toBeNull();
+  });
+
+  test("once the counter says so, the op is set aside with its data, leaves the queue, and the next op uploads", async () => {
+    const d = await open();
+    await queueNotes(d);
+    const failing = NOTES[1]!;
+    const { call, sent } = failingServer(failing.id);
+    const store = memory();
+    const tries = tryCounter(store);
+    let clock = Date.UTC(2027, 5, 9, 12);
+    const now = () => clock;
+
+    // Four tries over three minutes: still held, the first note acknowledged on the first.
+    for (let i = 0; i < 4; i++) {
+      await expect(uploadQueued(d.powersync, call, { tries, now })).rejects.toBeInstanceOf(UploadFailedError);
+      clock += SET_ASIDE_SPAN_MS / 2;
+    }
+    expect(await queuedIds(d)).toEqual([failing.id, NOTES[2]!.id]);
+    expect(await recorded(d)).toEqual([]);
+
+    // The fifth: set aside, acknowledged; the rest of the batch waits for the next upload.
+    await uploadQueued(d.powersync, call, { tries, now });
+    expect(await queuedIds(d)).toEqual([NOTES[2]!.id]);
+    const rows = await recorded(d);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      table_name: "timeline_entry",
+      row_id: failing.id,
+      op: "PUT",
+      code: "sync:failed",
+      outcome: "set_aside",
+      label: "Two",
+      issues: null,
+    });
+    expect(JSON.parse(rows[0]?.data ?? "null")).toMatchObject({ title: "Two", kind: "note" });
+    expect(store.value).toBeNull();
+
+    await uploadQueued(d.powersync, call, { tries, now });
+    expect(sent.at(-1)?.ops.map((o) => o.id)).toEqual([NOTES[2]!.id]);
+    expect(await queuedWrites(d)).toEqual([]);
   });
 });

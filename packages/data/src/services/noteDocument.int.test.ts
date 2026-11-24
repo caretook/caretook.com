@@ -17,7 +17,7 @@ import {
 import { isError } from "../errors";
 import { noteDocumentModel, noteUpdateModel, timelineEntryModel } from "../models";
 import { COMPACT_AFTER_UPDATES } from "./noteDocumentService";
-import { noteDocumentService, timelineEntryService } from ".";
+import { noteDocumentService, providerService, timelineEntryService } from ".";
 
 // Every test builds its own group and users, so tests never depend on each other.
 
@@ -132,6 +132,40 @@ describe("creating a document", () => {
     // A real one starts with nobody.
     const doc = ok(await noteDocumentService.create(u.caretaker.ctx, { id: entry.id, groupId: group.id }));
     expect(doc?.editors).toEqual({});
+  });
+});
+
+describe("a document id taken in another group (B-289)", () => {
+  it("is refused with a 4xx, never a primary-key failure, and the other group's document is untouched", async () => {
+    const { u, group, addEntry } = await setup();
+    const theirs = await createWorld();
+    // Another group's provider, and its document, under the id the entry will have.
+    const id = randomUUID();
+    ok(
+      await providerService.create(theirs.u.caretaker.ctx, {
+        id,
+        groupId: theirs.group.id,
+        type: "clinician",
+        name: "Dr. Squat",
+      }),
+    );
+    ok(
+      await noteDocumentService.create(theirs.u.caretaker.ctx, {
+        id,
+        groupId: theirs.group.id,
+        subject: "provider",
+      }),
+    );
+    await addEntry({ id });
+
+    const res = await noteDocumentService.create(u.caretaker.ctx, { id, groupId: group.id });
+    expect(isError(res) && res.statusCode).toBeGreaterThanOrEqual(400);
+    expect(isError(res) && res.statusCode).toBeLessThan(500);
+    expect(ok(await noteDocumentModel.getById(id, system))).toMatchObject({
+      groupId: theirs.group.id,
+      subject: "provider",
+      providerId: id,
+    });
   });
 });
 

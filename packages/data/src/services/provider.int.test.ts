@@ -321,15 +321,13 @@ describe("providerService.upsert", () => {
     const input = { id, groupId: group.id, type: "clinician" as const, name: "Dr. Offline" };
 
     expect(ok(await providerService.upsert(u.caretaker.ctx, input))).toMatchObject({
-      id,
-      name: "Dr. Offline",
+      created: true,
+      row: { id, name: "Dr. Offline" },
     });
+    // A replay changes nothing: only a PATCH edits.
     expect(
       ok(await providerService.upsert(u.caretaker.ctx, { ...input, name: "Dr. Renamed" })),
-    ).toMatchObject({
-      id,
-      name: "Dr. Renamed",
-    });
+    ).toMatchObject({ created: false, row: { id, name: "Dr. Offline" } });
     expect(codeOf(await providerService.upsert(u.caretaker.ctx, { ...input, groupId: other.group.id }))).toBe(
       "providerService:immutable",
     );
@@ -340,8 +338,8 @@ describe("providerService.upsert", () => {
 
     ok(await providerService.remove(u.caretaker.ctx, id));
     const late = ok(await providerService.upsert(u.caretaker.ctx, { ...input, name: "Too late" }));
-    expect(late).toMatchObject({ name: "Dr. Renamed" });
-    expect(late?.deletedAt).toBeTruthy();
+    expect(late.row).toMatchObject({ name: "Dr. Offline" });
+    expect(late.row?.deletedAt).toBeTruthy();
   });
 });
 

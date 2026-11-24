@@ -203,7 +203,8 @@ export const currentDoc = (ctx: ServiceContext, id: string) =>
  * the owner's own group.
  *
  * Idempotent: if the entry already has one, that one is returned. That's
- * also PowerSync's replay, and two offline devices adding one at once.
+ * also PowerSync's replay, and two offline devices adding one at once. An
+ * id another group's document holds is refused (B-289).
  */
 export const create = (ctx: ServiceContext, input: NoteDocumentCreateInput) =>
   withTransaction(async (tx) => {
@@ -218,9 +219,18 @@ export const create = (ctx: ServiceContext, input: NoteDocumentCreateInput) =>
       return newError({ code: "noteDocumentService:wrongKind" });
     }
 
-    const existing = await noteDocumentModel.getById(id, { ...ctx, tx });
-    if (isError(existing)) return existing;
-    if (existing) return existing.subject === subject ? existing : immutable();
+    // Existence is checked as the system (B-289): a document id another
+    // group holds (its owner is another table's row with the same
+    // device-chosen id) is refused, without saying whether it exists,
+    // never left to fail on the primary key.
+    const taken = await noteDocumentModel.getById(id, { authUser: SYSTEM_USER, tx });
+    if (isError(taken)) return taken;
+    if (taken) {
+      const existing = await noteDocumentModel.getById(id, { ...ctx, tx });
+      if (isError(existing)) return existing;
+      if (!existing) return rejectError(ctx.authUser);
+      return existing.subject === subject ? existing : immutable();
+    }
 
     const may = await mayWriteOwner(ctx, tx, subject, id, groupId);
     if (isError(may)) return may;
