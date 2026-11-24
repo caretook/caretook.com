@@ -35,6 +35,7 @@ import {
   timelineEntryModel,
 } from "../models";
 import { isSystemUser, rejectError } from "../permissions";
+import { asCreated, unchanged } from "./upserted";
 import * as entryProviderService from "./entryProviderService";
 import * as noteDocumentService from "./noteDocumentService";
 import * as timelineEntryService from "./timelineEntryService";
@@ -304,13 +305,11 @@ export const update = (ctx: ServiceContext, id: string, input: AppointmentSeries
   }, ctx);
 
 /**
- * Create the series with this id, or bring the existing one up to date:
- * PowerSync's upload of a series a device made. Safe to replay.
- *
- * - A new id is a `create` (same checks).
- * - An existing id is an `update`; its group, recipient and kind must match.
- * - A deleted series stays deleted.
- * - An id the actor can't see is refused, without saying whether it exists.
+ * Create the series with this id if there is none: what PowerSync's upload
+ * queue sends for a row a device created. A replay changes nothing (only a
+ * PATCH edits), whatever the actor's role now, so it never reverts a newer
+ * edit. The group, recipient and kind never change, and an id the actor can't see is refused
+ * without saying whether it exists. Says whether it created (`Upserted`).
  */
 export const upsert = (
   ctx: ServiceContext,
@@ -320,7 +319,7 @@ export const upsert = (
   withTransaction(async (tx) => {
     const parsed = appointmentSeriesUpsertZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { id, groupId, recipientId, kind, toppedUpThrough: _through, ...content } = parsed.data;
+    const { id, groupId, recipientId, kind } = parsed.data;
 
     const existing = await appointmentSeriesModel.getById(id, {
       authUser: SYSTEM_USER,
@@ -328,7 +327,7 @@ export const upsert = (
       includeDeleted: true,
     });
     if (isError(existing)) return existing;
-    if (!existing) return create({ ...ctx, tx }, input, opts);
+    if (!existing) return asCreated(await create({ ...ctx, tx }, input, opts));
 
     const visible = await appointmentSeriesModel.getById(id, { ...ctx, tx, includeDeleted: true });
     if (isError(visible)) return visible;
@@ -340,9 +339,7 @@ export const upsert = (
       (recipientId !== undefined && visible.recipientId !== recipientId)
     )
       return immutable();
-    if (visible.deletedAt) return visible;
-
-    return update({ ...ctx, tx }, id, content);
+    return unchanged(visible);
   }, ctx);
 
 /**

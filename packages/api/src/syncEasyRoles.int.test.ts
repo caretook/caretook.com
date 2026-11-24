@@ -72,7 +72,7 @@ describe("sync.upload as an Easy helper", () => {
     expect(await timelineEntryService.getById(owner.ctx, id)).toBeNull();
   });
 
-  it("refuses another member's entry, edit or delete, and leaves it as it was", async () => {
+  it("refuses another member's edit or delete, and leaves their entry as it was", async () => {
     const { helper, caretaker, group, entryRow } = await setup();
     const theirs = ok(
       await timelineEntryService.create(caretaker.ctx, {
@@ -96,9 +96,13 @@ describe("sync.upload as an Easy helper", () => {
         { op: "DELETE", table: "timeline_entry", id: theirs.id },
       ],
     });
-    expect(res.results.map((r) => (r.status === "rejected" ? r.code : r.status))).toEqual(
-      Array<string>(4).fill("permissions:unauthorized"),
-    );
+    // The PUT is a create, and the row is there: a replay that changes nothing (B-288).
+    expect(res.results.map((r) => (r.status === "rejected" ? r.code : r.status))).toEqual([
+      "permissions:unauthorized",
+      "applied",
+      "permissions:unauthorized",
+      "permissions:unauthorized",
+    ]);
     expect(ok(await timelineEntryService.getById(caretaker.ctx, theirs.id))).toMatchObject({
       title: "Slept well",
       deletedAt: null,

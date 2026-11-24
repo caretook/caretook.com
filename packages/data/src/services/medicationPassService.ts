@@ -33,6 +33,7 @@ import {
 import { isError, newError } from "../errors";
 import { careRecipientModel, medicationModel, medicationPassModel, timelineEntryModel } from "../models";
 import { rejectError } from "../permissions";
+import { asCreated, unchanged } from "./upserted";
 import { resolveRecipient } from "./medicationService";
 
 // A care group's medication passes (Morning, Evening…). Write through here,
@@ -236,29 +237,28 @@ export const update = (
   }, ctx);
 
 /**
- * Create the pass with this id, or bring the existing one up to date: what
- * PowerSync's upload queue sends for a row a device created. Safe to replay.
- * The group and recipient never change, a deleted pass stays deleted, and an
- * id the actor can't see is refused without saying whether it exists.
+ * Create the pass with this id if there is none: what PowerSync's upload
+ * queue sends for a row a device created. A replay changes nothing (only a
+ * PATCH edits), whatever the actor's role now, so it never reverts a newer
+ * edit. The group and recipient never change, and an id the actor can't see is refused
+ * without saying whether it exists. Says whether it created (`Upserted`).
  */
 export const upsert = (ctx: ServiceContext, input: MedicationPassUpsertInput, opts: PassWriteOptions = {}) =>
   withTransaction(async (tx) => {
     const parsed = medicationPassUpsertZSchema.safeParse(input);
     if (!parsed.success) return invalid(parsed.error);
-    const { id, groupId, recipientId, ...content } = parsed.data;
+    const { id, groupId, recipientId } = parsed.data;
 
     const existing = await medicationPassModel.getById(id, { ...system(tx), includeDeleted: true });
     if (isError(existing)) return existing;
-    if (!existing) return create({ ...ctx, tx }, input);
+    if (!existing) return asCreated(await create({ ...ctx, tx }, input));
 
     const visible = await medicationPassModel.getById(id, { ...ctx, tx, includeDeleted: true });
     if (isError(visible)) return visible;
     if (!visible) return rejectError(ctx.authUser);
     if (visible.groupId !== groupId || (recipientId !== undefined && visible.recipientId !== recipientId))
       return newError({ code: "medicationPassService:immutable" });
-    if (visible.deletedAt) return visible;
-
-    return update({ ...ctx, tx }, id, content, opts);
+    return unchanged(visible);
   }, ctx);
 
 /**

@@ -280,9 +280,9 @@ describe("appointmentSeriesService: visits", () => {
       ),
     ).toBe("appointmentSeriesService:immutable");
     ok(await appointmentSeriesService.remove(u.owner.ctx, id));
-    const replay = ok(
+    const { row: replay } = ok(
       await appointmentSeriesService.upsert(u.owner.ctx, { ...input({ title: "Late edit" }), id }),
-    )!;
+    );
     expect(replay).toMatchObject({ title: "Dialysis" });
     expect(replay.deletedAt).not.toBeNull();
   });
