@@ -149,6 +149,24 @@ export const SYNC_WRITERS = {
     });
     return r.ok ? { ...r, id: r.seriesId } : r;
   }),
+  // A new catalog name, added with the symptom that first uses it (one local
+  // write); long ago, so today's summaries don't change. Its name is
+  // sync-matrix.mjs's `matrixSymptomName`, for `cleanupSql`.
+  symptom_type: own("timeline.createEntry (a new symptom name)", async (m, db, ctx) => {
+    const name = `${ctx.tag} matrix symptom`;
+    const r = await m.timeline.createEntry(db, ctx.groupId, {
+      kind: "symptom",
+      occurredAt: "2000-01-01T16:00:00.000Z",
+      timeZone: "America/Los_Angeles",
+      details: { name, severity: 1 },
+    });
+    if (!r.ok) return r;
+    const [row] = await db.powersync.getAll("SELECT id FROM symptom_type WHERE group_id = ? AND name = ?", [
+      ctx.groupId,
+      name,
+    ]);
+    return row ? { ok: true, id: row.id } : { ok: false, error: "no symptom_type written" };
+  }),
 };
 
 /** What every writer's `ctx` starts from. */
@@ -196,6 +214,7 @@ export const matrixIds = (ids) => ({
   medicationCondition: ids.medication_condition,
   conditionManager: ids.condition_manager,
   series: ids.appointment_series,
+  symptomType: ids.symptom_type,
 });
 
 /** What `cleanupSql` doesn't remove: the note's own live document (materializeLiveEntry writes it). */

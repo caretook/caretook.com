@@ -2,6 +2,7 @@ import type { TimelineEntryKind, VitalType } from "@caretook/data/schema";
 import type { ReactNode } from "react";
 import type { LinkChip } from "~/components/ui";
 import type { PeriodChoice } from "~/lib/care-periods/periodSearch";
+import type { SymptomFilterRow } from "~/lib/timeline/symptomFilter.sync";
 
 import { VITAL_TYPES, VITALS } from "@caretook/data/schema";
 import { useId } from "react";
@@ -9,10 +10,13 @@ import { useLocation } from "react-router";
 import { Button, ChipGroup, Sheet, TITLE_SUB } from "~/components/ui";
 import { KIND_META } from "~/lib/timeline/entryDisplay";
 import {
+  addSymptom,
   clearAuthor,
   clearKind,
   clearPeriod,
+  clearSymptoms,
   clearVital,
+  removeSymptom,
   setKind,
   setPeriod,
   setVital,
@@ -22,7 +26,10 @@ import {
 /**
  * The Filter button's sheet: Kind (All or one kind), the vital types under
  * Vitals (`vitalTypes`: the types the group has readings of, and the current
- * one), the care period while searching, then the author and search filters
+ * one), the symptom types under Symptoms (a multi-select of `symptomTypes`:
+ * the catalog rows the group has live entries of, and the chosen ones; each
+ * choice adds or takes off one, "All symptoms" takes them all off), the care
+ * period while searching, then the author and search filters
  * when they're on (`extra`: their removable chips). Every choice is a link
  * through `lib/timeline/timelineFilters.ts`, so it applies at once and the
  * URL keeps it. Clear removes every filter but the search; Done closes.
@@ -32,6 +39,8 @@ export function FilterSheet({
   kind,
   vital,
   vitalTypes,
+  symptoms = [],
+  symptomTypes = [],
   period,
   extra,
 }: {
@@ -39,6 +48,10 @@ export function FilterSheet({
   kind: TimelineEntryKind | null;
   vital: VitalType | null;
   vitalTypes: readonly string[];
+  /** The symptom-type filter's ids (`?symptom=`), under the symptom kind. */
+  symptoms?: readonly string[];
+  /** The group's catalog, each with whether it has live entries (`symptomFilterQuery`). */
+  symptomTypes?: readonly SymptomFilterRow[];
   /** Only while searching: the group's periods, and the chosen one. */
   period: { choices: readonly PeriodChoice[]; current: PeriodChoice | null } | null;
   /** The author and Matching chips (none when neither is on). */
@@ -46,6 +59,7 @@ export function FilterSheet({
 }) {
   const { search } = useLocation();
   const types = VITAL_TYPES.filter((t) => t === vital || vitalTypes.includes(t));
+  const symptomChoices = symptomTypes.filter((t) => t.used || symptoms.includes(t.id));
   const links = { replace: true, preventScrollReset: true } as const;
 
   return (
@@ -84,6 +98,31 @@ export function FilterSheet({
                   to: { search: setVital(search, t) },
                   current: vital === t,
                 })),
+              ]}
+            />
+          </Section>
+        )}
+        {kind === "symptom" && symptomChoices.length > 0 && (
+          <Section title="Symptom">
+            <ChipGroup
+              label="Show symptom types"
+              {...links}
+              links={[
+                {
+                  id: "all-symptoms",
+                  label: "All symptoms",
+                  to: { search: clearSymptoms(search) },
+                  current: symptoms.length === 0,
+                },
+                ...symptomChoices.map((t) => {
+                  const on = symptoms.includes(t.id);
+                  return {
+                    id: `symptom-${t.id}`,
+                    label: t.name,
+                    to: { search: on ? removeSymptom(search, t.id) : addSymptom(search, t.id) },
+                    current: on,
+                  };
+                }),
               ]}
             />
           </Section>

@@ -8,6 +8,7 @@ import {
   entryProviderId,
   getDb,
   medicationConditionId,
+  symptomTypeId,
 } from "@caretook/data";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
@@ -241,6 +242,16 @@ const UPLOAD_CASES: Record<string, (ids: Ids) => CrudOp[]> = {
       deleteOp("condition_manager", link),
     ];
   },
+  // A new catalog name (rows are only ever added).
+  symptom_type: (ids) => [
+    putOp("symptom_type", symptomTypeId(ids.groupId, "Sore wrist"), {
+      group_id: ids.groupId,
+      name: "Sore wrist",
+      name_key: "sore wrist",
+      created_at: LATER,
+      updated_at: LATER,
+    }),
+  ],
 };
 
 const BARE_GROUP = new Set(["care_recipient"]);

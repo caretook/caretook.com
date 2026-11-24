@@ -5,6 +5,8 @@ import {
   fieldUnitLabel,
   isKnownReading,
   isUnusual,
+  symptomKey,
+  symptomName,
   toDisplay,
   VITAL_TYPES,
   VITALS,
@@ -67,8 +69,6 @@ const EMPTY: DaySummary = { parts: [], highlights: [], lines: [] };
 /** A symptom this severe (0–10) or worse is a highlight even when it isn't new. */
 export const SEVERE_SYMPTOM = 5;
 
-const fold = (name: string) => name.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
-
 const readingsOf = (entry: SummaryEntry): VitalReading[] => {
   if (entry.kind !== "vital") return [];
   const readings = (entry.details as { readings?: unknown } | null)?.readings;
@@ -82,7 +82,7 @@ const symptomOf = (entry: SummaryEntry) => {
   const details = entry.details as { name?: unknown; severity?: unknown } | null;
   if (typeof details?.name !== "string" || !details.name.trim()) return null;
   return {
-    name: details.name.trim().replace(/\s+/g, " "),
+    name: symptomName(details.name),
     severity: typeof details.severity === "number" ? details.severity : null,
   };
 };
@@ -231,11 +231,11 @@ export const daySummary = (
     vitalPart(t, readings.get(t)!, before.get(t) ?? [], context.units),
   );
 
-  const seenBefore = new Set(baselineEntries.map(symptomOf).flatMap((s) => (s ? [fold(s.name)] : [])));
+  const seenBefore = new Set(baselineEntries.map(symptomOf).flatMap((s) => (s ? [symptomKey(s.name)] : [])));
   const symptoms = new Map<string, { name: string; severity: number | null }>();
   for (const s of entries.map(symptomOf)) {
     if (!s) continue;
-    const key = fold(s.name);
+    const key = symptomKey(s.name);
     const was = symptoms.get(key);
     const severity =
       was?.severity == null

@@ -25,6 +25,7 @@ import {
 import { and, eq, isNull } from "drizzle-orm";
 import { changedColumns } from "../core/changedColumns";
 import { isEntryKind } from "./entryDisplay";
+import { addSymptomTypeIn } from "./symptomTypes.sync";
 import { TIMELINE_KINDS } from "./timelineFilters";
 import { timelineEntries, todos } from "../sync/schema";
 
@@ -170,6 +171,11 @@ export type EntryFilters = {
   match?: EntryCondition | null;
   /** Only entries with a reading of this vital type (`?vital=`, under the vital kind); none means every entry. */
   vital?: string | null;
+  /**
+   * Only symptoms of any of these catalog rows (`?symptom=`, under the symptom
+   * kind), by the stored `symptom_type_id`; none or empty means every entry.
+   */
+  symptoms?: readonly string[] | null;
 };
 
 /**
@@ -190,7 +196,7 @@ const VITAL_TYPE_SQL =
  */
 export const HISTORY_ENDS_SQL = `kind IN (${[...new Set(["note", ...FUTURE_KINDS])].map((k) => `'${k}'`).join(", ")})`;
 
-/** The conditions every window shares: one group, live entries, the kind, author and vital-type filters, the search. */
+/** The conditions every window shares: one group, live entries, the kind, author, vital-type and symptom-type filters, the search. */
 const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonly string[] | null) => {
   const conditions = ["group_id = ?", "deleted_at IS NULL"];
   const params: unknown[] = [groupId];
@@ -211,6 +217,11 @@ const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonl
   if (filters.vital) {
     conditions.push(VITAL_TYPE_SQL);
     params.push(filters.vital);
+  }
+  if (filters.symptoms?.length) {
+    // The stored pointer only: SQLite can't derive a name's key or id, and a filter after loading would short a page.
+    conditions.push(`symptom_type_id IN (${filters.symptoms.map(() => "?").join(", ")})`);
+    params.push(...filters.symptoms);
   }
   if (filters.match) {
     conditions.push(`(${filters.match.sql})`);
@@ -540,19 +551,26 @@ export const createEntry = async (db: SyncDb, groupId: string, input: unknown): 
   if (future) return future;
 
   const now = nowTimestamp();
-  await db.drizzle.insert(timelineEntries).values({
-    id: crypto.randomUUID(),
-    groupId,
-    recipientId: group.recipient.id,
-    kind: parsed.data.kind,
-    ...contentColumns(parsed.data),
-    ...symptomTypeColumn(groupId, parsed.data),
-    cancelledBy: parsed.data.cancelledAt ? db.userId : null,
-    deletedAt: null,
-    createdAt: now,
-    updatedAt: now,
-    createdBy: db.userId,
-    updatedBy: db.userId,
+  const content = parsed.data;
+  const recipientId = group.recipient.id;
+  // A symptom's name joins the catalog in the same write, when it's new.
+  await db.drizzle.transaction(async (tx) => {
+    if (content.kind === "symptom" && isSymptomDetails(content.details))
+      await addSymptomTypeIn(tx, { groupId, name: content.details.name, userId: db.userId, now });
+    await tx.insert(timelineEntries).values({
+      id: crypto.randomUUID(),
+      groupId,
+      recipientId,
+      kind: content.kind,
+      ...contentColumns(content),
+      ...symptomTypeColumn(groupId, content),
+      cancelledBy: content.cancelledAt ? db.userId : null,
+      deletedAt: null,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: db.userId,
+      updatedBy: db.userId,
+    });
   });
   return { ok: true };
 };
@@ -621,10 +639,21 @@ export const updateEntry = async (
     ["details"],
   );
   if (!Object.keys(changed).length) return { ok: true };
-  await db.drizzle
-    .update(timelineEntries)
-    .set({ ...changed, updatedAt: nowTimestamp(), updatedBy: db.userId })
-    .where(eq(timelineEntries.id, id));
+  const now = nowTimestamp();
+  // A symptom renamed to a new name adds it to the catalog in the same write.
+  await db.drizzle.transaction(async (tx) => {
+    if (changed.symptomTypeId && isSymptomDetails(merged.data.details))
+      await addSymptomTypeIn(tx, {
+        groupId: entry.groupId,
+        name: merged.data.details.name,
+        userId: db.userId,
+        now,
+      });
+    await tx
+      .update(timelineEntries)
+      .set({ ...changed, updatedAt: now, updatedBy: db.userId })
+      .where(eq(timelineEntries.id, id));
+  });
   return { ok: true };
 };
 

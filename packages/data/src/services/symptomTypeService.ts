@@ -1,9 +1,9 @@
-import type { Tx } from "../db";
+import type { SymptomTypeAddInput, Tx } from "../db";
 import type { AppError } from "../errors";
 import type { ServiceContext } from "./types";
 
 import { and, asc, eq, gt, isNull, or, sql } from "drizzle-orm";
-import { SYSTEM_USER } from "../constants";
+import { isLoggerRole, SYSTEM_USER } from "../constants";
 import { dbMayFail, getDb, txOrDb, withTransaction } from "../db";
 import {
   careGroupSchema,
@@ -11,13 +11,15 @@ import {
   SYMPTOM_NAME_MAX,
   symptomKey,
   symptomName,
+  symptomTypeAddZSchema,
   symptomTypeNameZSchema,
   symptomTypeRow,
   symptomTypeSchema,
   timelineEntrySchema,
 } from "../db/schema";
 import { isError, newError } from "../errors";
-import { symptomTypeModel } from "../models";
+import { careGroupMemberModel, symptomTypeModel } from "../models";
+import { isSystemUser, rejectError } from "../permissions";
 
 // A care group's symptom catalog (symptom-catalog PRD). Write through here:
 // the id and the key are derived from the group and the name
@@ -81,6 +83,28 @@ export const ensure = (ctx: ServiceContext, groupId: string, name: string) =>
     const existing = await getByName({ ...ctx, tx }, groupId, row.name);
     if (isError(existing) || existing) return existing;
     return symptomTypeModel.create({ ...ctx, tx, data: row });
+  }, ctx);
+
+/**
+ * A device's new name (its `symptom_type` PUT, symptom-catalog slice 3): the
+ * group's row for `name`, added when it has none, as `ensure` does. Only
+ * someone who may log in the group gets an answer, even for a name the group
+ * already has: a viewer's or Easy viewer's upload is refused, never applied.
+ * The device's id, when given, must be the one derived from the group and name.
+ */
+export const add = (ctx: ServiceContext, input: SymptomTypeAddInput) =>
+  withTransaction(async (tx) => {
+    const parsed = symptomTypeAddZSchema.safeParse(input);
+    if (!parsed.success)
+      return invalid(parsed.error.issues.map(({ path, message }) => ({ path: path.join("."), message })));
+    const { groupId, name } = parsed.data;
+    if (!ctx.authUser) return rejectError(null);
+    if (!isSystemUser(ctx.authUser)) {
+      const role = await careGroupMemberModel.getRole(groupId, ctx.authUser.id, { tx });
+      if (isError(role)) return role;
+      if (!isLoggerRole(role)) return rejectError(ctx.authUser);
+    }
+    return ensure({ ...ctx, tx }, groupId, name);
   }, ctx);
 
 /** Insert catalog rows as the system, leaving any the group already has. Returns how many were added. */
