@@ -383,6 +383,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-776 | bug | triaged | fixes-tooling |  | CI flake: apps/web/app/routes/app/groups/planner/planner.browser.test.tsx: the header the tabs carry what each reads: U… |
 | B-777 | bug | inbox |  |  | When the internet connection drops, the browser and the installed PWA show only a blank screen. |
 | B-778 | bug | triaged | fixes-tooling |  | CI flake: packages/data/src/services/accountAdmin.int.test.ts: accountAdminService.setRole makes an account support, ad… |
+| B-779 | bug | triaged | fixes-bug |  | Timeline: a direct ?day= load with no entries today lands the day's heading about 160px below the top |
 
 ## Items
 
@@ -3183,3 +3184,12 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (Robert Bo Davis): [ci-key 31dfbabdc436] Flaked (passed on its rerun); found by prd/fixes-ui.
+
+### B-779 · bug · Timeline: a direct ?day= load with no entries today lands the day's heading about 160px below the top
+
+- status: triaged
+- prd: fixes-bug
+- owner:
+- commit:
+
+- 2026-11-24 (prd/fixes-ui): From fixes-ui slice 47 (b154ba6f, B-736): in a test world with no entries for today, a direct ?day= load ends with the heading ~160px down instead of under 40px; something above the list (likely the setup or Today card) grows after the landing scroll. With today's entries it lands correctly. Proposed by the fixes-ui orchestrator, for user review.
