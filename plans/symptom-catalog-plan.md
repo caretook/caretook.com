@@ -4,7 +4,9 @@
 
 ## Status
 
-**Where it stands (2026-11-24):** wave 1 started. `quick-entry-2` (a11d93f8) and `dose-accuracy` have landed in dev; dev (300afb36) is in `prd/symptom-catalog`. B-549 claimed. Slice 1: worktree `.loops/symptom-catalog-1` (slot 6), agent spawned on opus.
+**Where it stands (2026-11-24):** wave 1 started. `quick-entry-2` (a11d93f8) and `dose-accuracy` have landed in dev; dev (300afb36) is in `prd/symptom-catalog`. B-549 claimed. Slice 1 (opus) handed off and merged as cebc11e8; wave 1's CI run requested (tier full: a migration). Slice 1's worktree and branch stay until the verdict is green. Its agent ended past 230k: a fix goes to a fresh `--continue` agent.
+
+**Hand-off notes for slice 2:** `symptomTypeService.ensure(ctx, groupId, name)` is ready for the write path (advisory lock on the derived id); extend `symptomTypeService.backfill` with the pointer step; `SYMPTOM_NAME_MAX` is separate from `timelineEntry.ts` so the composite FK has no import cycle; the backfill runs from `scripts/migrate.ts` (not test setup), so integration tests call it directly; migration `0043_symptom_catalog.sql` has a redundant `symptom_type_group_idx` to drop on regeneration.
 
 **Landing mode:** run everything through (start every ready slice, land each green wave, clean up; questions and reports go through `pnpm prd ask`).
 
@@ -12,7 +14,7 @@
 
 | Slice | Wave | State       | Merge into `prd/symptom-catalog` (slice commits) |
 | ----- | ---- | ----------- | ------------------------------------------------ |
-| 1     | 1    | started     |                                                  |
+| 1     | 1    | merged      | cebc11e8 (9e8dc3d9, 02e638f2)                      |
 | 2     | 2    | not started |                                                  |
 | 3     | 3    | not started |                                                  |
 | 4     | 4    | not started |                                                  |
