@@ -36,14 +36,14 @@ Small tooling fixes: scripts, checks, tests and flakes. There is no PRD: this pl
 | 14    | B-388 | merged (quick: only resetStaging timed out (fixed by 16))                                     | e962e40d |
 | 15    | B-450 | merged (quick passed on slice)                                                                | d0b0324b |
 | 16    | B-466 | merged (full passed on slice)                                                                 | 3f739326 |
-| 17    | B-468 | started (opus)                                                                                | —        |
-| 18    | B-525 | started (opus)                                                                                | —        |
-| 19    | B-526 | started (opus)                                                                                | —        |
+| 17    | B-468 | started (opus; worktree made, agent spawned)                                                  | —        |
+| 18    | B-525 | started (opus; worktree made, agent spawned)                                                  | —        |
+| 19    | B-526 | started (opus; worktree made, agent spawned)                                                  | —        |
 | 20    | B-452 | queued (opus)                                                                                 | —        |
-| 21    | B-453 | queued (opus)                                                                                 | —        |
-| 22    | B-454 | queued (opus)                                                                                 | —        |
-| 23    | B-570 | queued (opus)                                                                                 | —        |
-| 24    | B-600 | queued (opus)                                                                                 | —        |
+| 21    | B-453 | started (opus; worktree made, agent spawned)                                                  | —        |
+| 22    | B-454 | started (opus; worktree made, agent spawned)                                                  | —        |
+| 23    | B-570 | started (opus; worktree made, agent spawned)                                                  | —        |
+| 24    | B-600 | started (opus; worktree made, agent spawned)                                                  | —        |
 
 ## Wave 1
 
