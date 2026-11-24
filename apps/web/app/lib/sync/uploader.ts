@@ -4,6 +4,7 @@ import type { AbstractPowerSyncDatabase, CrudEntry } from "@powersync/web";
 import type { ApiOutputs } from "../core/rpc";
 
 import { OWN_DOSE_COPY_METADATA } from "@caretook/data/schema";
+import { ORPCError } from "@orpc/client";
 import { getTableName } from "drizzle-orm";
 import { drizzleSchema } from "./schema";
 import { localTryStore, tryCounter, tryKey } from "./uploadTries";
@@ -22,6 +23,15 @@ import { localTryStore, tryCounter, tryKey } from "./uploadTries";
 // retries. After enough tries over long enough the op is set aside: recorded
 // in `unsaved_change` with its data (`set_aside`, where "Try again" can send
 // it), acknowledged, and the rest of the queue carries on.
+//
+// A request the server refuses as a whole with a 400 (B-374: one malformed
+// op fails the request's input schema) would fail the same way every time
+// and hold the queue forever. So the batch is sent again one op per request,
+// in order: an op refused alone with a 400 is recorded as refused (with its
+// data) and leaves the queue, and the others take their normal result. If a
+// single-op request fails any other way (offline, a 401, a 5xx), the resend
+// stops there: only the ops already answered are acknowledged, and the
+// upload throws so PowerSync retries the rest.
 
 /** Ops per upload request. Matches SYNC_BATCH_LIMIT in packages/api/src/sync.ts. */
 export const UPLOAD_BATCH = 100;
@@ -217,13 +227,87 @@ export type UploadOptions = {
 
 let deviceTries: ReturnType<typeof tryCounter> | null = null;
 
+/** The server refused the request itself as malformed: it would fail the same way again. */
+const isBadRequest = (e: unknown): e is ORPCError<string, unknown> =>
+  e instanceof ORPCError && e.status === 400;
+
+/** A single-op request's 400 as the op's refusal; its issues' paths are relative to the op. */
+const refusalOf = (entry: CrudEntry, e: ORPCError<string, unknown>): Refusal => {
+  const raw = (e.data as { issues?: { path?: unknown; message?: unknown }[] } | undefined)?.issues ?? [];
+  const issues = raw.flatMap((issue) => {
+    if (typeof issue.message !== "string") return [];
+    const parts = Array.isArray(issue.path)
+      ? issue.path.map((part: unknown) =>
+          typeof part === "object" && part !== null && "key" in part ? String(part.key) : String(part),
+        )
+      : [];
+    const relative = parts[0] === "ops" ? parts.slice(2) : parts;
+    return [{ path: relative.join("."), message: issue.message }];
+  });
+  return { id: entry.id, status: "rejected", code: "sync:invalid", ...(issues.length ? { issues } : {}) };
+};
+
+type Batch = NonNullable<Awaited<ReturnType<AbstractPowerSyncDatabase["getCrudBatch"]>>>;
+
+/**
+ * After a 400 for the whole request: send the batch again one op per request,
+ * in order (see the notes at the top). `refused` is that 400, used as is
+ * when the batch is a single op.
+ */
+const uploadOneByOne = async (
+  db: AbstractPowerSyncDatabase,
+  batch: Batch,
+  ops: UploadOp[],
+  upload: UploadCall,
+  refused: ORPCError<string, unknown>,
+  { tries, now }: Required<UploadOptions>,
+) => {
+  const entries = batch.crud;
+  const unsaved: Unsaved[] = [];
+  /** Stop after the first `done` ops: record, acknowledge them, and let PowerSync retry the rest. */
+  const stopAt = async (done: number) => {
+    if (unsaved.length) await recordUnsaved(db, unsaved);
+    await acknowledgeFirst(db, done, entries[done - 1]);
+    tries.acknowledged(entries.slice(0, done).map(tryKey));
+  };
+
+  for (const [index, entry] of entries.entries()) {
+    let result: UploadResult | undefined;
+    try {
+      if (entries.length === 1) throw refused;
+      result = (await upload({ ops: [ops[index]!] })).results[0];
+    } catch (e) {
+      if (!isBadRequest(e)) {
+        await stopAt(index);
+        throw e;
+      }
+      result = refusalOf(entry, e);
+    }
+    if (result?.status === "rejected") {
+      console.warn("Sync: the server refused a change", result);
+      unsaved.push([entry, result]);
+    } else if (result?.status === "failed") {
+      if (!tries.fail(tryKey(entry), now())) {
+        await stopAt(index);
+        throw new UploadFailedError();
+      }
+      console.warn("Sync: setting aside a change the server couldn't save", { table: entry.table });
+      unsaved.push([entry, result]);
+    }
+  }
+  if (unsaved.length) await recordUnsaved(db, unsaved);
+  await batch.complete();
+  tries.acknowledged(entries.map(tryKey));
+};
+
 /**
  * Upload the next batch of queued writes through `upload`. Refused ops are
  * recorded, then the whole batch is acknowledged. After a `failed` op only
  * the ops before it are acknowledged and this throws, until the op has
  * failed often enough to be set aside (recorded, acknowledged; the queue
- * carries on). A request that fails as a whole (offline, a 5xx, a 401)
- * throws: nothing is acknowledged or counted, and PowerSync retries later.
+ * carries on). A 400 for the whole request resends the batch one op at a
+ * time. A request that fails as a whole any other way (offline, a 5xx, a
+ * 401) throws: nothing is acknowledged or counted, and PowerSync retries later.
  */
 export const uploadQueued = async (
   db: AbstractPowerSyncDatabase,
@@ -234,7 +318,15 @@ export const uploadQueued = async (
   if (!batch) return;
   const entries = batch.crud;
   const ownDoses = await ownDosePatches(db, entries);
-  const { results } = await upload({ ops: entries.map((entry) => toOp(entry, ownDoses)) });
+  const ops = entries.map((entry) => toOp(entry, ownDoses));
+  let results: UploadResult[];
+  try {
+    ({ results } = await upload({ ops }));
+  } catch (e) {
+    if (!isBadRequest(e)) throw e;
+    console.warn("Sync: the server refused an upload as a whole; sending its changes one at a time", e);
+    return uploadOneByOne(db, batch, ops, upload, e, { tries, now });
+  }
 
   const failure = failureOf(entries, results);
   const failedAt = failure ? failure.index : -1;
