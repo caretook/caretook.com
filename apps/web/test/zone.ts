@@ -13,10 +13,10 @@
 //   test.skipIf(inSecondZone("B-123"))("…", …)
 
 import { addDays, dayInZone, zonedInstant } from "@caretook/data/schema";
-import { SECOND_ZONE } from "../../../scripts/ci/zones.mjs";
 import { TEST_TIME_ZONE } from "./fixtures";
 
-export { SECOND_ZONE };
+/** `SECOND_ZONE` in scripts/ci/zones.mjs (untyped, so not imported here; keep the two the same). */
+export const SECOND_ZONE = "America/New_York";
 
 /** The device's IANA zone. */
 export const deviceZone = (): string => Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -35,7 +35,7 @@ export const recipientTime = (daysBack: number, hour = 0, minute = 0, now = new 
   );
 
 /** A moment as the screen shows it in the device's zone: "9:30 AM" (en-US), or "09:30" with `hour12: false`. */
-export const deviceTime = (when: Date | string, { hour12 = true } = {}): string =>
+export const deviceTime = (when: Date | string | number, { hour12 = true } = {}): string =>
   new Intl.DateTimeFormat("en-US", {
     hour: hour12 ? "numeric" : "2-digit",
     minute: "2-digit",

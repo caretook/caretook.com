@@ -1,6 +1,8 @@
 // The test zones (zones.mjs): Node's test projects are pinned to the primary zone
 // (vitest.config.ts sets TZ), so a result can't depend on the machine's own zone,
 // and the browser projects take theirs from the browser context instead.
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import config from "../../vitest.config.ts";
@@ -38,5 +40,10 @@ describe("the test zones", () => {
     expect(testZone({})).toBe(PRIMARY_ZONE);
     expect(testZone({ CARETOOK_TEST_ZONE: SECOND_ZONE })).toBe(SECOND_ZONE);
     expect(secondZoneEnv()).toEqual({ CARETOOK_TEST_ZONE: SECOND_ZONE, TZ: SECOND_ZONE });
+  });
+
+  it("the component tests' copy of the second zone (apps/web/test/zone.ts) is the same", () => {
+    const zoneTs = readFileSync(new URL("../../apps/web/test/zone.ts", import.meta.url), "utf8");
+    expect(zoneTs).toContain(`export const SECOND_ZONE = "${SECOND_ZONE}";`);
   });
 });
