@@ -12,10 +12,6 @@ Waves 1–4 landed (PR #78, #84, #86, #158); details in the history file. Wave 4
 
 Held for later waves, with why: B-325 (Capacitor); B-693, B-697 (wait for the toast system B-669); B-694 (user approves each form live: never in an unattended slice); B-621, B-676, B-762 (quick-entry, symptom-catalog hot); B-617, B-748, B-756 (timeline filters, symptom-catalog hot); B-680 (the user may add preferences: ask before building); B-684, B-695 (app-wide sweeps: a wave of their own); B-698, B-700, B-701, B-606 (medication cards and passes: open questions to ask when built; do together); B-594 then B-672, B-673 (after slice 29's ComboBox option); B-679 (after slice 31); B-583 (connector rename, decided); B-735 (stale client, cause unknown); B-736, B-737 (timeline jump and links, together); B-765 (live note full screen); B-664 (after slice 23, same file); B-613 (motion, broad ui/ change); B-691 then B-692.
 
-**Wave 5 hand-over (session 3 rotates for context, 2026-11-24):** slices 34, 36–41, 43–45, 47 merged into prd/fixes-ui in plan order with no conflicts (tip da9de73f; items marked done). Their worktrees stay until the wave's verdict is green; their agents are gone, so a CI failure goes to a fresh `--continue` agent in that slice's worktree. **Next:** start slices 35 (B-672, reuse `lib/core/nameSuggestions.ts` `suggestNames`; the form is now `profile/allergies/AllergyForm.tsx`), 42 (B-762, the card is a button since slice 41), 46 (B-692, slice 45 returns focus to "Pick a date" after an inline calendar closes: take over that target on the first pick), 48 (B-737; `?day=` unchanged by slice 47), all on opus; merge them; then the wave's CI run (`pnpm prd tier`; at least integration, slice 37 touches `packages/`). Risks for the run: slice 40's tips panel shows in every empty quick entry box (other quick entry tests may trip on it); slice 45 made every `PopoverPanel` scroll inside; slice 36 changed `ui/ComboBox.tsx` (no reopen after a pick); slice 43 changed `OUTLINED`/`TOGGLE_OFF` for every off toggle. Docs at landing: ui-kit (`OUTLINED`, `motion-press`, IconButton `count`, `InlineCalendars`, ComboBox `control`), profiles (allergies live on Profile), care-groups (member statuses, managers only). Hand tests for the report: B-664 on a real iPhone, Android and Capacitor; B-621 in Easy mode over the dictation hint; B-676 says "Add" on a provider event that opens a draft. Filed: B-779 (fixes-bug, timeline `?day=` lands low with no entries today). Still held: B-748 (with B-680), B-765 (too vague unattended), B-583 (connectors-3 planned), plus the list above.
-
-**Session 4 (2026-11-24):** resumed; Status matched git. Slices 35, 42, 46, 48 started (worktrees made, opus agents spawned). All four merged (tip a2a3ebd2); items done. CI integration green on 2f49e304 (run 45478715072; tier tool said components, packages/ changed so integration). Synced dev cd940659 (tooling only); integration green on cdbf3d63 (run 45479710304). Slice worktrees removed. PR #164; Codex out of credits (land --no-review). Browser suite blocked by the permission classifier (not run). Land at components (ranked above integration) refused: components run 45481187130 (`file`) failed three of the branch's files: `profileBands` (slice 34), `timelineQuickEntryTodos` (slice 42, maybe 40), `timelineLayout` author tooltip Tab (slice 48). Worktrees 34, 42, 48 recreated; test-only fixes merged: 34 (2a9ebbb9, Allergies band in the expected order), 42 (979ec0d9, really slice 41's card heading now a span), 48 (c119913d, Tab past the copy link). Next: land again at components. Lesson: keep slice worktrees until land's own tier is green, not an earlier lower-ranked run. Watch `timelineQuickEntry*`, `medicationForm`, `providerSheets`, timeline header/row order tests, and any test clicking Done after a `?when=pick` day pick.
-
 **Syncing (from the backlog session, 2026-11-24):** B-771, B-773, B-774 are in dev (origin/dev e19c42ab): `pnpm prd sync` now brings dev's CI lists, so no hand sync. At the wave boundary (not mid-wave): `git fetch origin`, check local `dev` is origin's, then `pnpm prd sync`. This first sync may rerun our tier once (B-773 touches `scripts/ci`); if a later sync sharing no files triggers a second run, tell the backlog session (B-720).
 
 Notes for every wave:
@@ -23,23 +19,8 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State                                                                                                       | Merge    |
-| ----- | ----- | ----------------------------------------------------------------------------------------------------------- | -------- |
-| 34    | B-594 | merged                                                                                                      | 86d98496 |
-| 35    | B-672 | merged (typing-mode lists cover the next field: tests Tab after a fill)                                     | d1cdca07 |
-| 36    | B-673 | merged (shared matcher lib/core/nameSuggestions.ts; edits allergies.browser.test.tsx, may conflict with 34) | f0f672c7 |
-| 37    | B-679 | merged (packages/: integration tier)                                                                        | 3d21f402 |
-| 38    | B-664 | merged                                                                                                      | 221141c3 |
-| 39    | B-636 | merged                                                                                                      | 5cbbe830 |
-| 40    | B-621 | merged (other quick entry tests may now see the panel: watch CI)                                            | 6df9f7cb |
-| 41    | B-676 | merged                                                                                                      | ec911d5d |
-| 42    | B-762 | merged (17 files: quick entry parser in packages/, MedicationForm, ProviderForm; assistant doc at landing)  | b7c7882c |
-| 43    | B-617 | merged (ui kit: OUTLINED, motion-press, IconButton count; docs at landing)                                  | abb099ce |
-| 44    | B-756 | merged                                                                                                      | d59db667 |
-| 45    | B-691 | merged (touches ui/Popover.tsx: all popovers scroll inside)                                                 | 4ad16c07 |
-| 46    | B-692 | merged (DateTimeField `onCalendarPick`: ui-kit doc at landing)                                              | 438dd248 |
-| 47    | B-736 | merged                                                                                                      | da9de73f |
-| 48    | B-737 | merged (easy mode gets no copy links)                                                                       | a2a3ebd2 |
+| Slice | Item | State | Merge |
+| ----- | ---- | ----- | ----- |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 

@@ -4,6 +4,28 @@ Finished-wave history moved out of [the plan](fixes-ui-plan.md)'s _Status_ by `p
 
 ## Trimmed 2026-11-24
 
+**Wave 5 landed 2026-11-24** as dev f7d3ec8b through PR #164, `--no-review` (Codex out of credits), components CI `flake` (run 45485782241, usersAdmin int test, not ours, filed B-782); report filed; to-test/2026-11-24-1608-fixes-ui.md. Slices 34–48 merged; the three components failures were test-only fixes (34, 42, 48). Docs folded (ui-kit, medications, care-groups, assistant, timeline). All slice worktrees removed. Browser suite not run (permission classifier blocked it). Lesson: keep slice worktrees until land's own tier is green (land ranks components above integration). **Next session:** wave 6: `pnpm backlog ingest`/`list`, write slices for the triaged items not held (see the held list), then run them.
+
+| Slice | Item  | State                                                                                                       | Merge    |
+| ----- | ----- | ----------------------------------------------------------------------------------------------------------- | -------- |
+| 48    | B-737 | merged (easy mode gets no copy links)                                                                       | a2a3ebd2 |
+| 47    | B-736 | merged                                                                                                      | da9de73f |
+| 46    | B-692 | merged (DateTimeField `onCalendarPick`: ui-kit doc at landing)                                              | 438dd248 |
+| 45    | B-691 | merged (touches ui/Popover.tsx: all popovers scroll inside)                                                 | 4ad16c07 |
+| 44    | B-756 | merged                                                                                                      | d59db667 |
+| 43    | B-617 | merged (ui kit: OUTLINED, motion-press, IconButton count; docs at landing)                                  | abb099ce |
+| 42    | B-762 | merged (17 files: quick entry parser in packages/, MedicationForm, ProviderForm; assistant doc at landing)  | b7c7882c |
+| 41    | B-676 | merged                                                                                                      | ec911d5d |
+| 40    | B-621 | merged (other quick entry tests may now see the panel: watch CI)                                            | 6df9f7cb |
+| 39    | B-636 | merged                                                                                                      | 5cbbe830 |
+| 38    | B-664 | merged                                                                                                      | 221141c3 |
+| 37    | B-679 | merged (packages/: integration tier)                                                                        | 3d21f402 |
+| 36    | B-673 | merged (shared matcher lib/core/nameSuggestions.ts; edits allergies.browser.test.tsx, may conflict with 34) | f0f672c7 |
+| 35    | B-672 | merged (typing-mode lists cover the next field: tests Tab after a fill)                                     | d1cdca07 |
+| 34    | B-594 | merged                                                                                                      | 86d98496 |
+
+## Trimmed 2026-11-24
+
 **Wave 4** (2026-11-24, session 1): slices 18–33 written from the triaged items; base `prd/fixes-ui` = dev 91f30299. Running topic: symptom-catalog (its hot files excluded). Chains: 22→23, 25→26→27→28, 30→31. Models: sonnet for 20, 21, 28; opus for the rest. Merge order: handed-off slices merge in plan order among themselves, without waiting for an earlier slice still running when a chain waits on a later one (20 and 25 merged before 19, 21, 22, 24). At landing fold into docs: care-groups.md (RoleHelp dialog, GROUP_ROLES sees/changes; member rows carry no role description on purpose), providers.md (phone label select with Custom).
 
 | Slice | Item  | State           | Merge    |
