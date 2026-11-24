@@ -7,13 +7,14 @@ import {
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createGroup, createUser, createWorld, ok } from "../../data/test/fixtures";
-import { clientFor, patchOp, putOp, sqliteTime, upload } from "./testing";
+import { clientFor, deleteOp, outcomes, patchOp, putOp, sqliteTime, upload } from "./testing";
 
 // sync.upload and a symptom's type (symptom-catalog slice 2): the server
 // derives `symptom_type_id` from the name on every symptom write, so a
 // device's value (missing on an older device, stale, made up, or another
-// group's) never decides it, and an unknown name joins the catalog. Each
-// test makes its own users and group. All data is fictional.
+// group's) never decides it, and an unknown name joins the catalog. And a
+// device's own catalog row (slice 3): an idempotent PUT, for loggers only.
+// Each test makes its own users and group. All data is fictional.
 
 const entryRow = (groupId: string, recipientId: string, overrides: Record<string, unknown> = {}) => ({
   group_id: groupId,
@@ -117,5 +118,74 @@ describe("sync.upload: a symptom's type", () => {
     const entry = ok(await timelineEntryService.getById(u.owner.ctx, entryId));
     expect(entry?.symptomTypeId).toBe(symptomTypeId(groupId, "hoarse voice"));
     expect(ok(await symptomTypeService.getByName(u.owner.ctx, groupId, "Hoarse voice"))).not.toBeNull();
+  });
+});
+
+/** A device's new catalog row, as its local write leaves it. */
+const typeOp = (groupId: string, name: string, id = symptomTypeId(groupId, name)) =>
+  putOp("symptom_type", id, {
+    group_id: groupId,
+    name,
+    name_key: name.trim().toLowerCase(),
+    created_at: sqliteTime(),
+    updated_at: sqliteTime(),
+  });
+
+describe("sync.upload: a device's new symptom type", () => {
+  it("leaves one row when two devices upload the same new name, the first spelling kept", async () => {
+    const { u, groupId } = await createWorld({ members: ["caretaker"] });
+    const first = clientFor(u.owner.ctx.authUser);
+    const second = clientFor(u.caretaker.ctx.authUser);
+    expect(await outcomes(first, [typeOp(groupId, "Sore wrist")])).toEqual(["applied"]);
+    // Another device's spelling, then a replay of the first.
+    expect(await outcomes(second, [typeOp(groupId, "sore Wrist")])).toEqual(["applied"]);
+    expect(await outcomes(first, [typeOp(groupId, "Sore wrist")])).toEqual(["applied"]);
+    const rows = ok(await symptomTypeService.list(u.owner.ctx, { groupId })).data.filter(
+      (r) => r.nameKey === "sore wrist",
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      id: symptomTypeId(groupId, "sore wrist"),
+      name: "Sore wrist",
+      createdBy: u.owner.user.id,
+    });
+  });
+
+  it("lets owners, admins, caretakers and Easy helpers add a name; viewers and Easy viewers are refused", async () => {
+    const { u, groupId } = await createWorld({
+      members: ["admin", "caretaker", "viewer", "easy_helper", "easy_viewer"],
+    });
+    for (const role of ["owner", "admin", "caretaker", "easy_helper"] as const) {
+      expect(
+        await outcomes(clientFor(u[role].ctx.authUser), [typeOp(groupId, `Sore ${role}`)]),
+        role,
+      ).toEqual(["applied"]);
+      expect(ok(await symptomTypeService.getByName(u.owner.ctx, groupId, `Sore ${role}`))?.createdBy).toBe(
+        u[role].user.id,
+      );
+    }
+    for (const role of ["viewer", "easy_viewer"] as const) {
+      const api = clientFor(u[role].ctx.authUser);
+      // A new name, and one the group already has: refused either way.
+      expect(await outcomes(api, [typeOp(groupId, `Sore ${role}`), typeOp(groupId, "Nausea")]), role).toEqual(
+        ["permissions:unauthorized", "permissions:unauthorized"],
+      );
+      expect(ok(await symptomTypeService.getByName(u.owner.ctx, groupId, `Sore ${role}`)), role).toBeNull();
+    }
+  });
+
+  it("refuses an id that isn't the one derived from the group and name, and any change or removal", async () => {
+    const { u, groupId } = await createWorld({ members: [] });
+    const api = clientFor(u.owner.ctx.authUser);
+    const nausea = symptomTypeId(groupId, "Nausea");
+    expect(
+      await outcomes(api, [
+        typeOp(groupId, "Sore heel", randomUUID()),
+        patchOp("symptom_type", nausea, { name: "Queasy" }),
+        deleteOp("symptom_type", nausea),
+      ]),
+    ).toEqual(["symptomTypeService:invalid", "sync:readOnlyTable", "sync:readOnlyTable"]);
+    expect(ok(await symptomTypeService.getByName(u.owner.ctx, groupId, "Sore heel"))).toBeNull();
+    expect(ok(await symptomTypeService.getById(u.owner.ctx, nausea))?.name).toBe("Nausea");
   });
 });

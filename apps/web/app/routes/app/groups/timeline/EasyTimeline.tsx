@@ -113,6 +113,7 @@ export function EasyTimeline({
         kind={filters?.kind ?? null}
         author={filters?.author ?? null}
         vital={filters?.vital}
+        symptoms={filters?.symptoms}
         search={filters?.search}
         easy
         summaryMode={summaryMode}

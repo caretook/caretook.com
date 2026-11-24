@@ -152,6 +152,43 @@ describe("the vital type (EntryFilters.vital)", () => {
   });
 });
 
+describe("the symptom types (EntryFilters.symptoms)", () => {
+  const NAUSEA = "a1b2c3d4-0000-5000-8000-000000000001";
+  const FALL = "a1b2c3d4-0000-5000-8000-000000000002";
+
+  it("keeps entries of any of the types, by the stored pointer, after the kind and author", () => {
+    const window = historyWindow(
+      GROUP,
+      { kind: "symptom", author: AUTHOR, symptoms: [NAUSEA, FALL] },
+      30,
+      CUTOFF,
+    );
+    expect(one(window.sql)).toContain(
+      "AND kind = ? AND created_by = ? AND symptom_type_id IN (?, ?) AND (NOT kind",
+    );
+    expect(window.params).toEqual([GROUP, "symptom", AUTHOR, NAUSEA, FALL, local(CUTOFF), 31]);
+  });
+
+  it("is in the shared window (entryWindow), so paging, the links and medications follow it", () => {
+    const filters = { kind: "symptom", author: null, symptoms: [NAUSEA] } as const;
+    expect(one(entryWindow(GROUP, filters, 30).sql)).toBe(
+      "FROM timeline_entry WHERE group_id = ? AND deleted_at IS NULL AND kind = ? AND symptom_type_id IN (?) " +
+        "ORDER BY occurred_at DESC, id DESC LIMIT ?",
+    );
+    expect(one(timelineLinksQuery(GROUP, filters, 30, CUTOFF).sql)).toContain("symptom_type_id IN (?)");
+    expect(one(timelineMedicationsQuery(GROUP, filters, 30, CUTOFF).sql)).toContain("symptom_type_id IN (?)");
+  });
+
+  it("none or empty is no condition", () => {
+    expect(historyWindow(GROUP, { ...NONE, symptoms: [] }, 30, CUTOFF)).toEqual(
+      historyWindow(GROUP, NONE, 30, CUTOFF),
+    );
+    expect(historyWindow(GROUP, { ...NONE, symptoms: null }, 30, CUTOFF)).toEqual(
+      historyWindow(GROUP, NONE, 30, CUTOFF),
+    );
+  });
+});
+
 describe("a jump's bound (historyWindow's before)", () => {
   const BEFORE = "2026-11-04T08:00:00.000Z";
 

@@ -1,7 +1,6 @@
 import type { VitalType } from "@caretook/data/schema";
 
-import { VITAL_TYPES } from "@caretook/data/schema";
-import { fold } from "../providers/providerDirectory";
+import { symptomKey, VITAL_TYPES } from "@caretook/data/schema";
 import { addDays, dayInZone, timeInZone, zonedInstant } from "../core/zonedDay";
 
 // Quick entry's predictions: what the group usually logs around this hour,
@@ -105,7 +104,7 @@ export function usualAtHour(
       count("symptom", day);
       const name = symptomNameOf(entry.details);
       if (!name) continue;
-      const key = fold(name);
+      const key = symptomKey(name);
       const at = Date.parse(entry.occurredAt);
       const seen = symptomNames.get(key);
       if (!seen) symptomNames.set(key, { name, count: 1, last: at });
