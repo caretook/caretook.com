@@ -4,6 +4,7 @@
 import { Link, useNavigation } from "react-router";
 import { ICON, navLinkClass } from "~/components/ui";
 import { GROUP_SECTIONS, isTabBarHidden, sectionCurrent } from "~/lib/app-shell/groupSections";
+import { useKeyboardOpen } from "~/lib/app-shell/keyboard";
 
 /**
  * The pathname the sections should show as current: the one being navigated
@@ -57,11 +58,15 @@ export function SectionNav({ groupId, pathname }: { groupId: string; pathname: s
  * `--tab-bar-height` (the bar, its gap and its bottom offset) in the page flow:
  * the last thing on any group screen scrolls clear of it, with no screen
  * needing to know the bar exists. It sits under modals (`z-40`; `Sheet`'s
- * overlay is `z-50`), so a bottom sheet covers it. Tests select it by
+ * overlay is `z-50`), so a bottom sheet covers it. While the on-screen
+ * keyboard is open (`useKeyboardOpen`) it slides off the bottom, `inert` and
+ * `aria-hidden`, and `data-keyboard-open` is set; it returns when the keyboard
+ * closes (the spacer stays, so the page doesn't jump). Tests select it by
  * `data-tab-bar`.
  */
 export function TabBar({ groupId, pathname }: { groupId: string; pathname: string }) {
   const target = useTargetPathname(pathname);
+  const keyboard = useKeyboardOpen();
   if (isTabBarHidden(pathname, groupId)) return null;
   return (
     <>
@@ -69,7 +74,12 @@ export function TabBar({ groupId, pathname }: { groupId: string; pathname: strin
       <nav
         aria-label="Group sections"
         data-tab-bar
-        className="fixed inset-x-4 bottom-(--tab-bar-bottom) z-40 mx-auto flex h-14 max-w-xs overflow-hidden rounded-full bg-(--tab-bar-surface) text-(--tab-bar-content) shadow-lg sm:hidden print:hidden"
+        data-keyboard-open={keyboard || undefined}
+        aria-hidden={keyboard || undefined}
+        inert={keyboard}
+        className={`fixed inset-x-4 bottom-(--tab-bar-bottom) z-40 mx-auto flex h-14 max-w-xs overflow-hidden rounded-full bg-(--tab-bar-surface) text-(--tab-bar-content) shadow-lg motion-safe:transition-transform motion-safe:duration-(--motion) motion-safe:ease-(--motion-ease) sm:hidden print:hidden ${
+          keyboard ? "translate-y-[calc(100%+var(--tab-bar-bottom)+1rem)]" : ""
+        }`}
       >
         {GROUP_SECTIONS.map((section) => {
           const current = sectionCurrent(section, target, groupId);
