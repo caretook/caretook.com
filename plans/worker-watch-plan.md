@@ -6,7 +6,7 @@
 
 | Slice | Wave | State          | Merge into `prd/worker-watch` (slice commits) |
 | ----- | ---- | -------------- | --------------------------------------------- |
-| 1     | 1    | fix sent       | — (6023a2b1, e397e1d5)                        |
+| 1     | 1    | merged         | 0d93242f (6023a2b1, e397e1d5, e90ae361)       |
 | 2     | 2    | —              | —                                             |
 | 3     | 2    | —              | —                                             |
 | 4     | 3    | —              | —                                             |
@@ -18,6 +18,8 @@
 **Now (2026-11-24):** wave 1 boundary done (ingest, doctor, list: nothing new for this topic). B-434 claimed. Slice 1 worktree `.loops/worker-watch-1` made, agent spawned on opus. At wave 1's boundary, `pnpm prd sync` to bring in hotfixes B-773 and B-774 (dev e19c42ab+; the backlog session asked); this one sync may rerun the tier once, and a second unexpected run goes to the backlog session (B-720).
 
 Slice 1 handed off (quick check passed on e397e1d5); review sent one fix back: the unsynced landing path clears land.sh's EXIT trap, dropping `land-end`.
+
+Slice 1's fix came back (e90ae361; the trap was already safe, since unsynced runs in a child process, but now re-armed and tested); merged as 0d93242f, B-434 done. Synced with dev (ed428dc2, carries B-773/B-774). Wave 1 CI run at tier `integration` (browser.sh changed) requested on the synced tip. Slice 1's agent is past 200k: any further fix goes to a fresh `--continue` agent. Worktree kept until green.
 
 **Backlog:** claim B-434 when slice 1 starts and B-408 when slice 2 starts; `done` B-434 when slice 1 merges and B-408 when the last of slices 5 and 6 merges.
 
