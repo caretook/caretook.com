@@ -4,3 +4,6 @@
 #
 # One test per line, three tab-separated fields:
 # <repo-relative test file><TAB><full test name><TAB><backlog item>
+apps/web/app/routes/app/groups/planner/planner.browser.test.tsx	the list an item leaves the Planner tab once its end (in progress) or its start passes, without a reload	B-653
+apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx	back from the entry page Back, then the filter that's on picked again: a dose still names its medication (B-235)	B-633
+apps/web/app/routes/app/groups/new/newGroup.browser.test.tsx	the New care group sheet the group menu's New care group opens it; closing it goes back to the timeline	B-769
