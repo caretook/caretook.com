@@ -4,14 +4,18 @@
 
 ## Status
 
-| Slice | Wave | State | Merge into `prd/worker-watch` (slice commits) |
-| ----- | ---- | ----- | --------------------------------------------- |
-| 1     | 1    | —     | —                                             |
-| 2     | 2    | —     | —                                             |
-| 3     | 2    | —     | —                                             |
-| 4     | 3    | —     | —                                             |
-| 5     | 4    | —     | —                                             |
-| 6     | 4    | —     | —                                             |
+| Slice | Wave | State          | Merge into `prd/worker-watch` (slice commits) |
+| ----- | ---- | -------------- | --------------------------------------------- |
+| 1     | 1    | started (opus) | —                                             |
+| 2     | 2    | —              | —                                             |
+| 3     | 2    | —              | —                                             |
+| 4     | 3    | —              | —                                             |
+| 5     | 4    | —              | —                                             |
+| 6     | 4    | —              | —                                             |
+
+**Landing mode:** run everything through (started by the dispatcher): start every ready slice, land each green wave, ask only real questions via `pnpm prd ask`.
+
+**Now (2026-11-24):** wave 1 boundary done (ingest, doctor, list: nothing new for this topic). B-434 claimed. Slice 1 worktree `.loops/worker-watch-1` made, agent spawned on opus. At wave 1's boundary, `pnpm prd sync` to bring in hotfixes B-773 and B-774 (dev e19c42ab+; the backlog session asked); this one sync may rerun the tier once, and a second unexpected run goes to the backlog session (B-720).
 
 **Backlog:** claim B-434 when slice 1 starts and B-408 when slice 2 starts; `done` B-434 when slice 1 merges and B-408 when the last of slices 5 and 6 merges.
 
