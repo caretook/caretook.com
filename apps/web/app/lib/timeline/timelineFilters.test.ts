@@ -17,6 +17,9 @@ import {
   setPeriod,
   clearPeriod,
   setVital,
+  addSymptom,
+  removeSymptom,
+  clearSymptoms,
 } from "./timelineFilters";
 
 const ALEX = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
@@ -30,6 +33,7 @@ describe("parseFilters", () => {
       q: "",
       period: null,
       vital: null,
+      symptoms: [],
     });
     expect(parseFilters("?")).toEqual({
       kind: null,
@@ -37,6 +41,7 @@ describe("parseFilters", () => {
       q: "",
       period: null,
       vital: null,
+      symptoms: [],
     });
   });
 
@@ -47,6 +52,7 @@ describe("parseFilters", () => {
       q: "",
       period: null,
       vital: null,
+      symptoms: [],
     });
     expect(parseFilters(`?author=${ALEX}`)).toEqual({
       kind: null,
@@ -54,11 +60,13 @@ describe("parseFilters", () => {
       q: "",
       period: null,
       vital: null,
+      symptoms: [],
     });
     expect(parseFilters(`?kind=vital&author=${ALEX}`)).toEqual({
       kind: "vital",
       author: ALEX,
       vital: null,
+      symptoms: [],
       q: "",
       period: null,
     });
@@ -66,6 +74,7 @@ describe("parseFilters", () => {
       kind: "note",
       author: ALEX,
       vital: null,
+      symptoms: [],
       q: "",
       period: null,
     });
@@ -78,6 +87,7 @@ describe("parseFilters", () => {
       q: "",
       period: null,
       vital: null,
+      symptoms: [],
     });
   });
 
@@ -94,6 +104,7 @@ describe("parseFilters", () => {
       q: "",
       period: null,
       vital: null,
+      symptoms: [],
     });
     expect(parseFilters("?kind=")).toEqual({
       kind: null,
@@ -101,6 +112,7 @@ describe("parseFilters", () => {
       q: "",
       period: null,
       vital: null,
+      symptoms: [],
     });
     expect(parseFilters("?kind=Symptom")).toEqual({
       kind: null,
@@ -108,6 +120,7 @@ describe("parseFilters", () => {
       q: "",
       period: null,
       vital: null,
+      symptoms: [],
     });
   });
 
@@ -118,6 +131,7 @@ describe("parseFilters", () => {
       q: "",
       period: null,
       vital: null,
+      symptoms: [],
     });
     expect(parseFilters("?author=")).toEqual({
       kind: null,
@@ -125,11 +139,13 @@ describe("parseFilters", () => {
       q: "",
       period: null,
       vital: null,
+      symptoms: [],
     });
     expect(parseFilters(`?author=${ALEX}'%20OR%201=1`)).toEqual({
       kind: null,
       author: null,
       vital: null,
+      symptoms: [],
       q: "",
       period: null,
     });
@@ -140,6 +156,7 @@ describe("parseFilters", () => {
       kind: null,
       author: ALEX,
       vital: null,
+      symptoms: [],
       q: "",
       period: null,
     });
@@ -147,6 +164,7 @@ describe("parseFilters", () => {
       kind: "note",
       author: null,
       vital: null,
+      symptoms: [],
       q: "",
       period: null,
     });
@@ -161,6 +179,7 @@ describe("parseFilters", () => {
       kind: "event",
       author: null,
       vital: null,
+      symptoms: [],
       q: "",
       period: null,
     });
@@ -290,6 +309,7 @@ describe("a round trip", () => {
       q: "",
       period: null,
       vital: null,
+      symptoms: [],
     });
     search = clearKind(search);
     expect(parseFilters(search)).toEqual({
@@ -298,6 +318,7 @@ describe("a round trip", () => {
       q: "",
       period: null,
       vital: null,
+      symptoms: [],
     });
     search = setKind(search, "note");
     search = clearAuthor(search);
@@ -307,6 +328,7 @@ describe("a round trip", () => {
       q: "",
       period: null,
       vital: null,
+      symptoms: [],
     });
   });
 });
@@ -433,6 +455,86 @@ describe("the vital type (?vital=)", () => {
   });
 });
 
+describe("the symptom types (?symptom=, repeated)", () => {
+  const NAUSEA = "a1b2c3d4-0000-5000-8000-000000000001";
+  const FALL = "a1b2c3d4-0000-5000-8000-000000000002";
+  const PAIN = "a1b2c3d4-0000-5000-8000-000000000003";
+
+  it("reads every valid id under kind=symptom only, lower-case, each once, in order", () => {
+    expect(parseFilters(`?kind=symptom&symptom=${NAUSEA}&symptom=${FALL}`).symptoms).toEqual([NAUSEA, FALL]);
+    expect(parseFilters(`?kind=symptom&symptom=${FALL.toUpperCase()}&symptom=${FALL}`).symptoms).toEqual([
+      FALL,
+    ]);
+    expect(parseFilters(`?symptom=${NAUSEA}`).symptoms).toEqual([]);
+    expect(parseFilters(`?kind=vital&symptom=${NAUSEA}`).symptoms).toEqual([]);
+  });
+
+  it("drops unknown ids", () => {
+    expect(
+      parseFilters(`?kind=symptom&symptom=nausea&symptom=${NAUSEA}&symptom=&symptom=${FALL}'%20OR%201=1`)
+        .symptoms,
+    ).toEqual([NAUSEA]);
+    expect(addSymptom("?kind=symptom", "nausea")).toBe("?kind=symptom");
+    expect(addSymptom("", "")).toBe("");
+  });
+
+  it("adds one after another, setting the symptom kind and keeping the other filters", () => {
+    expect(addSymptom("", NAUSEA)).toBe(`?kind=symptom&symptom=${NAUSEA}`);
+    expect(addSymptom(`?kind=symptom&symptom=${NAUSEA}`, FALL.toUpperCase())).toBe(
+      `?kind=symptom&symptom=${NAUSEA}&symptom=${FALL}`,
+    );
+    expect(addSymptom(`?kind=vital&vital=weight&author=${ALEX}&q=x&view=cards`, NAUSEA)).toBe(
+      `?kind=symptom&author=${ALEX}&q=x&symptom=${NAUSEA}&view=cards`,
+    );
+  });
+
+  it("adding one already on changes nothing", () => {
+    const on = `?kind=symptom&symptom=${NAUSEA}&x=y`;
+    expect(addSymptom(on, NAUSEA)).toBe(on);
+    expect(addSymptom(on, NAUSEA.toUpperCase())).toBe(on);
+  });
+
+  it("removes one, keeping the others, the kind and the other filters", () => {
+    const on = `?kind=symptom&author=${ALEX}&symptom=${NAUSEA}&symptom=${FALL}&symptom=${PAIN}&x=y`;
+    expect(removeSymptom(on, FALL)).toBe(
+      `?kind=symptom&author=${ALEX}&symptom=${NAUSEA}&symptom=${PAIN}&x=y`,
+    );
+    expect(removeSymptom(`?kind=symptom&symptom=${NAUSEA}`, NAUSEA.toUpperCase())).toBe("?kind=symptom");
+    expect(removeSymptom(`?kind=symptom&symptom=${NAUSEA}`, FALL)).toBe(`?kind=symptom&symptom=${NAUSEA}`);
+  });
+
+  it("clears every one, keeping the symptom kind and the other filters", () => {
+    expect(clearSymptoms(`?kind=symptom&symptom=${NAUSEA}&symptom=${FALL}&author=${ALEX}&x=y`)).toBe(
+      `?kind=symptom&author=${ALEX}&x=y`,
+    );
+    expect(clearSymptoms("?kind=symptom&x=y")).toBe("?kind=symptom&x=y");
+  });
+
+  it("changing the kind clears them; the same kind keeps them", () => {
+    const on = `?kind=symptom&symptom=${NAUSEA}&symptom=${FALL}`;
+    expect(setKind(on, "note")).toBe("?kind=note");
+    expect(setKind(on, "symptom")).toBe(on);
+    expect(setVital(on, "weight")).toBe("?kind=vital&vital=weight");
+    expect(clearKind(on)).toBe("");
+    expect(clearFilters(`${on}&upcoming=1`)).toBe("?upcoming=1");
+  });
+
+  it("other filters keep them", () => {
+    const on = `?kind=symptom&symptom=${NAUSEA}&symptom=${FALL}`;
+    expect(setAuthor(on, ALEX)).toBe(`?kind=symptom&author=${ALEX}&symptom=${NAUSEA}&symptom=${FALL}`);
+    expect(setQuery(on, "knee")).toBe(`?kind=symptom&q=knee&symptom=${NAUSEA}&symptom=${FALL}`);
+    expect(setDay(on, "2026-01-02")).toBe(`${on}&day=2026-01-02`);
+  });
+
+  it("drops a stray symptom parameter when another filter changes", () => {
+    expect(setAuthor(`?kind=note&symptom=${NAUSEA}`, ALEX)).toBe(`?kind=note&author=${ALEX}`);
+  });
+
+  it("is a filter", () => {
+    expect(hasFilters(parseFilters(`?kind=symptom&symptom=${NAUSEA}`))).toBe(true);
+  });
+});
+
 describe("the search's care period (?period=)", () => {
   const PERIOD = "3f2b8c1e-5d1a-4c2e-9a77-0b6f3c1e0042";
 
@@ -446,6 +548,7 @@ describe("the search's care period (?period=)", () => {
       q: "",
       period: null,
       vital: null,
+      symptoms: [],
     });
     expect(parseFilters("?q=knee&period=rehab").period).toBeNull();
   });

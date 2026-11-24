@@ -60,7 +60,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 /**
  * The first screenful, read locally so the page renders complete: the
  * history up to now, and what's next after it (the Today card's
- * appointment). `?kind=` shows one kind (`?vital=` one vital type), `?author=`
+ * appointment). `?kind=` shows one kind (`?vital=` one vital type, `?symptom=` any of some symptom types), `?author=`
  * one person's entries and `?q=` the entries matching a search (through the
  * device's search index; a reload waits a moment for it). The group itself comes from the group route (which
  * has already turned away a group not on the device).
@@ -85,7 +85,7 @@ export async function clientLoader({ request, params, context }: Route.ClientLoa
     loadTimelineRows(
       db,
       params.groupId,
-      { kind: filters.kind, author: filters.author, vital: filters.vital, match },
+      { kind: filters.kind, author: filters.author, vital: filters.vital, symptoms: filters.symptoms, match },
       before,
     ),
     loadSettings(request, db.userId),
@@ -133,7 +133,7 @@ export function shouldRevalidate({
 }
 
 export default function Timeline({ loaderData, params }: Route.ComponentProps) {
-  const { userId, kind, author, q, vital, day } = loaderData;
+  const { userId, kind, author, q, vital, symptoms, day } = loaderData;
   const { groupId } = params;
   // The loader's settings come from the cache; a background refresh publishes any change.
   const settings = useMySettings(userId, loaderData);
@@ -143,7 +143,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
   const mode = useEasyMode(userId, groupId, group, settings.easyMode);
   const period = usePeriodSearch(groupId, loaderData.period, loaderData.searchPeriods);
   const search = timelineSearch(groupId, q, useSearchIndexStatus(), period.range);
-  const filters = { kind, author, vital, match: search.match };
+  const filters = { kind, author, vital, symptoms, match: search.match };
   const data = useTimelineData({ groupId, userId, filters, day, initial: loaderData });
   const [view, setView] = useTimelineView(userId, settings.timelineView);
   const [summaryMode, setSummaryMode] = useDaySummaryMode(userId, settings.daySummary);
@@ -176,6 +176,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         q={q}
         vital={vital}
         vitalTypes={data.latestVitals.map((v) => v.reading.type)}
+        symptoms={symptoms}
         period={period}
         trailing={
           !mode.easy && (
@@ -198,7 +199,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         mode={mode}
         summaryMode={summaryMode}
         chips={chips}
-        filters={{ kind, author, vital, search: { q, state: search.state } }}
+        filters={{ kind, author, vital, symptoms, search: { q, state: search.state } }}
       >
         {sheets}
       </EasyTimeline>
@@ -235,6 +236,7 @@ export default function Timeline({ loaderData, params }: Route.ComponentProps) {
         kind={kind}
         author={author}
         vital={vital}
+        symptoms={symptoms}
         search={{ q, state: search.state }}
         onAddEntry={addEntry}
       />
