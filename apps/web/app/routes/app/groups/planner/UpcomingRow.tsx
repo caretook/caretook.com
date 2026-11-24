@@ -9,6 +9,7 @@ import { EntryBody, KindFilterLink, KindIcon, RepeatMark } from "~/components/en
 import { Badge, LINK, STATUS_TONE } from "~/components/ui";
 import { appUrls } from "~/lib/app-shell/appUrls";
 import { entryTiming } from "~/lib/appointments/upcoming";
+import { plannerReturnState } from "~/lib/appointments/plannerReturn";
 import {
   cancelledLabel,
   nowLabel,
@@ -18,6 +19,7 @@ import {
 } from "~/lib/appointments/upcomingLabels";
 import { placeLine, placeOf, upcomingActions } from "./upcomingContact";
 import { UpcomingRowActions, UpcomingRowAuthor } from "./UpcomingRowParts";
+import { usePlannerOpener } from "./usePlannerOpener";
 
 /**
  * One upcoming (or past) item as a card: the kind icon (a filter) on the left
@@ -27,7 +29,8 @@ import { UpcomingRowActions, UpcomingRowAuthor } from "./UpcomingRowParts";
  * "Cancelled" (struck through). A footer holds labelled Call and Directions on
  * the left and the author's avatar (a filter) on the right; a card with no
  * actions has no footer, and its avatar ends the last line, under the menu.
- * The whole row opens the entry's page. `readOnly` (the easy roles' Planner)
+ * The whole row opens the entry's page, which goes back to this tab (its
+ * filters too: `plannerReturn` in history state, B-690). `readOnly` (the easy roles' Planner)
  * shows the kind and avatar without their filter links, so a tap on the
  * avatar opens the row.
  */
@@ -63,6 +66,7 @@ export function UpcomingRow({
   const when = inProgress ? nowLabel(entry) : timeRange(entry);
   const place = placeOf(entry, contacts);
   const actions = upcomingActions(entry, contacts);
+  const opened = plannerReturnState(usePlannerOpener(false));
 
   const hasFooter = actions.length > 0;
   const hasSide = Boolean(menu) || !hasFooter;
@@ -78,6 +82,7 @@ export function UpcomingRow({
     >
       <Link
         to={appUrls.entry(groupId, entry.id)}
+        state={opened}
         className="hover:bg-base-content/5 focus-visible:outline-primary absolute inset-0 cursor-pointer rounded-[inherit] focus-visible:-outline-offset-2 focus-visible:outline-2"
         aria-label={`Open ${upcomingTitle(entry)}, ${when}${cancelled ? `, ${cancelled.toLowerCase()}` : ""}`}
       />
@@ -113,6 +118,7 @@ export function UpcomingRow({
                 {" · "}
                 <Link
                   to={appUrls.entry(groupId, rescheduledTo.id)}
+                  state={opened}
                   className={`${LINK} relative z-10`}
                   data-rescheduled-to={rescheduledTo.id}
                 >

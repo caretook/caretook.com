@@ -3,7 +3,6 @@ import type { TitleState } from "./entryPage";
 import type { LiveEntry } from "./useLiveEntry";
 
 import { useState } from "react";
-import { useNavigate } from "react-router";
 import {
   CancelEventDialog,
   EntryActions,
@@ -65,7 +64,6 @@ export function EntryPageHeader({
   const rescheduling = useEventReschedule(groupId, canSetUp && entry.kind === "event");
   const remind = useRemindMe(groupId);
   const scope = useSeriesScope(canSetUp && !!entry.seriesId);
-  const navigate = useNavigate();
   // The title being typed counts for suggestions until it's saved (or someone else renames it).
   const [typed, setTyped] = useState<{ text: string; over: string | null } | null>(null);
   const currentTitle = typed && typed.over === entry.title ? typed.text : entry.title;
@@ -143,7 +141,7 @@ export function EntryPageHeader({
                         scope.ask(entry, "delete", {
                           only: () => setConfirmDelete(true),
                           onlyChosen: () => void live.remove(),
-                          done: () => void navigate(appUrls.timeline(groupId)),
+                          done: live.leave,
                         })
                     : undefined
                 }
