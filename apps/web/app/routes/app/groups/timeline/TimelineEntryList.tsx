@@ -72,10 +72,13 @@ const LIST_CLASS: Record<TimelineView, string> = {
 };
 
 /** The filters and search a list shows (the URL's), as `TimelineEntryList` takes them. */
+const NO_SYMPTOMS: readonly string[] = [];
+
 export type TimelineEntryListFilters = {
   kind: TimelineEntryKind | null;
   author: string | null;
   vital?: VitalType | null;
+  symptoms?: readonly string[];
   search?: { q: string; state: TimelineSearchState };
 };
 
@@ -104,6 +107,7 @@ export function TimelineEntryList({
   kind,
   author,
   vital = null,
+  symptoms = NO_SYMPTOMS,
   search: searching = NO_SEARCH,
   easy = false,
   summaryMode = "highlights",
@@ -137,6 +141,8 @@ export function TimelineEntryList({
   author: string | null;
   /** The vital-type filter (`?vital=`), when it's on (the empty list names it). */
   vital?: VitalType | null;
+  /** The symptom-type filter's catalog ids (`?symptom=`), when it's on. */
+  symptoms?: readonly string[];
   /** The search (`?q=`) and what it's doing (`timelineSearch`). */
   search?: { q: string; state: TimelineSearchState };
   /** Easy mode's list (above). */
@@ -234,7 +240,7 @@ export function TimelineEntryList({
   // above the screen (a kind icon or author tapped far down), bring it back,
   // before the end of a shorter list could load another page.
   const list = useRef<HTMLElement>(null);
-  const filterKey = `${kind}|${vital}|${author}|${searching.q}`;
+  const filterKey = `${kind}|${vital}|${symptoms.join(",")}|${author}|${searching.q}`;
   const lastFilter = useRef(filterKey);
   useLayoutEffect(() => {
     if (lastFilter.current === filterKey) return;

@@ -22,22 +22,32 @@ import { KIND_META } from "~/lib/timeline/entryDisplay";
 import { useGroup } from "~/lib/app-shell/group";
 import { duringChipName, duringText } from "~/lib/care-periods/periodSearch";
 import { recordSearch } from "~/lib/search/recentSearches";
-import { clearAuthor, clearKind, clearPeriod, clearQuery, clearVital } from "~/lib/timeline/timelineFilters";
+import { useSymptomFilterTypes } from "~/lib/timeline/symptomFilter.sync";
+import {
+  clearAuthor,
+  clearKind,
+  clearPeriod,
+  clearQuery,
+  clearVital,
+  removeSymptom,
+} from "~/lib/timeline/timelineFilters";
 import { FilterSheet } from "./FilterSheet";
 import { TimelineDayPicker } from "./TimelineDayPicker";
 import { useSearchField } from "./useSearchField";
 
 const X_ICON = <X className={ICON_SM} aria-hidden="true" />;
+const NO_SYMPTOMS: readonly string[] = [];
 
 /**
  * The filter row: the search magnifier, then one icon-only Filter button
- * (its badge the count of filters on: kind, vital type, author, period;
+ * (its badge the count of filters on: kind, vital type, each symptom type, author, period;
  * named "Filter" or "Filter, N on"), which opens `FilterSheet`, the date
  * button (`TimelineDayPicker`), then the
  * optional `trailing` control at the row's right end (the full timeline's
  * View options; drawn as `TOOL_CIRCLE`, from `ui/`). All three are one size of circle. Under them, each filter on is a removable chip (a link that
  * clears only it, so the URL keeps the rest; see
  * `lib/timeline/timelineFilters.ts`): the kind, the vital type (`?vital=`),
+ * each symptom type (`?symptom=`, by its catalog name),
  * "By <name>" (`author`: that person's name and avatar), "Matching “…”"
  * (the search, while its field is closed) and "During …" (`?period=`). No
  * filters, no chip row. The magnifier opens the search field beside the
@@ -52,6 +62,7 @@ export function FilterChips({
   q,
   vital = null,
   vitalTypes = [],
+  symptoms = NO_SYMPTOMS,
   period,
   trailing,
 }: {
@@ -62,13 +73,16 @@ export function FilterChips({
   vital?: VitalType | null;
   /** The vital types the group has readings of (any order). */
   vitalTypes?: readonly string[];
+  /** The symptom-type filter's catalog ids (`?symptom=`), under the symptom kind. */
+  symptoms?: readonly string[];
   /** The search's care period: the group's choices, and the chosen one. */
   period: { choices: readonly PeriodChoice[]; current: PeriodChoice | null };
   /** A control for the row's right end (`TOOL_CIRCLE`), after Filter and the open field. */
   trailing?: ReactNode;
 }) {
   const { search } = useLocation();
-  const { userId } = useGroup();
+  const { userId, id: groupId } = useGroup();
+  const symptomTypes = useSymptomFilterTypes(groupId);
   const field = useSearchField(q, (text) => recordSearch(userId, text));
   const fieldId = useId();
   const magnifier = useRef<HTMLButtonElement>(null);
@@ -83,7 +97,7 @@ export function FilterChips({
   };
 
   const during = q ? period.current : null;
-  const count = [kind, vital, author, during].filter(Boolean).length;
+  const count = [kind, vital, author, during].filter(Boolean).length + symptoms.length;
   const authorChip: LinkChip | null = author && {
     id: "author",
     label: `By ${author.name}`,
@@ -114,6 +128,13 @@ export function FilterChips({
   const active: LinkChip[] = [
     ...(kind ? [removable("kind", KIND_META[kind].plural, clearKind(search))] : []),
     ...(vital ? [removable("vital", VITALS[vital].label, clearVital(search))] : []),
+    ...symptoms.map((id) =>
+      removable(
+        `symptom-${id}`,
+        symptomTypes.find((t) => t.id === id)?.name ?? "Symptom",
+        removeSymptom(search, id),
+      ),
+    ),
     ...(authorChip ? [authorChip] : []),
     ...(matchingChip && !field.open ? [matchingChip] : []),
     ...(during
@@ -199,6 +220,8 @@ export function FilterChips({
           kind={kind}
           vital={vital}
           vitalTypes={vitalTypes}
+          symptoms={symptoms}
+          symptomTypes={symptomTypes}
           period={q ? period : null}
           extra={[...(authorChip ? [authorChip] : []), ...(matchingChip ? [matchingChip] : [])]}
         />

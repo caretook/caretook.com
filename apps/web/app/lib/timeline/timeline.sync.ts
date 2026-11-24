@@ -170,6 +170,11 @@ export type EntryFilters = {
   match?: EntryCondition | null;
   /** Only entries with a reading of this vital type (`?vital=`, under the vital kind); none means every entry. */
   vital?: string | null;
+  /**
+   * Only symptoms of any of these catalog rows (`?symptom=`, under the symptom
+   * kind), by the stored `symptom_type_id`; none or empty means every entry.
+   */
+  symptoms?: readonly string[] | null;
 };
 
 /**
@@ -190,7 +195,7 @@ const VITAL_TYPE_SQL =
  */
 export const HISTORY_ENDS_SQL = `kind IN (${[...new Set(["note", ...FUTURE_KINDS])].map((k) => `'${k}'`).join(", ")})`;
 
-/** The conditions every window shares: one group, live entries, the kind, author and vital-type filters, the search. */
+/** The conditions every window shares: one group, live entries, the kind, author, vital-type and symptom-type filters, the search. */
 const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonly string[] | null) => {
   const conditions = ["group_id = ?", "deleted_at IS NULL"];
   const params: unknown[] = [groupId];
@@ -211,6 +216,11 @@ const filterConditions = (groupId: string, filters: EntryFilters, kinds: readonl
   if (filters.vital) {
     conditions.push(VITAL_TYPE_SQL);
     params.push(filters.vital);
+  }
+  if (filters.symptoms?.length) {
+    // The stored pointer only: SQLite can't derive a name's key or id, and a filter after loading would short a page.
+    conditions.push(`symptom_type_id IN (${filters.symptoms.map(() => "?").join(", ")})`);
+    params.push(...filters.symptoms);
   }
   if (filters.match) {
     conditions.push(`(${filters.match.sql})`);
