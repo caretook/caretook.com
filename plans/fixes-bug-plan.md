@@ -132,6 +132,8 @@ Small bug fixes: wrong behaviour or data. There is no PRD: this plan is the whol
 
 **Next session (wave 14):** `pnpm prd sync`, ingest, recheck hot files (`pnpm backlog prd list`). The only waiting items are B-689, B-690 and B-715, all held while member-avatars (`running`, its slice 4 handed off) holds `routes/app/groups/planner/`. If it still runs, ask its orchestrator (ListAgents, SendMessage) to message at landing and set a background watch that exits when its row leaves `running`; write wave 14 from the three once it clears. If ask a168 is vetoed, B-728 goes back as a new slice.
 
+**Wave 14 waiting (2026-11-24, resumed after an interruption; git matched _Status_, no slice worktree, inbox empty).** `prd/fixes-bug` is 12 commits behind dev (sync at wave start). Ask a168 not vetoed (defaulted to A). Only B-689, B-690, B-715 wait, all held by member-avatars (`running`, slice 4 handed off; its CI on 054bb015 was `brake`). Its orchestrator `member-avatars-4c` was asked to message `fixes-bug-69` at landing; a background watch exits when its row leaves `running`. **Next:** `pnpm prd sync`, ingest, write slices 65-67 (B-689, B-690, B-715, on opus), set hot files, run the wave.
+
 ## Wave 1
 
 Each item's backlog notes (`pnpm backlog show B-<n>`) carry the reviewer's file references; they came from a reading, so **first confirm the bug with a failing test**. If it doesn't reproduce, say so in the hand-off with the test that shows it, and change no app code.
