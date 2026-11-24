@@ -277,7 +277,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-623 | bug | triaged | fixes-tooling |  | Check rerun never runs for tooling: check-body's 'unhandled error' grep matches a passing test's title |
 | B-625 | chore | triaged | contract-migrations |  | Drop todo.event_id and its old-client mirror once no device writes it |
 | B-626 | feature | triaged | planner-3 |  | Decide whether a rescheduled event's todos follow it to the new event |
-| B-629 | bug | in-progress | fixes-ui | prd/fixes-ui | Dismissing the setup card leaves keyboard focus nowhere, because the button disappears with the card |
+| B-629 | bug | ready | fixes-ui | prd/fixes-ui | Dismissing the setup card leaves keyboard focus nowhere, because the button disappears with the card |
 | B-630 | chore | triaged | fixes-nit |  | Two helpers build the legal page links (lib/auth/legalLinks.ts and settings account/legalLinks.ts): fold them into one |
 | B-633 | bug | triaged | fixes-tooling | prd/fixes-tooling | CI flake: apps/web/app/routes/app/groups/timeline/timelineBack.browser.test.tsx: back from the entry page three pages d… |
 | B-636 | change | triaged | fixes-ui |  | Planner todo rows keep the old time column, so they align differently from event cards in the same list |
@@ -303,15 +303,15 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-673 | feature | triaged | fixes-ui |  | Add a medication: suggest common medication names as you type, like conditions |
 | B-674 | change | in-progress | fixes-ui | prd/fixes-ui | Add a medication: the schedule starts on As needed |
 | B-676 | change | triaged | fixes-ui |  | Quick entry: the suggested result card can be clicked to add it, as Enter does |
-| B-677 | change | in-progress | fixes-ui | prd/fixes-ui | Role pickers: explain what each role can do, when inviting and managing members |
+| B-677 | change | ready | fixes-ui | prd/fixes-ui | Role pickers: explain what each role can do, when inviting and managing members |
 | B-678 | bug | in-progress | fixes-ui | prd/fixes-ui | Manage members: cards truncate names and details on phone and desktop; redo the layout |
 | B-679 | feature | triaged | fixes-ui |  | Manage members: show email confirmation status (last login only if easy) |
 | B-680 | change | triaged | fixes-ui |  | Every list page gets one unified search and filter bar (the timeline keeps its own); on tabbed pages it sits below the tabs and acts on the open tab only |
 | B-681 | bug | triaged | fixes-tooling |  | Promotion prints a passing flake's tests but doesn't file them in the backlog |
-| B-682 | change | in-progress | fixes-ui | prd/fixes-ui | Planner: remove the icons from the empty lists on all tabs |
+| B-682 | change | ready | fixes-ui | prd/fixes-ui | Planner: remove the icons from the empty lists on all tabs |
 | B-683 | change | in-progress | fixes-ui | prd/fixes-ui | Tab selector and phone bottom menu: the current tab highlights its whole section instead of a rounded button |
 | B-684 | change | triaged | fixes-ui |  | Forms everywhere: a colored asterisk (*) marks required fields, and the optional labels go |
-| B-685 | change | in-progress | fixes-ui | prd/fixes-ui | Care period form: show the Where is care now? options in a simple two-column grid |
+| B-685 | change | ready | fixes-ui | prd/fixes-ui | Care period form: show the Where is care now? options in a simple two-column grid |
 | B-686 | change | ready | fixes-ui | prd/fixes-ui | Add a provider: phone type is a dropdown of common types, with Custom for typing your own |
 | B-687 | change | in-progress | fixes-ui | prd/fixes-ui | Add a provider: saving opens the new provider's page instead of returning to the list |
 | B-688 | change | in-progress | fixes-ui | prd/fixes-ui | Add a medication: saving opens the new medication's page instead of returning to the list |
@@ -323,7 +323,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-696 | bug | landed | fixes-tooling | prd/fixes-tooling | check-plan can hang forever or wrongly report no changes when called by hand, which stalled two orchestrators for hours |
 | B-697 | change | triaged | fixes-ui |  | Medications Schedule: logging a dose shows a toast (after the shared toast system) |
 | B-698 | change | triaged | fixes-ui |  | One medication card for Schedule and the Medications list: the whole card opens it, with a Log button |
-| B-699 | bug | in-progress | fixes-ui | prd/fixes-ui | Medication page: Back returns to where you came from, not always the Medications list |
+| B-699 | bug | ready | fixes-ui | prd/fixes-ui | Medication page: Back returns to where you came from, not always the Medications list |
 | B-700 | feature | triaged | fixes-ui |  | Passes tab: quick log a pass, with cards matching the new medication card |
 | B-701 | change | triaged | fixes-ui |  | Passes always sort by time: remove Move up and Move down |
 | B-702 | bug | ready | fixes-ui | prd/fixes-ui | Medications Print menu: text overflows or crowds the menu box |
@@ -377,6 +377,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-770 | bug | dropped | fixes-tooling |  | pnpm prd sync (even --force) and dev-sync skip a dev change to scripts/ci/quarantine.txt or brake-list.txt, though CI reads the branch's own copy |
 | B-771 | bug | triaged | fixes-tooling |  | prd sync skips dev's CI list updates (quarantine, brake list) |
 | B-772 | chore | triaged | fixes-tooling |  | Lighten the components tier: trim the New York zone run and slow component tests |
+| B-773 | chore | triaged | fixes-tooling |  | After a dev sync, the CI recheck runs only the tier dev's changes propose, not the wave's tier; a tooling-only sync needs no CI rerun (fixes-bug 82a3cf1b reran components 9m after a scripts-only sync) |
+| B-774 | chore | triaged | fixes-tooling |  | A PRD's own plan file on dev doesn't count as a shared file when deciding whether a sync must merge (plans/fixes-bug-plan.md was the only overlap at 82a3cf1b) |
+| B-775 | chore | dropped | fixes-tooling |  | Sync dev before a wave's CI run, not after, so a wave that needs a sync runs its tier once (2026-11-24: test-health-2, sync-safety, symptom-catalog, fixes-bug each ran twice, test-health-2 slice 5 three times) |
 
 ## Items
 
@@ -2128,10 +2131,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-629 · bug · Dismissing the setup card leaves keyboard focus nowhere, because the button disappears with the card
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 98a3381c
 
 - 2026-11-23 (prd/onboarding): From onboarding slice 3: GettingStartedCard.
 
@@ -2410,10 +2413,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-677 · change · Role pickers: explain what each role can do, when inviting and managing members
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 98a3381c
 
 - 2026-11-23 (Robert Bo Davis): User request 2026-11-23: a short description of what each role does and its permissions, beside or below each item in the role dropdown when inviting, and the same in Manage members. Today RoleOptions.tsx renders a native select and puts the description only in each option title, which phones and most browsers do not show. InviteSheet.tsx:84 and InviteLinks.tsx:108 show the selected role only as field help; MembersList.tsx:201 shows nothing. A native option cannot hold a second line, so this needs another control: a radio list with a description under each label (native first, fits the invite sheet), or a ui/ React Aria Select if the compact member row needs a dropdown (read docs/domain/components.md). Cover all three pickers through one shared component, keeping the Regular and Easier to use groups and each manager only seeing the roles they may assign. The wording in GROUP_ROLES (packages/data/src/constants/roles.ts) is thin ("Reads and writes care data."): rewrite it in plain words and check each line against the real permissions in docs/domain/care-groups.md. Staff /admin role pickers are out of scope. Check on a phone.
 - 2026-11-23 (Robert Bo Davis): User addition 2026-11-23: an accepted alternative is a link that opens a modal with the information, so it can be longer form. Backlog session recommendation: take this one. A "What can each role do?" link beside the Role label opens a native dialog listing every role with what it can see and change. The native selects stay, so there is no new picker control, it works in the compact member row, and it fits a phone. Keep the selected role short help line in the invite forms and add it where it is missing. The dialog opens from inside the invite Sheet, so check focus return and stacking. Show all roles for understanding, marking none as assignable beyond what the select offers. Final choice between this and per-item descriptions is the user to confirm if they want the latter.
@@ -2463,10 +2466,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-682 · change · Planner: remove the icons from the empty lists on all tabs
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 4fee8d5d
 
 - 2026-11-23 (Robert Bo Davis): User request 2026-11-23: the icons in the empty lists on the Planner tabs look goofy; remove them. The icon comes from the emptyMark prop spread into EmptyState at UpcomingList.tsx:140 (Upcoming and Past) and todos/TodoSections.tsx:24 (Todos). Stop passing it so all three show the quiet text line UpcomingList already uses at :144, and delete the emptyMark prop if nothing else uses it. Keep the EmptyState icon option in ui/: other screens use EmptyState and are out of scope. Update any test or doc that expects the icon. Pairs with B-680 (Planner filters), which touches the same tabs.
 
@@ -2492,10 +2495,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-685 · change · Care period form: show the Where is care now? options in a simple two-column grid
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 4fee8d5d
 
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the 'Where is care' options on the care period form are very cluttered. Code read: PeriodForm (apps/web/app/routes/app/groups/periods/PeriodForm.tsx:93) renders all ten CARE_PERIOD_TYPES (Home, Emergency, Hospital, Rehab, Assisted living, Memory care, Nursing home, Hospice at home, Hospice facility, Other) through ChoiceGroup, a wrapping row of joined buttons meant for one of a few choices. Default fix, stated to the user: a native select labelled 'Where is care now?', following the native-elements-first rule. Keep the type field name and its validation error, the URL prefills, the existing value on edit, and the conditional Label field when Other is chosen. Check it at phone width and update the period tests that pick a type as a radio. The new care period onboarding step (B-670) reuses this form, so it gets the fix too.
 - 2026-11-23 (Robert Bo Davis): User decision, 2026-11-23: go with two columns and keep the entry simple. This replaces the native select default. Ten plain text options in two columns of equal width, five rows, at phone and desktop widths: one short label each, no icons or descriptions, with one clear selected state. Keep native radios (name, arrow keys, the radiogroup and its error handling) and the existing prefill, edit value and Other's Label field. Add the layout to ChoiceGroup as a small option or a sibling in ui/, so other ChoiceGroups keep their joined row. Check the longest labels fit at phone width without truncating. Period tests that pick a type as a radio should keep working.
@@ -2606,10 +2609,10 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 ### B-699 · bug · Medication page: Back returns to where you came from, not always the Medications list
 
-- status: in-progress
+- status: ready
 - prd: fixes-ui
 - owner: prd/fixes-ui
-- commit:
+- commit: 98a3381c
 
 - 2026-11-23 (Robert Bo Davis): User, hand-testing on dev, 2026-11-23: the back button on the medication page should take you back to where you came from, not the medications page. Today medication/route.tsx:120 is BackLink to appUrls.medicationList with the label Medications. Pages link here from Schedule, the list, Med times (PassList), a provider, a todo, search, a condition and timeline entries (MedicationEntryText). Pass the origin (URL and label) in link state, as todo/route.tsx does with listSearchFromState, rather than a bare navigate(-1), so it survives sheets opened over the page and keeps the origin's filters. The label names the origin (Schedule, Timeline, Search...). Direct load, refresh without state, or a shared link falls back to the Medications list. Deleting a medication still goes to the list unless the origin is safe. Pairs with the one-card item, which changes two of these links.
 
@@ -2680,6 +2683,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-23 (Robert Bo Davis): Before fix 58e7df2c (2026-11-23), four syncs (member-avatars 835c4e85, test-gates-2 e011122e, dose-accuracy ecb6d2f9, fixes-bug 5850c33f) shared no files with dev and still needed a new CI run; member-avatars ran full three times for one slice. After the next few landings, compare ci/* runs per PRD tip: a no-overlap sync should land unsynced with a typecheck. A sync that shares files should still rerun. Close if clean, otherwise file the cause.
 - 2026-11-24 (prd/fixes-tooling): Proposed by the fixes-tooling orchestrator 2026-11-24. This item: wave 7 (landing, Codex, cleanup).
+- 2026-11-24 (Robert Bo Davis): 2026-11-24 evidence: not clean. Single-slice and small waves still ran twice: test-health-2 slice 5 full x3 (83cadbcf, ec1c138e, e4effb6a), slice 6 full x2 (841ce494, 24218d92); sync-safety slice 3 components x2 (4a3a9550, b004ec55); symptom-catalog components 2a821ccc, 6a246c1e, f47cc0a2; fixes-bug 9d3f2e2c, 82a3cf1b. Most syncs brought risky files (migrations, scripts/ci, package.json, workflow, apps/), so unsynced_safe rightly refused. The waste has other causes, filed separately: the recheck runs the wave's tier when dev brought only tooling (fixes-bug 82a3cf1b, 9m components); the PRD's own plan file counts as a shared file (plans/fixes-bug-plan.md was the only overlap); the wave runs before the sync, so every synced wave pays twice.
 
 ### B-721 · bug · Second-zone filing opens a new item when a zone item was landed or dropped but staging still lacks the fix
 
@@ -3111,6 +3115,7 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 
 - 2026-11-24 (Robert Bo Davis): 2026-11-24: trunk_drift (scripts/loops/lib.sh:262) and unsynced_commits (unsynced.sh:117) drop scripts/ci/quarantine.txt and brake-list.txt, so prd sync / dev-sync --force call a branch current while it holds a stale list; CI reads the branch's own copy (scripts/ci/lists.mjs). Hit when 326c611d emptied the quarantine and 3aa912d3 restored it: fixes-tooling merged origin/dev by hand (e6247bcf). Want: sync pulls list-only drift (a merge that keeps the recorded pass, as keeps_check already allows) and a CI run warns or pulls when its lists trail dev. Lists still shouldn't count as code drift for land/recheck.
 - 2026-11-24 (prd/fixes-tooling): Same as dropped B-770. Seen in fixes-tooling wave 6: sync --force skipped 3aa912d3's quarantine restore; merged by hand as e6247bcf. Next fixes-tooling wave (after the post-wave-6 pause).
+- 2026-11-24 (Robert Bo Davis): 2026-11-24: taken by hotfixes on the user's word (sync-shared: B-774, B-771; recheck-tier: B-773), to stop double CI runs after dev syncs; evidence in B-720.
 
 ### B-772 · chore · Lighten the components tier: trim the New York zone run and slow component tests
 
@@ -3120,3 +3125,33 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (Robert Bo Davis): 2026-11-24, follow-up to hotfix/components-shard-3 (third shard). Since test-health-2 (B-372) web:components:ny reruns 53 timeline/medications/planner files in every components run: shards went 471/474s -> 704/877s. Options: narrow NY_INCLUDE to the zone-sensitive files every run and leave the rest to the release tier's zone-components jobs; profile the slowest component files (timeline, planner) for shared world setup or waits. Keep the second zone's daily value for its screens.
+
+### B-773 · chore · After a dev sync, the CI recheck runs only the tier dev's changes propose, not the wave's tier; a tooling-only sync needs no CI rerun (fixes-bug 82a3cf1b reran components 9m after a scripts-only sync)
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-24 (Robert Bo Davis): Triaged 2026-11-24 from the user's question on double CI runs; evidence in B-720. fixes-tooling: CI and sync tooling.
+- 2026-11-24 (Robert Bo Davis): 2026-11-24: taken by hotfixes on the user's word (sync-shared: B-774, B-771; recheck-tier: B-773), to stop double CI runs after dev syncs; evidence in B-720.
+
+### B-774 · chore · A PRD's own plan file on dev doesn't count as a shared file when deciding whether a sync must merge (plans/fixes-bug-plan.md was the only overlap at 82a3cf1b)
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-24 (Robert Bo Davis): Triaged 2026-11-24 from the user's question on double CI runs; evidence in B-720. fixes-tooling: CI and sync tooling.
+- 2026-11-24 (Robert Bo Davis): 2026-11-24: taken by hotfixes on the user's word (sync-shared: B-774, B-771; recheck-tier: B-773), to stop double CI runs after dev syncs; evidence in B-720.
+
+### B-775 · chore · Sync dev before a wave's CI run, not after, so a wave that needs a sync runs its tier once (2026-11-24: test-health-2, sync-safety, symptom-catalog, fixes-bug each ran twice, test-health-2 slice 5 three times)
+
+- status: dropped
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-24 (Robert Bo Davis): Triaged 2026-11-24 from the user's question on double CI runs; evidence in B-720. fixes-tooling: CI and sync tooling.
+- 2026-11-24 (Robert Bo Davis): Dropped 2026-11-24 (the user): orchestrator.md already syncs before the wave's run; the second run comes from dev moving during the run, covered by B-773 and B-774 (hotfixes sync-shared and recheck-tier).
