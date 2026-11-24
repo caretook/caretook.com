@@ -18,7 +18,8 @@
 //   - plan: `new.sh plan <topic>`, then a managed, run-through planner
 //     (session.sh plan-<t> --auto --managed, --model opus or fable for a `design` row, prompt.sh plan <t>
 //     --auto) the same way; no item ids: the prompt reads the topic's items;
-//   - reopen: the opener (`open-session.sh <worktree> --background`), counted;
+//   - reopen: the opener (`open-session.sh <worktree> --background`), counted
+//     once its tab opens;
 //   - keep-alive (keep-alive.mjs), beside the pick and outside the PRD slots:
 //     a fresh managed backlog session, and the inbox session (once its folder
 //     is trusted), through the opener when none is live, or its own question
@@ -33,7 +34,11 @@
 //     CARETOOK_ASK_NOTIFY still fire). Its answer is acted on in a later tick:
 //     "reopen again" resets the count, "hold the topic" flags the row `hold`.
 // The session record (managed, auto) is written before a new session's tab
-// opens, so a tab that never starts is reopened like a dead session.
+// opens, so a tab that opens but never starts is reopened like a dead session.
+// An opener that fails (the tab never opened) is no death: a reopen isn't
+// counted, a kept session's quick deaths stay as they were, and a start's or
+// plan's worktree made on that tick is removed (rm.sh); one line is logged and
+// a later tick tries again. So is one whose new.sh failed after making it.
 //
 // Each tick also follows up on managed orchestrators, backlog and inbox sessions that
 // stay over the context limit (dispatch-context.mjs): a nudge, a defaulting
@@ -69,6 +74,7 @@ import {
   mkdirSync,
   readFileSync,
   renameSync,
+  rmdirSync,
   statSync,
   unlinkSync,
   writeFileSync,
@@ -76,7 +82,7 @@ import {
 import { basename, delimiter, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dismissAsk, getAsk, listAsks, settleDue } from "./asks.mjs";
-import { contextDirOf, limitOf, sizeRecord, updateRecord } from "./context.mjs";
+import { contextDirOf, hardLimitOf, limitOf, sizeRecord, updateRecord } from "./context.mjs";
 import { CONTEXT_OPTIONS, CONTEXT_SESSION, commandUnder, contextDecision } from "./dispatch-context.mjs";
 import { DISPATCH_SESSION, KEEP_SESSION, REOPEN_OPTIONS, formatPick, pick } from "./dispatch-pick.mjs";
 import { briefProblem } from "./rotate.mjs";
@@ -241,26 +247,75 @@ export function lockHolder(/** @type {string} */ lock) {
   }
 }
 
-/** Takes the lock for this process: { ok: true, took?: pid } or { ok: false, pid } (another runs). */
-export function takeLock(/** @type {string} */ lock) {
+/** How long a takeover guard may stand before it counts as a crashed taker's and is removed. */
+export const TAKEOVER_STALE_MS = 10_000;
+/** How long a taker waits for another's takeover guard before it gives up. */
+const TAKEOVER_WAIT_MS = 2_000;
+
+const pause = (/** @type {number} */ ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+/**
+ * Takes the lock: { ok: true } or { ok: false, pid } (another runs; 0 when a
+ * racing taker's takeover outlasts the wait). A dead holder's lock is taken over
+ * under a guard directory (`<lock>.takeover`, made atomically): only the guard's
+ * holder re-reads the lock, removes a still-dead holder's and writes its own, so
+ * of two takers racing over one stale lock exactly one holds it (B-454). A guard
+ * older than TAKEOVER_STALE_MS is a crashed taker's and is removed.
+ * `between` (tests only) runs after the stale holder is read, before the takeover.
+ */
+export function takeLock(
+  /** @type {string} */ lock,
+  /** @type {{ pid?: number, between?: () => void }} */ { pid = process.pid, between } = {},
+) {
   mkdirSync(dirname(lock), { recursive: true });
-  for (let i = 0; i < 2; i++) {
+  const guard = `${lock}.takeover`;
+  const deadline = Date.now() + TAKEOVER_WAIT_MS;
+  for (;;) {
     try {
-      writeFileSync(lock, `${process.pid}\n`, { flag: "wx" });
+      writeFileSync(lock, `${pid}\n`, { flag: "wx" });
       return { ok: true };
     } catch (e) {
       if (/** @type {NodeJS.ErrnoException} */ (e).code !== "EEXIST") throw e;
-      const holder = lockHolder(lock);
-      if (holder && holder !== process.pid) return { ok: false, pid: holder };
-      // A dead holder's lock: taken over.
+    }
+    const holder = lockHolder(lock);
+    if (holder && holder !== pid) return { ok: false, pid: holder };
+    between?.();
+    try {
+      mkdirSync(guard);
+    } catch (e) {
+      if (/** @type {NodeJS.ErrnoException} */ (e).code !== "EEXIST") throw e;
+      // Another taker is mid-takeover: wait for it, or clear a crashed one's guard.
+      try {
+        if (Date.now() - statSync(guard).mtimeMs > TAKEOVER_STALE_MS) rmdirSync(guard);
+      } catch {
+        /* its taker just finished */
+      }
+      if (Date.now() > deadline) return { ok: false, pid: lockHolder(lock) ?? 0 };
+      pause(20);
+      continue;
+    }
+    try {
+      // Re-read under the guard: a racing taker may have taken it since.
+      const now = lockHolder(lock);
+      if (now && now !== pid) return { ok: false, pid: now };
       try {
         unlinkSync(lock);
       } catch {
-        /* another taker removed it */
+        /* already gone */
+      }
+      writeFileSync(lock, `${pid}\n`, { flag: "wx" });
+      return { ok: true };
+    } catch (e) {
+      if (/** @type {NodeJS.ErrnoException} */ (e).code !== "EEXIST") throw e;
+      return { ok: false, pid: lockHolder(lock) ?? 0 };
+    } finally {
+      try {
+        rmdirSync(guard);
+      } catch {
+        /* gone */
       }
     }
   }
-  return { ok: false, pid: lockHolder(lock) ?? 0 };
 }
 
 const releaseLock = (/** @type {string} */ lock) => {
@@ -367,7 +422,8 @@ function contextStep(
   if (env.CARETOOK_CONTEXT_WATCH === "off") return false;
   const now = g.facts.now;
   const dir = contextDirOf(p.sessions);
-  const limit = limitOf(env);
+  // The follow-up starts at the hard limit; the hook alone handles the soft one.
+  const limit = hardLimitOf(env);
   const waitMs = positive(env.CARETOOK_CONTEXT_NUDGE_MIN, 15) * 60_000;
   const entries = readState(p.state).context ?? {};
   const sessions = g.records.map((r) => ({
@@ -414,6 +470,8 @@ function contextStep(
     briefs,
     paused: g.facts.paused,
     limit,
+    // The inbox session's one limit is the soft one: its follow-up starts there.
+    inboxLimit: limitOf(env),
     waitMs,
     now,
   });
@@ -467,7 +525,7 @@ function contextStep(
         CONTEXT_SESSION,
         ...CONTEXT_OPTIONS.flatMap((o) => ["--option", o]),
         "--recommend",
-        CONTEXT_OPTIONS[0],
+        a.recommend,
         "--defaults",
       ]);
       const id = r.ok ? r.out.split("\n")[0].trim() : "";
@@ -645,7 +703,19 @@ function requestStep(
       now,
     });
   } catch (e) {
-    out(`  its notice failed (ignored): ${e instanceof Error ? e.message : String(e)}`);
+    // The requester reads it in `pnpm prd session requests`.
+    const noticeFailed = e instanceof Error ? e.message : String(e);
+    out(`  its notice failed: ${noticeFailed}`);
+    try {
+      settleRequest(p.requests, request.id, {
+        state: opened ? "opened" : "refused",
+        ...(opened ? {} : { why }),
+        noticeFailed,
+        now,
+      });
+    } catch {
+      // The request is settled already; only its note is lost.
+    }
   }
   return true;
 }
@@ -697,9 +767,18 @@ export function tick(
         out(
           r.ok
             ? `ask ${id} answered "${a.answer}": ${topic} flagged hold`
-            : `ask ${id} answered "${a.answer}", but flagging ${topic} hold failed: ${r.err || r.out}`,
+            : `ask ${id} answered "${a.answer}", but flagging ${topic} hold failed (retried next tick): ${r.err || r.out}`,
         );
-        if (row && r.ok) row.flags = flags;
+        if (!r.ok) {
+          // Kept for the next tick's retry: the answer and the count stay, and
+          // this tick's pick sees the ask as still open, so the topic is skipped.
+          facts.asks = [
+            ...facts.asks.filter((x) => x.id !== id),
+            { ...a, answeredAt: null, doneAt: null, defaulted: false },
+          ];
+          continue;
+        }
+        if (row) row.flags = flags;
       } else if (what === "reset") out(`ask ${id} answered "${a.answer}": ${session} may be reopened again`);
       else
         out(
@@ -812,6 +891,9 @@ export function tick(
     });
   const result = (/** @type {{ ok: boolean, code: number | null, out: string, err: string }} */ r) =>
     r.ok ? r.out.split("\n").pop() || "ok" : `failed (exit ${r.code}): ${(r.err || r.out).split("\n").pop()}`;
+  /** An opener that exited non-zero: the tab never opened (no death, no count; a later tick retries). */
+  const neverOpened = (/** @type {{ ok: boolean, code: number | null, out: string, err: string }} */ r) =>
+    `its tab never opened, not counted as a death (${result(r)}); a later tick retries`;
 
   let keptActed = false;
   for (const d of keepDecisions) {
@@ -827,6 +909,7 @@ export function tick(
         continue;
       }
       keptActed = true;
+      const before = readState(p.state).keepAlive?.[d.kind];
       writeRecord(p.sessions, d.kind, {
         kind: d.kind,
         managed: true,
@@ -840,7 +923,14 @@ export function tick(
         s.keepAlive = { ...s.keepAlive, [d.kind]: { deaths: d.deaths ?? 0, openedAt: now } };
       });
       const r = run("bash", [join(bin, "open-session.sh"), d.kind, "--background"], { cwd: p.main });
-      out(`  ${d.kind}: ${result(r)}`);
+      // A tab that never opened is no quick death: the entry goes back as it was.
+      if (!r.ok)
+        updateState(p.state, (s) => {
+          s.keepAlive = { ...s.keepAlive };
+          if (before) s.keepAlive[d.kind] = before;
+          else delete s.keepAlive[d.kind];
+        });
+      out(`  ${d.kind}: ${r.ok ? result(r) : neverOpened(r)}`);
     } else if (d.action === "ask") {
       keptActed = true;
       // It waits, like the reopen question: an open burns usage, so it never defaults.
@@ -894,9 +984,23 @@ export function tick(
       const name = kind === "prd" ? topic : `plan-${topic}`;
       const session = `${kind}-${topic}`;
       const dir = join(p.loops, name);
-      if (!existsSync(dir)) {
+      const fresh = !existsSync(dir);
+      // Undoes this tick's worktree (rm.sh takes its record too), leaving the
+      // registry row alone (--no-registry: a fresh prd/ branch counts as merged,
+      // so rm.sh could mark the topic done or clear a standing row's hot files).
+      const undo = (/** @type {boolean} */ force) => {
+        const gone = run("bash", [join(bin, "rm.sh"), name, "--no-registry", ...(force ? ["--force"] : [])], {
+          cwd: p.main,
+        });
+        return gone.ok ? `; ${name} removed` : `; removing ${name} ${result(gone)}`;
+      };
+      if (fresh) {
         const made = run("bash", [join(bin, "new.sh"), kind, topic], { cwd: p.main });
-        out(`  new.sh ${kind} ${topic}: ${result(made)}`);
+        // A new.sh that failed after making the worktree: it goes (forced: it
+        // holds nothing but this tick's half setup), so no worktree without a
+        // managed record holds a slot as one opened by hand; a later tick retries.
+        const partial = !made.ok && existsSync(dir) ? undo(true) : "";
+        out(`  new.sh ${kind} ${topic}: ${result(made)}${partial}`);
         if (!made.ok) break;
       }
       writeRecord(p.sessions, session, { kind, topic, managed: true, auto: true });
@@ -905,14 +1009,16 @@ export function tick(
         sessionLine({ kind, topic, dir, wrapper: join(bin, "session.sh"), model }),
         session,
       );
-      out(`  ${session}: ${result(opened)}`);
+      if (opened.ok) out(`  ${session}: ${result(opened)}`);
+      else {
+        // The tab never opened: not a death. The worktree made for it goes, so it
+        // holds no slot and a later tick starts again.
+        out(`  ${session}: ${neverOpened(opened)}${fresh ? undo(false) : ""}`);
+      }
       break;
     }
     case "reopen": {
       const session = /** @type {string} */ (choice.session);
-      updateState(p.state, (s) => {
-        s.reopens = { ...s.reopens, [session]: (s.reopens?.[session] ?? 0) + 1 };
-      });
       const r = run(
         "bash",
         [join(bin, "open-session.sh"), /** @type {string} */ (choice.worktree), "--background"],
@@ -920,7 +1026,12 @@ export function tick(
           cwd: p.main,
         },
       );
-      out(`  ${session}: ${result(r)}`);
+      // Counted only once its tab opened: one that never did is retried uncounted.
+      if (r.ok)
+        updateState(p.state, (s) => {
+          s.reopens = { ...s.reopens, [session]: (s.reopens?.[session] ?? 0) + 1 };
+        });
+      out(`  ${session}: ${r.ok ? result(r) : neverOpened(r)}`);
       break;
     }
     case "ask": {
