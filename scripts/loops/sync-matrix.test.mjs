@@ -6,10 +6,15 @@ import {
   CONDITION_MANAGER_NAMESPACE,
   ENTRY_PROVIDER_NAMESPACE,
   MEDICATION_CONDITION_NAMESPACE,
+  SERVER_SET_COLUMNS,
   SYNC_MATRIX,
+  columnMismatches,
   conditionManagerId,
   entryProviderId,
+  exceptionProblems,
   medicationConditionId,
+  streamColumns,
+  writtenRow,
 } from "../browser-checks/sync-matrix.mjs";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
@@ -95,5 +100,79 @@ describe("the sync matrix", () => {
       "2f4e1d7a-0c3b-4a5e-9d8f-1a2b3c4d5e71",
     ];
     expect(conditionManagerId(condition, provider)).toBe(data.conditionManagerId(condition, provider));
+  });
+});
+
+describe("the matrix's column comparison", () => {
+  const config = read("../../powersync/sync-config.yaml");
+  const streams = streamColumns(config);
+  const deviceWritten = SYNC_MATRIX.filter((r) => r.by === "device").map((r) => r.table);
+
+  it("reads each table's streamed columns as packages/data's sync config reader does", async () => {
+    const { syncedColumns } = await import("../../packages/data/src/db/roles/syncConfig.ts");
+    const { schemaTables } = await import("../../packages/data/src/db/roles/schemaTables.ts");
+    const full = syncedColumns(config, schemaTables());
+    expect([...streams.keys()].sort()).toEqual(full.map((t) => t.table).sort());
+    for (const { table, columns } of full)
+      expect([...(streams.get(table) ?? [])].sort()).toEqual([...columns].sort());
+  });
+
+  it("streams every matrix table", () => {
+    expect(SYNC_MATRIX.map((r) => r.table).filter((t) => !streams.has(t))).toEqual([]);
+  });
+
+  it("names only columns the streams send in its server-set exceptions", () => {
+    expect(exceptionProblems(SERVER_SET_COLUMNS, streams, deviceWritten)).toEqual([]);
+    expect(Object.keys(SERVER_SET_COLUMNS).filter((t) => t !== "*" && !deviceWritten.includes(t))).toEqual(
+      [],
+    );
+  });
+
+  it("fails an exception naming a column the stream doesn't send, or a table no stream sends", () => {
+    const bad = {
+      ...SERVER_SET_COLUMNS,
+      provider: { nickname: "made up" },
+      "*": { ...SERVER_SET_COLUMNS["*"], synced_at: "made up" },
+      reminder: { id: "made up" },
+    };
+    const problems = exceptionProblems(bad, streams, deviceWritten);
+    expect(problems).toContain("provider.nickname: its stream doesn't send this column");
+    expect(problems).toContain("reminder: no stream sends this table");
+    expect(
+      problems.filter((p) => p.endsWith(".synced_at: its stream doesn't send this column")),
+    ).toHaveLength(deviceWritten.length);
+  });
+
+  it("reads the row an INSERT writes", () => {
+    const [row] = SYNC_MATRIX.filter((r) => r.table === "provider");
+    const ctx = { tag: "T", groupId: "g", recipientId: "r", userId: "u", now: "n", ids: { provider: "p" } };
+    expect(writtenRow(row.write(ctx))).toMatchObject({
+      id: "p",
+      group_id: "g",
+      name: "T matrix provider",
+      phones: "[]",
+    });
+  });
+
+  it("fails a dropped or changed column, and passes JSON Postgres reformatted", () => {
+    const columns = ["id", "name", "phones", "schedule", "created_at"];
+    const written = {
+      id: "1",
+      name: "Ann",
+      phones: "[]",
+      schedule: '{"type":"asNeeded","at":1}',
+      created_at: "t0",
+    };
+    const skip = { created_at: "server-set" };
+    const same = { ...written, schedule: '{"at": 1, "type": "asNeeded"}', created_at: "t1" };
+    expect(columnMismatches(written, same, columns, skip)).toEqual([]);
+    expect(columnMismatches(written, { ...same, name: null }, columns, skip)).toEqual(['name: "Ann" → null']);
+    expect(columnMismatches(written, { ...same, phones: '["1"]' }, columns, skip)).toEqual([
+      'phones: "[]" → "[\\"1\\"]"',
+    ]);
+    expect(columnMismatches(written, same, columns)).toEqual(['created_at: "t0" → "t1"']);
+    expect(columnMismatches(written, { ...same, via: "mcp" }, [...columns, "via"], skip)).toEqual([
+      'via: null → "mcp"',
+    ]);
   });
 });
