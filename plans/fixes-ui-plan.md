@@ -21,23 +21,23 @@ Notes for every wave:
 - Run checks with `NODE_OPTIONS=--max-old-space-size=6144` until B-576 is confirmed fixed.
 - Small tidy for a later slice: stale comments in `lib/providers/contactActions.ts` and `components/providers/ContactActions.tsx` still mention directory rows.
 
-| Slice | Item  | State    | Merge |
-| ----- | ----- | -------- | ----- |
-| 34    | B-594 | starting |       |
-| 35    | B-672 | blocked  |       |
-| 36    | B-673 | starting |       |
-| 37    | B-679 | starting |       |
-| 38    | B-664 | starting |       |
-| 39    | B-636 | starting |       |
-| 40    | B-621 | starting |       |
-| 41    | B-676 | starting |       |
-| 42    | B-762 | blocked  |       |
-| 43    | B-617 | starting |       |
-| 44    | B-756 | starting |       |
-| 45    | B-691 | starting |       |
-| 46    | B-692 | blocked  |       |
-| 47    | B-736 | starting |       |
-| 48    | B-737 | blocked  |       |
+| Slice | Item  | State              | Merge |
+| ----- | ----- | ------------------ | ----- |
+| 34    | B-594 | in progress (opus) |       |
+| 35    | B-672 | blocked            |       |
+| 36    | B-673 | in progress (opus) |       |
+| 37    | B-679 | in progress (opus) |       |
+| 38    | B-664 | in progress (opus) |       |
+| 39    | B-636 | in progress (opus) |       |
+| 40    | B-621 | in progress (opus) |       |
+| 41    | B-676 | in progress (opus) |       |
+| 42    | B-762 | blocked            |       |
+| 43    | B-617 | in progress (opus) |       |
+| 44    | B-756 | in progress (opus) |       |
+| 45    | B-691 | in progress (opus) |       |
+| 46    | B-692 | blocked            |       |
+| 47    | B-736 | in progress (opus) |       |
+| 48    | B-737 | blocked            |       |
 
 ## Wave 1 (written 2026-11-22 by the orchestrator, from the triaged fixes-ui items)
 
