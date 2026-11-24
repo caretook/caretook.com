@@ -370,6 +370,9 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 | B-763 | bug | triaged | fixes-ui |  | On installed PWA on iOS, the bottom navigation bar floats too high up; it needs to be closer to the… |
 | B-764 | change | triaged | fixes-perf |  | App first load is way too long. |
 | B-765 | feature | triaged | fixes-ui |  | Ability to open live notes full screen. |
+| B-766 | bug | triaged | fixes-tooling |  | pnpm prd help prints 'design: command not found': backticks in prd.sh's unquoted help heredoc run as commands |
+| B-767 | bug | triaged | fixes-tooling |  | A backlog amend repeats the Backlog-Tool trailer in the commit message |
+| B-768 | bug | triaged | fixes-tooling |  | slice-fields.mjs warns on a slice fields line that carries Blocked by |
 
 ## Items
 
@@ -3039,3 +3042,30 @@ The PRD registry: **row order is the priority**. Edit it only with `pnpm backlog
 - commit:
 
 - 2026-11-24 (Robert Bo Davis): Triage: a full-screen view for a live note; a small flow addition, no data change.
+
+### B-766 · bug · pnpm prd help prints 'design: command not found': backticks in prd.sh's unquoted help heredoc run as commands
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-24 (prd/fixes-tooling): Seen after slice 44 (B-598) in wave 6: scripts/loops/prd.sh line 17. Quote the heredoc delimiter or escape the backticks.
+
+### B-767 · bug · A backlog amend repeats the Backlog-Tool trailer in the commit message
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-24 (prd/fixes-tooling): Seen in slice 46 (B-464) of wave 6: amending a pnpm backlog commit appends a second Backlog-Tool trailer instead of keeping one.
+
+### B-768 · bug · slice-fields.mjs warns on a slice fields line that carries Blocked by
+
+- status: triaged
+- prd: fixes-tooling
+- owner:
+- commit:
+
+- 2026-11-24 (prd/fixes-tooling): Seen in wave 6 (slice-brief work, B-595): a valid 'Blocked by' on a slice's fields line draws a warning; it should be a known field.
