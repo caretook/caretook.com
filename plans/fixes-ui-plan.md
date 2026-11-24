@@ -34,7 +34,7 @@ Notes for every wave:
 | 42    | B-762 | blocked            |       |
 | 43    | B-617 | in progress (opus) |       |
 | 44    | B-756 | handed off 97ae1c89 |       |
-| 45    | B-691 | in progress (opus) |       |
+| 45    | B-691 | handed off 30dc31be (touches ui/Popover.tsx: all popovers scroll inside) |       |
 | 46    | B-692 | blocked            |       |
 | 47    | B-736 | in progress (opus) |       |
 | 48    | B-737 | blocked            |       |
