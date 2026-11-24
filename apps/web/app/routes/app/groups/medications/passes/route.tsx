@@ -67,7 +67,7 @@ export function shouldRevalidate({
 export default function MedicationPasses({ loaderData, params }: Route.ComponentProps) {
   const group = useGroup();
   const passes = usePasses(params.groupId, loaderData);
-  const today = useTodayPasses(params.groupId, loaderData.due);
+  const { today, timeZone } = useTodayPasses(params.groupId, loaderData.due);
   const nameOf = useMemberNames(params.groupId, group.userId);
   // The edit sheet's pass (adding is the `new` route's sheet).
   const [editing, setEditing] = useState<LocalPass | null>(null);
@@ -86,6 +86,7 @@ export default function MedicationPasses({ loaderData, params }: Route.Component
         groupId={params.groupId}
         passes={passes}
         today={today}
+        timeZone={timeZone}
         canWrite={group.canWrite}
         nameOf={nameOf}
         onEdit={setEditing}

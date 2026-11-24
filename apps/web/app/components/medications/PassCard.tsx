@@ -8,7 +8,6 @@ import { useId, useState } from "react";
 import { Badge, Button, Chevron, Collapse, Message, STATUS_TONE, TITLE_SECTION } from "~/components/ui";
 import {
   clockTime,
-  extraDoseText,
   givenAllLabel,
   listText,
   medicationTitle,
@@ -18,7 +17,7 @@ import {
 } from "~/lib/medications/medicationDisplay";
 import { passLogIdFor } from "~/lib/medications/duePasses";
 import { DoseSlotRow } from "./DoseSlotRow";
-import { ExtraDoseWarning } from "./ExtraDoseWarning";
+import { PassExtraDoseWarnings } from "./ExtraDoseWarning";
 import { usePassLog } from "./usePassLog";
 
 /** A pass state's badge tone (here and on the Passes tab). */
@@ -63,11 +62,6 @@ export function PassCard({
   const listId = useId();
   const title = passTitle(pass);
   const logged = passLoggedText(pass, nameOf);
-  // Shown on the card itself, so a double dose reads without opening it.
-  const twice = pass.slots.flatMap((slot) => {
-    const text = extraDoseText(slot, timeZone);
-    return text ? [{ id: slot.medication.id, text: `${medicationTitle(slot.medication)}: ${text}` }] : [];
-  });
 
   return (
     <section
@@ -117,9 +111,8 @@ export function PassCard({
             <Chevron open={expanded} closed="down" />
           </Button>
         </div>
-        {twice.map((t) => (
-          <ExtraDoseWarning key={t.id} text={t.text} className="w-full" />
-        ))}
+        {/* On the card itself, so a double dose reads without opening it. */}
+        <PassExtraDoseWarnings pass={pass} timeZone={timeZone} className="w-full" />
         {error && (
           <Message tone="error" className="w-full">
             {error}
