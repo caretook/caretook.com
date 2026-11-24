@@ -475,6 +475,37 @@ describe("the floating tab bar", () => {
     await toast.unmount();
   });
 
+  // Headless Chromium has no safe area, so the inset is simulated through
+  // `--tab-bar-inset` (app.css reads `env(safe-area-inset-bottom)` into it).
+  test.each([
+    ["no inset", null, 12],
+    ["a 34px inset (an iPhone's home indicator)", "34px", 34],
+  ] as const)(
+    "at 420 with %s: the bar sits just above it, the spacer following",
+    async (_, inset, expected) => {
+      if (inset) document.documentElement.style.setProperty("--tab-bar-inset", inset);
+      try {
+        await open();
+        await expect.element(page.getByText("Slept well")).toBeVisible();
+        const b = bar().getBoundingClientRect();
+        const offset = innerHeight - b.bottom;
+        if (inset) {
+          // The inset plus at most 8px, not the full gap on top of it.
+          expect(offset).toBeGreaterThanOrEqual(expected);
+          expect(offset).toBeLessThanOrEqual(expected + 8);
+        } else {
+          // Today's 12px gap.
+          expect(offset).toBeCloseTo(expected, 0);
+        }
+        // The spacer reserves the bar, its offset and the gap above it.
+        const spacer = document.querySelector("[data-tab-bar-spacer]")!.getBoundingClientRect();
+        expect(spacer.height).toBeCloseTo(innerHeight - b.top + 12, 0);
+      } finally {
+        document.documentElement.style.removeProperty("--tab-bar-inset");
+      }
+    },
+  );
+
   test.each(["light", "dark"] as const)(
     "in %s: the bar's surface stands off the page and from a card; resting icons clear 4.5:1 and the current one 3:1; the current one has a fill of its own",
     async (theme) => {
