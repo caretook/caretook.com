@@ -59,7 +59,9 @@ describe("the test device", () => {
     await expect.element(device.screen.getByText("Sore knee")).toBeVisible();
     await removeEntry(device.db, note.id);
     await expect.element(device.screen.getByText("Walked to the mailbox")).not.toBeInTheDocument();
+    // A new symptom name joins the group's catalog in the same write (symptom-catalog).
     expect((await device.queued()).map((w) => [w.op, w.type])).toEqual([
+      ["PUT", "symptom_type"],
       ["PUT", "timeline_entry"],
       ["PATCH", "timeline_entry"],
     ]);
