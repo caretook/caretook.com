@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { found, waitUntil } from "../../../../../../test/found";
 import { renderWithDevice } from "../../../../../../test/device";
 import { allergy } from "../../../../../../test/fixtures";
@@ -200,6 +200,18 @@ describe("the name field's warning", () => {
     await expect.poll(warning).toBe("Matches an allergy on file: Penicillin (severe)");
     await userEvent.fill(await found(() => field("name")), "Amoxicillin");
     await expect.poll(warning).toBe(null);
+  });
+
+  test("picking a suggested name that matches an allergy warns too", async () => {
+    await open(`${LIST}/new`, {
+      fixtures: [world(), allergy({ substance: "Ibuprofen", severity: "severe" })],
+    });
+    await waitUntil(() => !!FORM(), "the add sheet");
+    await userEvent.fill(await found(() => field("name")), "ibu");
+    await expect.poll(warning).toBe(null);
+    await userEvent.click(page.getByRole("option", { name: "Ibuprofen", exact: true }));
+    await expect.poll(() => field("name")?.value).toBe("Ibuprofen");
+    await expect.poll(warning).toBe("Matches an allergy on file: Ibuprofen (severe)");
   });
 
   test("renaming a medication to a matching name warns (not an error) and still saves", async () => {

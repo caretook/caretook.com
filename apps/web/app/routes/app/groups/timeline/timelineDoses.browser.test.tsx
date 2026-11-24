@@ -476,6 +476,23 @@ describe("the Dose sheet's + New medication", () => {
     await expect.poll(() => NAME()?.getAttribute("aria-invalid")).not.toBe("true");
   });
 
+  test("a picked name matching an allergy warns too, and the pick fills the name only", async () => {
+    await open({
+      query: "?kind=dose",
+      fixtures: [doseWorld(), allergy({ substance: "Ibuprofen", severity: "severe" })],
+    });
+    await pickNew();
+    await userEvent.click(await found(NAME));
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
+    await userEvent.keyboard("ibu");
+    expect(SHEET()!.textContent).not.toContain("Matches an allergy on file");
+    await userEvent.click(page.getByRole("option", { name: "Ibuprofen", exact: true }));
+    await expect.poll(() => NAME()?.value).toBe("Ibuprofen");
+    await expect.poll(() => SHEET()!.textContent).toContain("Matches an allergy on file: Ibuprofen (severe)");
+    expect(NEW_DOSE()!.value).toBe("");
+    expect(AMOUNT().value).toBe("");
+  });
+
   test("an empty name is refused on its field, and nothing is written", async () => {
     const device = await open({ query: "?kind=dose" });
     await pickNew();
