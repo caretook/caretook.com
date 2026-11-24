@@ -10,12 +10,12 @@
 | 2     | 1    | landed (opus) in dev `24440550`, PR #134 | `935bc723` (`4b98c644`)                      |
 | 3     | 2    | landed (opus) in dev `fb6688e6`, PR #137 | `8a2b35bc` (`edb5cd93`, `54c810c3`)          |
 | 4     | 3    | landed (opus) in dev `faadbc1b`, PR #139 | `b57c2f99` (`336f9121`)                      |
-| 5     | 4    | started (opus) 2026-11-24, B-515 claimed | —                                            |
+| 5     | 4    | merged (opus), B-515 done                | `2a3d7845` (`47bdd9a5`)                      |
 | 6     | 5    | —                                        | —                                            |
 
 **Landing mode:** run everything through (started run-through): start every ready slice, land each green wave, clean up, ask only real questions through `pnpm prd ask`.
 
-**Wave 4 (2026-11-24):** slice 5 started: worktree `inbox-agent-5`, agent spawned on opus, B-515 claimed. Ingest found nothing new; no items proposed.
+**Wave 4 (2026-11-24):** slice 5 handed off (`47bdd9a5`, quick check, test:tooling, eslint passed) and merged; B-515 done. Next: CI integration run on the tip, then sync, PR, land. Slice 5 notes: the dispatcher opens the inbox session only once its folder is trusted (read-only check of `~/.claude/projects` and `~/.claude.json`); else it tells the user to run `pnpm prd inbox` once by hand. Docs to fold: machinery (the pickup, `CARETOOK_PICKUP_EVERY`, the kept inbox session and its trust gate, `rotate --self` for inbox, `dir` in the session record); inbox (the hand-off line, the first open by hand). Slice 6 changes `prompt.sh` too (the inbox prompt's size test is 1900).
 
 **Hand-over (2026-11-24): wave 3 landed; start wave 4 (slice 5) next.** Wave 3 landed in dev as `faadbc1b` through PR #139 with `--no-review` (Codex out of credits), at CI integration green on `146487aa` (run 45370404316), after `sync --force` (`67239401`): land refused an unsynced tip under the stale B-729 brake notice n83 (B-729 is fixed). The landing report is filed; the to-test file is `to-test/2026-11-24-0504-inbox-agent.md`. Docs folded: `docs/agents/inbox.md`, its _Area index_ entry, an orchestration row, the inbox file's opening lines. B-425 done; `inbox-agent-4` removed. No slice in flight. Next: claim B-515 and start slice 5; it lands at integration (it touches `scripts/loops/`). Models: every slice on opus.
 
